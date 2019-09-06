@@ -23,4 +23,4 @@ let template =
 
 template
 |> Writer.toJson
-|> Writer.toFile @"arm-template.json"
+|> Writer.toFile @"webapp-storage.json"

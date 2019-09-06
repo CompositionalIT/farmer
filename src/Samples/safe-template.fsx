@@ -43,4 +43,4 @@ let template =
 
 template
 |> Writer.toJson
-|> Writer.toFile @"foo.json"
+|> Writer.toFile @"safe-template.json"
