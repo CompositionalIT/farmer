@@ -1,5 +1,7 @@
 namespace Farmer
 
+/// A Value is a reference to some value used by the ARM template. This can be a literal value,
+/// a reference to a parameter, or a reference to a variable.
 type Value =
     | Literal of string
     | Parameter of string
