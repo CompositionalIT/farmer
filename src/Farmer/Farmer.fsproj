@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Farmer.fs" />
+    <Compile Include="Builders.fs" />
+    <Compile Include="Writer.fs" />
+    <PackageReference Include="FSharp.Core" Version="4.6"/>
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.2"/>
+  </ItemGroup>
+</Project>
