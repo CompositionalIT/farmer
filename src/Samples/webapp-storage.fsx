@@ -6,14 +6,14 @@ open Helpers
 let template =
     let myStorage = {
         Name = Literal "mystorage"
-        Sku = Storage.StandardLRS
+        Sku = Storage.Sku.StandardLRS
     }
 
     let myWebApp = webApp {
-        name (Literal "mysuperwebapp")
-        service_plan_name (Literal "myserverfarm")
-        sku WebApp.Skus.F1
-        use_app_insights (Literal "myappinsights")
+        name "mysuperwebapp"
+        service_plan_name "myserverfarm"
+        sku WebApp.Sku.F1
+        use_app_insights "myappinsights"
     }
 
     arm {

@@ -6,7 +6,7 @@ let template =
     let withPostfix element = concat [ Variable "prefix"; Literal element ]
     let myStorageAccount =
         { Name = Variable "storage"
-          Sku = Helpers.Storage.StandardLRS }
+          Sku = Helpers.Storage.Sku.StandardLRS }
 
     let web = webApp {
         name (Variable "web")
@@ -15,8 +15,8 @@ let template =
 
         use_app_insights (Variable "insights")
 
-        website_node_default_version (Literal "8.1.4")
-        setting "public_path" (Literal "./public")
+        website_node_default_version "8.1.4"
+        setting "public_path" "./public"
         setting "STORAGE_CONNECTIONSTRING" myStorageAccount.Key
 
         depends_on myStorageAccount.DependencyPath

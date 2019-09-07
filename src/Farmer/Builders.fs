@@ -4,7 +4,7 @@ open Farmer.Internal
 
 module Helpers =
     module WebApp =
-        module Skus =
+        module Sku =
             let F1 = Literal "F1"
             let B1 = Literal "B1"
             let B2 = Literal "B2"
@@ -24,7 +24,6 @@ module Helpers =
 
         let PublishingPassword (webSite:Value) =
             sprintf "[list(resourceId('Microsoft.Web/sites/config', %s, 'publishingcredentials'), '2014-06-01').properties.publishingPassword]" webSite.QuotedValue
-            |> Literal
 
         module AppSettings =
             let WebsiteNodeDefaultVersion version = "WEBSITE_NODE_DEFAULT_VERSION", version
@@ -36,14 +35,15 @@ module Helpers =
                 accountName.QuotedValue
                 accountName.QuotedValue
 
-        let StandardLRS = Literal "Standard_LRS"
-        let StandardGRS = Literal "Standard_GRS"
-        let StandardRAGRS = Literal "Standard_RAGRS"
-        let StandardZRS = Literal "Standard_ZRS"
-        let StandardGZRS = Literal "Standard_GZRS"
-        let StandardRAGZRS = Literal "Standard_RAGZRS"
-        let PremiumLRS = Literal "Premium_LRS"
-        let PremiumZRS = Literal "Premium_ZRS"
+        module Sku =
+            let StandardLRS = Literal "Standard_LRS"
+            let StandardGRS = Literal "Standard_GRS"
+            let StandardRAGRS = Literal "Standard_RAGRS"
+            let StandardZRS = Literal "Standard_ZRS"
+            let StandardGZRS = Literal "Standard_GZRS"
+            let StandardRAGZRS = Literal "Standard_RAGZRS"
+            let PremiumLRS = Literal "Premium_LRS"
+            let PremiumZRS = Literal "Premium_ZRS"
     module AppInsights =
         let instrumentationKey (accountName:Value) =
             sprintf "[reference(concat('Microsoft.Insights/components/', %s)).InstrumentationKey]" accountName.QuotedValue
@@ -91,14 +91,14 @@ type StorageAccount =
       Name : Value
       /// The sku of the storage account.
       Sku : Value }
-    member this.Key = Literal (Helpers.Storage.accountKey this.Name)
+    member this.Key = Helpers.Storage.accountKey this.Name
     member this.DependencyPath = StorageDependency, this.Name
 
 type WebAppBuilder() =
     member __.Yield _ =
         { Name = Literal ""
           ServicePlanName = Literal ""
-          Sku = Helpers.WebApp.Skus.F1
+          Sku = Helpers.WebApp.Sku.F1
           AppInsights = None
           RunFromPackage = false
           WebsiteNodeDefaultVersion = None
@@ -110,24 +110,29 @@ type WebAppBuilder() =
     /// Sets the name of the web app; use the `name` keyword.
     [<CustomOperation "name">]
     member __.Name(state:WebAppConfig, name:Value) = { state with Name = name }
+    member this.Name(state:WebAppConfig, name:string) = this.Name(state, Literal name)
     /// Sets the name of service plan of the web app; use the `service_plan_name` keyword.
     [<CustomOperation "service_plan_name">]
     member __.ServicePlanName(state:WebAppConfig, name:Value) = { state with ServicePlanName = name }
+    member this.ServicePlanName(state:WebAppConfig, name:string) = this.ServicePlanName(state, Literal name)
     /// Sets the sku of the web app; use the `sku` keyword.
     [<CustomOperation "sku">]
     member __.Sku(state:WebAppConfig, sku:Value) = { state with Sku = sku }
     /// Creates a fully-configured application insights resource linked to this web app; use the `use_app_insights` keyword.
     [<CustomOperation "use_app_insights">]
     member __.UseAppInsights(state:WebAppConfig, name) = { state with AppInsights = Some name }
+    member this.UseAppInsights(state:WebAppConfig, name:string) = this.UseAppInsights(state, Literal name)
     /// Sets the web app to use run from package mode; use the `run_from_package` keyword.
     [<CustomOperation "run_from_package">]
     member __.RunFromPackage(state:WebAppConfig) = { state with RunFromPackage = true }
     /// Sets the node version of the web app; use the `website_node_default_version` keyword.
     [<CustomOperation "website_node_default_version">]
     member __.NodeVersion(state:WebAppConfig, version) = { state with WebsiteNodeDefaultVersion = Some version }
+    member this.NodeVersion(state:WebAppConfig, version) = this.NodeVersion(state, Literal version)
     /// Sets an app setting of the web app; use the `setting` keyword.
     [<CustomOperation "setting">]
     member __.AddSetting(state:WebAppConfig, key, value) = { state with Settings = state.Settings.Add(key, value) }
+    member this.AddSetting(state:WebAppConfig, key, value:string) = this.AddSetting(state, key, Literal value)
     /// Sets a dependency for the web app; use the `depends_on` keyword.
     [<CustomOperation "depends_on">]
     member __.DependsOn(state:WebAppConfig, (dependencyType, resourceName)) =
@@ -229,6 +234,8 @@ type ArmBuilder() =
     member __.Output (state, outputName, outputValue) : ArmConfig =
         { state with
             Outputs = (outputName, outputValue) :: state.Outputs }
+
+    member this.Output (state, outputName, outputValue) = this.Output(state, outputName, Literal outputValue)
 
     /// Sets the default location of all resources; use the `location` keyword.
     [<CustomOperation "location">]
