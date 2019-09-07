@@ -25,10 +25,10 @@ This is an example Farmer value:
 ```fsharp
 /// Create a web application resource
 let myWebApp = webApp {
-    name (Literal "mysuperwebapp")
-    service_plan_name (Literal "myserverfarm")
-    sku WebApp.Skus.F1
-    use_app_insights (Literal "myappinsights")
+    name "mysuperwebapp"
+    service_plan_name "myserverfarm"
+    sku WebApp.Sku.F1
+    use_app_insights "myappinsights"
 }
 
 /// The overall ARM template which has the webapp as a resource.
@@ -40,7 +40,7 @@ let template = arm {
 /// Export the template to a file.
 template
 |> Writer.toJson
-|> Writer.toFile @"webapp-appinsights.json"
+|> Writer.toFile "webapp-appinsights.json"
 ```
 
 It does the following:
