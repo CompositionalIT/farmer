@@ -1,7 +1,7 @@
 ﻿open Farmer
 open Helpers
 
-/// A web app
+/// A web app with app insights
 let myWebApp = webApp {
     name "mysuperwebapp"
     service_plan_name "myserverfarm"

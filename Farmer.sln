@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29201.188
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Farmer", "src\Farmer\Farmer.fsproj", "{4DF43315-C184-4426-84A4-BAB8ED2F635C}"
+EndProject
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "SampleApp", "src\SampleApp\SampleApp.fsproj", "{B2ACD46C-02D4-4F77-8871-4AEE0AAA69A1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4DF43315-C184-4426-84A4-BAB8ED2F635C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4DF43315-C184-4426-84A4-BAB8ED2F635C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4DF43315-C184-4426-84A4-BAB8ED2F635C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4DF43315-C184-4426-84A4-BAB8ED2F635C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B2ACD46C-02D4-4F77-8871-4AEE0AAA69A1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B2ACD46C-02D4-4F77-8871-4AEE0AAA69A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B2ACD46C-02D4-4F77-8871-4AEE0AAA69A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B2ACD46C-02D4-4F77-8871-4AEE0AAA69A1}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C5A82490-F56E-4705-A75D-D5DEDE8FD994}
+	EndGlobalSection
+EndGlobal

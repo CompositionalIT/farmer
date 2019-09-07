@@ -6,7 +6,7 @@ type Value =
     | Literal of string
     | Parameter of string
     | Variable of string
-    member this.Value =
+    member this.AsString =
         match this with
         | Literal l -> l
         | Parameter p -> sprintf "parameters('%s')" p
@@ -22,14 +22,21 @@ type Value =
             l
         | Parameter _
         | Variable _ ->
-            sprintf "[%s]" this.Value
+            sprintf "[%s]" this.AsString
+
+type ResourceName =
+    | ResourceName of Value
+    member this.Command =
+        let (ResourceName v) = this
+        v.Command
 
 [<AutoOpen>]
 module ExpressionBuilder =
     let private escaped = function
         | Literal x -> sprintf "'%s'" x
-        | x -> x.Value
-    let command = sprintf "[%s(%s)]"
+        | x -> x.AsString
+    let toExpr = sprintf "[%s]"
+    let command a b = sprintf "%s(%s)" a b |> toExpr
     let concat (elements:Value list) =
         elements
         |> List.map escaped
@@ -42,43 +49,55 @@ namespace Farmer.Internal
 
 open Farmer
 
+/// A type of ARM resource e.g. Microsoft.Web/serverfarms
+type ResourceType =
+    | ResourceType of path:string
+    member this.Value =
+        let (ResourceType path) = this
+        path
+/// A path to a specific ARM resource.
+type ResourcePath =
+    | ResourcePath of ResourceType * resourceName:ResourceName 
+    member this.ResourceIdPath =
+        let (ResourcePath(ResourceType path, ResourceName name)) = this
+        sprintf "resourceId('%s', %s)" path name.QuotedValue
+
 type Expressions =
     | Concat of Value list
     | ToLower of Value
 
 type WebAppExtensions = AppInsightsExtension
 type AppInsights =
-    { Name : Value
+    { Name : ResourceName 
       Location : Value
-      LinkedWebsite: Value }
+      LinkedWebsite: ResourceName }
 type StorageAccount =
-    { Name : Value
+    { Name : ResourceName 
       Location : Value
       Sku : Value }
-type ResourceType =
-    | ResourceType of path:string
-
 type WebApp =
-    { Name : Value
+    { Name : ResourceName 
       AppSettings : List<string * Value>
       Extensions : WebAppExtensions Set
-      Dependencies : (ResourceType * Value) list }
+      Dependencies : ResourcePath list }
 type ServerFarm =
-    { Name : Value
+    { Name : ResourceName 
       Location : Value
       Sku:Value
       WebApps : WebApp list }
 
-module ResourceType =
+module ResourcePath =
+    let private makeResource x y = ResourcePath (x, y)
     let ServerFarm = ResourceType "Microsoft.Web/serverfarms"
-    let WebSite = ResourceType "Microsoft.Web/sites/"
+    let WebSite = ResourceType "Microsoft.Web/sites"
     let StorageAccount = ResourceType "Microsoft.Storage/storageAccounts"
     let AppInsights = ResourceType "Microsoft.Insights/components"
-    let makePath (ResourceType path, value:Value) = sprintf "[resourceId('%s', %s)]" path value.QuotedValue
+    let makeServerFarm = makeResource ServerFarm
+    let makeWebSite = makeResource WebSite
+    let makeStorageAccount = makeResource StorageAccount
+    let makeAppInsights = makeResource AppInsights
 
 namespace Farmer
-
-open Farmer.Internal
 
 type ArmTemplate =
     { Parameters : string list

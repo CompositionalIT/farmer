@@ -2,26 +2,27 @@
 
 open Farmer
 
+let myStorageAccount = storageAccount {
+    name (Variable "storage")
+    sku Storage.Sku.StandardLRS
+}
+
+let web = webApp {
+    name (Variable "web")
+    service_plan_name (Variable "appServicePlan")
+    sku (Parameter "pricingTier")
+
+    use_app_insights (Variable "insights")
+
+    website_node_default_version "8.1.4"
+    setting "public_path" "./public"
+    setting "STORAGE_CONNECTIONSTRING" myStorageAccount.Key
+
+    depends_on myStorageAccount
+}
+
 let template =
     let withPostfix element = concat [ Variable "prefix"; Literal element ]
-    let myStorageAccount =
-        { Name = Variable "storage"
-          Sku = Helpers.Storage.Sku.StandardLRS }
-
-    let web = webApp {
-        name (Variable "web")
-        service_plan_name (Variable "appServicePlan")
-        sku (Parameter "pricingTier")
-
-        use_app_insights (Variable "insights")
-
-        website_node_default_version "8.1.4"
-        setting "public_path" "./public"
-        setting "STORAGE_CONNECTIONSTRING" myStorageAccount.Key
-
-        depends_on myStorageAccount.DependencyPath
-    }
-
     arm {
         parameters [ "environment"; "location"; "pricingTier" ]
 
