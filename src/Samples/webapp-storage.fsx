@@ -1,6 +1,7 @@
 #r @"..\Farmer\bin\Debug\netstandard2.0\Farmer.dll"
 
 open Farmer
+open Farmer.Internal
 open Helpers
 
 let template =
@@ -14,6 +15,7 @@ let template =
         service_plan_name "myserverfarm"
         sku WebApp.Sku.F1
         use_app_insights "myappinsights"
+        depends_on myStorage
     }
 
     arm {

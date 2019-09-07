@@ -3,14 +3,14 @@ module Farmer.Writer
 open Farmer.Internal
 
 module Outputters =
-    module Dependencies =
-        let toString = function
-            | ServerFarmDependency, (v:Value) -> sprintf "[resourceId('Microsoft.Web/serverfarms', %s)]" v.QuotedValue
-            | StorageDependency, v -> sprintf "[resourceId('Microsoft.Storage/storageAccounts/', %s)]" v.QuotedValue
-            | AppInsightsDependency, v -> sprintf "[resourceId('Microsoft.Insights/components/', %s)]" v.QuotedValue
+    // module Dependencies =
+    //     let toString = function
+    //         | ServerFarmDependency, (v:Value) -> sprintf "[resourceId('Microsoft.Web/serverfarms', %s)]" v.QuotedValue
+    //         | StorageDependency, v -> sprintf "[resourceId('Microsoft.Storage/storageAccounts/', %s)]" v.QuotedValue
+    //         | AppInsightsDependency, v -> sprintf "[resourceId('Microsoft.Insights/components/', %s)]" v.QuotedValue
 
     let appInsights (resource:AppInsights) = {|
-        ``type`` = "Microsoft.Insights/components"
+        ``type`` = ResourceType.AppInsights
         kind = "web"
         name = resource.Name.Command
         location = resource.Location.Command
@@ -23,16 +23,16 @@ module Outputters =
     |}
 
     let storageAccount (resource:StorageAccount) = {|
-        ``type`` = "Microsoft.Storage/storageAccounts"
+        ``type`` = ResourceType.StorageAccount
         sku = {| name = resource.Sku.Command |}
-        kind = "Storage"
+        kind = "storage"
         name = resource.Name.Command
         apiVersion = "2017-10-01"
         location = resource.Location.Command
     |}
 
     let serverFarm (resource:ServerFarm) = {|
-        ``type`` = "Microsoft.Web/serverfarms"
+        ``type`` = ResourceType.ServerFarm
         sku = {| name = resource.Sku.Command |}
         name = resource.Name.Command
         apiVersion = "2016-09-01"
@@ -44,11 +44,11 @@ module Outputters =
     |}
 
     let webApp (serverFarmInfo:ServerFarm) (webApp:WebApp) = {|
-        ``type`` = "Microsoft.Web/sites"
+        ``type`` = ResourceType.WebSite
         name = webApp.Name.Command
         apiVersion = "2016-08-01"
         location = serverFarmInfo.Location.Command
-        dependsOn = webApp.Dependencies |> List.map Dependencies.toString
+        dependsOn = webApp.Dependencies |> List.map ResourceType.makePath
         resources =
             webApp.Extensions
             |> Set.toList
@@ -57,11 +57,11 @@ module Outputters =
                 {| apiVersion = "2016-08-01"
                    name = "Microsoft.ApplicationInsights.AzureWebSites"
                    ``type`` = "siteextensions"
-                   dependsOn = [ sprintf "[resourceId('Microsoft.Web/sites/', %s)]" webApp.Name.QuotedValue ]
+                   dependsOn = [ ResourceType.makePath (ResourceType.WebSite, webApp.Name) ]
                    properties = {||}
                 |})
         properties =
-            {| serverFarmId = sprintf "[resourceId('Microsoft.Web/serverfarms', %s)]" serverFarmInfo.Name.QuotedValue
+            {| serverFarmId = ResourceType.makePath (ResourceType.ServerFarm, serverFarmInfo.Name)
                siteConfig =
                 {| appSettings =
                       webApp.AppSettings
@@ -81,16 +81,18 @@ let processTemplate (template:ArmTemplate) = {|
     resources = [
         template.Resources
         |> List.collect (function
-            | AppInsights ai ->
+            | :? AppInsights as ai ->
                 [ Outputters.appInsights ai |> box ]
-            | StorageAccount s ->
+            | :? StorageAccount as s ->
                 [ Outputters.storageAccount s |> box ]
-            | ServerFarm s ->
+            | :? ServerFarm as s ->
                 let sf = Outputters.serverFarm s |> box
                 let apps =
                     s.WebApps
                     |> List.map (Outputters.webApp s >> box)
                 sf :: apps
+            | _ ->
+                failwith "Not supported. Sorry!"
         )]
         |> List.concat
     outputs = [

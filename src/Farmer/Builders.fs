@@ -79,34 +79,33 @@ type WebAppConfig =
     { Name : Value
       ServicePlanName : Value
       Sku : Value
-      AppInsights : Value option
+      AppInsightsName : Value option
       RunFromPackage : bool
       WebsiteNodeDefaultVersion : Value option
       Settings : Map<string, Value>
-      Dependencies : (Dependency * Value) list }
+      Dependencies : (ResourceType * Value) list }
     member this.PublishingPassword = Helpers.WebApp.PublishingPassword this.Name
 
-type StorageAccount =
+type StorageAccountConfig =
     { /// The name of the storage account.
       Name : Value
       /// The sku of the storage account.
       Sku : Value }
     member this.Key = Helpers.Storage.accountKey this.Name
-    member this.DependencyPath = StorageDependency, this.Name
 
 type WebAppBuilder() =
     member __.Yield _ =
         { Name = Literal ""
           ServicePlanName = Literal ""
           Sku = Helpers.WebApp.Sku.F1
-          AppInsights = None
+          AppInsightsName = None
           RunFromPackage = false
           WebsiteNodeDefaultVersion = None
           Settings = Map.empty
           Dependencies = [] }
     member __.Run (state:WebAppConfig) =
         { state with
-            Dependencies = (Dependency.ServerFarmDependency, state.ServicePlanName) :: state.Dependencies }
+            Dependencies = (ResourceType.ServerFarm, state.ServicePlanName) :: state.Dependencies }
     /// Sets the name of the web app; use the `name` keyword.
     [<CustomOperation "name">]
     member __.Name(state:WebAppConfig, name:Value) = { state with Name = name }
@@ -120,7 +119,7 @@ type WebAppBuilder() =
     member __.Sku(state:WebAppConfig, sku:Value) = { state with Sku = sku }
     /// Creates a fully-configured application insights resource linked to this web app; use the `use_app_insights` keyword.
     [<CustomOperation "use_app_insights">]
-    member __.UseAppInsights(state:WebAppConfig, name) = { state with AppInsights = Some name }
+    member __.UseAppInsights(state:WebAppConfig, name) = { state with AppInsightsName = Some name }
     member this.UseAppInsights(state:WebAppConfig, name:string) = this.UseAppInsights(state, Literal name)
     /// Sets the web app to use run from package mode; use the `run_from_package` keyword.
     [<CustomOperation "run_from_package">]
@@ -153,8 +152,8 @@ type ArmBuilder() =
         Resources =
             state.Resources
             |> List.collect(function
-            | :? StorageAccount as s ->
-                [ StorageAccount { Location = state.Location; Name = s.Name; Sku = s.Sku } ]
+            | :? StorageAccountConfig as s ->
+                [ { Location = state.Location; Name = s.Name; Sku = s.Sku } ]
             | :? WebAppConfig as c -> [
                 let webApp =
                     { Name = c.Name
@@ -163,50 +162,49 @@ type ArmBuilder() =
                         if c.RunFromPackage then yield Helpers.WebApp.AppSettings.RunFromPackage
 
                         match c.WebsiteNodeDefaultVersion with
-                        | Some v ->
-                            yield Helpers.WebApp.AppSettings.WebsiteNodeDefaultVersion v
-                        | None ->
-                            ()
+                        | Some v -> yield Helpers.WebApp.AppSettings.WebsiteNodeDefaultVersion v
+                        | None -> ()
 
-                        match c.AppInsights with
+                        match c.AppInsightsName with
                         | Some v ->
                             yield "APPINSIGHTS_INSTRUMENTATIONKEY", Literal (Helpers.AppInsights.instrumentationKey v)
-                            yield "APPINSIGHTS_PROFILERFEATURE_VERSION", Literal ("1.0.0")
-                            yield "APPINSIGHTS_SNAPSHOTFEATURE_VERSION", Literal ("1.0.0")
-                            yield "ApplicationInsightsAgent_EXTENSION_VERSION", Literal ("~2")
-                            yield "DiagnosticServices_EXTENSION_VERSION", Literal ("~3")
-                            yield "InstrumentationEngine_EXTENSION_VERSION", Literal ("~1")
-                            yield "SnapshotDebugger_EXTENSION_VERSION", Literal ("~1")
-                            yield "XDT_MicrosoftApplicationInsights_BaseExtensions", Literal ("~1")
-                            yield "XDT_MicrosoftApplicationInsights_Mode", Literal ("recommended")
+                            yield "APPINSIGHTS_PROFILERFEATURE_VERSION", Literal "1.0.0"
+                            yield "APPINSIGHTS_SNAPSHOTFEATURE_VERSION", Literal "1.0.0"
+                            yield "ApplicationInsightsAgent_EXTENSION_VERSION", Literal "~2"
+                            yield "DiagnosticServices_EXTENSION_VERSION", Literal "~3"
+                            yield "InstrumentationEngine_EXTENSION_VERSION", Literal "~1"
+                            yield "SnapshotDebugger_EXTENSION_VERSION", Literal "~1"
+                            yield "XDT_MicrosoftApplicationInsights_BaseExtensions", Literal "~1"
+                            yield "XDT_MicrosoftApplicationInsights_Mode", Literal "recommended"
                         | None ->
                             ()
                       ]
+
                       Extensions =
-                        match c.AppInsights with
-                        | Some _ ->
-                            Set [ AppInsightsExtension ]
-                        | None ->
-                            Set.empty
+                        match c.AppInsightsName with
+                        | Some _ -> Set [ AppInsightsExtension ]
+                        | None -> Set.empty
+
                       Dependencies = [
                         yield! c.Dependencies
-                        match c.AppInsights with
-                        | Some v ->
-                            yield (AppInsightsDependency, v)
-                        | None ->
-                            ()
+                        match c.AppInsightsName with
+                        | Some v -> yield ResourceType.AppInsights, v
+                        | None -> ()
                       ]
                     }
 
                 let serverFarm =
-                    ServerFarm
-                        { Location = state.Location
-                          Name = c.ServicePlanName
-                          Sku = c.Sku
-                          WebApps = [ webApp ] }
+                    { Location = state.Location
+                      Name = c.ServicePlanName
+                      Sku = c.Sku
+                      WebApps = [ webApp ] }
 
                 yield serverFarm
-                match c.AppInsights with | Some ai -> yield AppInsights { AppInsights.Name = ai; Location = state.Location; LinkedWebsite = c.Name } | None -> () ]
+                match c.AppInsightsName with
+                | Some ai ->
+                    yield { AppInsights.Name = ai; Location = state.Location; LinkedWebsite = c.Name }
+                | None ->
+                    () ]
             | _ ->
                 failwith "Sorry, I don't know how to handle this resource.")
     }
@@ -246,6 +244,9 @@ type ArmBuilder() =
     member __.AddResource(state, resource) : ArmConfig =
         { state with Resources = box resource :: state.Resources }
 
+type WebAppBuilder with
+    member this.DependsOn(state:WebAppConfig, storageAccountConfig:StorageAccountConfig) =
+        this.DependsOn(state, (ResourceType.StorageAccount, storageAccountConfig.Name))
 
 [<AutoOpen>]
 module Builders =

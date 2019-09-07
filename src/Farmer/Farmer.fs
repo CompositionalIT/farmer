@@ -55,24 +55,26 @@ type StorageAccount =
     { Name : Value
       Location : Value
       Sku : Value }
-type Dependency =
-    | AppInsightsDependency
-    | StorageDependency
-    | ServerFarmDependency
+type ResourceType =
+    | ResourceType of path:string
+
 type WebApp =
     { Name : Value
       AppSettings : List<string * Value>
       Extensions : WebAppExtensions Set
-      Dependencies : (Dependency * Value) list }
+      Dependencies : (ResourceType * Value) list }
 type ServerFarm =
     { Name : Value
       Location : Value
       Sku:Value
       WebApps : WebApp list }
-type TemplateItem =
-    | AppInsights of AppInsights
-    | StorageAccount of StorageAccount
-    | ServerFarm of ServerFarm
+
+module ResourceType =
+    let ServerFarm = ResourceType "Microsoft.Web/serverfarms"
+    let WebSite = ResourceType "Microsoft.Web/sites/"
+    let StorageAccount = ResourceType "Microsoft.Storage/storageAccounts"
+    let AppInsights = ResourceType "Microsoft.Insights/components"
+    let makePath (ResourceType path, value:Value) = sprintf "[resourceId('%s', %s)]" path value.QuotedValue
 
 namespace Farmer
 
@@ -82,4 +84,4 @@ type ArmTemplate =
     { Parameters : string list
       Variables : (string * string) list
       Outputs : (string * Value) list
-      Resources : TemplateItem list }
+      Resources : obj list }
