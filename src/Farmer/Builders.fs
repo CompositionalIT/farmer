@@ -147,6 +147,45 @@ module Storage =
         member this.DependsOn(state:WebAppConfig, storageAccountConfig:StorageAccountConfig) =
             this.DependsOn(state, (ResourcePath.makeStorageAccount, storageAccountConfig.Name))
 
+[<AutoOpen>]
+module CosmosDb =
+    type CosmosDbConfig =
+        { Name : ResourceName
+          ServerName : ResourceName          
+          ConsistencyPolicy : ConsistencyPolicy
+          WriteModel : WriteModel
+          Throughput : Value }
+    type CosmosDbBuilder() =
+        member __.Yield _ =
+            { Name = ResourceName (Literal "CosmosDatabase")
+              ServerName = ResourceName (Literal "CosmosServer")              
+              ConsistencyPolicy = Eventual
+              WriteModel = Standard
+              Throughput = Literal "400" }
+        /// Sets the name of cosmos db server; use the `server_name` keyword.
+        [<CustomOperation "server_name">]
+        member __.ServerName(state:CosmosDbConfig, serverName) = { state with ServerName = ResourceName serverName }
+        member this.ServerName(state:CosmosDbConfig, serverName:string) = this.ServerName(state, Literal serverName)
+        /// Sets the name of the web app; use the `name` keyword.
+        [<CustomOperation "name">]
+        member __.Name(state:CosmosDbConfig, name:Value) = { state with Name = ResourceName name }
+        member this.Name(state:CosmosDbConfig, name:string) = this.Name(state, Literal name)
+        /// Sets the sku of the web app; use the `sku` keyword.
+        [<CustomOperation "consistency_policy">]
+        member __.ConsistencyPolicy(state:CosmosDbConfig, consistency:ConsistencyPolicy) = { state with ConsistencyPolicy = consistency }
+        [<CustomOperation "write_model">]
+        member __.WriteModel(state:CosmosDbConfig, writeModel:WriteModel) = { state with WriteModel = writeModel }
+        [<CustomOperation "throughput">]
+        member __.Throughput(state:CosmosDbConfig, throughput) = { state with Throughput = throughput }
+        member this.Throughput(state:CosmosDbConfig, throughput:int) = this.Throughput(state, Literal(string throughput))
+
+    open WebApp
+    type WebAppBuilder with
+        member this.DependsOn(state:WebAppConfig, cosmosDbConfig:CosmosDbConfig) =
+            this.DependsOn(state, (ResourcePath.makeCosmosDb, cosmosDbConfig.Name))
+
+    let cosmosDb = CosmosDbBuilder()
+
 type ArmConfig =
     { Parameters : string Set
       Variables : (string * string) list
@@ -224,6 +263,18 @@ module ArmBuilder =
                         yield { Name = ai; Location = state.Location; LinkedWebsite = wac.Name }
                     | None ->
                         () ]
+                | :? CosmosDbConfig as cosmos -> [
+                    let server =
+                        { Name = cosmos.ServerName
+                          Location = state.Location
+                          ConsistencyPolicy = cosmos.ConsistencyPolicy
+                          WriteModel = cosmos.WriteModel
+                          Databases =
+                            [ { Name = cosmos.Name
+                                Dependencies = [ ResourcePath.makeCosmosDb cosmos.ServerName ]
+                                Throughput = cosmos.Throughput } ] }
+                    yield server
+                    ]
                 | _ ->
                     failwith "Sorry, I don't know how to handle this resource.")
         }

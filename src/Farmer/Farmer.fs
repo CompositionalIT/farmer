@@ -45,6 +45,9 @@ module ExpressionBuilder =
     let toLower =
         escaped >> command "toLower"
 
+type ConsistencyPolicy = Eventual | ConsistentPrefix | Session | BoundedStaleness of maxStaleness:int * maxIntervalSeconds : int | Strong
+type WriteModel = Standard | AutoFailover of secondaryLocation:string | MultiMaster of secondaryLocation:string
+
 namespace Farmer.Internal
 
 open Farmer
@@ -85,15 +88,28 @@ type ServerFarm =
       Location : Value
       Sku:Value
       WebApps : WebApp list }
+type CosmosDbSql =
+    { Name : ResourceName
+      Dependencies : ResourcePath list
+      Throughput : Value }
+type CosmosDbServer =
+    { Name : ResourceName
+      Location : Value
+      ConsistencyPolicy : ConsistencyPolicy
+      WriteModel : WriteModel
+      Databases : CosmosDbSql list }
 
 module ResourcePath =
     let private makeResource x y = ResourcePath (x, y)
     let ServerFarm = ResourceType "Microsoft.Web/serverfarms"
     let WebSite = ResourceType "Microsoft.Web/sites"
+    let CosmosDb = ResourceType "Microsoft.DocumentDB/databaseAccounts"
+    let CosmosDbSql = ResourceType "Microsoft.DocumentDB/databaseAccounts/apis/databases"
     let StorageAccount = ResourceType "Microsoft.Storage/storageAccounts"
     let AppInsights = ResourceType "Microsoft.Insights/components"
     let makeServerFarm = makeResource ServerFarm
     let makeWebSite = makeResource WebSite
+    let makeCosmosDb = makeResource CosmosDb
     let makeStorageAccount = makeResource StorageAccount
     let makeAppInsights = makeResource AppInsights
 

@@ -64,6 +64,61 @@ module Outputters =
             |}
     |}
 
+    let cosmosDbServer (cosmosDb:CosmosDbServer) = {|
+        ``type`` = ResourcePath.CosmosDb.Value
+        name = cosmosDb.Name.Command
+        apiVersion = "2016-03-31"
+        location = cosmosDb.Location.Command
+        kind = "GlobalDocumentDB"
+        properties =
+            let baseProps =
+                {| consistencyPolicy =
+                      match cosmosDb.ConsistencyPolicy with
+                      | BoundedStaleness(maxStaleness, maxInterval) ->
+                          box {| defaultConsistencyLevel = "BoundedStaleness"
+                                 maxStalenessPrefix = maxStaleness
+                                 maxIntervalInSeconds = maxInterval |}
+                      | Session
+                      | Eventual
+                      | ConsistentPrefix
+                      | Strong ->
+                          box {| defaultConsistencyLevel = string cosmosDb.ConsistencyPolicy |}
+                   databaseAccountOfferType = "Standard" |}
+            match cosmosDb.WriteModel with
+            | AutoFailover secondary ->
+                {| baseProps with
+                      enableAutomaticFailover = true
+                      locations = [
+                        {| locationName = cosmosDb.Location.Command; failoverPriority = 0 |}
+                        {| locationName = secondary; failoverPriority = 1 |}
+                      ]
+                |} |> box
+            | MultiMaster secondary ->
+                {| baseProps with
+                      autoenableMultipleWriteLocations = true
+                      locations = [
+                        {| locationName = cosmosDb.Location.Command; failoverPriority = 0 |}
+                        {| locationName = secondary; failoverPriority = 1 |}
+                      ]
+                |} |> box
+            | Standard ->
+                {| baseProps with
+                    locations = [ 
+                        {| locationName = cosmosDb.Location.Command; failoverPriority = 0 |}
+                    ]
+                |} |> box
+    |}
+
+    let cosmosDbSql (cosmosDbSql:CosmosDbSql) = {|
+        ``type`` = ResourcePath.CosmosDbSql.Value
+        name = cosmosDbSql.Name.Command
+        apiVersion = "2016-03-31"
+        dependsOn = cosmosDbSql.Dependencies |> List.map(fun p -> p.ResourceIdPath |> toExpr)
+        properties =
+            {| resource = {| id = cosmosDbSql.Name.Command |}
+               options = {| throughput = cosmosDbSql.Throughput.Command |} |}
+    |}
+
 let processTemplate (template:ArmTemplate) = {|
     ``$schema`` = "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#"
     contentVersion = "1.0.0.0"
@@ -85,6 +140,12 @@ let processTemplate (template:ArmTemplate) = {|
                     s.WebApps
                     |> List.map (Outputters.webApp s >> box)
                 sf :: apps
+            | :? CosmosDbServer as cds ->
+                let server = Outputters.cosmosDbServer cds |> box
+                let dbs =
+                    cds.Databases
+                    |> List.map (Outputters.cosmosDbSql >> box)
+                server :: dbs
             | _ ->
                 failwith "Not supported. Sorry!"
         )]

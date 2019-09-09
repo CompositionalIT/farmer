@@ -3,13 +3,20 @@ module Test
 open Farmer
 
 let template =
-    let withPostfix element = concat [ Variable "prefix"; Literal element ]
     let myStorageAccount = storageAccount {
         name (Variable "storage")
         sku Storage.Sku.StandardLRS
     }
 
-    let web = webApp {
+    let myCosmosDb = cosmosDb {
+        name "isaacsappdb"
+        server_name "isaacscosmosdb"
+        throughput 400
+        write_model (AutoFailover Helpers.Locations.``North Europe``.Command)
+        consistency_policy (BoundedStaleness(500, 1000))
+    }
+
+    let myWebApp = webApp {
         name (Variable "web")
         service_plan_name (Variable "appServicePlan")
         sku (Parameter "pricingTier")
@@ -21,8 +28,10 @@ let template =
         setting "STORAGE_CONNECTIONSTRING" myStorageAccount.Key
 
         depends_on myStorageAccount
+        depends_on myCosmosDb
     }
 
+    let withPostfix element = concat [ Variable "prefix"; Literal element ]
     arm {
         parameters [ "environment"; "location"; "pricingTier" ]
 
@@ -36,10 +45,11 @@ let template =
         location (Parameter "location")
 
         resource myStorageAccount
-        resource web
+        resource cosmosDb
+        resource myWebApp
 
-        output "webAppName" web.Name
-        output "webAppPassword" web.PublishingPassword        
+        output "webAppName" myWebApp.Name
+        output "webAppPassword" myWebApp.PublishingPassword        
     }
 
 template
