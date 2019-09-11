@@ -1,25 +1,37 @@
-﻿open Farmer
-open Helpers
+﻿module Test
 
-/// A web app with app insights
-let myWebApp = webApp {
-    name "mysuperwebapp"
-    service_plan_name "myserverfarm"
-    sku WebApp.Sku.F1
-    use_app_insights "myappinsights"
-}
+open Farmer
 
-/// The overall ARM template which has the app as a resource.
-let template = arm {
-    location Locations.``North Europe``
-    resource myWebApp
-}
+let template (environment:string) storageSku webAppSku =
+    let environment = environment.ToLower()
+    let generateResourceName = sprintf "safe-%s-%s" environment 
+    let myStorageAccount = storageAccount {
+        name (sprintf "safe%sstorage" environment)
+        sku storageSku
+    }
 
-// Now export it as an ARM template.
-printf "Writing the ARM template..."
+    let web = webApp {
+        name (generateResourceName "web")
+        service_plan_name (generateResourceName "webhost")
+        sku webAppSku
 
-template
+        use_app_insights (generateResourceName "insights")
+
+        website_node_default_version "8.1.4"
+        setting "public_path" "./public"
+        setting "STORAGE_CONNECTIONSTRING" myStorageAccount.Key
+
+        depends_on myStorageAccount
+    }
+
+    arm {
+        resource myStorageAccount
+        resource web
+
+        output "webAppName" web.Name
+        output "webAppPassword" web.PublishingPassword        
+    }
+
+template "ice" Storage.Sku.StandardLRS WebApp.Sku.F1
 |> Writer.toJson
-|> Writer.toFile @"webapp-appinsights.json"
-
-printfn " all done!"
+|> Writer.toFile @"safe-template.json"

@@ -5,67 +5,67 @@ open Farmer.Internal
 module Helpers =
     module AppInsights =
         let instrumentationKey (ResourceName accountName) =
-            sprintf "[reference(concat('Microsoft.Insights/components/', %s)).InstrumentationKey]" accountName.QuotedValue
+            sprintf "[reference(concat('Microsoft.Insights/components/', '%s')).InstrumentationKey]" accountName
     module Locations =
-        let ``East Asia`` = Literal "eastasia"
-        let ``Southeast Asia`` = Literal "southeastasia"
-        let ``Central US`` = Literal "centralus"
-        let ``East US`` = Literal "eastus"
-        let ``East US 2`` = Literal "eastus2"
-        let ``West US`` = Literal "westus"
-        let ``North Central US`` = Literal "northcentralus"
-        let ``South Central US`` = Literal "southcentralus"
-        let ``North Europe`` = Literal "northeurope"
-        let ``West Europe`` = Literal "westeurope"
-        let ``Japan West`` = Literal "japanwest"
-        let ``Japan East`` = Literal "japaneast"
-        let ``Brazil South`` = Literal "brazilsouth"
-        let ``Australia East`` = Literal "australiaeast"
-        let ``Australia Southeast`` = Literal "australiasoutheast"
-        let ``South India`` = Literal "southindia"
-        let ``Central India`` = Literal "centralindia"
-        let ``West India`` = Literal "westindia"
+        let ``East Asia`` = "eastasia"
+        let ``Southeast Asia`` = "southeastasia"
+        let ``Central US`` = "centralus"
+        let ``East US`` = "eastus"
+        let ``East US 2`` = "eastus2"
+        let ``West US`` = "westus"
+        let ``North Central US`` = "northcentralus"
+        let ``South Central US`` = "southcentralus"
+        let ``North Europe`` = "northeurope"
+        let ``West Europe`` = "westeurope"
+        let ``Japan West`` = "japanwest"
+        let ``Japan East`` = "japaneast"
+        let ``Brazil South`` = "brazilsouth"
+        let ``Australia East`` = "australiaeast"
+        let ``Australia Southeast`` = "australiasoutheast"
+        let ``South India`` = "southindia"
+        let ``Central India`` = "centralindia"
+        let ``West India`` = "westindia"
 
 [<AutoOpen>]
 module WebApp =
     module Sku =
-        let F1 = Literal "F1"
-        let B1 = Literal "B1"
-        let B2 = Literal "B2"
-        let B3 = Literal "B3"
-        let S1 = Literal "S1"
-        let S2 = Literal "S2"
-        let S3 = Literal "S3"
-        let P1 = Literal "P1"
-        let P2 = Literal "P2"
-        let P3 = Literal "P3"
-        let P1V2 = Literal "P1V2"
-        let P2V2 = Literal "P2V2"
-        let P3V2 = Literal "P3V2"
-        let I1 = Literal "I1"
-        let I2 = Literal "I2"
-        let I3 = Literal "I3"
+        let F1 = "F1"
+        let B1 = "B1"
+        let B2 = "B2"
+        let B3 = "B3"
+        let S1 = "S1"
+        let S2 = "S2"
+        let S3 = "S3"
+        let P1 = "P1"
+        let P2 = "P2"
+        let P3 = "P3"
+        let P1V2 = "P1V2"
+        let P2V2 = "P2V2"
+        let P3V2 = "P3V2"
+        let I1 = "I1"
+        let I2 = "I2"
+        let I3 = "I3"
 
     let publishingPassword (ResourceName websiteName) =
-        sprintf "[list(resourceId('Microsoft.Web/sites/config', %s, 'publishingcredentials'), '2014-06-01').properties.publishingPassword]" websiteName.QuotedValue
+        sprintf "[list(resourceId('Microsoft.Web/sites/config', '%s', 'publishingcredentials'), '2014-06-01').properties.publishingPassword]" websiteName
 
     module AppSettings =
         let WebsiteNodeDefaultVersion version = "WEBSITE_NODE_DEFAULT_VERSION", version
-        let RunFromPackage = "WEBSITE_RUN_FROM_PACKAGE", Literal "1"
+        let RunFromPackage = "WEBSITE_RUN_FROM_PACKAGE", "1"
     type WebAppConfig =
         { Name : ResourceName
           ServicePlanName : ResourceName
-          Sku : Value
+          Sku : string
           AppInsightsName : ResourceName option
           RunFromPackage : bool
-          WebsiteNodeDefaultVersion : Value option
-          Settings : Map<string, Value>
-          Dependencies : ResourcePath list }
+          WebsiteNodeDefaultVersion : string option
+          Settings : Map<string, string>
+          Dependencies : ResourceName list }
         member this.PublishingPassword = publishingPassword this.Name
     type WebAppBuilder() =
         member __.Yield _ =
-            { Name = ResourceName (Literal "")
-              ServicePlanName = ResourceName (Literal "")
+            { Name = ResourceName ""
+              ServicePlanName = ResourceName ""
               Sku = Sku.F1
               AppInsightsName = None
               RunFromPackage = false
@@ -74,84 +74,78 @@ module WebApp =
               Dependencies = [] }
         member __.Run (state:WebAppConfig) =
             { state with
-                Dependencies = (ResourcePath.makeServerFarm state.ServicePlanName) :: state.Dependencies }
+                Dependencies = state.ServicePlanName :: state.Dependencies }
         /// Sets the name of the web app; use the `name` keyword.
         [<CustomOperation "name">]
-        member __.Name(state:WebAppConfig, name) = { state with Name = ResourceName name }
-        member this.Name(state:WebAppConfig, name:string) = this.Name(state, Literal name)
+        member __.Name(state:WebAppConfig, name) = { state with Name = name }
+        member this.Name(state:WebAppConfig, name:string) = this.Name(state, ResourceName name)
         /// Sets the name of service plan of the web app; use the `service_plan_name` keyword.
         [<CustomOperation "service_plan_name">]
-        member __.ServicePlanName(state:WebAppConfig, name:Value) = { state with ServicePlanName = ResourceName name }
-        member this.ServicePlanName(state:WebAppConfig, name:string) = this.ServicePlanName(state, Literal name)
+        member __.ServicePlanName(state:WebAppConfig, name) = { state with ServicePlanName = name }
+        member this.ServicePlanName(state:WebAppConfig, name:string) = this.ServicePlanName(state, ResourceName name)
         /// Sets the sku of the web app; use the `sku` keyword.
         [<CustomOperation "sku">]
-        member __.Sku(state:WebAppConfig, sku:Value) = { state with Sku = sku }
+        member __.Sku(state:WebAppConfig, sku:string) = { state with Sku = sku }
         /// Creates a fully-configured application insights resource linked to this web app; use the `use_app_insights` keyword.
         [<CustomOperation "use_app_insights">]
         member __.UseAppInsights(state:WebAppConfig, name) = { state with AppInsightsName = Some name }
-        member this.UseAppInsights(state:WebAppConfig, name) = this.UseAppInsights(state, ResourceName name)
-        member this.UseAppInsights(state:WebAppConfig, name:string) = this.UseAppInsights(state, ResourceName(Literal name))
+        member this.UseAppInsights(state:WebAppConfig, name:string) = this.UseAppInsights(state, ResourceName name)
         /// Sets the web app to use run from package mode; use the `run_from_package` keyword.
         [<CustomOperation "run_from_package">]
         member __.RunFromPackage(state:WebAppConfig) = { state with RunFromPackage = true }
         /// Sets the node version of the web app; use the `website_node_default_version` keyword.
         [<CustomOperation "website_node_default_version">]
         member __.NodeVersion(state:WebAppConfig, version) = { state with WebsiteNodeDefaultVersion = Some version }
-        member this.NodeVersion(state:WebAppConfig, version) = this.NodeVersion(state, Literal version)
         /// Sets an app setting of the web app; use the `setting` keyword.
         [<CustomOperation "setting">]
         member __.AddSetting(state:WebAppConfig, key, value) = { state with Settings = state.Settings.Add(key, value) }
-        member this.AddSetting(state:WebAppConfig, key, value:string) = this.AddSetting(state, key, Literal value)
         /// Sets a dependency for the web app; use the `depends_on` keyword.
         [<CustomOperation "depends_on">]
-        member __.DependsOn(state:WebAppConfig, (makeResourcePath, resourceName)) =
-            { state with Dependencies = (makeResourcePath resourceName) :: state.Dependencies }
+        member __.DependsOn(state:WebAppConfig, resourceName) =
+            { state with Dependencies = resourceName :: state.Dependencies }
     let webApp = WebAppBuilder()
 
 [<AutoOpen>]
 module Storage =
-    let accountKey (ResourceName accountName) =
-        sprintf
-            "[concat('DefaultEndpointsProtocol=https;AccountName=', %s, ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts/', %s), '2017-10-01').keys[0].value)]"
-            accountName.QuotedValue
-            accountName.QuotedValue
-
     module Sku =
-        let StandardLRS = Literal "Standard_LRS"
-        let StandardGRS = Literal "Standard_GRS"
-        let StandardRAGRS = Literal "Standard_RAGRS"
-        let StandardZRS = Literal "Standard_ZRS"
-        let StandardGZRS = Literal "Standard_GZRS"
-        let StandardRAGZRS = Literal "Standard_RAGZRS"
-        let PremiumLRS = Literal "Premium_LRS"
-        let PremiumZRS = Literal "Premium_ZRS"
+        let StandardLRS = "Standard_LRS"
+        let StandardGRS = "Standard_GRS"
+        let StandardRAGRS = "Standard_RAGRS"
+        let StandardZRS = "Standard_ZRS"
+        let StandardGZRS = "Standard_GZRS"
+        let StandardRAGZRS = "Standard_RAGZRS"
+        let PremiumLRS = "Premium_LRS"
+        let PremiumZRS = "Premium_ZRS"
     type StorageAccountConfig =
         { /// The name of the storage account.
           Name : ResourceName
           /// The sku of the storage account.
-          Sku : Value }
-        member this.Key = accountKey this.Name
+          Sku : string }
+        member this.Key =
+            let (ResourceName name) = this.Name
+            sprintf
+                "[concat('DefaultEndpointsProtocol=https;AccountName=', '%s', ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts/', '%s'), '2017-10-01').keys[0].value)]"
+                    name
+                    name
     type StorageAccountBuilder() =
-        member __.Yield _ = { Name = ResourceName (Literal ""); Sku = Sku.StandardLRS }
+        member __.Yield _ = { Name = ResourceName ""; Sku = Sku.StandardLRS }
         [<CustomOperation "name">]
         member __.Name(state:StorageAccountConfig, name) = { state with Name = name }
         member this.Name(state:StorageAccountConfig, name) = this.Name(state, ResourceName name)
-        member this.Name(state:StorageAccountConfig, name) = this.Name(state, ResourceName(Literal name))
         [<CustomOperation "sku">]
         member __.Sku(state:StorageAccountConfig, sku) = { state with Sku = sku }
-        member this.Sku(state:StorageAccountConfig, sku) = this.Sku(state, Literal sku)
     let storageAccount = StorageAccountBuilder()
 
     open WebApp
     type WebAppBuilder with
         member this.DependsOn(state:WebAppConfig, storageAccountConfig:StorageAccountConfig) =
-            this.DependsOn(state, (ResourcePath.makeStorageAccount, storageAccountConfig.Name))
+            this.DependsOn(state, storageAccountConfig.Name)
 
 type ArmConfig =
     { Parameters : string Set
       Variables : (string * string) list
-      Outputs : (string * Value) list
-      Location : Value
+      Outputs : (string * string) list
+      Location : string
       Resources : obj list }
 
 [<AutoOpen>]
@@ -186,15 +180,15 @@ module ArmBuilder =
 
                             match wac.AppInsightsName with
                             | Some v ->
-                                yield "APPINSIGHTS_INSTRUMENTATIONKEY", Literal (Helpers.AppInsights.instrumentationKey v)
-                                yield "APPINSIGHTS_PROFILERFEATURE_VERSION", Literal "1.0.0"
-                                yield "APPINSIGHTS_SNAPSHOTFEATURE_VERSION", Literal "1.0.0"
-                                yield "ApplicationInsightsAgent_EXTENSION_VERSION", Literal "~2"
-                                yield "DiagnosticServices_EXTENSION_VERSION", Literal "~3"
-                                yield "InstrumentationEngine_EXTENSION_VERSION", Literal "~1"
-                                yield "SnapshotDebugger_EXTENSION_VERSION", Literal "~1"
-                                yield "XDT_MicrosoftApplicationInsights_BaseExtensions", Literal "~1"
-                                yield "XDT_MicrosoftApplicationInsights_Mode", Literal "recommended"
+                                yield "APPINSIGHTS_INSTRUMENTATIONKEY", Helpers.AppInsights.instrumentationKey v
+                                yield "APPINSIGHTS_PROFILERFEATURE_VERSION", "1.0.0"
+                                yield "APPINSIGHTS_SNAPSHOTFEATURE_VERSION", "1.0.0"
+                                yield "ApplicationInsightsAgent_EXTENSION_VERSION", "~2"
+                                yield "DiagnosticServices_EXTENSION_VERSION", "~3"
+                                yield "InstrumentationEngine_EXTENSION_VERSION", "~1"
+                                yield "SnapshotDebugger_EXTENSION_VERSION", "~1"
+                                yield "XDT_MicrosoftApplicationInsights_BaseExtensions", "~1"
+                                yield "XDT_MicrosoftApplicationInsights_Mode", "recommended"
                             | None ->
                                 ()
                           ]
@@ -207,7 +201,7 @@ module ArmBuilder =
                           Dependencies = [
                             yield! wac.Dependencies
                             match wac.AppInsightsName with
-                            | Some v -> yield ResourcePath.makeAppInsights v
+                            | Some v -> yield v
                             | None -> ()
                           ]
                         }
@@ -249,7 +243,6 @@ module ArmBuilder =
         /// Creates an output; use the `output` keyword.
         [<CustomOperation "output">]
         member __.Output (state, outputName, outputValue) : ArmConfig = { state with Outputs = (outputName, outputValue) :: state.Outputs }
-        member this.Output (state:ArmConfig, outputName:string, outputValue:string) = this.Output(state, outputName, Literal outputValue)
         member this.Output (state:ArmConfig, outputName:string, (ResourceName outputValue)) = this.Output(state, outputName, outputValue)
 
         /// Sets the default location of all resources; use the `location` keyword.

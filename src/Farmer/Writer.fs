@@ -5,44 +5,44 @@ open Farmer.Internal
 module Outputters =
     let appInsights (resource:AppInsights) =
         let (ResourceName linkedWebsite) = resource.LinkedWebsite
-        {| ``type`` = ResourcePath.AppInsights.Value
+        {| ``type`` = ResourceType.AppInsights.Value
            kind = "web"
-           name = resource.Name.Command
-           location = resource.Location.Command
+           name = resource.Name.Value
+           location = resource.Location
            apiVersion = "2014-04-01"
            tags =
-               [ sprintf "[concat('hidden-link:', resourceGroup().id, '/providers/Microsoft.Web/sites/', %s)]" linkedWebsite.QuotedValue, "Resource"
+               [ sprintf "[concat('hidden-link:', resourceGroup().id, '/providers/Microsoft.Web/sites/', '%s')]" linkedWebsite, "Resource"
                  "displayName", "AppInsightsComponent" ] |> Map.ofList
            properties =
-               {| name = resource.Name.Command |} |}
+               {| name = resource.Name.Value |} |}
 
     let storageAccount (resource:StorageAccount) = {|
-        ``type`` = ResourcePath.StorageAccount.Value
-        sku = {| name = resource.Sku.Command |}
+        ``type`` = ResourceType.StorageAccount.Value
+        sku = {| name = resource.Sku |}
         kind = "Storage"
-        name = resource.Name.Command
+        name = resource.Name.Value
         apiVersion = "2017-10-01"
-        location = resource.Location.Command
+        location = resource.Location
     |}
 
     let serverFarm (resource:ServerFarm) = {|
-        ``type`` = ResourcePath.ServerFarm.Value
-        sku = {| name = resource.Sku.Command |}
-        name = resource.Name.Command
+        ``type`` = ResourceType.ServerFarm.Value
+        sku = {| name = resource.Sku |}
+        name = resource.Name.Value
         apiVersion = "2016-09-01"
-        location = resource.Location.Command
+        location = resource.Location
         properties =
-            {| name = resource.Name.Command
+            {| name = resource.Name.Value
                perSiteScaling = false
                reserved = false |}
     |}
 
     let webApp (serverFarmInfo:ServerFarm) (webApp:WebApp) = {|
-        ``type`` = ResourcePath.WebSite.Value
-        name = webApp.Name.Command
+        ``type`` = ResourceType.WebSite.Value
+        name = webApp.Name.Value
         apiVersion = "2016-08-01"
-        location = serverFarmInfo.Location.Command
-        dependsOn = webApp.Dependencies |> List.map(fun p -> p.ResourceIdPath |> toExpr)
+        location = serverFarmInfo.Location
+        dependsOn = webApp.Dependencies |> List.map(fun p -> p.Value)
         resources =
             webApp.Extensions
             |> Set.toList
@@ -51,15 +51,15 @@ module Outputters =
                 {| apiVersion = "2016-08-01"
                    name = "Microsoft.ApplicationInsights.AzureWebSites"
                    ``type`` = "siteextensions"
-                   dependsOn = [ (ResourcePath.makeWebSite webApp.Name).ResourceIdPath |> toExpr ]
+                   dependsOn = [ webApp.Name.Value ]
                    properties = {||}
                 |})
         properties =
-            {| serverFarmId = (ResourcePath.makeServerFarm serverFarmInfo.Name).ResourceIdPath |> toExpr
+            {| serverFarmId = serverFarmInfo.Name.Value
                siteConfig =
                 {| appSettings =
-                      webApp.AppSettings
-                      |> List.map(fun (k,v) -> {| name = k; value = v.Command |})
+                    webApp.AppSettings
+                    |> List.map(fun (k,v) -> {| name = k; value = v |})
                 |}
             |}
     |}
@@ -67,11 +67,6 @@ module Outputters =
 let processTemplate (template:ArmTemplate) = {|
     ``$schema`` = "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#"
     contentVersion = "1.0.0.0"
-    parameters =
-        template.Parameters
-        |> List.map(fun p -> p, {| ``type`` = "string" |})
-        |> Map.ofList
-    variables = template.Variables |> Map.ofList
     resources = [
         template.Resources
         |> List.collect (function
@@ -91,7 +86,7 @@ let processTemplate (template:ArmTemplate) = {|
         |> List.concat
     outputs = [
         for (k, v) in template.Outputs ->
-            k, Map [ "type", "string"; "value", v.Command ]
+            k, Map [ "type", "string"; "value", v ]
     ] |> Map
 |}
 
