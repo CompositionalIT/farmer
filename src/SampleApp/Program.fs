@@ -64,14 +64,14 @@ let template (environment:string) storageSku webAppSku =
     }
 
     arm {
-        // resource myStorageAccount
-        // resource myCosmosDb
-        // resource myWebApp
-        // resource mySqlDb
+        resource myStorageAccount
+        resource myCosmosDb
+        resource myWebApp
+        resource mySqlDb
         resource myFunctions
 
-        // output "webAppName" myWebApp.Name
-        // output "webAppPassword" myWebApp.PublishingPassword        
+        output "webAppName" myWebApp.Name
+        output "webAppPassword" myWebApp.PublishingPassword        
     }
 
 template "dev" Storage.Sku.StandardLRS WebApp.Sku.F1
