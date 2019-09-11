@@ -35,8 +35,18 @@ let template (environment:string) storageSku webAppSku =
                 exclude_path "/excluded/*"
             }
         ]
-    }    
+    }
 
+    let myFunctions = functions {
+        name "isaacsuperfun"
+        service_plan_name "isaacsuperfunhost"
+        storage_account_name "isaacsuperstorage"
+        auto_create_storage
+        operating_system Windows
+        use_runtime DotNet
+        use_app_insights "isaacsuperai"
+    }
+    
     let myWebApp = webApp {
         name (generateResourceName "web")
         service_plan_name (generateResourceName "webhost")
@@ -54,13 +64,14 @@ let template (environment:string) storageSku webAppSku =
     }
 
     arm {
-        resource myStorageAccount
-        resource myCosmosDb
-        resource myWebApp
-        resource mySqlDb
+        // resource myStorageAccount
+        // resource myCosmosDb
+        // resource myWebApp
+        // resource mySqlDb
+        resource myFunctions
 
-        output "webAppName" myWebApp.Name
-        output "webAppPassword" myWebApp.PublishingPassword        
+        // output "webAppName" myWebApp.Name
+        // output "webAppPassword" myWebApp.PublishingPassword        
     }
 
 template "dev" Storage.Sku.StandardLRS WebApp.Sku.F1

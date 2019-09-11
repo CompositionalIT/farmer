@@ -6,9 +6,9 @@ module Outputters =
     let storageAccount (resource:StorageAccount) = {|
         ``type`` = ResourceType.StorageAccount.Value
         sku = {| name = resource.Sku |}
-        kind = "Storage"
+        kind = "StorageV2"
         name = resource.Name.Value
-        apiVersion = "2017-10-01"
+        apiVersion = "2018-07-01"
         location = resource.Location
     |}
 
@@ -23,44 +23,60 @@ module Outputters =
                [ sprintf "[concat('hidden-link:', resourceGroup().id, '/providers/Microsoft.Web/sites/', '%s')]" linkedWebsite, "Resource"
                  "displayName", "AppInsightsComponent" ] |> Map.ofList
            properties =
-               {| name = resource.Name.Value |} |}
-    let serverFarm (resource:ServerFarm) = {|
+               {| name = resource.Name.Value
+                  Application_Type = "web"
+                  ApplicationId = linkedWebsite |}
+        |}
+    let serverFarm (farm:ServerFarm) = {|
         ``type`` = ResourceType.ServerFarm.Value
-        sku = {| name = resource.Sku |}
-        name = resource.Name.Value
+        sku =
+            let baseProps =
+                {| name = farm.Sku
+                   tier = farm.Tier
+                   size = farm.WorkerSize |}
+            if farm.IsDynamic then box {| baseProps with family = "Y"; capacity = 0 |}
+            else box {| baseProps with numberOfWorkers = farm.WorkerCount |}
+        name = farm.Name.Value
         apiVersion = "2016-09-01"
-        location = resource.Location
+        location = farm.Location
         properties =
-            {| name = resource.Name.Value
-               perSiteScaling = false
-               reserved = false |}
+            if farm.IsDynamic then
+                box {| name = farm.Name.Value; computeMode = "Dynamic" |}
+            else
+                box {| name = farm.Name.Value
+                       perSiteScaling = false
+                       reserved = false |}
     |}
-    let webApp (serverFarmInfo:ServerFarm) (webApp:WebApp) = {|
-        ``type`` = ResourceType.WebSite.Value
-        name = webApp.Name.Value
-        apiVersion = "2016-08-01"
-        location = serverFarmInfo.Location
-        dependsOn = webApp.Dependencies |> List.map(fun p -> p.Value)
-        resources =
-            webApp.Extensions
-            |> Set.toList
-            |> List.map (function
-            | AppInsightsExtension ->
-                {| apiVersion = "2016-08-01"
-                   name = "Microsoft.ApplicationInsights.AzureWebSites"
-                   ``type`` = "siteextensions"
-                   dependsOn = [ webApp.Name.Value ]
-                   properties = {||}
-                |})
-        properties =
-            {| serverFarmId = serverFarmInfo.Name.Value
-               siteConfig =
-                {| appSettings =
-                    webApp.AppSettings
-                    |> List.map(fun (k,v) -> {| name = k; value = v |})
+    let webApp (farm:ServerFarm) (webApp:WebApp) =
+        let baseProps = {|
+            ``type`` = ResourceType.WebSite.Value
+            name = webApp.Name.Value
+            apiVersion = "2016-08-01"
+            location = farm.Location
+            dependsOn = webApp.Dependencies |> List.map(fun p -> p.Value)
+            resources =
+                webApp.Extensions
+                |> Set.toList
+                |> List.map (function
+                | AppInsightsExtension ->
+                    {| apiVersion = "2016-08-01"
+                       name = "Microsoft.ApplicationInsights.AzureWebSites"
+                       ``type`` = "siteextensions"
+                       dependsOn = [ webApp.Name.Value ]
+                       properties = {||}
+                    |})
+            properties =
+                {| serverFarmId = farm.Name.Value
+                   siteConfig =
+                    {| appSettings =
+                        webApp.AppSettings
+                        |> List.map(fun (k,v) -> {| name = k; value = v |})
+                    |}
                 |}
-            |}
-    |}
+        |}
+        match webApp.Kind with
+        | Some kind -> box {| baseProps with kind = kind |}
+        | None -> box baseProps
 
     let cosmosDbContainer (accountName:ResourceName) (databaseName:ResourceName) (container:CosmosDbContainer) = {|
         ``type`` = ResourceType.CosmosDbSqlContainer.Value

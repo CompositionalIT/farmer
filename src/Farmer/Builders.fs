@@ -28,23 +28,28 @@ module Helpers =
 
 [<AutoOpen>]
 module WebApp =
+    type WorkerSize = Small | Medium | Large
+    type WebAppSku = Shared | Free | Basic of string | Standard of string | Premium of string | PremiumV2 of string | Isolated of string
+    type WorkerRuntime = DotNet | Node | Java | Python
+    type OS = Windows | Linux
     module Sku =
-        let F1 = "F1"
-        let B1 = "B1"
-        let B2 = "B2"
-        let B3 = "B3"
-        let S1 = "S1"
-        let S2 = "S2"
-        let S3 = "S3"
-        let P1 = "P1"
-        let P2 = "P2"
-        let P3 = "P3"
-        let P1V2 = "P1V2"
-        let P2V2 = "P2V2"
-        let P3V2 = "P3V2"
-        let I1 = "I1"
-        let I2 = "I2"
-        let I3 = "I3"
+        let D1 = Shared
+        let F1 = Free
+        let B1 = Basic "B1"
+        let B2 = Basic "B2"
+        let B3 = Basic "B3"
+        let S1 = Standard "S1"
+        let S2 = Standard "S2"
+        let S3 = Standard "S3"
+        let P1 = Premium "P1"
+        let P2 = Premium "P2"
+        let P3 = Premium "P3"
+        let P1V2 = PremiumV2 "P1V2"
+        let P2V2 = PremiumV2 "P2V2"
+        let P3V2 = PremiumV2 "P3V2"
+        let I1 = Isolated "I1"
+        let I2 = Isolated "I2"
+        let I3 = Isolated "I3"
 
     module AppSettings =
         let WebsiteNodeDefaultVersion version = "WEBSITE_NODE_DEFAULT_VERSION", version
@@ -52,7 +57,9 @@ module WebApp =
     type WebAppConfig =
         { Name : ResourceName
           ServicePlanName : ResourceName
-          Sku : string
+          Sku : WebAppSku
+          WorkerSize : WorkerSize
+          WorkerCount : int
           AppInsightsName : ResourceName option
           RunFromPackage : bool
           WebsiteNodeDefaultVersion : string option
@@ -60,20 +67,28 @@ module WebApp =
           Dependencies : ResourceName list }
         member this.PublishingPassword =
             sprintf "[list(resourceId('Microsoft.Web/sites/config', '%s', 'publishingcredentials'), '2014-06-01').properties.publishingPassword]" this.Name.Value
-        
+       
+    type FunctionsConfig =
+        { Name : ResourceName
+          ServicePlanName : ResourceName
+          StorageAccountName : ResourceName
+          AutoCreateStorageAccount : bool
+          AppInsightsName : ResourceName option
+          WorkerRuntime : WorkerRuntime
+          OperatingSystem : OS }
+
     type WebAppBuilder() =
         member __.Yield _ =
             { Name = ResourceName ""
               ServicePlanName = ResourceName ""
               Sku = Sku.F1
+              WorkerSize = Small
+              WorkerCount = 1
               AppInsightsName = None
               RunFromPackage = false
               WebsiteNodeDefaultVersion = None
               Settings = Map.empty
               Dependencies = [] }
-        member __.Run (state:WebAppConfig) =
-            { state with
-                Dependencies = state.ServicePlanName :: state.Dependencies }
         /// Sets the name of the web app; use the `name` keyword.
         [<CustomOperation "name">]
         member __.Name(state:WebAppConfig, name) = { state with Name = name }
@@ -84,7 +99,11 @@ module WebApp =
         member this.ServicePlanName(state:WebAppConfig, name:string) = this.ServicePlanName(state, ResourceName name)
         /// Sets the sku of the web app; use the `sku` keyword.
         [<CustomOperation "sku">]
-        member __.Sku(state:WebAppConfig, sku:string) = { state with Sku = sku }
+        member __.Sku(state:WebAppConfig, sku) = { state with Sku = sku }
+        [<CustomOperation "worker_size">]
+        member __.WorkerSize(state:WebAppConfig, workerSize) = { state with Sku = workerSize }
+        [<CustomOperation "number_of_workers">]
+        member __.NumberOfWorkers(state:WebAppConfig, workerCount) = { state with WorkerCount = workerCount }
         /// Creates a fully-configured application insights resource linked to this web app; use the `use_app_insights` keyword.
         [<CustomOperation "use_app_insights">]
         member __.UseAppInsights(state:WebAppConfig, name) = { state with AppInsightsName = Some name }
@@ -102,7 +121,33 @@ module WebApp =
         [<CustomOperation "depends_on">]
         member __.DependsOn(state:WebAppConfig, resourceName) =
             { state with Dependencies = resourceName :: state.Dependencies }
+    
+    type FunctionsBuilder() =
+        member __.Yield _ =
+            { Name = ResourceName ""
+              ServicePlanName = ResourceName ""
+              StorageAccountName = ResourceName ""
+              AutoCreateStorageAccount = false
+              AppInsightsName = None
+              WorkerRuntime = DotNet
+              OperatingSystem = Windows }
+        [<CustomOperation "name">]
+        member __.Name(state:FunctionsConfig, name) = { state with Name = ResourceName name }
+        [<CustomOperation "service_plan_name">]
+        member __.ServicePlanName(state:FunctionsConfig, name) = { state with ServicePlanName = ResourceName name }
+        [<CustomOperation "storage_account_name">]
+        member __.StorageAccountName(state:FunctionsConfig, name) = { state with StorageAccountName = ResourceName name }
+        [<CustomOperation "auto_create_storage">]
+        member __.AutoCreateStorageAccount(state:FunctionsConfig) = { state with AutoCreateStorageAccount = true }
+        [<CustomOperation "use_app_insights">]
+        member __.AppInsightsName(state:FunctionsConfig, name) = { state with AppInsightsName = Some (ResourceName name) }
+        [<CustomOperation "use_runtime">]
+        member __.Runtime(state:FunctionsConfig, runtime) = { state with WorkerRuntime = runtime }
+        [<CustomOperation "operating_system">]
+        member __.OperatingSystem(state:FunctionsConfig, os) = { state with OperatingSystem = os }
+
     let webApp = WebAppBuilder()
+    let functions = FunctionsBuilder()
 
 [<AutoOpen>]
 module Storage =
@@ -115,17 +160,18 @@ module Storage =
         let StandardRAGZRS = "Standard_RAGZRS"
         let PremiumLRS = "Premium_LRS"
         let PremiumZRS = "Premium_ZRS"
+    let buildKey (ResourceName name) =
+        sprintf
+            "[concat('DefaultEndpointsProtocol=https;AccountName=', '%s', ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts/', '%s'), '2017-10-01').keys[0].value)]"
+                name
+                name
+
     type StorageAccountConfig =
         { /// The name of the storage account.
           Name : ResourceName
           /// The sku of the storage account.
           Sku : string }
-        member this.Key =
-            let (ResourceName name) = this.Name
-            sprintf
-                "[concat('DefaultEndpointsProtocol=https;AccountName=', '%s', ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts/', '%s'), '2017-10-01').keys[0].value)]"
-                    name
-                    name
+        member this.Key = buildKey this.Name
     type StorageAccountBuilder() =
         member __.Yield _ = { Name = ResourceName ""; Sku = Sku.StandardLRS }
         [<CustomOperation "name">]
@@ -352,8 +398,9 @@ module ArmBuilder =
                             match wac.AppInsightsName with
                             | Some _ -> Set [ AppInsightsExtension ]
                             | None -> Set.empty
-
+                          Kind = None
                           Dependencies = [
+                            yield wac.ServicePlanName
                             yield! wac.Dependencies
                             match wac.AppInsightsName with
                             | Some appInsightsame -> yield appInsightsame
@@ -364,13 +411,101 @@ module ArmBuilder =
                     let serverFarm =
                         { Location = state.Location
                           Name = wac.ServicePlanName
-                          Sku = wac.Sku
+                          Sku =
+                            match wac.Sku with
+                            | WebApp.Free ->
+                                "F1"
+                            | Shared ->
+                                "D1"
+                            | WebApp.Basic sku
+                            | WebApp.Standard sku
+                            | WebApp.Premium sku
+                            | PremiumV2 sku
+                            | Isolated sku ->
+                                sku
+                          WorkerSize =
+                            match wac.WorkerSize with
+                            | Small -> "0"
+                            | Medium -> "1"
+                            | Large -> "2"
+                          IsDynamic = false
+                          Tier =
+                            match wac.Sku with
+                            | WebApp.Free -> "Free"
+                            | Shared -> "Shared"
+                            | WebApp.Basic _ -> "Basic"
+                            | WebApp.Standard _ -> "Standard"
+                            | WebApp.Premium _ -> "Premium"
+                            | WebApp.PremiumV2 _ -> "PremiumV2"
+                            | WebApp.Isolated _ -> "Isolated"
+                          WorkerCount = wac.WorkerCount
                           WebApps = [ webApp ] }
 
                     yield serverFarm
                     match wac.AppInsightsName with
                     | Some ai ->
-                        yield { Name = ai; Location = state.Location; LinkedWebsite = wac.Name }
+                        yield { Name = ai
+                                Location = state.Location
+                                LinkedWebsite = wac.Name }
+                    | None ->
+                        () ]
+                | :? FunctionsConfig as fns -> [
+                    let webApp =
+                        { Name = fns.Name
+                          AppSettings = [
+                            yield "FUNCTIONS_WORKER_RUNTIME", string fns.WorkerRuntime
+                            yield "WEBSITE_NODE_DEFAULT_VERSION", "10.14.1"
+                            yield "FUNCTIONS_EXTENSION_VERSION", "~2"
+                            yield "AzureWebJobsStorage", Storage.buildKey fns.StorageAccountName
+                            yield "AzureWebJobsDashboard", Storage.buildKey fns.StorageAccountName
+
+                            match fns.AppInsightsName with
+                            | Some v -> yield "APPINSIGHTS_INSTRUMENTATIONKEY", Helpers.AppInsights.instrumentationKey v
+                            | None -> ()
+
+                            if fns.OperatingSystem = Windows then
+                                yield "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING", Storage.buildKey fns.StorageAccountName
+                                yield "WEBSITE_CONTENTSHARE", fns.Name.Value.ToLower()
+                          ]
+
+                          Kind =
+                            match fns.OperatingSystem with
+                            | Windows -> Some "functionapp"
+                            | Linux -> Some "functionapp,linux"
+                          Extensions = Set.empty
+                          Dependencies = [
+                            match fns.AppInsightsName with
+                            | Some appInsightsame -> yield appInsightsame
+                            | None -> ()
+                            yield fns.ServicePlanName
+                            yield fns.StorageAccountName
+                          ]
+                        }                    
+
+                    let serverFarm =
+                        { Location = state.Location
+                          Name = fns.ServicePlanName
+                          Sku = "Y1"
+                          WorkerSize = "Y1"
+                          IsDynamic = true
+                          Tier = "Dynamic"
+                          WorkerCount = 0
+                          WebApps = [ webApp ] }
+
+                    yield serverFarm
+
+                    if fns.AutoCreateStorageAccount then
+                        yield
+                            { StorageAccount.Name = fns.StorageAccountName
+                              Location = state.Location
+                              Sku = Storage.Sku.StandardLRS }
+
+                    match fns.AppInsightsName with
+                    | Some ai ->
+                        yield
+                            { Name = ai
+                              Location = state.Location
+                              LinkedWebsite = fns.Name }
                     | None ->
                         () ]
                 | :? CosmosDbConfig as cosmos -> [

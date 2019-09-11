@@ -11,6 +11,7 @@ type CosmosDbIndexKind = Hash | Range
 type CosmosDbIndexDataType = Number | String
 type SecureParameter = SecureParameter of name:string
 type FeatureFlag = Enabled | Disabled
+
 namespace Farmer.Internal
 
 open Farmer
@@ -35,11 +36,16 @@ type WebApp =
     { Name : ResourceName 
       AppSettings : List<string * string>
       Extensions : WebAppExtensions Set
-      Dependencies : ResourceName list }
+      Dependencies : ResourceName list
+      Kind : string option }
 type ServerFarm =
     { Name : ResourceName 
       Location : string
-      Sku:string
+      Sku: string
+      WorkerSize : string
+      IsDynamic : bool
+      Tier : string
+      WorkerCount : int
       WebApps : WebApp list }
 type CosmosDbContainer =
     { Name : ResourceName
