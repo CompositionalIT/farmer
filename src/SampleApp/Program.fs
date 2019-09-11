@@ -5,28 +5,39 @@ open Farmer
 let template (environment:string) storageSku webAppSku =
     let environment = environment.ToLower()
     let generateResourceName = sprintf "safe-%s-%s" environment 
+    
     let myStorageAccount = storageAccount {
         name (sprintf "safe%sstorage" environment)
         sku storageSku
     }
 
+    let mySqlDb = sql {
+        server_name "isaacsupersql"
+        db_name "mydb"
+        db_edition SqlAzure.Sku.Free
+        admin_username "isaac"
+        use_azure_firewall
+        use_encryption
+        firewall_rule "My Firewall Rule" "192.168.1.1" "192.168.1.1"
+    }
+
     let myCosmosDb = cosmosDb {    
-        name (generateResourceName "cosmosdbsql")
-        server_name (generateResourceName "cosmosdb")
+        name "isaacsappdb"
+        server_name "isaacscosmosdb"
         throughput 400
         failover_policy NoFailover
-        consistency_policy (BoundedStaleness(100, 5))
+        consistency_policy (BoundedStaleness(500, 1000))
         add_containers [
             container {
                 name "myContainer"
                 partition_key [ "/id" ] Hash
-                include_index "/*" [ Number, Hash ]
+                include_index "/path" [ Number, Hash ]
                 exclude_path "/excluded/*"
             }
         ]
-    }
+    }    
 
-    let web = webApp {
+    let myWebApp = webApp {
         name (generateResourceName "web")
         service_plan_name (generateResourceName "webhost")
         sku webAppSku
@@ -38,17 +49,20 @@ let template (environment:string) storageSku webAppSku =
         setting "STORAGE_CONNECTIONSTRING" myStorageAccount.Key
 
         depends_on myStorageAccount
+        depends_on myCosmosDb
+        depends_on mySqlDb
     }
 
     arm {
         resource myStorageAccount
-        resource web
         resource myCosmosDb
+        resource myWebApp
+        resource mySqlDb
 
-        output "webAppName" web.Name
-        output "webAppPassword" web.PublishingPassword        
+        output "webAppName" myWebApp.Name
+        output "webAppPassword" myWebApp.PublishingPassword        
     }
 
-template "ice" Storage.Sku.StandardLRS WebApp.Sku.F1
+template "dev" Storage.Sku.StandardLRS WebApp.Sku.F1
 |> Writer.toJson
 |> Writer.toFile @"safe-template.json"

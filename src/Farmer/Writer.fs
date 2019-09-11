@@ -3,6 +3,15 @@ module Farmer.Writer
 open Farmer.Internal
 
 module Outputters =
+    let storageAccount (resource:StorageAccount) = {|
+        ``type`` = ResourceType.StorageAccount.Value
+        sku = {| name = resource.Sku |}
+        kind = "Storage"
+        name = resource.Name.Value
+        apiVersion = "2017-10-01"
+        location = resource.Location
+    |}
+
     let appInsights (resource:AppInsights) =
         let (ResourceName linkedWebsite) = resource.LinkedWebsite
         {| ``type`` = ResourceType.AppInsights.Value
@@ -15,16 +24,6 @@ module Outputters =
                  "displayName", "AppInsightsComponent" ] |> Map.ofList
            properties =
                {| name = resource.Name.Value |} |}
-
-    let storageAccount (resource:StorageAccount) = {|
-        ``type`` = ResourceType.StorageAccount.Value
-        sku = {| name = resource.Sku |}
-        kind = "Storage"
-        name = resource.Name.Value
-        apiVersion = "2017-10-01"
-        location = resource.Location
-    |}
-
     let serverFarm (resource:ServerFarm) = {|
         ``type`` = ResourceType.ServerFarm.Value
         sku = {| name = resource.Sku |}
@@ -36,7 +35,6 @@ module Outputters =
                perSiteScaling = false
                reserved = false |}
     |}
-
     let webApp (serverFarmInfo:ServerFarm) (webApp:WebApp) = {|
         ``type`` = ResourceType.WebSite.Value
         name = webApp.Name.Value
@@ -96,7 +94,7 @@ module Outputters =
                     |}
                 |}
             |}
-        |}
+    |}
     let cosmosDbServer (cosmosDb:CosmosDbServer) = {|
         ``type`` = ResourceType.CosmosDb.Value
         name = cosmosDb.Name.Value
@@ -138,7 +136,6 @@ module Outputters =
             | NoFailover ->
                 box baseProps
     |}
-
     let cosmosDbSql (cosmosServerName:ResourceName) (cosmosDbSql:CosmosDbSql) = {|
         ``type`` = ResourceType.CosmosDbSql.Value
         name = sprintf "%s/sql/%s" cosmosServerName.Value cosmosDbSql.Name.Value
@@ -147,6 +144,57 @@ module Outputters =
         properties =
             {| resource = {| id = cosmosDbSql.Name.Value |}
                options = {| throughput = cosmosDbSql.Throughput |} |}
+    |}
+
+    let sqlAzure (database:SqlAzure) = {|
+        ``type`` = ResourceType.SqlAzure.Value
+        name = database.ServerName.Value
+        apiVersion = "2014-04-01-preview"
+        location = database.Location
+        tags = {| displayName = "SqlServer" |}
+        properties =
+            let (SecureParameter passwordParam) = database.AdministratorLoginPassword
+            {| administratorLogin = database.AdministratorLogin
+               administratorLoginPassword = sprintf "[parameters('%s')]" passwordParam
+               version = "12.0" |}
+        resources = [
+            yield
+                {| ``type`` = "databases"
+                   name = database.DbName.Value               
+                   apiVersion = "2015-01-01"
+                   location = database.Location
+                   tags = {| displayName = "Database" |}
+                   properties =
+                    {| edition = database.DbEdition
+                       collation = database.DbCollation
+                       requestedServiceObjectiveName = database.DbObjective |}
+                   dependsOn = [
+                       database.ServerName.Value
+                   ]
+                   resources = [
+                       {| ``type`` = "transparentDataEncryption"
+                          comments = "Transparent Data Encryption"
+                          name = "current"                      
+                          apiVersion = "2014-04-01-preview"
+                          properties = {| status = string database.TransparentDataEncryption |}
+                          dependsOn = [ database.DbName.Value ]
+                       |}
+                   ]
+                |} |> box
+            yield!
+                database.FirewallRules
+                |> List.map(fun fw ->
+                    {| ``type`` = "firewallrules"
+                       name = fw.Name
+                       apiVersion = "2014-04-01"
+                       location = database.Location
+                       properties =
+                        {| endIpAddress = string fw.Start
+                           startIpAddress = string fw.End |}
+                       dependsOn = [ database.ServerName.Value ]
+                    |} |> box)
+        ]
+
     |}
 
 let processTemplate (template:ArmTemplate) = {|
@@ -180,10 +228,21 @@ let processTemplate (template:ArmTemplate) = {|
                     )
                 [ yield server
                   yield! dbsAndContainers ]
-            | _ ->
-                failwith "Not supported. Sorry!"
+            | :? SqlAzure as sql ->
+                [ yield Outputters.sqlAzure sql |> box ]
+            | s ->
+                failwithf "'%s' is not supported. Sorry!" (s.GetType().FullName)
         )]
         |> List.concat
+    parameters =
+        [ for resource in template.Resources do
+            match resource with
+            | :? SqlAzure as sql ->
+                let (SecureParameter p) = sql.AdministratorLoginPassword
+                yield p, {| ``type`` = "securestring" |}
+            | _ ->
+                ()            
+        ] |> Map.ofList
     outputs = [
         for (k, v) in template.Outputs ->
             k, Map [ "type", "string"; "value", v ]
