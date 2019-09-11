@@ -19,6 +19,12 @@ things will change rapidly and there will be lots of breaking changes both in te
 * Support more use-cases
 * Look to simplify the DSL even more e.g. auto-detect parameters and dependencies.
 
+### Currently Supported Resources
+* Storage
+* App Service
+* Application Insights
+* Cosmos DB
+
 ## What does it look like?
 This is an example Farmer value:
 
