@@ -5,12 +5,29 @@ open Farmer
 let template (environment:string) storageSku webAppSku =
     let environment = environment.ToLower()
     let generateResourceName = sprintf "safe-%s-%s" environment 
+    
     let myStorageAccount = storageAccount {
         name (sprintf "safe%sstorage" environment)
         sku storageSku
     }
 
-    let web = webApp {
+    let myCosmosDb = cosmosDb {    
+        name "isaacsappdb"
+        server_name "isaacscosmosdb"
+        throughput 400
+        failover_policy NoFailover
+        consistency_policy (BoundedStaleness(500, 1000))
+        add_containers [
+            container {
+                name "myContainer"
+                partition_key [ "/id" ] Hash
+                include_index "/path" [ Number, Hash ]
+                exclude_path "/excluded/*"
+            }
+        ]
+    }    
+
+    let myWebApp = webApp {
         name (generateResourceName "web")
         service_plan_name (generateResourceName "webhost")
         sku webAppSku
@@ -22,14 +39,16 @@ let template (environment:string) storageSku webAppSku =
         setting "STORAGE_CONNECTIONSTRING" myStorageAccount.Key
 
         depends_on myStorageAccount
+        depends_on myCosmosDb
     }
 
     arm {
         resource myStorageAccount
-        resource web
+        resource cosmosDb
+        resource myWebApp
 
-        output "webAppName" web.Name
-        output "webAppPassword" web.PublishingPassword        
+        output "webAppName" myWebApp.Name
+        output "webAppPassword" myWebApp.PublishingPassword        
     }
 
 template "dev" Storage.Sku.StandardLRS WebApp.Sku.F1

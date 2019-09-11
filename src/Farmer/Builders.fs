@@ -141,6 +141,82 @@ module Storage =
         member this.DependsOn(state:WebAppConfig, storageAccountConfig:StorageAccountConfig) =
             this.DependsOn(state, storageAccountConfig.Name)
 
+[<AutoOpen>]
+module CosmosDb =
+    type CosmosDbContainerConfig =
+        { Name : ResourceName
+          PartitionKey : string list * CosmosDbIndexKind
+          Indexes : (string * (CosmosDbIndexDataType * CosmosDbIndexKind) list) list
+          ExcludedPaths : string list }
+
+    type CosmosDbConfig =
+        { Name : ResourceName
+          ServerName : ResourceName          
+          ConsistencyPolicy : ConsistencyPolicy
+          FailoverPolicy : FailoverPolicy
+          Throughput : string
+          Containers : CosmosDbContainerConfig list }    
+
+    type CosmosDbContainer() =
+        member __.Yield _ =
+            { Name = ResourceName ""
+              PartitionKey = [], Hash
+              Indexes = []
+              ExcludedPaths = [] }
+
+
+        [<CustomOperation "name">]
+        member __.Name (state:CosmosDbContainerConfig, name) =
+            { state with Name = ResourceName name }
+
+        [<CustomOperation "partition_key">]
+        member __.PartitionKey (state:CosmosDbContainerConfig, partitions, indexKind) =
+            { state with PartitionKey = partitions, indexKind }
+
+        [<CustomOperation "include_index">]
+        member __.IncludeIndex (state:CosmosDbContainerConfig, path, indexes) =
+            { state with Indexes = (path, indexes) :: state.Indexes }
+
+        [<CustomOperation "exclude_path">]
+        member __.ExcludePath (state:CosmosDbContainerConfig, path) =
+            { state with ExcludedPaths = path :: state.ExcludedPaths }
+
+    type CosmosDbBuilder() =
+        member __.Yield _ =
+            { Name = ResourceName "CosmosDatabase"
+              ServerName = ResourceName "CosmosServer"            
+              ConsistencyPolicy = Eventual
+              FailoverPolicy = NoFailover
+              Throughput = "400"
+              Containers = [] }
+        /// Sets the name of cosmos db server; use the `server_name` keyword.
+        [<CustomOperation "server_name">]
+        member __.ServerName(state:CosmosDbConfig, serverName) = { state with ServerName = serverName }
+        member this.ServerName(state:CosmosDbConfig, serverName:string) = this.ServerName(state, ResourceName serverName)
+        /// Sets the name of the web app; use the `name` keyword.
+        [<CustomOperation "name">]
+        member __.Name(state:CosmosDbConfig, name) = { state with Name = name }
+        member this.Name(state:CosmosDbConfig, name:string) = this.Name(state, ResourceName name)
+        /// Sets the sku of the web app; use the `sku` keyword.
+        [<CustomOperation "consistency_policy">]
+        member __.ConsistencyPolicy(state:CosmosDbConfig, consistency:ConsistencyPolicy) = { state with ConsistencyPolicy = consistency }
+        [<CustomOperation "failover_policy">]
+        member __.FailoverPolicy(state:CosmosDbConfig, failoverPolicy:FailoverPolicy) = { state with FailoverPolicy = failoverPolicy }
+        [<CustomOperation "throughput">]
+        member __.Throughput(state:CosmosDbConfig, throughput) = { state with Throughput = throughput }
+        member this.Throughput(state:CosmosDbConfig, throughput:int) = this.Throughput(state, string throughput)
+        [<CustomOperation "add_containers">]
+        member __.AddContainers(state:CosmosDbConfig, containers) =
+            { state with Containers = state.Containers @ containers }
+
+    open WebApp
+    type WebAppBuilder with
+        member this.DependsOn(state:WebAppConfig, cosmosDbConfig:CosmosDbConfig) =
+            this.DependsOn(state, cosmosDbConfig.Name)
+
+    let cosmosDb = CosmosDbBuilder()
+    let container = CosmosDbContainer()
+
 type ArmConfig =
     { Parameters : string Set
       Variables : (string * string) list
@@ -201,7 +277,7 @@ module ArmBuilder =
                           Dependencies = [
                             yield! wac.Dependencies
                             match wac.AppInsightsName with
-                            | Some v -> yield v
+                            | Some appInsightsame -> yield appInsightsame
                             | None -> ()
                           ]
                         }
@@ -218,6 +294,42 @@ module ArmBuilder =
                         yield { Name = ai; Location = state.Location; LinkedWebsite = wac.Name }
                     | None ->
                         () ]
+                | :? CosmosDbConfig as cosmos -> [
+                    let server =
+                        { Name = cosmos.ServerName
+                          Location = state.Location
+                          ConsistencyPolicy = cosmos.ConsistencyPolicy
+                          WriteModel = cosmos.FailoverPolicy
+                          Databases =
+                            [ { Name = cosmos.Name
+                                Dependencies = [ cosmos.ServerName ]
+                                Throughput = cosmos.Throughput
+                                Containers =
+                                    cosmos.Containers
+                                    |> List.map(fun c ->
+                                        { CosmosDbContainer.Name = c.Name
+                                          PartitionKey =
+                                            {| Paths = fst c.PartitionKey
+                                               Kind = snd c.PartitionKey |}
+                                          IndexingPolicy =
+                                            {| ExcludedPaths = c.ExcludedPaths
+                                               IncludedPaths =
+                                                   c.Indexes
+                                                   |> List.map(fun index ->
+                                                     {| Path = fst index
+                                                        Indexes =
+                                                            index
+                                                            |> snd
+                                                            |> List.map(fun (dataType, kind) ->
+                                                                {| DataType = dataType
+                                                                   Kind = kind |})
+                                                     |})
+                                            |}
+                                        })
+                              }
+                            ]
+                        }
+                    yield server ]
                 | _ ->
                     failwith "Sorry, I don't know how to handle this resource.")
         }
