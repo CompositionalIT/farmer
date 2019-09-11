@@ -150,11 +150,11 @@ module CosmosDb =
           ExcludedPaths : string list }
 
     type CosmosDbConfig =
-        { Name : ResourceName
-          ServerName : ResourceName          
-          ConsistencyPolicy : ConsistencyPolicy
-          FailoverPolicy : FailoverPolicy
-          Throughput : string
+        { ServerName : ResourceName
+          ServerConsistencyPolicy : ConsistencyPolicy
+          ServerFailoverPolicy : FailoverPolicy
+          DbName : ResourceName          
+          DbThroughput : string
           Containers : CosmosDbContainerConfig list }    
 
     type CosmosDbContainer() =
@@ -163,7 +163,6 @@ module CosmosDb =
               PartitionKey = [], Hash
               Indexes = []
               ExcludedPaths = [] }
-
 
         [<CustomOperation "name">]
         member __.Name (state:CosmosDbContainerConfig, name) =
@@ -183,11 +182,11 @@ module CosmosDb =
 
     type CosmosDbBuilder() =
         member __.Yield _ =
-            { Name = ResourceName "CosmosDatabase"
+            { DbName = ResourceName "CosmosDatabase"
               ServerName = ResourceName "CosmosServer"            
-              ConsistencyPolicy = Eventual
-              FailoverPolicy = NoFailover
-              Throughput = "400"
+              ServerConsistencyPolicy = Eventual
+              ServerFailoverPolicy = NoFailover
+              DbThroughput = "400"
               Containers = [] }
         /// Sets the name of cosmos db server; use the `server_name` keyword.
         [<CustomOperation "server_name">]
@@ -195,15 +194,15 @@ module CosmosDb =
         member this.ServerName(state:CosmosDbConfig, serverName:string) = this.ServerName(state, ResourceName serverName)
         /// Sets the name of the web app; use the `name` keyword.
         [<CustomOperation "name">]
-        member __.Name(state:CosmosDbConfig, name) = { state with Name = name }
+        member __.Name(state:CosmosDbConfig, name) = { state with DbName = name }
         member this.Name(state:CosmosDbConfig, name:string) = this.Name(state, ResourceName name)
         /// Sets the sku of the web app; use the `sku` keyword.
         [<CustomOperation "consistency_policy">]
-        member __.ConsistencyPolicy(state:CosmosDbConfig, consistency:ConsistencyPolicy) = { state with ConsistencyPolicy = consistency }
+        member __.ConsistencyPolicy(state:CosmosDbConfig, consistency:ConsistencyPolicy) = { state with ServerConsistencyPolicy = consistency }
         [<CustomOperation "failover_policy">]
-        member __.FailoverPolicy(state:CosmosDbConfig, failoverPolicy:FailoverPolicy) = { state with FailoverPolicy = failoverPolicy }
+        member __.FailoverPolicy(state:CosmosDbConfig, failoverPolicy:FailoverPolicy) = { state with ServerFailoverPolicy = failoverPolicy }
         [<CustomOperation "throughput">]
-        member __.Throughput(state:CosmosDbConfig, throughput) = { state with Throughput = throughput }
+        member __.Throughput(state:CosmosDbConfig, throughput) = { state with DbThroughput = throughput }
         member this.Throughput(state:CosmosDbConfig, throughput:int) = this.Throughput(state, string throughput)
         [<CustomOperation "add_containers">]
         member __.AddContainers(state:CosmosDbConfig, containers) =
@@ -212,7 +211,7 @@ module CosmosDb =
     open WebApp
     type WebAppBuilder with
         member this.DependsOn(state:WebAppConfig, cosmosDbConfig:CosmosDbConfig) =
-            this.DependsOn(state, cosmosDbConfig.Name)
+            this.DependsOn(state, cosmosDbConfig.DbName)
 
     let cosmosDb = CosmosDbBuilder()
     let container = CosmosDbContainer()
@@ -298,12 +297,12 @@ module ArmBuilder =
                     let server =
                         { Name = cosmos.ServerName
                           Location = state.Location
-                          ConsistencyPolicy = cosmos.ConsistencyPolicy
-                          WriteModel = cosmos.FailoverPolicy
+                          ConsistencyPolicy = cosmos.ServerConsistencyPolicy
+                          WriteModel = cosmos.ServerFailoverPolicy
                           Databases =
-                            [ { Name = cosmos.Name
+                            [ { Name = cosmos.DbName
                                 Dependencies = [ cosmos.ServerName ]
-                                Throughput = cosmos.Throughput
+                                Throughput = cosmos.DbThroughput
                                 Containers =
                                     cosmos.Containers
                                     |> List.map(fun c ->
@@ -366,4 +365,3 @@ module ArmBuilder =
         member __.AddResource(state, resource) : ArmConfig =
             { state with Resources = box resource :: state.Resources }
     let arm = ArmBuilder()
-
