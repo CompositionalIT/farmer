@@ -37,6 +37,16 @@ let template (environment:string) storageSku webAppSku =
         ]
     }    
 
+    let myFunction = functions {
+        name "isaacsuperfun"
+        service_plan_name "isaacsuperfunhost"
+        storage_account_name "isaacsuperstorage"
+        auto_create_storage
+        operating_system Windows
+        use_runtime DotNet
+        use_app_insights "isaacsuperai"
+    }
+
     let myWebApp = webApp {
         name (generateResourceName "web")
         service_plan_name (generateResourceName "webhost")
