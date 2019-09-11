@@ -2,34 +2,37 @@ module Test
 
 open Farmer
 
-let template =
+let template (environment:string) storageSku webAppSku =
+    let environment = environment.ToLower()
+    let generateResourceName = sprintf "safe-%s-%s" environment 
+    
     let myStorageAccount = storageAccount {
-        name (Variable "storage")
-        sku Storage.Sku.StandardLRS
+        name (sprintf "safe%sstorage" environment)
+        sku storageSku
     }
 
-    let myCosmosDb = cosmosDb {
+    let myCosmosDb = cosmosDb {    
         name "isaacsappdb"
         server_name "isaacscosmosdb"
         throughput 400
-        failover_policy (AutoFailover Helpers.Locations.``North Europe``.Command)
+        failover_policy NoFailover
         consistency_policy (BoundedStaleness(500, 1000))
         add_containers [
             container {
                 name "myContainer"
                 partition_key [ "/id" ] Hash
                 include_index "/path" [ Number, Hash ]
-                exclude_path "/excluded"
+                exclude_path "/excluded/*"
             }
         ]
-    }
+    }    
 
     let myWebApp = webApp {
-        name (Variable "web")
-        service_plan_name (Variable "appServicePlan")
-        sku (Parameter "pricingTier")
+        name (generateResourceName "web")
+        service_plan_name (generateResourceName "webhost")
+        sku webAppSku
 
-        use_app_insights (Variable "insights")
+        use_app_insights (generateResourceName "insights")
 
         website_node_default_version "8.1.4"
         setting "public_path" "./public"
@@ -39,19 +42,7 @@ let template =
         depends_on myCosmosDb
     }
 
-    let withPostfix element = concat [ Variable "prefix"; Literal element ]
     arm {
-        parameters [ "environment"; "location"; "pricingTier" ]
-
-        variable "environment" (toLower (Parameter "environment"))
-        variable "prefix" (concat [ Literal "safe-"; Variable "environment" ])
-        variable "appServicePlan" (withPostfix "-web-host")
-        variable "web" (withPostfix "-web")
-        variable "storage" (concat [ Literal "safe"; Variable "environment"; Literal "storage" ])
-        variable "insights" (withPostfix "-insights")
-
-        location (Parameter "location")
-
         resource myStorageAccount
         resource cosmosDb
         resource myWebApp
@@ -60,6 +51,6 @@ let template =
         output "webAppPassword" myWebApp.PublishingPassword        
     }
 
-template
+template "dev" Storage.Sku.StandardLRS WebApp.Sku.F1
 |> Writer.toJson
 |> Writer.toFile @"safe-template.json"

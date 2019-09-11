@@ -5,44 +5,44 @@ open Farmer.Internal
 module Outputters =
     let appInsights (resource:AppInsights) =
         let (ResourceName linkedWebsite) = resource.LinkedWebsite
-        {| ``type`` = ResourcePath.AppInsights.Value
+        {| ``type`` = ResourceType.AppInsights.Value
            kind = "web"
-           name = resource.Name.Command
-           location = resource.Location.Command
+           name = resource.Name.Value
+           location = resource.Location
            apiVersion = "2014-04-01"
            tags =
-               [ sprintf "[concat('hidden-link:', resourceGroup().id, '/providers/Microsoft.Web/sites/', %s)]" linkedWebsite.QuotedValue, "Resource"
+               [ sprintf "[concat('hidden-link:', resourceGroup().id, '/providers/Microsoft.Web/sites/', '%s')]" linkedWebsite, "Resource"
                  "displayName", "AppInsightsComponent" ] |> Map.ofList
            properties =
-               {| name = resource.Name.Command |} |}
+               {| name = resource.Name.Value |} |}
 
     let storageAccount (resource:StorageAccount) = {|
-        ``type`` = ResourcePath.StorageAccount.Value
-        sku = {| name = resource.Sku.Command |}
+        ``type`` = ResourceType.StorageAccount.Value
+        sku = {| name = resource.Sku |}
         kind = "Storage"
-        name = resource.Name.Command
+        name = resource.Name.Value
         apiVersion = "2017-10-01"
-        location = resource.Location.Command
+        location = resource.Location
     |}
 
     let serverFarm (resource:ServerFarm) = {|
-        ``type`` = ResourcePath.ServerFarm.Value
-        sku = {| name = resource.Sku.Command |}
-        name = resource.Name.Command
+        ``type`` = ResourceType.ServerFarm.Value
+        sku = {| name = resource.Sku |}
+        name = resource.Name.Value
         apiVersion = "2016-09-01"
-        location = resource.Location.Command
+        location = resource.Location
         properties =
-            {| name = resource.Name.Command
+            {| name = resource.Name.Value
                perSiteScaling = false
                reserved = false |}
     |}
 
     let webApp (serverFarmInfo:ServerFarm) (webApp:WebApp) = {|
-        ``type`` = ResourcePath.WebSite.Value
-        name = webApp.Name.Command
+        ``type`` = ResourceType.WebSite.Value
+        name = webApp.Name.Value
         apiVersion = "2016-08-01"
-        location = serverFarmInfo.Location.Command
-        dependsOn = webApp.Dependencies |> List.map(fun r -> r.Command)
+        location = serverFarmInfo.Location
+        dependsOn = webApp.Dependencies |> List.map(fun p -> p.Value)
         resources =
             webApp.Extensions
             |> Set.toList
@@ -51,30 +51,30 @@ module Outputters =
                 {| apiVersion = "2016-08-01"
                    name = "Microsoft.ApplicationInsights.AzureWebSites"
                    ``type`` = "siteextensions"
-                   dependsOn = [ webApp.Name.Command ]
+                   dependsOn = [ webApp.Name.Value ]
                    properties = {||}
                 |})
         properties =
-            {| serverFarmId = (ResourcePath.makeServerFarm serverFarmInfo.Name).ResourceIdPath |> toExpr
+            {| serverFarmId = serverFarmInfo.Name.Value
                siteConfig =
                 {| appSettings =
-                      webApp.AppSettings
-                      |> List.map(fun (k,v) -> {| name = k; value = v.Command |})
+                    webApp.AppSettings
+                    |> List.map(fun (k,v) -> {| name = k; value = v |})
                 |}
             |}
     |}
 
-    let cosmosDbContainer (database:CosmosDbSql) (container:CosmosDbContainer) = {|
-        ``type`` = ResourcePath.CosmosDbSqlContainer.Value
-        name = (ResourcePath.makeCosmosDbSqlContainer container.Name).ResourceIdPath |> toExpr
+    let cosmosDbContainer (accountName:ResourceName) (databaseName:ResourceName) (container:CosmosDbContainer) = {|
+        ``type`` = ResourceType.CosmosDbSqlContainer.Value
+        name = sprintf "%s/sql/%s/%s" accountName.Value databaseName.Value container.Name.Value
         apiVersion = "2016-03-31"
         dependsOn = [
-            database.Name.Command
+            databaseName.Value
         ]
 //TODO:        "dependsOn": [ "[resourceId('Microsoft.DocumentDB/databaseAccounts/apis/databases', variables('accountName'), 'sql', parameters('databaseName'))]" ],
         properties =
             {| resource =
-                {| id = container.Name.Command
+                {| id = container.Name.Value
                    partitionKey =
                     {| paths = container.PartitionKey.Paths
                        kind = string container.PartitionKey.Kind |}
@@ -91,7 +91,9 @@ module Outputters =
                                        dataType = (string i.DataType).ToLower()
                                        precision = -1 |})
                             |})
-                       excludedPaths = container.IndexingPolicy.ExcludedPaths
+                       excludedPaths =
+                        container.IndexingPolicy.ExcludedPaths
+                        |> List.map(fun p -> {| path = p |})
                     |}
                 |}
             |}
@@ -138,31 +140,32 @@ module Outputters =
 //             }
 //         },
     let cosmosDbServer (cosmosDb:CosmosDbServer) = {|
-        ``type`` = ResourcePath.CosmosDb.Value
-        name = cosmosDb.Name.Command
+        ``type`` = ResourceType.CosmosDb.Value
+        name = cosmosDb.Name.Value
         apiVersion = "2016-03-31"
-        location = cosmosDb.Location.Command
+        location = cosmosDb.Location
         kind = "GlobalDocumentDB"
         properties =
             let baseProps =
-                {| consistencyPolicy =
-                      match cosmosDb.ConsistencyPolicy with
-                      | BoundedStaleness(maxStaleness, maxInterval) ->
-                          box {| defaultConsistencyLevel = "BoundedStaleness"
-                                 maxStalenessPrefix = maxStaleness
-                                 maxIntervalInSeconds = maxInterval |}
-                      | Session
-                      | Eventual
-                      | ConsistentPrefix
-                      | Strong ->
-                          box {| defaultConsistencyLevel = string cosmosDb.ConsistencyPolicy |}
+                let consistencyPolicy =
+                    match cosmosDb.ConsistencyPolicy with
+                    | BoundedStaleness(maxStaleness, maxInterval) ->
+                        box {| defaultConsistencyLevel = "BoundedStaleness"
+                               maxStalenessPrefix = maxStaleness
+                               maxIntervalInSeconds = maxInterval |}
+                    | Session
+                    | Eventual
+                    | ConsistentPrefix
+                    | Strong ->
+                        box {| defaultConsistencyLevel = string cosmosDb.ConsistencyPolicy |}
+                {| consistencyPolicy = consistencyPolicy
                    databaseAccountOfferType = "Standard" |}
             match cosmosDb.WriteModel with
             | AutoFailover secondary ->
                 {| baseProps with
                       enableAutomaticFailover = true
                       locations = [
-                        {| locationName = cosmosDb.Location.Command; failoverPriority = 0 |}
+                        {| locationName = cosmosDb.Location; failoverPriority = 0 |}
                         {| locationName = secondary; failoverPriority = 1 |}
                       ]
                 |} |> box
@@ -170,36 +173,27 @@ module Outputters =
                 {| baseProps with
                       autoenableMultipleWriteLocations = true
                       locations = [
-                        {| locationName = cosmosDb.Location.Command; failoverPriority = 0 |}
+                        {| locationName = cosmosDb.Location; failoverPriority = 0 |}
                         {| locationName = secondary; failoverPriority = 1 |}
                       ]
                 |} |> box
             | NoFailover ->
-                {| baseProps with
-                    locations = [ 
-                        {| locationName = cosmosDb.Location.Command; failoverPriority = 0 |}
-                    ]
-                |} |> box
+                box baseProps
     |}
 
-    let cosmosDbSql (cosmosDbSql:CosmosDbSql) = {|
-        ``type`` = ResourcePath.CosmosDbSql.Value
-        name = cosmosDbSql.Name.Command
+    let cosmosDbSql (cosmosServerName:ResourceName) (cosmosDbSql:CosmosDbSql) = {|
+        ``type`` = ResourceType.CosmosDbSql.Value
+        name = sprintf "%s/sql/%s" cosmosServerName.Value cosmosDbSql.Name.Value
         apiVersion = "2016-03-31"
-        dependsOn = cosmosDbSql.Dependencies |> List.map(fun p -> p.ResourceIdPath |> toExpr)
+        dependsOn = cosmosDbSql.Dependencies |> List.map(fun p -> p.Value)
         properties =
-            {| resource = {| id = cosmosDbSql.Name.Command |}
-               options = {| throughput = cosmosDbSql.Throughput.Command |} |}
+            {| resource = {| id = cosmosDbSql.Name.Value |}
+               options = {| throughput = cosmosDbSql.Throughput |} |}
     |}
 
 let processTemplate (template:ArmTemplate) = {|
     ``$schema`` = "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#"
     contentVersion = "1.0.0.0"
-    parameters =
-        template.Parameters
-        |> List.map(fun p -> p, {| ``type`` = "string" |})
-        |> Map.ofList
-    variables = template.Variables |> Map.ofList
     resources = [
         template.Resources
         |> List.collect (function
@@ -218,12 +212,12 @@ let processTemplate (template:ArmTemplate) = {|
                 let dbsAndContainers =
                     cds.Databases
                     |> List.collect (fun db ->
-                        let db = Outputters.cosmosDbSql db
+                        let db = Outputters.cosmosDbSql cds.Name db
                         let containers =
                             cds.Databases
                             |> List.collect(fun db ->
                                 db.Containers
-                                |> List.map (Outputters.cosmosDbContainer db >> box))
+                                |> List.map (Outputters.cosmosDbContainer cds.Name db.Name >> box))
                         (box db) :: containers
                     )
                 [ yield server
@@ -234,7 +228,7 @@ let processTemplate (template:ArmTemplate) = {|
         |> List.concat
     outputs = [
         for (k, v) in template.Outputs ->
-            k, Map [ "type", "string"; "value", v.Command ]
+            k, Map [ "type", "string"; "value", v ]
     ] |> Map
 |}
 

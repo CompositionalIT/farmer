@@ -1,49 +1,54 @@
-﻿open Farmer
-open Helpers
+﻿module Test
 
+open Farmer
 
-// let myCosmosDb = cosmosDb {    
-//     name "isaacsappdb"
-//     server_name "isaacscosmosdb"
-//     throughput 400
-//     failover_policy NoFailover
-//     consistency_policy (BoundedStaleness(500, 1000))
-//     add_containers [
-//         container {
-//             name "myContainer"
-//             partition_key [ "/id" ] Hash
-//             include_index "/path" [ Number, Hash ]
-//             exclude_path "/excluded"
-//         }
-//     ]
-// }
+let template (environment:string) storageSku webAppSku =
+    let environment = environment.ToLower()
+    let generateResourceName = sprintf "safe-%s-%s" environment 
+    let myStorageAccount = storageAccount {
+        name (sprintf "safe%sstorage" environment)
+        sku storageSku
+    }
 
-let storage = storageAccount {
-    name "isaacstorzz"
-}
+    let myCosmosDb = cosmosDb {    
+        name (generateResourceName "cosmosdbsql")
+        server_name (generateResourceName "cosmosdb")
+        throughput 400
+        failover_policy NoFailover
+        consistency_policy (BoundedStaleness(100, 5))
+        add_containers [
+            container {
+                name "myContainer"
+                partition_key [ "/id" ] Hash
+                include_index "/*" [ Number, Hash ]
+                exclude_path "/excluded/*"
+            }
+        ]
+    }
 
-/// A web app with app insights
-let myWebApp = webApp {
-    name "isaacappyone"
-    service_plan_name "myserverfarm"
-    sku WebApp.Sku.F1
-    use_app_insights "myappinsights"
-    depends_on storage
-}
+    let web = webApp {
+        name (generateResourceName "web")
+        service_plan_name (generateResourceName "webhost")
+        sku webAppSku
 
-/// The overall ARM template which has the app as a resource.
-let template = arm {
-    location Locations.``North Europe``
-    resource myWebApp
-    resource storage
-    //resource myCosmosDb
-}
+        use_app_insights (generateResourceName "insights")
 
-// Now export it as an ARM template.
-printf "Writing the ARM template..."
+        website_node_default_version "8.1.4"
+        setting "public_path" "./public"
+        setting "STORAGE_CONNECTIONSTRING" myStorageAccount.Key
 
-template
+        depends_on myStorageAccount
+    }
+
+    arm {
+        resource myStorageAccount
+        resource web
+        resource myCosmosDb
+
+        output "webAppName" web.Name
+        output "webAppPassword" web.PublishingPassword        
+    }
+
+template "ice" Storage.Sku.StandardLRS WebApp.Sku.F1
 |> Writer.toJson
-|> Writer.toFile @"webapp-appinsights.json"
-
-printfn " all done!"
+|> Writer.toFile @"safe-template.json"
