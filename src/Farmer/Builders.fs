@@ -60,7 +60,7 @@ module WebApp =
           RunFromPackage : bool
           WebsiteNodeDefaultVersion : Value option
           Settings : Map<string, Value>
-          Dependencies : ResourcePath list }
+          Dependencies : ResourceName list }
         member this.PublishingPassword = publishingPassword this.Name
     type WebAppBuilder() =
         member __.Yield _ =
@@ -74,7 +74,7 @@ module WebApp =
               Dependencies = [] }
         member __.Run (state:WebAppConfig) =
             { state with
-                Dependencies = (ResourcePath.makeServerFarm state.ServicePlanName) :: state.Dependencies }
+                Dependencies = state.ServicePlanName :: state.Dependencies }
         /// Sets the name of the web app; use the `name` keyword.
         [<CustomOperation "name">]
         member __.Name(state:WebAppConfig, name) = { state with Name = ResourceName name }
@@ -104,8 +104,8 @@ module WebApp =
         member this.AddSetting(state:WebAppConfig, key, value:string) = this.AddSetting(state, key, Literal value)
         /// Sets a dependency for the web app; use the `depends_on` keyword.
         [<CustomOperation "depends_on">]
-        member __.DependsOn(state:WebAppConfig, (makeResourcePath, resourceName)) =
-            { state with Dependencies = (makeResourcePath resourceName) :: state.Dependencies }
+        member __.DependsOn(state:WebAppConfig, resourceName) =
+            { state with Dependencies = resourceName :: state.Dependencies }
     let webApp = WebAppBuilder()
 
 [<AutoOpen>]
@@ -145,23 +145,56 @@ module Storage =
     open WebApp
     type WebAppBuilder with
         member this.DependsOn(state:WebAppConfig, storageAccountConfig:StorageAccountConfig) =
-            this.DependsOn(state, (ResourcePath.makeStorageAccount, storageAccountConfig.Name))
+            this.DependsOn(state, storageAccountConfig.Name)
 
 [<AutoOpen>]
 module CosmosDb =
+    type CosmosDbContainerConfig =
+        { Name : ResourceName
+          PartitionKey : string list * CosmosDbIndexKind
+          Indexes : (string * (CosmosDbIndexDataType * CosmosDbIndexKind) list) list
+          ExcludedPaths : string list }
+
     type CosmosDbConfig =
         { Name : ResourceName
           ServerName : ResourceName          
           ConsistencyPolicy : ConsistencyPolicy
-          WriteModel : WriteModel
-          Throughput : Value }
+          FailoverPolicy : FailoverPolicy
+          Throughput : Value
+          Containers : CosmosDbContainerConfig list }    
+
+    type CosmosDbContainer() =
+        member __.Yield _ =
+            { Name = ResourceName (Literal "")
+              PartitionKey = [], Hash
+              Indexes = []
+              ExcludedPaths = [] }
+
+
+        [<CustomOperation "name">]
+        member __.Name (state:CosmosDbContainerConfig, name) =
+            { state with Name = ResourceName(Literal name) }
+
+        [<CustomOperation "partition_key">]
+        member __.PartitionKey (state:CosmosDbContainerConfig, partitions, indexKind) =
+            { state with PartitionKey = partitions, indexKind }
+
+        [<CustomOperation "include_index">]
+        member __.IncludeIndex (state:CosmosDbContainerConfig, path, indexes) =
+            { state with Indexes = (path, indexes) :: state.Indexes }
+
+        [<CustomOperation "exclude_path">]
+        member __.ExcludePath (state:CosmosDbContainerConfig, path) =
+            { state with ExcludedPaths = path :: state.ExcludedPaths }
+
     type CosmosDbBuilder() =
         member __.Yield _ =
             { Name = ResourceName (Literal "CosmosDatabase")
               ServerName = ResourceName (Literal "CosmosServer")              
               ConsistencyPolicy = Eventual
-              WriteModel = Standard
-              Throughput = Literal "400" }
+              FailoverPolicy = NoFailover
+              Throughput = Literal "400"
+              Containers = [] }
         /// Sets the name of cosmos db server; use the `server_name` keyword.
         [<CustomOperation "server_name">]
         member __.ServerName(state:CosmosDbConfig, serverName) = { state with ServerName = ResourceName serverName }
@@ -173,18 +206,22 @@ module CosmosDb =
         /// Sets the sku of the web app; use the `sku` keyword.
         [<CustomOperation "consistency_policy">]
         member __.ConsistencyPolicy(state:CosmosDbConfig, consistency:ConsistencyPolicy) = { state with ConsistencyPolicy = consistency }
-        [<CustomOperation "write_model">]
-        member __.WriteModel(state:CosmosDbConfig, writeModel:WriteModel) = { state with WriteModel = writeModel }
+        [<CustomOperation "failover_policy">]
+        member __.FailoverPolicy(state:CosmosDbConfig, failoverPolicy:FailoverPolicy) = { state with FailoverPolicy = failoverPolicy }
         [<CustomOperation "throughput">]
         member __.Throughput(state:CosmosDbConfig, throughput) = { state with Throughput = throughput }
         member this.Throughput(state:CosmosDbConfig, throughput:int) = this.Throughput(state, Literal(string throughput))
+        [<CustomOperation "add_containers">]
+        member __.AddContainers(state:CosmosDbConfig, containers) =
+            { state with Containers = state.Containers @ containers }
 
     open WebApp
     type WebAppBuilder with
         member this.DependsOn(state:WebAppConfig, cosmosDbConfig:CosmosDbConfig) =
-            this.DependsOn(state, (ResourcePath.makeCosmosDb, cosmosDbConfig.Name))
+            this.DependsOn(state, cosmosDbConfig.Name)
 
     let cosmosDb = CosmosDbBuilder()
+    let container = CosmosDbContainer()
 
 type ArmConfig =
     { Parameters : string Set
@@ -246,7 +283,7 @@ module ArmBuilder =
                           Dependencies = [
                             yield! wac.Dependencies
                             match wac.AppInsightsName with
-                            | Some v -> yield ResourcePath.makeAppInsights v
+                            | Some appInsightsame -> yield appInsightsame
                             | None -> ()
                           ]
                         }
@@ -268,13 +305,37 @@ module ArmBuilder =
                         { Name = cosmos.ServerName
                           Location = state.Location
                           ConsistencyPolicy = cosmos.ConsistencyPolicy
-                          WriteModel = cosmos.WriteModel
+                          WriteModel = cosmos.FailoverPolicy
                           Databases =
                             [ { Name = cosmos.Name
                                 Dependencies = [ ResourcePath.makeCosmosDb cosmos.ServerName ]
-                                Throughput = cosmos.Throughput } ] }
-                    yield server
-                    ]
+                                Throughput = cosmos.Throughput
+                                Containers =
+                                    cosmos.Containers
+                                    |> List.map(fun c ->
+                                        { CosmosDbContainer.Name = c.Name
+                                          PartitionKey =
+                                            {| Paths = fst c.PartitionKey
+                                               Kind = snd c.PartitionKey |}
+                                          IndexingPolicy =
+                                            {| ExcludedPaths = c.ExcludedPaths
+                                               IncludedPaths =
+                                                   c.Indexes
+                                                   |> List.map(fun index ->
+                                                     {| Path = fst index
+                                                        Indexes =
+                                                            index
+                                                            |> snd
+                                                            |> List.map(fun (dataType, kind) ->
+                                                                {| DataType = dataType
+                                                                   Kind = kind |})
+                                                     |})
+                                            |}
+                                        })
+                              }
+                            ]
+                        }
+                    yield server ]
                 | _ ->
                     failwith "Sorry, I don't know how to handle this resource.")
         }

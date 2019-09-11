@@ -46,7 +46,9 @@ module ExpressionBuilder =
         escaped >> command "toLower"
 
 type ConsistencyPolicy = Eventual | ConsistentPrefix | Session | BoundedStaleness of maxStaleness:int * maxIntervalSeconds : int | Strong
-type WriteModel = Standard | AutoFailover of secondaryLocation:string | MultiMaster of secondaryLocation:string
+type FailoverPolicy = NoFailover | AutoFailover of secondaryLocation:string | MultiMaster of secondaryLocation:string
+type CosmosDbIndexKind = Hash | Range
+type CosmosDbIndexDataType = Number | String
 
 namespace Farmer.Internal
 
@@ -82,21 +84,38 @@ type WebApp =
     { Name : ResourceName 
       AppSettings : List<string * Value>
       Extensions : WebAppExtensions Set
-      Dependencies : ResourcePath list }
+      Dependencies : ResourceName list }
 type ServerFarm =
     { Name : ResourceName 
       Location : Value
       Sku:Value
       WebApps : WebApp list }
+type CosmosDbContainer =
+    { Name : ResourceName
+      PartitionKey :
+        {| Paths : string list
+           Kind : CosmosDbIndexKind |}
+      IndexingPolicy :
+        {| IncludedPaths :
+            {| Path : string
+               Indexes :
+                {| Kind : CosmosDbIndexKind
+                   DataType : CosmosDbIndexDataType |} list
+            |} list
+           ExcludedPaths : string list
+        |}
+    }
+
 type CosmosDbSql =
     { Name : ResourceName
       Dependencies : ResourcePath list
-      Throughput : Value }
+      Throughput : Value
+      Containers : CosmosDbContainer list }
 type CosmosDbServer =
     { Name : ResourceName
       Location : Value
       ConsistencyPolicy : ConsistencyPolicy
-      WriteModel : WriteModel
+      WriteModel : FailoverPolicy
       Databases : CosmosDbSql list }
 
 module ResourcePath =
@@ -105,11 +124,14 @@ module ResourcePath =
     let WebSite = ResourceType "Microsoft.Web/sites"
     let CosmosDb = ResourceType "Microsoft.DocumentDB/databaseAccounts"
     let CosmosDbSql = ResourceType "Microsoft.DocumentDB/databaseAccounts/apis/databases"
+    let CosmosDbSqlContainer = ResourceType "Microsoft.DocumentDb/databaseAccounts/apis/databases/containers"
     let StorageAccount = ResourceType "Microsoft.Storage/storageAccounts"
     let AppInsights = ResourceType "Microsoft.Insights/components"
     let makeServerFarm = makeResource ServerFarm
     let makeWebSite = makeResource WebSite
     let makeCosmosDb = makeResource CosmosDb
+    let makeCosmosDbSql (accountName:ResourceName) (databaseName:ResourceName) = makeResource CosmosDbSql
+    let makeCosmosDbSqlContainer = makeResource CosmosDbSqlContainer
     let makeStorageAccount = makeResource StorageAccount
     let makeAppInsights = makeResource AppInsights
 

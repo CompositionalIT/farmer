@@ -42,7 +42,7 @@ module Outputters =
         name = webApp.Name.Command
         apiVersion = "2016-08-01"
         location = serverFarmInfo.Location.Command
-        dependsOn = webApp.Dependencies |> List.map(fun p -> p.ResourceIdPath |> toExpr)
+        dependsOn = webApp.Dependencies |> List.map(fun r -> r.Command)
         resources =
             webApp.Extensions
             |> Set.toList
@@ -51,7 +51,7 @@ module Outputters =
                 {| apiVersion = "2016-08-01"
                    name = "Microsoft.ApplicationInsights.AzureWebSites"
                    ``type`` = "siteextensions"
-                   dependsOn = [ (ResourcePath.makeWebSite webApp.Name).ResourceIdPath |> toExpr ]
+                   dependsOn = [ webApp.Name.Command ]
                    properties = {||}
                 |})
         properties =
@@ -64,6 +64,79 @@ module Outputters =
             |}
     |}
 
+    let cosmosDbContainer (database:CosmosDbSql) (container:CosmosDbContainer) = {|
+        ``type`` = ResourcePath.CosmosDbSqlContainer.Value
+        name = (ResourcePath.makeCosmosDbSqlContainer container.Name).ResourceIdPath |> toExpr
+        apiVersion = "2016-03-31"
+        dependsOn = [
+            database.Name.Command
+        ]
+//TODO:        "dependsOn": [ "[resourceId('Microsoft.DocumentDB/databaseAccounts/apis/databases', variables('accountName'), 'sql', parameters('databaseName'))]" ],
+        properties =
+            {| resource =
+                {| id = container.Name.Command
+                   partitionKey =
+                    {| paths = container.PartitionKey.Paths
+                       kind = string container.PartitionKey.Kind |}
+                   indexingPolicy =
+                    {| indexingMode = "consistent"
+                       includedPaths =
+                           container.IndexingPolicy.IncludedPaths
+                           |> List.map(fun p ->
+                            {| path = p.Path
+                               indexes =
+                                p.Indexes
+                                |> List.map(fun i ->
+                                    {| kind = string i.Kind
+                                       dataType = (string i.DataType).ToLower()
+                                       precision = -1 |})
+                            |})
+                       excludedPaths = container.IndexingPolicy.ExcludedPaths
+                    |}
+                |}
+            |}
+        |}
+// {
+//             "type": "Microsoft.DocumentDb/databaseAccounts/apis/databases/containers",
+//TODO:        "name": "[concat(variables('accountName'), '/sql/', parameters('databaseName'), '/', parameters('container1Name'))]",
+//             "apiVersion": "2016-03-31",
+//TODO:        "dependsOn": [ "[resourceId('Microsoft.DocumentDB/databaseAccounts/apis/databases', variables('accountName'), 'sql', parameters('databaseName'))]" ],
+//             "properties":
+//             {
+//                 "resource":{
+//                     "id":  "[parameters('container1Name')]",
+//                     "partitionKey": {
+//                         "paths": [
+//                         "/MyPartitionKey1"
+//                         ],
+//                         "kind": "Hash"
+//                     },
+//                     "indexingPolicy": {
+//                         "indexingMode": "consistent",
+//                         "includedPaths": [{
+//                                 "path": "/*",
+//                                 "indexes": [
+//                                     {
+//                                         "kind": "Range",
+//                                         "dataType": "number",
+//                                         "precision": -1
+//                                     },
+//                                     {
+//                                         "kind": "Range",
+//                                         "dataType": "string",
+//                                         "precision": -1
+//                                     }
+//                                 ]
+//                             }
+//                         ],
+//                         "excludedPaths": [{
+//                                 "path": "/MyPathToNotIndex/*"
+//                             }
+//                         ]
+//                     }
+//                 }
+//             }
+//         },
     let cosmosDbServer (cosmosDb:CosmosDbServer) = {|
         ``type`` = ResourcePath.CosmosDb.Value
         name = cosmosDb.Name.Command
@@ -101,7 +174,7 @@ module Outputters =
                         {| locationName = secondary; failoverPriority = 1 |}
                       ]
                 |} |> box
-            | Standard ->
+            | NoFailover ->
                 {| baseProps with
                     locations = [ 
                         {| locationName = cosmosDb.Location.Command; failoverPriority = 0 |}
@@ -142,10 +215,19 @@ let processTemplate (template:ArmTemplate) = {|
                 sf :: apps
             | :? CosmosDbServer as cds ->
                 let server = Outputters.cosmosDbServer cds |> box
-                let dbs =
+                let dbsAndContainers =
                     cds.Databases
-                    |> List.map (Outputters.cosmosDbSql >> box)
-                server :: dbs
+                    |> List.collect (fun db ->
+                        let db = Outputters.cosmosDbSql db
+                        let containers =
+                            cds.Databases
+                            |> List.collect(fun db ->
+                                db.Containers
+                                |> List.map (Outputters.cosmosDbContainer db >> box))
+                        (box db) :: containers
+                    )
+                [ yield server
+                  yield! dbsAndContainers ]
             | _ ->
                 failwith "Not supported. Sorry!"
         )]

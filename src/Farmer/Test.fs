@@ -12,8 +12,16 @@ let template =
         name "isaacsappdb"
         server_name "isaacscosmosdb"
         throughput 400
-        write_model (AutoFailover Helpers.Locations.``North Europe``.Command)
+        failover_policy (AutoFailover Helpers.Locations.``North Europe``.Command)
         consistency_policy (BoundedStaleness(500, 1000))
+        add_containers [
+            container {
+                name "myContainer"
+                partition_key [ "/id" ] Hash
+                include_index "/path" [ Number, Hash ]
+                exclude_path "/excluded"
+            }
+        ]
     }
 
     let myWebApp = webApp {
