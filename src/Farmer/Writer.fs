@@ -71,7 +71,6 @@ module Outputters =
         dependsOn = [
             databaseName.Value
         ]
-//TODO:        "dependsOn": [ "[resourceId('Microsoft.DocumentDB/databaseAccounts/apis/databases', variables('accountName'), 'sql', parameters('databaseName'))]" ],
         properties =
             {| resource =
                 {| id = container.Name.Value
@@ -98,47 +97,6 @@ module Outputters =
                 |}
             |}
         |}
-// {
-//             "type": "Microsoft.DocumentDb/databaseAccounts/apis/databases/containers",
-//TODO:        "name": "[concat(variables('accountName'), '/sql/', parameters('databaseName'), '/', parameters('container1Name'))]",
-//             "apiVersion": "2016-03-31",
-//TODO:        "dependsOn": [ "[resourceId('Microsoft.DocumentDB/databaseAccounts/apis/databases', variables('accountName'), 'sql', parameters('databaseName'))]" ],
-//             "properties":
-//             {
-//                 "resource":{
-//                     "id":  "[parameters('container1Name')]",
-//                     "partitionKey": {
-//                         "paths": [
-//                         "/MyPartitionKey1"
-//                         ],
-//                         "kind": "Hash"
-//                     },
-//                     "indexingPolicy": {
-//                         "indexingMode": "consistent",
-//                         "includedPaths": [{
-//                                 "path": "/*",
-//                                 "indexes": [
-//                                     {
-//                                         "kind": "Range",
-//                                         "dataType": "number",
-//                                         "precision": -1
-//                                     },
-//                                     {
-//                                         "kind": "Range",
-//                                         "dataType": "string",
-//                                         "precision": -1
-//                                     }
-//                                 ]
-//                             }
-//                         ],
-//                         "excludedPaths": [{
-//                                 "path": "/MyPathToNotIndex/*"
-//                             }
-//                         ]
-//                     }
-//                 }
-//             }
-//         },
     let cosmosDbServer (cosmosDb:CosmosDbServer) = {|
         ``type`` = ResourceType.CosmosDb.Value
         name = cosmosDb.Name.Value
