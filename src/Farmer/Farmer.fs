@@ -9,6 +9,7 @@ type ConsistencyPolicy = Eventual | ConsistentPrefix | Session | BoundedStalenes
 type FailoverPolicy = NoFailover | AutoFailover of secondaryLocation:string | MultiMaster of secondaryLocation:string
 type CosmosDbIndexKind = Hash | Range
 type CosmosDbIndexDataType = Number | String
+type SecureParameter = SecureParameter of name:string
 
 namespace Farmer.Internal
 
@@ -56,6 +57,19 @@ type CosmosDbContainer =
         |}
     }
 
+type SqlAzure =
+  { ServerName : ResourceName
+    Location : string
+    AdministratorLogin : string
+    AdministratorLoginPassword : SecureParameter
+    DbName : ResourceName
+    DbEdition : string
+    DbCollation : string
+    DbObjective : string
+    TransparentDataEncryption : bool
+    FirewallRules : {| Start : System.Net.IPAddress; End : System.Net.IPAddress |} list }
+
+
 type CosmosDbSql =
     { Name : ResourceName
       Dependencies : ResourceName list
@@ -74,6 +88,7 @@ module ResourceType =
     let CosmosDb = ResourceType "Microsoft.DocumentDB/databaseAccounts"
     let CosmosDbSql = ResourceType "Microsoft.DocumentDB/databaseAccounts/apis/databases"
     let CosmosDbSqlContainer = ResourceType "Microsoft.DocumentDb/databaseAccounts/apis/databases/containers"
+    let SqlAzure = ResourceType "Microsoft.Sql/servers"
     let StorageAccount = ResourceType "Microsoft.Storage/storageAccounts"
     let AppInsights = ResourceType "Microsoft.Insights/components"
 

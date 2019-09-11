@@ -11,6 +11,16 @@ let template (environment:string) storageSku webAppSku =
         sku storageSku
     }
 
+    let mySqlDb = sql {
+        server_name "isaacsql"
+        db_name "mydb"
+        db_edition SqlAzure.Sku.Free
+        admin_username "isaac"
+        use_azure_firewall
+        use_encryption
+        firewall_rule "192.168.1.1" "192.168.1.100"
+    }
+
     let myCosmosDb = cosmosDb {    
         name "isaacsappdb"
         server_name "isaacscosmosdb"
@@ -40,12 +50,14 @@ let template (environment:string) storageSku webAppSku =
 
         depends_on myStorageAccount
         depends_on myCosmosDb
+        depends_on mySqlDb
     }
 
     arm {
         resource myStorageAccount
         resource cosmosDb
         resource myWebApp
+        resource mySqlDb
 
         output "webAppName" myWebApp.Name
         output "webAppPassword" myWebApp.PublishingPassword        

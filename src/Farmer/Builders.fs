@@ -46,9 +46,6 @@ module WebApp =
         let I2 = "I2"
         let I3 = "I3"
 
-    let publishingPassword (ResourceName websiteName) =
-        sprintf "[list(resourceId('Microsoft.Web/sites/config', '%s', 'publishingcredentials'), '2014-06-01').properties.publishingPassword]" websiteName
-
     module AppSettings =
         let WebsiteNodeDefaultVersion version = "WEBSITE_NODE_DEFAULT_VERSION", version
         let RunFromPackage = "WEBSITE_RUN_FROM_PACKAGE", "1"
@@ -61,7 +58,9 @@ module WebApp =
           WebsiteNodeDefaultVersion : string option
           Settings : Map<string, string>
           Dependencies : ResourceName list }
-        member this.PublishingPassword = publishingPassword this.Name
+        member this.PublishingPassword =
+            sprintf "[list(resourceId('Microsoft.Web/sites/config', '%s', 'publishingcredentials'), '2014-06-01').properties.publishingPassword]" this.Name.Value
+        
     type WebAppBuilder() =
         member __.Yield _ =
             { Name = ResourceName ""
@@ -216,6 +215,85 @@ module CosmosDb =
     let cosmosDb = CosmosDbBuilder()
     let container = CosmosDbContainer()
 
+[<AutoOpen>]
+module SqlAzure =
+    type Edition = Free | Basic | Standard of string | Premium of string
+    module Sku =
+        let ``Free`` = Free
+        let ``Basic`` = Basic
+        let ``S0`` = Standard "S0"
+        let ``S1`` = Standard "S1"
+        let ``S2`` = Standard "S2"
+        let ``S3`` = Standard "S3"
+        let ``S4`` = Standard "S4"
+        let ``S6`` = Standard "S6"
+        let ``S7`` = Standard "S7"
+        let ``S9`` = Standard "S9"
+        let ``S12`` =Standard "S12"
+        let ``P1`` = Premium "P1"
+        let ``P2`` = Premium "P2"
+        let ``P4`` = Premium "P4"
+        let ``P6`` = Premium "P6"
+        let ``P11`` = Premium "P11"
+        let ``P15`` = Premium "P15"
+    type SqlAzureConfig =
+        { ServerName : ResourceName
+          AdministratorCredentials : {| UserName : string; Password : SecureParameter |}
+          DbName : ResourceName
+          DbEdition : Edition
+          DbCollation : string
+          Encryption : bool
+          FirewallRules : {| Start : System.Net.IPAddress; End : System.Net.IPAddress |} list }
+        member this.FullyQualifiedDomainName =
+            sprintf "[reference(concat('Microsoft.Sql/servers/', variables('%s'))).fullyQualifiedDomainName]" this.ServerName.Value
+    type SqlBuilder() =
+        member __.Yield _ =
+            { ServerName = ResourceName ""
+              AdministratorCredentials = {| UserName = ""; Password = SecureParameter "sql_password" |}
+              DbName = ResourceName ""
+              DbEdition = Free
+              DbCollation = "SQL_Latin1_General_CP1_CI_AS"
+              Encryption = false
+              FirewallRules = [] }
+
+        member __.Run(state) =
+            { state with
+                AdministratorCredentials =
+                    {| state.AdministratorCredentials with
+                        Password = SecureParameter (sprintf "password-for-%s" state.ServerName.Value) |} }
+        [<CustomOperation "server_name">]
+        member __.ServerName(state:SqlAzureConfig, serverName) = { state with ServerName = serverName }
+        member this.ServerName(state:SqlAzureConfig, serverName:string) = this.ServerName(state, ResourceName serverName)
+        [<CustomOperation "db_name">]
+        member __.Name(state:SqlAzureConfig, name) = { state with DbName = name }
+        member this.Name(state:SqlAzureConfig, name:string) = this.Name(state, ResourceName name)
+        [<CustomOperation "db_edition">]
+        member __.DatabaseEdition(state:SqlAzureConfig, edition:Edition) = { state with DbEdition = edition }
+        [<CustomOperation "collation">]
+        member __.Collation(state:SqlAzureConfig, collation:string) = { state with DbCollation = collation }
+        [<CustomOperation "use_encryption">]
+        member __.Encryption(state:SqlAzureConfig) = { state with Encryption = true }
+        [<CustomOperation "firewall_rule">]
+        member __.AddFirewallWall(state:SqlAzureConfig, startRange, endRange) =
+            { state with
+                FirewallRules =
+                    {| Start = System.Net.IPAddress.Parse startRange; End = System.Net.IPAddress.Parse endRange |}
+                    :: state.FirewallRules }
+        [<CustomOperation "use_azure_firewall">]
+        member this.UseAzureFirewall(state:SqlAzureConfig) =
+            this.AddFirewallWall(state, "0.0.0.0", "0.0.0.0")
+        [<CustomOperation "admin_username">]
+        member __.AdminUsername(state:SqlAzureConfig, username) =
+            { state with
+                AdministratorCredentials =
+                    {| state.AdministratorCredentials with
+                        UserName = username |} }
+    open WebApp
+    type WebAppBuilder with
+        member this.DependsOn(state:WebAppConfig, sqlDb:SqlAzureConfig) =
+            this.DependsOn(state, sqlDb.ServerName)
+
+    let sql = SqlBuilder()
 type ArmConfig =
     { Parameters : string Set
       Variables : (string * string) list
@@ -294,43 +372,63 @@ module ArmBuilder =
                     | None ->
                         () ]
                 | :? CosmosDbConfig as cosmos -> [
-                    let server =
-                        { Name = cosmos.ServerName
-                          Location = state.Location
-                          ConsistencyPolicy = cosmos.ServerConsistencyPolicy
-                          WriteModel = cosmos.ServerFailoverPolicy
-                          Databases =
-                            [ { Name = cosmos.DbName
-                                Dependencies = [ cosmos.ServerName ]
-                                Throughput = cosmos.DbThroughput
-                                Containers =
-                                    cosmos.Containers
-                                    |> List.map(fun c ->
-                                        { CosmosDbContainer.Name = c.Name
-                                          PartitionKey =
-                                            {| Paths = fst c.PartitionKey
-                                               Kind = snd c.PartitionKey |}
-                                          IndexingPolicy =
-                                            {| ExcludedPaths = c.ExcludedPaths
-                                               IncludedPaths =
-                                                   c.Indexes
-                                                   |> List.map(fun index ->
-                                                     {| Path = fst index
-                                                        Indexes =
-                                                            index
-                                                            |> snd
-                                                            |> List.map(fun (dataType, kind) ->
-                                                                {| DataType = dataType
-                                                                   Kind = kind |})
-                                                     |})
-                                            |}
-                                        })
-                              }
-                            ]
-                        }
-                    yield server ]
-                | _ ->
-                    failwith "Sorry, I don't know how to handle this resource.")
+                    { Name = cosmos.ServerName
+                      Location = state.Location
+                      ConsistencyPolicy = cosmos.ServerConsistencyPolicy
+                      WriteModel = cosmos.ServerFailoverPolicy
+                      Databases =
+                        [ { Name = cosmos.DbName
+                            Dependencies = [ cosmos.ServerName ]
+                            Throughput = cosmos.DbThroughput
+                            Containers =
+                                cosmos.Containers
+                                |> List.map(fun c ->
+                                    { CosmosDbContainer.Name = c.Name
+                                      PartitionKey =
+                                        {| Paths = fst c.PartitionKey
+                                           Kind = snd c.PartitionKey |}
+                                      IndexingPolicy =
+                                        {| ExcludedPaths = c.ExcludedPaths
+                                           IncludedPaths =
+                                               c.Indexes
+                                               |> List.map(fun index ->
+                                                 {| Path = fst index
+                                                    Indexes =
+                                                        index
+                                                        |> snd
+                                                        |> List.map(fun (dataType, kind) ->
+                                                            {| DataType = dataType
+                                                               Kind = kind |})
+                                                 |})
+                                        |}
+                                    })
+                          }
+                        ]
+                    } ]
+                | :? SqlAzureConfig as sql -> [
+                    { ServerName = sql.ServerName
+                      Location = state.Location
+                      AdministratorLogin = sql.AdministratorCredentials.UserName
+                      AdministratorLoginPassword = sql.AdministratorCredentials.Password
+                      DbName = sql.DbName
+                      DbEdition =
+                        match sql.DbEdition with
+                        | Basic -> "Basic"
+                        | Free -> "Free"
+                        | Standard _ -> "Standard"
+                        | Premium _ -> "Premium"
+                      DbObjective =
+                        match sql.DbEdition with
+                        | Basic -> "Basic"
+                        | Free -> "Free"
+                        | Standard s -> s
+                        | Premium p -> p
+                      DbCollation = sql.DbCollation
+                      TransparentDataEncryption = sql.Encryption
+                      FirewallRules = sql.FirewallRules
+                    } ]
+                | r ->
+                    failwithf "Sorry, I don't know how to handle this resource of type '%s'." (r.GetType().FullName))
         }
 
         /// Creates a variable; use the `variable` keyword.
