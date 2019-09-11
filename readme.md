@@ -8,7 +8,7 @@ things will change rapidly and there will be lots of breaking changes both in te
 
 ## Main features
 
-* Create simple web apps, app insight and storage accounts in a simple DSL.
+* Create non-complex ARM templates through a simple, strongly-typed and pragmatic DSL.
 * Create strongly-typed dependencies to resources.
 * Just F# - use standard F# code to dynamically create ARM templates quickly and easily.
 
@@ -24,6 +24,8 @@ things will change rapidly and there will be lots of breaking changes both in te
 * App Service
 * Application Insights
 * Cosmos DB
+* Azure SQL
+* Functions
 
 ## What does it look like?
 This is an example Farmer value:
