@@ -242,20 +242,20 @@ module SqlAzure =
           DbName : ResourceName
           DbEdition : Edition
           DbCollation : string
-          Encryption : bool
-          FirewallRules : {| Start : System.Net.IPAddress; End : System.Net.IPAddress |} list }
+          Encryption : FeatureFlag
+          FirewallRules : {| Name : string; Start : System.Net.IPAddress; End : System.Net.IPAddress |} list }
         member this.FullyQualifiedDomainName =
             sprintf "[reference(concat('Microsoft.Sql/servers/', variables('%s'))).fullyQualifiedDomainName]" this.ServerName.Value
     type SqlBuilder() =
+        let makeIp = System.Net.IPAddress.Parse
         member __.Yield _ =
             { ServerName = ResourceName ""
               AdministratorCredentials = {| UserName = ""; Password = SecureParameter "sql_password" |}
               DbName = ResourceName ""
               DbEdition = Free
               DbCollation = "SQL_Latin1_General_CP1_CI_AS"
-              Encryption = false
+              Encryption = Disabled
               FirewallRules = [] }
-
         member __.Run(state) =
             { state with
                 AdministratorCredentials =
@@ -272,16 +272,18 @@ module SqlAzure =
         [<CustomOperation "collation">]
         member __.Collation(state:SqlAzureConfig, collation:string) = { state with DbCollation = collation }
         [<CustomOperation "use_encryption">]
-        member __.Encryption(state:SqlAzureConfig) = { state with Encryption = true }
+        member __.Encryption(state:SqlAzureConfig) = { state with Encryption = Enabled }
         [<CustomOperation "firewall_rule">]
-        member __.AddFirewallWall(state:SqlAzureConfig, startRange, endRange) =
+        member __.AddFirewallWall(state:SqlAzureConfig, name, startRange, endRange) =
             { state with
                 FirewallRules =
-                    {| Start = System.Net.IPAddress.Parse startRange; End = System.Net.IPAddress.Parse endRange |}
+                    {| Name = name
+                       Start = makeIp startRange
+                       End = makeIp endRange |}
                     :: state.FirewallRules }
         [<CustomOperation "use_azure_firewall">]
         member this.UseAzureFirewall(state:SqlAzureConfig) =
-            this.AddFirewallWall(state, "0.0.0.0", "0.0.0.0")
+            this.AddFirewallWall(state, "AllowAllMicrosoftAzureIps", "0.0.0.0", "0.0.0.0")
         [<CustomOperation "admin_username">]
         member __.AdminUsername(state:SqlAzureConfig, username) =
             { state with

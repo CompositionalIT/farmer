@@ -12,13 +12,13 @@ let template (environment:string) storageSku webAppSku =
     }
 
     let mySqlDb = sql {
-        server_name "isaacsql"
+        server_name "isaacsupersql"
         db_name "mydb"
         db_edition SqlAzure.Sku.Free
         admin_username "isaac"
         use_azure_firewall
         use_encryption
-        firewall_rule "192.168.1.1" "192.168.1.100"
+        firewall_rule "My Firewall Rule" "192.168.1.1" "192.168.1.1"
     }
 
     let myCosmosDb = cosmosDb {    

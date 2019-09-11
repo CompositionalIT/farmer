@@ -10,7 +10,7 @@ type FailoverPolicy = NoFailover | AutoFailover of secondaryLocation:string | Mu
 type CosmosDbIndexKind = Hash | Range
 type CosmosDbIndexDataType = Number | String
 type SecureParameter = SecureParameter of name:string
-
+type FeatureFlag = Enabled | Disabled
 namespace Farmer.Internal
 
 open Farmer
@@ -66,8 +66,8 @@ type SqlAzure =
     DbEdition : string
     DbCollation : string
     DbObjective : string
-    TransparentDataEncryption : bool
-    FirewallRules : {| Start : System.Net.IPAddress; End : System.Net.IPAddress |} list }
+    TransparentDataEncryption : FeatureFlag
+    FirewallRules : {| Name : string; Start : System.Net.IPAddress; End : System.Net.IPAddress |} list }
 
 
 type CosmosDbSql =

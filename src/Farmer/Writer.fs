@@ -176,7 +176,7 @@ module Outputters =
                           comments = "Transparent Data Encryption"
                           name = "current"                      
                           apiVersion = "2014-04-01-preview"
-                          properties = {| status = database.TransparentDataEncryption |}
+                          properties = {| status = string database.TransparentDataEncryption |}
                           dependsOn = [ database.DbName.Value ]
                        |}
                    ]
@@ -185,7 +185,7 @@ module Outputters =
                 database.FirewallRules
                 |> List.map(fun fw ->
                     {| ``type`` = "firewallrules"
-                       name = "AllowAllMicrosoftAzureIps"
+                       name = fw.Name
                        apiVersion = "2014-04-01"
                        location = database.Location
                        properties =
