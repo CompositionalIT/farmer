@@ -47,12 +47,12 @@ module Outputters =
                        perSiteScaling = false
                        reserved = false |}
     |}
-    let webApp (farm:ServerFarm) (webApp:WebApp) =
+    let webApp (webApp:WebApp) =
         let baseProps = {|
             ``type`` = ResourceType.WebSite.Value
             name = webApp.Name.Value
             apiVersion = "2016-08-01"
-            location = farm.Location
+            location = webApp.Location
             dependsOn = webApp.Dependencies |> List.map(fun p -> p.Value)
             resources =
                 webApp.Extensions
@@ -66,7 +66,7 @@ module Outputters =
                        properties = {||}
                     |})
             properties =
-                {| serverFarmId = farm.Name.Value
+                {| serverFarmId = webApp.ServerFarm.Value
                    siteConfig =
                     {| appSettings =
                         webApp.AppSettings
@@ -78,13 +78,11 @@ module Outputters =
         | Some kind -> box {| baseProps with kind = kind |}
         | None -> box baseProps
 
-    let cosmosDbContainer (accountName:ResourceName) (databaseName:ResourceName) (container:CosmosDbContainer) = {|
+    let cosmosDbContainer (container:CosmosDbContainer) = {|
         ``type`` = ResourceType.CosmosDbSqlContainer.Value
-        name = sprintf "%s/sql/%s/%s" accountName.Value databaseName.Value container.Name.Value
+        name = sprintf "%s/sql/%s/%s" container.Account.Value container.Database.Value container.Name.Value
         apiVersion = "2016-03-31"
-        dependsOn = [
-            databaseName.Value
-        ]
+        dependsOn = [ container.Database.Value ]
         properties =
             {| resource =
                 {| id = container.Name.Value
@@ -111,7 +109,7 @@ module Outputters =
                 |}
             |}
     |}
-    let cosmosDbServer (cosmosDb:CosmosDbServer) = {|
+    let cosmosDbServer (cosmosDb:CosmosDbAccount) = {|
         ``type`` = ResourceType.CosmosDb.Value
         name = cosmosDb.Name.Value
         apiVersion = "2016-03-31"
@@ -152,11 +150,11 @@ module Outputters =
             | NoFailover ->
                 box baseProps
     |}
-    let cosmosDbSql (cosmosServerName:ResourceName) (cosmosDbSql:CosmosDbSql) = {|
+    let cosmosDbSql (cosmosDbSql:CosmosDbSql) = {|
         ``type`` = ResourceType.CosmosDbSql.Value
-        name = sprintf "%s/sql/%s" cosmosServerName.Value cosmosDbSql.Name.Value
+        name = sprintf "%s/sql/%s" cosmosDbSql.Account.Value cosmosDbSql.Name.Value
         apiVersion = "2016-03-31"
-        dependsOn = cosmosDbSql.Dependencies |> List.map(fun p -> p.Value)
+        dependsOn = [ cosmosDbSql.Account.Value ]
         properties =
             {| resource = {| id = cosmosDbSql.Name.Value |}
                options = {| throughput = cosmosDbSql.Throughput |} |}
@@ -224,28 +222,17 @@ let processTemplate (template:ArmTemplate) = {|
             | :? StorageAccount as s ->
                 [ Outputters.storageAccount s |> box ]
             | :? ServerFarm as s ->
-                let sf = Outputters.serverFarm s |> box
-                let apps =
-                    s.WebApps
-                    |> List.map (Outputters.webApp s >> box)
-                sf :: apps
-            | :? CosmosDbServer as cds ->
-                let server = Outputters.cosmosDbServer cds |> box
-                let dbsAndContainers =
-                    cds.Databases
-                    |> List.collect (fun db ->
-                        let db = Outputters.cosmosDbSql cds.Name db
-                        let containers =
-                            cds.Databases
-                            |> List.collect(fun db ->
-                                db.Containers
-                                |> List.map (Outputters.cosmosDbContainer cds.Name db.Name >> box))
-                        (box db) :: containers
-                    )
-                [ yield server
-                  yield! dbsAndContainers ]
+                [ Outputters.serverFarm s |> box ]
+            | :? WebApp as wa ->
+                [ Outputters.webApp wa |> box ]
+            | :? CosmosDbAccount as cds ->
+                [ Outputters.cosmosDbServer cds |> box ]
+            | :? CosmosDbSql as db ->
+                [ Outputters.cosmosDbSql db |> box ]
+            | :? CosmosDbContainer as c ->
+                [ Outputters.cosmosDbContainer c |> box ]
             | :? SqlAzure as sql ->
-                [ yield Outputters.sqlAzure sql |> box ]
+                [ Outputters.sqlAzure sql |> box ]
             | s ->
                 failwithf "'%s' is not supported. Sorry!" (s.GetType().FullName)
         )]

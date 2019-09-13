@@ -34,6 +34,8 @@ type StorageAccount =
       Sku : string }
 type WebApp =
     { Name : ResourceName 
+      ServerFarm : ResourceName
+      Location : string
       AppSettings : List<string * string>
       Extensions : WebAppExtensions Set
       Dependencies : ResourceName list
@@ -45,10 +47,11 @@ type ServerFarm =
       WorkerSize : string
       IsDynamic : bool
       Tier : string
-      WorkerCount : int
-      WebApps : WebApp list }
+      WorkerCount : int }
 type CosmosDbContainer =
     { Name : ResourceName
+      Account : ResourceName
+      Database : ResourceName
       PartitionKey :
         {| Paths : string list
            Kind : CosmosDbIndexKind |}
@@ -78,15 +81,13 @@ type SqlAzure =
 
 type CosmosDbSql =
     { Name : ResourceName
-      Dependencies : ResourceName list
-      Throughput : string
-      Containers : CosmosDbContainer list }
-type CosmosDbServer =
+      Account : ResourceName
+      Throughput : string }
+type CosmosDbAccount =
     { Name : ResourceName
       Location : string
       ConsistencyPolicy : ConsistencyPolicy
-      WriteModel : FailoverPolicy
-      Databases : CosmosDbSql list }
+      WriteModel : FailoverPolicy }
 
 module ResourceType =
     let ServerFarm = ResourceType "Microsoft.Web/serverfarms"

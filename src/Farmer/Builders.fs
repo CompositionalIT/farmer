@@ -397,6 +397,8 @@ module ArmBuilder =
                 | :? WebAppConfig as wac -> [
                     let webApp =
                         { Name = wac.Name
+                          Location = state.Location
+                          ServerFarm = wac.ServicePlanName
                           AppSettings = [
                             yield! Map.toList wac.Settings
                             if wac.RunFromPackage then yield WebApp.AppSettings.RunFromPackage
@@ -464,10 +466,10 @@ module ArmBuilder =
                             | WebApp.Premium _ -> "Premium"
                             | WebApp.PremiumV2 _ -> "PremiumV2"
                             | WebApp.Isolated _ -> "Isolated"
-                          WorkerCount = wac.WorkerCount
-                          WebApps = [ webApp ] }
+                          WorkerCount = wac.WorkerCount }
 
                     yield serverFarm
+                    yield webApp
                     match wac.AppInsightsName with
                     | Some ai ->
                         yield { Name = ai
@@ -478,6 +480,8 @@ module ArmBuilder =
                 | :? FunctionsConfig as fns -> [
                     let webApp =
                         { Name = fns.Name
+                          ServerFarm = fns.ServicePlanName
+                          Location = state.Location
                           AppSettings = [
                             yield "FUNCTIONS_WORKER_RUNTIME", string fns.WorkerRuntime
                             yield "WEBSITE_NODE_DEFAULT_VERSION", "10.14.1"
@@ -515,10 +519,10 @@ module ArmBuilder =
                           WorkerSize = "Y1"
                           IsDynamic = true
                           Tier = "Dynamic"
-                          WorkerCount = 0
-                          WebApps = [ webApp ] }
+                          WorkerCount = 0 }
 
                     yield serverFarm
+                    yield webApp
 
                     if fns.AutoCreateStorageAccount then
                         yield
@@ -535,39 +539,39 @@ module ArmBuilder =
                     | None ->
                         () ]
                 | :? CosmosDbConfig as cosmos -> [
-                    { Name = cosmos.ServerName
-                      Location = state.Location
-                      ConsistencyPolicy = cosmos.ServerConsistencyPolicy
-                      WriteModel = cosmos.ServerFailoverPolicy
-                      Databases =
-                        [ { Name = cosmos.DbName
-                            Dependencies = [ cosmos.ServerName ]
-                            Throughput = cosmos.DbThroughput
-                            Containers =
-                                cosmos.Containers
-                                |> List.map(fun c ->
-                                    { CosmosDbContainer.Name = c.Name
-                                      PartitionKey =
-                                        {| Paths = fst c.PartitionKey
-                                           Kind = snd c.PartitionKey |}
-                                      IndexingPolicy =
-                                        {| ExcludedPaths = c.ExcludedPaths
-                                           IncludedPaths =
-                                               c.Indexes
-                                               |> List.map(fun index ->
-                                                 {| Path = fst index
-                                                    Indexes =
-                                                        index
-                                                        |> snd
-                                                        |> List.map(fun (dataType, kind) ->
-                                                            {| DataType = dataType
-                                                               Kind = kind |})
-                                                 |})
-                                        |}
-                                    })
-                          }
-                        ]
-                    } ]
+                    yield
+                        { Name = cosmos.ServerName
+                          Location = state.Location
+                          ConsistencyPolicy = cosmos.ServerConsistencyPolicy
+                          WriteModel = cosmos.ServerFailoverPolicy }
+                    yield
+                        { Name = cosmos.DbName
+                          Account = cosmos.ServerName
+                          Throughput = cosmos.DbThroughput }
+                    yield!
+                        cosmos.Containers
+                        |> List.map(fun c ->
+                            { Name = c.Name
+                              Account = cosmos.ServerName
+                              Database = cosmos.DbName
+                              PartitionKey =
+                                {| Paths = fst c.PartitionKey
+                                   Kind = snd c.PartitionKey |}
+                              IndexingPolicy =
+                                {| ExcludedPaths = c.ExcludedPaths
+                                   IncludedPaths =
+                                       c.Indexes
+                                       |> List.map(fun index ->
+                                         {| Path = fst index
+                                            Indexes =
+                                                index
+                                                |> snd
+                                                |> List.map(fun (dataType, kind) ->
+                                                    {| DataType = dataType
+                                                       Kind = kind |})
+                                         |})
+                                |}
+                            } |> box) ]
                 | :? SqlAzureConfig as sql -> [
                     { ServerName = sql.ServerName
                       Location = state.Location

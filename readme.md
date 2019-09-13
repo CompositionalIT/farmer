@@ -14,9 +14,7 @@ things will change rapidly and there will be lots of breaking changes both in te
 
 ## Plans
 * Support for more common ARM resource types
-* Clean up lots of code
-* Make DSL nicer
-* Support more use-cases
+* Support more complex interactions with resources
 * Look to simplify the DSL even more e.g. auto-detect parameters and dependencies.
 
 ### Currently Supported Resources
