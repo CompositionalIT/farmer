@@ -41,7 +41,7 @@ let myWebApp = webApp {
 
 /// The overall ARM template which has the webapp as a resource.
 let template = arm {
-    location Locations.``North Europe``
+    location Locations.NorthEurope
     resource myWebApp
 }
 

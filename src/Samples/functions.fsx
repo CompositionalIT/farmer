@@ -8,7 +8,7 @@ let myFunctions = functions {
 
 let template =
     arm {
-        location Helpers.Locations.``North Europe``
+        location Helpers.Locations.NorthEurope
         resource myFunctions
     }
 
