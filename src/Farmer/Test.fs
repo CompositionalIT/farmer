@@ -35,9 +35,9 @@ let template (environment:string) storageSku webAppSku =
                 exclude_path "/excluded/*"
             }
         ]
-    }    
+    }
 
-    let myFunction = functions {
+    let myFunctions = functions {
         name "isaacsuperfun"
         service_plan_name "isaacsuperfunhost"
         storage_account_name "isaacsuperstorage"
@@ -46,7 +46,7 @@ let template (environment:string) storageSku webAppSku =
         use_runtime DotNet
         use_app_insights "isaacsuperai"
     }
-
+    
     let myWebApp = webApp {
         name (generateResourceName "web")
         service_plan_name (generateResourceName "webhost")
@@ -65,14 +65,18 @@ let template (environment:string) storageSku webAppSku =
 
     arm {
         resource myStorageAccount
-        resource cosmosDb
+        resource myCosmosDb
         resource myWebApp
         resource mySqlDb
+        resource myFunctions
 
         output "webAppName" myWebApp.Name
-        output "webAppPassword" myWebApp.PublishingPassword        
+        output "webAppPassword" myWebApp.PublishingPassword
+        output "functionsPassword" myFunctions.PublishingPassword
+        output "functionsAIKey" myFunctions.AppInsightsKey
+        output "storageAccountKey" myFunctions.StorageAccountKey
     }
 
 template "dev" Storage.Sku.StandardLRS WebApp.Sku.F1
 |> Writer.toJson
-|> Writer.toFile @"safe-template.json"
+|> Writer.toFile @"dev-safe-template.json"

@@ -44,7 +44,6 @@ let template (environment:string) storageSku webAppSku =
         auto_create_storage
         operating_system Windows
         use_runtime DotNet
-        use_app_insights "isaacsuperai"
     }
     
     let myWebApp = webApp {
@@ -73,7 +72,7 @@ let template (environment:string) storageSku webAppSku =
         output "webAppName" myWebApp.Name
         output "webAppPassword" myWebApp.PublishingPassword
         output "functionsPassword" myFunctions.PublishingPassword
-        output "functionsAIKey" (myFunctions.AppInsightsKey |> Option.defaultValue "")
+        output "functionsAIKey" myFunctions.AppInsightsKey
         output "storageAccountKey" myFunctions.StorageAccountKey
     }
 

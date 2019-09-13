@@ -622,6 +622,10 @@ module ArmBuilder =
         [<CustomOperation "output">]
         member __.Output (state, outputName, outputValue) : ArmConfig = { state with Outputs = (outputName, outputValue) :: state.Outputs }
         member this.Output (state:ArmConfig, outputName:string, (ResourceName outputValue)) = this.Output(state, outputName, outputValue)
+        member this.Output (state:ArmConfig, outputName:string, outputValue:string option) =
+            match outputValue with
+            | Some outputValue -> this.Output(state, outputName, outputValue)
+            | None -> state
 
         /// Sets the default location of all resources; use the `location` keyword.
         [<CustomOperation "location">]
