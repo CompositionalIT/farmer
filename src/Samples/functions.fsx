@@ -10,6 +10,9 @@ let template =
     arm {
         location Helpers.Locations.NorthEurope
         resource myFunctions
+        output "functionsPassword" myFunctions.PublishingPassword
+        output "functionsAIKey" (myFunctions.AppInsightsKey |> Option.defaultValue "")
+        output "storageAccountKey" myFunctions.StorageAccountKey
     }
 
 template

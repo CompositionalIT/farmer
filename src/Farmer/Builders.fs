@@ -5,7 +5,7 @@ open Farmer.Internal
 module Helpers =
     module AppInsights =
         let instrumentationKey (ResourceName accountName) =
-            sprintf "[reference(concat('Microsoft.Insights/components/', '%s')).InstrumentationKey]" accountName
+            sprintf "[reference('Microsoft.Insights/components/%s').InstrumentationKey]" accountName
     module Locations =
         let EastAsia = "eastasia"
         let SoutheastAsia = "southeastasia"
@@ -39,7 +39,7 @@ module Storage =
         let PremiumZRS = "Premium_ZRS"
     let buildKey (ResourceName name) =
         sprintf
-            "[concat('DefaultEndpointsProtocol=https;AccountName=', '%s', ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts/', '%s'), '2017-10-01').keys[0].value)]"
+            "[concat('DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=', listKeys('%s', '2017-10-01').keys[0].value)]"
                 name
                 name
 
