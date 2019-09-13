@@ -18,6 +18,7 @@ let myWebApp = webApp {
 
 let template =
     arm {
+        location Helpers.Locations.``North Europe``
         resource myStorage
         resource myWebApp
     }

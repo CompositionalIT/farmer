@@ -2,7 +2,7 @@
 
 open Farmer
 
-let template (environment:string) storageSku webAppSku =
+let makeTemplate (environment:string) theLocation storageSku webAppSku =
     let environment = environment.ToLower()
     let generateResourceName = sprintf "safe-%s-%s" environment 
     
@@ -28,11 +28,12 @@ let template (environment:string) storageSku webAppSku =
     arm {
         resource myStorageAccount
         resource myWebApp
+        location theLocation
 
         output "webAppName" myWebApp.Name
         output "webAppPassword" myWebApp.PublishingPassword        
     }
 
-template "dev" Storage.Sku.StandardLRS WebApp.Sku.F1
+makeTemplate "dev" Helpers.Locations.``North Europe`` Storage.Sku.StandardLRS WebApp.Sku.F1
 |> Writer.toJson
 |> Writer.toFile @"safe-template.json"
