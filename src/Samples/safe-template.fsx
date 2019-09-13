@@ -34,6 +34,6 @@ let makeTemplate (environment:string) theLocation storageSku webAppSku =
         output "webAppPassword" myWebApp.PublishingPassword        
     }
 
-makeTemplate "dev" Helpers.Locations.``North Europe`` Storage.Sku.StandardLRS WebApp.Sku.F1
+makeTemplate "dev" Helpers.Locations.NorthEurope Storage.Sku.StandardLRS WebApp.Sku.F1
 |> Writer.toJson
 |> Writer.toFile @"safe-template.json"

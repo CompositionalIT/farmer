@@ -20,7 +20,7 @@ let myCosmosDb = cosmosDb {
 
 let template =
     arm {
-        location Helpers.Locations.``North Europe``
+        location Helpers.Locations.NorthEurope
         resource myCosmosDb
     }
 
