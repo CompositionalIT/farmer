@@ -4,12 +4,6 @@ open Farmer
 
 let myFunctions = functions {
     name "isaacsuperfun"
-    service_plan_name "isaacsuperfunhost"
-    storage_account_name "isaacsuperstorage"
-    auto_create_storage
-    operating_system Windows
-    use_runtime DotNet
-    use_app_insights "isaacsuperai"
 }
 
 let template =

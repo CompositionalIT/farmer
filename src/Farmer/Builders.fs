@@ -123,14 +123,36 @@ module WebApp =
             { state with Dependencies = resourceName :: state.Dependencies }
     
     type FunctionsBuilder() =
+        let noName = ResourceName ""
+        let withDefault defaultValue = function
+            | r when r = noName -> ResourceName defaultValue
+            | r -> r
         member __.Yield _ =
-            { Name = ResourceName ""
-              ServicePlanName = ResourceName ""
-              StorageAccountName = ResourceName ""
-              AutoCreateStorageAccount = false
-              AppInsightsName = None
+            { Name = noName
+              ServicePlanName = noName
+              StorageAccountName = noName
+              AutoCreateStorageAccount = true
+              AppInsightsName = Some (ResourceName "")
               WorkerRuntime = DotNet
               OperatingSystem = Windows }
+        member __.Run (state:FunctionsConfig) =
+            { state with
+                ServicePlanName =
+                    state.ServicePlanName
+                    |> withDefault (sprintf "%s-plan" state.Name.Value)
+                StorageAccountName =
+                    let sanitisedName =
+                        state.Name.Value.ToLower()
+                        |> Seq.filter System.Char.IsLetterOrDigit
+                        |> Seq.truncate 16
+                        |> Seq.toArray
+                        |> System.String
+                    state.StorageAccountName
+                    |> withDefault (sprintf "%sstorage" sanitisedName)
+                AppInsightsName =
+                    state.AppInsightsName
+                    |> Option.map (withDefault (sprintf "%s-ai" state.Name.Value))
+            }
         [<CustomOperation "name">]
         member __.Name(state:FunctionsConfig, name) = { state with Name = ResourceName name }
         [<CustomOperation "service_plan_name">]
@@ -139,8 +161,12 @@ module WebApp =
         member __.StorageAccountName(state:FunctionsConfig, name) = { state with StorageAccountName = ResourceName name }
         [<CustomOperation "auto_create_storage">]
         member __.AutoCreateStorageAccount(state:FunctionsConfig) = { state with AutoCreateStorageAccount = true }
+        [<CustomOperation "manual_create_storage">]
+        member __.ManualCreateStorageAccount(state:FunctionsConfig) = { state with AutoCreateStorageAccount = false }
         [<CustomOperation "use_app_insights">]
         member __.AppInsightsName(state:FunctionsConfig, name) = { state with AppInsightsName = Some (ResourceName name) }
+        [<CustomOperation "no_app_insights">]
+        member __.DeactivateAppInsights(state:FunctionsConfig) = { state with AppInsightsName = None }
         [<CustomOperation "use_runtime">]
         member __.Runtime(state:FunctionsConfig, runtime) = { state with WorkerRuntime = runtime }
         [<CustomOperation "operating_system">]
