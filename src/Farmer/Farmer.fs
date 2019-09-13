@@ -16,13 +16,6 @@ namespace Farmer.Internal
 
 open Farmer
 
-/// A type of ARM resource e.g. Microsoft.Web/serverfarms
-type ResourceType =
-    | ResourceType of path:string
-    member this.Value =
-        let (ResourceType path) = this
-        path
-
 type WebAppExtensions = AppInsightsExtension
 type AppInsights =
     { Name : ResourceName 
@@ -89,20 +82,17 @@ type CosmosDbAccount =
       ConsistencyPolicy : ConsistencyPolicy
       WriteModel : FailoverPolicy }
 
-module ResourceType =
-    let ServerFarm = ResourceType "Microsoft.Web/serverfarms"
-    let WebSite = ResourceType "Microsoft.Web/sites"
-    let CosmosDb = ResourceType "Microsoft.DocumentDB/databaseAccounts"
-    let CosmosDbSql = ResourceType "Microsoft.DocumentDB/databaseAccounts/apis/databases"
-    let CosmosDbSqlContainer = ResourceType "Microsoft.DocumentDb/databaseAccounts/apis/databases/containers"
-    let SqlAzure = ResourceType "Microsoft.Sql/servers"
-    let StorageAccount = ResourceType "Microsoft.Storage/storageAccounts"
-    let AppInsights = ResourceType "Microsoft.Insights/components"
 
 namespace Farmer
+open Farmer.Internal
+type SupportedResource =
+  | CosmosAccount of CosmosDbAccount | CosmosSqlDb of CosmosDbSql | CosmosContainer of CosmosDbContainer
+  | ServerFarm of ServerFarm | WebApp of WebApp
+  | SqlServer of SqlAzure
+  | StorageAccount of StorageAccount
+  | AppInsights of AppInsights
 
 type ArmTemplate =
     { Parameters : string list
-      Variables : (string * string) list
       Outputs : (string * string) list
-      Resources : obj list }
+      Resources : SupportedResource list }

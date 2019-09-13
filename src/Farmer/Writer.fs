@@ -4,7 +4,7 @@ open Farmer.Internal
 
 module Outputters =
     let storageAccount (resource:StorageAccount) = {|
-        ``type`` = ResourceType.StorageAccount.Value
+        ``type`` = "Microsoft.Storage/storageAccounts"
         sku = {| name = resource.Sku |}
         kind = "StorageV2"
         name = resource.Name.Value
@@ -14,7 +14,7 @@ module Outputters =
 
     let appInsights (resource:AppInsights) =
         let (ResourceName linkedWebsite) = resource.LinkedWebsite
-        {| ``type`` = ResourceType.AppInsights.Value
+        {| ``type`` = "Microsoft.Insights/components"
            kind = "web"
            name = resource.Name.Value
            location = resource.Location
@@ -28,7 +28,7 @@ module Outputters =
                   ApplicationId = linkedWebsite |}
         |}
     let serverFarm (farm:ServerFarm) = {|
-        ``type`` = ResourceType.ServerFarm.Value
+        ``type`` = "Microsoft.Web/serverfarms"
         sku =
             let baseProps =
                 {| name = farm.Sku
@@ -49,7 +49,7 @@ module Outputters =
     |}
     let webApp (webApp:WebApp) =
         let baseProps = {|
-            ``type`` = ResourceType.WebSite.Value
+            ``type`` = "Microsoft.Web/sites"
             name = webApp.Name.Value
             apiVersion = "2016-08-01"
             location = webApp.Location
@@ -79,7 +79,7 @@ module Outputters =
         | None -> box baseProps
 
     let cosmosDbContainer (container:CosmosDbContainer) = {|
-        ``type`` = ResourceType.CosmosDbSqlContainer.Value
+        ``type`` = "Microsoft.DocumentDb/databaseAccounts/apis/databases/containers"
         name = sprintf "%s/sql/%s/%s" container.Account.Value container.Database.Value container.Name.Value
         apiVersion = "2016-03-31"
         dependsOn = [ container.Database.Value ]
@@ -110,7 +110,7 @@ module Outputters =
             |}
     |}
     let cosmosDbServer (cosmosDb:CosmosDbAccount) = {|
-        ``type`` = ResourceType.CosmosDb.Value
+        ``type`` = "Microsoft.DocumentDB/databaseAccounts"
         name = cosmosDb.Name.Value
         apiVersion = "2016-03-31"
         location = cosmosDb.Location
@@ -151,7 +151,7 @@ module Outputters =
                 box baseProps
     |}
     let cosmosDbSql (cosmosDbSql:CosmosDbSql) = {|
-        ``type`` = ResourceType.CosmosDbSql.Value
+        ``type`` = "Microsoft.DocumentDB/databaseAccounts/apis/databases"
         name = sprintf "%s/sql/%s" cosmosDbSql.Account.Value cosmosDbSql.Name.Value
         apiVersion = "2016-03-31"
         dependsOn = [ cosmosDbSql.Account.Value ]
@@ -161,7 +161,7 @@ module Outputters =
     |}
 
     let sqlAzure (database:SqlAzure) = {|
-        ``type`` = ResourceType.SqlAzure.Value
+        ``type`` = "Microsoft.Sql/servers"
         name = database.ServerName.Value
         apiVersion = "2014-04-01-preview"
         location = database.Location
@@ -214,42 +214,32 @@ module Outputters =
 let processTemplate (template:ArmTemplate) = {|
     ``$schema`` = "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#"
     contentVersion = "1.0.0.0"
-    resources = [
+    resources =
         template.Resources
-        |> List.collect (function
-            | :? AppInsights as ai ->
-                [ Outputters.appInsights ai |> box ]
-            | :? StorageAccount as s ->
-                [ Outputters.storageAccount s |> box ]
-            | :? ServerFarm as s ->
-                [ Outputters.serverFarm s |> box ]
-            | :? WebApp as wa ->
-                [ Outputters.webApp wa |> box ]
-            | :? CosmosDbAccount as cds ->
-                [ Outputters.cosmosDbServer cds |> box ]
-            | :? CosmosDbSql as db ->
-                [ Outputters.cosmosDbSql db |> box ]
-            | :? CosmosDbContainer as c ->
-                [ Outputters.cosmosDbContainer c |> box ]
-            | :? SqlAzure as sql ->
-                [ Outputters.sqlAzure sql |> box ]
-            | s ->
-                failwithf "'%s' is not supported. Sorry!" (s.GetType().FullName)
-        )]
-        |> List.concat
-    parameters =
-        [ for resource in template.Resources do
+        |> List.map(function
+            | AppInsights ai -> Outputters.appInsights ai |> box
+            | StorageAccount s -> Outputters.storageAccount s |> box
+            | ServerFarm s -> Outputters.serverFarm s |> box
+            | WebApp wa -> Outputters.webApp wa |> box
+            | CosmosAccount cds -> Outputters.cosmosDbServer cds |> box
+            | CosmosSqlDb db -> Outputters.cosmosDbSql db |> box
+            | CosmosContainer c -> Outputters.cosmosDbContainer c |> box
+            | SqlServer sql -> Outputters.sqlAzure sql |> box)
+    parameters = [
+        for resource in template.Resources do
             match resource with
-            | :? SqlAzure as sql ->
+            | SqlServer sql ->
                 let (SecureParameter p) = sql.AdministratorLoginPassword
                 yield p, {| ``type`` = "securestring" |}
             | _ ->
                 ()            
         ] |> Map.ofList
-    outputs = [
-        for (k, v) in template.Outputs ->
-            k, Map [ "type", "string"; "value", v ]
-    ] |> Map
+    outputs =
+        template.Outputs
+        |> List.map(fun (k, v) ->
+            k, Map [ "type", "string"
+                     "value", v ])
+        |> Map
 |}
 
 let toJson = processTemplate >> Newtonsoft.Json.JsonConvert.SerializeObject

@@ -27,6 +27,38 @@ module Helpers =
         let WestIndia = "westindia"
 
 [<AutoOpen>]
+module Storage =
+    module Sku =
+        let StandardLRS = "Standard_LRS"
+        let StandardGRS = "Standard_GRS"
+        let StandardRAGRS = "Standard_RAGRS"
+        let StandardZRS = "Standard_ZRS"
+        let StandardGZRS = "Standard_GZRS"
+        let StandardRAGZRS = "Standard_RAGZRS"
+        let PremiumLRS = "Premium_LRS"
+        let PremiumZRS = "Premium_ZRS"
+    let buildKey (ResourceName name) =
+        sprintf
+            "[concat('DefaultEndpointsProtocol=https;AccountName=', '%s', ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts/', '%s'), '2017-10-01').keys[0].value)]"
+                name
+                name
+
+    type StorageAccountConfig =
+        { /// The name of the storage account.
+          Name : ResourceName
+          /// The sku of the storage account.
+          Sku : string }
+        member this.Key = buildKey this.Name
+    type StorageAccountBuilder() =
+        member __.Yield _ = { Name = ResourceName ""; Sku = Sku.StandardLRS }
+        [<CustomOperation "name">]
+        member __.Name(state:StorageAccountConfig, name) = { state with Name = name }
+        member this.Name(state:StorageAccountConfig, name) = this.Name(state, ResourceName name)
+        [<CustomOperation "sku">]
+        member __.Sku(state:StorageAccountConfig, sku) = { state with Sku = sku }
+    let storageAccount = StorageAccountBuilder()
+
+[<AutoOpen>]
 module WebApp =
     type WorkerSize = Small | Medium | Large
     type WebAppSku = Shared | Free | Basic of string | Standard of string | Premium of string | PremiumV2 of string | Isolated of string
@@ -54,6 +86,8 @@ module WebApp =
     module AppSettings =
         let WebsiteNodeDefaultVersion version = "WEBSITE_NODE_DEFAULT_VERSION", version
         let RunFromPackage = "WEBSITE_RUN_FROM_PACKAGE", "1"
+    let publishingPassword (ResourceName name) =
+        sprintf "[list(resourceId('Microsoft.Web/sites/config', '%s', 'publishingcredentials'), '2014-06-01').properties.publishingPassword]" name
     type WebAppConfig =
         { Name : ResourceName
           ServicePlanName : ResourceName
@@ -65,8 +99,7 @@ module WebApp =
           WebsiteNodeDefaultVersion : string option
           Settings : Map<string, string>
           Dependencies : ResourceName list }
-        member this.PublishingPassword =
-            sprintf "[list(resourceId('Microsoft.Web/sites/config', '%s', 'publishingcredentials'), '2014-06-01').properties.publishingPassword]" this.Name.Value
+        member this.PublishingPassword = publishingPassword this.Name
        
     type FunctionsConfig =
         { Name : ResourceName
@@ -76,6 +109,9 @@ module WebApp =
           AppInsightsName : ResourceName option
           WorkerRuntime : WorkerRuntime
           OperatingSystem : OS }
+        member this.PublishingPassword = publishingPassword this.Name
+        member this.StorageAccountKey = Storage.buildKey this.StorageAccountName
+        member this.AppInsightsKey = this.AppInsightsName |> Option.map Helpers.AppInsights.instrumentationKey
 
     type WebAppBuilder() =
         member __.Yield _ =
@@ -176,37 +212,7 @@ module WebApp =
     let functions = FunctionsBuilder()
 
 [<AutoOpen>]
-module Storage =
-    module Sku =
-        let StandardLRS = "Standard_LRS"
-        let StandardGRS = "Standard_GRS"
-        let StandardRAGRS = "Standard_RAGRS"
-        let StandardZRS = "Standard_ZRS"
-        let StandardGZRS = "Standard_GZRS"
-        let StandardRAGZRS = "Standard_RAGZRS"
-        let PremiumLRS = "Premium_LRS"
-        let PremiumZRS = "Premium_ZRS"
-    let buildKey (ResourceName name) =
-        sprintf
-            "[concat('DefaultEndpointsProtocol=https;AccountName=', '%s', ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts/', '%s'), '2017-10-01').keys[0].value)]"
-                name
-                name
-
-    type StorageAccountConfig =
-        { /// The name of the storage account.
-          Name : ResourceName
-          /// The sku of the storage account.
-          Sku : string }
-        member this.Key = buildKey this.Name
-    type StorageAccountBuilder() =
-        member __.Yield _ = { Name = ResourceName ""; Sku = Sku.StandardLRS }
-        [<CustomOperation "name">]
-        member __.Name(state:StorageAccountConfig, name) = { state with Name = name }
-        member this.Name(state:StorageAccountConfig, name) = this.Name(state, ResourceName name)
-        [<CustomOperation "sku">]
-        member __.Sku(state:StorageAccountConfig, sku) = { state with Sku = sku }
-    let storageAccount = StorageAccountBuilder()
-
+module Extensions =
     open WebApp
     type WebAppBuilder with
         member this.DependsOn(state:WebAppConfig, storageAccountConfig:StorageAccountConfig) =
@@ -370,7 +376,6 @@ module SqlAzure =
     let sql = SqlBuilder()
 type ArmConfig =
     { Parameters : string Set
-      Variables : (string * string) list
       Outputs : (string * string) list
       Location : string
       Resources : obj list }
@@ -380,7 +385,6 @@ module ArmBuilder =
     type ArmBuilder() =
         member __.Yield _ =
             { Parameters = Set.empty
-              Variables = List.empty
               Outputs = List.empty
               Resources = List.empty
               Location = Helpers.Locations.WestEurope }
@@ -388,12 +392,11 @@ module ArmBuilder =
         member __.Run (state:ArmConfig) = {
             Parameters = state.Parameters |> Set.toList
             Outputs = state.Outputs
-            Variables = state.Variables
             Resources =
                 state.Resources
                 |> List.collect(function
                 | :? StorageAccountConfig as sac ->
-                    [ { Location = state.Location; Name = sac.Name; Sku = sac.Sku } ]
+                    [ StorageAccount { Location = state.Location; Name = sac.Name; Sku = sac.Sku } ]
                 | :? WebAppConfig as wac -> [
                     let webApp =
                         { Name = wac.Name
@@ -468,13 +471,14 @@ module ArmBuilder =
                             | WebApp.Isolated _ -> "Isolated"
                           WorkerCount = wac.WorkerCount }
 
-                    yield serverFarm
-                    yield webApp
+                    yield ServerFarm serverFarm
+                    yield WebApp webApp
                     match wac.AppInsightsName with
                     | Some ai ->
                         yield { Name = ai
                                 Location = state.Location
                                 LinkedWebsite = wac.Name }
+                              |> AppInsights
                     | None ->
                         () ]
                 | :? FunctionsConfig as fns -> [
@@ -521,14 +525,15 @@ module ArmBuilder =
                           Tier = "Dynamic"
                           WorkerCount = 0 }
 
-                    yield serverFarm
-                    yield webApp
+                    yield ServerFarm serverFarm
+                    yield WebApp webApp
 
                     if fns.AutoCreateStorageAccount then
                         yield
                             { StorageAccount.Name = fns.StorageAccountName
                               Location = state.Location
                               Sku = Storage.Sku.StandardLRS }
+                            |> StorageAccount
 
                     match fns.AppInsightsName with
                     | Some ai ->
@@ -536,6 +541,7 @@ module ArmBuilder =
                             { Name = ai
                               Location = state.Location
                               LinkedWebsite = fns.Name }
+                            |> AppInsights
                     | None ->
                         () ]
                 | :? CosmosDbConfig as cosmos -> [
@@ -544,10 +550,12 @@ module ArmBuilder =
                           Location = state.Location
                           ConsistencyPolicy = cosmos.ServerConsistencyPolicy
                           WriteModel = cosmos.ServerFailoverPolicy }
+                        |> CosmosAccount
                     yield
                         { Name = cosmos.DbName
                           Account = cosmos.ServerName
                           Throughput = cosmos.DbThroughput }
+                        |> CosmosSqlDb
                     yield!
                         cosmos.Containers
                         |> List.map(fun c ->
@@ -571,7 +579,7 @@ module ArmBuilder =
                                                        Kind = kind |})
                                          |})
                                 |}
-                            } |> box) ]
+                            } |> CosmosContainer) ]
                 | :? SqlAzureConfig as sql -> [
                     { ServerName = sql.ServerName
                       Location = state.Location
@@ -593,16 +601,10 @@ module ArmBuilder =
                       DbCollation = sql.DbCollation
                       TransparentDataEncryption = sql.Encryption
                       FirewallRules = sql.FirewallRules
-                    } ]
+                    } |> SqlServer ]
                 | r ->
                     failwithf "Sorry, I don't know how to handle this resource of type '%s'." (r.GetType().FullName))
         }
-
-        /// Creates a variable; use the `variable` keyword.
-        [<CustomOperation "variable">]
-        member __.AddVariable (state, key, value) : ArmConfig =
-            { state with
-                Variables = (key, value) :: state.Variables }
 
         /// Creates a parameter; use the `parameter` keyword.
         [<CustomOperation "parameter">]

@@ -71,9 +71,12 @@ let template (environment:string) storageSku webAppSku =
         resource myFunctions
 
         output "webAppName" myWebApp.Name
-        output "webAppPassword" myWebApp.PublishingPassword        
+        output "webAppPassword" myWebApp.PublishingPassword
+        output "functionsPassword" myFunctions.PublishingPassword
+        output "functionsAIKey" (myFunctions.AppInsightsKey |> Option.defaultValue "")
+        output "storageAccountKey" myFunctions.StorageAccountKey
     }
 
 template "dev" Storage.Sku.StandardLRS WebApp.Sku.F1
 |> Writer.toJson
-|> Writer.toFile @"safe-template.json"
+|> Writer.toFile @"dev-safe-template.json"
