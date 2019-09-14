@@ -61,6 +61,13 @@ let template (environment:string) storageSku webAppSku =
         depends_on mySqlDb
     }
 
+    let theVm = vm {
+        name "isaacsVM"
+        username "isaac"
+        vm_size Size.Standard_A2
+        image CommonImages.WindowsServer2012Datacenter
+    }
+
     arm {
         resource myStorageAccount
         resource myCosmosDb
@@ -73,6 +80,8 @@ let template (environment:string) storageSku webAppSku =
         output "functionsPassword" myFunctions.PublishingPassword
         output "functionsAIKey" myFunctions.AppInsightsKey
         output "storageAccountKey" myFunctions.StorageAccountKey
+
+        // resource myVm
     }
 
 template "dev" Storage.Sku.StandardLRS WebApp.Sku.F1

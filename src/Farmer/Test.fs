@@ -59,12 +59,34 @@ let template (environment:string) storageSku webAppSku =
         depends_on mySqlDb
     }
 
+    let theVm = vm {
+        name "isaacsVM"
+        username "isaac"
+        vm_size Size.Standard_A2
+        image CommonImages.WindowsServer_2012Datacenter
+    }
+
+    let myVm =
+        { Name = ResourceName "isaacsVM"
+          AutoCreateStorageAccount = true
+          StorageAccountName = ResourceName "isaacsuperstorage"
+          
+          Size = "A2"
+          Username = "isaac"
+          Image = CommonImages.WindowsServer_2012Datacenter
+          DataDisks = [ 512 ]
+          
+          DomainNamePrefix = None
+          AddressPrefix = "10.0.0.0/16"
+          SubnetPrefix = "10.0.0.0/24" }
+
     arm {
         resource myStorageAccount
         resource myCosmosDb
         resource myWebApp
         resource mySqlDb
         resource myFunctions
+        resource myVm
 
         output "webAppName" myWebApp.Name
         output "webAppPassword" myWebApp.PublishingPassword
