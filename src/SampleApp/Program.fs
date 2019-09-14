@@ -41,7 +41,6 @@ let template (environment:string) storageSku webAppSku =
         name "isaacsuperfun"
         service_plan_name "isaacsuperfunhost"
         storage_account_name "isaacsuperstorage"
-        auto_create_storage
         operating_system Windows
         use_runtime DotNet
     }
@@ -51,7 +50,7 @@ let template (environment:string) storageSku webAppSku =
         service_plan_name (generateResourceName "webhost")
         sku webAppSku
 
-        use_app_insights (generateResourceName "insights")
+        app_insights_name (generateResourceName "insights")
 
         website_node_default_version "8.1.4"
         setting "public_path" "./public"
