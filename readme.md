@@ -193,7 +193,8 @@ This ends up looking like this, expanding from around 15 lines of more-or-less s
             "type": "Microsoft.Storage/storageAccounts"
         }
     ]
-}```
+}
+```
 
 ## How can I help?
 Try out the DSL and see what you think.
