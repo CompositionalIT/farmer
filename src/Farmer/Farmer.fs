@@ -2,9 +2,15 @@ namespace Farmer
 
 type ResourceName =
     | ResourceName of string
+    static member Empty = ResourceName ""
     member this.Value =
         let (ResourceName path) = this
         path
+    member this.IfEmpty fallbackValue =
+        match this with
+        | r when r = ResourceName.Empty -> ResourceName fallbackValue
+        | r -> r
+
 type ConsistencyPolicy = Eventual | ConsistentPrefix | Session | BoundedStaleness of maxStaleness:int * maxIntervalSeconds : int | Strong
 type FailoverPolicy = NoFailover | AutoFailover of secondaryLocation:string | MultiMaster of secondaryLocation:string
 type CosmosDbIndexKind = Hash | Range

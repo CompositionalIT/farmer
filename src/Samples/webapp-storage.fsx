@@ -1,28 +1,27 @@
 #r @"..\Farmer\bin\Debug\netstandard2.0\Farmer.dll"
 
 open Farmer
-open Helpers
 
 let myStorage = storageAccount {
     name "mystorage"
-    sku Storage.Sku.StandardLRS
+    sku Storage.Sku.PremiumLRS
 }
 
 let myWebApp = webApp {
     name "mysuperwebapp"
-    service_plan_name "myserverfarm"
-    sku WebApp.Sku.F1
-    use_app_insights "myappinsights"
+    sku WebApp.Sku.S1
+    setting "storage_key" myStorage.Key
     depends_on myStorage
 }
 
-let template =
-    arm {
-        location Helpers.Locations.NorthEurope
-        resource myStorage
-        resource myWebApp
-    }
+let template = arm {
+    location Locations.NorthEurope
+    resource myStorage
+    resource myWebApp
+    output "storage_key" myStorage.Key
+    output "web_password" myWebApp.PublishingPassword
+}
 
 template
 |> Writer.toJson
-|> Writer.toFile @"webapp-storage.json"
+|> Writer.toFile "webapp-storage.json"

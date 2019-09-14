@@ -29,18 +29,31 @@ things will change rapidly and there will be lots of breaking changes both in te
 This is an example Farmer value:
 
 ```fsharp
-/// Create a web application resource
-let myWebApp = webApp {
-    name "mysuperwebapp"
-    service_plan_name "myserverfarm"
-    sku WebApp.Sku.F1
-    use_app_insights "myappinsights"
+open Farmer
+
+// Create a storage resource with Premium LRS
+let myStorage = storageAccount {
+    name "mystorage"                        // set account name
+    sku Storage.Sku.PremiumLRS              // use Premium LRS
 }
 
-/// The overall ARM template which has the webapp as a resource.
+// Create a web application resource
+let myWebApp = webApp {
+    name "mysuperwebapp"                    // set web app name
+    sku WebApp.Sku.S1                       // use S1 size
+    setting "storage_key" myStorage.Key     // set an app setting to the storage account key
+    depends_on myStorage                    // set the dependency
+}
+
+// Create the ARM template using those two resources
 let template = arm {
-    location Locations.NorthEurope
+    location Locations.NorthEurope    
+    resource myStorage
     resource myWebApp
+
+    // also output a couple of values generated at deployment-time
+    output "storage_key" myStorage.Key
+    output "web_password" myWebApp.PublishingPassword
 }
 
 /// Export the template to a file.
@@ -49,52 +62,61 @@ template
 |> Writer.toFile "webapp-appinsights.json"
 ```
 
-It does the following:
-
-1. Creates a Web Application called `mysuperwebapp`.
-2. Creates and links a service plan called `myserverfarm` with the F1 service tier.
-4. Creates and links a fully configured Application Insights resource called `myappinsights`, and adds an app setting with the instrumentation key.
-5. Embeds the web app into an ARM Template with location set to North Europe.
-6. Converts the template into JSON and then writes it to disk.
-
 This ends up looking like this, expanding from around 15 lines of more-or-less strongly type code to around 100 lines of more-or-less weakly typed JSON:
 
 ```json
 {
     "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
-    "outputs": {},
+    "outputs": {
+        "storage_key": {
+            "type": "string",
+            "value": "[concat('DefaultEndpointsProtocol=https;AccountName=mystorage;AccountKey=', listKeys('mystorage', '2017-10-01').keys[0].value)]"
+        },
+        "web_password": {
+            "type": "string",
+            "value": "[list(resourceId('Microsoft.Web/sites/config', 'mysuperwebapp', 'publishingcredentials'), '2014-06-01').properties.publishingPassword]"
+        }
+    },
     "parameters": {},
     "resources": [
         {
             "apiVersion": "2016-09-01",
             "location": "northeurope",
-            "name": "myserverfarm",
+            "name": "mysuperwebapp-plan",
             "properties": {
-                "name": "myserverfarm",
+                "name": "mysuperwebapp-plan",
                 "perSiteScaling": false,
                 "reserved": false
             },
             "sku": {
-                "name": "F1"
+                "name": "S1",
+                "numberOfWorkers": 1,
+                "size": "0",
+                "tier": "Standard"
             },
             "type": "Microsoft.Web/serverfarms"
         },
         {
             "apiVersion": "2016-08-01",
             "dependsOn": [
-                "[resourceId('Microsoft.Web/serverfarms', 'myserverfarm')]",
-                "[resourceId('Microsoft.Insights/components/', 'myappinsights')]"
+                "mysuperwebapp-plan",
+                "mystorage",
+                "mysuperwebapp-ai"
             ],
             "location": "northeurope",
             "name": "mysuperwebapp",
             "properties": {
-                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', 'myserverfarm')]",
+                "serverFarmId": "mysuperwebapp-plan",
                 "siteConfig": {
                     "appSettings": [
                         {
+                            "name": "storage_key",
+                            "value": "[concat('DefaultEndpointsProtocol=https;AccountName=mystorage;AccountKey=', listKeys('mystorage', '2017-10-01').keys[0].value)]"
+                        },
+                        {
                             "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
-                            "value": "[reference(concat('Microsoft.Insights/components/', 'myappinsights')).InstrumentationKey]"
+                            "value": "[reference('Microsoft.Insights/components/mysuperwebapp-ai').InstrumentationKey]"
                         },
                         {
                             "name": "APPINSIGHTS_PROFILERFEATURE_VERSION",
@@ -135,7 +157,7 @@ This ends up looking like this, expanding from around 15 lines of more-or-less s
                 {
                     "apiVersion": "2016-08-01",
                     "dependsOn": [
-                        "[resourceId('Microsoft.Web/sites/', 'mysuperwebapp')]"
+                        "mysuperwebapp"
                     ],
                     "name": "Microsoft.ApplicationInsights.AzureWebSites",
                     "properties": {},
@@ -148,25 +170,35 @@ This ends up looking like this, expanding from around 15 lines of more-or-less s
             "apiVersion": "2014-04-01",
             "kind": "web",
             "location": "northeurope",
-            "name": "myappinsights",
+            "name": "mysuperwebapp-ai",
             "properties": {
-                "name": "myappinsights"
+                "ApplicationId": "mysuperwebapp",
+                "Application_Type": "web",
+                "name": "mysuperwebapp-ai"
             },
             "tags": {
                 "[concat('hidden-link:', resourceGroup().id, '/providers/Microsoft.Web/sites/', 'mysuperwebapp')]": "Resource",
                 "displayName": "AppInsightsComponent"
             },
             "type": "Microsoft.Insights/components"
+        },
+        {
+            "apiVersion": "2018-07-01",
+            "kind": "StorageV2",
+            "location": "northeurope",
+            "name": "mystorage",
+            "sku": {
+                "name": "Premium_LRS"
+            },
+            "type": "Microsoft.Storage/storageAccounts"
         }
-    ],
-    "variables": {}
-}
-```
+    ]
+}```
 
 ## How can I help?
 Try out the DSL and see what you think.
 
-* Create as many issues as you can for both bugs
+* Create as many issues as you can for both bugs, discussions and features
 * Create suggestions for features and the most important elements you would like to see added
 
 The is prototype code. There **will** be massive breaking changes on a regular basis.

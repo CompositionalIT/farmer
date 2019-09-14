@@ -41,19 +41,15 @@ let template (environment:string) storageSku webAppSku =
         name "isaacsuperfun"
         service_plan_name "isaacsuperfunhost"
         storage_account_name "isaacsuperstorage"
-        auto_create_storage
+        app_insights_name "isaacsuperai"
         operating_system Windows
         use_runtime DotNet
-        use_app_insights "isaacsuperai"
     }
     
     let myWebApp = webApp {
         name (generateResourceName "web")
         service_plan_name (generateResourceName "webhost")
         sku webAppSku
-
-        use_app_insights (generateResourceName "insights")
-
         website_node_default_version "8.1.4"
         setting "public_path" "./public"
         setting "STORAGE_CONNECTIONSTRING" myStorageAccount.Key

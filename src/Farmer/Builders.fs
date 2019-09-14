@@ -2,6 +2,7 @@ namespace Farmer
 
 open Farmer.Internal
 
+[<AutoOpen>]
 module Helpers =
     module AppInsights =
         let instrumentationKey (ResourceName accountName) =
@@ -50,7 +51,7 @@ module Storage =
           Sku : string }
         member this.Key = buildKey this.Name
     type StorageAccountBuilder() =
-        member __.Yield _ = { Name = ResourceName ""; Sku = Sku.StandardLRS }
+        member __.Yield _ = { Name = ResourceName.Empty; Sku = Sku.StandardLRS }
         [<CustomOperation "name">]
         member __.Name(state:StorageAccountConfig, name) = { state with Name = name }
         member this.Name(state:StorageAccountConfig, name) = this.Name(state, ResourceName name)
@@ -115,16 +116,25 @@ module WebApp =
 
     type WebAppBuilder() =
         member __.Yield _ =
-            { Name = ResourceName ""
-              ServicePlanName = ResourceName ""
+            { Name = ResourceName.Empty
+              ServicePlanName = ResourceName.Empty
+              AppInsightsName = Some ResourceName.Empty
               Sku = Sku.F1
               WorkerSize = Small
               WorkerCount = 1
-              AppInsightsName = None
               RunFromPackage = false
               WebsiteNodeDefaultVersion = None
               Settings = Map.empty
               Dependencies = [] }
+        member __.Run(state:WebAppConfig) =
+            { state with
+                ServicePlanName =
+                    state.ServicePlanName.IfEmpty (sprintf "%s-plan" state.Name.Value)
+                AppInsightsName =
+                    state.AppInsightsName
+                    |> Option.map (fun name -> name.IfEmpty (sprintf "%s-ai" state.Name.Value))
+            }
+
         /// Sets the name of the web app; use the `name` keyword.
         [<CustomOperation "name">]
         member __.Name(state:WebAppConfig, name) = { state with Name = name }
@@ -141,10 +151,12 @@ module WebApp =
         [<CustomOperation "number_of_workers">]
         member __.NumberOfWorkers(state:WebAppConfig, workerCount) = { state with WorkerCount = workerCount }
         /// Creates a fully-configured application insights resource linked to this web app; use the `use_app_insights` keyword.
-        [<CustomOperation "use_app_insights">]
+        [<CustomOperation "app_insights_name">]
         member __.UseAppInsights(state:WebAppConfig, name) = { state with AppInsightsName = Some name }
         member this.UseAppInsights(state:WebAppConfig, name:string) = this.UseAppInsights(state, ResourceName name)
         /// Sets the web app to use run from package mode; use the `run_from_package` keyword.
+        [<CustomOperation "no_app_insights">]
+        member __.DeactivateAppInsights(state:FunctionsConfig) = { state with AppInsightsName = None }
         [<CustomOperation "run_from_package">]
         member __.RunFromPackage(state:WebAppConfig) = { state with RunFromPackage = true }
         /// Sets the node version of the web app; use the `website_node_default_version` keyword.
@@ -159,23 +171,17 @@ module WebApp =
             { state with Dependencies = resourceName :: state.Dependencies }
     
     type FunctionsBuilder() =
-        let noName = ResourceName ""
-        let withDefault defaultValue = function
-            | r when r = noName -> ResourceName defaultValue
-            | r -> r
         member __.Yield _ =
-            { Name = noName
-              ServicePlanName = noName
-              StorageAccountName = noName
+            { Name = ResourceName.Empty
+              ServicePlanName = ResourceName.Empty
+              AppInsightsName = Some ResourceName.Empty
+              StorageAccountName = ResourceName.Empty
               AutoCreateStorageAccount = true
-              AppInsightsName = Some (ResourceName "")
               WorkerRuntime = DotNet
               OperatingSystem = Windows }
         member __.Run (state:FunctionsConfig) =
             { state with
-                ServicePlanName =
-                    state.ServicePlanName
-                    |> withDefault (sprintf "%s-plan" state.Name.Value)
+                ServicePlanName = state.ServicePlanName.IfEmpty (sprintf "%s-plan" state.Name.Value)
                 StorageAccountName =
                     let sanitisedName =
                         state.Name.Value.ToLower()
@@ -183,11 +189,10 @@ module WebApp =
                         |> Seq.truncate 16
                         |> Seq.toArray
                         |> System.String
-                    state.StorageAccountName
-                    |> withDefault (sprintf "%sstorage" sanitisedName)
+                    state.StorageAccountName.IfEmpty (sprintf "%sstorage" sanitisedName)
                 AppInsightsName =
                     state.AppInsightsName
-                    |> Option.map (withDefault (sprintf "%s-ai" state.Name.Value))
+                    |> Option.map (fun name -> name.IfEmpty (sprintf "%s-ai" state.Name.Value))
             }
         [<CustomOperation "name">]
         member __.Name(state:FunctionsConfig, name) = { state with Name = ResourceName name }
@@ -195,11 +200,9 @@ module WebApp =
         member __.ServicePlanName(state:FunctionsConfig, name) = { state with ServicePlanName = ResourceName name }
         [<CustomOperation "storage_account_name">]
         member __.StorageAccountName(state:FunctionsConfig, name) = { state with StorageAccountName = ResourceName name }
-        [<CustomOperation "auto_create_storage">]
-        member __.AutoCreateStorageAccount(state:FunctionsConfig) = { state with AutoCreateStorageAccount = true }
         [<CustomOperation "manual_create_storage">]
         member __.ManualCreateStorageAccount(state:FunctionsConfig) = { state with AutoCreateStorageAccount = false }
-        [<CustomOperation "use_app_insights">]
+        [<CustomOperation "app_insights_name">]
         member __.AppInsightsName(state:FunctionsConfig, name) = { state with AppInsightsName = Some (ResourceName name) }
         [<CustomOperation "no_app_insights">]
         member __.DeactivateAppInsights(state:FunctionsConfig) = { state with AppInsightsName = None }
