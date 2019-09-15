@@ -18,6 +18,8 @@ An F# DSL for rapidly generating non-complex ARM templates.
 * Functions
 * Virtual Machines
 
+Jump to the [quickstart](#quickstart) or view the [API reference](#api-reference).
+
 ## FAQ
 ### Show me the code!
 This is an example bit of Farmer F#:
@@ -204,12 +206,8 @@ Try out the DSL and see what you think.
 
 ### I have an Azure subscription, but I'm not an expert. I like the look of this - how do I "use" it?
 1. Create an [ARM template](https://docs.microsoft.com/en-us/azure/azure-resource-manager/template-deployment-overview) using the Farmer sample app.
-2. Install the [Azure CLI](https://docs.microsoft.com/en-gb/cli/azure/?view=azure-cli-latest).
-3. Log in to Azure in the CLI: `az login`.
-4. Create a [Resource Group](https://docs.microsoft.com/en-us/azure/azure-resource-manager/resource-group-overview#resource-groups) which will store the created Azure services: `az group create --location westus --name MyResourceGroup`.
-5. Deploy the ARM template to the newly-created resource group: `az group deployment create --group MyResourceGroup --template-file generated-arm-template.json`.
-6. Log into the [Azure portal](https://portal.azure.com) to see the results.
-7. Log any issues or ideas that you find [here](https://github.com/CompositionalIT/farmer/issues/new).
+1. Follow the steps [here](#deploying-arm-templates) to deploy the generated template into Azure.
+1. Log any issues or ideas that you find [here](https://github.com/CompositionalIT/farmer/issues/new).
 
 ### I don't know F#. Would you consider writing a C# version of this?
 I'm afraid not. F# isn't hard to learn (especially for simple DSLs such as this), and you can easily integrate F# applications as part of a dotnet solution, since F# is a first-class citizen of the dotnet core ecosystem.
@@ -229,3 +227,59 @@ Farmer **does** support `securestring` parameters for e.g. SQL and Virtual Machi
 * We feel that instead of trying to embed conditional logic and program flow directly inside ARM templates in JSON, if you wish to parameterise your template that you should use a real programming language to do that: in this case, F#.
 
 You can read more on this issue [here](https://github.com/CompositionalIT/farmer/issues/8)
+
+## Quickstarts
+
+### Creating your first template using Farmer
+1. Open `Program.fs` in the `SampleApp` folder.
+1. Create a web application:
+```fsharp
+let myWebApp = webApp {
+    name "mysuperwebapp"
+}
+```
+3. Assign the web app into the arm template below:
+```fsharp
+let template = arm {
+    location Locations.NorthEurope
+    resource myWebApp
+}
+```
+4. Run the application.
+1. Examine the `generated-template.json` file.
+1. Deploy the template (see [here](#deploying-arm-templates) if you don't know how to deploy them into Azure.). You should see that *three* resources were created: the **app service**, the **app service plan** that the app service resides in and a linked **application insights** instance.
+1. *Before* the definition of `myWebApp`, create a storage account:
+```fsharp
+let myStorage = storageAccount {
+    name "isaacstorage"
+}
+```
+8. Now add the storage account's connection key to the webapp as an app setting.
+```fsharp
+let myWebApp = webApp {
+    ...
+    setting "storage_connection" myStorage.Key
+}
+```
+9. Add another entry into the webapp definition that marks the storage account as a **dependency**. This tells Azure to create the storage account *before* it creates the web app.
+```fsharp
+let myWebApp = webApp {
+    ...
+    depends_on myStorage
+}
+```
+1. Add it to the body of the template using the same `resource` keyword as with `myWebApp`.
+1. Now regenerate and redeploy the template (don't worry about overwriting or duplicating the existing resources - Azure will simply create the "new" elements as required).
+1. Check in the portal that the storage account has been created.
+1. Navigate to the **app service** and then to the **configuration** section.
+1. Observe that the setting `storage_connection` has been created and has the connection string of the storage account already in it.
+
+### Deploying ARM templates
+1. Install the [Azure CLI](https://docs.microsoft.com/en-gb/cli/azure/?view=azure-cli-latest).
+1. Log in to Azure in the CLI: `az login`.
+1. Create a [Resource Group](https://docs.microsoft.com/en-us/azure/azure-resource-manager/resource-group-overview#resource-groups) which will store the created Azure services: `az group create --location westus --name MyResourceGroup`.
+1. Deploy the ARM template to the newly-created resource group: `az group deployment create --group MyResourceGroup --template-file generated-arm-template.json`.
+1. Log into the [Azure portal](https://portal.azure.com) to see the results.
+
+## API Reference
+(TBD).
