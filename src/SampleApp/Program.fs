@@ -61,11 +61,12 @@ let template (environment:string) storageSku webAppSku =
         depends_on mySqlDb
     }
 
-    let theVm = vm {
+    let myVm = vm {
         name "isaacsVM"
         username "isaac"
         vm_size Size.Standard_A2
-        image CommonImages.WindowsServer2012Datacenter
+        operating_system CommonImages.WindowsServer_2012Datacenter
+        add_ssd_disk 128
     }
 
     arm {
@@ -74,14 +75,14 @@ let template (environment:string) storageSku webAppSku =
         resource myWebApp
         resource mySqlDb
         resource myFunctions
+        resource myVm
 
         output "webAppName" myWebApp.Name
         output "webAppPassword" myWebApp.PublishingPassword
         output "functionsPassword" myFunctions.PublishingPassword
         output "functionsAIKey" myFunctions.AppInsightsKey
         output "storageAccountKey" myFunctions.StorageAccountKey
-
-        // resource myVm
+        output "hostname" myVm.Hostname
     }
 
 template "dev" Storage.Sku.StandardLRS WebApp.Sku.F1
