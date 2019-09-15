@@ -18,7 +18,7 @@ An F# DSL for rapidly generating non-complex ARM templates.
 * Functions
 * Virtual Machines
 
-Jump to the [quickstart](#quickstart) or view the [API reference](#api-reference).
+Jump to the [quickstart](#creating-your-first-template-using-farmer) or view the [API reference](#api-reference).
 
 ## FAQ
 ### Show me the code!
