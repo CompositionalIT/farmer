@@ -6,11 +6,13 @@ pool:
 
 steps:
 - task: DotNetCoreCLI@2
+  displayName: Restore
   inputs:
     command: restore
     projects: '**/*.fsproj'
 
 - task: DotNetCoreCLI@2
+  displayName: Build
   inputs:
     command: build
     projects: '**/*.fsproj'
