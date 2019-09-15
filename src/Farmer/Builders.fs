@@ -562,17 +562,17 @@ module VirtualMachine =
         let WindowsServer_2012R2Datacenter = {| Offer = "WindowsServer"; Publisher = "MicrosoftWindowsServer"; Sku = "2012-R2-Datacenter" |}
         let WindowsServer_2012Datacenter = {| Offer = "WindowsServer"; Publisher = "MicrosoftWindowsServer"; Sku = "2012-Datacenter" |}
         let WindowsServer_2008R2SP1 = {| Offer = "WindowsServer"; Publisher = "MicrosoftWindowsServer"; Sku = "2008-R2-SP1" |}
-    let makeName (vmName:ResourceName) prefix = sprintf "%s-%s" prefix vmName.Value
+    let makeName (vmName:ResourceName) elementType = sprintf "%s-%s" vmName.Value elementType
     let makeResourceName vmName = makeName vmName >> ResourceName
     type VmConfig =
         { Name : ResourceName
-          AutoCreateStorageAccount : bool
-          StorageAccountName : ResourceName
+          DiagnosticsStorageAccount : ResourceName option
           
           Username : string
           Image : {| Publisher : string; Offer : string; Sku : string |}
           Size : string
-          DataDisks : int list
+          OsDisk : DiskInfo
+          DataDisks : DiskInfo list
           
           DomainNamePrefix : string option
           AddressPrefix : string
@@ -588,35 +588,47 @@ module VirtualMachine =
     type VirtualMachineBuilder() =
         member __.Yield _ =
             { Name = ResourceName.Empty
-              AutoCreateStorageAccount = true
-              StorageAccountName = ResourceName.Empty
+              DiagnosticsStorageAccount = None
               Size = Size.Basic_A0
               Username = "admin"
               Image = CommonImages.WindowsServer_2012Datacenter
               DataDisks = [ ]
               DomainNamePrefix = None
+              OsDisk = { Size = 128; DiskType = Standard_LRS }
               AddressPrefix = "10.0.0.0/16"
               SubnetPrefix = "10.0.0.0/24" }
 
         member __.Run (state:VmConfig) =
             { state with
-                StorageAccountName = state.Name |> sanitiseStorage |> sprintf "%sstorage" |> state.StorageAccountName.IfEmpty
-                DataDisks = match state.DataDisks with [] -> [ 1024 ] | other -> other
+                DiagnosticsStorageAccount =
+                    state.DiagnosticsStorageAccount
+                    |> Option.map(fun account -> state.Name |> sanitiseStorage |> sprintf "%sstorage" |> account.IfEmpty)
+                DataDisks = match state.DataDisks with [] -> [ { Size = 1024; DiskType = Standard_LRS } ] | other -> other
             }
 
         [<CustomOperation "name">]
         member __.Name(state:VmConfig, name) = { state with Name = name }
         member this.Name(state:VmConfig, name) = this.Name(state, ResourceName name)
-        [<CustomOperation "storage_account_name">]
-        member __.StorageAccountName(state:VmConfig, name) = { state with StorageAccountName = ResourceName name; AutoCreateStorageAccount = false }
+        [<CustomOperation "diagnostics_support">]
+        member __.StorageAccountName(state:VmConfig) = { state with DiagnosticsStorageAccount = Some ResourceName.Empty }
         [<CustomOperation "vm_size">]
         member __.VmSize(state:VmConfig, size) = { state with Size = size }
         [<CustomOperation "username">]
         member __.Username(state:VmConfig, username) = { state with Username = username }
-        [<CustomOperation "image">]
-        member __.Image(state:VmConfig, image) = { state with Image = image }
+        [<CustomOperation "operating_system">]
+        member __.ConfigureOs(state:VmConfig, image) =
+            { state with Image = image }
+        member __.ConfigureOs(state:VmConfig, (offer, publisher, sku)) =
+            { state with Image = {| Offer = offer; Publisher = publisher; Sku = sku |} }
+        [<CustomOperation "os_disk">]
+        member __.OsDisk(state:VmConfig, size, diskType) =
+            { state with OsDisk = { Size = size; DiskType = diskType } }
         [<CustomOperation "add_disk">]
-        member __.AddDisk(state:VmConfig, disk) = { state with DataDisks = disk :: state.DataDisks }
+        member __.AddDisk(state:VmConfig, size, diskType) = { state with DataDisks = { Size = size; DiskType = diskType } :: state.DataDisks }
+        [<CustomOperation "add_ssd_disk">]
+        member this.AddSsd(state:VmConfig, size) = this.AddDisk(state, size, StandardSSD_LRS)
+        [<CustomOperation "add_slow_disk">]
+        member this.AddSlowDisk(state:VmConfig, size) = this.AddDisk(state, size, Standard_LRS)
         [<CustomOperation "domain_name_prefix">]
         member __.DomainNamePrefix(state:VmConfig, prefix) = { state with DomainNamePrefix = prefix }
         [<CustomOperation "address_prefix">]
@@ -857,19 +869,23 @@ module ArmBuilder =
                       FirewallRules = sql.FirewallRules
                     } |> SqlServer ]
                 | :? VmConfig as vm -> [
-                    if vm.AutoCreateStorageAccount then
+                    match vm.DiagnosticsStorageAccount with
+                    | Some account ->
                         yield StorageAccount
-                            { StorageAccount.Name = vm.StorageAccountName
+                            { StorageAccount.Name = account
                               Location = state.Location
                               Sku = Storage.Sku.StandardLRS }
+                    | None ->
+                        ()
                     yield Vm
                         { Name = vm.Name
                           Location = state.Location
-                          StorageAccountName = vm.StorageAccountName
+                          StorageAccountName = vm.DiagnosticsStorageAccount
                           NetworkInterfaceName = vm.NicName
                           Size = vm.Size
-                          Credentials = {| Username = vm.Username; Password = SecureParameter (makeName vm.Name "password-for") |}
+                          Credentials = {| Username = vm.Username; Password = SecureParameter (sprintf "password-for-%s" vm.Name.Value) |}
                           Image = vm.Image
+                          OsDisk = vm.OsDisk
                           DataDisks = vm.DataDisks }
                     yield Nic
                         { Name = vm.NicName

@@ -21,6 +21,8 @@ type SecureParameter =
         let (SecureParameter value) = this
         sprintf "[parameters('%s')]" value
 type FeatureFlag = Enabled | Disabled
+type DiskType = StandardSSD_LRS | Standard_LRS | Premium_LRS
+type DiskInfo = { Size : int; DiskType : DiskType }
 
 namespace Farmer.Internal
 
@@ -120,11 +122,12 @@ module VM =
     type VirtualMachine =
         { Name : ResourceName
           Location : string
-          StorageAccountName : ResourceName
-          Size : string //TODO
+          StorageAccountName : ResourceName option
+          Size : string
           Credentials : {| Username : string; Password : SecureParameter |}
           Image : {| Publisher : string; Offer : string; Sku : string |}
-          DataDisks : int list
+          OsDisk : DiskInfo
+          DataDisks : DiskInfo list
           NetworkInterfaceName : ResourceName }
 
 

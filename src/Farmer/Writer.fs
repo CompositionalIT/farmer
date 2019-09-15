@@ -270,8 +270,10 @@ module Outputters =
            name = vm.Name.Value
            location = vm.Location
            dependsOn = [
-               vm.StorageAccountName.Value
-               vm.NetworkInterfaceName.Value
+               yield vm.NetworkInterfaceName.Value
+               match vm.StorageAccountName with
+               | Some s -> yield s.Value
+               | None -> ()
            ]
            properties =
             {| hardwareProfile = {| vmSize = vm.Size |}
@@ -282,30 +284,45 @@ module Outputters =
                    adminPassword = vm.Credentials.Password.AsArmRef
                 |}
                storageProfile =
+                let vmNameLowerCase = vm.Name.Value.ToLower()
                 {| imageReference =
                     {| publisher = vm.Image.Publisher
                        offer = vm.Image.Offer
                        sku = vm.Image.Sku
                        version = "latest" |}
-                   osDisk = {| createOption = "FromImage" |}
+                   osDisk =
+                    {| createOption = "FromImage"
+                       name = sprintf "%s-osdisk" vmNameLowerCase
+                       diskSizeGB = vm.OsDisk.Size
+                       managedDisk = {| storageAccountType = string vm.OsDisk.DiskType |}
+                    |}
                    dataDisks =
                     vm.DataDisks
-                    |> List.mapi(fun lun diskSize ->
-                        {| diskSizeGB = diskSize
-                           lun = lun
-                           createOption = "Empty" |})
-                |}                       
+                    |> List.mapi(fun lun dataDisk ->
+                        {| createOption = "Empty"
+                           name = sprintf "%s-datadisk-%i" vmNameLowerCase lun
+                           diskSizeGB = dataDisk.Size
+                           lun = lun                           
+                           managedDisk = {| storageAccountType = string dataDisk.DiskType |} |})
+                |}
                networkProfile =
-                {| networkInterfaces = [
+                {| networkInterfaces =
+                    [ 
                         {| id = sprintf "[resourceId('Microsoft.Network/networkInterfaces','%s')]" vm.NetworkInterfaceName.Value |}
                     ]
                 |}
                diagnosticsProfile =
-                {| bootDiagnostics =
-                    {| enabled = true
-                       storageUri = sprintf "[reference('%s').primaryEndpoints.blob]" vm.StorageAccountName.Value
-                    |}
-                |}
+                match vm.StorageAccountName with
+                | Some storageAccount ->
+                    box
+                        {| bootDiagnostics =
+                            {| enabled = true
+                               storageUri = sprintf "[reference('%s').primaryEndpoints.blob]" storageAccount.Value
+                            |}
+                        |}
+                | None ->
+                    box {| bootDiagnostics = {| enabled = false |} |}
+
             |}
         |}
 
