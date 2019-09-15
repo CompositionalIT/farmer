@@ -231,6 +231,8 @@ You can read more on this issue [here](https://github.com/CompositionalIT/farmer
 ## Quickstarts
 
 ### Creating your first template using Farmer
+
+#### 1. Creating a fully-configured web app.
 1. Open `Program.fs` in the `SampleApp` folder.
 1. Create a web application and give it a name. Pick something unique - the name of this web app
 must be **unique across Azure** i.e. someone else can't have another web app with the same name!
@@ -250,27 +252,29 @@ let template = arm {
 1. Examine the `generated-template.json` file.
 1. Deploy the template (see [here](#deploying-arm-templates) if you don't know how to deploy them into Azure.).
 1. Once it has deployed, find it in the Azure portal. You will see that *three* resources were created: the **app service**, the **app service plan** that the app service resides in and a linked **application insights** instance.
-1. *Before* the definition of `myWebApp`, create a storage account. The name must be globally unique and between 3-24 alphanumeric lower-case characters:
+
+#### 2. Creating and linking secondary resources.
+8. *Above* the definition of `myWebApp`, create a storage account. The name must be globally unique and between 3-24 alphanumeric lower-case characters:
 ```fsharp
 let myStorage = storageAccount {
     name "isaacsuperstorage"
 }
 ```
-8. Now add the storage account's connection key to the webapp as an app setting.
+9. Now add the storage account's connection key to the webapp as an app setting.
 ```fsharp
 let myWebApp = webApp {
     ...
     setting "STORAGE_CONNECTION" myStorage.Key // add this line
 }
 ```
-9. Add another entry into the webapp definition that marks the storage account as a **dependency**. This tells Azure to create the storage account *before* it creates the web app.
+10. Add another entry into the webapp definition that marks the storage account as a **dependency**. This tells Azure to create the storage account *before* it creates the web app.
 ```fsharp
 let myWebApp = webApp {
     ...
     depends_on myStorage // add this line
 }
 ```
-1. Add it to the body of the template using the same `resource` keyword as with `myWebApp`.
+11. Add it to the body of the `template` definition using the same `resource` keyword as you did with `myWebApp`.
 1. Now regenerate and redeploy the template (don't worry about overwriting or duplicating the existing resources - Azure will simply create the "new" elements as required).
 1. Check in the portal that the storage account has been created.
 1. Navigate to the **app service** and then to the **configuration** section.
