@@ -232,40 +232,41 @@ You can read more on this issue [here](https://github.com/CompositionalIT/farmer
 
 ### Creating your first template using Farmer
 1. Open `Program.fs` in the `SampleApp` folder.
-1. Create a web application:
+1. Create a web application and give it a name. Pick something unique - the name of this web app
+must be **unique across Azure** i.e. someone else can't have another web app with the same name!
 ```fsharp
 let myWebApp = webApp {
-    name "mysuperwebapp"
+    name "isaacssuperwebapp"
 }
 ```
-3. Assign the web app into the arm template below:
+3. Assign the web app into the existing (empty) arm template definition:
 ```fsharp
 let template = arm {
-    location Locations.NorthEurope
-    resource myWebApp
+    ...
+    resource myWebApp // add this line
 }
 ```
 4. Run the application.
 1. Examine the `generated-template.json` file.
 1. Deploy the template (see [here](#deploying-arm-templates) if you don't know how to deploy them into Azure.). You should see that *three* resources were created: the **app service**, the **app service plan** that the app service resides in and a linked **application insights** instance.
-1. *Before* the definition of `myWebApp`, create a storage account:
+1. *Before* the definition of `myWebApp`, create a storage account. The name must be between 3-24 alphanumeric characters, lower-case:
 ```fsharp
 let myStorage = storageAccount {
-    name "isaacstorage"
+    name "isaacsuperstorage"
 }
 ```
 8. Now add the storage account's connection key to the webapp as an app setting.
 ```fsharp
 let myWebApp = webApp {
     ...
-    setting "storage_connection" myStorage.Key
+    setting "STORAGE_CONNECTION" myStorage.Key // add this line
 }
 ```
 9. Add another entry into the webapp definition that marks the storage account as a **dependency**. This tells Azure to create the storage account *before* it creates the web app.
 ```fsharp
 let myWebApp = webApp {
     ...
-    depends_on myStorage
+    depends_on myStorage // add this line
 }
 ```
 1. Add it to the body of the template using the same `resource` keyword as with `myWebApp`.
