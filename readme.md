@@ -250,7 +250,7 @@ let template = arm {
 1. Examine the `generated-template.json` file.
 1. Deploy the template (see [here](#deploying-arm-templates) if you don't know how to deploy them into Azure.).
 1. Once it has deployed, find it in the Azure portal. You will see that *three* resources were created: the **app service**, the **app service plan** that the app service resides in and a linked **application insights** instance.
-1. *Before* the definition of `myWebApp`, create a storage account. The name must be between 3-24 alphanumeric characters, lower-case:
+1. *Before* the definition of `myWebApp`, create a storage account. The name must be globally unique and between 3-24 alphanumeric lower-case characters:
 ```fsharp
 let myStorage = storageAccount {
     name "isaacsuperstorage"
