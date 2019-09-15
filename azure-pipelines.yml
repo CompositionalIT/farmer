@@ -5,14 +5,21 @@ pool:
   vmImage: 'windows-latest'
 
 steps:
+- task: UseDotNet@2
+  displayName: 'Install dotnet 2.2'
+  inputs:
+    packageType: sdk
+    version: 2.2.402
+    installationPath: $(Agent.ToolsDirectory)/dotnet
+
 - task: DotNetCoreCLI@2
-  displayName: Restore
+  displayName: 'Restore'
   inputs:
     command: restore
     projects: '**/*.fsproj'
 
 - task: DotNetCoreCLI@2
-  displayName: Build
+  displayName: 'Build'
   inputs:
     command: build
     projects: '**/*.fsproj'
