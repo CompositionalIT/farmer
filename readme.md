@@ -4,10 +4,9 @@ An F# DSL for rapidly generating non-complex ARM templates. This isn't a replace
 nor some sort of compete offering with Pulumi or similar. It's designed mostly as an experiment at this stage -
 things will change rapidly and there will be lots of breaking changes both in terms of namespace and API design.
 
-**THIS IS PROTOTYPE CODE. USE AT YOUR OWN RISK.**
+[![Build Status](https://compositional-it.visualstudio.com/Farmer/_apis/build/status/CompositionalIT.farmer?branchName=master)](https://compositional-it.visualstudio.com/Farmer/_build/latest?definitionId=14&branchName=master)
 
 ## Main features
-
 * Create non-complex ARM templates through a simple, strongly-typed and pragmatic DSL.
 * Create strongly-typed dependencies to resources.
 * Just F# - use standard F# code to dynamically create ARM templates quickly and easily.
@@ -24,6 +23,7 @@ things will change rapidly and there will be lots of breaking changes both in te
 * Cosmos DB
 * Azure SQL
 * Functions
+* Virtual Machines
 
 ## What does it look like?
 This is an example Farmer value:
@@ -202,10 +202,17 @@ Try out the DSL and see what you think.
 * Create as many issues as you can for both bugs, discussions and features
 * Create suggestions for features and the most important elements you would like to see added
 
-The is prototype code. There **will** be massive breaking changes on a regular basis.
-
 ## Getting started
 1. Clone this repo
 2. Build the Farmer project.
 3. Try one of the sample scripts in the Samples folder.
 4. Alternatively, use the SampleApp to generate your ARM templates from a console app.
+
+## I have an Azure subscription, but I'm not an expert. I like the look of this - how do I "use" it?
+1. Create an [ARM template](https://docs.microsoft.com/en-us/azure/azure-resource-manager/template-deployment-overview) using the Farmer sample app.
+2. Install the [Azure CLI](https://docs.microsoft.com/en-gb/cli/azure/?view=azure-cli-latest).
+3. Log in to Azure in the CLI: `az login`.
+4. Create a [Resource Group](https://docs.microsoft.com/en-us/azure/azure-resource-manager/resource-group-overview#resource-groups) which will store the created Azure services: `az group create --location westus --name MyResourceGroup`.
+5. Deploy the ARM template to the newly-created resource group: `az group deployment create --group MyResourceGroup --template-file generated-arm-template.json`.
+6. Log into the [Azure portal](https://portal.azure.com) to see the results.
+7. Log any issues or ideas that you find [here](https://github.com/CompositionalIT/farmer/issues/new).
