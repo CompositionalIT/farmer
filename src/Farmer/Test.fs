@@ -59,12 +59,23 @@ let template (environment:string) storageSku webAppSku =
         depends_on mySqlDb
     }
 
+    let myVm = vm {
+        name "isaacsVM"
+        username "isaac"
+        vm_size Size.Standard_A2
+        operating_system CommonImages.WindowsServer_2012Datacenter
+        os_disk 128 StandardSSD_LRS
+        add_ssd_disk 128
+        add_slow_disk 1024
+    }
+
     arm {
         resource myStorageAccount
         resource myCosmosDb
         resource myWebApp
         resource mySqlDb
         resource myFunctions
+        resource myVm
 
         output "webAppName" myWebApp.Name
         output "webAppPassword" myWebApp.PublishingPassword

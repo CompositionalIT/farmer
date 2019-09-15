@@ -77,7 +77,6 @@ module Outputters =
         match webApp.Kind with
         | Some kind -> box {| baseProps with kind = kind |}
         | None -> box baseProps
-
     let cosmosDbContainer (container:CosmosDbContainer) = {|
         ``type`` = "Microsoft.DocumentDb/databaseAccounts/apis/databases/containers"
         name = sprintf "%s/sql/%s/%s" container.Account.Value container.Database.Value container.Name.Value
@@ -167,9 +166,8 @@ module Outputters =
         location = database.Location
         tags = {| displayName = "SqlServer" |}
         properties =
-            let (SecureParameter passwordParam) = database.AdministratorLoginPassword
-            {| administratorLogin = database.AdministratorLogin
-               administratorLoginPassword = sprintf "[parameters('%s')]" passwordParam
+            {| administratorLogin = database.Credentials.Username
+               administratorLoginPassword = database.Credentials.Password.AsArmRef
                version = "12.0" |}
         resources = [
             yield
@@ -208,8 +206,125 @@ module Outputters =
                        dependsOn = [ database.ServerName.Value ]
                     |} |> box)
         ]
-
     |}
+
+    let publicIpAddress (ipAddress:VM.PublicIpAddress) =
+        {| ``type`` = "Microsoft.Network/publicIPAddresses"
+           apiVersion = "2018-11-01"
+           name = ipAddress.Name.Value
+           location = ipAddress.Location
+           properties =
+                match ipAddress.DomainNameLabel with
+                | Some label ->
+                    box
+                        {| publicIPAllocationMethod = "Dynamic"
+                           dnsSettings = {| domainNameLabel = label.ToLower() |}
+                        |}
+                | None ->
+                    box {| publicIPAllocationMethod = "Dynamic" |}
+        |}
+
+    let virtualNetwork (vnet:VM.VirtualNetwork) =
+        {| ``type`` = "Microsoft.Network/virtualNetworks"
+           apiVersion = "2018-11-01"
+           name = vnet.Name.Value
+           location = vnet.Location
+           properties =
+                {| addressSpace = {| addressPrefixes = vnet.AddressSpacePrefixes |}                
+                   subnets =
+                    vnet.Subnets
+                    |> List.map(fun subnet ->
+                       {| name = subnet.Name.Value
+                          properties = {| addressPrefix = subnet.Prefix |}
+                       |})
+                |}
+        |}
+
+    let networkInterface (nic:VM.NetworkInterface) =
+        {| ``type`` = "Microsoft.Network/networkInterfaces"
+           apiVersion = "2018-11-01"
+           name = nic.Name.Value
+           location = nic.Location
+           dependsOn = [
+               yield nic.VirtualNetwork.Value
+               for config in nic.IpConfigs do
+                yield config.PublicIpName.Value
+           ]
+           properties =
+            {| ipConfigurations =
+                nic.IpConfigs
+                |> List.mapi(fun index ipConfig ->
+                    {| name = sprintf "ipconfig%i" (index + 1)
+                       properties =
+                        {| privateIPAllocationMethod = "Dynamic"
+                           publicIPAddress = {| id = sprintf "[resourceId('Microsoft.Network/publicIPAddresses','%s')]" ipConfig.PublicIpName.Value |}
+                           subnet = {| id = sprintf "[resourceId('Microsoft.Network/virtualNetworks/subnets', '%s', '%s')]" nic.VirtualNetwork.Value ipConfig.SubnetName.Value |}
+                        |}
+                    |})
+            |}              
+        |}
+
+    let virtualMachine (vm:VM.VirtualMachine) =
+        {| ``type`` = "Microsoft.Compute/virtualMachines"
+           apiVersion = "2018-10-01"
+           name = vm.Name.Value
+           location = vm.Location
+           dependsOn = [
+               yield vm.NetworkInterfaceName.Value
+               match vm.StorageAccountName with
+               | Some s -> yield s.Value
+               | None -> ()
+           ]
+           properties =
+            {| hardwareProfile = {| vmSize = vm.Size |}
+               osProfile =
+                {|
+                   computerName = vm.Name.Value
+                   adminUsername = vm.Credentials.Username
+                   adminPassword = vm.Credentials.Password.AsArmRef
+                |}
+               storageProfile =
+                let vmNameLowerCase = vm.Name.Value.ToLower()
+                {| imageReference =
+                    {| publisher = vm.Image.Publisher
+                       offer = vm.Image.Offer
+                       sku = vm.Image.Sku
+                       version = "latest" |}
+                   osDisk =
+                    {| createOption = "FromImage"
+                       name = sprintf "%s-osdisk" vmNameLowerCase
+                       diskSizeGB = vm.OsDisk.Size
+                       managedDisk = {| storageAccountType = string vm.OsDisk.DiskType |}
+                    |}
+                   dataDisks =
+                    vm.DataDisks
+                    |> List.mapi(fun lun dataDisk ->
+                        {| createOption = "Empty"
+                           name = sprintf "%s-datadisk-%i" vmNameLowerCase lun
+                           diskSizeGB = dataDisk.Size
+                           lun = lun                           
+                           managedDisk = {| storageAccountType = string dataDisk.DiskType |} |})
+                |}
+               networkProfile =
+                {| networkInterfaces =
+                    [ 
+                        {| id = sprintf "[resourceId('Microsoft.Network/networkInterfaces','%s')]" vm.NetworkInterfaceName.Value |}
+                    ]
+                |}
+               diagnosticsProfile =
+                match vm.StorageAccountName with
+                | Some storageAccount ->
+                    box
+                        {| bootDiagnostics =
+                            {| enabled = true
+                               storageUri = sprintf "[reference('%s').primaryEndpoints.blob]" storageAccount.Value
+                            |}
+                        |}
+                | None ->
+                    box {| bootDiagnostics = {| enabled = false |} |}
+
+            |}
+        |}
 
 let processTemplate (template:ArmTemplate) = {|
     ``$schema`` = "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#"
@@ -224,16 +339,20 @@ let processTemplate (template:ArmTemplate) = {|
             | CosmosAccount cds -> Outputters.cosmosDbServer cds |> box
             | CosmosSqlDb db -> Outputters.cosmosDbSql db |> box
             | CosmosContainer c -> Outputters.cosmosDbContainer c |> box
-            | SqlServer sql -> Outputters.sqlAzure sql |> box)
-    parameters = [
-        for resource in template.Resources do
-            match resource with
-            | SqlServer sql ->
-                let (SecureParameter p) = sql.AdministratorLoginPassword
-                yield p, {| ``type`` = "securestring" |}
-            | _ ->
-                ()            
-        ] |> Map.ofList
+            | SqlServer sql -> Outputters.sqlAzure sql |> box
+            | Ip address -> Outputters.publicIpAddress address |> box
+            | Vnet vnet -> Outputters.virtualNetwork vnet |> box
+            | Nic nic -> Outputters.networkInterface nic |> box
+            | Vm vm -> Outputters.virtualMachine vm |> box
+        )
+    parameters =
+        template.Resources
+        |> List.choose(function
+            | SqlServer sql -> Some sql.Credentials.Password
+            | Vm vm -> Some vm.Credentials.Password
+            | _ -> None)
+        |> List.map(fun (SecureParameter p) -> p, {| ``type`` = "securestring" |})
+        |> Map.ofList
     outputs =
         template.Outputs
         |> List.map(fun (k, v) ->

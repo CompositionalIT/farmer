@@ -15,8 +15,14 @@ type ConsistencyPolicy = Eventual | ConsistentPrefix | Session | BoundedStalenes
 type FailoverPolicy = NoFailover | AutoFailover of secondaryLocation:string | MultiMaster of secondaryLocation:string
 type CosmosDbIndexKind = Hash | Range
 type CosmosDbIndexDataType = Number | String
-type SecureParameter = SecureParameter of name:string
+type SecureParameter =
+    | SecureParameter of name:string
+    member this.AsArmRef =
+        let (SecureParameter value) = this
+        sprintf "[parameters('%s')]" value
 type FeatureFlag = Enabled | Disabled
+type DiskType = StandardSSD_LRS | Standard_LRS | Premium_LRS
+type DiskInfo = { Size : int; DiskType : DiskType }
 
 namespace Farmer.Internal
 
@@ -68,8 +74,7 @@ type CosmosDbContainer =
 type SqlAzure =
   { ServerName : ResourceName
     Location : string
-    AdministratorLogin : string
-    AdministratorLoginPassword : SecureParameter
+    Credentials : {| Username : string; Password : SecureParameter |}
     DbName : ResourceName
     DbEdition : string
     DbCollation : string
@@ -88,15 +93,58 @@ type CosmosDbAccount =
       ConsistencyPolicy : ConsistencyPolicy
       WriteModel : FailoverPolicy }
 
+module VM =
+    module WindowsOsVersion =
+        let v2008R2SP1 = "2008-R2-SP1"
+        let v2012Datacenter = "2012-Datacenter"
+        let v2012R2Datacenter = "2012-R2-Datacenter"
+        let v2016NanoServer = "2016-Nano-Server"
+        let v2016DatacenterWithContainers = "2016-Datacenter-with-Containers"
+        let v2016Datacenter = "2016-Datacenter"
+        let v2019Datacenter = "2019-Datacenter"
+
+    type PublicIpAddress =
+        { Name : ResourceName
+          Location : string
+          DomainNameLabel : string option }
+    type VirtualNetwork =
+        { Name : ResourceName
+          Location : string
+          AddressSpacePrefixes : string list
+          Subnets : {| Name : ResourceName; Prefix : string |} list }
+    type NetworkInterface =
+        { Name : ResourceName
+          Location : string
+          IpConfigs :
+            {| SubnetName : ResourceName
+               PublicIpName : ResourceName |} list
+          VirtualNetwork : ResourceName }
+    type VirtualMachine =
+        { Name : ResourceName
+          Location : string
+          StorageAccountName : ResourceName option
+          Size : string
+          Credentials : {| Username : string; Password : SecureParameter |}
+          Image : {| Publisher : string; Offer : string; Sku : string |}
+          OsDisk : DiskInfo
+          DataDisks : DiskInfo list
+          NetworkInterfaceName : ResourceName }
+
+
+
+
+
 
 namespace Farmer
 open Farmer.Internal
+open Farmer.Internal.VM
 type SupportedResource =
   | CosmosAccount of CosmosDbAccount | CosmosSqlDb of CosmosDbSql | CosmosContainer of CosmosDbContainer
   | ServerFarm of ServerFarm | WebApp of WebApp
   | SqlServer of SqlAzure
   | StorageAccount of StorageAccount
   | AppInsights of AppInsights
+  | Ip of PublicIpAddress | Vnet of VirtualNetwork | Nic of NetworkInterface | Vm of VirtualMachine
 
 type ArmTemplate =
     { Parameters : string list
