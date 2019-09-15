@@ -19,31 +19,31 @@ An F# DSL for rapidly generating non-complex ARM templates.
 * Virtual Machines
 
 ## FAQ
-### What does it look like?
-This is an example Farmer value:
+### Show me the code!
+This is an example bit of Farmer F#:
 
 ```fsharp
 open Farmer
 
 // Create a storage resource with Premium LRS
 let myStorage = storageAccount {
-    name "mystorage"                        // set account name
-    sku Storage.Sku.PremiumLRS              // use Premium LRS
+    name "mystorage"           // set account name
+    sku Storage.Sku.PremiumLRS // use Premium LRS
 }
 
 // Create a web application resource
 let myWebApp = webApp {
-    name "mysuperwebapp"                    // set web app name
-    sku WebApp.Sku.S1                       // use S1 size
-    setting "storage_key" myStorage.Key     // set an app setting to the storage account key
-    depends_on myStorage                    // set the dependency
+    name "mysuperwebapp"                // set web app name
+    sku WebApp.Sku.S1                   // use S1 size
+    setting "storage_key" myStorage.Key // set an app setting to the storage account key
+    depends_on myStorage                // webapp is dependent on storage 
 }
 
 // Create the ARM template using those two resources
 let template = arm {
-    location Locations.NorthEurope    
-    resource myStorage
-    resource myWebApp
+    location Locations.NorthEurope // set location for all resources
+    resource myStorage             // include storage into template
+    resource myWebApp              // include web app into template
 
     // also output a couple of values generated at deployment-time
     output "storage_key" myStorage.Key
@@ -189,6 +189,7 @@ This ends up looking like this, expanding from around 15 lines of more-or-less s
     ]
 }
 ```
+
 ### Getting started
 1. Clone this repo
 2. Build the Farmer project.
@@ -226,3 +227,5 @@ Farmer **does** support `securestring` parameters for e.g. SQL and Virtual Machi
 * We want to kep the Farmer API simple for users
 * We want to keep the generated ARM templates as readable as possible
 * We feel that instead of trying to embed conditional logic and program flow directly inside ARM templates in JSON, if you wish to parameterise your template that you should use a real programming language to do that: in this case, F#.
+
+You can read more on this issue [here](https://github.com/CompositionalIT/farmer/issues/8)
