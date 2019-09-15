@@ -1,8 +1,6 @@
 # Farmer
 
-An F# DSL for rapidly generating non-complex ARM templates. This isn't a replacement for ARM templates,
-nor some sort of compete offering with Pulumi or similar. It's designed mostly as an experiment at this stage -
-things will change rapidly and there will be lots of breaking changes both in terms of namespace and API design.
+An F# DSL for rapidly generating non-complex ARM templates.
 
 [![Build Status](https://compositional-it.visualstudio.com/Farmer/_apis/build/status/CompositionalIT.farmer?branchName=master)](https://compositional-it.visualstudio.com/Farmer/_build/latest?definitionId=14&branchName=master)
 
@@ -10,11 +8,6 @@ things will change rapidly and there will be lots of breaking changes both in te
 * Create non-complex ARM templates through a simple, strongly-typed and pragmatic DSL.
 * Create strongly-typed dependencies to resources.
 * Just F# - use standard F# code to dynamically create ARM templates quickly and easily.
-
-## Plans
-* Support for more common ARM resource types
-* Support more complex interactions with resources
-* Look to simplify the DSL even more e.g. auto-detect parameters and dependencies.
 
 ### Currently Supported Resources
 * Storage
@@ -25,7 +18,8 @@ things will change rapidly and there will be lots of breaking changes both in te
 * Functions
 * Virtual Machines
 
-## What does it look like?
+## FAQ
+### What does it look like?
 This is an example Farmer value:
 
 ```fsharp
@@ -195,20 +189,19 @@ This ends up looking like this, expanding from around 15 lines of more-or-less s
     ]
 }
 ```
-
-## How can I help?
-Try out the DSL and see what you think.
-
-* Create as many issues as you can for both bugs, discussions and features
-* Create suggestions for features and the most important elements you would like to see added
-
-## Getting started
+### Getting started
 1. Clone this repo
 2. Build the Farmer project.
 3. Try one of the sample scripts in the Samples folder.
 4. Alternatively, use the SampleApp to generate your ARM templates from a console app.
 
-## I have an Azure subscription, but I'm not an expert. I like the look of this - how do I "use" it?
+### How can I help?
+Try out the DSL and see what you think.
+
+* Create as many issues as you can for both bugs, discussions and features
+* Create suggestions for features and the most important elements you would like to see added
+
+### I have an Azure subscription, but I'm not an expert. I like the look of this - how do I "use" it?
 1. Create an [ARM template](https://docs.microsoft.com/en-us/azure/azure-resource-manager/template-deployment-overview) using the Farmer sample app.
 2. Install the [Azure CLI](https://docs.microsoft.com/en-gb/cli/azure/?view=azure-cli-latest).
 3. Log in to Azure in the CLI: `az login`.
@@ -216,3 +209,20 @@ Try out the DSL and see what you think.
 5. Deploy the ARM template to the newly-created resource group: `az group deployment create --group MyResourceGroup --template-file generated-arm-template.json`.
 6. Log into the [Azure portal](https://portal.azure.com) to see the results.
 7. Log any issues or ideas that you find [here](https://github.com/CompositionalIT/farmer/issues/new).
+
+### I don't know F#. Would you consider writing a C# version of this?
+I'm afraid not. F# isn't hard to learn (especially for simple DSLs such as this), and you can easily integrate F# applications as part of a dotnet solution, since F# is a first-class citizen of the dotnet core ecosystem.
+
+### Are you trying to replace ARM templates?
+No, we're not. Farmer *generates* ARM templates that can be used just as normal; Farmer can be used simply to make the process of getting started much simpler, or incorporated into your build pipeline as a way to avoid managing difficult-to-manage ARM templates and instead use them as the final part of your build / release pipeline.
+
+### Are you trying to compete with Pulumi?
+No, we're not. Farmer has (at least currently) a specific goal in mind, which is to lower the barrier to entry for creating and working with ARM templates that are non-complex. We're not looking to create a cross-platform DSL to also support things like Terraform etc. or support deployment of code along with infrastructure (or, at least, only to the extent that ARM templates do).
+
+### There's no support for variables or parameters!
+Farmer **does** support `securestring` parameters for e.g. SQL and Virtual Machine passwords - these are automatically generated based on the contents of the template rather than explicitly by yourself. However, we don't currently plan on providing *rich* support for either parameters or variables for several reasons:
+
+* We want to keep the Farmer codebase simple for maintainers
+* We want to kep the Farmer API simple for users
+* We want to keep the generated ARM templates as readable as possible
+* We feel that instead of trying to embed conditional logic and program flow directly inside ARM templates in JSON, if you wish to parameterise your template that you should use a real programming language to do that: in this case, F#.
