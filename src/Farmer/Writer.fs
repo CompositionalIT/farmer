@@ -35,9 +35,10 @@ module Outputters =
                    tier = farm.Tier
                    size = farm.WorkerSize |}
             if farm.IsDynamic then box {| baseProps with family = "Y"; capacity = 0 |}
-            else box {| baseProps with numberOfWorkers = farm.WorkerCount |}
+            else box {| baseProps with
+                            capacity = farm.WorkerCount |}
         name = farm.Name.Value
-        apiVersion = "2016-09-01"
+        apiVersion = "2018-02-01"
         location = farm.Location
         properties =
             if farm.IsDynamic then
@@ -354,6 +355,13 @@ let processTemplate (template:ArmTemplate) = {|
         |> List.map(fun (SecureParameter p) -> p, {| ``type`` = "securestring" |})
         |> Map.ofList
     outputs =
+        let autoOutputs =
+            template.Resources
+            |> List.choose(function
+                | Ip ({ DomainNameLabel = Some _ } as ip) ->
+                    Some (sprintf "[reference('%s').dnsSettings.fqdn]" ip.Name.Value)
+                | _ -> None )
+
         template.Outputs
         |> List.map(fun (k, v) ->
             k, Map [ "type", "string"
