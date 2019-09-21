@@ -6,7 +6,7 @@ let myVm = vm {
     name "isaacsVM"
     username "isaac"
     vm_size Size.Standard_A2
-    operating_system ("CentOS", "OpenLogic", "7.5")
+    operating_system CommonImages.WindowsServer_2012Datacenter
     os_disk 128 StandardSSD_LRS
     add_ssd_disk 128
     add_slow_disk 512

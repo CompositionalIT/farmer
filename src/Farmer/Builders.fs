@@ -29,14 +29,15 @@ module Helpers =
 
 [<AutoOpen>]
 module private InternalHelpers =
-    let sanitiseStorage (resourceName:ResourceName) =
+    let sanitise filters maxLength (resourceName:ResourceName) =
         resourceName.Value.ToLower()
-        |> Seq.filter System.Char.IsLetterOrDigit
-        |> Seq.truncate 16
+        |> Seq.filter(fun c -> Seq.exists(fun filter -> filter c) filters)
+        |> Seq.truncate maxLength
         |> Seq.toArray
         |> System.String
 
-
+    let sanitiseStorage = sanitise [ System.Char.IsLetterOrDigit ] 16
+    let sanitiseSearch = sanitise [ System.Char.IsLetterOrDigit; (=) '-' ] 60
 
 [<AutoOpen>]
 module Storage =
@@ -638,15 +639,46 @@ module VirtualMachine =
 
     let vm = VirtualMachineBuilder()
 
-type ArmConfig =
-    { Parameters : string Set
-      Outputs : (string * string) list
-      Location : string
-      Resources : obj list }
+[<AutoOpen>]
+module Search =
+    type SearchConfig =
+        { Name : ResourceName
+          Sku : SearchSku
+          Replicas : int
+          Partitions : int }
+        member this.AdminKey =
+            sprintf "[listAdminKeys('Microsoft.Search/searchServices/%s', '2015-08-19').primaryKey]" this.Name.Value
+        member this.QueryKey =
+            sprintf "[listQueryKeys('Microsoft.Search/searchServices/%s', '2015-08-19').value[0].key]" this.Name.Value
+
+    type SearchBuilder() =
+        member __.Yield _ =
+            { Name = ResourceName.Empty
+              Sku = StandardSearch
+              Replicas = 1
+              Partitions = 1 }        
+        member __.Run(state:SearchConfig) =
+            { state with Name = state.Name |> sanitiseSearch |> ResourceName }
+        [<CustomOperation "name">]
+        member __.Name(state:SearchConfig, name) = { state with Name = name }
+        member this.Name(state:SearchConfig, name) = this.Name(state, ResourceName name)
+        [<CustomOperation "set_sku">]
+        member __.Sku(state:SearchConfig, sku) = { state with Sku = sku }
+        [<CustomOperation "set_replicas">]
+        member __.ReplicaCount(state:SearchConfig, replicas:int) = { state with Replicas = replicas }
+        [<CustomOperation "set_partitions">]
+        member __.PartitionCount(state:SearchConfig, partitions:int) = { state with Partitions = partitions }
+
+    let search = SearchBuilder()
 
 [<AutoOpen>]
 module ArmBuilder =
     open Internal.VM
+    type ArmConfig =
+        { Parameters : string Set
+          Outputs : (string * string) list
+          Location : string
+          Resources : obj list }
     type ArmBuilder() =
         member __.Yield _ =
             { Parameters = Set.empty
@@ -906,7 +938,15 @@ module ArmBuilder =
                         { Name = vm.IpName
                           Location = state.Location
                           DomainNameLabel = vm.DomainNamePrefix }
-                    ]                
+                    ]
+                | :? SearchConfig as search -> [
+                    AzureSearch
+                        { Name = search.Name
+                          Location = state.Location
+                          Sku = search.Sku
+                          ReplicaCount = search.Replicas
+                          PartitionCount = search.Partitions }
+                    ]
                 | r ->
                     failwithf "Sorry, I don't know how to handle this resource of type '%s'." (r.GetType().FullName))
         }

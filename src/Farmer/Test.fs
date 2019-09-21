@@ -69,6 +69,11 @@ let template (environment:string) storageSku webAppSku =
         add_slow_disk 1024
     }
 
+    let mySearch = search {
+        name "isaacsSearch"
+        set_sku BasicSearch
+    }
+
     arm {
         resource myStorageAccount
         resource myCosmosDb
@@ -76,6 +81,7 @@ let template (environment:string) storageSku webAppSku =
         resource mySqlDb
         resource myFunctions
         resource myVm
+        resource mySearch
 
         output "webAppName" myWebApp.Name
         output "webAppPassword" myWebApp.PublishingPassword

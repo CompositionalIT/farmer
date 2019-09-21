@@ -11,7 +11,6 @@ module Outputters =
         apiVersion = "2018-07-01"
         location = resource.Location
     |}
-
     let appInsights (resource:AppInsights) =
         let (ResourceName linkedWebsite) = resource.LinkedWebsite
         {| ``type`` = "Microsoft.Insights/components"
@@ -159,7 +158,6 @@ module Outputters =
             {| resource = {| id = cosmosDbSql.Name.Value |}
                options = {| throughput = cosmosDbSql.Throughput |} |}
     |}
-
     let sqlAzure (database:SqlAzure) = {|
         ``type`` = "Microsoft.Sql/servers"
         name = database.ServerName.Value
@@ -208,7 +206,6 @@ module Outputters =
                     |} |> box)
         ]
     |}
-
     let publicIpAddress (ipAddress:VM.PublicIpAddress) =
         {| ``type`` = "Microsoft.Network/publicIPAddresses"
            apiVersion = "2018-11-01"
@@ -224,7 +221,6 @@ module Outputters =
                 | None ->
                     box {| publicIPAllocationMethod = "Dynamic" |}
         |}
-
     let virtualNetwork (vnet:VM.VirtualNetwork) =
         {| ``type`` = "Microsoft.Network/virtualNetworks"
            apiVersion = "2018-11-01"
@@ -240,7 +236,6 @@ module Outputters =
                        |})
                 |}
         |}
-
     let networkInterface (nic:VM.NetworkInterface) =
         {| ``type`` = "Microsoft.Network/networkInterfaces"
            apiVersion = "2018-11-01"
@@ -264,7 +259,6 @@ module Outputters =
                     |})
             |}              
         |}
-
     let virtualMachine (vm:VM.VirtualMachine) =
         {| ``type`` = "Microsoft.Compute/virtualMachines"
            apiVersion = "2018-10-01"
@@ -326,6 +320,29 @@ module Outputters =
 
             |}
         |}
+    let search (search:Search) =
+        {| ``type`` = "Microsoft.Search/searchServices"
+           apiVersion = "2015-08-19"
+           name = search.Name.Value
+           location = search.Location
+           sku =
+            {| name =
+                match search.Sku with
+                | FreeSearch -> "free"
+                | BasicSearch -> "basic"
+                | StandardSearch -> "standard"
+                | StandardSearch2 -> "standard2"
+                | StandardSearch3 _ -> "standard3"
+                | StorageOptimisedSearchL1 -> "storage_optimized_l1"
+                | StorageOptimisedSearchL2 -> "storage_optimized_l2" |}
+           properties =
+            {| replicaCount = string search.ReplicaCount
+               partitionCount = string search.PartitionCount
+               hostingMode =
+                match search.Sku with
+                | StandardSearch3 HighDensity -> "highDensity"
+                | _ -> "default" |}
+        |}
 
 let processTemplate (template:ArmTemplate) = {|
     ``$schema`` = "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#"
@@ -345,6 +362,7 @@ let processTemplate (template:ArmTemplate) = {|
             | Vnet vnet -> Outputters.virtualNetwork vnet |> box
             | Nic nic -> Outputters.networkInterface nic |> box
             | Vm vm -> Outputters.virtualMachine vm |> box
+            | AzureSearch search -> Outputters.search search |> box
         )
     parameters =
         template.Resources
