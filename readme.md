@@ -17,6 +17,7 @@ An F# DSL for rapidly generating non-complex ARM templates.
 * Azure SQL
 * Functions
 * Virtual Machines
+* Azure Search
 
 Jump to the [quickstart](#creating-your-first-template-using-farmer) or view the [API reference](#api-reference).
 
