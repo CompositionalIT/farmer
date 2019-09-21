@@ -23,6 +23,16 @@ type SecureParameter =
 type FeatureFlag = Enabled | Disabled
 type DiskType = StandardSSD_LRS | Standard_LRS | Premium_LRS
 type DiskInfo = { Size : int; DiskType : DiskType }
+type HostingMode = Default | HighDensity
+/// The SKU of the search service you want to create. E.g. free or standard.
+type SearchSku =
+    | FreeSearch
+    | BasicSearch
+    | StandardSearch
+    | StandardSearch2
+    | StandardSearch3 of HostingMode
+    | StorageOptimisedSearchL1
+    | StorageOptimisedSearchL2
 
 namespace Farmer.Internal
 
@@ -70,7 +80,6 @@ type CosmosDbContainer =
            ExcludedPaths : string list
         |}
     }
-
 type SqlAzure =
   { ServerName : ResourceName
     Location : string
@@ -81,8 +90,6 @@ type SqlAzure =
     DbObjective : string
     TransparentDataEncryption : FeatureFlag
     FirewallRules : {| Name : string; Start : System.Net.IPAddress; End : System.Net.IPAddress |} list }
-
-
 type CosmosDbSql =
     { Name : ResourceName
       Account : ResourceName
@@ -92,7 +99,12 @@ type CosmosDbAccount =
       Location : string
       ConsistencyPolicy : ConsistencyPolicy
       WriteModel : FailoverPolicy }
-
+type Search =
+    { Name : ResourceName
+      Location : string
+      Sku : SearchSku
+      ReplicaCount : int
+      PartitionCount : int }
 module VM =
     module WindowsOsVersion =
         let v2008R2SP1 = "2008-R2-SP1"
@@ -145,6 +157,7 @@ type SupportedResource =
   | StorageAccount of StorageAccount
   | AppInsights of AppInsights
   | Ip of PublicIpAddress | Vnet of VirtualNetwork | Nic of NetworkInterface | Vm of VirtualMachine
+  | AzureSearch of Search
 
 type ArmTemplate =
     { Parameters : string list
