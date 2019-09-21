@@ -336,8 +336,8 @@ module Outputters =
                 | StorageOptimisedSearchL1 -> "storage_optimized_l1"
                 | StorageOptimisedSearchL2 -> "storage_optimized_l2" |}
            properties =
-            {| replicaCount = string search.ReplicaCount
-               partitionCount = string search.PartitionCount
+            {| replicaCount = search.ReplicaCount
+               partitionCount = search.PartitionCount
                hostingMode =
                 match search.Sku with
                 | StandardSearch3 HighDensity -> "highDensity"
