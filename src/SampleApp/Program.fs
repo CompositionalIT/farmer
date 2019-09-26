@@ -1,25 +1,20 @@
 ﻿open Farmer
 
-let mySearch = search {
-    name "isaacsSearch"
-    sku Search.Sku.BasicSearch
-}
+//TODO: Create resources here!
 
-let myWebApp = webApp {
-    name "isaacswebapp"
-    sku WebApp.Sku.F1
-    setting "search_key" mySearch.QueryKey
-    depends_on mySearch
-}
 
-let template = arm {
+
+let location, template = arm {
     location NorthEurope
-    add_resource mySearch
-    add_resource myWebApp
-    output "publishing-password" myWebApp.PublishingPassword
-    output "search-admin-key" mySearch.AdminKey
-    output "search-query-key" mySearch.QueryKey
+
+    //TODO: Assign resources here using the add_resource keyword
 }
 
+// Generate the ARM template here...
 template
+|> Writer.toJson
+|> Writer.toFile @"generated-template"
+
+// Or deploy it directly to Azure here... (required Azure CLI installed!)
+(location, template)
 |> Writer.quickDeploy "my-resource-group"
