@@ -43,7 +43,7 @@ let myWebApp = webApp {
 }
 
 // Create the ARM template using those two resources
-let template = arm {
+let location, template = arm {
     location Locations.NorthEurope // set location for all resources
     add_resource myStorage             // include storage into template
     add_resource myWebApp              // include web app into template
@@ -244,7 +244,7 @@ let myWebApp = webApp {
 ```
 3. Assign the web app into the existing (empty) arm template definition:
 ```fsharp
-let template = arm {
+let location, template = arm {
     ...
     add_resource myWebApp // add this line
 }
