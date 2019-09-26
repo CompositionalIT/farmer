@@ -233,11 +233,15 @@ module WebApp =
 module Extensions =
     open WebApp
     type WebAppBuilder with
+        member this.DependsOn(state:WebAppConfig, functionsConfig:FunctionsConfig) =
+            this.DependsOn(state, functionsConfig.Name)
         member this.DependsOn(state:WebAppConfig, storageAccountConfig:StorageAccountConfig) =
             this.DependsOn(state, storageAccountConfig.Name)
     type FunctionsBuilder with
         member this.DependsOn(state:FunctionsConfig, storageAccountConfig:StorageAccountConfig) =
             this.DependsOn(state, storageAccountConfig.Name)
+        member this.DependsOn(state:FunctionsConfig, webAppConfig:WebAppConfig) =
+            this.DependsOn(state, webAppConfig.Name)
 
 [<AutoOpen>]
 module CosmosDb =
