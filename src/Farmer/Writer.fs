@@ -1,6 +1,9 @@
 module Farmer.Writer
 
 open Farmer.Internal
+open System
+open System.IO
+open Newtonsoft.Json
 
 module Outputters =
     let storageAccount (resource:StorageAccount) = {|
@@ -326,22 +329,11 @@ module Outputters =
            name = search.Name.Value
            location = search.Location
            sku =
-            {| name =
-                match search.Sku with
-                | FreeSearch -> "free"
-                | BasicSearch -> "basic"
-                | StandardSearch -> "standard"
-                | StandardSearch2 -> "standard2"
-                | StandardSearch3 _ -> "standard3"
-                | StorageOptimisedSearchL1 -> "storage_optimized_l1"
-                | StorageOptimisedSearchL2 -> "storage_optimized_l2" |}
+            {| name = search.Sku |}
            properties =
             {| replicaCount = search.ReplicaCount
                partitionCount = search.PartitionCount
-               hostingMode =
-                match search.Sku with
-                | StandardSearch3 HighDensity -> "highDensity"
-                | _ -> "default" |}
+               hostingMode = search.HostingMode |}
         |}
 
 let processTemplate (template:ArmTemplate) = {|
@@ -373,13 +365,6 @@ let processTemplate (template:ArmTemplate) = {|
         |> List.map(fun (SecureParameter p) -> p, {| ``type`` = "securestring" |})
         |> Map.ofList
     outputs =
-        let autoOutputs =
-            template.Resources
-            |> List.choose(function
-                | Ip ({ DomainNameLabel = Some _ } as ip) ->
-                    Some (sprintf "[reference('%s').dnsSettings.fqdn]" ip.Name.Value)
-                | _ -> None )
-
         template.Outputs
         |> List.map(fun (k, v) ->
             k, Map [ "type", "string"
@@ -387,5 +372,34 @@ let processTemplate (template:ArmTemplate) = {|
         |> Map
 |}
 
-let toJson = processTemplate >> Newtonsoft.Json.JsonConvert.SerializeObject
-let toFile f c = System.IO.File.WriteAllText(f, c)
+let toJson = processTemplate >> JsonConvert.SerializeObject
+let toFile armTemplateName json =
+    let templateFilename = sprintf "%s.json" armTemplateName
+    File.WriteAllText(templateFilename, json)
+    templateFilename
+
+let toBatchFile armTemplateName resourceGroupName location templateFilename =
+    let batchFilename = sprintf "deploy-%s.bat" armTemplateName
+
+    let azureCliBatch =
+        sprintf """az login && az group create -l %s -n %s && az group deployment create -g %s --template-file %s"""
+            location
+            resourceGroupName
+            resourceGroupName
+            templateFilename
+
+    File.WriteAllText(batchFilename, azureCliBatch)
+    batchFilename
+
+let generateDeployScript resourceGroupName (location, template) =
+    let templateName = "farmer-deploy"
+
+    template
+    |> toJson
+    |> toFile templateName
+    |> toBatchFile templateName resourceGroupName location
+
+let quickDeploy resourceGroupName (location, template) =
+    generateDeployScript resourceGroupName (location, template)
+    |> Diagnostics.Process.Start
+    |> ignore

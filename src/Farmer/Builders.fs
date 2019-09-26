@@ -7,6 +7,7 @@ module Helpers =
     module AppInsights =
         let instrumentationKey (ResourceName accountName) =
             sprintf "[reference('Microsoft.Insights/components/%s').InstrumentationKey]" accountName
+    [<AutoOpen>]
     module Locations =
         let EastAsia = "eastasia"
         let SoutheastAsia = "southeastasia"
@@ -168,7 +169,7 @@ module WebApp =
         member this.UseAppInsights(state:WebAppConfig, name:string) = this.UseAppInsights(state, ResourceName name)
         /// Sets the web app to use run from package mode; use the `run_from_package` keyword.
         [<CustomOperation "no_app_insights">]
-        member __.DeactivateAppInsights(state:FunctionsConfig) = { state with AppInsightsName = None }
+        member __.DeactivateAppInsights(state:WebAppConfig) = { state with AppInsightsName = None }
         [<CustomOperation "run_from_package">]
         member __.RunFromPackage(state:WebAppConfig) = { state with RunFromPackage = true }
         /// Sets the node version of the web app; use the `website_node_default_version` keyword.
@@ -584,7 +585,6 @@ module VirtualMachine =
         member this.SubnetName = makeResourceName this.Name "subnet"
         member this.IpName = makeResourceName this.Name "ip"
         member this.Hostname = sprintf "[reference('%s').dnsSettings.fqdn]" this.IpName.Value
-
           
     type VirtualMachineBuilder() =
         member __.Yield _ =
@@ -641,9 +641,21 @@ module VirtualMachine =
 
 [<AutoOpen>]
 module Search =
+    module Sku =
+        type HostingMode = Default | HighDensity
+        /// The SKU of the search service you want to create. E.g. free or standard.
+        type SearchSku =
+            | FreeSearch
+            | BasicSearch
+            | StandardSearch
+            | StandardSearch2
+            | StandardSearch3 of HostingMode
+            | StorageOptimisedSearchL1
+            | StorageOptimisedSearchL2
+
     type SearchConfig =
         { Name : ResourceName
-          Sku : SearchSku
+          Sku : Sku.SearchSku
           Replicas : int
           Partitions : int }
         member this.AdminKey =
@@ -654,7 +666,7 @@ module Search =
     type SearchBuilder() =
         member __.Yield _ =
             { Name = ResourceName.Empty
-              Sku = StandardSearch
+              Sku = Sku.StandardSearch
               Replicas = 1
               Partitions = 1 }        
         member __.Run(state:SearchConfig) =
@@ -662,12 +674,17 @@ module Search =
         [<CustomOperation "name">]
         member __.Name(state:SearchConfig, name) = { state with Name = name }
         member this.Name(state:SearchConfig, name) = this.Name(state, ResourceName name)
-        [<CustomOperation "set_sku">]
+        [<CustomOperation "sku">]
         member __.Sku(state:SearchConfig, sku) = { state with Sku = sku }
-        [<CustomOperation "set_replicas">]
+        [<CustomOperation "replicas">]
         member __.ReplicaCount(state:SearchConfig, replicas:int) = { state with Replicas = replicas }
-        [<CustomOperation "set_partitions">]
+        [<CustomOperation "partitions">]
         member __.PartitionCount(state:SearchConfig, partitions:int) = { state with Partitions = partitions }
+
+    open WebApp
+    type WebAppBuilder with
+        member this.DependsOn(state:WebAppConfig, search:SearchConfig) =
+            this.DependsOn(state, search.Name)
 
     let search = SearchBuilder()
 
@@ -686,7 +703,8 @@ module ArmBuilder =
               Resources = List.empty
               Location = Helpers.Locations.WestEurope }
 
-        member __.Run (state:ArmConfig) = {
+        member __.Run (state:ArmConfig) =
+            state.Location, {
             Parameters = state.Parameters |> Set.toList
             Outputs = state.Outputs
             Resources =
@@ -943,25 +961,26 @@ module ArmBuilder =
                     AzureSearch
                         { Name = search.Name
                           Location = state.Location
-                          Sku = search.Sku
+                          Sku =
+                            match search.Sku with
+                            | Sku.FreeSearch -> "free"
+                            | Sku.BasicSearch -> "basic"
+                            | Sku.StandardSearch -> "standard"
+                            | Sku.StandardSearch2 -> "standard2"
+                            | Sku.StandardSearch3 _ -> "standard3"
+                            | Sku.StorageOptimisedSearchL1 -> "storage_optimized_l1"
+                            | Sku.StorageOptimisedSearchL2 -> "storage_optimized_l2"
                           ReplicaCount = search.Replicas
-                          PartitionCount = search.Partitions }
+                          PartitionCount = search.Partitions
+                          HostingMode = 
+                            match search.Sku with
+                            | Sku.StandardSearch3 Sku.HighDensity -> "highDensity"
+                            | _ -> "default"
+                          }
                     ]
                 | r ->
                     failwithf "Sorry, I don't know how to handle this resource of type '%s'." (r.GetType().FullName))
         }
-
-        /// Creates a parameter; use the `parameter` keyword.
-        [<CustomOperation "parameter">]
-        member __.AddParameter (state, parameter) : ArmConfig =
-            { state with
-                Parameters = state.Parameters.Add parameter }
-
-        /// Creates a list of parameters; use the `parameters` keyword.
-        [<CustomOperation "parameters">]
-        member __.AddParameters (state, parameters) : ArmConfig =
-            { state with
-                Parameters = state.Parameters + (Set.ofList parameters) }
 
         /// Creates an output; use the `output` keyword.
         [<CustomOperation "output">]
@@ -976,8 +995,8 @@ module ArmBuilder =
         [<CustomOperation "location">]
         member __.Location (state, location) : ArmConfig = { state with Location = location }
 
-        /// Adds a resource to the template; use the `resource` keyword.
-        [<CustomOperation "resource">]
+        /// Adds a resource to the template; use the `add_resource` keyword.
+        [<CustomOperation "add_resource">]
         member __.AddResource(state, resource) : ArmConfig =
             { state with Resources = box resource :: state.Resources }
     let arm = ArmBuilder()

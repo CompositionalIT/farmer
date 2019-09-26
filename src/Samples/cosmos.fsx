@@ -20,10 +20,9 @@ let myCosmosDb = cosmosDb {
 
 let template =
     arm {
-        location Helpers.Locations.NorthEurope
-        resource myCosmosDb
+        location NorthEurope
+        add_resource myCosmosDb
     }
 
 template
-|> Writer.toJson
-|> Writer.toFile @"cosmosdb.json"
+|> Writer.quickDeploy "my-resource-group-name"

@@ -71,17 +71,18 @@ let template (environment:string) storageSku webAppSku =
 
     let mySearch = search {
         name "isaacsSearch"
-        set_sku BasicSearch
+        sku Sku.BasicSearch
     }
 
     arm {
-        resource myStorageAccount
-        resource myCosmosDb
-        resource myWebApp
-        resource mySqlDb
-        resource myFunctions
-        resource myVm
-        resource mySearch
+        location NorthEurope
+        add_resource myStorageAccount
+        add_resource myCosmosDb
+        add_resource myWebApp
+        add_resource mySqlDb
+        add_resource myFunctions
+        add_resource myVm
+        add_resource mySearch
 
         output "webAppName" myWebApp.Name
         output "webAppPassword" myWebApp.PublishingPassword
@@ -91,5 +92,5 @@ let template (environment:string) storageSku webAppSku =
     }
 
 template "dev" Storage.Sku.StandardLRS WebApp.Sku.F1
-|> Writer.toJson
-|> Writer.toFile @"dev-safe-template.json"
+|> Writer.generateDeployScript "deleteme"
+|> ignore

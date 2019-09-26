@@ -12,10 +12,9 @@ let template =
     }
 
     arm {
-        location Helpers.Locations.NorthEurope
-        resource myWebApp
+        location NorthEurope
+        add_resource myWebApp
     }
 
 template
-|> Writer.toJson
-|> Writer.toFile @"webapp-appinsights.json"
+|> Writer.quickDeploy "my-resource-group-name"

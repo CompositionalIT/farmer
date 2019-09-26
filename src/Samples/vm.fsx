@@ -13,10 +13,9 @@ let myVm = vm {
 }
 
 let template = arm {
-    location Helpers.Locations.NorthEurope
-    resource myVm
+    location NorthEurope
+    add_resource myVm
 }
 
 template
-|> Writer.toJson
-|> Writer.toFile @"vms.json"
+|> Writer.quickDeploy "my-resource-group-name"

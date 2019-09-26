@@ -8,13 +8,12 @@ let myFunctions = functions {
 
 let template =
     arm {
-        location Helpers.Locations.NorthEurope
-        resource myFunctions
+        location NorthEurope
+        add_resource myFunctions
         output "functionsPassword" myFunctions.PublishingPassword
         output "functionsAIKey" (myFunctions.AppInsightsKey |> Option.defaultValue "")
         output "storageAccountKey" myFunctions.StorageAccountKey
     }
 
 template
-|> Writer.toJson
-|> Writer.toFile @"functions.json"
+|> Writer.quickDeploy "my-resource-group-name"

@@ -14,9 +14,8 @@ let makeTemplate (environment:string) theLocation storageSku webAppSku =
     let myWebApp = webApp {
         name (generateResourceName "web")
         service_plan_name (generateResourceName "webhost")
-        sku webAppSku
-
-        use_app_insights (generateResourceName "insights")
+        sku webAppSku        
+        app_insights_name (generateResourceName "insights")
 
         website_node_default_version "8.1.4"
         setting "public_path" "./public"
@@ -26,8 +25,8 @@ let makeTemplate (environment:string) theLocation storageSku webAppSku =
     }
 
     arm {
-        resource myStorageAccount
-        resource myWebApp
+        add_resource myStorageAccount
+        add_resource myWebApp
         location theLocation
 
         output "webAppName" myWebApp.Name
@@ -35,5 +34,4 @@ let makeTemplate (environment:string) theLocation storageSku webAppSku =
     }
 
 makeTemplate "dev" Helpers.Locations.NorthEurope Storage.Sku.StandardLRS WebApp.Sku.F1
-|> Writer.toJson
-|> Writer.toFile @"safe-template.json"
+|> Writer.quickDeploy "my-resource-group-name"

@@ -10,18 +10,18 @@ let myStorage = storageAccount {
 let myWebApp = webApp {
     name "mysuperwebapp"
     sku WebApp.Sku.S1
+    no_app_insights
     setting "storage_key" myStorage.Key
     depends_on myStorage
 }
 
 let template = arm {
-    location Locations.NorthEurope
-    resource myStorage
-    resource myWebApp
+    location NorthEurope
+    add_resource myStorage
+    add_resource myWebApp
     output "storage_key" myStorage.Key
     output "web_password" myWebApp.PublishingPassword
 }
 
 template
-|> Writer.toJson
-|> Writer.toFile "webapp-storage.json"
+|> Writer.quickDeploy "my-resource-group-name"

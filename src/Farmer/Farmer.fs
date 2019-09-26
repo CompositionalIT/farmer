@@ -23,16 +23,6 @@ type SecureParameter =
 type FeatureFlag = Enabled | Disabled
 type DiskType = StandardSSD_LRS | Standard_LRS | Premium_LRS
 type DiskInfo = { Size : int; DiskType : DiskType }
-type HostingMode = Default | HighDensity
-/// The SKU of the search service you want to create. E.g. free or standard.
-type SearchSku =
-    | FreeSearch
-    | BasicSearch
-    | StandardSearch
-    | StandardSearch2
-    | StandardSearch3 of HostingMode
-    | StorageOptimisedSearchL1
-    | StorageOptimisedSearchL2
 
 namespace Farmer.Internal
 
@@ -102,7 +92,8 @@ type CosmosDbAccount =
 type Search =
     { Name : ResourceName
       Location : string
-      Sku : SearchSku
+      Sku : string
+      HostingMode : string
       ReplicaCount : int
       PartitionCount : int }
 module VM =
