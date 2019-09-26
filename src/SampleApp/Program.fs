@@ -22,4 +22,4 @@ let template = arm {
 }
 
 template
-|> Writer.quickDeploy "deleteme"
+|> Writer.quickDeploy "my-resource-group"

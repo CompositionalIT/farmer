@@ -45,8 +45,8 @@ let myWebApp = webApp {
 // Create the ARM template using those two resources
 let template = arm {
     location Locations.NorthEurope // set location for all resources
-    resource myStorage             // include storage into template
-    resource myWebApp              // include web app into template
+    add_resource myStorage             // include storage into template
+    add_resource myWebApp              // include web app into template
 
     // also output a couple of values generated at deployment-time
     output "storage_key" myStorage.Key
@@ -246,7 +246,7 @@ let myWebApp = webApp {
 ```fsharp
 let template = arm {
     ...
-    resource myWebApp // add this line
+    add_resource myWebApp // add this line
 }
 ```
 4. Run the application.
