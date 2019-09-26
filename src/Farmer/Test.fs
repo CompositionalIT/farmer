@@ -44,6 +44,8 @@ let template (environment:string) storageSku webAppSku =
         app_insights_name "isaacsuperai"
         operating_system Windows
         use_runtime DotNet
+        setting "myDbName" myCosmosDb.DbName.Value
+        depends_on myCosmosDb
     }
     
     let myWebApp = webApp {

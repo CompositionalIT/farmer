@@ -122,7 +122,9 @@ module WebApp =
           AutoCreateStorageAccount : bool
           AppInsightsName : ResourceName option
           WorkerRuntime : WorkerRuntime
-          OperatingSystem : OS }
+          OperatingSystem : OS
+          Settings : Map<string, string>
+          Dependencies : ResourceName list }
         member this.PublishingPassword = publishingPassword this.Name
         member this.StorageAccountKey = Storage.buildKey this.StorageAccountName
         member this.AppInsightsKey = this.AppInsightsName |> Option.map Helpers.AppInsights.instrumentationKey
@@ -191,7 +193,9 @@ module WebApp =
               StorageAccountName = ResourceName.Empty
               AutoCreateStorageAccount = true
               WorkerRuntime = DotNet
-              OperatingSystem = Windows }
+              OperatingSystem = Windows
+              Settings = Map.empty
+              Dependencies = [] }
         member __.Run (state:FunctionsConfig) =
             { state with
                 ServicePlanName = state.ServicePlanName.IfEmpty (sprintf "%s-plan" state.Name.Value)
@@ -214,6 +218,13 @@ module WebApp =
         member __.Runtime(state:FunctionsConfig, runtime) = { state with WorkerRuntime = runtime }
         [<CustomOperation "operating_system">]
         member __.OperatingSystem(state:FunctionsConfig, os) = { state with OperatingSystem = os }
+        /// Sets an app setting of the function app; use the `setting` keyword.
+        [<CustomOperation "setting">]
+        member __.AddSetting(state:FunctionsConfig, key, value) = { state with Settings = state.Settings.Add(key, value) }
+        /// Sets a dependency for the function app; use the `depends_on` keyword.
+        [<CustomOperation "depends_on">]
+        member __.DependsOn(state:FunctionsConfig, resourceName) =
+            { state with Dependencies = resourceName :: state.Dependencies }
 
     let webApp = WebAppBuilder()
     let functions = FunctionsBuilder()
@@ -223,6 +234,9 @@ module Extensions =
     open WebApp
     type WebAppBuilder with
         member this.DependsOn(state:WebAppConfig, storageAccountConfig:StorageAccountConfig) =
+            this.DependsOn(state, storageAccountConfig.Name)
+    type FunctionsBuilder with
+        member this.DependsOn(state:FunctionsConfig, storageAccountConfig:StorageAccountConfig) =
             this.DependsOn(state, storageAccountConfig.Name)
 
 [<AutoOpen>]
@@ -295,6 +309,9 @@ module CosmosDb =
     open WebApp
     type WebAppBuilder with
         member this.DependsOn(state:WebAppConfig, cosmosDbConfig:CosmosDbConfig) =
+            this.DependsOn(state, cosmosDbConfig.DbName)
+    type FunctionsBuilder with
+        member this.DependsOn(state:FunctionsConfig, cosmosDbConfig:CosmosDbConfig) =
             this.DependsOn(state, cosmosDbConfig.DbName)
 
     let cosmosDb = CosmosDbBuilder()
@@ -379,6 +396,9 @@ module SqlAzure =
     type WebAppBuilder with
         member this.DependsOn(state:WebAppConfig, sqlDb:SqlAzureConfig) =
             this.DependsOn(state, sqlDb.ServerName)
+    type FunctionsBuilder with
+        member this.DependsOn(state:FunctionsConfig, sqlDb:SqlAzureConfig) =
+            this.DependsOn(state, sqlDb.ServerName)            
 
     let sql = SqlBuilder()
 
@@ -685,7 +705,10 @@ module Search =
     type WebAppBuilder with
         member this.DependsOn(state:WebAppConfig, search:SearchConfig) =
             this.DependsOn(state, search.Name)
-
+    type FunctionsBuilder with
+        member this.DependsOn(state:FunctionsConfig, search:SearchConfig) =
+            this.DependsOn(state, search.Name)
+    
     let search = SearchBuilder()
 
 [<AutoOpen>]
@@ -802,6 +825,7 @@ module ArmBuilder =
                           ServerFarm = fns.ServicePlanName
                           Location = state.Location
                           AppSettings = [
+                            yield! Map.toList fns.Settings
                             yield "FUNCTIONS_WORKER_RUNTIME", string fns.WorkerRuntime
                             yield "WEBSITE_NODE_DEFAULT_VERSION", "10.14.1"
                             yield "FUNCTIONS_EXTENSION_VERSION", "~2"
@@ -823,6 +847,7 @@ module ArmBuilder =
                             | Linux -> Some "functionapp,linux"
                           Extensions = Set.empty
                           Dependencies = [
+                            yield! fns.Dependencies
                             match fns.AppInsightsName with
                             | Some appInsightsame -> yield appInsightsame
                             | None -> ()
