@@ -32,7 +32,7 @@ type WebAppExtensions = AppInsightsExtension
 type AppInsights =
     { Name : ResourceName 
       Location : string
-      LinkedWebsite: ResourceName }
+      LinkedWebsite : ResourceName }
 type StorageAccount =
     { Name : ResourceName 
       Location : string

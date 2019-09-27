@@ -61,6 +61,10 @@ let template (environment:string) storageSku webAppSku =
         depends_on mySqlDb
     }
 
+    let myCustomAi = appInsights {
+        name "myAppInsights"
+    }
+
     let myVm = vm {
         name "isaacsVM"
         username "isaac"
@@ -85,12 +89,14 @@ let template (environment:string) storageSku webAppSku =
         add_resource myFunctions
         add_resource myVm
         add_resource mySearch
+        add_resource myCustomAi
 
         output "webAppName" myWebApp.Name
         output "webAppPassword" myWebApp.PublishingPassword
         output "functionsPassword" myFunctions.PublishingPassword
         output "functionsAIKey" myFunctions.AppInsightsKey
         output "storageAccountKey" myFunctions.StorageAccountKey
+        output "customAiKey" myCustomAi.InstrumentationKey
     }
 
 template "dev" Storage.Sku.StandardLRS WebApp.Sku.F1

@@ -128,6 +128,9 @@ module WebApp =
         member this.PublishingPassword = publishingPassword this.Name
         member this.StorageAccountKey = Storage.buildKey this.StorageAccountName
         member this.AppInsightsKey = this.AppInsightsName |> Option.map Helpers.AppInsights.instrumentationKey
+    type AppInsightsConfig =
+        { Name : ResourceName }
+        member this.InstrumentationKey = Helpers.AppInsights.instrumentationKey this.Name
 
     type WebAppBuilder() =
         member __.Yield _ =
@@ -226,6 +229,14 @@ module WebApp =
         member __.DependsOn(state:FunctionsConfig, resourceName) =
             { state with Dependencies = resourceName :: state.Dependencies }
 
+
+    type AppInsightsBuilder() =
+        member __.Yield _ =
+            { Name = ResourceName.Empty }
+        [<CustomOperation "name">]
+        member __.Name(state:AppInsightsConfig, name) = { state with Name = ResourceName name }
+
+    let appInsights = AppInsightsBuilder()
     let webApp = WebAppBuilder()
     let functions = FunctionsBuilder()
 
@@ -237,11 +248,15 @@ module Extensions =
             this.DependsOn(state, functionsConfig.Name)
         member this.DependsOn(state:WebAppConfig, storageAccountConfig:StorageAccountConfig) =
             this.DependsOn(state, storageAccountConfig.Name)
+        member this.DependsOn(state:WebAppConfig, appInsightsConfig:AppInsightsConfig) =
+            this.DependsOn(state, appInsightsConfig.Name)
     type FunctionsBuilder with
         member this.DependsOn(state:FunctionsConfig, storageAccountConfig:StorageAccountConfig) =
             this.DependsOn(state, storageAccountConfig.Name)
         member this.DependsOn(state:FunctionsConfig, webAppConfig:WebAppConfig) =
             this.DependsOn(state, webAppConfig.Name)
+        member this.DependsOn(state:FunctionsConfig, appInsightsConfig:AppInsightsConfig) =
+            this.DependsOn(state, appInsightsConfig.Name)
 
 [<AutoOpen>]
 module CosmosDb =
@@ -713,6 +728,7 @@ module Search =
         member this.DependsOn(state:FunctionsConfig, search:SearchConfig) =
             this.DependsOn(state, search.Name)
     
+
     let search = SearchBuilder()
 
 [<AutoOpen>]
@@ -1009,6 +1025,21 @@ module ArmBuilder =
                     ]
                 | r ->
                     failwithf "Sorry, I don't know how to handle this resource of type '%s'." (r.GetType().FullName))
+                |> List.distinctBy(function
+                    | AppInsights x -> x.Name
+                    | CosmosAccount x -> x.Name
+                    | CosmosSqlDb x -> x.Name
+                    | CosmosContainer x -> x.Name
+                    | ServerFarm x -> x.Name
+                    | WebApp x -> x.Name
+                    | SqlServer x -> x.DbName
+                    | StorageAccount x -> x.Name
+                    | Ip x -> x.Name
+                    | Vnet x -> x.Name
+                    | Nic x -> x.Name
+                    | Vm x -> x.Name
+                    | AzureSearch x -> x.Name
+                 )
         }
 
         /// Creates an output; use the `output` keyword.
@@ -1028,4 +1059,5 @@ module ArmBuilder =
         [<CustomOperation "add_resource">]
         member __.AddResource(state, resource) : ArmConfig =
             { state with Resources = box resource :: state.Resources }
+    
     let arm = ArmBuilder()
