@@ -15,19 +15,26 @@ module Outputters =
         location = resource.Location
     |}
     let appInsights (resource:AppInsights) =
-        let (ResourceName linkedWebsite) = resource.LinkedWebsite
         {| ``type`` = "Microsoft.Insights/components"
            kind = "web"
            name = resource.Name.Value
            location = resource.Location
            apiVersion = "2014-04-01"
            tags =
-               [ sprintf "[concat('hidden-link:', resourceGroup().id, '/providers/Microsoft.Web/sites/', '%s')]" linkedWebsite, "Resource"
-                 "displayName", "AppInsightsComponent" ] |> Map.ofList
+               [ match resource.LinkedWebsite with
+                 | Some linkedWebsite -> yield sprintf "[concat('hidden-link:', resourceGroup().id, '/providers/Microsoft.Web/sites/', '%s')]" linkedWebsite.Value, "Resource"
+                 | None -> ()
+                 yield "displayName", "AppInsightsComponent" ]
+               |> Map.ofList
            properties =
+            match resource.LinkedWebsite with
+            | Some linkedWebsite ->
                {| name = resource.Name.Value
                   Application_Type = "web"
-                  ApplicationId = linkedWebsite |}
+                  ApplicationId = linkedWebsite |} |> box
+            | None ->
+               {| name = resource.Name.Value
+                  Application_Type = "web" |} |> box
         |}
     let serverFarm (farm:ServerFarm) = {|
         ``type`` = "Microsoft.Web/serverfarms"

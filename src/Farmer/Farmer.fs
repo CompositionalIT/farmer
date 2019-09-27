@@ -11,6 +11,12 @@ type ResourceName =
         | r when r = ResourceName.Empty -> ResourceName fallbackValue
         | r -> r
 
+[<AutoOpen>]
+module internal ResourceNameHelpers =
+    let (|EmptyResource|_|) = function
+        | r when r = ResourceName.Empty -> Some EmptyResource
+        | _ -> None
+
 type ConsistencyPolicy = Eventual | ConsistentPrefix | Session | BoundedStaleness of maxStaleness:int * maxIntervalSeconds : int | Strong
 type FailoverPolicy = NoFailover | AutoFailover of secondaryLocation:string | MultiMaster of secondaryLocation:string
 type CosmosDbIndexKind = Hash | Range
@@ -32,7 +38,7 @@ type WebAppExtensions = AppInsightsExtension
 type AppInsights =
     { Name : ResourceName 
       Location : string
-      LinkedWebsite : ResourceName }
+      LinkedWebsite : ResourceName option }
 type StorageAccount =
     { Name : ResourceName 
       Location : string

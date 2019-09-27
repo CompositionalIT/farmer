@@ -41,7 +41,7 @@ let template (environment:string) storageSku webAppSku =
         name "isaacsuperfun"
         service_plan_name "isaacsuperfunhost"
         storage_account_name "isaacsuperstorage"
-        app_insights_name "isaacsuperai"
+        app_insights_auto_name "isaacsuperai"
         operating_system Windows
         use_runtime DotNet
         setting "myDbName" myCosmosDb.DbName.Value
