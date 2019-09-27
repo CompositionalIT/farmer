@@ -386,7 +386,7 @@ let toFile armTemplateName json =
     templateFilename
 
 let toBatchFile armTemplateName resourceGroupName location templateFilename =
-    let batchFilename = sprintf "deploy-%s.bat" armTemplateName
+    let batchFilename = sprintf "%s.bat" armTemplateName
 
     let azureCliBatch =
         sprintf """az login && az group create -l %s -n %s && az group deployment create -g %s --template-file %s"""

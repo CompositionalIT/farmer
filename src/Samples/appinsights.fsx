@@ -8,8 +8,7 @@ let myAppInsights = appInsights {
 
 let myFunctions = functions {
     name "mysuperwebapp"
-    service_plan_name "myserverfarm"
-    app_insights_linked myAppInsights.Name
+    app_insights_manual myAppInsights.Name
 }
 
 let template =
