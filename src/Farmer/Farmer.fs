@@ -11,12 +11,6 @@ type ResourceName =
         | r when r = ResourceName.Empty -> ResourceName fallbackValue
         | r -> r
 
-[<AutoOpen>]
-module internal ResourceNameHelpers =
-    let (|EmptyResource|_|) = function
-        | r when r = ResourceName.Empty -> Some EmptyResource
-        | _ -> None
-
 type ConsistencyPolicy = Eventual | ConsistentPrefix | Session | BoundedStaleness of maxStaleness:int * maxIntervalSeconds : int | Strong
 type FailoverPolicy = NoFailover | AutoFailover of secondaryLocation:string | MultiMaster of secondaryLocation:string
 type CosmosDbIndexKind = Hash | Range
@@ -95,6 +89,7 @@ type CosmosDbAccount =
       Location : string
       ConsistencyPolicy : ConsistencyPolicy
       WriteModel : FailoverPolicy }
+
 type Search =
     { Name : ResourceName
       Location : string
@@ -149,13 +144,28 @@ open Farmer.Internal
 open Farmer.Internal.VM
 
 type SupportedResource =
-  | CosmosAccount of CosmosDbAccount | CosmosSqlDb of CosmosDbSql | CosmosContainer of CosmosDbContainer
-  | ServerFarm of ServerFarm | WebApp of WebApp
-  | SqlServer of SqlAzure
-  | StorageAccount of StorageAccount
-  | AppInsights of AppInsights
-  | Ip of PublicIpAddress | Vnet of VirtualNetwork | Nic of NetworkInterface | Vm of VirtualMachine
-  | AzureSearch of Search
+    | CosmosAccount of CosmosDbAccount | CosmosSqlDb of CosmosDbSql | CosmosContainer of CosmosDbContainer
+    | ServerFarm of ServerFarm | WebApp of WebApp
+    | SqlServer of SqlAzure
+    | StorageAccount of StorageAccount
+    | AppInsights of AppInsights
+    | Ip of PublicIpAddress | Vnet of VirtualNetwork | Nic of NetworkInterface | Vm of VirtualMachine
+    | AzureSearch of Search
+    member this.ResourceName =
+        match this with
+        | AppInsights x -> x.Name
+        | CosmosAccount x -> x.Name
+        | CosmosSqlDb x -> x.Name
+        | CosmosContainer x -> x.Name
+        | ServerFarm x -> x.Name
+        | WebApp x -> x.Name
+        | SqlServer x -> x.DbName
+        | StorageAccount x -> x.Name
+        | Ip x -> x.Name
+        | Vnet x -> x.Name
+        | Nic x -> x.Name
+        | Vm x -> x.Name
+        | AzureSearch x -> x.Name
 
 type ArmTemplate =
     { Parameters : string list

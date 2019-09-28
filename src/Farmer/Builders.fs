@@ -1096,21 +1096,7 @@ module ArmBuilder =
                     |> AppInsights ]
                 | r ->
                     failwithf "Sorry, I don't know how to handle this resource of type '%s'." (r.GetType().FullName))
-                |> List.distinctBy(function
-                    | AppInsights x -> x.Name
-                    | CosmosAccount x -> x.Name
-                    | CosmosSqlDb x -> x.Name
-                    | CosmosContainer x -> x.Name
-                    | ServerFarm x -> x.Name
-                    | WebApp x -> x.Name
-                    | SqlServer x -> x.DbName
-                    | StorageAccount x -> x.Name
-                    | Ip x -> x.Name
-                    | Vnet x -> x.Name
-                    | Nic x -> x.Name
-                    | Vm x -> x.Name
-                    | AzureSearch x -> x.Name
-                 )
+                |> List.distinctBy(fun r -> r.ResourceName)
         }
 
         /// Creates an output; use the `output` keyword.
