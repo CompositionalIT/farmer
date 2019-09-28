@@ -251,7 +251,7 @@ let location, template = arm {
 ```
 4. Run the application.
 1. Examine the `generated-template.json` file.
-1. Deploy the template (see [here](#deploying-to-azure) if you don't know how to deploy them into Azure.).
+1. Uncomment the last two lines in the application and run it again to deploy the template (see [here](#deploying-to-azure) if you want to learn more about this **and what prerequisites are required**).
 1. Once it has deployed, find it in the Azure portal. You will see that *three* resources were created: the **app service**, the **app service plan** that the app service resides in and a linked **application insights** instance.
 
 #### 2. Creating and linking secondary resources.
