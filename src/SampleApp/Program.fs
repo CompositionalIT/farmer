@@ -11,9 +11,10 @@ let location, template = arm {
 }
 
 // Generate the ARM template here...
-template
-|> Writer.toJson
-|> Writer.toFile @"generated-template"
+let outputFilename =
+    template
+    |> Writer.toJson
+    |> Writer.toFile @"generated-template"
 
 // Or deploy it directly to Azure here... (required Azure CLI installed!)
 (location, template)

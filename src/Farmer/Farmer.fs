@@ -147,6 +147,7 @@ module VM =
 namespace Farmer
 open Farmer.Internal
 open Farmer.Internal.VM
+
 type SupportedResource =
   | CosmosAccount of CosmosDbAccount | CosmosSqlDb of CosmosDbSql | CosmosContainer of CosmosDbContainer
   | ServerFarm of ServerFarm | WebApp of WebApp

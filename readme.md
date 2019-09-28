@@ -281,7 +281,32 @@ let myWebApp = webApp {
 1. Navigate to the **app service** and then to the **configuration** section.
 1. Observe that the setting `storage_connection` has been created and has the connection string of the storage account already in it.
 
-### Deploying ARM templates
+### Deploying to Azure
+There are two "recommended" ways of deploying to Azure: either "by hand", in which you use Farmer to generate an ARM template and then deploy that using any number of standard Azure patterns for deploying (one of which is shown [below](#deploying-by-hand)). The alternative is to use Farmer's own simple API for deploying Farmer templates without the hassle of needing to explicitly deal with ARM templates yourself.
+
+#### Deploying through Farmer
+Farmer has a simple API for deploying Farmer templates directly to Azure from your development machine, without you having to deal with ARM templates directly; you will need the [Azure CLI](https://docs.microsoft.com/en-gb/cli/azure/?view=azure-cli-latest) installed in order to use this.
+
+1. Create a Farmer template as normal.
+2. Pipe the result into the `quickDeploy` function.
+
+```fsharp
+let output = arm {
+    location NorthEurope
+
+    //TODO: Assign resources here using the add_resource keyword
+}
+
+// Deploy the template to my-resource-group in the default Azure subscription.
+output |> Writer.quickDeploy "my-resource-group"
+```
+This will launch a simple batch file (**help needed to make this x-plat!**) which uses the Azure CLI to:
+
+* Sign in to Azure
+* Create the resource group
+* Deploy the template into that resource group.
+
+#### Deploying by hand
 1. Install the [Azure CLI](https://docs.microsoft.com/en-gb/cli/azure/?view=azure-cli-latest).
 1. Log in to Azure in the CLI: `az login`.
 1. Create a [Resource Group](https://docs.microsoft.com/en-us/azure/azure-resource-manager/resource-group-overview#resource-groups) which will store the created Azure services: `az group create --location westus --name MyResourceGroup`.
