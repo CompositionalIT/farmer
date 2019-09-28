@@ -276,7 +276,7 @@ module Outputters =
            location = vm.Location
            dependsOn = [
                yield vm.NetworkInterfaceName.Value
-               match vm.StorageAccountName with
+               match vm.StorageAccount with
                | Some s -> yield s.Value
                | None -> ()
            ]
@@ -317,7 +317,7 @@ module Outputters =
                     ]
                 |}
                diagnosticsProfile =
-                match vm.StorageAccountName with
+                match vm.StorageAccount with
                 | Some storageAccount ->
                     box
                         {| bootDiagnostics =

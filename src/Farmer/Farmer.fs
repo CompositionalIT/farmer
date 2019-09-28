@@ -126,7 +126,7 @@ module VM =
     type VirtualMachine =
         { Name : ResourceName
           Location : string
-          StorageAccountName : ResourceName option
+          StorageAccount : ResourceName option
           Size : string
           Credentials : {| Username : string; Password : SecureParameter |}
           Image : {| Publisher : string; Offer : string; Sku : string |}

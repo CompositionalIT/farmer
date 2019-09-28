@@ -62,13 +62,16 @@ module Storage =
           Name : ResourceName
           /// The sku of the storage account.
           Sku : string }
+        /// Gets the ARM expression path to the key of this storage account.
         member this.Key = buildKey this.Name
     type StorageAccountBuilder() =
         member __.Yield _ = { Name = ResourceName.Empty; Sku = Sku.StandardLRS }
         [<CustomOperation "name">]
+        /// Sets the name of the storage account.
         member __.Name(state:StorageAccountConfig, name) = { state with Name = name }
         member this.Name(state:StorageAccountConfig, name) = this.Name(state, ResourceName name)
         [<CustomOperation "sku">]
+        /// Sets the sku of the storage account.
         member __.Sku(state:StorageAccountConfig, sku) = { state with Sku = sku }
     let storageAccount = StorageAccountBuilder()
 
@@ -112,12 +115,6 @@ module WebApp =
         | AutomaticallyCreated of ResourceName
         member this.ResourceNameOpt = match this with External r | AutomaticallyCreated r -> Some r | AutomaticPlaceholder -> None
         member this.ResourceName = this.ResourceNameOpt |> Option.defaultValue ResourceName.Empty
-    let (|NamedResource|_|) = function
-        | AutomaticallyCreated x
-        | External x ->
-            Some (NamedResource x)
-        | _ ->
-            None
     type WebAppConfig =
         { Name : ResourceName
           ServicePlanName : ResourceName
@@ -129,8 +126,8 @@ module WebApp =
           WebsiteNodeDefaultVersion : string option
           Settings : Map<string, string>
           Dependencies : ResourceName list }
-        member this.PublishingPassword = publishingPassword this.Name
-       
+        /// Gets the ARM expression path to the publishing password of this web app.
+        member this.PublishingPassword = publishingPassword this.Name      
     type FunctionsConfig =
         { Name : ResourceName
           ServicePlanName : ResourceName
@@ -140,15 +137,19 @@ module WebApp =
           OperatingSystem : OS
           Settings : Map<string, string>
           Dependencies : ResourceName list }
+        /// Gets the ARM expression path to the publishing password of this functions app.
         member this.PublishingPassword = publishingPassword this.Name
+        /// Gets the ARM expression path to the storage account key of this functions app.
         member this.StorageAccountKey =
             Storage.buildKey this.StorageAccountName.ResourceName            
+        /// Gets the ARM expression path to the app insights key of this functions app, if it exists.
         member this.AppInsightsKey =
             this.AppInsightsName
             |> Option.bind (fun r -> r.ResourceNameOpt)
             |> Option.map Helpers.AppInsights.instrumentationKey
     type AppInsightsConfig =
         { Name : ResourceName }
+        /// Gets the ARM expression path to the instrumentation key of this App Insights instance.
         member this.InstrumentationKey = Helpers.AppInsights.instrumentationKey this.Name
 
     let tryCreateAppInsightsName aiName rootName =
@@ -179,46 +180,48 @@ module WebApp =
                 AppInsightsName =
                     tryCreateAppInsightsName state.AppInsightsName state.Name.Value
             }
-        /// Sets the name of the web app; use the `name` keyword.
         [<CustomOperation "name">]
+        /// Sets the name of the web app.
         member __.Name(state:WebAppConfig, name) = { state with Name = name }
         member this.Name(state:WebAppConfig, name:string) = this.Name(state, ResourceName name)
-        /// Sets the name of service plan of the web app; use the `service_plan_name` keyword.
         [<CustomOperation "service_plan_name">]
+        /// Sets the name of the service plan.
         member __.ServicePlanName(state:WebAppConfig, name) = { state with ServicePlanName = name }
         member this.ServicePlanName(state:WebAppConfig, name:string) = this.ServicePlanName(state, ResourceName name)
         /// Sets the sku of the web app; use the `sku` keyword.
         [<CustomOperation "sku">]
+        /// Sets the sku of the service plan.
         member __.Sku(state:WebAppConfig, sku) = { state with Sku = sku }
         [<CustomOperation "worker_size">]
+        /// Sets the size of the service plan worker.
         member __.WorkerSize(state:WebAppConfig, workerSize) = { state with Sku = workerSize }
         [<CustomOperation "number_of_workers">]
+        /// Sets the number of instances on the service plan.
         member __.NumberOfWorkers(state:WebAppConfig, workerCount) = { state with WorkerCount = workerCount }
-        /// Changes the name of the default application insights resource that will be created, configured and linked to this webapp.
-        /// You can use this setting to create a single AI instance across multiple webapp and functions instances in a single template.
         [<CustomOperation "app_insights_auto_name">]
+        /// Sets the name of the automatically-created app insights instance.
         member __.UseAppInsights(state:WebAppConfig, name) = { state with AppInsightsName = Some (AutomaticallyCreated name) }
         member this.UseAppInsights(state:WebAppConfig, name:string) = this.UseAppInsights(state, ResourceName name)
-        /// Removes any automatic app insights creation, configuration and settings for this webapp.
         [<CustomOperation "app_insights_off">]
+        /// Removes any automatic app insights creation, configuration and settings for this webapp.
         member __.DeactivateAppInsights(state:WebAppConfig) = { state with AppInsightsName = None }
+        [<CustomOperation "app_insights_manual">]
         /// Instead of creating a new AI instance, configure this webapp to point to another AI instance that you are managing
         /// yourself.
-        [<CustomOperation "app_insights_manual">]
         member __.LinkAppInsights(state:WebAppConfig, name) = { state with AppInsightsName = Some(External name) }
         [<CustomOperation "run_from_package">]
+        /// Sets the web app to use "run from package" deployment capabilities.
         member __.RunFromPackage(state:WebAppConfig) = { state with RunFromPackage = true }
-        /// Sets the node version of the web app; use the `website_node_default_version` keyword.
         [<CustomOperation "website_node_default_version">]
+        /// Sets the node version of the web app.
         member __.NodeVersion(state:WebAppConfig, version) = { state with WebsiteNodeDefaultVersion = Some version }
-        /// Sets an app setting of the web app; use the `setting` keyword.
         [<CustomOperation "setting">]
+        /// Sets an app setting of the web app in the form "key" "value".
         member __.AddSetting(state:WebAppConfig, key, value) = { state with Settings = state.Settings.Add(key, value) }
-        /// Sets a dependency for the web app; use the `depends_on` keyword.
         [<CustomOperation "depends_on">]
+        /// Sets a dependency for the web app.
         member __.DependsOn(state:WebAppConfig, resourceName) =
             { state with Dependencies = resourceName :: state.Dependencies }
-    
     type FunctionsBuilder() =
         member __.Yield _ =
             { Name = ResourceName.Empty
@@ -247,39 +250,43 @@ module WebApp =
                     tryCreateAppInsightsName state.AppInsightsName state.Name.Value
             }
         [<CustomOperation "name">]
+        /// Sets the name of the functions instance.
         member __.Name(state:FunctionsConfig, name) = { state with Name = ResourceName name }
         [<CustomOperation "service_plan_name">]
+        /// Sets the name of the service plan hosting the function instance.
         member __.ServicePlanName(state:FunctionsConfig, name) = { state with ServicePlanName = ResourceName name }
-        [<CustomOperation "storage_account_name">]
+        [<CustomOperation "storage_account_link">]
+        /// Do not create an automatic storage account; instead, link to a storage account that is created outside of this Functions instance.
         member __.StorageAccountName(state:FunctionsConfig, name) = { state with StorageAccountName = External (ResourceName name) }
         [<CustomOperation "app_insights_auto_name">]
-        /// Changes the name of the default application insights resource that will be created, configured and linked to this functions app.
-        /// You can use this setting to create a single AI instance across multiple webapp and functions instances in a single template.
+        /// Sets the name of the automatically-created app insights instance.
         member __.UseAppInsights(state:FunctionsConfig, name) = { state with AppInsightsName = Some (AutomaticallyCreated name) }
         member this.UseAppInsights(state:FunctionsConfig, name:string) = this.UseAppInsights(state, ResourceName name)
         [<CustomOperation "app_insights_off">]
-        /// Removes any automatic app insights creation, configuration and settings for this functions app.
+        /// Removes any automatic app insights creation, configuration and settings for this webapp.
         member __.DeactivateAppInsights(state:FunctionsConfig) = { state with AppInsightsName = None }
         [<CustomOperation "app_insights_manual">]
-        /// Instead of creating a new AI instance, configure this functions app to point to another AI instance that you are managing
+        /// Instead of creating a new AI instance, configure this webapp to point to another AI instance that you are managing
         /// yourself.
         member __.LinkAppInsights(state:FunctionsConfig, name) = { state with AppInsightsName = Some(External name) }
         [<CustomOperation "use_runtime">]
+        /// Sets the runtime of the Functions host.
         member __.Runtime(state:FunctionsConfig, runtime) = { state with WorkerRuntime = runtime }
         [<CustomOperation "operating_system">]
+        /// Sets the operating system of the Functions host.
         member __.OperatingSystem(state:FunctionsConfig, os) = { state with OperatingSystem = os }
-        /// Sets an app setting of the function app; use the `setting` keyword.
+        /// Sets an app setting of the web app in the form "key" "value".
         [<CustomOperation "setting">]
         member __.AddSetting(state:FunctionsConfig, key, value) = { state with Settings = state.Settings.Add(key, value) }
-        /// Sets a dependency for the function app; use the `depends_on` keyword.
+        /// Sets a dependency for the web app.
         [<CustomOperation "depends_on">]
         member __.DependsOn(state:FunctionsConfig, resourceName) =
             { state with Dependencies = resourceName :: state.Dependencies }
-
     type AppInsightsBuilder() =
         member __.Yield _ =
             { Name = ResourceName.Empty }
         [<CustomOperation "name">]
+        /// Sets the name of the App Insights instance.
         member __.Name(state:AppInsightsConfig, name) = { state with Name = ResourceName name }
 
     let appInsights = AppInsightsBuilder()
@@ -311,7 +318,6 @@ module CosmosDb =
           PartitionKey : string list * CosmosDbIndexKind
           Indexes : (string * (CosmosDbIndexDataType * CosmosDbIndexKind) list) list
           ExcludedPaths : string list }
-
     type CosmosDbConfig =
         { ServerName : ResourceName
           ServerConsistencyPolicy : ConsistencyPolicy
@@ -328,21 +334,24 @@ module CosmosDb =
               ExcludedPaths = [] }
 
         [<CustomOperation "name">]
+        /// Sets the name of the container.
         member __.Name (state:CosmosDbContainerConfig, name) =
             { state with Name = ResourceName name }
 
         [<CustomOperation "partition_key">]
+        /// Sets the partition key of the container.
         member __.PartitionKey (state:CosmosDbContainerConfig, partitions, indexKind) =
             { state with PartitionKey = partitions, indexKind }
 
-        [<CustomOperation "include_index">]
-        member __.IncludeIndex (state:CosmosDbContainerConfig, path, indexes) =
+        [<CustomOperation "add_index">]
+        /// Adds an index to the container.
+        member __.AddIndex (state:CosmosDbContainerConfig, path, indexes) =
             { state with Indexes = (path, indexes) :: state.Indexes }
 
         [<CustomOperation "exclude_path">]
+        /// Excludes a path from the container index.
         member __.ExcludePath (state:CosmosDbContainerConfig, path) =
             { state with ExcludedPaths = path :: state.ExcludedPaths }
-
     type CosmosDbBuilder() =
         member __.Yield _ =
             { DbName = ResourceName "CosmosDatabase"
@@ -351,23 +360,26 @@ module CosmosDb =
               ServerFailoverPolicy = NoFailover
               DbThroughput = "400"
               Containers = [] }
-        /// Sets the name of cosmos db server; use the `server_name` keyword.
         [<CustomOperation "server_name">]
+        /// Sets the name of the CosmosDB server.
         member __.ServerName(state:CosmosDbConfig, serverName) = { state with ServerName = serverName }
         member this.ServerName(state:CosmosDbConfig, serverName:string) = this.ServerName(state, ResourceName serverName)
-        /// Sets the name of the web app; use the `name` keyword.
         [<CustomOperation "name">]
+        /// Sets the name of the database.
         member __.Name(state:CosmosDbConfig, name) = { state with DbName = name }
         member this.Name(state:CosmosDbConfig, name:string) = this.Name(state, ResourceName name)
-        /// Sets the sku of the web app; use the `sku` keyword.
         [<CustomOperation "consistency_policy">]
+        /// Sets the consistency policy of the database.
         member __.ConsistencyPolicy(state:CosmosDbConfig, consistency:ConsistencyPolicy) = { state with ServerConsistencyPolicy = consistency }
         [<CustomOperation "failover_policy">]
+        /// Sets the failover policy of the database.
         member __.FailoverPolicy(state:CosmosDbConfig, failoverPolicy:FailoverPolicy) = { state with ServerFailoverPolicy = failoverPolicy }
         [<CustomOperation "throughput">]
+        /// Sets the throughput of the server.
         member __.Throughput(state:CosmosDbConfig, throughput) = { state with DbThroughput = throughput }
         member this.Throughput(state:CosmosDbConfig, throughput:int) = this.Throughput(state, string throughput)
         [<CustomOperation "add_containers">]
+        /// Adds a list of containers to the database.
         member __.AddContainers(state:CosmosDbConfig, containers) =
             { state with Containers = state.Containers @ containers }
 
@@ -411,6 +423,7 @@ module SqlAzure =
           DbCollation : string
           Encryption : FeatureFlag
           FirewallRules : {| Name : string; Start : System.Net.IPAddress; End : System.Net.IPAddress |} list }
+        /// Gets the ARM expression path to the FQDN of this VM.
         member this.FullyQualifiedDomainName =
             sprintf "[reference(concat('Microsoft.Sql/servers/', variables('%s'))).fullyQualifiedDomainName]" this.ServerName.Value
     type SqlBuilder() =
@@ -429,18 +442,24 @@ module SqlAzure =
                     {| state.AdministratorCredentials with
                         Password = SecureParameter (sprintf "password-for-%s" state.ServerName.Value) |} }
         [<CustomOperation "server_name">]
+        /// Sets the name of the SQL server.
         member __.ServerName(state:SqlAzureConfig, serverName) = { state with ServerName = serverName }
         member this.ServerName(state:SqlAzureConfig, serverName:string) = this.ServerName(state, ResourceName serverName)
         [<CustomOperation "db_name">]
+        /// Sets the name of the database.
         member __.Name(state:SqlAzureConfig, name) = { state with DbName = name }
         member this.Name(state:SqlAzureConfig, name:string) = this.Name(state, ResourceName name)
-        [<CustomOperation "db_edition">]
+        [<CustomOperation "sku">]
+        /// Sets the sku of the database.
         member __.DatabaseEdition(state:SqlAzureConfig, edition:Edition) = { state with DbEdition = edition }
         [<CustomOperation "collation">]
+        /// Sets the collation of the database.
         member __.Collation(state:SqlAzureConfig, collation:string) = { state with DbCollation = collation }
         [<CustomOperation "use_encryption">]
+        /// Enables encryption of the database.
         member __.Encryption(state:SqlAzureConfig) = { state with Encryption = Enabled }
-        [<CustomOperation "firewall_rule">]
+        [<CustomOperation "add_firewall_rule">]
+        /// Adds a custom firewall rule given a name, start and end IP address range.
         member __.AddFirewallWall(state:SqlAzureConfig, name, startRange, endRange) =
             { state with
                 FirewallRules =
@@ -448,15 +467,18 @@ module SqlAzure =
                        Start = makeIp startRange
                        End = makeIp endRange |}
                     :: state.FirewallRules }
-        [<CustomOperation "use_azure_firewall">]
+        [<CustomOperation "enable_azure_firewall">]
+        /// Adds a firewall rule that enables access to other Azure services.
         member this.UseAzureFirewall(state:SqlAzureConfig) =
             this.AddFirewallWall(state, "AllowAllMicrosoftAzureIps", "0.0.0.0", "0.0.0.0")
         [<CustomOperation "admin_username">]
+        /// Sets the admin username of the server (note: the password is supplied as a securestring parameter to the generated ARM template).
         member __.AdminUsername(state:SqlAzureConfig, username) =
             { state with
                 AdministratorCredentials =
                     {| state.AdministratorCredentials with
                         UserName = username |} }
+
     open WebApp
     type WebAppBuilder with
         member this.DependsOn(state:WebAppConfig, sqlDb:SqlAzureConfig) =
@@ -653,7 +675,7 @@ module VirtualMachine =
     let makeResourceName vmName = makeName vmName >> ResourceName
     type VmConfig =
         { Name : ResourceName
-          DiagnosticsStorageAccount : ResourceName option
+          DiagnosticsStorageAccount : ResourceRef option
           
           Username : string
           Image : {| Publisher : string; Offer : string; Sku : string |}
@@ -670,7 +692,6 @@ module VirtualMachine =
         member this.SubnetName = makeResourceName this.Name "subnet"
         member this.IpName = makeResourceName this.Name "ip"
         member this.Hostname = sprintf "[reference('%s').dnsSettings.fqdn]" this.IpName.Value
-          
     type VirtualMachineBuilder() =
         member __.Yield _ =
             { Name = ResourceName.Empty
@@ -688,38 +709,64 @@ module VirtualMachine =
             { state with
                 DiagnosticsStorageAccount =
                     state.DiagnosticsStorageAccount
-                    |> Option.map(fun account -> state.Name |> sanitiseStorage |> sprintf "%sstorage" |> account.IfEmpty)
+                    |> Option.map(fun account ->
+                        match account with
+                        | AutomaticPlaceholder ->
+                            state.Name
+                            |> sanitiseStorage
+                            |> sprintf "%sstorage"
+                            |> ResourceName
+                            |> AutomaticallyCreated
+                        | External _
+                        | AutomaticallyCreated _ ->
+                            account)
                 DataDisks = match state.DataDisks with [] -> [ { Size = 1024; DiskType = Standard_LRS } ] | other -> other
             }
 
         [<CustomOperation "name">]
+        /// Sets the name of the VM.
         member __.Name(state:VmConfig, name) = { state with Name = name }
         member this.Name(state:VmConfig, name) = this.Name(state, ResourceName name)
         [<CustomOperation "diagnostics_support">]
-        member __.StorageAccountName(state:VmConfig) = { state with DiagnosticsStorageAccount = Some ResourceName.Empty }
+        /// Turns on diagnostics support using an automatically created storage account.
+        member __.StorageAccountName(state:VmConfig) = { state with DiagnosticsStorageAccount = Some AutomaticPlaceholder }
+        [<CustomOperation "diagnostics_support">]
+        /// Turns on diagnostics support using an externally managed storage account.
+        member __.StorageAccountName(state:VmConfig, name) = { state with DiagnosticsStorageAccount = Some (External name) }
         [<CustomOperation "vm_size">]
+        /// Sets the size of the VM.
         member __.VmSize(state:VmConfig, size) = { state with Size = size }
         [<CustomOperation "username">]
+        /// Sets the admin username of the VM (note: the password is supplied as a securestring parameter to the generated ARM template).
         member __.Username(state:VmConfig, username) = { state with Username = username }
         [<CustomOperation "operating_system">]
+        /// Sets the operating system of the VM. A set of samples is provided in the `CommonImages` module.
         member __.ConfigureOs(state:VmConfig, image) =
             { state with Image = image }
+        /// Sets the operating system of the VM.
         member __.ConfigureOs(state:VmConfig, (offer, publisher, sku)) =
             { state with Image = {| Offer = offer; Publisher = publisher; Sku = sku |} }
         [<CustomOperation "os_disk">]
+        /// Sets the size and type of the OS disk for the VM.
         member __.OsDisk(state:VmConfig, size, diskType) =
             { state with OsDisk = { Size = size; DiskType = diskType } }
         [<CustomOperation "add_disk">]
+        /// Adds a data disk to the VM with a specific size and type.
         member __.AddDisk(state:VmConfig, size, diskType) = { state with DataDisks = { Size = size; DiskType = diskType } :: state.DataDisks }
         [<CustomOperation "add_ssd_disk">]
+        /// Adds a SSD data disk to the VM with a specific size.
         member this.AddSsd(state:VmConfig, size) = this.AddDisk(state, size, StandardSSD_LRS)
         [<CustomOperation "add_slow_disk">]
+        /// Adds a conventional (non-SSD) data disk to the VM with a specific size.
         member this.AddSlowDisk(state:VmConfig, size) = this.AddDisk(state, size, Standard_LRS)
         [<CustomOperation "domain_name_prefix">]
+        /// Sets the prefix for the domain name of the VM.
         member __.DomainNamePrefix(state:VmConfig, prefix) = { state with DomainNamePrefix = prefix }
         [<CustomOperation "address_prefix">]
+        /// Sets the IP address prefix of the VM.
         member __.AddressPrefix(state:VmConfig, prefix) = { state with AddressPrefix = prefix }
         [<CustomOperation "subnet_prefix">]
+        /// Sets the subnet prefix of the VM.
         member __.SubnetPrefix(state:VmConfig, prefix) = { state with SubnetPrefix = prefix }        
 
     let vm = VirtualMachineBuilder()
@@ -743,8 +790,10 @@ module Search =
           Sku : Sku.SearchSku
           Replicas : int
           Partitions : int }
+        /// Gets an ARM expression for the admin key of the search instance.
         member this.AdminKey =
             sprintf "[listAdminKeys('Microsoft.Search/searchServices/%s', '2015-08-19').primaryKey]" this.Name.Value
+        /// Gets an ARM expression for the query key of the search instance.
         member this.QueryKey =
             sprintf "[listQueryKeys('Microsoft.Search/searchServices/%s', '2015-08-19').value[0].key]" this.Name.Value
 
@@ -757,13 +806,17 @@ module Search =
         member __.Run(state:SearchConfig) =
             { state with Name = state.Name |> sanitiseSearch |> ResourceName }
         [<CustomOperation "name">]
+        /// Sets the name of the Azure Search instance.
         member __.Name(state:SearchConfig, name) = { state with Name = name }
         member this.Name(state:SearchConfig, name) = this.Name(state, ResourceName name)
         [<CustomOperation "sku">]
+        /// Sets the sku of the Azure Search instance.
         member __.Sku(state:SearchConfig, sku) = { state with Sku = sku }
         [<CustomOperation "replicas">]
+        /// Sets the replica count of the Azure Search instance.
         member __.ReplicaCount(state:SearchConfig, replicas:int) = { state with Replicas = replicas }
         [<CustomOperation "partitions">]
+        /// Sets the number of partitions of the Azure Search instance.
         member __.PartitionCount(state:SearchConfig, partitions:int) = { state with Partitions = partitions }
 
     open WebApp
@@ -1031,17 +1084,24 @@ module ArmBuilder =
                     } |> SqlServer ]
                 | :? VmConfig as vm -> [
                     match vm.DiagnosticsStorageAccount with
-                    | Some account ->
+                    | Some (AutomaticallyCreated account) ->
                         yield StorageAccount
                             { StorageAccount.Name = account
                               Location = state.Location
                               Sku = Storage.Sku.StandardLRS }
+                    | Some AutomaticPlaceholder
+                    | Some (External _)
                     | None ->
                         ()
                     yield Vm
                         { Name = vm.Name
                           Location = state.Location
-                          StorageAccountName = vm.DiagnosticsStorageAccount
+                          StorageAccount =
+                            vm.DiagnosticsStorageAccount
+                            |> Option.bind(function
+                                | AutomaticPlaceholder -> None
+                                | AutomaticallyCreated r -> Some r
+                                | External r -> Some r)
                           NetworkInterfaceName = vm.NicName
                           Size = vm.Size
                           Credentials = {| Username = vm.Username; Password = SecureParameter (sprintf "password-for-%s" vm.Name.Value) |}
