@@ -115,9 +115,17 @@ module WebApp =
         | AutomaticallyCreated of ResourceName
         member this.ResourceNameOpt = match this with External r | AutomaticallyCreated r -> Some r | AutomaticPlaceholder -> None
         member this.ResourceName = this.ResourceNameOpt |> Option.defaultValue ResourceName.Empty
+        member this.ReplacePlaceholder name =
+            match this with
+            | AutomaticPlaceholder ->
+                AutomaticallyCreated(ResourceName name)
+            | External _
+            | AutomaticallyCreated _ ->
+                this
+
     type WebAppConfig =
         { Name : ResourceName
-          ServicePlanName : ResourceName
+          ServicePlanName : ResourceRef
           Sku : WebAppSku
           WorkerSize : WorkerSize
           WorkerCount : int
@@ -130,7 +138,7 @@ module WebApp =
         member this.PublishingPassword = publishingPassword this.Name      
     type FunctionsConfig =
         { Name : ResourceName
-          ServicePlanName : ResourceName
+          ServicePlanName : ResourceRef
           StorageAccountName : ResourceRef
           AppInsightsName : ResourceRef option
           WorkerRuntime : WorkerRuntime
@@ -152,19 +160,15 @@ module WebApp =
         /// Gets the ARM expression path to the instrumentation key of this App Insights instance.
         member this.InstrumentationKey = Helpers.AppInsights.instrumentationKey this.Name
 
-    let tryCreateAppInsightsName aiName rootName =
+    let tryCreateAppInsightsName (aiName:ResourceRef option) rootName =
         aiName
-        |> Option.map(function
-        | AutomaticPlaceholder ->
-          AutomaticallyCreated(ResourceName(sprintf "%s-ai" rootName))
-        | (External _ as resourceRef)
-        | (AutomaticallyCreated _ as resourceRef) ->
-            resourceRef)
+        |> Option.map(fun aiName ->
+            aiName.ReplacePlaceholder (sprintf "%s-ai" rootName))
 
     type WebAppBuilder() =
         member __.Yield _ =
             { Name = ResourceName.Empty
-              ServicePlanName = ResourceName.Empty
+              ServicePlanName = AutomaticPlaceholder
               AppInsightsName = Some AutomaticPlaceholder
               Sku = Sku.F1
               WorkerSize = Small
@@ -176,19 +180,16 @@ module WebApp =
         member __.Run(state:WebAppConfig) =
             { state with
                 ServicePlanName =
-                    state.ServicePlanName.IfEmpty (sprintf "%s-plan" state.Name.Value)
+                    state.ServicePlanName.ReplacePlaceholder (sprintf "%s-plan" state.Name.Value)
                 AppInsightsName =
                     tryCreateAppInsightsName state.AppInsightsName state.Name.Value
             }
         [<CustomOperation "name">]
         /// Sets the name of the web app.
-        member __.Name(state:WebAppConfig, name) = { state with Name = name }
-        member this.Name(state:WebAppConfig, name:string) = this.Name(state, ResourceName name)
+        member __.Name(state:WebAppConfig, name:string) = { state with Name = ResourceName name }
         [<CustomOperation "service_plan_name">]
         /// Sets the name of the service plan.
-        member __.ServicePlanName(state:WebAppConfig, name) = { state with ServicePlanName = name }
-        member this.ServicePlanName(state:WebAppConfig, name:string) = this.ServicePlanName(state, ResourceName name)
-        /// Sets the sku of the web app; use the `sku` keyword.
+        member __.ServicePlanName(state:WebAppConfig, name:string) = { state with ServicePlanName = AutomaticallyCreated(ResourceName name) }
         [<CustomOperation "sku">]
         /// Sets the sku of the service plan.
         member __.Sku(state:WebAppConfig, sku) = { state with Sku = sku }
@@ -200,8 +201,7 @@ module WebApp =
         member __.NumberOfWorkers(state:WebAppConfig, workerCount) = { state with WorkerCount = workerCount }
         [<CustomOperation "app_insights_auto_name">]
         /// Sets the name of the automatically-created app insights instance.
-        member __.UseAppInsights(state:WebAppConfig, name) = { state with AppInsightsName = Some (AutomaticallyCreated name) }
-        member this.UseAppInsights(state:WebAppConfig, name:string) = this.UseAppInsights(state, ResourceName name)
+        member __.UseAppInsights(state:WebAppConfig, name:string) = { state with AppInsightsName = Some (AutomaticallyCreated (ResourceName name)) }
         [<CustomOperation "app_insights_off">]
         /// Removes any automatic app insights creation, configuration and settings for this webapp.
         member __.DeactivateAppInsights(state:WebAppConfig) = { state with AppInsightsName = None }
@@ -225,7 +225,7 @@ module WebApp =
     type FunctionsBuilder() =
         member __.Yield _ =
             { Name = ResourceName.Empty
-              ServicePlanName = ResourceName.Empty
+              ServicePlanName = AutomaticPlaceholder
               AppInsightsName = Some AutomaticPlaceholder
               StorageAccountName = AutomaticPlaceholder
               WorkerRuntime = DotNet
@@ -234,7 +234,7 @@ module WebApp =
               Dependencies = [] }
         member __.Run (state:FunctionsConfig) =
             { state with
-                ServicePlanName = state.ServicePlanName.IfEmpty (sprintf "%s-plan" state.Name.Value)
+                ServicePlanName = state.ServicePlanName.ReplacePlaceholder (sprintf "%s-plan" state.Name.Value)
                 StorageAccountName =
                     match state.StorageAccountName with
                     | AutomaticPlaceholder ->
@@ -254,14 +254,13 @@ module WebApp =
         member __.Name(state:FunctionsConfig, name) = { state with Name = ResourceName name }
         [<CustomOperation "service_plan_name">]
         /// Sets the name of the service plan hosting the function instance.
-        member __.ServicePlanName(state:FunctionsConfig, name) = { state with ServicePlanName = ResourceName name }
+        member __.ServicePlanName(state:FunctionsConfig, name) = { state with ServicePlanName = AutomaticallyCreated(ResourceName name) }
         [<CustomOperation "storage_account_link">]
         /// Do not create an automatic storage account; instead, link to a storage account that is created outside of this Functions instance.
         member __.StorageAccountName(state:FunctionsConfig, name) = { state with StorageAccountName = External (ResourceName name) }
         [<CustomOperation "app_insights_auto_name">]
         /// Sets the name of the automatically-created app insights instance.
-        member __.UseAppInsights(state:FunctionsConfig, name) = { state with AppInsightsName = Some (AutomaticallyCreated name) }
-        member this.UseAppInsights(state:FunctionsConfig, name:string) = this.UseAppInsights(state, ResourceName name)
+        member __.UseAppInsights(state:FunctionsConfig, name:string) = { state with AppInsightsName = Some (AutomaticallyCreated (ResourceName name)) }
         [<CustomOperation "app_insights_off">]
         /// Removes any automatic app insights creation, configuration and settings for this webapp.
         member __.DeactivateAppInsights(state:FunctionsConfig) = { state with AppInsightsName = None }
@@ -858,7 +857,7 @@ module ArmBuilder =
                     let webApp =
                         { Name = wac.Name
                           Location = state.Location
-                          ServerFarm = wac.ServicePlanName
+                          ServerFarm = wac.ServicePlanName.ResourceName
                           AppSettings = [
                             yield! Map.toList wac.Settings
                             if wac.RunFromPackage then yield WebApp.AppSettings.RunFromPackage
@@ -890,7 +889,7 @@ module ArmBuilder =
                             | None -> Set.empty
                           Kind = None
                           Dependencies = [
-                            yield wac.ServicePlanName
+                            yield wac.ServicePlanName.ResourceName
                             yield! wac.Dependencies
                             match wac.AppInsightsName with
                             | Some (AutomaticallyCreated appInsightsName)
@@ -901,40 +900,44 @@ module ArmBuilder =
                                 ()
                           ]
                         }
+                    match wac.ServicePlanName with
+                    | AutomaticallyCreated resourceName ->
+                        let serverFarm =
+                            { Location = state.Location
+                              Name = resourceName
+                              Sku =
+                                match wac.Sku with
+                                | WebApp.Free ->
+                                    "F1"
+                                | Shared ->
+                                    "D1"
+                                | WebApp.Basic sku
+                                | WebApp.Standard sku
+                                | WebApp.Premium sku
+                                | PremiumV2 sku
+                                | Isolated sku ->
+                                    sku
+                              WorkerSize =
+                                match wac.WorkerSize with
+                                | Small -> "0"
+                                | Medium -> "1"
+                                | Large -> "2"
+                              IsDynamic = false
+                              Tier =
+                                match wac.Sku with
+                                | WebApp.Free -> "Free"
+                                | Shared -> "Shared"
+                                | WebApp.Basic _ -> "Basic"
+                                | WebApp.Standard _ -> "Standard"
+                                | WebApp.Premium _ -> "Premium"
+                                | WebApp.PremiumV2 _ -> "PremiumV2"
+                                | WebApp.Isolated _ -> "Isolated"
+                              WorkerCount = wac.WorkerCount }
 
-                    let serverFarm =
-                        { Location = state.Location
-                          Name = wac.ServicePlanName
-                          Sku =
-                            match wac.Sku with
-                            | WebApp.Free ->
-                                "F1"
-                            | Shared ->
-                                "D1"
-                            | WebApp.Basic sku
-                            | WebApp.Standard sku
-                            | WebApp.Premium sku
-                            | PremiumV2 sku
-                            | Isolated sku ->
-                                sku
-                          WorkerSize =
-                            match wac.WorkerSize with
-                            | Small -> "0"
-                            | Medium -> "1"
-                            | Large -> "2"
-                          IsDynamic = false
-                          Tier =
-                            match wac.Sku with
-                            | WebApp.Free -> "Free"
-                            | Shared -> "Shared"
-                            | WebApp.Basic _ -> "Basic"
-                            | WebApp.Standard _ -> "Standard"
-                            | WebApp.Premium _ -> "Premium"
-                            | WebApp.PremiumV2 _ -> "PremiumV2"
-                            | WebApp.Isolated _ -> "Isolated"
-                          WorkerCount = wac.WorkerCount }
-
-                    yield ServerFarm serverFarm
+                        yield ServerFarm serverFarm
+                    | External _
+                    | AutomaticPlaceholder ->
+                        ()
                     yield WebApp webApp
                     match wac.AppInsightsName with
                     | Some (AutomaticallyCreated resourceName) ->
@@ -949,7 +952,7 @@ module ArmBuilder =
                 | :? FunctionsConfig as fns -> [
                     let webApp =
                         { Name = fns.Name
-                          ServerFarm = fns.ServicePlanName
+                          ServerFarm = fns.ServicePlanName.ResourceName
                           Location = state.Location
                           AppSettings = [
                             yield! Map.toList fns.Settings
@@ -985,21 +988,26 @@ module ArmBuilder =
                             | Some AutomaticPlaceholder
                             | None ->
                                 ()
-                            yield fns.ServicePlanName
+                            yield fns.ServicePlanName.ResourceName
                             yield fns.StorageAccountName.ResourceName
                           ]
                         }                    
 
-                    let serverFarm =
-                        { Location = state.Location
-                          Name = fns.ServicePlanName
-                          Sku = "Y1"
-                          WorkerSize = "Y1"
-                          IsDynamic = true
-                          Tier = "Dynamic"
-                          WorkerCount = 0 }
+                    match fns.ServicePlanName with
+                    | AutomaticallyCreated resourceName ->
+                        let serverFarm =
+                            { Location = state.Location
+                              Name = fns.ServicePlanName.ResourceName
+                              Sku = "Y1"
+                              WorkerSize = "Y1"
+                              IsDynamic = true
+                              Tier = "Dynamic"
+                              WorkerCount = 0 }
+                        yield ServerFarm serverFarm
+                    | External _
+                    | AutomaticPlaceholder ->
+                        ()
 
-                    yield ServerFarm serverFarm
                     yield WebApp webApp
                     
                     match fns.StorageAccountName with
