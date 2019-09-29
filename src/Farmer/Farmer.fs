@@ -11,6 +11,13 @@ type ResourceName =
         | r when r = ResourceName.Empty -> ResourceName fallbackValue
         | r -> r
 
+type ArmExpression =
+    | ArmExpression of string
+
+[<AutoOpen>]
+module ArmExpression =
+    let eval (ArmExpression e) = e
+
 type ConsistencyPolicy = Eventual | ConsistentPrefix | Session | BoundedStaleness of maxStaleness:int * maxIntervalSeconds : int | Strong
 type FailoverPolicy = NoFailover | AutoFailover of secondaryLocation:string | MultiMaster of secondaryLocation:string
 type CosmosDbIndexKind = Hash | Range

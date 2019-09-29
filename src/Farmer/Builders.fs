@@ -7,6 +7,7 @@ module Helpers =
     module AppInsights =
         let instrumentationKey (ResourceName accountName) =
             sprintf "[reference('Microsoft.Insights/components/%s').InstrumentationKey]" accountName
+            |> ArmExpression
     [<AutoOpen>]
     module Locations =
         let EastAsia = "eastasia"
@@ -56,6 +57,7 @@ module Storage =
             "[concat('DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=', listKeys('%s', '2017-10-01').keys[0].value)]"
                 name
                 name
+        |> ArmExpression
 
     type StorageAccountConfig =
         { /// The name of the storage account.
@@ -104,6 +106,7 @@ module WebApp =
         let RunFromPackage = "WEBSITE_RUN_FROM_PACKAGE", "1"
     let publishingPassword (ResourceName name) =
         sprintf "[list(resourceId('Microsoft.Web/sites/config', '%s', 'publishingcredentials'), '2014-06-01').properties.publishingPassword]" name
+        |> ArmExpression
 
 
     /// A ResourceRef represents a linked resource; typically this will be for two resources that have a relationship
@@ -218,6 +221,7 @@ module WebApp =
         [<CustomOperation "setting">]
         /// Sets an app setting of the web app in the form "key" "value".
         member __.AddSetting(state:WebAppConfig, key, value) = { state with Settings = state.Settings.Add(key, value) }
+        member this.AddSetting(state:WebAppConfig, key, ArmExpression value) = this.AddSetting(state, key, value)
         [<CustomOperation "depends_on">]
         /// Sets a dependency for the web app.
         member __.DependsOn(state:WebAppConfig, resourceName) =
@@ -277,6 +281,7 @@ module WebApp =
         /// Sets an app setting of the web app in the form "key" "value".
         [<CustomOperation "setting">]
         member __.AddSetting(state:FunctionsConfig, key, value) = { state with Settings = state.Settings.Add(key, value) }
+        member this.AddSetting(state:FunctionsConfig, key, ArmExpression value) = this.AddSetting(state, key, value)
         /// Sets a dependency for the web app.
         [<CustomOperation "depends_on">]
         member __.DependsOn(state:FunctionsConfig, resourceName) =
@@ -425,6 +430,7 @@ module SqlAzure =
         /// Gets the ARM expression path to the FQDN of this VM.
         member this.FullyQualifiedDomainName =
             sprintf "[reference(concat('Microsoft.Sql/servers/', variables('%s'))).fullyQualifiedDomainName]" this.ServerName.Value
+            |> ArmExpression
     type SqlBuilder() =
         let makeIp = System.Net.IPAddress.Parse
         member __.Yield _ =
@@ -690,7 +696,7 @@ module VirtualMachine =
         member this.VnetName = makeResourceName this.Name "vnet"
         member this.SubnetName = makeResourceName this.Name "subnet"
         member this.IpName = makeResourceName this.Name "ip"
-        member this.Hostname = sprintf "[reference('%s').dnsSettings.fqdn]" this.IpName.Value
+        member this.Hostname = sprintf "[reference('%s').dnsSettings.fqdn]" this.IpName.Value |> ArmExpression
     type VirtualMachineBuilder() =
         member __.Yield _ =
             { Name = ResourceName.Empty
@@ -792,9 +798,11 @@ module Search =
         /// Gets an ARM expression for the admin key of the search instance.
         member this.AdminKey =
             sprintf "[listAdminKeys('Microsoft.Search/searchServices/%s', '2015-08-19').primaryKey]" this.Name.Value
+            |> ArmExpression
         /// Gets an ARM expression for the query key of the search instance.
         member this.QueryKey =
             sprintf "[listQueryKeys('Microsoft.Search/searchServices/%s', '2015-08-19').value[0].key]" this.Name.Value
+            |> ArmExpression
 
     type SearchBuilder() =
         member __.Yield _ =
@@ -869,7 +877,7 @@ module ArmBuilder =
                             match wac.AppInsightsName with
                             | Some (External resourceName)
                             | Some (AutomaticallyCreated resourceName) ->
-                                yield "APPINSIGHTS_INSTRUMENTATIONKEY", Helpers.AppInsights.instrumentationKey resourceName
+                                yield "APPINSIGHTS_INSTRUMENTATIONKEY", Helpers.AppInsights.instrumentationKey resourceName |> eval
                                 yield "APPINSIGHTS_PROFILERFEATURE_VERSION", "1.0.0"
                                 yield "APPINSIGHTS_SNAPSHOTFEATURE_VERSION", "1.0.0"
                                 yield "ApplicationInsightsAgent_EXTENSION_VERSION", "~2"
@@ -959,18 +967,18 @@ module ArmBuilder =
                             yield "FUNCTIONS_WORKER_RUNTIME", string fns.WorkerRuntime
                             yield "WEBSITE_NODE_DEFAULT_VERSION", "10.14.1"
                             yield "FUNCTIONS_EXTENSION_VERSION", "~2"
-                            yield "AzureWebJobsStorage", Storage.buildKey fns.StorageAccountName.ResourceName
-                            yield "AzureWebJobsDashboard", Storage.buildKey fns.StorageAccountName.ResourceName
+                            yield "AzureWebJobsStorage", Storage.buildKey fns.StorageAccountName.ResourceName |> eval
+                            yield "AzureWebJobsDashboard", Storage.buildKey fns.StorageAccountName.ResourceName |> eval
 
                             match fns.AppInsightsName with
                             | Some (External resourceName)
                             | Some (AutomaticallyCreated resourceName) ->
-                                yield "APPINSIGHTS_INSTRUMENTATIONKEY", Helpers.AppInsights.instrumentationKey resourceName
+                                yield "APPINSIGHTS_INSTRUMENTATIONKEY", Helpers.AppInsights.instrumentationKey resourceName |> eval
                             | Some AutomaticPlaceholder
                             | None -> ()
 
                             if fns.OperatingSystem = Windows then
-                                yield "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING", Storage.buildKey fns.StorageAccountName.ResourceName
+                                yield "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING", Storage.buildKey fns.StorageAccountName.ResourceName |> eval
                                 yield "WEBSITE_CONTENTSHARE", fns.Name.Value.ToLower()
                           ]
 
@@ -1170,8 +1178,9 @@ module ArmBuilder =
         /// Creates an output; use the `output` keyword.
         [<CustomOperation "output">]
         member __.Output (state, outputName, outputValue) : ArmConfig = { state with Outputs = (outputName, outputValue) :: state.Outputs }
+        member __.Output (state, outputName, ArmExpression expr) : ArmConfig = { state with Outputs = (outputName, expr) :: state.Outputs }
         member this.Output (state:ArmConfig, outputName:string, (ResourceName outputValue)) = this.Output(state, outputName, outputValue)
-        member this.Output (state:ArmConfig, outputName:string, outputValue:string option) =
+        member this.Output (state:ArmConfig, outputName:string, outputValue:ArmExpression option) =
             match outputValue with
             | Some outputValue -> this.Output(state, outputName, outputValue)
             | None -> state
