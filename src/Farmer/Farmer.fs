@@ -45,7 +45,15 @@ type WebApp =
       Extensions : WebAppExtensions Set
       AlwaysOn : bool
       Dependencies : ResourceName list
-      Kind : string option }
+      Kind : string option 
+      LinuxFxVersion : string option
+      NetFrameworkVersion : string option
+      JavaVersion : string option
+      JavaContainer : string option
+      JavaContainerVersion : string option
+      PhpVersion : string option
+      PythonVersion : string option
+      Metadata : List<string * string> }
 type ServerFarm =
     { Name : ResourceName 
       Location : string

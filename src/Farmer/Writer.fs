@@ -36,6 +36,7 @@ module Outputters =
                {| name = resource.Name.Value
                   Application_Type = "web" |} |> box
         |}
+        
     let serverFarm (farm:ServerFarm) = {|
         ``type`` = "Microsoft.Web/serverfarms"
         sku =
@@ -58,6 +59,9 @@ module Outputters =
                        reserved = false |}
     |}
     let webApp (webApp:WebApp) =
+        let value = function
+            | Some x -> x
+            | None -> null
         let baseProps = {|
             ``type`` = "Microsoft.Web/sites"
             name = webApp.Name.Value
@@ -81,6 +85,14 @@ module Outputters =
                         {|
                            appSettings = webApp.AppSettings |> List.map(fun (k,v) -> {| name = k; value = v |})
                            alwaysOn = webApp.AlwaysOn
+                           metadata = webApp.Metadata |> List.map(fun (k,v) -> {| name = k; value = v |})
+                           linuxFxVersion = webApp.LinuxFxVersion |> value
+                           netFrameworkVersion = webApp.NetFrameworkVersion |> value
+                           javaVersion = webApp.JavaVersion |> value
+                           javaContainer = webApp.JavaContainer |> value
+                           javaContainerVersion = webApp.JavaContainerVersion |> value
+                           phpVersion = webApp.PhpVersion |> value
+                           pythonVersion = webApp.PhpVersion |> value
                         |}
                     
                 |}
@@ -88,6 +100,7 @@ module Outputters =
         match webApp.Kind with
         | Some kind -> box {| baseProps with kind = kind |}
         | None -> box baseProps
+        
     let cosmosDbContainer (container:CosmosDbContainer) = {|
         ``type`` = "Microsoft.DocumentDb/databaseAccounts/apis/databases/containers"
         name = sprintf "%s/sql/%s/%s" container.Account.Value container.Database.Value container.Name.Value

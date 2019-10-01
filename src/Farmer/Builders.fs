@@ -81,6 +81,60 @@ module WebApp =
     type WebAppSku = Shared | Free | Basic of string | Standard of string | Premium of string | PremiumV2 of string | Isolated of string
     type WorkerRuntime = DotNet | Node | Java | Python
     type OS = Windows | Linux
+    
+    type DotNetCoreRuntime =
+        | DotNetCore22
+        | DotNetCore21
+        | DotNetCore20
+        | DotNetCore11
+        | DotNetCore10
+    
+    type AspNetRuntime =
+        | AspNet47
+        | AspNet35
+        
+    type Java11Runtime =
+        | JavaSE
+        | Tomcat90 of OS
+        | Tomcat85 of OS
+    
+    type Java8Runtime =
+        | JavaSE
+        | WildFly14
+        | Tomcat90 of OS
+        | Tomcat85 of OS
+        
+    type NodeRuntime =
+        | NodeLTS
+    
+    type PhpRuntime =
+        | Php73 of OS
+        | Php72 of OS
+        | Php71
+        | Php70 of OS
+        | Php56 of OS
+    
+    type PythonRuntime =
+        | Python37
+        | Python36 of OS
+        | Python27 of OS
+    
+    type RubyRuntime =
+        | Ruby26
+        | Ruby25
+        | Ruby24
+        | Ruby23
+                    
+    type RuntimeStack =
+        | DotNetCore of DotNetCoreRuntime * OS
+        | AspNet of AspNetRuntime
+        | Java11 of Java11Runtime
+        | Java8 of Java8Runtime
+        | Node of NodeRuntime
+        | Php of PhpRuntime
+        | Python of PythonRuntime
+        | Ruby of RubyRuntime
+        
     module Sku =
         let D1 = Shared
         let F1 = Free
@@ -126,7 +180,8 @@ module WebApp =
           WebsiteNodeDefaultVersion : string option
           AlwaysOn : bool
           Settings : Map<string, string>
-          Dependencies : ResourceName list }
+          Dependencies : ResourceName list
+          RuntimeStack : RuntimeStack }
         /// Gets the ARM expression path to the publishing password of this web app.
         member this.PublishingPassword = publishingPassword this.Name      
     type FunctionsConfig =
@@ -174,7 +229,8 @@ module WebApp =
               WebsiteNodeDefaultVersion = None
               AlwaysOn = false
               Settings = Map.empty
-              Dependencies = [] }
+              Dependencies = []
+              RuntimeStack = RuntimeStack.DotNetCore(DotNetCoreRuntime.DotNetCore22, OS.Windows) }
         member __.Run(state:WebAppConfig) =
             { state with
                 ServicePlanName =
@@ -228,6 +284,10 @@ module WebApp =
         /// Sets "Always On" flag
         member __.AlwaysOn(state:WebAppConfig) =
             { state with AlwaysOn = true }
+        [<CustomOperation "runtime_stack">]
+        /// Sets Runtime stack and OS (if available for selected runtime)
+        member __.RuntimeStack(state:WebAppConfig, value:RuntimeStack) =
+            { state with RuntimeStack = value }
     type FunctionsBuilder() =
         member __.Yield _ =
             { Name = ResourceName.Empty
@@ -861,6 +921,102 @@ module ArmBuilder =
                 | :? StorageAccountConfig as sac ->
                     [ StorageAccount { Location = state.Location; Name = sac.Name; Sku = sac.Sku } ]
                 | :? WebAppConfig as wac -> [
+                    
+                    let dotnetProps =
+                        match wac.RuntimeStack with
+                        | DotNetCore (_, OS.Windows) -> {| LinuxFx = None; CurrentStack = Some "dotnetcore"; NetFw = None |}
+                        | DotNetCore(DotNetCore22, OS.Linux) -> {| LinuxFx = Some "DOTNETCORE|2.2"; CurrentStack = None; NetFw = None |}
+                        | DotNetCore(DotNetCore21, OS.Linux) -> {| LinuxFx = Some "DOTNETCORE|2.1"; CurrentStack = None; NetFw = None |}
+                        | DotNetCore(DotNetCore20, OS.Linux) -> {| LinuxFx = Some "DOTNETCORE|2.0"; CurrentStack = None; NetFw = None |}
+                        | DotNetCore(DotNetCore11, OS.Linux) -> {| LinuxFx = Some "DOTNETCORE|1.1"; CurrentStack = None; NetFw = None |}
+                        | DotNetCore(DotNetCore10, OS.Linux) -> {| LinuxFx = Some "DOTNETCORE|1.0"; CurrentStack = None; NetFw = None |}
+                        | AspNet AspNet47 -> {| LinuxFx = None; CurrentStack = Some "dotnet"; NetFw = Some "v4.0" |}
+                        | AspNet AspNet35 -> {| LinuxFx = None; CurrentStack = Some "dotnet"; NetFw = Some "v2.0" |}
+                        | _ -> {| LinuxFx = None; CurrentStack = None; NetFw = None |}
+                    
+                    let javaProps =
+                        match wac.RuntimeStack with
+                        | Java11 Java11Runtime.JavaSE -> {| LinuxFx = Some "JAVA|11-java11"; CurrentStack = None; Java = None |}
+                        | Java11 (Java11Runtime.Tomcat90 OS.Windows) ->
+                            {| LinuxFx = None; CurrentStack = Some "java"; Java = Some {| Version = "11"; Container = "Tomcat"; ContainerVersion = "9.0" |} |}
+                        | Java11 (Java11Runtime.Tomcat90 OS.Linux) ->
+                            {| LinuxFx = Some "TOMCAT|9.0-java11"; CurrentStack = None; Java = None |}
+                        | Java11 (Java11Runtime.Tomcat85 OS.Windows) ->
+                            {| LinuxFx = None; CurrentStack = Some "java"; Java = Some {| Version = "11"; Container = "Tomcat"; ContainerVersion = "8.5" |} |}
+                        | Java11 (Java11Runtime.Tomcat85 OS.Linux) ->
+                            {| LinuxFx = Some "TOMCAT|8.5-java11"; CurrentStack = None; Java = None |}
+                        | Java8 Java8Runtime.JavaSE -> {| LinuxFx = Some "JAVA|8-jre8"; CurrentStack = None; Java = None |}
+                        | Java8 Java8Runtime.WildFly14 -> {| LinuxFx = Some "WILDFLY|14-jre8"; CurrentStack = None; Java = None |}
+                        | Java8 (Java8Runtime.Tomcat90 OS.Windows) ->
+                            {| LinuxFx = None; CurrentStack = Some "java"; Java = Some {| Version = "1.8"; Container = "Tomcat"; ContainerVersion = "9.0" |} |}
+                        | Java8 (Java8Runtime.Tomcat90 OS.Linux) ->
+                            {| LinuxFx = Some "TOMCAT|9.0-jre8"; CurrentStack = None; Java = None |}
+                        | Java8 (Java8Runtime.Tomcat85 OS.Windows) ->
+                            {| LinuxFx = None; CurrentStack = Some "java"; Java = Some {| Version = "1.8"; Container = "Tomcat"; ContainerVersion = "8.5" |} |}
+                        | Java8 (Java8Runtime.Tomcat85 OS.Linux) ->
+                            {| LinuxFx = Some "TOMCAT|8.5-jre8"; CurrentStack = None; Java = None |}
+                        | _ -> {| LinuxFx = None; CurrentStack = None; Java = None |}
+                    
+                    let nodeProps =
+                        match wac.RuntimeStack with
+                        | Node NodeLTS -> {| LinuxFx = Some "NODE|lts" |}
+                        | _ -> {| LinuxFx = None |}
+                    
+                    let phpProps =                            
+                        match wac.RuntimeStack with
+                        | Php (Php73 OS.Windows) -> {| LinuxFx = None; CurrentStack = Some "php"; PhpVersion = Some "7.3" |}
+                        | Php (Php73 OS.Linux) -> {| LinuxFx = Some "PHP|7.3"; CurrentStack = Some "php"; PhpVersion = None |}
+                        | Php (Php72 OS.Windows) -> {| LinuxFx = None; CurrentStack = Some "php"; PhpVersion = Some "7.2" |}
+                        | Php (Php72 OS.Linux) -> {| LinuxFx = Some "PHP|7.2"; CurrentStack = Some "php"; PhpVersion = None |}
+                        | Php Php71 -> {| LinuxFx = None; CurrentStack = Some "php"; PhpVersion = Some "7.1" |}
+                        | Php (Php70 OS.Windows) -> {| LinuxFx = None; CurrentStack = Some "php"; PhpVersion = Some "7.0" |}
+                        | Php (Php70 OS.Linux) -> {| LinuxFx = Some "PHP|7.0"; CurrentStack = Some "php"; PhpVersion = None |}
+                        | Php (Php56 OS.Windows) -> {| LinuxFx = None; CurrentStack = Some "php"; PhpVersion = Some "5.6" |}
+                        | Php (Php56 OS.Linux) -> {| LinuxFx = Some "PHP|5.6"; CurrentStack = Some "php"; PhpVersion = None |}
+                        | _ -> {| LinuxFx = None; CurrentStack = None; PhpVersion = None |}
+                    
+                    let pythonProps =
+                        match wac.RuntimeStack with
+                        | Python PythonRuntime.Python37 -> {| LinuxFx = Some "PYTHON|3.7"; CurrentStack = None; PythonVersion = None |}
+                        | Python (PythonRuntime.Python36 OS.Windows) -> {| LinuxFx = None; CurrentStack = Some "python"; PythonVersion = Some "3.4" |} // not typo, really version 3.4
+                        | Python (PythonRuntime.Python36 OS.Linux) -> {| LinuxFx = Some "PYTHON|3.6"; CurrentStack = None; PythonVersion = None |}
+                        | Python (PythonRuntime.Python27 OS.Windows) -> {| LinuxFx = None; CurrentStack = Some "python"; PythonVersion = Some "2.7" |}
+                        | Python (PythonRuntime.Python27 OS.Linux) -> {| LinuxFx = Some "PYTHON|2.7"; CurrentStack = None; PythonVersion = None |}
+                        | _ -> {| LinuxFx = None; CurrentStack = None; PythonVersion = None |}
+                    
+                    let rubyProps =
+                        match wac.RuntimeStack with
+                        | Ruby Ruby26 -> {| LinuxFx = Some "RUBY|2.6" |}
+                        | Ruby Ruby25 -> {| LinuxFx = Some "RUBY|2.5" |}
+                        | Ruby Ruby24 -> {| LinuxFx = Some "RUBY|2.4" |}
+                        | Ruby Ruby23 -> {| LinuxFx = Some "RUBY|2.3" |}
+                        | _ -> {| LinuxFx = None |}
+                    
+                    let linuxFx =                        
+                        [
+                            dotnetProps.LinuxFx
+                            javaProps.LinuxFx
+                            nodeProps.LinuxFx
+                            phpProps.LinuxFx
+                            pythonProps.LinuxFx
+                            rubyProps.LinuxFx
+                        ] |> List.choose id |> List.tryHead
+                        
+                    let currentStack =
+                        [
+                            dotnetProps.CurrentStack
+                            javaProps.CurrentStack
+                            phpProps.CurrentStack
+                            pythonProps.CurrentStack
+                        ] |> List.choose id |> List.tryHead
+                    
+                    let netFwVersion = dotnetProps.NetFw
+                    let javaVersion = javaProps.Java |> Option.map (fun x -> x.Version)
+                    let javaContainer = javaProps.Java |> Option.map (fun x -> x.Container)
+                    let javaContainerVersion = javaProps.Java |> Option.map (fun x -> x.ContainerVersion)
+                    let phpVersion = phpProps.PhpVersion
+                    let pythonVersion = pythonProps.PythonVersion
+                    
                     let webApp =
                         { Name = wac.Name
                           Location = state.Location
@@ -907,6 +1063,17 @@ module ArmBuilder =
                                 ()
                           ]
                           AlwaysOn = wac.AlwaysOn
+                          LinuxFxVersion = linuxFx
+                          NetFrameworkVersion = netFwVersion
+                          JavaVersion = javaVersion
+                          JavaContainer = javaContainer
+                          JavaContainerVersion = javaContainerVersion
+                          PhpVersion = phpVersion
+                          PythonVersion = pythonVersion
+                          Metadata = [
+                              if currentStack.IsSome then
+                                  yield ("CURRENT_STACK", currentStack.Value)
+                          ]
                         }
 
                     let serverFarm =
@@ -996,6 +1163,14 @@ module ArmBuilder =
                             yield fns.StorageAccountName.ResourceName
                           ]
                           AlwaysOn = false
+                          LinuxFxVersion = None
+                          NetFrameworkVersion = None
+                          JavaVersion = None
+                          JavaContainer = None
+                          JavaContainerVersion = None
+                          PhpVersion = None
+                          PythonVersion = None
+                          Metadata = []
                         }                    
 
                     let serverFarm =
