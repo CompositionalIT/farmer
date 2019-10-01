@@ -43,6 +43,7 @@ type WebApp =
       Location : string
       AppSettings : List<string * string>
       Extensions : WebAppExtensions Set
+      AlwaysOn : bool
       Dependencies : ResourceName list
       Kind : string option }
 type ServerFarm =
