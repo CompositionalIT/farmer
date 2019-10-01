@@ -78,10 +78,11 @@ module Outputters =
             properties =
                 {| serverFarmId = webApp.ServerFarm.Value
                    siteConfig =
-                    {| appSettings =
-                        webApp.AppSettings
-                        |> List.map(fun (k,v) -> {| name = k; value = v |})
-                    |}
+                        {|
+                           appSettings = webApp.AppSettings |> List.map(fun (k,v) -> {| name = k; value = v |})
+                           alwaysOn = webApp.AlwaysOn
+                        |}
+                    
                 |}
         |}
         match webApp.Kind with

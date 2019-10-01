@@ -124,6 +124,7 @@ module WebApp =
           AppInsightsName : ResourceRef option
           RunFromPackage : bool
           WebsiteNodeDefaultVersion : string option
+          AlwaysOn : bool
           Settings : Map<string, string>
           Dependencies : ResourceName list }
         /// Gets the ARM expression path to the publishing password of this web app.
@@ -171,6 +172,7 @@ module WebApp =
               WorkerCount = 1
               RunFromPackage = false
               WebsiteNodeDefaultVersion = None
+              AlwaysOn = false
               Settings = Map.empty
               Dependencies = [] }
         member __.Run(state:WebAppConfig) =
@@ -222,6 +224,10 @@ module WebApp =
         /// Sets a dependency for the web app.
         member __.DependsOn(state:WebAppConfig, resourceName) =
             { state with Dependencies = resourceName :: state.Dependencies }
+        [<CustomOperation "always_on">]
+        /// Sets "Always On" flag
+        member __.AlwaysOn(state:WebAppConfig) =
+            { state with AlwaysOn = true }
     type FunctionsBuilder() =
         member __.Yield _ =
             { Name = ResourceName.Empty
@@ -900,6 +906,7 @@ module ArmBuilder =
                             | None ->
                                 ()
                           ]
+                          AlwaysOn = wac.AlwaysOn
                         }
 
                     let serverFarm =
@@ -988,6 +995,7 @@ module ArmBuilder =
                             yield fns.ServicePlanName
                             yield fns.StorageAccountName.ResourceName
                           ]
+                          AlwaysOn = false
                         }                    
 
                     let serverFarm =
