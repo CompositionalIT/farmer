@@ -31,7 +31,7 @@ module Outputters =
             | Some linkedWebsite ->
                {| name = resource.Name.Value
                   Application_Type = "web"
-                  ApplicationId = linkedWebsite |} |> box
+                  ApplicationId = linkedWebsite.Value |} |> box
             | None ->
                {| name = resource.Name.Value
                   Application_Type = "web" |} |> box
