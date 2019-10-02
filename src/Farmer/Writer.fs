@@ -50,6 +50,7 @@ module Outputters =
         name = farm.Name.Value
         apiVersion = "2018-02-01"
         location = farm.Location
+        kind = farm.Kind
         properties =
             if farm.IsDynamic then
                 box {| name = farm.Name.Value; computeMode = "Dynamic" |}

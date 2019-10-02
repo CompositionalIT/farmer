@@ -1097,6 +1097,7 @@ module ArmBuilder =
                             | Medium -> "1"
                             | Large -> "2"
                           IsDynamic = false
+                          Kind = if linuxFx.IsSome then "linux" else ""
                           Tier =
                             match wac.Sku with
                             | WebApp.Free -> "Free"
@@ -1180,6 +1181,7 @@ module ArmBuilder =
                           WorkerSize = "Y1"
                           IsDynamic = true
                           Tier = "Dynamic"
+                          Kind = ""
                           WorkerCount = 0 }
 
                     yield ServerFarm serverFarm

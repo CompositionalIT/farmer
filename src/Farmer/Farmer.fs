@@ -61,6 +61,7 @@ type ServerFarm =
       WorkerSize : string
       IsDynamic : bool
       Tier : string
+      Kind : string
       WorkerCount : int }
 type CosmosDbContainer =
     { Name : ResourceName
