@@ -1037,29 +1037,26 @@ module ArmBuilder =
                             | Python Python36, Windows -> Some "3.4" // not typo, really version 3.4
                             | Python Python27, Windows -> Some "2.7"
                             | _ -> None
-                          Metadata = [
-                              let currentStack =
-                                match wac.RuntimeStack, wac.OperatingSystem with
-                                | Java (Java11 Tomcat90), Windows
-                                | Java (Java11 Tomcat85), Windows
-                                | Java (Java8 Tomcat90), Windows
-                                | Java (Java8 Tomcat85), Windows ->
-                                    Some "java"
-                                | Php _, _ ->
-                                    Some "php"
-                                | Python Python36, Windows
-                                | Python Python27, Windows ->
-                                    Some "python"
-                                | DotNetCore _, Windows ->
-                                    Some "dotnetcore"
-                                | AspNet _, _ ->
-                                    Some "dotnet"
-                                | _ ->
-                                    None
-                              match currentStack with
-                              | Some currentStack -> yield ("CURRENT_STACK", currentStack)
-                              | None -> ()
-                          ]
+                          Metadata =
+                            match wac.RuntimeStack, wac.OperatingSystem with
+                            | Java (Java11 Tomcat90), Windows
+                            | Java (Java11 Tomcat85), Windows
+                            | Java (Java8 Tomcat90), Windows
+                            | Java (Java8 Tomcat85), Windows ->
+                                Some "java"
+                            | Php _, _ ->
+                                Some "php"
+                            | Python Python36, Windows
+                            | Python Python27, Windows ->
+                                Some "python"
+                            | DotNetCore _, Windows ->
+                                Some "dotnetcore"
+                            | AspNet _, _ ->
+                                Some "dotnet"
+                            | _ ->
+                                None
+                            |> Option.map(fun stack -> "CURRENT_STACK", stack)
+                            |> Option.toList
                         }
 
                     let serverFarm =
