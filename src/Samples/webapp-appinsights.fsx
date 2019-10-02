@@ -8,7 +8,7 @@ let template =
         name "mysuperwebapp"
         service_plan_name "myserverfarm"
         sku WebApp.Sku.F1
-        app_insights_name "myappinsights"
+        app_insights_auto_name "myappinsights"
     }
 
     arm {
