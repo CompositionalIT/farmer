@@ -79,7 +79,7 @@ module Storage =
 module WebApp =
     type WorkerSize = Small | Medium | Large
     type WebAppSku = Shared | Free | Basic of string | Standard of string | Premium of string | PremiumV2 of string | Isolated of string
-    type WorkerRuntime = DotNet | Node | Java | Python
+    type FunctionsRuntime = DotNet | Node | Java | Python
     type OS = Windows | Linux
     
     type DotNetCoreRuntime =
@@ -88,51 +88,40 @@ module WebApp =
         | DotNetCore20
         | DotNetCore11
         | DotNetCore10
-       
-    
     type AspNetRuntime =
         | AspNet47
         | AspNet35
-        
-    type Java11Runtime =
-        | JavaSE
-        | Tomcat90 of OS
-        | Tomcat85 of OS
-    
-    type Java8Runtime =
+    type JavaHost =
         | JavaSE
         | WildFly14
-        | Tomcat90 of OS
-        | Tomcat85 of OS
-        
+        | Tomcat90
+        | Tomcat85
+    type JavaRuntime =
+        | Java8 of JavaHost
+        | Java11 of JavaHost
     type PhpRuntime =
-        | Php73 of OS
-        | Php72 of OS
+        | Php73
+        | Php72
         | Php71
-        | Php70 of OS
-        | Php56 of OS
-    
+        | Php70
+        | Php56
     type PythonRuntime =
         | Python37
-        | Python36 of OS
-        | Python27 of OS
-    
+        | Python36
+        | Python27
     type RubyRuntime =
         | Ruby26
         | Ruby25
         | Ruby24
         | Ruby23
-                    
     type RuntimeStack =
-        | DotNetCore of DotNetCoreRuntime * OS
+        | DotNetCore of DotNetCoreRuntime
         | AspNet of AspNetRuntime
-        | Java11 of Java11Runtime
-        | Java8 of Java8Runtime
+        | Java of JavaRuntime
         | Node
         | Php of PhpRuntime
         | Python of PythonRuntime
         | Ruby of RubyRuntime
-        
     module Sku =
         let D1 = Shared
         let F1 = Free
@@ -179,7 +168,8 @@ module WebApp =
           AlwaysOn : bool
           Settings : Map<string, string>
           Dependencies : ResourceName list
-          RuntimeStack : RuntimeStack }
+          RuntimeStack : RuntimeStack
+          OperatingSystem : OS }
         /// Gets the ARM expression path to the publishing password of this web app.
         member this.PublishingPassword = publishingPassword this.Name      
     type FunctionsConfig =
@@ -187,7 +177,7 @@ module WebApp =
           ServicePlanName : ResourceName
           StorageAccountName : ResourceRef
           AppInsightsName : ResourceRef option
-          WorkerRuntime : WorkerRuntime
+          WorkerRuntime : FunctionsRuntime
           OperatingSystem : OS
           Settings : Map<string, string>
           Dependencies : ResourceName list }
@@ -228,7 +218,8 @@ module WebApp =
               AlwaysOn = false
               Settings = Map.empty
               Dependencies = []
-              RuntimeStack = DotNetCore(DotNetCore22, Windows) }
+              RuntimeStack = DotNetCore DotNetCore22
+              OperatingSystem = Windows }
         member __.Run(state:WebAppConfig) =
             { state with
                 ServicePlanName =
@@ -276,22 +267,22 @@ module WebApp =
         member __.AddSetting(state:WebAppConfig, key, value) = { state with Settings = state.Settings.Add(key, value) }
         [<CustomOperation "depends_on">]
         /// Sets a dependency for the web app.
-        member __.DependsOn(state:WebAppConfig, resourceName) =
-            { state with Dependencies = resourceName :: state.Dependencies }
+        member __.DependsOn(state:WebAppConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
         [<CustomOperation "always_on">]
         /// Sets "Always On" flag
-        member __.AlwaysOn(state:WebAppConfig) =
-            { state with AlwaysOn = true }
+        member __.AlwaysOn(state:WebAppConfig) = { state with AlwaysOn = true }
         [<CustomOperation "runtime_stack">]
-        /// Sets Runtime stack and OS (if available for selected runtime)
+        /// Sets Runtime Stack
+        member __.RuntimeStack(state:WebAppConfig, runtime) = { state with RuntimeStack = runtime }
         member __.RuntimeStack(state:WebAppConfig, runtime) = { state with RuntimeStack = DotNetCore runtime }
         member __.RuntimeStack(state:WebAppConfig, runtime) = { state with RuntimeStack = AspNet runtime }
-        member __.RuntimeStack(state:WebAppConfig, runtime) = { state with RuntimeStack = Java11 runtime }
-        member __.RuntimeStack(state:WebAppConfig, runtime) = { state with RuntimeStack = Java8 runtime }
-        member __.RuntimeStack(state:WebAppConfig, runtime) = { state with RuntimeStack = Node runtime }
+        member __.RuntimeStack(state:WebAppConfig, runtime) = { state with RuntimeStack = Java runtime }
         member __.RuntimeStack(state:WebAppConfig, runtime) = { state with RuntimeStack = Php runtime }
         member __.RuntimeStack(state:WebAppConfig, runtime) = { state with RuntimeStack = Python runtime }
         member __.RuntimeStack(state:WebAppConfig, runtime) = { state with RuntimeStack = Ruby runtime }
+        [<CustomOperation "operating_system">]
+        /// Sets the operating system
+        member __.OperatingSystem(state:WebAppConfig, os) = { state with OperatingSystem = os }
 
     type FunctionsBuilder() =
         member __.Yield _ =
@@ -926,34 +917,6 @@ module ArmBuilder =
                 | :? StorageAccountConfig as sac ->
                     [ StorageAccount { Location = state.Location; Name = sac.Name; Sku = sac.Sku } ]
                 | :? WebAppConfig as wac -> [                   
-                    let javaProps =
-                        match wac.RuntimeStack with
-                        | Java11 Java11Runtime.JavaSE -> {| Java = None |}
-                        | Java11 (Java11Runtime.Tomcat90 OS.Windows) -> {| Java = Some {| Version = "11"; Container = "Tomcat"; ContainerVersion = "9.0" |} |}
-                        | Java11 (Java11Runtime.Tomcat90 OS.Linux) -> {| Java = None |}
-                        | Java11 (Java11Runtime.Tomcat85 OS.Windows) -> {| Java = Some {| Version = "11"; Container = "Tomcat"; ContainerVersion = "8.5" |} |}
-                        | Java11 (Java11Runtime.Tomcat85 OS.Linux) -> {| Java = None |}
-                        | Java8 Java8Runtime.JavaSE -> {| Java = None |}
-                        | Java8 Java8Runtime.WildFly14 -> {| Java = None |}
-                        | Java8 (Java8Runtime.Tomcat90 OS.Windows) -> {| Java = Some {| Version = "1.8"; Container = "Tomcat"; ContainerVersion = "9.0" |} |}
-                        | Java8 (Java8Runtime.Tomcat90 OS.Linux) -> {| Java = None |}
-                        | Java8 (Java8Runtime.Tomcat85 OS.Windows) -> {| Java = Some {| Version = "1.8"; Container = "Tomcat"; ContainerVersion = "8.5" |} |}
-                        | Java8 (Java8Runtime.Tomcat85 OS.Linux) -> {| Java = None |}
-                        | _ -> {| Java = None |}
-                    
-                    let phpProps =
-                        match wac.RuntimeStack with
-                        | Php (Php73 OS.Windows) -> {| PhpVersion = Some "7.3" |}
-                        | Php (Php73 OS.Linux) -> {| PhpVersion = None |}
-                        | Php (Php72 OS.Windows) -> {| PhpVersion = Some "7.2" |}
-                        | Php (Php72 OS.Linux) -> {| PhpVersion = None |}
-                        | Php Php71 -> {| PhpVersion = Some "7.1" |}
-                        | Php (Php70 OS.Windows) -> {| PhpVersion = Some "7.0" |}
-                        | Php (Php70 OS.Linux) -> {| PhpVersion = None |}
-                        | Php (Php56 OS.Windows) -> {| PhpVersion = Some "5.6" |}
-                        | Php (Php56 OS.Linux) -> {| PhpVersion = None |}
-                        | _ -> {| PhpVersion = None |}
-
                     let webApp =
                         { Name = wac.Name
                           Location = state.Location
@@ -987,7 +950,7 @@ module ArmBuilder =
                             match wac.AppInsightsName with
                             | Some _ -> Set [ AppInsightsExtension ]
                             | None -> Set.empty
-                          Kind = None
+                          Kind = "app"                          
                           Dependencies = [
                             yield wac.ServicePlanName
                             yield! wac.Dependencies
@@ -1001,74 +964,97 @@ module ArmBuilder =
                           ]
                           AlwaysOn = wac.AlwaysOn
                           LinuxFxVersion =
-                            match wac.RuntimeStack with
-                            | DotNetCore(DotNetCore22, Linux) -> Some "DOTNETCORE|2.2"
-                            | DotNetCore(DotNetCore21, Linux) -> Some "DOTNETCORE|2.1"
-                            | DotNetCore(DotNetCore20, Linux) -> Some "DOTNETCORE|2.0"
-                            | DotNetCore(DotNetCore11, Linux) -> Some "DOTNETCORE|1.1"
-                            | DotNetCore(DotNetCore10, Linux) -> Some "DOTNETCORE|1.0"
-                            | Java11 Java11Runtime.JavaSE -> Some "JAVA|11-java11"
-                            | Java11 (Java11Runtime.Tomcat90 Linux) -> Some "TOMCAT|9.0-java11"
-                            | Java11 (Java11Runtime.Tomcat85 Linux) -> Some "TOMCAT|8.5-java11"
-                            | Java8 Java8Runtime.JavaSE -> Some "JAVA|8-jre8"
-                            | Java8 Java8Runtime.WildFly14 -> Some "WILDFLY|14-jre8"
-                            | Java8 (Java8Runtime.Tomcat90 Linux) -> Some "TOMCAT|9.0-jre8"
-                            | Java8 (Java8Runtime.Tomcat85 Linux) -> Some "TOMCAT|8.5-jre8"
-                            | Node -> Some "NODE|lts"
-                            | Php (Php73 Linux) -> Some "PHP|7.3"
-                            | Php (Php72 Linux) -> Some "PHP|7.2"
-                            | Php (Php70 Linux) -> Some "PHP|7.0"
-                            | Php (Php56 Linux) -> Some "PHP|5.6"
-                            | Python PythonRuntime.Python37 -> Some "PYTHON|3.7"
-                            | Python (PythonRuntime.Python36 Linux) -> Some "PYTHON|3.6"
-                            | Python (PythonRuntime.Python27 Linux) -> Some "PYTHON|2.7"
-                            | Ruby Ruby26 -> Some "RUBY|2.6"
-                            | Ruby Ruby25 -> Some "RUBY|2.5"
-                            | Ruby Ruby24 -> Some "RUBY|2.4"
-                            | Ruby Ruby23 -> Some "RUBY|2.3"
-                            | DotNetCore(_, Windows) -> None
-                            | AspNet _ -> None
-                            | Java11 _ -> None
-                            | Java8 _ -> None
-                            | Php _ -> None
-                            | Python _ -> None
+                            match wac.RuntimeStack, wac.OperatingSystem with
+                            | DotNetCore DotNetCore22, Linux -> Some "DOTNETCORE|2.2"
+                            | DotNetCore DotNetCore21, Linux -> Some "DOTNETCORE|2.1"
+                            | DotNetCore DotNetCore20, Linux -> Some "DOTNETCORE|2.0"
+                            | DotNetCore DotNetCore11, Linux -> Some "DOTNETCORE|1.1"
+                            | DotNetCore DotNetCore10, Linux -> Some "DOTNETCORE|1.0"
+                            | Java (Java11 JavaSE), _ -> Some "JAVA|11-java11"
+                            | Java (Java11 Tomcat90), Linux -> Some "TOMCAT|9.0-java11"
+                            | Java (Java11 Tomcat85), Linux -> Some "TOMCAT|8.5-java11"
+                            | Java (Java8 JavaSE), _ -> Some "JAVA|8-jre8"
+                            | Java (Java8 WildFly14), _ -> Some "WILDFLY|14-jre8"
+                            | Java (Java8 Tomcat90), Linux -> Some "TOMCAT|9.0-jre8"
+                            | Java (Java8 Tomcat85), Linux -> Some "TOMCAT|8.5-jre8"
+                            | Node, _ -> Some "NODE|lts"
+                            | Php Php73, Linux -> Some "PHP|7.3"
+                            | Php Php72, Linux -> Some "PHP|7.2"
+                            | Php Php70, Linux -> Some "PHP|7.0"
+                            | Php Php56, Linux -> Some "PHP|5.6"
+                            | Python Python37, _ -> Some "PYTHON|3.7"
+                            | Python Python36, Linux -> Some "PYTHON|3.6"
+                            | Python Python27, Linux -> Some "PYTHON|2.7"
+                            | Ruby Ruby26, _ -> Some "RUBY|2.6"
+                            | Ruby Ruby25, _ -> Some "RUBY|2.5"
+                            | Ruby Ruby24, _ -> Some "RUBY|2.4"
+                            | Ruby Ruby23, _ -> Some "RUBY|2.3"
+                            | _ -> None
                           NetFrameworkVersion =
                             match wac.RuntimeStack with
                             | AspNet AspNet47 -> Some "v4.0"
                             | AspNet AspNet35 -> Some "v2.0"
                             | _ -> None
-                          JavaVersion = javaProps.Java |> Option.map (fun x -> x.Version)
-                          JavaContainer = javaProps.Java |> Option.map (fun x -> x.Container)
-                          JavaContainerVersion = javaProps.Java |> Option.map (fun x -> x.ContainerVersion)
-                          PhpVersion = phpProps.PhpVersion
+                          JavaVersion =
+                            match wac.RuntimeStack, wac.OperatingSystem with
+                            | Java (Java11 Tomcat90), Windows
+                            | Java (Java11 Tomcat85), Windows ->
+                                Some "11"
+                            | Java (Java8 Tomcat90), Windows
+                            | Java (Java8 Tomcat85), Windows ->
+                                Some "1.8"
+                            | _ ->
+                                None
+                          JavaContainer =
+                            match wac.RuntimeStack, wac.OperatingSystem with
+                            | Java (Java11 Tomcat90), Windows
+                            | Java (Java11 Tomcat85), Windows
+                            | Java (Java8 Tomcat90), Windows 
+                            | Java (Java8 Tomcat85), Windows ->
+                                Some "Tomcat"
+                            | _ ->
+                                None
+                          JavaContainerVersion =
+                            match wac.RuntimeStack, wac.OperatingSystem with
+                            | Java (Java11 Tomcat90), Windows
+                            | Java (Java8 Tomcat90), Windows ->
+                                Some "9.0"
+                            | Java (Java11 Tomcat85), Windows
+                            | Java (Java8 Tomcat85), Windows ->
+                                Some "8.5"
+                            | _ ->
+                                None
+                          PhpVersion =
+                            match wac.RuntimeStack, wac.OperatingSystem with
+                            | Php Php73, Windows -> Some "7.3"
+                            | Php Php72, Windows -> Some "7.2"
+                            | Php Php70, Windows -> Some "7.0"
+                            | Php Php71, _ -> Some "7.1"
+                            | Php Php56, Windows -> Some "5.6"
+                            | _ -> None
                           PythonVersion =
-                            match wac.RuntimeStack with
-                            | Python (PythonRuntime.Python36 Windows) -> Some "3.4" // not typo, really version 3.4
-                            | Python (PythonRuntime.Python27 Windows) -> Some "2.7"
+                            match wac.RuntimeStack, wac.OperatingSystem with
+                            | Python Python36, Windows -> Some "3.4" // not typo, really version 3.4
+                            | Python Python27, Windows -> Some "2.7"
                             | _ -> None
                           Metadata = [
                               let currentStack =
-                                match wac.RuntimeStack with
-                                | Java11 (Java11Runtime.Tomcat90 Windows)
-                                | Java11 (Java11Runtime.Tomcat85 Windows)
-                                | Java8 (Java8Runtime.Tomcat90 Windows)
-                                | Java8 (Java8Runtime.Tomcat85 Windows) ->
+                                match wac.RuntimeStack, wac.OperatingSystem with
+                                | Java (Java11 Tomcat90), Windows
+                                | Java (Java11 Tomcat85), Windows
+                                | Java (Java8 Tomcat90), Windows
+                                | Java (Java8 Tomcat85), Windows ->
                                     Some "java"
-                                | Php _ ->
+                                | Php _, _ ->
                                     Some "php"
-                                | Python (PythonRuntime.Python36 Windows)
-                                | Python (PythonRuntime.Python27 Windows) ->
+                                | Python Python36, Windows
+                                | Python Python27, Windows ->
                                     Some "python"
-                                | DotNetCore (_, Windows) ->
+                                | DotNetCore _, Windows ->
                                     Some "dotnetcore"
-                                | AspNet _ ->
+                                | AspNet _, _ ->
                                     Some "dotnet"
-                                | DotNetCore (_, Linux)
-                                | Node
-                                | Ruby _
-                                | Java11 _
-                                | Java8 _
-                                | Python _ ->
+                                | _ ->
                                     None
                               match currentStack with
                               | Some currentStack -> yield ("CURRENT_STACK", currentStack)
@@ -1097,6 +1083,10 @@ module ArmBuilder =
                             | Medium -> "1"
                             | Large -> "2"
                           IsDynamic = false
+                          Kind =
+                            match wac.OperatingSystem with
+                            | Windows -> Some "app"
+                            | Linux -> Some "linux"
                           Tier =
                             match wac.Sku with
                             | WebApp.Free -> "Free"
@@ -1147,8 +1137,8 @@ module ArmBuilder =
 
                           Kind =
                             match fns.OperatingSystem with
-                            | Windows -> Some "functionapp"
-                            | Linux -> Some "functionapp,linux"
+                            | Windows -> "functionapp"
+                            | Linux -> "functionapp,linux"
                           Extensions = Set.empty
                           Dependencies = [
                             yield! fns.Dependencies
@@ -1178,6 +1168,10 @@ module ArmBuilder =
                           Name = fns.ServicePlanName
                           Sku = "Y1"
                           WorkerSize = "Y1"
+                          Kind =
+                            match fns.OperatingSystem with
+                            | Windows -> None
+                            | Linux -> Some "linux"
                           IsDynamic = true
                           Tier = "Dynamic"
                           WorkerCount = 0 }

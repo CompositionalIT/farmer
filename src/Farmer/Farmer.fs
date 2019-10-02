@@ -45,7 +45,7 @@ type WebApp =
       Extensions : WebAppExtensions Set
       AlwaysOn : bool
       Dependencies : ResourceName list
-      Kind : string option 
+      Kind : string
       LinuxFxVersion : string option
       NetFrameworkVersion : string option
       JavaVersion : string option
@@ -60,6 +60,7 @@ type ServerFarm =
       Sku: string
       WorkerSize : string
       IsDynamic : bool
+      Kind : string option
       Tier : string
       WorkerCount : int }
 type CosmosDbContainer =
