@@ -1005,7 +1005,7 @@ module ArmBuilder =
                     | AutomaticallyCreated resourceName ->
                         let serverFarm =
                             { Location = state.Location
-                              Name = fns.ServicePlanName.ResourceName
+                              Name = resourceName
                               Sku = "Y1"
                               WorkerSize = "Y1"
                               IsDynamic = true
