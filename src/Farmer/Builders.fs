@@ -148,6 +148,11 @@ module WebApp =
             this.AppInsightsName
             |> Option.bind (fun r -> r.ResourceNameOpt)
             |> Option.map Helpers.AppInsights.instrumentationKey
+        member this.DefaultKey =
+            sprintf "[listkeys(concat(resourceId('Microsoft.Web/sites', '%s'), '/host/default/'),'2016-08-01').functionKeys.default]" this.Name.Value
+        member this.MasterKey =
+            sprintf "[listkeys(concat(resourceId('Microsoft.Web/sites', '%s'), '/host/default/'),'2016-08-01').masterKey]" this.Name.Value
+            
     type AppInsightsConfig =
         { Name : ResourceName }
         /// Gets the ARM expression path to the instrumentation key of this App Insights instance.
