@@ -55,6 +55,14 @@ let template (environment:string) storageSku webAppSku =
         website_node_default_version "8.1.4"
         setting "public_path" "./public"
         setting "STORAGE_CONNECTIONSTRING" myStorageAccount.Key
+        runtime_stack DotNetCore20
+        runtime_stack (Java8 JavaSE)
+        runtime_stack Python37
+        runtime_stack Php71
+        runtime_stack AspNet47
+        runtime_stack Ruby24
+        runtime_stack Node
+        operating_system Linux
 
         depends_on myStorageAccount
         depends_on myCosmosDb
