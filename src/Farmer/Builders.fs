@@ -82,39 +82,14 @@ module WebApp =
     type FunctionsRuntime = DotNet | Node | Java | Python
     type OS = Windows | Linux
     
-    type DotNetCoreRuntime =
-        | DotNetCore22
-        | DotNetCore21
-        | DotNetCore20
-        | DotNetCore11
-        | DotNetCore10
-    type AspNetRuntime =
-        | AspNet47
-        | AspNet35
-    type JavaHost =
-        | JavaSE
-        | WildFly14
-        | Tomcat90
-        | Tomcat85
-    type JavaRuntime =
-        | Java8 of JavaHost
-        | Java11 of JavaHost
-    type PhpRuntime =
-        | Php73
-        | Php72
-        | Php71
-        | Php70
-        | Php56
-    type PythonRuntime =
-        | Python37
-        | Python36
-        | Python27
-    type RubyRuntime =
-        | Ruby26
-        | Ruby25
-        | Ruby24
-        | Ruby23
-    type RuntimeStack =
+    type DotNetCoreRuntime = DotNetCore22 | DotNetCore21 | DotNetCore20 | DotNetCore11 | DotNetCore10
+    type AspNetRuntime = | AspNet47 | AspNet35
+    type JavaHost = JavaSE | WildFly14 | Tomcat90 | Tomcat85
+    type JavaRuntime = Java8 of JavaHost | Java11 of JavaHost
+    type PhpRuntime = Php73 | Php72 | Php71 | Php70 | Php56
+    type PythonRuntime = Python37 | Python36 | Python27
+    type RubyRuntime = Ruby26 | Ruby25 | Ruby24 | Ruby23
+    type WebAppRuntime =
         | DotNetCore of DotNetCoreRuntime
         | AspNet of AspNetRuntime
         | Java of JavaRuntime
@@ -168,7 +143,7 @@ module WebApp =
           AlwaysOn : bool
           Settings : Map<string, string>
           Dependencies : ResourceName list
-          RuntimeStack : RuntimeStack
+          Runtime : WebAppRuntime
           OperatingSystem : OS }
         /// Gets the ARM expression path to the publishing password of this web app.
         member this.PublishingPassword = publishingPassword this.Name      
@@ -177,7 +152,7 @@ module WebApp =
           ServicePlanName : ResourceName
           StorageAccountName : ResourceRef
           AppInsightsName : ResourceRef option
-          WorkerRuntime : FunctionsRuntime
+          Runtime : FunctionsRuntime
           OperatingSystem : OS
           Settings : Map<string, string>
           Dependencies : ResourceName list }
@@ -218,7 +193,7 @@ module WebApp =
               AlwaysOn = false
               Settings = Map.empty
               Dependencies = []
-              RuntimeStack = DotNetCore DotNetCore22
+              Runtime = DotNetCore DotNetCore22
               OperatingSystem = Windows }
         member __.Run(state:WebAppConfig) =
             { state with
@@ -273,13 +248,13 @@ module WebApp =
         member __.AlwaysOn(state:WebAppConfig) = { state with AlwaysOn = true }
         [<CustomOperation "runtime_stack">]
         /// Sets Runtime Stack
-        member __.RuntimeStack(state:WebAppConfig, runtime) = { state with RuntimeStack = runtime }
-        member __.RuntimeStack(state:WebAppConfig, runtime) = { state with RuntimeStack = DotNetCore runtime }
-        member __.RuntimeStack(state:WebAppConfig, runtime) = { state with RuntimeStack = AspNet runtime }
-        member __.RuntimeStack(state:WebAppConfig, runtime) = { state with RuntimeStack = Java runtime }
-        member __.RuntimeStack(state:WebAppConfig, runtime) = { state with RuntimeStack = Php runtime }
-        member __.RuntimeStack(state:WebAppConfig, runtime) = { state with RuntimeStack = Python runtime }
-        member __.RuntimeStack(state:WebAppConfig, runtime) = { state with RuntimeStack = Ruby runtime }
+        member __.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = runtime }
+        member __.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = DotNetCore runtime }
+        member __.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = AspNet runtime }
+        member __.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = Java runtime }
+        member __.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = Php runtime }
+        member __.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = Python runtime }
+        member __.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = Ruby runtime }
         [<CustomOperation "operating_system">]
         /// Sets the operating system
         member __.OperatingSystem(state:WebAppConfig, os) = { state with OperatingSystem = os }
@@ -290,7 +265,7 @@ module WebApp =
               ServicePlanName = ResourceName.Empty
               AppInsightsName = Some AutomaticPlaceholder
               StorageAccountName = AutomaticPlaceholder
-              WorkerRuntime = DotNet
+              Runtime = DotNet
               OperatingSystem = Windows
               Settings = Map.empty
               Dependencies = [] }
@@ -333,7 +308,7 @@ module WebApp =
         member __.LinkAppInsights(state:FunctionsConfig, name) = { state with AppInsightsName = Some(External name) }
         [<CustomOperation "use_runtime">]
         /// Sets the runtime of the Functions host.
-        member __.Runtime(state:FunctionsConfig, runtime) = { state with WorkerRuntime = runtime }
+        member __.Runtime(state:FunctionsConfig, runtime) = { state with Runtime = runtime }
         [<CustomOperation "operating_system">]
         /// Sets the operating system of the Functions host.
         member __.OperatingSystem(state:FunctionsConfig, os) = { state with OperatingSystem = os }
@@ -945,7 +920,6 @@ module ArmBuilder =
                             | None ->
                                 ()
                           ]
-
                           Extensions =
                             match wac.AppInsightsName with
                             | Some _ -> Set [ AppInsightsExtension ]
@@ -964,7 +938,7 @@ module ArmBuilder =
                           ]
                           AlwaysOn = wac.AlwaysOn
                           LinuxFxVersion =
-                            match wac.RuntimeStack, wac.OperatingSystem with
+                            match wac.Runtime, wac.OperatingSystem with
                             | DotNetCore DotNetCore22, Linux -> Some "DOTNETCORE|2.2"
                             | DotNetCore DotNetCore21, Linux -> Some "DOTNETCORE|2.1"
                             | DotNetCore DotNetCore20, Linux -> Some "DOTNETCORE|2.0"
@@ -991,12 +965,12 @@ module ArmBuilder =
                             | Ruby Ruby23, _ -> Some "RUBY|2.3"
                             | _ -> None
                           NetFrameworkVersion =
-                            match wac.RuntimeStack with
+                            match wac.Runtime with
                             | AspNet AspNet47 -> Some "v4.0"
                             | AspNet AspNet35 -> Some "v2.0"
                             | _ -> None
                           JavaVersion =
-                            match wac.RuntimeStack, wac.OperatingSystem with
+                            match wac.Runtime, wac.OperatingSystem with
                             | Java (Java11 Tomcat90), Windows
                             | Java (Java11 Tomcat85), Windows ->
                                 Some "11"
@@ -1006,7 +980,7 @@ module ArmBuilder =
                             | _ ->
                                 None
                           JavaContainer =
-                            match wac.RuntimeStack, wac.OperatingSystem with
+                            match wac.Runtime, wac.OperatingSystem with
                             | Java (Java11 Tomcat90), Windows
                             | Java (Java11 Tomcat85), Windows
                             | Java (Java8 Tomcat90), Windows 
@@ -1015,7 +989,7 @@ module ArmBuilder =
                             | _ ->
                                 None
                           JavaContainerVersion =
-                            match wac.RuntimeStack, wac.OperatingSystem with
+                            match wac.Runtime, wac.OperatingSystem with
                             | Java (Java11 Tomcat90), Windows
                             | Java (Java8 Tomcat90), Windows ->
                                 Some "9.0"
@@ -1025,7 +999,7 @@ module ArmBuilder =
                             | _ ->
                                 None
                           PhpVersion =
-                            match wac.RuntimeStack, wac.OperatingSystem with
+                            match wac.Runtime, wac.OperatingSystem with
                             | Php Php73, Windows -> Some "7.3"
                             | Php Php72, Windows -> Some "7.2"
                             | Php Php70, Windows -> Some "7.0"
@@ -1033,12 +1007,12 @@ module ArmBuilder =
                             | Php Php56, Windows -> Some "5.6"
                             | _ -> None
                           PythonVersion =
-                            match wac.RuntimeStack, wac.OperatingSystem with
+                            match wac.Runtime, wac.OperatingSystem with
                             | Python Python36, Windows -> Some "3.4" // not typo, really version 3.4
                             | Python Python27, Windows -> Some "2.7"
                             | _ -> None
                           Metadata =
-                            match wac.RuntimeStack, wac.OperatingSystem with
+                            match wac.Runtime, wac.OperatingSystem with
                             | Java (Java11 Tomcat90), Windows
                             | Java (Java11 Tomcat85), Windows
                             | Java (Java8 Tomcat90), Windows
@@ -1114,7 +1088,7 @@ module ArmBuilder =
                           Location = state.Location
                           AppSettings = [
                             yield! Map.toList fns.Settings
-                            yield "FUNCTIONS_WORKER_RUNTIME", string fns.WorkerRuntime
+                            yield "FUNCTIONS_WORKER_RUNTIME", string fns.Runtime
                             yield "WEBSITE_NODE_DEFAULT_VERSION", "10.14.1"
                             yield "FUNCTIONS_EXTENSION_VERSION", "~2"
                             yield "AzureWebJobsStorage", Storage.buildKey fns.StorageAccountName.ResourceName
