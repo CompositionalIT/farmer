@@ -37,70 +37,67 @@ module Outputters =
                   Application_Type = "web" |} |> box
         |}
         
-    let serverFarm (farm:ServerFarm) = {|
-        ``type`` = "Microsoft.Web/serverfarms"
-        sku =
-            let baseProps =
-                {| name = farm.Sku
-                   tier = farm.Tier
-                   size = farm.WorkerSize |}
-            if farm.IsDynamic then box {| baseProps with family = "Y"; capacity = 0 |}
-            else box {| baseProps with
-                            capacity = farm.WorkerCount |}
-        name = farm.Name.Value
-        apiVersion = "2018-02-01"
-        location = farm.Location
-        kind = farm.Kind
-        properties =
-            if farm.IsDynamic then
-                box {| name = farm.Name.Value; computeMode = "Dynamic" |}
-            else
-                box {| name = farm.Name.Value
-                       perSiteScaling = false
-                       reserved = false |}
-    |}
+    let serverFarm (farm:ServerFarm) =
+        let baseProps =
+            {|
+            ``type`` = "Microsoft.Web/serverfarms"
+            sku =
+                let baseProps =
+                    {| name = farm.Sku
+                       tier = farm.Tier
+                       size = farm.WorkerSize |}
+                if farm.IsDynamic then box {| baseProps with family = "Y"; capacity = 0 |}
+                else box {| baseProps with
+                                capacity = farm.WorkerCount |}
+            name = farm.Name.Value
+            apiVersion = "2018-02-01"
+            location = farm.Location
+            properties =
+                if farm.IsDynamic then
+                    box {| name = farm.Name.Value
+                           computeMode = "Dynamic" |}
+                else
+                    box {| name = farm.Name.Value
+                           perSiteScaling = false
+                           reserved = false |}
+            |}
+        match farm.Kind with
+        | Some kind -> box {| baseProps with kind = kind |}
+        | None -> box baseProps
+
     let webApp (webApp:WebApp) =
-        let value = function
-            | Some x -> x
-            | None -> null
-        let baseProps = {|
-            ``type`` = "Microsoft.Web/sites"
-            name = webApp.Name.Value
-            apiVersion = "2016-08-01"
-            location = webApp.Location
-            dependsOn = webApp.Dependencies |> List.map(fun p -> p.Value)
-            resources =
-                webApp.Extensions
-                |> Set.toList
-                |> List.map (function
-                | AppInsightsExtension ->
+        {| ``type`` = "Microsoft.Web/sites"
+           name = webApp.Name.Value
+           apiVersion = "2016-08-01"
+           location = webApp.Location
+           dependsOn = webApp.Dependencies |> List.map(fun p -> p.Value)
+           kind = webApp.Kind
+           resources =
+               webApp.Extensions
+               |> Set.toList
+               |> List.map (function
+               | AppInsightsExtension ->
                     {| apiVersion = "2016-08-01"
                        name = "Microsoft.ApplicationInsights.AzureWebSites"
                        ``type`` = "siteextensions"
                        dependsOn = [ webApp.Name.Value ]
                        properties = {||}
                     |})
-            properties =
-                {| serverFarmId = webApp.ServerFarm.Value
-                   siteConfig =
-                        {|
-                           appSettings = webApp.AppSettings |> List.map(fun (k,v) -> {| name = k; value = v |})
-                           alwaysOn = webApp.AlwaysOn
-                           metadata = webApp.Metadata |> List.map(fun (k,v) -> {| name = k; value = v |})
-                           linuxFxVersion = webApp.LinuxFxVersion |> value
-                           netFrameworkVersion = webApp.NetFrameworkVersion |> value
-                           javaVersion = webApp.JavaVersion |> value
-                           javaContainer = webApp.JavaContainer |> value
-                           javaContainerVersion = webApp.JavaContainerVersion |> value
-                           phpVersion = webApp.PhpVersion |> value
-                           pythonVersion = webApp.PhpVersion |> value
-                        |}
-                    
+           properties =
+               {| serverFarmId = webApp.ServerFarm.Value
+                  siteConfig =
+                       {| appSettings = webApp.AppSettings |> List.map(fun (k,v) -> {| name = k; value = v |})
+                          alwaysOn = webApp.AlwaysOn
+                          metadata = webApp.Metadata |> List.map(fun (k,v) -> {| name = k; value = v |})
+                          linuxFxVersion = webApp.LinuxFxVersion |> Option.toObj
+                          netFrameworkVersion = webApp.NetFrameworkVersion |> Option.toObj
+                          javaVersion = webApp.JavaVersion |> Option.toObj
+                          javaContainer = webApp.JavaContainer |> Option.toObj
+                          javaContainerVersion = webApp.JavaContainerVersion |> Option.toObj
+                          phpVersion = webApp.PhpVersion |> Option.toObj
+                          pythonVersion = webApp.PhpVersion |> Option.toObj |}
                 |}
         |}
-        match webApp.Kind with
-        | Some kind -> box {| baseProps with kind = kind |}
-        | None -> box baseProps
         
     let cosmosDbContainer (container:CosmosDbContainer) = {|
         ``type`` = "Microsoft.DocumentDb/databaseAccounts/apis/databases/containers"
