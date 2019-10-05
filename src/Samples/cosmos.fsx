@@ -12,7 +12,7 @@ let myCosmosDb = cosmosDb {
         container {
             name "myContainer"
             partition_key [ "/id" ] Hash
-            include_index "/path" [ Number, Hash ]
+            add_index "/path" [ Number, Hash ]
             exclude_path "/excluded/*"
         }
     ]
