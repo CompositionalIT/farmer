@@ -85,7 +85,7 @@ let template (environment:string) storageSku webAppSku =
 
     let mySearch = search {
         name "isaacsSearch"
-        sku Sku.BasicSearch
+        sku Sku.Basic
     }
 
     arm {
