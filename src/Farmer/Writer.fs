@@ -6,6 +6,14 @@ open System
 open System.IO
 
 module Outputters =
+    let private storageAccountContainer (parent:StorageAccount) (name, access) = {|
+        ``type`` = "blobServices/containers"
+        apiVersion = "2018-03-01-preview"
+        name = "default/" + name
+        dependsOn = [ parent.Name.Value ]
+        properties = {| publicAccess = access |}
+    |}
+    
     let storageAccount (resource:StorageAccount) = {|
         ``type`` = "Microsoft.Storage/storageAccounts"
         sku = {| name = resource.Sku |}
@@ -13,7 +21,9 @@ module Outputters =
         name = resource.Name.Value
         apiVersion = "2018-07-01"
         location = resource.Location
+        resources = resource.Containers |> List.map (storageAccountContainer resource)
     |}
+    
     let appInsights (resource:AppInsights) = {|
         ``type`` = "Microsoft.Insights/components"
         kind = "web"

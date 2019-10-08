@@ -366,7 +366,8 @@ module Converters =
             | AutomaticallyCreated resourceName ->
                 { StorageAccount.Name = resourceName 
                   Location = location
-                  Sku = Storage.Sku.StandardLRS }
+                  Sku = Storage.Sku.StandardLRS
+                  Containers = [] }
                 |> Some
             | AutomaticPlaceholder | External _ ->
                 None

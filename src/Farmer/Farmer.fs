@@ -46,7 +46,8 @@ type AppInsights =
 type StorageAccount =
     { Name : ResourceName 
       Location : string
-      Sku : string }
+      Sku : string
+      Containers : (string * string) list }
 type WebApp =
     { Name : ResourceName 
       ServerFarm : ResourceName
