@@ -6,12 +6,18 @@ open System
 open System.IO
 
 module Outputters =
+    let private containerAccess (a:StorageContainerAccess) =
+        match a with
+        | Private -> "None"
+        | Container -> "Container"
+        | Blob -> "Blob"
+
     let private storageAccountContainer (parent:StorageAccount) (name, access) = {|
         ``type`` = "blobServices/containers"
         apiVersion = "2018-03-01-preview"
         name = "default/" + name
         dependsOn = [ parent.Name.Value ]
-        properties = {| publicAccess = access |}
+        properties = {| publicAccess = containerAccess access |}
     |}
     
     let storageAccount (resource:StorageAccount) = {|

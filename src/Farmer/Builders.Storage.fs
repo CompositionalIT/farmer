@@ -2,6 +2,7 @@
 module Farmer.Storage
 
 open Farmer
+open Farmer.Internal
 
 module Sku =
     let StandardLRS = "Standard_LRS"
@@ -17,11 +18,6 @@ let buildKey (ResourceName name) =
         "[concat('DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=', listKeys('%s', '2017-10-01').keys[0].value)]"
             name
             name
-
-type StorageContainerAccess =
-    | Private
-    | Container
-    | Blob
 
 type StorageAccountConfig =
     { /// The name of the storage account.
@@ -41,33 +37,23 @@ type StorageAccountBuilder() =
     [<CustomOperation "sku">]
     /// Sets the sku of the storage account.
     member __.Sku(state:StorageAccountConfig, sku) = { state with Sku = sku }
-    [<CustomOperation "private_container">]
+    [<CustomOperation "add_private_container">]
     /// Adds private container.
-    member __.PrivateContainer(state:StorageAccountConfig, name) = { state with Containers = (name, StorageContainerAccess.Private) :: state.Containers }
-    [<CustomOperation "public_container">]
+    member __.AddPrivateContainer(state:StorageAccountConfig, name) = { state with Containers = (name, StorageContainerAccess.Private) :: state.Containers }
+    [<CustomOperation "add_public_container">]
     /// Adds container with anonymous read access for blobs and containers.
-    member __.PublicContainer(state:StorageAccountConfig, name) = { state with Containers = (name, StorageContainerAccess.Container) :: state.Containers }
-    [<CustomOperation "blob_container">]
+    member __.AddPublicContainer(state:StorageAccountConfig, name) = { state with Containers = (name, StorageContainerAccess.Container) :: state.Containers }
+    [<CustomOperation "add_blob_container">]
     /// Adds container with anonymous read access for blobs only.
-    member __.BlobContainer(state:StorageAccountConfig, name) = { state with Containers = (name, StorageContainerAccess.Blob) :: state.Containers }
+    member __.AddBlobContainer(state:StorageAccountConfig, name) = { state with Containers = (name, StorageContainerAccess.Blob) :: state.Containers }
 
 module Converters =
-    open Farmer.Internal
-    
-    let private containerAccess (a:StorageContainerAccess) =
-        match a with
-        | Private -> "None"
-        | Container -> "Container"
-        | Blob -> "Blob"
-    
     let storage location (sac:StorageAccountConfig) =
         {
             Location = location
             Name = sac.Name
             Sku = sac.Sku
-            Containers =
-                sac.Containers
-                |> List.map (fun (n,a) -> n, containerAccess a)
+            Containers = sac.Containers
         }
 
 let storageAccount = StorageAccountBuilder()
