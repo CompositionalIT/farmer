@@ -43,10 +43,15 @@ type AppInsights =
     { Name : ResourceName 
       Location : string
       LinkedWebsite : ResourceName option }
+type StorageContainerAccess =
+    | Private
+    | Container
+    | Blob
 type StorageAccount =
     { Name : ResourceName 
       Location : string
-      Sku : string }
+      Sku : string
+      Containers : (string * StorageContainerAccess) list }
 type WebApp =
     { Name : ResourceName 
       ServerFarm : ResourceName
