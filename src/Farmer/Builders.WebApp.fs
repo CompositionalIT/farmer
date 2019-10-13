@@ -112,25 +112,25 @@ module Converters =
               Location = location
               ServerFarm = wac.ServicePlanName
               AppSettings = [
-                yield! Map.toList wac.Settings
-                if wac.RunFromPackage then yield AppSettings.RunFromPackage
+                for kvp in wac.Settings do kvp.Key, kvp.Value
+                if wac.RunFromPackage then AppSettings.RunFromPackage
 
                 match wac.WebsiteNodeDefaultVersion with
-                | Some v -> yield AppSettings.WebsiteNodeDefaultVersion v
+                | Some v -> AppSettings.WebsiteNodeDefaultVersion v
                 | None -> ()
 
                 match wac.AppInsightsName with
                 | Some (External resourceName)
                 | Some (AutomaticallyCreated resourceName) ->
-                    yield "APPINSIGHTS_INSTRUMENTATIONKEY", Ai.instrumentationKey resourceName
-                    yield "APPINSIGHTS_PROFILERFEATURE_VERSION", "1.0.0"
-                    yield "APPINSIGHTS_SNAPSHOTFEATURE_VERSION", "1.0.0"
-                    yield "ApplicationInsightsAgent_EXTENSION_VERSION", "~2"
-                    yield "DiagnosticServices_EXTENSION_VERSION", "~3"
-                    yield "InstrumentationEngine_EXTENSION_VERSION", "~1"
-                    yield "SnapshotDebugger_EXTENSION_VERSION", "~1"
-                    yield "XDT_MicrosoftApplicationInsights_BaseExtensions", "~1"
-                    yield "XDT_MicrosoftApplicationInsights_Mode", "recommended"
+                    "APPINSIGHTS_INSTRUMENTATIONKEY", Ai.instrumentationKey resourceName
+                    "APPINSIGHTS_PROFILERFEATURE_VERSION", "1.0.0"
+                    "APPINSIGHTS_SNAPSHOTFEATURE_VERSION", "1.0.0"
+                    "ApplicationInsightsAgent_EXTENSION_VERSION", "~2"
+                    "DiagnosticServices_EXTENSION_VERSION", "~3"
+                    "InstrumentationEngine_EXTENSION_VERSION", "~1"
+                    "SnapshotDebugger_EXTENSION_VERSION", "~1"
+                    "XDT_MicrosoftApplicationInsights_BaseExtensions", "~1"
+                    "XDT_MicrosoftApplicationInsights_Mode", "recommended"
                 | Some AutomaticPlaceholder
                 | None ->
                     ()
@@ -141,12 +141,12 @@ module Converters =
                 | None -> Set.empty
               Kind = "app"                          
               Dependencies = [
-                yield wac.ServicePlanName
-                yield! wac.Dependencies
+                wac.ServicePlanName
+                for dep in wac.Dependencies do dep
                 match wac.AppInsightsName with
                 | Some (AutomaticallyCreated appInsightsName)
                 | Some (External appInsightsName) ->
-                    yield appInsightsName
+                    appInsightsName
                 | Some AutomaticPlaceholder
                 | None ->
                     ()
@@ -301,23 +301,23 @@ module Converters =
               ServerFarm = fns.ServicePlanName
               Location = location
               AppSettings = [
-                yield! Map.toList fns.Settings
-                yield "FUNCTIONS_WORKER_RUNTIME", string fns.Runtime
-                yield "WEBSITE_NODE_DEFAULT_VERSION", "10.14.1"
-                yield "FUNCTIONS_EXTENSION_VERSION", "~2"
-                yield "AzureWebJobsStorage", Storage.buildKey fns.StorageAccountName.ResourceName
-                yield "AzureWebJobsDashboard", Storage.buildKey fns.StorageAccountName.ResourceName
+                for kvp in fns.Settings do kvp.Key, kvp.Value
+                "FUNCTIONS_WORKER_RUNTIME", string fns.Runtime
+                "WEBSITE_NODE_DEFAULT_VERSION", "10.14.1"
+                "FUNCTIONS_EXTENSION_VERSION", "~2"
+                "AzureWebJobsStorage", Storage.buildKey fns.StorageAccountName.ResourceName
+                "AzureWebJobsDashboard", Storage.buildKey fns.StorageAccountName.ResourceName
 
                 match fns.AppInsightsName with
                 | Some (External resourceName)
                 | Some (AutomaticallyCreated resourceName) ->
-                    yield "APPINSIGHTS_INSTRUMENTATIONKEY", Ai.instrumentationKey resourceName
+                    "APPINSIGHTS_INSTRUMENTATIONKEY", Ai.instrumentationKey resourceName
                 | Some AutomaticPlaceholder
                 | None -> ()
 
                 if fns.OperatingSystem = Windows then
-                    yield "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING", Storage.buildKey fns.StorageAccountName.ResourceName
-                    yield "WEBSITE_CONTENTSHARE", fns.Name.Value.ToLower()
+                    "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING", Storage.buildKey fns.StorageAccountName.ResourceName
+                    "WEBSITE_CONTENTSHARE", fns.Name.Value.ToLower()
               ]
 
               Kind =
@@ -330,12 +330,12 @@ module Converters =
                 match fns.AppInsightsName with
                 | Some (AutomaticallyCreated appInsightsName)
                 | Some (External appInsightsName) ->
-                    yield appInsightsName
+                    appInsightsName
                 | Some AutomaticPlaceholder
                 | None ->
                     ()
-                yield fns.ServicePlanName
-                yield fns.StorageAccountName.ResourceName
+                fns.ServicePlanName
+                fns.StorageAccountName.ResourceName
               ]
               AlwaysOn = false
               LinuxFxVersion = None
