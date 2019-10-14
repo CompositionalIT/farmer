@@ -112,7 +112,7 @@ module Converters =
               Location = location
               ServerFarm = wac.ServicePlanName
               AppSettings = [
-                for kvp in wac.Settings do kvp.Key, kvp.Value
+                yield! wac.Settings |> Map.toList
                 if wac.RunFromPackage then AppSettings.RunFromPackage
 
                 match wac.WebsiteNodeDefaultVersion with
@@ -142,7 +142,7 @@ module Converters =
               Kind = "app"                          
               Dependencies = [
                 wac.ServicePlanName
-                for dep in wac.Dependencies do dep
+                yield! wac.Dependencies
                 match wac.AppInsightsName with
                 | Some (AutomaticallyCreated appInsightsName)
                 | Some (External appInsightsName) ->
@@ -301,7 +301,7 @@ module Converters =
               ServerFarm = fns.ServicePlanName
               Location = location
               AppSettings = [
-                for kvp in fns.Settings do kvp.Key, kvp.Value
+                yield! fns.Settings |> Map.toList
                 "FUNCTIONS_WORKER_RUNTIME", string fns.Runtime
                 "WEBSITE_NODE_DEFAULT_VERSION", "10.14.1"
                 "FUNCTIONS_EXTENSION_VERSION", "~2"

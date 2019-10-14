@@ -37,7 +37,7 @@ type ArmBuilder() =
                           let outputs = config |> Converters.cosmosDb state.Location
                           CosmosAccount outputs.Account
                           CosmosSqlDb outputs.SqlDb
-                          for container in outputs.Containers do CosmosContainer container
+                          yield! outputs.Containers |> List.map CosmosContainer
                       | :? SqlAzureConfig as config ->
                           SqlServer (Converters.sql state.Location config)
                       | :? VmConfig as config ->
