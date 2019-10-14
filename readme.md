@@ -223,7 +223,7 @@ No, we're not. Farmer has (at least currently) a specific goal in mind, which is
 Farmer **does** support `securestring` parameters for e.g. SQL and Virtual Machine passwords - these are automatically generated based on the contents of the template rather than explicitly by yourself. However, we don't currently plan on providing *rich* support for either parameters or variables for several reasons:
 
 * We want to keep the Farmer codebase simple for maintainers
-* We want to kep the Farmer API simple for users
+* We want to keep the Farmer API simple for users
 * We want to keep the generated ARM templates as readable as possible
 * We feel that instead of trying to embed conditional logic and program flow directly inside ARM templates in JSON, if you wish to parameterise your template that you should use a real programming language to do that: in this case, F#.
 
