@@ -14,47 +14,47 @@ type ArmBuilder() =
           Location = WestEurope }
 
     member __.Run (state:ArmConfig) =
-        state.Location, {
-        Parameters = state.Parameters |> Set.toList
-        Outputs = state.Outputs
-        Resources =
-            state.Resources
-            |> List.collect(function
-            | :? StorageAccountConfig as config ->
-                [ StorageAccount (Converters.storage state.Location config) ]
-            | :? WebAppConfig as config ->
-                let outputs = Converters.webApp state.Location config
-                [ yield WebApp outputs.WebApp
-                  yield ServerFarm outputs.ServerFarm
-                  match outputs.Ai with (Some ai) -> yield AppInsights ai | None -> () ]
-            | :? FunctionsConfig as config ->
-                let outputs = config |> Converters.functions state.Location
-                [ yield WebApp outputs.WebApp
-                  yield ServerFarm outputs.ServerFarm
-                  match outputs.Ai with (Some ai) -> yield AppInsights ai | None -> ()
-                  match outputs.Storage with (Some storage) -> yield StorageAccount storage | None -> () ]
-            | :? CosmosDbConfig as config ->
-                let outputs = config |> Converters.cosmosDb state.Location
-                [ yield CosmosAccount outputs.Account
-                  yield CosmosSqlDb outputs.SqlDb
-                  yield! outputs.Containers |> List.map CosmosContainer ]
-            | :? SqlAzureConfig as config ->
-                [ SqlServer (Converters.sql state.Location config) ]
-            | :? VmConfig as config ->
-                let output = Converters.vm state.Location config
-                [ yield Vm output.Vm
-                  yield Vnet output.Vnet
-                  yield Ip output.Ip
-                  yield Nic output.Nic
-                  match output.Storage with Some storage -> yield StorageAccount storage | None -> () ]
-            | :? SearchConfig as search ->
-                [ AzureSearch (Converters.search state.Location search) ]
-            | :? AppInsightsConfig as aiConfig ->
-                [ AppInsights (Converters.appInsights state.Location aiConfig) ]
-            | r ->
-                failwithf "Sorry, I don't know how to handle this resource of type '%s'." (r.GetType().FullName))
-            |> List.distinctBy(fun r -> r.ResourceName)
-    }
+        let output =
+            { Parameters = state.Parameters |> Set.toList
+              Outputs = state.Outputs
+              Resources = [
+                  for resource in state.Resources do
+                      match resource with
+                      | :? StorageAccountConfig as config ->
+                          StorageAccount (Converters.storage state.Location config)
+                      | :? WebAppConfig as config ->
+                          let outputs = Converters.webApp state.Location config
+                          WebApp outputs.WebApp
+                          ServerFarm outputs.ServerFarm
+                          match outputs.Ai with (Some ai) -> AppInsights ai | None -> ()
+                      | :? FunctionsConfig as config ->
+                          let outputs = config |> Converters.functions state.Location
+                          WebApp outputs.WebApp
+                          ServerFarm outputs.ServerFarm
+                          match outputs.Ai with (Some ai) -> AppInsights ai | None -> ()
+                          match outputs.Storage with (Some storage) -> StorageAccount storage | None -> ()
+                      | :? CosmosDbConfig as config ->
+                          let outputs = config |> Converters.cosmosDb state.Location
+                          CosmosAccount outputs.Account
+                          CosmosSqlDb outputs.SqlDb
+                          yield! outputs.Containers |> List.map CosmosContainer
+                      | :? SqlAzureConfig as config ->
+                          SqlServer (Converters.sql state.Location config)
+                      | :? VmConfig as config ->
+                          let output = Converters.vm state.Location config
+                          Vm output.Vm
+                          Vnet output.Vnet
+                          Ip output.Ip
+                          Nic output.Nic
+                          match output.Storage with Some storage -> StorageAccount storage | None -> ()
+                      | :? SearchConfig as search ->
+                          AzureSearch (Converters.search state.Location search)
+                      | :? AppInsightsConfig as aiConfig ->
+                          AppInsights (Converters.appInsights state.Location aiConfig)
+                      | r ->
+                          failwithf "Sorry, I don't know how to handle this resource of type '%s'." (r.GetType().FullName)
+                  ] |> List.distinctBy(fun r -> r.ResourceName) }
+        state.Location, output
 
     /// Creates an output; use the `output` keyword.
     [<CustomOperation "output">]

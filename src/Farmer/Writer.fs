@@ -38,9 +38,9 @@ module Outputters =
         apiVersion = "2014-04-01"
         tags =
             [ match resource.LinkedWebsite with
-              | Some linkedWebsite -> yield sprintf "[concat('hidden-link:', resourceGroup().id, '/providers/Microsoft.Web/sites/', '%s')]" linkedWebsite.Value, "Resource"
+              | Some linkedWebsite -> sprintf "[concat('hidden-link:', resourceGroup().id, '/providers/Microsoft.Web/sites/', '%s')]" linkedWebsite.Value, "Resource"
               | None -> ()
-              yield "displayName", "AppInsightsComponent" ]
+              "displayName", "AppInsightsComponent" ]
             |> Map.ofList
         properties =
          match resource.LinkedWebsite with
@@ -99,16 +99,16 @@ module Outputters =
         properties =
             {| serverFarmId = webApp.ServerFarm.Value
                siteConfig =
-                    [ yield "alwaysOn", box webApp.AlwaysOn
-                      yield "appSettings", webApp.AppSettings |> List.map(fun (k,v) -> {| name = k; value = v |}) |> box                      
-                      match webApp.LinuxFxVersion with Some v -> yield "linuxFxVersion", box v | None -> ()
-                      match webApp.NetFrameworkVersion with Some v -> yield "netFrameworkVersion", box v | None -> ()
-                      match webApp.JavaVersion with Some v -> yield "javaVersion", box v | None -> ()
-                      match webApp.JavaContainer with Some v -> yield "javaContainer", box v | None -> ()
-                      match webApp.JavaContainerVersion with Some v -> yield "javaContainerVersion", box v | None -> ()
-                      match webApp.PhpVersion with Some v -> yield "phpVersion", box v | None -> ()
-                      match webApp.PythonVersion with Some v -> yield "pythonVersion", box v | None -> ()
-                      yield "metadata", webApp.Metadata |> List.map(fun (k,v) -> {| name = k; value = v |}) |> box ]
+                    [ "alwaysOn", box webApp.AlwaysOn
+                      "appSettings", webApp.AppSettings |> List.map(fun (k,v) -> {| name = k; value = v |}) |> box                      
+                      match webApp.LinuxFxVersion with Some v -> "linuxFxVersion", box v | None -> ()
+                      match webApp.NetFrameworkVersion with Some v -> "netFrameworkVersion", box v | None -> ()
+                      match webApp.JavaVersion with Some v -> "javaVersion", box v | None -> ()
+                      match webApp.JavaContainer with Some v -> "javaContainer", box v | None -> ()
+                      match webApp.JavaContainerVersion with Some v -> "javaContainerVersion", box v | None -> ()
+                      match webApp.PhpVersion with Some v -> "phpVersion", box v | None -> ()
+                      match webApp.PythonVersion with Some v -> "pythonVersion", box v | None -> ()
+                      "metadata", webApp.Metadata |> List.map(fun (k,v) -> {| name = k; value = v |}) |> box ]
                     |> Map.ofList
              |}
     |}
@@ -204,7 +204,7 @@ module Outputters =
                administratorLoginPassword = database.Credentials.Password.AsArmRef
                version = "12.0" |}
         resources = [
-            yield
+            box
                 {| ``type`` = "databases"
                    name = database.DbName.Value               
                    apiVersion = "2015-01-01"
@@ -226,19 +226,18 @@ module Outputters =
                           dependsOn = [ database.DbName.Value ]
                        |}
                    ]
-                |} |> box
-            yield!
-                database.FirewallRules
-                |> List.map(fun fw ->
+                |}
+            for rule in database.FirewallRules do
+                box
                     {| ``type`` = "firewallrules"
-                       name = fw.Name
+                       name = rule.Name
                        apiVersion = "2014-04-01"
                        location = database.Location
                        properties =
-                        {| endIpAddress = string fw.Start
-                           startIpAddress = string fw.End |}
+                        {| endIpAddress = string rule.Start
+                           startIpAddress = string rule.End |}
                        dependsOn = [ database.ServerName.Value ]
-                    |} |> box)
+                    |}
         ]
     |}
     let publicIpAddress (ipAddress:VM.PublicIpAddress) = {|
@@ -277,9 +276,9 @@ module Outputters =
         name = nic.Name.Value
         location = nic.Location
         dependsOn = [
-            yield nic.VirtualNetwork.Value
+            nic.VirtualNetwork.Value
             for config in nic.IpConfigs do
-             yield config.PublicIpName.Value
+                config.PublicIpName.Value
         ]
         properties =
             {| ipConfigurations =
@@ -300,9 +299,9 @@ module Outputters =
         name = vm.Name.Value
         location = vm.Location
         dependsOn = [
-            yield vm.NetworkInterfaceName.Value
+            vm.NetworkInterfaceName.Value
             match vm.StorageAccount with
-            | Some s -> yield s.Value
+            | Some s -> s.Value
             | None -> ()
         ]
         properties =
@@ -314,44 +313,43 @@ module Outputters =
                 adminPassword = vm.Credentials.Password.AsArmRef
              |}
             storageProfile =
-             let vmNameLowerCase = vm.Name.Value.ToLower()
-             {| imageReference =
-                 {| publisher = vm.Image.Publisher
-                    offer = vm.Image.Offer
-                    sku = vm.Image.Sku
-                    version = "latest" |}
-                osDisk =
-                 {| createOption = "FromImage"
-                    name = sprintf "%s-osdisk" vmNameLowerCase
-                    diskSizeGB = vm.OsDisk.Size
-                    managedDisk = {| storageAccountType = string vm.OsDisk.DiskType |}
-                 |}
-                dataDisks =
-                 vm.DataDisks
-                 |> List.mapi(fun lun dataDisk ->
-                     {| createOption = "Empty"
-                        name = sprintf "%s-datadisk-%i" vmNameLowerCase lun
-                        diskSizeGB = dataDisk.Size
-                        lun = lun                           
-                        managedDisk = {| storageAccountType = string dataDisk.DiskType |} |})
-             |}
+                let vmNameLowerCase = vm.Name.Value.ToLower()
+                {| imageReference =
+                    {| publisher = vm.Image.Publisher
+                       offer = vm.Image.Offer
+                       sku = vm.Image.Sku
+                       version = "latest" |}
+                   osDisk =
+                    {| createOption = "FromImage"
+                       name = sprintf "%s-osdisk" vmNameLowerCase
+                       diskSizeGB = vm.OsDisk.Size
+                       managedDisk = {| storageAccountType = string vm.OsDisk.DiskType |}
+                    |}
+                   dataDisks =
+                    vm.DataDisks
+                    |> List.mapi(fun lun dataDisk ->
+                        {| createOption = "Empty"
+                           name = sprintf "%s-datadisk-%i" vmNameLowerCase lun
+                           diskSizeGB = dataDisk.Size
+                           lun = lun                           
+                           managedDisk = {| storageAccountType = string dataDisk.DiskType |} |})
+                |}
             networkProfile =
-             {| networkInterfaces =
-                 [ 
-                     {| id = sprintf "[resourceId('Microsoft.Network/networkInterfaces','%s')]" vm.NetworkInterfaceName.Value |}
-                 ]
-             |}
+                {| networkInterfaces = [
+                    {| id = sprintf "[resourceId('Microsoft.Network/networkInterfaces','%s')]" vm.NetworkInterfaceName.Value |}
+                   ]
+                |}
             diagnosticsProfile =
-             match vm.StorageAccount with
-             | Some storageAccount ->
-                 box
-                     {| bootDiagnostics =
-                         {| enabled = true
-                            storageUri = sprintf "[reference('%s').primaryEndpoints.blob]" storageAccount.Value
-                         |}
-                     |}
-             | None ->
-                 box {| bootDiagnostics = {| enabled = false |} |}
+                match vm.StorageAccount with
+                | Some storageAccount ->
+                    box
+                        {| bootDiagnostics =
+                            {| enabled = true
+                               storageUri = sprintf "[reference('%s').primaryEndpoints.blob]" storageAccount.Value
+                            |}
+                        |}
+                | None ->
+                    box {| bootDiagnostics = {| enabled = false |} |}
         |}
     |}
     let search (search:Search) = {|
