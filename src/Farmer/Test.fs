@@ -55,6 +55,14 @@ let template (environment:string) storageSku webAppSku =
         website_node_default_version "8.1.4"
         setting "public_path" "./public"
         setting "STORAGE_CONNECTIONSTRING" myStorageAccount.Key
+        runtime_stack DotNetCore20
+        runtime_stack (Java8 JavaSE)
+        runtime_stack Python37
+        runtime_stack Php71
+        runtime_stack AspNet47
+        runtime_stack Ruby24
+        runtime_stack Node
+        operating_system Linux
 
         depends_on myStorageAccount
         depends_on myCosmosDb
@@ -77,7 +85,7 @@ let template (environment:string) storageSku webAppSku =
 
     let mySearch = search {
         name "isaacsSearch"
-        sku Sku.BasicSearch
+        sku Sku.Basic
     }
 
     arm {
@@ -92,12 +100,12 @@ let template (environment:string) storageSku webAppSku =
         add_resource myCustomAi
 
         output "webAppName" myWebApp.Name
-        output "webAppPassword" myWebApp.PublishingPassword
+        output "webAppPassword" myWebApp.PublishingPassword        
         output "functionsPassword" myFunctions.PublishingPassword
         output "functionsAIKey" myFunctions.AppInsightsKey
         output "storageAccountKey" myFunctions.StorageAccountKey
         output "customAiKey" myCustomAi.InstrumentationKey
-    }
+    }    
 
 template "dev" Storage.Sku.StandardLRS WebApp.Sku.F1
 |> Writer.generateDeployScript "deleteme"

@@ -6,10 +6,17 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Farmer.fs" />
-    <Compile Include="Builders.fs" />
+    <Compile Include="Builders.Helpers.fs" />
+    <Compile Include="Builders.Storage.fs" />
+    <Compile Include="Builders.Vm.fs" />
+    <Compile Include="Builders.WebApp.fs" />
+    <Compile Include="Builders.Sql.fs" />
+    <Compile Include="Builders.Search.fs" />
+    <Compile Include="Builders.Cosmos.fs" />
+    <Compile Include="Builders.Arm.fs" />
     <Compile Include="Writer.fs" />
     <Compile Include="Test.fs" />
-    <PackageReference Include="FSharp.Core" Version="4.6"/>
+    <PackageReference Include="FSharp.Core" Version="4.7"/>
     <PackageReference Include="Newtonsoft.Json" Version="12.0.2"/>
   </ItemGroup>
 </Project>

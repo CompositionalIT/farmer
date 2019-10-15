@@ -9,8 +9,8 @@ let myStorage = storageAccount {
 
 let myWebApp = webApp {
     name "mysuperwebapp"
-    sku WebApp.Sku.S1
-    no_app_insights
+    sku Sku.S1
+    app_insights_off
     setting "storage_key" myStorage.Key
     depends_on myStorage
 }

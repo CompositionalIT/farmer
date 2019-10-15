@@ -13,10 +13,17 @@ type ResourceName =
 
 type ArmExpression =
     | ArmExpression of string
+    static member Eval (ArmExpression e) = e
 
-[<AutoOpen>]
-module ArmExpression =
-    let eval (ArmExpression e) = e
+/// A ResourceRef represents a linked resource; typically this will be for two resources that have a relationship
+/// such as AppInsights on WebApp. WebApps can automatically create and configure an AI instance for the webapp,
+/// or configure the web app to an existing AI instance, or do nothing.
+type ResourceRef =
+    | External of ResourceName
+    | AutomaticPlaceholder
+    | AutomaticallyCreated of ResourceName
+    member this.ResourceNameOpt = match this with External r | AutomaticallyCreated r -> Some r | AutomaticPlaceholder -> None
+    member this.ResourceName = this.ResourceNameOpt |> Option.defaultValue ResourceName.Empty
 
 type ConsistencyPolicy = Eventual | ConsistentPrefix | Session | BoundedStaleness of maxStaleness:int * maxIntervalSeconds : int | Strong
 type FailoverPolicy = NoFailover | AutoFailover of secondaryLocation:string | MultiMaster of secondaryLocation:string
@@ -40,24 +47,39 @@ type AppInsights =
     { Name : ResourceName 
       Location : string
       LinkedWebsite : ResourceName option }
+type StorageContainerAccess =
+    | Private
+    | Container
+    | Blob
 type StorageAccount =
     { Name : ResourceName 
       Location : string
-      Sku : string }
+      Sku : string
+      Containers : (string * StorageContainerAccess) list }
 type WebApp =
     { Name : ResourceName 
       ServerFarm : ResourceName
       Location : string
       AppSettings : List<string * string>
       Extensions : WebAppExtensions Set
+      AlwaysOn : bool
       Dependencies : ResourceName list
-      Kind : string option }
+      Kind : string
+      LinuxFxVersion : string option
+      NetFrameworkVersion : string option
+      JavaVersion : string option
+      JavaContainer : string option
+      JavaContainerVersion : string option
+      PhpVersion : string option
+      PythonVersion : string option
+      Metadata : List<string * string> }
 type ServerFarm =
     { Name : ResourceName 
       Location : string
       Sku: string
       WorkerSize : string
       IsDynamic : bool
+      Kind : string option
       Tier : string
       WorkerCount : int }
 type CosmosDbContainer =
@@ -105,15 +127,6 @@ type Search =
       ReplicaCount : int
       PartitionCount : int }
 module VM =
-    module WindowsOsVersion =
-        let v2008R2SP1 = "2008-R2-SP1"
-        let v2012Datacenter = "2012-Datacenter"
-        let v2012R2Datacenter = "2012-R2-Datacenter"
-        let v2016NanoServer = "2016-Nano-Server"
-        let v2016DatacenterWithContainers = "2016-Datacenter-with-Containers"
-        let v2016Datacenter = "2016-Datacenter"
-        let v2019Datacenter = "2019-Datacenter"
-
     type PublicIpAddress =
         { Name : ResourceName
           Location : string
@@ -173,6 +186,27 @@ type SupportedResource =
         | Nic x -> x.Name
         | Vm x -> x.Name
         | AzureSearch x -> x.Name
+
+[<AutoOpen>]
+module Locations =
+    let EastAsia = "eastasia"
+    let SoutheastAsia = "southeastasia"
+    let CentralUS = "centralus"
+    let EastUS = "eastus"
+    let EastUS2 = "eastus2"
+    let WestUS = "westus"
+    let NorthCentralUS = "northcentralus"
+    let SouthCentralUS = "southcentralus"
+    let NorthEurope = "northeurope"
+    let WestEurope = "westeurope"
+    let JapanWest = "japanwest"
+    let JapanEast = "japaneast"
+    let BrazilSouth = "brazilsouth"
+    let AustraliaEast = "australiaeast"
+    let AustraliaSoutheast = "australiasoutheast"
+    let SouthIndia = "southindia"
+    let CentralIndia = "centralindia"
+    let WestIndia = "westindia"
 
 type ArmTemplate =
     { Parameters : string list
