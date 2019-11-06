@@ -1,6 +1,9 @@
 [<AutoOpen>]
 module Farmer.ArmBuilder
 
+open Farmer.Resources
+open Farmer.Models
+
 type ArmConfig =
     { Parameters : string Set
       Outputs : (string * string) list
@@ -54,7 +57,7 @@ type ArmBuilder() =
                       | r ->
                           failwithf "Sorry, I don't know how to handle this resource of type '%s'." (r.GetType().FullName)
                   ] |> List.distinctBy(fun r -> r.ResourceName) }
-        state.Location, output
+        {| Location = state.Location; Template = output |}
 
     /// Creates an output; use the `output` keyword.
     [<CustomOperation "output">]

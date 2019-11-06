@@ -1,11 +1,14 @@
 [<AutoOpen>]
-module Farmer.WebApp
+module Farmer.Resources.WebApp
+
+open Farmer.Helpers
+open Farmer.Resources.Storage
+open Farmer
 
 type WorkerSize = Small | Medium | Large
 type WebAppSku = Shared | Free | Basic of string | Standard of string | Premium of string | PremiumV2 of string | Isolated of string
 type FunctionsRuntime = DotNet | Node | Java | Python
 type OS = Windows | Linux
-
 type DotNetCoreRuntime = DotNetCore22 | DotNetCore21 | DotNetCore20 | DotNetCore11 | DotNetCore10
 type AspNetRuntime = | AspNet47 | AspNet35
 type JavaHost = JavaSE | WildFly14 | Tomcat90 | Tomcat85
@@ -40,6 +43,7 @@ module Sku =
     let I1 = Isolated "I1"
     let I2 = Isolated "I2"
     let I3 = Isolated "I3"
+
 module AppSettings =
     let WebsiteNodeDefaultVersion version = "WEBSITE_NODE_DEFAULT_VERSION", version
     let RunFromPackage = "WEBSITE_RUN_FROM_PACKAGE", "1"
@@ -47,7 +51,10 @@ module AppSettings =
 let publishingPassword (ResourceName name) =
     sprintf "[list(resourceId('Microsoft.Web/sites/config', '%s', 'publishingcredentials'), '2014-06-01').properties.publishingPassword]" name
     |> ArmExpression
+
 module Ai =
+    open Farmer.Models
+
     let tryCreateAppInsightsName aiName rootName =
         aiName
         |> Option.map(function
@@ -59,6 +66,8 @@ module Ai =
     let instrumentationKey (ResourceName accountName) =
         sprintf "[reference('Microsoft.Insights/components/%s').InstrumentationKey]" accountName
         |> ArmExpression
+
+open Farmer.Models
 
 type WebAppConfig =
     { Name : ResourceName
@@ -108,7 +117,8 @@ type AppInsightsConfig =
 
 
 module Converters =
-    open Farmer.Internal
+    open Farmer.Models
+
     let webApp location (wac:WebAppConfig) =
         let webApp =
             { Name = wac.Name

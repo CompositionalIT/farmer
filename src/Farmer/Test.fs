@@ -1,6 +1,7 @@
 module Test
 
 open Farmer
+open Farmer.Resources
 
 let template (environment:string) storageSku webAppSku =
     let environment = environment.ToLower()

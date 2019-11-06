@@ -1,6 +1,10 @@
 [<AutoOpen>]
-module Farmer.VirtualMachine
+module Farmer.Resources.VirtualMachine
+
+open Farmer.Helpers
+open Farmer.Models
 open Farmer
+
 module Size =
     let Basic_A0 = "Basic_A0"
     let Basic_A1 = "Basic_A1"
@@ -280,8 +284,8 @@ type VirtualMachineBuilder() =
     member __.SubnetPrefix(state:VmConfig, prefix) = { state with SubnetPrefix = prefix }        
 
 module Converters =
-    open Farmer.Internal
-    open Farmer.Internal.VM
+    open VM
+
     let vm location (config:VmConfig) =
         let storage =
             match config.DiagnosticsStorageAccount with

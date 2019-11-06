@@ -1,7 +1,7 @@
-[<AutoOpen>]
 module Farmer.Helpers
 
 open Farmer
+
 let sanitise filters maxLength (resourceName:ResourceName) =
     resourceName.Value.ToLower()
     |> Seq.filter(fun c -> Seq.exists(fun filter -> filter c) filters)
