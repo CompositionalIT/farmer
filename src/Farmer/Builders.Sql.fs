@@ -33,6 +33,7 @@ type SqlAzureConfig =
     /// Gets the ARM expression path to the FQDN of this VM.
     member this.FullyQualifiedDomainName =
         sprintf "[reference(concat('Microsoft.Sql/servers/', variables('%s'))).fullyQualifiedDomainName]" this.ServerName.Value
+        |> ArmExpression
 type SqlBuilder() =
     let makeIp = System.Net.IPAddress.Parse
     member __.Yield _ =

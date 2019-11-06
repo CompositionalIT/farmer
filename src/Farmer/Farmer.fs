@@ -11,6 +11,10 @@ type ResourceName =
         | r when r = ResourceName.Empty -> ResourceName fallbackValue
         | r -> r
 
+type ArmExpression =
+    | ArmExpression of string
+    static member Eval (ArmExpression e) = e
+
 /// A ResourceRef represents a linked resource; typically this will be for two resources that have a relationship
 /// such as AppInsights on WebApp. WebApps can automatically create and configure an AI instance for the webapp,
 /// or configure the web app to an existing AI instance, or do nothing.
