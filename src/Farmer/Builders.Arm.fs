@@ -52,8 +52,18 @@ type ArmBuilder() =
                       | :? AppInsightsConfig as aiConfig ->
                           AppInsights (Converters.appInsights state.Location aiConfig)
                       | r ->
-                          failwithf "Sorry, I don't know how to handle this resource of type '%s'." (r.GetType().FullName)
-                  ] |> List.distinctBy(fun r -> r.ResourceName) }
+                          failwithf "Sorry, I don't know how to handle this resource of type '%s'." (r.GetType().FullName) ]
+                  |> List.groupBy(fun r -> r.ResourceName)
+                  |> List.choose(fun (resourceName, instances) ->
+                         match instances with
+                         | [] ->
+                            None
+                         | [ resource ] ->
+                            Some resource
+                         | resource :: _ ->
+                            printfn "Warning: %d resources were found with the same name of '%s'. The first one will be used." instances.Length resourceName.Value
+                            Some resource)
+                  }
         state.Location, output
 
     /// Creates an output; use the `output` keyword.
