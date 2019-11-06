@@ -60,7 +60,12 @@ type ArmBuilder() =
     [<CustomOperation "output">]
     member __.Output (state, outputName, outputValue) : ArmConfig = { state with Outputs = (outputName, outputValue) :: state.Outputs }
     member this.Output (state:ArmConfig, outputName:string, (ResourceName outputValue)) = this.Output(state, outputName, outputValue)
+    member this.Output (state:ArmConfig, outputName:string, (ArmExpression outputValue)) = this.Output(state, outputName, outputValue)
     member this.Output (state:ArmConfig, outputName:string, outputValue:string option) =
+        match outputValue with
+        | Some outputValue -> this.Output(state, outputName, outputValue)
+        | None -> state
+    member this.Output (state:ArmConfig, outputName:string, outputValue:ArmExpression option) =
         match outputValue with
         | Some outputValue -> this.Output(state, outputName, outputValue)
         | None -> state

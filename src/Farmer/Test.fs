@@ -100,12 +100,12 @@ let template (environment:string) storageSku webAppSku =
         add_resource myCustomAi
 
         output "webAppName" myWebApp.Name
-        output "webAppPassword" myWebApp.PublishingPassword
+        output "webAppPassword" myWebApp.PublishingPassword        
         output "functionsPassword" myFunctions.PublishingPassword
         output "functionsAIKey" myFunctions.AppInsightsKey
         output "storageAccountKey" myFunctions.StorageAccountKey
         output "customAiKey" myCustomAi.InstrumentationKey
-    }
+    }    
 
 template "dev" Storage.Sku.StandardLRS WebApp.Sku.F1
 |> Writer.generateDeployScript "deleteme"

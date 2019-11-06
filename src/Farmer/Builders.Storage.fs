@@ -18,6 +18,7 @@ let buildKey (ResourceName name) =
         "[concat('DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=', listKeys('%s', '2017-10-01').keys[0].value)]"
             name
             name
+    |> ArmExpression
 
 type StorageAccountConfig =
     { /// The name of the storage account.
