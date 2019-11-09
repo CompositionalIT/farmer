@@ -13,7 +13,20 @@ type ResourceName =
 
 type ArmExpression =
     | ArmExpression of string
-    static member Eval (ArmExpression e) = e
+    /// Gets the raw value of this expression.
+    member this.Value = match this with | ArmExpression e -> e
+    static member Eval (ArmExpression expr) = expr
+    static member Empty = ArmExpression ""
+
+type SecureParameter =
+    | SecureParameter of name:string
+    member this.AsArmRef =
+        let (SecureParameter value) = this
+        sprintf "[parameters('%s')]" value
+
+namespace Farmer.Models
+
+open Farmer
 
 /// A ResourceRef represents a linked resource; typically this will be for two resources that have a relationship
 /// such as AppInsights on WebApp. WebApps can automatically create and configure an AI instance for the webapp,
@@ -25,24 +38,22 @@ type ResourceRef =
     member this.ResourceNameOpt = match this with External r | AutomaticallyCreated r -> Some r | AutomaticPlaceholder -> None
     member this.ResourceName = this.ResourceNameOpt |> Option.defaultValue ResourceName.Empty
 
+namespace Farmer.Resources
+
 type ConsistencyPolicy = Eventual | ConsistentPrefix | Session | BoundedStaleness of maxStaleness:int * maxIntervalSeconds : int | Strong
 type FailoverPolicy = NoFailover | AutoFailover of secondaryLocation:string | MultiMaster of secondaryLocation:string
 type CosmosDbIndexKind = Hash | Range
 type CosmosDbIndexDataType = Number | String
-type SecureParameter =
-    | SecureParameter of name:string
-    member this.AsArmRef =
-        let (SecureParameter value) = this
-        sprintf "[parameters('%s')]" value
 type FeatureFlag = Enabled | Disabled
 type DiskType = StandardSSD_LRS | Standard_LRS | Premium_LRS
 type DiskInfo = { Size : int; DiskType : DiskType }
+type WebAppExtensions = AppInsightsExtension
 
-namespace Farmer.Internal
+namespace Farmer.Models
 
 open Farmer
+open Farmer.Resources
 
-type WebAppExtensions = AppInsightsExtension
 type AppInsights =
     { Name : ResourceName 
       Location : string
@@ -126,6 +137,7 @@ type Search =
       HostingMode : string
       ReplicaCount : int
       PartitionCount : int }
+
 module VM =
     type PublicIpAddress =
         { Name : ResourceName
@@ -154,14 +166,7 @@ module VM =
           DataDisks : DiskInfo list
           NetworkInterfaceName : ResourceName }
 
-
-
-
-
-
-namespace Farmer
-open Farmer.Internal
-open Farmer.Internal.VM
+open VM
 
 type SupportedResource =
     | CosmosAccount of CosmosDbAccount | CosmosSqlDb of CosmosDbSql | CosmosContainer of CosmosDbContainer
@@ -186,6 +191,10 @@ type SupportedResource =
         | Nic x -> x.Name
         | Vm x -> x.Name
         | AzureSearch x -> x.Name
+
+namespace Farmer
+open Farmer.Resources
+open Farmer.Models
 
 [<AutoOpen>]
 module Locations =

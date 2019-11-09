@@ -1,6 +1,7 @@
 #r @"..\Farmer\bin\Debug\netstandard2.0\Farmer.dll"
 
 open Farmer
+open Farmer.Resources.WebApp
 
 let myFunctions = functions {
     name "isaacsuperfun"
@@ -11,7 +12,7 @@ let template =
         location NorthEurope
         add_resource myFunctions
         output "functionsPassword" myFunctions.PublishingPassword
-        output "functionsAIKey" (myFunctions.AppInsightsKey |> Option.defaultValue "")
+        output "functionsAIKey" (myFunctions.AppInsightsKey |> Option.defaultValue ArmExpression.Empty)
         output "storageAccountKey" myFunctions.StorageAccountKey
     }
 

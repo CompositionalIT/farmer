@@ -1,6 +1,7 @@
 #r @"..\Farmer\bin\Debug\netstandard2.0\Farmer.dll"
 
 open Farmer
+open Farmer.Resources
 
 let makeTemplate (environment:string) theLocation storageSku webAppSku =
     let environment = environment.ToLower()

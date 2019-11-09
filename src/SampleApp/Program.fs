@@ -1,10 +1,12 @@
 ﻿open Farmer
+open Farmer.Resources
 
 //TODO: Create resources here!
+let webApp = webApp {
+    name "isaacssuperduperapp"
+}
 
-
-
-let location, template = arm {
+let deployment = arm {
     location NorthEurope
 
     //TODO: Assign resources here using the add_resource keyword
@@ -12,10 +14,10 @@ let location, template = arm {
 
 // Generate the ARM template here...
 let outputFilename =
-    template
+    deployment.Template
     |> Writer.toJson
     |> Writer.toFile @"generated-template"
 
 // Or deploy it directly to Azure here... (required Azure CLI installed!)
-(location, template)
+deployment
 |> Writer.quickDeploy "my-resource-group"

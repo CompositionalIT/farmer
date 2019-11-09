@@ -1,6 +1,7 @@
 [<AutoOpen>]
-module Farmer.Search
+module Farmer.Resources.Search
 
+open Farmer.Helpers
 open Farmer
 
 module Sku =
@@ -60,7 +61,7 @@ type FunctionsBuilder with
         this.DependsOn(state, search.Name)
 
 module Converters =
-   open Farmer.Internal
+   open Farmer.Models
    let search location (search:SearchConfig) =
         { Name = search.Name
           Location = location

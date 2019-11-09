@@ -1,8 +1,8 @@
 [<AutoOpen>]
-module Farmer.Storage
+module Farmer.Resources.Storage
 
 open Farmer
-open Farmer.Internal
+open Farmer.Models
 
 module Sku =
     let StandardLRS = "Standard_LRS"

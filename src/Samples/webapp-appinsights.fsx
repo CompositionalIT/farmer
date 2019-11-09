@@ -2,6 +2,7 @@
 
 open Farmer
 open Helpers
+open Farmer.Resources.WebApp
 
 let template =
     let myWebApp = webApp {
