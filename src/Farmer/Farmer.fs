@@ -1,5 +1,6 @@
 namespace Farmer
 
+/// Represents a name of an ARM resource
 type ResourceName =
     | ResourceName of string
     static member Empty = ResourceName ""
@@ -11,6 +12,7 @@ type ResourceName =
         | r when r = ResourceName.Empty -> ResourceName fallbackValue
         | r -> r
 
+/// Represents an expression used within an ARM template
 type ArmExpression =
     | ArmExpression of string
     /// Gets the raw value of this expression.
@@ -40,13 +42,21 @@ type ResourceRef =
 
 namespace Farmer.Resources
 
+/// The consistency policy of a CosmosDB database.
 type ConsistencyPolicy = Eventual | ConsistentPrefix | Session | BoundedStaleness of maxStaleness:int * maxIntervalSeconds : int | Strong
+/// The failover policy of a CosmosDB database.
 type FailoverPolicy = NoFailover | AutoFailover of secondaryLocation:string | MultiMaster of secondaryLocation:string
+/// The kind of index to use on a CosmoDB container.
 type CosmosDbIndexKind = Hash | Range
+/// The datatype for the key of index to use on a CosmoDB container.
 type CosmosDbIndexDataType = Number | String
+/// Whether a specific feature is active or not.
 type FeatureFlag = Enabled | Disabled
+/// The type of disk to use.
 type DiskType = StandardSSD_LRS | Standard_LRS | Premium_LRS
+/// Represents a disk in a VM.
 type DiskInfo = { Size : int; DiskType : DiskType }
+/// The type of extensions in a web app.
 type WebAppExtensions = AppInsightsExtension
 
 namespace Farmer.Models
@@ -193,7 +203,6 @@ type SupportedResource =
         | AzureSearch x -> x.Name
 
 namespace Farmer
-open Farmer.Resources
 open Farmer.Models
 
 [<AutoOpen>]

@@ -2,9 +2,6 @@
 open Farmer.Resources
 
 //TODO: Create resources here!
-let webApp = webApp {
-    name "isaacssuperduperapp"
-}
 
 let deployment = arm {
     location NorthEurope
