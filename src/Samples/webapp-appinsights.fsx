@@ -1,13 +1,12 @@
 #r @"..\Farmer\bin\Debug\netstandard2.0\Farmer.dll"
 
 open Farmer
-open Helpers
 open Farmer.Resources.WebApp
 
 let template =
     let myWebApp = webApp {
         name "mysuperwebapp"
-        sku WebApp.Sku.F1
+        sku Sku.F1
     }
 
     arm {

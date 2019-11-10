@@ -5,7 +5,7 @@ open Farmer.Resources
 
 let myStorage = storageAccount {
     name "mystorage"
-    sku Storage.Sku.PremiumLRS
+    sku Sku.PremiumLRS
 }
 
 let myWebApp = webApp {

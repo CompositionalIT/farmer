@@ -1,7 +1,7 @@
 #r @"..\Farmer\bin\Debug\netstandard2.0\Farmer.dll"
 
 open Farmer
-open Farmer.Resources.CosmosDb
+open Farmer.Resources
 
 let myCosmosDb = cosmosDb {    
     name "isaacsappdb"

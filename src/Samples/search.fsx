@@ -5,7 +5,7 @@ open Farmer.Resources.Search
 
 let mySearch = search {
     name "isaacsSearch"
-    sku Sku.SearchSku.Basic
+    sku Sku.Basic
 }
 
 let template = arm {
