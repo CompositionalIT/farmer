@@ -1,11 +1,14 @@
 [<AutoOpen>]
-module Farmer.WebApp
+module Farmer.Resources.WebApp
+
+open Farmer.Helpers
+open Farmer.Resources.Storage
+open Farmer
 
 type WorkerSize = Small | Medium | Large
 type WebAppSku = Shared | Free | Basic of string | Standard of string | Premium of string | PremiumV2 of string | Isolated of string
 type FunctionsRuntime = DotNet | Node | Java | Python
 type OS = Windows | Linux
-
 type DotNetCoreRuntime = DotNetCore22 | DotNetCore21 | DotNetCore20 | DotNetCore11 | DotNetCore10
 type AspNetRuntime = | AspNet47 | AspNet35
 type JavaHost = JavaSE | WildFly14 | Tomcat90 | Tomcat85
@@ -40,6 +43,7 @@ module Sku =
     let I1 = Isolated "I1"
     let I2 = Isolated "I2"
     let I3 = Isolated "I3"
+
 module AppSettings =
     let WebsiteNodeDefaultVersion version = "WEBSITE_NODE_DEFAULT_VERSION", version
     let RunFromPackage = "WEBSITE_RUN_FROM_PACKAGE", "1"
@@ -47,7 +51,10 @@ module AppSettings =
 let publishingPassword (ResourceName name) =
     sprintf "[list(resourceId('Microsoft.Web/sites/config', '%s', 'publishingcredentials'), '2014-06-01').properties.publishingPassword]" name
     |> ArmExpression
+
 module Ai =
+    open Farmer.Models
+
     let tryCreateAppInsightsName aiName rootName =
         aiName
         |> Option.map(function
@@ -59,6 +66,8 @@ module Ai =
     let instrumentationKey (ResourceName accountName) =
         sprintf "[reference('Microsoft.Insights/components/%s').InstrumentationKey]" accountName
         |> ArmExpression
+
+open Farmer.Models
 
 type WebAppConfig =
     { Name : ResourceName
@@ -108,7 +117,6 @@ type AppInsightsConfig =
 
 
 module Converters =
-    open Farmer.Internal
     let webApp location (wac:WebAppConfig) =
         let webApp =
             { Name = wac.Name
@@ -416,10 +424,12 @@ type WebAppBuilder() =
     [<CustomOperation "name">]
     /// Sets the name of the web app.
     member __.Name(state:WebAppConfig, name) = { state with Name = name }
+    /// Sets the name of the web app.
     member this.Name(state:WebAppConfig, name:string) = this.Name(state, ResourceName name)
     [<CustomOperation "service_plan_name">]
     /// Sets the name of the service plan.
     member __.ServicePlanName(state:WebAppConfig, name) = { state with ServicePlanName = name }
+    /// Sets the name of the service plan.
     member this.ServicePlanName(state:WebAppConfig, name:string) = this.ServicePlanName(state, ResourceName name)
     /// Sets the sku of the web app; use the `sku` keyword.
     [<CustomOperation "sku">]
@@ -434,6 +444,7 @@ type WebAppBuilder() =
     [<CustomOperation "app_insights_auto_name">]
     /// Sets the name of the automatically-created app insights instance.
     member __.UseAppInsights(state:WebAppConfig, name) = { state with AppInsightsName = Some (AutomaticallyCreated name) }
+    /// Specifies whether to use an app insights resource or not.
     member this.UseAppInsights(state:WebAppConfig, name:string) = this.UseAppInsights(state, ResourceName name)
     [<CustomOperation "app_insights_off">]
     /// Removes any automatic app insights creation, configuration and settings for this webapp.
@@ -460,13 +471,19 @@ type WebAppBuilder() =
     /// Sets "Always On" flag
     member __.AlwaysOn(state:WebAppConfig) = { state with AlwaysOn = true }
     [<CustomOperation "runtime_stack">]
-    /// Sets Runtime Stack
+    /// Sets the runtime stack
     member __.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = runtime }
+    /// Sets the dotnetcore runtime stack
     member __.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = DotNetCore runtime }
+    /// Sets the ASP NET runtime stack
     member __.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = AspNet runtime }
+    /// Sets the Java runtime stack
     member __.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = Java runtime }
+    /// Sets the PHP runtime stack
     member __.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = Php runtime }
+    /// Sets the Python runtime stack
     member __.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = Python runtime }
+    /// Sets the Ruby runtime stack
     member __.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = Ruby runtime }
     [<CustomOperation "operating_system">]
     /// Sets the operating system
@@ -510,6 +527,7 @@ type FunctionsBuilder() =
     [<CustomOperation "app_insights_auto_name">]
     /// Sets the name of the automatically-created app insights instance.
     member __.UseAppInsights(state:FunctionsConfig, name) = { state with AppInsightsName = Some (AutomaticallyCreated name) }
+    /// Specifies whether to use an app insights resource or not.
     member this.UseAppInsights(state:FunctionsConfig, name:string) = this.UseAppInsights(state, ResourceName name)
     [<CustomOperation "app_insights_off">]
     /// Removes any automatic app insights creation, configuration and settings for this webapp.

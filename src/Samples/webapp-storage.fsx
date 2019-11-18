@@ -1,10 +1,11 @@
 #r @"..\Farmer\bin\Debug\netstandard2.0\Farmer.dll"
 
 open Farmer
+open Farmer.Resources
 
 let myStorage = storageAccount {
     name "mystorage"
-    sku Storage.Sku.PremiumLRS
+    sku Sku.PremiumLRS
 }
 
 let myWebApp = webApp {

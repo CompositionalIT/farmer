@@ -1,6 +1,9 @@
 [<AutoOpen>]
 module Farmer.ArmBuilder
 
+open Farmer.Resources
+open Farmer.Models
+
 type ArmConfig =
     { Parameters : string Set
       Outputs : (string * string) list
@@ -64,7 +67,7 @@ type ArmBuilder() =
                             printfn "Warning: %d resources were found with the same name of '%s'. The first one will be used." instances.Length resourceName.Value
                             Some resource)
                   }
-        state.Location, output
+        {| Location = state.Location; Template = output |}
 
     /// Creates an output; use the `output` keyword.
     [<CustomOperation "output">]

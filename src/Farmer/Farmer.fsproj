@@ -1,8 +1,12 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <TargetFramework>netstandard2.0</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageId>Farmer</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Isaac Abraham</Authors>
+    <Company>Compositional IT</Company>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Farmer.fs" />

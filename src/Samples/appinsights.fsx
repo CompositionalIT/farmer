@@ -1,6 +1,7 @@
 #r @"..\Farmer\bin\Debug\netstandard2.0\Farmer.dll"
 
 open Farmer
+open Farmer.Resources.WebApp
 
 let myAppInsights = appInsights {    
     name "isaacsAi"

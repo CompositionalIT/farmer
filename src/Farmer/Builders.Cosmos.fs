@@ -1,5 +1,5 @@
 [<AutoOpen>]
-module Farmer.CosmosDb
+module Farmer.Resources.CosmosDb
 
 open Farmer
 
@@ -16,7 +16,7 @@ type CosmosDbConfig =
       DbThroughput : string
       Containers : CosmosDbContainerConfig list }    
 
-type CosmosDbContainer() =
+type CosmosDbContainerBuilder() =
     member __.Yield _ =
         { Name = ResourceName ""
           PartitionKey = [], Hash
@@ -82,7 +82,8 @@ type FunctionsBuilder with
         this.DependsOn(state, cosmosDbConfig.DbName)
 
 module Converters =
-    open Farmer.Internal
+    open Farmer.Models
+
     let cosmosDb location (cosmos:CosmosDbConfig) =
         let account =
             { Name = cosmos.ServerName
@@ -120,4 +121,4 @@ module Converters =
         {| Account = account; SqlDb = sqlDb; Containers = containers |}
 
 let cosmosDb = CosmosDbBuilder()
-let container = CosmosDbContainer()
+let container = CosmosDbContainerBuilder()

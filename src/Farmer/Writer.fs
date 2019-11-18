@@ -1,11 +1,13 @@
 module Farmer.Writer
 
-open Farmer.Internal
+open Farmer.Resources
 open Newtonsoft.Json
 open System
 open System.IO
 
 module Outputters =
+    open Farmer.Models
+
     let private containerAccess (a:StorageContainerAccess) =
         match a with
         | Private -> "None"
@@ -365,6 +367,7 @@ module Outputters =
             hostingMode = search.HostingMode |}
     |}
 
+open Farmer.Models
 let processTemplate (template:ArmTemplate) = {|
     ``$schema`` = "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#"
     contentVersion = "1.0.0.0"
@@ -402,10 +405,12 @@ let processTemplate (template:ArmTemplate) = {|
 |}
 
 let toJson = processTemplate >> JsonConvert.SerializeObject
+
 let toFile armTemplateName json =
     let templateFilename = sprintf "%s.json" armTemplateName
     File.WriteAllText(templateFilename, json)
     templateFilename
+
 let toBatchFile armTemplateName resourceGroupName location templateFilename =
     let batchFilename = sprintf "%s.bat" armTemplateName
 
@@ -418,14 +423,16 @@ let toBatchFile armTemplateName resourceGroupName location templateFilename =
 
     File.WriteAllText(batchFilename, azureCliBatch)
     batchFilename
-let generateDeployScript resourceGroupName (location, template) =
+
+let generateDeployScript resourceGroupName (deployment:{| Location : string; Template : ArmTemplate |}) =
     let templateName = "farmer-deploy"
 
-    template
+    deployment.Template
     |> toJson
     |> toFile templateName
-    |> toBatchFile templateName resourceGroupName location
-let quickDeploy resourceGroupName (location, template) =
-    generateDeployScript resourceGroupName (location, template)
+    |> toBatchFile templateName resourceGroupName deployment.Location
+
+let quickDeploy resourceGroupName deployment =
+    generateDeployScript resourceGroupName deployment
     |> Diagnostics.Process.Start
     |> ignore

@@ -1,5 +1,7 @@
 [<AutoOpen>]
-module Farmer.SqlAzure
+module Farmer.Resources.SqlAzure
+
+open Farmer
 
 type Edition = Free | Basic | Standard of string | Premium of string
 
@@ -96,7 +98,7 @@ type FunctionsBuilder with
         this.DependsOn(state, sqlDb.ServerName)            
 
 module Converters =
-    open Farmer.Internal
+    open Farmer.Models
     let sql location (sql:SqlAzureConfig) =
         { ServerName = sql.ServerName
           Location = location
