@@ -23,3 +23,9 @@ steps:
   inputs:
     command: build
     projects: '**/*.fsproj'
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: test
+    projects: 'tests/Farmer.Tests/Farmer.Tests.fsproj'
+    arguments: '--configuration Release'

@@ -7,6 +7,10 @@ Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Farmer", "src\Farmer\Farmer
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "SampleApp", "src\SampleApp\SampleApp.fsproj", "{34AF2A93-200E-496D-836E-032E8B32CD67}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{E8F8C08E-E5C2-4F1B-8CFB-3580DE5EB578}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Farmer.Tests", "tests\Farmer.Tests\Farmer.Tests.fsproj", "{AA5750C5-C220-4D7D-9957-8B064187A9D3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,11 +25,18 @@ Global
 		{34AF2A93-200E-496D-836E-032E8B32CD67}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{34AF2A93-200E-496D-836E-032E8B32CD67}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{34AF2A93-200E-496D-836E-032E8B32CD67}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AA5750C5-C220-4D7D-9957-8B064187A9D3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AA5750C5-C220-4D7D-9957-8B064187A9D3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AA5750C5-C220-4D7D-9957-8B064187A9D3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AA5750C5-C220-4D7D-9957-8B064187A9D3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {63B0361D-FC8A-40CF-B988-5BE797ADD2CE}
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{AA5750C5-C220-4D7D-9957-8B064187A9D3} = {E8F8C08E-E5C2-4F1B-8CFB-3580DE5EB578}
 	EndGlobalSection
 EndGlobal
