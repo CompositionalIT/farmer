@@ -17,6 +17,7 @@
     <Compile Include="Builders.Sql.fs" />
     <Compile Include="Builders.Search.fs" />
     <Compile Include="Builders.Cosmos.fs" />
+    <Compile Include="Builders.ContainerGroups.fs" />
     <Compile Include="Builders.Arm.fs" />
     <Compile Include="Writer.fs" />
     <Compile Include="Test.fs" />

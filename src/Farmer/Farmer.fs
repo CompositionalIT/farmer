@@ -77,6 +77,48 @@ type StorageAccount =
       Location : string
       Sku : string
       Containers : (string * StorageContainerAccess) list }
+module ContainerGroups = 
+    type ContainerGroupOsType =
+        | Windows
+        | Linux
+    type ContainerGroupRestartPolicy =
+        | Never
+        | Always
+        | OnFailure
+    type ContainerGroupIpAddressType =
+        | PublicAddress
+        | PrivateAddress
+    type ContainerPort =
+        { Protocol : System.Net.Sockets.ProtocolType
+          Port : uint16
+        }
+    type ContainerGroupIpAddress =
+        { Type : ContainerGroupIpAddressType
+          Ports : ContainerPort list
+        }
+    /// Gigabytes
+    type [<Measure>] Gb
+    type ContainerResourceRequest =
+        { Cpu : int
+          Memory : float<Gb>
+        }
+    type ContainerInstance =
+        { Name : ResourceName
+          Image : string
+          Ports : uint16 list
+          Resources : ContainerResourceRequest
+        }
+    type ContainerGroup =
+        { Name : ResourceName
+          Location : string
+          ContainerInstances : ContainerInstance list
+          OsType : ContainerGroupOsType
+          RestartPolicy : ContainerGroupRestartPolicy
+          IpAddress : ContainerGroupIpAddress
+        }
+
+open ContainerGroups
+
 type WebApp =
     { Name : ResourceName 
       ServerFarm : ResourceName
@@ -183,6 +225,7 @@ type SupportedResource =
     | ServerFarm of ServerFarm | WebApp of WebApp
     | SqlServer of SqlAzure
     | StorageAccount of StorageAccount
+    | ContainerGroup of ContainerGroup
     | AppInsights of AppInsights
     | Ip of PublicIpAddress | Vnet of VirtualNetwork | Nic of NetworkInterface | Vm of VirtualMachine
     | AzureSearch of Search
@@ -196,6 +239,7 @@ type SupportedResource =
         | WebApp x -> x.Name
         | SqlServer x -> x.DbName
         | StorageAccount x -> x.Name
+        | ContainerGroup x -> x.Name
         | Ip x -> x.Name
         | Vnet x -> x.Name
         | Nic x -> x.Name
