@@ -78,44 +78,48 @@ type StorageAccount =
       Sku : string
       Containers : (string * StorageContainerAccess) list }
 module ContainerGroups = 
+    [<RequireQualifiedAccess>]
     type ContainerGroupOsType =
         | Windows
         | Linux
+    [<RequireQualifiedAccess>]
     type ContainerGroupRestartPolicy =
         | Never
         | Always
         | OnFailure
+    [<RequireQualifiedAccess>]
     type ContainerGroupIpAddressType =
         | PublicAddress
         | PrivateAddress
+    [<RequireQualifiedAccess>]
     type ContainerPort =
         { Protocol : System.Net.Sockets.ProtocolType
-          Port : uint16
-        }
+          Port : uint16 }
+    [<RequireQualifiedAccess>]
     type ContainerGroupIpAddress =
         { Type : ContainerGroupIpAddressType
-          Ports : ContainerPort list
-        }
+          Ports : ContainerPort list }
     /// Gigabytes
+    [<RequireQualifiedAccess>]
     type [<Measure>] Gb
+    [<RequireQualifiedAccess>]
     type ContainerResourceRequest =
         { Cpu : int
-          Memory : float<Gb>
-        }
+          Memory : float<Gb> }
+    [<RequireQualifiedAccess>]
     type ContainerInstance =
         { Name : ResourceName
           Image : string
           Ports : uint16 list
-          Resources : ContainerResourceRequest
-        }
+          Resources : ContainerResourceRequest }
+    [<RequireQualifiedAccess>]
     type ContainerGroup =
         { Name : ResourceName
           Location : string
           ContainerInstances : ContainerInstance list
           OsType : ContainerGroupOsType
           RestartPolicy : ContainerGroupRestartPolicy
-          IpAddress : ContainerGroupIpAddress
-        }
+          IpAddress : ContainerGroupIpAddress }
 
 open ContainerGroups
 

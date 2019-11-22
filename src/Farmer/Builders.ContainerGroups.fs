@@ -6,17 +6,16 @@ open Farmer.Models
 open Farmer.Models.ContainerGroups
 
 type ContainerInstanceConfig =
-    { // The name of the container
+    { /// The name of the container
       Name : ResourceName
-      // THe container image
+      /// THe container image
       Image : string
-      // List of ports the container listens on
+      /// List of ports the container listens on
       Ports : uint16 list
-      // Max number of CPU cores the container may use
+      /// Max number of CPU cores the container may use
       Cpu : int
-      // Max gigabytes of memory the container may use
-      Memory : float<Gb>
-    }
+      /// Max gigabytes of memory the container may use
+      Memory : float<Gb> }
     member this.Key = buildKey this.Name
 
 type ContainerInstanceBuilder() =
@@ -48,24 +47,27 @@ type ContainerGroupConfig =
       /// Restart policy for the container group.
       RestartPolicy : ContainerGroupRestartPolicy
       /// IP address for the container group.
-      IpAddress : ContainerGroupIpAddress
-    }
+      IpAddress : ContainerGroupIpAddress }
+
     /// Gets the ARM expression path to the key of this container group.
     member this.Key = buildKey this.Name
 type ContainerGroupBuilder() =
     member __.Yield _ =
         { Name = ResourceName.Empty
           ContainerInstances = []
-          OsType = Linux
-          RestartPolicy = Always
-          IpAddress = { Type = PublicAddress; Ports = [] }
+          OsType = ContainerGroupOsType.Linux
+          RestartPolicy = ContainerGroupRestartPolicy.Always
+          IpAddress = { Type = ContainerGroupIpAddressType.PublicAddress; Ports = [] }
         }
     [<CustomOperation "name">]
     /// Sets the name of the container group.
     member __.Name(state:ContainerGroupConfig, name) = { state with Name = name }
     member this.Name(state:ContainerGroupConfig, name) = this.Name(state, ResourceName name)
-    [<CustomOperation "add_containers">]
+    [<CustomOperation "add_container">]
+    /// Adds a single container instance.
+    member __.AddContainer(state:ContainerGroupConfig, instance) = { state with ContainerInstances = instance :: state.ContainerInstances }
     /// Adds container instances.
+    [<CustomOperation "add_containers">]
     member __.AddContainers(state:ContainerGroupConfig, instances) = { state with ContainerInstances = instances @ state.ContainerInstances }
     /// Sets the OS type (default Linux)
     [<CustomOperation "os_type">]
@@ -90,16 +92,13 @@ module Converters =
           Ports = config.Ports
           Resources =
             { Cpu = config.Cpu
-              Memory = config.Memory
-            }
-        }
+              Memory = config.Memory } }
     let containerGroup location (config:ContainerGroupConfig) : ContainerGroup =
         { Location = location
           Name = config.Name
           ContainerInstances = config.ContainerInstances |> List.map containerInstance
           OsType = config.OsType
           RestartPolicy = config.RestartPolicy
-          IpAddress = config.IpAddress
-        }
+          IpAddress = config.IpAddress }
 
 let containerGroup = ContainerGroupBuilder()
