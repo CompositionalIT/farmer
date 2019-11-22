@@ -32,6 +32,45 @@ module Outputters =
         resources = resource.Containers |> List.map (storageAccountContainer resource)
     |}
     
+    let containerGroup (resource:ContainerGroups.ContainerGroup) = {|
+        ``type`` = "Microsoft.ContainerInstance/containerGroups"
+        apiVersion = "2018-10-01"
+        name = resource.Name.Value
+        location = resource.Location
+        properties = {|
+            containers =
+                resource.ContainerInstances |> List.map (fun container -> {|
+                        name = container.Name.Value.ToLowerInvariant ()
+                        properties = {|
+                            image = container.Image
+                            ports = container.Ports |> List.map (fun port -> {| port = port |})
+                            resources = {|
+                                requests = {|
+                                    cpu = container.Resources.Cpu
+                                    memoryInGb = container.Resources.Memory
+                                |}
+                            |}
+                        |}
+                    |}
+                )
+            osType =
+                match resource.OsType with
+                | ContainerGroups.ContainerGroupOsType.Windows -> "Windows"
+                | ContainerGroups.ContainerGroupOsType.Linux -> "Linux"
+            restartPolicy =
+                match resource.RestartPolicy with
+                | ContainerGroups.ContainerGroupRestartPolicy.Always -> "always"
+                | ContainerGroups.ContainerGroupRestartPolicy.Never -> "never"
+                | ContainerGroups.ContainerGroupRestartPolicy.OnFailure -> "onfailure"
+            ipAddress = {|
+                ``type`` =
+                    match resource.IpAddress.Type with
+                    | ContainerGroups.ContainerGroupIpAddressType.PublicAddress -> "Public"
+                    | ContainerGroups.ContainerGroupIpAddressType.PrivateAddress -> "Private"
+                ports = resource.IpAddress.Ports |> List.map (fun port -> {| protocol = port.Protocol.ToString(); port = port.Port |} )
+            |}
+        |}
+    |}
     let appInsights (resource:AppInsights) = {|
         ``type`` = "Microsoft.Insights/components"
         kind = "web"
@@ -376,6 +415,7 @@ let processTemplate (template:ArmTemplate) = {|
         |> List.map(function
             | AppInsights ai -> Outputters.appInsights ai |> box
             | StorageAccount s -> Outputters.storageAccount s |> box
+            | ContainerGroup g -> Outputters.containerGroup g |> box
             | ServerFarm s -> Outputters.serverFarm s |> box
             | WebApp wa -> Outputters.webApp wa |> box
             | CosmosAccount cds -> Outputters.cosmosDbServer cds |> box

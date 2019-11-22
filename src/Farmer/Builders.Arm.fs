@@ -36,6 +36,8 @@ type ArmBuilder() =
                           ServerFarm outputs.ServerFarm
                           match outputs.Ai with (Some ai) -> AppInsights ai | None -> ()
                           match outputs.Storage with (Some storage) -> StorageAccount storage | None -> ()
+                      | :? ContainerGroupConfig as config ->
+                          ContainerGroup (Converters.containerGroup state.Location config)
                       | :? CosmosDbConfig as config ->
                           let outputs = config |> Converters.cosmosDb state.Location
                           CosmosAccount outputs.Account

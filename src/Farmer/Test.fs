@@ -83,6 +83,30 @@ let template (environment:string) storageSku webAppSku =
         add_ssd_disk 128
         add_slow_disk 1024
     }
+    
+    let myContainerGroup = containerGroup {
+        name "appWithHttpFrontend"
+        os_type Models.ContainerGroups.ContainerGroupOsType.Linux
+        add_tcp_port 80us
+        add_tcp_port 443us
+        restart_policy Models.ContainerGroups.ContainerGroupRestartPolicy.Always
+        add_containers [
+            containerInstance {
+                name "nginx"
+                image "nginx:1.17.6-alpine"
+                ports [ 80us; 443us ]
+                memory 0.5<Models.ContainerGroups.Gb>
+                cpu 1
+            }
+            containerInstance {
+                name "fsharpApp"
+                image "myapp:1.7.2"
+                ports [ 8080us ]
+                memory 1.5<Models.ContainerGroups.Gb>
+                cpu 2
+            }
+        ]
+    }
 
     let mySearch = search {
         name "isaacsSearch"
@@ -99,6 +123,7 @@ let template (environment:string) storageSku webAppSku =
         add_resource myVm
         add_resource mySearch
         add_resource myCustomAi
+        add_resource myContainerGroup
 
         output "webAppName" myWebApp.Name
         output "webAppPassword" myWebApp.PublishingPassword        
