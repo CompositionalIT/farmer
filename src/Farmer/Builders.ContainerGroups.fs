@@ -5,10 +5,11 @@ open Farmer
 open Farmer.Models
 open Farmer.Models.ContainerGroups
 
+/// Represents configuration for a single Container.
 type ContainerInstanceConfig =
     { /// The name of the container
       Name : ResourceName
-      /// THe container image
+      /// The container image
       Image : string
       /// List of ports the container listens on
       Ports : uint16 list
@@ -37,6 +38,7 @@ type ContainerInstanceBuilder() =
     member __.Memory (state:ContainerInstanceConfig, memory) = { state with Memory = memory }
 let containerInstance = ContainerInstanceBuilder()
 
+/// Represents configuration on a group of Azure Containers.
 type ContainerGroupConfig =
     { /// The name of the container group.
       Name : ResourceName
@@ -51,6 +53,7 @@ type ContainerGroupConfig =
 
     /// Gets the ARM expression path to the key of this container group.
     member this.Key = buildKey this.Name
+
 type ContainerGroupBuilder() =
     member __.Yield _ =
         { Name = ResourceName.Empty
@@ -101,4 +104,5 @@ module Converters =
           RestartPolicy = config.RestartPolicy
           IpAddress = config.IpAddress }
 
+/// Represents a group of Azure Containers.
 let containerGroup = ContainerGroupBuilder()

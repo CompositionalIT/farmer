@@ -20,7 +20,6 @@
     <Compile Include="Builders.ContainerGroups.fs" />
     <Compile Include="Builders.Arm.fs" />
     <Compile Include="Writer.fs" />
-    <Compile Include="Test.fs" />
     <PackageReference Include="FSharp.Core" Version="4.7"/>
     <PackageReference Include="Newtonsoft.Json" Version="12.0.2"/>
   </ItemGroup>

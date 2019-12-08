@@ -4,6 +4,7 @@ module Farmer.ArmBuilder
 open Farmer.Resources
 open Farmer.Models
 
+/// Represents all configuration information to generate an ARM template.
 type ArmConfig =
     { Parameters : string Set
       Outputs : (string * string) list
@@ -71,7 +72,7 @@ type ArmBuilder() =
                   }
         {| Location = state.Location; Template = output |}
 
-    /// Creates an output; use the `output` keyword.
+    /// Creates an output value that will be returned by the ARM template.
     [<CustomOperation "output">]
     member __.Output (state, outputName, outputValue) : ArmConfig = { state with Outputs = (outputName, outputValue) :: state.Outputs }
     member this.Output (state:ArmConfig, outputName:string, (ResourceName outputValue)) = this.Output(state, outputName, outputValue)
@@ -85,11 +86,11 @@ type ArmBuilder() =
         | Some outputValue -> this.Output(state, outputName, outputValue)
         | None -> state
 
-    /// Sets the default location of all resources; use the `location` keyword.
+    /// Sets the default location of all resources.
     [<CustomOperation "location">]
     member __.Location (state, location) : ArmConfig = { state with Location = location }
 
-    /// Adds a resource to the template; use the `add_resource` keyword.
+    /// Adds a resource to the template.
     [<CustomOperation "add_resource">]
     member __.AddResource(state, resource) : ArmConfig =
         { state with Resources = box resource :: state.Resources }

@@ -38,18 +38,18 @@ type SearchBuilder() =
           Partitions = 1 }        
     member __.Run(state:SearchConfig) =
         { state with Name = state.Name |> sanitiseSearch |> ResourceName }
-    [<CustomOperation "name">]
     /// Sets the name of the Azure Search instance.
+    [<CustomOperation "name">]
     member __.Name(state:SearchConfig, name) = { state with Name = name }
     member this.Name(state:SearchConfig, name) = this.Name(state, ResourceName name)
-    [<CustomOperation "sku">]
     /// Sets the sku of the Azure Search instance.
+    [<CustomOperation "sku">]
     member __.Sku(state:SearchConfig, sku) = { state with Sku = sku }
-    [<CustomOperation "replicas">]
     /// Sets the replica count of the Azure Search instance.
+    [<CustomOperation "replicas">]
     member __.ReplicaCount(state:SearchConfig, replicas:int) = { state with Replicas = replicas }
-    [<CustomOperation "partitions">]
     /// Sets the number of partitions of the Azure Search instance.
+    [<CustomOperation "partitions">]
     member __.PartitionCount(state:SearchConfig, partitions:int) = { state with Partitions = partitions }
 
 open WebApp

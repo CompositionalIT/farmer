@@ -55,21 +55,21 @@ type SqlBuilder() =
     /// Sets the name of the SQL server.
     member __.ServerName(state:SqlAzureConfig, serverName) = { state with ServerName = serverName }
     member this.ServerName(state:SqlAzureConfig, serverName:string) = this.ServerName(state, ResourceName serverName)
-    [<CustomOperation "db_name">]
     /// Sets the name of the database.
+    [<CustomOperation "db_name">]
     member __.Name(state:SqlAzureConfig, name) = { state with DbName = name }
     member this.Name(state:SqlAzureConfig, name:string) = this.Name(state, ResourceName name)
-    [<CustomOperation "sku">]
     /// Sets the sku of the database.
+    [<CustomOperation "sku">]
     member __.DatabaseEdition(state:SqlAzureConfig, edition:Edition) = { state with DbEdition = edition }
-    [<CustomOperation "collation">]
     /// Sets the collation of the database.
+    [<CustomOperation "collation">]
     member __.Collation(state:SqlAzureConfig, collation:string) = { state with DbCollation = collation }
-    [<CustomOperation "use_encryption">]
     /// Enables encryption of the database.
+    [<CustomOperation "use_encryption">]
     member __.Encryption(state:SqlAzureConfig) = { state with Encryption = Enabled }
-    [<CustomOperation "add_firewall_rule">]
     /// Adds a custom firewall rule given a name, start and end IP address range.
+    [<CustomOperation "add_firewall_rule">]
     member __.AddFirewallWall(state:SqlAzureConfig, name, startRange, endRange) =
         { state with
             FirewallRules =
@@ -77,12 +77,12 @@ type SqlBuilder() =
                    Start = makeIp startRange
                    End = makeIp endRange |}
                 :: state.FirewallRules }
-    [<CustomOperation "enable_azure_firewall">]
     /// Adds a firewall rule that enables access to other Azure services.
+    [<CustomOperation "enable_azure_firewall">]
     member this.UseAzureFirewall(state:SqlAzureConfig) =
         this.AddFirewallWall(state, "AllowAllMicrosoftAzureIps", "0.0.0.0", "0.0.0.0")
-    [<CustomOperation "admin_username">]
     /// Sets the admin username of the server (note: the password is supplied as a securestring parameter to the generated ARM template).
+    [<CustomOperation "admin_username">]
     member __.AdminUsername(state:SqlAzureConfig, username) =
         { state with
             AdministratorCredentials =

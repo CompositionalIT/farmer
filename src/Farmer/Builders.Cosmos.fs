@@ -23,23 +23,23 @@ type CosmosDbContainerBuilder() =
           Indexes = []
           ExcludedPaths = [] }
 
-    [<CustomOperation "name">]
     /// Sets the name of the container.
+    [<CustomOperation "name">]
     member __.Name (state:CosmosDbContainerConfig, name) =
         { state with Name = ResourceName name }
 
-    [<CustomOperation "partition_key">]
     /// Sets the partition key of the container.
+    [<CustomOperation "partition_key">]
     member __.PartitionKey (state:CosmosDbContainerConfig, partitions, indexKind) =
         { state with PartitionKey = partitions, indexKind }
 
-    [<CustomOperation "add_index">]
     /// Adds an index to the container.
+    [<CustomOperation "add_index">]
     member __.AddIndex (state:CosmosDbContainerConfig, path, indexes) =
         { state with Indexes = (path, indexes) :: state.Indexes }
 
-    [<CustomOperation "exclude_path">]
     /// Excludes a path from the container index.
+    [<CustomOperation "exclude_path">]
     member __.ExcludePath (state:CosmosDbContainerConfig, path) =
         { state with ExcludedPaths = path :: state.ExcludedPaths }
 type CosmosDbBuilder() =
@@ -50,26 +50,26 @@ type CosmosDbBuilder() =
           ServerFailoverPolicy = NoFailover
           DbThroughput = "400"
           Containers = [] }
-    [<CustomOperation "server_name">]
     /// Sets the name of the CosmosDB server.
+    [<CustomOperation "server_name">]
     member __.ServerName(state:CosmosDbConfig, serverName) = { state with ServerName = serverName }
     member this.ServerName(state:CosmosDbConfig, serverName:string) = this.ServerName(state, ResourceName serverName)
-    [<CustomOperation "name">]
     /// Sets the name of the database.
+    [<CustomOperation "name">]
     member __.Name(state:CosmosDbConfig, name) = { state with DbName = name }
     member this.Name(state:CosmosDbConfig, name:string) = this.Name(state, ResourceName name)
-    [<CustomOperation "consistency_policy">]
     /// Sets the consistency policy of the database.
+    [<CustomOperation "consistency_policy">]
     member __.ConsistencyPolicy(state:CosmosDbConfig, consistency:ConsistencyPolicy) = { state with ServerConsistencyPolicy = consistency }
-    [<CustomOperation "failover_policy">]
     /// Sets the failover policy of the database.
+    [<CustomOperation "failover_policy">]
     member __.FailoverPolicy(state:CosmosDbConfig, failoverPolicy:FailoverPolicy) = { state with ServerFailoverPolicy = failoverPolicy }
-    [<CustomOperation "throughput">]
     /// Sets the throughput of the server.
+    [<CustomOperation "throughput">]
     member __.Throughput(state:CosmosDbConfig, throughput) = { state with DbThroughput = throughput }
     member this.Throughput(state:CosmosDbConfig, throughput:int) = this.Throughput(state, string throughput)
-    [<CustomOperation "add_containers">]
     /// Adds a list of containers to the database.
+    [<CustomOperation "add_containers">]
     member __.AddContainers(state:CosmosDbConfig, containers) =
         { state with Containers = state.Containers @ containers }
 

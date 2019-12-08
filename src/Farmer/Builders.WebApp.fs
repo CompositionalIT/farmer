@@ -421,57 +421,52 @@ type WebAppBuilder() =
             ServicePlanName = state.ServicePlanName.IfEmpty (sprintf "%s-plan" state.Name.Value)
             AppInsightsName = Ai.tryCreateAppInsightsName state.AppInsightsName state.Name.Value
         }
+    /// Sets the name of the web app.
     [<CustomOperation "name">]
-    /// Sets the name of the web app.
     member __.Name(state:WebAppConfig, name) = { state with Name = name }
-    /// Sets the name of the web app.
     member this.Name(state:WebAppConfig, name:string) = this.Name(state, ResourceName name)
+    /// Sets the name of the service plan.
     [<CustomOperation "service_plan_name">]
-    /// Sets the name of the service plan.
     member __.ServicePlanName(state:WebAppConfig, name) = { state with ServicePlanName = name }
-    /// Sets the name of the service plan.
     member this.ServicePlanName(state:WebAppConfig, name:string) = this.ServicePlanName(state, ResourceName name)
-    /// Sets the sku of the web app; use the `sku` keyword.
-    [<CustomOperation "sku">]
     /// Sets the sku of the service plan.
+    [<CustomOperation "sku">]
     member __.Sku(state:WebAppConfig, sku) = { state with Sku = sku }
-    [<CustomOperation "worker_size">]
     /// Sets the size of the service plan worker.
+    [<CustomOperation "worker_size">]
     member __.WorkerSize(state:WebAppConfig, workerSize) = { state with Sku = workerSize }
-    [<CustomOperation "number_of_workers">]
     /// Sets the number of instances on the service plan.
+    [<CustomOperation "number_of_workers">]
     member __.NumberOfWorkers(state:WebAppConfig, workerCount) = { state with WorkerCount = workerCount }
-    [<CustomOperation "app_insights_auto_name">]
     /// Sets the name of the automatically-created app insights instance.
+    [<CustomOperation "app_insights_auto_name">]
     member __.UseAppInsights(state:WebAppConfig, name) = { state with AppInsightsName = Some (AutomaticallyCreated name) }
-    /// Specifies whether to use an app insights resource or not.
     member this.UseAppInsights(state:WebAppConfig, name:string) = this.UseAppInsights(state, ResourceName name)
-    [<CustomOperation "app_insights_off">]
     /// Removes any automatic app insights creation, configuration and settings for this webapp.
+    [<CustomOperation "app_insights_off">]
     member __.DeactivateAppInsights(state:WebAppConfig) = { state with AppInsightsName = None }
-    [<CustomOperation "app_insights_manual">]
     /// Instead of creating a new AI instance, configure this webapp to point to another AI instance that you are managing
     /// yourself.
+    [<CustomOperation "app_insights_manual">]
     member __.LinkAppInsights(state:WebAppConfig, name) = { state with AppInsightsName = Some(External name) }
-    [<CustomOperation "run_from_package">]
     /// Sets the web app to use "run from package" deployment capabilities.
+    [<CustomOperation "run_from_package">]
     member __.RunFromPackage(state:WebAppConfig) = { state with RunFromPackage = true }
-    [<CustomOperation "website_node_default_version">]
     /// Sets the node version of the web app.
+    [<CustomOperation "website_node_default_version">]
     member __.NodeVersion(state:WebAppConfig, version) = { state with WebsiteNodeDefaultVersion = Some version }
+    /// Sets an app setting of the web app in the form "key" "value".
     [<CustomOperation "setting">]
-    /// Sets an app setting of the web app in the form "key" "value".
     member __.AddSetting(state:WebAppConfig, key, value) = { state with Settings = state.Settings.Add(key, value) }
-    /// Sets an app setting of the web app in the form "key" "value".
     member __.AddSetting(state:WebAppConfig, key, ArmExpression value) = { state with Settings = state.Settings.Add(key, value) }
-    [<CustomOperation "depends_on">]
     /// Sets a dependency for the web app.
+    [<CustomOperation "depends_on">]
     member __.DependsOn(state:WebAppConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
-    [<CustomOperation "always_on">]
     /// Sets "Always On" flag
+    [<CustomOperation "always_on">]
     member __.AlwaysOn(state:WebAppConfig) = { state with AlwaysOn = true }
-    [<CustomOperation "runtime_stack">]
     /// Sets the runtime stack
+    [<CustomOperation "runtime_stack">]
     member __.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = runtime }
     /// Sets the dotnetcore runtime stack
     member __.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = DotNetCore runtime }
@@ -515,37 +510,35 @@ type FunctionsBuilder() =
             AppInsightsName =
                 Ai.tryCreateAppInsightsName state.AppInsightsName state.Name.Value
         }
-    [<CustomOperation "name">]
     /// Sets the name of the functions instance.
+    [<CustomOperation "name">]
     member __.Name(state:FunctionsConfig, name) = { state with Name = ResourceName name }
-    [<CustomOperation "service_plan_name">]
     /// Sets the name of the service plan hosting the function instance.
+    [<CustomOperation "service_plan_name">]
     member __.ServicePlanName(state:FunctionsConfig, name) = { state with ServicePlanName = ResourceName name }
-    [<CustomOperation "storage_account_link">]
     /// Do not create an automatic storage account; instead, link to a storage account that is created outside of this Functions instance.
+    [<CustomOperation "storage_account_link">]
     member __.StorageAccountName(state:FunctionsConfig, name) = { state with StorageAccountName = External (ResourceName name) }
-    [<CustomOperation "app_insights_auto_name">]
     /// Sets the name of the automatically-created app insights instance.
+    [<CustomOperation "app_insights_auto_name">]
     member __.UseAppInsights(state:FunctionsConfig, name) = { state with AppInsightsName = Some (AutomaticallyCreated name) }
-    /// Specifies whether to use an app insights resource or not.
     member this.UseAppInsights(state:FunctionsConfig, name:string) = this.UseAppInsights(state, ResourceName name)
-    [<CustomOperation "app_insights_off">]
     /// Removes any automatic app insights creation, configuration and settings for this webapp.
+    [<CustomOperation "app_insights_off">]
     member __.DeactivateAppInsights(state:FunctionsConfig) = { state with AppInsightsName = None }
-    [<CustomOperation "app_insights_manual">]
     /// Instead of creating a new AI instance, configure this webapp to point to another AI instance that you are managing
     /// yourself.
+    [<CustomOperation "app_insights_manual">]
     member __.LinkAppInsights(state:FunctionsConfig, name) = { state with AppInsightsName = Some(External name) }
-    [<CustomOperation "use_runtime">]
     /// Sets the runtime of the Functions host.
+    [<CustomOperation "use_runtime">]
     member __.Runtime(state:FunctionsConfig, runtime) = { state with Runtime = runtime }
-    [<CustomOperation "operating_system">]
     /// Sets the operating system of the Functions host.
+    [<CustomOperation "operating_system">]
     member __.OperatingSystem(state:FunctionsConfig, os) = { state with OperatingSystem = os }
     /// Sets an app setting of the web app in the form "key" "value".
     [<CustomOperation "setting">]
     member __.AddSetting(state:FunctionsConfig, key, value) = { state with Settings = state.Settings.Add(key, value) }
-    /// Sets an app setting of the web app in the form "key" "value".
     member __.AddSetting(state:WebAppConfig, key, ArmExpression value) = { state with Settings = state.Settings.Add(key, value) }
     /// Sets a dependency for the web app.
     [<CustomOperation "depends_on">]
