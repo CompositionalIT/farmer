@@ -1,13 +1,40 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <OutputType>Library</OutputType>
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <PackageId>Farmer</PackageId>
+    <!-- General -->
+    <AssemblyName>Farmer</AssemblyName>
     <Version>0.1.0</Version>
-    <Authors>Isaac Abraham</Authors>
+    <Description>An F# DSL for rapidly generating non-complex ARM templates.</Description>
+    <Copyright>Copyright 2019 Compositional IT Ltd.</Copyright>
     <Company>Compositional IT</Company>
+    <Authors>Isaac Abraham and contributors</Authors>
+
+    <!-- Build settings -->
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <DebugType>portable</DebugType>
+    <OutputType>Library</OutputType>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IncludeSymbols>true</IncludeSymbols>
+
+    <!-- NuGet Pack settings -->
+    <PackageId>Farmer</PackageId>
+    <PackageTags>azure;resource-manager;template;dsl;fsharp;infrastructure-as-code</PackageTags>
+    <PackageReleaseNotes>https://raw.githubusercontent.com/CompositionalIT/farmer/master/RELEASE_NOTES.md</PackageReleaseNotes>
+    <PackageProjectUrl>https://github.com/CompositionalIT/farmer</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/CompositionalIT/farmer</RepositoryUrl>
+
+    <!-- SourceLink settings -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FSharp.Core" Version="4.7"/>
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.2"/>
+  </ItemGroup>
+
   <ItemGroup>
     <Compile Include="Farmer.fs" />
     <Compile Include="Builders.Helpers.fs" />
@@ -20,7 +47,5 @@
     <Compile Include="Builders.ContainerGroups.fs" />
     <Compile Include="Builders.Arm.fs" />
     <Compile Include="Writer.fs" />
-    <PackageReference Include="FSharp.Core" Version="4.7"/>
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.2"/>
   </ItemGroup>
 </Project>
