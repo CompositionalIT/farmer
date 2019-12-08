@@ -13,7 +13,6 @@
     <DebugType>portable</DebugType>
     <OutputType>Library</OutputType>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <IncludeSymbols>true</IncludeSymbols>
 
     <!-- NuGet Pack settings -->
     <PackageId>Farmer</PackageId>
@@ -26,8 +25,8 @@
     <RepositoryUrl>https://github.com/CompositionalIT/farmer</RepositoryUrl>
 
     <!-- SourceLink settings -->
-    <PublishRepositoryUrl>true</PublishRepositoryUrl>
-    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>	    
   </PropertyGroup>
 
   <ItemGroup>
