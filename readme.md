@@ -3,6 +3,7 @@
 An F# DSL for rapidly generating non-complex ARM templates.
 
 [![Build Status](https://compositional-it.visualstudio.com/Farmer/_apis/build/status/CompositionalIT.farmer?branchName=master)](https://compositional-it.visualstudio.com/Farmer/_build/latest?definitionId=14&branchName=master)
+[![Farmer on Nuget](https://buildstats.info/nuget/farmer)](https://www.nuget.org/packages/farmer/)
 
 ## Main features
 * Create non-complex ARM templates through a simple, strongly-typed and pragmatic DSL.
