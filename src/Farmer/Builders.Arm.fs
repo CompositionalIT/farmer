@@ -95,4 +95,10 @@ type ArmBuilder() =
     member __.AddResource(state, resource) : ArmConfig =
         { state with Resources = box resource :: state.Resources }
 
+    /// Adds a collection of resources to the template.
+    [<CustomOperation "add_resources">]
+    member this.AddResources(state, resources) =
+        (state, resources)
+        ||> Seq.fold(fun state resource -> this.AddResource(state, resource))
+
 let arm = ArmBuilder()
