@@ -32,14 +32,24 @@ type KeyVaultSettings =
       AzureDiskEncryptionAccess : FeatureFlag option
       /// Specifies whether Soft Deletion is enabled for the vault
       SoftDelete : SoftDeletionMode option }
+
+type Bypass = AzureServices | NoTraffic
+type DefaultAction = Allow | Deny
+type NetworkAcl =
+    { IpRules : string list
+      VnetRules : string list
+      DefaultAction : DefaultAction option
+      Bypass : Bypass option } 
+
 type KeyVaultConfig =
     { Name : ResourceName
+      TenantId : Guid
       Access : KeyVaultSettings
       Sku : KeyVaultSku
       Policies : CreateMode
-      /// Specifies the Azure Active Directory tenant ID that should be used for authenticating requests to the key vault.
-      TenantId : Guid
+      NetworkAcl : NetworkAcl
       Uri : Uri option }
+
 
 type AccessPolicyBuilder() =
     member __.Yield _ =
@@ -72,14 +82,16 @@ type KeyVaultBuilderState =
       Access : KeyVaultSettings
       Sku : KeyVaultSku
       TenantId : Guid
+      NetworkAcl : NetworkAcl
       CreateMode : SimpleCreateMode option
       Policies : AccessPolicy list
-      Uri : Uri option }    
+      Uri : Uri option }
 let private zero =
     { Name = ResourceName.Empty
       TenantId = Guid.Empty
       Access = { VirtualMachineAccess = None; ResourceManagerAccess = None; AzureDiskEncryptionAccess = None; SoftDelete = None }
       Sku = KeyVaultSku.Standard
+      NetworkAcl = { IpRules = []; VnetRules = []; Bypass = None; DefaultAction = None }
       Policies = []
       CreateMode = None
       Uri = None }
@@ -89,6 +101,7 @@ type KeyVaultBuilder() =
         { Name = state.Name
           Access = state.Access
           Sku = state.Sku
+          NetworkAcl = state.NetworkAcl
           TenantId = state.TenantId
           Policies =
             match state.CreateMode, state.Policies with
@@ -107,6 +120,7 @@ type KeyVaultBuilder() =
     /// Sets the Tenant ID of the vault.
     [<CustomOperation "tenant_id">]
     member __.SetTenantId(state:KeyVaultBuilderState, tenantId) = { state with TenantId = tenantId }
+    member __.SetTenantId(state:KeyVaultBuilderState, tenantId) = { state with TenantId = Guid.Parse tenantId }
     /// Allows VM access to the vault.
     [<CustomOperation "enable_vm_access">]
     member __.EnableVmAccess(state:KeyVaultBuilderState) = { state with Access = { state.Access with VirtualMachineAccess = Some Enabled } }
@@ -143,6 +157,25 @@ type KeyVaultBuilder() =
     /// Adds an access policy to the vault.
     [<CustomOperation "add_access_policy">]
     member __.AddAccessPolicy(state:KeyVaultBuilderState, accessPolicy) = { state with Policies = accessPolicy :: state.Policies }
+    // Allows Azure traffic can bypass network rules.
+    [<CustomOperation "enable_azure_services_bypass">]
+    member __.EnableBypass(state:KeyVaultBuilderState) = { state with NetworkAcl = { state.NetworkAcl with Bypass = Some AzureServices } }
+    // Disallows Azure traffic can bypass network rules.
+    [<CustomOperation "disable_azure_services_bypass">]
+    member __.DisableBypass(state:KeyVaultBuilderState) = { state with NetworkAcl = { state.NetworkAcl with Bypass = Some NoTraffic } }
+    // Allow traffic if no rule from ipRules and virtualNetworkRules match. This is only used after the bypass property has been evaluated.
+    [<CustomOperation "allow_default_traffic">]
+    member __.AllowDefaultTraffic(state:KeyVaultBuilderState) = { state with NetworkAcl = { state.NetworkAcl with DefaultAction = Some Allow } }
+    // Deny traffic when no rule from ipRules and virtualNetworkRules match. This is only used after the bypass property has been evaluated.
+    [<CustomOperation "deny_default_traffic">]
+    member __.DenyDefaultTraffic(state:KeyVaultBuilderState) = { state with NetworkAcl = { state.NetworkAcl with DefaultAction = Some Deny } }
+    // Adds an IP address rule. This can be an IPv4 address range in CIDR notation, such as '124.56.78.91' (simple IP address) or '124.56.78.0/24' (all addresses that start with 124.56.78).
+    [<CustomOperation "add_ip_rule">]
+    member __.AddIpRule(state:KeyVaultBuilderState, ipRule) = { state with NetworkAcl = { state.NetworkAcl with IpRules = ipRule :: state.NetworkAcl.IpRules } }
+    // Adds a virtual network rule. This is the full resource id of a vnet subnet, such as '/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/virtualNetworks/test-vnet/subnets/subnet1'.
+    [<CustomOperation "add_vnet_rule">]
+    member __.AddVnetRule(state:KeyVaultBuilderState, vnetRule) = { state with NetworkAcl = { state.NetworkAcl with VnetRules = vnetRule :: state.NetworkAcl.VnetRules } }
+
 
 module Converters =
     let inline toStringArray theSet = theSet |> Set.map(fun s -> s.ToString().ToLower()) |> Set.toArray
@@ -177,7 +210,7 @@ module Converters =
             | Default _ -> Some "default"
           AccessPolicies =
             let policies =
-                match kvc.Policies with                
+                match kvc.Policies with
                 | Unspecified policies -> policies
                 | Recover(policy, secondaryPolicies) -> policy :: secondaryPolicies
                 | Default policies -> policies
@@ -192,8 +225,10 @@ module Converters =
                 |}
             |]
           Uri = kvc.Uri |> Option.map string
-          DefaultAction = "AzureServices"
-          Bypass = None }
+          DefaultAction = kvc.NetworkAcl.DefaultAction |> Option.map string
+          Bypass = kvc.NetworkAcl.Bypass |> Option.map string
+          IpRules = kvc.NetworkAcl.IpRules
+          VnetRules = kvc.NetworkAcl.VnetRules }
 
 let accessPolicy = AccessPolicyBuilder()
 let keyVault = KeyVaultBuilder()

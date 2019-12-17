@@ -21,6 +21,10 @@ let vault =
         disable_vm_access
         enable_recovery_mode
         add_access_policy policy
+        enable_azure_services_bypass
+        //add_ip_rule "127.0.0.1"
+        //add_vnet_rule "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/virtualNetworks/test-vnet/subnets/subnet1"
+        allow_default_traffic
     }
 
 let deployment = arm {

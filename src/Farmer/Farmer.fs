@@ -242,8 +242,26 @@ type KeyVault =
                Certificates : string array
                Storage : string array |}
         |} array
-      DefaultAction : string
-      Bypass: string option }
+      DefaultAction : string option
+      Bypass: string option
+      IpRules : string list
+      VnetRules : string list }
+type KeyVaultSecret =
+    {
+    }
+
+    //{
+    //    "type": "Microsoft.KeyVault/vaults/secrets",
+    //    "name": "[concat(parameters('keyVaultName'), '/', parameters('secretName'))]",
+    //    "apiVersion": "2018-02-14",
+    //    "location": "[parameters('location')]",
+    //    "dependsOn": [
+    //      "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
+    //    ],
+    //    "properties": {
+    //      "value": "[parameters('secretValue')]"
+    //    }
+    //  }
 
 open VM
 

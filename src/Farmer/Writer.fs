@@ -435,8 +435,10 @@ module Outputters =
                     |}
                 |]
            networkAcls =
-            {| defaultAction = keyVault.DefaultAction
-               bypass = keyVault.Bypass |> Option.toObj |}
+            {| defaultAction = keyVault.DefaultAction |> Option.toObj
+               bypass = keyVault.Bypass |> Option.toObj
+               ipRules = keyVault.IpRules
+               virtualNetworkRules = keyVault.VnetRules |}
         |}
     |}
 
