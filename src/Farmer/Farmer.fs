@@ -51,7 +51,7 @@ type CosmosDbIndexKind = Hash | Range
 /// The datatype for the key of index to use on a CosmoDB container.
 type CosmosDbIndexDataType = Number | String
 /// Whether a specific feature is active or not.
-type FeatureFlag = Enabled | Disabled
+type FeatureFlag = Enabled | Disabled member this.AsBoolean = match this with Enabled -> true | Disabled -> false
 /// The type of disk to use.
 type DiskType = StandardSSD_LRS | Standard_LRS | Premium_LRS
 /// Represents a disk in a VM.
@@ -221,6 +221,28 @@ module VM =
           OsDisk : DiskInfo
           DataDisks : DiskInfo list
           NetworkInterfaceName : ResourceName }
+type KeyVault =
+    { Name : ResourceName
+      Location : string
+      TenantId : string
+      Sku : string
+      Uri : string option
+      EnabledForDeployment : bool option
+      EnabledForDiskEncryption : bool option
+      EnabledForTemplateDeployment : bool option
+      EnableSoftDelete : bool option
+      CreateMode : string option
+      EnablePurgeProtection : bool option
+      AccessPolicies :
+        {| ObjectId : string
+           Permissions :
+            {| Keys : string array
+               Secrets : string array
+               Certificates : string array
+               Storage : string array |}
+        |} array
+      DefaultAction : string
+      Bypass: string option }
 
 open VM
 
@@ -233,6 +255,7 @@ type SupportedResource =
     | AppInsights of AppInsights
     | Ip of PublicIpAddress | Vnet of VirtualNetwork | Nic of NetworkInterface | Vm of VirtualMachine
     | AzureSearch of Search
+    | KeyVault of KeyVault
     member this.ResourceName =
         match this with
         | AppInsights x -> x.Name
@@ -249,6 +272,7 @@ type SupportedResource =
         | Nic x -> x.Name
         | Vm x -> x.Name
         | AzureSearch x -> x.Name
+        | KeyVault x -> x.Name
 
 namespace Farmer
 open Farmer.Models

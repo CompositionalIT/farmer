@@ -408,6 +408,37 @@ module Outputters =
             hostingMode = search.HostingMode |}
     |}
 
+    let keyVault (keyVault:KeyVault) = {|
+      ``type``= "Microsoft.KeyVault/vaults"
+      name = keyVault.Name.Value
+      apiVersion = "2018-02-14"
+      location = keyVault.Location
+      properties =
+        {| tenantId = keyVault.TenantId
+           sku = {| name = keyVault.Sku; family = "A" |}
+           enabledForDeployment = keyVault.EnabledForDeployment |> Option.toNullable
+           enabledForDiskEncryption = keyVault.EnabledForDiskEncryption |> Option.toNullable
+           enabledForTemplateDeployment = keyVault.EnabledForTemplateDeployment |> Option.toNullable
+           enablePurgeProtection = keyVault.EnablePurgeProtection |> Option.toNullable
+           createMode = keyVault.CreateMode |> Option.toObj
+           vaultUri = keyVault.Uri |> Option.toObj
+           accessPolicies =
+                [| for policy in keyVault.AccessPolicies do
+                    {| objectId = policy.ObjectId
+                       tenantId = keyVault.TenantId
+                       permissions =
+                        {| keys = policy.Permissions.Keys
+                           storage = policy.Permissions.Storage
+                           certificates = policy.Permissions.Certificates
+                           secrets = policy.Permissions.Secrets |}
+                    |}
+                |]
+           networkAcls =
+            {| defaultAction = keyVault.DefaultAction
+               bypass = keyVault.Bypass |> Option.toObj |}
+        |}
+    |}
+
 open Farmer.Models
 let processTemplate (template:ArmTemplate) = {|
     ``$schema`` = "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#"
@@ -429,6 +460,7 @@ let processTemplate (template:ArmTemplate) = {|
             | Nic nic -> Outputters.networkInterface nic |> box
             | Vm vm -> Outputters.virtualMachine vm |> box
             | AzureSearch search -> Outputters.search search |> box
+            | KeyVault vault -> Outputters.keyVault vault |> box
         )
     parameters =
         template.Resources
@@ -446,7 +478,10 @@ let processTemplate (template:ArmTemplate) = {|
         |> Map.ofList
 |}
 
-let toJson = processTemplate >> JsonConvert.SerializeObject
+let settings = JsonSerializerSettings(NullValueHandling = NullValueHandling.Ignore)
+let toJson =
+    processTemplate
+    >> fun t -> JsonConvert.SerializeObject(t, Formatting.None, settings)
 
 let toFile armTemplateName json =
     let templateFilename = sprintf "%s.json" armTemplateName

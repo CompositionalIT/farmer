@@ -30,14 +30,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="FSharp.Core" Version="4.7"/>
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.2"/>
+    <PackageReference Include="FSharp.Core" Version="4.7" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
   </ItemGroup>
 
   <ItemGroup>
     <Compile Include="Farmer.fs" />
     <Compile Include="Builders.Helpers.fs" />
     <Compile Include="Builders.Storage.fs" />
+    <Compile Include="Builders.KeyVault.fs" />
     <Compile Include="Builders.Vm.fs" />
     <Compile Include="Builders.WebApp.fs" />
     <Compile Include="Builders.Sql.fs" />
