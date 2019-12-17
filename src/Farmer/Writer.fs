@@ -426,6 +426,7 @@ module Outputters =
                 [| for policy in keyVault.AccessPolicies do
                     {| objectId = policy.ObjectId
                        tenantId = keyVault.TenantId
+                       applicationId = policy.ApplicationId |> Option.toObj
                        permissions =
                         {| keys = policy.Permissions.Keys
                            storage = policy.Permissions.Storage

@@ -235,6 +235,7 @@ type KeyVault =
       EnablePurgeProtection : bool option
       AccessPolicies :
         {| ObjectId : string
+           ApplicationId : string option
            Permissions :
             {| Keys : string array
                Secrets : string array

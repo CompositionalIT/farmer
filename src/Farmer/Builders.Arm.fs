@@ -57,6 +57,8 @@ type ArmBuilder() =
                           AzureSearch (Converters.search state.Location search)
                       | :? AppInsightsConfig as aiConfig ->
                           AppInsights (Converters.appInsights state.Location aiConfig)
+                      | :? KeyVaultConfig as keyVaultConfig ->
+                          KeyVault (Converters.keyVault state.Location keyVaultConfig)
                       | r ->
                           failwithf "Sorry, I don't know how to handle this resource of type '%s'." (r.GetType().FullName) ]
                   |> List.groupBy(fun r -> r.ResourceName)
