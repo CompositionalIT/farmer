@@ -11,7 +11,7 @@ type ResourceName =
         match this with
         | r when r = ResourceName.Empty -> ResourceName fallbackValue
         | r -> r
-
+type Location = Location of string member this.Value = match this with (Location l) -> l 
 /// Represents an expression used within an ARM template
 type ArmExpression =
     | ArmExpression of string
@@ -42,10 +42,12 @@ type ResourceRef =
 
 namespace Farmer.Resources
 
+open Farmer
+
 /// The consistency policy of a CosmosDB database.
 type ConsistencyPolicy = Eventual | ConsistentPrefix | Session | BoundedStaleness of maxStaleness:int * maxIntervalSeconds : int | Strong
 /// The failover policy of a CosmosDB database.
-type FailoverPolicy = NoFailover | AutoFailover of secondaryLocation:string | MultiMaster of secondaryLocation:string
+type FailoverPolicy = NoFailover | AutoFailover of secondaryLocation:Location | MultiMaster of secondaryLocation:Location
 /// The kind of index to use on a CosmoDB container.
 type CosmosDbIndexKind = Hash | Range
 /// The datatype for the key of index to use on a CosmoDB container.
@@ -66,7 +68,7 @@ open Farmer.Resources
 
 type AppInsights =
     { Name : ResourceName 
-      Location : string
+      Location : Location
       LinkedWebsite : ResourceName option }
 type StorageContainerAccess =
     | Private
@@ -74,7 +76,7 @@ type StorageContainerAccess =
     | Blob
 type StorageAccount =
     { Name : ResourceName 
-      Location : string
+      Location : Location
       Sku : string
       Containers : (string * StorageContainerAccess) list }
 module ContainerGroups = 
@@ -115,7 +117,7 @@ module ContainerGroups =
     [<RequireQualifiedAccess>]
     type ContainerGroup =
         { Name : ResourceName
-          Location : string
+          Location : Location
           ContainerInstances : ContainerInstance list
           OsType : ContainerGroupOsType
           RestartPolicy : ContainerGroupRestartPolicy
@@ -126,7 +128,7 @@ open ContainerGroups
 type WebApp =
     { Name : ResourceName 
       ServerFarm : ResourceName
-      Location : string
+      Location : Location
       AppSettings : List<string * string>
       Extensions : WebAppExtensions Set
       AlwaysOn : bool
@@ -142,7 +144,7 @@ type WebApp =
       Metadata : List<string * string> }
 type ServerFarm =
     { Name : ResourceName 
-      Location : string
+      Location : Location
       Sku: string
       WorkerSize : string
       IsDynamic : bool
@@ -168,7 +170,7 @@ type CosmosDbContainer =
     }
 type SqlAzure =
   { ServerName : ResourceName
-    Location : string
+    Location : Location
     Credentials : {| Username : string; Password : SecureParameter |}
     DbName : ResourceName
     DbEdition : string
@@ -182,13 +184,13 @@ type CosmosDbSql =
       Throughput : string }
 type CosmosDbAccount =
     { Name : ResourceName
-      Location : string
+      Location : Location
       ConsistencyPolicy : ConsistencyPolicy
       WriteModel : FailoverPolicy }
 
 type Search =
     { Name : ResourceName
-      Location : string
+      Location : Location
       Sku : string
       HostingMode : string
       ReplicaCount : int
@@ -197,23 +199,23 @@ type Search =
 module VM =
     type PublicIpAddress =
         { Name : ResourceName
-          Location : string
+          Location : Location
           DomainNameLabel : string option }
     type VirtualNetwork =
         { Name : ResourceName
-          Location : string
+          Location : Location
           AddressSpacePrefixes : string list
           Subnets : {| Name : ResourceName; Prefix : string |} list }
     type NetworkInterface =
         { Name : ResourceName
-          Location : string
+          Location : Location
           IpConfigs :
             {| SubnetName : ResourceName
                PublicIpName : ResourceName |} list
           VirtualNetwork : ResourceName }
     type VirtualMachine =
         { Name : ResourceName
-          Location : string
+          Location : Location
           StorageAccount : ResourceName option
           Size : string
           Credentials : {| Username : string; Password : SecureParameter |}
@@ -255,24 +257,24 @@ open Farmer.Models
 
 [<AutoOpen>]
 module Locations =
-    let EastAsia = "eastasia"
-    let SoutheastAsia = "southeastasia"
-    let CentralUS = "centralus"
-    let EastUS = "eastus"
-    let EastUS2 = "eastus2"
-    let WestUS = "westus"
-    let NorthCentralUS = "northcentralus"
-    let SouthCentralUS = "southcentralus"
-    let NorthEurope = "northeurope"
-    let WestEurope = "westeurope"
-    let JapanWest = "japanwest"
-    let JapanEast = "japaneast"
-    let BrazilSouth = "brazilsouth"
-    let AustraliaEast = "australiaeast"
-    let AustraliaSoutheast = "australiasoutheast"
-    let SouthIndia = "southindia"
-    let CentralIndia = "centralindia"
-    let WestIndia = "westindia"
+    let EastAsia = Location "eastasia"
+    let SoutheastAsia = Location "southeastasia"
+    let CentralUS = Location "centralus"
+    let EastUS = Location "eastus"
+    let EastUS2 = Location "eastus2"
+    let WestUS = Location "westus"
+    let NorthCentralUS = Location "northcentralus"
+    let SouthCentralUS = Location "southcentralus"
+    let NorthEurope = Location "northeurope"
+    let WestEurope = Location "westeurope"
+    let JapanWest = Location "japanwest"
+    let JapanEast = Location "japaneast"
+    let BrazilSouth = Location "brazilsouth"
+    let AustraliaEast = Location "australiaeast"
+    let AustraliaSoutheast = Location "australiasoutheast"
+    let SouthIndia = Location "southindia"
+    let CentralIndia = Location "centralindia"
+    let WestIndia = Location "westindia"
 
 type ArmTemplate =
     { Parameters : string list

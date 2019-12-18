@@ -8,8 +8,13 @@ open Farmer.Models
 type ArmConfig =
     { Parameters : string Set
       Outputs : (string * string) list
-      Location : string
+      Location : Location
       Resources : obj list }
+
+type Deployment = 
+    { Location : Location
+      Template : ArmTemplate }
+
 type ArmBuilder() =
     member __.Yield _ =
         { Parameters = Set.empty
@@ -70,7 +75,7 @@ type ArmBuilder() =
                             printfn "Warning: %d resources were found with the same name of '%s'. The first one will be used." instances.Length resourceName.Value
                             Some resource)
                   }
-        {| Location = state.Location; Template = output |}
+        { Location = state.Location; Template = output }
 
     /// Creates an output value that will be returned by the ARM template.
     [<CustomOperation "output">]

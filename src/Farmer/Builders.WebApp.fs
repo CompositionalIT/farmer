@@ -434,7 +434,7 @@ type WebAppBuilder() =
     member __.Sku(state:WebAppConfig, sku) = { state with Sku = sku }
     /// Sets the size of the service plan worker.
     [<CustomOperation "worker_size">]
-    member __.WorkerSize(state:WebAppConfig, workerSize) = { state with Sku = workerSize }
+    member __.WorkerSize(state:WebAppConfig, workerSize) = { state with WorkerSize = workerSize }
     /// Sets the number of instances on the service plan.
     [<CustomOperation "number_of_workers">]
     member __.NumberOfWorkers(state:WebAppConfig, workerCount) = { state with WorkerCount = workerCount }
