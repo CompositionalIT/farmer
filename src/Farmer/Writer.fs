@@ -21,22 +21,22 @@ module Outputters =
         dependsOn = [ parent.Name.Value ]
         properties = {| publicAccess = containerAccess access |}
     |}
-    
+
     let storageAccount (resource:StorageAccount) = {|
         ``type`` = "Microsoft.Storage/storageAccounts"
         sku = {| name = resource.Sku |}
         kind = "StorageV2"
         name = resource.Name.Value
         apiVersion = "2018-07-01"
-        location = resource.Location
+        location = resource.Location.Value
         resources = resource.Containers |> List.map (storageAccountContainer resource)
     |}
-    
+
     let containerGroup (resource:ContainerGroups.ContainerGroup) = {|
         ``type`` = "Microsoft.ContainerInstance/containerGroups"
         apiVersion = "2018-10-01"
         name = resource.Name.Value
-        location = resource.Location
+        location = resource.Location.Value
         properties =
             {| containers =
                 resource.ContainerInstances
@@ -77,7 +77,7 @@ module Outputters =
         ``type`` = "Microsoft.Insights/components"
         kind = "web"
         name = resource.Name.Value
-        location = resource.Location
+        location = resource.Location.Value
         apiVersion = "2014-04-01"
         tags =
             [ match resource.LinkedWebsite with
@@ -88,44 +88,39 @@ module Outputters =
         properties =
          match resource.LinkedWebsite with
          | Some linkedWebsite ->
-            {| name = resource.Name.Value
-               Application_Type = "web"
-               ApplicationId = linkedWebsite.Value |} |> box
+            box {| name = resource.Name.Value
+                   Application_Type = "web"
+                   ApplicationId = linkedWebsite.Value |}
          | None ->
-            {| name = resource.Name.Value
-               Application_Type = "web" |} |> box
+            box {| name = resource.Name.Value
+                   Application_Type = "web" |}
     |}
     let serverFarm (farm:ServerFarm) =
-        let baseProps =
-            {| ``type`` = "Microsoft.Web/serverfarms"
-               sku =
-                   let baseProps =
-                       {| name = farm.Sku
-                          tier = farm.Tier
-                          size = farm.WorkerSize |}
-                   if farm.IsDynamic then box {| baseProps with family = "Y"; capacity = 0 |}
-                   else box {| baseProps with
-                                   capacity = farm.WorkerCount |}
-               name = farm.Name.Value
-               apiVersion = "2018-02-01"
-               location = farm.Location
-               properties =
-                   if farm.IsDynamic then
-                       box {| name = farm.Name.Value
-                              computeMode = "Dynamic" |}
-                   else
-                       box {| name = farm.Name.Value
-                              perSiteScaling = false
-                              reserved = false |}
-            |}
-        match farm.Kind with
-        | Some kind -> box {| baseProps with kind = kind |}
-        | None -> box baseProps
+        {| ``type`` = "Microsoft.Web/serverfarms"
+           sku =
+               {| name = farm.Sku
+                  tier = farm.Tier
+                  size = farm.WorkerSize
+                  family = if farm.IsDynamic then "Y" else null
+                  capacity = if farm.IsDynamic then 0 else farm.WorkerCount |}
+           name = farm.Name.Value
+           apiVersion = "2018-02-01"
+           location = farm.Location.Value
+           properties =
+               if farm.IsDynamic then
+                   box {| name = farm.Name.Value
+                          computeMode = "Dynamic" |}
+               else
+                   box {| name = farm.Name.Value
+                          perSiteScaling = false
+                          reserved = false |}
+           kind = farm.Kind |> Option.toObj
+        |}
     let webApp (webApp:WebApp) = {|
         ``type`` = "Microsoft.Web/sites"
         name = webApp.Name.Value
         apiVersion = "2016-08-01"
-        location = webApp.Location
+        location = webApp.Location.Value
         dependsOn = webApp.Dependencies |> List.map(fun p -> p.Value)
         kind = webApp.Kind
         resources =
@@ -143,7 +138,7 @@ module Outputters =
             {| serverFarmId = webApp.ServerFarm.Value
                siteConfig =
                     [ "alwaysOn", box webApp.AlwaysOn
-                      "appSettings", webApp.AppSettings |> List.map(fun (k,v) -> {| name = k; value = v |}) |> box                      
+                      "appSettings", webApp.AppSettings |> List.map(fun (k,v) -> {| name = k; value = v |}) |> box
                       match webApp.LinuxFxVersion with Some v -> "linuxFxVersion", box v | None -> ()
                       match webApp.NetFrameworkVersion with Some v -> "netFrameworkVersion", box v | None -> ()
                       match webApp.JavaVersion with Some v -> "javaVersion", box v | None -> ()
@@ -190,11 +185,10 @@ module Outputters =
         ``type`` = "Microsoft.DocumentDB/databaseAccounts"
         name = cosmosDb.Name.Value
         apiVersion = "2016-03-31"
-        location = cosmosDb.Location
+        location = cosmosDb.Location.Value
         kind = "GlobalDocumentDB"
         properties =
-            let baseProps =
-                let consistencyPolicy =
+            {| consistencyPolicy =
                     match cosmosDb.ConsistencyPolicy with
                     | BoundedStaleness(maxStaleness, maxInterval) ->
                         box {| defaultConsistencyLevel = "BoundedStaleness"
@@ -205,27 +199,17 @@ module Outputters =
                     | ConsistentPrefix
                     | Strong ->
                         box {| defaultConsistencyLevel = string cosmosDb.ConsistencyPolicy |}
-                {| consistencyPolicy = consistencyPolicy
-                   databaseAccountOfferType = "Standard" |}
-            match cosmosDb.WriteModel with
-            | AutoFailover secondary ->
-                {| baseProps with
-                      enableAutomaticFailover = true
-                      locations = [
-                        {| locationName = cosmosDb.Location; failoverPriority = 0 |}
-                        {| locationName = secondary; failoverPriority = 1 |}
-                      ]
+               databaseAccountOfferType = "Standard"
+               enableAutomaticFailure = match cosmosDb.WriteModel with AutoFailover _ -> Nullable true | _ -> Nullable()
+               autoenableMultipleWriteLocations = match cosmosDb.WriteModel with MultiMaster _ -> Nullable true | _ -> Nullable()
+               locations =
+                match cosmosDb.WriteModel with
+                | AutoFailover secondary
+                | MultiMaster secondary ->
+                    [ {| locationName = cosmosDb.Location.Value; failoverPriority = 0 |}
+                      {| locationName = secondary.Value; failoverPriority = 1 |} ]
+                | NoFailover -> []
                 |} |> box
-            | MultiMaster secondary ->
-                {| baseProps with
-                      autoenableMultipleWriteLocations = true
-                      locations = [
-                        {| locationName = cosmosDb.Location; failoverPriority = 0 |}
-                        {| locationName = secondary; failoverPriority = 1 |}
-                      ]
-                |} |> box
-            | NoFailover ->
-                box baseProps
     |}
     let cosmosDbSql (cosmosDbSql:CosmosDbSql) = {|
         ``type`` = "Microsoft.DocumentDB/databaseAccounts/apis/databases"
@@ -240,7 +224,7 @@ module Outputters =
         ``type`` = "Microsoft.Sql/servers"
         name = database.ServerName.Value
         apiVersion = "2014-04-01-preview"
-        location = database.Location
+        location = database.Location.Value
         tags = {| displayName = "SqlServer" |}
         properties =
             {| administratorLogin = database.Credentials.Username
@@ -249,9 +233,9 @@ module Outputters =
         resources = [
             box
                 {| ``type`` = "databases"
-                   name = database.DbName.Value               
+                   name = database.DbName.Value
                    apiVersion = "2015-01-01"
-                   location = database.Location
+                   location = database.Location.Value
                    tags = {| displayName = "Database" |}
                    properties =
                     {| edition = database.DbEdition
@@ -263,7 +247,7 @@ module Outputters =
                    resources = [
                        {| ``type`` = "transparentDataEncryption"
                           comments = "Transparent Data Encryption"
-                          name = "current"                      
+                          name = "current"
                           apiVersion = "2014-04-01-preview"
                           properties = {| status = string database.TransparentDataEncryption |}
                           dependsOn = [ database.DbName.Value ]
@@ -275,7 +259,7 @@ module Outputters =
                     {| ``type`` = "firewallrules"
                        name = rule.Name
                        apiVersion = "2014-04-01"
-                       location = database.Location
+                       location = database.Location.Value
                        properties =
                         {| endIpAddress = string rule.Start
                            startIpAddress = string rule.End |}
@@ -287,7 +271,7 @@ module Outputters =
         ``type`` = "Microsoft.Network/publicIPAddresses"
         apiVersion = "2018-11-01"
         name = ipAddress.Name.Value
-        location = ipAddress.Location
+        location = ipAddress.Location.Value
         properties =
            match ipAddress.DomainNameLabel with
            | Some label ->
@@ -302,7 +286,7 @@ module Outputters =
         ``type`` = "Microsoft.Network/virtualNetworks"
         apiVersion = "2018-11-01"
         name = vnet.Name.Value
-        location = vnet.Location
+        location = vnet.Location.Value
         properties =
              {| addressSpace = {| addressPrefixes = vnet.AddressSpacePrefixes |}
                 subnets =
@@ -317,7 +301,7 @@ module Outputters =
         ``type`` = "Microsoft.Network/networkInterfaces"
         apiVersion = "2018-11-01"
         name = nic.Name.Value
-        location = nic.Location
+        location = nic.Location.Value
         dependsOn = [
             nic.VirtualNetwork.Value
             for config in nic.IpConfigs do
@@ -340,7 +324,7 @@ module Outputters =
         ``type`` = "Microsoft.Compute/virtualMachines"
         apiVersion = "2018-10-01"
         name = vm.Name.Value
-        location = vm.Location
+        location = vm.Location.Value
         dependsOn = [
             vm.NetworkInterfaceName.Value
             match vm.StorageAccount with
@@ -374,7 +358,7 @@ module Outputters =
                         {| createOption = "Empty"
                            name = sprintf "%s-datadisk-%i" vmNameLowerCase lun
                            diskSizeGB = dataDisk.Size
-                           lun = lun                           
+                           lun = lun
                            managedDisk = {| storageAccountType = string dataDisk.DiskType |} |})
                 |}
             networkProfile =
@@ -399,7 +383,7 @@ module Outputters =
         ``type`` = "Microsoft.Search/searchServices"
         apiVersion = "2015-08-19"
         name = search.Name.Value
-        location = search.Location
+        location = search.Location.Value
         sku =
          {| name = search.Sku |}
         properties =
@@ -412,7 +396,7 @@ module Outputters =
       ``type``= "Microsoft.KeyVault/vaults"
       name = keyVault.Name.Value
       apiVersion = "2018-02-14"
-      location = keyVault.Location
+      location = keyVault.Location.Value
       properties =
         {| tenantId = keyVault.TenantId
            sku = {| name = keyVault.Sku; family = "A" |}
@@ -481,17 +465,16 @@ let processTemplate (template:ArmTemplate) = {|
         |> Map.ofList
 |}
 
-let settings = JsonSerializerSettings(NullValueHandling = NullValueHandling.Ignore)
-let toJson =
-    processTemplate
-    >> fun t -> JsonConvert.SerializeObject(t, Formatting.None, settings)
+let toJson x =
+    let x = processTemplate x
+    JsonConvert.SerializeObject(x, Formatting.Indented, JsonSerializerSettings(NullValueHandling = NullValueHandling.Ignore))
 
 let toFile armTemplateName json =
     let templateFilename = sprintf "%s.json" armTemplateName
     File.WriteAllText(templateFilename, json)
     templateFilename
 
-let toBatchFile armTemplateName resourceGroupName location templateFilename =
+let toBatchFile armTemplateName resourceGroupName (Location location) templateFilename =
     let batchFilename = sprintf "%s.bat" armTemplateName
 
     let azureCliBatch =
@@ -504,7 +487,7 @@ let toBatchFile armTemplateName resourceGroupName location templateFilename =
     File.WriteAllText(batchFilename, azureCliBatch)
     batchFilename
 
-let generateDeployScript resourceGroupName (deployment:{| Location : string; Template : ArmTemplate |}) =
+let generateDeployScript resourceGroupName (deployment:{| Location : Location; Template : ArmTemplate |}) =
     let templateName = "farmer-deploy"
 
     deployment.Template
