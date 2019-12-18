@@ -124,6 +124,7 @@ module ContainerGroups =
           IpAddress : ContainerGroupIpAddress }
 
 open ContainerGroups
+open System
 
 type WebApp =
     { Name : ResourceName 
@@ -223,6 +224,15 @@ module VM =
           OsDisk : DiskInfo
           DataDisks : DiskInfo list
           NetworkInterfaceName : ResourceName }
+type KeyVaultSecret =
+    { Name : ResourceName
+      ParentKeyVault : ResourceName
+      Location : Location 
+      Key : SecureParameter
+      ContentType : string option
+      Enabled : bool Nullable
+      ActivationDate : int Nullable
+      ExpirationDate : int Nullable }
 type KeyVault =
     { Name : ResourceName
       Location : Location
@@ -249,19 +259,6 @@ type KeyVault =
       IpRules : string list
       VnetRules : string list }
 
-    //{
-    //    "type": "Microsoft.KeyVault/vaults/secrets",
-    //    "name": "[concat(parameters('keyVaultName'), '/', parameters('secretName'))]",
-    //    "apiVersion": "2018-02-14",
-    //    "location": "[parameters('location')]",
-    //    "dependsOn": [
-    //      "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
-    //    ],
-    //    "properties": {
-    //      "value": "[parameters('secretValue')]"
-    //    }
-    //  }
-
 open VM
 
 type SupportedResource =
@@ -273,7 +270,7 @@ type SupportedResource =
     | AppInsights of AppInsights
     | Ip of PublicIpAddress | Vnet of VirtualNetwork | Nic of NetworkInterface | Vm of VirtualMachine
     | AzureSearch of Search
-    | KeyVault of KeyVault
+    | KeyVault of KeyVault | KeyVaultSecret of KeyVaultSecret
     member this.ResourceName =
         match this with
         | AppInsights x -> x.Name
@@ -291,6 +288,7 @@ type SupportedResource =
         | Vm x -> x.Name
         | AzureSearch x -> x.Name
         | KeyVault x -> x.Name
+        | KeyVaultSecret x -> x.Name
 
 namespace Farmer
 open Farmer.Models

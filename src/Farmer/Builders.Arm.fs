@@ -63,9 +63,12 @@ type ArmBuilder() =
                       | :? AppInsightsConfig as aiConfig ->
                           AppInsights (Converters.appInsights state.Location aiConfig)
                       | :? KeyVaultConfig as keyVaultConfig ->
-                          KeyVault (Converters.keyVault state.Location keyVaultConfig)
-                      | r ->
-                          failwithf "Sorry, I don't know how to handle this resource of type '%s'." (r.GetType().FullName) ]
+                          let output = Converters.keyVault state.Location keyVaultConfig
+                          KeyVault output.KeyVault
+                          for secret in output.Secrets do
+                            KeyVaultSecret secret
+                      | resource ->
+                          failwithf "Sorry, I don't know how to handle this resource of type '%s'." (resource.GetType().FullName) ]
                   |> List.groupBy(fun r -> r.ResourceName)
                   |> List.choose(fun (resourceName, instances) ->
                          match instances with

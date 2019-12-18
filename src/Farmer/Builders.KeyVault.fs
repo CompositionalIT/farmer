@@ -9,8 +9,22 @@ type [<RequireQualifiedAccess>] Secret = Get | List | Set | Delete | Backup | Re
 type [<RequireQualifiedAccess>] Certificate = Get | List | Delete | Create | Import | Update | ManageContacts | GetIssuers | ListIssuers | SetIssuers | DeleteIssuers | ManageIssuers | Recover | Purge | Backup | Restore
 type [<RequireQualifiedAccess>] Storage = Get | List | Delete | Set | Update | RegenerateKey | Recover | Purge | Backup | Restore | SetSas | ListSas | GetSas | DeleteSas
 
+let private makeAll<'TUnion> =
+    FSharp.Reflection.FSharpType.GetUnionCases(typeof<'TUnion>)
+    |> Array.map(fun t -> FSharp.Reflection.FSharpValue.MakeUnion(t, null) :?> 'TUnion)
+    |> Array.toList
+
+module Key =
+    let All = makeAll<Key>
+module Secret =
+    let All = makeAll<Secret>
+module Certificate =
+    let All = makeAll<Certificate>
+module Storage =
+    let All = makeAll<Storage>
+
 type AccessPolicy =
-    { ObjectId : string
+    { ObjectId : Guid
       ApplicationId : Guid option
       Permissions :
         {| Keys : Key Set
@@ -41,6 +55,19 @@ type NetworkAcl =
       DefaultAction : DefaultAction option
       Bypass : Bypass option } 
 
+type SecretKey =
+    { Name : SecureParameter
+      ContentType : string option
+      Enabled : bool option
+      ActivationDate : DateTime option
+      ExpirationDate : DateTime option }
+    static member Create key =
+        { Name = SecureParameter key
+          ContentType = None
+          Enabled = None
+          ActivationDate = None
+          ExpirationDate = None }
+
 type KeyVaultConfig =
     { Name : ResourceName
       TenantId : Guid
@@ -48,17 +75,18 @@ type KeyVaultConfig =
       Sku : KeyVaultSku
       Policies : CreateMode
       NetworkAcl : NetworkAcl
-      Uri : Uri option }
-
+      Uri : Uri option
+      SecretKeys : SecretKey list }
 
 type AccessPolicyBuilder() =
     member __.Yield _ =
-        { ObjectId = null
+        { ObjectId = Guid.Empty
           ApplicationId = None
           Permissions = {| Keys = Set.empty; Secrets = Set.empty; Certificates = Set.empty; Storage = Set.empty |} }
     /// Sets the Object ID of the permission set.
     [<CustomOperation "object_id">]
     member __.ObjectId(state:AccessPolicy, objectId) = { state with ObjectId = objectId }
+    member __.ObjectId(state:AccessPolicy, objectId) = { state with ObjectId = Guid.Parse objectId }
     /// Sets the Application ID of the permission set.
     [<CustomOperation "application_id">]
     member __.ApplicationId(state:AccessPolicy, applicationId) = { state with ApplicationId = Some applicationId }
@@ -85,7 +113,8 @@ type KeyVaultBuilderState =
       NetworkAcl : NetworkAcl
       CreateMode : SimpleCreateMode option
       Policies : AccessPolicy list
-      Uri : Uri option }
+      Uri : Uri option
+      SecretKeys : SecretKey list }
 let private zero =
     { Name = ResourceName.Empty
       TenantId = Guid.Empty
@@ -94,10 +123,12 @@ let private zero =
       NetworkAcl = { IpRules = []; VnetRules = []; Bypass = None; DefaultAction = None }
       Policies = []
       CreateMode = None
-      Uri = None }
+      Uri = None
+      SecretKeys = [] }
+
 type KeyVaultBuilder() =
     member __.Yield (_:unit) = zero
-    member __.Run(state:KeyVaultBuilderState) =
+    member __.Run(state:KeyVaultBuilderState) : KeyVaultConfig =
         { Name = state.Name
           Access = state.Access
           Sku = state.Sku
@@ -109,6 +140,7 @@ type KeyVaultBuilder() =
             | Some SimpleCreateMode.Default, policies -> Default policies
             | Some SimpleCreateMode.Recover, primary :: secondary -> Recover(primary, secondary)
             | Some SimpleCreateMode.Recover, [] -> failwith "Setting the creation mode to Recover requires at least one access policy. Use the accessPolicy builder to create a policy, and add it to the vault configuration using add_access_policy."
+          SecretKeys = state.SecretKeys
           Uri = state.Uri }
     /// Sets the name of the vault.
     [<CustomOperation "name">]
@@ -175,60 +207,96 @@ type KeyVaultBuilder() =
     // Adds a virtual network rule. This is the full resource id of a vnet subnet, such as '/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/virtualNetworks/test-vnet/subnets/subnet1'.
     [<CustomOperation "add_vnet_rule">]
     member __.AddVnetRule(state:KeyVaultBuilderState, vnetRule) = { state with NetworkAcl = { state.NetworkAcl with VnetRules = vnetRule :: state.NetworkAcl.VnetRules } }
+    [<CustomOperation "add_secret">]
+    member __.AddSecret(state:KeyVaultBuilderState, secretKey) = { state with SecretKeys = SecretKey.Create secretKey :: state.SecretKeys }
+    member __.AddSecret(state:KeyVaultBuilderState, secretKey) = { state with SecretKeys = secretKey :: state.SecretKeys }
 
+type SecretKeyBuilder() =
+    member __.Yield (_:unit) = SecretKey.Create ""
+    [<CustomOperation "name">]
+    member __.Name(state:SecretKey, name) = { state with Name = SecureParameter name }
+    [<CustomOperation "content_type">]
+    member __.ContentType(state, contentType) = { state with ContentType = Some contentType }
+    [<CustomOperation "enable_secret">]
+    member __.Enabled(state) = { state with Enabled = Some true }
+    [<CustomOperation "disable_secret">]
+    member __.Disabled(state) = { state with Enabled = Some false }
+    [<CustomOperation "activation_date">]
+    member __.ActivationDate(state, activationDate) = { state with ActivationDate = Some activationDate }
+    [<CustomOperation "expiration_date">]
+    member __.ExpirationDate(state, expirationDate) = { state with ExpirationDate = Some expirationDate }
+let secret = SecretKeyBuilder()
 
 module Converters =
-    let inline toStringArray theSet = theSet |> Set.map(fun s -> s.ToString().ToLower()) |> Set.toArray
-    let inline maybeBoolean (f:FeatureFlag) = f.AsBoolean
-    let keyVault location (kvc:KeyVaultConfig) : Models.KeyVault =
-        { Name = kvc.Name
-          Location = location          
-          TenantId = kvc.TenantId.ToString()
-          Sku = kvc.Sku.ToString().ToLower()
+    open Farmer.Models
+    let private ``1970`` = DateTime(1970,1,1,0,0,0)
+    let private totalSecondsSince1970 (d:DateTime) = (d.Subtract ``1970``).TotalSeconds |> int
+    let inline private toStringArray theSet = theSet |> Set.map(fun s -> s.ToString().ToLower()) |> Set.toArray
+    let inline private maybeBoolean (f:FeatureFlag) = f.AsBoolean
+    let keyVault location (kvc:KeyVaultConfig) =
+        let keyVault =
+            { Name = kvc.Name
+              Location = location          
+              TenantId = kvc.TenantId.ToString()
+              Sku = kvc.Sku.ToString().ToLower()
 
-          EnabledForTemplateDeployment = kvc.Access.ResourceManagerAccess |> Option.map maybeBoolean
-          EnabledForDiskEncryption = kvc.Access.AzureDiskEncryptionAccess |> Option.map maybeBoolean
-          EnabledForDeployment = kvc.Access.VirtualMachineAccess |> Option.map maybeBoolean
-          EnableSoftDelete =
-            match kvc.Access.SoftDelete with
-            | None ->
-                None
-            | Some SoftDeleteWithPurgeProtection
-            | Some SoftDeletionOnly ->
-                Some true          
-          EnablePurgeProtection =
-            match kvc.Access.SoftDelete with
-            | None
-            | Some SoftDeletionOnly ->
-                None
-            | Some SoftDeleteWithPurgeProtection ->
-                Some true
-          CreateMode =
-            match kvc.Policies with
-            | Unspecified _ -> None
-            | Recover _ -> Some "recover"
-            | Default _ -> Some "default"
-          AccessPolicies =
-            let policies =
+              EnabledForTemplateDeployment = kvc.Access.ResourceManagerAccess |> Option.map maybeBoolean
+              EnabledForDiskEncryption = kvc.Access.AzureDiskEncryptionAccess |> Option.map maybeBoolean
+              EnabledForDeployment = kvc.Access.VirtualMachineAccess |> Option.map maybeBoolean
+              EnableSoftDelete =
+                match kvc.Access.SoftDelete with
+                | None ->
+                    None
+                | Some SoftDeleteWithPurgeProtection
+                | Some SoftDeletionOnly ->
+                    Some true          
+              EnablePurgeProtection =
+                match kvc.Access.SoftDelete with
+                | None
+                | Some SoftDeletionOnly ->
+                    None
+                | Some SoftDeleteWithPurgeProtection ->
+                    Some true
+              CreateMode =
                 match kvc.Policies with
-                | Unspecified policies -> policies
-                | Recover(policy, secondaryPolicies) -> policy :: secondaryPolicies
-                | Default policies -> policies
-            [| for policy in policies do
-                {| ObjectId = policy.ObjectId
-                   ApplicationId = policy.ApplicationId |> Option.map string
-                   Permissions =
-                    {| Certificates = policy.Permissions.Certificates |> toStringArray
-                       Storage = policy.Permissions.Storage |> toStringArray
-                       Keys = policy.Permissions.Keys |> toStringArray
-                       Secrets = policy.Permissions.Secrets |> toStringArray |}
-                |}
-            |]
-          Uri = kvc.Uri |> Option.map string
-          DefaultAction = kvc.NetworkAcl.DefaultAction |> Option.map string
-          Bypass = kvc.NetworkAcl.Bypass |> Option.map string
-          IpRules = kvc.NetworkAcl.IpRules
-          VnetRules = kvc.NetworkAcl.VnetRules }
+                | Unspecified _ -> None
+                | Recover _ -> Some "recover"
+                | Default _ -> Some "default"
+              AccessPolicies =
+                let policies =
+                    match kvc.Policies with
+                    | Unspecified policies -> policies
+                    | Recover(policy, secondaryPolicies) -> policy :: secondaryPolicies
+                    | Default policies -> policies
+                [| for policy in policies do
+                    {| ObjectId = string policy.ObjectId
+                       ApplicationId = policy.ApplicationId |> Option.map string
+                       Permissions =
+                        {| Certificates = policy.Permissions.Certificates |> toStringArray
+                           Storage = policy.Permissions.Storage |> toStringArray
+                           Keys = policy.Permissions.Keys |> toStringArray
+                           Secrets = policy.Permissions.Secrets |> toStringArray |}
+                    |}
+                |]
+              Uri = kvc.Uri |> Option.map string
+              DefaultAction = kvc.NetworkAcl.DefaultAction |> Option.map string
+              Bypass = kvc.NetworkAcl.Bypass |> Option.map string
+              IpRules = kvc.NetworkAcl.IpRules
+              VnetRules = kvc.NetworkAcl.VnetRules }
+        let secretKeys =
+            kvc.SecretKeys
+            |> List.map(fun k ->
+                let (SecureParameter key) = k.Name 
+                { ParentKeyVault = kvc.Name
+                  Name = sprintf "%s/%s" kvc.Name.Value key |> ResourceName
+                  Key = k.Name
+                  ContentType = k.ContentType
+                  Enabled = k.Enabled |> Option.toNullable
+                  ActivationDate = k.ActivationDate |> Option.map totalSecondsSince1970 |> Option.toNullable 
+                  ExpirationDate = k.ExpirationDate |> Option.map totalSecondsSince1970 |> Option.toNullable
+                  Location = location })
+        
+        {| KeyVault = keyVault; Secrets = secretKeys |}
 
 let accessPolicy = AccessPolicyBuilder()
 let keyVault = KeyVaultBuilder()

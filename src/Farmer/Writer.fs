@@ -425,6 +425,22 @@ module Outputters =
                virtualNetworkRules = keyVault.VnetRules |}
         |}
     |}
+    let keyVaultSecret (keyVaultSecret:KeyVaultSecret) = {|
+        ``type`` = "Microsoft.KeyVault/vaults/secrets"
+        name = keyVaultSecret.Name.Value
+        apiVersion = "2018-02-14"
+        location = keyVaultSecret.Location.Value
+        dependsOn = [ keyVaultSecret.ParentKeyVault.Value ]
+        properties =
+            {| value = keyVaultSecret.Key.AsArmRef
+               contentType = keyVaultSecret.ContentType |> Option.toObj
+               attributes =
+                {| enabled = keyVaultSecret.Enabled
+                   nbf = keyVaultSecret.ActivationDate
+                   exp = keyVaultSecret.ExpirationDate
+                |}
+            |}
+        |}
 
 open Farmer.Models
 let processTemplate (template:ArmTemplate) = {|
@@ -448,12 +464,14 @@ let processTemplate (template:ArmTemplate) = {|
             | Vm vm -> Outputters.virtualMachine vm |> box
             | AzureSearch search -> Outputters.search search |> box
             | KeyVault vault -> Outputters.keyVault vault |> box
+            | KeyVaultSecret secret -> Outputters.keyVaultSecret secret |> box
         )
     parameters =
         template.Resources
         |> List.choose(function
             | SqlServer sql -> Some sql.Credentials.Password
             | Vm vm -> Some vm.Credentials.Password
+            | KeyVaultSecret kvs -> Some kvs.Key
             | _ -> None)
         |> List.map(fun (SecureParameter p) -> p, {| ``type`` = "securestring" |})
         |> Map.ofList
