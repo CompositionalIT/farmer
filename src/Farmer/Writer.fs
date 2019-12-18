@@ -487,7 +487,7 @@ let toBatchFile armTemplateName resourceGroupName (Location location) templateFi
     File.WriteAllText(batchFilename, azureCliBatch)
     batchFilename
 
-let generateDeployScript resourceGroupName (deployment:{| Location : Location; Template : ArmTemplate |}) =
+let generateDeployScript resourceGroupName (deployment:Deployment) =
     let templateName = "farmer-deploy"
 
     deployment.Template
