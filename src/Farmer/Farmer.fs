@@ -224,15 +224,24 @@ module VM =
           OsDisk : DiskInfo
           DataDisks : DiskInfo list
           NetworkInterfaceName : ResourceName }
+type SecretValue =
+    | ParameterSecret of SecureParameter
+    | ExpressionSecret of ArmExpression
+    member this.Value =
+        match this with
+        | ParameterSecret secureParameter -> secureParameter.AsArmRef
+        | ExpressionSecret armExpression -> armExpression.Value
+
 type KeyVaultSecret =
     { Name : ResourceName
+      Value : SecretValue
       ParentKeyVault : ResourceName
       Location : Location 
-      Key : SecureParameter
       ContentType : string option
       Enabled : bool Nullable
       ActivationDate : int Nullable
-      ExpirationDate : int Nullable }
+      ExpirationDate : int Nullable
+      Dependencies : ResourceName list }
 type KeyVault =
     { Name : ResourceName
       Location : Location

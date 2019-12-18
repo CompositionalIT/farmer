@@ -430,9 +430,12 @@ module Outputters =
         name = keyVaultSecret.Name.Value
         apiVersion = "2018-02-14"
         location = keyVaultSecret.Location.Value
-        dependsOn = [ keyVaultSecret.ParentKeyVault.Value ]
+        dependsOn = [
+            keyVaultSecret.ParentKeyVault.Value
+            for dependency in keyVaultSecret.Dependencies do
+                dependency.Value ]
         properties =
-            {| value = keyVaultSecret.Key.AsArmRef
+            {| value = keyVaultSecret.Value.Value
                contentType = keyVaultSecret.ContentType |> Option.toObj
                attributes =
                 {| enabled = keyVaultSecret.Enabled
@@ -471,7 +474,7 @@ let processTemplate (template:ArmTemplate) = {|
         |> List.choose(function
             | SqlServer sql -> Some sql.Credentials.Password
             | Vm vm -> Some vm.Credentials.Password
-            | KeyVaultSecret kvs -> Some kvs.Key
+            | KeyVaultSecret { Value = ParameterSecret secureParameter } -> Some secureParameter
             | _ -> None)
         |> List.map(fun (SecureParameter p) -> p, {| ``type`` = "securestring" |})
         |> Map.ofList

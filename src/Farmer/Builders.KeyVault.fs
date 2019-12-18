@@ -55,18 +55,26 @@ type NetworkAcl =
       DefaultAction : DefaultAction option
       Bypass : Bypass option } 
 
-type SecretKey =
-    { Name : SecureParameter
+type SecretConfig =
+    { Key : string
+      Value : Models.SecretValue
       ContentType : string option
       Enabled : bool option
       ActivationDate : DateTime option
-      ExpirationDate : DateTime option }
+      ExpirationDate : DateTime option
+      Dependencies : ResourceName list }
     static member Create key =
-        { Name = SecureParameter key
+        { Key = key
+          Value = Models.ParameterSecret(SecureParameter key)
           ContentType = None
           Enabled = None
           ActivationDate = None
-          ExpirationDate = None }
+          ExpirationDate = None
+          Dependencies = [] }
+    static member Create (key, expression, resourceOwner) =
+        { SecretConfig.Create key with
+            Value = Models.ExpressionSecret expression
+            Dependencies = [ resourceOwner ] }
 
 type KeyVaultConfig =
     { Name : ResourceName
@@ -76,7 +84,7 @@ type KeyVaultConfig =
       Policies : CreateMode
       NetworkAcl : NetworkAcl
       Uri : Uri option
-      SecretKeys : SecretKey list }
+      Secrets : SecretConfig list }
 
 type AccessPolicyBuilder() =
     member __.Yield _ =
@@ -114,20 +122,20 @@ type KeyVaultBuilderState =
       CreateMode : SimpleCreateMode option
       Policies : AccessPolicy list
       Uri : Uri option
-      SecretKeys : SecretKey list }
-let private zero =
-    { Name = ResourceName.Empty
-      TenantId = Guid.Empty
-      Access = { VirtualMachineAccess = None; ResourceManagerAccess = None; AzureDiskEncryptionAccess = None; SoftDelete = None }
-      Sku = KeyVaultSku.Standard
-      NetworkAcl = { IpRules = []; VnetRules = []; Bypass = None; DefaultAction = None }
-      Policies = []
-      CreateMode = None
-      Uri = None
-      SecretKeys = [] }
+      Secrets : SecretConfig list }
 
 type KeyVaultBuilder() =
-    member __.Yield (_:unit) = zero
+    member __.Yield (_:unit) =        
+        { Name = ResourceName.Empty
+          TenantId = Guid.Empty
+          Access = { VirtualMachineAccess = None; ResourceManagerAccess = None; AzureDiskEncryptionAccess = None; SoftDelete = None }
+          Sku = KeyVaultSku.Standard
+          NetworkAcl = { IpRules = []; VnetRules = []; Bypass = None; DefaultAction = None }
+          Policies = []
+          CreateMode = None
+          Uri = None
+          Secrets = [] }
+
     member __.Run(state:KeyVaultBuilderState) : KeyVaultConfig =
         { Name = state.Name
           Access = state.Access
@@ -140,7 +148,7 @@ type KeyVaultBuilder() =
             | Some SimpleCreateMode.Default, policies -> Default policies
             | Some SimpleCreateMode.Recover, primary :: secondary -> Recover(primary, secondary)
             | Some SimpleCreateMode.Recover, [] -> failwith "Setting the creation mode to Recover requires at least one access policy. Use the accessPolicy builder to create a policy, and add it to the vault configuration using add_access_policy."
-          SecretKeys = state.SecretKeys
+          Secrets = state.Secrets
           Uri = state.Uri }
     /// Sets the name of the vault.
     [<CustomOperation "name">]
@@ -208,13 +216,16 @@ type KeyVaultBuilder() =
     [<CustomOperation "add_vnet_rule">]
     member __.AddVnetRule(state:KeyVaultBuilderState, vnetRule) = { state with NetworkAcl = { state.NetworkAcl with VnetRules = vnetRule :: state.NetworkAcl.VnetRules } }
     [<CustomOperation "add_secret">]
-    member __.AddSecret(state:KeyVaultBuilderState, secretKey) = { state with SecretKeys = SecretKey.Create secretKey :: state.SecretKeys }
-    member __.AddSecret(state:KeyVaultBuilderState, secretKey) = { state with SecretKeys = secretKey :: state.SecretKeys }
+    member __.AddSecret(state:KeyVaultBuilderState, key) = { state with Secrets = SecretConfig.Create key :: state.Secrets }
+    member __.AddSecret(state:KeyVaultBuilderState, (key, value, resourceName)) = { state with Secrets = SecretConfig.Create(key, value, resourceName) :: state.Secrets }
+    member __.AddSecret(state:KeyVaultBuilderState, key) = { state with Secrets = key :: state.Secrets }
 
-type SecretKeyBuilder() =
-    member __.Yield (_:unit) = SecretKey.Create ""
+type SecretBuilder() =
+    member __.Yield (_:unit) = SecretConfig.Create ""
     [<CustomOperation "name">]
-    member __.Name(state:SecretKey, name) = { state with Name = SecureParameter name }
+    member __.Name(state:SecretConfig, name) = { state with Key = name; Value = Models.ParameterSecret(SecureParameter name) }
+    [<CustomOperation "value">]
+    member __.Value(state:SecretConfig, value) = { state with Value = Models.ExpressionSecret value }
     [<CustomOperation "content_type">]
     member __.ContentType(state, contentType) = { state with ContentType = Some contentType }
     [<CustomOperation "enable_secret">]
@@ -225,7 +236,10 @@ type SecretKeyBuilder() =
     member __.ActivationDate(state, activationDate) = { state with ActivationDate = Some activationDate }
     [<CustomOperation "expiration_date">]
     member __.ExpirationDate(state, expirationDate) = { state with ExpirationDate = Some expirationDate }
-let secret = SecretKeyBuilder()
+    [<CustomOperation "depends_on">]
+    member __.DependsOn(state:SecretConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
+
+let secret = SecretBuilder()
 
 module Converters =
     open Farmer.Models
@@ -236,7 +250,7 @@ module Converters =
     let keyVault location (kvc:KeyVaultConfig) =
         let keyVault =
             { Name = kvc.Name
-              Location = location          
+              Location = location
               TenantId = kvc.TenantId.ToString()
               Sku = kvc.Sku.ToString().ToLower()
 
@@ -284,17 +298,17 @@ module Converters =
               IpRules = kvc.NetworkAcl.IpRules
               VnetRules = kvc.NetworkAcl.VnetRules }
         let secretKeys =
-            kvc.SecretKeys
-            |> List.map(fun k ->
-                let (SecureParameter key) = k.Name 
+            kvc.Secrets
+            |> List.map(fun secret ->
                 { ParentKeyVault = kvc.Name
-                  Name = sprintf "%s/%s" kvc.Name.Value key |> ResourceName
-                  Key = k.Name
-                  ContentType = k.ContentType
-                  Enabled = k.Enabled |> Option.toNullable
-                  ActivationDate = k.ActivationDate |> Option.map totalSecondsSince1970 |> Option.toNullable 
-                  ExpirationDate = k.ExpirationDate |> Option.map totalSecondsSince1970 |> Option.toNullable
-                  Location = location })
+                  Name = sprintf "%s/%s" kvc.Name.Value secret.Key |> ResourceName
+                  Value = secret.Value
+                  ContentType = secret.ContentType
+                  Enabled = secret.Enabled |> Option.toNullable
+                  ActivationDate = secret.ActivationDate |> Option.map totalSecondsSince1970 |> Option.toNullable 
+                  ExpirationDate = secret.ExpirationDate |> Option.map totalSecondsSince1970 |> Option.toNullable
+                  Location = location
+                  Dependencies = secret.Dependencies })
         
         {| KeyVault = keyVault; Secrets = secretKeys |}
 
