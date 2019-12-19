@@ -5,8 +5,8 @@ open Farmer.Resources
 
 let template (environment:string) storageSku webAppSku =
     let environment = environment.ToLower()
-    let generateResourceName = sprintf "safe-%s-%s" environment 
-    
+    let generateResourceName = sprintf "safe-%s-%s" environment
+
     let myStorageAccount = storageAccount {
         name (sprintf "safe%sstorage" environment)
         sku storageSku
@@ -48,7 +48,7 @@ let template (environment:string) storageSku webAppSku =
         setting "myDbName" myCosmosDb.DbName.Value
         depends_on myCosmosDb
     }
-    
+
     let myWebApp = webApp {
         name (generateResourceName "web")
         service_plan_name (generateResourceName "webhost")
@@ -83,7 +83,7 @@ let template (environment:string) storageSku webAppSku =
         add_ssd_disk 128
         add_slow_disk 1024
     }
-    
+
     let myContainerGroup = containerGroup {
         name "appWithHttpFrontend"
         os_type Models.ContainerGroups.ContainerGroupOsType.Linux
@@ -126,12 +126,12 @@ let template (environment:string) storageSku webAppSku =
         add_resource myContainerGroup
 
         output "webAppName" myWebApp.Name
-        output "webAppPassword" myWebApp.PublishingPassword        
+        output "webAppPassword" myWebApp.PublishingPassword
         output "functionsPassword" myFunctions.PublishingPassword
         output "functionsAIKey" myFunctions.AppInsightsKey
         output "storageAccountKey" myFunctions.StorageAccountKey
         output "customAiKey" myCustomAi.InstrumentationKey
-    }    
+    }
 
 template "dev" Storage.Sku.StandardLRS WebApp.Sku.F1
 |> Writer.generateDeployScript "deleteme"

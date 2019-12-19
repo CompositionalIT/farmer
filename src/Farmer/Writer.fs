@@ -392,6 +392,59 @@ module Outputters =
             hostingMode = search.HostingMode |}
     |}
 
+    let keyVault (keyVault:KeyVault) = {|
+      ``type``= "Microsoft.KeyVault/vaults"
+      name = keyVault.Name.Value
+      apiVersion = "2018-02-14"
+      location = keyVault.Location.Value
+      properties =
+        {| tenantId = keyVault.TenantId
+           sku = {| name = keyVault.Sku; family = "A" |}
+           enabledForDeployment = keyVault.EnabledForDeployment |> Option.toNullable
+           enabledForDiskEncryption = keyVault.EnabledForDiskEncryption |> Option.toNullable
+           enabledForTemplateDeployment = keyVault.EnabledForTemplateDeployment |> Option.toNullable
+           enablePurgeProtection = keyVault.EnablePurgeProtection |> Option.toNullable
+           createMode = keyVault.CreateMode |> Option.toObj
+           vaultUri = keyVault.Uri |> Option.toObj
+           accessPolicies =
+                [| for policy in keyVault.AccessPolicies do
+                    {| objectId = policy.ObjectId
+                       tenantId = keyVault.TenantId
+                       applicationId = policy.ApplicationId |> Option.toObj
+                       permissions =
+                        {| keys = policy.Permissions.Keys
+                           storage = policy.Permissions.Storage
+                           certificates = policy.Permissions.Certificates
+                           secrets = policy.Permissions.Secrets |}
+                    |}
+                |]
+           networkAcls =
+            {| defaultAction = keyVault.DefaultAction |> Option.toObj
+               bypass = keyVault.Bypass |> Option.toObj
+               ipRules = keyVault.IpRules
+               virtualNetworkRules = keyVault.VnetRules |}
+        |}
+    |}
+    let keyVaultSecret (keyVaultSecret:KeyVaultSecret) = {|
+        ``type`` = "Microsoft.KeyVault/vaults/secrets"
+        name = keyVaultSecret.Name.Value
+        apiVersion = "2018-02-14"
+        location = keyVaultSecret.Location.Value
+        dependsOn = [
+            keyVaultSecret.ParentKeyVault.Value
+            for dependency in keyVaultSecret.Dependencies do
+                dependency.Value ]
+        properties =
+            {| value = keyVaultSecret.Value.Value
+               contentType = keyVaultSecret.ContentType |> Option.toObj
+               attributes =
+                {| enabled = keyVaultSecret.Enabled
+                   nbf = keyVaultSecret.ActivationDate
+                   exp = keyVaultSecret.ExpirationDate
+                |}
+            |}
+        |}
+
 open Farmer.Models
 let processTemplate (template:ArmTemplate) = {|
     ``$schema`` = "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#"
@@ -413,12 +466,15 @@ let processTemplate (template:ArmTemplate) = {|
             | Nic nic -> Outputters.networkInterface nic |> box
             | Vm vm -> Outputters.virtualMachine vm |> box
             | AzureSearch search -> Outputters.search search |> box
+            | KeyVault vault -> Outputters.keyVault vault |> box
+            | KeyVaultSecret secret -> Outputters.keyVaultSecret secret |> box
         )
     parameters =
         template.Resources
         |> List.choose(function
             | SqlServer sql -> Some sql.Credentials.Password
             | Vm vm -> Some vm.Credentials.Password
+            | KeyVaultSecret { Value = ParameterSecret secureParameter } -> Some secureParameter
             | _ -> None)
         |> List.map(fun (SecureParameter p) -> p, {| ``type`` = "securestring" |})
         |> Map.ofList
@@ -452,7 +508,7 @@ let toBatchFile armTemplateName resourceGroupName (Location location) templateFi
     File.WriteAllText(batchFilename, azureCliBatch)
     batchFilename
 
-let generateDeployScript resourceGroupName (deployment:{| Location : Location; Template : ArmTemplate |}) =
+let generateDeployScript resourceGroupName (deployment:Deployment) =
     let templateName = "farmer-deploy"
 
     deployment.Template
