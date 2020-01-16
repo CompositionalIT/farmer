@@ -495,18 +495,46 @@ let toFile armTemplateName json =
     File.WriteAllText(templateFilename, json)
     templateFilename
 
-let toBatchFile armTemplateName resourceGroupName (Location location) templateFilename =
-    let batchFilename = sprintf "%s.bat" armTemplateName
+open System.Runtime.InteropServices
 
-    let azureCliBatch =
+let private setLinuxExecutePermissions filename =
+    let command = sprintf "chmod +x %s" filename
+    let startInfo = 
+        System.Diagnostics.ProcessStartInfo( 
+            FileName = "/bin/bash",
+            Arguments = "-c \""+ command + "\"",
+            UseShellExecute = false,
+            RedirectStandardOutput = true )
+
+    use proc = new System.Diagnostics.Process(StartInfo = startInfo)
+    proc.Start() |> ignore
+    proc.WaitForExit() |> ignore
+    filename
+
+let private toAzureCliCmd resourceGroupName (Location location) templateFilename =
         sprintf """az login && az group create -l %s -n %s && az group deployment create -g %s --template-file %s"""
             location
             resourceGroupName
             resourceGroupName
             templateFilename
 
-    File.WriteAllText(batchFilename, azureCliBatch)
-    batchFilename
+let toScriptFile armTemplateName resourceGroupName location templateFilename =
+    let azureCliCmd = toAzureCliCmd resourceGroupName location templateFilename
+
+    if RuntimeInformation.IsOSPlatform(OSPlatform.Windows) then
+        let scriptFilename = sprintf "%s.bat" armTemplateName
+        File.WriteAllText(scriptFilename, azureCliCmd)
+        scriptFilename
+    elif RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX) then
+        let bashHeader = "#!/bin/bash\n"
+        let scriptFilename = sprintf "%s.sh" armTemplateName
+        File.WriteAllText(scriptFilename, bashHeader + azureCliCmd)
+        setLinuxExecutePermissions scriptFilename
+    else 
+        RuntimeInformation.OSDescription 
+        |> sprintf "OSPlatform: %s not supported" 
+        |> System.NotImplementedException 
+        |> raise
 
 let generateDeployScript resourceGroupName (deployment:Deployment) =
     let templateName = "farmer-deploy"
@@ -514,9 +542,10 @@ let generateDeployScript resourceGroupName (deployment:Deployment) =
     deployment.Template
     |> toJson
     |> toFile templateName
-    |> toBatchFile templateName resourceGroupName deployment.Location
+    |> toScriptFile templateName resourceGroupName deployment.Location
 
 let quickDeploy resourceGroupName deployment =
     generateDeployScript resourceGroupName deployment
-    |> Diagnostics.Process.Start
+    |> fun s -> printfn "starting process %s" s; s
+    |> System.Diagnostics.Process.Start
     |> ignore
