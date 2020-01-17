@@ -16,7 +16,7 @@ type Location = Location of string member this.Value = match this with (Location
 type ArmExpression =
     | ArmExpression of string
     /// Gets the raw value of this expression.
-    member this.Value = match this with | ArmExpression e -> e
+    member this.Value = match this with ArmExpression e -> e
     static member Eval (ArmExpression expr) = expr
     static member Empty = ArmExpression ""
 
@@ -324,6 +324,6 @@ module Locations =
     let WestIndia = Location "westindia"
 
 type ArmTemplate =
-    { Parameters : string list
+    { Parameters : SecureParameter list
       Outputs : (string * string) list
       Resources : SupportedResource list }
