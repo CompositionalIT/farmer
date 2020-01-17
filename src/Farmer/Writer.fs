@@ -546,6 +546,5 @@ let generateDeployScript resourceGroupName (deployment:Deployment) =
 
 let quickDeploy resourceGroupName deployment =
     generateDeployScript resourceGroupName deployment
-    |> fun s -> printfn "starting process %s" s; s
     |> System.Diagnostics.Process.Start
     |> ignore
