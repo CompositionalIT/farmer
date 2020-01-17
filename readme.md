@@ -28,6 +28,7 @@ This is an example bit of Farmer F#:
 
 ```fsharp
 open Farmer
+open Farmer.Resources
 
 // Create a storage resource with Premium LRS
 let myStorage = storageAccount {
@@ -44,7 +45,7 @@ let myWebApp = webApp {
 }
 
 // Create the ARM template using those two resources
-let location, template = arm {
+let deployment = arm {
     location Locations.NorthEurope // set location for all resources
     add_resource myStorage             // include storage into template
     add_resource myWebApp              // include web app into template
@@ -55,9 +56,9 @@ let location, template = arm {
 }
 
 /// Export the template to a file.
-template
+deployment.Template
 |> Writer.toJson
-|> Writer.toFile "webapp-appinsights.json"
+|> Writer.toFile "webapp-deployment.json"
 ```
 
 This ends up looking like this, expanding from around 15 lines of more-or-less strongly type code to around 100 lines of more-or-less weakly typed JSON:
@@ -76,25 +77,9 @@ This ends up looking like this, expanding from around 15 lines of more-or-less s
             "value": "[list(resourceId('Microsoft.Web/sites/config', 'mysuperwebapp', 'publishingcredentials'), '2014-06-01').properties.publishingPassword]"
         }
     },
-    "parameters": {},
+    "parameters": {
+    },
     "resources": [
-        {
-            "apiVersion": "2016-09-01",
-            "location": "northeurope",
-            "name": "mysuperwebapp-plan",
-            "properties": {
-                "name": "mysuperwebapp-plan",
-                "perSiteScaling": false,
-                "reserved": false
-            },
-            "sku": {
-                "name": "S1",
-                "numberOfWorkers": 1,
-                "size": "0",
-                "tier": "Standard"
-            },
-            "type": "Microsoft.Web/serverfarms"
-        },
         {
             "apiVersion": "2016-08-01",
             "dependsOn": [
@@ -102,11 +87,13 @@ This ends up looking like this, expanding from around 15 lines of more-or-less s
                 "mystorage",
                 "mysuperwebapp-ai"
             ],
+            "kind": "app",
             "location": "northeurope",
             "name": "mysuperwebapp",
             "properties": {
                 "serverFarmId": "mysuperwebapp-plan",
                 "siteConfig": {
+                    "alwaysOn": false,
                     "appSettings": [
                         {
                             "name": "storage_key",
@@ -148,6 +135,12 @@ This ends up looking like this, expanding from around 15 lines of more-or-less s
                             "name": "XDT_MicrosoftApplicationInsights_Mode",
                             "value": "recommended"
                         }
+                    ],
+                    "metadata": [
+                        {
+                            "name": "CURRENT_STACK",
+                            "value": "dotnetcore"
+                        }
                     ]
                 }
             },
@@ -158,11 +151,30 @@ This ends up looking like this, expanding from around 15 lines of more-or-less s
                         "mysuperwebapp"
                     ],
                     "name": "Microsoft.ApplicationInsights.AzureWebSites",
-                    "properties": {},
+                    "properties": {
+                    },
                     "type": "siteextensions"
                 }
             ],
             "type": "Microsoft.Web/sites"
+        },
+        {
+            "apiVersion": "2018-02-01",
+            "kind": "app",
+            "location": "northeurope",
+            "name": "mysuperwebapp-plan",
+            "properties": {
+                "name": "mysuperwebapp-plan",
+                "perSiteScaling": false,
+                "reserved": false
+            },
+            "sku": {
+                "capacity": 1,
+                "name": "S1",
+                "size": "0",
+                "tier": "Standard"
+            },
+            "type": "Microsoft.Web/serverfarms"
         },
         {
             "apiVersion": "2014-04-01",
@@ -185,6 +197,8 @@ This ends up looking like this, expanding from around 15 lines of more-or-less s
             "kind": "StorageV2",
             "location": "northeurope",
             "name": "mystorage",
+            "resources": [
+            ],
             "sku": {
                 "name": "Premium_LRS"
             },
@@ -311,7 +325,7 @@ This will launch a simple batch file (**help needed to make this x-plat!**) whic
 1. Install the [Azure CLI](https://docs.microsoft.com/en-gb/cli/azure/?view=azure-cli-latest).
 1. Log in to Azure in the CLI: `az login`.
 1. Create a [Resource Group](https://docs.microsoft.com/en-us/azure/azure-resource-manager/resource-group-overview#resource-groups) which will store the created Azure services: `az group create --location westus --name MyResourceGroup`.
-1. Deploy the ARM template to the newly-created resource group: `az group deployment create --group MyResourceGroup --template-file generated-arm-template.json`.
+1. Deploy the ARM template to the newly-created resource group: `az group deployment create --resource-group MyResourceGroup --template-file generated-arm-template.json`.
 1. Log into the [Azure portal](https://portal.azure.com) to see the results.
 
 ## API Reference
