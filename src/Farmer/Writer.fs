@@ -445,9 +445,77 @@ module Outputters =
             |}
         |}
 
+    let cdnCustomDomain (parent:CdnEndpoint) (customDomain:CdnCustomDomain) =
+        {| name = customDomain.Name.Value
+           ``type`` = "Microsoft.Cdn/profiles/endpoints/customDomains"
+           apiVersion = "2019-04-15"
+           dependsOn = [| parent.Name.Value |]
+           properties = {| hostName = customDomain.HostName |}
+        |}
+        
+    let cdnEndpoint (parent:CdnProfile) (endpoint:CdnEndpoint) =
+        {| name = endpoint.Name.Value
+           ``type`` = "Microsoft.Cdn/profiles/endpoints"
+           apiVersion = "2019-04-15"
+           dependsOn = [| parent.Name.Value |]
+           location = "Global"
+           properties =
+               {| originHostHeader = endpoint.OriginHostHeader |> Option.toObj
+                  originPath = endpoint.OriginPath |> Option.toObj
+                  contentTypesToCompress = endpoint.ContentTypesToCompress
+                  isCompressionEnabled = endpoint.IsCompressionEnabled |> Option.toNullable
+                  isHttpAllowed = endpoint.IsHttpAllowed |> Option.toNullable
+                  isHttpsAllowed = endpoint.IsHttpsAllowed |> Option.toNullable
+                  queryStringCachingBehaviour = endpoint.QueryStringCachingBehavior |> Option.map string |> Option.toObj
+                  optimizationPath = endpoint.OptimizationPath |> Option.toObj
+                  probePath = endpoint.ProbePath |> Option.toObj
+                  geoFilters = [|
+                    for filter in endpoint.GeoFilters ->
+                        {| relativePath = filter.RelativePath
+                           action = filter.Action |> string
+                           countryCodes = filter.CountryCodes |> Array.map string |}
+                  |]
+                  deliveryPolicy =
+                    endpoint.DeliveryPolicy
+                    |> Option.map(fun policy ->
+                        {| description = policy.Description |> Option.toObj
+                           rules = [|
+                               for rule in policy.Rules ->
+                                   {| name = rule.Name |> Option.toObj
+                                      order = rule.Order
+                                      conditions = rule.Conditions |> Array.map(fun c -> {| name = c |})
+                                      actions = rule.Actions |> Array.map(fun c -> {| name = c |})
+                                   |}
+                           |]
+                        |} |> box)
+                    |> Option.toObj
+                  origins = [|
+                      for origin in endpoint.Origins ->
+                          {| name = origin.Name
+                             properties =
+                                 {| hostName = origin.HostName
+                                    httpPort = origin.HttpPort |> Option.toNullable
+                                    httpsPort = origin.HttpsPort |> Option.toNullable |}
+                          |}
+                  |]
+               |}
+           resources =
+               endpoint.CustomDomains
+               |> Array.map (cdnCustomDomain endpoint)
+        |}
+
+    let cdnProfile (profile:CdnProfile) =
+        {| name = profile.Name.Value
+           ``type`` = "Microsoft.Cdn/profiles"
+           apiVersion = "2019-04-15"
+           location = "Global"
+           sku = {| name = string profile.Sku |}
+           resources = [| cdnEndpoint profile profile.Endpoint |]
+        |}
+
 open Farmer.Models
 let processTemplate (template:ArmTemplate) = {|
-    ``$schema`` = "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#"
+    ``$schema`` = "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#"
     contentVersion = "1.0.0.0"
     resources =
         template.Resources
@@ -468,6 +536,7 @@ let processTemplate (template:ArmTemplate) = {|
             | AzureSearch search -> Outputters.search search |> box
             | KeyVault vault -> Outputters.keyVault vault |> box
             | KeyVaultSecret secret -> Outputters.keyVaultSecret secret |> box
+            | CdnProfile profile -> Outputters.cdnProfile profile |> box
         )
     parameters =
         template.Resources

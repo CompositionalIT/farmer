@@ -268,6 +268,46 @@ type KeyVault =
       IpRules : string list
       VnetRules : string list }
 
+type QueryStringCacheBehavior = IgnoreQueryString | BypassCaching | UseQueryString | NotSet
+type GeoFilterAction = Block | Allow
+type CountryCode = CountryCode of string member this.Value = match this with CountryCode x -> x
+type RulePriority = Always | Custom of order:int * conditions:string array
+type CdnSku = Standard_Verizon | Premium_Verizon | Custom_Verizon | Standard_Akamai | Standard_ChinaCdn | Standard_Microsoft | Premium_ChinaCdn
+type CdnCustomDomain = { Name : ResourceName; HostName : string }    
+type CdnEndpoint =
+    { Name : ResourceName
+      OriginHostHeader : string option
+      OriginPath : string option
+      ContentTypesToCompress : string array
+      IsCompressionEnabled : bool option
+      IsHttpAllowed : bool option
+      IsHttpsAllowed : bool option
+      QueryStringCachingBehavior : QueryStringCacheBehavior option
+      OptimizationPath : string option
+      ProbePath : string option
+      GeoFilters :
+        {| RelativePath : string
+           Action : GeoFilterAction
+           CountryCodes: CountryCode array
+        |} array
+      /// The order in which the rules are applied for the endpoint. Possible values {0,1,2,3,………}. A rule with a lesser order will be applied before a rule with a greater order. Rule with order 0 is a special rule. It does not require any condition and actions listed in it will always be applied.
+      DeliveryPolicy :
+        {| Description : string option
+           Rules : {| Name : string option; Order : int; Conditions : string array; Actions : string array |} array
+        |} option
+      Origins :
+        {| Name : string
+           HostName : string
+           HttpPort : int option
+           HttpsPort : int option
+        |} array
+      CustomDomains : CdnCustomDomain array
+    }
+type CdnProfile =
+    { Name : ResourceName
+      Sku : CdnSku
+      Endpoint : CdnEndpoint }        
+
 open VM
 
 type SupportedResource =
@@ -280,6 +320,7 @@ type SupportedResource =
     | Ip of PublicIpAddress | Vnet of VirtualNetwork | Nic of NetworkInterface | Vm of VirtualMachine
     | AzureSearch of Search
     | KeyVault of KeyVault | KeyVaultSecret of KeyVaultSecret
+    | CdnProfile of CdnProfile
     member this.ResourceName =
         match this with
         | AppInsights x -> x.Name
@@ -298,6 +339,7 @@ type SupportedResource =
         | AzureSearch x -> x.Name
         | KeyVault x -> x.Name
         | KeyVaultSecret x -> x.Name
+        | CdnProfile x -> x.Name
 
 namespace Farmer
 open Farmer.Models

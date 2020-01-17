@@ -67,6 +67,8 @@ type ArmBuilder() =
                           KeyVault output.KeyVault
                           for secret in output.Secrets do
                             KeyVaultSecret secret
+                      | :? CdnConfig as cdnConfig ->
+                          CdnProfile (Converters.cdnProfile state.Location cdnConfig)
                       | resource ->
                           failwithf "Sorry, I don't know how to handle this resource of type '%s'." (resource.GetType().FullName) ]
                   |> List.groupBy(fun r -> r.ResourceName)
