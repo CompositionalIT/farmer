@@ -48,6 +48,8 @@ type SqlBuilder() =
           FirewallRules = [] }
     member __.Run(state) =
         { state with
+            ServerName = state.ServerName |> Helpers.santitiseDb |> ResourceName
+            DbName = state.DbName |> Helpers.santitiseDb |> ResourceName
             AdministratorCredentials =
                 {| state.AdministratorCredentials with
                     Password = SecureParameter (sprintf "password-for-%s" state.ServerName.Value) |} }
@@ -95,7 +97,7 @@ type WebAppBuilder with
         this.DependsOn(state, sqlDb.ServerName)
 type FunctionsBuilder with
     member this.DependsOn(state:FunctionsConfig, sqlDb:SqlAzureConfig) =
-        this.DependsOn(state, sqlDb.ServerName)            
+        this.DependsOn(state, sqlDb.ServerName)
 
 module Converters =
     open Farmer.Models

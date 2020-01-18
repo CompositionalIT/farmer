@@ -507,25 +507,49 @@ let private setLinuxExecutePermissions filename =
     proc.WaitForExit() |> ignore
     filename
 
-let private toAzureCliCmd resourceGroupName (Location location) templateFilename =
-    sprintf """az login && az group create -l %s -n %s && az group deployment create -g %s --template-file %s"""
+module ParameterFile =
+    open FSharp.Core.Printf
+    let toParameters parameters =
+        {| ``$schema`` = "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#"
+           contentVersion = "1.0.0.0"
+           parameters =
+                parameters
+                |> List.map(fun (name, value) -> name, {| value = value |})
+                |> Map.ofList
+        |}     
+    let [<Literal>] private valid = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
+    let generatePassword length (template:ArmTemplate) =
+        let rnd = Random (template.GetHashCode())
+        Seq.init length (fun _ -> valid.[rnd.Next valid.Length])
+        |> Seq.toArray
+        |> String
+       
+    let generateParametersFile (armTemplate:ArmTemplate) =
+        armTemplate.Parameters
+        |> List.map(fun (SecureParameter p) -> p, generatePassword 16 armTemplate)
+        |> toParameters
+        |> serialize
+        |> toFile "farmer-deploy-parameters"
+
+let private toAzureCliCmd resourceGroupName (Location location) templateFilename parametersFilename =
+    sprintf """az login && az group create -l %s -n %s && az group deployment create -g %s --template-file %s --parameters @%s"""
         location
         resourceGroupName
         resourceGroupName
         templateFilename
+        parametersFilename
 
 let (|OperatingSystem|_|) platform () =
     if RuntimeInformation.IsOSPlatform platform then Some() else None
 
-let toScriptFile armTemplateName resourceGroupName location templateFilename =
-    let azureCliCmd = toAzureCliCmd resourceGroupName location templateFilename
-
+let toScriptFile armTemplateName azureCliCmd =
     match () with
     | OperatingSystem OSPlatform.Windows ->
         let scriptFilename = sprintf "%s.bat" armTemplateName
         File.WriteAllText(scriptFilename, azureCliCmd)
         scriptFilename
-    | OperatingSystem OSPlatform.OSX | OperatingSystem OSPlatform.Linux ->
+    | OperatingSystem OSPlatform.OSX
+    | OperatingSystem OSPlatform.Linux ->
         let bashHeader = "#!/bin/bash\n"
         let scriptFilename = sprintf "%s.sh" armTemplateName
         File.WriteAllText(scriptFilename, bashHeader + azureCliCmd)
@@ -534,32 +558,15 @@ let toScriptFile armTemplateName resourceGroupName location templateFilename =
         RuntimeInformation.OSDescription 
         |> sprintf "OSPlatform: %s not supported" 
         |> System.NotImplementedException 
-        |> raise        
-
-module ParameterFile =
-    let generateParameterFile parameters =
-        {| ``$schema`` = "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#"
-           contentVersion = "1.0.0.0"
-           parameters =
-                parameters
-                |> List.map(fun (name, value) -> name, {| value = value |})
-                |> Map.ofList
-        |}
+        |> raise
 
 let generateDeployScript resourceGroupName (deployment:Deployment) =
     let templateName = "farmer-deploy"
+    let templateFilename = deployment.Template |> toJson |> toFile templateName
+    let parameterFilename = deployment.Template |> ParameterFile.generateParametersFile
 
-    deployment.Template
-    |> toJson
-    |> toFile templateName
-    |> toScriptFile templateName resourceGroupName deployment.Location
-
-let generateParametersFile (armTemplate:ArmTemplate) =
-    armTemplate.Parameters
-    |> List.map(fun (SecureParameter p) -> p, Guid.NewGuid().ToString())
-    |> ParameterFile.generateParameterFile
-    |> serialize
-    |> toFile "farmer-deploy-parameters"
+    toAzureCliCmd resourceGroupName deployment.Location templateFilename parameterFilename
+    |> toScriptFile templateName
 
 let quickDeploy resourceGroupName deployment =
     generateDeployScript resourceGroupName deployment
