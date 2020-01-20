@@ -34,7 +34,7 @@ type SqlAzureConfig =
       FirewallRules : {| Name : string; Start : System.Net.IPAddress; End : System.Net.IPAddress |} list }
     /// Gets the ARM expression path to the FQDN of this VM.
     member this.FullyQualifiedDomainName =
-        sprintf "[reference(concat('Microsoft.Sql/servers/', variables('%s'))).fullyQualifiedDomainName]" this.ServerName.Value
+        sprintf "reference(concat('Microsoft.Sql/servers/', variables('%s'))).fullyQualifiedDomainName" this.ServerName.Value
         |> ArmExpression
 type SqlBuilder() =
     let makeIp = System.Net.IPAddress.Parse

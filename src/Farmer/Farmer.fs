@@ -18,14 +18,28 @@ type ArmExpression =
     | ArmExpression of string
     /// Gets the raw value of this expression.
     member this.Value = match this with ArmExpression e -> e
-    static member Eval (ArmExpression expr) = expr
+    /// Applies a mapping function that itself returns an expression, to this expression.
+    member this.Bind mapper : ArmExpression = mapper this.Value
+    /// Applies a mapping function to the expression.
+    member this.Map mapper = this.Bind (mapper >> ArmExpression)
+    /// Evaluates the expression for emitting into an ARM template. That is, wraps it in [].
+    member this.Eval() = sprintf "[%s]" this.Value
+
+    /// Evaluates the expression for emitting into an ARM template. That is, wraps it in [].
+    static member Eval (expression:ArmExpression) = expression.Eval()
     static member Empty = ArmExpression ""
+    /// Generates an ARM expression for concatination.
+    static member concat values =
+        values
+        |> String.concat ", "
+        |> sprintf "concat(%s)"
+        |> ArmExpression
 
 type SecureParameter =
     | SecureParameter of name:string
-    member this.AsArmRef =
-        let (SecureParameter value) = this
-        sprintf "[parameters('%s')]" value
+    member this.Value = match this with SecureParameter value -> value
+    /// Gets an ARM expression reference to the password e.g. parameters('my-password')
+    member this.AsArmRef = sprintf "parameters('%s')" this.Value |> ArmExpression
 
 namespace Farmer.Models
 
@@ -230,8 +244,8 @@ type SecretValue =
     | ExpressionSecret of ArmExpression
     member this.Value =
         match this with
-        | ParameterSecret secureParameter -> secureParameter.AsArmRef
-        | ExpressionSecret armExpression -> armExpression.Value
+        | ParameterSecret secureParameter -> secureParameter.AsArmRef.Eval()
+        | ExpressionSecret armExpression -> armExpression.Eval()
 
 type KeyVaultSecret =
     { Name : ResourceName
