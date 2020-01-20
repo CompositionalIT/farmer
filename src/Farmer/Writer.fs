@@ -513,11 +513,12 @@ module ParameterFile =
         let lowerCaseLetters = String [|'a'..'z'|]
         let upperCaseLetters = String [|'A'..'Z'|]
         let digits = String [|'0' .. '9'|]
-        let allCharacters = lowerCaseLetters + upperCaseLetters + digits
+        let special = "!£$%^&*()_-+="
+        let allCharacters = lowerCaseLetters + upperCaseLetters + digits + special
 
         let isValid (s:string) =
             let isInString (src:string) = s |> Seq.exists (string >> src.Contains)
-            isInString lowerCaseLetters && isInString upperCaseLetters && isInString digits
+            isInString lowerCaseLetters && isInString upperCaseLetters && isInString digits && isInString special
             
         let generatePassword randomNumber length =
             Seq.init length (fun _ -> allCharacters.[randomNumber allCharacters.Length])
@@ -528,9 +529,13 @@ module ParameterFile =
         let generateConformingPassword length template =
             let rnd = Random (template.GetHashCode())
 
-            Seq.initInfinite (fun i -> generatePassword rnd.Next length)
+            Seq.initInfinite (fun _ -> generatePassword rnd.Next length)
+            |> Seq.take 100
             |> Seq.filter isValid
-            |> Seq.head
+            |> Seq.tryHead
+            |> function
+            | None -> failwith "Unable to generate a valid password that meet the requested requirements!"
+            | Some password -> password
 
     let toParameters parameters =
         {| ``$schema`` = "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#"
@@ -544,7 +549,7 @@ module ParameterFile =
        
     let generateParametersFile (armTemplate:ArmTemplate) =
         armTemplate.Parameters
-        |> List.map(fun (SecureParameter p) -> p, Passwords.generateConformingPassword 16 armTemplate)
+        |> List.map(fun (SecureParameter p) -> p, Passwords.generateConformingPassword 24 armTemplate)
         |> toParameters
         |> serialize
         |> toFile "farmer-deploy-parameters"

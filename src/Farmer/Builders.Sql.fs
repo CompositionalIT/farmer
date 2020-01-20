@@ -47,12 +47,14 @@ type SqlBuilder() =
           Encryption = Disabled
           FirewallRules = [] }
     member __.Run(state) =
-        { state with
-            ServerName = state.ServerName |> Helpers.santitiseDb |> ResourceName
-            DbName = state.DbName |> Helpers.santitiseDb |> ResourceName
-            AdministratorCredentials =
-                {| state.AdministratorCredentials with
-                    Password = SecureParameter (sprintf "password-for-%s" state.ServerName.Value) |} }
+        if System.String.IsNullOrWhiteSpace state.AdministratorCredentials.UserName then failwith "You must specific an admin_username."
+        else
+            { state with
+                ServerName = state.ServerName |> Helpers.santitiseDb |> ResourceName
+                DbName = state.DbName |> Helpers.santitiseDb |> ResourceName
+                AdministratorCredentials =
+                    {| state.AdministratorCredentials with
+                        Password = SecureParameter (sprintf "password-for-%s" state.ServerName.Value) |} }
     [<CustomOperation "server_name">]
     /// Sets the name of the SQL server.
     member __.ServerName(state:SqlAzureConfig, serverName) = { state with ServerName = serverName }
