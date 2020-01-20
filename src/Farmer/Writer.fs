@@ -528,8 +528,8 @@ module ParameterFile =
         let generateConformingPassword length template =
             let rnd = Random (template.GetHashCode())
 
-            Seq.initInfinite (fun i -> i, generatePassword rnd.Next length)
-            |> Seq.filter (snd >> isValid)
+            Seq.initInfinite (fun i -> generatePassword rnd.Next length)
+            |> Seq.filter isValid
             |> Seq.head
 
     let toParameters parameters =
