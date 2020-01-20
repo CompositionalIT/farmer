@@ -508,7 +508,30 @@ let private setLinuxExecutePermissions filename =
     filename
 
 module ParameterFile =
-    open FSharp.Core.Printf
+    module Passwords =
+        open System
+        let lowerCaseLetters = String [|'a'..'z'|]
+        let upperCaseLetters = String [|'A'..'Z'|]
+        let digits = String [|'0' .. '9'|]
+        let allCharacters = lowerCaseLetters + upperCaseLetters + digits
+
+        let isValid (s:string) =
+            let isInString (src:string) = s |> Seq.exists (string >> src.Contains)
+            isInString lowerCaseLetters && isInString upperCaseLetters && isInString digits
+            
+        let generatePassword randomNumber length =
+            Seq.init length (fun _ -> allCharacters.[randomNumber allCharacters.Length])
+            |> Seq.toArray
+            |> String
+
+        /// Creates a password that is known to conform to lower, upper and numeric constraints.
+        let generateConformingPassword length template =
+            let rnd = Random (template.GetHashCode())
+
+            Seq.initInfinite (fun i -> i, generatePassword rnd.Next length)
+            |> Seq.filter (snd >> isValid)
+            |> Seq.head
+
     let toParameters parameters =
         {| ``$schema`` = "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#"
            contentVersion = "1.0.0.0"
@@ -517,16 +540,11 @@ module ParameterFile =
                 |> List.map(fun (name, value) -> name, {| value = value |})
                 |> Map.ofList
         |}     
-    let [<Literal>] private valid = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
-    let generatePassword length (template:ArmTemplate) =
-        let rnd = Random (template.GetHashCode())
-        Seq.init length (fun _ -> valid.[rnd.Next valid.Length])
-        |> Seq.toArray
-        |> String
+
        
     let generateParametersFile (armTemplate:ArmTemplate) =
         armTemplate.Parameters
-        |> List.map(fun (SecureParameter p) -> p, generatePassword 16 armTemplate)
+        |> List.map(fun (SecureParameter p) -> p, Passwords.generateConformingPassword 16 armTemplate)
         |> toParameters
         |> serialize
         |> toFile "farmer-deploy-parameters"
