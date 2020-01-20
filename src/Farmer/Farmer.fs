@@ -12,7 +12,9 @@ type ResourceName =
         | r when r = ResourceName.Empty -> ResourceName fallbackValue
         | r -> r
     member this.Map mapper = match this with ResourceName r -> ResourceName (mapper r)
+
 type Location = Location of string member this.Value = match this with (Location l) -> l
+
 /// Represents an expression used within an ARM template
 type ArmExpression =
     | ArmExpression of string
@@ -28,18 +30,26 @@ type ArmExpression =
     /// Evaluates the expression for emitting into an ARM template. That is, wraps it in [].
     static member Eval (expression:ArmExpression) = expression.Eval()
     static member Empty = ArmExpression ""
-    /// Generates an ARM expression for concatination.
-    static member concat values =
-        values
-        |> String.concat ", "
-        |> sprintf "concat(%s)"
-        |> ArmExpression
 
 type SecureParameter =
     | SecureParameter of name:string
     member this.Value = match this with SecureParameter value -> value
     /// Gets an ARM expression reference to the password e.g. parameters('my-password')
     member this.AsArmRef = sprintf "parameters('%s')" this.Value |> ArmExpression
+
+[<AutoOpen>]
+module ArmExpression =
+    /// A helper function used when building complex ARM expressions; lifts a literal string into a quoted ARM expression
+    /// e.g. text becomes 'text'. This is useful for working with functions that can mix literal values and parameters.
+    let literal = sprintf "'%s'" >> ArmExpression
+    /// Generates an ARM expression for concatination.
+    let concat values =
+        values
+        |> Seq.map(fun (r:ArmExpression) -> r.Value)
+        |> String.concat ", "
+        |> sprintf "concat(%s)"
+        |> ArmExpression
+
 
 namespace Farmer.Models
 
