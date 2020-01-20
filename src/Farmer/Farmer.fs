@@ -11,12 +11,13 @@ type ResourceName =
         match this with
         | r when r = ResourceName.Empty -> ResourceName fallbackValue
         | r -> r
-type Location = Location of string member this.Value = match this with (Location l) -> l 
+    member this.Map mapper = match this with ResourceName r -> ResourceName (mapper r)
+type Location = Location of string member this.Value = match this with (Location l) -> l
 /// Represents an expression used within an ARM template
 type ArmExpression =
     | ArmExpression of string
     /// Gets the raw value of this expression.
-    member this.Value = match this with | ArmExpression e -> e
+    member this.Value = match this with ArmExpression e -> e
     static member Eval (ArmExpression expr) = expr
     static member Empty = ArmExpression ""
 
@@ -67,7 +68,7 @@ open Farmer
 open Farmer.Resources
 
 type AppInsights =
-    { Name : ResourceName 
+    { Name : ResourceName
       Location : Location
       LinkedWebsite : ResourceName option }
 type StorageContainerAccess =
@@ -75,11 +76,11 @@ type StorageContainerAccess =
     | Container
     | Blob
 type StorageAccount =
-    { Name : ResourceName 
+    { Name : ResourceName
       Location : Location
       Sku : string
       Containers : (string * StorageContainerAccess) list }
-module ContainerGroups = 
+module ContainerGroups =
     [<RequireQualifiedAccess>]
     type ContainerGroupOsType =
         | Windows
@@ -127,7 +128,7 @@ open ContainerGroups
 open System
 
 type WebApp =
-    { Name : ResourceName 
+    { Name : ResourceName
       ServerFarm : ResourceName
       Location : Location
       AppSettings : List<string * string>
@@ -144,7 +145,7 @@ type WebApp =
       PythonVersion : string option
       Metadata : List<string * string> }
 type ServerFarm =
-    { Name : ResourceName 
+    { Name : ResourceName
       Location : Location
       Sku: string
       WorkerSize : string
@@ -236,7 +237,7 @@ type KeyVaultSecret =
     { Name : ResourceName
       Value : SecretValue
       ParentKeyVault : ResourceName
-      Location : Location 
+      Location : Location
       ContentType : string option
       Enabled : bool Nullable
       ActivationDate : int Nullable
@@ -324,6 +325,6 @@ module Locations =
     let WestIndia = Location "westindia"
 
 type ArmTemplate =
-    { Parameters : string list
+    { Parameters : SecureParameter list
       Outputs : (string * string) list
       Resources : SupportedResource list }

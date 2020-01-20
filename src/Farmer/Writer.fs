@@ -309,15 +309,15 @@ module Outputters =
         ]
         properties =
             {| ipConfigurations =
-               nic.IpConfigs
-               |> List.mapi(fun index ipConfig ->
-                   {| name = sprintf "ipconfig%i" (index + 1)
-                      properties =
-                       {| privateIPAllocationMethod = "Dynamic"
-                          publicIPAddress = {| id = sprintf "[resourceId('Microsoft.Network/publicIPAddresses','%s')]" ipConfig.PublicIpName.Value |}
-                          subnet = {| id = sprintf "[resourceId('Microsoft.Network/virtualNetworks/subnets', '%s', '%s')]" nic.VirtualNetwork.Value ipConfig.SubnetName.Value |}
-                       |}
-                   |})
+                 nic.IpConfigs
+                 |> List.mapi(fun index ipConfig ->
+                     {| name = sprintf "ipconfig%i" (index + 1)
+                        properties =
+                         {| privateIPAllocationMethod = "Dynamic"
+                            publicIPAddress = {| id = sprintf "[resourceId('Microsoft.Network/publicIPAddresses','%s')]" ipConfig.PublicIpName.Value |}
+                            subnet = {| id = sprintf "[resourceId('Microsoft.Network/virtualNetworks/subnets', '%s', '%s')]" nic.VirtualNetwork.Value ipConfig.SubnetName.Value |}
+                         |}
+                     |})
             |}
     |}
     let virtualMachine (vm:VM.VirtualMachine) = {|
@@ -470,14 +470,9 @@ let processTemplate (template:ArmTemplate) = {|
             | KeyVaultSecret secret -> Outputters.keyVaultSecret secret |> box
         )
     parameters =
-        template.Resources
-        |> List.choose(function
-            | SqlServer sql -> Some sql.Credentials.Password
-            | Vm vm -> Some vm.Credentials.Password
-            | KeyVaultSecret { Value = ParameterSecret secureParameter } -> Some secureParameter
-            | _ -> None)
+        template.Parameters
         |> List.map(fun (SecureParameter p) -> p, {| ``type`` = "securestring" |})
-        |> Map.ofList
+        |> Map.ofList        
     outputs =
         template.Outputs
         |> List.map(fun (k, v) ->
@@ -486,14 +481,15 @@ let processTemplate (template:ArmTemplate) = {|
         |> Map.ofList
 |}
 
-let toJson x =
-    let x = processTemplate x
-    JsonConvert.SerializeObject(x, Formatting.Indented, JsonSerializerSettings(NullValueHandling = NullValueHandling.Ignore))
+let serialize data =
+    JsonConvert.SerializeObject(data, Formatting.Indented, JsonSerializerSettings(NullValueHandling = NullValueHandling.Ignore))
 
-let toFile armTemplateName json =
-    let templateFilename = sprintf "%s.json" armTemplateName
-    File.WriteAllText(templateFilename, json)
-    templateFilename
+let toJson = processTemplate >> serialize
+
+let toFile filename json =
+    let filename = sprintf "%s.json" filename
+    File.WriteAllText(filename, json)
+    filename
 
 open System.Runtime.InteropServices
 
@@ -511,26 +507,72 @@ let private setLinuxExecutePermissions filename =
     proc.WaitForExit() |> ignore
     filename
 
-let private toAzureCliCmd resourceGroupName (Location location) templateFilename =
-        sprintf """az login && az group create -l %s -n %s && az group deployment create -g %s --template-file %s"""
-            location
-            resourceGroupName
-            resourceGroupName
-            templateFilename
+module ParameterFile =
+    module Passwords =
+        open System
+        let lowerCaseLetters = String [|'a'..'z'|]
+        let upperCaseLetters = String [|'A'..'Z'|]
+        let digits = String [|'0' .. '9'|]
+        let allCharacters = lowerCaseLetters + upperCaseLetters + digits
 
-let toScriptFile armTemplateName resourceGroupName location templateFilename =
-    let azureCliCmd = toAzureCliCmd resourceGroupName location templateFilename
+        let isValid (s:string) =
+            let isInString (src:string) = s |> Seq.exists (string >> src.Contains)
+            isInString lowerCaseLetters && isInString upperCaseLetters && isInString digits
+            
+        let generatePassword randomNumber length =
+            Seq.init length (fun _ -> allCharacters.[randomNumber allCharacters.Length])
+            |> Seq.toArray
+            |> String
 
-    if RuntimeInformation.IsOSPlatform(OSPlatform.Windows) then
+        /// Creates a password that is known to conform to lower, upper and numeric constraints.
+        let generateConformingPassword length template =
+            let rnd = Random (template.GetHashCode())
+
+            Seq.initInfinite (fun i -> generatePassword rnd.Next length)
+            |> Seq.filter isValid
+            |> Seq.head
+
+    let toParameters parameters =
+        {| ``$schema`` = "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#"
+           contentVersion = "1.0.0.0"
+           parameters =
+                parameters
+                |> List.map(fun (name, value) -> name, {| value = value |})
+                |> Map.ofList
+        |}     
+
+       
+    let generateParametersFile (armTemplate:ArmTemplate) =
+        armTemplate.Parameters
+        |> List.map(fun (SecureParameter p) -> p, Passwords.generateConformingPassword 16 armTemplate)
+        |> toParameters
+        |> serialize
+        |> toFile "farmer-deploy-parameters"
+
+let private toAzureCliCmd resourceGroupName (Location location) templateFilename parametersFilename =
+    sprintf """az login && az group create -l %s -n %s && az group deployment create -g %s --template-file %s --parameters @%s"""
+        location
+        resourceGroupName
+        resourceGroupName
+        templateFilename
+        parametersFilename
+
+let (|OperatingSystem|_|) platform () =
+    if RuntimeInformation.IsOSPlatform platform then Some() else None
+
+let toScriptFile armTemplateName azureCliCmd =
+    match () with
+    | OperatingSystem OSPlatform.Windows ->
         let scriptFilename = sprintf "%s.bat" armTemplateName
         File.WriteAllText(scriptFilename, azureCliCmd)
         scriptFilename
-    elif RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX) then
+    | OperatingSystem OSPlatform.OSX
+    | OperatingSystem OSPlatform.Linux ->
         let bashHeader = "#!/bin/bash\n"
         let scriptFilename = sprintf "%s.sh" armTemplateName
         File.WriteAllText(scriptFilename, bashHeader + azureCliCmd)
         setLinuxExecutePermissions scriptFilename
-    else 
+    | _ ->
         RuntimeInformation.OSDescription 
         |> sprintf "OSPlatform: %s not supported" 
         |> System.NotImplementedException 
@@ -538,11 +580,11 @@ let toScriptFile armTemplateName resourceGroupName location templateFilename =
 
 let generateDeployScript resourceGroupName (deployment:Deployment) =
     let templateName = "farmer-deploy"
+    let templateFilename = deployment.Template |> toJson |> toFile templateName
+    let parameterFilename = deployment.Template |> ParameterFile.generateParametersFile
 
-    deployment.Template
-    |> toJson
-    |> toFile templateName
-    |> toScriptFile templateName resourceGroupName deployment.Location
+    toAzureCliCmd resourceGroupName deployment.Location templateFilename parameterFilename
+    |> toScriptFile templateName
 
 let quickDeploy resourceGroupName deployment =
     generateDeployScript resourceGroupName deployment
