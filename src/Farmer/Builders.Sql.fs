@@ -36,6 +36,17 @@ type SqlAzureConfig =
     member this.FullyQualifiedDomainName =
         sprintf "reference(concat('Microsoft.Sql/servers/', variables('%s'))).fullyQualifiedDomainName" this.ServerName.Value
         |> ArmExpression
+    /// Gets a basic .NET connection string using the administrator username / password.
+    member this.ConnectionString =
+        concat
+            [ literal
+                (sprintf "Server=tcp:%s.database.windows.net,1433;Initial Catalog=%s;Persist Security Info=False;User ID=%s;Password="
+                    this.ServerName.Value
+                    this.DbName.Value
+                    this.AdministratorCredentials.UserName)
+              this.AdministratorCredentials.Password.AsArmRef
+              literal ";MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;" ]
+
 type SqlBuilder() =
     let makeIp = System.Net.IPAddress.Parse
     member __.Yield _ =
