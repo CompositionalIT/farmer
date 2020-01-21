@@ -23,11 +23,11 @@ type SearchConfig =
       Partitions : int }
     /// Gets an ARM expression for the admin key of the search instance.
     member this.AdminKey =
-        sprintf "[listAdminKeys('Microsoft.Search/searchServices/%s', '2015-08-19').primaryKey]" this.Name.Value
+        sprintf "listAdminKeys('Microsoft.Search/searchServices/%s', '2015-08-19').primaryKey" this.Name.Value
         |> ArmExpression
     /// Gets an ARM expression for the query key of the search instance.
     member this.QueryKey =
-        sprintf "[listQueryKeys('Microsoft.Search/searchServices/%s', '2015-08-19').value[0].key]" this.Name.Value
+        sprintf "listQueryKeys('Microsoft.Search/searchServices/%s', '2015-08-19').value[0].key" this.Name.Value
         |> ArmExpression
 
 type SearchBuilder() =

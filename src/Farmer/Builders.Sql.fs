@@ -34,8 +34,19 @@ type SqlAzureConfig =
       FirewallRules : {| Name : string; Start : System.Net.IPAddress; End : System.Net.IPAddress |} list }
     /// Gets the ARM expression path to the FQDN of this VM.
     member this.FullyQualifiedDomainName =
-        sprintf "[reference(concat('Microsoft.Sql/servers/', variables('%s'))).fullyQualifiedDomainName]" this.ServerName.Value
+        sprintf "reference(concat('Microsoft.Sql/servers/', variables('%s'))).fullyQualifiedDomainName" this.ServerName.Value
         |> ArmExpression
+    /// Gets a basic .NET connection string using the administrator username / password.
+    member this.ConnectionString =
+        concat
+            [ literal
+                (sprintf "Server=tcp:%s.database.windows.net,1433;Initial Catalog=%s;Persist Security Info=False;User ID=%s;Password="
+                    this.ServerName.Value
+                    this.DbName.Value
+                    this.AdministratorCredentials.UserName)
+              this.AdministratorCredentials.Password.AsArmRef
+              literal ";MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;" ]
+
 type SqlBuilder() =
     let makeIp = System.Net.IPAddress.Parse
     member __.Yield _ =
@@ -47,10 +58,14 @@ type SqlBuilder() =
           Encryption = Disabled
           FirewallRules = [] }
     member __.Run(state) =
-        { state with
-            AdministratorCredentials =
-                {| state.AdministratorCredentials with
-                    Password = SecureParameter (sprintf "password-for-%s" state.ServerName.Value) |} }
+        if System.String.IsNullOrWhiteSpace state.AdministratorCredentials.UserName then failwith "You must specific an admin_username."
+        else
+            { state with
+                ServerName = state.ServerName |> Helpers.santitiseDb |> ResourceName
+                DbName = state.DbName |> Helpers.santitiseDb |> ResourceName
+                AdministratorCredentials =
+                    {| state.AdministratorCredentials with
+                        Password = SecureParameter (sprintf "password-for-%s" state.ServerName.Value) |} }
     [<CustomOperation "server_name">]
     /// Sets the name of the SQL server.
     member __.ServerName(state:SqlAzureConfig, serverName) = { state with ServerName = serverName }
@@ -95,7 +110,7 @@ type WebAppBuilder with
         this.DependsOn(state, sqlDb.ServerName)
 type FunctionsBuilder with
     member this.DependsOn(state:FunctionsConfig, sqlDb:SqlAzureConfig) =
-        this.DependsOn(state, sqlDb.ServerName)            
+        this.DependsOn(state, sqlDb.ServerName)
 
 module Converters =
     open Farmer.Models

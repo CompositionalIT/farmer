@@ -8,6 +8,7 @@ open Farmer
 type WorkerSize = Small | Medium | Large
 type WebAppSku = Shared | Free | Basic of string | Standard of string | Premium of string | PremiumV2 of string | Isolated of string
 type FunctionsRuntime = DotNet | Node | Java | Python
+type FunctionsExtensionVersion = V1 | V2 | V3 
 type OS = Windows | Linux
 type DotNetCoreRuntime = DotNetCore22 | DotNetCore21 | DotNetCore20 | DotNetCore11 | DotNetCore10
 type AspNetRuntime = | AspNet47 | AspNet35
@@ -49,7 +50,7 @@ module AppSettings =
     let RunFromPackage = "WEBSITE_RUN_FROM_PACKAGE", "1"
 
 let publishingPassword (ResourceName name) =
-    sprintf "[list(resourceId('Microsoft.Web/sites/config', '%s', 'publishingcredentials'), '2014-06-01').properties.publishingPassword]" name
+    sprintf "list(resourceId('Microsoft.Web/sites/config', '%s', 'publishingcredentials'), '2014-06-01').properties.publishingPassword" name
     |> ArmExpression
 
 module Ai =
@@ -64,7 +65,7 @@ module Ai =
         | (AutomaticallyCreated _ as resourceRef) ->
             resourceRef)
     let instrumentationKey (ResourceName accountName) =
-        sprintf "[reference('Microsoft.Insights/components/%s').InstrumentationKey]" accountName
+        sprintf "reference('Microsoft.Insights/components/%s').InstrumentationKey" accountName
         |> ArmExpression
 
 open Farmer.Models
@@ -91,6 +92,7 @@ type FunctionsConfig =
       StorageAccountName : ResourceRef
       AppInsightsName : ResourceRef option
       Runtime : FunctionsRuntime
+      ExtensionVersion : FunctionsExtensionVersion
       OperatingSystem : OS
       Settings : Map<string, string>
       Dependencies : ResourceName list }
@@ -105,10 +107,10 @@ type FunctionsConfig =
         |> Option.bind (fun r -> r.ResourceNameOpt)
         |> Option.map Ai.instrumentationKey
     member this.DefaultKey =
-        sprintf "[listkeys(concat(resourceId('Microsoft.Web/sites', '%s'), '/host/default/'),'2016-08-01').functionKeys.default]" this.Name.Value
+        sprintf "listkeys(concat(resourceId('Microsoft.Web/sites', '%s'), '/host/default/'),'2016-08-01').functionKeys.default" this.Name.Value
         |> ArmExpression
     member this.MasterKey =
-        sprintf "[listkeys(concat(resourceId('Microsoft.Web/sites', '%s'), '/host/default/'),'2016-08-01').masterKey]" this.Name.Value
+        sprintf "listkeys(concat(resourceId('Microsoft.Web/sites', '%s'), '/host/default/'),'2016-08-01').masterKey" this.Name.Value
         |> ArmExpression
 type AppInsightsConfig =
     { Name : ResourceName }
@@ -315,7 +317,7 @@ module Converters =
                 yield! fns.Settings |> Map.toList
                 "FUNCTIONS_WORKER_RUNTIME", string fns.Runtime
                 "WEBSITE_NODE_DEFAULT_VERSION", "10.14.1"
-                "FUNCTIONS_EXTENSION_VERSION", "~2"
+                "FUNCTIONS_EXTENSION_VERSION", match fns.ExtensionVersion with V1 -> "~1" | V2 -> "~2" | V3 -> "~3"
                 "AzureWebJobsStorage", Storage.buildKey fns.StorageAccountName.ResourceName |> ArmExpression.Eval
                 "AzureWebJobsDashboard", Storage.buildKey fns.StorageAccountName.ResourceName |> ArmExpression.Eval
 
@@ -458,7 +460,7 @@ type WebAppBuilder() =
     /// Sets an app setting of the web app in the form "key" "value".
     [<CustomOperation "setting">]
     member __.AddSetting(state:WebAppConfig, key, value) = { state with Settings = state.Settings.Add(key, value) }
-    member __.AddSetting(state:WebAppConfig, key, ArmExpression value) = { state with Settings = state.Settings.Add(key, value) }
+    member __.AddSetting(state:WebAppConfig, key, value:ArmExpression) = { state with Settings = state.Settings.Add(key, value.Eval()) }
     /// Sets a dependency for the web app.
     [<CustomOperation "depends_on">]
     member __.DependsOn(state:WebAppConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
@@ -490,6 +492,7 @@ type FunctionsBuilder() =
           AppInsightsName = Some AutomaticPlaceholder
           StorageAccountName = AutomaticPlaceholder
           Runtime = DotNet
+          ExtensionVersion = V2
           OperatingSystem = Windows
           Settings = Map.empty
           Dependencies = [] }
@@ -533,13 +536,15 @@ type FunctionsBuilder() =
     /// Sets the runtime of the Functions host.
     [<CustomOperation "use_runtime">]
     member __.Runtime(state:FunctionsConfig, runtime) = { state with Runtime = runtime }
+    [<CustomOperation "use_extension_version">]
+    member __.ExtensionVersion(state:FunctionsConfig, version) = { state with ExtensionVersion = version }
     /// Sets the operating system of the Functions host.
     [<CustomOperation "operating_system">]
     member __.OperatingSystem(state:FunctionsConfig, os) = { state with OperatingSystem = os }
     /// Sets an app setting of the web app in the form "key" "value".
     [<CustomOperation "setting">]
     member __.AddSetting(state:FunctionsConfig, key, value) = { state with Settings = state.Settings.Add(key, value) }
-    member __.AddSetting(state:WebAppConfig, key, ArmExpression value) = { state with Settings = state.Settings.Add(key, value) }
+    member __.AddSetting(state:FunctionsConfig, key, value:ArmExpression) = { state with Settings = state.Settings.Add(key, value.Eval()) }
     /// Sets a dependency for the web app.
     [<CustomOperation "depends_on">]
     member __.DependsOn(state:FunctionsConfig, resourceName) =
