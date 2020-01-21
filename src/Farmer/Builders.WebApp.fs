@@ -50,7 +50,7 @@ module AppSettings =
     let RunFromPackage = "WEBSITE_RUN_FROM_PACKAGE", "1"
 
 let publishingPassword (ResourceName name) =
-    sprintf "[list(resourceId('Microsoft.Web/sites/config', '%s', 'publishingcredentials'), '2014-06-01').properties.publishingPassword]" name
+    sprintf "list(resourceId('Microsoft.Web/sites/config', '%s', 'publishingcredentials'), '2014-06-01').properties.publishingPassword" name
     |> ArmExpression
 
 module Ai =
@@ -65,7 +65,7 @@ module Ai =
         | (AutomaticallyCreated _ as resourceRef) ->
             resourceRef)
     let instrumentationKey (ResourceName accountName) =
-        sprintf "[reference('Microsoft.Insights/components/%s').InstrumentationKey]" accountName
+        sprintf "reference('Microsoft.Insights/components/%s').InstrumentationKey" accountName
         |> ArmExpression
 
 open Farmer.Models
@@ -107,10 +107,10 @@ type FunctionsConfig =
         |> Option.bind (fun r -> r.ResourceNameOpt)
         |> Option.map Ai.instrumentationKey
     member this.DefaultKey =
-        sprintf "[listkeys(concat(resourceId('Microsoft.Web/sites', '%s'), '/host/default/'),'2016-08-01').functionKeys.default]" this.Name.Value
+        sprintf "listkeys(concat(resourceId('Microsoft.Web/sites', '%s'), '/host/default/'),'2016-08-01').functionKeys.default" this.Name.Value
         |> ArmExpression
     member this.MasterKey =
-        sprintf "[listkeys(concat(resourceId('Microsoft.Web/sites', '%s'), '/host/default/'),'2016-08-01').masterKey]" this.Name.Value
+        sprintf "listkeys(concat(resourceId('Microsoft.Web/sites', '%s'), '/host/default/'),'2016-08-01').masterKey" this.Name.Value
         |> ArmExpression
 type AppInsightsConfig =
     { Name : ResourceName }
@@ -460,7 +460,7 @@ type WebAppBuilder() =
     /// Sets an app setting of the web app in the form "key" "value".
     [<CustomOperation "setting">]
     member __.AddSetting(state:WebAppConfig, key, value) = { state with Settings = state.Settings.Add(key, value) }
-    member __.AddSetting(state:WebAppConfig, key, ArmExpression value) = { state with Settings = state.Settings.Add(key, value) }
+    member __.AddSetting(state:WebAppConfig, key, value:ArmExpression) = { state with Settings = state.Settings.Add(key, value.Eval()) }
     /// Sets a dependency for the web app.
     [<CustomOperation "depends_on">]
     member __.DependsOn(state:WebAppConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
@@ -544,7 +544,7 @@ type FunctionsBuilder() =
     /// Sets an app setting of the web app in the form "key" "value".
     [<CustomOperation "setting">]
     member __.AddSetting(state:FunctionsConfig, key, value) = { state with Settings = state.Settings.Add(key, value) }
-    member __.AddSetting(state:WebAppConfig, key, ArmExpression value) = { state with Settings = state.Settings.Add(key, value) }
+    member __.AddSetting(state:FunctionsConfig, key, value:ArmExpression) = { state with Settings = state.Settings.Add(key, value.Eval()) }
     /// Sets a dependency for the web app.
     [<CustomOperation "depends_on">]
     member __.DependsOn(state:FunctionsConfig, resourceName) =

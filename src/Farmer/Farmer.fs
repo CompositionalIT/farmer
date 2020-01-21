@@ -12,20 +12,44 @@ type ResourceName =
         | r when r = ResourceName.Empty -> ResourceName fallbackValue
         | r -> r
     member this.Map mapper = match this with ResourceName r -> ResourceName (mapper r)
+
 type Location = Location of string member this.Value = match this with (Location l) -> l
+
 /// Represents an expression used within an ARM template
 type ArmExpression =
     | ArmExpression of string
     /// Gets the raw value of this expression.
     member this.Value = match this with ArmExpression e -> e
-    static member Eval (ArmExpression expr) = expr
+    /// Applies a mapping function that itself returns an expression, to this expression.
+    member this.Bind mapper : ArmExpression = mapper this.Value
+    /// Applies a mapping function to the expression.
+    member this.Map mapper = this.Bind (mapper >> ArmExpression)
+    /// Evaluates the expression for emitting into an ARM template. That is, wraps it in [].
+    member this.Eval() = sprintf "[%s]" this.Value
+
+    /// Evaluates the expression for emitting into an ARM template. That is, wraps it in [].
+    static member Eval (expression:ArmExpression) = expression.Eval()
     static member Empty = ArmExpression ""
 
 type SecureParameter =
     | SecureParameter of name:string
-    member this.AsArmRef =
-        let (SecureParameter value) = this
-        sprintf "[parameters('%s')]" value
+    member this.Value = match this with SecureParameter value -> value
+    /// Gets an ARM expression reference to the password e.g. parameters('my-password')
+    member this.AsArmRef = sprintf "parameters('%s')" this.Value |> ArmExpression
+
+[<AutoOpen>]
+module ArmExpression =
+    /// A helper function used when building complex ARM expressions; lifts a literal string into a quoted ARM expression
+    /// e.g. text becomes 'text'. This is useful for working with functions that can mix literal values and parameters.
+    let literal = sprintf "'%s'" >> ArmExpression
+    /// Generates an ARM expression for concatination.
+    let concat values =
+        values
+        |> Seq.map(fun (r:ArmExpression) -> r.Value)
+        |> String.concat ", "
+        |> sprintf "concat(%s)"
+        |> ArmExpression
+
 
 namespace Farmer.Models
 
@@ -230,8 +254,8 @@ type SecretValue =
     | ExpressionSecret of ArmExpression
     member this.Value =
         match this with
-        | ParameterSecret secureParameter -> secureParameter.AsArmRef
-        | ExpressionSecret armExpression -> armExpression.Value
+        | ParameterSecret secureParameter -> secureParameter.AsArmRef.Eval()
+        | ExpressionSecret armExpression -> armExpression.Eval()
 
 type KeyVaultSecret =
     { Name : ResourceName

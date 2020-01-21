@@ -228,7 +228,7 @@ module Outputters =
         tags = {| displayName = "SqlServer" |}
         properties =
             {| administratorLogin = database.Credentials.Username
-               administratorLoginPassword = database.Credentials.Password.AsArmRef
+               administratorLoginPassword = database.Credentials.Password.AsArmRef.Eval()
                version = "12.0" |}
         resources = [
             box
@@ -337,7 +337,7 @@ module Outputters =
              {|
                 computerName = vm.Name.Value
                 adminUsername = vm.Credentials.Username
-                adminPassword = vm.Credentials.Password.AsArmRef
+                adminPassword = vm.Credentials.Password.AsArmRef.Eval()
              |}
             storageProfile =
                 let vmNameLowerCase = vm.Name.Value.ToLower()
