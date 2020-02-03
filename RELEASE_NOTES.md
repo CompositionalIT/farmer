@@ -5,6 +5,7 @@ Release Notes
 * Automatic password generation for quick deploy
 * SQL Connection String property on database
 * Re-introduced *limited* support for parameter expressions
+* Support for configuration of Functions runtime
 
 ## 0.2.0
 * KeyVault support
