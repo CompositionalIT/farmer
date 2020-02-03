@@ -1,5 +1,10 @@
 Release Notes
 =============
+## 0.3.0
+* Quick deploy support for Linux and Mac
+* Automatic password generation for quick deploy
+* SQL Connection String property on database
+* Re-introduced *limited* support for parameter expressions
 
 ## 0.2.0
 * KeyVault support
