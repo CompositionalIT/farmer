@@ -1,0 +1,64 @@
+[
+{
+	"uri": "http://example.org/about/",
+	"title": "About",
+	"tags": [],
+	"description": "",
+	"content": ""
+},
+{
+	"uri": "http://example.org/quickstarts/quickstart-1/",
+	"title": "Your First Template",
+	"tags": [],
+	"description": "",
+	"content": "Introduction In this exercise, you\u0026rsquo;ll:\n create a web application with a fully-configured Application Insights instance create an ARM deployment object and assign the web app to it generate an ARM template  Creating a web app Create an F# console application using the .NET SDK:\ndotnet new console -lang F# -n FarmerSample\rAdd a reference to the Farmer nuget package, modifying the FarmerSample.fsproj as follows and build the project to download the dependency.\n\u0026lt;PackageReference Include=\u0026#34;Farmer\u0026#34; Version=\u0026#34;0.3.0\u0026#34;/\u0026gt;\rDefining a Farmer web application Open Program.fs and delete all the contents.\n In Farmer, resources are created using special code blocks in which you can quickly and easily configure a resource using special keywords.\n Create a Farmer web application using the webApp { } block:\nopen Farmer\ropen Farmer.Resources\rlet myWebApp = webApp {\rname \u0026#34;yourFirstFarmerApp\u0026#34;\r}\r You should pick something unique for the name. It must be unique across Azure i.e. someone else can\u0026rsquo;t have another web app with the same name!\n Create an ARM template deployment object, before setting the location for the overall resource group and adding the web app into it.\nlet deployment = arm {\rlocation Locations.NorthEurope\radd_resource myWebApp\r}\rGenerating the ARM template Now you need to generate the ARM template from the deployment object to an ARM json file.\nAdd the following code:\nlet filename =\rWriter.toJson deployment.Template\r|\u0026gt; Writer.toFile \u0026#34;myFirstTemplate\u0026#34;\rRun the application; you should notice that the file myFirstTemplate.json has been created.\nThe generated ARM template contains the following resources:\n A web application A server farm An application insights instance  The resources will be correctly configured with the appropriate dependencies set.\nThe full application open Farmer\ropen Farmer.Resources\rlet myWebApp = webApp {\rname \u0026#34;yourFirstFarmerApp\u0026#34;\r}\rlet deployment = arm {\rlocation Locations.NorthEurope\radd_resource myWebApp\r}\rlet filename =\rWriter.toJson deployment.Template\r|\u0026gt; Writer.toFile \u0026#34;myFirstTemplate\u0026#34;\r  "
+},
+{
+	"uri": "http://example.org/quickstarts/quickstart-2/",
+	"title": "Creating linked resources",
+	"tags": [],
+	"description": "",
+	"content": "Introduction In this quickstart, you\u0026rsquo;ll expand on the deployment authored in the previous quickstart as follows:\n add an Azure storage account add an application setting to the web app that contains the storage account\u0026rsquo;s key set a dependency between the two resources  Creating a storage account Create a storage account by using the storageAccount block.\nlet myStorage = storageAccount {\rname \u0026#34;yourfirststorage\u0026#34;\r}\r Azure Storage Account names must be globally unique and between 3-24 alphanumeric lower-case characters:\n Referencing the storage account in the web app In this section, we will add an app setting to the web app and set the value to the storage account\u0026rsquo;s connection string.\n In F#, you need to define a value before you reference it, so make sure that you define the storage account above the web app.\n Add the storage account\u0026rsquo;s connection key to the webapp as an app setting.\nlet myWebApp = webApp {\r...\rsetting \u0026#34;STORAGE_CONNECTION\u0026#34; myStorage.Key\r}\r Settings can be strings or (as in this case) an ARM expression, which is evaluated at deployment time.\n Setting a dependency on the storage account In ARM templates, you need to explicitly set up dependencies between resources that refer to one another; this is still required in Farmer. This tells Azure to create the storage account before it creates the web app.\nlet myWebApp = webApp {\r...\rdepends_on myStorage\r}\rAdding the storage account to the deployment Add the storage account to the deployment using the same add_resource keyword as you did with myWebApp.\nAnalysing the ARM template Run the application; you should notice that the template now contains a storage account. Also observe the dependency that has been created:\n{\r\u0026#34;resources\u0026#34;: [\r{\r\u0026#34;apiVersion\u0026#34;: \u0026#34;2016-08-01\u0026#34;,\r\u0026#34;dependsOn\u0026#34;: [\r\u0026#34;yourfirststorage\u0026#34;\r],\r\u0026#34;type\u0026#34;: \u0026#34;Microsoft.Web/sites\u0026#34;\r}\r]\r}\rAlso observe the application setting that has been created:\n{\r\u0026#34;appSettings\u0026#34;: [\r{\r\u0026#34;name\u0026#34;: \u0026#34;storageKey\u0026#34;,\r\u0026#34;value\u0026#34;: \u0026#34;[concat(\u0026#39;DefaultEndpointsProtocol=https;AccountName=yourfirststorage;AccountKey=\u0026#39;, listKeys(\u0026#39;yourfirststorage\u0026#39;, \u0026#39;2017-10-01\u0026#39;).keys[0].value)]\u0026#34;\r}\r]\r}\rThe full application open Farmer\ropen Farmer.Resources\rlet myStorageAccount = storageAccount {\rname \u0026#34;isaacssuperstorage\u0026#34;\r}\rlet myWebApp = webApp {\rname \u0026#34;isaacsappy\u0026#34;\rsetting \u0026#34;storageKey\u0026#34; myStorageAccount.Key\rdepends_on myStorageAccount.Name\r}\rlet deployment = arm {\rlocation NorthEurope\radd_resource myStorageAccount\radd_resource myWebApp\r}\rlet filename =\rWriter.toJson deployment.Template\r|\u0026gt; Writer.toFile \u0026#34;myFirstTemplate\u0026#34;\r  "
+},
+{
+	"uri": "http://example.org/quickstarts/",
+	"title": "Quickstarts",
+	"tags": [],
+	"description": "",
+	"content": "Here you can find quickstarts to performing common tasks.\n Creating your first Farmer template Creating linked resources  "
+},
+{
+	"uri": "http://example.org/faq/",
+	"title": "FAQs",
+	"tags": [],
+	"description": "",
+	"content": "How can I help? Try out Farmer and see what you think.\n Create as many issues as you can for both bugs, discussions and features Create suggestions for features and the most important elements you would like to see added  I have an Azure subscription, but I\u0026rsquo;m not an expert. I like the look of this - how do I \u0026ldquo;use\u0026rdquo; it?  Create an ARM template using the Farmer sample app. Follow the steps here to deploy the generated template into Azure. Log any issues or ideas that you find here.  I don\u0026rsquo;t know F#. Would you consider writing a C# version of this? I\u0026rsquo;m afraid not. F# isn\u0026rsquo;t hard to learn (especially for simple DSLs such as this), and you can easily integrate F# applications as part of a dotnet solution, since F# is a first-class citizen of the dotnet core ecosystem.\nAre you trying to replace ARM templates? No, we\u0026rsquo;re not. Farmer generates ARM templates that can be used just as normal; Farmer can be used simply to make the process of getting started much simpler, or incorporated into your build pipeline as a way to avoid managing difficult-to-manage ARM templates and instead use them as the final part of your build / release pipeline.\nAre you trying to compete with Pulumi? No, we\u0026rsquo;re not. Farmer has (at least currently) a specific goal in mind, which is to lower the barrier to entry for creating and working with ARM templates that are non-complex. We\u0026rsquo;re not looking to create a cross-platform DSL to also support things like Terraform etc. or support deployment of code along with infrastructure (or, at least, only to the extent that ARM templates do).\nThere\u0026rsquo;s no support for variables or parameters! Farmer does support securestring parameters for e.g. SQL and Virtual Machine passwords - these are automatically generated based on the contents of the template rather than explicitly by yourself. However, we don\u0026rsquo;t currently plan on providing rich support for either parameters or variables for several reasons:\n We want to keep the Farmer codebase simple for maintainers We want to keep the Farmer API simple for users We want to keep the generated ARM templates as readable as possible We feel that instead of trying to embed conditional logic and program flow directly inside ARM templates in JSON, if you wish to parameterise your template that you should use a real programming language to do that: in this case, F#.  You can read more on this issue here\n"
+},
+{
+	"uri": "http://example.org/api-reference/",
+	"title": "API Reference",
+	"tags": [],
+	"description": "",
+	"content": "API Reference Lorem Ipsum\n"
+},
+{
+	"uri": "http://example.org/",
+	"title": "Farmer",
+	"tags": [],
+	"description": "",
+	"content": "Farmer A DSL for rapidly generating non-complex ARM templates.\nMain Features  Create non-complex ARM templates through a simple, strongly-typed and pragmatic DSL. Create strongly-typed dependencies to resources. Runs on .NET Core. Use standard F# code to dynamically create ARM templates quickly and easily.  // Create a storage account\rlet myStorageAccount = storageAccount {\rname \u0026#34;myTestStorage\u0026#34;\rsku Sku.PremiumLRS\radd_public_container \u0026#34;myContainer\u0026#34;\r}\r// Create a web app with a pre-configured application insights service\rlet myWebApp = webApp {\rname \u0026#34;myTestWebApp\u0026#34;\rsetting \u0026#34;storageKey\u0026#34; myStorageAccount.Key\rsku Sku.B1 always_on\rdepends_on myStorageAccount.Name\r}\r// Create an ARM template\rlet deployment = arm {\rlocation NorthEurope\radd_resource myStorageAccount\radd_resource myWebApp\r}\rCurrently Supported Resources  Storage App Service Application Insights Cosmos DB Azure SQL Functions Virtual Machines Azure Search  "
+},
+{
+	"uri": "http://example.org/categories/",
+	"title": "Categories",
+	"tags": [],
+	"description": "",
+	"content": ""
+},
+{
+	"uri": "http://example.org/tags/",
+	"title": "Tags",
+	"tags": [],
+	"description": "",
+	"content": ""
+}]

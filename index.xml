@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Farmer</title>
+    <link>http://example.org/</link>
+    <description>Recent content on Farmer</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-gbs</language>
+    <lastBuildDate>Tue, 04 Feb 2020 00:36:21 +0100</lastBuildDate>
+    
+	<atom:link href="http://example.org/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Your First Template</title>
+      <link>http://example.org/quickstarts/quickstart-1/</link>
+      <pubDate>Tue, 04 Feb 2020 00:41:51 +0100</pubDate>
+      
+      <guid>http://example.org/quickstarts/quickstart-1/</guid>
+      <description>Introduction In this exercise, you&amp;rsquo;ll:
+ create a web application with a fully-configured Application Insights instance create an ARM deployment object and assign the web app to it generate an ARM template  Creating a web app Create an F# console application using the .NET SDK:
+dotnet new console -lang F# -n FarmerSampleAdd a reference to the Farmer nuget package, modifying the FarmerSample.fsproj as follows and build the project to download the dependency.</description>
+    </item>
+    
+    <item>
+      <title>Creating linked resources</title>
+      <link>http://example.org/quickstarts/quickstart-2/</link>
+      <pubDate>Tue, 04 Feb 2020 00:41:51 +0100</pubDate>
+      
+      <guid>http://example.org/quickstarts/quickstart-2/</guid>
+      <description>Introduction In this quickstart, you&amp;rsquo;ll expand on the deployment authored in the previous quickstart as follows:
+ add an Azure storage account add an application setting to the web app that contains the storage account&amp;rsquo;s key set a dependency between the two resources  Creating a storage account Create a storage account by using the storageAccount block.
+let myStorage = storageAccount {name &amp;#34;yourfirststorage&amp;#34;} Azure Storage Account names must be globally unique and between 3-24 alphanumeric lower-case characters:</description>
+    </item>
+    
+  </channel>
+</rss>
