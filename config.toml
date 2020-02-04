@@ -1,0 +1,8 @@
+baseURL = "http://example.org/"
+languageCode = "en-gbs"
+title = "Farmer"
+theme = "hugo-theme-learn"
+[outputs]
+home = [ "HTML", "RSS", "JSON"]
+[params]
+    themeVariant="green"
