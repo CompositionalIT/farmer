@@ -3,46 +3,46 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
-    <loc>http://example.org/about/</loc>
+    <loc>https://compositionalit.github.io/farmer/about/</loc>
     <lastmod>2020-02-04T22:44:07+01:00</lastmod>
   </url>
   
   <url>
-    <loc>http://example.org/quickstarts/quickstart-1/</loc>
+    <loc>https://compositionalit.github.io/farmer/quickstarts/quickstart-1/</loc>
     <lastmod>2020-02-04T00:41:51+01:00</lastmod>
   </url>
   
   <url>
-    <loc>http://example.org/quickstarts/quickstart-2/</loc>
+    <loc>https://compositionalit.github.io/farmer/quickstarts/quickstart-2/</loc>
     <lastmod>2020-02-04T00:41:51+01:00</lastmod>
   </url>
   
   <url>
-    <loc>http://example.org/quickstarts/</loc>
+    <loc>https://compositionalit.github.io/farmer/quickstarts/</loc>
     <lastmod>2020-02-04T00:41:03+01:00</lastmod>
   </url>
   
   <url>
-    <loc>http://example.org/faq/</loc>
+    <loc>https://compositionalit.github.io/farmer/faq/</loc>
     <lastmod>2020-02-04T22:38:23+01:00</lastmod>
   </url>
   
   <url>
-    <loc>http://example.org/api-reference/</loc>
+    <loc>https://compositionalit.github.io/farmer/api-reference/</loc>
     <lastmod>2020-02-04T22:37:39+01:00</lastmod>
   </url>
   
   <url>
-    <loc>http://example.org/</loc>
+    <loc>https://compositionalit.github.io/farmer/</loc>
     <lastmod>2020-02-04T00:36:21+01:00</lastmod>
   </url>
   
   <url>
-    <loc>http://example.org/categories/</loc>
+    <loc>https://compositionalit.github.io/farmer/categories/</loc>
   </url>
   
   <url>
-    <loc>http://example.org/tags/</loc>
+    <loc>https://compositionalit.github.io/farmer/tags/</loc>
   </url>
   
 </urlset>
