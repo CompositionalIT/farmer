@@ -9,23 +9,23 @@
 
     <link rel="icon" href="/farmer/images/favicon.png" type="image/png">
 
-    <title>About :: Farmer</title>
+    <title> :: Farmer</title>
 
     
-    <link href="/farmer/css/nucleus.css?1580857297" rel="stylesheet">
-    <link href="/farmer/css/fontawesome-all.min.css?1580857297" rel="stylesheet">
-    <link href="/farmer/css/hybrid.css?1580857297" rel="stylesheet">
-    <link href="/farmer/css/featherlight.min.css?1580857297" rel="stylesheet">
-    <link href="/farmer/css/perfect-scrollbar.min.css?1580857297" rel="stylesheet">
-    <link href="/farmer/css/auto-complete.css?1580857297" rel="stylesheet">
-    <link href="/farmer/css/atom-one-dark-reasonable.css?1580857297" rel="stylesheet">
-    <link href="/farmer/css/theme.css?1580857297" rel="stylesheet">
-    <link href="/farmer/css/hugo-theme.css?1580857297" rel="stylesheet">
+    <link href="/farmer/css/nucleus.css?1580858833" rel="stylesheet">
+    <link href="/farmer/css/fontawesome-all.min.css?1580858833" rel="stylesheet">
+    <link href="/farmer/css/hybrid.css?1580858833" rel="stylesheet">
+    <link href="/farmer/css/featherlight.min.css?1580858833" rel="stylesheet">
+    <link href="/farmer/css/perfect-scrollbar.min.css?1580858833" rel="stylesheet">
+    <link href="/farmer/css/auto-complete.css?1580858833" rel="stylesheet">
+    <link href="/farmer/css/atom-one-dark-reasonable.css?1580858833" rel="stylesheet">
+    <link href="/farmer/css/theme.css?1580858833" rel="stylesheet">
+    <link href="/farmer/css/hugo-theme.css?1580858833" rel="stylesheet">
     
-      <link href="/farmer/css/theme-green.css?1580857297" rel="stylesheet">
+      <link href="/farmer/css/theme-green.css?1580858833" rel="stylesheet">
     
 
-    <script src="/farmer/js/jquery-3.3.1.min.js?1580857297"></script>
+    <script src="/farmer/js/jquery-3.3.1.min.js?1580858833"></script>
 
     <style>
       :root #header + #content > #left > #rlblock_left{
@@ -70,14 +70,14 @@
     <span data-search-clear=""><i class="fas fa-times"></i></span>
 </div>
 
-<script type="text/javascript" src="/farmer/js/lunr.min.js?1580857297"></script>
-<script type="text/javascript" src="/farmer/js/auto-complete.js?1580857297"></script>
+<script type="text/javascript" src="/farmer/js/lunr.min.js?1580858833"></script>
+<script type="text/javascript" src="/farmer/js/auto-complete.js?1580858833"></script>
 <script type="text/javascript">
     
         var baseurl = "https:\/\/compositionalit.github.io\/farmer\/";
     
 </script>
-<script type="text/javascript" src="/farmer/js/search.js?1580857297"></script>
+<script type="text/javascript" src="/farmer/js/search.js?1580858833"></script>
 
     
   </div>
@@ -93,13 +93,13 @@
  
   
     
-    <li data-nav-id="/farmer/about/" title="About" class="dd-item 
+    <li data-nav-id="/farmer/about/" title="" class="dd-item 
         parent
         active
         
         ">
       <a href="/farmer/about/">
-          About
+          
           
       </a>
       
@@ -268,7 +268,7 @@
             
           
           
-            <a href='/farmer/'>Farmer</a> > About
+            <a href='/farmer/'>Farmer</a> > 
           
          
           
@@ -279,7 +279,15 @@
                 
                     <div class="progress">
     <div class="wrapper">
-<nav id="TableOfContents"></nav>
+<nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
     </div>
 </div>
 
@@ -295,7 +303,7 @@
           
             <h1>
               
-              About
+              
             </h1>
           
 
@@ -304,7 +312,24 @@
 
 
 
-	
+	<h4 id="about-farmer">About Farmer</h4>
+<p>Farmer is an open source, free to use .NET domain-specific-language (DSL) for rapidly generating non-complex Azure Resource Manager (ARM) templates.</p>
+<p>For those of you working with Azure today, one of the most useful features is the ability to generate entire infrastructure architectures as code through ARM Templates, with a declarative model that allows repeatable deployments and idempotent releases among other things.</p>
+<h4 id="whats-wrong-with-arm">What&rsquo;s wrong with ARM?</h4>
+<p>Unfortunately, ARM templates have several limitations including the fact that it is essentially a JSON dialect. This means not only that it can be verbose, but also that is requires &ldquo;embedded&rdquo;, difficult-to-maintain stringly-typed code in order to achieve what might be trivial in a &ldquo;proper&rdquo; programming language, such as references, variables and parameters - or writing elements such as loops.</p>
+<p>This means that, whilst working with ARM templates once created is relatively straightforward, the <em>authoring</em> of the templates themselves is time-consuming and error-prone.</p>
+<p>Whilst there have been some recent improvements to ARM - including tooling improvements in VS Code through an extension, we think that we can do much better than relying on tooling for a specific IDE. However, this means looking at something apart from JSON when directly authoring ARM templates themselves.</p>
+<h4 id="how-does-farmer-work">How does Farmer work?</h4>
+<p>Farmer templates are .NET Core applications which reference the <a href="https://www.nuget.org/packages/Farmer/">Farmer NuGet package</a>, which contains a set of types to model ARM resources in a strongly-typed and succinct fashion, as well as functionality to create ARM templates and even deploy to Azure.</p>
+<h4 id="what-can-i-use-farmer-for">What can I use Farmer for?</h4>
+<p>Farmer fixes these issues, by making it easy to author ARM tempaltes. You can use Farmer in a number of ways:</p>
+<ul>
+<li>As a way to quickly generate your ARM template, which is then committed into source control and deployed as normal by e.g. Azure Dev Ops.</li>
+<li>Creating a basic ARM template which generates 90% of what you need, after which you will then manually make further changes to the template, and deploy or commit into source control as normal.</li>
+<li>As a build step in your CD process to generate and deploy your ARM template. In this model, you commit your Farmer code into source control; the ARM template is a transient file that is generated during the build process and deployed into Azure, similar to the relationship between e.g. Typescript and Javascript or C# and a DLL.</li>
+</ul>
+<p>The choice is yours.</p>
+
 
 
 
@@ -461,19 +486,19 @@
     <div style="left: -1000px; overflow: scroll; position: absolute; top: -1000px; border: none; box-sizing: content-box; height: 200px; margin: 0px; padding: 0px; width: 200px;">
       <div style="border: none; box-sizing: content-box; height: 200px; margin: 0px; padding: 0px; width: 200px;"></div>
     </div>
-    <script src="/farmer/js/clipboard.min.js?1580857297"></script>
-    <script src="/farmer/js/perfect-scrollbar.min.js?1580857297"></script>
-    <script src="/farmer/js/perfect-scrollbar.jquery.min.js?1580857297"></script>
-    <script src="/farmer/js/jquery.sticky.js?1580857297"></script>
-    <script src="/farmer/js/featherlight.min.js?1580857297"></script>
-    <script src="/farmer/js/highlight.pack.js?1580857297"></script>
+    <script src="/farmer/js/clipboard.min.js?1580858834"></script>
+    <script src="/farmer/js/perfect-scrollbar.min.js?1580858834"></script>
+    <script src="/farmer/js/perfect-scrollbar.jquery.min.js?1580858834"></script>
+    <script src="/farmer/js/jquery.sticky.js?1580858834"></script>
+    <script src="/farmer/js/featherlight.min.js?1580858834"></script>
+    <script src="/farmer/js/highlight.pack.js?1580858834"></script>
     <script>hljs.initHighlightingOnLoad();</script>
-    <script src="/farmer/js/modernizr.custom-3.6.0.js?1580857297"></script>
-    <script src="/farmer/js/learn.js?1580857297"></script>
-    <script src="/farmer/js/hugo-learn.js?1580857297"></script>
+    <script src="/farmer/js/modernizr.custom-3.6.0.js?1580858834"></script>
+    <script src="/farmer/js/learn.js?1580858834"></script>
+    <script src="/farmer/js/hugo-learn.js?1580858834"></script>
 
-    <link href="/farmer/mermaid/mermaid.css?1580857297" rel="stylesheet" />
-    <script src="/farmer/mermaid/mermaid.js?1580857297"></script>
+    <link href="/farmer/mermaid/mermaid.css?1580858834" rel="stylesheet" />
+    <script src="/farmer/mermaid/mermaid.js?1580858834"></script>
     <script>
         mermaid.initialize({ startOnLoad: true });
     </script>
