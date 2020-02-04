@@ -1,8 +1,9 @@
-baseURL = "http://example.org/"
-languageCode = "en-gbs"
+baseURL = "https://compositionalit.github.io/farmer/"
+languageCode = "en-gb"
 title = "Farmer"
 theme = "hugo-theme-learn"
 [outputs]
+relativeUrls = true
 home = [ "HTML", "RSS", "JSON"]
 [params]
     themeVariant="green"
