@@ -21,7 +21,8 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 | Keyword | Purpose |
 |-|-|
 |name | Sets the name of the VM. |
-|diagnostics_support | Turns on diagnostics support using either an automatically created or externally created storage account. |
+|diagnostics_support | Turns on diagnostics support using an automatically created created storage account. |
+|diagnostics_support_external | Turns on diagnostics support using an existing storage account. |
 |vm_size | Sets the size of the VM. |
 |username | Sets the admin username of the VM (note: the password is supplied as a securestring parameter to the generated ARM template). |
 |operating_system | Sets the operating system of the VM. A set of samples is provided in the `CommonImages` module. |
