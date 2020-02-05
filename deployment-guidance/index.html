@@ -9,7 +9,7 @@
 
     <link rel="icon" href="/farmer/images/favicon.png" type="image/png">
 
-    <title>Farmer :: Farmer</title>
+    <title>Deployment Guidance :: Farmer</title>
 
     
     <link href="/farmer/css/nucleus.css?1580892303" rel="stylesheet">
@@ -35,7 +35,7 @@
     </style>
     
   </head>
-  <body class="" data-url="/farmer/">
+  <body class="" data-url="/farmer/deployment-guidance/">
     <nav id="sidebar" class="">
 
 
@@ -237,8 +237,8 @@
   
     
     <li data-nav-id="/farmer/deployment-guidance/" title="Deployment Guidance" class="dd-item 
-        
-        
+        parent
+        active
         
         ">
       <a href="/farmer/deployment-guidance/">
@@ -318,54 +318,81 @@
         <div id="overlay"></div>
         <div class="padding highlightable">
               
+              <div>
+                <div id="top-bar">
+                
+                
+                <div id="breadcrumbs" itemscope="" itemtype="http://data-vocabulary.org/Breadcrumb">
+                    <span id="sidebar-toggle-span">
+                        <a href="#" id="sidebar-toggle" data-sidebar-toggle="">
+                          <i class="fas fa-bars"></i>
+                        </a>
+                    </span>
+                  
+                  <span id="toc-menu"><i class="fas fa-list-alt"></i></span>
+                  
+                  <span class="links">
+                 
+                 
+                    
+          
+          
+            
+            
+          
+          
+            <a href='/farmer/'>Farmer</a> > Deployment Guidance
+          
+         
+          
+        
+                 
+                  </span>
+                </div>
+                
+                    <div class="progress">
+    <div class="wrapper">
+<nav id="TableOfContents"></nav>
+    </div>
+</div>
+
+                
+              </div>
+            </div>
+            
         <div id="head-tags">
         
         </div>
         
         <div id="body-inner">
           
+            <h1>
+              
+              Deployment Guidance
+            </h1>
+          
 
         
 
 
-<span id="sidebar-toggle-span">
-<a href="#" id="sidebar-toggle" data-sidebar-toggle=""><i class="fas fa-bars"></i> navigation</a>
-</span>
 
- 
-<h1 id="farmer">Farmer</h1>
-<p>Farmer is a DSL for rapidly generating non-complex ARM templates in a type-safe manner.</p>
-<h3 id="main-features">Main Features</h3>
+
+	<p>You can use Farmer in a number of ways:</p>
 <ul>
-<li>Create non-complex ARM templates through a simple, strongly-typed and pragmatic DSL.</li>
-<li>Create strongly-typed dependencies to resources.</li>
-<li>Runs on .NET Core.</li>
-<li>Use standard F# code to dynamically create ARM templates quickly and easily.</li>
+<li>As a way to quickly generate your ARM template, which is then committed into source control and deployed as normal by e.g. Azure Dev Ops.</li>
+<li>Creating a basic ARM template which generates 90% of what you need, after which you will then manually make further changes to the template, and deploy or commit into source control as normal.</li>
+<li>As a build step in your CD process to generate and deploy your ARM template. In this model, you commit your Farmer code into source control; the ARM template is a transient file that is generated during the build process and deployed into Azure, similar to the relationship between e.g. Typescript and Javascript or C# and a DLL.</li>
 </ul>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp"><span style="color:#75715e">// Create a storage account
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> myStorageAccount <span style="color:#f92672">=</span> storageAccount <span style="color:#f92672">{</span>
-    name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myTestStorage</span><span style="color:#e6db74">&#34;</span>
-    sku Sku.PremiumLRS
-    add_public_container <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myContainer</span><span style="color:#e6db74">&#34;</span>
-<span style="color:#f92672">}</span>
+<p>The choice is yours.</p>
 
-<span style="color:#75715e">// Create a web app with a pre-configured application insights service
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> myWebApp <span style="color:#f92672">=</span> webApp <span style="color:#f92672">{</span>
-    name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myTestWebApp</span><span style="color:#e6db74">&#34;</span>
-    setting <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">storageKey</span><span style="color:#e6db74">&#34;</span> myStorageAccount<span style="color:#f92672">.</span>Key
-    sku Sku.B1
-    always_on
-    depends_on myStorageAccount<span style="color:#f92672">.</span>Name
-<span style="color:#f92672">}</span>
 
-<span style="color:#75715e">// Create an ARM template
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> deployment <span style="color:#f92672">=</span> arm <span style="color:#f92672">{</span>
-    location NorthEurope
-    add_resource myStorageAccount
-    add_resource myWebApp
-<span style="color:#f92672">}</span>
-</code></pre></div>	
-  
+
+
+
+<footer class=" footline" >
+	
+</footer>
+
         
         </div> 
         
@@ -496,6 +523,7 @@
             
                 
                     
+                    
                 
                 
 
@@ -511,6 +539,9 @@
             
             
                 
+                    
+                        
+                        
                     
                 
                 
@@ -548,8 +579,10 @@
 	 
 	 
 		
+			<a class="nav nav-prev" href="/farmer/api-overview/parameters/" title="Parameters and Variables"> <i class="fa fa-chevron-left"></i></a>
 		
-			<a class="nav nav-next" href="/farmer/about/" title="About" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
+		
+			<a class="nav nav-next" href="/farmer/faq/" title="FAQs" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
 		
 	
     </div>
@@ -579,4 +612,3 @@
 
   </body>
 </html>
-

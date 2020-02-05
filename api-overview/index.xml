@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>API Overview on Farmer</title>
+    <link>https://compositionalit.github.io/farmer/api-overview/</link>
+    <description>Recent content in API Overview on Farmer</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-gb</language>
+    <lastBuildDate>Wed, 05 Feb 2020 08:53:46 +0100</lastBuildDate>
+    
+	<atom:link href="https://compositionalit.github.io/farmer/api-overview/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Parameters and Variables</title>
+      <link>https://compositionalit.github.io/farmer/api-overview/parameters/</link>
+      <pubDate>Wed, 05 Feb 2020 09:13:36 +0100</pubDate>
+      
+      <guid>https://compositionalit.github.io/farmer/api-overview/parameters/</guid>
+      <description>ARM templates support the idea both of parameterisation of templates and of the use of variables within a template for e.g. placeholders and re-using values.
+Farmer, by design, has only limited support for parameters and no support for variables. We don&amp;rsquo;t plan on adding rich support for either of these for the following reasons:
+ We want to keep the Farmer codebase simple for maintainers We want to keep the Farmer API simple for users We want to keep the generated ARM templates as readable as possible We feel that instead of trying to embed conditional logic and program flow directly inside ARM templates in JSON, if you wish to parameterise your template that you should use a real programming language to do that: in this case, F#.</description>
+    </item>
+    
+  </channel>
+</rss>

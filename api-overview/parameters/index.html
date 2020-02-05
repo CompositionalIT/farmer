@@ -9,7 +9,7 @@
 
     <link rel="icon" href="/farmer/images/favicon.png" type="image/png">
 
-    <title>Farmer :: Farmer</title>
+    <title>Parameters and Variables :: Farmer</title>
 
     
     <link href="/farmer/css/nucleus.css?1580892303" rel="stylesheet">
@@ -35,7 +35,7 @@
     </style>
     
   </head>
-  <body class="" data-url="/farmer/">
+  <body class="" data-url="/farmer/api-overview/parameters/">
     <nav id="sidebar" class="">
 
 
@@ -186,7 +186,7 @@
   
     
     <li data-nav-id="/farmer/api-overview/" title="API Overview" class="dd-item 
-        
+        parent
         
         
         ">
@@ -210,7 +210,7 @@
  
   
     
-      <li data-nav-id="/farmer/api-overview/parameters/" title="Parameters and Variables" class="dd-item ">
+      <li data-nav-id="/farmer/api-overview/parameters/" title="Parameters and Variables" class="dd-item active">
         <a href="/farmer/api-overview/parameters/">
         Parameters and Variables
         
@@ -318,54 +318,158 @@
         <div id="overlay"></div>
         <div class="padding highlightable">
               
+              <div>
+                <div id="top-bar">
+                
+                
+                <div id="breadcrumbs" itemscope="" itemtype="http://data-vocabulary.org/Breadcrumb">
+                    <span id="sidebar-toggle-span">
+                        <a href="#" id="sidebar-toggle" data-sidebar-toggle="">
+                          <i class="fas fa-bars"></i>
+                        </a>
+                    </span>
+                  
+                  <span id="toc-menu"><i class="fas fa-list-alt"></i></span>
+                  
+                  <span class="links">
+                 
+                 
+                    
+          
+          
+            
+            
+          
+          
+            
+            
+          
+          
+            <a href='/farmer/'>Farmer</a> > <a href='/farmer/api-overview/'>API Overview</a> > Parameters and Variables
+          
+         
+          
+         
+          
+        
+                 
+                  </span>
+                </div>
+                
+                    <div class="progress">
+    <div class="wrapper">
+<nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+    </div>
+</div>
+
+                
+              </div>
+            </div>
+            
         <div id="head-tags">
         
         </div>
         
         <div id="body-inner">
           
+            <h1>
+              
+              Parameters and Variables
+            </h1>
+          
 
         
 
 
-<span id="sidebar-toggle-span">
-<a href="#" id="sidebar-toggle" data-sidebar-toggle=""><i class="fas fa-bars"></i> navigation</a>
-</span>
 
- 
-<h1 id="farmer">Farmer</h1>
-<p>Farmer is a DSL for rapidly generating non-complex ARM templates in a type-safe manner.</p>
-<h3 id="main-features">Main Features</h3>
+<p>ARM templates support the idea both of <em>parameterisation</em> of templates and of the use of <em>variables</em> within a template for e.g. placeholders and re-using values.</p>
+<p>Farmer, by design, has only <em>limited support for parameters</em> and <em>no support for variables</em>. We don&rsquo;t plan on adding rich support for either of these for the following reasons:</p>
 <ul>
-<li>Create non-complex ARM templates through a simple, strongly-typed and pragmatic DSL.</li>
-<li>Create strongly-typed dependencies to resources.</li>
-<li>Runs on .NET Core.</li>
-<li>Use standard F# code to dynamically create ARM templates quickly and easily.</li>
+<li>We want to keep the Farmer codebase simple for maintainers</li>
+<li>We want to keep the Farmer API simple for users</li>
+<li>We want to keep the generated ARM templates as readable as possible</li>
+<li>We feel that instead of trying to embed conditional logic and program flow directly inside ARM templates in JSON, if you wish to parameterise your template that you should use a real programming language to do that: in this case, F#.</li>
 </ul>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp"><span style="color:#75715e">// Create a storage account
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> myStorageAccount <span style="color:#f92672">=</span> storageAccount <span style="color:#f92672">{</span>
-    name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myTestStorage</span><span style="color:#e6db74">&#34;</span>
-    sku Sku.PremiumLRS
-    add_public_container <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myContainer</span><span style="color:#e6db74">&#34;</span>
+<p>You can read more on this issue <a href="https://github.com/CompositionalIT/farmer/issues/8">here</a></p>
+<h4 id="secure-parameters">Secure Parameters</h4>
+<p>Farmer <strong>does</strong> support <code>securestring</code> parameters for e.g. SQL and Virtual Machine passwords - these are automatically generated based on the contents of the template rather than explicitly by yourself.</p>
+<p>For example, assume the following Farmer SQL resource:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp"><span style="color:#66d9ef">let</span> db <span style="color:#f92672">=</span> sql <span style="color:#f92672">{</span>
+    server_name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myserver</span><span style="color:#e6db74">&#34;</span>
+    db_name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">mydatabase</span><span style="color:#e6db74">&#34;</span>
+    admin_username <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">mradmin</span><span style="color:#e6db74">&#34;</span>
 <span style="color:#f92672">}</span>
+</code></pre></div><p>This will generate an ARM template which looks as follows (irrelevant content is elided for clarity):</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-json" data-lang="json">{
+  <span style="color:#f92672">&#34;$schema&#34;</span>: <span style="color:#e6db74">&#34;https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#&#34;</span>,
+  <span style="color:#f92672">&#34;parameters&#34;</span>: {
+    <span style="color:#f92672">&#34;password-for-myserver&#34;</span>: {
+      <span style="color:#f92672">&#34;type&#34;</span>: <span style="color:#e6db74">&#34;securestring&#34;</span>
+    }
+  },
+  <span style="color:#f92672">&#34;resources&#34;</span>: [
+    {
+      <span style="color:#f92672">&#34;apiVersion&#34;</span>: <span style="color:#e6db74">&#34;2014-04-01-preview&#34;</span>,
+      <span style="color:#f92672">&#34;name&#34;</span>: <span style="color:#e6db74">&#34;myserver&#34;</span>,
+      <span style="color:#f92672">&#34;properties&#34;</span>: {
+        <span style="color:#f92672">&#34;administratorLogin&#34;</span>: <span style="color:#e6db74">&#34;mradmin&#34;</span>,
+        <span style="color:#f92672">&#34;administratorLoginPassword&#34;</span>: <span style="color:#e6db74">&#34;[parameters(&#39;password-for-myserver&#39;)]&#34;</span>,
+      },
+      <span style="color:#f92672">&#34;type&#34;</span>: <span style="color:#e6db74">&#34;Microsoft.Sql/servers&#34;</span>
+    }
+  ]
+}
+</code></pre></div><h4 id="working-with-variables">Working with variables</h4>
+<p>ARM templates allow you to declare <a href="https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/template-variables">variables</a> inside a template to reuse a value across a template. ARM templates also allow the use of a custom set of a commands which are embedded within strings to generate program logic, using <em>expressions</em> which contain <a href="https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/template-functions"><em>template functions</em></a>. For example, to concatinate a string inside a ARM template made up of two variables and put into a third variable, you might use something like the following:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-json" data-lang="json">{
+    <span style="color:#f92672">&#34;variables&#34;</span>: {
+        <span style="color:#f92672">&#34;first&#34;</span>: <span style="color:#e6db74">&#34;Hello&#34;</span>,
+        <span style="color:#f92672">&#34;second&#34;</span>: <span style="color:#e6db74">&#34;World&#34;</span>,
+        <span style="color:#f92672">&#34;serverName&#34;</span>: <span style="color:#e6db74">&#34;[concat(variables(&#39;first&#39;), &#39; &#39;, variables(&#39;second&#39;), &#39;!&#39;)]&#34;</span>
+    }
+}
+</code></pre></div><p>In F#, you have access to the full power of .NET, rather than a limited set of weakly-typed functions:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp"><span style="color:#66d9ef">let</span> first <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Hello</span><span style="color:#e6db74">&#34;</span>
+<span style="color:#66d9ef">let</span> second <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">World</span><span style="color:#e6db74">&#34;</span>
+<span style="color:#66d9ef">let</span> serverName <span style="color:#f92672">=</span> first <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74"> </span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">+</span> second <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">!</span><span style="color:#e6db74">&#34;</span>
+<span style="color:#66d9ef">let</span> dbName <span style="color:#f92672">=</span> sprintf <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">%s %s!</span><span style="color:#e6db74">&#34;</span> first second
 
-<span style="color:#75715e">// Create a web app with a pre-configured application insights service
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> myWebApp <span style="color:#f92672">=</span> webApp <span style="color:#f92672">{</span>
-    name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myTestWebApp</span><span style="color:#e6db74">&#34;</span>
-    setting <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">storageKey</span><span style="color:#e6db74">&#34;</span> myStorageAccount<span style="color:#f92672">.</span>Key
-    sku Sku.B1
-    always_on
-    depends_on myStorageAccount<span style="color:#f92672">.</span>Name
+<span style="color:#66d9ef">let</span> db <span style="color:#f92672">=</span> sql <span style="color:#f92672">{</span>
+    server_name serverName
+    db_name dbName
+    admin_username <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">mradmin</span><span style="color:#e6db74">&#34;</span>
 <span style="color:#f92672">}</span>
+</code></pre></div><h4 id="rapidly-creating-multiple-resources">Rapidly creating multiple resources</h4>
+<p>You can also use F# <em>list comprehensions</em> to rapidly create several resources of the same type:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp"><span style="color:#75715e">// Create five SQL servers and databases
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> myDatabases <span style="color:#f92672">=</span>
+    <span style="color:#f92672">[</span> <span style="color:#66d9ef">for</span> i <span style="color:#66d9ef">in</span> 1 <span style="color:#f92672">..</span> 5 <span style="color:#f92672">-&gt;</span>
+        sql <span style="color:#f92672">{</span>
+            server_name <span style="color:#f92672">(</span>sprintf <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">server%d</span><span style="color:#e6db74">&#34;</span> i<span style="color:#f92672">)</span>
+            db_name <span style="color:#f92672">(</span>sprintf <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">database%d</span><span style="color:#e6db74">&#34;</span> i<span style="color:#f92672">)</span>
+            admin_username <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">mradmin</span><span style="color:#e6db74">&#34;</span>
+        <span style="color:#f92672">}</span>
+    <span style="color:#f92672">]</span>
 
-<span style="color:#75715e">// Create an ARM template
+<span style="color:#75715e">// Add all five databases to the deployment
 </span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> deployment <span style="color:#f92672">=</span> arm <span style="color:#f92672">{</span>
     location NorthEurope
-    add_resource myStorageAccount
-    add_resource myWebApp
+    add_resources myDatabases
 <span style="color:#f92672">}</span>
-</code></pre></div>	
-  
+</code></pre></div>
+
+<footer class="footline">
+	
+</footer>
+
         
         </div> 
         
@@ -464,6 +568,7 @@
             
                 
                     
+                    
                 
                 
 
@@ -476,6 +581,7 @@
             
             
                 
+                    
                     
                 
                 
@@ -495,6 +601,9 @@
             
             
                 
+                    
+                        
+                        
                     
                 
                 
@@ -548,8 +657,10 @@
 	 
 	 
 		
+			<a class="nav nav-prev" href="/farmer/api-overview/" title="API Overview"> <i class="fa fa-chevron-left"></i></a>
 		
-			<a class="nav nav-next" href="/farmer/about/" title="About" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
+		
+			<a class="nav nav-next" href="/farmer/deployment-guidance/" title="Deployment Guidance" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
 		
 	
     </div>
