@@ -13,7 +13,7 @@ In this quickstart, you'll expand on the deployment authored in the [previous qu
 * set a dependency between the two resources
 
 #### Creating a storage account
-Create a storage account by using the `storageAccount` block.
+Create a storage account by using the `storageAccount` builder.
 ```fsharp
 let myStorage = storageAccount {
     name "yourfirststorage"

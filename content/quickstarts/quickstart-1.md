@@ -12,7 +12,7 @@ In this exercise, you'll:
 * generate an ARM template
 
 #### Creating a web app
-Create an F# console application using the .NET SDK: 
+Create an F# console application using the .NET SDK:
 
 ```cmd
 dotnet new console -lang F# -n FarmerSample
@@ -27,9 +27,9 @@ Add a reference to the Farmer nuget package, modifying the `FarmerSample.fsproj`
 #### Defining a Farmer web application
 Open `Program.fs` and delete all the contents.
 
-> In Farmer, resources are created using special code blocks in which you can quickly and easily configure a resource using special keywords.
+> In Farmer, resources are created using special code block known as a "builder" in which you can quickly and easily configure a resource using special keywords.
 
-Create a Farmer web application using the `webApp { }` block:
+Create a Farmer web application using the `webApp { }` builder:
 
 ```fsharp
 open Farmer
@@ -50,7 +50,7 @@ let deployment = arm {
 }
 ```
 
-#### Generating the ARM template 
+#### Generating the ARM template
 Now you need to generate the ARM template from the deployment object to an ARM json file.
 
 Add the following code:

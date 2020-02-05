@@ -32,7 +32,7 @@ In this example, we create a storage account and web app in Farmer, which maps s
 #### An example Farmer Resource
 All Farmer resources follow the same approach:
 
-1. You define a resource using a special "code block" that has custom keywords. This is known as an F# [computation expression](https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/computation-expressions). Each block is designed for a set of Azure resources e.g. websites, functions, virtual machines etc., and each have defaults set for the most common scenario.
+1. You define a resource using a special "builder" that allows the use of custom keywords. This is known as an F# [computation expression](https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/computation-expressions). Each builder is designed for a specific type of Azure resource e.g. websites, functions, virtual machines etc., and each has defaults set for the most common scenario.
 2. This resource is validated and converted into a Farmer configuration object, which contains the configuration for that resource including any defaults.
 3. This configuration is then added to an overarching Farmer ARM deployment object.
 4. The ARM deployment object is converted into an ARM template json file.
@@ -52,11 +52,11 @@ let myWebApp = webApp {
 }
 ```
 
-* The `webApp { }` block defines the start and end of the definition of the web application.
-* Within this block, you can enter custom keywords to configure the web app, such as `name` and `setting`.
+* The `webApp { }` builder defines the start and end of the definition of the web application.
+* Within this builder, you use custom keywords to configure the web app, such as `name` and `setting`.
 * Some keywords take arguments, but others e.g. `always_on` are simple declarative markers.
 
-> You can view details of all farmer resources in the [resource guide](../resource-guide).
+> You can view details of all farmer resources in the [resource guide](../api-overview/resources/).
 
 #### Putting it all together
 
