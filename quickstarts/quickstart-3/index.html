@@ -9,7 +9,7 @@
 
     <link rel="icon" href="/farmer/images/favicon.png" type="image/png">
 
-    <title>App Insights :: Farmer</title>
+    <title>Deploying a Farmer template :: Farmer</title>
 
     
     <link href="/farmer/css/nucleus.css?1580923673" rel="stylesheet">
@@ -35,7 +35,7 @@
     </style>
     
   </head>
-  <body class="" data-url="/farmer/api-overview/resources/app-insights/">
+  <body class="" data-url="/farmer/quickstarts/quickstart-3/">
     <nav id="sidebar" class="">
 
 
@@ -116,7 +116,7 @@
   
     
     <li data-nav-id="/farmer/quickstarts/" title="Quickstarts" class="dd-item 
-        
+        parent
         
         
         ">
@@ -178,7 +178,7 @@
  
   
     
-      <li data-nav-id="/farmer/quickstarts/quickstart-3/" title="Deploying a Farmer template" class="dd-item ">
+      <li data-nav-id="/farmer/quickstarts/quickstart-3/" title="Deploying a Farmer template" class="dd-item active">
         <a href="/farmer/quickstarts/quickstart-3/">
         Deploying a Farmer template
         
@@ -205,7 +205,7 @@
   
     
     <li data-nav-id="/farmer/api-overview/" title="API Overview" class="dd-item 
-        parent
+        
         
         
         ">
@@ -289,7 +289,7 @@
   
     
     <li data-nav-id="/farmer/api-overview/resources/" title="Resources" class="dd-item 
-        parent
+        
         
         
         ">
@@ -351,7 +351,7 @@
  
   
     
-      <li data-nav-id="/farmer/api-overview/resources/app-insights/" title="App Insights" class="dd-item active">
+      <li data-nav-id="/farmer/api-overview/resources/app-insights/" title="App Insights" class="dd-item ">
         <a href="/farmer/api-overview/resources/app-insights/">
         App Insights
         
@@ -492,13 +492,7 @@
             
           
           
-            
-            
-          
-          
-            <a href='/farmer/'>Farmer</a> > <a href='/farmer/api-overview/'>API Overview</a> > <a href='/farmer/api-overview/resources/'>Resources</a> > App Insights
-          
-         
+            <a href='/farmer/'>Farmer</a> > <a href='/farmer/quickstarts/'>Quickstarts</a> > Deploying a Farmer template
           
          
           
@@ -535,7 +529,7 @@
           
             <h1>
               
-              App Insights
+              Deploying a Farmer template
             </h1>
           
 
@@ -543,48 +537,41 @@
 
 
 
-<h4 id="overview">Overview</h4>
-<p>The App Insights builder is used to create Application Insights accounts. Use this if you need a standalone AI instance; if you need one for a web app, the web app will create one by default and configure the application settings automatically.</p>
-<ul>
-<li>Application Insights (<code>Microsoft.Insights/components</code>)</li>
-</ul>
-<h4 id="builder-keywords">Builder Keywords</h4>
-<table>
-<thead>
-<tr>
-<th>Keyword</th>
-<th>Purpose</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>name</td>
-<td>Sets the name of the App Insights instance.</td>
-</tr>
-</tbody>
-</table>
-<h4 id="configuration-members">Configuration Members</h4>
-<table>
-<thead>
-<tr>
-<th>Member</th>
-<th>Purpose</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>InstrumentationKey</td>
-<td>/// Gets the ARM expression path to the instrumentation key of this App Insights instance.</td>
-</tr>
-</tbody>
-</table>
-<h4 id="example">Example</h4>
+<h4 id="introduction">Introduction</h4>
+<p>In this exercise, you&rsquo;ll update the application to deploy the generated ARM template to Azure directly from Farmer.</p>
+<h4 id="install-the-azure-cli">Install the Azure CLI</h4>
+<p>If you haven&rsquo;t done so already, install the <a href="https://docs.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest">Azure CLI</a> on your machine.</p>
+<h4 id="deploy-the-template">Deploy the template</h4>
+<p>As Farmer emits standard ARM templates, you can use all the standard ARM template deployment tools at your disposal - whether that&rsquo;s Visual Studio, Powershell, or the Azure CLI. In our case, we can also use Farmer&rsquo;s API which wraps around the Azure CLI.</p>
+<p>Modify the application you created at the end of <a href="quickstart-2/#the-full-application">quickstart #2</a> so that instead of writing the template to a file, we deploy it directly:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp">deployment
+<span style="color:#f92672">|</span><span style="color:#f92672">&gt;</span> Writer.quickDeploy <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myResourceGroup</span><span style="color:#e6db74">&#34;</span>
+</code></pre></div><p>Farmer will now create the ARM template, and also generate a batch / shell script which calls the Azure CLI. You&rsquo;ll be prompted to login to Azure by the CLI, after which point it will create the named resource group in the location specified in the <code>arm { }</code> builder.</p>
+<p>Wait until the process is completed and log into the <a href="https://portal.azure.com/">Azure Portal</a>. Navigate to the newly-created resource group and inspect the overview record list e.g.</p>
+<p><img src="../../images/deploy.jpg" alt=""></p>
+<p>Congratulations - you&rsquo;ve now created and deployed an ARM template entirely from F#!</p>
+<h4 id="the-full-application">The full application</h4>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp"><span style="color:#66d9ef">open</span> Farmer
 <span style="color:#66d9ef">open</span> Farmer.Resources
 
-<span style="color:#66d9ef">let</span> ai <span style="color:#f92672">=</span> appInsights <span style="color:#f92672">{</span>
-    name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myAI</span><span style="color:#e6db74">&#34;</span>
+<span style="color:#66d9ef">let</span> myStorageAccount <span style="color:#f92672">=</span> storageAccount <span style="color:#f92672">{</span>
+    name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">yourfirststorageaccount</span><span style="color:#e6db74">&#34;</span>
 <span style="color:#f92672">}</span>
+
+<span style="color:#66d9ef">let</span> myWebApp <span style="color:#f92672">=</span> webApp <span style="color:#f92672">{</span>
+    name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">yourFirstFarmerApp</span><span style="color:#e6db74">&#34;</span>
+    setting <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">storageKey</span><span style="color:#e6db74">&#34;</span> myStorageAccount<span style="color:#f92672">.</span>Key
+    depends_on myStorageAccount<span style="color:#f92672">.</span>Name
+<span style="color:#f92672">}</span>
+
+<span style="color:#66d9ef">let</span> deployment <span style="color:#f92672">=</span> arm <span style="color:#f92672">{</span>
+    location NorthEurope
+    add_resource myStorageAccount
+    add_resource myWebApp
+<span style="color:#f92672">}</span>
+
+deployment
+<span style="color:#f92672">|</span><span style="color:#f92672">&gt;</span> Writer.quickDeploy <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myResourceGroup</span><span style="color:#e6db74">&#34;</span>
 </code></pre></div>
 
 <footer class="footline">
@@ -641,137 +628,6 @@
             
                 
                     
-                
-                
-
-                    
-                    
-                    
-
-                    
-                        
-            
-            
-                
-                    
-                
-                
-
-                    
-                    
-                    
-
-                    
-            
-        
-                    
-                        
-            
-            
-                
-                    
-                
-                
-
-                    
-                    
-                    
-
-                    
-            
-        
-                    
-                        
-            
-            
-                
-                    
-                
-                
-
-                    
-                    
-                    
-
-                    
-            
-        
-                    
-            
-        
-                    
-                        
-            
-            
-                
-                    
-                    
-                
-                
-
-                    
-                    
-                        
-                    
-                    
-
-                    
-                        
-            
-            
-                
-                    
-                        
-                        
-                    
-                
-                
-
-                    
-                    
-                    
-
-                    
-            
-        
-                    
-                        
-            
-            
-                
-                    
-                
-                
-
-                    
-                    
-                    
-
-                    
-            
-        
-                    
-                        
-            
-            
-                
-                    
-                
-                
-
-                    
-                    
-                    
-
-                    
-            
-        
-                    
-                        
-            
-            
-                
-                    
                     
                 
                 
@@ -833,6 +689,9 @@
             
         
                     
+            
+        
+                    
                         
             
             
@@ -840,6 +699,130 @@
                     
                         
                         
+                    
+                
+                
+
+                    
+                    
+                        
+                    
+                    
+
+                    
+                        
+            
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
+                        
+            
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
+                        
+            
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
+                        
+            
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+                        
+            
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
+                        
+            
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
+                        
+            
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
+                        
+            
+            
+                
                     
                 
                 
@@ -899,10 +882,10 @@
 	 
 	 
 		
-			<a class="nav nav-prev" href="/farmer/api-overview/resources/web-app/" title="Web App"> <i class="fa fa-chevron-left"></i></a>
+			<a class="nav nav-prev" href="/farmer/quickstarts/quickstart-2/" title="Creating a linked resource"> <i class="fa fa-chevron-left"></i></a>
 		
 		
-			<a class="nav nav-next" href="/farmer/api-overview/resources/functions/" title="Functions" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
+			<a class="nav nav-next" href="/farmer/api-overview/" title="API Overview" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
 		
 	
     </div>

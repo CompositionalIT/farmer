@@ -19,18 +19,30 @@
       <guid>https://compositionalit.github.io/farmer/quickstarts/quickstart-1/</guid>
       <description>Introduction In this exercise, you&amp;rsquo;ll:
  create a web application with a fully-configured Application Insights instance create an ARM deployment object and assign the web app to it generate an ARM template  Creating a web app Create an F# console application using the .NET SDK:
-dotnet new console -lang F# -n FarmerSampleAdd a reference to the Farmer nuget package, modifying the FarmerSample.fsproj as follows and build the project to download the dependency.</description>
+dotnet new console -lang F# -n FarmerSampleAdd a reference to the Farmer nuget package by modifying the FarmerSample.fsproj as follows:
+&amp;lt;PackageReference Include=&amp;#34;Farmer&amp;#34; Version=&amp;#34;0.3.0&amp;#34;/&amp;gt;Build the project to download the dependency.</description>
     </item>
     
     <item>
-      <title>Creating linked resources</title>
+      <title>Creating a linked resource</title>
       <link>https://compositionalit.github.io/farmer/quickstarts/quickstart-2/</link>
       <pubDate>Tue, 04 Feb 2020 00:41:51 +0100</pubDate>
       
       <guid>https://compositionalit.github.io/farmer/quickstarts/quickstart-2/</guid>
       <description>Introduction In this quickstart, you&amp;rsquo;ll expand on the deployment authored in the previous quickstart as follows:
- add an Azure storage account add an application setting to the web app that contains the storage account&amp;rsquo;s key set a dependency between the two resources  Creating a storage account Create a storage account by using the storageAccount builder.
+ add an Azure storage account add an application setting to the web app that references the storage account&amp;rsquo;s key set a dependency between the two resources  Creating a storage account Create a storage account by using the storageAccount builder.
 let myStorage = storageAccount {name &amp;#34;yourfirststorage&amp;#34;} Azure Storage Account names must be globally unique and between 3-24 alphanumeric lower-case characters:</description>
+    </item>
+    
+    <item>
+      <title>Deploying a Farmer template</title>
+      <link>https://compositionalit.github.io/farmer/quickstarts/quickstart-3/</link>
+      <pubDate>Tue, 04 Feb 2020 00:41:51 +0100</pubDate>
+      
+      <guid>https://compositionalit.github.io/farmer/quickstarts/quickstart-3/</guid>
+      <description>Introduction In this exercise, you&amp;rsquo;ll update the application to deploy the generated ARM template to Azure directly from Farmer.
+Install the Azure CLI If you haven&amp;rsquo;t done so already, install the Azure CLI on your machine.
+Deploy the template As Farmer emits standard ARM templates, you can use all the standard ARM template deployment tools at your disposal - whether that&amp;rsquo;s Visual Studio, Powershell, or the Azure CLI. In our case, we can also use Farmer&amp;rsquo;s API which wraps around the Azure CLI.</description>
     </item>
     
   </channel>

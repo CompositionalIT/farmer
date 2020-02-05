@@ -12,20 +12,20 @@
     <title>Your First Template :: Farmer</title>
 
     
-    <link href="/farmer/css/nucleus.css?1580921635" rel="stylesheet">
-    <link href="/farmer/css/fontawesome-all.min.css?1580921635" rel="stylesheet">
-    <link href="/farmer/css/hybrid.css?1580921635" rel="stylesheet">
-    <link href="/farmer/css/featherlight.min.css?1580921635" rel="stylesheet">
-    <link href="/farmer/css/perfect-scrollbar.min.css?1580921635" rel="stylesheet">
-    <link href="/farmer/css/auto-complete.css?1580921635" rel="stylesheet">
-    <link href="/farmer/css/atom-one-dark-reasonable.css?1580921635" rel="stylesheet">
-    <link href="/farmer/css/theme.css?1580921635" rel="stylesheet">
-    <link href="/farmer/css/hugo-theme.css?1580921635" rel="stylesheet">
+    <link href="/farmer/css/nucleus.css?1580923673" rel="stylesheet">
+    <link href="/farmer/css/fontawesome-all.min.css?1580923673" rel="stylesheet">
+    <link href="/farmer/css/hybrid.css?1580923673" rel="stylesheet">
+    <link href="/farmer/css/featherlight.min.css?1580923673" rel="stylesheet">
+    <link href="/farmer/css/perfect-scrollbar.min.css?1580923673" rel="stylesheet">
+    <link href="/farmer/css/auto-complete.css?1580923673" rel="stylesheet">
+    <link href="/farmer/css/atom-one-dark-reasonable.css?1580923673" rel="stylesheet">
+    <link href="/farmer/css/theme.css?1580923673" rel="stylesheet">
+    <link href="/farmer/css/hugo-theme.css?1580923673" rel="stylesheet">
     
-      <link href="/farmer/css/theme-green.css?1580921635" rel="stylesheet">
+      <link href="/farmer/css/theme-green.css?1580923673" rel="stylesheet">
     
 
-    <script src="/farmer/js/jquery-3.3.1.min.js?1580921635"></script>
+    <script src="/farmer/js/jquery-3.3.1.min.js?1580923673"></script>
 
     <style>
       :root #header + #content > #left > #rlblock_left{
@@ -70,14 +70,14 @@
     <span data-search-clear=""><i class="fas fa-times"></i></span>
 </div>
 
-<script type="text/javascript" src="/farmer/js/lunr.min.js?1580921635"></script>
-<script type="text/javascript" src="/farmer/js/auto-complete.js?1580921635"></script>
+<script type="text/javascript" src="/farmer/js/lunr.min.js?1580923673"></script>
+<script type="text/javascript" src="/farmer/js/auto-complete.js?1580923673"></script>
 <script type="text/javascript">
     
         var baseurl = "https:\/\/compositionalit.github.io\/farmer\/";
     
 </script>
-<script type="text/javascript" src="/farmer/js/search.js?1580921635"></script>
+<script type="text/javascript" src="/farmer/js/search.js?1580923673"></script>
 
     
   </div>
@@ -159,9 +159,28 @@
  
   
     
-      <li data-nav-id="/farmer/quickstarts/quickstart-2/" title="Creating linked resources" class="dd-item ">
+      <li data-nav-id="/farmer/quickstarts/quickstart-2/" title="Creating a linked resource" class="dd-item ">
         <a href="/farmer/quickstarts/quickstart-2/">
-        Creating linked resources
+        Creating a linked resource
+        
+        </a>
+    </li>
+     
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+      <li data-nav-id="/farmer/quickstarts/quickstart-3/" title="Deploying a Farmer template" class="dd-item ">
+        <a href="/farmer/quickstarts/quickstart-3/">
+        Deploying a Farmer template
         
         </a>
     </li>
@@ -528,12 +547,13 @@
 <h4 id="creating-a-web-app">Creating a web app</h4>
 <p>Create an F# console application using the .NET SDK:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cmd" data-lang="cmd">dotnet new console -lang F# -n FarmerSample
-</code></pre></div><p>Add a reference to the Farmer nuget package, modifying the <code>FarmerSample.fsproj</code> as follows and build the project to download the dependency.</p>
+</code></pre></div><p>Add a reference to the Farmer nuget package by modifying the <code>FarmerSample.fsproj</code> as follows:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-xml" data-lang="xml"><span style="color:#f92672">&lt;PackageReference</span> <span style="color:#a6e22e">Include=</span><span style="color:#e6db74">&#34;Farmer&#34;</span> <span style="color:#a6e22e">Version=</span><span style="color:#e6db74">&#34;0.3.0&#34;</span><span style="color:#f92672">/&gt;</span>
-</code></pre></div><h4 id="defining-a-farmer-web-application">Defining a Farmer web application</h4>
+</code></pre></div><p>Build the project to download the dependency.</p>
+<h4 id="defining-a-farmer-web-application">Defining a Farmer web application</h4>
 <p>Open <code>Program.fs</code> and delete all the contents.</p>
 <blockquote>
-<p>In Farmer, resources are created using special code block known as a &ldquo;builder&rdquo; in which you can quickly and easily configure a resource using special keywords.</p>
+<p>In Farmer, resources are defined using special code blocks that look somewhat json-esque, known as a &ldquo;builder&rdquo;. In these builders you can quickly and easily configure a resource using special keywords, but unlike json you also have edit-time safety.</p>
 </blockquote>
 <p>Create a Farmer web application using the <code>webApp { }</code> builder:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp"><span style="color:#66d9ef">open</span> Farmer
@@ -578,7 +598,8 @@
 <span style="color:#f92672">}</span>
 
 <span style="color:#66d9ef">let</span> filename <span style="color:#f92672">=</span>
-    Writer.toJson deployment<span style="color:#f92672">.</span>Template
+    deployment<span style="color:#f92672">.</span>Template
+    <span style="color:#f92672">|</span><span style="color:#f92672">&gt;</span> Writer.toJson
     <span style="color:#f92672">|</span><span style="color:#f92672">&gt;</span> Writer.toFile <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myFirstTemplate</span><span style="color:#e6db74">&#34;</span>
 </code></pre></div><!-- raw HTML omitted -->
 <!-- raw HTML omitted -->
@@ -673,6 +694,22 @@
                     
                         
                         
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
+                        
+            
+            
+                
                     
                 
                 
@@ -878,7 +915,7 @@
 			<a class="nav nav-prev" href="/farmer/quickstarts/" title="Quickstarts"> <i class="fa fa-chevron-left"></i></a>
 		
 		
-			<a class="nav nav-next" href="/farmer/quickstarts/quickstart-2/" title="Creating linked resources" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
+			<a class="nav nav-next" href="/farmer/quickstarts/quickstart-2/" title="Creating a linked resource" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
 		
 	
     </div>
@@ -888,19 +925,19 @@
     <div style="left: -1000px; overflow: scroll; position: absolute; top: -1000px; border: none; box-sizing: content-box; height: 200px; margin: 0px; padding: 0px; width: 200px;">
       <div style="border: none; box-sizing: content-box; height: 200px; margin: 0px; padding: 0px; width: 200px;"></div>
     </div>
-    <script src="/farmer/js/clipboard.min.js?1580921635"></script>
-    <script src="/farmer/js/perfect-scrollbar.min.js?1580921635"></script>
-    <script src="/farmer/js/perfect-scrollbar.jquery.min.js?1580921635"></script>
-    <script src="/farmer/js/jquery.sticky.js?1580921635"></script>
-    <script src="/farmer/js/featherlight.min.js?1580921635"></script>
-    <script src="/farmer/js/highlight.pack.js?1580921635"></script>
+    <script src="/farmer/js/clipboard.min.js?1580923673"></script>
+    <script src="/farmer/js/perfect-scrollbar.min.js?1580923673"></script>
+    <script src="/farmer/js/perfect-scrollbar.jquery.min.js?1580923673"></script>
+    <script src="/farmer/js/jquery.sticky.js?1580923673"></script>
+    <script src="/farmer/js/featherlight.min.js?1580923673"></script>
+    <script src="/farmer/js/highlight.pack.js?1580923673"></script>
     <script>hljs.initHighlightingOnLoad();</script>
-    <script src="/farmer/js/modernizr.custom-3.6.0.js?1580921635"></script>
-    <script src="/farmer/js/learn.js?1580921635"></script>
-    <script src="/farmer/js/hugo-learn.js?1580921635"></script>
+    <script src="/farmer/js/modernizr.custom-3.6.0.js?1580923673"></script>
+    <script src="/farmer/js/learn.js?1580923673"></script>
+    <script src="/farmer/js/hugo-learn.js?1580923673"></script>
 
-    <link href="/farmer/mermaid/mermaid.css?1580921635" rel="stylesheet" />
-    <script src="/farmer/mermaid/mermaid.js?1580921635"></script>
+    <link href="/farmer/mermaid/mermaid.css?1580923673" rel="stylesheet" />
+    <script src="/farmer/mermaid/mermaid.js?1580923673"></script>
     <script>
         mermaid.initialize({ startOnLoad: true });
     </script>
