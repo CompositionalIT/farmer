@@ -245,8 +245,8 @@ type VirtualMachineBuilder() =
     [<CustomOperation "diagnostics_support">]
     member __.StorageAccountName(state:VmConfig) = { state with DiagnosticsStorageAccount = Some AutomaticPlaceholder }
     /// Turns on diagnostics support using an externally managed storage account.
-    [<CustomOperation "diagnostics_support">]
-    member __.StorageAccountName(state:VmConfig, name) = { state with DiagnosticsStorageAccount = Some (External name) }
+    [<CustomOperation "diagnostics_support_external">]
+    member __.StorageAccountNameExternal(state:VmConfig, name) = { state with DiagnosticsStorageAccount = Some (External name) }
     /// Sets the size of the VM.
     [<CustomOperation "vm_size">]
     member __.VmSize(state:VmConfig, size) = { state with Size = size }
