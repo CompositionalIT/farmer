@@ -12,20 +12,20 @@
     <title>API Overview :: Farmer</title>
 
     
-    <link href="/farmer/css/nucleus.css?1580892303" rel="stylesheet">
-    <link href="/farmer/css/fontawesome-all.min.css?1580892303" rel="stylesheet">
-    <link href="/farmer/css/hybrid.css?1580892303" rel="stylesheet">
-    <link href="/farmer/css/featherlight.min.css?1580892303" rel="stylesheet">
-    <link href="/farmer/css/perfect-scrollbar.min.css?1580892303" rel="stylesheet">
-    <link href="/farmer/css/auto-complete.css?1580892303" rel="stylesheet">
-    <link href="/farmer/css/atom-one-dark-reasonable.css?1580892303" rel="stylesheet">
-    <link href="/farmer/css/theme.css?1580892303" rel="stylesheet">
-    <link href="/farmer/css/hugo-theme.css?1580892303" rel="stylesheet">
+    <link href="/farmer/css/nucleus.css?1580915758" rel="stylesheet">
+    <link href="/farmer/css/fontawesome-all.min.css?1580915758" rel="stylesheet">
+    <link href="/farmer/css/hybrid.css?1580915758" rel="stylesheet">
+    <link href="/farmer/css/featherlight.min.css?1580915758" rel="stylesheet">
+    <link href="/farmer/css/perfect-scrollbar.min.css?1580915758" rel="stylesheet">
+    <link href="/farmer/css/auto-complete.css?1580915758" rel="stylesheet">
+    <link href="/farmer/css/atom-one-dark-reasonable.css?1580915758" rel="stylesheet">
+    <link href="/farmer/css/theme.css?1580915758" rel="stylesheet">
+    <link href="/farmer/css/hugo-theme.css?1580915758" rel="stylesheet">
     
-      <link href="/farmer/css/theme-green.css?1580892303" rel="stylesheet">
+      <link href="/farmer/css/theme-green.css?1580915758" rel="stylesheet">
     
 
-    <script src="/farmer/js/jquery-3.3.1.min.js?1580892303"></script>
+    <script src="/farmer/js/jquery-3.3.1.min.js?1580915758"></script>
 
     <style>
       :root #header + #content > #left > #rlblock_left{
@@ -70,14 +70,14 @@
     <span data-search-clear=""><i class="fas fa-times"></i></span>
 </div>
 
-<script type="text/javascript" src="/farmer/js/lunr.min.js?1580892303"></script>
-<script type="text/javascript" src="/farmer/js/auto-complete.js?1580892303"></script>
+<script type="text/javascript" src="/farmer/js/lunr.min.js?1580915758"></script>
+<script type="text/javascript" src="/farmer/js/auto-complete.js?1580915758"></script>
 <script type="text/javascript">
     
         var baseurl = "https:\/\/compositionalit.github.io\/farmer\/";
     
 </script>
-<script type="text/javascript" src="/farmer/js/search.js?1580892303"></script>
+<script type="text/javascript" src="/farmer/js/search.js?1580915758"></script>
 
     
   </div>
@@ -388,11 +388,11 @@
 	<h4 id="api-aims">API aims</h4>
 <p>The key guiding principles of the Farmer API are (in order):</p>
 <ul>
-<li>Simplicity: Make it as easy as possible to do the most common tasks.</li>
-<li>Type safety: Where possible, use F#&lsquo;s type system to make it impossible to create invalid templates.</li>
-<li>Flexibility: Provide users with the ability to override the defaults where needed.</li>
+<li><strong>Simplicity</strong>: Make it as easy as possible to do the most common tasks.</li>
+<li><strong>Type safety</strong>: Where possible, use F#&lsquo;s type system to make it impossible to create invalid templates.</li>
+<li><strong>Flexibility</strong>: Provide users with the ability to override the defaults where needed.</li>
 </ul>
-<h4 id="how-do-i-use-farmer">How do I use Farmer?</h4>
+<h4 id="farmer-resources">Farmer Resources</h4>
 <p>Farmer works on a simple, consistent process:</p>
 <ol>
 <li>You create <strong>Farmer resources</strong>, such as Storage Accounts and Web Apps.</li>
@@ -403,7 +403,64 @@
 <li>You then generate (and optionally deploy) an ARM template.</li>
 <li>The rest of your deployment pipeline stays the same.</li>
 </ol>
+<p>The diagram below illustrates how Farmer resources map to ARM ones:</p>
+<p><img src="../images/arm-graph.jpg" alt=""></p>
+<p>In this example, we create a storage account and web app in Farmer, which maps six different ARM template resources. As you can see, resources in Farmer are declared at a higher level of abstraction than ARM template resources. This makes things much simpler to reason about, and quicker to author.</p>
+<h4 id="an-example-farmer-resource">An example Farmer Resource</h4>
+<p>All Farmer resources follow the same approach:</p>
+<ol>
+<li>You define a resource using a special &ldquo;code block&rdquo; that has custom keywords. This is known as an F# <a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/computation-expressions">computation expression</a>. Each block is designed for a set of Azure resources e.g. websites, functions, virtual machines etc., and each have defaults set for the most common scenario.</li>
+<li>This resource is validated and converted into a Farmer configuration object, which contains the configuration for that resource including any defaults.</li>
+<li>This configuration is then added to an overarching Farmer ARM deployment object.</li>
+<li>The ARM deployment object is converted into an ARM template json file.</li>
+</ol>
+<p>Here&rsquo;s an example web application.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp"><span style="color:#66d9ef">let</span> myWebApp <span style="color:#f92672">=</span> webApp <span style="color:#f92672">{</span>
+    name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">mystorage</span><span style="color:#e6db74">&#34;</span>
+    setting <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myKey</span><span style="color:#e6db74">&#34;</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">aValue</span><span style="color:#e6db74">&#34;</span>
+    sku Sku.B1
+    always_on
+    app_insights_off
+    worker_size WorkerSize.Medium
+    number_of_workers 3
+    run_from_package
+<span style="color:#f92672">}</span>
+</code></pre></div><ul>
+<li>The <code>webApp { }</code> block defines the start and end of the definition of the web application.</li>
+<li>Within this block, you can enter custom keywords to configure the web app, such as <code>name</code> and <code>setting</code>.</li>
+<li>Some keywords take arguments, but others e.g. <code>always_on</code> are simple declarative markers.</li>
+</ul>
+<blockquote>
+<p>You can view details of all farmer resources in the <a href="../resource-guide">resource guide</a>.</p>
+</blockquote>
+<h4 id="putting-it-all-together">Putting it all together</h4>
+<p>The diagram above can be shown in code as follows:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp"><span style="color:#e6db74">/// An Azure Storage account with a container.
+</span><span style="color:#e6db74"></span><span style="color:#66d9ef">let</span> storage <span style="color:#f92672">=</span> storageAccount <span style="color:#f92672">{</span>
+    name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">astorageaccount</span><span style="color:#e6db74">&#34;</span>
+    add_public_container <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myContainer</span><span style="color:#e6db74">&#34;</span>
+<span style="color:#f92672">}</span>
 
+<span style="color:#e6db74">/// An Azure App Service with built-in App Insights.
+</span><span style="color:#e6db74"></span><span style="color:#66d9ef">let</span> app <span style="color:#f92672">=</span> webApp <span style="color:#f92672">{</span>
+    name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">awebapp</span><span style="color:#e6db74">&#34;</span>
+    setting <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">storageKey</span><span style="color:#e6db74">&#34;</span> storage<span style="color:#f92672">.</span>Key <span style="color:#75715e">// pull in the storage key to an app setting
+</span><span style="color:#75715e"></span>    depends_on storage <span style="color:#75715e">// state that this web app depends on the storage account
+</span><span style="color:#75715e"></span><span style="color:#f92672">}</span>
+
+<span style="color:#e6db74">/// An ARM deployment with both of the above resources attached
+</span><span style="color:#e6db74"></span><span style="color:#66d9ef">let</span> deployment <span style="color:#f92672">=</span> arm <span style="color:#f92672">{</span>
+    location NorthEurope
+    add_resource storage
+    add_resource app
+<span style="color:#f92672">}</span>
+
+<span style="color:#75715e">// Write the ARM template out to myTemplate.json
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> filename <span style="color:#f92672">=</span>
+    deployment<span style="color:#f92672">.</span>Template
+    <span style="color:#f92672">|</span><span style="color:#f92672">&gt;</span> Writer.toJson
+    <span style="color:#f92672">|</span><span style="color:#f92672">&gt;</span> Writer.toFile <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myTemplate</span><span style="color:#e6db74">&#34;</span>
+</code></pre></div>
 
 
 
@@ -611,19 +668,19 @@
     <div style="left: -1000px; overflow: scroll; position: absolute; top: -1000px; border: none; box-sizing: content-box; height: 200px; margin: 0px; padding: 0px; width: 200px;">
       <div style="border: none; box-sizing: content-box; height: 200px; margin: 0px; padding: 0px; width: 200px;"></div>
     </div>
-    <script src="/farmer/js/clipboard.min.js?1580892303"></script>
-    <script src="/farmer/js/perfect-scrollbar.min.js?1580892303"></script>
-    <script src="/farmer/js/perfect-scrollbar.jquery.min.js?1580892303"></script>
-    <script src="/farmer/js/jquery.sticky.js?1580892303"></script>
-    <script src="/farmer/js/featherlight.min.js?1580892303"></script>
-    <script src="/farmer/js/highlight.pack.js?1580892303"></script>
+    <script src="/farmer/js/clipboard.min.js?1580915758"></script>
+    <script src="/farmer/js/perfect-scrollbar.min.js?1580915758"></script>
+    <script src="/farmer/js/perfect-scrollbar.jquery.min.js?1580915758"></script>
+    <script src="/farmer/js/jquery.sticky.js?1580915758"></script>
+    <script src="/farmer/js/featherlight.min.js?1580915758"></script>
+    <script src="/farmer/js/highlight.pack.js?1580915758"></script>
     <script>hljs.initHighlightingOnLoad();</script>
-    <script src="/farmer/js/modernizr.custom-3.6.0.js?1580892303"></script>
-    <script src="/farmer/js/learn.js?1580892303"></script>
-    <script src="/farmer/js/hugo-learn.js?1580892303"></script>
+    <script src="/farmer/js/modernizr.custom-3.6.0.js?1580915758"></script>
+    <script src="/farmer/js/learn.js?1580915758"></script>
+    <script src="/farmer/js/hugo-learn.js?1580915758"></script>
 
-    <link href="/farmer/mermaid/mermaid.css?1580892303" rel="stylesheet" />
-    <script src="/farmer/mermaid/mermaid.js?1580892303"></script>
+    <link href="/farmer/mermaid/mermaid.css?1580915758" rel="stylesheet" />
+    <script src="/farmer/mermaid/mermaid.js?1580915758"></script>
     <script>
         mermaid.initialize({ startOnLoad: true });
     </script>
