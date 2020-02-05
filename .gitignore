@@ -1,0 +1,6 @@
+.idea/**
+.ionide/**
+.vs/**
+bundle/**
+src/**
+hugo.exe

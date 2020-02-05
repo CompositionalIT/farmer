@@ -1,10 +1,8 @@
-+++
-title = "FAQs"
-date = 2020-02-04T22:38:23+01:00
-weight = 3
-chapter = false
-pre = ""
-+++
+---
+title: "FAQs"
+date: 2020-02-04T22:38:23+01:00
+weight: 5
+---
 
 #### How can I help?
 Try out Farmer and see what you think.

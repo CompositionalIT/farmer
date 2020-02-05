@@ -6,7 +6,7 @@ draft: false
 
 # Farmer
 
-A DSL for rapidly generating non-complex ARM templates.
+Farmer is a DSL for rapidly generating non-complex ARM templates in a type-safe manner.
 
 ### Main Features
 
@@ -27,7 +27,7 @@ let myStorageAccount = storageAccount {
 let myWebApp = webApp {
     name "myTestWebApp"
     setting "storageKey" myStorageAccount.Key
-    sku Sku.B1 
+    sku Sku.B1
     always_on
     depends_on myStorageAccount.Name
 }
@@ -39,14 +39,3 @@ let deployment = arm {
     add_resource myWebApp
 }
 ```
-
-### Currently Supported Resources
-
-* Storage
-* App Service
-* Application Insights
-* Cosmos DB
-* Azure SQL
-* Functions
-* Virtual Machines
-* Azure Search
