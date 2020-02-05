@@ -38,7 +38,7 @@
       
       <guid>https://compositionalit.github.io/farmer/api-overview/resources/app-insights/</guid>
       <description>Overview The App Insights builder is used to create Application Insights accounts. Use this if you need a standalone AI instance; if you need one for a web app, the web app will create one by default and configure the application settings automatically.
- Application Insights (Microsoft.Insights/components)  Builder Keywords    Keyword Purpose     name Sets the name of the App Insights instance.    Configuration Members    Member Purpose     InstrumentationKey /// Gets the ARM expression path to the instrumentation key of this App Insights instance.</description>
+ Application Insights (Microsoft.Insights/components)  Builder Keywords    Keyword Purpose     name Sets the name of the App Insights instance.    Configuration Members    Member Purpose     InstrumentationKey Gets the ARM expression path to the instrumentation key of this App Insights instance.</description>
     </item>
     
     <item>
@@ -52,13 +52,23 @@
     </item>
     
     <item>
+      <title>Search</title>
+      <link>https://compositionalit.github.io/farmer/api-overview/resources/search/</link>
+      <pubDate>Wed, 05 Feb 2020 08:53:46 +0100</pubDate>
+      
+      <guid>https://compositionalit.github.io/farmer/api-overview/resources/search/</guid>
+      <description>Overview The Search builder creates storage accounts and their associated containers.
+ Search (Microsoft.Search/searchServices)  Builder Keywords    Keyword Purpose     name Sets the name of the Azure Search instance.   sku Sets the sku of the Azure Search instance.   replicas Sets the replica count of the Azure Search instance.   partitions Sets the number of partitions of the Azure Search instance.</description>
+    </item>
+    
+    <item>
       <title>Virtual Machine</title>
       <link>https://compositionalit.github.io/farmer/api-overview/resources/virtual-machine/</link>
       <pubDate>Wed, 05 Feb 2020 08:53:46 +0100</pubDate>
       
       <guid>https://compositionalit.github.io/farmer/api-overview/resources/virtual-machine/</guid>
       <description>Overview The Virtual Machine builder creates a fully configured virtual machine and all its required child resources.
- Virtual Machines (Microsoft.Compute/virtualMachines) Virtual Networks (Microsoft.Network/virtualNetworks) IP Addresses (Microsoft.Network/publicIPAddresses) Network Interfaces (Microsoft.Network/networkInterfaces)  In addition, every VM you create will add a SecureString parameter to the ARM template, whose name follows the pattern password-for-[virtual machine name].
+ Virtual Machines (Microsoft.Compute/virtualMachines) Virtual Networks (Microsoft.Network/virtualNetworks) IP Addresses (Microsoft.Network/publicIPAddresses) Network Interfaces (Microsoft.Network/networkInterfaces) Storage Accounts (Microsoft.Storage/storageAccounts)  In addition, every VM you create will add a SecureString parameter to the ARM template, whose name follows the pattern password-for-[virtual machine name].
 Builder Keywords    Keyword Purpose     name Sets the name of the VM.</description>
     </item>
     

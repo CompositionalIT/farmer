@@ -9,7 +9,7 @@
 
     <link rel="icon" href="/farmer/images/favicon.png" type="image/png">
 
-    <title>Resources :: Farmer</title>
+    <title>Search :: Farmer</title>
 
     
     <link href="/farmer/css/nucleus.css?1580938535" rel="stylesheet">
@@ -35,7 +35,7 @@
     </style>
     
   </head>
-  <body class="" data-url="/farmer/api-overview/resources/">
+  <body class="" data-url="/farmer/api-overview/resources/search/">
     <nav id="sidebar" class="">
 
 
@@ -290,7 +290,7 @@
     
     <li data-nav-id="/farmer/api-overview/resources/" title="Resources" class="dd-item 
         parent
-        active
+        
         
         ">
       <a href="/farmer/api-overview/resources/">
@@ -389,7 +389,7 @@
  
   
     
-      <li data-nav-id="/farmer/api-overview/resources/search/" title="Search" class="dd-item ">
+      <li data-nav-id="/farmer/api-overview/resources/search/" title="Search" class="dd-item active">
         <a href="/farmer/api-overview/resources/search/">
         Search
         
@@ -514,6 +514,8 @@
                         </a>
                     </span>
                   
+                  <span id="toc-menu"><i class="fas fa-list-alt"></i></span>
+                  
                   <span class="links">
                  
                  
@@ -528,7 +530,13 @@
             
           
           
-            <a href='/farmer/'>Farmer</a> > <a href='/farmer/api-overview/'>API Overview</a> > Resources
+            
+            
+          
+          
+            <a href='/farmer/'>Farmer</a> > <a href='/farmer/api-overview/'>API Overview</a> > <a href='/farmer/api-overview/resources/'>Resources</a> > Search
+          
+         
           
          
           
@@ -539,6 +547,21 @@
                   </span>
                 </div>
                 
+                    <div class="progress">
+    <div class="wrapper">
+<nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+    </div>
+</div>
+
+                
               </div>
             </div>
             
@@ -546,29 +569,83 @@
         
         </div>
         
-          <div id="chapter">
-        
         <div id="body-inner">
+          
+            <h1>
+              
+              Search
+            </h1>
           
 
         
 
 
 
+<h4 id="overview">Overview</h4>
+<p>The Search builder creates storage accounts and their associated containers.</p>
+<ul>
+<li>Search (<code>Microsoft.Search/searchServices</code>)</li>
+</ul>
+<h4 id="builder-keywords">Builder Keywords</h4>
+<table>
+<thead>
+<tr>
+<th>Keyword</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>name</td>
+<td>Sets the name of the Azure Search instance.</td>
+</tr>
+<tr>
+<td>sku</td>
+<td>Sets the sku of the Azure Search instance.</td>
+</tr>
+<tr>
+<td>replicas</td>
+<td>Sets the replica count of the Azure Search instance.</td>
+</tr>
+<tr>
+<td>partitions</td>
+<td>Sets the number of partitions of the Azure Search instance.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="configuration-members">Configuration Members</h4>
+<table>
+<thead>
+<tr>
+<th>Member</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AdminKey</td>
+<td>Gets an ARM expression for the admin key of the search instance.</td>
+</tr>
+<tr>
+<td>QueryKey</td>
+<td>Gets an ARM expression for the query key of the search instance.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="example">Example</h4>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp"><span style="color:#66d9ef">open</span> Farmer
+<span style="color:#66d9ef">open</span> Farmer.Resources
 
-	<h1 id="resources">Resources</h1>
-<p>Farmer currently has support for the most popular resources in Azure, such as Storage, App Service and Functions. You can find out more about each resource in detail in the menu.</p>
+<span style="color:#66d9ef">let</span> mySearch <span style="color:#f92672">=</span> search <span style="color:#f92672">{</span>
+    name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">isaacsSearch</span><span style="color:#e6db74">&#34;</span>
+    sku Sku.SearchSku.Basic
+<span style="color:#f92672">}</span>
+</code></pre></div>
 
-
-
-
-
-<footer class=" footline" >
+<footer class="footline">
 	
 </footer>
 
-        
-            </div> 
         
         </div> 
         
@@ -831,6 +908,7 @@
             
                 
                     
+                    
                 
                 
 
@@ -846,6 +924,9 @@
             
             
                 
+                    
+                        
+                        
                     
                 
                 
@@ -905,10 +986,10 @@
 	 
 	 
 		
-			<a class="nav nav-prev" href="/farmer/api-overview/expressions/" title="ARM Expressions"> <i class="fa fa-chevron-left"></i></a>
+			<a class="nav nav-prev" href="/farmer/api-overview/resources/functions/" title="Functions"> <i class="fa fa-chevron-left"></i></a>
 		
 		
-			<a class="nav nav-next" href="/farmer/api-overview/resources/storage-account/" title="Storage Account" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
+			<a class="nav nav-next" href="/farmer/api-overview/resources/virtual-machine/" title="Virtual Machine" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
 		
 	
     </div>
@@ -938,3 +1019,4 @@
 
   </body>
 </html>
+
