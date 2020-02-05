@@ -8,11 +8,11 @@ chapter: false
 #### API aims
 The key guiding principles of the Farmer API are (in order):
 
-* Simplicity: Make it as easy as possible to do the most common tasks.
-* Type safety: Where possible, use F#'s type system to make it impossible to create invalid templates.
-* Flexibility: Provide users with the ability to override the defaults where needed.
+* **Simplicity**: Make it as easy as possible to do the most common tasks.
+* **Type safety**: Where possible, use F#'s type system to make it impossible to create invalid templates.
+* **Flexibility**: Provide users with the ability to override the defaults where needed.
 
-#### How do I use Farmer?
+#### Farmer Resources
 Farmer works on a simple, consistent process:
 
 1. You create **Farmer resources**, such as Storage Accounts and Web Apps.
@@ -22,3 +22,70 @@ Farmer works on a simple, consistent process:
 1. Once you have created all resources, you bundle them up together into an **ARM deployment resource**.
 1. You then generate (and optionally deploy) an ARM template.
 1. The rest of your deployment pipeline stays the same.
+
+The diagram below illustrates how Farmer resources map to ARM ones:
+
+![](../images/arm-graph.jpg)
+
+In this example, we create a storage account and web app in Farmer, which maps six different ARM template resources. As you can see, resources in Farmer are declared at a higher level of abstraction than ARM template resources. This makes things much simpler to reason about, and quicker to author.
+
+#### An example Farmer Resource
+All Farmer resources follow the same approach:
+
+1. You define a resource using a special "code block" that has custom keywords. This is known as an F# [computation expression](https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/computation-expressions). Each block is designed for a set of Azure resources e.g. websites, functions, virtual machines etc., and each have defaults set for the most common scenario.
+2. This resource is validated and converted into a Farmer configuration object, which contains the configuration for that resource including any defaults.
+3. This configuration is then added to an overarching Farmer ARM deployment object.
+4. The ARM deployment object is converted into an ARM template json file.
+
+Here's an example web application.
+
+```fsharp
+let myWebApp = webApp {
+    name "mystorage"
+    setting "myKey" "aValue"
+    sku Sku.B1
+    always_on
+    app_insights_off
+    worker_size WorkerSize.Medium
+    number_of_workers 3
+    run_from_package
+}
+```
+
+* The `webApp { }` block defines the start and end of the definition of the web application.
+* Within this block, you can enter custom keywords to configure the web app, such as `name` and `setting`.
+* Some keywords take arguments, but others e.g. `always_on` are simple declarative markers.
+
+> You can view details of all farmer resources in the [resource guide](../resource-guide).
+
+#### Putting it all together
+
+The diagram above can be shown in code as follows:
+
+```fsharp
+/// An Azure Storage account with a container.
+let storage = storageAccount {
+    name "astorageaccount"
+    add_public_container "myContainer"
+}
+
+/// An Azure App Service with built-in App Insights.
+let app = webApp {
+    name "awebapp"
+    setting "storageKey" storage.Key // pull in the storage key to an app setting
+    depends_on storage // state that this web app depends on the storage account
+}
+
+/// An ARM deployment with both of the above resources attached
+let deployment = arm {
+    location NorthEurope
+    add_resource storage
+    add_resource app
+}
+
+// Write the ARM template out to myTemplate.json
+let filename =
+    deployment.Template
+    |> Writer.toJson
+    |> Writer.toFile "myTemplate"
+```

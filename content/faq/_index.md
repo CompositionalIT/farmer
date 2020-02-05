@@ -24,11 +24,4 @@ No, we're not. Farmer *generates* ARM templates that can be used just as normal;
 No, we're not. Farmer has (at least currently) a specific goal in mind, which is to lower the barrier to entry for creating and working with ARM templates that are non-complex. We're not looking to create a cross-platform DSL to also support things like Terraform etc. or support deployment of code along with infrastructure (or, at least, only to the extent that ARM templates do).
 
 #### There's no support for variables or parameters!
-Farmer **does** support `securestring` parameters for e.g. SQL and Virtual Machine passwords - these are automatically generated based on the contents of the template rather than explicitly by yourself. However, we don't currently plan on providing *rich* support for either parameters or variables for several reasons:
-
-* We want to keep the Farmer codebase simple for maintainers
-* We want to keep the Farmer API simple for users
-* We want to keep the generated ARM templates as readable as possible
-* We feel that instead of trying to embed conditional logic and program flow directly inside ARM templates in JSON, if you wish to parameterise your template that you should use a real programming language to do that: in this case, F#.
-
-You can read more on this issue [here](https://github.com/CompositionalIT/farmer/issues/8)
+Farmer intentionally has limited support for ARM parameters and variables. Read [here](../api-overview/parameters.md) to find out the alternatives.
