@@ -12,6 +12,7 @@ The Virtual Machine builder creates a fully configured virtual machine and all i
 * Virtual Networks (`Microsoft.Network/virtualNetworks`)
 * IP Addresses (`Microsoft.Network/publicIPAddresses`)
 * Network Interfaces (`Microsoft.Network/networkInterfaces`)
+* Storage Accounts (`Microsoft.Storage/storageAccounts`)
 
 In addition, every VM you create will add a SecureString parameter to the ARM template, whose name follows the pattern **password-for-[virtual machine name]**.
 
