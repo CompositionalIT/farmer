@@ -59,7 +59,8 @@ Add the following code:
 
 ```fsharp
 let filename =
-    Writer.toJson deployment.Template
+    deployment.Template
+    |> Writer.toJson
     |> Writer.toFile "myFirstTemplate"
 ```
 
@@ -93,6 +94,3 @@ let filename =
     |> Writer.toJson
     |> Writer.toFile "myFirstTemplate"
 ```
-
-<!-- 1. Uncomment the last two lines in the application and run it again to deploy the template (see [here](#deploying-to-azure) if you want to learn more about this **and what prerequisites are required**).
-1. Once it has deployed, find it in the Azure portal. You will see that *three* resources were created: the **app service**, the **app service plan** that the app service resides in and a linked **application insights** instance. -->
