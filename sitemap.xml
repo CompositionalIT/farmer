@@ -3,6 +3,16 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
+    <loc>https://compositionalit.github.io/farmer/api-overview/parameters/</loc>
+    <lastmod>2020-02-05T09:13:36+01:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://compositionalit.github.io/farmer/api-overview/resources/storage-account/</loc>
+    <lastmod>2020-02-05T08:53:46+01:00</lastmod>
+  </url>
+  
+  <url>
     <loc>https://compositionalit.github.io/farmer/about/</loc>
     <lastmod>2020-02-04T22:44:07+01:00</lastmod>
   </url>
@@ -10,6 +20,16 @@
   <url>
     <loc>https://compositionalit.github.io/farmer/quickstarts/quickstart-1/</loc>
     <lastmod>2020-02-04T00:41:51+01:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://compositionalit.github.io/farmer/api-overview/writer/</loc>
+    <lastmod>2020-02-05T09:13:36+01:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://compositionalit.github.io/farmer/api-overview/resources/web-app/</loc>
+    <lastmod>2020-02-05T08:53:46+01:00</lastmod>
   </url>
   
   <url>
@@ -28,6 +48,21 @@
   </url>
   
   <url>
+    <loc>https://compositionalit.github.io/farmer/api-overview/resources/app-insights/</loc>
+    <lastmod>2020-02-05T08:53:46+01:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://compositionalit.github.io/farmer/api-overview/resources/functions/</loc>
+    <lastmod>2020-02-05T08:53:46+01:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://compositionalit.github.io/farmer/api-overview/expressions/</loc>
+    <lastmod>2020-02-05T09:13:36+01:00</lastmod>
+  </url>
+  
+  <url>
     <loc>https://compositionalit.github.io/farmer/deployment-guidance/</loc>
     <lastmod>2020-02-05T08:45:15+01:00</lastmod>
   </url>
@@ -38,13 +73,8 @@
   </url>
   
   <url>
-    <loc>https://compositionalit.github.io/farmer/resource-guide/</loc>
+    <loc>https://compositionalit.github.io/farmer/api-overview/resources/</loc>
     <lastmod>2020-02-04T22:37:39+01:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://compositionalit.github.io/farmer/api-overview/parameters/</loc>
-    <lastmod>2020-02-05T09:13:36+01:00</lastmod>
   </url>
   
   <url>

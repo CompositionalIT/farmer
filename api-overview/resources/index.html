@@ -9,7 +9,7 @@
 
     <link rel="icon" href="/farmer/images/favicon.png" type="image/png">
 
-    <title>API Overview :: Farmer</title>
+    <title>Resources :: Farmer</title>
 
     
     <link href="/farmer/css/nucleus.css?1580921635" rel="stylesheet">
@@ -35,7 +35,7 @@
     </style>
     
   </head>
-  <body class="" data-url="/farmer/api-overview/">
+  <body class="" data-url="/farmer/api-overview/resources/">
     <nav id="sidebar" class="">
 
 
@@ -187,7 +187,7 @@
     
     <li data-nav-id="/farmer/api-overview/" title="API Overview" class="dd-item 
         parent
-        active
+        
         
         ">
       <a href="/farmer/api-overview/">
@@ -270,8 +270,8 @@
   
     
     <li data-nav-id="/farmer/api-overview/resources/" title="Resources" class="dd-item 
-        
-        
+        parent
+        active
         
         ">
       <a href="/farmer/api-overview/resources/">
@@ -457,8 +457,6 @@
                         </a>
                     </span>
                   
-                  <span id="toc-menu"><i class="fas fa-list-alt"></i></span>
-                  
                   <span class="links">
                  
                  
@@ -469,7 +467,13 @@
             
           
           
-            <a href='/farmer/'>Farmer</a> > API Overview
+            
+            
+          
+          
+            <a href='/farmer/'>Farmer</a> > <a href='/farmer/api-overview/'>API Overview</a> > Resources
+          
+         
           
          
           
@@ -478,21 +482,6 @@
                   </span>
                 </div>
                 
-                    <div class="progress">
-    <div class="wrapper">
-<nav id="TableOfContents">
-  <ul>
-    <li>
-      <ul>
-        <li></li>
-      </ul>
-    </li>
-  </ul>
-</nav>
-    </div>
-</div>
-
-                
               </div>
             </div>
             
@@ -500,12 +489,9 @@
         
         </div>
         
+          <div id="chapter">
+        
         <div id="body-inner">
-          
-            <h1>
-              
-              API Overview
-            </h1>
           
 
         
@@ -513,82 +499,9 @@
 
 
 
-	<h4 id="api-aims">API aims</h4>
-<p>The key guiding principles of the Farmer API are (in order):</p>
-<ul>
-<li><strong>Simplicity</strong>: Make it as easy as possible to do the most common tasks.</li>
-<li><strong>Type safety</strong>: Where possible, use F#&lsquo;s type system to make it impossible to create invalid templates.</li>
-<li><strong>Flexibility</strong>: Provide users with the ability to override the defaults where needed.</li>
-</ul>
-<h4 id="farmer-resources">Farmer Resources</h4>
-<p>Farmer works on a simple, consistent process:</p>
-<ol>
-<li>You create <strong>Farmer resources</strong>, such as Storage Accounts and Web Apps.</li>
-<li>Each Farmer resource can represent <em>one or many</em> ARM resources. For example, a Farmer <code>webApp</code> resource represents both the <code>Microsoft.Web/sites</code> and <code>Microsoft.Web/serverfarms</code> resources. In addition, it optionally also provides simplified access to an <code>Microsoft.Insights/components</code>.</li>
-<li>You configure each resource using simple, human-readable custom keywords in a strongly-typed environment.</li>
-<li>You link together resources as required.</li>
-<li>Once you have created all resources, you bundle them up together into an <strong>ARM deployment resource</strong>.</li>
-<li>You then generate (and optionally deploy) an ARM template.</li>
-<li>The rest of your deployment pipeline stays the same.</li>
-</ol>
-<p>The diagram below illustrates how Farmer resources map to ARM ones:</p>
-<p><img src="../images/arm-graph.jpg" alt=""></p>
-<p>In this example, we create a storage account and web app in Farmer, which maps six different ARM template resources. As you can see, resources in Farmer are declared at a higher level of abstraction than ARM template resources. This makes things much simpler to reason about, and quicker to author.</p>
-<h4 id="an-example-farmer-resource">An example Farmer Resource</h4>
-<p>All Farmer resources follow the same approach:</p>
-<ol>
-<li>You define a resource using a special &ldquo;builder&rdquo; that allows the use of custom keywords. This is known as an F# <a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/computation-expressions">computation expression</a>. Each builder is designed for a specific type of Azure resource e.g. websites, functions, virtual machines etc., and each has defaults set for the most common scenario.</li>
-<li>This resource is validated and converted into a Farmer configuration object, which contains the configuration for that resource including any defaults.</li>
-<li>This configuration is then added to an overarching Farmer ARM deployment object.</li>
-<li>The ARM deployment object is converted into an ARM template json file.</li>
-</ol>
-<p>Here&rsquo;s an example web application.</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp"><span style="color:#66d9ef">let</span> myWebApp <span style="color:#f92672">=</span> webApp <span style="color:#f92672">{</span>
-    name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">mystorage</span><span style="color:#e6db74">&#34;</span>
-    setting <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myKey</span><span style="color:#e6db74">&#34;</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">aValue</span><span style="color:#e6db74">&#34;</span>
-    sku Sku.B1
-    always_on
-    app_insights_off
-    worker_size WorkerSize.Medium
-    number_of_workers 3
-    run_from_package
-<span style="color:#f92672">}</span>
-</code></pre></div><ul>
-<li>The <code>webApp { }</code> builder defines the start and end of the definition of the web application.</li>
-<li>Within this builder, you use custom keywords to configure the web app, such as <code>name</code> and <code>setting</code>.</li>
-<li>Some keywords take arguments, but others e.g. <code>always_on</code> are simple declarative markers.</li>
-</ul>
-<blockquote>
-<p>You can view details of all farmer resources in the <a href="../api-overview/resources/">resource guide</a>.</p>
-</blockquote>
-<h4 id="putting-it-all-together">Putting it all together</h4>
-<p>The diagram above can be shown in code as follows:</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp"><span style="color:#e6db74">/// An Azure Storage account with a container.
-</span><span style="color:#e6db74"></span><span style="color:#66d9ef">let</span> storage <span style="color:#f92672">=</span> storageAccount <span style="color:#f92672">{</span>
-    name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">astorageaccount</span><span style="color:#e6db74">&#34;</span>
-    add_public_container <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myContainer</span><span style="color:#e6db74">&#34;</span>
-<span style="color:#f92672">}</span>
+	<h1 id="resources">Resources</h1>
+<p>Farmer currently has support for the most popular resources in Azure, such as Storage, App Service and Functions. You can find out more about each resource in detail in the menu.</p>
 
-<span style="color:#e6db74">/// An Azure App Service with built-in App Insights.
-</span><span style="color:#e6db74"></span><span style="color:#66d9ef">let</span> app <span style="color:#f92672">=</span> webApp <span style="color:#f92672">{</span>
-    name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">awebapp</span><span style="color:#e6db74">&#34;</span>
-    setting <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">storageKey</span><span style="color:#e6db74">&#34;</span> storage<span style="color:#f92672">.</span>Key <span style="color:#75715e">// pull in the storage key to an app setting
-</span><span style="color:#75715e"></span>    depends_on storage <span style="color:#75715e">// state that this web app depends on the storage account
-</span><span style="color:#75715e"></span><span style="color:#f92672">}</span>
-
-<span style="color:#e6db74">/// An ARM deployment with both of the above resources attached
-</span><span style="color:#e6db74"></span><span style="color:#66d9ef">let</span> deployment <span style="color:#f92672">=</span> arm <span style="color:#f92672">{</span>
-    location NorthEurope
-    add_resource storage
-    add_resource app
-<span style="color:#f92672">}</span>
-
-<span style="color:#75715e">// Write the ARM template out to myTemplate.json
-</span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> filename <span style="color:#f92672">=</span>
-    deployment<span style="color:#f92672">.</span>Template
-    <span style="color:#f92672">|</span><span style="color:#f92672">&gt;</span> Writer.toJson
-    <span style="color:#f92672">|</span><span style="color:#f92672">&gt;</span> Writer.toFile <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myTemplate</span><span style="color:#e6db74">&#34;</span>
-</code></pre></div>
 
 
 
@@ -597,6 +510,8 @@
 	
 </footer>
 
+        
+            </div> 
         
         </div> 
         
@@ -762,6 +677,7 @@
             
                 
                     
+                    
                 
                 
 
@@ -774,6 +690,9 @@
             
             
                 
+                    
+                        
+                        
                     
                 
                 
@@ -881,10 +800,10 @@
 	 
 	 
 		
-			<a class="nav nav-prev" href="/farmer/quickstarts/quickstart-2/" title="Creating linked resources"> <i class="fa fa-chevron-left"></i></a>
+			<a class="nav nav-prev" href="/farmer/api-overview/expressions/" title="ARM Expressions"> <i class="fa fa-chevron-left"></i></a>
 		
 		
-			<a class="nav nav-next" href="/farmer/api-overview/parameters/" title="Parameters and Variables" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
+			<a class="nav nav-next" href="/farmer/api-overview/resources/storage-account/" title="Storage Account" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
 		
 	
     </div>

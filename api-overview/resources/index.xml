@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Resources on Farmer</title>
+    <link>https://compositionalit.github.io/farmer/api-overview/resources/</link>
+    <description>Recent content in Resources on Farmer</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-gb</language>
+    <lastBuildDate>Tue, 04 Feb 2020 22:37:39 +0100</lastBuildDate>
+    
+	<atom:link href="https://compositionalit.github.io/farmer/api-overview/resources/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Storage Account</title>
+      <link>https://compositionalit.github.io/farmer/api-overview/resources/storage-account/</link>
+      <pubDate>Wed, 05 Feb 2020 08:53:46 +0100</pubDate>
+      
+      <guid>https://compositionalit.github.io/farmer/api-overview/resources/storage-account/</guid>
+      <description>Overview The Storage Account builder creates storage accounts and their associated containers.
+ Storage Accounts (Microsoft.Storage/storageAccounts) Storage Containers (blobServices/containers)  Builder Keywords    Keyword Purpose     name Specifies the name of the storage account   sku Sets the SKU of the storage account   add_public_container Adds a general-purpose public storage container   add_private_container Adds a general-purpose private storage container   add_blob_container Adds a general-purpose private blob container    Configuration Members    Member Purpose     Key Returns an ARM expression to retrieve the storage account&amp;rsquo;s primary connection string.</description>
+    </item>
+    
+    <item>
+      <title>Web App</title>
+      <link>https://compositionalit.github.io/farmer/api-overview/resources/web-app/</link>
+      <pubDate>Wed, 05 Feb 2020 08:53:46 +0100</pubDate>
+      
+      <guid>https://compositionalit.github.io/farmer/api-overview/resources/web-app/</guid>
+      <description>Overview The Web App builder is used to create Azure App Service accounts. It abstracts the Service Plan into the same component, and will also create and configure a linked App Insights resource.
+ Web Site (Microsoft.Web/sites) Web Host (Microsoft.Web/serverfarms) Application Insights (Microsoft.Insights/components) Site Extension (siteextensions)  Builder Keywords    Keyword Purpose     name Sets the name of the web app.   service_plan_name Sets the name of the service plan.</description>
+    </item>
+    
+    <item>
+      <title>App Insights</title>
+      <link>https://compositionalit.github.io/farmer/api-overview/resources/app-insights/</link>
+      <pubDate>Wed, 05 Feb 2020 08:53:46 +0100</pubDate>
+      
+      <guid>https://compositionalit.github.io/farmer/api-overview/resources/app-insights/</guid>
+      <description>Overview The App Insights builder is used to create Application Insights accounts. Use this if you need a standalone AI instance; if you need one for a web app, the web app will create one by default and configure the application settings automatically.
+ Application Insights (Microsoft.Insights/components)  Builder Keywords    Keyword Purpose     name Sets the name of the App Insights instance.    Configuration Members    Member Purpose     InstrumentationKey /// Gets the ARM expression path to the instrumentation key of this App Insights instance.</description>
+    </item>
+    
+    <item>
+      <title>Functions</title>
+      <link>https://compositionalit.github.io/farmer/api-overview/resources/functions/</link>
+      <pubDate>Wed, 05 Feb 2020 08:53:46 +0100</pubDate>
+      
+      <guid>https://compositionalit.github.io/farmer/api-overview/resources/functions/</guid>
+      <description>Overview The Functions builder is used to create Azure Functions accounts. It abstracts the App Host and Service Plan into the same component, and will also create and configure a linked App Insights resource. In addition, it will automatically create a backing storage account required by the functions runtime.
+ Web Site (Microsoft.Web/sites) Web Host (Microsoft.Web/serverfarms) Application Insights (Microsoft.Insights/components) Site Extension (siteextensions) Storage Accounts (Microsoft.Storage/storageAccounts)  Builder Keywords    Keyword Purpose     name Sets the name of the functions instance.</description>
+    </item>
+    
+  </channel>
+</rss>

@@ -12,6 +12,27 @@
     
     
     <item>
+      <title>Parameters and Variables</title>
+      <link>https://compositionalit.github.io/farmer/api-overview/parameters/</link>
+      <pubDate>Wed, 05 Feb 2020 09:13:36 +0100</pubDate>
+      
+      <guid>https://compositionalit.github.io/farmer/api-overview/parameters/</guid>
+      <description>ARM templates support the idea both of parameterisation of templates and of the use of variables within a template for e.g. placeholders and re-using values.
+Farmer, by design, has only limited support for parameters and no support for variables. We don&amp;rsquo;t plan on adding rich support for either of these for the following reasons:
+ We want to keep the Farmer codebase simple for maintainers We want to keep the Farmer API simple for users We want to keep the generated ARM templates as readable as possible We feel that instead of trying to embed conditional logic and program flow directly inside ARM templates in JSON, if you wish to parameterise your template that you should use a real programming language to do that: in this case, F#.</description>
+    </item>
+    
+    <item>
+      <title>Storage Account</title>
+      <link>https://compositionalit.github.io/farmer/api-overview/resources/storage-account/</link>
+      <pubDate>Wed, 05 Feb 2020 08:53:46 +0100</pubDate>
+      
+      <guid>https://compositionalit.github.io/farmer/api-overview/resources/storage-account/</guid>
+      <description>Overview The Storage Account builder creates storage accounts and their associated containers.
+ Storage Accounts (Microsoft.Storage/storageAccounts) Storage Containers (blobServices/containers)  Builder Keywords    Keyword Purpose     name Specifies the name of the storage account   sku Sets the SKU of the storage account   add_public_container Adds a general-purpose public storage container   add_private_container Adds a general-purpose private storage container   add_blob_container Adds a general-purpose private blob container    Configuration Members    Member Purpose     Key Returns an ARM expression to retrieve the storage account&amp;rsquo;s primary connection string.</description>
+    </item>
+    
+    <item>
       <title>Your First Template</title>
       <link>https://compositionalit.github.io/farmer/quickstarts/quickstart-1/</link>
       <pubDate>Tue, 04 Feb 2020 00:41:51 +0100</pubDate>
@@ -23,25 +44,65 @@ dotnet new console -lang F# -n FarmerSampleAdd a reference to the Farmer nuget 
     </item>
     
     <item>
+      <title>Generating ARM templates</title>
+      <link>https://compositionalit.github.io/farmer/api-overview/writer/</link>
+      <pubDate>Wed, 05 Feb 2020 09:13:36 +0100</pubDate>
+      
+      <guid>https://compositionalit.github.io/farmer/api-overview/writer/</guid>
+      <description>Farmer supports several ways to &amp;ldquo;output&amp;rdquo; ARM templates.
+Generating JSON as string You can generate an ARM template as a plain string:
+let json = deployment.Template |&amp;gt; Writer.toJsonprintfn &amp;#34;%s&amp;#34; json // prints out the JSONWriting to a file You can also write out the JSON directly to a file:
+let filename = // myTemplate.json deployment.Template|&amp;gt; Writer.toJson|&amp;gt; Writer.toFile &amp;#34;myTemplate&amp;#34; Notice how we use F#&amp;lsquo;s pipe operator to &amp;ldquo;pipe&amp;rdquo; data from the template configuration into json before writing to a file.</description>
+    </item>
+    
+    <item>
+      <title>Web App</title>
+      <link>https://compositionalit.github.io/farmer/api-overview/resources/web-app/</link>
+      <pubDate>Wed, 05 Feb 2020 08:53:46 +0100</pubDate>
+      
+      <guid>https://compositionalit.github.io/farmer/api-overview/resources/web-app/</guid>
+      <description>Overview The Web App builder is used to create Azure App Service accounts. It abstracts the Service Plan into the same component, and will also create and configure a linked App Insights resource.
+ Web Site (Microsoft.Web/sites) Web Host (Microsoft.Web/serverfarms) Application Insights (Microsoft.Insights/components) Site Extension (siteextensions)  Builder Keywords    Keyword Purpose     name Sets the name of the web app.   service_plan_name Sets the name of the service plan.</description>
+    </item>
+    
+    <item>
       <title>Creating linked resources</title>
       <link>https://compositionalit.github.io/farmer/quickstarts/quickstart-2/</link>
       <pubDate>Tue, 04 Feb 2020 00:41:51 +0100</pubDate>
       
       <guid>https://compositionalit.github.io/farmer/quickstarts/quickstart-2/</guid>
       <description>Introduction In this quickstart, you&amp;rsquo;ll expand on the deployment authored in the previous quickstart as follows:
- add an Azure storage account add an application setting to the web app that contains the storage account&amp;rsquo;s key set a dependency between the two resources  Creating a storage account Create a storage account by using the storageAccount block.
+ add an Azure storage account add an application setting to the web app that contains the storage account&amp;rsquo;s key set a dependency between the two resources  Creating a storage account Create a storage account by using the storageAccount builder.
 let myStorage = storageAccount {name &amp;#34;yourfirststorage&amp;#34;} Azure Storage Account names must be globally unique and between 3-24 alphanumeric lower-case characters:</description>
     </item>
     
     <item>
-      <title>Parameters and Variables</title>
-      <link>https://compositionalit.github.io/farmer/api-overview/parameters/</link>
+      <title>App Insights</title>
+      <link>https://compositionalit.github.io/farmer/api-overview/resources/app-insights/</link>
+      <pubDate>Wed, 05 Feb 2020 08:53:46 +0100</pubDate>
+      
+      <guid>https://compositionalit.github.io/farmer/api-overview/resources/app-insights/</guid>
+      <description>Overview The App Insights builder is used to create Application Insights accounts. Use this if you need a standalone AI instance; if you need one for a web app, the web app will create one by default and configure the application settings automatically.
+ Application Insights (Microsoft.Insights/components)  Builder Keywords    Keyword Purpose     name Sets the name of the App Insights instance.    Configuration Members    Member Purpose     InstrumentationKey /// Gets the ARM expression path to the instrumentation key of this App Insights instance.</description>
+    </item>
+    
+    <item>
+      <title>Functions</title>
+      <link>https://compositionalit.github.io/farmer/api-overview/resources/functions/</link>
+      <pubDate>Wed, 05 Feb 2020 08:53:46 +0100</pubDate>
+      
+      <guid>https://compositionalit.github.io/farmer/api-overview/resources/functions/</guid>
+      <description>Overview The Functions builder is used to create Azure Functions accounts. It abstracts the App Host and Service Plan into the same component, and will also create and configure a linked App Insights resource. In addition, it will automatically create a backing storage account required by the functions runtime.
+ Web Site (Microsoft.Web/sites) Web Host (Microsoft.Web/serverfarms) Application Insights (Microsoft.Insights/components) Site Extension (siteextensions) Storage Accounts (Microsoft.Storage/storageAccounts)  Builder Keywords    Keyword Purpose     name Sets the name of the functions instance.</description>
+    </item>
+    
+    <item>
+      <title>ARM Expressions</title>
+      <link>https://compositionalit.github.io/farmer/api-overview/expressions/</link>
       <pubDate>Wed, 05 Feb 2020 09:13:36 +0100</pubDate>
       
-      <guid>https://compositionalit.github.io/farmer/api-overview/parameters/</guid>
-      <description>ARM templates support the idea both of parameterisation of templates and of the use of variables within a template for e.g. placeholders and re-using values.
-Farmer, by design, has only limited support for parameters and no support for variables. We don&amp;rsquo;t plan on adding rich support for either of these for the following reasons:
- We want to keep the Farmer codebase simple for maintainers We want to keep the Farmer API simple for users We want to keep the generated ARM templates as readable as possible We feel that instead of trying to embed conditional logic and program flow directly inside ARM templates in JSON, if you wish to parameterise your template that you should use a real programming language to do that: in this case, F#.</description>
+      <guid>https://compositionalit.github.io/farmer/api-overview/expressions/</guid>
+      <description></description>
     </item>
     
   </channel>
