@@ -18,16 +18,18 @@ Create an F# console application using the .NET SDK:
 dotnet new console -lang F# -n FarmerSample
 ```
 
-Add a reference to the Farmer nuget package, modifying the `FarmerSample.fsproj` as follows and build the project to download the dependency.
+Add a reference to the Farmer nuget package by modifying the `FarmerSample.fsproj` as follows:
 
 ```xml
 <PackageReference Include="Farmer" Version="0.3.0"/>
 ```
 
+Build the project to download the dependency.
+
 #### Defining a Farmer web application
 Open `Program.fs` and delete all the contents.
 
-> In Farmer, resources are created using special code block known as a "builder" in which you can quickly and easily configure a resource using special keywords.
+> In Farmer, resources are defined using special code blocks that look somewhat json-esque, known as a "builder". In these builders you can quickly and easily configure a resource using special keywords, but unlike json you also have edit-time safety.
 
 Create a Farmer web application using the `webApp { }` builder:
 
@@ -87,7 +89,8 @@ let deployment = arm {
 }
 
 let filename =
-    Writer.toJson deployment.Template
+    deployment.Template
+    |> Writer.toJson
     |> Writer.toFile "myFirstTemplate"
 ```
 

@@ -1,5 +1,5 @@
 ---
-title: "Creating linked resources"
+title: "Creating a linked resource"
 date: 2020-02-04T00:41:51+01:00
 draft: false
 weight: 2
@@ -9,7 +9,7 @@ weight: 2
 In this quickstart, you'll expand on the deployment authored in the [previous quickstart](../quickstart-1/#the-full-application) as follows:
 
 * add an Azure storage account
-* add an application setting to the web app that contains the storage account's key
+* add an application setting to the web app that references the storage account's key
 * set a dependency between the two resources
 
 #### Creating a storage account
@@ -89,11 +89,11 @@ open Farmer
 open Farmer.Resources
 
 let myStorageAccount = storageAccount {
-    name "isaacssuperstorage"
+    name "yourfirststorageaccount"
 }
 
 let myWebApp = webApp {
-    name "isaacsappy"
+    name "yourFirstFarmerApp"
     setting "storageKey" myStorageAccount.Key
     depends_on myStorageAccount.Name
 }
@@ -105,11 +105,7 @@ let deployment = arm {
 }
 
 let filename =
-    Writer.toJson deployment.Template
+    deployment.Template
+    |> Writer.toJson
     |> Writer.toFile "myFirstTemplate"
 ```
-
-<!-- 1. Now regenerate and redeploy the template (don't worry about overwriting or duplicating the existing resources - Azure will simply create the "new" elements as required).
-1. Check in the portal that the storage account has been created.
-1. Navigate to the **app service** and then to the **configuration** section.
-1. Observe that the setting `storage_connection` has been created and has the connection string of the storage account already in it. -->
