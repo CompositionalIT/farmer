@@ -2,7 +2,7 @@
 title: "Parameters and Variables"
 date: 2020-02-05T09:13:36+01:00
 draft: false
-weight: 1
+weight: 3
 ---
 
 ARM templates support the idea both of *parameterisation* of templates and of the use of *variables* within a template for e.g. placeholders and re-using values.
