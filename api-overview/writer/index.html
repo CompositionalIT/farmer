@@ -3,29 +3,29 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="generator" content="Hugo 0.64.0" />
+    <meta name="generator" content="Hugo 0.63.2" />
     <meta name="description" content="">
 
 
     <link rel="icon" href="/farmer/images/favicon.png" type="image/png">
 
-    <title>Generating ARM templates :: Farmer</title>
+    <title>Writing templates :: Farmer</title>
 
     
-    <link href="/farmer/css/nucleus.css?1580923673" rel="stylesheet">
-    <link href="/farmer/css/fontawesome-all.min.css?1580923673" rel="stylesheet">
-    <link href="/farmer/css/hybrid.css?1580923673" rel="stylesheet">
-    <link href="/farmer/css/featherlight.min.css?1580923673" rel="stylesheet">
-    <link href="/farmer/css/perfect-scrollbar.min.css?1580923673" rel="stylesheet">
-    <link href="/farmer/css/auto-complete.css?1580923673" rel="stylesheet">
-    <link href="/farmer/css/atom-one-dark-reasonable.css?1580923673" rel="stylesheet">
-    <link href="/farmer/css/theme.css?1580923673" rel="stylesheet">
-    <link href="/farmer/css/hugo-theme.css?1580923673" rel="stylesheet">
+    <link href="/farmer/css/nucleus.css?1580937109" rel="stylesheet">
+    <link href="/farmer/css/fontawesome-all.min.css?1580937109" rel="stylesheet">
+    <link href="/farmer/css/hybrid.css?1580937109" rel="stylesheet">
+    <link href="/farmer/css/featherlight.min.css?1580937109" rel="stylesheet">
+    <link href="/farmer/css/perfect-scrollbar.min.css?1580937109" rel="stylesheet">
+    <link href="/farmer/css/auto-complete.css?1580937109" rel="stylesheet">
+    <link href="/farmer/css/atom-one-dark-reasonable.css?1580937109" rel="stylesheet">
+    <link href="/farmer/css/theme.css?1580937109" rel="stylesheet">
+    <link href="/farmer/css/hugo-theme.css?1580937109" rel="stylesheet">
     
-      <link href="/farmer/css/theme-green.css?1580923673" rel="stylesheet">
+      <link href="/farmer/css/theme-green.css?1580937109" rel="stylesheet">
     
 
-    <script src="/farmer/js/jquery-3.3.1.min.js?1580923673"></script>
+    <script src="/farmer/js/jquery-3.3.1.min.js?1580937109"></script>
 
     <style>
       :root #header + #content > #left > #rlblock_left{
@@ -70,14 +70,14 @@
     <span data-search-clear=""><i class="fas fa-times"></i></span>
 </div>
 
-<script type="text/javascript" src="/farmer/js/lunr.min.js?1580923673"></script>
-<script type="text/javascript" src="/farmer/js/auto-complete.js?1580923673"></script>
+<script type="text/javascript" src="/farmer/js/lunr.min.js?1580937109"></script>
+<script type="text/javascript" src="/farmer/js/auto-complete.js?1580937109"></script>
 <script type="text/javascript">
     
         var baseurl = "https:\/\/compositionalit.github.io\/farmer\/";
     
 </script>
-<script type="text/javascript" src="/farmer/js/search.js?1580923673"></script>
+<script type="text/javascript" src="/farmer/js/search.js?1580937109"></script>
 
     
   </div>
@@ -231,9 +231,9 @@
  
   
     
-      <li data-nav-id="/farmer/api-overview/parameters/" title="Parameters and Variables" class="dd-item ">
-        <a href="/farmer/api-overview/parameters/">
-        Parameters and Variables
+      <li data-nav-id="/farmer/api-overview/writer/" title="Writing templates" class="dd-item active">
+        <a href="/farmer/api-overview/writer/">
+        Writing templates
         
         </a>
     </li>
@@ -250,9 +250,9 @@
  
   
     
-      <li data-nav-id="/farmer/api-overview/writer/" title="Generating ARM templates" class="dd-item active">
-        <a href="/farmer/api-overview/writer/">
-        Generating ARM templates
+      <li data-nav-id="/farmer/api-overview/parameters/" title="Parameters and Variables" class="dd-item ">
+        <a href="/farmer/api-overview/parameters/">
+        Parameters and Variables
         
         </a>
     </li>
@@ -382,6 +382,25 @@
 
             
           
+            
+            
+
+
+ 
+  
+    
+      <li data-nav-id="/farmer/api-overview/resources/virtual-machine/" title="Virtual Machine" class="dd-item ">
+        <a href="/farmer/api-overview/resources/virtual-machine/">
+        Virtual Machine
+        
+        </a>
+    </li>
+     
+  
+ 
+
+            
+          
         
         </ul>
               
@@ -492,7 +511,7 @@
             
           
           
-            <a href='/farmer/'>Farmer</a> > <a href='/farmer/api-overview/'>API Overview</a> > Generating ARM templates
+            <a href='/farmer/'>Farmer</a> > <a href='/farmer/api-overview/'>API Overview</a> > Writing templates
           
          
           
@@ -529,7 +548,7 @@
           
             <h1>
               
-              Generating ARM templates
+              Writing templates
             </h1>
           
 
@@ -540,12 +559,17 @@
 <p>Farmer supports several ways to &ldquo;output&rdquo; ARM templates.</p>
 <h4 id="generating-json-as-string">Generating JSON as string</h4>
 <p>You can generate an ARM template as a plain string:</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp"><span style="color:#66d9ef">let</span> json <span style="color:#f92672">=</span> deployment<span style="color:#f92672">.</span>Template <span style="color:#f92672">|</span><span style="color:#f92672">&gt;</span> Writer.toJson
-printfn <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">&#34;</span> json <span style="color:#75715e">// prints out the JSON
-</span></code></pre></div><h4 id="writing-to-a-file">Writing to a file</h4>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp"><span style="color:#66d9ef">let</span> json <span style="color:#f92672">=</span>
+    deployment<span style="color:#f92672">.</span>Template
+    <span style="color:#f92672">|</span><span style="color:#f92672">&gt;</span> Writer.toJson
+
+ <span style="color:#75715e">// prints out the JSON
+</span><span style="color:#75715e"></span> printfn <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">&#34;</span> json
+</code></pre></div><h4 id="writing-to-a-file">Writing to a file</h4>
 <p>You can also write out the JSON directly to a file:</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp"><span style="color:#66d9ef">let</span> filename <span style="color:#f92672">=</span> <span style="color:#75715e">// myTemplate.json
-</span><span style="color:#75715e"></span>    deployment<span style="color:#f92672">.</span>Template
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp"><span style="color:#75715e">// myTemplate.json
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> filename <span style="color:#f92672">=</span>
+    deployment<span style="color:#f92672">.</span>Template
     <span style="color:#f92672">|</span><span style="color:#f92672">&gt;</span> Writer.toJson
     <span style="color:#f92672">|</span><span style="color:#f92672">&gt;</span> Writer.toFile <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myTemplate</span><span style="color:#e6db74">&#34;</span>
 </code></pre></div><blockquote>
@@ -554,8 +578,9 @@ printfn <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">%s</
 <h4 id="generating-a-deployment-batch-file">Generating a deployment batch file</h4>
 <p>You can create a batch file that will deploy the template to Azure when run. It uses an interactive
 login prompt via the Azure CLI.</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp"><span style="color:#66d9ef">let</span> filename <span style="color:#f92672">=</span> <span style="color:#75715e">// farmer-deploy.bat
-</span><span style="color:#75715e"></span>    deployment
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp"><span style="color:#75715e">// farmer-deploy.bat
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> filename <span style="color:#f92672">=</span>
+    deployment
     <span style="color:#f92672">|</span><span style="color:#f92672">&gt;</span> Writer.generateDeployScript <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myResourceGroup</span><span style="color:#e6db74">&#34;</span>
 </code></pre></div><blockquote>
 <p>This assumes that you have the Azure CLI installed on your machine.</p>
@@ -700,25 +725,6 @@ login prompt via the Azure CLI.</p>
             
                 
                     
-                        
-                        
-                    
-                
-                
-
-                    
-                    
-                    
-
-                    
-            
-        
-                    
-                        
-            
-            
-                
-                    
                     
                 
                 
@@ -762,6 +768,38 @@ login prompt via the Azure CLI.</p>
                     
                     
 
+                    
+            
+        
+                    
+                        
+            
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+                        
+            
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
                     
                         
             
@@ -874,10 +912,10 @@ login prompt via the Azure CLI.</p>
 	 
 	 
 		
-			<a class="nav nav-prev" href="/farmer/api-overview/parameters/" title="Parameters and Variables"> <i class="fa fa-chevron-left"></i></a>
+			<a class="nav nav-prev" href="/farmer/api-overview/" title="API Overview"> <i class="fa fa-chevron-left"></i></a>
 		
 		
-			<a class="nav nav-next" href="/farmer/api-overview/expressions/" title="ARM Expressions" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
+			<a class="nav nav-next" href="/farmer/api-overview/parameters/" title="Parameters and Variables" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
 		
 	
     </div>
@@ -887,19 +925,19 @@ login prompt via the Azure CLI.</p>
     <div style="left: -1000px; overflow: scroll; position: absolute; top: -1000px; border: none; box-sizing: content-box; height: 200px; margin: 0px; padding: 0px; width: 200px;">
       <div style="border: none; box-sizing: content-box; height: 200px; margin: 0px; padding: 0px; width: 200px;"></div>
     </div>
-    <script src="/farmer/js/clipboard.min.js?1580923673"></script>
-    <script src="/farmer/js/perfect-scrollbar.min.js?1580923673"></script>
-    <script src="/farmer/js/perfect-scrollbar.jquery.min.js?1580923673"></script>
-    <script src="/farmer/js/jquery.sticky.js?1580923673"></script>
-    <script src="/farmer/js/featherlight.min.js?1580923673"></script>
-    <script src="/farmer/js/highlight.pack.js?1580923673"></script>
+    <script src="/farmer/js/clipboard.min.js?1580937109"></script>
+    <script src="/farmer/js/perfect-scrollbar.min.js?1580937109"></script>
+    <script src="/farmer/js/perfect-scrollbar.jquery.min.js?1580937109"></script>
+    <script src="/farmer/js/jquery.sticky.js?1580937109"></script>
+    <script src="/farmer/js/featherlight.min.js?1580937109"></script>
+    <script src="/farmer/js/highlight.pack.js?1580937109"></script>
     <script>hljs.initHighlightingOnLoad();</script>
-    <script src="/farmer/js/modernizr.custom-3.6.0.js?1580923673"></script>
-    <script src="/farmer/js/learn.js?1580923673"></script>
-    <script src="/farmer/js/hugo-learn.js?1580923673"></script>
+    <script src="/farmer/js/modernizr.custom-3.6.0.js?1580937109"></script>
+    <script src="/farmer/js/learn.js?1580937109"></script>
+    <script src="/farmer/js/hugo-learn.js?1580937109"></script>
 
-    <link href="/farmer/mermaid/mermaid.css?1580923673" rel="stylesheet" />
-    <script src="/farmer/mermaid/mermaid.js?1580923673"></script>
+    <link href="/farmer/mermaid/mermaid.css?1580937109" rel="stylesheet" />
+    <script src="/farmer/mermaid/mermaid.js?1580937109"></script>
     <script>
         mermaid.initialize({ startOnLoad: true });
     </script>

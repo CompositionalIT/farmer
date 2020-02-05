@@ -51,5 +51,16 @@
  Web Site (Microsoft.Web/sites) Web Host (Microsoft.Web/serverfarms) Application Insights (Microsoft.Insights/components) Site Extension (siteextensions) Storage Accounts (Microsoft.Storage/storageAccounts)  Builder Keywords    Keyword Purpose     name Sets the name of the functions instance.</description>
     </item>
     
+    <item>
+      <title>Virtual Machine</title>
+      <link>https://compositionalit.github.io/farmer/api-overview/resources/virtual-machine/</link>
+      <pubDate>Wed, 05 Feb 2020 08:53:46 +0100</pubDate>
+      
+      <guid>https://compositionalit.github.io/farmer/api-overview/resources/virtual-machine/</guid>
+      <description>Overview The Virtual Machine builder creates a fully configured virtual machine and all its required child resources.
+ Virtual Machines (Microsoft.Compute/virtualMachines) Virtual Networks (Microsoft.Network/virtualNetworks) IP Addresses (Microsoft.Network/publicIPAddresses) Network Interfaces (Microsoft.Network/networkInterfaces)  In addition, every VM you create will add a SecureString parameter to the ARM template, whose name follows the pattern password-for-[virtual machine name].
+Builder Keywords    Keyword Purpose     name Sets the name of the VM.</description>
+    </item>
+    
   </channel>
 </rss>

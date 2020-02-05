@@ -9,7 +9,7 @@
 
     <link rel="icon" href="/farmer/images/favicon.png" type="image/png">
 
-    <title>Web App :: Farmer</title>
+    <title>Virtual Machine :: Farmer</title>
 
     
     <link href="/farmer/css/nucleus.css?1580937109" rel="stylesheet">
@@ -35,7 +35,7 @@
     </style>
     
   </head>
-  <body class="" data-url="/farmer/api-overview/resources/web-app/">
+  <body class="" data-url="/farmer/api-overview/resources/virtual-machine/">
     <nav id="sidebar" class="">
 
 
@@ -332,7 +332,7 @@
  
   
     
-      <li data-nav-id="/farmer/api-overview/resources/web-app/" title="Web App" class="dd-item active">
+      <li data-nav-id="/farmer/api-overview/resources/web-app/" title="Web App" class="dd-item ">
         <a href="/farmer/api-overview/resources/web-app/">
         Web App
         
@@ -389,7 +389,7 @@
  
   
     
-      <li data-nav-id="/farmer/api-overview/resources/virtual-machine/" title="Virtual Machine" class="dd-item ">
+      <li data-nav-id="/farmer/api-overview/resources/virtual-machine/" title="Virtual Machine" class="dd-item active">
         <a href="/farmer/api-overview/resources/virtual-machine/">
         Virtual Machine
         
@@ -515,7 +515,7 @@
             
           
           
-            <a href='/farmer/'>Farmer</a> > <a href='/farmer/api-overview/'>API Overview</a> > <a href='/farmer/api-overview/resources/'>Resources</a> > Web App
+            <a href='/farmer/'>Farmer</a> > <a href='/farmer/api-overview/'>API Overview</a> > <a href='/farmer/api-overview/resources/'>Resources</a> > Virtual Machine
           
          
           
@@ -554,7 +554,7 @@
           
             <h1>
               
-              Web App
+              Virtual Machine
             </h1>
           
 
@@ -563,13 +563,14 @@
 
 
 <h4 id="overview">Overview</h4>
-<p>The Web App builder is used to create Azure App Service accounts. It abstracts the Service Plan into the same component, and will also create and configure a linked App Insights resource.</p>
+<p>The Virtual Machine builder creates a fully configured virtual machine and all its required child resources.</p>
 <ul>
-<li>Web Site (<code>Microsoft.Web/sites</code>)</li>
-<li>Web Host (<code>Microsoft.Web/serverfarms</code>)</li>
-<li>Application Insights (<code>Microsoft.Insights/components</code>)</li>
-<li>Site Extension (<code>siteextensions</code>)</li>
+<li>Virtual Machines (<code>Microsoft.Compute/virtualMachines</code>)</li>
+<li>Virtual Networks (<code>Microsoft.Network/virtualNetworks</code>)</li>
+<li>IP Addresses (<code>Microsoft.Network/publicIPAddresses</code>)</li>
+<li>Network Interfaces (<code>Microsoft.Network/networkInterfaces</code>)</li>
 </ul>
+<p>In addition, every VM you create will add a SecureString parameter to the ARM template, whose name follows the pattern <strong>password-for-[virtual machine name]</strong>.</p>
 <h4 id="builder-keywords">Builder Keywords</h4>
 <table>
 <thead>
@@ -581,63 +582,51 @@
 <tbody>
 <tr>
 <td>name</td>
-<td>Sets the name of the web app.</td>
+<td>Sets the name of the VM.</td>
 </tr>
 <tr>
-<td>service_plan_name</td>
-<td>Sets the name of the service plan. If not set, uses the name of the web app postfixed with &ldquo;-plan&rdquo;.</td>
+<td>diagnostics_support</td>
+<td>Turns on diagnostics support using either an automatically created or externally created storage account.</td>
 </tr>
 <tr>
-<td>sku</td>
-<td>Sets the sku of the service plan.</td>
+<td>vm_size</td>
+<td>Sets the size of the VM.</td>
 </tr>
 <tr>
-<td>worker_size</td>
-<td>Sets the size of the service plan worker.</td>
-</tr>
-<tr>
-<td>number_of_workers</td>
-<td>Sets the number of instances on the service plan.</td>
-</tr>
-<tr>
-<td>app_insights_auto_name</td>
-<td>Sets the name of the automatically-created app insights instance.</td>
-</tr>
-<tr>
-<td>app_insights_off</td>
-<td>Removes any automatic app insights creation, configuration and settings for this webapp.</td>
-</tr>
-<tr>
-<td>app_insights_manual</td>
-<td>Instead of creating a new AI instance, configure this webapp to point to another AI instance that you are managing yourself.</td>
-</tr>
-<tr>
-<td>run_from_package</td>
-<td>Sets the web app to use &ldquo;run from package&rdquo; deployment capabilities.</td>
-</tr>
-<tr>
-<td>website_node_default_version</td>
-<td>Sets the node version of the web app.</td>
-</tr>
-<tr>
-<td>setting</td>
-<td>Sets an app setting of the web app in the form &ldquo;key&rdquo; &ldquo;value&rdquo;.</td>
-</tr>
-<tr>
-<td>depends_on</td>
-<td>Sets a dependency for the web app.</td>
-</tr>
-<tr>
-<td>always_on</td>
-<td>Sets &ldquo;Always On&rdquo; flag.</td>
-</tr>
-<tr>
-<td>runtime_stack</td>
-<td>Sets the runtime stack.</td>
+<td>username</td>
+<td>Sets the admin username of the VM (note: the password is supplied as a securestring parameter to the generated ARM template).</td>
 </tr>
 <tr>
 <td>operating_system</td>
-<td>Sets the operating system.</td>
+<td>Sets the operating system of the VM. A set of samples is provided in the <code>CommonImages</code> module.</td>
+</tr>
+<tr>
+<td>os_disk</td>
+<td>Sets the size and type of the OS disk for the VM.</td>
+</tr>
+<tr>
+<td>add_disk</td>
+<td>Adds a data disk to the VM with a specific size and type.</td>
+</tr>
+<tr>
+<td>add_ssd_disk</td>
+<td>Adds a SSD data disk to the VM with a specific size.</td>
+</tr>
+<tr>
+<td>add_slow_disk</td>
+<td>Adds a conventional (non-SSD) data disk to the VM with a specific size.</td>
+</tr>
+<tr>
+<td>domain_name_prefix</td>
+<td>Sets the prefix for the domain name of the VM.</td>
+</tr>
+<tr>
+<td>address_prefix</td>
+<td>Sets the IP address prefix of the VM.</td>
+</tr>
+<tr>
+<td>subnet_prefix</td>
+<td>Sets the subnet prefix of the VM.</td>
 </tr>
 </tbody>
 </table>
@@ -651,8 +640,24 @@
 </thead>
 <tbody>
 <tr>
-<td>PublishingPassword</td>
-<td>Gets the ARM expression path to the publishing password of this web app.</td>
+<td>NicName</td>
+<td>Provides the resource name of the Network Interface Card (NIC)</td>
+</tr>
+<tr>
+<td>VnetName</td>
+<td>Provides the resource name of the Virtual Network (VNet)</td>
+</tr>
+<tr>
+<td>SubnetName</td>
+<td>Provides the resource name of the subnet</td>
+</tr>
+<tr>
+<td>IpName</td>
+<td>Provides the resource name of the IP Address</td>
+</tr>
+<tr>
+<td>Hostname</td>
+<td>Returns an ARM expression to retrieve the fully-qualified domain name from the virtual machine&rsquo;s DNS settings.&rdquo;</td>
 </tr>
 </tbody>
 </table>
@@ -660,16 +665,14 @@
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp"><span style="color:#66d9ef">open</span> Farmer
 <span style="color:#66d9ef">open</span> Farmer.Resources
 
-<span style="color:#66d9ef">let</span> myWebApp <span style="color:#f92672">=</span> webApp <span style="color:#f92672">{</span>
-    name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myWebApp</span><span style="color:#e6db74">&#34;</span>
-    service_plan_name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myServicePlan</span><span style="color:#e6db74">&#34;</span>
-    setting <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myKey</span><span style="color:#e6db74">&#34;</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">aValue</span><span style="color:#e6db74">&#34;</span>
-    sku Sku.B1
-    always_on
-    app_insights_off
-    worker_size Medium
-    number_of_workers 3
-    run_from_package
+<span style="color:#66d9ef">let</span> myVm <span style="color:#f92672">=</span> vm <span style="color:#f92672">{</span>
+    name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myFarmerVm</span><span style="color:#e6db74">&#34;</span>
+    username <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">yourUsername</span><span style="color:#e6db74">&#34;</span>
+    vm_size Size.Standard_A2
+    operating_system CommonImages.WindowsServer_2012Datacenter
+    os_disk 128 StandardSSD_LRS
+    add_ssd_disk 128
+    add_slow_disk 512
 <span style="color:#f92672">}</span>
 </code></pre></div>
 
@@ -891,26 +894,6 @@
             
                 
                     
-                    
-                
-                
-
-                    
-                    
-                    
-
-                    
-            
-        
-                    
-                        
-            
-            
-                
-                    
-                        
-                        
-                    
                 
                 
 
@@ -954,6 +937,23 @@
             
         
                     
+                        
+            
+            
+                
+                    
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
             
         
                     
@@ -964,6 +964,9 @@
             
             
                 
+                    
+                        
+                        
                     
                 
                 
@@ -1001,10 +1004,10 @@
 	 
 	 
 		
-			<a class="nav nav-prev" href="/farmer/api-overview/resources/storage-account/" title="Storage Account"> <i class="fa fa-chevron-left"></i></a>
+			<a class="nav nav-prev" href="/farmer/api-overview/resources/functions/" title="Functions"> <i class="fa fa-chevron-left"></i></a>
 		
 		
-			<a class="nav nav-next" href="/farmer/api-overview/resources/app-insights/" title="App Insights" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
+			<a class="nav nav-next" href="/farmer/deployment-guidance/" title="Deployment Guidance" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
 		
 	
     </div>

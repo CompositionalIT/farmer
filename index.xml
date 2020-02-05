@@ -12,17 +12,6 @@
     
     
     <item>
-      <title>Parameters and Variables</title>
-      <link>https://compositionalit.github.io/farmer/api-overview/parameters/</link>
-      <pubDate>Wed, 05 Feb 2020 09:13:36 +0100</pubDate>
-      
-      <guid>https://compositionalit.github.io/farmer/api-overview/parameters/</guid>
-      <description>ARM templates support the idea both of parameterisation of templates and of the use of variables within a template for e.g. placeholders and re-using values.
-Farmer, by design, has only limited support for parameters and no support for variables. We don&amp;rsquo;t plan on adding rich support for either of these for the following reasons:
- We want to keep the Farmer codebase simple for maintainers We want to keep the Farmer API simple for users We want to keep the generated ARM templates as readable as possible We feel that instead of trying to embed conditional logic and program flow directly inside ARM templates in JSON, if you wish to parameterise your template that you should use a real programming language to do that: in this case, F#.</description>
-    </item>
-    
-    <item>
       <title>Storage Account</title>
       <link>https://compositionalit.github.io/farmer/api-overview/resources/storage-account/</link>
       <pubDate>Wed, 05 Feb 2020 08:53:46 +0100</pubDate>
@@ -45,15 +34,15 @@ dotnet new console -lang F# -n FarmerSampleAdd a reference to the Farmer nuget 
     </item>
     
     <item>
-      <title>Generating ARM templates</title>
+      <title>Writing templates</title>
       <link>https://compositionalit.github.io/farmer/api-overview/writer/</link>
       <pubDate>Wed, 05 Feb 2020 09:13:36 +0100</pubDate>
       
       <guid>https://compositionalit.github.io/farmer/api-overview/writer/</guid>
       <description>Farmer supports several ways to &amp;ldquo;output&amp;rdquo; ARM templates.
 Generating JSON as string You can generate an ARM template as a plain string:
-let json = deployment.Template |&amp;gt; Writer.toJsonprintfn &amp;#34;%s&amp;#34; json // prints out the JSONWriting to a file You can also write out the JSON directly to a file:
-let filename = // myTemplate.json deployment.Template|&amp;gt; Writer.toJson|&amp;gt; Writer.toFile &amp;#34;myTemplate&amp;#34; Notice how we use F#&amp;lsquo;s pipe operator to &amp;ldquo;pipe&amp;rdquo; data from the template configuration into json before writing to a file.</description>
+let json =deployment.Template|&amp;gt; Writer.toJson// prints out the JSON printfn &amp;#34;%s&amp;#34; jsonWriting to a file You can also write out the JSON directly to a file:
+// myTemplate.jsonlet filename =deployment.Template|&amp;gt; Writer.toJson|&amp;gt; Writer.toFile &amp;#34;myTemplate&amp;#34; Notice how we use F#&amp;lsquo;s pipe operator to &amp;ldquo;pipe&amp;rdquo; data from the template configuration into json before writing to a file.</description>
     </item>
     
     <item>
@@ -75,6 +64,17 @@ let filename = // myTemplate.json deployment.Template|&amp;gt; Writer.toJson|
       <description>Introduction In this quickstart, you&amp;rsquo;ll expand on the deployment authored in the previous quickstart as follows:
  add an Azure storage account add an application setting to the web app that references the storage account&amp;rsquo;s key set a dependency between the two resources  Creating a storage account Create a storage account by using the storageAccount builder.
 let myStorage = storageAccount {name &amp;#34;yourfirststorage&amp;#34;} Azure Storage Account names must be globally unique and between 3-24 alphanumeric lower-case characters:</description>
+    </item>
+    
+    <item>
+      <title>Parameters and Variables</title>
+      <link>https://compositionalit.github.io/farmer/api-overview/parameters/</link>
+      <pubDate>Wed, 05 Feb 2020 09:13:36 +0100</pubDate>
+      
+      <guid>https://compositionalit.github.io/farmer/api-overview/parameters/</guid>
+      <description>ARM templates support the idea both of parameterisation of templates and of the use of variables within a template for e.g. placeholders and re-using values.
+Farmer, by design, has only limited support for parameters and no support for variables. We don&amp;rsquo;t plan on adding rich support for either of these for the following reasons:
+ We want to keep the Farmer codebase simple for maintainers We want to keep the Farmer API simple for users We want to keep the generated ARM templates as readable as possible We feel that instead of trying to embed conditional logic and program flow directly inside ARM templates in JSON, if you wish to parameterise your template that you should use a real programming language to do that: in this case, F#.</description>
     </item>
     
     <item>
@@ -114,7 +114,20 @@ Deploy the template As Farmer emits standard ARM templates, you can use all the 
       <pubDate>Wed, 05 Feb 2020 09:13:36 +0100</pubDate>
       
       <guid>https://compositionalit.github.io/farmer/api-overview/expressions/</guid>
-      <description></description>
+      <description>ARM template expressions are a way of safely storing string values which contain expressions that are evaluated at deployment time by the Azure. ARM expressions can also contain a set of predefined functions supported by the ARM runtime.
+Farmer understands how to use ARM expressions and provides functionality to correctly wrap and unwrap them as raw strings into a JSON template.
+ For manipulation of literal values that are known on the client, you will not need to use ARM expressions.</description>
+    </item>
+    
+    <item>
+      <title>Virtual Machine</title>
+      <link>https://compositionalit.github.io/farmer/api-overview/resources/virtual-machine/</link>
+      <pubDate>Wed, 05 Feb 2020 08:53:46 +0100</pubDate>
+      
+      <guid>https://compositionalit.github.io/farmer/api-overview/resources/virtual-machine/</guid>
+      <description>Overview The Virtual Machine builder creates a fully configured virtual machine and all its required child resources.
+ Virtual Machines (Microsoft.Compute/virtualMachines) Virtual Networks (Microsoft.Network/virtualNetworks) IP Addresses (Microsoft.Network/publicIPAddresses) Network Interfaces (Microsoft.Network/networkInterfaces)  In addition, every VM you create will add a SecureString parameter to the ARM template, whose name follows the pattern password-for-[virtual machine name].
+Builder Keywords    Keyword Purpose     name Sets the name of the VM.</description>
     </item>
     
   </channel>
