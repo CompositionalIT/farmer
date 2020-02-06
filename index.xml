@@ -140,5 +140,16 @@ Farmer understands how to use ARM expressions and provides functionality to corr
 Builder Keywords    Keyword Purpose     name Sets the name of the VM.</description>
     </item>
     
+    <item>
+      <title>Key Vault</title>
+      <link>https://compositionalit.github.io/farmer/api-overview/resources/keyvault/</link>
+      <pubDate>Wed, 05 Feb 2020 08:53:46 +0100</pubDate>
+      
+      <guid>https://compositionalit.github.io/farmer/api-overview/resources/keyvault/</guid>
+      <description>Overview The KeyVault package contains three builders, for the different components used by KeyVault: One for access policies, one for secrets, and one for the overall keyvault container.
+ KeyVault (Microsoft.KeyVault/vaults) Secrets (Microsoft.KeyVault/vaults/secrets)  Secret Builder The secret builder allows you to store secrets into key vault. Values for a secret are passed by Secure String parameters.
+   Keyword Purpose     name Sets the name of the secret.</description>
+    </item>
+    
   </channel>
 </rss>

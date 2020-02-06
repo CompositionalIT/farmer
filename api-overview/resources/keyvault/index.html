@@ -9,7 +9,7 @@
 
     <link rel="icon" href="/farmer/images/favicon.png" type="image/png">
 
-    <title>FAQs :: Farmer</title>
+    <title>Key Vault :: Farmer</title>
 
     
     <link href="/farmer/css/nucleus.css?1580978946" rel="stylesheet">
@@ -35,7 +35,7 @@
     </style>
     
   </head>
-  <body class="" data-url="/farmer/faq/">
+  <body class="" data-url="/farmer/api-overview/resources/keyvault/">
     <nav id="sidebar" class="">
 
 
@@ -205,7 +205,7 @@
   
     
     <li data-nav-id="/farmer/api-overview/" title="API Overview" class="dd-item 
-        
+        parent
         
         
         ">
@@ -289,7 +289,7 @@
   
     
     <li data-nav-id="/farmer/api-overview/resources/" title="Resources" class="dd-item 
-        
+        parent
         
         
         ">
@@ -427,7 +427,7 @@
  
   
     
-      <li data-nav-id="/farmer/api-overview/resources/keyvault/" title="Key Vault" class="dd-item ">
+      <li data-nav-id="/farmer/api-overview/resources/keyvault/" title="Key Vault" class="dd-item active">
         <a href="/farmer/api-overview/resources/keyvault/">
         Key Vault
         
@@ -485,8 +485,8 @@
   
     
     <li data-nav-id="/farmer/faq/" title="FAQs" class="dd-item 
-        parent
-        active
+        
+        
         
         ">
       <a href="/farmer/faq/">
@@ -545,7 +545,19 @@
             
           
           
-            <a href='/farmer/'>Farmer</a> > FAQs
+            
+            
+          
+          
+            
+            
+          
+          
+            <a href='/farmer/'>Farmer</a> > <a href='/farmer/api-overview/'>API Overview</a> > <a href='/farmer/api-overview/resources/'>Resources</a> > Key Vault
+          
+         
+          
+         
           
          
           
@@ -560,7 +572,7 @@
   <ul>
     <li>
       <ul>
-        <li></li>
+        <li><a href="#overview">Overview</a></li>
       </ul>
     </li>
   </ul>
@@ -580,7 +592,7 @@
           
             <h1>
               
-              FAQs
+              Key Vault
             </h1>
           
 
@@ -588,33 +600,235 @@
 
 
 
-
-	<h4 id="how-can-i-help">How can I help?</h4>
-<p>Try out Farmer and see what you think.</p>
+<h3 id="overview">Overview</h3>
+<p>The KeyVault package contains <em>three</em> builders, for the different components used by KeyVault: One for <strong>access policies</strong>, one for <strong>secrets</strong>, and one for the overall <strong>keyvault</strong> container.</p>
 <ul>
-<li>Create as many issues as you can for both bugs, discussions and features</li>
-<li>Create suggestions for features and the most important elements you would like to see added</li>
+<li>KeyVault (<code>Microsoft.KeyVault/vaults</code>)</li>
+<li>Secrets (<code>Microsoft.KeyVault/vaults/secrets</code>)</li>
 </ul>
-<h4 id="i-have-an-azure-subscription-but-im-not-an-expert-i-like-the-look-of-this---how-do-i-use-it">I have an Azure subscription, but I&rsquo;m not an expert. I like the look of this - how do I &ldquo;use&rdquo; it?</h4>
-<ol>
-<li>Create an <a href="https://docs.microsoft.com/en-us/azure/azure-resource-manager/template-deployment-overview">ARM template</a> using the Farmer sample app.</li>
-<li>Follow the steps <a href="#deploying-arm-templates">here</a> to deploy the generated template into Azure.</li>
-<li>Log any issues or ideas that you find <a href="https://github.com/CompositionalIT/farmer/issues/new">here</a>.</li>
-</ol>
-<h4 id="i-dont-know-f-would-you-consider-writing-a-c-version-of-this">I don&rsquo;t know F#. Would you consider writing a C# version of this?</h4>
-<p>I&rsquo;m afraid not. F# isn&rsquo;t hard to learn (especially for simple DSLs such as this), and you can easily integrate F# applications as part of a dotnet solution, since F# is a first-class citizen of the dotnet core ecosystem.</p>
-<h4 id="are-you-trying-to-replace-arm-templates">Are you trying to replace ARM templates?</h4>
-<p>No, we&rsquo;re not. Farmer <em>generates</em> ARM templates that can be used just as normal; Farmer can be used simply to make the process of getting started much simpler, or incorporated into your build pipeline as a way to avoid managing difficult-to-manage ARM templates and instead use them as the final part of your build / release pipeline.</p>
-<h4 id="are-you-trying-to-compete-with-pulumi">Are you trying to compete with Pulumi?</h4>
-<p>No, we&rsquo;re not. Farmer has (at least currently) a specific goal in mind, which is to lower the barrier to entry for creating and working with ARM templates that are non-complex. We&rsquo;re not looking to create a cross-platform DSL to also support things like Terraform etc. or support deployment of code along with infrastructure (or, at least, only to the extent that ARM templates do).</p>
-<h4 id="theres-no-support-for-variables-or-parameters">There&rsquo;s no support for variables or parameters!</h4>
-<p>Farmer intentionally has limited support for ARM parameters and variables. Read <a href="../api-overview/parameters.md">here</a> to find out the alternatives.</p>
+<h4 id="secret-builder">Secret Builder</h4>
+<p>The secret builder allows you to store secrets into key vault. Values for a secret are passed by Secure String parameters.</p>
+<table>
+<thead>
+<tr>
+<th>Keyword</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>name</td>
+<td>Sets the name of the secret.</td>
+</tr>
+<tr>
+<td>value</td>
+<td>Sets the name of the secure string parameter that will contain the value of the secret.</td>
+</tr>
+<tr>
+<td>content_type</td>
+<td>Sets the content type of the secret.</td>
+</tr>
+<tr>
+<td>enable_secret</td>
+<td>Enables the secret.</td>
+</tr>
+<tr>
+<td>disable_secret</td>
+<td>Disables the secret.</td>
+</tr>
+<tr>
+<td>activation_date</td>
+<td>Sets the activation date of the secret.</td>
+</tr>
+<tr>
+<td>expiration_date</td>
+<td>Sets the expiration date of the secret.</td>
+</tr>
+<tr>
+<td>depends_on</td>
+<td>Provides dependencies of the key vault.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="access-policy-builder">Access Policy Builder</h4>
+<p>The Access Policy builder allows you to create access policies for key vault.</p>
+<table>
+<thead>
+<tr>
+<th>Keyword</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>object_id</td>
+<td>Sets the Object ID of the permission set.</td>
+</tr>
+<tr>
+<td>application_id</td>
+<td>Sets the Application ID of the permission set.</td>
+</tr>
+<tr>
+<td>key_permissions</td>
+<td>Sets the Key permissions of the permission set.</td>
+</tr>
+<tr>
+<td>storage_permissions</td>
+<td>Sets the Storage permissions of the permission set.</td>
+</tr>
+<tr>
+<td>secret_permissions</td>
+<td>Sets the Secret permissions of the permission set.</td>
+</tr>
+<tr>
+<td>certificate_permissions</td>
+<td>Sets the Certificate permissions of the permission set.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="key-vault-builder">Key Vault Builder</h4>
+<p>The Key Vault builder contains access policies, secrets, and configuration information to create a full key vault account.</p>
+<table>
+<thead>
+<tr>
+<th>Keyword</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>name</td>
+<td>Sets the name of the vault.</td>
+</tr>
+<tr>
+<td>sku</td>
+<td>Sets the sku of the vault.</td>
+</tr>
+<tr>
+<td>tenant_id</td>
+<td>Sets the Tenant ID of the vault.</td>
+</tr>
+<tr>
+<td>enable_vm_access</td>
+<td>Allows VM access to the vault.</td>
+</tr>
+<tr>
+<td>disable_vm_access</td>
+<td>Disallows VM access to the vault.</td>
+</tr>
+<tr>
+<td>enable_resource_manager_access</td>
+<td>Allows Resource Manager access to the vault.</td>
+</tr>
+<tr>
+<td>disable_resource_manager_access</td>
+<td>Disallows Resource Manager access to the vault.</td>
+</tr>
+<tr>
+<td>enable_disk_encryption_access</td>
+<td>Allows Azure Disk Encyption service access to the vault.</td>
+</tr>
+<tr>
+<td>disable_disk_encryption_access</td>
+<td>Disallows Azure Disk Encyption service access to the vault.</td>
+</tr>
+<tr>
+<td>enable_soft_delete</td>
+<td>Enables VM access to the vault.</td>
+</tr>
+<tr>
+<td>enable_soft_delete_with_purge_protection</td>
+<td>Disables VM access to the vault.</td>
+</tr>
+<tr>
+<td>uri</td>
+<td>Sets the URI of the vault.</td>
+</tr>
+<tr>
+<td>enable_recovery_mode</td>
+<td>Sets the Creation Mode to Recovery.</td>
+</tr>
+<tr>
+<td>disable_recovery_mode</td>
+<td>Sets the Creation Mode to Default.</td>
+</tr>
+<tr>
+<td>add_access_policy</td>
+<td>Adds an access policy to the vault.</td>
+</tr>
+<tr>
+<td>enable_azure_services_bypass</td>
+<td>Allows Azure traffic can bypass network rules.</td>
+</tr>
+<tr>
+<td>disable_azure_services_bypass</td>
+<td>Disallows Azure traffic can bypass network rules.</td>
+</tr>
+<tr>
+<td>allow_default_traffic</td>
+<td>Allow traffic if no rule from ipRules and virtualNetworkRules match. This is only used after the bypass property has been evaluated.</td>
+</tr>
+<tr>
+<td>deny_default_traffic</td>
+<td>Deny traffic when no rule from ipRules and virtualNetworkRules match. This is only used after the bypass property has been evaluated.</td>
+</tr>
+<tr>
+<td>add_ip_rule</td>
+<td>Adds an IP address rule. This can be an IPv4 address range in CIDR notation, such as &lsquo;124.56.78.91&rsquo; (simple IP address) or &lsquo;124.56.78.0/24&rsquo; (all addresses that start with 124.56.78).</td>
+</tr>
+<tr>
+<td>add_vnet_rule</td>
+<td>Adds a virtual network rule. This is the full resource id of a vnet subnet, such as &lsquo;/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/virtualNetworks/test-vnet/subnets/subnet1&rsquo;.</td>
+</tr>
+<tr>
+<td>add_secret</td>
+<td>Adds a secret to the vault. This can either be a &ldquo;full&rdquo; secret config created using the Secret Builder or a string literal value which represents the parameter name.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="example">Example</h4>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp"><span style="color:#66d9ef">let</span> vault <span style="color:#f92672">=</span>
+    <span style="color:#66d9ef">let</span> policy <span style="color:#f92672">=</span>
+        accessPolicy <span style="color:#f92672">{</span>
+            object_id Guid.Empty
+            application_id Guid.Empty
+            certificate_permissions <span style="color:#f92672">[</span> Certificate.List <span style="color:#f92672">]</span>
+            secret_permissions Secret.All
+            key_permissions <span style="color:#f92672">[</span> Key.List <span style="color:#f92672">]</span>
+        <span style="color:#f92672">}</span>
 
+    <span style="color:#66d9ef">let</span> complexSecret <span style="color:#f92672">=</span> secret <span style="color:#f92672">{</span>
+        name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myComplexSecret</span><span style="color:#e6db74">&#34;</span>
+        content_type <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">application/text</span><span style="color:#e6db74">&#34;</span>
+        enable_secret
+        activation_date <span style="color:#f92672">(</span>DateTime.Today.AddDays <span style="color:#f92672">-</span>1<span style="color:#f92672">.</span><span style="color:#f92672">)</span>
+        expiration_date <span style="color:#f92672">(</span>DateTime.Today.AddDays 1<span style="color:#f92672">.</span><span style="color:#f92672">)</span>
+    <span style="color:#f92672">}</span>
 
+    keyVault <span style="color:#f92672">{</span>
+        name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">MyVault</span><span style="color:#e6db74">&#34;</span>
+        sku Standard
+        tenant_id Guid.Empty
 
+        enable_disk_encryption_access
+        enable_resource_manager_access
+        enable_soft_delete_with_purge_protection
 
+        disable_vm_access
+        enable_recovery_mode
+        add_access_policy policy
+        enable_azure_services_bypass
 
-<footer class=" footline" >
+        add_ip_rule <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">127.0.0.1</span><span style="color:#e6db74">&#34;</span>
+        add_vnet_rule <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/virtualNetworks/test-vnet/subnets/subnet1</span><span style="color:#e6db74">&#34;</span>
+        allow_default_traffic
+
+        add_secret complexSecret
+        add_secret <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">simpleSecret</span><span style="color:#e6db74">&#34;</span>
+    <span style="color:#f92672">}</span>
+</code></pre></div>
+
+<footer class="footline">
 	
 </footer>
 
@@ -732,6 +946,7 @@
             
                 
                     
+                    
                 
                 
 
@@ -746,6 +961,9 @@
             
             
                 
+                    
+                        
+                        
                     
                 
                 
@@ -795,6 +1013,7 @@
             
                 
                     
+                    
                 
                 
 
@@ -808,53 +1027,8 @@
             
                 
                     
-                
-                
-
-                    
-                    
-                    
-
-                    
-            
-        
-                    
                         
-            
-            
-                
-                    
-                
-                
-
-                    
-                    
-                    
-
-                    
-            
-        
-                    
                         
-            
-            
-                
-                    
-                
-                
-
-                    
-                    
-                    
-
-                    
-            
-        
-                    
-                        
-            
-            
-                
                     
                 
                 
@@ -915,8 +1089,18 @@
             
         
                     
+                        
             
-        
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
                     
             
         
@@ -942,6 +1126,47 @@
             
                 
                     
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
+            
+        
+                    
+            
+        
+                    
+                        
+            
+            
+                
+                    
+                        
+                        
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
+                        
+            
+            
+                
                     
                 
                 
@@ -963,10 +1188,10 @@
 	 
 	 
 		
-			<a class="nav nav-prev" href="/farmer/deployment-guidance/" title="Deployment Guidance"> <i class="fa fa-chevron-left"></i></a>
+			<a class="nav nav-prev" href="/farmer/api-overview/resources/virtual-machine/" title="Virtual Machine"> <i class="fa fa-chevron-left"></i></a>
 		
 		
-			<a class="nav nav-next" href="/farmer/about/" title="About" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
+			<a class="nav nav-next" href="/farmer/deployment-guidance/" title="Deployment Guidance" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
 		
 	
     </div>
@@ -996,3 +1221,4 @@
 
   </body>
 </html>
+
