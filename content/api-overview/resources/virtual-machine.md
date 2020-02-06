@@ -34,7 +34,6 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 |address_prefix | Sets the IP address prefix of the VM. |
 |subnet_prefix | Sets the subnet prefix of the VM. |
 
-
 #### Configuration Members
 
 | Member | Purpose |
