@@ -12,7 +12,7 @@
     
     
     <item>
-      <title>Your First Template</title>
+      <title>Your first Farmer template</title>
       <link>https://compositionalit.github.io/farmer/quickstarts/quickstart-1/</link>
       <pubDate>Tue, 04 Feb 2020 00:41:51 +0100</pubDate>
       
@@ -41,8 +41,8 @@ let myStorage = storageAccount {name &amp;#34;yourfirststorage&amp;#34;} Azur
       
       <guid>https://compositionalit.github.io/farmer/quickstarts/quickstart-3/</guid>
       <description>Introduction In this exercise, you&amp;rsquo;ll update the application to deploy the generated ARM template to Azure directly from Farmer.
-Install the Azure CLI If you haven&amp;rsquo;t done so already, install the Azure CLI on your machine.
-Deploy the template As Farmer emits standard ARM templates, you can use all the standard ARM template deployment tools at your disposal - whether that&amp;rsquo;s Visual Studio, Powershell, or the Azure CLI. In our case, we can also use Farmer&amp;rsquo;s API which wraps around the Azure CLI.</description>
+ Farmer generates normal ARM templates. You use all of the standard mechanisms for deploying ARM templates such as through the portal, Powershell, .NET or Azure CLI etc. This tutorial shows you a simple way to deploy templates from your development machine directly from within F#.
+ Install the Azure CLI If you haven&amp;rsquo;t done so already, install the Azure CLI on your machine.</description>
     </item>
     
   </channel>
