@@ -37,6 +37,8 @@ All Farmer resources follow the same approach:
 3. This configuration is then added to an overarching Farmer ARM deployment object.
 4. The ARM deployment object is converted into an ARM template json file.
 
+![](../images/farmer-flow.jpg)
+
 Here's an example web application.
 
 ```fsharp

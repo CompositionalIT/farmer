@@ -17,9 +17,9 @@ Farmer is a DSL for rapidly generating non-complex ARM templates in a type-safe 
 * **Safely create dependencies between resources**. Uses static typing to give confidence that your templates will work first time.
 * **Easily access common properties of resources**. No more fighting to concatinate cryptic strings!
 * **Extensible API**. Add new helpers and members as needed.
-* **Open source and free**. Farmer is free to use and can be used by anyone.
+* **Open source and free**. Farmer is free to use and we welcome contributions to the project.
 
-Farmer uses a simple DSL to declare resources, and provides simple helper functions to work with them. Farmer templates are **roughly 5-6 times smaller** than ARM templates, meaning they are quicker and easier to read and write.
+Farmer uses a simple DSL to declare resources and comes with helper functions to perform common tasks. Farmer templates are **around 5-8 times smaller than ARM templates**, meaning they are quicker and easier to author, understand and maintain.
 
 ![](images/comparison.jpg)
 
@@ -27,7 +27,7 @@ Farmer uses a simple DSL to declare resources, and provides simple helper functi
 
 ### Farmer Templates
 
-These **23 lines of simple, readable and type-safe F# code** are translated into **142 lines of weakly-typed and difficult-to-understand JSON ARM template!**
+These **23 lines of simple, readable and type-safe F# code** are translated into **142 lines of JSON ARM template!**
 
 ```fsharp
 // Create a storage account with a container
@@ -56,4 +56,4 @@ deployment
 |> Writer.quickDeploy "myResourceGroup"
 ```
 
-#### Want to try it out? Go over to our [quickstart guide](quickstarts/quickstart-1) now!
+#### Want to try it out? Follow our [quickstart guide](quickstarts/quickstart-1) now!
