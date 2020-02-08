@@ -4,30 +4,42 @@ date: 2020-02-04T00:36:21+01:00
 draft: false
 ---
 
-# Farmer
+## Welcome to Farmer
+
+#### Farmer makes repeatable Azure deployments easy!
 
 Farmer is a DSL for rapidly generating non-complex ARM templates in a type-safe manner.
 
 ### Main Features
+* **Create ARM templates quickly and easily** through a simple, strongly-typed and pragmatic DSL.
+* **Completely backwards compatible with ARM templates**. Farmer generates standard ARM templates so you can continue to use existing deployment processes.
+* **Runs on .NET Core**.
+* **Safely create dependencies between resources**. Uses static typing to give confidence that your templates will work first time.
+* **Easily access common properties of resources**. No more fighting to concatinate cryptic strings!
+* **Extensible API**. Add new helpers and members as needed.
+* **Open source and free**. Farmer is free to use and can be used by anyone.
 
-* Create non-complex ARM templates through a simple, strongly-typed and pragmatic DSL.
-* Create strongly-typed dependencies to resources.
-* Runs on .NET Core.
-* Use standard F# code to dynamically create ARM templates quickly and easily.
+Farmer uses a simple DSL to declare resources, and provides simple helper functions to work with them. Farmer templates are **roughly 5-6 times smaller** than ARM templates, meaning they are quicker and easier to read and write.
+
+![](images/comparison.jpg)
+
+##### Creating a web application with a configured application insights and a linked storage account
+
+### Farmer Templates
+
+These **23 lines of simple, readable and type-safe F# code** are translated into **142 lines of weakly-typed and difficult-to-understand JSON ARM template!**
 
 ```fsharp
-// Create a storage account
+// Create a storage account with a container
 let myStorageAccount = storageAccount {
     name "myTestStorage"
-    sku Sku.PremiumLRS
     add_public_container "myContainer"
 }
 
-// Create a web app with a pre-configured application insights service
+// Create a web app with application insights that's connected to the storage account.
 let myWebApp = webApp {
     name "myTestWebApp"
     setting "storageKey" myStorageAccount.Key
-    sku Sku.B1
     always_on
     depends_on myStorageAccount.Name
 }
@@ -38,4 +50,10 @@ let deployment = arm {
     add_resource myStorageAccount
     add_resource myWebApp
 }
+
+// Deploy it to Azure!
+deployment
+|> Writer.quickDeploy "myResourceGroup"
 ```
+
+#### Want to try it out? Go over to our [quickstart guide](quickstarts/quickstart-1) now!

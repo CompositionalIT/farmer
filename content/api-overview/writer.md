@@ -1,8 +1,8 @@
 ---
-title: "Writing templates"
+title: "Generating templates"
 date: 2020-02-05T09:13:36+01:00
 draft: false
-weight: 2
+weight: 1
 ---
 
 Farmer supports several ways to "output" ARM templates.

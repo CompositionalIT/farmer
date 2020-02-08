@@ -25,3 +25,6 @@ No, we're not. Farmer has (at least currently) a specific goal in mind, which is
 
 #### There's no support for variables or parameters!
 Farmer intentionally has limited support for ARM parameters and variables. Read [here](../api-overview/parameters.md) to find out the alternatives.
+
+#### The resource I need isn't included!
+Create an issue on our [github repository](https://github.com/CompositionalIT/farmer/issues). We can promise we'll look at it immediately, but raising the issue is an important first step to getting more resources supported, ideally with a sample ARM template and a link to the official Microsoft documentation on the resource.

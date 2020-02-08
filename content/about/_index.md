@@ -20,13 +20,4 @@ Whilst there have been some recent improvements to ARM - including tooling impro
 Farmer templates are simple .NET Core applications which reference the [Farmer NuGet package](https://www.nuget.org/packages/Farmer/). This package contains a set of types to model ARM resources in a strongly-typed and succinct fashion, as well as functionality to create ARM templates and even deploy directly to Azure.
 
 #### What can I use Farmer for?
-Farmer currently has support for the following resources.
-
-* Storage
-* App Service
-* Functions
-* Azure Search
-* Application Insights
-* Cosmos DB
-* Azure SQL
-* Virtual Machines
+Farmer currently has support for a [large number of common resources](../api-overview/resources) including web apps, sql and storage, with more being added over time. 

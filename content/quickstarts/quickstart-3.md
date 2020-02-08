@@ -8,6 +8,8 @@ weight: 3
 #### Introduction
 In this exercise, you'll update the application to deploy the generated ARM template to Azure directly from Farmer.
 
+> Farmer generates normal ARM templates. You use all of the standard mechanisms for deploying ARM templates such as through the portal, Powershell, .NET or Azure CLI etc. This tutorial shows you a simple way to deploy templates from your development machine directly from within F#.
+
 #### Install the Azure CLI
 If you haven't done so already, install the [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest) on your machine.
 

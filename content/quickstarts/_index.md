@@ -8,3 +8,4 @@ This section contains quickstarts to performing common tasks.
 
 * [Creating your first Farmer template](quickstart-1)
 * [Creating linked resources](quickstart-2)
+* [Deploying a Farmer template](quickstart-3)
