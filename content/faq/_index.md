@@ -11,7 +11,7 @@ Try out Farmer and see what you think.
 
 #### I have an Azure subscription, but I'm not an expert. I like the look of this - how do I "use" it?
 1. Create an [ARM template](https://docs.microsoft.com/en-us/azure/azure-resource-manager/template-deployment-overview) using the Farmer sample app.
-1. Follow the steps [here](#deploying-arm-templates) to deploy the generated template into Azure.
+1. Follow the steps [here](/deployment-guidance) to deploy the generated template into Azure.
 1. Log any issues or ideas that you find [here](https://github.com/CompositionalIT/farmer/issues/new).
 
 #### I don't know F#. Would you consider writing a C# version of this?
@@ -24,7 +24,7 @@ No, we're not. Farmer *generates* ARM templates that can be used just as normal;
 No, we're not. Farmer has (at least currently) a specific goal in mind, which is to lower the barrier to entry for creating and working with ARM templates that are non-complex. We're not looking to create a cross-platform DSL to also support things like Terraform etc. or support deployment of code along with infrastructure (or, at least, only to the extent that ARM templates do).
 
 #### There's no support for variables or parameters!
-Farmer intentionally has limited support for ARM parameters and variables. Read [here](../api-overview/parameters.md) to find out the alternatives.
+Farmer intentionally has limited support for ARM parameters and variables. Read [here](api-overview/parameters) to find out the alternatives.
 
 #### The resource I need isn't included!
 Create an issue on our [github repository](https://github.com/CompositionalIT/farmer/issues). We can promise we'll look at it immediately, but raising the issue is an important first step to getting more resources supported, ideally with a sample ARM template and a link to the official Microsoft documentation on the resource.
