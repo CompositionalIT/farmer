@@ -21,7 +21,7 @@ Farmer is a DSL for rapidly generating non-complex ARM templates in a type-safe 
 
 Farmer uses a simple DSL to declare resources and comes with helper functions to perform common tasks. Farmer templates are **around 5-8 times smaller than ARM templates**, meaning they are quicker and easier to author, understand and maintain.
 
-![](images/comparison.jpg)
+![](images/comparison.png)
 
 ##### Creating a web application with a configured application insights and a linked storage account
 
