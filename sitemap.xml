@@ -73,6 +73,16 @@
   </url>
   
   <url>
+    <loc>https://compositionalit.github.io/farmer/api-overview/resources/cosmosdb/</loc>
+    <lastmod>2020-02-05T08:53:46+01:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://compositionalit.github.io/farmer/api-overview/resources/sql/</loc>
+    <lastmod>2020-02-05T08:53:46+01:00</lastmod>
+  </url>
+  
+  <url>
     <loc>https://compositionalit.github.io/farmer/deployment-guidance/</loc>
     <lastmod>2020-02-05T08:45:15+01:00</lastmod>
   </url>
@@ -94,6 +104,11 @@
   
   <url>
     <loc>https://compositionalit.github.io/farmer/api-overview/resources/keyvault/</loc>
+    <lastmod>2020-02-05T08:53:46+01:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://compositionalit.github.io/farmer/api-overview/resources/arm/</loc>
     <lastmod>2020-02-05T08:53:46+01:00</lastmod>
   </url>
   

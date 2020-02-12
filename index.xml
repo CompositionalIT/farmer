@@ -120,6 +120,26 @@ Farmer understands how to use ARM expressions and provides functionality to corr
     </item>
     
     <item>
+      <title>Cosmos DB</title>
+      <link>https://compositionalit.github.io/farmer/api-overview/resources/cosmosdb/</link>
+      <pubDate>Wed, 05 Feb 2020 08:53:46 +0100</pubDate>
+      
+      <guid>https://compositionalit.github.io/farmer/api-overview/resources/cosmosdb/</guid>
+      <description>Overview The CosmosDb package containers two builders, used to create CosmosDB databases and containers. There is only support document databases (that support so-called &amp;ldquo;SQL&amp;rdquo; queries), with support for Graph, Table and Cassandra data models planned.
+Cosmos DB Builder The CosmosDB builder abstracts the idea of server and database into one. This simplfication means that at present there is only support for a single database for each Cosmos server that you create.</description>
+    </item>
+    
+    <item>
+      <title>SQL Azure</title>
+      <link>https://compositionalit.github.io/farmer/api-overview/resources/sql/</link>
+      <pubDate>Wed, 05 Feb 2020 08:53:46 +0100</pubDate>
+      
+      <guid>https://compositionalit.github.io/farmer/api-overview/resources/sql/</guid>
+      <description>Overview The SQL Azure builder is used to called SQL Azure servers and databases. It supports features such as encryption and firewalls. Every SQL Azure instance you create will automatically create a SecureString parameter for the admin account password.
+Builder Keywords    Keyword Purpose     server_name Sets the name of the SQL server.   db_name Sets the name of the database.   sku Sets the sku of the database.</description>
+    </item>
+    
+    <item>
       <title>Search</title>
       <link>https://compositionalit.github.io/farmer/api-overview/resources/search/</link>
       <pubDate>Wed, 05 Feb 2020 08:53:46 +0100</pubDate>
@@ -149,6 +169,16 @@ Builder Keywords    Keyword Purpose     name Sets the name of the VM.</descripti
       <description>Overview The KeyVault package contains three builders, for the different components used by KeyVault: One for access policies, one for secrets, and one for the overall keyvault container.
  KeyVault (Microsoft.KeyVault/vaults) Secrets (Microsoft.KeyVault/vaults/secrets)  Secret Builder The secret builder allows you to store secrets into key vault. Values for a secret are passed by Secure String parameters.
    Keyword Purpose     name Sets the name of the secret.</description>
+    </item>
+    
+    <item>
+      <title>ARM Deployment</title>
+      <link>https://compositionalit.github.io/farmer/api-overview/resources/arm/</link>
+      <pubDate>Wed, 05 Feb 2020 08:53:46 +0100</pubDate>
+      
+      <guid>https://compositionalit.github.io/farmer/api-overview/resources/arm/</guid>
+      <description>Overview The ARM deployment builder is always the top-level element of your deployment. It contains the manifest of all Farmer resources that you create.
+Builder Keywords    Keyword Purpose     location Sets the default location of all resources.   add_resource Adds a resource to the template.   add_resources Adds a collection of resources to the template.   output Creates an output value that will be returned by the ARM template.</description>
     </item>
     
   </channel>

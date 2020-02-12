@@ -9,7 +9,7 @@
 
     <link rel="icon" href="/farmer/images/favicon.png" type="image/png">
 
-    <title>App Insights :: Farmer</title>
+    <title>SQL Azure :: Farmer</title>
 
     
     <link href="/farmer/css/nucleus.css?1581518592" rel="stylesheet">
@@ -35,7 +35,7 @@
     </style>
     
   </head>
-  <body class="" data-url="/farmer/api-overview/resources/app-insights/">
+  <body class="" data-url="/farmer/api-overview/resources/sql/">
     <nav id="sidebar" class="">
 
 
@@ -313,7 +313,7 @@
  
   
     
-      <li data-nav-id="/farmer/api-overview/resources/app-insights/" title="App Insights" class="dd-item active">
+      <li data-nav-id="/farmer/api-overview/resources/app-insights/" title="App Insights" class="dd-item ">
         <a href="/farmer/api-overview/resources/app-insights/">
         App Insights
         
@@ -370,7 +370,7 @@
  
   
     
-      <li data-nav-id="/farmer/api-overview/resources/sql/" title="SQL Azure" class="dd-item ">
+      <li data-nav-id="/farmer/api-overview/resources/sql/" title="SQL Azure" class="dd-item active">
         <a href="/farmer/api-overview/resources/sql/">
         SQL Azure
         
@@ -597,7 +597,7 @@
                   
                   
                   <div id="top-github-link">
-                    <a class="github-link" title='Edit this page' href="https://github.com/CompositionalIT/farmer/tree/docs/content/api-overview/resources/app-insights.md" target="blank">
+                    <a class="github-link" title='Edit this page' href="https://github.com/CompositionalIT/farmer/tree/docs/content/api-overview/resources/sql.md" target="blank">
                       <i class="fas fa-code-branch"></i>
                       <span id="top-github-link-text">Edit this page</span>
                     </a>
@@ -632,7 +632,7 @@
             
           
           
-            <a href='/farmer/'>Farmer</a> > <a href='/farmer/api-overview/'>API Overview</a> > <a href='/farmer/api-overview/resources/'>Resources</a> > App Insights
+            <a href='/farmer/'>Farmer</a> > <a href='/farmer/api-overview/'>API Overview</a> > <a href='/farmer/api-overview/resources/'>Resources</a> > SQL Azure
           
          
           
@@ -671,7 +671,7 @@
           
             <h1>
               
-              App Insights
+              SQL Azure
             </h1>
           
 
@@ -680,10 +680,7 @@
 
 
 <h4 id="overview">Overview</h4>
-<p>The App Insights builder is used to create Application Insights accounts. Use this if you need a standalone AI instance; if you need one for a web app, the web app will create one by default and configure the application settings automatically.</p>
-<ul>
-<li>Application Insights (<code>Microsoft.Insights/components</code>)</li>
-</ul>
+<p>The SQL Azure builder is used to called SQL Azure servers and databases. It supports features such as encryption and firewalls. Every SQL Azure instance you create will automatically create a SecureString parameter for the admin account password.</p>
 <h4 id="builder-keywords">Builder Keywords</h4>
 <table>
 <thead>
@@ -694,8 +691,36 @@
 </thead>
 <tbody>
 <tr>
-<td>name</td>
-<td>Sets the name of the App Insights instance.</td>
+<td>server_name</td>
+<td>Sets the name of the SQL server.</td>
+</tr>
+<tr>
+<td>db_name</td>
+<td>Sets the name of the database.</td>
+</tr>
+<tr>
+<td>sku</td>
+<td>Sets the sku of the database.</td>
+</tr>
+<tr>
+<td>collation</td>
+<td>Sets the collation of the database.</td>
+</tr>
+<tr>
+<td>use_encryption</td>
+<td>Enables encryption of the database.</td>
+</tr>
+<tr>
+<td>add_firewall_rule</td>
+<td>Adds a custom firewall rule given a name, start and end IP address range.</td>
+</tr>
+<tr>
+<td>enable_azure_firewall</td>
+<td>Adds a firewall rule that enables access to other Azure services.</td>
+</tr>
+<tr>
+<td>admin_username</td>
+<td>Sets the admin username of the server.</td>
 </tr>
 </tbody>
 </table>
@@ -709,19 +734,18 @@
 </thead>
 <tbody>
 <tr>
-<td>InstrumentationKey</td>
-<td>Gets the ARM expression path to the instrumentation key of this App Insights instance.</td>
+<td>FullyQualifiedDomainName</td>
+<td>Gets the ARM expression path to the FQDN of this SQL instance.</td>
+</tr>
+<tr>
+<td>ConnectionString</td>
+<td>Gets a literal .NET connection string using the administrator username / password. The password will be evaluated based on the contents of the password parameter supplied to the template at deploy time.</td>
 </tr>
 </tbody>
 </table>
 <h4 id="example">Example</h4>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp"><span style="color:#66d9ef">open</span> Farmer
-<span style="color:#66d9ef">open</span> Farmer.Resources
+<p>TBD</p>
 
-<span style="color:#66d9ef">let</span> ai <span style="color:#f92672">=</span> appInsights <span style="color:#f92672">{</span>
-    name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myAI</span><span style="color:#e6db74">&#34;</span>
-<span style="color:#f92672">}</span>
-</code></pre></div>
 
 <footer class="footline">
 	
@@ -925,26 +949,6 @@
             
                 
                     
-                    
-                
-                
-
-                    
-                    
-                    
-
-                    
-            
-        
-                    
-                        
-            
-            
-                
-                    
-                        
-                        
-                    
                 
                 
 
@@ -992,6 +996,26 @@
             
             
                 
+                    
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
+                        
+            
+            
+                
+                    
+                        
+                        
                     
                 
                 
@@ -1131,10 +1155,10 @@
 	 
 	 
 		
-			<a class="nav nav-prev" href="/farmer/api-overview/resources/web-app/" title="Web App"> <i class="fa fa-chevron-left"></i></a>
+			<a class="nav nav-prev" href="/farmer/api-overview/resources/cosmosdb/" title="Cosmos DB"> <i class="fa fa-chevron-left"></i></a>
 		
 		
-			<a class="nav nav-next" href="/farmer/api-overview/resources/functions/" title="Functions" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
+			<a class="nav nav-next" href="/farmer/api-overview/resources/search/" title="Search" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
 		
 	
     </div>

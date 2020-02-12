@@ -9,7 +9,7 @@
 
     <link rel="icon" href="/farmer/images/favicon.png" type="image/png">
 
-    <title>App Insights :: Farmer</title>
+    <title>ARM Deployment :: Farmer</title>
 
     
     <link href="/farmer/css/nucleus.css?1581518592" rel="stylesheet">
@@ -35,7 +35,7 @@
     </style>
     
   </head>
-  <body class="" data-url="/farmer/api-overview/resources/app-insights/">
+  <body class="" data-url="/farmer/api-overview/resources/arm/">
     <nav id="sidebar" class="">
 
 
@@ -313,7 +313,7 @@
  
   
     
-      <li data-nav-id="/farmer/api-overview/resources/app-insights/" title="App Insights" class="dd-item active">
+      <li data-nav-id="/farmer/api-overview/resources/app-insights/" title="App Insights" class="dd-item ">
         <a href="/farmer/api-overview/resources/app-insights/">
         App Insights
         
@@ -446,7 +446,7 @@
  
   
     
-      <li data-nav-id="/farmer/api-overview/resources/arm/" title="ARM Deployment" class="dd-item ">
+      <li data-nav-id="/farmer/api-overview/resources/arm/" title="ARM Deployment" class="dd-item active">
         <a href="/farmer/api-overview/resources/arm/">
         ARM Deployment
         
@@ -597,7 +597,7 @@
                   
                   
                   <div id="top-github-link">
-                    <a class="github-link" title='Edit this page' href="https://github.com/CompositionalIT/farmer/tree/docs/content/api-overview/resources/app-insights.md" target="blank">
+                    <a class="github-link" title='Edit this page' href="https://github.com/CompositionalIT/farmer/tree/docs/content/api-overview/resources/arm.md" target="blank">
                       <i class="fas fa-code-branch"></i>
                       <span id="top-github-link-text">Edit this page</span>
                     </a>
@@ -632,7 +632,7 @@
             
           
           
-            <a href='/farmer/'>Farmer</a> > <a href='/farmer/api-overview/'>API Overview</a> > <a href='/farmer/api-overview/resources/'>Resources</a> > App Insights
+            <a href='/farmer/'>Farmer</a> > <a href='/farmer/api-overview/'>API Overview</a> > <a href='/farmer/api-overview/resources/'>Resources</a> > ARM Deployment
           
          
           
@@ -671,7 +671,7 @@
           
             <h1>
               
-              App Insights
+              ARM Deployment
             </h1>
           
 
@@ -680,10 +680,7 @@
 
 
 <h4 id="overview">Overview</h4>
-<p>The App Insights builder is used to create Application Insights accounts. Use this if you need a standalone AI instance; if you need one for a web app, the web app will create one by default and configure the application settings automatically.</p>
-<ul>
-<li>Application Insights (<code>Microsoft.Insights/components</code>)</li>
-</ul>
+<p>The ARM deployment builder is always the top-level element of your deployment. It contains the manifest of all Farmer resources that you create.</p>
 <h4 id="builder-keywords">Builder Keywords</h4>
 <table>
 <thead>
@@ -694,33 +691,36 @@
 </thead>
 <tbody>
 <tr>
-<td>name</td>
-<td>Sets the name of the App Insights instance.</td>
+<td>location</td>
+<td>Sets the default location of all resources.</td>
 </tr>
-</tbody>
-</table>
-<h4 id="configuration-members">Configuration Members</h4>
-<table>
-<thead>
 <tr>
-<th>Member</th>
-<th>Purpose</th>
+<td>add_resource</td>
+<td>Adds a resource to the template.</td>
 </tr>
-</thead>
-<tbody>
 <tr>
-<td>InstrumentationKey</td>
-<td>Gets the ARM expression path to the instrumentation key of this App Insights instance.</td>
+<td>add_resources</td>
+<td>Adds a collection of resources to the template.</td>
+</tr>
+<tr>
+<td>output</td>
+<td>Creates an output value that will be returned by the ARM template. Since Farmer does not require variables, and the only parameters supported are secure strings, these will typically be an ARM expressions that are generated at deployment-time, such as the publishing password of a web app or the fully-qualified domain name of a SQL instance etc.</td>
 </tr>
 </tbody>
 </table>
 <h4 id="example">Example</h4>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp"><span style="color:#66d9ef">open</span> Farmer
-<span style="color:#66d9ef">open</span> Farmer.Resources
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp"><span style="color:#66d9ef">let</span> deployment <span style="color:#f92672">=</span>
+    arm <span style="color:#f92672">{</span>
+        <span style="color:#75715e">// All resources will share this location
+</span><span style="color:#75715e"></span>        location Locations.NorthEurope
 
-<span style="color:#66d9ef">let</span> ai <span style="color:#f92672">=</span> appInsights <span style="color:#f92672">{</span>
-    name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myAI</span><span style="color:#e6db74">&#34;</span>
-<span style="color:#f92672">}</span>
+        <span style="color:#75715e">// Assume myStorageAccount and myWebApp have been defined...
+</span><span style="color:#75715e"></span>        add_resource myStorageAccount
+        add_resource myWebApp
+
+        output <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">webAppName</span><span style="color:#e6db74">&#34;</span> myWebApp<span style="color:#f92672">.</span>Name
+        output <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">webAppPassword</span><span style="color:#e6db74">&#34;</span> myWebApp<span style="color:#f92672">.</span>PublishingPassword        
+    <span style="color:#f92672">}</span>
 </code></pre></div>
 
 <footer class="footline">
@@ -925,26 +925,6 @@
             
                 
                     
-                    
-                
-                
-
-                    
-                    
-                    
-
-                    
-            
-        
-                    
-                        
-            
-            
-                
-                    
-                        
-                        
-                    
                 
                 
 
@@ -1052,6 +1032,23 @@
             
         
                     
+                        
+            
+            
+                
+                    
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
             
         
                     
@@ -1059,6 +1056,9 @@
             
             
                 
+                    
+                        
+                        
                     
                 
                 
@@ -1131,10 +1131,10 @@
 	 
 	 
 		
-			<a class="nav nav-prev" href="/farmer/api-overview/resources/web-app/" title="Web App"> <i class="fa fa-chevron-left"></i></a>
+			<a class="nav nav-prev" href="/farmer/api-overview/resources/keyvault/" title="Key Vault"> <i class="fa fa-chevron-left"></i></a>
 		
 		
-			<a class="nav nav-next" href="/farmer/api-overview/resources/functions/" title="Functions" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
+			<a class="nav nav-next" href="/farmer/api-overview/parameters/" title="Parameters and Variables" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
 		
 	
     </div>

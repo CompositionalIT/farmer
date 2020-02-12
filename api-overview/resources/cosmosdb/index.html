@@ -9,7 +9,7 @@
 
     <link rel="icon" href="/farmer/images/favicon.png" type="image/png">
 
-    <title>App Insights :: Farmer</title>
+    <title>Cosmos DB :: Farmer</title>
 
     
     <link href="/farmer/css/nucleus.css?1581518592" rel="stylesheet">
@@ -35,7 +35,7 @@
     </style>
     
   </head>
-  <body class="" data-url="/farmer/api-overview/resources/app-insights/">
+  <body class="" data-url="/farmer/api-overview/resources/cosmosdb/">
     <nav id="sidebar" class="">
 
 
@@ -313,7 +313,7 @@
  
   
     
-      <li data-nav-id="/farmer/api-overview/resources/app-insights/" title="App Insights" class="dd-item active">
+      <li data-nav-id="/farmer/api-overview/resources/app-insights/" title="App Insights" class="dd-item ">
         <a href="/farmer/api-overview/resources/app-insights/">
         App Insights
         
@@ -351,7 +351,7 @@
  
   
     
-      <li data-nav-id="/farmer/api-overview/resources/cosmosdb/" title="Cosmos DB" class="dd-item ">
+      <li data-nav-id="/farmer/api-overview/resources/cosmosdb/" title="Cosmos DB" class="dd-item active">
         <a href="/farmer/api-overview/resources/cosmosdb/">
         Cosmos DB
         
@@ -597,7 +597,7 @@
                   
                   
                   <div id="top-github-link">
-                    <a class="github-link" title='Edit this page' href="https://github.com/CompositionalIT/farmer/tree/docs/content/api-overview/resources/app-insights.md" target="blank">
+                    <a class="github-link" title='Edit this page' href="https://github.com/CompositionalIT/farmer/tree/docs/content/api-overview/resources/cosmosdb.md" target="blank">
                       <i class="fas fa-code-branch"></i>
                       <span id="top-github-link-text">Edit this page</span>
                     </a>
@@ -632,7 +632,7 @@
             
           
           
-            <a href='/farmer/'>Farmer</a> > <a href='/farmer/api-overview/'>API Overview</a> > <a href='/farmer/api-overview/resources/'>Resources</a> > App Insights
+            <a href='/farmer/'>Farmer</a> > <a href='/farmer/api-overview/'>API Overview</a> > <a href='/farmer/api-overview/resources/'>Resources</a> > Cosmos DB
           
          
           
@@ -671,7 +671,7 @@
           
             <h1>
               
-              App Insights
+              Cosmos DB
             </h1>
           
 
@@ -680,11 +680,9 @@
 
 
 <h4 id="overview">Overview</h4>
-<p>The App Insights builder is used to create Application Insights accounts. Use this if you need a standalone AI instance; if you need one for a web app, the web app will create one by default and configure the application settings automatically.</p>
-<ul>
-<li>Application Insights (<code>Microsoft.Insights/components</code>)</li>
-</ul>
-<h4 id="builder-keywords">Builder Keywords</h4>
+<p>The CosmosDb package containers two builders, used to create CosmosDB databases and containers. There is only support document databases (that support so-called &ldquo;SQL&rdquo; queries), with support for Graph, Table and Cassandra data models planned.</p>
+<h4 id="cosmos-db-builder">Cosmos DB Builder</h4>
+<p>The CosmosDB builder abstracts the idea of server and database into one. This simplfication means that at present there is only support for a single database for each Cosmos server that you create.</p>
 <table>
 <thead>
 <tr>
@@ -695,22 +693,55 @@
 <tbody>
 <tr>
 <td>name</td>
-<td>Sets the name of the App Insights instance.</td>
+<td>Sets the name of the database.</td>
+</tr>
+<tr>
+<td>server_name</td>
+<td>Sets the name of the CosmosDB server.</td>
+</tr>
+<tr>
+<td>consistency_policy</td>
+<td>Sets the consistency policy of the database.</td>
+</tr>
+<tr>
+<td>failover_policy</td>
+<td>Sets the failover policy of the database.</td>
+</tr>
+<tr>
+<td>throughput</td>
+<td>Sets the throughput of the server.</td>
+</tr>
+<tr>
+<td>add_containers</td>
+<td>Adds a list of containers to the database.</td>
 </tr>
 </tbody>
 </table>
-<h4 id="configuration-members">Configuration Members</h4>
+<h4 id="cosmos-container-builder">Cosmos Container Builder</h4>
+<p>The container builder allows you to create and configure a specific container that is attached to a cosmos database.</p>
 <table>
 <thead>
 <tr>
-<th>Member</th>
+<th>Keyword</th>
 <th>Purpose</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>InstrumentationKey</td>
-<td>Gets the ARM expression path to the instrumentation key of this App Insights instance.</td>
+<td>name</td>
+<td>Sets the name of the container.</td>
+</tr>
+<tr>
+<td>partition_key</td>
+<td>Sets the partition key of the container.</td>
+</tr>
+<tr>
+<td>add_index</td>
+<td>Adds an index to the container.</td>
+</tr>
+<tr>
+<td>exclude_path</td>
+<td>Excludes a path from the container index.</td>
 </tr>
 </tbody>
 </table>
@@ -718,8 +749,20 @@
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp"><span style="color:#66d9ef">open</span> Farmer
 <span style="color:#66d9ef">open</span> Farmer.Resources
 
-<span style="color:#66d9ef">let</span> ai <span style="color:#f92672">=</span> appInsights <span style="color:#f92672">{</span>
-    name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myAI</span><span style="color:#e6db74">&#34;</span>
+<span style="color:#66d9ef">let</span> myCosmosDb <span style="color:#f92672">=</span> cosmosDb <span style="color:#f92672">{</span>    
+    name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">isaacsappdb</span><span style="color:#e6db74">&#34;</span>
+    server_name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">isaacscosmosdb</span><span style="color:#e6db74">&#34;</span>
+    throughput 400
+    failover_policy NoFailover
+    consistency_policy <span style="color:#f92672">(</span>BoundedStaleness<span style="color:#f92672">(</span>500<span style="color:#f92672">,</span> 1000<span style="color:#f92672">)</span><span style="color:#f92672">)</span>
+    add_containers <span style="color:#f92672">[</span>
+        container <span style="color:#f92672">{</span>
+            name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myContainer</span><span style="color:#e6db74">&#34;</span>
+            partition_key <span style="color:#f92672">[</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">/id</span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">]</span> Hash
+            add_index <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">/path</span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">[</span> Number<span style="color:#f92672">,</span> Hash <span style="color:#f92672">]</span>
+            exclude_path <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">/excluded/*</span><span style="color:#e6db74">&#34;</span>
+        <span style="color:#f92672">}</span>
+    <span style="color:#f92672">]</span>
 <span style="color:#f92672">}</span>
 </code></pre></div>
 
@@ -925,26 +968,6 @@
             
                 
                     
-                    
-                
-                
-
-                    
-                    
-                    
-
-                    
-            
-        
-                    
-                        
-            
-            
-                
-                    
-                        
-                        
-                    
                 
                 
 
@@ -976,6 +999,26 @@
             
             
                 
+                    
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
+                        
+            
+            
+                
+                    
+                        
+                        
                     
                 
                 
@@ -1131,10 +1174,10 @@
 	 
 	 
 		
-			<a class="nav nav-prev" href="/farmer/api-overview/resources/web-app/" title="Web App"> <i class="fa fa-chevron-left"></i></a>
+			<a class="nav nav-prev" href="/farmer/api-overview/resources/functions/" title="Functions"> <i class="fa fa-chevron-left"></i></a>
 		
 		
-			<a class="nav nav-next" href="/farmer/api-overview/resources/functions/" title="Functions" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
+			<a class="nav nav-next" href="/farmer/api-overview/resources/sql/" title="SQL Azure" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
 		
 	
     </div>
