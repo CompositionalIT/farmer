@@ -1,9 +1,18 @@
 baseURL = "https://compositionalit.github.io/farmer/"
 languageCode = "en-gb"
 title = "Farmer"
+author = "Compositional IT"
 theme = "hugo-theme-learn"
 [outputs]
 relativeUrls = true
 home = [ "HTML", "RSS", "JSON"]
 [params]
     themeVariant="green"
+    editURL = "https://github.com/CompositionalIT/farmer/tree/docs/content/"
+    description = "Documentation for Hugo Learn Theme"
+
+[[Languages.en.menu.shortcuts]]
+name = "<i class='fab fa-fw fa-github'></i> GitHub repo"
+identifier = "ds"
+url = "https://github.com/compositionalit/farmer"
+weight = 10
