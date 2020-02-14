@@ -6,10 +6,10 @@ pool:
 
 steps:
 - task: UseDotNet@2
-  displayName: 'Install dotnet 3.0'
+  displayName: 'Install dotnet 3.1'
   inputs:
     packageType: sdk
-    version: 3.0.100
+    version: 3.1.101
     installationPath: $(Agent.ToolsDirectory)/dotnet
 
 - task: DotNetCoreCLI@2
