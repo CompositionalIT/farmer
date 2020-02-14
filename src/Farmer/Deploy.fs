@@ -10,9 +10,10 @@ type AzureCredentials =
     { ClientId : Guid
       ClientSecret : Guid
       TenantId : Guid }
+
 type Outputs = Map<string, string>
 type DeploymentRejectionError =
-    | CantObtainBearerToken of string * string
+    | CantObtainBearerToken of {| Error : string; Error_Description : string |}
     | CantCreateResourceGroup of string
     | InvalidTemplateRejection of string
 type ErrorDetails =
@@ -23,15 +24,16 @@ type ErrorDetails =
 type DeploymentFailureError =
     | CantGetStatus of string
     | ProvisioningFailure of ErrorDetails
-type DeploymentStatus =
-    | Provisioning of string
-    | Provisioned of Outputs
 type DeploymentError =
     | DeploymentRejected of DeploymentRejectionError
     | DeploymentFailed of DeploymentFailureError
-type DeploymentOutput =
+type DeploymentResult =
     { DeploymentName : string
       Result : Result<Outputs, DeploymentError> }
+
+type DeploymentStatus =
+    | Provisioning of string
+    | Provisioned of Outputs
 
 module AzureRest =
     open FsHttp.DslCE
@@ -54,7 +56,7 @@ module AzureRest =
         }
         |> toResult
         |> Result.map getContent<{| access_token:string |}>
-        |> Result.mapError getContent<{| Error:string; Error_description:string |}>
+        |> Result.mapError getContent<{| Error:string; Error_Description:string |}>
     let createResourceGroup accessToken subscriptionId resourceGroup location =
         http {
             PUT (sprintf "https://management.azure.com/subscriptions/%s/resourcegroups/%s?api-version=2019-05-01" subscriptionId resourceGroup)
@@ -113,7 +115,6 @@ module RestDeployment =
     let getDeployNumber =
         let r = Random()
         fun () -> r.Next 10000
-
     type ProgressResult = Result<DeploymentStatus, DeploymentFailureError>
     /// Represents the "raw" result of a deployment, which is result of result. The "top" level result
     /// is the initial stage of deployment. If this succeeds, a sequence of results are provided back
@@ -130,7 +131,7 @@ module RestDeployment =
         let deploymentResult = result {
             let! bearerToken =
                 AzureRest.getBearerToken (string credentials.TenantId) (string credentials.ClientId) (string credentials.ClientSecret)
-                |> Result.mapError(fun error -> CantObtainBearerToken(error.Error, error.Error_description))
+                |> Result.mapError CantObtainBearerToken
                 |> Result.map(fun response -> response.access_token)
 
             do!
@@ -165,7 +166,7 @@ module RestDeployment =
         |> Option.defaultValue (Error (DeploymentFailed (CantGetStatus "Could not get any deployment status.")))
 
     /// Monitors an ARM template with optional progress reports.
-    let reportDeploymentProgress onStatus (deployment: RawDeploymentResult) : DeploymentOutput =
+    let reportDeploymentProgress onStatus (deployment: RawDeploymentResult) : DeploymentResult =
         let output =
             deployment.Result
             |> Result.mapError DeploymentRejected
@@ -181,7 +182,7 @@ module RestDeployment =
         { DeploymentName = deployment.DeploymentName
           Result = output }
 
-/// Executes the supplied Deployment against a resource group using a the Azure REST API.
+/// Executes the supplied Deployment against a resource group using the Azure REST API.
 /// It requires a service principle containing a client id, secret and tenant ID. Use this API for unattended installs e.g. continuous deployment etc. 
 let fullDeploy credentials (subscriptionId:Guid) resourceGroupName deployment =
     let armTemplateJson = deployment.Template |> Writer.toJson
