@@ -699,7 +699,7 @@ module AzureRest =
                 |> Map.map(fun _ v -> v.value)
                 |> Provisioned
                 |> Ok
-            | error ->
+            | error, _ ->
                 error
                 |> string
                 |> JsonConvert.DeserializeObject<ErrorDetails>
