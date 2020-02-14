@@ -64,12 +64,13 @@ module AzureRest =
             body
             json (sprintf """{ "location": "%s", "tags": { "Deployed with Farmer": "" }}""" location)
         } |> toResult
-    let deployTemplate accessToken subscriptionId resourceGroup deployment templateJson =
+    let deployTemplate accessToken subscriptionId resourceGroup parameters deploymentName templateJson =
+        let parameters = parameters |> List.map(fun (k, v) -> k, {| value = v |}) |> Map |> JsonConvert.SerializeObject
         http {
-            PUT (sprintf "https://management.azure.com/subscriptions/%s/resourcegroups/%s/providers/Microsoft.Resources/deployments/%s?api-version=2019-05-01" subscriptionId resourceGroup deployment)
+            PUT (sprintf "https://management.azure.com/subscriptions/%s/resourcegroups/%s/providers/Microsoft.Resources/deployments/%s?api-version=2019-05-01" subscriptionId resourceGroup deploymentName)
             BearerAuth accessToken
             body
-            json (sprintf """{ "properties": { "mode": "Incremental", "template": %s } }""" templateJson)
+            json (sprintf """{ "properties": { "mode": "Incremental", "template": %s, "parameters" : %s } }""" templateJson parameters)
         } |> toResult
 
     open Result
@@ -126,7 +127,7 @@ module RestDeployment =
     /// Deploys a template using the Rest API.
     open Result
 
-    let deployTemplate (credentials:AzureCredentials) subscriptionId (armTemplateJson:string, location:string, resourceGroup:string) : RawDeploymentResult =
+    let deployTemplate (credentials:AzureCredentials) subscriptionId (armTemplateJson:string, parameters : (string * string) list, location:string, resourceGroup:string) : RawDeploymentResult =
         let deploymentName = sprintf "FarmerDeploy%d" (getDeployNumber())
         let deploymentResult = result {
             let! bearerToken =
@@ -141,7 +142,7 @@ module RestDeployment =
 
             do!
                 armTemplateJson
-                |> AzureRest.deployTemplate bearerToken subscriptionId resourceGroup deploymentName
+                |> AzureRest.deployTemplate bearerToken subscriptionId resourceGroup parameters deploymentName
                 |> Result.mapError(fun e -> InvalidTemplateRejection (e.content.ReadAsStringAsync().Result))
                 |> Result.ignore
 
@@ -184,10 +185,10 @@ module RestDeployment =
 
 /// Executes the supplied Deployment against a resource group using the Azure REST API.
 /// It requires a service principle containing a client id, secret and tenant ID. Use this API for unattended installs e.g. continuous deployment etc. 
-let fullDeploy credentials (subscriptionId:Guid) resourceGroupName deployment =
+let fullDeploy credentials (subscriptionId:Guid) resourceGroupName parameters deployment =
     let armTemplateJson = deployment.Template |> Writer.toJson
 
-    (armTemplateJson, deployment.Location.Value, resourceGroupName)
+    (armTemplateJson, parameters, deployment.Location.Value, resourceGroupName)
     |> RestDeployment.deployTemplate credentials (string subscriptionId)
     |> RestDeployment.reportDeploymentProgress (printfn "%s")
 
