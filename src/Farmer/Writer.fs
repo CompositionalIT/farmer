@@ -1,13 +1,13 @@
 module Farmer.Writer
 
+open Farmer.Models
 open Farmer.Resources
 open Newtonsoft.Json
 open System
 open System.IO
+open System.Runtime.InteropServices
 
 module Outputters =
-    open Farmer.Models
-
     let private containerAccess (a:StorageContainerAccess) =
         match a with
         | Private -> "None"
@@ -445,66 +445,52 @@ module Outputters =
             |}
         |}
 
-open Farmer.Models
-let processTemplate (template:ArmTemplate) = {|
-    ``$schema`` = "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#"
-    contentVersion = "1.0.0.0"
-    resources =
-        template.Resources
-        |> List.map(function
-            | AppInsights ai -> Outputters.appInsights ai |> box
-            | StorageAccount s -> Outputters.storageAccount s |> box
-            | ContainerGroup g -> Outputters.containerGroup g |> box
-            | ServerFarm s -> Outputters.serverFarm s |> box
-            | WebApp wa -> Outputters.webApp wa |> box
-            | CosmosAccount cds -> Outputters.cosmosDbServer cds |> box
-            | CosmosSqlDb db -> Outputters.cosmosDbSql db |> box
-            | CosmosContainer c -> Outputters.cosmosDbContainer c |> box
-            | SqlServer sql -> Outputters.sqlAzure sql |> box
-            | Ip address -> Outputters.publicIpAddress address |> box
-            | Vnet vnet -> Outputters.virtualNetwork vnet |> box
-            | Nic nic -> Outputters.networkInterface nic |> box
-            | Vm vm -> Outputters.virtualMachine vm |> box
-            | AzureSearch search -> Outputters.search search |> box
-            | KeyVault vault -> Outputters.keyVault vault |> box
-            | KeyVaultSecret secret -> Outputters.keyVaultSecret secret |> box
-        )
-    parameters =
-        template.Parameters
-        |> List.map(fun (SecureParameter p) -> p, {| ``type`` = "securestring" |})
-        |> Map.ofList        
-    outputs =
-        template.Outputs
-        |> List.map(fun (k, v) ->
-            k, Map [ "type", "string"
-                     "value", v ])
-        |> Map.ofList
-|}
+module TemplateGeneration =
+    let processTemplate (template:ArmTemplate) = {|
+        ``$schema`` = "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#"
+        contentVersion = "1.0.0.0"
+        resources =
+            template.Resources
+            |> List.map(function
+                | AppInsights ai -> Outputters.appInsights ai |> box
+                | StorageAccount s -> Outputters.storageAccount s |> box
+                | ContainerGroup g -> Outputters.containerGroup g |> box
+                | ServerFarm s -> Outputters.serverFarm s |> box
+                | WebApp wa -> Outputters.webApp wa |> box
+                | CosmosAccount cds -> Outputters.cosmosDbServer cds |> box
+                | CosmosSqlDb db -> Outputters.cosmosDbSql db |> box
+                | CosmosContainer c -> Outputters.cosmosDbContainer c |> box
+                | SqlServer sql -> Outputters.sqlAzure sql |> box
+                | Ip address -> Outputters.publicIpAddress address |> box
+                | Vnet vnet -> Outputters.virtualNetwork vnet |> box
+                | Nic nic -> Outputters.networkInterface nic |> box
+                | Vm vm -> Outputters.virtualMachine vm |> box
+                | AzureSearch search -> Outputters.search search |> box
+                | KeyVault vault -> Outputters.keyVault vault |> box
+                | KeyVaultSecret secret -> Outputters.keyVaultSecret secret |> box
+            )
+        parameters =
+            template.Parameters
+            |> List.map(fun (SecureParameter p) -> p, {| ``type`` = "securestring" |})
+            |> Map.ofList        
+        outputs =
+            template.Outputs
+            |> List.map(fun (k, v) ->
+                k, Map [ "type", "string"
+                         "value", v ])
+            |> Map.ofList
+    |}
 
-let serialize data =
-    JsonConvert.SerializeObject(data, Formatting.Indented, JsonSerializerSettings(NullValueHandling = NullValueHandling.Ignore))
+    let serialize data =
+        JsonConvert.SerializeObject(data, Formatting.Indented, JsonSerializerSettings(NullValueHandling = NullValueHandling.Ignore))
 
-let toJson = processTemplate >> serialize
+/// Returns a JSON string representing the supplied ARMTemplate.
+let toJson = TemplateGeneration.processTemplate >> TemplateGeneration.serialize
 
-let toFile filename json =
-    let filename = sprintf "%s.json" filename
+/// Writes the provided JSON to a file based on the supplied template name. The postfix ".json" will automatically be added to the filename.
+let toFile templateName json =
+    let filename = sprintf "%s.json" templateName
     File.WriteAllText(filename, json)
-    filename
-
-open System.Runtime.InteropServices
-
-let private setLinuxExecutePermissions filename =
-    let command = sprintf "chmod +x %s" filename
-    let startInfo = 
-        System.Diagnostics.ProcessStartInfo( 
-            FileName = "/bin/bash",
-            Arguments = "-c \""+ command + "\"",
-            UseShellExecute = false,
-            RedirectStandardOutput = true )
-
-    use proc = new System.Diagnostics.Process(StartInfo = startInfo)
-    proc.Start() |> ignore
-    proc.WaitForExit() |> ignore
     filename
 
 module ParameterFile =
@@ -513,7 +499,7 @@ module ParameterFile =
         let lowerCaseLetters = String [|'a'..'z'|]
         let upperCaseLetters = String [|'A'..'Z'|]
         let digits = String [|'0' .. '9'|]
-        let special = "!£$%^&*()_-+="
+        let special = "!ï¿½$%^&*()_-+="
         let allCharacters = lowerCaseLetters + upperCaseLetters + digits + special
 
         let isValid (s:string) =
@@ -551,47 +537,227 @@ module ParameterFile =
         armTemplate.Parameters
         |> List.map(fun (SecureParameter p) -> p, Passwords.generateConformingPassword 24 armTemplate)
         |> toParameters
-        |> serialize
+        |> TemplateGeneration.serialize
         |> toFile "farmer-deploy-parameters"
 
-let private toAzureCliCmd resourceGroupName (Location location) templateFilename parametersFilename =
-    sprintf """az login && az group create -l %s -n %s && az group deployment create -g %s --template-file %s --parameters @%s"""
-        location
-        resourceGroupName
-        resourceGroupName
-        templateFilename
-        parametersFilename
+module AzureCli =
+    let setLinuxExecutePermissions filename =
+        let command = sprintf "chmod +x %s" filename
+        let startInfo = 
+            System.Diagnostics.ProcessStartInfo( 
+                FileName = "/bin/bash",
+                Arguments = "-c \""+ command + "\"",
+                UseShellExecute = false,
+                RedirectStandardOutput = true )
 
-let (|OperatingSystem|_|) platform () =
-    if RuntimeInformation.IsOSPlatform platform then Some() else None
+        use proc = new System.Diagnostics.Process(StartInfo = startInfo)
+        proc.Start() |> ignore
+        proc.WaitForExit() |> ignore
+        filename
 
-let toScriptFile armTemplateName azureCliCmd =
-    match () with
-    | OperatingSystem OSPlatform.Windows ->
-        let scriptFilename = sprintf "%s.bat" armTemplateName
-        File.WriteAllText(scriptFilename, azureCliCmd)
-        scriptFilename
-    | OperatingSystem OSPlatform.OSX
-    | OperatingSystem OSPlatform.Linux ->
-        let bashHeader = "#!/bin/bash\n"
-        let scriptFilename = sprintf "%s.sh" armTemplateName
-        File.WriteAllText(scriptFilename, bashHeader + azureCliCmd)
-        setLinuxExecutePermissions scriptFilename
-    | _ ->
-        RuntimeInformation.OSDescription 
-        |> sprintf "OSPlatform: %s not supported" 
-        |> System.NotImplementedException 
-        |> raise
+    let toAzureCliCmd resourceGroupName (Location location) templateFilename parametersFilename =
+        sprintf """az login && az group create -l %s -n %s && az group deployment create -g %s --template-file %s --parameters @%s"""
+            location
+            resourceGroupName
+            resourceGroupName
+            templateFilename
+            parametersFilename
 
-let generateDeployScript resourceGroupName (deployment:Deployment) =
-    let templateName = "farmer-deploy"
-    let templateFilename = deployment.Template |> toJson |> toFile templateName
-    let parameterFilename = deployment.Template |> ParameterFile.generateParametersFile
+    let (|OperatingSystem|_|) platform () =
+        if RuntimeInformation.IsOSPlatform platform then Some() else None
 
-    toAzureCliCmd resourceGroupName deployment.Location templateFilename parameterFilename
-    |> toScriptFile templateName
+    let toScriptFile armTemplateName azureCliCmd =
+        match () with
+        | OperatingSystem OSPlatform.Windows ->
+            let scriptFilename = sprintf "%s.bat" armTemplateName
+            File.WriteAllText(scriptFilename, azureCliCmd)
+            scriptFilename
+        | OperatingSystem OSPlatform.OSX
+        | OperatingSystem OSPlatform.Linux ->
+            let bashHeader = "#!/bin/bash\n"
+            let scriptFilename = sprintf "%s.sh" armTemplateName
+            File.WriteAllText(scriptFilename, bashHeader + azureCliCmd)
+            setLinuxExecutePermissions scriptFilename
+        | _ ->
+            RuntimeInformation.OSDescription 
+            |> sprintf "OSPlatform: %s not supported" 
+            |> System.NotImplementedException 
+            |> raise
 
+    let generateDeployScript resourceGroupName (deployment:Deployment) =
+        let templateName = "farmer-deploy"
+        let templateFilename = deployment.Template |> toJson |> toFile templateName
+        let parameterFilename = deployment.Template |> ParameterFile.generateParametersFile
+
+        toAzureCliCmd resourceGroupName deployment.Location templateFilename parameterFilename
+        |> toScriptFile templateName
+
+/// Converts the supplied ARMTemplate to JSON and then writes it out to the provided template name. The postfix ".json" will automatically be added to the filename.
+let quickWrite = toJson >> toFile >> ignore
+
+/// Executes the supplied Deployment against a resource group using a locally-installed Azure CLI.
 let quickDeploy resourceGroupName deployment =
-    generateDeployScript resourceGroupName deployment
+    AzureCli.generateDeployScript resourceGroupName deployment
     |> System.Diagnostics.Process.Start
     |> ignore
+
+/// Represents an Azure service principal which has permissions to
+/// deploy ARM templates on the supplied Subscription ID.
+type AzureCredentials =
+    { ClientId : Guid
+      ClientSecret : Guid
+      TenantId : Guid
+      SubscriptionId : Guid }
+
+module AzureRest =
+    open FsHttp.DslCE
+    
+    type ErrorDetails =
+        { Code : string
+          Message : string
+          Details : {| Code : string
+                       Message : string |} array }
+
+    type DeploymentStatus =
+        | Provisioning of string
+        | ProvisioningFailed of ErrorDetails
+
+    let toResult (response:FsHttp.Domain.Response) =
+        match int response.statusCode with
+        | code when code >= 200 && code < 300 -> Ok response
+        | _ -> Error response
+    let getContent<'T> (response:FsHttp.Domain.Response) =
+        response.content.ReadAsStringAsync().Result
+        |> JsonConvert.DeserializeObject<'T>
+    let getBearerToken tenantId clientId clientSecret =
+        http {
+            POST (sprintf "https://login.microsoftonline.com/%s/oauth2/token" tenantId)
+            body
+            formUrlEncoded
+                [ "grant_type", "client_credentials"
+                  "client_id", clientId
+                  "client_secret", clientSecret
+                  "resource", "https://management.azure.com" ]
+        }
+        |> toResult
+        |> Result.map getContent<{| access_token:string |}>
+        |> Result.mapError getContent<{| Error:string; Error_description:string |}>
+    let createResourceGroup accessToken subscriptionId resourceGroup location =
+        http {
+            PUT (sprintf "https://management.azure.com/subscriptions/%s/resourcegroups/%s?api-version=2019-05-01" subscriptionId resourceGroup)
+            BearerAuth accessToken
+            body
+            json (sprintf """{ "location": "%s", "tags": { "Deployed with Farmer": "" }}""" location)
+        } |> toResult
+    let deployTemplate accessToken subscriptionId resourceGroup deployment templateJson =
+        http {
+            PUT (sprintf "https://management.azure.com/subscriptions/%s/resourcegroups/%s/providers/Microsoft.Resources/deployments/%s?api-version=2019-05-01" subscriptionId resourceGroup deployment)
+            BearerAuth accessToken
+            body
+            json (sprintf """{ "properties": { "mode": "Incremental", "template": %s } }""" templateJson)
+        } |> toResult
+
+    let getDeploymentStatus accessToken subscriptionId resourceGroup deployment =
+        http {
+            GET (sprintf "https://management.azure.com/subscriptions/%s/resourcegroups/%s/providers/Microsoft.Resources/deployments/%s?api-version=2018-05-01" subscriptionId resourceGroup deployment)
+            BearerAuth accessToken
+        }
+        |> toResult
+        |> Result.mapError(fun _ -> "Cannot get deployment details.")
+        |> Result.bind(fun r ->
+            let content =
+                r |>
+                getContent<
+                    {| Properties :
+                        {| ProvisioningState : string
+                           Error : obj |}
+                    |}>
+            match content.Properties.Error with
+            | null ->
+                content.Properties.ProvisioningState
+                |> Provisioning
+            | error ->
+                error
+                |> string
+                |> JsonConvert.DeserializeObject<ErrorDetails>
+                |> ProvisioningFailed
+            |> Ok)
+
+type DeploymentResult =
+    | DeploymentRejected of string
+    | DeploymentFailed of string
+    | DeploymentSucceeded of string
+
+type DeploymentOutput =
+    { DeploymentName : string
+      Result : DeploymentResult }
+
+module RestDeployment =
+    let getDeployNumber =
+        let r = Random()
+        fun () -> r.Next 10000
+
+    /// Represents the "raw" result of a deployment, which is result of result. The "top" level result
+    /// is the initial stage of deployment. If this succeeds, a sequence of results are provided back
+    /// representing the ongoing polling of the deployment.
+    type RawDeploymentResult = {| DeploymentName : string; Result : Result<Result<AzureRest.DeploymentStatus, string> seq, string> |}
+
+    /// Deploys a template using the Rest API.
+    let deployTemplate (credentials:AzureCredentials) (armTemplateJson:string, location:string, resourceGroup:string) : RawDeploymentResult =
+        let deploymentName = sprintf "FarmerDeploy%d" (getDeployNumber())
+        let deploymentResult =    
+            AzureRest.getBearerToken (string credentials.TenantId) (string credentials.ClientId) (string credentials.ClientSecret)
+            |> Result.mapError(fun error -> sprintf "Unable to obtain bearer token! %s - %s" error.Error error.Error_description)
+            |> Result.bind(fun bearer ->
+                AzureRest.createResourceGroup bearer.access_token (string credentials.SubscriptionId) resourceGroup location
+                |> Result.map(fun _ -> bearer)
+                |> Result.mapError(fun _ -> "Unable to create resource group"))
+            |> Result.bind(fun bearer ->
+                armTemplateJson
+                |> AzureRest.deployTemplate bearer.access_token (string credentials.SubscriptionId) resourceGroup deploymentName
+                |> Result.map(fun _ -> bearer)
+                |> Result.mapError(fun e ->
+                    sprintf "Azure rejected the deployment request: %s" (e.content.ReadAsStringAsync().Result)))
+            |> Result.map(fun bearer ->
+                Seq.initInfinite (fun _ ->
+                    let res = AzureRest.getDeploymentStatus bearer.access_token (string credentials.SubscriptionId) resourceGroup deploymentName
+                    Async.Sleep 5000 |> Async.RunSynchronously
+                    res)
+                |> Seq.distinct)
+        {| DeploymentName = deploymentName; Result = deploymentResult |}
+
+    /// Gets the final deployment result once a deployment has started.
+    let getDeploymentResult statuses =
+        statuses
+        |> Seq.choose(function
+        | Ok (AzureRest.Provisioning ("Accepted" | "Running")) -> None
+        | Ok (AzureRest.Provisioning status) -> Some (DeploymentSucceeded status)
+        | Ok (AzureRest.ProvisioningFailed error) -> Some (DeploymentFailed (string error))
+        | Error err -> Some (DeploymentFailed err))
+        |> Seq.tryHead
+        |> function
+        | None -> DeploymentFailed "Could not get any deployment status."
+        | Some res -> res
+
+    /// Monitors an ARM template with optional progress reports.
+    let reportDeploymentProgress onStatus (deployment: RawDeploymentResult) : DeploymentOutput =
+        let output =
+            match deployment.Result with
+            | Error err ->
+                DeploymentRejected err
+            | Ok statuses ->
+                statuses
+                |> Seq.map (fun a -> onStatus a; a)
+                |> getDeploymentResult
+
+        { DeploymentName = deployment.DeploymentName
+          Result = output }
+
+/// Executes the supplied Deployment against a resource group using a the Azure REST API.
+/// It requires a service principle containing a client id, secret and tenant ID. Use this API for unattended installs e.g. continuous deployment etc. 
+let fullDeploy credentials resourceGroupName deployment =
+    let armTemplateJson = deployment.Template |> toJson
+
+    (armTemplateJson, deployment.Location.Value, resourceGroupName)
+    |> RestDeployment.deployTemplate credentials
+    |> RestDeployment.reportDeploymentProgress (printfn "%A")
