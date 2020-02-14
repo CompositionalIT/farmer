@@ -34,4 +34,4 @@ let makeTemplate (environment:string) theLocation storageSku webAppSku =
     }
 
 makeTemplate "dev" NorthEurope Sku.StandardLRS Sku.F1
-|> Writer.quickDeploy "my-resource-group-name"
+|> Deploy.quick "my-resource-group-name"

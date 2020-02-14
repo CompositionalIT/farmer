@@ -293,7 +293,7 @@ module AzureCli =
         |> toScriptFile templateName
 
 /// Executes the supplied Deployment against a resource group using a locally-installed Azure CLI.
-let localDeploy resourceGroupName deployment =
+let quick resourceGroupName deployment =
     AzureCli.generateDeployScript resourceGroupName deployment
     |> System.Diagnostics.Process.Start
     |> ignore

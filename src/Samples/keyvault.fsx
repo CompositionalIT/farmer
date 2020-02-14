@@ -49,8 +49,7 @@ let deployment = arm {
     location NorthEurope
 }
 
-deployment.Template
-|> Writer.toJson
-|> Writer.toFile (__SOURCE_DIRECTORY__ + "\\foo")
+deployment
+|> Writer.quickWrite (__SOURCE_DIRECTORY__ + "\\foo")
 
 
