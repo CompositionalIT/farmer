@@ -36,6 +36,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="Result.fs" />
     <Compile Include="Farmer.fs" />
     <Compile Include="Builders.Helpers.fs" />
     <Compile Include="Builders.Storage.fs" />

@@ -657,21 +657,26 @@ module AzureRest =
             json (sprintf """{ "properties": { "mode": "Incremental", "template": %s } }""" templateJson)
         } |> toResult
 
-    let getDeploymentStatus accessToken subscriptionId resourceGroup deployment =
-        http {
-            GET (sprintf "https://management.azure.com/subscriptions/%s/resourcegroups/%s/providers/Microsoft.Resources/deployments/%s?api-version=2018-05-01" subscriptionId resourceGroup deployment)
-            BearerAuth accessToken
-        }
-        |> toResult
-        |> Result.mapError(fun _ -> "Cannot get deployment details.")
-        |> Result.bind(fun r ->
-            let content =
-                r |>
-                getContent<
-                    {| Properties :
-                        {| ProvisioningState : string
-                           Error : obj |}
-                    |}>
+    open Result
+
+    let getDeploymentStatus accessToken subscriptionId resourceGroup deployment = result {
+        let! deploymentDetails =
+            http {
+                GET (sprintf "https://management.azure.com/subscriptions/%s/resourcegroups/%s/providers/Microsoft.Resources/deployments/%s?api-version=2018-05-01" subscriptionId resourceGroup deployment)
+                BearerAuth accessToken
+            }
+            |> toResult
+            |> Result.mapError(fun _ -> "Cannot get deployment details.")
+
+        let content =
+            deploymentDetails
+            |> getContent<
+                {| Properties :
+                    {| ProvisioningState : string
+                       Error : obj |}
+                |}>
+
+        return
             match content.Properties.Error with
             | null ->
                 content.Properties.ProvisioningState
@@ -681,8 +686,7 @@ module AzureRest =
                 |> string
                 |> JsonConvert.DeserializeObject<ErrorDetails>
                 |> ProvisioningFailed
-            |> Ok)
-
+    }
 type DeploymentResult =
     | DeploymentRejected of string
     | DeploymentFailed of string
@@ -703,28 +707,35 @@ module RestDeployment =
     type RawDeploymentResult = {| DeploymentName : string; Result : Result<Result<AzureRest.DeploymentStatus, string> seq, string> |}
 
     /// Deploys a template using the Rest API.
+    open Result
     let deployTemplate (credentials:AzureCredentials) (armTemplateJson:string, location:string, resourceGroup:string) : RawDeploymentResult =
         let deploymentName = sprintf "FarmerDeploy%d" (getDeployNumber())
-        let deploymentResult =    
-            AzureRest.getBearerToken (string credentials.TenantId) (string credentials.ClientId) (string credentials.ClientSecret)
-            |> Result.mapError(fun error -> sprintf "Unable to obtain bearer token! %s - %s" error.Error error.Error_description)
-            |> Result.bind(fun bearer ->
-                AzureRest.createResourceGroup bearer.access_token (string credentials.SubscriptionId) resourceGroup location
-                |> Result.map(fun _ -> bearer)
-                |> Result.mapError(fun _ -> "Unable to create resource group"))
-            |> Result.bind(fun bearer ->
+        let deploymentResult = result {
+            let! bearerToken =
+                AzureRest.getBearerToken (string credentials.TenantId) (string credentials.ClientId) (string credentials.ClientSecret)
+                |> Result.mapError(fun error -> sprintf "Unable to obtain bearer token! %s - %s" error.Error error.Error_description)
+                |> Result.map(fun response -> response.access_token)
+
+            do!
+                AzureRest.createResourceGroup bearerToken (string credentials.SubscriptionId) resourceGroup location
+                |> Result.mapError(fun _ -> "Unable to create resource group")
+                |> Result.ignore
+
+            do!
                 armTemplateJson
-                |> AzureRest.deployTemplate bearer.access_token (string credentials.SubscriptionId) resourceGroup deploymentName
-                |> Result.map(fun _ -> bearer)
-                |> Result.mapError(fun e ->
-                    sprintf "Azure rejected the deployment request: %s" (e.content.ReadAsStringAsync().Result)))
-            |> Result.map(fun bearer ->
+                |> AzureRest.deployTemplate bearerToken (string credentials.SubscriptionId) resourceGroup deploymentName
+                |> Result.mapError(fun e -> sprintf "Azure rejected the deployment request: %s" (e.content.ReadAsStringAsync().Result))
+                |> Result.ignore
+
+            return
                 Seq.initInfinite (fun _ ->
-                    let res = AzureRest.getDeploymentStatus bearer.access_token (string credentials.SubscriptionId) resourceGroup deploymentName
                     Async.Sleep 5000 |> Async.RunSynchronously
-                    res)
-                |> Seq.distinct)
-        {| DeploymentName = deploymentName; Result = deploymentResult |}
+                    AzureRest.getDeploymentStatus bearerToken (string credentials.SubscriptionId) resourceGroup deploymentName)
+                |> Seq.distinct
+        }
+
+        {| DeploymentName = deploymentName
+           Result = deploymentResult |}
 
     /// Gets the final deployment result once a deployment has started.
     let getDeploymentResult statuses =
