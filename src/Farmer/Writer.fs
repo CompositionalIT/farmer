@@ -593,7 +593,11 @@ module AzureCli =
         |> toScriptFile templateName
 
 /// Converts the supplied ARMTemplate to JSON and then writes it out to the provided template name. The postfix ".json" will automatically be added to the filename.
-let quickWrite = toJson >> toFile >> ignore
+let quickWrite templateName deployment =
+    deployment.Template
+    |> toJson
+    |> toFile templateName
+    |> ignore
 
 /// Executes the supplied Deployment against a resource group using a locally-installed Azure CLI.
 let quickDeploy resourceGroupName deployment =
@@ -606,8 +610,7 @@ let quickDeploy resourceGroupName deployment =
 type AzureCredentials =
     { ClientId : Guid
       ClientSecret : Guid
-      TenantId : Guid
-      SubscriptionId : Guid }
+      TenantId : Guid }
 
 module AzureRest =
     open FsHttp.DslCE
@@ -620,6 +623,7 @@ module AzureRest =
 
     type DeploymentStatus =
         | Provisioning of string
+        | Provisioned of Map<string, string>
         | ProvisioningFailed of ErrorDetails
 
     let toResult (response:FsHttp.Domain.Response) =
@@ -673,14 +677,19 @@ module AzureRest =
             |> getContent<
                 {| Properties :
                     {| ProvisioningState : string
+                       Outputs : Map<string, {| value : string |}>
                        Error : obj |}
                 |}>
 
         return
-            match content.Properties.Error with
-            | null ->
+            match content.Properties.Error, content.Properties.ProvisioningState with
+            | null, ("Accepted" | "Running") ->
                 content.Properties.ProvisioningState
                 |> Provisioning
+            | null, _ ->
+                content.Properties.Outputs
+                |> Map.map(fun _ v -> v.value)
+                |> Provisioned
             | error ->
                 error
                 |> string
@@ -690,7 +699,7 @@ module AzureRest =
 type DeploymentResult =
     | DeploymentRejected of string
     | DeploymentFailed of string
-    | DeploymentSucceeded of string
+    | DeploymentSucceeded of Map<string,string>
 
 type DeploymentOutput =
     { DeploymentName : string
@@ -708,7 +717,7 @@ module RestDeployment =
 
     /// Deploys a template using the Rest API.
     open Result
-    let deployTemplate (credentials:AzureCredentials) (armTemplateJson:string, location:string, resourceGroup:string) : RawDeploymentResult =
+    let deployTemplate (credentials:AzureCredentials) subscriptionId (armTemplateJson:string, location:string, resourceGroup:string) : RawDeploymentResult =
         let deploymentName = sprintf "FarmerDeploy%d" (getDeployNumber())
         let deploymentResult = result {
             let! bearerToken =
@@ -717,20 +726,20 @@ module RestDeployment =
                 |> Result.map(fun response -> response.access_token)
 
             do!
-                AzureRest.createResourceGroup bearerToken (string credentials.SubscriptionId) resourceGroup location
+                AzureRest.createResourceGroup bearerToken subscriptionId resourceGroup location
                 |> Result.mapError(fun _ -> "Unable to create resource group")
                 |> Result.ignore
 
             do!
                 armTemplateJson
-                |> AzureRest.deployTemplate bearerToken (string credentials.SubscriptionId) resourceGroup deploymentName
+                |> AzureRest.deployTemplate bearerToken subscriptionId resourceGroup deploymentName
                 |> Result.mapError(fun e -> sprintf "Azure rejected the deployment request: %s" (e.content.ReadAsStringAsync().Result))
                 |> Result.ignore
 
             return
                 Seq.initInfinite (fun _ ->
                     Async.Sleep 5000 |> Async.RunSynchronously
-                    AzureRest.getDeploymentStatus bearerToken (string credentials.SubscriptionId) resourceGroup deploymentName)
+                    AzureRest.getDeploymentStatus bearerToken subscriptionId resourceGroup deploymentName)
                 |> Seq.distinct
         }
 
@@ -741,14 +750,14 @@ module RestDeployment =
     let getDeploymentResult statuses =
         statuses
         |> Seq.choose(function
-        | Ok (AzureRest.Provisioning ("Accepted" | "Running")) -> None
-        | Ok (AzureRest.Provisioning status) -> Some (DeploymentSucceeded status)
-        | Ok (AzureRest.ProvisioningFailed error) -> Some (DeploymentFailed (string error))
-        | Error err -> Some (DeploymentFailed err))
+            | Ok (AzureRest.Provisioning _) -> None
+            | Ok (AzureRest.Provisioned outputs) -> Some (DeploymentSucceeded outputs)
+            | Ok (AzureRest.ProvisioningFailed error) -> Some (DeploymentFailed (string error))
+            | Error err -> Some (DeploymentFailed err))
         |> Seq.tryHead
         |> function
-        | None -> DeploymentFailed "Could not get any deployment status."
-        | Some res -> res
+            | None -> DeploymentFailed "Could not get any deployment status."
+            | Some res -> res
 
     /// Monitors an ARM template with optional progress reports.
     let reportDeploymentProgress onStatus (deployment: RawDeploymentResult) : DeploymentOutput =
@@ -766,9 +775,9 @@ module RestDeployment =
 
 /// Executes the supplied Deployment against a resource group using a the Azure REST API.
 /// It requires a service principle containing a client id, secret and tenant ID. Use this API for unattended installs e.g. continuous deployment etc. 
-let fullDeploy credentials resourceGroupName deployment =
+let fullDeploy credentials (subscriptionId:Guid) resourceGroupName deployment =
     let armTemplateJson = deployment.Template |> toJson
 
     (armTemplateJson, deployment.Location.Value, resourceGroupName)
-    |> RestDeployment.deployTemplate credentials
+    |> RestDeployment.deployTemplate credentials (string subscriptionId)
     |> RestDeployment.reportDeploymentProgress (printfn "%A")
