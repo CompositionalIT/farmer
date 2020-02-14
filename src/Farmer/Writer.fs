@@ -611,21 +611,28 @@ type AzureCredentials =
     { ClientId : Guid
       ClientSecret : Guid
       TenantId : Guid }
+type Outputs = Map<string, string>
+type DeploymentRejectionError =
+    | CantObtainBearerToken of string * string
+    | CantCreateResourceGroup of string
+    | InvalidTemplateRejection of string
+type ErrorDetails =
+    { Code : string
+      Message : string
+      Details : {| Code : string
+                   Message : string |} array }
+type DeploymentFailureError =
+    | CantGetStatus of string
+    | ProvisioningFailure of ErrorDetails
+type DeploymentStatus =
+    | Provisioning of string
+    | Provisioned of Outputs
+type DeploymentError =
+    | DeploymentRejected of DeploymentRejectionError
+    | DeploymentFailed of DeploymentFailureError
 
 module AzureRest =
     open FsHttp.DslCE
-    
-    type ErrorDetails =
-        { Code : string
-          Message : string
-          Details : {| Code : string
-                       Message : string |} array }
-
-    type DeploymentStatus =
-        | Provisioning of string
-        | Provisioned of Map<string, string>
-        | ProvisioningFailed of ErrorDetails
-
     let toResult (response:FsHttp.Domain.Response) =
         match int response.statusCode with
         | code when code >= 200 && code < 300 -> Ok response
@@ -670,7 +677,7 @@ module AzureRest =
                 BearerAuth accessToken
             }
             |> toResult
-            |> Result.mapError(fun _ -> "Cannot get deployment details.")
+            |> Result.mapError(fun x -> CantGetStatus (x.content.ReadAsStringAsync().Result))
 
         let content =
             deploymentDetails
@@ -681,59 +688,62 @@ module AzureRest =
                        Error : obj |}
                 |}>
 
-        return
+        return!
             match content.Properties.Error, content.Properties.ProvisioningState with
             | null, ("Accepted" | "Running") ->
                 content.Properties.ProvisioningState
                 |> Provisioning
+                |> Ok
             | null, _ ->
                 content.Properties.Outputs
                 |> Map.map(fun _ v -> v.value)
                 |> Provisioned
+                |> Ok
             | error ->
                 error
                 |> string
                 |> JsonConvert.DeserializeObject<ErrorDetails>
-                |> ProvisioningFailed
+                |> ProvisioningFailure
+                |> Error
     }
-type DeploymentResult =
-    | DeploymentRejected of string
-    | DeploymentFailed of string
-    | DeploymentSucceeded of Map<string,string>
 
 type DeploymentOutput =
     { DeploymentName : string
-      Result : DeploymentResult }
+      Result : Result<Outputs, DeploymentError> }
 
 module RestDeployment =
     let getDeployNumber =
         let r = Random()
         fun () -> r.Next 10000
 
+    type ProgressResult = Result<DeploymentStatus, DeploymentFailureError>
     /// Represents the "raw" result of a deployment, which is result of result. The "top" level result
     /// is the initial stage of deployment. If this succeeds, a sequence of results are provided back
     /// representing the ongoing polling of the deployment.
-    type RawDeploymentResult = {| DeploymentName : string; Result : Result<Result<AzureRest.DeploymentStatus, string> seq, string> |}
+    type RawDeploymentResult =
+        {| DeploymentName : string
+           Result : Result<ProgressResult seq, DeploymentRejectionError> |}
 
     /// Deploys a template using the Rest API.
     open Result
+
     let deployTemplate (credentials:AzureCredentials) subscriptionId (armTemplateJson:string, location:string, resourceGroup:string) : RawDeploymentResult =
         let deploymentName = sprintf "FarmerDeploy%d" (getDeployNumber())
         let deploymentResult = result {
             let! bearerToken =
                 AzureRest.getBearerToken (string credentials.TenantId) (string credentials.ClientId) (string credentials.ClientSecret)
-                |> Result.mapError(fun error -> sprintf "Unable to obtain bearer token! %s - %s" error.Error error.Error_description)
+                |> Result.mapError(fun error -> CantObtainBearerToken(error.Error, error.Error_description))
                 |> Result.map(fun response -> response.access_token)
 
             do!
                 AzureRest.createResourceGroup bearerToken subscriptionId resourceGroup location
-                |> Result.mapError(fun _ -> "Unable to create resource group")
+                |> Result.mapError(fun response -> CantCreateResourceGroup (response.content.ReadAsStringAsync().Result))
                 |> Result.ignore
 
             do!
                 armTemplateJson
                 |> AzureRest.deployTemplate bearerToken subscriptionId resourceGroup deploymentName
-                |> Result.mapError(fun e -> sprintf "Azure rejected the deployment request: %s" (e.content.ReadAsStringAsync().Result))
+                |> Result.mapError(fun e -> InvalidTemplateRejection (e.content.ReadAsStringAsync().Result))
                 |> Result.ignore
 
             return
@@ -750,25 +760,25 @@ module RestDeployment =
     let getDeploymentResult statuses =
         statuses
         |> Seq.choose(function
-            | Ok (AzureRest.Provisioning _) -> None
-            | Ok (AzureRest.Provisioned outputs) -> Some (DeploymentSucceeded outputs)
-            | Ok (AzureRest.ProvisioningFailed error) -> Some (DeploymentFailed (string error))
-            | Error err -> Some (DeploymentFailed err))
+            | Ok (Provisioning _) -> None
+            | Ok (Provisioned outputs) -> Some (Ok outputs)
+            | Error error -> Some (Error(DeploymentFailed error)))
         |> Seq.tryHead
-        |> function
-            | None -> DeploymentFailed "Could not get any deployment status."
-            | Some res -> res
+        |> Option.defaultValue (Error (DeploymentFailed (CantGetStatus "Could not get any deployment status.")))
 
     /// Monitors an ARM template with optional progress reports.
     let reportDeploymentProgress onStatus (deployment: RawDeploymentResult) : DeploymentOutput =
         let output =
-            match deployment.Result with
-            | Error err ->
-                DeploymentRejected err
-            | Ok statuses ->
+            deployment.Result
+            |> Result.mapError DeploymentRejected
+            |> Result.bind(fun statuses ->
                 statuses
-                |> Seq.map (fun a -> onStatus a; a)
-                |> getDeploymentResult
+                |> Seq.map (fun status ->
+                    match status with
+                    | Ok (Provisioning s) -> onStatus s
+                    | _ -> ()
+                    status)
+                |> getDeploymentResult)
 
         { DeploymentName = deployment.DeploymentName
           Result = output }
