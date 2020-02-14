@@ -49,5 +49,6 @@
     <Compile Include="Builders.ContainerGroups.fs" />
     <Compile Include="Builders.Arm.fs" />
     <Compile Include="Writer.fs" />
+    <Compile Include="Deploy.fs" />
   </ItemGroup>
 </Project>
