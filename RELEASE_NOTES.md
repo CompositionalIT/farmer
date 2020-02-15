@@ -1,5 +1,11 @@
 Release Notes
 =============
+## 0.4.0
+* Upgrade to netcore3.1
+* Support for REST API deployment using SPI credentials
+* Refactor code to simplify and separate writing and deployment
+* Fix a couple of small bugs with overloads of keywords in builders
+
 ## 0.3.0
 * Quick deploy support for Linux and Mac
 * Automatic password generation for quick deploy
