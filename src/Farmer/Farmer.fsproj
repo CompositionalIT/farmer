@@ -31,10 +31,12 @@
 
   <ItemGroup>
     <PackageReference Include="FSharp.Core" Version="4.7.0" />
+    <PackageReference Include="Schlenkr.FsHttp" Version="2.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="Result.fs" />
     <Compile Include="Farmer.fs" />
     <Compile Include="Builders.Helpers.fs" />
     <Compile Include="Builders.Storage.fs" />
@@ -47,5 +49,6 @@
     <Compile Include="Builders.ContainerGroups.fs" />
     <Compile Include="Builders.Arm.fs" />
     <Compile Include="Writer.fs" />
+    <Compile Include="Deploy.fs" />
   </ItemGroup>
 </Project>

@@ -1,13 +1,12 @@
 module Farmer.Writer
 
+open Farmer.Models
 open Farmer.Resources
 open Newtonsoft.Json
 open System
 open System.IO
 
 module Outputters =
-    open Farmer.Models
-
     let private containerAccess (a:StorageContainerAccess) =
         match a with
         | Private -> "None"
@@ -445,153 +444,57 @@ module Outputters =
             |}
         |}
 
-open Farmer.Models
-let processTemplate (template:ArmTemplate) = {|
-    ``$schema`` = "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#"
-    contentVersion = "1.0.0.0"
-    resources =
-        template.Resources
-        |> List.map(function
-            | AppInsights ai -> Outputters.appInsights ai |> box
-            | StorageAccount s -> Outputters.storageAccount s |> box
-            | ContainerGroup g -> Outputters.containerGroup g |> box
-            | ServerFarm s -> Outputters.serverFarm s |> box
-            | WebApp wa -> Outputters.webApp wa |> box
-            | CosmosAccount cds -> Outputters.cosmosDbServer cds |> box
-            | CosmosSqlDb db -> Outputters.cosmosDbSql db |> box
-            | CosmosContainer c -> Outputters.cosmosDbContainer c |> box
-            | SqlServer sql -> Outputters.sqlAzure sql |> box
-            | Ip address -> Outputters.publicIpAddress address |> box
-            | Vnet vnet -> Outputters.virtualNetwork vnet |> box
-            | Nic nic -> Outputters.networkInterface nic |> box
-            | Vm vm -> Outputters.virtualMachine vm |> box
-            | AzureSearch search -> Outputters.search search |> box
-            | KeyVault vault -> Outputters.keyVault vault |> box
-            | KeyVaultSecret secret -> Outputters.keyVaultSecret secret |> box
-        )
-    parameters =
-        template.Parameters
-        |> List.map(fun (SecureParameter p) -> p, {| ``type`` = "securestring" |})
-        |> Map.ofList        
-    outputs =
-        template.Outputs
-        |> List.map(fun (k, v) ->
-            k, Map [ "type", "string"
-                     "value", v ])
-        |> Map.ofList
-|}
+module TemplateGeneration =
+    let processTemplate (template:ArmTemplate) = {|
+        ``$schema`` = "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#"
+        contentVersion = "1.0.0.0"
+        resources =
+            template.Resources
+            |> List.map(function
+                | AppInsights ai -> Outputters.appInsights ai |> box
+                | StorageAccount s -> Outputters.storageAccount s |> box
+                | ContainerGroup g -> Outputters.containerGroup g |> box
+                | ServerFarm s -> Outputters.serverFarm s |> box
+                | WebApp wa -> Outputters.webApp wa |> box
+                | CosmosAccount cds -> Outputters.cosmosDbServer cds |> box
+                | CosmosSqlDb db -> Outputters.cosmosDbSql db |> box
+                | CosmosContainer c -> Outputters.cosmosDbContainer c |> box
+                | SqlServer sql -> Outputters.sqlAzure sql |> box
+                | Ip address -> Outputters.publicIpAddress address |> box
+                | Vnet vnet -> Outputters.virtualNetwork vnet |> box
+                | Nic nic -> Outputters.networkInterface nic |> box
+                | Vm vm -> Outputters.virtualMachine vm |> box
+                | AzureSearch search -> Outputters.search search |> box
+                | KeyVault vault -> Outputters.keyVault vault |> box
+                | KeyVaultSecret secret -> Outputters.keyVaultSecret secret |> box
+            )
+        parameters =
+            template.Parameters
+            |> List.map(fun (SecureParameter p) -> p, {| ``type`` = "securestring" |})
+            |> Map.ofList        
+        outputs =
+            template.Outputs
+            |> List.map(fun (k, v) ->
+                k, Map [ "type", "string"
+                         "value", v ])
+            |> Map.ofList
+    |}
 
-let serialize data =
-    JsonConvert.SerializeObject(data, Formatting.Indented, JsonSerializerSettings(NullValueHandling = NullValueHandling.Ignore))
+    let serialize data =
+        JsonConvert.SerializeObject(data, Formatting.Indented, JsonSerializerSettings(NullValueHandling = NullValueHandling.Ignore))
 
-let toJson = processTemplate >> serialize
+/// Returns a JSON string representing the supplied ARMTemplate.
+let toJson = TemplateGeneration.processTemplate >> TemplateGeneration.serialize
 
-let toFile filename json =
-    let filename = sprintf "%s.json" filename
+/// Writes the provided JSON to a file based on the supplied template name. The postfix ".json" will automatically be added to the filename.
+let toFile templateName json =
+    let filename = sprintf "%s.json" templateName
     File.WriteAllText(filename, json)
     filename
 
-open System.Runtime.InteropServices
-
-let private setLinuxExecutePermissions filename =
-    let command = sprintf "chmod +x %s" filename
-    let startInfo = 
-        System.Diagnostics.ProcessStartInfo( 
-            FileName = "/bin/bash",
-            Arguments = "-c \""+ command + "\"",
-            UseShellExecute = false,
-            RedirectStandardOutput = true )
-
-    use proc = new System.Diagnostics.Process(StartInfo = startInfo)
-    proc.Start() |> ignore
-    proc.WaitForExit() |> ignore
-    filename
-
-module ParameterFile =
-    module Passwords =
-        open System
-        let lowerCaseLetters = String [|'a'..'z'|]
-        let upperCaseLetters = String [|'A'..'Z'|]
-        let digits = String [|'0' .. '9'|]
-        let special = "!£$%^&*()_-+="
-        let allCharacters = lowerCaseLetters + upperCaseLetters + digits + special
-
-        let isValid (s:string) =
-            let isInString (src:string) = s |> Seq.exists (string >> src.Contains)
-            isInString lowerCaseLetters && isInString upperCaseLetters && isInString digits && isInString special
-            
-        let generatePassword randomNumber length =
-            Seq.init length (fun _ -> allCharacters.[randomNumber allCharacters.Length])
-            |> Seq.toArray
-            |> String
-
-        /// Creates a password that is known to conform to lower, upper and numeric constraints.
-        let generateConformingPassword length template =
-            let rnd = Random (template.GetHashCode())
-
-            Seq.initInfinite (fun _ -> generatePassword rnd.Next length)
-            |> Seq.take 100
-            |> Seq.filter isValid
-            |> Seq.tryHead
-            |> function
-            | None -> failwith "Unable to generate a valid password that meet the requested requirements!"
-            | Some password -> password
-
-    let toParameters parameters =
-        {| ``$schema`` = "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#"
-           contentVersion = "1.0.0.0"
-           parameters =
-                parameters
-                |> List.map(fun (name, value) -> name, {| value = value |})
-                |> Map.ofList
-        |}     
-
-       
-    let generateParametersFile (armTemplate:ArmTemplate) =
-        armTemplate.Parameters
-        |> List.map(fun (SecureParameter p) -> p, Passwords.generateConformingPassword 24 armTemplate)
-        |> toParameters
-        |> serialize
-        |> toFile "farmer-deploy-parameters"
-
-let private toAzureCliCmd resourceGroupName (Location location) templateFilename parametersFilename =
-    sprintf """az login && az group create -l %s -n %s && az group deployment create -g %s --template-file %s --parameters @%s"""
-        location
-        resourceGroupName
-        resourceGroupName
-        templateFilename
-        parametersFilename
-
-let (|OperatingSystem|_|) platform () =
-    if RuntimeInformation.IsOSPlatform platform then Some() else None
-
-let toScriptFile armTemplateName azureCliCmd =
-    match () with
-    | OperatingSystem OSPlatform.Windows ->
-        let scriptFilename = sprintf "%s.bat" armTemplateName
-        File.WriteAllText(scriptFilename, azureCliCmd)
-        scriptFilename
-    | OperatingSystem OSPlatform.OSX
-    | OperatingSystem OSPlatform.Linux ->
-        let bashHeader = "#!/bin/bash\n"
-        let scriptFilename = sprintf "%s.sh" armTemplateName
-        File.WriteAllText(scriptFilename, bashHeader + azureCliCmd)
-        setLinuxExecutePermissions scriptFilename
-    | _ ->
-        RuntimeInformation.OSDescription 
-        |> sprintf "OSPlatform: %s not supported" 
-        |> System.NotImplementedException 
-        |> raise
-
-let generateDeployScript resourceGroupName (deployment:Deployment) =
-    let templateName = "farmer-deploy"
-    let templateFilename = deployment.Template |> toJson |> toFile templateName
-    let parameterFilename = deployment.Template |> ParameterFile.generateParametersFile
-
-    toAzureCliCmd resourceGroupName deployment.Location templateFilename parameterFilename
-    |> toScriptFile templateName
-
-let quickDeploy resourceGroupName deployment =
-    generateDeployScript resourceGroupName deployment
-    |> System.Diagnostics.Process.Start
+/// Converts the supplied ARMTemplate to JSON and then writes it out to the provided template name. The postfix ".json" will automatically be added to the filename.
+let quickWrite templateName deployment =
+    deployment.Template
+    |> toJson
+    |> toFile templateName
     |> ignore

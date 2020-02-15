@@ -17,4 +17,4 @@ let outputFilename =
 
 // Or deploy it directly to Azure here... (required Azure CLI installed!)
 deployment
-|> Writer.quickDeploy "my-resource-group"
+|> Deploy.quick "my-resource-group"

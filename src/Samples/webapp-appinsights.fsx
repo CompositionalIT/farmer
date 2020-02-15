@@ -15,4 +15,4 @@ let template =
     }
 
 template
-|> Writer.quickDeploy "my-resource-group-name"
+|> Deploy.quick "my-resource-group-name"
