@@ -18,7 +18,7 @@
     <PackageId>Farmer</PackageId>
     <PackageTags>azure;resource-manager;template;dsl;fsharp;infrastructure-as-code</PackageTags>
     <PackageReleaseNotes>https://raw.githubusercontent.com/CompositionalIT/farmer/master/RELEASE_NOTES.md</PackageReleaseNotes>
-    <PackageProjectUrl>https://github.com/CompositionalIT/farmer</PackageProjectUrl>
+    <PackageProjectUrl>https://compositionalit.github.io/farmer</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <RepositoryType>git</RepositoryType>

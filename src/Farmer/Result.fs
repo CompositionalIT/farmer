@@ -40,4 +40,4 @@ type ResultBuilder() =
     member __.For(sequence:seq<_>, body) =
         __.Using(sequence.GetEnumerator(), fun enum -> __.While(enum.MoveNext, __.Delay(fun () -> body enum.Current)))
 
-let result = new ResultBuilder()
+let result = ResultBuilder()

@@ -44,73 +44,79 @@ module AzureRest =
     let getContent<'T> (response:FsHttp.Domain.Response) =
         response.content.ReadAsStringAsync().Result
         |> JsonConvert.DeserializeObject<'T>
-    let getBearerToken tenantId clientId clientSecret =
-        http {
-            POST (sprintf "https://login.microsoftonline.com/%s/oauth2/token" tenantId)
-            body
-            formUrlEncoded
-                [ "grant_type", "client_credentials"
-                  "client_id", clientId
-                  "client_secret", clientSecret
-                  "resource", "https://management.azure.com" ]
-        }
-        |> toResult
-        |> Result.map getContent<{| access_token:string |}>
-        |> Result.mapError getContent<{| Error:string; Error_Description:string |}>
-    let createResourceGroup accessToken subscriptionId resourceGroup location =
-        http {
-            PUT (sprintf "https://management.azure.com/subscriptions/%s/resourcegroups/%s?api-version=2019-05-01" subscriptionId resourceGroup)
-            BearerAuth accessToken
-            body
-            json (sprintf """{ "location": "%s", "tags": { "Deployed with Farmer": "" }}""" location)
-        } |> toResult
-    let deployTemplate accessToken subscriptionId resourceGroup parameters deploymentName templateJson =
-        let parameters = parameters |> List.map(fun (k, v) -> k, {| value = v |}) |> Map |> JsonConvert.SerializeObject
-        http {
-            PUT (sprintf "https://management.azure.com/subscriptions/%s/resourcegroups/%s/providers/Microsoft.Resources/deployments/%s?api-version=2019-05-01" subscriptionId resourceGroup deploymentName)
-            BearerAuth accessToken
-            body
-            json (sprintf """{ "properties": { "mode": "Incremental", "template": %s, "parameters" : %s } }""" templateJson parameters)
-        } |> toResult
-
-    open Result
-
-    let getDeploymentStatus accessToken subscriptionId resourceGroup deployment = result {
-        let! deploymentDetails =
+    let private defaultTimeout = TimeSpan.FromSeconds 120.
+    type TemplateDeployer(accessToken:string, subscriptionId, resourceGroup) =
+        static member Create(tenantId:Guid, clientId:Guid, clientSecret:Guid, subscriptionId:Guid, resourceGroup) =
             http {
-                GET (sprintf "https://management.azure.com/subscriptions/%s/resourcegroups/%s/providers/Microsoft.Resources/deployments/%s?api-version=2018-05-01" subscriptionId resourceGroup deployment)
-                BearerAuth accessToken
+                POST (sprintf "https://login.microsoftonline.com/%O/oauth2/token" tenantId)
+                timeout defaultTimeout
+                body
+                formUrlEncoded
+                    [ "grant_type", "client_credentials"
+                      "client_id", string clientId
+                      "client_secret", string clientSecret
+                      "resource", "https://management.azure.com" ]
             }
             |> toResult
-            |> Result.mapError(fun x -> CantGetStatus (x.content.ReadAsStringAsync().Result))
+            |> Result.map (fun response ->
+                let bearer = response |> getContent<{| access_token:string |}>
+                TemplateDeployer(bearer.access_token, subscriptionId, resourceGroup))
+            |> Result.mapError getContent<{| Error:string; Error_Description:string |}>
+        member _.CreateResourceGroup location =
+            http {
+                PUT (sprintf "https://management.azure.com/subscriptions/%O/resourcegroups/%s?api-version=2019-05-01" subscriptionId resourceGroup)
+                timeout defaultTimeout
+                BearerAuth accessToken
+                body
+                json (sprintf """{ "location": "%s", "tags": { "Deployed with Farmer": "" }}""" location)
+            } |> toResult
+        member _.DeployTemplate parameters deploymentName templateJson =
+            let parameters = parameters |> List.map(fun (k, v) -> k, {| value = v |}) |> Map |> JsonConvert.SerializeObject
+            http {
+                PUT (sprintf "https://management.azure.com/subscriptions/%O/resourcegroups/%s/providers/Microsoft.Resources/deployments/%s?api-version=2019-05-01" subscriptionId resourceGroup deploymentName)
+                timeout defaultTimeout
+                BearerAuth accessToken
+                body
+                json (sprintf """{ "properties": { "mode": "Incremental", "template": %s, "parameters" : %s } }""" templateJson parameters)
+            } |> toResult
 
-        let content =
-            deploymentDetails
-            |> getContent<
-                {| Properties :
-                    {| ProvisioningState : string
-                       Outputs : Map<string, {| value : string |}>
-                       Error : obj |}
-                |}>
+        member _.GetDeploymentStatus deploymentName = Result.result {
+            let! deploymentDetails =
+                http {
+                    GET (sprintf "https://management.azure.com/subscriptions/%O/resourcegroups/%s/providers/Microsoft.Resources/deployments/%s?api-version=2018-05-01" subscriptionId resourceGroup deploymentName)
+                    timeout defaultTimeout
+                    BearerAuth accessToken
+                }
+                |> toResult
+                |> Result.mapError(fun x -> CantGetStatus (x.content.ReadAsStringAsync().Result))
 
-        return!
-            match content.Properties.Error, content.Properties.ProvisioningState with
-            | null, ("Accepted" | "Running") ->
-                content.Properties.ProvisioningState
-                |> Provisioning
-                |> Ok
-            | null, _ ->
-                content.Properties.Outputs
-                |> Map.map(fun _ v -> v.value)
-                |> Provisioned
-                |> Ok
-            | error, _ ->
-                error
-                |> string
-                |> JsonConvert.DeserializeObject<ErrorDetails>
-                |> ProvisioningFailure
-                |> Error
-    }
+            let content =
+                deploymentDetails
+                |> getContent<
+                    {| Properties :
+                        {| ProvisioningState : string
+                           Outputs : Map<string, {| value : string |}>
+                           Error : obj |}
+                    |}>
+
+            return!
+                match content.Properties.Error, content.Properties.ProvisioningState with
+                | null, ("Accepted" | "Running") ->
+                    content.Properties.ProvisioningState
+                    |> Provisioning
+                    |> Ok
+                | null, _ ->
+                    content.Properties.Outputs
+                    |> Map.map(fun _ v -> v.value)
+                    |> Provisioned
+                    |> Ok
+                | error, _ ->
+                    error
+                    |> string
+                    |> JsonConvert.DeserializeObject<ErrorDetails>
+                    |> ProvisioningFailure
+                    |> Error
+        }
 
 module RestDeployment =
     let getDeployNumber =
@@ -125,31 +131,28 @@ module RestDeployment =
            Result : Result<ProgressResult seq, DeploymentRejectionError> |}
 
     /// Deploys a template using the Rest API.
-    open Result
-
     let deployTemplate (credentials:AzureCredentials) subscriptionId (armTemplateJson:string, parameters : (string * string) list, location:string, resourceGroup:string) : RawDeploymentResult =
         let deploymentName = sprintf "FarmerDeploy%d" (getDeployNumber())
-        let deploymentResult = result {
-            let! bearerToken =
-                AzureRest.getBearerToken (string credentials.TenantId) (string credentials.ClientId) (string credentials.ClientSecret)
+        let deploymentResult = Result.result {
+            let! armDeploy =
+                AzureRest.TemplateDeployer.Create(credentials.TenantId, credentials.ClientId, credentials.ClientSecret, subscriptionId, resourceGroup)
                 |> Result.mapError CantObtainBearerToken
-                |> Result.map(fun response -> response.access_token)
 
             do!
-                AzureRest.createResourceGroup bearerToken subscriptionId resourceGroup location
+                armDeploy.CreateResourceGroup location
                 |> Result.mapError(fun response -> CantCreateResourceGroup (response.content.ReadAsStringAsync().Result))
                 |> Result.ignore
 
             do!
                 armTemplateJson
-                |> AzureRest.deployTemplate bearerToken subscriptionId resourceGroup parameters deploymentName
+                |> armDeploy.DeployTemplate parameters deploymentName
                 |> Result.mapError(fun e -> InvalidTemplateRejection (e.content.ReadAsStringAsync().Result))
                 |> Result.ignore
 
             return
                 Seq.initInfinite (fun _ ->
                     Async.Sleep 5000 |> Async.RunSynchronously
-                    AzureRest.getDeploymentStatus bearerToken subscriptionId resourceGroup deploymentName)
+                    armDeploy.GetDeploymentStatus deploymentName)
                 |> Seq.distinct
         }
 
@@ -189,7 +192,7 @@ let fullDeploy credentials (subscriptionId:Guid) resourceGroupName parameters de
     let armTemplateJson = deployment.Template |> Writer.toJson
 
     (armTemplateJson, parameters, deployment.Location.Value, resourceGroupName)
-    |> RestDeployment.deployTemplate credentials (string subscriptionId)
+    |> RestDeployment.deployTemplate credentials subscriptionId
     |> RestDeployment.reportDeploymentProgress (printfn "%s")
 
 module ParameterFile =
