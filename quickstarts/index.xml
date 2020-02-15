@@ -20,7 +20,7 @@
       <description>Introduction In this exercise, you&amp;rsquo;ll:
  create a web application with a fully-configured Application Insights instance create an ARM deployment object and assign the web app to it generate an ARM template  Creating a web app Create an F# console application using the .NET SDK:
 dotnet new console -lang F# -n FarmerSampleAdd a reference to the Farmer nuget package by modifying the FarmerSample.fsproj as follows:
-&amp;lt;PackageReference Include=&amp;#34;Farmer&amp;#34; Version=&amp;#34;0.3.0&amp;#34;/&amp;gt;Build the project to download the dependency.</description>
+&amp;lt;PackageReference Include=&amp;#34;Farmer&amp;#34; Version=&amp;#34;0.4.0&amp;#34;/&amp;gt;Build the project to download the dependency.</description>
     </item>
     
     <item>
