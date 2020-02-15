@@ -1,8 +1,8 @@
 ﻿module Farmer.Deploy
 
 open Farmer.ArmBuilder
-open Newtonsoft.Json
 open System
+open System.Text.Json
 
 /// Represents an Azure service principal which has permissions to
 /// deploy ARM templates on the supplied Subscription ID.
@@ -43,7 +43,7 @@ module AzureRest =
         | _ -> Error response
     let getContent<'T> (response:FsHttp.Domain.Response) =
         response.content.ReadAsStringAsync().Result
-        |> JsonConvert.DeserializeObject<'T>
+        |> JsonSerializer.Deserialize<'T>
     let getBearerToken tenantId clientId clientSecret =
         http {
             POST (sprintf "https://login.microsoftonline.com/%s/oauth2/token" tenantId)
@@ -65,7 +65,7 @@ module AzureRest =
             json (sprintf """{ "location": "%s", "tags": { "Deployed with Farmer": "" }}""" location)
         } |> toResult
     let deployTemplate accessToken subscriptionId resourceGroup parameters deploymentName templateJson =
-        let parameters = parameters |> List.map(fun (k, v) -> k, {| value = v |}) |> Map |> JsonConvert.SerializeObject
+        let parameters = parameters |> List.map(fun (k, v) -> k, {| value = v |}) |> Map |> JsonSerializer.Serialize
         http {
             PUT (sprintf "https://management.azure.com/subscriptions/%s/resourcegroups/%s/providers/Microsoft.Resources/deployments/%s?api-version=2019-05-01" subscriptionId resourceGroup deploymentName)
             BearerAuth accessToken
@@ -107,7 +107,7 @@ module AzureRest =
             | error, _ ->
                 error
                 |> string
-                |> JsonConvert.DeserializeObject<ErrorDetails>
+                |> JsonSerializer.Deserialize<ErrorDetails>
                 |> ProvisioningFailure
                 |> Error
     }

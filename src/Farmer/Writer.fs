@@ -2,9 +2,9 @@ module Farmer.Writer
 
 open Farmer.Models
 open Farmer.Resources
-open Newtonsoft.Json
 open System
 open System.IO
+open System.Text.Json
 
 module Outputters =
     let private containerAccess (a:StorageContainerAccess) =
@@ -481,7 +481,7 @@ module TemplateGeneration =
     |}
 
     let serialize data =
-        JsonConvert.SerializeObject(data, Formatting.Indented, JsonSerializerSettings(NullValueHandling = NullValueHandling.Ignore))
+        JsonSerializer.Serialize(data, JsonSerializerOptions(IgnoreNullValues = true, WriteIndented = true))
 
 /// Returns a JSON string representing the supplied ARMTemplate.
 let toJson = TemplateGeneration.processTemplate >> TemplateGeneration.serialize
