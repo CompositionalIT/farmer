@@ -54,5 +54,5 @@ let deployment = arm {
 }
 
 deployment
-|> Writer.quickDeploy "myResourceGroup"
+|> Deploy.quick "myResourceGroup"
 ```

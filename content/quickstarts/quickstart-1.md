@@ -21,7 +21,7 @@ dotnet new console -lang F# -n FarmerSample
 Add a reference to the Farmer nuget package by modifying the `FarmerSample.fsproj` as follows:
 
 ```xml
-<PackageReference Include="Farmer" Version="0.3.0"/>
+<PackageReference Include="Farmer" Version="0.4.0"/>
 ```
 
 Build the project to download the dependency.
@@ -58,10 +58,8 @@ Now you need to generate the ARM template from the deployment object to an ARM j
 Add the following code:
 
 ```fsharp
-let filename =
-    deployment.Template
-    |> Writer.toJson
-    |> Writer.toFile "myFirstTemplate"
+deployment
+|> Writer.quickWrite  "myFirstTemplate"
 ```
 
 Run the application; you should notice that the file `myFirstTemplate.json` has been created.
@@ -89,8 +87,6 @@ let deployment = arm {
     add_resource myWebApp
 }
 
-let filename =
-    deployment.Template
-    |> Writer.toJson
-    |> Writer.toFile "myFirstTemplate"
+deployment
+|> Writer.quickWrite "myFirstTemplate"
 ```

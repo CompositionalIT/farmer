@@ -7,7 +7,7 @@ weight: 1
 
 Farmer supports several ways to "output" ARM templates.
 
-#### Generating JSON as string
+#### Generating JSON as a string
 You can generate an ARM template as a plain string:
 
 ```fsharp
@@ -23,11 +23,8 @@ let json =
 You can also write out the JSON directly to a file:
 
 ```fsharp
-// myTemplate.json
-let filename =
-    deployment.Template
-    |> Writer.toJson
-    |> Writer.toFile "myTemplate"
+deployment
+|> Writer.quickWrite "myTemplate"
 ```
 
 > Notice how we use F#'s pipe operator to "pipe" data from the template configuration into json before writing to a file.
@@ -40,7 +37,7 @@ login prompt via the Azure CLI.
 // farmer-deploy.bat
 let filename =
     deployment
-    |> Writer.generateDeployScript "myResourceGroup"
+    |> Deploy.AzureCli.generateDeployScript "myResourceGroup"
 ```
 
 > This assumes that you have the Azure CLI installed on your machine.
@@ -50,5 +47,5 @@ You can also create the template itself and the associated batch file, *and* the
 
 ```fsharp
 deployment
-|> Writer.quickDeploy "myResourceGroup"
+|> Deploy.quick "myResourceGroup"
 ```

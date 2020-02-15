@@ -104,8 +104,6 @@ let deployment = arm {
     add_resource myWebApp
 }
 
-let filename =
-    deployment.Template
-    |> Writer.toJson
-    |> Writer.toFile "myFirstTemplate"
+deployment
+|> Writer.quickWrite  "myFirstTemplate"
 ```
