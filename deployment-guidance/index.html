@@ -12,20 +12,20 @@
     <title>Deployment Guidance :: Farmer</title>
 
     
-    <link href="/farmer/css/nucleus.css?1581854413" rel="stylesheet">
-    <link href="/farmer/css/fontawesome-all.min.css?1581854413" rel="stylesheet">
-    <link href="/farmer/css/hybrid.css?1581854413" rel="stylesheet">
-    <link href="/farmer/css/featherlight.min.css?1581854413" rel="stylesheet">
-    <link href="/farmer/css/perfect-scrollbar.min.css?1581854413" rel="stylesheet">
-    <link href="/farmer/css/auto-complete.css?1581854413" rel="stylesheet">
-    <link href="/farmer/css/atom-one-dark-reasonable.css?1581854413" rel="stylesheet">
-    <link href="/farmer/css/theme.css?1581854413" rel="stylesheet">
-    <link href="/farmer/css/hugo-theme.css?1581854413" rel="stylesheet">
+    <link href="/farmer/css/nucleus.css?1581866049" rel="stylesheet">
+    <link href="/farmer/css/fontawesome-all.min.css?1581866049" rel="stylesheet">
+    <link href="/farmer/css/hybrid.css?1581866049" rel="stylesheet">
+    <link href="/farmer/css/featherlight.min.css?1581866049" rel="stylesheet">
+    <link href="/farmer/css/perfect-scrollbar.min.css?1581866049" rel="stylesheet">
+    <link href="/farmer/css/auto-complete.css?1581866049" rel="stylesheet">
+    <link href="/farmer/css/atom-one-dark-reasonable.css?1581866049" rel="stylesheet">
+    <link href="/farmer/css/theme.css?1581866049" rel="stylesheet">
+    <link href="/farmer/css/hugo-theme.css?1581866049" rel="stylesheet">
     
-      <link href="/farmer/css/theme-green.css?1581854413" rel="stylesheet">
+      <link href="/farmer/css/theme-green.css?1581866049" rel="stylesheet">
     
 
-    <script src="/farmer/js/jquery-3.3.1.min.js?1581854413"></script>
+    <script src="/farmer/js/jquery-3.3.1.min.js?1581866049"></script>
 
     <style>
       :root #header + #content > #left > #rlblock_left{
@@ -70,14 +70,14 @@
     <span data-search-clear=""><i class="fas fa-times"></i></span>
 </div>
 
-<script type="text/javascript" src="/farmer/js/lunr.min.js?1581854413"></script>
-<script type="text/javascript" src="/farmer/js/auto-complete.js?1581854413"></script>
+<script type="text/javascript" src="/farmer/js/lunr.min.js?1581866049"></script>
+<script type="text/javascript" src="/farmer/js/auto-complete.js?1581866049"></script>
 <script type="text/javascript">
     
         var baseurl = "https:\/\/compositionalit.github.io\/farmer\/";
     
 </script>
-<script type="text/javascript" src="/farmer/js/search.js?1581854413"></script>
+<script type="text/javascript" src="/farmer/js/search.js?1581866049"></script>
 
     
   </div>
@@ -635,7 +635,17 @@
                 
                     <div class="progress">
     <div class="wrapper">
-<nav id="TableOfContents"></nav>
+<nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#arm-templates-are-just-a-means-to-an-end-to-me">ARM templates are just a means to an end to me</a></li>
+        <li><a href="#i-already-have-an-arm-deployment-strategy">I already have an ARM deployment strategy</a></li>
+        <li><a href="#i-want-to-hard-craft-my-arm-templates">I want to hard-craft my ARM templates</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
     </div>
 </div>
 
@@ -660,13 +670,57 @@
 
 
 
-	<p>You can use Farmer in a number of ways:</p>
+	<p>You can deploy Farmer templates in a number of ways, depending on how you would prefer to work with ARM templates and tooling.</p>
+<h3 id="arm-templates-are-just-a-means-to-an-end-to-me">ARM templates are just a means to an end to me</h3>
+<p>If you don&rsquo;t use ARM templates today, or don&rsquo;t need to edit them directly, you can opt to do away with them completely. You&rsquo;ll create Farmer applications which use a simple F# SDK to interact with Azure; Farmer will create ARM templates in the background for you transparently, so you&rsquo;ll never see or interact with them.</p>
+<p>In such a case, you can opt to deploy them using one of two modes:</p>
 <ul>
-<li>As a way to quickly generate your ARM template, which is then committed into source control and deployed as normal by e.g. Azure Dev Ops.</li>
-<li>Creating a basic ARM template which generates 90% of what you need, after which you will then manually make further changes to the template, and deploy or commit into source control as normal.</li>
-<li>As a build step in your CD process to generate and deploy your ARM template. In this model, you commit your Farmer code into source control; the ARM template is a transient file that is generated during the build process and deployed into Azure, similar to the relationship between e.g. Typescript and Javascript or C# and a DLL.</li>
+<li>An <a href="../api-overview/writer/#interactive-deploy-to-azure">interactive mode</a>, perfect for when testing out templates from your development environment. This mode provides an F# wrapper around the Azure CLI which captures your credentials during the deployment process.</li>
+<li>An <a href="../api-overview/writer/#non-interactive-deploy-to-azure">automated mode</a>, in which you create a <em>service principal</em> in Azure (effectively, an account in Azure Active Directory that has permissions to create and amend resources without human intervention), and securely use the credentials of this account to deploy the ARM template.</li>
 </ul>
+<p>If you&rsquo;re looking to stay within F# and e.g. respond to outcomes from the deployment such as using deployment outputs, this is an excellent option because Farmer is just a dotnet application and the deployment call is a simple function call.</p>
+<p>Another benefit of this is because Farmer is a simple .NET Standard library, you can use it natively within .NET build tools such as FAKE or CAKE.</p>
+<h3 id="i-already-have-an-arm-deployment-strategy">I already have an ARM deployment strategy</h3>
+<p>If you already use ARM templates, you&rsquo;ll probably already have a strategy for working with templates and deploying them to Azure, such as <a href="https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/deploy-powershell">PowerShell</a>, the <a href="https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/deploy-cli">Azure CLI</a> or a build system such as <a href="https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/deploy/azure-resource-group-deployment?view=azure-devops">Azure DevOps</a> or <a href="https://octopus.com/docs/deployment-examples/azure-deployments/resource-groups">Octopus Deploy</a>. In such a case, you may want to use Farmer to <em>generate</em>, but not <em>deploy</em>, your ARM templates.</p>
+<h3 id="i-want-to-hard-craft-my-arm-templates">I want to hard-craft my ARM templates</h3>
+<p>If you want to retain fine-grained control over ARM templates, you can use Farmer to create a one-off task to rapidly generate an ARM template which you then take ownership of. In this case, Farmer itself won&rsquo;t be a part of your build / deploy chain, which will remain the same as today - you&rsquo;ll use Farmer just as an edit-time task to create the ARM template itself.</p>
 <p>The choice is yours.</p>
+<h4 id="how-do-i-create-a-service-principal">How do I create a Service Principal?</h4>
+<p>If you&rsquo;re trying to deploy to Azure in an automated fashion, you&rsquo;ll need to create a Service Principal account that has permissions in Azure to deploy ARM templates on your behalf.</p>
+<p>The Azure CLI provides a simple way to create one using the <a href="https://docs.microsoft.com/en-us/cli/azure/ad/sp?view=azure-cli-latest#az-ad-sp-create-for-rbac">az ad sp</a> command:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cmd" data-lang="cmd">az ad sp create-for-rbac --name farmer-deploy
+</code></pre></div><p>This will provide output similar to the following:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cmd" data-lang="cmd">{
+  <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">appId</span><span style="color:#e6db74">&#34;</span>: <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">1181c21b-78f3-42b3-a26d-03ba75c7b674</span><span style="color:#e6db74">&#34;</span>,        
+  <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">displayName</span><span style="color:#e6db74">&#34;</span>: <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">farmer-deploy</span><span style="color:#e6db74">&#34;</span>,
+  <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">name</span><span style="color:#e6db74">&#34;</span>: <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">http://farmer-deploy</span><span style="color:#e6db74">&#34;</span>,
+  <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">password</span><span style="color:#e6db74">&#34;</span>: <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">4aa3b120-f2b2-4ea9-941b-5891fef0ef11</span><span style="color:#e6db74">&#34;</span>,     
+  <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">tenant</span><span style="color:#e6db74">&#34;</span>: <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">aa7f7453-15af-4ab0-5d41-aeb4a25293bc</span><span style="color:#e6db74">&#34;</span>        
+}
+</code></pre></div><p>The mapping from these fields to the credentials used in Farmer are:</p>
+<table>
+<thead>
+<tr>
+<th>Azure CLI</th>
+<th>Farmer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>appId</td>
+<td>ClientId</td>
+</tr>
+<tr>
+<td>password</td>
+<td>ClientSecret</td>
+</tr>
+<tr>
+<td>tenant</td>
+<td>TenantId</td>
+</tr>
+</tbody>
+</table>
+<p>You should store these credentials in a secure store, such as your CI/CD service or e.g. Azure KeyVault and should avoid committing them into source control.</p>
 
 
 
@@ -1085,19 +1139,19 @@
     <div style="left: -1000px; overflow: scroll; position: absolute; top: -1000px; border: none; box-sizing: content-box; height: 200px; margin: 0px; padding: 0px; width: 200px;">
       <div style="border: none; box-sizing: content-box; height: 200px; margin: 0px; padding: 0px; width: 200px;"></div>
     </div>
-    <script src="/farmer/js/clipboard.min.js?1581854413"></script>
-    <script src="/farmer/js/perfect-scrollbar.min.js?1581854413"></script>
-    <script src="/farmer/js/perfect-scrollbar.jquery.min.js?1581854413"></script>
-    <script src="/farmer/js/jquery.sticky.js?1581854413"></script>
-    <script src="/farmer/js/featherlight.min.js?1581854413"></script>
-    <script src="/farmer/js/highlight.pack.js?1581854413"></script>
+    <script src="/farmer/js/clipboard.min.js?1581866049"></script>
+    <script src="/farmer/js/perfect-scrollbar.min.js?1581866049"></script>
+    <script src="/farmer/js/perfect-scrollbar.jquery.min.js?1581866049"></script>
+    <script src="/farmer/js/jquery.sticky.js?1581866049"></script>
+    <script src="/farmer/js/featherlight.min.js?1581866049"></script>
+    <script src="/farmer/js/highlight.pack.js?1581866049"></script>
     <script>hljs.initHighlightingOnLoad();</script>
-    <script src="/farmer/js/modernizr.custom-3.6.0.js?1581854413"></script>
-    <script src="/farmer/js/learn.js?1581854413"></script>
-    <script src="/farmer/js/hugo-learn.js?1581854413"></script>
+    <script src="/farmer/js/modernizr.custom-3.6.0.js?1581866049"></script>
+    <script src="/farmer/js/learn.js?1581866049"></script>
+    <script src="/farmer/js/hugo-learn.js?1581866049"></script>
 
-    <link href="/farmer/mermaid/mermaid.css?1581854413" rel="stylesheet" />
-    <script src="/farmer/mermaid/mermaid.js?1581854413"></script>
+    <link href="/farmer/mermaid/mermaid.css?1581866049" rel="stylesheet" />
+    <script src="/farmer/mermaid/mermaid.js?1581866049"></script>
     <script>
         mermaid.initialize({ startOnLoad: true });
     </script>
