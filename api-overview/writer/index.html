@@ -12,20 +12,20 @@
     <title>Generating templates :: Farmer</title>
 
     
-    <link href="/farmer/css/nucleus.css?1581806837" rel="stylesheet">
-    <link href="/farmer/css/fontawesome-all.min.css?1581806837" rel="stylesheet">
-    <link href="/farmer/css/hybrid.css?1581806837" rel="stylesheet">
-    <link href="/farmer/css/featherlight.min.css?1581806837" rel="stylesheet">
-    <link href="/farmer/css/perfect-scrollbar.min.css?1581806837" rel="stylesheet">
-    <link href="/farmer/css/auto-complete.css?1581806837" rel="stylesheet">
-    <link href="/farmer/css/atom-one-dark-reasonable.css?1581806837" rel="stylesheet">
-    <link href="/farmer/css/theme.css?1581806837" rel="stylesheet">
-    <link href="/farmer/css/hugo-theme.css?1581806837" rel="stylesheet">
+    <link href="/farmer/css/nucleus.css?1581854413" rel="stylesheet">
+    <link href="/farmer/css/fontawesome-all.min.css?1581854413" rel="stylesheet">
+    <link href="/farmer/css/hybrid.css?1581854413" rel="stylesheet">
+    <link href="/farmer/css/featherlight.min.css?1581854413" rel="stylesheet">
+    <link href="/farmer/css/perfect-scrollbar.min.css?1581854413" rel="stylesheet">
+    <link href="/farmer/css/auto-complete.css?1581854413" rel="stylesheet">
+    <link href="/farmer/css/atom-one-dark-reasonable.css?1581854413" rel="stylesheet">
+    <link href="/farmer/css/theme.css?1581854413" rel="stylesheet">
+    <link href="/farmer/css/hugo-theme.css?1581854413" rel="stylesheet">
     
-      <link href="/farmer/css/theme-green.css?1581806837" rel="stylesheet">
+      <link href="/farmer/css/theme-green.css?1581854413" rel="stylesheet">
     
 
-    <script src="/farmer/js/jquery-3.3.1.min.js?1581806837"></script>
+    <script src="/farmer/js/jquery-3.3.1.min.js?1581854413"></script>
 
     <style>
       :root #header + #content > #left > #rlblock_left{
@@ -70,14 +70,14 @@
     <span data-search-clear=""><i class="fas fa-times"></i></span>
 </div>
 
-<script type="text/javascript" src="/farmer/js/lunr.min.js?1581806837"></script>
-<script type="text/javascript" src="/farmer/js/auto-complete.js?1581806837"></script>
+<script type="text/javascript" src="/farmer/js/lunr.min.js?1581854413"></script>
+<script type="text/javascript" src="/farmer/js/auto-complete.js?1581854413"></script>
 <script type="text/javascript">
     
         var baseurl = "https:\/\/compositionalit.github.io\/farmer\/";
     
 </script>
-<script type="text/javascript" src="/farmer/js/search.js?1581806837"></script>
+<script type="text/javascript" src="/farmer/js/search.js?1581854413"></script>
 
     
   </div>
@@ -690,8 +690,7 @@
 <p>Notice how we use F#&lsquo;s pipe operator to &ldquo;pipe&rdquo; data from the template configuration into json before writing to a file.</p>
 </blockquote>
 <h4 id="generating-a-deployment-batch-file">Generating a deployment batch file</h4>
-<p>You can create a batch file that will deploy the template to Azure when run. It uses an interactive
-login prompt via the Azure CLI.</p>
+<p>You can create a batch file that will deploy the template to Azure when run. It uses an interactive login prompt via the Azure CLI.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp"><span style="color:#75715e">// farmer-deploy.bat
 </span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> filename <span style="color:#f92672">=</span>
     deployment
@@ -699,11 +698,30 @@ login prompt via the Azure CLI.</p>
 </code></pre></div><blockquote>
 <p>This assumes that you have the Azure CLI installed on your machine.</p>
 </blockquote>
-<h4 id="deploying-directly-to-azure">Deploying directly to Azure</h4>
+<h4 id="interactive-deploy-to-azure">Interactive deploy to Azure</h4>
 <p>You can also create the template itself and the associated batch file, <em>and</em> the launch it as a single command.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp">deployment
 <span style="color:#f92672">|</span><span style="color:#f92672">&gt;</span> Deploy.quick <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myResourceGroup</span><span style="color:#e6db74">&#34;</span>
-</code></pre></div>
+</code></pre></div><h4 id="non-interactive-deploy-to-azure">Non-interactive deploy to Azure</h4>
+<p>For automated deployments e.g. continuous deployment or through scripts etc., you&rsquo;ll want to use an unattended deployment mode. You can opt to generate the ARM template and then use another existing mechanism for deploying ARM templates e.g. Powershell, or you can use Farmer&rsquo;s built-in Deployment API, which wraps around the Azure ARM REST API.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp"><span style="color:#66d9ef">let</span> credentials <span style="color:#f92672">=</span>
+    <span style="color:#f92672">{</span> ClientId <span style="color:#f92672">=</span> <span style="color:#75715e">// set app id here...
+</span><span style="color:#75715e"></span>      ClientSecret <span style="color:#f92672">=</span> <span style="color:#75715e">// set secret here...
+</span><span style="color:#75715e"></span>      TenantId <span style="color:#f92672">=</span> <span style="color:#75715e">// set tenant id here... }
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> subscriptionId <span style="color:#f92672">=</span> <span style="color:#75715e">// set subscription id here...
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> parameters <span style="color:#f92672">=</span> [] <span style="color:#75715e">// list of string * string parameters
+</span><span style="color:#75715e"></span>
+<span style="color:#e6db74">/// Deploy to ARM, and get the response.
+</span><span style="color:#e6db74"></span><span style="color:#66d9ef">let</span> response <span style="color:#f92672">=</span>
+    deployment
+    <span style="color:#f92672">|</span><span style="color:#f92672">&gt;</span> fullDeploy credentials subscriptionId <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myResourceGroup</span><span style="color:#e6db74">&#34;</span> parameters
+
+<span style="color:#66d9ef">match</span> response<span style="color:#f92672">.</span>Result <span style="color:#66d9ef">with</span>
+<span style="color:#f92672">|</span> Ok outputs <span style="color:#f92672">-&gt;</span> printfn <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Success! Outputs: %A</span><span style="color:#e6db74">&#34;</span> outputs
+<span style="color:#f92672">|</span> Error <span style="color:#f92672">(</span>DeploymentRejected error<span style="color:#f92672">)</span> <span style="color:#f92672">-&gt;</span> printfn <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Rejected! %A</span><span style="color:#e6db74">&#34;</span> error
+<span style="color:#f92672">|</span> Error <span style="color:#f92672">(</span>DeploymentFailed error<span style="color:#f92672">)</span> <span style="color:#f92672">-&gt;</span> printfn <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Failed! %A</span><span style="color:#e6db74">&#34;</span> error
+</code></pre></div><p>As you can see, the response of calling <code>fullDeploy</code> is a Result object which is either Ok, in which case any outputs returned from the template are made available, or an Error, which is either one of several DeploymentRejected or DeploymentFailed errors.</p>
+
 
 <footer class="footline">
 	
@@ -1119,19 +1137,19 @@ login prompt via the Azure CLI.</p>
     <div style="left: -1000px; overflow: scroll; position: absolute; top: -1000px; border: none; box-sizing: content-box; height: 200px; margin: 0px; padding: 0px; width: 200px;">
       <div style="border: none; box-sizing: content-box; height: 200px; margin: 0px; padding: 0px; width: 200px;"></div>
     </div>
-    <script src="/farmer/js/clipboard.min.js?1581806837"></script>
-    <script src="/farmer/js/perfect-scrollbar.min.js?1581806837"></script>
-    <script src="/farmer/js/perfect-scrollbar.jquery.min.js?1581806837"></script>
-    <script src="/farmer/js/jquery.sticky.js?1581806837"></script>
-    <script src="/farmer/js/featherlight.min.js?1581806837"></script>
-    <script src="/farmer/js/highlight.pack.js?1581806837"></script>
+    <script src="/farmer/js/clipboard.min.js?1581854413"></script>
+    <script src="/farmer/js/perfect-scrollbar.min.js?1581854413"></script>
+    <script src="/farmer/js/perfect-scrollbar.jquery.min.js?1581854413"></script>
+    <script src="/farmer/js/jquery.sticky.js?1581854413"></script>
+    <script src="/farmer/js/featherlight.min.js?1581854413"></script>
+    <script src="/farmer/js/highlight.pack.js?1581854413"></script>
     <script>hljs.initHighlightingOnLoad();</script>
-    <script src="/farmer/js/modernizr.custom-3.6.0.js?1581806837"></script>
-    <script src="/farmer/js/learn.js?1581806837"></script>
-    <script src="/farmer/js/hugo-learn.js?1581806837"></script>
+    <script src="/farmer/js/modernizr.custom-3.6.0.js?1581854413"></script>
+    <script src="/farmer/js/learn.js?1581854413"></script>
+    <script src="/farmer/js/hugo-learn.js?1581854413"></script>
 
-    <link href="/farmer/mermaid/mermaid.css?1581806837" rel="stylesheet" />
-    <script src="/farmer/mermaid/mermaid.js?1581806837"></script>
+    <link href="/farmer/mermaid/mermaid.css?1581854413" rel="stylesheet" />
+    <script src="/farmer/mermaid/mermaid.js?1581854413"></script>
     <script>
         mermaid.initialize({ startOnLoad: true });
     </script>
