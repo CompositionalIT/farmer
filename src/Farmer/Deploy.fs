@@ -30,13 +30,20 @@ type DeploymentError =
 type DeploymentResult =
     { DeploymentName : string
       Result : Result<Outputs, DeploymentError> }
-
 type DeploymentStatus =
-    | Provisioning of string
+    | Provisioning of {| OperationsCompleted : int; OperationsRemaining : int |}
     | Provisioned of Outputs
 
 module AzureRest =
     open FsHttp.DslCE
+    type DeploymentOperationResult =
+        { value :
+            {| properties :
+                {| ProvisioningState : string
+                   TargetResource : {| ResourceType : string; ResourceName : string |}
+                |}
+            |} array }
+
     let toResult (response:FsHttp.Domain.Response) =
         match int response.statusCode with
         | code when code >= 200 && code < 300 -> Ok response
@@ -102,7 +109,22 @@ module AzureRest =
             return!
                 match content.Properties.Error, content.Properties.ProvisioningState with
                 | null, ("Accepted" | "Running") ->
-                    content.Properties.ProvisioningState
+                    let details =
+                        http {
+                            GET (sprintf "https://management.azure.com/subscriptions/%O/resourcegroups/%s/deployments/%s/operations?api-version=2019-10-01" subscriptionId resourceGroup deploymentName)
+                            BearerAuth accessToken
+                        } |> getContent<DeploymentOperationResult>
+
+                    let complete, remaining =
+                        details.value
+                        |> Array.partition(fun r ->
+                            match r.properties.ProvisioningState with
+                            | "Failed" | "Succeeded" -> true
+                            | _ -> false)
+                        |> fun (complete, remaining) ->
+                            complete.Length, remaining.Length
+                    {| OperationsCompleted = complete
+                       OperationsRemaining = remaining |}
                     |> Provisioning
                     |> Ok
                 | null, _ ->
@@ -131,23 +153,27 @@ module RestDeployment =
            Result : Result<ProgressResult seq, DeploymentRejectionError> |}
 
     /// Deploys a template using the Rest API.
-    let deployTemplate (credentials:AzureCredentials) subscriptionId (armTemplateJson:string, parameters : (string * string) list, location:string, resourceGroup:string) : RawDeploymentResult =
+    let deployTemplate (credentials:AzureCredentials) subscriptionId logMessage (armTemplateJson:string, parameters : (string * string) list, location:string, resourceGroupName:string) : RawDeploymentResult =
         let deploymentName = sprintf "FarmerDeploy%d" (getDeployNumber())
         let deploymentResult = Result.result {
+            logMessage "Getting authorisation token..."
             let! armDeploy =
-                AzureRest.TemplateDeployer.Create(credentials.TenantId, credentials.ClientId, credentials.ClientSecret, subscriptionId, resourceGroup)
+                AzureRest.TemplateDeployer.Create(credentials.TenantId, credentials.ClientId, credentials.ClientSecret, subscriptionId, resourceGroupName)
                 |> Result.mapError CantObtainBearerToken
 
+            logMessage (sprintf "Creating resource group %s..." resourceGroupName)
             do!
                 armDeploy.CreateResourceGroup location
                 |> Result.mapError(fun response -> CantCreateResourceGroup (response.content.ReadAsStringAsync().Result))
                 |> Result.ignore
 
+            logMessage "Starting template deployment..."
             do!
                 armTemplateJson
                 |> armDeploy.DeployTemplate parameters deploymentName
                 |> Result.mapError(fun e -> InvalidTemplateRejection (e.content.ReadAsStringAsync().Result))
                 |> Result.ignore
+            logMessage "Deployment accepted."
 
             return
                 Seq.initInfinite (fun _ ->
@@ -192,8 +218,8 @@ let fullDeploy credentials (subscriptionId:Guid) resourceGroupName parameters de
     let armTemplateJson = deployment.Template |> Writer.toJson
 
     (armTemplateJson, parameters, deployment.Location.Value, resourceGroupName)
-    |> RestDeployment.deployTemplate credentials subscriptionId
-    |> RestDeployment.reportDeploymentProgress (printfn "%s")
+    |> RestDeployment.deployTemplate credentials subscriptionId (printfn "%s")
+    |> RestDeployment.reportDeploymentProgress (fun stats -> printfn "In progress (%d / %d operations)..." stats.OperationsCompleted (stats.OperationsCompleted + stats.OperationsRemaining))
 
 module ParameterFile =
     module Passwords =
