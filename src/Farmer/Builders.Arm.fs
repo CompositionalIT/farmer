@@ -64,6 +64,9 @@ type ArmBuilder() =
                   KeyVault output.KeyVault
                   for secret in output.Secrets do
                     KeyVaultSecret secret
+              | :? RedisConfig as redisConfig ->
+                  let redis = Converters.redis state.Location redisConfig
+                  RedisCache redis
               | resource ->
                   failwithf "Sorry, I don't know how to handle this resource of type '%s'." (resource.GetType().FullName) ]
           |> List.groupBy(fun r -> r.ResourceName)
@@ -85,8 +88,7 @@ type ArmBuilder() =
                     | KeyVaultSecret { Value = ParameterSecret secureParameter } -> secureParameter
                     | _ -> () ]
               Outputs = state.Outputs
-              Resources = resources
-            }
+              Resources = resources }
         { Location = state.Location; Template = output }
 
     /// Creates an output value that will be returned by the ARM template.

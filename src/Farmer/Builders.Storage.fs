@@ -50,11 +50,9 @@ type StorageAccountBuilder() =
 
 module Converters =
     let storage location (sac:StorageAccountConfig) =
-        {
-            Location = location
-            Name = sac.Name
-            Sku = sac.Sku
-            Containers = sac.Containers
-        }
+        { Location = location
+          Name = sac.Name
+          Sku = sac.Sku
+          Containers = sac.Containers }
 
 let storageAccount = StorageAccountBuilder()

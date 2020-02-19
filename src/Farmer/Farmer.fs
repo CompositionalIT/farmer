@@ -104,6 +104,23 @@ type StorageAccount =
       Location : Location
       Sku : string
       Containers : (string * StorageContainerAccess) list }
+
+[<RequireQualifiedAccess>]
+type RedisSkuName = Basic | Standard | Premium
+type RedisSkuFamiy = C | P
+
+type Redis =
+    { Name : ResourceName
+      Location : Location
+      Sku :
+        {| Name : RedisSkuName
+           Family : RedisSkuFamiy
+           Capacity : int |}
+      RedisConfiguration : Map<string, string>
+      NonSslEnabled : bool option
+      ShardCount : int option
+      MinimumTlsVersion : string option }
+
 module ContainerGroups =
     [<RequireQualifiedAccess>]
     type ContainerGroupOsType =
@@ -305,6 +322,7 @@ type SupportedResource =
     | Ip of PublicIpAddress | Vnet of VirtualNetwork | Nic of NetworkInterface | Vm of VirtualMachine
     | AzureSearch of Search
     | KeyVault of KeyVault | KeyVaultSecret of KeyVaultSecret
+    | RedisCache of Redis
     member this.ResourceName =
         match this with
         | AppInsights x -> x.Name
@@ -323,6 +341,7 @@ type SupportedResource =
         | AzureSearch x -> x.Name
         | KeyVault x -> x.Name
         | KeyVaultSecret x -> x.Name
+        | RedisCache r -> r.Name
 
 namespace Farmer
 open Farmer.Models

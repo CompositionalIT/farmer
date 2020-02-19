@@ -443,6 +443,23 @@ module Outputters =
                 |}
             |}
         |}
+    let redisCache (redis:Redis) = {|
+        ``type`` = "Microsoft.Cache/Redis"
+        apiVersion = "2018-03-01"
+        name = redis.Name.Value
+        location = redis.Location.Value
+        properties =
+            {| sku =
+                {| name = string redis.Sku.Name
+                   family = string redis.Sku.Family
+                   capacity = redis.Sku.Capacity
+                |}
+               enableNonSslPort = redis.NonSslEnabled |> Option.toNullable
+               shardCount = redis.ShardCount |> Option.toNullable
+               minimumTlsVersion = redis.MinimumTlsVersion |> Option.toObj
+               redisConfiguration = redis.RedisConfiguration
+            |}
+    |}
 
 module TemplateGeneration =
     let processTemplate (template:ArmTemplate) = {|
@@ -467,6 +484,7 @@ module TemplateGeneration =
                 | AzureSearch search -> Outputters.search search |> box
                 | KeyVault vault -> Outputters.keyVault vault |> box
                 | KeyVaultSecret secret -> Outputters.keyVaultSecret secret |> box
+                | RedisCache redis -> Outputters.redisCache redis |> box
             )
         parameters =
             template.Parameters
