@@ -64,6 +64,11 @@ type ArmBuilder() =
                   KeyVault output.KeyVault
                   for secret in output.Secrets do
                     KeyVaultSecret secret
+              | :? EventHubConfig as eventHub ->
+                  let output = Converters.eventHub state.Location eventHub
+                  EventHub output.EventHub
+                  EventHubNamespace output.EventHubNamespace
+                  ConsumerGroup output.ConsumerGroup
               | resource ->
                   failwithf "Sorry, I don't know how to handle this resource of type '%s'." (resource.GetType().FullName) ]
           |> List.groupBy(fun r -> r.ResourceName)

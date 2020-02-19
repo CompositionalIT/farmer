@@ -222,6 +222,27 @@ type Search =
       ReplicaCount : int
       PartitionCount : int }
 
+type EventHubNamespace =
+  { Name : ResourceName
+    Location : Location
+    Sku : {| Name : string; Tier : string; Capacity : int |}
+    ZoneRedundant : bool option
+    IsAutoInflateEnabled : bool option
+    MaxThroughputUnits : int option
+    KafkaEnabled : bool option }
+
+type EventHub =
+  { Name : ResourceName
+    Location : Location
+    MessageRetentionDays : int option
+    Partitions : int
+    Dependencies : ResourceName list }
+
+type EventHubConsumerGroup =
+  { Name : ResourceName
+    Location : Location
+    Dependencies : ResourceName list }
+
 module VM =
     type PublicIpAddress =
         { Name : ResourceName
@@ -305,24 +326,19 @@ type SupportedResource =
     | Ip of PublicIpAddress | Vnet of VirtualNetwork | Nic of NetworkInterface | Vm of VirtualMachine
     | AzureSearch of Search
     | KeyVault of KeyVault | KeyVaultSecret of KeyVaultSecret
+    | EventHub of EventHub | EventHubNamespace of EventHubNamespace | ConsumerGroup of EventHubConsumerGroup
     member this.ResourceName =
         match this with
         | AppInsights x -> x.Name
-        | CosmosAccount x -> x.Name
-        | CosmosSqlDb x -> x.Name
-        | CosmosContainer x -> x.Name
-        | ServerFarm x -> x.Name
-        | WebApp x -> x.Name
+        | CosmosAccount x -> x.Name | CosmosSqlDb x -> x.Name | CosmosContainer x -> x.Name
+        | ServerFarm x -> x.Name | WebApp x -> x.Name
         | SqlServer x -> x.DbName
         | StorageAccount x -> x.Name
         | ContainerGroup x -> x.Name
-        | Ip x -> x.Name
-        | Vnet x -> x.Name
-        | Nic x -> x.Name
-        | Vm x -> x.Name
+        | Ip x -> x.Name | Vnet x -> x.Name | Nic x -> x.Name | Vm x -> x.Name
         | AzureSearch x -> x.Name
-        | KeyVault x -> x.Name
-        | KeyVaultSecret x -> x.Name
+        | KeyVault x -> x.Name | KeyVaultSecret x -> x.Name
+        | EventHub x -> x.Name | EventHubNamespace x -> x.Name | ConsumerGroup x -> x.Name
 
 namespace Farmer
 open Farmer.Models
