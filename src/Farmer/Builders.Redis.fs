@@ -8,6 +8,13 @@ type TlsVersion = Tls10 | Tls11 | Tls12
 [<RequireQualifiedAccess>]
 type RedisSku = Basic | Standard | Premium
 
+let internal buildRedisKey (ResourceName name) =
+    sprintf
+        "concat('%s.redis.cache.windows.net,abortConnect=false,ssl=true,password=', listKeys('%s', '2015-08-01').primaryKey)"
+            name
+            name
+    |> ArmExpression
+
 type RedisConfig =
     { Name : ResourceName
       Sku : RedisSku
@@ -16,6 +23,7 @@ type RedisConfig =
       NonSslEnabled : bool option
       ShardCount : int option
       MinimumTlsVersion : TlsVersion option }
+    member this.Key = buildRedisKey this.Name
 
 type RedisBuilder() =
     member _.Yield _ =
@@ -26,7 +34,22 @@ type RedisBuilder() =
           NonSslEnabled = None
           ShardCount = None
           MinimumTlsVersion = None }
-    /// Sets the name of the Azure Search instance.
+    member _.Run (state:RedisConfig) =
+        { state with
+            Capacity =
+                match state with
+                | { Sku = (RedisSku.Basic | RedisSku.Standard) } when state.Capacity > 6 -> 6
+                | { Sku = RedisSku.Premium } when state.Capacity > 4 -> 4
+                | { Sku = (RedisSku.Basic | RedisSku.Standard) } when state.Capacity < 0 -> 0
+                | { Sku = RedisSku.Premium } when state.Capacity < 1 -> 1
+                | _ -> state.Capacity
+            ShardCount =
+                match state with
+                | { Sku = RedisSku.Premium; ShardCount = Some shards } when shards > 10 -> Some 10
+                | { Sku = RedisSku.Premium; ShardCount = shards } -> shards
+                | _ -> None
+        }
+    /// Sets the name of the Redis instance.
     [<CustomOperation "name">]
     member _.Name(state:RedisConfig, name) = { state with Name = name }
     member this.Name(state:RedisConfig, name) = this.Name(state, ResourceName name)
@@ -41,7 +64,7 @@ type RedisBuilder() =
     [<CustomOperation "setting">]
     member _.AddSetting(state:RedisConfig, key, value) = { state with RedisConfiguration = state.RedisConfiguration.Add(key, value) }
     member this.AddSetting(state:RedisConfig, key, value:int) = this.AddSetting(state, key, string value)
-    /// Enables non-SSL port access to Redis
+    /// Specifies whether the non-ssl Redis server port (6379) is enabled.
     [<CustomOperation "enable_non_ssl_port">]
     member _.EnableNonSsl(state:RedisConfig) = { state with NonSslEnabled = Some true }
 
@@ -52,7 +75,7 @@ module Converters =
         { Name = redis.Name
           Location = location
           Sku =
-            {| Name = string RedisSku.Basic
+            {| Name = string redis.Sku
                Family =
                 match redis.Sku with
                 | RedisSku.Basic | RedisSku.Standard -> 'C'

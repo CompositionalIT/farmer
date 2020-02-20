@@ -2,11 +2,10 @@
 
 open Farmer
 open Farmer.Resources.Redis
-open Farmer.Models
 
 let myCache = redis {
-    name "isaacsredis"
-    sku RedisSku.Basic
+    name "myredis"
+    sku RedisSku.Standard
     capacity 0
     enable_non_ssl_port
     setting "maxclients" 256
