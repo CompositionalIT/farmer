@@ -95,25 +95,26 @@ module Outputters =
                    Application_Type = "web" |}
     |}
     let serverFarm (farm:ServerFarm) =
-        {| ``type`` = "Microsoft.Web/serverfarms"
-           sku =
-               {| name = farm.Sku
-                  tier = farm.Tier
-                  size = farm.WorkerSize
-                  family = if farm.IsDynamic then "Y" else null
-                  capacity = if farm.IsDynamic then 0 else farm.WorkerCount |}
-           name = farm.Name.Value
-           apiVersion = "2018-02-01"
-           location = farm.Location.Value
-           properties =
-               if farm.IsDynamic then
-                   box {| name = farm.Name.Value
-                          computeMode = "Dynamic" |}
-               else
-                   box {| name = farm.Name.Value
-                          perSiteScaling = false
-                          reserved = false |}
-           kind = farm.Kind |> Option.toObj
+        {|  ``type`` = "Microsoft.Web/serverfarms"
+            sku =
+                {| name = farm.Sku
+                   tier = farm.Tier
+                   size = farm.WorkerSize
+                   family = if farm.IsDynamic then "Y" else null
+                   capacity = if farm.IsDynamic then 0 else farm.WorkerCount |}
+            name = farm.Name.Value
+            apiVersion = "2018-02-01"
+            location = farm.Location.Value
+            properties =
+                if farm.IsDynamic then
+                    box {| name = farm.Name.Value
+                           computeMode = "Dynamic"
+                           reserved = farm.IsLinux |}
+                else
+                    box {| name = farm.Name.Value
+                           perSiteScaling = false
+                           reserved = farm.IsLinux |}
+            kind = farm.Kind |> Option.toObj
         |}
     let webApp (webApp:WebApp) = {|
         ``type`` = "Microsoft.Web/sites"

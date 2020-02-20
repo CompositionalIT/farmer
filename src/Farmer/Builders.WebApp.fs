@@ -295,6 +295,7 @@ module Converters =
                 | Premium _ -> "Premium"
                 | PremiumV2 _ -> "PremiumV2"
                 | Isolated _ -> "Isolated"
+              IsLinux = match wac.OperatingSystem with Linux -> true | Windows -> false
               WorkerCount = wac.WorkerCount }
         let ai =
             match wac.AppInsightsName with
@@ -371,6 +372,7 @@ module Converters =
                 | Windows -> None
                 | Linux -> Some "linux"
               IsDynamic = true
+              IsLinux = match fns.OperatingSystem with Linux -> true | Windows -> false
               Tier = "Dynamic"
               WorkerCount = 0 }
 
