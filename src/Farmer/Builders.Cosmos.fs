@@ -12,9 +12,9 @@ type CosmosDbConfig =
     { ServerName : ResourceName
       ServerConsistencyPolicy : ConsistencyPolicy
       ServerFailoverPolicy : FailoverPolicy
-      DbName : ResourceName          
+      DbName : ResourceName
       DbThroughput : string
-      Containers : CosmosDbContainerConfig list }    
+      Containers : CosmosDbContainerConfig list }
 
 type CosmosDbContainerBuilder() =
     member __.Yield _ =
@@ -45,7 +45,7 @@ type CosmosDbContainerBuilder() =
 type CosmosDbBuilder() =
     member __.Yield _ =
         { DbName = ResourceName "CosmosDatabase"
-          ServerName = ResourceName "CosmosServer"            
+          ServerName = ResourceName "CosmosServer"
           ServerConsistencyPolicy = Eventual
           ServerFailoverPolicy = NoFailover
           DbThroughput = "400"

@@ -8,7 +8,7 @@ open Farmer
 type WorkerSize = Small | Medium | Large
 type WebAppSku = Shared | Free | Basic of string | Standard of string | Premium of string | PremiumV2 of string | Isolated of string
 type FunctionsRuntime = DotNet | Node | Java | Python
-type FunctionsExtensionVersion = V1 | V2 | V3 
+type FunctionsExtensionVersion = V1 | V2 | V3
 type OS = Windows | Linux
 type DotNetCoreRuntime = DotNetCore22 | DotNetCore21 | DotNetCore20 | DotNetCore11 | DotNetCore10
 type AspNetRuntime = | AspNet47 | AspNet35
@@ -85,7 +85,7 @@ type WebAppConfig =
       Runtime : WebAppRuntime
       OperatingSystem : OS }
     /// Gets the ARM expression path to the publishing password of this web app.
-    member this.PublishingPassword = publishingPassword this.Name      
+    member this.PublishingPassword = publishingPassword this.Name
 type FunctionsConfig =
     { Name : ResourceName
       ServicePlanName : ResourceName
@@ -100,7 +100,7 @@ type FunctionsConfig =
     member this.PublishingPassword = publishingPassword this.Name
     /// Gets the ARM expression path to the storage account key of this functions app.
     member this.StorageAccountKey =
-        Storage.buildKey this.StorageAccountName.ResourceName            
+        Storage.buildKey this.StorageAccountName.ResourceName
     /// Gets the ARM expression path to the app insights key of this functions app, if it exists.
     member this.AppInsightsKey =
         this.AppInsightsName
@@ -152,7 +152,7 @@ module Converters =
                 match wac.AppInsightsName with
                 | Some _ -> Set [ AppInsightsExtension ]
                 | None -> Set.empty
-              Kind = "app"                          
+              Kind = "app"
               Dependencies = [
                 wac.ServicePlanName
                 yield! wac.Dependencies
@@ -211,7 +211,7 @@ module Converters =
                 match wac.Runtime, wac.OperatingSystem with
                 | Java (Java11 Tomcat90), Windows
                 | Java (Java11 Tomcat85), Windows
-                | Java (Java8 Tomcat90), Windows 
+                | Java (Java8 Tomcat90), Windows
                 | Java (Java8 Tomcat85), Windows ->
                     Some "Tomcat"
                 | _ ->
@@ -359,7 +359,7 @@ module Converters =
               PhpVersion = None
               PythonVersion = None
               Metadata = []
-            }                    
+            }
 
         let serverFarm =
             { Location = location
@@ -377,7 +377,7 @@ module Converters =
         let storage =
             match fns.StorageAccountName with
             | AutomaticallyCreated resourceName ->
-                { StorageAccount.Name = resourceName 
+                { StorageAccount.Name = resourceName
                   Location = location
                   Sku = Storage.Sku.StandardLRS
                   Containers = [] }
@@ -401,7 +401,7 @@ module Converters =
         { Name = ai.Name
           Location = location
           LinkedWebsite = None }
-    
+
 
 type WebAppBuilder() =
     member __.Yield _ =
