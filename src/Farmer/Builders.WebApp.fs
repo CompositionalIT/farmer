@@ -149,9 +149,12 @@ module Converters =
                     ()
               ]
               Extensions =
-                match wac.AppInsightsName with
-                | Some _ -> Set [ AppInsightsExtension ]
-                | None -> Set.empty
+                match wac.AppInsightsName, wac.OperatingSystem with
+                | Some _, Windows ->
+                    Set [ AppInsightsExtension ]
+                | None, _
+                | _, Linux ->
+                    Set.empty
               Kind = "app"
               Dependencies = [
                 wac.ServicePlanName
