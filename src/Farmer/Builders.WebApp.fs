@@ -404,7 +404,7 @@ module Converters =
 
 
 type WebAppBuilder() =
-    member _.Yield _ =
+    member __.Yield _ =
         { Name = ResourceName.Empty
           ServicePlanName = ResourceName.Empty
           AppInsightsName = Some AutomaticPlaceholder
@@ -418,75 +418,75 @@ type WebAppBuilder() =
           Dependencies = []
           Runtime = DotNetCore DotNetCore22
           OperatingSystem = Windows }
-    member _.Run(state:WebAppConfig) =
+    member __.Run(state:WebAppConfig) =
         { state with
             ServicePlanName = state.ServicePlanName.IfEmpty (sprintf "%s-plan" state.Name.Value)
             AppInsightsName = Ai.tryCreateAppInsightsName state.AppInsightsName state.Name.Value
         }
     /// Sets the name of the web app.
     [<CustomOperation "name">]
-    member _.Name(state:WebAppConfig, name) = { state with Name = name }
+    member __.Name(state:WebAppConfig, name) = { state with Name = name }
     member this.Name(state:WebAppConfig, name:string) = this.Name(state, ResourceName name)
     /// Sets the name of the service plan.
     [<CustomOperation "service_plan_name">]
-    member _.ServicePlanName(state:WebAppConfig, name) = { state with ServicePlanName = name }
+    member __.ServicePlanName(state:WebAppConfig, name) = { state with ServicePlanName = name }
     member this.ServicePlanName(state:WebAppConfig, name:string) = this.ServicePlanName(state, ResourceName name)
     /// Sets the sku of the service plan.
     [<CustomOperation "sku">]
-    member _.Sku(state:WebAppConfig, sku) = { state with Sku = sku }
+    member __.Sku(state:WebAppConfig, sku) = { state with Sku = sku }
     /// Sets the size of the service plan worker.
     [<CustomOperation "worker_size">]
-    member _.WorkerSize(state:WebAppConfig, workerSize) = { state with WorkerSize = workerSize }
+    member __.WorkerSize(state:WebAppConfig, workerSize) = { state with WorkerSize = workerSize }
     /// Sets the number of instances on the service plan.
     [<CustomOperation "number_of_workers">]
-    member _.NumberOfWorkers(state:WebAppConfig, workerCount) = { state with WorkerCount = workerCount }
+    member __.NumberOfWorkers(state:WebAppConfig, workerCount) = { state with WorkerCount = workerCount }
     /// Sets the name of the automatically-created app insights instance.
     [<CustomOperation "app_insights_auto_name">]
-    member _.UseAppInsights(state:WebAppConfig, name) = { state with AppInsightsName = Some (AutomaticallyCreated name) }
+    member __.UseAppInsights(state:WebAppConfig, name) = { state with AppInsightsName = Some (AutomaticallyCreated name) }
     member this.UseAppInsights(state:WebAppConfig, name:string) = this.UseAppInsights(state, ResourceName name)
     /// Removes any automatic app insights creation, configuration and settings for this webapp.
     [<CustomOperation "app_insights_off">]
-    member _.DeactivateAppInsights(state:WebAppConfig) = { state with AppInsightsName = None }
+    member __.DeactivateAppInsights(state:WebAppConfig) = { state with AppInsightsName = None }
     /// Instead of creating a new AI instance, configure this webapp to point to another AI instance that you are managing
     /// yourself.
     [<CustomOperation "app_insights_manual">]
-    member _.LinkAppInsights(state:WebAppConfig, name) = { state with AppInsightsName = Some(External name) }
+    member __.LinkAppInsights(state:WebAppConfig, name) = { state with AppInsightsName = Some(External name) }
     /// Sets the web app to use "run from package" deployment capabilities.
     [<CustomOperation "run_from_package">]
-    member _.RunFromPackage(state:WebAppConfig) = { state with RunFromPackage = true }
+    member __.RunFromPackage(state:WebAppConfig) = { state with RunFromPackage = true }
     /// Sets the node version of the web app.
     [<CustomOperation "website_node_default_version">]
-    member _.NodeVersion(state:WebAppConfig, version) = { state with WebsiteNodeDefaultVersion = Some version }
+    member __.NodeVersion(state:WebAppConfig, version) = { state with WebsiteNodeDefaultVersion = Some version }
     /// Sets an app setting of the web app in the form "key" "value".
     [<CustomOperation "setting">]
-    member _.AddSetting(state:WebAppConfig, key, value) = { state with Settings = state.Settings.Add(key, value) }
-    member _.AddSetting(state:WebAppConfig, key, value:ArmExpression) = { state with Settings = state.Settings.Add(key, value.Eval()) }
+    member __.AddSetting(state:WebAppConfig, key, value) = { state with Settings = state.Settings.Add(key, value) }
+    member __.AddSetting(state:WebAppConfig, key, value:ArmExpression) = { state with Settings = state.Settings.Add(key, value.Eval()) }
     /// Sets a dependency for the web app.
     [<CustomOperation "depends_on">]
-    member _.DependsOn(state:WebAppConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
+    member __.DependsOn(state:WebAppConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
     /// Sets "Always On" flag
     [<CustomOperation "always_on">]
-    member _.AlwaysOn(state:WebAppConfig) = { state with AlwaysOn = true }
+    member __.AlwaysOn(state:WebAppConfig) = { state with AlwaysOn = true }
     /// Sets the runtime stack
     [<CustomOperation "runtime_stack">]
-    member _.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = runtime }
+    member __.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = runtime }
     /// Sets the dotnetcore runtime stack
-    member _.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = DotNetCore runtime }
+    member __.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = DotNetCore runtime }
     /// Sets the ASP NET runtime stack
-    member _.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = AspNet runtime }
+    member __.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = AspNet runtime }
     /// Sets the Java runtime stack
-    member _.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = Java runtime }
+    member __.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = Java runtime }
     /// Sets the PHP runtime stack
-    member _.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = Php runtime }
+    member __.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = Php runtime }
     /// Sets the Python runtime stack
-    member _.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = Python runtime }
+    member __.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = Python runtime }
     /// Sets the Ruby runtime stack
-    member _.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = Ruby runtime }
+    member __.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = Ruby runtime }
     [<CustomOperation "operating_system">]
     /// Sets the operating system
-    member _.OperatingSystem(state:WebAppConfig, os) = { state with OperatingSystem = os }
+    member __.OperatingSystem(state:WebAppConfig, os) = { state with OperatingSystem = os }
 type FunctionsBuilder() =
-    member _.Yield _ =
+    member __.Yield _ =
         { Name = ResourceName.Empty
           ServicePlanName = ResourceName.Empty
           AppInsightsName = Some AutomaticPlaceholder
@@ -496,7 +496,7 @@ type FunctionsBuilder() =
           OperatingSystem = Windows
           Settings = Map.empty
           Dependencies = [] }
-    member _.Run (state:FunctionsConfig) =
+    member __.Run (state:FunctionsConfig) =
         { state with
             ServicePlanName = state.ServicePlanName.IfEmpty (sprintf "%s-plan" state.Name.Value)
             StorageAccountName =
@@ -515,46 +515,46 @@ type FunctionsBuilder() =
         }
     /// Sets the name of the functions instance.
     [<CustomOperation "name">]
-    member _.Name(state:FunctionsConfig, name) = { state with Name = ResourceName name }
+    member __.Name(state:FunctionsConfig, name) = { state with Name = ResourceName name }
     /// Sets the name of the service plan hosting the function instance.
     [<CustomOperation "service_plan_name">]
-    member _.ServicePlanName(state:FunctionsConfig, name) = { state with ServicePlanName = ResourceName name }
+    member __.ServicePlanName(state:FunctionsConfig, name) = { state with ServicePlanName = ResourceName name }
     /// Do not create an automatic storage account; instead, link to a storage account that is created outside of this Functions instance.
     [<CustomOperation "storage_account_link">]
-    member _.StorageAccountName(state:FunctionsConfig, name) = { state with StorageAccountName = External (ResourceName name) }
+    member __.StorageAccountName(state:FunctionsConfig, name) = { state with StorageAccountName = External (ResourceName name) }
     /// Sets the name of the automatically-created app insights instance.
     [<CustomOperation "app_insights_auto_name">]
-    member _.UseAppInsights(state:FunctionsConfig, name) = { state with AppInsightsName = Some (AutomaticallyCreated name) }
+    member __.UseAppInsights(state:FunctionsConfig, name) = { state with AppInsightsName = Some (AutomaticallyCreated name) }
     member this.UseAppInsights(state:FunctionsConfig, name:string) = this.UseAppInsights(state, ResourceName name)
     /// Removes any automatic app insights creation, configuration and settings for this webapp.
     [<CustomOperation "app_insights_off">]
-    member _.DeactivateAppInsights(state:FunctionsConfig) = { state with AppInsightsName = None }
+    member __.DeactivateAppInsights(state:FunctionsConfig) = { state with AppInsightsName = None }
     /// Instead of creating a new AI instance, configure this webapp to point to another AI instance that you are managing
     /// yourself.
     [<CustomOperation "app_insights_manual">]
-    member _.LinkAppInsights(state:FunctionsConfig, name) = { state with AppInsightsName = Some(External name) }
+    member __.LinkAppInsights(state:FunctionsConfig, name) = { state with AppInsightsName = Some(External name) }
     /// Sets the runtime of the Functions host.
     [<CustomOperation "use_runtime">]
-    member _.Runtime(state:FunctionsConfig, runtime) = { state with Runtime = runtime }
+    member __.Runtime(state:FunctionsConfig, runtime) = { state with Runtime = runtime }
     [<CustomOperation "use_extension_version">]
-    member _.ExtensionVersion(state:FunctionsConfig, version) = { state with ExtensionVersion = version }
+    member __.ExtensionVersion(state:FunctionsConfig, version) = { state with ExtensionVersion = version }
     /// Sets the operating system of the Functions host.
     [<CustomOperation "operating_system">]
-    member _.OperatingSystem(state:FunctionsConfig, os) = { state with OperatingSystem = os }
+    member __.OperatingSystem(state:FunctionsConfig, os) = { state with OperatingSystem = os }
     /// Sets an app setting of the web app in the form "key" "value".
     [<CustomOperation "setting">]
-    member _.AddSetting(state:FunctionsConfig, key, value) = { state with Settings = state.Settings.Add(key, value) }
-    member _.AddSetting(state:FunctionsConfig, key, value:ArmExpression) = { state with Settings = state.Settings.Add(key, value.Eval()) }
+    member __.AddSetting(state:FunctionsConfig, key, value) = { state with Settings = state.Settings.Add(key, value) }
+    member __.AddSetting(state:FunctionsConfig, key, value:ArmExpression) = { state with Settings = state.Settings.Add(key, value.Eval()) }
     /// Sets a dependency for the web app.
     [<CustomOperation "depends_on">]
-    member _.DependsOn(state:FunctionsConfig, resourceName) =
+    member __.DependsOn(state:FunctionsConfig, resourceName) =
         { state with Dependencies = resourceName :: state.Dependencies }
 type AppInsightsBuilder() =
-    member _.Yield _ =
+    member __.Yield _ =
         { Name = ResourceName.Empty }
     [<CustomOperation "name">]
     /// Sets the name of the App Insights instance.
-    member _.Name(state:AppInsightsConfig, name) = { state with Name = ResourceName name }
+    member __.Name(state:AppInsightsConfig, name) = { state with Name = ResourceName name }
 
 [<AutoOpen>]
 module Extensions =

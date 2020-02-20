@@ -26,7 +26,7 @@ type RedisConfig =
     member this.Key = buildRedisKey this.Name
 
 type RedisBuilder() =
-    member _.Yield _ =
+    member __.Yield _ =
         { Name = ResourceName.Empty
           Sku = RedisSku.Basic
           Capacity = 0
@@ -34,7 +34,7 @@ type RedisBuilder() =
           NonSslEnabled = None
           ShardCount = None
           MinimumTlsVersion = None }
-    member _.Run (state:RedisConfig) =
+    member __.Run (state:RedisConfig) =
         { state with
             Capacity =
                 match state with
@@ -51,22 +51,22 @@ type RedisBuilder() =
         }
     /// Sets the name of the Redis instance.
     [<CustomOperation "name">]
-    member _.Name(state:RedisConfig, name) = { state with Name = name }
+    member __.Name(state:RedisConfig, name) = { state with Name = name }
     member this.Name(state:RedisConfig, name) = this.Name(state, ResourceName name)
     /// Sets the sku of the Redis instance.
     [<CustomOperation "sku">]
-    member _.Sku(state:RedisConfig, sku) = { state with Sku = sku }
+    member __.Sku(state:RedisConfig, sku) = { state with Sku = sku }
     /// Sets the capacity of the Redis instance.
     [<CustomOperation "capacity">]
-    member _.Capacity(state:RedisConfig, capacity) =
+    member __.Capacity(state:RedisConfig, capacity) =
         { state with Capacity = capacity }
     /// Adds a custom setting to the Redis configuration
     [<CustomOperation "setting">]
-    member _.AddSetting(state:RedisConfig, key, value) = { state with RedisConfiguration = state.RedisConfiguration.Add(key, value) }
+    member __.AddSetting(state:RedisConfig, key, value) = { state with RedisConfiguration = state.RedisConfiguration.Add(key, value) }
     member this.AddSetting(state:RedisConfig, key, value:int) = this.AddSetting(state, key, string value)
     /// Specifies whether the non-ssl Redis server port (6379) is enabled.
     [<CustomOperation "enable_non_ssl_port">]
-    member _.EnableNonSsl(state:RedisConfig) = { state with NonSslEnabled = Some true }
+    member __.EnableNonSsl(state:RedisConfig) = { state with NonSslEnabled = Some true }
 
 module Converters =
     open Farmer.Models

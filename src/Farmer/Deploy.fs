@@ -69,7 +69,7 @@ module AzureRest =
                 let bearer = response |> getContent<{| access_token:string |}>
                 TemplateDeployer(bearer.access_token, subscriptionId, resourceGroup))
             |> Result.mapError getContent<{| Error:string; Error_Description:string |}>
-        member _.CreateResourceGroup location =
+        member __.CreateResourceGroup location =
             http {
                 PUT (sprintf "https://management.azure.com/subscriptions/%O/resourcegroups/%s?api-version=2019-05-01" subscriptionId resourceGroup)
                 timeout defaultTimeout
@@ -77,7 +77,7 @@ module AzureRest =
                 body
                 json (sprintf """{ "location": "%s", "tags": { "Deployed with Farmer": "" }}""" location)
             } |> toResult
-        member _.DeployTemplate parameters deploymentName templateJson =
+        member __.DeployTemplate parameters deploymentName templateJson =
             let parameters = parameters |> List.map(fun (k, v) -> k, {| value = v |}) |> Map |> JsonConvert.SerializeObject
             http {
                 PUT (sprintf "https://management.azure.com/subscriptions/%O/resourcegroups/%s/providers/Microsoft.Resources/deployments/%s?api-version=2019-05-01" subscriptionId resourceGroup deploymentName)
@@ -87,7 +87,7 @@ module AzureRest =
                 json (sprintf """{ "properties": { "mode": "Incremental", "template": %s, "parameters" : %s } }""" templateJson parameters)
             } |> toResult
 
-        member _.GetDeploymentStatus deploymentName = Result.result {
+        member __.GetDeploymentStatus deploymentName = Result.result {
             let! deploymentDetails =
                 http {
                     GET (sprintf "https://management.azure.com/subscriptions/%O/resourcegroups/%s/providers/Microsoft.Resources/deployments/%s?api-version=2018-05-01" subscriptionId resourceGroup deploymentName)
@@ -213,7 +213,7 @@ module RestDeployment =
           Result = output }
 
 /// Executes the supplied Deployment against a resource group using the Azure REST API.
-/// It requires a service principle containing a client id, secret and tenant ID. Use this API for unattended installs e.g. continuous deployment etc. 
+/// It requires a service principle containing a client id, secret and tenant ID. Use this API for unattended installs e.g. continuous deployment etc.
 let fullDeploy credentials (subscriptionId:Guid) resourceGroupName parameters deployment =
     let armTemplateJson = deployment.Template |> Writer.toJson
 
@@ -233,7 +233,7 @@ module ParameterFile =
         let isValid (s:string) =
             let isInString (src:string) = s |> Seq.exists (string >> src.Contains)
             isInString lowerCaseLetters && isInString upperCaseLetters && isInString digits && isInString special
-            
+
         let generatePassword randomNumber length =
             Seq.init length (fun _ -> allCharacters.[randomNumber allCharacters.Length])
             |> Seq.toArray
@@ -258,8 +258,8 @@ module ParameterFile =
                 parameters
                 |> List.map(fun (name, value) -> name, {| value = value |})
                 |> Map.ofList
-        |}     
-       
+        |}
+
     let generateParametersFile (armTemplate:ArmTemplate) =
         armTemplate.Parameters
         |> List.map(fun (SecureParameter p) -> p, Passwords.generateConformingPassword 24 armTemplate)
@@ -273,8 +273,8 @@ module AzureCli =
 
     let setLinuxExecutePermissions filename =
         let command = sprintf "chmod +x %s" filename
-        let startInfo = 
-            System.Diagnostics.ProcessStartInfo( 
+        let startInfo =
+            System.Diagnostics.ProcessStartInfo(
                 FileName = "/bin/bash",
                 Arguments = "-c \""+ command + "\"",
                 UseShellExecute = false,
@@ -309,9 +309,9 @@ module AzureCli =
             File.WriteAllText(scriptFilename, bashHeader + azureCliCmd)
             setLinuxExecutePermissions scriptFilename
         | _ ->
-            RuntimeInformation.OSDescription 
-            |> sprintf "OSPlatform: %s not supported" 
-            |> System.NotImplementedException 
+            RuntimeInformation.OSDescription
+            |> sprintf "OSPlatform: %s not supported"
+            |> System.NotImplementedException
             |> raise
 
     let generateDeployScript resourceGroupName (deployment:Deployment) =

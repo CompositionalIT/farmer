@@ -16,13 +16,13 @@ type Deployment =
       Template : ArmTemplate }
 
 type ArmBuilder() =
-    member _.Yield _ =
+    member __.Yield _ =
         { Parameters = Set.empty
           Outputs = List.empty
           Resources = List.empty
           Location = WestEurope }
 
-    member _.Run (state:ArmConfig) =
+    member __.Run (state:ArmConfig) =
         let resources =
           [ for resource in state.Resources do
               match resource with
@@ -93,7 +93,7 @@ type ArmBuilder() =
 
     /// Creates an output value that will be returned by the ARM template.
     [<CustomOperation "output">]
-    member _.Output (state, outputName, outputValue) : ArmConfig = { state with Outputs = (outputName, outputValue) :: state.Outputs }
+    member __.Output (state, outputName, outputValue) : ArmConfig = { state with Outputs = (outputName, outputValue) :: state.Outputs }
     member this.Output (state:ArmConfig, outputName:string, (ResourceName outputValue)) = this.Output(state, outputName, outputValue)
     member this.Output (state:ArmConfig, outputName:string, outputValue:ArmExpression) = this.Output(state, outputName, outputValue.Eval())
     member this.Output (state:ArmConfig, outputName:string, outputValue:string option) =
@@ -107,11 +107,11 @@ type ArmBuilder() =
 
     /// Sets the default location of all resources.
     [<CustomOperation "location">]
-    member _.Location (state, location) : ArmConfig = { state with Location = location }
+    member __.Location (state, location) : ArmConfig = { state with Location = location }
 
     /// Adds a resource to the template.
     [<CustomOperation "add_resource">]
-    member _.AddResource(state, resource) : ArmConfig =
+    member __.AddResource(state, resource) : ArmConfig =
         { state with Resources = box resource :: state.Resources }
 
     /// Adds a collection of resources to the template.
