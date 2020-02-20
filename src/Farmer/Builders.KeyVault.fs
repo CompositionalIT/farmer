@@ -53,7 +53,7 @@ type NetworkAcl =
     { IpRules : string list
       VnetRules : string list
       DefaultAction : DefaultAction option
-      Bypass : Bypass option } 
+      Bypass : Bypass option }
 
 type SecretConfig =
     { Key : string
@@ -87,29 +87,29 @@ type KeyVaultConfig =
       Secrets : SecretConfig list }
 
 type AccessPolicyBuilder() =
-    member __.Yield _ =
+    member _.Yield _ =
         { ObjectId = Guid.Empty
           ApplicationId = None
           Permissions = {| Keys = Set.empty; Secrets = Set.empty; Certificates = Set.empty; Storage = Set.empty |} }
     /// Sets the Object ID of the permission set.
     [<CustomOperation "object_id">]
-    member __.ObjectId(state:AccessPolicy, objectId) = { state with ObjectId = objectId }
-    member __.ObjectId(state:AccessPolicy, objectId) = { state with ObjectId = Guid.Parse objectId }
+    member _.ObjectId(state:AccessPolicy, objectId) = { state with ObjectId = objectId }
+    member _.ObjectId(state:AccessPolicy, objectId) = { state with ObjectId = Guid.Parse objectId }
     /// Sets the Application ID of the permission set.
     [<CustomOperation "application_id">]
-    member __.ApplicationId(state:AccessPolicy, applicationId) = { state with ApplicationId = Some applicationId }
+    member _.ApplicationId(state:AccessPolicy, applicationId) = { state with ApplicationId = Some applicationId }
     /// Sets the Key permissions of the permission set.
     [<CustomOperation "key_permissions">]
-    member __.SetKeyPermissions(state:AccessPolicy, permissions) = { state with Permissions = {| state.Permissions with Keys = Set permissions |} }
+    member _.SetKeyPermissions(state:AccessPolicy, permissions) = { state with Permissions = {| state.Permissions with Keys = Set permissions |} }
     /// Sets the Storage permissions of the permission set.
     [<CustomOperation "storage_permissions">]
-    member __.SetStoragePermissions(state:AccessPolicy, permissions) = { state with Permissions = {| state.Permissions with Storage = Set permissions |} }
+    member _.SetStoragePermissions(state:AccessPolicy, permissions) = { state with Permissions = {| state.Permissions with Storage = Set permissions |} }
     /// Sets the Secret permissions of the permission set.
     [<CustomOperation "secret_permissions">]
-    member __.SetSecretPermissions(state:AccessPolicy, permissions) = { state with Permissions = {| state.Permissions with Secrets = Set permissions |} }
+    member _.SetSecretPermissions(state:AccessPolicy, permissions) = { state with Permissions = {| state.Permissions with Secrets = Set permissions |} }
     /// Sets the Certificate permissions of the permission set.
     [<CustomOperation "certificate_permissions">]
-    member __.SetCertificatePermissions(state:AccessPolicy, permissions) = { state with Permissions = {| state.Permissions with Certificates = Set permissions |} }
+    member _.SetCertificatePermissions(state:AccessPolicy, permissions) = { state with Permissions = {| state.Permissions with Certificates = Set permissions |} }
 
 [<RequireQualifiedAccess>]
 type SimpleCreateMode = Recover | Default
@@ -125,7 +125,7 @@ type KeyVaultBuilderState =
       Secrets : SecretConfig list }
 
 type KeyVaultBuilder() =
-    member __.Yield (_:unit) =        
+    member _.Yield (_:unit) =
         { Name = ResourceName.Empty
           TenantId = Guid.Empty
           Access = { VirtualMachineAccess = None; ResourceManagerAccess = None; AzureDiskEncryptionAccess = None; SoftDelete = None }
@@ -136,7 +136,7 @@ type KeyVaultBuilder() =
           Uri = None
           Secrets = [] }
 
-    member __.Run(state:KeyVaultBuilderState) : KeyVaultConfig =
+    member _.Run(state:KeyVaultBuilderState) : KeyVaultConfig =
         { Name = state.Name
           Access = state.Access
           Sku = state.Sku
@@ -152,92 +152,92 @@ type KeyVaultBuilder() =
           Uri = state.Uri }
     /// Sets the name of the vault.
     [<CustomOperation "name">]
-    member __.Name(state:KeyVaultBuilderState, name) = { state with Name = name }
+    member _.Name(state:KeyVaultBuilderState, name) = { state with Name = name }
     member this.Name(state:KeyVaultBuilderState, name) = this.Name(state, ResourceName name)
     /// Sets the sku of the vault.
     [<CustomOperation "sku">]
-    member __.Sku(state:KeyVaultBuilderState, sku) = { state with Sku = sku }
+    member _.Sku(state:KeyVaultBuilderState, sku) = { state with Sku = sku }
     /// Sets the Tenant ID of the vault.
     [<CustomOperation "tenant_id">]
-    member __.SetTenantId(state:KeyVaultBuilderState, tenantId) = { state with TenantId = tenantId }
-    member __.SetTenantId(state:KeyVaultBuilderState, tenantId) = { state with TenantId = Guid.Parse tenantId }
+    member _.SetTenantId(state:KeyVaultBuilderState, tenantId) = { state with TenantId = tenantId }
+    member _.SetTenantId(state:KeyVaultBuilderState, tenantId) = { state with TenantId = Guid.Parse tenantId }
     /// Allows VM access to the vault.
     [<CustomOperation "enable_vm_access">]
-    member __.EnableVmAccess(state:KeyVaultBuilderState) = { state with Access = { state.Access with VirtualMachineAccess = Some Enabled } }
+    member _.EnableVmAccess(state:KeyVaultBuilderState) = { state with Access = { state.Access with VirtualMachineAccess = Some Enabled } }
     /// Disallows VM access to the vault.
     [<CustomOperation "disable_vm_access">]
-    member __.DisableVmAccess(state:KeyVaultBuilderState) = { state with Access = { state.Access with VirtualMachineAccess = Some Disabled } }
+    member _.DisableVmAccess(state:KeyVaultBuilderState) = { state with Access = { state.Access with VirtualMachineAccess = Some Disabled } }
     /// Allows Resource Manager access to the vault.
     [<CustomOperation "enable_resource_manager_access">]
-    member __.EnableResourceManagerAccess(state:KeyVaultBuilderState) = { state with Access = { state.Access with ResourceManagerAccess = Some Enabled } }
+    member _.EnableResourceManagerAccess(state:KeyVaultBuilderState) = { state with Access = { state.Access with ResourceManagerAccess = Some Enabled } }
     /// Disallows Resource Manager access to the vault.
     [<CustomOperation "disable_resource_manager_access">]
-    member __.DisableResourceManagerAccess(state:KeyVaultBuilderState) = { state with Access = { state.Access with ResourceManagerAccess = Some Disabled } }
+    member _.DisableResourceManagerAccess(state:KeyVaultBuilderState) = { state with Access = { state.Access with ResourceManagerAccess = Some Disabled } }
     /// Allows Azure Disk Encyption service access to the vault.
     [<CustomOperation "enable_disk_encryption_access">]
-    member __.EnableDiskEncryptionAccess(state:KeyVaultBuilderState) = { state with Access = { state.Access with AzureDiskEncryptionAccess = Some Enabled } }
+    member _.EnableDiskEncryptionAccess(state:KeyVaultBuilderState) = { state with Access = { state.Access with AzureDiskEncryptionAccess = Some Enabled } }
     /// Disallows Azure Disk Encyption service access to the vault.
     [<CustomOperation "disable_disk_encryption_access">]
-    member __.DisableDiskEncryptionAccess(state:KeyVaultBuilderState) = { state with Access = { state.Access with AzureDiskEncryptionAccess = Some Disabled } }
+    member _.DisableDiskEncryptionAccess(state:KeyVaultBuilderState) = { state with Access = { state.Access with AzureDiskEncryptionAccess = Some Disabled } }
     /// Enables VM access to the vault.
     [<CustomOperation "enable_soft_delete">]
-    member __.EnableSoftDeletion(state:KeyVaultBuilderState) = { state with Access = { state.Access with SoftDelete = Some SoftDeletionOnly } }
+    member _.EnableSoftDeletion(state:KeyVaultBuilderState) = { state with Access = { state.Access with SoftDelete = Some SoftDeletionOnly } }
     /// Disables VM access to the vault.
     [<CustomOperation "enable_soft_delete_with_purge_protection">]
-    member __.EnableSoftDeletionWithPurgeProtection(state:KeyVaultBuilderState) = { state with Access = { state.Access with SoftDelete = Some SoftDeleteWithPurgeProtection } }
+    member _.EnableSoftDeletionWithPurgeProtection(state:KeyVaultBuilderState) = { state with Access = { state.Access with SoftDelete = Some SoftDeleteWithPurgeProtection } }
     /// Sets the URI of the vault.
     [<CustomOperation "uri">]
-    member __.Uri(state:KeyVaultBuilderState, uri) = { state with Uri = uri }
+    member _.Uri(state:KeyVaultBuilderState, uri) = { state with Uri = uri }
     /// Sets the Creation Mode to Recovery.
     [<CustomOperation "enable_recovery_mode">]
-    member __.EnableRecoveryMode(state:KeyVaultBuilderState) = { state with CreateMode = Some SimpleCreateMode.Recover }
+    member _.EnableRecoveryMode(state:KeyVaultBuilderState) = { state with CreateMode = Some SimpleCreateMode.Recover }
     /// Sets the Creation Mode to Default.
     [<CustomOperation "disable_recovery_mode">]
-    member __.DisableRecoveryMode(state:KeyVaultBuilderState) = { state with CreateMode = Some SimpleCreateMode.Default }
+    member _.DisableRecoveryMode(state:KeyVaultBuilderState) = { state with CreateMode = Some SimpleCreateMode.Default }
     /// Adds an access policy to the vault.
     [<CustomOperation "add_access_policy">]
-    member __.AddAccessPolicy(state:KeyVaultBuilderState, accessPolicy) = { state with Policies = accessPolicy :: state.Policies }
+    member _.AddAccessPolicy(state:KeyVaultBuilderState, accessPolicy) = { state with Policies = accessPolicy :: state.Policies }
     // Allows Azure traffic can bypass network rules.
     [<CustomOperation "enable_azure_services_bypass">]
-    member __.EnableBypass(state:KeyVaultBuilderState) = { state with NetworkAcl = { state.NetworkAcl with Bypass = Some AzureServices } }
+    member _.EnableBypass(state:KeyVaultBuilderState) = { state with NetworkAcl = { state.NetworkAcl with Bypass = Some AzureServices } }
     // Disallows Azure traffic can bypass network rules.
     [<CustomOperation "disable_azure_services_bypass">]
-    member __.DisableBypass(state:KeyVaultBuilderState) = { state with NetworkAcl = { state.NetworkAcl with Bypass = Some NoTraffic } }
+    member _.DisableBypass(state:KeyVaultBuilderState) = { state with NetworkAcl = { state.NetworkAcl with Bypass = Some NoTraffic } }
     // Allow traffic if no rule from ipRules and virtualNetworkRules match. This is only used after the bypass property has been evaluated.
     [<CustomOperation "allow_default_traffic">]
-    member __.AllowDefaultTraffic(state:KeyVaultBuilderState) = { state with NetworkAcl = { state.NetworkAcl with DefaultAction = Some Allow } }
+    member _.AllowDefaultTraffic(state:KeyVaultBuilderState) = { state with NetworkAcl = { state.NetworkAcl with DefaultAction = Some Allow } }
     // Deny traffic when no rule from ipRules and virtualNetworkRules match. This is only used after the bypass property has been evaluated.
     [<CustomOperation "deny_default_traffic">]
-    member __.DenyDefaultTraffic(state:KeyVaultBuilderState) = { state with NetworkAcl = { state.NetworkAcl with DefaultAction = Some Deny } }
+    member _.DenyDefaultTraffic(state:KeyVaultBuilderState) = { state with NetworkAcl = { state.NetworkAcl with DefaultAction = Some Deny } }
     // Adds an IP address rule. This can be an IPv4 address range in CIDR notation, such as '124.56.78.91' (simple IP address) or '124.56.78.0/24' (all addresses that start with 124.56.78).
     [<CustomOperation "add_ip_rule">]
-    member __.AddIpRule(state:KeyVaultBuilderState, ipRule) = { state with NetworkAcl = { state.NetworkAcl with IpRules = ipRule :: state.NetworkAcl.IpRules } }
+    member _.AddIpRule(state:KeyVaultBuilderState, ipRule) = { state with NetworkAcl = { state.NetworkAcl with IpRules = ipRule :: state.NetworkAcl.IpRules } }
     // Adds a virtual network rule. This is the full resource id of a vnet subnet, such as '/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/virtualNetworks/test-vnet/subnets/subnet1'.
     [<CustomOperation "add_vnet_rule">]
-    member __.AddVnetRule(state:KeyVaultBuilderState, vnetRule) = { state with NetworkAcl = { state.NetworkAcl with VnetRules = vnetRule :: state.NetworkAcl.VnetRules } }
+    member _.AddVnetRule(state:KeyVaultBuilderState, vnetRule) = { state with NetworkAcl = { state.NetworkAcl with VnetRules = vnetRule :: state.NetworkAcl.VnetRules } }
     [<CustomOperation "add_secret">]
-    member __.AddSecret(state:KeyVaultBuilderState, key) = { state with Secrets = SecretConfig.Create key :: state.Secrets }
-    member __.AddSecret(state:KeyVaultBuilderState, (key, value, resourceName)) = { state with Secrets = SecretConfig.Create(key, value, resourceName) :: state.Secrets }
-    member __.AddSecret(state:KeyVaultBuilderState, key) = { state with Secrets = key :: state.Secrets }
+    member _.AddSecret(state:KeyVaultBuilderState, key) = { state with Secrets = SecretConfig.Create key :: state.Secrets }
+    member _.AddSecret(state:KeyVaultBuilderState, (key, value, resourceName)) = { state with Secrets = SecretConfig.Create(key, value, resourceName) :: state.Secrets }
+    member _.AddSecret(state:KeyVaultBuilderState, key) = { state with Secrets = key :: state.Secrets }
 
 type SecretBuilder() =
-    member __.Yield (_:unit) = SecretConfig.Create ""
+    member _.Yield (_:unit) = SecretConfig.Create ""
     [<CustomOperation "name">]
-    member __.Name(state:SecretConfig, name) = { state with Key = name; Value = Models.ParameterSecret(SecureParameter name) }
+    member _.Name(state:SecretConfig, name) = { state with Key = name; Value = Models.ParameterSecret(SecureParameter name) }
     [<CustomOperation "value">]
-    member __.Value(state:SecretConfig, value) = { state with Value = Models.ExpressionSecret value }
+    member _.Value(state:SecretConfig, value) = { state with Value = Models.ExpressionSecret value }
     [<CustomOperation "content_type">]
-    member __.ContentType(state, contentType) = { state with ContentType = Some contentType }
+    member _.ContentType(state, contentType) = { state with ContentType = Some contentType }
     [<CustomOperation "enable_secret">]
-    member __.Enabled(state) = { state with Enabled = Some true }
+    member _.Enabled(state) = { state with Enabled = Some true }
     [<CustomOperation "disable_secret">]
-    member __.Disabled(state) = { state with Enabled = Some false }
+    member _.Disabled(state) = { state with Enabled = Some false }
     [<CustomOperation "activation_date">]
-    member __.ActivationDate(state, activationDate) = { state with ActivationDate = Some activationDate }
+    member _.ActivationDate(state, activationDate) = { state with ActivationDate = Some activationDate }
     [<CustomOperation "expiration_date">]
-    member __.ExpirationDate(state, expirationDate) = { state with ExpirationDate = Some expirationDate }
+    member _.ExpirationDate(state, expirationDate) = { state with ExpirationDate = Some expirationDate }
     [<CustomOperation "depends_on">]
-    member __.DependsOn(state:SecretConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
+    member _.DependsOn(state:SecretConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
 
 let secret = SecretBuilder()
 
@@ -263,7 +263,7 @@ module Converters =
                     None
                 | Some SoftDeleteWithPurgeProtection
                 | Some SoftDeletionOnly ->
-                    Some true          
+                    Some true
               EnablePurgeProtection =
                 match kvc.Access.SoftDelete with
                 | None
@@ -305,11 +305,11 @@ module Converters =
                   Value = secret.Value
                   ContentType = secret.ContentType
                   Enabled = secret.Enabled |> Option.toNullable
-                  ActivationDate = secret.ActivationDate |> Option.map totalSecondsSince1970 |> Option.toNullable 
+                  ActivationDate = secret.ActivationDate |> Option.map totalSecondsSince1970 |> Option.toNullable
                   ExpirationDate = secret.ExpirationDate |> Option.map totalSecondsSince1970 |> Option.toNullable
                   Location = location
                   Dependencies = secret.Dependencies })
-        
+
         {| KeyVault = keyVault; Secrets = secretKeys |}
 
 let accessPolicy = AccessPolicyBuilder()

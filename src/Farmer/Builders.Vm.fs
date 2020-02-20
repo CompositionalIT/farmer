@@ -190,13 +190,13 @@ let makeResourceName vmName = makeName vmName >> ResourceName
 type VmConfig =
     { Name : ResourceName
       DiagnosticsStorageAccount : ResourceRef option
-      
+
       Username : string
       Image : {| Publisher : string; Offer : string; Sku : string |}
       Size : string
       OsDisk : DiskInfo
       DataDisks : DiskInfo list
-      
+
       DomainNamePrefix : string option
       AddressPrefix : string
       SubnetPrefix : string }
@@ -207,7 +207,7 @@ type VmConfig =
     member this.IpName = makeResourceName this.Name "ip"
     member this.Hostname = sprintf "reference('%s').dnsSettings.fqdn" this.IpName.Value |> ArmExpression
 type VirtualMachineBuilder() =
-    member __.Yield _ =
+    member _.Yield _ =
         { Name = ResourceName.Empty
           DiagnosticsStorageAccount = None
           Size = Size.Basic_A0
@@ -219,7 +219,7 @@ type VirtualMachineBuilder() =
           AddressPrefix = "10.0.0.0/16"
           SubnetPrefix = "10.0.0.0/24" }
 
-    member __.Run (state:VmConfig) =
+    member _.Run (state:VmConfig) =
         { state with
             DiagnosticsStorageAccount =
                 state.DiagnosticsStorageAccount
@@ -239,33 +239,33 @@ type VirtualMachineBuilder() =
 
     /// Sets the name of the VM.
     [<CustomOperation "name">]
-    member __.Name(state:VmConfig, name) = { state with Name = name }
+    member _.Name(state:VmConfig, name) = { state with Name = name }
     member this.Name(state:VmConfig, name) = this.Name(state, ResourceName name)
     /// Turns on diagnostics support using an automatically created storage account.
     [<CustomOperation "diagnostics_support">]
-    member __.StorageAccountName(state:VmConfig) = { state with DiagnosticsStorageAccount = Some AutomaticPlaceholder }
+    member _.StorageAccountName(state:VmConfig) = { state with DiagnosticsStorageAccount = Some AutomaticPlaceholder }
     /// Turns on diagnostics support using an externally managed storage account.
     [<CustomOperation "diagnostics_support_external">]
-    member __.StorageAccountNameExternal(state:VmConfig, name) = { state with DiagnosticsStorageAccount = Some (External name) }
+    member _.StorageAccountNameExternal(state:VmConfig, name) = { state with DiagnosticsStorageAccount = Some (External name) }
     /// Sets the size of the VM.
     [<CustomOperation "vm_size">]
-    member __.VmSize(state:VmConfig, size) = { state with Size = size }
+    member _.VmSize(state:VmConfig, size) = { state with Size = size }
     /// Sets the admin username of the VM (note: the password is supplied as a securestring parameter to the generated ARM template).
     [<CustomOperation "username">]
-    member __.Username(state:VmConfig, username) = { state with Username = username }
+    member _.Username(state:VmConfig, username) = { state with Username = username }
     /// Sets the operating system of the VM. A set of samples is provided in the `CommonImages` module.
     [<CustomOperation "operating_system">]
-    member __.ConfigureOs(state:VmConfig, image) =
+    member _.ConfigureOs(state:VmConfig, image) =
         { state with Image = image }
-    member __.ConfigureOs(state:VmConfig, (offer, publisher, sku)) =
+    member _.ConfigureOs(state:VmConfig, (offer, publisher, sku)) =
         { state with Image = {| Offer = offer; Publisher = publisher; Sku = sku |} }
     /// Sets the size and type of the OS disk for the VM.
     [<CustomOperation "os_disk">]
-    member __.OsDisk(state:VmConfig, size, diskType) =
+    member _.OsDisk(state:VmConfig, size, diskType) =
         { state with OsDisk = { Size = size; DiskType = diskType } }
     /// Adds a data disk to the VM with a specific size and type.
     [<CustomOperation "add_disk">]
-    member __.AddDisk(state:VmConfig, size, diskType) = { state with DataDisks = { Size = size; DiskType = diskType } :: state.DataDisks }
+    member _.AddDisk(state:VmConfig, size, diskType) = { state with DataDisks = { Size = size; DiskType = diskType } :: state.DataDisks }
     /// Adds a SSD data disk to the VM with a specific size.
     [<CustomOperation "add_ssd_disk">]
     member this.AddSsd(state:VmConfig, size) = this.AddDisk(state, size, StandardSSD_LRS)
@@ -274,13 +274,13 @@ type VirtualMachineBuilder() =
     member this.AddSlowDisk(state:VmConfig, size) = this.AddDisk(state, size, Standard_LRS)
     /// Sets the prefix for the domain name of the VM.
     [<CustomOperation "domain_name_prefix">]
-    member __.DomainNamePrefix(state:VmConfig, prefix) = { state with DomainNamePrefix = prefix }
+    member _.DomainNamePrefix(state:VmConfig, prefix) = { state with DomainNamePrefix = prefix }
     /// Sets the IP address prefix of the VM.
     [<CustomOperation "address_prefix">]
-    member __.AddressPrefix(state:VmConfig, prefix) = { state with AddressPrefix = prefix }
+    member _.AddressPrefix(state:VmConfig, prefix) = { state with AddressPrefix = prefix }
     /// Sets the subnet prefix of the VM.
     [<CustomOperation "subnet_prefix">]
-    member __.SubnetPrefix(state:VmConfig, prefix) = { state with SubnetPrefix = prefix }        
+    member _.SubnetPrefix(state:VmConfig, prefix) = { state with SubnetPrefix = prefix }
 
 module Converters =
     open VM
@@ -293,7 +293,7 @@ module Converters =
                     { StorageAccount.Name = account
                       Location = location
                       Sku = Storage.Sku.StandardLRS
-                      Containers = [] }                    
+                      Containers = [] }
             | Some AutomaticPlaceholder
             | Some (External _)
             | None ->

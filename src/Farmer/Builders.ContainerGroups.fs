@@ -20,22 +20,22 @@ type ContainerInstanceConfig =
     member this.Key = buildKey this.Name
 
 type ContainerInstanceBuilder() =
-    member __.Yield _ = { Name = ResourceName.Empty; Image = ""; Ports = []; Cpu = 1; Memory = 1.5<Gb> }
+    member _.Yield _ = { Name = ResourceName.Empty; Image = ""; Ports = []; Cpu = 1; Memory = 1.5<Gb> }
     /// Sets the name of the container instance
     [<CustomOperation "name">]
-    member __.Name(state:ContainerInstanceConfig, name) = { state with Name = ResourceName name }
+    member _.Name(state:ContainerInstanceConfig, name) = { state with Name = ResourceName name }
     /// Sets the container image.
     [<CustomOperation "image">]
-    member __.Image (state:ContainerInstanceConfig, image) = { state with Image = image }
+    member _.Image (state:ContainerInstanceConfig, image) = { state with Image = image }
     /// Sets the ports the container exposes
     [<CustomOperation "ports">]
-    member __.Ports (state:ContainerInstanceConfig, ports) = { state with Ports = ports }
+    member _.Ports (state:ContainerInstanceConfig, ports) = { state with Ports = ports }
     /// Sets the maximum CPU cores the container may use
     [<CustomOperationAttribute "cpu">]
-    member __.CpuCount (state:ContainerInstanceConfig, cpuCount) = { state with Cpu = cpuCount }
+    member _.CpuCount (state:ContainerInstanceConfig, cpuCount) = { state with Cpu = cpuCount }
     /// Sets the maximum gigabytes of memory the container may use
     [<CustomOperationAttribute "memory">]
-    member __.Memory (state:ContainerInstanceConfig, memory) = { state with Memory = memory }
+    member _.Memory (state:ContainerInstanceConfig, memory) = { state with Memory = memory }
 let containerInstance = ContainerInstanceBuilder()
 
 /// Represents configuration on a group of Azure Containers.
@@ -55,7 +55,7 @@ type ContainerGroupConfig =
     member this.Key = buildKey this.Name
 
 type ContainerGroupBuilder() =
-    member __.Yield _ =
+    member _.Yield _ =
         { Name = ResourceName.Empty
           ContainerInstances = []
           OsType = ContainerGroupOsType.Linux
@@ -64,29 +64,29 @@ type ContainerGroupBuilder() =
         }
     [<CustomOperation "name">]
     /// Sets the name of the container group.
-    member __.Name(state:ContainerGroupConfig, name) = { state with Name = name }
+    member _.Name(state:ContainerGroupConfig, name) = { state with Name = name }
     member this.Name(state:ContainerGroupConfig, name) = this.Name(state, ResourceName name)
     [<CustomOperation "add_container">]
     /// Adds a single container instance.
-    member __.AddContainer(state:ContainerGroupConfig, instance) = { state with ContainerInstances = instance :: state.ContainerInstances }
+    member _.AddContainer(state:ContainerGroupConfig, instance) = { state with ContainerInstances = instance :: state.ContainerInstances }
     /// Adds container instances.
     [<CustomOperation "add_containers">]
-    member __.AddContainers(state:ContainerGroupConfig, instances) = { state with ContainerInstances = instances @ state.ContainerInstances }
+    member _.AddContainers(state:ContainerGroupConfig, instances) = { state with ContainerInstances = instances @ state.ContainerInstances }
     /// Sets the OS type (default Linux)
     [<CustomOperation "os_type">]
-    member __.OsType(state:ContainerGroupConfig, osType) = { state with OsType = osType }
+    member _.OsType(state:ContainerGroupConfig, osType) = { state with OsType = osType }
     /// Sets the restart policy (default Always)
     [<CustomOperation "restart_policy">]
-    member __.RestartPolicy(state:ContainerGroupConfig, restartPolicy) = { state with RestartPolicy = restartPolicy }
+    member _.RestartPolicy(state:ContainerGroupConfig, restartPolicy) = { state with RestartPolicy = restartPolicy }
     /// Sets the IP addresss (default Public)
     [<CustomOperation "ip_address">]
-    member __.IpAddress(state:ContainerGroupConfig, ipAddress) = { state with IpAddress = ipAddress }
+    member _.IpAddress(state:ContainerGroupConfig, ipAddress) = { state with IpAddress = ipAddress }
     /// Adds a TCP port to be externally accessible
     [<CustomOperation "add_tcp_port">]
-    member __.AddTcpPort(state:ContainerGroupConfig, port) = { state with IpAddress = { state.IpAddress with Ports = { Protocol=System.Net.Sockets.ProtocolType.Tcp; Port = port } :: state.IpAddress.Ports } }
+    member _.AddTcpPort(state:ContainerGroupConfig, port) = { state with IpAddress = { state.IpAddress with Ports = { Protocol=System.Net.Sockets.ProtocolType.Tcp; Port = port } :: state.IpAddress.Ports } }
     /// Adds a UDP port to be externally accessible
     [<CustomOperation "add_udp_port">]
-    member __.AddUdpPort(state:ContainerGroupConfig, port) = { state with IpAddress = { state.IpAddress with Ports = { Protocol=System.Net.Sockets.ProtocolType.Udp; Port = port } :: state.IpAddress.Ports } }
+    member _.AddUdpPort(state:ContainerGroupConfig, port) = { state with IpAddress = { state.IpAddress with Ports = { Protocol=System.Net.Sockets.ProtocolType.Udp; Port = port } :: state.IpAddress.Ports } }
 
 module Converters =
     let containerInstance (config:ContainerInstanceConfig) : ContainerInstance =

@@ -105,16 +105,12 @@ type StorageAccount =
       Sku : string
       Containers : (string * StorageContainerAccess) list }
 
-[<RequireQualifiedAccess>]
-type RedisSkuName = Basic | Standard | Premium
-type RedisSkuFamiy = C | P
-
 type Redis =
     { Name : ResourceName
       Location : Location
       Sku :
-        {| Name : RedisSkuName
-           Family : RedisSkuFamiy
+        {| Name : string
+           Family : char
            Capacity : int |}
       RedisConfiguration : Map<string, string>
       NonSslEnabled : bool option

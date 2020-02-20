@@ -49,7 +49,7 @@ type SqlAzureConfig =
 
 type SqlBuilder() =
     let makeIp = System.Net.IPAddress.Parse
-    member __.Yield _ =
+    member _.Yield _ =
         { ServerName = ResourceName ""
           AdministratorCredentials = {| UserName = ""; Password = SecureParameter "" |}
           DbName = ResourceName ""
@@ -57,7 +57,7 @@ type SqlBuilder() =
           DbCollation = "SQL_Latin1_General_CP1_CI_AS"
           Encryption = Disabled
           FirewallRules = [] }
-    member __.Run(state) =
+    member _.Run(state) =
         if System.String.IsNullOrWhiteSpace state.AdministratorCredentials.UserName then failwith "You must specific an admin_username."
         else
             { state with
@@ -68,24 +68,24 @@ type SqlBuilder() =
                         Password = SecureParameter (sprintf "password-for-%s" state.ServerName.Value) |} }
     [<CustomOperation "server_name">]
     /// Sets the name of the SQL server.
-    member __.ServerName(state:SqlAzureConfig, serverName) = { state with ServerName = serverName }
+    member _.ServerName(state:SqlAzureConfig, serverName) = { state with ServerName = serverName }
     member this.ServerName(state:SqlAzureConfig, serverName:string) = this.ServerName(state, ResourceName serverName)
     /// Sets the name of the database.
     [<CustomOperation "db_name">]
-    member __.Name(state:SqlAzureConfig, name) = { state with DbName = name }
+    member _.Name(state:SqlAzureConfig, name) = { state with DbName = name }
     member this.Name(state:SqlAzureConfig, name:string) = this.Name(state, ResourceName name)
     /// Sets the sku of the database.
     [<CustomOperation "sku">]
-    member __.DatabaseEdition(state:SqlAzureConfig, edition:Edition) = { state with DbEdition = edition }
+    member _.DatabaseEdition(state:SqlAzureConfig, edition:Edition) = { state with DbEdition = edition }
     /// Sets the collation of the database.
     [<CustomOperation "collation">]
-    member __.Collation(state:SqlAzureConfig, collation:string) = { state with DbCollation = collation }
+    member _.Collation(state:SqlAzureConfig, collation:string) = { state with DbCollation = collation }
     /// Enables encryption of the database.
     [<CustomOperation "use_encryption">]
-    member __.Encryption(state:SqlAzureConfig) = { state with Encryption = Enabled }
+    member _.Encryption(state:SqlAzureConfig) = { state with Encryption = Enabled }
     /// Adds a custom firewall rule given a name, start and end IP address range.
     [<CustomOperation "add_firewall_rule">]
-    member __.AddFirewallWall(state:SqlAzureConfig, name, startRange, endRange) =
+    member _.AddFirewallWall(state:SqlAzureConfig, name, startRange, endRange) =
         { state with
             FirewallRules =
                 {| Name = name
@@ -98,7 +98,7 @@ type SqlBuilder() =
         this.AddFirewallWall(state, "AllowAllMicrosoftAzureIps", "0.0.0.0", "0.0.0.0")
     /// Sets the admin username of the server (note: the password is supplied as a securestring parameter to the generated ARM template).
     [<CustomOperation "admin_username">]
-    member __.AdminUsername(state:SqlAzureConfig, username) =
+    member _.AdminUsername(state:SqlAzureConfig, username) =
         { state with
             AdministratorCredentials =
                 {| state.AdministratorCredentials with

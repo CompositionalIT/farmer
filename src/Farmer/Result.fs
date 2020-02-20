@@ -6,38 +6,38 @@ let ofOption error = function Some s -> Ok s | None -> Error error
 let ignore result = Result.map ignore result
 
 type ResultBuilder() =
-    member __.Return(x) = Ok x
+    member _.Return(x) = Ok x
 
-    member __.ReturnFrom(m: Result<_, _>) = m
+    member _.ReturnFrom(m: Result<_, _>) = m
 
-    member __.Bind(m, f) = Result.bind f m
-    member __.Bind((m, error): (Option<'T> * 'E), f) = m |> ofOption error |> Result.bind f
+    member _.Bind(m, f) = Result.bind f m
+    member _.Bind((m, error): (Option<'T> * 'E), f) = m |> ofOption error |> Result.bind f
 
-    member __.Zero() = None
+    member _.Zero() = None
 
-    member __.Combine(m, f) = Result.bind f m
+    member _.Combine(m, f) = Result.bind f m
 
-    member __.Delay(f: unit -> _) = f
+    member _.Delay(f: unit -> _) = f
 
-    member __.Run(f) = f()
+    member _.Run(f) = f()
 
-    member __.TryWith(m, h) =
+    member _.TryWith(m, h) =
         try __.ReturnFrom(m)
         with e -> h e
 
-    member __.TryFinally(m, compensation) =
+    member _.TryFinally(m, compensation) =
         try __.ReturnFrom(m)
         finally compensation()
 
-    member __.Using(res:#IDisposable, body) =
+    member _.Using(res:#IDisposable, body) =
         __.TryFinally(body res, fun () -> match res with null -> () | disp -> disp.Dispose())
 
-    member __.While(guard, f) =
+    member _.While(guard, f) =
         if not (guard()) then Ok () else
         do f() |> ignore
         __.While(guard, f)
 
-    member __.For(sequence:seq<_>, body) =
+    member _.For(sequence:seq<_>, body) =
         __.Using(sequence.GetEnumerator(), fun enum -> __.While(enum.MoveNext, __.Delay(fun () -> body enum.Current)))
 
 let result = ResultBuilder()

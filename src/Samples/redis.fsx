@@ -1,5 +1,4 @@
 #r @"..\Farmer\bin\Debug\netstandard2.0\Farmer.dll"
-#r @"C:\Users\isaac\.nuget\packages\newtonsoft.json\12.0.3\lib\netstandard2.0\Newtonsoft.Json.dll"
 
 open Farmer
 open Farmer.Resources.Redis
@@ -7,7 +6,7 @@ open Farmer.Models
 
 let myCache = redis {
     name "isaacsredis"
-    sku Basic
+    sku RedisSku.Basic
     capacity 0
     enable_non_ssl_port
     setting "maxclients" 256

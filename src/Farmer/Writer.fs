@@ -450,8 +450,8 @@ module Outputters =
         location = redis.Location.Value
         properties =
             {| sku =
-                {| name = string redis.Sku.Name
-                   family = string redis.Sku.Family
+                {| name = redis.Sku.Name
+                   family = redis.Sku.Family
                    capacity = redis.Sku.Capacity
                 |}
                enableNonSslPort = redis.NonSslEnabled |> Option.toNullable
@@ -489,7 +489,7 @@ module TemplateGeneration =
         parameters =
             template.Parameters
             |> List.map(fun (SecureParameter p) -> p, {| ``type`` = "securestring" |})
-            |> Map.ofList        
+            |> Map.ofList
         outputs =
             template.Outputs
             |> List.map(fun (k, v) ->
