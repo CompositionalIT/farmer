@@ -10,18 +10,19 @@ type WebAppSku = Shared | Free | Basic of string | Standard of string | Premium 
 type FunctionsRuntime = DotNet | Node | Java | Python
 type FunctionsExtensionVersion = V1 | V2 | V3
 type OS = Windows | Linux
-type DotNetCoreRuntime = DotNetCore22 | DotNetCore21 | DotNetCore20 | DotNetCore11 | DotNetCore10
+type DotNetCoreRuntime = DotNetCore21 | DotNetCore31 | DotNetCoreLts | DotNetCoreLatest
 type AspNetRuntime = | AspNet47 | AspNet35
 type JavaHost = JavaSE | WildFly14 | Tomcat90 | Tomcat85
 type JavaRuntime = Java8 of JavaHost | Java11 of JavaHost
 type PhpRuntime = Php73 | Php72 | Php71 | Php70 | Php56
 type PythonRuntime = Python37 | Python36 | Python27
 type RubyRuntime = Ruby26 | Ruby25 | Ruby24 | Ruby23
+type NodeRuntime = Node6 | Node8 | Node10 | Node12 | NodeLts
 type WebAppRuntime =
     | DotNetCore of DotNetCoreRuntime
     | AspNet of AspNetRuntime
     | Java of JavaRuntime
-    | Node
+    | Node of NodeRuntime
     | Php of PhpRuntime
     | Python of PythonRuntime
     | Ruby of RubyRuntime
@@ -163,11 +164,10 @@ module Converters =
               AlwaysOn = wac.AlwaysOn
               LinuxFxVersion =
                 match wac.Runtime, wac.OperatingSystem with
-                | DotNetCore DotNetCore22, Linux -> Some "DOTNETCORE|2.2"
                 | DotNetCore DotNetCore21, Linux -> Some "DOTNETCORE|2.1"
-                | DotNetCore DotNetCore20, Linux -> Some "DOTNETCORE|2.0"
-                | DotNetCore DotNetCore11, Linux -> Some "DOTNETCORE|1.1"
-                | DotNetCore DotNetCore10, Linux -> Some "DOTNETCORE|1.0"
+                | DotNetCore DotNetCore31, Linux -> Some "DOTNETCORE|3.1"
+                | DotNetCore DotNetCoreLts, Linux -> Some "DOTNETCORE|LTS"
+                | DotNetCore DotNetCoreLatest, Linux -> Some "DOTNETCORE|Latest"
                 | Java (Java11 JavaSE), _ -> Some "JAVA|11-java11"
                 | Java (Java11 Tomcat90), Linux -> Some "TOMCAT|9.0-java11"
                 | Java (Java11 Tomcat85), Linux -> Some "TOMCAT|8.5-java11"
@@ -175,7 +175,11 @@ module Converters =
                 | Java (Java8 WildFly14), _ -> Some "WILDFLY|14-jre8"
                 | Java (Java8 Tomcat90), Linux -> Some "TOMCAT|9.0-jre8"
                 | Java (Java8 Tomcat85), Linux -> Some "TOMCAT|8.5-jre8"
-                | Node, _ -> Some "NODE|lts"
+                | Node Node6, _ -> Some "NODE|6-lts"
+                | Node Node8, _ -> Some "NODE|8-lts"
+                | Node Node10, _ -> Some "NODE|10-lts"
+                | Node Node12, _ -> Some "NODE|12-lts"
+                | Node NodeLts, _ -> Some "NODE|lts"
                 | Php Php73, Linux -> Some "PHP|7.3"
                 | Php Php72, Linux -> Some "PHP|7.2"
                 | Php Php70, Linux -> Some "PHP|7.0"
@@ -413,7 +417,7 @@ type WebAppBuilder() =
           AlwaysOn = false
           Settings = Map.empty
           Dependencies = []
-          Runtime = DotNetCore DotNetCore22
+          Runtime = DotNetCore DotNetCore21
           OperatingSystem = Windows }
     member __.Run(state:WebAppConfig) =
         { state with
