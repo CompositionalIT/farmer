@@ -148,13 +148,6 @@ module Converters =
                 | None ->
                     ()
               ]
-              Extensions =
-                match wac.AppInsightsName, wac.OperatingSystem with
-                | Some _, Windows ->
-                    Set [ AppInsightsExtension ]
-                | None, _
-                | _, Linux ->
-                    Set.empty
               Kind = "app"
               Dependencies = [
                 wac.ServicePlanName
@@ -341,7 +334,6 @@ module Converters =
                 match fns.OperatingSystem with
                 | Windows -> "functionapp"
                 | Linux -> "functionapp,linux"
-              Extensions = Set.empty
               Dependencies = [
                 yield! fns.Dependencies
                 match fns.AppInsightsName with

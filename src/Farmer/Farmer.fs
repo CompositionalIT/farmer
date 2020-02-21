@@ -83,8 +83,6 @@ type FeatureFlag = Enabled | Disabled member this.AsBoolean = match this with En
 type DiskType = StandardSSD_LRS | Standard_LRS | Premium_LRS
 /// Represents a disk in a VM.
 type DiskInfo = { Size : int; DiskType : DiskType }
-/// The type of extensions in a web app.
-type WebAppExtensions = AppInsightsExtension
 
 namespace Farmer.Models
 
@@ -169,7 +167,6 @@ type WebApp =
       ServerFarm : ResourceName
       Location : Location
       AppSettings : List<string * string>
-      Extensions : WebAppExtensions Set
       AlwaysOn : bool
       Dependencies : ResourceName list
       Kind : string

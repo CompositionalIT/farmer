@@ -123,17 +123,6 @@ module Outputters =
         location = webApp.Location.Value
         dependsOn = webApp.Dependencies |> List.map(fun p -> p.Value)
         kind = webApp.Kind
-        resources =
-            webApp.Extensions
-            |> Set.toList
-            |> List.map (function
-            | AppInsightsExtension ->
-                 {| apiVersion = "2016-08-01"
-                    name = "Microsoft.ApplicationInsights.AzureWebSites"
-                    ``type`` = "siteextensions"
-                    dependsOn = [ webApp.Name.Value ]
-                    properties = {||}
-                 |})
         properties =
             {| serverFarmId = webApp.ServerFarm.Value
                siteConfig =
