@@ -451,6 +451,51 @@ module Outputters =
             |}
     |}
 
+    let eventHubNs (ns:EventHubNamespace) = {|
+        ``type`` = "Microsoft.EventHub/namespaces"
+        apiVersion = "2017-04-01"
+        name = ns.Name.Value
+        location = ns.Location.Value
+        sku =
+            {| name = ns.Sku.Name
+               tier = ns.Sku.Tier
+               capacity = ns.Sku.Capacity |}
+        properties =
+            {| zoneRedundant = ns.ZoneRedundant |> Option.toNullable
+               isAutoInflateEnabled = ns.IsAutoInflateEnabled |> Option.toNullable
+               maximumThroughputUnits = ns.MaxThroughputUnits |> Option.toNullable
+               kafkaEnabled = ns.KafkaEnabled |> Option.toNullable |}
+    |}
+
+    let eventHub (hub:EventHub) = {|
+        ``type`` = "Microsoft.EventHub/namespaces/eventhubs"
+        apiVersion = "2017-04-01"
+        name = hub.Name.Value
+        location = hub.Location.Value
+        dependsOn = hub.Dependencies |> List.map(fun d -> d.Value)
+        properties =
+            {| messageRetentionInDays = hub.MessageRetentionDays |> Option.toNullable
+               partitionCount = hub.Partitions
+               status = "Active" |}
+    |}
+
+    let consumerGroup (group:EventHubConsumerGroup) = {|
+        ``type`` = "Microsoft.EventHub/namespaces/eventhubs/consumergroups"
+        apiVersion = "2017-04-01"
+        name = group.Name.Value
+        location = group.Location.Value
+        dependsOn = group.Dependencies |> List.map(fun d -> d.Value)
+    |}
+
+    let authRule (rule:EventHubAuthorizationRule) = {|
+        ``type`` = "Microsoft.EventHub/namespaces/AuthorizationRules"
+        apiVersion = "2017-04-01"
+        name = rule.Name.Value
+        location = rule.Location.Value
+        dependsOn = rule.Dependencies |> List.map(fun d -> d.Value)
+        properties = {| rights = rule.Rights |}
+    |}
+
 module TemplateGeneration =
     let processTemplate (template:ArmTemplate) = {|
         ``$schema`` = "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#"
@@ -458,23 +503,35 @@ module TemplateGeneration =
         resources =
             template.Resources
             |> List.map(function
-                | AppInsights ai -> Outputters.appInsights ai |> box
                 | StorageAccount s -> Outputters.storageAccount s |> box
-                | ContainerGroup g -> Outputters.containerGroup g |> box
+
+                | AppInsights ai -> Outputters.appInsights ai |> box
                 | ServerFarm s -> Outputters.serverFarm s |> box
                 | WebApp wa -> Outputters.webApp wa |> box
+
                 | CosmosAccount cds -> Outputters.cosmosDbServer cds |> box
                 | CosmosSqlDb db -> Outputters.cosmosDbSql db |> box
                 | CosmosContainer c -> Outputters.cosmosDbContainer c |> box
+
                 | SqlServer sql -> Outputters.sqlAzure sql |> box
+
+                | ContainerGroup g -> Outputters.containerGroup g |> box
                 | Ip address -> Outputters.publicIpAddress address |> box
                 | Vnet vnet -> Outputters.virtualNetwork vnet |> box
                 | Nic nic -> Outputters.networkInterface nic |> box
                 | Vm vm -> Outputters.virtualMachine vm |> box
+
                 | AzureSearch search -> Outputters.search search |> box
+
                 | KeyVault vault -> Outputters.keyVault vault |> box
                 | KeyVaultSecret secret -> Outputters.keyVaultSecret secret |> box
+
                 | RedisCache redis -> Outputters.redisCache redis |> box
+
+                | EventHub hub -> Outputters.eventHub hub |> box
+                | EventHubNamespace ns -> Outputters.eventHubNs ns |> box
+                | ConsumerGroup group -> Outputters.consumerGroup group |> box
+                | EventHubAuthRule rule -> Outputters.authRule rule |> box
             )
         parameters =
             template.Parameters
