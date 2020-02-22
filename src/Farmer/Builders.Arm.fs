@@ -67,8 +67,15 @@ type ArmBuilder() =
               | :? EventHubConfig as eventHub ->
                   let output = Converters.eventHub state.Location eventHub
                   EventHub output.EventHub
-                  EventHubNamespace output.EventHubNamespace
                   yield! output.ConsumerGroups |> List.map ConsumerGroup
+
+                  match output.EventHubNamespace with
+                  | Some ns ->
+                    EventHubNamespace ns
+                    // We only emit auth resources if we're creating a namespace
+                    yield! output.Rights |> List.map EventHubAuthRule
+                  | None ->
+                    ()
               | :? RedisConfig as redisConfig ->
                   let redis = Converters.redis state.Location redisConfig
                   RedisCache redis

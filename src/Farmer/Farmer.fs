@@ -253,7 +253,11 @@ type EventHubConsumerGroup =
   { Name : ResourceName
     Location : Location
     Dependencies : ResourceName list }
-
+type EventHubAuthorizationRule =
+  { Name : ResourceName
+    Location : Location
+    Dependencies : ResourceName list
+    Rights : string list }
 module VM =
     type PublicIpAddress =
         { Name : ResourceName
@@ -337,7 +341,7 @@ type SupportedResource =
     | Ip of PublicIpAddress | Vnet of VirtualNetwork | Nic of NetworkInterface | Vm of VirtualMachine
     | AzureSearch of Search
     | KeyVault of KeyVault | KeyVaultSecret of KeyVaultSecret
-    | EventHub of EventHub | EventHubNamespace of EventHubNamespace | ConsumerGroup of EventHubConsumerGroup
+    | EventHub of EventHub | EventHubNamespace of EventHubNamespace | ConsumerGroup of EventHubConsumerGroup | EventHubAuthRule of EventHubAuthorizationRule
     | RedisCache of Redis
     member this.ResourceName =
         match this with
@@ -350,7 +354,7 @@ type SupportedResource =
         | Ip x -> x.Name | Vnet x -> x.Name | Nic x -> x.Name | Vm x -> x.Name
         | AzureSearch x -> x.Name
         | KeyVault x -> x.Name | KeyVaultSecret x -> x.Name
-        | EventHub x -> x.Name | EventHubNamespace x -> x.Name | ConsumerGroup x -> x.Name
+        | EventHub x -> x.Name | EventHubNamespace x -> x.Name | ConsumerGroup x -> x.Name | EventHubAuthRule x -> x.Name
         | RedisCache r -> r.Name
 
 namespace Farmer

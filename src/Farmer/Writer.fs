@@ -453,7 +453,7 @@ module Outputters =
 
     let eventHubNs (ns:EventHubNamespace) = {|
         ``type`` = "Microsoft.EventHub/namespaces"
-        apiVersion = "2018-01-01-preview"
+        apiVersion = "2017-04-01"
         name = ns.Name.Value
         location = ns.Location.Value
         sku =
@@ -485,6 +485,15 @@ module Outputters =
         name = group.Name.Value
         location = group.Location.Value
         dependsOn = group.Dependencies |> List.map(fun d -> d.Value)
+    |}
+
+    let authRule (rule:EventHubAuthorizationRule) = {|
+        ``type`` = "Microsoft.EventHub/namespaces/AuthorizationRules"
+        apiVersion = "2017-04-01"
+        name = rule.Name.Value
+        location = rule.Location.Value
+        dependsOn = rule.Dependencies |> List.map(fun d -> d.Value)
+        properties = {| rights = rule.Rights |}
     |}
 
 module TemplateGeneration =
@@ -522,6 +531,7 @@ module TemplateGeneration =
                 | EventHub hub -> Outputters.eventHub hub |> box
                 | EventHubNamespace ns -> Outputters.eventHubNs ns |> box
                 | ConsumerGroup group -> Outputters.consumerGroup group |> box
+                | EventHubAuthRule rule -> Outputters.authRule rule |> box
             )
         parameters =
             template.Parameters
