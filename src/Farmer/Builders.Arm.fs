@@ -11,7 +11,7 @@ type ArmConfig =
       Location : Location
       Resources : obj list }
 
-type Deployment = 
+type Deployment =
     { Location : Location
       Template : ArmTemplate }
 
@@ -67,6 +67,9 @@ type ArmBuilder() =
               | :? EventHubConfig as eventHub ->
                   let output = Converters.eventHub state.Location eventHub
                   EventHub output.EventHub
+              | :? RedisConfig as redisConfig ->
+                  let redis = Converters.redis state.Location redisConfig
+                  RedisCache redis
                   EventHubNamespace output.EventHubNamespace
                   ConsumerGroup output.ConsumerGroup
               | resource ->
@@ -90,8 +93,7 @@ type ArmBuilder() =
                     | KeyVaultSecret { Value = ParameterSecret secureParameter } -> secureParameter
                     | _ -> () ]
               Outputs = state.Outputs
-              Resources = resources
-            }
+              Resources = resources }
         { Location = state.Location; Template = output }
 
     /// Creates an output value that will be returned by the ARM template.

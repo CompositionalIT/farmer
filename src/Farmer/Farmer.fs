@@ -83,8 +83,6 @@ type FeatureFlag = Enabled | Disabled member this.AsBoolean = match this with En
 type DiskType = StandardSSD_LRS | Standard_LRS | Premium_LRS
 /// Represents a disk in a VM.
 type DiskInfo = { Size : int; DiskType : DiskType }
-/// The type of extensions in a web app.
-type WebAppExtensions = AppInsightsExtension
 
 namespace Farmer.Models
 
@@ -104,6 +102,19 @@ type StorageAccount =
       Location : Location
       Sku : string
       Containers : (string * StorageContainerAccess) list }
+
+type Redis =
+    { Name : ResourceName
+      Location : Location
+      Sku :
+        {| Name : string
+           Family : char
+           Capacity : int |}
+      RedisConfiguration : Map<string, string>
+      NonSslEnabled : bool option
+      ShardCount : int option
+      MinimumTlsVersion : string option }
+
 module ContainerGroups =
     [<RequireQualifiedAccess>]
     type ContainerGroupOsType =
@@ -156,7 +167,6 @@ type WebApp =
       ServerFarm : ResourceName
       Location : Location
       AppSettings : List<string * string>
-      Extensions : WebAppExtensions Set
       AlwaysOn : bool
       Dependencies : ResourceName list
       Kind : string
@@ -176,7 +186,8 @@ type ServerFarm =
       IsDynamic : bool
       Kind : string option
       Tier : string
-      WorkerCount : int }
+      WorkerCount : int
+      IsLinux : bool }
 type CosmosDbContainer =
     { Name : ResourceName
       Account : ResourceName
@@ -327,6 +338,7 @@ type SupportedResource =
     | AzureSearch of Search
     | KeyVault of KeyVault | KeyVaultSecret of KeyVaultSecret
     | EventHub of EventHub | EventHubNamespace of EventHubNamespace | ConsumerGroup of EventHubConsumerGroup
+    | RedisCache of Redis
     member this.ResourceName =
         match this with
         | AppInsights x -> x.Name
@@ -339,6 +351,7 @@ type SupportedResource =
         | AzureSearch x -> x.Name
         | KeyVault x -> x.Name | KeyVaultSecret x -> x.Name
         | EventHub x -> x.Name | EventHubNamespace x -> x.Name | ConsumerGroup x -> x.Name
+        | RedisCache r -> r.Name
 
 namespace Farmer
 open Farmer.Models

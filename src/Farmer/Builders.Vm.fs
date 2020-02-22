@@ -190,13 +190,13 @@ let makeResourceName vmName = makeName vmName >> ResourceName
 type VmConfig =
     { Name : ResourceName
       DiagnosticsStorageAccount : ResourceRef option
-      
+
       Username : string
       Image : {| Publisher : string; Offer : string; Sku : string |}
       Size : string
       OsDisk : DiskInfo
       DataDisks : DiskInfo list
-      
+
       DomainNamePrefix : string option
       AddressPrefix : string
       SubnetPrefix : string }
@@ -280,7 +280,7 @@ type VirtualMachineBuilder() =
     member __.AddressPrefix(state:VmConfig, prefix) = { state with AddressPrefix = prefix }
     /// Sets the subnet prefix of the VM.
     [<CustomOperation "subnet_prefix">]
-    member __.SubnetPrefix(state:VmConfig, prefix) = { state with SubnetPrefix = prefix }        
+    member __.SubnetPrefix(state:VmConfig, prefix) = { state with SubnetPrefix = prefix }
 
 module Converters =
     open VM
@@ -293,7 +293,7 @@ module Converters =
                     { StorageAccount.Name = account
                       Location = location
                       Sku = Storage.Sku.StandardLRS
-                      Containers = [] }                    
+                      Containers = [] }
             | Some AutomaticPlaceholder
             | Some (External _)
             | None ->

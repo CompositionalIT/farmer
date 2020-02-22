@@ -95,25 +95,26 @@ module Outputters =
                    Application_Type = "web" |}
     |}
     let serverFarm (farm:ServerFarm) =
-        {| ``type`` = "Microsoft.Web/serverfarms"
-           sku =
-               {| name = farm.Sku
-                  tier = farm.Tier
-                  size = farm.WorkerSize
-                  family = if farm.IsDynamic then "Y" else null
-                  capacity = if farm.IsDynamic then 0 else farm.WorkerCount |}
-           name = farm.Name.Value
-           apiVersion = "2018-02-01"
-           location = farm.Location.Value
-           properties =
-               if farm.IsDynamic then
-                   box {| name = farm.Name.Value
-                          computeMode = "Dynamic" |}
-               else
-                   box {| name = farm.Name.Value
-                          perSiteScaling = false
-                          reserved = false |}
-           kind = farm.Kind |> Option.toObj
+        {|  ``type`` = "Microsoft.Web/serverfarms"
+            sku =
+                {| name = farm.Sku
+                   tier = farm.Tier
+                   size = farm.WorkerSize
+                   family = if farm.IsDynamic then "Y" else null
+                   capacity = if farm.IsDynamic then 0 else farm.WorkerCount |}
+            name = farm.Name.Value
+            apiVersion = "2018-02-01"
+            location = farm.Location.Value
+            properties =
+                if farm.IsDynamic then
+                    box {| name = farm.Name.Value
+                           computeMode = "Dynamic"
+                           reserved = farm.IsLinux |}
+                else
+                    box {| name = farm.Name.Value
+                           perSiteScaling = false
+                           reserved = farm.IsLinux |}
+            kind = farm.Kind |> Option.toObj
         |}
     let webApp (webApp:WebApp) = {|
         ``type`` = "Microsoft.Web/sites"
@@ -122,17 +123,6 @@ module Outputters =
         location = webApp.Location.Value
         dependsOn = webApp.Dependencies |> List.map(fun p -> p.Value)
         kind = webApp.Kind
-        resources =
-            webApp.Extensions
-            |> Set.toList
-            |> List.map (function
-            | AppInsightsExtension ->
-                 {| apiVersion = "2016-08-01"
-                    name = "Microsoft.ApplicationInsights.AzureWebSites"
-                    ``type`` = "siteextensions"
-                    dependsOn = [ webApp.Name.Value ]
-                    properties = {||}
-                 |})
         properties =
             {| serverFarmId = webApp.ServerFarm.Value
                siteConfig =
@@ -443,6 +433,23 @@ module Outputters =
                 |}
             |}
         |}
+    let redisCache (redis:Redis) = {|
+        ``type`` = "Microsoft.Cache/Redis"
+        apiVersion = "2018-03-01"
+        name = redis.Name.Value
+        location = redis.Location.Value
+        properties =
+            {| sku =
+                {| name = redis.Sku.Name
+                   family = redis.Sku.Family
+                   capacity = redis.Sku.Capacity
+                |}
+               enableNonSslPort = redis.NonSslEnabled |> Option.toNullable
+               shardCount = redis.ShardCount |> Option.toNullable
+               minimumTlsVersion = redis.MinimumTlsVersion |> Option.toObj
+               redisConfiguration = redis.RedisConfiguration
+            |}
+    |}
 
     let eventHubNs (ns:EventHubNamespace) = {|
         ``type`` = "Microsoft.EventHub/namespaces"
@@ -510,6 +517,8 @@ module TemplateGeneration =
                 | KeyVault vault -> Outputters.keyVault vault |> box
                 | KeyVaultSecret secret -> Outputters.keyVaultSecret secret |> box
 
+                | RedisCache redis -> Outputters.redisCache redis |> box
+
                 | EventHub hub -> Outputters.eventHub hub |> box
                 | EventHubNamespace ns -> Outputters.eventHubNs ns |> box
                 | ConsumerGroup group -> Outputters.consumerGroup group |> box
@@ -517,7 +526,7 @@ module TemplateGeneration =
         parameters =
             template.Parameters
             |> List.map(fun (SecureParameter p) -> p, {| ``type`` = "securestring" |})
-            |> Map.ofList        
+            |> Map.ofList
         outputs =
             template.Outputs
             |> List.map(fun (k, v) ->

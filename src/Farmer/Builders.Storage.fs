@@ -13,7 +13,7 @@ module Sku =
     let StandardRAGZRS = "Standard_RAGZRS"
     let PremiumLRS = "Premium_LRS"
     let PremiumZRS = "Premium_ZRS"
-let buildKey (ResourceName name) =
+let internal buildKey (ResourceName name) =
     sprintf
         "concat('DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=', listKeys('%s', '2017-10-01').keys[0].value)"
             name
@@ -50,11 +50,9 @@ type StorageAccountBuilder() =
 
 module Converters =
     let storage location (sac:StorageAccountConfig) =
-        {
-            Location = location
-            Name = sac.Name
-            Sku = sac.Sku
-            Containers = sac.Containers
-        }
+        { Location = location
+          Name = sac.Name
+          Sku = sac.Sku
+          Containers = sac.Containers }
 
 let storageAccount = StorageAccountBuilder()

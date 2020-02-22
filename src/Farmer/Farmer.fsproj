@@ -40,6 +40,7 @@
     <Compile Include="Farmer.fs" />
     <Compile Include="Builders.Helpers.fs" />
     <Compile Include="Builders.Storage.fs" />
+    <Compile Include="Builders.Redis.fs" />
     <Compile Include="Builders.KeyVault.fs" />
     <Compile Include="Builders.Vm.fs" />
     <Compile Include="Builders.WebApp.fs" />
