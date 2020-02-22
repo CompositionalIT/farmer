@@ -68,7 +68,7 @@ type ArmBuilder() =
                   let output = Converters.eventHub state.Location eventHub
                   EventHub output.EventHub
                   EventHubNamespace output.EventHubNamespace
-                  ConsumerGroup output.ConsumerGroup
+                  yield! output.ConsumerGroups |> List.map ConsumerGroup
               | :? RedisConfig as redisConfig ->
                   let redis = Converters.redis state.Location redisConfig
                   RedisCache redis
