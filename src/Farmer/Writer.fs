@@ -488,7 +488,7 @@ module Outputters =
     |}
 
     let authRule (rule:EventHubAuthorizationRule) = {|
-        ``type`` = "Microsoft.EventHub/namespaces/AuthorizationRules"
+        ``type`` = "Microsoft.EventHub/namespaces/eventhubs/AuthorizationRules"
         apiVersion = "2017-04-01"
         name = rule.Name.Value
         location = rule.Location.Value

@@ -25,6 +25,22 @@ type EventHubConfig =
       Partitions : int
       ConsumerGroups : string Set
       AuthorizationRules : Map<ResourceName, AuthorizationRuleRight Set> }
+    member private this.ToKeyExpression = sprintf "listkeys(%s, '2017-04-01').primaryConnectionString" >> ArmExpression
+
+    /// Gets an ARM expression for the path to the key of a specific authorization rule for this event hub.
+    member this.GetKey (ruleName:string) =
+        sprintf "resourceId('Microsoft.EventHub/namespaces/eventhubs/authorizationRules', '%s', '%s', '%s')"
+            this.EventHubNamespace.ResourceName.Value
+            this.Name.Value
+            ruleName
+        |> this.ToKeyExpression
+
+    /// Gets an ARM expression for the path to the key of the default RootManageSharedAccessKey for the entire namespace.
+    member this.DefaultKey =
+        sprintf "resourceId('Microsoft.EventHub/namespaces/authorizationRules', '%s', 'RootManageSharedAccessKey')"
+            this.EventHubNamespace.ResourceName.Value
+        |> this.ToKeyExpression
+
 
 type EventHubBuilder() =
     member __.Yield _ =
@@ -39,6 +55,13 @@ type EventHubBuilder() =
           Partitions = 1
           ConsumerGroups = Set [ "$Default" ]
           AuthorizationRules = Map.empty }
+    member __.Run state =
+        { state with
+            EventHubNamespace =
+                match state.EventHubNamespace with
+                | External name -> External name
+                | AutomaticPlaceholder -> AutomaticallyCreated (state.Name.Map(sprintf "%s-ns"))
+                | AutomaticallyCreated resourceName -> AutomaticallyCreated resourceName }
     /// Sets the name of the Event Hub instance.
     [<CustomOperation "name">]
     member __.Name(state:EventHubConfig, name) = { state with Name = name }
@@ -76,11 +99,7 @@ type EventHubBuilder() =
 module Converters =
     open Farmer.Models
     let eventHub location (eventHubConfig:EventHubConfig) =
-        let eventHubNamespaceName =
-            match eventHubConfig.EventHubNamespace with
-            | External name -> name
-            | AutomaticPlaceholder -> eventHubConfig.Name.Map(sprintf "%s-ns")
-            | AutomaticallyCreated resourceName -> resourceName
+        let eventHubNamespaceName = eventHubConfig.EventHubNamespace.ResourceName
         let eventHubNamespace =
             match eventHubConfig.EventHubNamespace with
             | External _ ->
@@ -123,9 +142,12 @@ module Converters =
             ]
         let authRules =
             [ for rule in eventHubConfig.AuthorizationRules ->
-                { Name =  rule.Key.Map(sprintf "%s/%s" eventHubNamespaceName.Value)
+                { Name = rule.Key.Map(sprintf "%s/%s/%s" eventHubNamespaceName.Value eventHubConfig.Name.Value)
                   Location = location
-                  Dependencies = [ eventHubNamespaceName.Map(sprintf "[resourceId('Microsoft.EventHub/namespaces', '%s')]") ]
+                  Dependencies = [
+                      eventHubNamespaceName.Map(sprintf "[resourceId('Microsoft.EventHub/namespaces', '%s')]")
+                      eventHubConfig.Name.Map(sprintf "[resourceId('Microsoft.EventHub/namespaces/eventhubs', '%s', '%s')]" eventHubNamespaceName.Value)
+                  ]
                   Rights = rule.Value |> Set.map string |> Set.toList }
             ]
         {| EventHubNamespace = eventHubNamespace
