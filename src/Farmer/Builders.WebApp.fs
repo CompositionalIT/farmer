@@ -417,7 +417,7 @@ type WebAppBuilder() =
           AlwaysOn = false
           Settings = Map.empty
           Dependencies = []
-          Runtime = DotNetCore DotNetCore21
+          Runtime = DotNetCore DotNetCoreLts
           OperatingSystem = Windows }
     member __.Run(state:WebAppConfig) =
         { state with
