@@ -39,4 +39,5 @@ let myCache = redis {
     setting "maxmemory-reserved" 2
     setting "maxfragmentationmemory-reserved" 12
     setting "maxmemory-delta" 2
-}```
+}
+```
