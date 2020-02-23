@@ -29,7 +29,7 @@ type RedisBuilder() =
     member __.Yield _ =
         { Name = ResourceName.Empty
           Sku = RedisSku.Basic
-          Capacity = 0
+          Capacity = 1
           RedisConfiguration = Map.empty
           NonSslEnabled = None
           ShardCount = None
@@ -67,6 +67,10 @@ type RedisBuilder() =
     /// Specifies whether the non-ssl Redis server port (6379) is enabled.
     [<CustomOperation "enable_non_ssl_port">]
     member __.EnableNonSsl(state:RedisConfig) = { state with NonSslEnabled = Some true }
+    [<CustomOperation "shard_count">]
+    member __.ShardCount(state:RedisConfig, shardCount) = { state with ShardCount = Some shardCount }
+    [<CustomOperation "minimum_tls_version">]
+    member __.MinimumTlsVersion(state:RedisConfig, tlsVersion) = { state with MinimumTlsVersion = Some tlsVersion }
 
 module Converters =
     open Farmer.Models
