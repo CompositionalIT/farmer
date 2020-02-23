@@ -9,7 +9,7 @@
 
     <link rel="icon" href="/farmer/images/favicon.png" type="image/png">
 
-    <title>Key Vault :: Farmer</title>
+    <title>Event Hub :: Farmer</title>
 
     
     <link href="/farmer/css/nucleus.css?1582490080" rel="stylesheet">
@@ -35,7 +35,7 @@
     </style>
     
   </head>
-  <body class="" data-url="/farmer/api-overview/resources/keyvault/">
+  <body class="" data-url="/farmer/api-overview/resources/eventhub/">
     <nav id="sidebar" class="">
 
 
@@ -427,7 +427,7 @@
  
   
     
-      <li data-nav-id="/farmer/api-overview/resources/keyvault/" title="Key Vault" class="dd-item active">
+      <li data-nav-id="/farmer/api-overview/resources/keyvault/" title="Key Vault" class="dd-item ">
         <a href="/farmer/api-overview/resources/keyvault/">
         Key Vault
         
@@ -446,7 +446,7 @@
  
   
     
-      <li data-nav-id="/farmer/api-overview/resources/eventhub/" title="Event Hub" class="dd-item ">
+      <li data-nav-id="/farmer/api-overview/resources/eventhub/" title="Event Hub" class="dd-item active">
         <a href="/farmer/api-overview/resources/eventhub/">
         Event Hub
         
@@ -635,7 +635,7 @@
                   
                   
                   <div id="top-github-link">
-                    <a class="github-link" title='Edit this page' href="https://github.com/CompositionalIT/farmer/tree/docs/content/api-overview/resources/keyvault.md" target="blank">
+                    <a class="github-link" title='Edit this page' href="https://github.com/CompositionalIT/farmer/tree/docs/content/api-overview/resources/eventhub.md" target="blank">
                       <i class="fas fa-code-branch"></i>
                       <span id="top-github-link-text">Edit this page</span>
                     </a>
@@ -670,7 +670,7 @@
             
           
           
-            <a href='/farmer/'>Farmer</a> > <a href='/farmer/api-overview/'>API Overview</a> > <a href='/farmer/api-overview/resources/'>Resources</a> > Key Vault
+            <a href='/farmer/'>Farmer</a> > <a href='/farmer/api-overview/'>API Overview</a> > <a href='/farmer/api-overview/resources/'>Resources</a> > Event Hub
           
          
           
@@ -689,7 +689,7 @@
   <ul>
     <li>
       <ul>
-        <li><a href="#overview">Overview</a></li>
+        <li></li>
       </ul>
     </li>
   </ul>
@@ -709,7 +709,7 @@
           
             <h1>
               
-              Key Vault
+              Event Hub
             </h1>
           
 
@@ -717,232 +717,138 @@
 
 
 
-<h3 id="overview">Overview</h3>
-<p>The KeyVault package contains <em>three</em> builders, for the different components used by KeyVault: One for <strong>access policies</strong>, one for <strong>secrets</strong>, and one for the overall <strong>keyvault</strong> container.</p>
+<h4 id="overview">Overview</h4>
+<p>The Event Hub builder creates event hub namespaces, event hubs, consumer groups and authorization rules in a single builder.</p>
 <ul>
-<li>KeyVault (<code>Microsoft.KeyVault/vaults</code>)</li>
-<li>Secrets (<code>Microsoft.KeyVault/vaults/secrets</code>)</li>
+<li>Event Hub Namespace (<code>Microsoft.EventHub/namespaces</code>)</li>
+<li>Event Hub (<code>Microsoft.EventHub/namespaces/eventhubs</code>)</li>
+<li>Consumer Group (<code>Microsoft.EventHub/namespaces/eventhubs/consumergroups</code>)</li>
+<li>Authorization Rule (<code>Microsoft.EventHub/namespaces/eventhubs/AuthorizationRules&quot;</code>)</li>
 </ul>
-<h4 id="secret-builder">Secret Builder</h4>
-<p>The secret builder allows you to store secrets into key vault. Values for a secret are passed by Secure String parameters.</p>
+<blockquote>
+<p>The Event Hub builder works in a similar fashion to the <a href="web-app">web app</a> builder in that it automatically creates the host (in this case, the event hub <em>namespace</em>) when creating the event hub. If you wish to create multiple hubs in the same namespace, configure the namespace-level properties in the first event hub; subsequent event hubs should <em>link</em> to the namespace of the hub created by the first hub.</p>
+</blockquote>
+<h4 id="builder-keywords">Builder Keywords</h4>
 <table>
 <thead>
 <tr>
+<th>Applies To</th>
 <th>Keyword</th>
 <th>Purpose</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>name</td>
-<td>Sets the name of the secret.</td>
+<td>Namespace</td>
+<td>namespace_name</td>
+<td>Sets the name of the event hub namespace, if you are creating the namespace along with the hub.</td>
 </tr>
 <tr>
-<td>value</td>
-<td>Sets the name of the secure string parameter that will contain the value of the secret.</td>
-</tr>
-<tr>
-<td>content_type</td>
-<td>Sets the content type of the secret.</td>
-</tr>
-<tr>
-<td>enable_secret</td>
-<td>Enables the secret.</td>
-</tr>
-<tr>
-<td>disable_secret</td>
-<td>Disables the secret.</td>
-</tr>
-<tr>
-<td>activation_date</td>
-<td>Sets the activation date of the secret.</td>
-</tr>
-<tr>
-<td>expiration_date</td>
-<td>Sets the expiration date of the secret.</td>
-</tr>
-<tr>
-<td>depends_on</td>
-<td>Provides dependencies of the key vault.</td>
-</tr>
-</tbody>
-</table>
-<h4 id="access-policy-builder">Access Policy Builder</h4>
-<p>The Access Policy builder allows you to create access policies for key vault.</p>
-<table>
-<thead>
-<tr>
-<th>Keyword</th>
-<th>Purpose</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>object_id</td>
-<td>Sets the Object ID of the permission set.</td>
-</tr>
-<tr>
-<td>application_id</td>
-<td>Sets the Application ID of the permission set.</td>
-</tr>
-<tr>
-<td>key_permissions</td>
-<td>Sets the Key permissions of the permission set.</td>
-</tr>
-<tr>
-<td>storage_permissions</td>
-<td>Sets the Storage permissions of the permission set.</td>
-</tr>
-<tr>
-<td>secret_permissions</td>
-<td>Sets the Secret permissions of the permission set.</td>
-</tr>
-<tr>
-<td>certificate_permissions</td>
-<td>Sets the Certificate permissions of the permission set.</td>
-</tr>
-</tbody>
-</table>
-<h4 id="key-vault-builder">Key Vault Builder</h4>
-<p>The Key Vault builder contains access policies, secrets, and configuration information to create a full key vault account.</p>
-<table>
-<thead>
-<tr>
-<th>Keyword</th>
-<th>Purpose</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>name</td>
-<td>Sets the name of the vault.</td>
-</tr>
-<tr>
+<td>Namespace</td>
 <td>sku</td>
-<td>Sets the sku of the vault.</td>
+<td>Sets the SKU of the event hub namespace.</td>
 </tr>
 <tr>
-<td>tenant_id</td>
-<td>Sets the Tenant ID of the vault.</td>
+<td>Namespace</td>
+<td>capacity</td>
+<td>Sets the capacity of the event hub namespace (see <a href="https://docs.microsoft.com/en-gb/azure/event-hubs/event-hubs-faq#dedicated-clusters">here</a> for more details)</td>
 </tr>
 <tr>
-<td>enable_vm_access</td>
-<td>Allows VM access to the vault.</td>
+<td>Namespace</td>
+<td>enable_zone_redundant</td>
+<td>Enables zone redundancy on the event hub namespace.</td>
 </tr>
 <tr>
-<td>disable_vm_access</td>
-<td>Disallows VM access to the vault.</td>
+<td>Namespace</td>
+<td>enable_auto_inflate</td>
+<td>Enables auto inflate throughput; you must supply the maximum throughput level.</td>
 </tr>
 <tr>
-<td>enable_resource_manager_access</td>
-<td>Allows Resource Manager access to the vault.</td>
+<td>Namespace</td>
+<td>disable_auto_inflate</td>
+<td>Disables auto inflate throughput.</td>
 </tr>
 <tr>
-<td>disable_resource_manager_access</td>
-<td>Disallows Resource Manager access to the vault.</td>
+<td>Namespace</td>
+<td>disable_kafka</td>
+<td>Disables Kafka support.</td>
 </tr>
 <tr>
-<td>enable_disk_encryption_access</td>
-<td>Allows Azure Disk Encyption service access to the vault.</td>
+<td>Event Hub</td>
+<td>name</td>
+<td>Sets the name of the event hub.</td>
 </tr>
 <tr>
-<td>disable_disk_encryption_access</td>
-<td>Disallows Azure Disk Encyption service access to the vault.</td>
+<td>Event Hub</td>
+<td>message_retention_days</td>
+<td>Sets the number of days to retain messages for on the event hub.</td>
 </tr>
 <tr>
-<td>enable_soft_delete</td>
-<td>Enables VM access to the vault.</td>
+<td>Event Hub</td>
+<td>partitions</td>
+<td>Sets the number of partitions on the event hub.</td>
 </tr>
 <tr>
-<td>enable_soft_delete_with_purge_protection</td>
-<td>Disables VM access to the vault.</td>
+<td>Event Hub</td>
+<td>add_consumer_group</td>
+<td>Creates a consumer group for the event hub.</td>
 </tr>
 <tr>
-<td>uri</td>
-<td>Sets the URI of the vault.</td>
+<td>Event Hub</td>
+<td>add_authorization_rule</td>
+<td>Adds a named authorization rule on the event hub.</td>
 </tr>
 <tr>
-<td>enable_recovery_mode</td>
-<td>Sets the Creation Mode to Recovery.</td>
+<td>Event Hub</td>
+<td>link_to_namespace</td>
+<td>Sets the name of an existing or already-defined event hub namespace that this event hub should link to.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="configuration-members">Configuration Members</h4>
+<table>
+<thead>
+<tr>
+<th>Member</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DefaultKey</td>
+<td>Gets an ARM expression for the root namespace key of the Event Hub namespace.</td>
 </tr>
 <tr>
-<td>disable_recovery_mode</td>
-<td>Sets the Creation Mode to Default.</td>
-</tr>
-<tr>
-<td>add_access_policy</td>
-<td>Adds an access policy to the vault.</td>
-</tr>
-<tr>
-<td>enable_azure_services_bypass</td>
-<td>Allows Azure traffic can bypass network rules.</td>
-</tr>
-<tr>
-<td>disable_azure_services_bypass</td>
-<td>Disallows Azure traffic can bypass network rules.</td>
-</tr>
-<tr>
-<td>allow_default_traffic</td>
-<td>Allow traffic if no rule from ipRules and virtualNetworkRules match. This is only used after the bypass property has been evaluated.</td>
-</tr>
-<tr>
-<td>deny_default_traffic</td>
-<td>Deny traffic when no rule from ipRules and virtualNetworkRules match. This is only used after the bypass property has been evaluated.</td>
-</tr>
-<tr>
-<td>add_ip_rule</td>
-<td>Adds an IP address rule. This can be an IPv4 address range in CIDR notation, such as &lsquo;124.56.78.91&rsquo; (simple IP address) or &lsquo;124.56.78.0/24&rsquo; (all addresses that start with 124.56.78).</td>
-</tr>
-<tr>
-<td>add_vnet_rule</td>
-<td>Adds a virtual network rule. This is the full resource id of a vnet subnet, such as &lsquo;/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/virtualNetworks/test-vnet/subnets/subnet1&rsquo;.</td>
-</tr>
-<tr>
-<td>add_secret</td>
-<td>Adds a secret to the vault. This can either be a &ldquo;full&rdquo; secret config created using the Secret Builder or a string literal value which represents the parameter name.</td>
+<td>GetKey</td>
+<td>Gets an ARM expression for a named key on this event hub.</td>
 </tr>
 </tbody>
 </table>
 <h4 id="example">Example</h4>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp"><span style="color:#66d9ef">let</span> vault <span style="color:#f92672">=</span>
-    <span style="color:#66d9ef">let</span> policy <span style="color:#f92672">=</span>
-        accessPolicy <span style="color:#f92672">{</span>
-            object_id Guid.Empty
-            application_id Guid.Empty
-            certificate_permissions <span style="color:#f92672">[</span> Certificate.List <span style="color:#f92672">]</span>
-            secret_permissions Secret.All
-            key_permissions <span style="color:#f92672">[</span> Key.List <span style="color:#f92672">]</span>
-        <span style="color:#f92672">}</span>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp"><span style="color:#66d9ef">open</span> Farmer
+<span style="color:#66d9ef">open</span> Farmer.Resources.EventHub
 
-    <span style="color:#66d9ef">let</span> complexSecret <span style="color:#f92672">=</span> secret <span style="color:#f92672">{</span>
-        name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myComplexSecret</span><span style="color:#e6db74">&#34;</span>
-        content_type <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">application/text</span><span style="color:#e6db74">&#34;</span>
-        enable_secret
-        activation_date <span style="color:#f92672">(</span>DateTime.Today.AddDays <span style="color:#f92672">-</span>1<span style="color:#f92672">.</span><span style="color:#f92672">)</span>
-        expiration_date <span style="color:#f92672">(</span>DateTime.Today.AddDays 1<span style="color:#f92672">.</span><span style="color:#f92672">)</span>
-    <span style="color:#f92672">}</span>
+<span style="color:#66d9ef">let</span> primaryHub <span style="color:#f92672">=</span> eventHub <span style="color:#f92672">{</span>
+    namespace_name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">allmyevents</span><span style="color:#e6db74">&#34;</span>
+    sku EventHubSku.Standard
+    disable_kafka
+    enable_zone_redundant
+    enable_auto_inflate 3
+    add_authorization_rule <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">FirstRule</span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">[</span> Listen<span style="color:#f92672">;</span> Send <span style="color:#f92672">]</span>
+    add_authorization_rule <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">SecondRule</span><span style="color:#e6db74">&#34;</span> AllAuthorizationRights
 
-    keyVault <span style="color:#f92672">{</span>
-        name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">MyVault</span><span style="color:#e6db74">&#34;</span>
-        sku Standard
-        tenant_id Guid.Empty
+    name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">first-hub</span><span style="color:#e6db74">&#34;</span>
+    partitions 2
+    message_retention_days 3
+    add_consumer_group <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myGroup</span><span style="color:#e6db74">&#34;</span>
+<span style="color:#f92672">}</span>
 
-        enable_disk_encryption_access
-        enable_resource_manager_access
-        enable_soft_delete_with_purge_protection
-
-        disable_vm_access
-        enable_recovery_mode
-        add_access_policy policy
-        enable_azure_services_bypass
-
-        add_ip_rule <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">127.0.0.1</span><span style="color:#e6db74">&#34;</span>
-        add_vnet_rule <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/virtualNetworks/test-vnet/subnets/subnet1</span><span style="color:#e6db74">&#34;</span>
-        allow_default_traffic
-
-        add_secret complexSecret
-        add_secret <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">simpleSecret</span><span style="color:#e6db74">&#34;</span>
-    <span style="color:#f92672">}</span>
+<span style="color:#66d9ef">let</span> secondHub <span style="color:#f92672">=</span> eventHub <span style="color:#f92672">{</span>
+    name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">second-hub</span><span style="color:#e6db74">&#34;</span>
+    link_to_namespace <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">allmyevents</span><span style="color:#e6db74">&#34;</span>
+    partitions 1
+    message_retention_days 1
+<span style="color:#f92672">}</span>
 </code></pre></div>
 
 <footer class="footline">
@@ -1243,6 +1149,22 @@
             
                 
                     
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
+                        
+            
+            
+                
+                    
                     
                 
                 
@@ -1262,22 +1184,6 @@
                     
                         
                         
-                    
-                
-                
-
-                    
-                    
-                    
-
-                    
-            
-        
-                    
-                        
-            
-            
-                
                     
                 
                 
@@ -1385,10 +1291,10 @@
 	 
 	 
 		
-			<a class="nav nav-prev" href="/farmer/api-overview/resources/virtual-machine/" title="Virtual Machine"> <i class="fa fa-chevron-left"></i></a>
+			<a class="nav nav-prev" href="/farmer/api-overview/resources/keyvault/" title="Key Vault"> <i class="fa fa-chevron-left"></i></a>
 		
 		
-			<a class="nav nav-next" href="/farmer/api-overview/resources/eventhub/" title="Event Hub" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
+			<a class="nav nav-next" href="/farmer/api-overview/resources/redis/" title="Redis Cache" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
 		
 	
     </div>

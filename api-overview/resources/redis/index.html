@@ -9,7 +9,7 @@
 
     <link rel="icon" href="/farmer/images/favicon.png" type="image/png">
 
-    <title>Key Vault :: Farmer</title>
+    <title>Redis Cache :: Farmer</title>
 
     
     <link href="/farmer/css/nucleus.css?1582490080" rel="stylesheet">
@@ -35,7 +35,7 @@
     </style>
     
   </head>
-  <body class="" data-url="/farmer/api-overview/resources/keyvault/">
+  <body class="" data-url="/farmer/api-overview/resources/redis/">
     <nav id="sidebar" class="">
 
 
@@ -427,7 +427,7 @@
  
   
     
-      <li data-nav-id="/farmer/api-overview/resources/keyvault/" title="Key Vault" class="dd-item active">
+      <li data-nav-id="/farmer/api-overview/resources/keyvault/" title="Key Vault" class="dd-item ">
         <a href="/farmer/api-overview/resources/keyvault/">
         Key Vault
         
@@ -465,7 +465,7 @@
  
   
     
-      <li data-nav-id="/farmer/api-overview/resources/redis/" title="Redis Cache" class="dd-item ">
+      <li data-nav-id="/farmer/api-overview/resources/redis/" title="Redis Cache" class="dd-item active">
         <a href="/farmer/api-overview/resources/redis/">
         Redis Cache
         
@@ -635,7 +635,7 @@
                   
                   
                   <div id="top-github-link">
-                    <a class="github-link" title='Edit this page' href="https://github.com/CompositionalIT/farmer/tree/docs/content/api-overview/resources/keyvault.md" target="blank">
+                    <a class="github-link" title='Edit this page' href="https://github.com/CompositionalIT/farmer/tree/docs/content/api-overview/resources/redis.md" target="blank">
                       <i class="fas fa-code-branch"></i>
                       <span id="top-github-link-text">Edit this page</span>
                     </a>
@@ -670,7 +670,7 @@
             
           
           
-            <a href='/farmer/'>Farmer</a> > <a href='/farmer/api-overview/'>API Overview</a> > <a href='/farmer/api-overview/resources/'>Resources</a> > Key Vault
+            <a href='/farmer/'>Farmer</a> > <a href='/farmer/api-overview/'>API Overview</a> > <a href='/farmer/api-overview/resources/'>Resources</a> > Redis Cache
           
          
           
@@ -689,7 +689,7 @@
   <ul>
     <li>
       <ul>
-        <li><a href="#overview">Overview</a></li>
+        <li></li>
       </ul>
     </li>
   </ul>
@@ -709,7 +709,7 @@
           
             <h1>
               
-              Key Vault
+              Redis Cache
             </h1>
           
 
@@ -717,14 +717,12 @@
 
 
 
-<h3 id="overview">Overview</h3>
-<p>The KeyVault package contains <em>three</em> builders, for the different components used by KeyVault: One for <strong>access policies</strong>, one for <strong>secrets</strong>, and one for the overall <strong>keyvault</strong> container.</p>
+<h4 id="overview">Overview</h4>
+<p>The Redis builder creates managed Redis Cache accounts.</p>
 <ul>
-<li>KeyVault (<code>Microsoft.KeyVault/vaults</code>)</li>
-<li>Secrets (<code>Microsoft.KeyVault/vaults/secrets</code>)</li>
+<li>Redis (<code>Microsoft.Cache/redis</code>)</li>
 </ul>
-<h4 id="secret-builder">Secret Builder</h4>
-<p>The secret builder allows you to store secrets into key vault. Values for a secret are passed by Secure String parameters.</p>
+<h4 id="builder-keywords">Builder Keywords</h4>
 <table>
 <thead>
 <tr>
@@ -735,215 +733,55 @@
 <tbody>
 <tr>
 <td>name</td>
-<td>Sets the name of the secret.</td>
-</tr>
-<tr>
-<td>value</td>
-<td>Sets the name of the secure string parameter that will contain the value of the secret.</td>
-</tr>
-<tr>
-<td>content_type</td>
-<td>Sets the content type of the secret.</td>
-</tr>
-<tr>
-<td>enable_secret</td>
-<td>Enables the secret.</td>
-</tr>
-<tr>
-<td>disable_secret</td>
-<td>Disables the secret.</td>
-</tr>
-<tr>
-<td>activation_date</td>
-<td>Sets the activation date of the secret.</td>
-</tr>
-<tr>
-<td>expiration_date</td>
-<td>Sets the expiration date of the secret.</td>
-</tr>
-<tr>
-<td>depends_on</td>
-<td>Provides dependencies of the key vault.</td>
-</tr>
-</tbody>
-</table>
-<h4 id="access-policy-builder">Access Policy Builder</h4>
-<p>The Access Policy builder allows you to create access policies for key vault.</p>
-<table>
-<thead>
-<tr>
-<th>Keyword</th>
-<th>Purpose</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>object_id</td>
-<td>Sets the Object ID of the permission set.</td>
-</tr>
-<tr>
-<td>application_id</td>
-<td>Sets the Application ID of the permission set.</td>
-</tr>
-<tr>
-<td>key_permissions</td>
-<td>Sets the Key permissions of the permission set.</td>
-</tr>
-<tr>
-<td>storage_permissions</td>
-<td>Sets the Storage permissions of the permission set.</td>
-</tr>
-<tr>
-<td>secret_permissions</td>
-<td>Sets the Secret permissions of the permission set.</td>
-</tr>
-<tr>
-<td>certificate_permissions</td>
-<td>Sets the Certificate permissions of the permission set.</td>
-</tr>
-</tbody>
-</table>
-<h4 id="key-vault-builder">Key Vault Builder</h4>
-<p>The Key Vault builder contains access policies, secrets, and configuration information to create a full key vault account.</p>
-<table>
-<thead>
-<tr>
-<th>Keyword</th>
-<th>Purpose</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>name</td>
-<td>Sets the name of the vault.</td>
+<td>Sets the name of the Redis cache instance.</td>
 </tr>
 <tr>
 <td>sku</td>
-<td>Sets the sku of the vault.</td>
+<td>Sets the sku of the Redis cache instance.</td>
 </tr>
 <tr>
-<td>tenant_id</td>
-<td>Sets the Tenant ID of the vault.</td>
+<td>capacity</td>
+<td>Sets the capacity level of the Redis cache instance, should be between 1-6 - see <a href="https://azure.microsoft.com/en-gb/pricing/details/cache/">here</a>.</td>
 </tr>
 <tr>
-<td>enable_vm_access</td>
-<td>Allows VM access to the vault.</td>
+<td>enable_non_ssl_port</td>
+<td>Enabled access to the cache over the non-SSL port.</td>
 </tr>
 <tr>
-<td>disable_vm_access</td>
-<td>Disallows VM access to the vault.</td>
+<td>setting</td>
+<td>Allows you to set a Redis-cache specific setting at deployment-time</td>
 </tr>
+</tbody>
+</table>
+<h4 id="configuration-members">Configuration Members</h4>
+<table>
+<thead>
 <tr>
-<td>enable_resource_manager_access</td>
-<td>Allows Resource Manager access to the vault.</td>
+<th>Member</th>
+<th>Purpose</th>
 </tr>
+</thead>
+<tbody>
 <tr>
-<td>disable_resource_manager_access</td>
-<td>Disallows Resource Manager access to the vault.</td>
-</tr>
-<tr>
-<td>enable_disk_encryption_access</td>
-<td>Allows Azure Disk Encyption service access to the vault.</td>
-</tr>
-<tr>
-<td>disable_disk_encryption_access</td>
-<td>Disallows Azure Disk Encyption service access to the vault.</td>
-</tr>
-<tr>
-<td>enable_soft_delete</td>
-<td>Enables VM access to the vault.</td>
-</tr>
-<tr>
-<td>enable_soft_delete_with_purge_protection</td>
-<td>Disables VM access to the vault.</td>
-</tr>
-<tr>
-<td>uri</td>
-<td>Sets the URI of the vault.</td>
-</tr>
-<tr>
-<td>enable_recovery_mode</td>
-<td>Sets the Creation Mode to Recovery.</td>
-</tr>
-<tr>
-<td>disable_recovery_mode</td>
-<td>Sets the Creation Mode to Default.</td>
-</tr>
-<tr>
-<td>add_access_policy</td>
-<td>Adds an access policy to the vault.</td>
-</tr>
-<tr>
-<td>enable_azure_services_bypass</td>
-<td>Allows Azure traffic can bypass network rules.</td>
-</tr>
-<tr>
-<td>disable_azure_services_bypass</td>
-<td>Disallows Azure traffic can bypass network rules.</td>
-</tr>
-<tr>
-<td>allow_default_traffic</td>
-<td>Allow traffic if no rule from ipRules and virtualNetworkRules match. This is only used after the bypass property has been evaluated.</td>
-</tr>
-<tr>
-<td>deny_default_traffic</td>
-<td>Deny traffic when no rule from ipRules and virtualNetworkRules match. This is only used after the bypass property has been evaluated.</td>
-</tr>
-<tr>
-<td>add_ip_rule</td>
-<td>Adds an IP address rule. This can be an IPv4 address range in CIDR notation, such as &lsquo;124.56.78.91&rsquo; (simple IP address) or &lsquo;124.56.78.0/24&rsquo; (all addresses that start with 124.56.78).</td>
-</tr>
-<tr>
-<td>add_vnet_rule</td>
-<td>Adds a virtual network rule. This is the full resource id of a vnet subnet, such as &lsquo;/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/virtualNetworks/test-vnet/subnets/subnet1&rsquo;.</td>
-</tr>
-<tr>
-<td>add_secret</td>
-<td>Adds a secret to the vault. This can either be a &ldquo;full&rdquo; secret config created using the Secret Builder or a string literal value which represents the parameter name.</td>
+<td>Key</td>
+<td>Gets an ARM expression for the primary key of the Redis cache instance.</td>
 </tr>
 </tbody>
 </table>
 <h4 id="example">Example</h4>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp"><span style="color:#66d9ef">let</span> vault <span style="color:#f92672">=</span>
-    <span style="color:#66d9ef">let</span> policy <span style="color:#f92672">=</span>
-        accessPolicy <span style="color:#f92672">{</span>
-            object_id Guid.Empty
-            application_id Guid.Empty
-            certificate_permissions <span style="color:#f92672">[</span> Certificate.List <span style="color:#f92672">]</span>
-            secret_permissions Secret.All
-            key_permissions <span style="color:#f92672">[</span> Key.List <span style="color:#f92672">]</span>
-        <span style="color:#f92672">}</span>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp"><span style="color:#66d9ef">open</span> Farmer
+<span style="color:#66d9ef">open</span> Farmer.Resources.Redis
 
-    <span style="color:#66d9ef">let</span> complexSecret <span style="color:#f92672">=</span> secret <span style="color:#f92672">{</span>
-        name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myComplexSecret</span><span style="color:#e6db74">&#34;</span>
-        content_type <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">application/text</span><span style="color:#e6db74">&#34;</span>
-        enable_secret
-        activation_date <span style="color:#f92672">(</span>DateTime.Today.AddDays <span style="color:#f92672">-</span>1<span style="color:#f92672">.</span><span style="color:#f92672">)</span>
-        expiration_date <span style="color:#f92672">(</span>DateTime.Today.AddDays 1<span style="color:#f92672">.</span><span style="color:#f92672">)</span>
-    <span style="color:#f92672">}</span>
-
-    keyVault <span style="color:#f92672">{</span>
-        name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">MyVault</span><span style="color:#e6db74">&#34;</span>
-        sku Standard
-        tenant_id Guid.Empty
-
-        enable_disk_encryption_access
-        enable_resource_manager_access
-        enable_soft_delete_with_purge_protection
-
-        disable_vm_access
-        enable_recovery_mode
-        add_access_policy policy
-        enable_azure_services_bypass
-
-        add_ip_rule <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">127.0.0.1</span><span style="color:#e6db74">&#34;</span>
-        add_vnet_rule <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/virtualNetworks/test-vnet/subnets/subnet1</span><span style="color:#e6db74">&#34;</span>
-        allow_default_traffic
-
-        add_secret complexSecret
-        add_secret <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">simpleSecret</span><span style="color:#e6db74">&#34;</span>
-    <span style="color:#f92672">}</span>
-</code></pre></div>
+<span style="color:#66d9ef">let</span> myCache <span style="color:#f92672">=</span> redis <span style="color:#f92672">{</span>
+    name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myredis</span><span style="color:#e6db74">&#34;</span>
+    sku RedisSku.Standard
+    capacity 1
+    enable_non_ssl_port
+    setting <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">maxclients</span><span style="color:#e6db74">&#34;</span> 256
+    setting <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">maxmemory-reserved</span><span style="color:#e6db74">&#34;</span> 2
+    setting <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">maxfragmentationmemory-reserved</span><span style="color:#e6db74">&#34;</span> 12
+    setting <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">maxmemory-delta</span><span style="color:#e6db74">&#34;</span> 2
+<span style="color:#f92672">}</span><span style="color:#f92672">`</span><span style="color:#f92672">`</span><span style="color:#f92672">`</span></code></pre></div>
 
 <footer class="footline">
 	
@@ -1243,26 +1081,6 @@
             
                 
                     
-                    
-                
-                
-
-                    
-                    
-                    
-
-                    
-            
-        
-                    
-                        
-            
-            
-                
-                    
-                        
-                        
-                    
                 
                 
 
@@ -1294,6 +1112,26 @@
             
             
                 
+                    
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
+                        
+            
+            
+                
+                    
+                        
+                        
                     
                 
                 
@@ -1385,10 +1223,10 @@
 	 
 	 
 		
-			<a class="nav nav-prev" href="/farmer/api-overview/resources/virtual-machine/" title="Virtual Machine"> <i class="fa fa-chevron-left"></i></a>
+			<a class="nav nav-prev" href="/farmer/api-overview/resources/eventhub/" title="Event Hub"> <i class="fa fa-chevron-left"></i></a>
 		
 		
-			<a class="nav nav-next" href="/farmer/api-overview/resources/eventhub/" title="Event Hub" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
+			<a class="nav nav-next" href="/farmer/api-overview/resources/arm/" title="ARM Deployment" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
 		
 	
     </div>
