@@ -1,5 +1,11 @@
 Release Notes
 =============
+## 0.5.0
+* Support for Redis Cache
+* Support for Event Hub
+* Fixes for Web Apps on Linux
+* Remove unnecessary site extension for App Insights on Web Apps
+
 ## 0.4.0
 * Upgrade to netcore3.1
 * Support for REST API deployment using SPI credentials
