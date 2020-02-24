@@ -25,9 +25,36 @@ Farmer works on a simple, consistent process:
 
 The diagram below illustrates how Farmer resources map to ARM ones:
 
-![](../images/arm-graph.jpg)
+{{<mermaid align="left">}}
+graph TD
 
-In this example, we create a storage account and web app in Farmer, which maps six different ARM template resources. As you can see, resources in Farmer are declared at a higher level of abstraction than ARM template resources. This makes things much simpler to reason about, and quicker to author.
+subgraph ARM Template
+classDef danger fill:orange;
+
+C(Microsoft.Web/serverfarms) -. dependency .->F
+D(Microsoft.Insights/components) -. dependency .->F
+E(Microsoft.Storage/storageAccounts) -. dependency .->F
+E -. storage key .-> F
+E -. storage key .-> G
+F(Microsoft.Web/sites) 
+G(blobServices/containers)
+
+class C danger
+class D danger
+class E danger
+class F danger
+class G danger
+
+end
+
+subgraph Farmer
+A(webApp)-. depends on .->B
+B(storageAccount)-. key .->A
+end
+
+{{< /mermaid >}}
+
+In this example, we create a storage account and web app in Farmer, which maps five different ARM template resources. As you can see, resources in Farmer are declared at a higher level of abstraction than ARM template resources. This makes things much simpler to reason about, and quicker to author.
 
 #### An example Farmer Resource
 All Farmer resources follow the same approach:
@@ -37,7 +64,19 @@ All Farmer resources follow the same approach:
 3. This configuration is then added to an overarching Farmer ARM deployment object.
 4. The ARM deployment object is converted into an ARM template json file.
 
-![](../images/farmer-flow.jpg)
+{{<mermaid align="left">}}
+graph LR
+
+subgraph JSON
+C(ARM Template)
+end
+
+subgraph .NET
+A(Farmer Builder)--validation and defaults -->B
+B(Farmer Configuration) --emitted to --> C
+end
+
+{{< /mermaid >}}
 
 Here's an example web application.
 
