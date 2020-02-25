@@ -104,5 +104,11 @@ module Converters =
           RestartPolicy = config.RestartPolicy
           IpAddress = config.IpAddress }
 
+type ArmBuilder.ArmBuilder with
+    member this.AddResource(state:ArmConfig, config:ContainerGroupConfig) =
+        { state with Resources = ContainerGroup (Converters.containerGroup state.Location config) :: state.Resources }
+    member this.AddResources (state, configs) = addResources this.AddResource state configs
+
+
 /// Represents a group of Azure Containers.
 let containerGroup = ContainerGroupBuilder()

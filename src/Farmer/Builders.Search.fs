@@ -82,4 +82,10 @@ module Converters =
             | _ -> "default"
           }
 
+open Farmer.Models
+type ArmBuilder.ArmBuilder with
+    member this.AddResource(state:ArmConfig, config:SearchConfig) =
+        { state with Resources = AzureSearch (Converters.search state.Location config) :: state.Resources } 
+    member this.AddResources (state, configs) = addResources this.AddResource state configs
+
 let search = SearchBuilder()
