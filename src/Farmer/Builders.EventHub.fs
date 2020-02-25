@@ -154,4 +154,23 @@ module Converters =
            EventHub = eventHub
            ConsumerGroups = consumerGroups
            Rights = authRules |}
+
+open Farmer.Models
+type ArmBuilder.ArmBuilder with
+    member this.AddResource(state:ArmConfig, config:EventHubConfig) =
+        let output = Converters.eventHub state.Location config
+        let resources = [
+            EventHub output.EventHub
+            yield! output.ConsumerGroups |> List.map ConsumerGroup
+            match output.EventHubNamespace with
+            | Some ns ->
+              EventHubNamespace ns
+              // We only emit auth resources if we're creating a namespace
+              yield! output.Rights |> List.map EventHubAuthRule
+            | None ->
+              ()
+        ]
+        { state with Resources = resources @ state.Resources }
+    member this.AddResources (state, configs) = addResources this.AddResource state configs
+
 let eventHub = EventHubBuilder()

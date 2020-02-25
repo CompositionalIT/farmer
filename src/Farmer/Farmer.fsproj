@@ -39,6 +39,7 @@
     <Compile Include="Result.fs" />
     <Compile Include="Farmer.fs" />
     <Compile Include="Builders.Helpers.fs" />
+    <Compile Include="Builders.Arm.fs" />
     <Compile Include="Builders.Storage.fs" />
     <Compile Include="Builders.Redis.fs" />
     <Compile Include="Builders.KeyVault.fs" />
@@ -49,7 +50,6 @@
     <Compile Include="Builders.Cosmos.fs" />
     <Compile Include="Builders.EventHub.fs" />
     <Compile Include="Builders.ContainerGroups.fs" />
-    <Compile Include="Builders.Arm.fs" />
     <Compile Include="Writer.fs" />
     <Compile Include="Deploy.fs" />
   </ItemGroup>

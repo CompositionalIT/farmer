@@ -312,5 +312,18 @@ module Converters =
 
         {| KeyVault = keyVault; Secrets = secretKeys |}
 
+open Farmer.Models
+type ArmBuilder.ArmBuilder with
+    member this.AddResource(state:ArmConfig, config:KeyVaultConfig) =
+        let output = Converters.keyVault state.Location config
+        let resources = [
+            KeyVault output.KeyVault
+            for secret in output.Secrets do
+                KeyVaultSecret secret
+        ]
+        { state with Resources = resources @ state.Resources }
+    member this.AddResources (state, configs) = addResources this.AddResource state configs
+
+
 let accessPolicy = AccessPolicyBuilder()
 let keyVault = KeyVaultBuilder()
