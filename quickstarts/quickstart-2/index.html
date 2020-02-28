@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="generator" content="Hugo 0.63.2" />
+    <meta name="generator" content="Hugo 0.65.3" />
     <meta name="description" content="Documentation for Hugo Learn Theme">
 
 
@@ -12,20 +12,20 @@
     <title>Creating a linked resource :: Farmer</title>
 
     
-    <link href="/farmer/css/nucleus.css?1582568765" rel="stylesheet">
-    <link href="/farmer/css/fontawesome-all.min.css?1582568765" rel="stylesheet">
-    <link href="/farmer/css/hybrid.css?1582568765" rel="stylesheet">
-    <link href="/farmer/css/featherlight.min.css?1582568765" rel="stylesheet">
-    <link href="/farmer/css/perfect-scrollbar.min.css?1582568765" rel="stylesheet">
-    <link href="/farmer/css/auto-complete.css?1582568765" rel="stylesheet">
-    <link href="/farmer/css/atom-one-dark-reasonable.css?1582568765" rel="stylesheet">
-    <link href="/farmer/css/theme.css?1582568765" rel="stylesheet">
-    <link href="/farmer/css/hugo-theme.css?1582568765" rel="stylesheet">
+    <link href="/farmer/css/nucleus.css?1582889996" rel="stylesheet">
+    <link href="/farmer/css/fontawesome-all.min.css?1582889996" rel="stylesheet">
+    <link href="/farmer/css/hybrid.css?1582889996" rel="stylesheet">
+    <link href="/farmer/css/featherlight.min.css?1582889996" rel="stylesheet">
+    <link href="/farmer/css/perfect-scrollbar.min.css?1582889996" rel="stylesheet">
+    <link href="/farmer/css/auto-complete.css?1582889996" rel="stylesheet">
+    <link href="/farmer/css/atom-one-dark-reasonable.css?1582889996" rel="stylesheet">
+    <link href="/farmer/css/theme.css?1582889996" rel="stylesheet">
+    <link href="/farmer/css/hugo-theme.css?1582889996" rel="stylesheet">
     
-      <link href="/farmer/css/theme-green.css?1582568765" rel="stylesheet">
+      <link href="/farmer/css/theme-green.css?1582889996" rel="stylesheet">
     
 
-    <script src="/farmer/js/jquery-3.3.1.min.js?1582568765"></script>
+    <script src="/farmer/js/jquery-3.3.1.min.js?1582889996"></script>
 
     <style>
       :root #header + #content > #left > #rlblock_left{
@@ -70,14 +70,14 @@
     <span data-search-clear=""><i class="fas fa-times"></i></span>
 </div>
 
-<script type="text/javascript" src="/farmer/js/lunr.min.js?1582568765"></script>
-<script type="text/javascript" src="/farmer/js/auto-complete.js?1582568765"></script>
+<script type="text/javascript" src="/farmer/js/lunr.min.js?1582889996"></script>
+<script type="text/javascript" src="/farmer/js/auto-complete.js?1582889996"></script>
 <script type="text/javascript">
     
         var baseurl = "https:\/\/compositionalit.github.io\/farmer\/";
     
 </script>
-<script type="text/javascript" src="/farmer/js/search.js?1582568765"></script>
+<script type="text/javascript" src="/farmer/js/search.js?1582889996"></script>
 
     
   </div>
@@ -721,7 +721,7 @@
 <h4 id="creating-a-storage-account">Creating a storage account</h4>
 <p>Create a storage account by using the <code>storageAccount</code> builder.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp"><span style="color:#66d9ef">let</span> myStorage <span style="color:#f92672">=</span> storageAccount <span style="color:#f92672">{</span>
-    name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">yourfirststorage</span><span style="color:#e6db74">&#34;</span>
+    name <span style="color:#e6db74">&#34;yourfirststorage&#34;</span>
 <span style="color:#f92672">}</span>
 </code></pre></div><blockquote>
 <p>Azure Storage Account names must be globally unique and between 3-24 alphanumeric lower-case characters:</p>
@@ -733,8 +733,8 @@
 </blockquote>
 <p>Add the storage account&rsquo;s connection key to the webapp as an app setting.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp"><span style="color:#66d9ef">let</span> myWebApp <span style="color:#f92672">=</span> webApp <span style="color:#f92672">{</span>
-    <span style="color:#f92672">..</span><span style="color:#f92672">.</span>
-    setting <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">STORAGE_CONNECTION</span><span style="color:#e6db74">&#34;</span> myStorage<span style="color:#f92672">.</span>Key
+    <span style="color:#f92672">...</span>
+    setting <span style="color:#e6db74">&#34;STORAGE_CONNECTION&#34;</span> myStorage<span style="color:#f92672">.</span>Key
 <span style="color:#f92672">}</span>
 </code></pre></div><blockquote>
 <p>Settings can be strings or (as in this case) an ARM expression, which is evaluated at deployment time.</p>
@@ -742,7 +742,7 @@
 <h4 id="setting-a-dependency-on-the-storage-account">Setting a dependency on the storage account</h4>
 <p>In ARM templates, you need to explicitly set up <strong>dependencies</strong> between resources that refer to one another; this is still required in Farmer. This tells Azure to create the storage account <em>before</em> it creates the web app.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp"><span style="color:#66d9ef">let</span> myWebApp <span style="color:#f92672">=</span> webApp <span style="color:#f92672">{</span>
-    <span style="color:#f92672">..</span><span style="color:#f92672">.</span>
+    <span style="color:#f92672">...</span>
     depends_on myStorage
 <span style="color:#f92672">}</span>
 </code></pre></div><h4 id="adding-the-storage-account-to-the-deployment">Adding the storage account to the deployment</h4>
@@ -774,12 +774,12 @@
 <span style="color:#66d9ef">open</span> Farmer.Resources
 
 <span style="color:#66d9ef">let</span> myStorageAccount <span style="color:#f92672">=</span> storageAccount <span style="color:#f92672">{</span>
-    name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">yourfirststorageaccount</span><span style="color:#e6db74">&#34;</span>
+    name <span style="color:#e6db74">&#34;yourfirststorageaccount&#34;</span>
 <span style="color:#f92672">}</span>
 
 <span style="color:#66d9ef">let</span> myWebApp <span style="color:#f92672">=</span> webApp <span style="color:#f92672">{</span>
-    name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">yourFirstFarmerApp</span><span style="color:#e6db74">&#34;</span>
-    setting <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">storageKey</span><span style="color:#e6db74">&#34;</span> myStorageAccount<span style="color:#f92672">.</span>Key
+    name <span style="color:#e6db74">&#34;yourFirstFarmerApp&#34;</span>
+    setting <span style="color:#e6db74">&#34;storageKey&#34;</span> myStorageAccount<span style="color:#f92672">.</span>Key
     depends_on myStorageAccount<span style="color:#f92672">.</span>Name
 <span style="color:#f92672">}</span>
 
@@ -790,7 +790,7 @@
 <span style="color:#f92672">}</span>
 
 deployment
-<span style="color:#f92672">|</span><span style="color:#f92672">&gt;</span> Writer.quickWrite  <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myFirstTemplate</span><span style="color:#e6db74">&#34;</span>
+<span style="color:#f92672">|&gt;</span> Writer.quickWrite  <span style="color:#e6db74">&#34;myFirstTemplate&#34;</span>
 </code></pre></div>
 
 <footer class="footline">
@@ -1242,19 +1242,19 @@ deployment
     <div style="left: -1000px; overflow: scroll; position: absolute; top: -1000px; border: none; box-sizing: content-box; height: 200px; margin: 0px; padding: 0px; width: 200px;">
       <div style="border: none; box-sizing: content-box; height: 200px; margin: 0px; padding: 0px; width: 200px;"></div>
     </div>
-    <script src="/farmer/js/clipboard.min.js?1582568765"></script>
-    <script src="/farmer/js/perfect-scrollbar.min.js?1582568765"></script>
-    <script src="/farmer/js/perfect-scrollbar.jquery.min.js?1582568765"></script>
-    <script src="/farmer/js/jquery.sticky.js?1582568765"></script>
-    <script src="/farmer/js/featherlight.min.js?1582568765"></script>
-    <script src="/farmer/js/highlight.pack.js?1582568765"></script>
+    <script src="/farmer/js/clipboard.min.js?1582889996"></script>
+    <script src="/farmer/js/perfect-scrollbar.min.js?1582889996"></script>
+    <script src="/farmer/js/perfect-scrollbar.jquery.min.js?1582889996"></script>
+    <script src="/farmer/js/jquery.sticky.js?1582889996"></script>
+    <script src="/farmer/js/featherlight.min.js?1582889996"></script>
+    <script src="/farmer/js/highlight.pack.js?1582889996"></script>
     <script>hljs.initHighlightingOnLoad();</script>
-    <script src="/farmer/js/modernizr.custom-3.6.0.js?1582568765"></script>
-    <script src="/farmer/js/learn.js?1582568765"></script>
-    <script src="/farmer/js/hugo-learn.js?1582568765"></script>
+    <script src="/farmer/js/modernizr.custom-3.6.0.js?1582889996"></script>
+    <script src="/farmer/js/learn.js?1582889996"></script>
+    <script src="/farmer/js/hugo-learn.js?1582889996"></script>
 
-    <link href="/farmer/mermaid/mermaid.css?1582568765" rel="stylesheet" />
-    <script src="/farmer/mermaid/mermaid.js?1582568765"></script>
+    <link href="/farmer/mermaid/mermaid.css?1582889996" rel="stylesheet" />
+    <script src="/farmer/mermaid/mermaid.js?1582889996"></script>
     <script>
         mermaid.initialize({ startOnLoad: true });
     </script>

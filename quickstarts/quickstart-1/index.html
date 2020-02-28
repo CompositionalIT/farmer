@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="generator" content="Hugo 0.63.2" />
+    <meta name="generator" content="Hugo 0.65.3" />
     <meta name="description" content="Documentation for Hugo Learn Theme">
 
 
@@ -12,20 +12,20 @@
     <title>Your first Farmer template :: Farmer</title>
 
     
-    <link href="/farmer/css/nucleus.css?1582568765" rel="stylesheet">
-    <link href="/farmer/css/fontawesome-all.min.css?1582568765" rel="stylesheet">
-    <link href="/farmer/css/hybrid.css?1582568765" rel="stylesheet">
-    <link href="/farmer/css/featherlight.min.css?1582568765" rel="stylesheet">
-    <link href="/farmer/css/perfect-scrollbar.min.css?1582568765" rel="stylesheet">
-    <link href="/farmer/css/auto-complete.css?1582568765" rel="stylesheet">
-    <link href="/farmer/css/atom-one-dark-reasonable.css?1582568765" rel="stylesheet">
-    <link href="/farmer/css/theme.css?1582568765" rel="stylesheet">
-    <link href="/farmer/css/hugo-theme.css?1582568765" rel="stylesheet">
+    <link href="/farmer/css/nucleus.css?1582889996" rel="stylesheet">
+    <link href="/farmer/css/fontawesome-all.min.css?1582889996" rel="stylesheet">
+    <link href="/farmer/css/hybrid.css?1582889996" rel="stylesheet">
+    <link href="/farmer/css/featherlight.min.css?1582889996" rel="stylesheet">
+    <link href="/farmer/css/perfect-scrollbar.min.css?1582889996" rel="stylesheet">
+    <link href="/farmer/css/auto-complete.css?1582889996" rel="stylesheet">
+    <link href="/farmer/css/atom-one-dark-reasonable.css?1582889996" rel="stylesheet">
+    <link href="/farmer/css/theme.css?1582889996" rel="stylesheet">
+    <link href="/farmer/css/hugo-theme.css?1582889996" rel="stylesheet">
     
-      <link href="/farmer/css/theme-green.css?1582568765" rel="stylesheet">
+      <link href="/farmer/css/theme-green.css?1582889996" rel="stylesheet">
     
 
-    <script src="/farmer/js/jquery-3.3.1.min.js?1582568765"></script>
+    <script src="/farmer/js/jquery-3.3.1.min.js?1582889996"></script>
 
     <style>
       :root #header + #content > #left > #rlblock_left{
@@ -70,14 +70,14 @@
     <span data-search-clear=""><i class="fas fa-times"></i></span>
 </div>
 
-<script type="text/javascript" src="/farmer/js/lunr.min.js?1582568765"></script>
-<script type="text/javascript" src="/farmer/js/auto-complete.js?1582568765"></script>
+<script type="text/javascript" src="/farmer/js/lunr.min.js?1582889996"></script>
+<script type="text/javascript" src="/farmer/js/auto-complete.js?1582889996"></script>
 <script type="text/javascript">
     
         var baseurl = "https:\/\/compositionalit.github.io\/farmer\/";
     
 </script>
-<script type="text/javascript" src="/farmer/js/search.js?1582568765"></script>
+<script type="text/javascript" src="/farmer/js/search.js?1582889996"></script>
 
     
   </div>
@@ -719,12 +719,10 @@
 <li>generate an ARM template</li>
 </ul>
 <h4 id="creating-a-web-app">Creating a web app</h4>
-<p>Create an F# console application using the .NET SDK:</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cmd" data-lang="cmd">dotnet new console -lang F# -n FarmerSample
-</code></pre></div><p>Add a reference to the Farmer nuget package by modifying the <code>FarmerSample.fsproj</code> as follows:</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-xml" data-lang="xml"><span style="color:#f92672">&lt;PackageReference</span> <span style="color:#a6e22e">Include=</span><span style="color:#e6db74">&#34;Farmer&#34;</span> <span style="color:#a6e22e">Version=</span><span style="color:#e6db74">&#34;0.4.0&#34;</span><span style="color:#f92672">/&gt;</span>
-</code></pre></div><p>Build the project to download the dependency.</p>
-<h4 id="defining-a-farmer-web-application">Defining a Farmer web application</h4>
+<p>Create an F# console application using the .NET SDK and add the Farmer package in an empty directory:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cmd" data-lang="cmd">dotnet new console -lang F#
+dotnet add package Farmer
+</code></pre></div><h4 id="defining-a-farmer-web-application">Defining a Farmer web application</h4>
 <p>Open <code>Program.fs</code> and delete all the contents.</p>
 <blockquote>
 <p>In Farmer, resources are defined using special code blocks that look somewhat json-esque, known as a &ldquo;builder&rdquo;. In these builders you can quickly and easily configure a resource using special keywords, but unlike json you also have edit-time safety.</p>
@@ -734,12 +732,9 @@
 <span style="color:#66d9ef">open</span> Farmer.Resources
 
 <span style="color:#66d9ef">let</span> myWebApp <span style="color:#f92672">=</span> webApp <span style="color:#f92672">{</span>
-    name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">yourFirstFarmerApp</span><span style="color:#e6db74">&#34;</span>
+    name <span style="color:#e6db74">&#34;yourFirstFarmerApp&#34;</span>
 <span style="color:#f92672">}</span>
-</code></pre></div><blockquote>
-<p>You should pick something unique for the <code>name</code>. It must be <strong>unique across Azure</strong> i.e. someone else can&rsquo;t have another web app with the same name!</p>
-</blockquote>
-<p>Create an ARM template deployment object, before setting the location for the overall resource group and adding the web app into it.</p>
+</code></pre></div><p>Create an ARM template deployment object, before setting the location for the overall resource group and adding the web app into it.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp"><span style="color:#66d9ef">let</span> deployment <span style="color:#f92672">=</span> arm <span style="color:#f92672">{</span>
     location Locations.NorthEurope
     add_resource myWebApp
@@ -748,7 +743,7 @@
 <p>Now you need to generate the ARM template from the deployment object to an ARM json file.</p>
 <p>Add the following code:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp">deployment
-<span style="color:#f92672">|</span><span style="color:#f92672">&gt;</span> Writer.quickWrite  <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myFirstTemplate</span><span style="color:#e6db74">&#34;</span>
+<span style="color:#f92672">|&gt;</span> Writer.quickWrite  <span style="color:#e6db74">&#34;myFirstTemplate&#34;</span>
 </code></pre></div><p>Run the application; you should notice that the file <code>myFirstTemplate.json</code> has been created.</p>
 <p>The generated ARM template contains the following resources:</p>
 <ul>
@@ -762,7 +757,7 @@
 <span style="color:#66d9ef">open</span> Farmer.Resources
 
 <span style="color:#66d9ef">let</span> myWebApp <span style="color:#f92672">=</span> webApp <span style="color:#f92672">{</span>
-    name <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">yourFirstFarmerApp</span><span style="color:#e6db74">&#34;</span>
+    name <span style="color:#e6db74">&#34;yourFirstFarmerApp&#34;</span>
 <span style="color:#f92672">}</span>
 
 <span style="color:#66d9ef">let</span> deployment <span style="color:#f92672">=</span> arm <span style="color:#f92672">{</span>
@@ -771,7 +766,7 @@
 <span style="color:#f92672">}</span>
 
 deployment
-<span style="color:#f92672">|</span><span style="color:#f92672">&gt;</span> Writer.quickWrite <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">myFirstTemplate</span><span style="color:#e6db74">&#34;</span>
+<span style="color:#f92672">|&gt;</span> Writer.quickWrite <span style="color:#e6db74">&#34;myFirstTemplate&#34;</span>
 </code></pre></div>
 
 <footer class="footline">
@@ -1220,19 +1215,19 @@ deployment
     <div style="left: -1000px; overflow: scroll; position: absolute; top: -1000px; border: none; box-sizing: content-box; height: 200px; margin: 0px; padding: 0px; width: 200px;">
       <div style="border: none; box-sizing: content-box; height: 200px; margin: 0px; padding: 0px; width: 200px;"></div>
     </div>
-    <script src="/farmer/js/clipboard.min.js?1582568765"></script>
-    <script src="/farmer/js/perfect-scrollbar.min.js?1582568765"></script>
-    <script src="/farmer/js/perfect-scrollbar.jquery.min.js?1582568765"></script>
-    <script src="/farmer/js/jquery.sticky.js?1582568765"></script>
-    <script src="/farmer/js/featherlight.min.js?1582568765"></script>
-    <script src="/farmer/js/highlight.pack.js?1582568765"></script>
+    <script src="/farmer/js/clipboard.min.js?1582889996"></script>
+    <script src="/farmer/js/perfect-scrollbar.min.js?1582889996"></script>
+    <script src="/farmer/js/perfect-scrollbar.jquery.min.js?1582889996"></script>
+    <script src="/farmer/js/jquery.sticky.js?1582889996"></script>
+    <script src="/farmer/js/featherlight.min.js?1582889996"></script>
+    <script src="/farmer/js/highlight.pack.js?1582889996"></script>
     <script>hljs.initHighlightingOnLoad();</script>
-    <script src="/farmer/js/modernizr.custom-3.6.0.js?1582568765"></script>
-    <script src="/farmer/js/learn.js?1582568765"></script>
-    <script src="/farmer/js/hugo-learn.js?1582568765"></script>
+    <script src="/farmer/js/modernizr.custom-3.6.0.js?1582889996"></script>
+    <script src="/farmer/js/learn.js?1582889996"></script>
+    <script src="/farmer/js/hugo-learn.js?1582889996"></script>
 
-    <link href="/farmer/mermaid/mermaid.css?1582568765" rel="stylesheet" />
-    <script src="/farmer/mermaid/mermaid.js?1582568765"></script>
+    <link href="/farmer/mermaid/mermaid.css?1582889996" rel="stylesheet" />
+    <script src="/farmer/mermaid/mermaid.js?1582889996"></script>
     <script>
         mermaid.initialize({ startOnLoad: true });
     </script>
