@@ -1,4 +1,4 @@
-﻿module Result
+module Result
 
 open System
 
@@ -34,7 +34,7 @@ type ResultBuilder() =
 
     member __.While(guard, f) =
         if not (guard()) then Ok () else
-        do f() |> ignore
+        do f() |> Core.Operators.ignore
         __.While(guard, f)
 
     member __.For(sequence:seq<_>, body) =
