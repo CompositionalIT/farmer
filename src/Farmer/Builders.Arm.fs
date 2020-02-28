@@ -9,7 +9,7 @@ type ArmConfig =
     { Parameters : string Set
       Outputs : (string * string) list
       Location : Location
-      Resources : obj list }
+      Resources : SupportedResource list }
 
 type Deployment =
     { Location : Location
@@ -24,61 +24,17 @@ type ArmBuilder() =
 
     member __.Run (state:ArmConfig) =
         let resources =
-          [ for resource in state.Resources do
-              match resource with
-              | :? StorageAccountConfig as config ->
-                  StorageAccount (Converters.storage state.Location config)
-              | :? WebAppConfig as config ->
-                  let outputs = Converters.webApp state.Location config
-                  WebApp outputs.WebApp
-                  ServerFarm outputs.ServerFarm
-                  match outputs.Ai with (Some ai) -> AppInsights ai | None -> ()
-              | :? FunctionsConfig as config ->
-                  let outputs = config |> Converters.functions state.Location
-                  WebApp outputs.WebApp
-                  ServerFarm outputs.ServerFarm
-                  match outputs.Ai with (Some ai) -> AppInsights ai | None -> ()
-                  match outputs.Storage with (Some storage) -> StorageAccount storage | None -> ()
-              | :? ContainerGroupConfig as config ->
-                  ContainerGroup (Converters.containerGroup state.Location config)
-              | :? CosmosDbConfig as config ->
-                  let outputs = config |> Converters.cosmosDb state.Location
-                  CosmosAccount outputs.Account
-                  CosmosSqlDb outputs.SqlDb
-                  yield! outputs.Containers |> List.map CosmosContainer
-              | :? SqlAzureConfig as config ->
-                  SqlServer (Converters.sql state.Location config)
-              | :? VmConfig as config ->
-                  let output = Converters.vm state.Location config
-                  Vm output.Vm
-                  Vnet output.Vnet
-                  Ip output.Ip
-                  Nic output.Nic
-                  match output.Storage with Some storage -> StorageAccount storage | None -> ()
-              | :? SearchConfig as search ->
-                  AzureSearch (Converters.search state.Location search)
-              | :? AppInsightsConfig as aiConfig ->
-                  AppInsights (Converters.appInsights state.Location aiConfig)
-              | :? KeyVaultConfig as keyVaultConfig ->
-                  let output = Converters.keyVault state.Location keyVaultConfig
-                  KeyVault output.KeyVault
-                  for secret in output.Secrets do
-                    KeyVaultSecret secret
-              | :? RedisConfig as redisConfig ->
-                  let redis = Converters.redis state.Location redisConfig
-                  RedisCache redis
-              | resource ->
-                  failwithf "Sorry, I don't know how to handle this resource of type '%s'." (resource.GetType().FullName) ]
-          |> List.groupBy(fun r -> r.ResourceName)
-          |> List.choose(fun (resourceName, instances) ->
-                 match instances with
-                 | [] ->
-                    None
-                 | [ resource ] ->
-                    Some resource
-                 | resource :: _ ->
-                    printfn "Warning: %d resources were found with the same name of '%s'. The first one will be used." instances.Length resourceName.Value
-                    Some resource)
+            state.Resources
+            |> List.groupBy(fun r -> r.ResourceName)
+            |> List.choose(fun (resourceName, instances) ->
+                   match instances with
+                   | [] ->
+                      None
+                   | [ resource ] ->
+                      Some resource
+                   | resource :: _ ->
+                      printfn "Warning: %d resources were found with the same name of '%s'. The first one will be used." instances.Length resourceName.Value
+                      Some resource)
         let output =
             { Parameters =
                 [ for resource in resources do
@@ -89,7 +45,9 @@ type ArmBuilder() =
                     | _ -> () ]
               Outputs = state.Outputs
               Resources = resources }
-        { Location = state.Location; Template = output }
+
+        { Location = state.Location
+          Template = output }
 
     /// Creates an output value that will be returned by the ARM template.
     [<CustomOperation "output">]
@@ -108,16 +66,19 @@ type ArmBuilder() =
     /// Sets the default location of all resources.
     [<CustomOperation "location">]
     member __.Location (state, location) : ArmConfig = { state with Location = location }
-
-    /// Adds a resource to the template.
     [<CustomOperation "add_resource">]
-    member __.AddResource(state, resource) : ArmConfig =
-        { state with Resources = box resource :: state.Resources }
 
-    /// Adds a collection of resources to the template.
+    (* These two "fake" methods are needed to ensure that extension members for each builder
+       is always available. *)
+
+    /// Adds a single resource to the ARM template.
+    member __.AddResource (state:ArmConfig, ()) = state
     [<CustomOperation "add_resources">]
-    member this.AddResources(state, resources) =
-        (state, resources)
-        ||> Seq.fold(fun state resource -> this.AddResource(state, resource))
+    /// Adds a sequence of resources to the ARM template.
+    member __.AddResources (state:ArmConfig, ()) = state
+
+let internal addResources addOne (state:ArmConfig) resources =
+    (state, resources)
+    ||> Seq.fold(fun state resource -> addOne (state, resource))
 
 let arm = ArmBuilder()

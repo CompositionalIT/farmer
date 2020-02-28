@@ -120,5 +120,17 @@ module Converters =
                 })
         {| Account = account; SqlDb = sqlDb; Containers = containers |}
 
+open Farmer.Models
+type ArmBuilder.ArmBuilder with
+    member __.AddResource(state:ArmConfig, config:CosmosDbConfig) =
+        let outputs = config |> Converters.cosmosDb state.Location
+        let resources = [
+            CosmosAccount outputs.Account
+            CosmosSqlDb outputs.SqlDb
+            yield! outputs.Containers |> List.map CosmosContainer
+        ]
+        { state with Resources = state.Resources @ resources }
+    member this.AddResources (state, configs) = addResources this.AddResource state configs
+
 let cosmosDb = CosmosDbBuilder()
 let container = CosmosDbContainerBuilder()

@@ -334,4 +334,17 @@ module Converters =
               DomainNameLabel = config.DomainNamePrefix }
         {| Storage = storage; Vm = vm; Nic = nic; Vnet = vnet; Ip = ip |}
 
+type ArmBuilder.ArmBuilder with
+    member this.AddResource(state:ArmConfig, config:VmConfig) =
+        let output = Converters.vm state.Location config
+        let resources = [
+            Vm output.Vm
+            Vnet output.Vnet
+            Ip output.Ip
+            Nic output.Nic
+            match output.Storage with Some storage -> StorageAccount storage | None -> ()
+        ]
+        { state with Resources = state.Resources @ resources }
+    member this.AddResources (state, configs) = addResources this.AddResource state configs
+
 let vm = VirtualMachineBuilder()

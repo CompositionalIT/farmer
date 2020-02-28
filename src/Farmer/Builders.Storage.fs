@@ -55,4 +55,11 @@ module Converters =
           Sku = sac.Sku
           Containers = sac.Containers }
 
+type Farmer.ArmBuilder.ArmBuilder with
+    member this.AddResource(state:ArmConfig, config:StorageAccountConfig) =
+        { state with
+            Resources = StorageAccount (Converters.storage state.Location config) :: state.Resources
+        }
+    member this.AddResources (state, configs) = addResources this.AddResource state configs
+
 let storageAccount = StorageAccountBuilder()

@@ -417,7 +417,7 @@ type WebAppBuilder() =
           AlwaysOn = false
           Settings = Map.empty
           Dependencies = []
-          Runtime = DotNetCore DotNetCore21
+          Runtime = DotNetCore DotNetCoreLts
           OperatingSystem = Windows }
     member __.Run(state:WebAppConfig) =
         { state with
@@ -573,8 +573,29 @@ module Extensions =
             this.DependsOn(state, webAppConfig.Name)
         member this.DependsOn(state:FunctionsConfig, appInsightsConfig:AppInsightsConfig) =
             this.DependsOn(state, appInsightsConfig.Name)
+    type ArmBuilder.ArmBuilder with
+        member __.AddResource(state:ArmConfig, config:WebAppConfig) =
+            let outputs = Converters.webApp state.Location config
+            let resources = [
+                WebApp outputs.WebApp
+                ServerFarm outputs.ServerFarm
+                match outputs.Ai with Some ai -> AppInsights ai | None -> ()
+            ]
+            { state with Resources = state.Resources @ resources }
+        member __.AddResource(state:ArmConfig, config:FunctionsConfig) =
+            let outputs = config |> Converters.functions state.Location
+            let resources = [
+                WebApp outputs.WebApp
+                ServerFarm outputs.ServerFarm
+                match outputs.Ai with (Some ai) -> AppInsights ai | None -> ()
+                match outputs.Storage with (Some storage) -> StorageAccount storage | None -> ()
+            ]
+            { state with Resources = state.Resources @ resources }
+        member this.AddResource(state:ArmConfig, config:AppInsightsConfig) =
+            { state with Resources = AppInsights (Converters.appInsights state.Location config) :: state.Resources } 
+        member this.AddResources (state, configs) = addResources this.AddResource state configs
+
 
 let appInsights = AppInsightsBuilder()
 let webApp = WebAppBuilder()
 let functions = FunctionsBuilder()
-
