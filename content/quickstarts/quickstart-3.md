@@ -23,6 +23,8 @@ deployment
 |> Writer.quickDeploy "myResourceGroup"
 ```
 
+> Note that the Web Application and Storage Account names should be *globally* unique; they must be **unique across Azure** i.e. someone else can't have another web app or storage account with the same name!
+
 Farmer will now create the ARM template, and also generate a batch / shell script which calls the Azure CLI. You'll be prompted to login to Azure by the CLI, after which point it will create the named resource group in the location specified in the `arm { }` builder.
 
 Wait until the process is completed and log into the [Azure Portal](https://portal.azure.com/). Navigate to the newly-created resource group and inspect the overview record list e.g.

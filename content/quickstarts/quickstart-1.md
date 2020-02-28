@@ -12,19 +12,12 @@ In this exercise, you'll:
 * generate an ARM template
 
 #### Creating a web app
-Create an F# console application using the .NET SDK:
+Create an F# console application using the .NET SDK and add the Farmer package in an empty directory:
 
 ```cmd
-dotnet new console -lang F# -n FarmerSample
+dotnet new console -lang F#
+dotnet add package Farmer
 ```
-
-Add a reference to the Farmer nuget package by modifying the `FarmerSample.fsproj` as follows:
-
-```xml
-<PackageReference Include="Farmer" Version="0.4.0"/>
-```
-
-Build the project to download the dependency.
 
 #### Defining a Farmer web application
 Open `Program.fs` and delete all the contents.
@@ -42,9 +35,8 @@ let myWebApp = webApp {
 }
 ```
 
-> You should pick something unique for the `name`. It must be **unique across Azure** i.e. someone else can't have another web app with the same name!
-
 Create an ARM template deployment object, before setting the location for the overall resource group and adding the web app into it.
+
 ```fsharp
 let deployment = arm {
     location Locations.NorthEurope
