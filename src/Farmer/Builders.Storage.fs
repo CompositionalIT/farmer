@@ -2,6 +2,7 @@
 module Farmer.Resources.Storage
 
 open Farmer
+open Farmer
 open Farmer.Models
 
 module Sku =
@@ -31,6 +32,9 @@ type StorageAccountConfig =
     member this.Key = buildKey this.Name
 type StorageAccountBuilder() =
     member __.Yield _ = { Name = ResourceName.Empty; Sku = Sku.StandardLRS; Containers = [] }
+    member _.Run(state:StorageAccountConfig) =
+        { state with
+            Name = state.Name |> Helpers.sanitiseStorage |> ResourceName }
     /// Sets the name of the storage account.
     [<CustomOperation "name">]
     member __.Name(state:StorageAccountConfig, name) = { state with Name = name }
