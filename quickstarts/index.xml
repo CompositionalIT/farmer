@@ -18,12 +18,12 @@
       
       <guid>https://compositionalit.github.io/farmer/quickstarts/quickstart-1/</guid>
       <description>Introduction In this exercise, you&amp;rsquo;ll:
- create a web application with a fully-configured Application Insights instance create an ARM deployment object and assign the web app to it generate an ARM template  Creating a web app Create an F# console application using the .NET SDK and add the Farmer package in an empty directory:
-dotnet new console -lang F#dotnet add package FarmerDefining a Farmer web application Open Program.</description>
+ create a web application with a fully-configured Application Insights instance create an ARM deployment object and assign the web app to it generate an ARM template  Creating a Farmer app Create an F# console application using the .NET SDK and add the Farmer package in an empty directory:
+dotnet new console -lang F#dotnet add package Farmer Farmer also has a .NET template to get started even more quickly!</description>
     </item>
     
     <item>
-      <title>Creating a linked resource</title>
+      <title>Working with multiple resources</title>
       <link>https://compositionalit.github.io/farmer/quickstarts/quickstart-2/</link>
       <pubDate>Tue, 04 Feb 2020 00:41:51 +0100</pubDate>
       
@@ -34,7 +34,7 @@ let myStorage = storageAccount {name &amp;#34;yourfirststorage&amp;#34;} Azur
     </item>
     
     <item>
-      <title>Deploying a Farmer template</title>
+      <title>Deploying to Azure</title>
       <link>https://compositionalit.github.io/farmer/quickstarts/quickstart-3/</link>
       <pubDate>Tue, 04 Feb 2020 00:41:51 +0100</pubDate>
       
@@ -42,6 +42,19 @@ let myStorage = storageAccount {name &amp;#34;yourfirststorage&amp;#34;} Azur
       <description>Introduction In this exercise, you&amp;rsquo;ll update the application to deploy the generated ARM template to Azure directly from Farmer.
  Farmer generates normal ARM templates. You use all of the standard mechanisms for deploying ARM templates such as through the portal, Powershell, .NET or Azure CLI etc. This tutorial shows you a simple way to deploy templates from your development machine directly from within F#.
  Install the Azure CLI If you haven&amp;rsquo;t done so already, install the Azure CLI on your machine.</description>
+    </item>
+    
+    <item>
+      <title>The Farmer .NET Template</title>
+      <link>https://compositionalit.github.io/farmer/quickstarts/template/</link>
+      <pubDate>Tue, 04 Feb 2020 00:41:51 +0100</pubDate>
+      
+      <guid>https://compositionalit.github.io/farmer/quickstarts/template/</guid>
+      <description>Farmer comes with a .NET template that makes getting started easy.
+Creating a basic Farmer app The easiest way to create a Farmer app is to use the Farmer Template.
+dotnet new -i Farmer.Templatedotnet new Farmer You only have to install the template once on your machine!
+ This creates a new dotnet application solution and project that looks by default as follows:
+open Farmeropen Farmer.Resourceslet deployment = arm {location NorthEurope}printf &amp;#34;Generating ARM template.</description>
     </item>
     
   </channel>

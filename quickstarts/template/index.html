@@ -9,7 +9,7 @@
 
     <link rel="icon" href="/farmer/images/favicon.png" type="image/png">
 
-    <title>Tags :: Farmer</title>
+    <title>The Farmer .NET Template :: Farmer</title>
 
     
     <link href="/farmer/css/nucleus.css?1582998311" rel="stylesheet">
@@ -45,7 +45,7 @@
     </style>
     
   </head>
-  <body class="" data-url="/farmer/tags/">
+  <body class="" data-url="/farmer/quickstarts/template/">
     <nav id="sidebar" class="">
 
 
@@ -126,7 +126,7 @@
   
     
     <li data-nav-id="/farmer/quickstarts/" title="Quickstarts" class="dd-item 
-        
+        parent
         
         
         ">
@@ -207,7 +207,7 @@
  
   
     
-      <li data-nav-id="/farmer/quickstarts/template/" title="The Farmer .NET Template" class="dd-item ">
+      <li data-nav-id="/farmer/quickstarts/template/" title="The Farmer .NET Template" class="dd-item active">
         <a href="/farmer/quickstarts/template/">
         The Farmer .NET Template
         
@@ -660,6 +660,17 @@
               <div>
                 <div id="top-bar">
                 
+                  
+                  
+                  
+                  <div id="top-github-link">
+                    <a class="github-link" title='Edit this page' href="https://github.com/CompositionalIT/farmer/tree/docs/content/quickstarts/template.md" target="blank">
+                      <i class="fas fa-code-branch"></i>
+                      <span id="top-github-link-text">Edit this page</span>
+                    </a>
+                  </div>
+                  
+                
                 
                 <div id="breadcrumbs" itemscope="" itemtype="http://data-vocabulary.org/Breadcrumb">
                     <span id="sidebar-toggle-span">
@@ -680,7 +691,13 @@
             
           
           
-            <a href='/farmer/'>Farmer</a> > Tags
+            
+            
+          
+          
+            <a href='/farmer/'>Farmer</a> > <a href='/farmer/quickstarts/'>Quickstarts</a> > The Farmer .NET Template
+          
+        
           
         
           
@@ -691,7 +708,17 @@
                 
                     <div class="progress">
     <div class="wrapper">
-
+<nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#creating-a-basic-farmer-app">Creating a basic Farmer app</a></li>
+        <li><a href="#basic-configuration-options">Basic configuration options</a></li>
+        <li><a href="#deploy-configuration">Deploy Configuration</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
     </div>
 </div>
 
@@ -707,7 +734,7 @@
           
             <h1>
               
-              Tags
+              The Farmer .NET Template
             </h1>
           
 
@@ -715,15 +742,49 @@
 
 
 
+<p>Farmer comes with a .NET template that makes getting started easy.</p>
+<h3 id="creating-a-basic-farmer-app">Creating a basic Farmer app</h3>
+<p>The easiest way to create a Farmer app is to use the <a href="../template/">Farmer Template</a>.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cmd" data-lang="cmd">dotnet new -i Farmer.Template
+dotnet new Farmer
+</code></pre></div><blockquote>
+<p>You only have to install the template once on your machine!</p>
+</blockquote>
+<p>This creates a new dotnet application solution and project that looks by default as follows:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fsharp" data-lang="fsharp"><span style="color:#66d9ef">open</span> Farmer
+<span style="color:#66d9ef">open</span> Farmer.Resources
 
+<span style="color:#66d9ef">let</span> deployment <span style="color:#f92672">=</span> arm <span style="color:#f92672">{</span>
+    location NorthEurope
+<span style="color:#f92672">}</span>
 
-
+printf <span style="color:#e6db74">&#34;Generating ARM template...&#34;</span>
+deployment <span style="color:#f92672">|&gt;</span> Writer.quickWrite <span style="color:#e6db74">&#34;output&#34;</span>
+printfn <span style="color:#e6db74">&#34;all done! Template written to output.json&#34;</span>
+</code></pre></div><p>From here, you can add resources in the normal manner.</p>
+<h3 id="basic-configuration-options">Basic configuration options</h3>
+<p>You can configure the template using the following optional arguments.</p>
+<h4 id="arm-template-filename">ARM Template filename</h4>
+<p>The name of the ARM template JSON file e.g. <code>--armTemplate myTemplate</code></p>
+<h4 id="location">Location</h4>
+<p>The location to create resources in e.g. <code>--location WestUS</code></p>
+<h3 id="deploy-configuration">Deploy Configuration</h3>
+<p>You can also configure the Farmer template to deploy to Azure out of the box using the <code>--ci</code> option. This has two modes of operation:</p>
+<h4 id="azure-devops-deployment">Azure DevOps deployment</h4>
+<p>This comes with a ready-made devops YAML file designed for simple CI/CD, using Farmer to generate ARM templates and Azdo to deploy using its own ARM Template deployment process. You should supply the following arguments:</p>
 <ul>
-	
+<li><strong>&ndash;ci devops</strong>: Tells the template to create a Farmer app for use with Azdo.</li>
+<li><strong>&ndash;azureSubscription</strong>: Set the full name of the Azure Subscription that has been already configured in Azdo with permission to deploy templates to Azure.</li>
+<li><strong>&ndash;resourceGroup</strong>: Set the name of the resource group that you wish to deploy to.</li>
+</ul>
+<h4 id="direct-deployment">Direct deployment</h4>
+<p>If you prefer a deployment process that is not coupled to Azure Devops, you can create a <a href="../../deployment-guidance/#how-do-i-create-a-service-principal">service principle</a> in Azure and use the generated credentials in Farmer. Farmer will use its own wrapper around the Azure REST API to deploy to Azure, reporting progress to the console. You should supply the following arguments:</p>
+<ul>
+<li><strong>&ndash;ci direct</strong>: Tells the template to create a Farmer app for use with a service principle. The generated application expects to receive credentials via environment variables, but you can of course change this as required.</li>
 </ul>
 
 
-<footer class=" footline" >
+<footer class="footline">
 	
 </footer>
 
@@ -777,6 +838,7 @@
             
                 
                     
+                    
                 
                 
 
@@ -789,6 +851,9 @@
             
             
                 
+                    
+                        
+                        
                     
                 
                 
@@ -838,6 +903,7 @@
             
                 
                     
+                    
                 
                 
 
@@ -856,6 +922,9 @@
             
             
                 
+                    
+                        
+                        
                     
                 
                 
@@ -1167,8 +1236,10 @@
 	 
 	 
 		
+			<a class="nav nav-prev" href="/farmer/quickstarts/quickstart-3/" title="Deploying to Azure"> <i class="fa fa-chevron-left"></i></a>
 		
-			<a class="nav nav-next" href="/farmer/about/" title="About" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
+		
+			<a class="nav nav-next" href="/farmer/api-overview/" title="API Overview" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
 		
 	
     </div>
@@ -1198,3 +1269,4 @@
 
   </body>
 </html>
+

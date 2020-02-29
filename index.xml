@@ -40,8 +40,8 @@ deployment|&amp;gt; Writer.quickWrite &amp;#34;myTemplate&amp;#34; Notice how 
       
       <guid>https://compositionalit.github.io/farmer/quickstarts/quickstart-1/</guid>
       <description>Introduction In this exercise, you&amp;rsquo;ll:
- create a web application with a fully-configured Application Insights instance create an ARM deployment object and assign the web app to it generate an ARM template  Creating a web app Create an F# console application using the .NET SDK and add the Farmer package in an empty directory:
-dotnet new console -lang F#dotnet add package FarmerDefining a Farmer web application Open Program.</description>
+ create a web application with a fully-configured Application Insights instance create an ARM deployment object and assign the web app to it generate an ARM template  Creating a Farmer app Create an F# console application using the .NET SDK and add the Farmer package in an empty directory:
+dotnet new console -lang F#dotnet add package Farmer Farmer also has a .NET template to get started even more quickly!</description>
     </item>
     
     <item>
@@ -55,7 +55,7 @@ dotnet new console -lang F#dotnet add package FarmerDefining a Farmer web appl
     </item>
     
     <item>
-      <title>Creating a linked resource</title>
+      <title>Working with multiple resources</title>
       <link>https://compositionalit.github.io/farmer/quickstarts/quickstart-2/</link>
       <pubDate>Tue, 04 Feb 2020 00:41:51 +0100</pubDate>
       
@@ -97,7 +97,7 @@ Farmer, by design, has only limited support for parameters and no support for va
     </item>
     
     <item>
-      <title>Deploying a Farmer template</title>
+      <title>Deploying to Azure</title>
       <link>https://compositionalit.github.io/farmer/quickstarts/quickstart-3/</link>
       <pubDate>Tue, 04 Feb 2020 00:41:51 +0100</pubDate>
       
@@ -136,6 +136,19 @@ Cosmos DB Builder The CosmosDB builder abstracts the idea of server and database
       <guid>https://compositionalit.github.io/farmer/api-overview/resources/sql/</guid>
       <description>Overview The SQL Azure builder is used to called SQL Azure servers and databases. It supports features such as encryption and firewalls. Every SQL Azure instance you create will automatically create a SecureString parameter for the admin account password.
 Builder Keywords    Keyword Purpose     server_name Sets the name of the SQL server.   db_name Sets the name of the database.   sku Sets the sku of the database.</description>
+    </item>
+    
+    <item>
+      <title>The Farmer .NET Template</title>
+      <link>https://compositionalit.github.io/farmer/quickstarts/template/</link>
+      <pubDate>Tue, 04 Feb 2020 00:41:51 +0100</pubDate>
+      
+      <guid>https://compositionalit.github.io/farmer/quickstarts/template/</guid>
+      <description>Farmer comes with a .NET template that makes getting started easy.
+Creating a basic Farmer app The easiest way to create a Farmer app is to use the Farmer Template.
+dotnet new -i Farmer.Templatedotnet new Farmer You only have to install the template once on your machine!
+ This creates a new dotnet application solution and project that looks by default as follows:
+open Farmeropen Farmer.Resourceslet deployment = arm {location NorthEurope}printf &amp;#34;Generating ARM template.</description>
     </item>
     
     <item>
