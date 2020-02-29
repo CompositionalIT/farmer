@@ -1,5 +1,5 @@
 ---
-title: "Deploying a Farmer template"
+title: "Deploying to Azure"
 date: 2020-02-04T00:41:51+01:00
 draft: false
 weight: 3

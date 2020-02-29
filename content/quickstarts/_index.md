@@ -7,5 +7,6 @@ weight: 2
 This section contains quickstarts to performing common tasks.
 
 * [Creating your first Farmer template](quickstart-1)
-* [Creating linked resources](quickstart-2)
-* [Deploying a Farmer template](quickstart-3)
+* [Creating multiple resources](quickstart-2)
+* [Deploying to Azure](quickstart-3)
+* [The Farmer .NET Template](template.md)

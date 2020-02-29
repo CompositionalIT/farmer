@@ -11,13 +11,15 @@ In this exercise, you'll:
 * create an ARM deployment object and assign the web app to it
 * generate an ARM template
 
-#### Creating a web app
+#### Creating a Farmer app
 Create an F# console application using the .NET SDK and add the Farmer package in an empty directory:
 
 ```cmd
 dotnet new console -lang F#
 dotnet add package Farmer
 ```
+
+> Farmer also has a [.NET template](../template/) to get started even more quickly!
 
 #### Defining a Farmer web application
 Open `Program.fs` and delete all the contents.

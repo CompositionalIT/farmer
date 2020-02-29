@@ -1,5 +1,5 @@
 ---
-title: "Creating a linked resource"
+title: "Working with multiple resources"
 date: 2020-02-04T00:41:51+01:00
 draft: false
 weight: 2
