@@ -8,7 +8,7 @@ weight: 4
 Farmer comes with a .NET template that makes getting started easy.
 
 ### Creating a basic Farmer app
-The easiest way to create a Farmer app is to use the [Farmer Template](../template/).
+The easiest way to create a Farmer app is to use the Farmer .NET Template.
 
 ```cmd
 dotnet new -i Farmer.Template
