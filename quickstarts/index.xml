@@ -51,7 +51,7 @@ let myStorage = storageAccount {name &amp;#34;yourfirststorage&amp;#34;} Azur
       
       <guid>https://compositionalit.github.io/farmer/quickstarts/template/</guid>
       <description>Farmer comes with a .NET template that makes getting started easy.
-Creating a basic Farmer app The easiest way to create a Farmer app is to use the Farmer Template.
+Creating a basic Farmer app The easiest way to create a Farmer app is to use the Farmer .NET Template.
 dotnet new -i Farmer.Templatedotnet new Farmer You only have to install the template once on your machine!
  This creates a new dotnet application solution and project that looks by default as follows:
 open Farmeropen Farmer.Resourceslet deployment = arm {location NorthEurope}printf &amp;#34;Generating ARM template.</description>
