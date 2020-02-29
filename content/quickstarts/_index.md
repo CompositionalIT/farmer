@@ -9,4 +9,4 @@ This section contains quickstarts to performing common tasks.
 * [Creating your first Farmer template](quickstart-1)
 * [Creating multiple resources](quickstart-2)
 * [Deploying to Azure](quickstart-3)
-* [The Farmer .NET Template](template.md)
+* [The Farmer .NET Template](template)
