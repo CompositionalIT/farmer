@@ -1,5 +1,11 @@
 Release Notes
 =============
+## 0.6.0
+* Client Secret is now a string
+* Sanitise storage accounts automatically
+* Improvements to Redis and Event Hub
+* Restrict adding resources to supported types
+
 ## 0.5.0
 * Support for Redis Cache
 * Support for Event Hub
