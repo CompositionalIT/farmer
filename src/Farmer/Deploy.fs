@@ -8,7 +8,7 @@ open System
 /// deploy ARM templates on the supplied Subscription ID.
 type AzureCredentials =
     { ClientId : Guid
-      ClientSecret : Guid
+      ClientSecret : string
       TenantId : Guid }
 
 type Outputs = Map<string, string>
@@ -53,7 +53,7 @@ module AzureRest =
         |> JsonConvert.DeserializeObject<'T>
     let private defaultTimeout = TimeSpan.FromSeconds 120.
     type TemplateDeployer(accessToken:string, subscriptionId, resourceGroup) =
-        static member Create(tenantId:Guid, clientId:Guid, clientSecret:Guid, subscriptionId:Guid, resourceGroup) =
+        static member Create(tenantId:Guid, clientId:Guid, clientSecret:string, subscriptionId:Guid, resourceGroup) =
             http {
                 POST (sprintf "https://login.microsoftonline.com/%O/oauth2/token" tenantId)
                 timeout defaultTimeout
@@ -61,7 +61,7 @@ module AzureRest =
                 formUrlEncoded
                     [ "grant_type", "client_credentials"
                       "client_id", string clientId
-                      "client_secret", string clientSecret
+                      "client_secret", clientSecret
                       "resource", "https://management.azure.com" ]
             }
             |> toResult
