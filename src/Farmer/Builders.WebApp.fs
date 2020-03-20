@@ -73,7 +73,7 @@ open Farmer.Models
 
 type WebAppConfig =
     { Name : ResourceName
-      ServicePlanName : ResourceName
+      ServicePlanName : ResourceRef
       Sku : WebAppSku
       WorkerSize : WorkerSize
       WorkerCount : int
@@ -87,9 +87,13 @@ type WebAppConfig =
       OperatingSystem : OS }
     /// Gets the ARM expression path to the publishing password of this web app.
     member this.PublishingPassword = publishingPassword this.Name
+    /// Gets the Service Plan name for this web app.
+    member this.ServicePlan = this.ServicePlanName.ResourceName
+    /// Gets the App Insights name for this web app, if it exists.
+    member this.AppInsights = this.AppInsightsName |> Option.map (fun ai -> ai.ResourceName)
 type FunctionsConfig =
     { Name : ResourceName
-      ServicePlanName : ResourceName
+      ServicePlanName : ResourceRef
       StorageAccountName : ResourceRef
       AppInsightsName : ResourceRef option
       Runtime : FunctionsRuntime
@@ -107,12 +111,21 @@ type FunctionsConfig =
         this.AppInsightsName
         |> Option.bind (fun r -> r.ResourceNameOpt)
         |> Option.map Ai.instrumentationKey
+    /// Gets the default key for the functions site
     member this.DefaultKey =
         sprintf "listkeys(concat(resourceId('Microsoft.Web/sites', '%s'), '/host/default/'),'2016-08-01').functionKeys.default" this.Name.Value
         |> ArmExpression
+    /// Gets the master key for the functions site
     member this.MasterKey =
         sprintf "listkeys(concat(resourceId('Microsoft.Web/sites', '%s'), '/host/default/'),'2016-08-01').masterKey" this.Name.Value
         |> ArmExpression
+    /// Gets the Service Plan name for this functions app.
+    member this.ServicePlan = this.ServicePlanName.ResourceName
+    /// Gets the App Insights name for this functions app, if it exists.
+    member this.AppInsights = this.AppInsightsName |> Option.map (fun ai -> ai.ResourceName)
+    /// Gets the Storage Account name for this functions app.
+    member this.StorageAccount =
+        this.StorageAccountName.ResourceName
 type AppInsightsConfig =
     { Name : ResourceName }
     /// Gets the ARM expression path to the instrumentation key of this App Insights instance.
@@ -124,7 +137,7 @@ module Converters =
         let webApp =
             { Name = wac.Name
               Location = location
-              ServerFarm = wac.ServicePlanName
+              ServerFarm = wac.ServicePlanName.ResourceName
               AppSettings = [
                 yield! wac.Settings |> Map.toList
                 if wac.RunFromPackage then AppSettings.RunFromPackage
@@ -151,7 +164,7 @@ module Converters =
               ]
               Kind = "app"
               Dependencies = [
-                wac.ServicePlanName
+                wac.ServicePlanName.ResourceName
                 yield! wac.Dependencies
                 match wac.AppInsightsName with
                 | Some (AutomaticallyCreated appInsightsName)
@@ -262,41 +275,46 @@ module Converters =
             }
 
         let serverFarm =
-            { Location = location
-              Name = wac.ServicePlanName
-              Sku =
-                match wac.Sku with
-                | Free ->
-                    "F1"
-                | Shared ->
-                    "D1"
-                | Basic sku
-                | Standard sku
-                | Premium sku
-                | PremiumV2 sku
-                | Isolated sku ->
-                    sku
-              WorkerSize =
-                match wac.WorkerSize with
-                | Small -> "0"
-                | Medium -> "1"
-                | Large -> "2"
-              IsDynamic = false
-              Kind =
-                match wac.OperatingSystem with
-                | Windows -> Some "app"
-                | Linux -> Some "linux"
-              Tier =
-                match wac.Sku with
-                | Free -> "Free"
-                | Shared -> "Shared"
-                | Basic _ -> "Basic"
-                | Standard _ -> "Standard"
-                | Premium _ -> "Premium"
-                | PremiumV2 _ -> "PremiumV2"
-                | Isolated _ -> "Isolated"
-              IsLinux = match wac.OperatingSystem with Linux -> true | Windows -> false
-              WorkerCount = wac.WorkerCount }
+            match wac.ServicePlanName with
+            | External _
+            | AutomaticPlaceholder ->            
+                None
+            | AutomaticallyCreated resourceName ->
+                { Location = location
+                  Name = resourceName
+                  Sku =
+                    match wac.Sku with
+                    | Free ->
+                        "F1"
+                    | Shared ->
+                        "D1"
+                    | Basic sku
+                    | Standard sku
+                    | Premium sku
+                    | PremiumV2 sku
+                    | Isolated sku ->
+                        sku
+                  WorkerSize =
+                    match wac.WorkerSize with
+                    | Small -> "0"
+                    | Medium -> "1"
+                    | Large -> "2"
+                  IsDynamic = false
+                  Kind =
+                    match wac.OperatingSystem with
+                    | Windows -> Some "app"
+                    | Linux -> Some "linux"
+                  Tier =
+                    match wac.Sku with
+                    | Free -> "Free"
+                    | Shared -> "Shared"
+                    | Basic _ -> "Basic"
+                    | Standard _ -> "Standard"
+                    | Premium _ -> "Premium"
+                    | PremiumV2 _ -> "PremiumV2"
+                    | Isolated _ -> "Isolated"
+                  IsLinux = match wac.OperatingSystem with Linux -> true | Windows -> false
+                  WorkerCount = wac.WorkerCount } |> Some
         let ai =
             match wac.AppInsightsName with
             | Some (AutomaticallyCreated resourceName) ->
@@ -312,7 +330,7 @@ module Converters =
     let functions location (fns:FunctionsConfig) =
         let webApp =
             { Name = fns.Name
-              ServerFarm = fns.ServicePlanName
+              ServerFarm = fns.ServicePlanName.ResourceName
               Location = location
               AppSettings = [
                 yield! fns.Settings |> Map.toList
@@ -347,7 +365,7 @@ module Converters =
                 | Some AutomaticPlaceholder
                 | None ->
                     ()
-                fns.ServicePlanName
+                match fns.ServicePlanName.ResourceNameOpt with Some resourceName -> resourceName | None -> ()
                 fns.StorageAccountName.ResourceName
               ]
               AlwaysOn = false
@@ -362,18 +380,23 @@ module Converters =
             }
 
         let serverFarm =
-            { Location = location
-              Name = fns.ServicePlanName
-              Sku = "Y1"
-              WorkerSize = "Y1"
-              Kind =
-                match fns.OperatingSystem with
-                | Windows -> None
-                | Linux -> Some "linux"
-              IsDynamic = true
-              IsLinux = match fns.OperatingSystem with Linux -> true | Windows -> false
-              Tier = "Dynamic"
-              WorkerCount = 0 }
+            match fns.ServicePlanName with
+            | External _
+            | AutomaticPlaceholder ->            
+                None
+            | AutomaticallyCreated resourceName ->
+                { Location = location
+                  Name =  resourceName
+                  Sku = "Y1"
+                  WorkerSize = "Y1"
+                  Kind =
+                    match fns.OperatingSystem with
+                    | Windows -> None
+                    | Linux -> Some "linux"
+                  IsDynamic = true
+                  IsLinux = match fns.OperatingSystem with Linux -> true | Windows -> false
+                  Tier = "Dynamic"
+                  WorkerCount = 0 } |> Some
 
         let storage =
             match fns.StorageAccountName with
@@ -407,7 +430,7 @@ module Converters =
 type WebAppBuilder() =
     member __.Yield _ =
         { Name = ResourceName.Empty
-          ServicePlanName = ResourceName.Empty
+          ServicePlanName = AutomaticPlaceholder
           AppInsightsName = Some AutomaticPlaceholder
           Sku = Sku.F1
           WorkerSize = Small
@@ -421,7 +444,11 @@ type WebAppBuilder() =
           OperatingSystem = Windows }
     member __.Run(state:WebAppConfig) =
         { state with
-            ServicePlanName = state.ServicePlanName.IfEmpty (sprintf "%s-plan" state.Name.Value)
+            ServicePlanName =
+                match state.ServicePlanName with
+                | AutomaticPlaceholder -> AutomaticallyCreated (ResourceName (sprintf "%s-plan" state.Name.Value))
+                | AutomaticallyCreated x -> AutomaticallyCreated x
+                | External r -> External r
             AppInsightsName = Ai.tryCreateAppInsightsName state.AppInsightsName state.Name.Value
         }
     /// Sets the name of the web app.
@@ -430,8 +457,12 @@ type WebAppBuilder() =
     member this.Name(state:WebAppConfig, name:string) = this.Name(state, ResourceName name)
     /// Sets the name of the service plan.
     [<CustomOperation "service_plan_name">]
-    member __.ServicePlanName(state:WebAppConfig, name) = { state with ServicePlanName = name }
-    member this.ServicePlanName(state:WebAppConfig, name:string) = this.ServicePlanName(state, ResourceName name)
+    member __.ServicePlanName(state:WebAppConfig, name) = { state with ServicePlanName = AutomaticallyCreated name }
+    member this.ServicePlanName(state:WebAppConfig, name:string) = this.ServicePlanName(state, name)
+    /// Do not create a service plan for this web app. Instead, link to another pre-defined one. 
+    [<CustomOperation "link_to_service_plan">]
+    member __.LinkToServicePlan(state:WebAppConfig, name) = { state with ServicePlanName = External name }
+    member this.LinkToServicePlan(state:WebAppConfig, name:string) = this.LinkToServicePlan (state, ResourceName name)
     /// Sets the sku of the service plan.
     [<CustomOperation "sku">]
     member __.Sku(state:WebAppConfig, sku) = { state with Sku = sku }
@@ -450,8 +481,10 @@ type WebAppBuilder() =
     member __.DeactivateAppInsights(state:WebAppConfig) = { state with AppInsightsName = None }
     /// Instead of creating a new AI instance, configure this webapp to point to another AI instance that you are managing
     /// yourself.
-    [<CustomOperation "app_insights_manual">]
+    [<CustomOperation "link_to_app_insights">]
     member __.LinkAppInsights(state:WebAppConfig, name) = { state with AppInsightsName = Some(External name) }
+    member this.LinkAppInsights(state:WebAppConfig, name) = this.LinkAppInsights(state, ResourceName name)
+    member __.LinkAppInsights(state:WebAppConfig, name) = { state with AppInsightsName = name |> Option.map External }
     /// Sets the web app to use "run from package" deployment capabilities.
     [<CustomOperation "run_from_package">]
     member __.RunFromPackage(state:WebAppConfig) = { state with RunFromPackage = true }
@@ -489,7 +522,7 @@ type WebAppBuilder() =
 type FunctionsBuilder() =
     member __.Yield _ =
         { Name = ResourceName.Empty
-          ServicePlanName = ResourceName.Empty
+          ServicePlanName = AutomaticPlaceholder
           AppInsightsName = Some AutomaticPlaceholder
           StorageAccountName = AutomaticPlaceholder
           Runtime = DotNet
@@ -499,7 +532,11 @@ type FunctionsBuilder() =
           Dependencies = [] }
     member __.Run (state:FunctionsConfig) =
         { state with
-            ServicePlanName = state.ServicePlanName.IfEmpty (sprintf "%s-plan" state.Name.Value)
+            ServicePlanName =
+                match state.ServicePlanName with
+                | External e -> External e
+                | AutomaticPlaceholder -> AutomaticallyCreated(ResourceName(sprintf "%s-plan" state.Name.Value))
+                | AutomaticallyCreated a -> AutomaticallyCreated a
             StorageAccountName =
                 match state.StorageAccountName with
                 | AutomaticPlaceholder ->
@@ -519,10 +556,13 @@ type FunctionsBuilder() =
     member __.Name(state:FunctionsConfig, name) = { state with Name = ResourceName name }
     /// Sets the name of the service plan hosting the function instance.
     [<CustomOperation "service_plan_name">]
-    member __.ServicePlanName(state:FunctionsConfig, name) = { state with ServicePlanName = ResourceName name }
+    member __.ServicePlanName(state:FunctionsConfig, name) = { state with ServicePlanName = AutomaticallyCreated(ResourceName name) }
     /// Do not create an automatic storage account; instead, link to a storage account that is created outside of this Functions instance.
-    [<CustomOperation "storage_account_link">]
+    [<CustomOperation "link_to_service_plan">]
+    member __.LinkToServicePlan(state:FunctionsConfig, name) = { state with ServicePlanName = External name }
+    [<CustomOperation "link_to_storage_account">]
     member __.StorageAccountName(state:FunctionsConfig, name) = { state with StorageAccountName = External (ResourceName name) }
+    member __.StorageAccountName(state:FunctionsConfig, name) = { state with StorageAccountName = External name }
     /// Sets the name of the automatically-created app insights instance.
     [<CustomOperation "app_insights_auto_name">]
     member __.UseAppInsights(state:FunctionsConfig, name) = { state with AppInsightsName = Some (AutomaticallyCreated name) }
@@ -532,8 +572,9 @@ type FunctionsBuilder() =
     member __.DeactivateAppInsights(state:FunctionsConfig) = { state with AppInsightsName = None }
     /// Instead of creating a new AI instance, configure this webapp to point to another AI instance that you are managing
     /// yourself.
-    [<CustomOperation "app_insights_manual">]
+    [<CustomOperation "link_to_app_insights">]
     member __.LinkAppInsights(state:FunctionsConfig, name) = { state with AppInsightsName = Some(External name) }
+    member __.LinkAppInsights(state:FunctionsConfig, name) = { state with AppInsightsName = name |> Option.map External }
     /// Sets the runtime of the Functions host.
     [<CustomOperation "use_runtime">]
     member __.Runtime(state:FunctionsConfig, runtime) = { state with Runtime = runtime }
@@ -578,7 +619,7 @@ module Extensions =
             let outputs = Converters.webApp state.Location config
             let resources = [
                 WebApp outputs.WebApp
-                ServerFarm outputs.ServerFarm
+                match outputs.ServerFarm with Some farm -> ServerFarm farm | None -> ()
                 match outputs.Ai with Some ai -> AppInsights ai | None -> ()
             ]
             { state with Resources = state.Resources @ resources }
@@ -586,14 +627,16 @@ module Extensions =
             let outputs = config |> Converters.functions state.Location
             let resources = [
                 WebApp outputs.WebApp
-                ServerFarm outputs.ServerFarm
-                match outputs.Ai with (Some ai) -> AppInsights ai | None -> ()
-                match outputs.Storage with (Some storage) -> StorageAccount storage | None -> ()
+                match outputs.ServerFarm with Some farm -> ServerFarm farm | None -> ()
+                match outputs.Ai with Some ai -> AppInsights ai | None -> ()
+                match outputs.Storage with Some storage -> StorageAccount storage | None -> ()
             ]
             { state with Resources = state.Resources @ resources }
         member this.AddResource(state:ArmConfig, config:AppInsightsConfig) =
             { state with Resources = AppInsights (Converters.appInsights state.Location config) :: state.Resources } 
-        member this.AddResources (state, configs) = addResources this.AddResource state configs
+        member this.AddResources (state, configs) = addResources<FunctionsConfig> this.AddResource state configs
+        member this.AddResources (state, configs) = addResources<AppInsightsConfig> this.AddResource state configs
+        member this.AddResources (state, configs) = addResources<WebAppConfig> this.AddResource state configs
 
 
 let appInsights = AppInsightsBuilder()

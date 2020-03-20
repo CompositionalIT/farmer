@@ -322,7 +322,7 @@ type ArmBuilder.ArmBuilder with
                 KeyVaultSecret secret
         ]
         { state with Resources = resources @ state.Resources }
-    member this.AddResources (state, configs) = addResources this.AddResource state configs
+    member this.AddResources (state, configs) = addResources<KeyVaultConfig> this.AddResource state configs
 
 
 let accessPolicy = AccessPolicyBuilder()

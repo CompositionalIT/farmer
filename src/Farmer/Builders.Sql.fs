@@ -142,7 +142,7 @@ open Farmer.Models
 type ArmBuilder.ArmBuilder with
     member this.AddResource(state:ArmConfig, config:SqlAzureConfig) =
         { state with Resources = SqlServer (Converters.sql state.Location config) :: state.Resources } 
-    member this.AddResources (state, configs) = addResources this.AddResource state configs
+    member this.AddResources (state, configs) = addResources<SqlAzureConfig> this.AddResource state configs
 
 let sql = SqlBuilder()
 

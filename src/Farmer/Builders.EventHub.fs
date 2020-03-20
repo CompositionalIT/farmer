@@ -171,6 +171,6 @@ type ArmBuilder.ArmBuilder with
               ()
         ]
         { state with Resources = resources @ state.Resources }
-    member this.AddResources (state, configs) = addResources this.AddResource state configs
+    member this.AddResources (state, configs) = addResources<EventHubConfig> this.AddResource state configs
 
 let eventHub = EventHubBuilder()

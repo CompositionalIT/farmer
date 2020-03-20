@@ -64,6 +64,6 @@ type Farmer.ArmBuilder.ArmBuilder with
         { state with
             Resources = StorageAccount (Converters.storage state.Location config) :: state.Resources
         }
-    member this.AddResources (state, configs) = addResources this.AddResource state configs
+    member this.AddResources (state, configs) = addResources<StorageAccountConfig> this.AddResource state configs
 
 let storageAccount = StorageAccountBuilder()

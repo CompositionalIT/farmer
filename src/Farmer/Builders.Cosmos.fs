@@ -130,7 +130,7 @@ type ArmBuilder.ArmBuilder with
             yield! outputs.Containers |> List.map CosmosContainer
         ]
         { state with Resources = state.Resources @ resources }
-    member this.AddResources (state, configs) = addResources this.AddResource state configs
+    member this.AddResources (state, configs) = addResources<CosmosDbConfig> this.AddResource state configs
 
 let cosmosDb = CosmosDbBuilder()
 let container = CosmosDbContainerBuilder()

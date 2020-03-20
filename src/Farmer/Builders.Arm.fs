@@ -77,7 +77,7 @@ type ArmBuilder() =
     /// Adds a sequence of resources to the ARM template.
     member __.AddResources (state:ArmConfig, ()) = state
 
-let internal addResources addOne (state:ArmConfig) resources =
+let internal addResources<'a> (addOne:ArmConfig * 'a -> ArmConfig) (state:ArmConfig) resources =
     (state, resources)
     ||> Seq.fold(fun state resource -> addOne (state, resource))
 

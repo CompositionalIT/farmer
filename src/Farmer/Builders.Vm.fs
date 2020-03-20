@@ -345,6 +345,6 @@ type ArmBuilder.ArmBuilder with
             match output.Storage with Some storage -> StorageAccount storage | None -> ()
         ]
         { state with Resources = state.Resources @ resources }
-    member this.AddResources (state, configs) = addResources this.AddResource state configs
+    member this.AddResources (state, configs) = addResources<VmConfig> this.AddResource state configs
 
 let vm = VirtualMachineBuilder()

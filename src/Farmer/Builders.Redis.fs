@@ -100,6 +100,6 @@ type ArmBuilder.ArmBuilder with
     member this.AddResource(state:ArmConfig, config:RedisConfig) =
         let redis = Converters.redis state.Location config
         { state with Resources = RedisCache redis :: state.Resources }
-    member this.AddResources (state, configs) = addResources this.AddResource state configs
+    member this.AddResources (state, configs) = addResources<RedisConfig> this.AddResource state configs
 
 let redis = RedisBuilder()
