@@ -61,7 +61,7 @@ type ContainerBuilder() =
     [<CustomOperation "ports">]
     member __.Ports (state:ContainerConfig, ports) = { state with Ports = ports }
     /// Sets the maximum CPU cores the container may use
-    [<CustomOperationAttribute "cpu">]
+    [<CustomOperationAttribute "cpu_cores">]
     member __.CpuCount (state:ContainerConfig, cpuCount) = { state with Cpu = cpuCount }
     /// Sets the maximum gigabytes of memory the container may use
     [<CustomOperationAttribute "memory">]
@@ -81,13 +81,13 @@ type ContainerBuilder() =
     member __.RestartPolicy(state:ContainerConfig, restartPolicy) = { state with RestartPolicy = restartPolicy }
     /// Sets the IP addresss (default Public)
     [<CustomOperation "ip_address">]
-    member __.IpAddress(state:ContainerConfig, ipAddress) = { state with IpAddress = ipAddress }
+    member __.IpAddress(state:ContainerConfig, addressType, ports) = { state with IpAddress = { Type = addressType; Ports = ports |> Seq.map(fun (prot, port) -> { ContainerPort.Protocol = prot; ContainerPort.Port = port }) |> Seq.toList } }
     /// Adds a TCP port to be externally accessible
     [<CustomOperation "add_tcp_port">]
-    member __.AddTcpPort(state:ContainerConfig, port) = { state with IpAddress = { state.IpAddress with Ports = { Protocol=System.Net.Sockets.ProtocolType.Tcp; Port = port } :: state.IpAddress.Ports } }
+    member __.AddTcpPort(state:ContainerConfig, port) = { state with IpAddress = { state.IpAddress with Ports = { Protocol= TCP; Port = port } :: state.IpAddress.Ports } }
     /// Adds a UDP port to be externally accessible
     [<CustomOperation "add_udp_port">]
-    member __.AddUdpPort(state:ContainerConfig, port) = { state with IpAddress = { state.IpAddress with Ports = { Protocol=System.Net.Sockets.ProtocolType.Udp; Port = port } :: state.IpAddress.Ports } }
+    member __.AddUdpPort(state:ContainerConfig, port) = { state with IpAddress = { state.IpAddress with Ports = { Protocol= UDP; Port = port } :: state.IpAddress.Ports } }
 let container = ContainerBuilder()
 
 module Converters =
