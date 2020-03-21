@@ -286,10 +286,12 @@ module AzureCli =
         filename
 
     let toAzureCliCmd resourceGroupName (Location location) templateFilename parametersFilename =
-        sprintf """az login && az group create -l %s -n %s && az group deployment create -g %s --template-file %s --parameters @%s"""
+        let deploymentName = sprintf "farmer-deploy-%d" (RestDeployment.getDeployNumber())
+        sprintf """az login && az group create -l %s -n %s && az group deployment create -g %s -n%s --template-file %s --parameters @%s"""
             location
             resourceGroupName
             resourceGroupName
+            deploymentName
             templateFilename
             parametersFilename
 

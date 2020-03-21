@@ -10,7 +10,17 @@ type ArmConfig =
       Outputs : (string * string) list
       Location : Location
       Resources : SupportedResource list }
-
+    member internal this.AddOrMergeResource tryConvert existingConfig unwrap wrap =
+        let matchingResources = this.Resources |> List.choose unwrap
+        match tryConvert matchingResources existingConfig with
+        | NewResource newResource ->
+            { this with Resources = wrap newResource :: this.Resources }
+        | MergedResource(oldVersion, newVersion) ->
+            { this with Resources = wrap newVersion :: (this.Resources |> List.filter ((<>) (wrap oldVersion))) }
+        | CouldNotLocate resourceName ->
+            failwithf "Could not locate the parent resource ('%s'). Make sure you have correctly specified the name, and that it was added to the arm { } builder before this one." resourceName
+        | NotSet ->
+            failwithf "No parent resource name was set for this resource to link to: %A" existingConfig
 type Deployment =
     { Location : Location
       Template : ArmTemplate }

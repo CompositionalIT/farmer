@@ -89,6 +89,12 @@ namespace Farmer.Models
 open Farmer
 open Farmer.Resources
 
+type ResourceReplacement<'T> =
+  | NewResource of 'T
+  | MergedResource of old:'T * replacement:'T
+  | CouldNotLocate of string
+  | NotSet
+
 type AppInsights =
     { Name : ResourceName
       Location : Location
@@ -209,12 +215,18 @@ type SqlAzure =
   { ServerName : ResourceName
     Location : Location
     Credentials : {| Username : string; Password : SecureParameter |}
-    DbName : ResourceName
-    DbEdition : string
-    DbCollation : string
-    DbObjective : string
-    TransparentDataEncryption : FeatureFlag
-    FirewallRules : {| Name : string; Start : System.Net.IPAddress; End : System.Net.IPAddress |} list }
+    Databases :
+        {| Name : ResourceName
+           Edition : string
+           Collation : string
+           Objective : string
+           TransparentDataEncryption : FeatureFlag |} list
+    FirewallRules :
+        {| Name : string
+           Start : System.Net.IPAddress
+           End : System.Net.IPAddress |} list
+  }
+
 type CosmosDbSql =
     { Name : ResourceName
       Account : ResourceName
@@ -348,7 +360,7 @@ type SupportedResource =
         | AppInsights x -> x.Name
         | CosmosAccount x -> x.Name | CosmosSqlDb x -> x.Name | CosmosContainer x -> x.Name
         | ServerFarm x -> x.Name | WebApp x -> x.Name
-        | SqlServer x -> x.DbName
+        | SqlServer x -> x.ServerName
         | StorageAccount x -> x.Name
         | ContainerGroup x -> x.Name
         | Ip x -> x.Name | Vnet x -> x.Name | Nic x -> x.Name | Vm x -> x.Name

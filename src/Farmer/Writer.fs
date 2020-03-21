@@ -209,50 +209,55 @@ module Outputters =
             {| resource = {| id = cosmosDbSql.Name.Value |}
                options = {| throughput = cosmosDbSql.Throughput |} |}
     |}
-    let sqlAzure (database:SqlAzure) = {|
+    let sqlAzure (server:SqlAzure) = {|
         ``type`` = "Microsoft.Sql/servers"
-        name = database.ServerName.Value
+        name = server.ServerName.Value
         apiVersion = "2014-04-01-preview"
-        location = database.Location.Value
+        location = server.Location.Value
         tags = {| displayName = "SqlServer" |}
         properties =
-            {| administratorLogin = database.Credentials.Username
-               administratorLoginPassword = database.Credentials.Password.AsArmRef.Eval()
+            {| administratorLogin = server.Credentials.Username
+               administratorLoginPassword = server.Credentials.Password.AsArmRef.Eval()
                version = "12.0" |}
         resources = [
-            box
-                {| ``type`` = "databases"
-                   name = database.DbName.Value
-                   apiVersion = "2015-01-01"
-                   location = database.Location.Value
-                   tags = {| displayName = "Database" |}
-                   properties =
-                    {| edition = database.DbEdition
-                       collation = database.DbCollation
-                       requestedServiceObjectiveName = database.DbObjective |}
-                   dependsOn = [
-                       database.ServerName.Value
-                   ]
-                   resources = [
-                       {| ``type`` = "transparentDataEncryption"
-                          comments = "Transparent Data Encryption"
-                          name = "current"
-                          apiVersion = "2014-04-01-preview"
-                          properties = {| status = string database.TransparentDataEncryption |}
-                          dependsOn = [ database.DbName.Value ]
-                       |}
-                   ]
-                |}
-            for rule in database.FirewallRules do
+            for database in server.Databases do
+                box
+                    {| ``type`` = "databases"
+                       name = database.Name.Value
+                       apiVersion = "2015-01-01"
+                       location = server.Location.Value
+                       tags = {| displayName = "Database" |}
+                       properties =
+                        {| edition = database.Edition
+                           collation = database.Collation
+                           requestedServiceObjectiveName = database.Objective |}
+                       dependsOn = [
+                           server.ServerName.Value
+                       ]
+                       resources = [
+                           match database.TransparentDataEncryption with
+                           | Enabled ->
+                               {| ``type`` = "transparentDataEncryption"
+                                  comments = "Transparent Data Encryption"
+                                  name = "current"
+                                  apiVersion = "2014-04-01-preview"
+                                  properties = {| status = string database.TransparentDataEncryption |}
+                                  dependsOn = [ database.Name.Value ]
+                               |}
+                            | Disabled ->
+                                ()
+                       ]
+                    |}
+            for rule in server.FirewallRules do
                 box
                     {| ``type`` = "firewallrules"
                        name = rule.Name
                        apiVersion = "2014-04-01"
-                       location = database.Location.Value
+                       location = server.Location.Value
                        properties =
                         {| endIpAddress = string rule.Start
                            startIpAddress = string rule.End |}
-                       dependsOn = [ database.ServerName.Value ]
+                       dependsOn = [ server.ServerName.Value ]
                     |}
         ]
     |}

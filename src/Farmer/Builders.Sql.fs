@@ -2,6 +2,7 @@
 module Farmer.Resources.SqlAzure
 
 open Farmer
+open Farmer.Models
 
 type Edition = Free | Basic | Standard of string | Premium of string
 
@@ -25,7 +26,7 @@ module Sku =
     let ``P15`` = Premium "P15"
 
 type SqlAzureConfig =
-    { ServerName : ResourceName
+    { ServerName : ResourceRef
       AdministratorCredentials : {| UserName : string; Password : SecureParameter |}
       DbName : ResourceName
       DbEdition : Edition
@@ -34,23 +35,25 @@ type SqlAzureConfig =
       FirewallRules : {| Name : string; Start : System.Net.IPAddress; End : System.Net.IPAddress |} list }
     /// Gets the ARM expression path to the FQDN of this VM.
     member this.FullyQualifiedDomainName =
-        sprintf "reference(concat('Microsoft.Sql/servers/', variables('%s'))).fullyQualifiedDomainName" this.ServerName.Value
+        sprintf "reference(concat('Microsoft.Sql/servers/', variables('%s'))).fullyQualifiedDomainName" this.ServerName.ResourceName.Value
         |> ArmExpression
     /// Gets a basic .NET connection string using the administrator username / password.
     member this.ConnectionString =
         concat
             [ literal
                 (sprintf "Server=tcp:%s.database.windows.net,1433;Initial Catalog=%s;Persist Security Info=False;User ID=%s;Password="
-                    this.ServerName.Value
+                    this.ServerName.ResourceName.Value
                     this.DbName.Value
                     this.AdministratorCredentials.UserName)
               this.AdministratorCredentials.Password.AsArmRef
               literal ";MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;" ]
+    member this.Server =
+        this.ServerName.ResourceName
 
 type SqlBuilder() =
     let makeIp = System.Net.IPAddress.Parse
     member __.Yield _ =
-        { ServerName = ResourceName ""
+        { ServerName = AutomaticPlaceholder
           AdministratorCredentials = {| UserName = ""; Password = SecureParameter "" |}
           DbName = ResourceName ""
           DbEdition = Free
@@ -58,18 +61,29 @@ type SqlBuilder() =
           Encryption = Disabled
           FirewallRules = [] }
     member __.Run(state) =
-        if System.String.IsNullOrWhiteSpace state.AdministratorCredentials.UserName then failwith "You must specific an admin_username."
-        else
-            { state with
-                ServerName = state.ServerName |> Helpers.santitiseDb |> ResourceName
-                DbName = state.DbName |> Helpers.santitiseDb |> ResourceName
-                AdministratorCredentials =
+        { state with
+            ServerName =
+                match state.ServerName with
+                | External x -> External(x |> Helpers.santitiseDb |> ResourceName)
+                | AutomaticallyCreated x -> AutomaticallyCreated(x |> Helpers.santitiseDb |> ResourceName)
+                | AutomaticPlaceholder -> failwith "You must specific an server name, or link to an existing server."
+            DbName = state.DbName |> Helpers.santitiseDb |> ResourceName
+            AdministratorCredentials =
+                match state.ServerName with
+                | External _ -> state.AdministratorCredentials
+                | AutomaticallyCreated _
+                | AutomaticPlaceholder ->
+                    if System.String.IsNullOrWhiteSpace state.AdministratorCredentials.UserName then failwith "You must specific an admin_username."
                     {| state.AdministratorCredentials with
-                        Password = SecureParameter (sprintf "password-for-%s" state.ServerName.Value) |} }
+                        Password = SecureParameter (sprintf "password-for-%s" state.ServerName.ResourceName.Value) |} }
     [<CustomOperation "server_name">]
     /// Sets the name of the SQL server.
-    member __.ServerName(state:SqlAzureConfig, serverName) = { state with ServerName = serverName }
+    member __.ServerName(state:SqlAzureConfig, serverName) = { state with ServerName = AutomaticallyCreated serverName }
     member this.ServerName(state:SqlAzureConfig, serverName:string) = this.ServerName(state, ResourceName serverName)
+    [<CustomOperation "link_to_server">]
+    /// Sets the name of the SQL server.
+    member __.LinkToServerName(state:SqlAzureConfig, serverName) = { state with ServerName = External serverName }
+    member this.LinkToServerName(state:SqlAzureConfig, serverName) = this.LinkToServerName(state, ResourceName serverName)
     /// Sets the name of the database.
     [<CustomOperation "db_name">]
     member __.Name(state:SqlAzureConfig, name) = { state with DbName = name }
@@ -107,41 +121,53 @@ type SqlBuilder() =
 open WebApp
 type WebAppBuilder with
     member this.DependsOn(state:WebAppConfig, sqlDb:SqlAzureConfig) =
-        this.DependsOn(state, sqlDb.ServerName)
+        this.DependsOn(state, sqlDb.ServerName.ResourceName)
 type FunctionsBuilder with
     member this.DependsOn(state:FunctionsConfig, sqlDb:SqlAzureConfig) =
-        this.DependsOn(state, sqlDb.ServerName)
+        this.DependsOn(state, sqlDb.ServerName.ResourceName)
 
 module Converters =
     open Farmer.Models
-    let sql location (sql:SqlAzureConfig) =
-        { ServerName = sql.ServerName
-          Location = location
-          Credentials =
-            {| Username = sql.AdministratorCredentials.UserName
-               Password = sql.AdministratorCredentials.Password |}
-          DbName = sql.DbName
-          DbEdition =
-            match sql.DbEdition with
-            | Edition.Basic -> "Basic"
-            | Edition.Free -> "Free"
-            | Edition.Standard _ -> "Standard"
-            | Edition.Premium _ -> "Premium"
-          DbObjective =
-            match sql.DbEdition with
-            | Edition.Basic -> "Basic"
-            | Edition.Free -> "Free"
-            | Edition.Standard s -> s
-            | Edition.Premium p -> p
-          DbCollation = sql.DbCollation
-          TransparentDataEncryption = sql.Encryption
-          FirewallRules = sql.FirewallRules
-        }
+    let sql location (existingServers:SqlAzure list) (sql:SqlAzureConfig) =
+        let database =
+            {| Name = sql.DbName
+               Edition =
+                 match sql.DbEdition with
+                 | Edition.Basic -> "Basic"
+                 | Edition.Free -> "Free"
+                 | Edition.Standard _ -> "Standard"
+                 | Edition.Premium _ -> "Premium"
+               Objective =
+                 match sql.DbEdition with
+                 | Edition.Basic -> "Basic"
+                 | Edition.Free -> "Free"
+                 | Edition.Standard s -> s
+                 | Edition.Premium p -> p
+               Collation = sql.DbCollation
+               TransparentDataEncryption = sql.Encryption |}
 
-open Farmer.Models
+        match sql.ServerName with
+        | AutomaticallyCreated serverName ->
+            { ServerName = serverName
+              Location = location
+              Credentials =
+                {| Username = sql.AdministratorCredentials.UserName
+                   Password = sql.AdministratorCredentials.Password |}
+              FirewallRules = sql.FirewallRules
+              Databases = [ database ]
+            }
+            |> NewResource
+        | External name ->
+            existingServers
+            |> List.tryFind(fun g -> g.ServerName = name)
+            |> Option.map(fun server -> MergedResource(server, { server with Databases = database :: server.Databases }))
+            |> Option.defaultValue (CouldNotLocate name.Value)
+        | AutomaticPlaceholder ->
+            NotSet
+
 type ArmBuilder.ArmBuilder with
-    member this.AddResource(state:ArmConfig, config:SqlAzureConfig) =
-        { state with Resources = SqlServer (Converters.sql state.Location config) :: state.Resources } 
+    member __.AddResource(state:ArmConfig, config:SqlAzureConfig) =
+        state.AddOrMergeResource (Converters.sql state.Location) config (function SqlServer config -> Some config | _ -> None) SqlServer
     member this.AddResources (state, configs) = addResources<SqlAzureConfig> this.AddResource state configs
 
 let sql = SqlBuilder()
