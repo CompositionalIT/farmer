@@ -4,7 +4,7 @@ module Farmer.Resources.SqlAzure
 open Farmer
 open Farmer.Models
 
-type Edition = Free | Basic | Standard of string | Premium of string
+type SqlSku = Free | Basic | Standard of string | Premium of string
 
 module Sku =
     let ``Free`` = Free
@@ -29,7 +29,7 @@ type SqlAzureConfig =
     { ServerName : ResourceRef
       AdministratorCredentials : {| UserName : string; Password : SecureParameter |}
       DbName : ResourceName
-      DbEdition : Edition
+      DbEdition : SqlSku
       DbCollation : string
       Encryption : FeatureFlag
       FirewallRules : {| Name : string; Start : System.Net.IPAddress; End : System.Net.IPAddress |} list }
@@ -90,7 +90,7 @@ type SqlBuilder() =
     member this.Name(state:SqlAzureConfig, name:string) = this.Name(state, ResourceName name)
     /// Sets the sku of the database.
     [<CustomOperation "sku">]
-    member __.DatabaseEdition(state:SqlAzureConfig, edition:Edition) = { state with DbEdition = edition }
+    member __.DatabaseEdition(state:SqlAzureConfig, edition:SqlSku) = { state with DbEdition = edition }
     /// Sets the collation of the database.
     [<CustomOperation "collation">]
     member __.Collation(state:SqlAzureConfig, collation:string) = { state with DbCollation = collation }
@@ -133,16 +133,16 @@ module Converters =
             {| Name = sql.DbName
                Edition =
                  match sql.DbEdition with
-                 | Edition.Basic -> "Basic"
-                 | Edition.Free -> "Free"
-                 | Edition.Standard _ -> "Standard"
-                 | Edition.Premium _ -> "Premium"
+                 | SqlSku.Basic -> "Basic"
+                 | SqlSku.Free -> "Free"
+                 | SqlSku.Standard _ -> "Standard"
+                 | SqlSku.Premium _ -> "Premium"
                Objective =
                  match sql.DbEdition with
-                 | Edition.Basic -> "Basic"
-                 | Edition.Free -> "Free"
-                 | Edition.Standard s -> s
-                 | Edition.Premium p -> p
+                 | SqlSku.Basic -> "Basic"
+                 | SqlSku.Free -> "Free"
+                 | SqlSku.Standard s -> s
+                 | SqlSku.Premium p -> p
                Collation = sql.DbCollation
                TransparentDataEncryption = sql.Encryption |}
 

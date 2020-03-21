@@ -214,7 +214,7 @@ module Outputters =
         name = server.ServerName.Value
         apiVersion = "2014-04-01-preview"
         location = server.Location.Value
-        tags = {| displayName = "SqlServer" |}
+        tags = {| displayName = server.ServerName.Value |}
         properties =
             {| administratorLogin = server.Credentials.Username
                administratorLoginPassword = server.Credentials.Password.AsArmRef.Eval()
@@ -226,7 +226,7 @@ module Outputters =
                        name = database.Name.Value
                        apiVersion = "2015-01-01"
                        location = server.Location.Value
-                       tags = {| displayName = "Database" |}
+                       tags = {| displayName = database.Name.Value |}
                        properties =
                         {| edition = database.Edition
                            collation = database.Collation
