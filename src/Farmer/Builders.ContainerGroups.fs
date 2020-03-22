@@ -72,7 +72,7 @@ type ContainerBuilder() =
     member this.GroupName(state:ContainerConfig, name) = this.GroupName(state, ResourceName name)
     /// Links this container to an already-created container group.
     [<CustomOperation "link_to_container_group">]
-    member __.LinkToGroup(state:ContainerConfig, name) = { state with ContainerGroupName = External name }
+    member __.LinkToGroup(state:ContainerConfig, group:ContainerConfig) = { state with ContainerGroupName = External group.GroupName }
     /// Sets the OS type (default Linux)
     [<CustomOperation "os_type">]
     member __.OsType(state:ContainerConfig, osType) = { state with OsType = osType }
@@ -91,8 +91,7 @@ type ContainerBuilder() =
 let container = ContainerBuilder()
 
 module Converters =
-    type ContainerCommand = New of ContainerGroup | Replace of old:ContainerGroup * newC:ContainerGroup
-    let containerInstance location (existingGroups:ContainerGroup list) (config:ContainerConfig) : ContainerCommand option =
+    let containerInstance location (existingGroups:ContainerGroup list)  (config:ContainerConfig) =
         let container : ContainerInstance =
             { Name = config.Name
               Image = config.Image
@@ -108,27 +107,17 @@ module Converters =
               ContainerGroup.OsType = config.OsType
               ContainerGroup.RestartPolicy = config.RestartPolicy
               ContainerGroup.IpAddress = config.IpAddress }
-            |> New
-            |> Some
-        | External name ->
+            |> NewResource
+        | External resourceName ->
             existingGroups
-            |> List.tryFind(fun g -> g.Name = name)
-            |> Option.map(fun group -> Replace(group, { group with ContainerInstances = container :: group.ContainerInstances }))
+            |> List.tryFind(fun g -> g.Name = resourceName)
+            |> Option.map(fun group -> MergedResource(group, { group with ContainerInstances = group.ContainerInstances @ [ container ] }))
+            |> Option.defaultValue (CouldNotLocate resourceName)
         | AutomaticPlaceholder ->
-            None
+            NotSet
 
 type ArmBuilder.ArmBuilder with
-    member this.AddResource(state:ArmConfig, config:ContainerConfig) =
-        let existingContainerGroups =
-            state.Resources
-            |> List.choose(function ContainerGroup g -> Some g | _ -> None)
-        let group = Converters.containerInstance state.Location existingContainerGroups config
-        match group with
-        | Some (Converters.New group) ->
-            { state with Resources = ContainerGroup group :: state.Resources }
-        | Some (Converters.Replace(oldG, newG)) ->
-            { state with Resources = ContainerGroup newG :: (state.Resources |> List.filter ((<>) (ContainerGroup oldG))) }
-        | None ->
-            printfn "WARNING: Could not locate the linked container group ('%s'). Make sure you have correctly specified the name, and that it was added to the arm { } builder before this one." config.ContainerGroupName.ResourceName.Value
-            state
-    member this.AddResources (state, configs) = addResources<ContainerConfig> this.AddResource state configs
+    member __.AddResource(state:ArmConfig, config:ContainerConfig) =
+        state.AddOrMergeResource (Converters.containerInstance state.Location) config (function ContainerGroup g -> Some g | _ -> None) ContainerGroup
+    member this.AddResources (state, configs) =
+        addResources<ContainerConfig> this.AddResource state configs

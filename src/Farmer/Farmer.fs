@@ -92,7 +92,7 @@ open Farmer.Resources
 type ResourceReplacement<'T> =
   | NewResource of 'T
   | MergedResource of old:'T * replacement:'T
-  | CouldNotLocate of string
+  | CouldNotLocate of ResourceName
   | NotSet
 
 type AppInsights =
