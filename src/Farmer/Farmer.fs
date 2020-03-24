@@ -92,7 +92,7 @@ open Farmer.Resources
 type ResourceReplacement<'T> =
   | NewResource of 'T
   | MergedResource of old:'T * replacement:'T
-  | CouldNotLocate of string
+  | CouldNotLocate of ResourceName
   | NotSet
 
 type AppInsights =
@@ -135,9 +135,10 @@ module ContainerGroups =
     type ContainerGroupIpAddressType =
         | PublicAddress
         | PrivateAddress
+    type ContainerProtocol = TCP | UDP      
     [<RequireQualifiedAccess>]
     type ContainerPort =
-        { Protocol : System.Net.Sockets.ProtocolType
+        { Protocol : ContainerProtocol
           Port : uint16 }
     [<RequireQualifiedAccess>]
     type ContainerGroupIpAddress =
