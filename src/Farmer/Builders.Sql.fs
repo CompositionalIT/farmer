@@ -157,11 +157,11 @@ module Converters =
               Databases = [ database ]
             }
             |> NewResource
-        | External name ->
+        | External resourceName ->
             existingServers
-            |> List.tryFind(fun g -> g.ServerName = name)
+            |> List.tryFind(fun g -> g.ServerName = resourceName)
             |> Option.map(fun server -> MergedResource(server, { server with Databases = database :: server.Databases }))
-            |> Option.defaultValue (CouldNotLocate name.Value)
+            |> Option.defaultValue (CouldNotLocate resourceName)
         | AutomaticPlaceholder ->
             NotSet
 
@@ -171,4 +171,3 @@ type ArmBuilder.ArmBuilder with
     member this.AddResources (state, configs) = addResources<SqlAzureConfig> this.AddResource state configs
 
 let sql = SqlBuilder()
-

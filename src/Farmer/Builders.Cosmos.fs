@@ -152,4 +152,4 @@ type ArmBuilder.ArmBuilder with
     member this.AddResources (state, configs) = addResources<CosmosDbConfig> this.AddResource state configs
 
 let cosmosDb = CosmosDbBuilder()
-let container = CosmosDbContainerBuilder()
+let cosmosContainer = CosmosDbContainerBuilder()
