@@ -2,6 +2,7 @@
 module Farmer.Resources.CosmosDb
 
 open Farmer
+open Farmer.Models
 
 type CosmosDbContainerConfig =
     { Name : ResourceName
@@ -9,7 +10,7 @@ type CosmosDbContainerConfig =
       Indexes : (string * (CosmosDbIndexDataType * CosmosDbIndexKind) list) list
       ExcludedPaths : string list }
 type CosmosDbConfig =
-    { ServerName : ResourceName
+    { ServerName : ResourceRef
       ServerConsistencyPolicy : ConsistencyPolicy
       ServerFailoverPolicy : FailoverPolicy
       DbName : ResourceName
@@ -44,20 +45,30 @@ type CosmosDbContainerBuilder() =
         { state with ExcludedPaths = path :: state.ExcludedPaths }
 type CosmosDbBuilder() =
     member __.Yield _ =
-        { DbName = ResourceName "CosmosDatabase"
-          ServerName = ResourceName "CosmosServer"
+        { DbName = ResourceName.Empty
+          ServerName = AutomaticPlaceholder
           ServerConsistencyPolicy = Eventual
           ServerFailoverPolicy = NoFailover
           DbThroughput = "400"
           Containers = [] }
+    member __.Run state =
+        match state.ServerName with
+        | AutomaticallyCreated _
+        | External _ ->
+            state
+        | AutomaticPlaceholder ->
+            { state with ServerName = sprintf "%s-server" state.DbName.Value |> ResourceName |> AutomaticallyCreated }
     /// Sets the name of the CosmosDB server.
     [<CustomOperation "server_name">]
-    member __.ServerName(state:CosmosDbConfig, serverName) = { state with ServerName = serverName }
+    member __.ServerName(state:CosmosDbConfig, serverName) = { state with ServerName = AutomaticallyCreated serverName }
     member this.ServerName(state:CosmosDbConfig, serverName:string) = this.ServerName(state, ResourceName serverName)
+    /// Links the database to an existing server
+    [<CustomOperation "link_to_server">]
+    member __.LinkToServer(state:CosmosDbConfig, server:CosmosDbConfig) = { state with ServerName = External server.ServerName.ResourceName }
     /// Sets the name of the database.
-    [<CustomOperation "name">]
-    member __.Name(state:CosmosDbConfig, name) = { state with DbName = name }
-    member this.Name(state:CosmosDbConfig, name:string) = this.Name(state, ResourceName name)
+    [<CustomOperation "db_name">]
+    member __.DbName(state:CosmosDbConfig, name) = { state with DbName = name }
+    member this.DbName(state:CosmosDbConfig, name:string) = this.DbName(state, ResourceName name)
     /// Sets the consistency policy of the database.
     [<CustomOperation "consistency_policy">]
     member __.ConsistencyPolicy(state:CosmosDbConfig, consistency:ConsistencyPolicy) = { state with ServerConsistencyPolicy = consistency }
@@ -70,8 +81,7 @@ type CosmosDbBuilder() =
     member this.Throughput(state:CosmosDbConfig, throughput:int) = this.Throughput(state, string throughput)
     /// Adds a list of containers to the database.
     [<CustomOperation "add_containers">]
-    member __.AddContainers(state:CosmosDbConfig, containers) =
-        { state with Containers = state.Containers @ containers }
+    member __.AddContainers(state:CosmosDbConfig, containers) = { state with Containers = state.Containers @ containers }
 
 open WebApp
 type WebAppBuilder with
@@ -82,50 +92,59 @@ type FunctionsBuilder with
         this.DependsOn(state, cosmosDbConfig.DbName)
 
 module Converters =
-    open Farmer.Models
-
     let cosmosDb location (cosmos:CosmosDbConfig) =
         let account =
-            { Name = cosmos.ServerName
-              Location = location
-              ConsistencyPolicy = cosmos.ServerConsistencyPolicy
-              WriteModel = cosmos.ServerFailoverPolicy }
+            match cosmos.ServerName with
+            | AutomaticallyCreated name ->
+                { Name = name
+                  Location = location
+                  ConsistencyPolicy = cosmos.ServerConsistencyPolicy
+                  WriteModel = cosmos.ServerFailoverPolicy } |> Some
+            | AutomaticPlaceholder ->
+                failwith "No CosmosDB server was specified."
+            | External _ ->
+                None
         let sqlDb =
             { Name = cosmos.DbName
-              Account = cosmos.ServerName
+              Account = cosmos.ServerName.ResourceName
               Throughput = cosmos.DbThroughput }
-        let containers =
-            cosmos.Containers
-            |> List.map(fun c ->
-                { Name = c.Name
-                  Account = cosmos.ServerName
+        let containers = [
+            for container in cosmos.Containers do
+                { Name = container.Name
+                  Account = cosmos.ServerName.ResourceName
                   Database = cosmos.DbName
                   PartitionKey =
-                    {| Paths = fst c.PartitionKey
-                       Kind = snd c.PartitionKey |}
+                    {| Paths = fst container.PartitionKey
+                       Kind = snd container.PartitionKey |}
                   IndexingPolicy =
-                    {| ExcludedPaths = c.ExcludedPaths
-                       IncludedPaths =
-                           c.Indexes
-                           |> List.map(fun index ->
-                             {| Path = fst index
-                                Indexes =
-                                    index
-                                    |> snd
-                                    |> List.map(fun (dataType, kind) ->
+                    {| ExcludedPaths = container.ExcludedPaths
+                       IncludedPaths = [
+                            for (path, indexes) in container.Indexes do
+                                {| Path = path
+                                   Indexes = [
+                                       for (dataType, kind) in indexes do
                                         {| DataType = dataType
-                                           Kind = kind |})
-                             |})
+                                           Kind = kind |}
+                                   ]
+                                |}
+                       ]
                     |}
-                })
-        {| Account = account; SqlDb = sqlDb; Containers = containers |}
+                }
+        ]
+        {| Account = account
+           SqlDb = sqlDb
+           Containers = containers |}
 
 open Farmer.Models
 type ArmBuilder.ArmBuilder with
     member __.AddResource(state:ArmConfig, config:CosmosDbConfig) =
-        let outputs = config |> Converters.cosmosDb state.Location
+        let outputs =
+            config
+            |> Converters.cosmosDb state.Location
         let resources = [
-            CosmosAccount outputs.Account
+            match outputs.Account with
+            | Some account -> CosmosAccount account
+            | None -> ()
             CosmosSqlDb outputs.SqlDb
             yield! outputs.Containers |> List.map CosmosContainer
         ]

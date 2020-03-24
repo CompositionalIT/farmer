@@ -170,7 +170,7 @@ module Outputters =
                 |}
             |}
     |}
-    let cosmosDbServer (cosmosDb:CosmosDbAccount) = {|
+    let cosmosDbAccount (cosmosDb:CosmosDbAccount) = {|
         ``type`` = "Microsoft.DocumentDB/databaseAccounts"
         name = cosmosDb.Name.Value
         apiVersion = "2016-03-31"
@@ -196,8 +196,9 @@ module Outputters =
                 | AutoFailover secondary
                 | MultiMaster secondary ->
                     [ {| locationName = cosmosDb.Location.Value; failoverPriority = 0 |}
-                      {| locationName = secondary.Value; failoverPriority = 1 |} ]
-                | NoFailover -> []
+                      {| locationName = secondary.Value; failoverPriority = 1 |} ] |> box
+                | NoFailover ->
+                    Nullable() |> box
                 |} |> box
     |}
     let cosmosDbSql (cosmosDbSql:CosmosDbSql) = {|
@@ -514,7 +515,7 @@ module TemplateGeneration =
                 | ServerFarm s -> Outputters.serverFarm s |> box
                 | WebApp wa -> Outputters.webApp wa |> box
 
-                | CosmosAccount cds -> Outputters.cosmosDbServer cds |> box
+                | CosmosAccount cds -> Outputters.cosmosDbAccount cds |> box
                 | CosmosSqlDb db -> Outputters.cosmosDbSql db |> box
                 | CosmosContainer c -> Outputters.cosmosDbContainer c |> box
 
