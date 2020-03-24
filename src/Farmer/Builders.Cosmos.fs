@@ -14,8 +14,10 @@ type CosmosDbConfig =
       ServerConsistencyPolicy : ConsistencyPolicy
       ServerFailoverPolicy : FailoverPolicy
       DbName : ResourceName
-      DbThroughput : string
-      Containers : CosmosDbContainerConfig list }
+      DbThroughput : int
+      Containers : CosmosDbContainerConfig list
+      PublicNetworkAccess : FeatureFlag
+      FreeTier : bool }
 
 type CosmosDbContainerBuilder() =
     member __.Yield _ =
@@ -49,8 +51,10 @@ type CosmosDbBuilder() =
           ServerName = AutomaticPlaceholder
           ServerConsistencyPolicy = Eventual
           ServerFailoverPolicy = NoFailover
-          DbThroughput = "400"
-          Containers = [] }
+          DbThroughput = 400
+          Containers = []
+          PublicNetworkAccess = Enabled
+          FreeTier = false }
     member __.Run state =
         match state.ServerName with
         | AutomaticallyCreated _
@@ -78,10 +82,18 @@ type CosmosDbBuilder() =
     /// Sets the throughput of the server.
     [<CustomOperation "throughput">]
     member __.Throughput(state:CosmosDbConfig, throughput) = { state with DbThroughput = throughput }
-    member this.Throughput(state:CosmosDbConfig, throughput:int) = this.Throughput(state, string throughput)
     /// Adds a list of containers to the database.
     [<CustomOperation "add_containers">]
     member __.AddContainers(state:CosmosDbConfig, containers) = { state with Containers = state.Containers @ containers }
+    /// Enables public network access
+    [<CustomOperation "enable_public_network_access">]
+    member __.PublicNetworkAccess(state:CosmosDbConfig) = { state with PublicNetworkAccess = Enabled }
+    /// Disables public network access
+    [<CustomOperation "disable_public_network_access">]
+    member __.PrivateNetworkAccess(state:CosmosDbConfig) = { state with PublicNetworkAccess = Disabled }
+    /// Enables the use of CosmosDB free tier (one per subscription).
+    [<CustomOperation "free_tier">]
+    member __.FreeTier(state:CosmosDbConfig) = { state with FreeTier = true }
 
 open WebApp
 type WebAppBuilder with
@@ -99,7 +111,9 @@ module Converters =
                 { Name = name
                   Location = location
                   ConsistencyPolicy = cosmos.ServerConsistencyPolicy
-                  WriteModel = cosmos.ServerFailoverPolicy } |> Some
+                  WriteModel = cosmos.ServerFailoverPolicy
+                  PublicNetworkAccess = cosmos.PublicNetworkAccess
+                  FreeTier = cosmos.FreeTier } |> Some
             | AutomaticPlaceholder ->
                 failwith "No CosmosDB server was specified."
             | External _ ->
@@ -107,7 +121,7 @@ module Converters =
         let sqlDb =
             { Name = cosmos.DbName
               Account = cosmos.ServerName.ResourceName
-              Throughput = cosmos.DbThroughput }
+              Throughput = string cosmos.DbThroughput }
         let containers = [
             for container in cosmos.Containers do
                 { Name = container.Name
