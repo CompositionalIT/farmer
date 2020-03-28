@@ -140,9 +140,9 @@ module Outputters =
              |}
     |}
     let cosmosDbContainer (container:CosmosDbContainer) = {|
-        ``type`` = "Microsoft.DocumentDb/databaseAccounts/apis/databases/containers"
+        ``type`` = "Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers"
         name = sprintf "%s/sql/%s/%s" container.Account.Value container.Database.Value container.Name.Value
-        apiVersion = "2016-03-31"
+        apiVersion = "2020-03-01"
         dependsOn = [ container.Database.Value ]
         properties =
             {| resource =
@@ -170,15 +170,18 @@ module Outputters =
                 |}
             |}
     |}
-    let cosmosDbAccount (cosmosDb:CosmosDbAccount) = {|
+    let cosmosDbAccount (account:CosmosDbAccount) = {|
         ``type`` = "Microsoft.DocumentDB/databaseAccounts"
-        name = cosmosDb.Name.Value
-        apiVersion = "2016-03-31"
-        location = cosmosDb.Location.Value
+        name = account.Name.Value
+        apiVersion = "2020-03-01"
+        location = account.Location.Value
         kind = "GlobalDocumentDB"
+        tags =
+            {| defaultExperience = "Core (SQL)"
+               CosmosAccountType = "Non-Production" |}
         properties =
             {| consistencyPolicy =
-                    match cosmosDb.ConsistencyPolicy with
+                    match account.ConsistencyPolicy with
                     | BoundedStaleness(maxStaleness, maxInterval) ->
                         box {| defaultConsistencyLevel = "BoundedStaleness"
                                maxStalenessPrefix = maxStaleness
@@ -187,28 +190,30 @@ module Outputters =
                     | Eventual
                     | ConsistentPrefix
                     | Strong ->
-                        box {| defaultConsistencyLevel = string cosmosDb.ConsistencyPolicy |}
+                        box {| defaultConsistencyLevel = string account.ConsistencyPolicy |}
                databaseAccountOfferType = "Standard"
-               enableAutomaticFailure = match cosmosDb.WriteModel with AutoFailover _ -> Nullable true | _ -> Nullable()
-               autoenableMultipleWriteLocations = match cosmosDb.WriteModel with MultiMaster _ -> Nullable true | _ -> Nullable()
+               enableAutomaticFailure = match account.WriteModel with AutoFailover _ -> Nullable true | _ -> Nullable()
+               autoenableMultipleWriteLocations = match account.WriteModel with MultiMaster _ -> Nullable true | _ -> Nullable()
                locations =
-                match cosmosDb.WriteModel with
+                match account.WriteModel with
                 | AutoFailover secondary
                 | MultiMaster secondary ->
-                    [ {| locationName = cosmosDb.Location.Value; failoverPriority = 0 |}
+                    [ {| locationName = account.Location.Value; failoverPriority = 0 |}
                       {| locationName = secondary.Value; failoverPriority = 1 |} ] |> box
                 | NoFailover ->
                     Nullable() |> box
-                |} |> box
+               publicNetworkAccess = string account.PublicNetworkAccess
+               enableFreeTier = account.FreeTier
+            |} |> box
     |}
-    let cosmosDbSql (cosmosDbSql:CosmosDbSql) = {|
-        ``type`` = "Microsoft.DocumentDB/databaseAccounts/apis/databases"
-        name = sprintf "%s/sql/%s" cosmosDbSql.Account.Value cosmosDbSql.Name.Value
-        apiVersion = "2016-03-31"
-        dependsOn = [ cosmosDbSql.Account.Value ]
+    let cosmosDbSql (db:CosmosDbSql) = {|
+        ``type`` = "Microsoft.DocumentDB/databaseAccounts/sqlDatabases"
+        name = sprintf "%s/%s" db.Account.Value db.Name.Value
+        apiVersion = "2020-03-01"
+        dependsOn = [ db.Account.Value ]
         properties =
-            {| resource = {| id = cosmosDbSql.Name.Value |}
-               options = {| throughput = cosmosDbSql.Throughput |} |}
+            {| resource = {| id = db.Name.Value |}
+               options = {| throughput = db.Throughput |} |}
     |}
     let sqlAzure (server:SqlAzure) = {|
         ``type`` = "Microsoft.Sql/servers"
@@ -504,7 +509,7 @@ module Outputters =
 
 module TemplateGeneration =
     let processTemplate (template:ArmTemplate) = {|
-        ``$schema`` = "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#"
+        ``$schema`` = "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#"
         contentVersion = "1.0.0.0"
         resources =
             template.Resources

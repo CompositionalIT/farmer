@@ -135,7 +135,7 @@ module ContainerGroups =
     type ContainerGroupIpAddressType =
         | PublicAddress
         | PrivateAddress
-    type ContainerProtocol = TCP | UDP      
+    type ContainerProtocol = TCP | UDP
     [<RequireQualifiedAccess>]
     type ContainerPort =
         { Protocol : ContainerProtocol
@@ -236,7 +236,9 @@ type CosmosDbAccount =
     { Name : ResourceName
       Location : Location
       ConsistencyPolicy : ConsistencyPolicy
-      WriteModel : FailoverPolicy }
+      WriteModel : FailoverPolicy
+      PublicNetworkAccess : FeatureFlag
+      FreeTier : bool }
 
 type Search =
     { Name : ResourceName
