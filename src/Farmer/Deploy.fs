@@ -19,8 +19,7 @@ type DeploymentRejectionError =
 type ErrorDetails =
     { Code : string
       Message : string
-      Details : {| Code : string
-                   Message : string |} array }
+      Details : {| Code : string; Message : string |} array }
 type DeploymentFailureError =
     | CantGetStatus of string
     | ProvisioningFailure of ErrorDetails
@@ -75,7 +74,7 @@ module AzureRest =
                 timeout defaultTimeout
                 BearerAuth accessToken
                 body
-                json (sprintf """{ "location": "%s", "tags": { "Deployed with Farmer": "" }}""" location)
+                json (sprintf """{ "location": "%s", "tags": { "Deployed with": "Farmer" }}""" location)
             } |> toResult
         member __.DeployTemplate parameters deploymentName templateJson =
             let parameters = parameters |> List.map(fun (k, v) -> k, {| value = v |}) |> Map |> JsonConvert.SerializeObject
@@ -178,7 +177,9 @@ module RestDeployment =
             return
                 Seq.initInfinite (fun _ ->
                     Async.Sleep 5000 |> Async.RunSynchronously
-                    armDeploy.GetDeploymentStatus deploymentName)
+                    try armDeploy.GetDeploymentStatus deploymentName |> Some
+                    with _ -> None)
+                |> Seq.choose id
                 |> Seq.distinct
         }
 
