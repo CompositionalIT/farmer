@@ -85,7 +85,18 @@ module AzureRest =
                 body
                 json (sprintf """{ "properties": { "mode": "Incremental", "template": %s, "parameters" : %s } }""" templateJson parameters)
             } |> toResult
-
+        member __.ValidateTemplate parameters deploymentName templateJson =
+            let parameters = parameters |> List.map(fun (k, v) -> k, {| value = v |}) |> Map |> JsonConvert.SerializeObject
+            http {
+                POST (sprintf "https://management.azure.com/subscriptions/%O/resourcegroups/%s/providers/Microsoft.Resources/deployments/%s/validate?api-version=2019-10-01" subscriptionId resourceGroup deploymentName)
+                timeout defaultTimeout
+                BearerAuth accessToken
+                body
+                json (sprintf """{ "properties": { "mode": "Incremental", "template": %s, "parameters" : %s } }""" templateJson parameters)
+            }
+            |> toResult
+            |> Result.mapError getContent<{| Error: {| Code : string; Message:string |} |}>
+            |> Result.mapError(fun e -> e.Error)
         member __.GetDeploymentStatus deploymentName = Result.result {
             let! deploymentDetails =
                 http {

@@ -141,7 +141,7 @@ module Outputters =
     |}
     let cosmosDbContainer (container:CosmosDbContainer) = {|
         ``type`` = "Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers"
-        name = sprintf "%s/sql/%s/%s" container.Account.Value container.Database.Value container.Name.Value
+        name = sprintf "%s/%s/%s" container.Account.Value container.Database.Value container.Name.Value
         apiVersion = "2020-03-01"
         dependsOn = [ container.Database.Value ]
         properties =
