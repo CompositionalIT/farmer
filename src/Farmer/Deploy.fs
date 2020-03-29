@@ -14,6 +14,7 @@ type AzureCredentials =
 type Outputs = Map<string, string>
 type DeploymentRejectionError =
     | CantObtainBearerToken of {| Error : string; Error_Description : string |}
+    | ValidationError of {| Code : string; Message:string |}
     | CantCreateResourceGroup of string
     | InvalidTemplateRejection of string
 type ErrorDetails =
@@ -95,8 +96,8 @@ module AzureRest =
                 json (sprintf """{ "properties": { "mode": "Incremental", "template": %s, "parameters" : %s } }""" templateJson parameters)
             }
             |> toResult
+            |> Result.ignore
             |> Result.mapError getContent<{| Error: {| Code : string; Message:string |} |}>
-            |> Result.mapError(fun e -> e.Error)
         member __.GetDeploymentStatus deploymentName = Result.result {
             let! deploymentDetails =
                 http {
@@ -171,6 +172,12 @@ module RestDeployment =
                 AzureRest.TemplateDeployer.Create(credentials.TenantId, credentials.ClientId, credentials.ClientSecret, subscriptionId, resourceGroupName)
                 |> Result.mapError CantObtainBearerToken
 
+            logMessage "Performing basic ARM validation..."
+            do!
+                armTemplateJson
+                |> armDeploy.ValidateTemplate parameters deploymentName
+                |> Result.mapError(fun e -> ValidationError e.Error)
+                
             logMessage (sprintf "Creating resource group %s..." resourceGroupName)
             do!
                 armDeploy.CreateResourceGroup location
