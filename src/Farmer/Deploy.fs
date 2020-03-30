@@ -12,9 +12,23 @@ type AzureCredentials =
       TenantId : Guid }
 
 type Outputs = Map<string, string>
+type ValidationError =
+    { Code : string
+      Message:string
+      Details :
+        {| Code : string
+           Message: string
+           Details :
+            {| Code : string
+               Target : string
+               Message : string
+            |} array
+        |} array
+    }
+
 type DeploymentRejectionError =
     | CantObtainBearerToken of {| Error : string; Error_Description : string |}
-    | ValidationError of {| Code : string; Message:string |}
+    | ValidationError of ValidationError
     | CantCreateResourceGroup of string
     | InvalidTemplateRejection of string
 type ErrorDetails =
@@ -105,7 +119,7 @@ module AzureRest =
             }
             |> toResult
             |> Result.ignore
-            |> Result.mapError getContent<{| Error: {| Code : string; Message:string |} |}>
+            |> Result.mapError getContent<{| Error: ValidationError |}>
         member __.WhatIf parameters deploymentName templateJson =
             let rec tryGetUpdate (url:System.Uri) = async {
                 let update = http {
