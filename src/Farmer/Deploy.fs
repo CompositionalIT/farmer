@@ -49,12 +49,10 @@ type DeploymentStatus =
     | Provisioned of Outputs
 type ChangeType = Create | Delete | Deploy | Ignore | Modify | NoChange
 type WhatIfResponse =
-    { properties :
-        {| changes :
-            {| ChangeType : string
-               After : {| Name : string; ``Type`` : string |}
-            |} array
-        |}
+    { Changes :
+       {| ChangeType : ChangeType
+          Resource : {| Name : string; ``Type`` : string |}
+       |} array
     }
 module AzureRest =
     open FsHttp.DslCE
@@ -120,7 +118,8 @@ module AzureRest =
             |> toResult
             |> Result.ignore
             |> Result.mapError getContent<{| Error: ValidationError |}>
-        member __.WhatIf parameters deploymentName templateJson =
+        member __.WhatIf parameters deploymentName templateJson  : Result<WhatIfResponse, _> =
+            let parameters = parameters |> List.map(fun (k, v) -> k, {| value = v |}) |> Map |> JsonConvert.SerializeObject
             let rec tryGetUpdate (url:System.Uri) = async {
                 let update = http {
                     GET (url.ToString())
@@ -142,10 +141,34 @@ module AzureRest =
             }
 
             match initialResponse.statusCode with
-            | System.Net.HttpStatusCode.Accepted -> tryGetUpdate initialResponse.headers.Location |> Async.RunSynchronously
-            | System.Net.HttpStatusCode.OK -> initialResponse
-            | _ -> failwith "error!"
-            |> getContent<WhatIfResponse>
+            | System.Net.HttpStatusCode.Accepted -> tryGetUpdate initialResponse.headers.Location |> Async.RunSynchronously |> Ok
+            | System.Net.HttpStatusCode.OK -> Ok initialResponse
+            | _ -> Error (sprintf "Unknown error occurred during what-if: %s" (initialResponse.content.ReadAsStringAsync().Result))
+            |> Result.map(fun response ->
+                let content =
+                    response
+                    |> getContent<
+                        {| properties :
+                            {| changes :
+                                {| ChangeType : string
+                                   Before : {| Name : string; ``Type`` : string |}
+                                   After : {| Name : string; ``Type`` : string |}
+                                |} array
+                            |}
+                        |}>
+                { WhatIfResponse.Changes =
+                    [| for change in content.properties.changes do
+                        match change.ChangeType with
+                        | "Create" -> {| ChangeType = Create; Resource = change.After |}
+                        | "Delete" -> {| ChangeType = Delete; Resource = change.Before |}
+                        | "Deploy" -> {| ChangeType = Deploy; Resource = change.After |}
+                        | "Ignore" -> {| ChangeType = Ignore; Resource = change.After |}
+                        | "NoChange" -> {| ChangeType = NoChange; Resource = change.After |}
+                        | "Modify" -> {| ChangeType = Modify; Resource = change.After |}
+                        | c -> failwithf "Unknown change type %s" c
+                    |]
+                }
+            )
         member __.GetDeploymentStatus deploymentName = Result.result {
             let! deploymentDetails =
                 http {
@@ -210,6 +233,13 @@ module RestDeployment =
     type RawDeploymentResult =
         {| DeploymentName : string
            Result : Result<ProgressResult seq, DeploymentRejectionError> |}
+
+    /// Performs a "what if" analysis on a deployment against a subscription.
+    let whatIf (credentials:AzureCredentials) subscriptionId (armTemplateJson:string, parameters : (string * string) list, resourceGroupName:string) =
+        let deploymentName = sprintf "FarmerDeploy%d" (getDeployNumber())
+        AzureRest.TemplateDeployer.Create(credentials.TenantId, credentials.ClientId, credentials.ClientSecret, subscriptionId, resourceGroupName)
+        |> Result.mapError(fun x -> x.Error)
+        |> Result.bind(fun deployer -> deployer.WhatIf parameters deploymentName armTemplateJson)
 
     /// Deploys a template using the Rest API.
     let deployTemplate (credentials:AzureCredentials) subscriptionId logMessage (armTemplateJson:string, parameters : (string * string) list, location:string, resourceGroupName:string) : RawDeploymentResult =
@@ -287,6 +317,13 @@ let fullDeploy credentials (subscriptionId:Guid) resourceGroupName parameters de
     (armTemplateJson, parameters, deployment.Location.Value, resourceGroupName)
     |> RestDeployment.deployTemplate credentials subscriptionId (printfn "%s")
     |> RestDeployment.reportDeploymentProgress (fun stats -> printfn "In progress (%d / %d operations)..." stats.OperationsCompleted (stats.OperationsCompleted + stats.OperationsRemaining))
+
+let whatIf credentials (subscriptionId:Guid) resourceGroupName parameters deployment =
+    let armTemplateJson = deployment.Template |> Writer.toJson
+
+    (armTemplateJson, parameters, resourceGroupName)
+    |> RestDeployment.whatIf credentials subscriptionId
+
 
 module ParameterFile =
     module Passwords =
