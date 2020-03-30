@@ -33,7 +33,15 @@ type DeploymentResult =
 type DeploymentStatus =
     | Provisioning of {| OperationsCompleted : int; OperationsRemaining : int |}
     | Provisioned of Outputs
-
+type ChangeType = Create | Delete | Deploy | Ignore | Modify | NoChange
+type WhatIfResponse =
+    { properties :
+        {| changes :
+            {| ChangeType : string
+               After : {| Name : string; ``Type`` : string |}
+            |} array
+        |}
+    }
 module AzureRest =
     open FsHttp.DslCE
     type DeploymentOperationResult =
@@ -98,6 +106,32 @@ module AzureRest =
             |> toResult
             |> Result.ignore
             |> Result.mapError getContent<{| Error: {| Code : string; Message:string |} |}>
+        member __.WhatIf parameters deploymentName templateJson =
+            let rec tryGetUpdate (url:System.Uri) = async {
+                let update = http {
+                    GET (url.ToString())
+                    BearerAuth accessToken
+                }
+                match update.statusCode with
+                | System.Net.HttpStatusCode.Accepted ->
+                    do! Async.Sleep 5000
+                    return! tryGetUpdate url
+                | _ ->
+                    return update
+            }
+
+            let initialResponse = http {
+                POST (sprintf "https://management.azure.com/subscriptions/%O/resourcegroups/%s/providers/Microsoft.Resources/deployments/%s/whatIf?api-version=2019-10-01" subscriptionId resourceGroup deploymentName)
+                BearerAuth accessToken
+                body
+                json (sprintf """{ "properties": { "mode": "Incremental", "template": %s, "parameters" : %s } }""" templateJson parameters)
+            }
+
+            match initialResponse.statusCode with
+            | System.Net.HttpStatusCode.Accepted -> tryGetUpdate initialResponse.headers.Location |> Async.RunSynchronously
+            | System.Net.HttpStatusCode.OK -> initialResponse
+            | _ -> failwith "error!"
+            |> getContent<WhatIfResponse>
         member __.GetDeploymentStatus deploymentName = Result.result {
             let! deploymentDetails =
                 http {
@@ -177,7 +211,7 @@ module RestDeployment =
                 armTemplateJson
                 |> armDeploy.ValidateTemplate parameters deploymentName
                 |> Result.mapError(fun e -> ValidationError e.Error)
-                
+
             logMessage (sprintf "Creating resource group %s..." resourceGroupName)
             do!
                 armDeploy.CreateResourceGroup location
