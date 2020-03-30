@@ -1,5 +1,12 @@
 Release Notes
 =============
+## 0.7.0
+* Minor bug fixes
+* Simplify API for hierarchical resources e.g. Containers, Cosmos, SQL Azure, WebApps and Functions
+* Support for Validation API before deploying
+* Basic support for What-If API
+* Error handling on deployment status updates
+
 ## 0.6.0
 * Client Secret is now a string
 * Sanitise storage accounts automatically
