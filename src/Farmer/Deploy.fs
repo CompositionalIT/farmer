@@ -47,11 +47,16 @@ type DeploymentResult =
 type DeploymentStatus =
     | Provisioning of {| OperationsCompleted : int; OperationsRemaining : int |}
     | Provisioned of Outputs
-type ChangeType = Create | Delete | Deploy | Ignore | Modify | NoChange
+type PropertyChangeType =
+    | Create of {| Path:string; To: string |}
+    | Delete of {| Path:string; From: string |}
+    | Modify of {| Path:string; From : string; To:string |}
+type ResourceChangeType = Create | Delete | Deploy | Ignore | Modify of PropertyChangeType list | NoChange
 type WhatIfResponse =
     { Changes :
-       {| ChangeType : ChangeType
-          Resource : {| Name : string; ``Type`` : string |}
+       {| ResourceType : string
+          ResourceName : string
+          ChangeType : ResourceChangeType
        |} array
     }
 module AzureRest =
@@ -121,16 +126,22 @@ module AzureRest =
         member __.WhatIf parameters deploymentName templateJson  : Result<WhatIfResponse, _> =
             let parameters = parameters |> List.map(fun (k, v) -> k, {| value = v |}) |> Map |> JsonConvert.SerializeObject
             let rec tryGetUpdate (url:System.Uri) = async {
-                let update = http {
+                let response = http {
                     GET (url.ToString())
                     BearerAuth accessToken
                 }
-                match update.statusCode with
+                match response.statusCode with
                 | System.Net.HttpStatusCode.Accepted ->
                     do! Async.Sleep 5000
                     return! tryGetUpdate url
                 | _ ->
-                    return update
+                    let! body = response.content.ReadAsStringAsync() |> Async.AwaitTask
+                    let statusData = body |> JsonConvert.DeserializeObject<{|status:string|}>
+                    match statusData.status with
+                    | "Failed" ->
+                        return Error (sprintf "Unknown error occurred during what-if: %s" (response.content.ReadAsStringAsync().Result))
+                    | _ ->
+                        return Ok response
             }
 
             let initialResponse = http {
@@ -141,7 +152,7 @@ module AzureRest =
             }
 
             match initialResponse.statusCode with
-            | System.Net.HttpStatusCode.Accepted -> tryGetUpdate initialResponse.headers.Location |> Async.RunSynchronously |> Ok
+            | System.Net.HttpStatusCode.Accepted -> tryGetUpdate initialResponse.headers.Location |> Async.RunSynchronously
             | System.Net.HttpStatusCode.OK -> Ok initialResponse
             | _ -> Error (sprintf "Unknown error occurred during what-if: %s" (initialResponse.content.ReadAsStringAsync().Result))
             |> Result.map(fun response ->
@@ -150,22 +161,36 @@ module AzureRest =
                     |> getContent<
                         {| properties :
                             {| changes :
-                                {| ChangeType : string
-                                   Before : {| Name : string; ``Type`` : string |}
-                                   After : {| Name : string; ``Type`` : string |}
+                                {| ResourceId : string
+                                   ChangeType : string
+                                   Delta : {| Path : string; PropertyChangeType : string; Before : obj; After : obj |} array
                                 |} array
                             |}
                         |}>
                 { WhatIfResponse.Changes =
                     [| for change in content.properties.changes do
-                        match change.ChangeType with
-                        | "Create" -> {| ChangeType = Create; Resource = change.After |}
-                        | "Delete" -> {| ChangeType = Delete; Resource = change.Before |}
-                        | "Deploy" -> {| ChangeType = Deploy; Resource = change.After |}
-                        | "Ignore" -> {| ChangeType = Ignore; Resource = change.After |}
-                        | "NoChange" -> {| ChangeType = NoChange; Resource = change.After |}
-                        | "Modify" -> {| ChangeType = Modify; Resource = change.After |}
-                        | c -> failwithf "Unknown change type %s" c
+                        let resourcePath = change.ResourceId.[change.ResourceId.IndexOf "providers/" + "providers/".Length..]
+                        let splitIndex = resourcePath.LastIndexOf '/'
+                        {| ResourceType = resourcePath.[0..splitIndex - 1]
+                           ResourceName = resourcePath.[splitIndex + 1..]
+                           ChangeType =
+                                match change.ChangeType with
+                                | "Create" -> Create
+                                | "Delete" -> Delete
+                                | "Deploy" -> Deploy
+                                | "Ignore" -> Ignore
+                                | "NoChange" -> NoChange
+                                | "Modify" ->
+                                    Modify [
+                                        for delta in change.Delta do
+                                            match delta.PropertyChangeType with
+                                            | "Create" -> PropertyChangeType.Create {| Path = delta.Path; To = JsonConvert.SerializeObject delta.After |}
+                                            | "Delete" -> PropertyChangeType.Delete {| Path = delta.Path; From = JsonConvert.SerializeObject delta.Before |}
+                                            | "Modify" -> PropertyChangeType.Modify {| Path = delta.Path; From = JsonConvert.SerializeObject delta.Before; To = JsonConvert.SerializeObject delta.After |}
+                                            | c -> failwithf "Unknown property change type %s" c
+                                    ]
+                                | c -> failwithf "Unknown change type %s" c
+                        |}
                     |]
                 }
             )
