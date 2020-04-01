@@ -21,9 +21,25 @@ type ArmConfig =
             failwithf "Could not locate the parent resource ('%s'). Make sure you have correctly specified the name, and that it was added to the arm { } builder before this one." resourceName
         | NotSet ->
             failwithf "No parent resource name was set for this resource to link to: %A" existingConfig
+type ZipDeployKind =
+    | DeployFolder of string
+    | DeployZip of string
+    member this.Value = match this with DeployFolder s | DeployZip s -> s
+    static member TryParse path =
+        if (System.IO.File.GetAttributes path).HasFlag System.IO.FileAttributes.Directory then
+            Some(DeployFolder path)
+        else if System.IO.Path.GetExtension path = ".zip" then
+            let packageFilename = System.IO.Path.GetFileName path + ".zip"
+            Some(DeployZip packageFilename)
+        else
+            None
+
+type PostDeployTask =
+    | RunFromZip of {| WebApp:ResourceName; Path : ZipDeployKind |}
 type Deployment =
     { Location : Location
-      Template : ArmTemplate }
+      Template : ArmTemplate
+      PostDeployTasks : PostDeployTask list }
 
 type ArmBuilder() =
     member __.Yield _ =
@@ -37,14 +53,14 @@ type ArmBuilder() =
             state.Resources
             |> List.groupBy(fun r -> r.ResourceName)
             |> List.choose(fun (resourceName, instances) ->
-                   match instances with
-                   | [] ->
-                      None
-                   | [ resource ] ->
-                      Some resource
-                   | resource :: _ ->
-                      printfn "Warning: %d resources were found with the same name of '%s'. The first one will be used." instances.Length resourceName.Value
-                      Some resource)
+                match instances with
+                | [] ->
+                   None
+                | [ resource ] ->
+                   Some resource
+                | resource :: _ ->
+                   printfn "Warning: %d resources were found with the same name of '%s'. The first one will be used." instances.Length resourceName.Value
+                   Some resource)
         let output =
             { Parameters =
                 [ for resource in resources do
@@ -56,8 +72,22 @@ type ArmBuilder() =
               Outputs = state.Outputs
               Resources = resources }
 
+        let webDeploys = [
+            for resource in resources do
+                match resource with
+                | WebApp { ZipDeployPath = Some path; Name = name } ->
+                    let path =
+                        ZipDeployKind.TryParse path
+                        |> Option.defaultWith (fun () ->
+                            failwithf "Path '%s' must either be a folder to be zipped, or an existing zip." path)
+                    RunFromZip {| Path = path; WebApp = name |}
+                | _ ->
+                    ()
+            ]
+
         { Location = state.Location
-          Template = output }
+          Template = output
+          PostDeployTasks = webDeploys }
 
     /// Creates an output value that will be returned by the ARM template.
     [<CustomOperation "output">]

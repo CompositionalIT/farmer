@@ -414,15 +414,19 @@ module AzureCli =
         proc.WaitForExit() |> ignore
         filename
 
-    let toAzureCliCmd resourceGroupName (Location location) templateFilename parametersFilename =
+    let toAzureCliCmd resourceGroupName (Location location) templateFilename parametersFilename deployCommands =
         let deploymentName = sprintf "farmer-deploy-%d" (RestDeployment.getDeployNumber())
-        sprintf """az login && az group create -l %s -n %s && az group deployment create -g %s -n%s --template-file %s --parameters @%s"""
-            location
-            resourceGroupName
-            resourceGroupName
-            deploymentName
-            templateFilename
-            parametersFilename
+        let commands =
+            [ "az login"
+              sprintf "az group create -l %s -n %s" location resourceGroupName
+              sprintf "az group deployment create -g %s -n%s --template-file %s --parameters @%s"
+                  resourceGroupName
+                  deploymentName
+                  templateFilename
+                  parametersFilename ] @ deployCommands
+
+        commands
+        |> String.concat " && "
 
     let (|OperatingSystem|_|) platform () =
         if RuntimeInformation.IsOSPlatform platform then Some() else None
@@ -445,13 +449,34 @@ module AzureCli =
             |> System.NotImplementedException
             |> raise
 
+    let prepareWebDeploy webAppName sourcePath resourceGroupName =
+        let packageFilename =
+            match sourcePath with
+            | DeployFolder sourcePath ->
+                let packageFilename = webAppName + ".zip"
+                File.Delete packageFilename
+                Compression.ZipFile.CreateFromDirectory(sourcePath, packageFilename)
+                packageFilename
+            | DeployZip sourcePath ->
+                sourcePath
+        (sprintf """az webapp deployment source config-zip --resource-group "%s" --name "%s" --src %s""" resourceGroupName webAppName packageFilename)
+
+
     let generateDeployScript resourceGroupName (deployment:Deployment) =
         let templateName = "farmer-deploy"
         let templateFilename = deployment.Template |> Writer.toJson |> Writer.toFile templateName
         let parameterFilename = deployment.Template |> ParameterFile.generateParametersFile
 
-        toAzureCliCmd resourceGroupName deployment.Location templateFilename parameterFilename
-        |> toScriptFile templateName
+        let webDeploys = [
+            for (RunFromZip wd) in deployment.PostDeployTasks do
+                prepareWebDeploy wd.WebApp.Value wd.Path resourceGroupName
+        ]
+
+        let script =
+            toAzureCliCmd resourceGroupName deployment.Location templateFilename parameterFilename webDeploys
+            |> toScriptFile templateName
+
+        script
 
 /// Executes the supplied Deployment against a resource group using a locally-installed Azure CLI.
 let quick resourceGroupName deployment =
