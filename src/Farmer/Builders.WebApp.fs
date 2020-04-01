@@ -26,7 +26,6 @@ type WebAppRuntime =
     | Php of PhpRuntime
     | Python of PythonRuntime
     | Ruby of RubyRuntime
-
 module Sku =
     let D1 = Shared
     let F1 = Free
@@ -84,7 +83,8 @@ type WebAppConfig =
       Settings : Map<string, string>
       Dependencies : ResourceName list
       Runtime : WebAppRuntime
-      OperatingSystem : OS }
+      OperatingSystem : OS
+      RunFromZipPath : string option }
     /// Gets the ARM expression path to the publishing password of this web app.
     member this.PublishingPassword = publishingPassword this.Name
     /// Gets the Service Plan name for this web app.
@@ -272,12 +272,13 @@ module Converters =
                     None
                 |> Option.map(fun stack -> "CURRENT_STACK", stack)
                 |> Option.toList
+              RunFromZipPath = wac.RunFromZipPath
             }
 
         let serverFarm =
             match wac.ServicePlanName with
             | External _
-            | AutomaticPlaceholder ->            
+            | AutomaticPlaceholder ->
                 None
             | AutomaticallyCreated resourceName ->
                 { Location = location
@@ -377,12 +378,13 @@ module Converters =
               PhpVersion = None
               PythonVersion = None
               Metadata = []
+              RunFromZipPath = None
             }
 
         let serverFarm =
             match fns.ServicePlanName with
             | External _
-            | AutomaticPlaceholder ->            
+            | AutomaticPlaceholder ->
                 None
             | AutomaticallyCreated resourceName ->
                 { Location = location
@@ -441,7 +443,8 @@ type WebAppBuilder() =
           Settings = Map.empty
           Dependencies = []
           Runtime = DotNetCore DotNetCoreLts
-          OperatingSystem = Windows }
+          OperatingSystem = Windows
+          RunFromZipPath = None }
     member __.Run(state:WebAppConfig) =
         { state with
             ServicePlanName =
@@ -459,7 +462,7 @@ type WebAppBuilder() =
     [<CustomOperation "service_plan_name">]
     member __.ServicePlanName(state:WebAppConfig, name) = { state with ServicePlanName = AutomaticallyCreated name }
     member this.ServicePlanName(state:WebAppConfig, name:string) = this.ServicePlanName(state, name)
-    /// Do not create a service plan for this web app. Instead, link to another pre-defined one. 
+    /// Do not create a service plan for this web app. Instead, link to another pre-defined one.
     [<CustomOperation "link_to_service_plan">]
     member __.LinkToServicePlan(state:WebAppConfig, name) = { state with ServicePlanName = External name }
     member this.LinkToServicePlan(state:WebAppConfig, name:string) = this.LinkToServicePlan (state, ResourceName name)
@@ -519,6 +522,9 @@ type WebAppBuilder() =
     [<CustomOperation "operating_system">]
     /// Sets the operating system
     member __.OperatingSystem(state:WebAppConfig, os) = { state with OperatingSystem = os }
+    [<CustomOperation "run_from_zip">]
+    /// Specifies a folder containing the web application to install as a post-deployment task
+    member __.RunFromZip(state:WebAppConfig, path) = { state with RunFromZipPath = Some path }
 type FunctionsBuilder() =
     member __.Yield _ =
         { Name = ResourceName.Empty
@@ -633,7 +639,7 @@ module Extensions =
             ]
             { state with Resources = state.Resources @ resources }
         member this.AddResource(state:ArmConfig, config:AppInsightsConfig) =
-            { state with Resources = AppInsights (Converters.appInsights state.Location config) :: state.Resources } 
+            { state with Resources = AppInsights (Converters.appInsights state.Location config) :: state.Resources }
         member this.AddResources (state, configs) = addResources<FunctionsConfig> this.AddResource state configs
         member this.AddResources (state, configs) = addResources<AppInsightsConfig> this.AddResource state configs
         member this.AddResources (state, configs) = addResources<WebAppConfig> this.AddResource state configs

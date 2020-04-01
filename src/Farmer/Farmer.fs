@@ -184,7 +184,8 @@ type WebApp =
       JavaContainerVersion : string option
       PhpVersion : string option
       PythonVersion : string option
-      Metadata : List<string * string> }
+      Metadata : List<string * string>
+      RunFromZipPath : string option }
 type ServerFarm =
     { Name : ResourceName
       Location : Location
