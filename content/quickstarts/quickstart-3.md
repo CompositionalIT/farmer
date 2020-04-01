@@ -20,7 +20,7 @@ Modify the application you created at the end of [quickstart #2](quickstart-2/#t
 
 ```fsharp
 deployment
-|> Writer.quickDeploy "myResourceGroup"
+|> Deploy.quick "myResourceGroup"
 ```
 
 > Note that the Web Application and Storage Account names should be *globally* unique; they must be **unique across Azure** i.e. someone else can't have another web app or storage account with the same name!
