@@ -21,12 +21,21 @@ type ArmConfig =
             failwithf "Could not locate the parent resource ('%s'). Make sure you have correctly specified the name, and that it was added to the arm { } builder before this one." resourceName
         | NotSet ->
             failwithf "No parent resource name was set for this resource to link to: %A" existingConfig
-type RunFromZipPackageKind =
-    | Folder of string
-    | Zip of string
-    member this.Value = match this with Folder s | Zip s -> s
+type ZipDeployKind =
+    | DeployFolder of string
+    | DeployZip of string
+    member this.Value = match this with DeployFolder s | DeployZip s -> s
+    static member TryParse path =
+        if (System.IO.File.GetAttributes path).HasFlag System.IO.FileAttributes.Directory then
+            Some(DeployFolder path)
+        else if System.IO.Path.GetExtension path = ".zip" then
+            let packageFilename = System.IO.Path.GetFileName path + ".zip"
+            Some(DeployZip packageFilename)
+        else
+            None
+
 type PostDeployTask =
-    | RunFromZip of {| WebApp:ResourceName; Path : RunFromZipPackageKind |}
+    | RunFromZip of {| WebApp:ResourceName; Path : ZipDeployKind |}
 type Deployment =
     { Location : Location
       Template : ArmTemplate
@@ -66,15 +75,11 @@ type ArmBuilder() =
         let webDeploys = [
             for resource in resources do
                 match resource with
-                | WebApp { RunFromZipPath = Some path; Name = name } ->
+                | WebApp { ZipDeployPath = Some path; Name = name } ->
                     let path =
-                        if (System.IO.File.GetAttributes path).HasFlag System.IO.FileAttributes.Directory then
-                            Folder path
-                        else if System.IO.Path.GetExtension path = ".zip" then
-                            let packageFilename = name.Value + ".zip"
-                            Zip packageFilename
-                        else
-                            failwithf "Path '%s' must either be a folder to be zipped, or an existing zip." path
+                        ZipDeployKind.TryParse path
+                        |> Option.defaultWith (fun () ->
+                            failwithf "Path '%s' must either be a folder to be zipped, or an existing zip." path)
                     RunFromZip {| Path = path; WebApp = name |}
                 | _ ->
                     ()

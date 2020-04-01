@@ -452,12 +452,12 @@ module AzureCli =
     let prepareWebDeploy webAppName sourcePath resourceGroupName =
         let packageFilename =
             match sourcePath with
-            | Folder sourcePath ->
+            | DeployFolder sourcePath ->
                 let packageFilename = webAppName + ".zip"
                 File.Delete packageFilename
                 Compression.ZipFile.CreateFromDirectory(sourcePath, packageFilename)
                 packageFilename
-            | Zip sourcePath ->
+            | DeployZip sourcePath ->
                 sourcePath
         (sprintf """az webapp deployment source config-zip --resource-group "%s" --name "%s" --src %s""" resourceGroupName webAppName packageFilename)
 

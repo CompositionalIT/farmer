@@ -84,7 +84,7 @@ type WebAppConfig =
       Dependencies : ResourceName list
       Runtime : WebAppRuntime
       OperatingSystem : OS
-      RunFromZipPath : string option }
+      ZipDeployPath : string option }
     /// Gets the ARM expression path to the publishing password of this web app.
     member this.PublishingPassword = publishingPassword this.Name
     /// Gets the Service Plan name for this web app.
@@ -130,7 +130,6 @@ type AppInsightsConfig =
     { Name : ResourceName }
     /// Gets the ARM expression path to the instrumentation key of this App Insights instance.
     member this.InstrumentationKey = Ai.instrumentationKey this.Name
-
 
 module Converters =
     let webApp location (wac:WebAppConfig) =
@@ -272,7 +271,7 @@ module Converters =
                     None
                 |> Option.map(fun stack -> "CURRENT_STACK", stack)
                 |> Option.toList
-              RunFromZipPath = wac.RunFromZipPath
+              ZipDeployPath = wac.ZipDeployPath
             }
 
         let serverFarm =
@@ -378,7 +377,7 @@ module Converters =
               PhpVersion = None
               PythonVersion = None
               Metadata = []
-              RunFromZipPath = None
+              ZipDeployPath = None
             }
 
         let serverFarm =
@@ -444,7 +443,7 @@ type WebAppBuilder() =
           Dependencies = []
           Runtime = DotNetCore DotNetCoreLts
           OperatingSystem = Windows
-          RunFromZipPath = None }
+          ZipDeployPath = None }
     member __.Run(state:WebAppConfig) =
         { state with
             ServicePlanName =
@@ -522,9 +521,9 @@ type WebAppBuilder() =
     [<CustomOperation "operating_system">]
     /// Sets the operating system
     member __.OperatingSystem(state:WebAppConfig, os) = { state with OperatingSystem = os }
-    [<CustomOperation "run_from_zip">]
-    /// Specifies a folder containing the web application to install as a post-deployment task
-    member __.RunFromZip(state:WebAppConfig, path) = { state with RunFromZipPath = Some path }
+    [<CustomOperation "zip_deploy">]
+    /// Specifies a folder path or a zip file containing the web application to install as a post-deployment task.
+    member __.ZipDeploy(state:WebAppConfig, path) = { state with ZipDeployPath = Some path }
 type FunctionsBuilder() =
     member __.Yield _ =
         { Name = ResourceName.Empty
