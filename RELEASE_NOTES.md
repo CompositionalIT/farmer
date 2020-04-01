@@ -1,5 +1,9 @@
 Release Notes
 =============
+## 0.8.0
+* Improved support for What-If API
+* Post-deployment Web Deploy for App Service
+
 ## 0.7.0
 * Minor bug fixes
 * Simplify API for hierarchical resources e.g. Containers, Cosmos, SQL Azure, WebApps and Functions
