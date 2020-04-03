@@ -25,14 +25,25 @@ type ZipDeployKind =
     | DeployFolder of string
     | DeployZip of string
     member this.Value = match this with DeployFolder s | DeployZip s -> s
+    /// Tries to create a ZipDeployKind from a string path.
     static member TryParse path =
         if (System.IO.File.GetAttributes path).HasFlag System.IO.FileAttributes.Directory then
             Some(DeployFolder path)
         else if System.IO.Path.GetExtension path = ".zip" then
-            let packageFilename = System.IO.Path.GetFileName path + ".zip"
-            Some(DeployZip packageFilename)
+            Some(DeployZip path)
         else
             None
+    /// Processes a ZipDeployKind and returns the filename of the zip file.
+    /// If the ZipDeployKind is a DeployFolder, the folder will be zipped first and the generated zip file returned.
+    member this.GetZipPath() =
+        match this with
+        | DeployFolder folder ->
+            let packageFilename = (System.IO.Path.GetFileName folder) + ".zip"
+            System.IO.File.Delete packageFilename
+            System.IO.Compression.ZipFile.CreateFromDirectory(folder, packageFilename)
+            packageFilename
+        | DeployZip zipFilePath ->
+            zipFilePath
 
 type PostDeployTask =
     | RunFromZip of {| WebApp:ResourceName; Path : ZipDeployKind |}

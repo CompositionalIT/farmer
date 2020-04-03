@@ -59,6 +59,7 @@ type WhatIfResponse =
           ChangeType : ResourceChangeType
        |} array
     }
+/// Provides the low-level API to the Azure REST API.
 module AzureRest =
     open FsHttp.DslCE
     type DeploymentOperationResult =
@@ -247,7 +248,9 @@ module AzureRest =
                     |> Error
         }
 
+/// Manages the full REST API deployment process.
 module RestDeployment =
+    open System.Net
     let getDeployNumber =
         let r = Random()
         fun () -> r.Next 10000
@@ -275,17 +278,17 @@ module RestDeployment =
                 AzureRest.TemplateDeployer.Create(credentials.TenantId, credentials.ClientId, credentials.ClientSecret, subscriptionId, resourceGroupName)
                 |> Result.mapError CantObtainBearerToken
 
-            logMessage "Performing basic ARM validation..."
-            do!
-                armTemplateJson
-                |> armDeploy.ValidateTemplate parameters deploymentName
-                |> Result.mapError(fun e -> ValidationError e.Error)
-
             logMessage (sprintf "Creating resource group %s..." resourceGroupName)
             do!
                 armDeploy.CreateResourceGroup location
                 |> Result.mapError(fun response -> CantCreateResourceGroup (response.content.ReadAsStringAsync().Result))
                 |> Result.ignore
+
+            logMessage "Performing basic ARM validation..."
+            do!
+                armTemplateJson
+                |> armDeploy.ValidateTemplate parameters deploymentName
+                |> Result.mapError(fun e -> ValidationError e.Error)
 
             logMessage "Starting template deployment..."
             do!
@@ -334,21 +337,57 @@ module RestDeployment =
         { DeploymentName = deployment.DeploymentName
           Result = output }
 
+    type TimeoutWebClient() =
+        inherit System.Net.WebClient()
+        override _.GetWebRequest uri =
+            let request = base.GetWebRequest uri
+            request.Timeout <- 30 * 60 * 1000
+            request
+
+    let deployApp websiteName (password:string) zipFile =
+        let destinationUri = sprintf "https://%s.scm.azurewebsites.net/api/zipdeploy" websiteName
+        let client = new TimeoutWebClient(Credentials = NetworkCredential("$" + websiteName, password))
+        printfn "Uploading %s to %s" zipFile destinationUri
+        client.UploadData(destinationUri, IO.File.ReadAllBytes zipFile) |> ignore
 /// Executes the supplied Deployment against a resource group using the Azure REST API.
 /// It requires a service principle containing a client id, secret and tenant ID. Use this API for unattended installs e.g. continuous deployment etc.
 let fullDeploy credentials (subscriptionId:Guid) resourceGroupName parameters deployment =
+    /// First add password outputs for each required web app.
+    let deployment =
+        { deployment with
+            Template =
+                let webDeployTasks = deployment.PostDeployTasks |> List.choose(function RunFromZip wd -> Some wd)
+                (deployment.Template, webDeployTasks)
+                ||> List.fold(fun (template:ArmTemplate) item ->
+                    let password = Resources.WebApp.publishingPassword item.WebApp
+                    let newOutput = ("farmer-" + item.WebApp.Value + "-deploy"), password.Eval()
+                    { template with Outputs = newOutput :: deployment.Template.Outputs }) }
+
     let armTemplateJson = deployment.Template |> Writer.toJson
 
-    (armTemplateJson, parameters, deployment.Location.Value, resourceGroupName)
-    |> RestDeployment.deployTemplate credentials subscriptionId (printfn "%s")
-    |> RestDeployment.reportDeploymentProgress (fun stats -> printfn "In progress (%d / %d operations)..." stats.OperationsCompleted (stats.OperationsCompleted + stats.OperationsRemaining))
+    let deploymentResult =
+        (armTemplateJson, parameters, deployment.Location.Value, resourceGroupName)
+        |> RestDeployment.deployTemplate credentials subscriptionId (printfn "%s")
+        |> RestDeployment.reportDeploymentProgress (fun stats -> printfn "In progress (%d / %d operations)..." stats.OperationsCompleted (stats.OperationsCompleted + stats.OperationsRemaining))
 
+    // If the deployment succeeded, upload all zip files for each web app.
+    match deploymentResult.Result with
+    | Ok outputs ->
+        for (RunFromZip wd) in deployment.PostDeployTasks do
+            let password = outputs.["farmer-" + wd.WebApp.Value + "-deploy"]
+            let zipFilePath = wd.Path.GetZipPath()
+            RestDeployment.deployApp wd.WebApp.Value password zipFilePath
+    | Error _ ->
+        ()
+
+    deploymentResult
+
+/// Provides access to the what-if Azure API
 let whatIf credentials (subscriptionId:Guid) resourceGroupName parameters deployment =
     let armTemplateJson = deployment.Template |> Writer.toJson
 
     (armTemplateJson, parameters, resourceGroupName)
     |> RestDeployment.whatIf credentials subscriptionId
-
 
 module ParameterFile =
     module Passwords =
@@ -449,18 +488,9 @@ module AzureCli =
             |> System.NotImplementedException
             |> raise
 
-    let prepareWebDeploy webAppName sourcePath resourceGroupName =
-        let packageFilename =
-            match sourcePath with
-            | DeployFolder sourcePath ->
-                let packageFilename = webAppName + ".zip"
-                File.Delete packageFilename
-                Compression.ZipFile.CreateFromDirectory(sourcePath, packageFilename)
-                packageFilename
-            | DeployZip sourcePath ->
-                sourcePath
+    let prepareWebDeploy webAppName (zipDeployKind:ZipDeployKind) resourceGroupName =
+        let packageFilename = zipDeployKind.GetZipPath()
         (sprintf """az webapp deployment source config-zip --resource-group "%s" --name "%s" --src %s""" resourceGroupName webAppName packageFilename)
-
 
     let generateDeployScript resourceGroupName (deployment:Deployment) =
         let templateName = "farmer-deploy"
