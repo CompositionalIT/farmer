@@ -178,6 +178,7 @@ type WebApp =
       Dependencies : ResourceName list
       Kind : string
       LinuxFxVersion : string option
+      AppCommandLine : string option
       NetFrameworkVersion : string option
       JavaVersion : string option
       JavaContainer : string option

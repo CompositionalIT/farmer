@@ -84,7 +84,8 @@ type WebAppConfig =
       Dependencies : ResourceName list
       Runtime : WebAppRuntime
       OperatingSystem : OS
-      ZipDeployPath : string option }
+      ZipDeployPath : string option
+      DockerImage : (string * string) option }
     /// Gets the ARM expression path to the publishing password of this web app.
     member this.PublishingPassword = publishingPassword this.Name
     /// Gets the Service Plan name for this web app.
@@ -175,34 +176,35 @@ module Converters =
               ]
               AlwaysOn = wac.AlwaysOn
               LinuxFxVersion =
-                match wac.Runtime, wac.OperatingSystem with
-                | DotNetCore DotNetCore21, Linux -> Some "DOTNETCORE|2.1"
-                | DotNetCore DotNetCore31, Linux -> Some "DOTNETCORE|3.1"
-                | DotNetCore DotNetCoreLts, Linux -> Some "DOTNETCORE|LTS"
-                | DotNetCore DotNetCoreLatest, Linux -> Some "DOTNETCORE|Latest"
-                | Java (Java11 JavaSE), _ -> Some "JAVA|11-java11"
-                | Java (Java11 Tomcat90), Linux -> Some "TOMCAT|9.0-java11"
-                | Java (Java11 Tomcat85), Linux -> Some "TOMCAT|8.5-java11"
-                | Java (Java8 JavaSE), _ -> Some "JAVA|8-jre8"
-                | Java (Java8 WildFly14), _ -> Some "WILDFLY|14-jre8"
-                | Java (Java8 Tomcat90), Linux -> Some "TOMCAT|9.0-jre8"
-                | Java (Java8 Tomcat85), Linux -> Some "TOMCAT|8.5-jre8"
-                | Node Node6, _ -> Some "NODE|6-lts"
-                | Node Node8, _ -> Some "NODE|8-lts"
-                | Node Node10, _ -> Some "NODE|10-lts"
-                | Node Node12, _ -> Some "NODE|12-lts"
-                | Node NodeLts, _ -> Some "NODE|lts"
-                | Php Php73, Linux -> Some "PHP|7.3"
-                | Php Php72, Linux -> Some "PHP|7.2"
-                | Php Php70, Linux -> Some "PHP|7.0"
-                | Php Php56, Linux -> Some "PHP|5.6"
-                | Python Python37, _ -> Some "PYTHON|3.7"
-                | Python Python36, Linux -> Some "PYTHON|3.6"
-                | Python Python27, Linux -> Some "PYTHON|2.7"
-                | Ruby Ruby26, _ -> Some "RUBY|2.6"
-                | Ruby Ruby25, _ -> Some "RUBY|2.5"
-                | Ruby Ruby24, _ -> Some "RUBY|2.4"
-                | Ruby Ruby23, _ -> Some "RUBY|2.3"
+                match wac.DockerImage, wac.Runtime, wac.OperatingSystem with
+                | Some (image, _), _, Linux -> Some ("DOCKER|" + image)
+                | _, DotNetCore DotNetCore21, Linux -> Some "DOTNETCORE|2.1"
+                | _, DotNetCore DotNetCore31, Linux -> Some "DOTNETCORE|3.1"
+                | _, DotNetCore DotNetCoreLts, Linux -> Some "DOTNETCORE|LTS"
+                | _, DotNetCore DotNetCoreLatest, Linux -> Some "DOTNETCORE|Latest"
+                | _, Java (Java11 JavaSE), _ -> Some "JAVA|11-java11"
+                | _, Java (Java11 Tomcat90), Linux -> Some "TOMCAT|9.0-java11"
+                | _, Java (Java11 Tomcat85), Linux -> Some "TOMCAT|8.5-java11"
+                | _, Java (Java8 JavaSE), _ -> Some "JAVA|8-jre8"
+                | _, Java (Java8 WildFly14), _ -> Some "WILDFLY|14-jre8"
+                | _, Java (Java8 Tomcat90), Linux -> Some "TOMCAT|9.0-jre8"
+                | _, Java (Java8 Tomcat85), Linux -> Some "TOMCAT|8.5-jre8"
+                | _, Node Node6, _ -> Some "NODE|6-lts"
+                | _, Node Node8, _ -> Some "NODE|8-lts"
+                | _, Node Node10, _ -> Some "NODE|10-lts"
+                | _, Node Node12, _ -> Some "NODE|12-lts"
+                | _, Node NodeLts, _ -> Some "NODE|lts"
+                | _, Php Php73, Linux -> Some "PHP|7.3"
+                | _, Php Php72, Linux -> Some "PHP|7.2"
+                | _, Php Php70, Linux -> Some "PHP|7.0"
+                | _, Php Php56, Linux -> Some "PHP|5.6"
+                | _, Python Python37, _ -> Some "PYTHON|3.7"
+                | _, Python Python36, Linux -> Some "PYTHON|3.6"
+                | _, Python Python27, Linux -> Some "PYTHON|2.7"
+                | _, Ruby Ruby26, _ -> Some "RUBY|2.6"
+                | _, Ruby Ruby25, _ -> Some "RUBY|2.5"
+                | _, Ruby Ruby24, _ -> Some "RUBY|2.4"
+                | _, Ruby Ruby23, _ -> Some "RUBY|2.3"
                 | _ -> None
               NetFrameworkVersion =
                 match wac.Runtime with
@@ -271,6 +273,7 @@ module Converters =
                     None
                 |> Option.map(fun stack -> "CURRENT_STACK", stack)
                 |> Option.toList
+              AppCommandLine = wac.DockerImage |> Option.map snd
               ZipDeployPath = wac.ZipDeployPath
             }
 
@@ -313,19 +316,24 @@ module Converters =
                     | Premium _ -> "Premium"
                     | PremiumV2 _ -> "PremiumV2"
                     | Isolated _ -> "Isolated"
-                  IsLinux = match wac.OperatingSystem with Linux -> true | Windows -> false
-                  WorkerCount = wac.WorkerCount } |> Some
+                  IsLinux =
+                    match wac.OperatingSystem with
+                    | Linux -> true
+                    | Windows -> false
+                  WorkerCount =
+                    wac.WorkerCount } |> Some
         let ai =
-            match wac.AppInsightsName with
-            | Some (AutomaticallyCreated resourceName) ->
+            match wac.OperatingSystem, wac.AppInsightsName with
+            | Windows, Some (AutomaticallyCreated resourceName) ->
                 { Name = resourceName
                   Location = location
                   LinkedWebsite = Some wac.Name }
                 |> Some
-            | Some AutomaticPlaceholder
-            | Some (External _)
-            | None ->
-                 None
+            | Windows, Some AutomaticPlaceholder
+            | Windows, Some (External _)
+            | Windows, None
+            | Linux, _ ->
+                None
         {| Ai = ai; ServerFarm = serverFarm; WebApp = webApp |}
     let functions location (fns:FunctionsConfig) =
         let webApp =
@@ -378,6 +386,7 @@ module Converters =
               PythonVersion = None
               Metadata = []
               ZipDeployPath = None
+              AppCommandLine = None
             }
 
         let serverFarm =
@@ -443,15 +452,25 @@ type WebAppBuilder() =
           Dependencies = []
           Runtime = DotNetCore DotNetCoreLts
           OperatingSystem = Windows
-          ZipDeployPath = None }
+          ZipDeployPath = None
+          DockerImage = None }
     member __.Run(state:WebAppConfig) =
+        let operatingSystem =
+            match state.DockerImage with
+            | None -> state.OperatingSystem
+            | Some _ -> Linux
         { state with
             ServicePlanName =
                 match state.ServicePlanName with
                 | AutomaticPlaceholder -> AutomaticallyCreated (ResourceName (sprintf "%s-plan" state.Name.Value))
                 | AutomaticallyCreated x -> AutomaticallyCreated x
                 | External r -> External r
-            AppInsightsName = Ai.tryCreateAppInsightsName state.AppInsightsName state.Name.Value
+            OperatingSystem =
+                operatingSystem
+            AppInsightsName =
+                match operatingSystem with
+                | Linux -> None
+                | Windows -> Ai.tryCreateAppInsightsName state.AppInsightsName state.Name.Value
         }
     /// Sets the name of the web app.
     [<CustomOperation "name">]
@@ -524,6 +543,11 @@ type WebAppBuilder() =
     [<CustomOperation "zip_deploy">]
     /// Specifies a folder path or a zip file containing the web application to install as a post-deployment task.
     member __.ZipDeploy(state:WebAppConfig, path) = { state with ZipDeployPath = Some path }
+    [<CustomOperation "docker_image">]
+    /// Specifies a docker image to use (linux only).
+    member __.DockerImage(state:WebAppConfig, registryPath, startupFile) = { state with DockerImage = Some (registryPath, startupFile) }
+
+
 type FunctionsBuilder() =
     member __.Yield _ =
         { Name = ResourceName.Empty

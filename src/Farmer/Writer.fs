@@ -129,6 +129,7 @@ module Outputters =
                     [ "alwaysOn", box webApp.AlwaysOn
                       "appSettings", webApp.AppSettings |> List.map(fun (k,v) -> {| name = k; value = v |}) |> box
                       match webApp.LinuxFxVersion with Some v -> "linuxFxVersion", box v | None -> ()
+                      match webApp.AppCommandLine with Some v -> "appCommandLine", box v | None -> ()
                       match webApp.NetFrameworkVersion with Some v -> "netFrameworkVersion", box v | None -> ()
                       match webApp.JavaVersion with Some v -> "javaVersion", box v | None -> ()
                       match webApp.JavaContainer with Some v -> "javaContainer", box v | None -> ()
