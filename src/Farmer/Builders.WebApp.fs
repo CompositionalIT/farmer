@@ -303,10 +303,13 @@ module Converters =
                     | Medium -> "1"
                     | Large -> "2"
                   IsDynamic = false
-                  Kind =
-                    match wac.OperatingSystem with
-                    | Windows -> Some "app"
-                    | Linux -> Some "linux"
+                  Kind = [
+                    "app"
+                    match wac.OperatingSystem with Linux -> "linux" | _ -> ()
+                    match wac.DockerImage with Some _ -> "container" | _ -> ()
+                  ]
+                  |> String.concat ","
+                  |> Some
                   Tier =
                     match wac.Sku with
                     | Free -> "Free"

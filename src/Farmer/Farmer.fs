@@ -187,6 +187,7 @@ type WebApp =
       PythonVersion : string option
       Metadata : List<string * string>
       ZipDeployPath : string option }
+
 type ServerFarm =
     { Name : ResourceName
       Location : Location
