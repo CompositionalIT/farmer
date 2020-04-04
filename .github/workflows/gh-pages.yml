@@ -1,4 +1,4 @@
-name: Build and Deploy to GitHub pages
+name: gh-pages
 
 on:
   push:
@@ -9,7 +9,8 @@ jobs:
   deploy:
     runs-on: ubuntu-18.04
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout docs branch
+        uses: actions/checkout@v2
         ref: 'docs' # Pull the docs branch
         with:
           submodules: true  # Fetch Hugo themes as well (they're in sub-modules)
