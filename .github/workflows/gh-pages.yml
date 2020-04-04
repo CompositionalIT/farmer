@@ -1,0 +1,30 @@
+name: Build and Deploy to GitHub pages
+
+on:
+  push:
+    branches:
+      - docs
+
+jobs:
+  deploy:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+        ref: 'docs' # Pull the docs branch
+        with:
+          submodules: true  # Fetch Hugo themes as well (they're in sub-modules)
+          fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
+
+      - name: Setup Hugo
+        uses: peaceiris/actions-hugo@v2
+        with:
+          hugo-version: '0.68.3'
+
+      - name: Build # Builds using hugo; outputs to ./public by default
+        run: hugo --minify
+
+      - name: Deploy # Pushes output of the build to the GH Pages branch
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public
