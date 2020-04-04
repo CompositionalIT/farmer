@@ -11,8 +11,8 @@ jobs:
     steps:
       - name: Checkout docs branch
         uses: actions/checkout@v2
-        ref: 'docs' # Pull the docs branch
         with:
+          ref: 'docs' # Pull the docs branch
           submodules: true  # Fetch Hugo themes as well (they're in sub-modules)
           fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
 
