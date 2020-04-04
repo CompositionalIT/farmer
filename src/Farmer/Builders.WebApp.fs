@@ -146,9 +146,9 @@ module Converters =
                 | Some v -> AppSettings.WebsiteNodeDefaultVersion v
                 | None -> ()
 
-                match wac.AppInsightsName with
-                | Some (External resourceName)
-                | Some (AutomaticallyCreated resourceName) ->
+                match wac.OperatingSystem, wac.AppInsightsName with
+                | Windows, Some (External resourceName)
+                | Windows, Some (AutomaticallyCreated resourceName) ->
                     "APPINSIGHTS_INSTRUMENTATIONKEY", Ai.instrumentationKey resourceName |> ArmExpression.Eval
                     "APPINSIGHTS_PROFILERFEATURE_VERSION", "1.0.0"
                     "APPINSIGHTS_SNAPSHOTFEATURE_VERSION", "1.0.0"
@@ -158,8 +158,9 @@ module Converters =
                     "SnapshotDebugger_EXTENSION_VERSION", "~1"
                     "XDT_MicrosoftApplicationInsights_BaseExtensions", "~1"
                     "XDT_MicrosoftApplicationInsights_Mode", "recommended"
-                | Some AutomaticPlaceholder
-                | None ->
+                | Windows, Some AutomaticPlaceholder
+                | Windows, None
+                | Linux, _ ->
                     ()
               ]
               Kind = "app"
@@ -326,16 +327,18 @@ module Converters =
                   WorkerCount =
                     wac.WorkerCount } |> Some
         let ai =
-            match wac.OperatingSystem, wac.AppInsightsName with
-            | Windows, Some (AutomaticallyCreated resourceName) ->
+            match wac.AppInsightsName with
+            | Some (AutomaticallyCreated resourceName) ->
                 { Name = resourceName
                   Location = location
-                  LinkedWebsite = Some wac.Name }
+                  LinkedWebsite =
+                    match wac.OperatingSystem with
+                    | Windows -> Some wac.Name
+                    | Linux -> None }
                 |> Some
-            | Windows, Some AutomaticPlaceholder
-            | Windows, Some (External _)
-            | Windows, None
-            | Linux, _ ->
+            | Some AutomaticPlaceholder
+            | Some (External _)
+            | None ->
                 None
         {| Ai = ai; ServerFarm = serverFarm; WebApp = webApp |}
     let functions location (fns:FunctionsConfig) =
@@ -428,7 +431,10 @@ module Converters =
                 Some
                     { Name = resourceName
                       Location = location
-                      LinkedWebsite = Some fns.Name }
+                      LinkedWebsite =
+                        match fns.OperatingSystem with
+                        | Windows -> Some fns.Name
+                        | Linux -> None }
             | Some (External _)
             | Some AutomaticPlaceholder
             | None ->
@@ -471,9 +477,7 @@ type WebAppBuilder() =
             OperatingSystem =
                 operatingSystem
             AppInsightsName =
-                match operatingSystem with
-                | Linux -> None
-                | Windows -> Ai.tryCreateAppInsightsName state.AppInsightsName state.Name.Value
+                Ai.tryCreateAppInsightsName state.AppInsightsName state.Name.Value
         }
     /// Sets the name of the web app.
     [<CustomOperation "name">]
