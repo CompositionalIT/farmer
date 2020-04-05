@@ -17,7 +17,7 @@ Farmer is a DSL for rapidly generating non-complex ARM templates in a type-safe 
 * **Safely create dependencies between resources**. Uses static typing to give confidence that your templates will work first time.
 * **Easily access common properties of resources**. No more fighting to concatinate cryptic strings!
 * **Extensible API**. Add new helpers and members as needed.
-* **Open source and free**. Farmer is free to use and we welcome contributions to the project.
+* **Open source and free**. Farmer is free to use. We welcome contributions to the project!
 
 Farmer uses a simple DSL to declare resources and comes with helper functions to perform common tasks. Farmer templates are **around 5-8 times smaller than ARM templates**, meaning they are quicker and easier to author, understand and maintain.
 
