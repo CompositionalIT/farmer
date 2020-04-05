@@ -1,6 +1,6 @@
 # Farmer Docs
 
-## How this works
+## About the Documentation Platform
 
 Farmer's docs use [Hugo](https://gohugo.io/) and the [hugo-theme-learn theme](https://github.com/matcornic/hugo-theme-learn).
 
