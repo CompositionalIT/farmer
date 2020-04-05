@@ -348,7 +348,7 @@ module Converters =
               Location = location
               AppSettings = [
                 yield! fns.Settings |> Map.toList
-                "FUNCTIONS_WORKER_RUNTIME", string fns.Runtime
+                "FUNCTIONS_WORKER_RUNTIME", (string fns.Runtime).ToLower()
                 "WEBSITE_NODE_DEFAULT_VERSION", "10.14.1"
                 "FUNCTIONS_EXTENSION_VERSION", match fns.ExtensionVersion with V1 -> "~1" | V2 -> "~2" | V3 -> "~3"
                 "AzureWebJobsStorage", Storage.buildKey fns.StorageAccountName.ResourceName |> ArmExpression.Eval
