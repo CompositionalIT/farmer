@@ -36,7 +36,7 @@ D(Microsoft.Insights/components) -. dependency .->F
 E(Microsoft.Storage/storageAccounts) -. dependency .->F
 E -. storage key .-> F
 E -. storage key .-> G
-F(Microsoft.Web/sites) 
+F(Microsoft.Web/sites)
 G(blobServices/containers)
 
 class C danger

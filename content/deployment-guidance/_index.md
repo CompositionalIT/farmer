@@ -18,6 +18,32 @@ If you're looking to stay within F# and e.g. respond to outcomes from the deploy
 
 Another benefit of this is because Farmer is a simple .NET Standard library, you can use it natively within .NET build tools such as FAKE or CAKE.
 
+##### Combined Resource and Application Deployment
+Farmer can also optionally do more for you by handling the entire deployment process, including **deployment of your application artifacts**.
+
+{{<mermaid align="left">}}
+
+graph LR
+
+subgraph Azure Resource Group
+D(Azure App Service)
+end
+
+subgraph JSON
+C(ARM Template) -- REST API or Azure CLI --> D
+end
+
+subgraph .NET
+A(Farmer)-- resources emitted to --> C
+A -. your application deployed via ZIP Deploy.-> D
+end
+
+{{< /mermaid >}}
+
+Watch this short video to see more!
+
+{{< youtube 5nRZwxMQUFE >}}
+
 #### I already have an ARM deployment strategy
 If you already use ARM templates, you'll probably already have a strategy for working with templates and deploying them to Azure, such as [PowerShell](https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/deploy-powershell), the [Azure CLI](https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/deploy-cli) or a build system such as [Azure DevOps](https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/deploy/azure-resource-group-deployment?view=azure-devops) or [Octopus Deploy](https://octopus.com/docs/deployment-examples/azure-deployments/resource-groups). In such a case, you may want to use Farmer to *generate*, but not *deploy*, your ARM templates.
 
@@ -26,7 +52,7 @@ If you want to retain fine-grained control over ARM templates, you can use Farme
 
 The choice is yours.
 
-##### How do I create a Service Principal?
+#### How do I create a Service Principal?
 If you're trying to deploy to Azure in an automated fashion, you'll need to create a Service Principal account that has permissions in Azure to deploy ARM templates on your behalf.
 
 The Azure CLI provides a simple way to create one using the [az ad sp](https://docs.microsoft.com/en-us/cli/azure/ad/sp?view=azure-cli-latest#az-ad-sp-create-for-rbac) command:
@@ -39,11 +65,11 @@ This will provide output similar to the following:
 
 ```cmd
 {
-  "appId": "1181c21b-78f3-42b3-a26d-03ba75c7b674",        
+  "appId": "1181c21b-78f3-42b3-a26d-03ba75c7b674",
   "displayName": "farmer-deploy",
   "name": "http://farmer-deploy",
-  "password": "4aa3b120-f2b2-4ea9-941b-5891fef0ef11",     
-  "tenant": "aa7f7453-15af-4ab0-5d41-aeb4a25293bc"        
+  "password": "4aa3b120-f2b2-4ea9-941b-5891fef0ef11",
+  "tenant": "aa7f7453-15af-4ab0-5d41-aeb4a25293bc"
 }
 ```
 
