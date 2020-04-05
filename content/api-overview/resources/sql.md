@@ -6,19 +6,21 @@ chapter: false
 ---
 
 #### Overview
-The SQL Azure builder is used to called SQL Azure servers and databases. It supports features such as encryption and firewalls. Every SQL Azure instance you create will automatically create a SecureString parameter for the admin account password.
+The SQL Azure builder is used to called SQL Azure servers and databases. It supports features such as encryption and firewalls. Every SQL Azure server you create will automatically create a SecureString parameter for the admin account password.
+If you wish to create a SQL Database attached to an existing server, use the `link_to_server` keyword and supply the resource name of the existing server.
 
 #### Builder Keywords
-| Keyword | Purpose |
-|-|-|
-| server_name | Sets the name of the SQL server. |
-| db_name | Sets the name of the database. |
-| sku | Sets the sku of the database. |
-| collation | Sets the collation of the database. |
-| use_encryption | Enables encryption of the database. |
-| add_firewall_rule | Adds a custom firewall rule given a name, start and end IP address range. |
-| enable_azure_firewall | Adds a firewall rule that enables access to other Azure services. |
-| admin_username | Sets the admin username of the server. |
+| Applies To | Keyword | Purpose |
+|-|-|-|
+| Database | db_name | Sets the name of the database. |
+| Database | sku | Sets the sku of the database. |
+| Database | collation | Sets the collation of the database. |
+| Database | use_encryption | Enables transparent data encryption of the database. |
+| Database | link_to_server | Links this database to an existing SQL Azure server instead of creating a new one. |
+| Server | server_name | Sets the name of the SQL server. |
+| Server | add_firewall_rule | Adds a custom firewall rule given a name, start and end IP address range. |
+| Server | enable_azure_firewall | Adds a firewall rule that enables access to other Azure services. |
+| Server | admin_username | Sets the admin username of the server. |
 
 #### Configuration Members
 | Member | Purpose |

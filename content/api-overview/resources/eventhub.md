@@ -32,7 +32,6 @@ The Event Hub builder creates event hub namespaces, event hubs, consumer groups 
 | Event Hub | add_authorization_rule | Adds a named authorization rule on the event hub. |
 | Event Hub | link_to_namespace | Sets the name of an existing or already-defined event hub namespace that this event hub should link to. |
 
-
 #### Configuration Members
 | Member | Purpose |
 |-|-|

@@ -9,16 +9,20 @@ chapter: false
 The CosmosDb package containers two builders, used to create CosmosDB databases and containers. There is only support document databases (that support so-called "SQL" queries), with support for Graph, Table and Cassandra data models planned.
 
 #### Cosmos DB Builder
-The CosmosDB builder abstracts the idea of server and database into one. This simplfication means that at present there is only support for a single database for each Cosmos server that you create.
+The CosmosDB builder abstracts the idea of server and database into one. If you wish to "re-use" an already-created Cosmos DB server, use `link_to_server` keyword - no server will be created and the database will be attached to the existing one.
 
-| Keyword | Purpose |
-|-|-|
-| name | Sets the name of the database. |
-| server_name | Sets the name of the CosmosDB server. |
-| consistency_policy | Sets the consistency policy of the database. |
-| failover_policy | Sets the failover policy of the database. |
-| throughput | Sets the throughput of the server. |
-| add_containers | Adds a list of containers to the database. |
+| Applies To | Keyword | Purpose |
+|-|-|-|
+| Server | server_name | Sets the name of the CosmosDB server. |
+| Server | enable_public_network_access | Enables public network access for the server. |
+| Server | disable_public_network_access | Disables public network access for the server. |
+| Server | consistency_policy | Sets the consistency policy of the database. |
+| Server | failover_policy | Sets the failover policy of the database. |
+| Server | free_tier | Registers this server with the free pricing tier, if supported and allowed by Azure. |
+| Database | db_name | Sets the name of the database. |
+| Database | link_to_server | Instructs Farmer to link this database to an existing Cosmos DB server rather than creating a new one. |
+| Database | throughput | Sets the throughput of the server. |
+| Database | add_containers | Adds a list of containers to the database. |
 
 #### Cosmos Container Builder
 The container builder allows you to create and configure a specific container that is attached to a cosmos database.
@@ -35,7 +39,7 @@ The container builder allows you to create and configure a specific container th
 open Farmer
 open Farmer.Resources
 
-let myCosmosDb = cosmosDb {    
+let myCosmosDb = cosmosDb {
     name "isaacsappdb"
     server_name "isaacscosmosdb"
     throughput 400

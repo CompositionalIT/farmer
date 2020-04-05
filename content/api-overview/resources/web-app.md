@@ -6,7 +6,7 @@ chapter: false
 ---
 
 #### Overview
-The Web App builder is used to create Azure App Service accounts. It abstracts the Service Plan into the same component, and will also create and configure a linked App Insights resource.
+The Web App builder is used to create Azure App Service accounts. It abstracts the Service Plan into the same component, and will also create and configure a linked App Insights resource. If you wish to create a website that connects to an existing service plan, use the `link_to_service_plan` keyword and provide the resource name of the service plan to connect to.
 
 * Web Site (`Microsoft.Web/sites`)
 * Web Host (`Microsoft.Web/serverfarms`)
@@ -15,29 +15,40 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 
 #### Builder Keywords
 
+| Applies To | Keyword | Purpose |
+|-|-|-|
+| Web App | name | Sets the name of the web app. |
+| Web App | link_to_service_plan | Instructs Farmer to link this webapp to an existing service plan rather than creating a new one. |
+| Web App | app_insights_auto_name | Sets the name of the automatically-created app insights instance. |
+| Web App | app_insights_off | Removes any automatic app insights creation, configuration and settings for this webapp. |
+| Web App | link_to_app_insights | Instead of creating a new AI instance, configure this webapp to point to another AI instance that you are managing yourself. |
+| Web App | run_from_package | Sets the web app to use "run from package" deployment capabilities. |
+| Web App | website_node_default_version | Sets the node version of the web app. |
+| Web App | setting | Sets an app setting of the web app in the form "key" "value". |
+| Web App | depends_on | Sets a dependency for the web app. |
+| Web App | docker_image | Sets the images and startup file for a docker image to be pulled down from Docker Hub. Automatically sets the OS to Linux. |
+| Service Plan | service_plan_name | Sets the name of the service plan. If not set, uses the name of the web app postfixed with "-plan". |
+| Service Plan | always_on | Sets "Always On" flag. |
+| Service Plan | runtime_stack | Sets the runtime stack. |
+| Service Plan | operating_system | Sets the operating system. If Linux, App Insights configuration settings will be omitted as they are not supported by Azure App Service. |
+| Service Plan | sku | Sets the sku of the service plan. |
+| Service Plan | worker_size | Sets the size of the service plan worker. |
+| Service Plan | number_of_workers | Sets the number of instances on the service plan. |
+
+#### Post-deployment Builder Keywords
+The App Service builder contains special commands that are executed *after* the ARM deployment is completed.
+
 | Keyword | Purpose |
 |-|-|
-| name | Sets the name of the web app. |
-| service_plan_name | Sets the name of the service plan. If not set, uses the name of the web app postfixed with "-plan". |
-| sku | Sets the sku of the service plan. |
-| worker_size | Sets the size of the service plan worker. |
-| number_of_workers | Sets the number of instances on the service plan. |
-| app_insights_auto_name | Sets the name of the automatically-created app insights instance. |
-| app_insights_off | Removes any automatic app insights creation, configuration and settings for this webapp. |
-| app_insights_manual | Instead of creating a new AI instance, configure this webapp to point to another AI instance that you are managing yourself. |
-| run_from_package | Sets the web app to use "run from package" deployment capabilities. |
-| website_node_default_version | Sets the node version of the web app. |
-| setting | Sets an app setting of the web app in the form "key" "value". |
-| depends_on | Sets a dependency for the web app. |
-| always_on | Sets "Always On" flag. |
-| runtime_stack | Sets the runtime stack. |
-| operating_system | Sets the operating system. |
+| zip_deploy | Supplying a folder or zip file will instruct Farmer to upload the contents directly to the App Service once the ARM deployment is complete. |
 
 #### Configuration Members
 
 | Member | Purpose |
 |-|-|
 | PublishingPassword | Gets the ARM expression path to the publishing password of this web app. |
+| ServicePlan | Gets the Resource Name of the service plan for this web app. |
+| AppInsights | Gets the Resource Name of the service plan for the AI resource linked to this web app. |
 
 #### Example
 
