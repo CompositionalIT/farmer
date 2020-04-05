@@ -18,8 +18,6 @@ These docs use [GitHub Actions](https://github.com/features/actions) and the [Ac
 How it works:
 
 * A change is committed to the `docs` branch (say, when a PR is merged).
-* The GitHub Actions workflow begins. 
+* The GitHub Actions workflow begins.
 * The action pulls the docs branch, runs hugo, and then publishes the "public" folder output to the `gh-pages` branch.
 * The `gh-pages` branch is served by GitHub Pages at https://compositionalit.github.io/farmer.
-
-wf-test-1
