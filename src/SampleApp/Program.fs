@@ -10,11 +10,9 @@ let deployment = arm {
 }
 
 // Generate the ARM template here...
-let outputFilename =
-    deployment.Template
-    |> Writer.toJson
-    |> Writer.toFile @"generated-template"
+deployment
+|> Writer.quickWrite @"generated-template"
 
 // Or deploy it directly to Azure here... (required Azure CLI installed!)
-deployment
-|> Deploy.quick "my-resource-group"
+// deployment
+// |> Deploy.quick "my-resource-group"
