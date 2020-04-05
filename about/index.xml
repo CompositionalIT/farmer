@@ -1,15 +1,1 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
-  <channel>
-    <title>About on Farmer</title>
-    <link>https://compositionalit.github.io/farmer/about/</link>
-    <description>Recent content in About on Farmer</description>
-    <generator>Hugo -- gohugo.io</generator>
-    <language>en-gb</language>
-    <lastBuildDate>Tue, 04 Feb 2020 22:44:07 +0100</lastBuildDate>
-    
-	<atom:link href="https://compositionalit.github.io/farmer/about/index.xml" rel="self" type="application/rss+xml" />
-    
-    
-  </channel>
-</rss>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>About on Farmer</title><link>https://compositionalit.github.io/farmer/about/</link><description>Recent content in About on Farmer</description><generator>Hugo -- gohugo.io</generator><language>en-gb</language><lastBuildDate>Tue, 04 Feb 2020 22:44:07 +0100</lastBuildDate><atom:link href="https://compositionalit.github.io/farmer/about/index.xml" rel="self" type="application/rss+xml"/></channel></rss>
