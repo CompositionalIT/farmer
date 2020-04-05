@@ -27,5 +27,6 @@ jobs:
       - name: Deploy # Pushes output of the build to the GH Pages branch
         uses: peaceiris/actions-gh-pages@v3
         with:
+          commit_message: ${{ github.event.head_commit.message }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./public
