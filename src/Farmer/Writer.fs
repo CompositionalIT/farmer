@@ -530,7 +530,7 @@ module Outputters =
                   isHttpAllowed = endpoint.IsHttpAllowed |> Option.toNullable
                   isHttpsAllowed = endpoint.IsHttpsAllowed |> Option.toNullable
                   queryStringCachingBehaviour = endpoint.QueryStringCachingBehavior |> Option.map string |> Option.toObj
-                  optimizationPath = endpoint.OptimizationPath |> Option.toObj
+                  optimizationType = endpoint.OptimizationType |> Option.toObj
                   probePath = endpoint.ProbePath |> Option.toObj
                   geoFilters = [|
                     for filter in endpoint.GeoFilters ->

@@ -362,7 +362,7 @@ type CdnEndpoint =
       IsHttpAllowed : bool option
       IsHttpsAllowed : bool option
       QueryStringCachingBehavior : QueryStringCacheBehavior option
-      OptimizationPath : string option
+      OptimizationType : string option
       ProbePath : string option
       GeoFilters :
         {| RelativePath : string
