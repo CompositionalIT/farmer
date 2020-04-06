@@ -21,7 +21,7 @@ In other words, whilst working with ARM templates that have already been created
 Whilst there have been some recent improvements to ARM - including tooling improvements in VS Code through an extension - we think that we can do much better than relying on tooling for a specific IDE, which means using something different than JSON when directly authoring ARM templates.
 
 #### What does Farmer do to fix this?
-Farmer templates are simple .NET Core applications which reference the [Farmer NuGet package](https://www.nuget.org/packages/Farmer/). This package contains a set of *types* than model Azure resources in a strongly-typed and succinct fashion, as well as functionality to create ARM templates from this model - and even deploy directly to Azure.
+Farmer templates are simple .NET Core applications which reference the [Farmer NuGet package](https://www.nuget.org/packages/Farmer/). This package contains a set of *types* that model Azure resources in a strongly-typed and succinct fashion, as well as functionality to create ARM templates from this model - and even deploy directly to Azure.
 
 #### What can I use Farmer for?
 Farmer currently has support for a [large number of common resources](../api-overview/resources) including web apps, sql and storage, with more being added over time.

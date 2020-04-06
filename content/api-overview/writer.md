@@ -71,4 +71,4 @@ match response.Result with
 | Error (DeploymentFailed error) -> printfn "Failed! %A" error
 ```
 
-As you can see, the response of calling fullDeploy is a Result object which is either Ok, in which case any outputs returned from the template are made available, or an Error, which is either one of several DeploymentRejected or DeploymentFailed errors.
+As you can see, the response of calling `fullDeploy` is a `Result` object which is either `Ok`, in which case any outputs returned from the template are made available, or an `Error`, which is either one of several `DeploymentRejected` or `DeploymentFailed` errors.
