@@ -35,7 +35,7 @@ type SearchBuilder() =
         { Name = ResourceName.Empty
           Sku = Sku.Standard
           Replicas = 1
-          Partitions = 1 }        
+          Partitions = 1 }
     member __.Run(state:SearchConfig) =
         { state with Name = state.Name |> sanitiseSearch |> ResourceName }
     /// Sets the name of the Azure Search instance.
@@ -76,10 +76,16 @@ module Converters =
             | Sku.StorageOptimisedL2 -> "storage_optimized_l2"
           ReplicaCount = search.Replicas
           PartitionCount = search.Partitions
-          HostingMode = 
+          HostingMode =
             match search.Sku with
             | Sku.Standard3 Sku.HighDensity -> "highDensity"
             | _ -> "default"
           }
+
+open Farmer.Models
+type ArmBuilder.ArmBuilder with
+    member this.AddResource(state:ArmConfig, config:SearchConfig) =
+        { state with Resources = AzureSearch (Converters.search state.Location config) :: state.Resources } 
+    member this.AddResources (state, configs) = addResources<SearchConfig> this.AddResource state configs
 
 let search = SearchBuilder()

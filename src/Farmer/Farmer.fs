@@ -83,13 +83,17 @@ type FeatureFlag = Enabled | Disabled member this.AsBoolean = match this with En
 type DiskType = StandardSSD_LRS | Standard_LRS | Premium_LRS
 /// Represents a disk in a VM.
 type DiskInfo = { Size : int; DiskType : DiskType }
-/// The type of extensions in a web app.
-type WebAppExtensions = AppInsightsExtension
 
 namespace Farmer.Models
 
 open Farmer
 open Farmer.Resources
+
+type ResourceReplacement<'T> =
+  | NewResource of 'T
+  | MergedResource of old:'T * replacement:'T
+  | CouldNotLocate of ResourceName
+  | NotSet
 
 type AppInsights =
     { Name : ResourceName
@@ -104,6 +108,19 @@ type StorageAccount =
       Location : Location
       Sku : string
       Containers : (string * StorageContainerAccess) list }
+
+type Redis =
+    { Name : ResourceName
+      Location : Location
+      Sku :
+        {| Name : string
+           Family : char
+           Capacity : int |}
+      RedisConfiguration : Map<string, string>
+      NonSslEnabled : bool option
+      ShardCount : int option
+      MinimumTlsVersion : string option }
+
 module ContainerGroups =
     [<RequireQualifiedAccess>]
     type ContainerGroupOsType =
@@ -118,9 +135,10 @@ module ContainerGroups =
     type ContainerGroupIpAddressType =
         | PublicAddress
         | PrivateAddress
+    type ContainerProtocol = TCP | UDP
     [<RequireQualifiedAccess>]
     type ContainerPort =
-        { Protocol : System.Net.Sockets.ProtocolType
+        { Protocol : ContainerProtocol
           Port : uint16 }
     [<RequireQualifiedAccess>]
     type ContainerGroupIpAddress =
@@ -156,18 +174,20 @@ type WebApp =
       ServerFarm : ResourceName
       Location : Location
       AppSettings : List<string * string>
-      Extensions : WebAppExtensions Set
       AlwaysOn : bool
       Dependencies : ResourceName list
       Kind : string
       LinuxFxVersion : string option
+      AppCommandLine : string option
       NetFrameworkVersion : string option
       JavaVersion : string option
       JavaContainer : string option
       JavaContainerVersion : string option
       PhpVersion : string option
       PythonVersion : string option
-      Metadata : List<string * string> }
+      Metadata : List<string * string>
+      ZipDeployPath : string option }
+
 type ServerFarm =
     { Name : ResourceName
       Location : Location
@@ -176,7 +196,8 @@ type ServerFarm =
       IsDynamic : bool
       Kind : string option
       Tier : string
-      WorkerCount : int }
+      WorkerCount : int
+      IsLinux : bool }
 type CosmosDbContainer =
     { Name : ResourceName
       Account : ResourceName
@@ -198,12 +219,18 @@ type SqlAzure =
   { ServerName : ResourceName
     Location : Location
     Credentials : {| Username : string; Password : SecureParameter |}
-    DbName : ResourceName
-    DbEdition : string
-    DbCollation : string
-    DbObjective : string
-    TransparentDataEncryption : FeatureFlag
-    FirewallRules : {| Name : string; Start : System.Net.IPAddress; End : System.Net.IPAddress |} list }
+    Databases :
+        {| Name : ResourceName
+           Edition : string
+           Collation : string
+           Objective : string
+           TransparentDataEncryption : FeatureFlag |} list
+    FirewallRules :
+        {| Name : string
+           Start : System.Net.IPAddress
+           End : System.Net.IPAddress |} list
+  }
+
 type CosmosDbSql =
     { Name : ResourceName
       Account : ResourceName
@@ -212,7 +239,9 @@ type CosmosDbAccount =
     { Name : ResourceName
       Location : Location
       ConsistencyPolicy : ConsistencyPolicy
-      WriteModel : FailoverPolicy }
+      WriteModel : FailoverPolicy
+      PublicNetworkAccess : FeatureFlag
+      FreeTier : bool }
 
 type Search =
     { Name : ResourceName
@@ -222,6 +251,31 @@ type Search =
       ReplicaCount : int
       PartitionCount : int }
 
+type EventHubNamespace =
+  { Name : ResourceName
+    Location : Location
+    Sku : {| Name : string; Tier : string; Capacity : int |}
+    ZoneRedundant : bool option
+    IsAutoInflateEnabled : bool option
+    MaxThroughputUnits : int option
+    KafkaEnabled : bool option }
+
+type EventHub =
+  { Name : ResourceName
+    Location : Location
+    MessageRetentionDays : int option
+    Partitions : int
+    Dependencies : ResourceName list }
+
+type EventHubConsumerGroup =
+  { Name : ResourceName
+    Location : Location
+    Dependencies : ResourceName list }
+type EventHubAuthorizationRule =
+  { Name : ResourceName
+    Location : Location
+    Dependencies : ResourceName list
+    Rights : string list }
 module VM =
     type PublicIpAddress =
         { Name : ResourceName
@@ -346,25 +400,22 @@ type SupportedResource =
     | AzureSearch of Search
     | KeyVault of KeyVault | KeyVaultSecret of KeyVaultSecret
     | CdnProfile of CdnProfile
+    | EventHub of EventHub | EventHubNamespace of EventHubNamespace | ConsumerGroup of EventHubConsumerGroup | EventHubAuthRule of EventHubAuthorizationRule
+    | RedisCache of Redis
     member this.ResourceName =
         match this with
         | AppInsights x -> x.Name
-        | CosmosAccount x -> x.Name
-        | CosmosSqlDb x -> x.Name
-        | CosmosContainer x -> x.Name
-        | ServerFarm x -> x.Name
-        | WebApp x -> x.Name
-        | SqlServer x -> x.DbName
+        | CosmosAccount x -> x.Name | CosmosSqlDb x -> x.Name | CosmosContainer x -> x.Name
+        | ServerFarm x -> x.Name | WebApp x -> x.Name
+        | SqlServer x -> x.ServerName
         | StorageAccount x -> x.Name
         | ContainerGroup x -> x.Name
-        | Ip x -> x.Name
-        | Vnet x -> x.Name
-        | Nic x -> x.Name
-        | Vm x -> x.Name
+        | Ip x -> x.Name | Vnet x -> x.Name | Nic x -> x.Name | Vm x -> x.Name
         | AzureSearch x -> x.Name
-        | KeyVault x -> x.Name
-        | KeyVaultSecret x -> x.Name
+        | KeyVault x -> x.Name | KeyVaultSecret x -> x.Name
+        | EventHub x -> x.Name | EventHubNamespace x -> x.Name | ConsumerGroup x -> x.Name | EventHubAuthRule x -> x.Name
         | CdnProfile x -> x.Name
+        | RedisCache r -> r.Name
 
 namespace Farmer
 open Farmer.Models

@@ -4,13 +4,13 @@ open Farmer
 open Farmer.Resources
 
 let myCosmosDb = cosmosDb {    
-    name "isaacsappdb"
+    db_name "isaacsappdb"
     server_name "isaacscosmosdb"
     throughput 400
     failover_policy NoFailover
     consistency_policy (BoundedStaleness(500, 1000))
     add_containers [
-        container {
+        cosmosContainer {
             name "myContainer"
             partition_key [ "/id" ] Hash
             add_index "/path" [ Number, Hash ]
@@ -26,4 +26,4 @@ let template =
     }
 
 template
-|> Writer.quickDeploy "my-resource-group-name"
+|> Deploy.quick "my-resource-group-name"

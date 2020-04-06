@@ -1,13 +1,12 @@
 module Farmer.Writer
 
+open Farmer.Models
 open Farmer.Resources
 open Newtonsoft.Json
 open System
 open System.IO
 
 module Outputters =
-    open Farmer.Models
-
     let private containerAccess (a:StorageContainerAccess) =
         match a with
         | Private -> "None"
@@ -96,25 +95,26 @@ module Outputters =
                    Application_Type = "web" |}
     |}
     let serverFarm (farm:ServerFarm) =
-        {| ``type`` = "Microsoft.Web/serverfarms"
-           sku =
-               {| name = farm.Sku
-                  tier = farm.Tier
-                  size = farm.WorkerSize
-                  family = if farm.IsDynamic then "Y" else null
-                  capacity = if farm.IsDynamic then 0 else farm.WorkerCount |}
-           name = farm.Name.Value
-           apiVersion = "2018-02-01"
-           location = farm.Location.Value
-           properties =
-               if farm.IsDynamic then
-                   box {| name = farm.Name.Value
-                          computeMode = "Dynamic" |}
-               else
-                   box {| name = farm.Name.Value
-                          perSiteScaling = false
-                          reserved = false |}
-           kind = farm.Kind |> Option.toObj
+        {|  ``type`` = "Microsoft.Web/serverfarms"
+            sku =
+                {| name = farm.Sku
+                   tier = farm.Tier
+                   size = farm.WorkerSize
+                   family = if farm.IsDynamic then "Y" else null
+                   capacity = if farm.IsDynamic then 0 else farm.WorkerCount |}
+            name = farm.Name.Value
+            apiVersion = "2018-02-01"
+            location = farm.Location.Value
+            properties =
+                if farm.IsDynamic then
+                    box {| name = farm.Name.Value
+                           computeMode = "Dynamic"
+                           reserved = farm.IsLinux |}
+                else
+                    box {| name = farm.Name.Value
+                           perSiteScaling = false
+                           reserved = farm.IsLinux |}
+            kind = farm.Kind |> Option.toObj
         |}
     let webApp (webApp:WebApp) = {|
         ``type`` = "Microsoft.Web/sites"
@@ -123,23 +123,13 @@ module Outputters =
         location = webApp.Location.Value
         dependsOn = webApp.Dependencies |> List.map(fun p -> p.Value)
         kind = webApp.Kind
-        resources =
-            webApp.Extensions
-            |> Set.toList
-            |> List.map (function
-            | AppInsightsExtension ->
-                 {| apiVersion = "2016-08-01"
-                    name = "Microsoft.ApplicationInsights.AzureWebSites"
-                    ``type`` = "siteextensions"
-                    dependsOn = [ webApp.Name.Value ]
-                    properties = {||}
-                 |})
         properties =
             {| serverFarmId = webApp.ServerFarm.Value
                siteConfig =
                     [ "alwaysOn", box webApp.AlwaysOn
                       "appSettings", webApp.AppSettings |> List.map(fun (k,v) -> {| name = k; value = v |}) |> box
                       match webApp.LinuxFxVersion with Some v -> "linuxFxVersion", box v | None -> ()
+                      match webApp.AppCommandLine with Some v -> "appCommandLine", box v | None -> ()
                       match webApp.NetFrameworkVersion with Some v -> "netFrameworkVersion", box v | None -> ()
                       match webApp.JavaVersion with Some v -> "javaVersion", box v | None -> ()
                       match webApp.JavaContainer with Some v -> "javaContainer", box v | None -> ()
@@ -151,9 +141,9 @@ module Outputters =
              |}
     |}
     let cosmosDbContainer (container:CosmosDbContainer) = {|
-        ``type`` = "Microsoft.DocumentDb/databaseAccounts/apis/databases/containers"
-        name = sprintf "%s/sql/%s/%s" container.Account.Value container.Database.Value container.Name.Value
-        apiVersion = "2016-03-31"
+        ``type`` = "Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers"
+        name = sprintf "%s/%s/%s" container.Account.Value container.Database.Value container.Name.Value
+        apiVersion = "2020-03-01"
         dependsOn = [ container.Database.Value ]
         properties =
             {| resource =
@@ -181,15 +171,18 @@ module Outputters =
                 |}
             |}
     |}
-    let cosmosDbServer (cosmosDb:CosmosDbAccount) = {|
+    let cosmosDbAccount (account:CosmosDbAccount) = {|
         ``type`` = "Microsoft.DocumentDB/databaseAccounts"
-        name = cosmosDb.Name.Value
-        apiVersion = "2016-03-31"
-        location = cosmosDb.Location.Value
+        name = account.Name.Value
+        apiVersion = "2020-03-01"
+        location = account.Location.Value
         kind = "GlobalDocumentDB"
+        tags =
+            {| defaultExperience = "Core (SQL)"
+               CosmosAccountType = "Non-Production" |}
         properties =
             {| consistencyPolicy =
-                    match cosmosDb.ConsistencyPolicy with
+                    match account.ConsistencyPolicy with
                     | BoundedStaleness(maxStaleness, maxInterval) ->
                         box {| defaultConsistencyLevel = "BoundedStaleness"
                                maxStalenessPrefix = maxStaleness
@@ -198,72 +191,80 @@ module Outputters =
                     | Eventual
                     | ConsistentPrefix
                     | Strong ->
-                        box {| defaultConsistencyLevel = string cosmosDb.ConsistencyPolicy |}
+                        box {| defaultConsistencyLevel = string account.ConsistencyPolicy |}
                databaseAccountOfferType = "Standard"
-               enableAutomaticFailure = match cosmosDb.WriteModel with AutoFailover _ -> Nullable true | _ -> Nullable()
-               autoenableMultipleWriteLocations = match cosmosDb.WriteModel with MultiMaster _ -> Nullable true | _ -> Nullable()
+               enableAutomaticFailure = match account.WriteModel with AutoFailover _ -> Nullable true | _ -> Nullable()
+               autoenableMultipleWriteLocations = match account.WriteModel with MultiMaster _ -> Nullable true | _ -> Nullable()
                locations =
-                match cosmosDb.WriteModel with
+                match account.WriteModel with
                 | AutoFailover secondary
                 | MultiMaster secondary ->
-                    [ {| locationName = cosmosDb.Location.Value; failoverPriority = 0 |}
-                      {| locationName = secondary.Value; failoverPriority = 1 |} ]
-                | NoFailover -> []
-                |} |> box
+                    [ {| locationName = account.Location.Value; failoverPriority = 0 |}
+                      {| locationName = secondary.Value; failoverPriority = 1 |} ] |> box
+                | NoFailover ->
+                    Nullable() |> box
+               publicNetworkAccess = string account.PublicNetworkAccess
+               enableFreeTier = account.FreeTier
+            |} |> box
     |}
-    let cosmosDbSql (cosmosDbSql:CosmosDbSql) = {|
-        ``type`` = "Microsoft.DocumentDB/databaseAccounts/apis/databases"
-        name = sprintf "%s/sql/%s" cosmosDbSql.Account.Value cosmosDbSql.Name.Value
-        apiVersion = "2016-03-31"
-        dependsOn = [ cosmosDbSql.Account.Value ]
+    let cosmosDbSql (db:CosmosDbSql) = {|
+        ``type`` = "Microsoft.DocumentDB/databaseAccounts/sqlDatabases"
+        name = sprintf "%s/%s" db.Account.Value db.Name.Value
+        apiVersion = "2020-03-01"
+        dependsOn = [ db.Account.Value ]
         properties =
-            {| resource = {| id = cosmosDbSql.Name.Value |}
-               options = {| throughput = cosmosDbSql.Throughput |} |}
+            {| resource = {| id = db.Name.Value |}
+               options = {| throughput = db.Throughput |} |}
     |}
-    let sqlAzure (database:SqlAzure) = {|
+    let sqlAzure (server:SqlAzure) = {|
         ``type`` = "Microsoft.Sql/servers"
-        name = database.ServerName.Value
+        name = server.ServerName.Value
         apiVersion = "2014-04-01-preview"
-        location = database.Location.Value
-        tags = {| displayName = "SqlServer" |}
+        location = server.Location.Value
+        tags = {| displayName = server.ServerName.Value |}
         properties =
-            {| administratorLogin = database.Credentials.Username
-               administratorLoginPassword = database.Credentials.Password.AsArmRef.Eval()
+            {| administratorLogin = server.Credentials.Username
+               administratorLoginPassword = server.Credentials.Password.AsArmRef.Eval()
                version = "12.0" |}
         resources = [
-            box
-                {| ``type`` = "databases"
-                   name = database.DbName.Value
-                   apiVersion = "2015-01-01"
-                   location = database.Location.Value
-                   tags = {| displayName = "Database" |}
-                   properties =
-                    {| edition = database.DbEdition
-                       collation = database.DbCollation
-                       requestedServiceObjectiveName = database.DbObjective |}
-                   dependsOn = [
-                       database.ServerName.Value
-                   ]
-                   resources = [
-                       {| ``type`` = "transparentDataEncryption"
-                          comments = "Transparent Data Encryption"
-                          name = "current"
-                          apiVersion = "2014-04-01-preview"
-                          properties = {| status = string database.TransparentDataEncryption |}
-                          dependsOn = [ database.DbName.Value ]
-                       |}
-                   ]
-                |}
-            for rule in database.FirewallRules do
+            for database in server.Databases do
+                box
+                    {| ``type`` = "databases"
+                       name = database.Name.Value
+                       apiVersion = "2015-01-01"
+                       location = server.Location.Value
+                       tags = {| displayName = database.Name.Value |}
+                       properties =
+                        {| edition = database.Edition
+                           collation = database.Collation
+                           requestedServiceObjectiveName = database.Objective |}
+                       dependsOn = [
+                           server.ServerName.Value
+                       ]
+                       resources = [
+                           match database.TransparentDataEncryption with
+                           | Enabled ->
+                               {| ``type`` = "transparentDataEncryption"
+                                  comments = "Transparent Data Encryption"
+                                  name = "current"
+                                  apiVersion = "2014-04-01-preview"
+                                  properties = {| status = string database.TransparentDataEncryption |}
+                                  dependsOn = [ database.Name.Value ]
+                               |}
+                            | Disabled ->
+                                ()
+                       ]
+                    |}
+            for rule in server.FirewallRules do
                 box
                     {| ``type`` = "firewallrules"
                        name = rule.Name
                        apiVersion = "2014-04-01"
-                       location = database.Location.Value
+                       location = server.Location.Value
                        properties =
                         {| endIpAddress = string rule.Start
                            startIpAddress = string rule.End |}
-                       dependsOn = [ database.ServerName.Value ]
+                       dependsOn = [ server.ServerName.Value ]
                     |}
         ]
     |}
@@ -444,7 +445,70 @@ module Outputters =
                 |}
             |}
         |}
+    let redisCache (redis:Redis) = {|
+        ``type`` = "Microsoft.Cache/Redis"
+        apiVersion = "2018-03-01"
+        name = redis.Name.Value
+        location = redis.Location.Value
+        properties =
+            {| sku =
+                {| name = redis.Sku.Name
+                   family = redis.Sku.Family
+                   capacity = redis.Sku.Capacity
+                |}
+               enableNonSslPort = redis.NonSslEnabled |> Option.toNullable
+               shardCount = redis.ShardCount |> Option.toNullable
+               minimumTlsVersion = redis.MinimumTlsVersion |> Option.toObj
+               redisConfiguration = redis.RedisConfiguration
+            |}
+    |}
 
+    let eventHubNs (ns:EventHubNamespace) = {|
+        ``type`` = "Microsoft.EventHub/namespaces"
+        apiVersion = "2017-04-01"
+        name = ns.Name.Value
+        location = ns.Location.Value
+        sku =
+            {| name = ns.Sku.Name
+               tier = ns.Sku.Tier
+               capacity = ns.Sku.Capacity |}
+        properties =
+            {| zoneRedundant = ns.ZoneRedundant |> Option.toNullable
+               isAutoInflateEnabled = ns.IsAutoInflateEnabled |> Option.toNullable
+               maximumThroughputUnits = ns.MaxThroughputUnits |> Option.toNullable
+               kafkaEnabled = ns.KafkaEnabled |> Option.toNullable |}
+    |}
+
+    let eventHub (hub:EventHub) = {|
+        ``type`` = "Microsoft.EventHub/namespaces/eventhubs"
+        apiVersion = "2017-04-01"
+        name = hub.Name.Value
+        location = hub.Location.Value
+        dependsOn = hub.Dependencies |> List.map(fun d -> d.Value)
+        properties =
+            {| messageRetentionInDays = hub.MessageRetentionDays |> Option.toNullable
+               partitionCount = hub.Partitions
+               status = "Active" |}
+    |}
+
+    let consumerGroup (group:EventHubConsumerGroup) = {|
+        ``type`` = "Microsoft.EventHub/namespaces/eventhubs/consumergroups"
+        apiVersion = "2017-04-01"
+        name = group.Name.Value
+        location = group.Location.Value
+        dependsOn = group.Dependencies |> List.map(fun d -> d.Value)
+    |}
+
+    let authRule (rule:EventHubAuthorizationRule) = {|
+        ``type`` = "Microsoft.EventHub/namespaces/eventhubs/AuthorizationRules"
+        apiVersion = "2017-04-01"
+        name = rule.Name.Value
+        location = rule.Location.Value
+        dependsOn = rule.Dependencies |> List.map(fun d -> d.Value)
+        properties = {| rights = rule.Rights |}
+    |}
+
+module TemplateGeneration =
     let cdnCustomDomain (parent:CdnEndpoint) (customDomain:CdnCustomDomain) =
         {| name = customDomain.Name.Value
            ``type`` = "Microsoft.Cdn/profiles/endpoints/customDomains"
@@ -513,154 +577,69 @@ module Outputters =
            resources = [| cdnEndpoint profile profile.Endpoint |]
         |}
 
-open Farmer.Models
-let processTemplate (template:ArmTemplate) = {|
-    ``$schema`` = "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#"
-    contentVersion = "1.0.0.0"
-    resources =
-        template.Resources
-        |> List.map(function
-            | AppInsights ai -> Outputters.appInsights ai |> box
-            | StorageAccount s -> Outputters.storageAccount s |> box
-            | ContainerGroup g -> Outputters.containerGroup g |> box
-            | ServerFarm s -> Outputters.serverFarm s |> box
-            | WebApp wa -> Outputters.webApp wa |> box
-            | CosmosAccount cds -> Outputters.cosmosDbServer cds |> box
-            | CosmosSqlDb db -> Outputters.cosmosDbSql db |> box
-            | CosmosContainer c -> Outputters.cosmosDbContainer c |> box
-            | SqlServer sql -> Outputters.sqlAzure sql |> box
-            | Ip address -> Outputters.publicIpAddress address |> box
-            | Vnet vnet -> Outputters.virtualNetwork vnet |> box
-            | Nic nic -> Outputters.networkInterface nic |> box
-            | Vm vm -> Outputters.virtualMachine vm |> box
-            | AzureSearch search -> Outputters.search search |> box
-            | KeyVault vault -> Outputters.keyVault vault |> box
-            | KeyVaultSecret secret -> Outputters.keyVaultSecret secret |> box
-            | CdnProfile profile -> Outputters.cdnProfile profile |> box
-        )
-    parameters =
-        template.Parameters
-        |> List.map(fun (SecureParameter p) -> p, {| ``type`` = "securestring" |})
-        |> Map.ofList        
-    outputs =
-        template.Outputs
-        |> List.map(fun (k, v) ->
-            k, Map [ "type", "string"
-                     "value", v ])
-        |> Map.ofList
-|}
+    let processTemplate (template:ArmTemplate) = {|
+        ``$schema`` = "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#"
+        contentVersion = "1.0.0.0"
+        resources =
+            template.Resources
+            |> List.map(function
+                | StorageAccount s -> Outputters.storageAccount s |> box
 
-let serialize data =
-    JsonConvert.SerializeObject(data, Formatting.Indented, JsonSerializerSettings(NullValueHandling = NullValueHandling.Ignore))
+                | AppInsights ai -> Outputters.appInsights ai |> box
+                | ServerFarm s -> Outputters.serverFarm s |> box
+                | WebApp wa -> Outputters.webApp wa |> box
 
-let toJson = processTemplate >> serialize
+                | CosmosAccount cds -> Outputters.cosmosDbAccount cds |> box
+                | CosmosSqlDb db -> Outputters.cosmosDbSql db |> box
+                | CosmosContainer c -> Outputters.cosmosDbContainer c |> box
 
-let toFile filename json =
-    let filename = sprintf "%s.json" filename
+                | SqlServer sql -> Outputters.sqlAzure sql |> box
+
+                | ContainerGroup g -> Outputters.containerGroup g |> box
+                | Ip address -> Outputters.publicIpAddress address |> box
+                | Vnet vnet -> Outputters.virtualNetwork vnet |> box
+                | Nic nic -> Outputters.networkInterface nic |> box
+                | Vm vm -> Outputters.virtualMachine vm |> box
+
+                | AzureSearch search -> Outputters.search search |> box
+
+                | KeyVault vault -> Outputters.keyVault vault |> box
+                | KeyVaultSecret secret -> Outputters.keyVaultSecret secret |> box
+                | CdnProfile profile -> Outputters.cdnProfile profile |> box
+                | RedisCache redis -> Outputters.redisCache redis |> box
+
+                | EventHub hub -> Outputters.eventHub hub |> box
+                | EventHubNamespace ns -> Outputters.eventHubNs ns |> box
+                | ConsumerGroup group -> Outputters.consumerGroup group |> box
+                | EventHubAuthRule rule -> Outputters.authRule rule |> box
+            )
+        parameters =
+            template.Parameters
+            |> List.map(fun (SecureParameter p) -> p, {| ``type`` = "securestring" |})
+            |> Map.ofList
+        outputs =
+            template.Outputs
+            |> List.map(fun (k, v) ->
+                k, Map [ "type", "string"
+                         "value", v ])
+            |> Map.ofList
+    |}
+
+    let serialize data =
+        JsonConvert.SerializeObject(data, Formatting.Indented, JsonSerializerSettings(NullValueHandling = NullValueHandling.Ignore))
+
+/// Returns a JSON string representing the supplied ARMTemplate.
+let toJson = TemplateGeneration.processTemplate >> TemplateGeneration.serialize
+
+/// Writes the provided JSON to a file based on the supplied template name. The postfix ".json" will automatically be added to the filename.
+let toFile templateName json =
+    let filename = sprintf "%s.json" templateName
     File.WriteAllText(filename, json)
     filename
 
-open System.Runtime.InteropServices
-
-let private setLinuxExecutePermissions filename =
-    let command = sprintf "chmod +x %s" filename
-    let startInfo = 
-        System.Diagnostics.ProcessStartInfo( 
-            FileName = "/bin/bash",
-            Arguments = "-c \""+ command + "\"",
-            UseShellExecute = false,
-            RedirectStandardOutput = true )
-
-    use proc = new System.Diagnostics.Process(StartInfo = startInfo)
-    proc.Start() |> ignore
-    proc.WaitForExit() |> ignore
-    filename
-
-module ParameterFile =
-    module Passwords =
-        open System
-        let lowerCaseLetters = String [|'a'..'z'|]
-        let upperCaseLetters = String [|'A'..'Z'|]
-        let digits = String [|'0' .. '9'|]
-        let special = "!£$%^&*()_-+="
-        let allCharacters = lowerCaseLetters + upperCaseLetters + digits + special
-
-        let isValid (s:string) =
-            let isInString (src:string) = s |> Seq.exists (string >> src.Contains)
-            isInString lowerCaseLetters && isInString upperCaseLetters && isInString digits && isInString special
-            
-        let generatePassword randomNumber length =
-            Seq.init length (fun _ -> allCharacters.[randomNumber allCharacters.Length])
-            |> Seq.toArray
-            |> String
-
-        /// Creates a password that is known to conform to lower, upper and numeric constraints.
-        let generateConformingPassword length template =
-            let rnd = Random (template.GetHashCode())
-
-            Seq.initInfinite (fun _ -> generatePassword rnd.Next length)
-            |> Seq.take 100
-            |> Seq.filter isValid
-            |> Seq.tryHead
-            |> function
-            | None -> failwith "Unable to generate a valid password that meet the requested requirements!"
-            | Some password -> password
-
-    let toParameters parameters =
-        {| ``$schema`` = "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#"
-           contentVersion = "1.0.0.0"
-           parameters =
-                parameters
-                |> List.map(fun (name, value) -> name, {| value = value |})
-                |> Map.ofList
-        |}     
-
-       
-    let generateParametersFile (armTemplate:ArmTemplate) =
-        armTemplate.Parameters
-        |> List.map(fun (SecureParameter p) -> p, Passwords.generateConformingPassword 24 armTemplate)
-        |> toParameters
-        |> serialize
-        |> toFile "farmer-deploy-parameters"
-
-let private toAzureCliCmd resourceGroupName (Location location) templateFilename parametersFilename =
-    sprintf """az login && az group create -l %s -n %s && az group deployment create -g %s --template-file %s --parameters @%s"""
-        location
-        resourceGroupName
-        resourceGroupName
-        templateFilename
-        parametersFilename
-
-let (|OperatingSystem|_|) platform () =
-    if RuntimeInformation.IsOSPlatform platform then Some() else None
-
-let toScriptFile armTemplateName azureCliCmd =
-    match () with
-    | OperatingSystem OSPlatform.Windows ->
-        let scriptFilename = sprintf "%s.bat" armTemplateName
-        File.WriteAllText(scriptFilename, azureCliCmd)
-        scriptFilename
-    | OperatingSystem OSPlatform.OSX
-    | OperatingSystem OSPlatform.Linux ->
-        let bashHeader = "#!/bin/bash\n"
-        let scriptFilename = sprintf "%s.sh" armTemplateName
-        File.WriteAllText(scriptFilename, bashHeader + azureCliCmd)
-        setLinuxExecutePermissions scriptFilename
-    | _ ->
-        RuntimeInformation.OSDescription 
-        |> sprintf "OSPlatform: %s not supported" 
-        |> System.NotImplementedException 
-        |> raise
-
-let generateDeployScript resourceGroupName (deployment:Deployment) =
-    let templateName = "farmer-deploy"
-    let templateFilename = deployment.Template |> toJson |> toFile templateName
-    let parameterFilename = deployment.Template |> ParameterFile.generateParametersFile
-
-    toAzureCliCmd resourceGroupName deployment.Location templateFilename parameterFilename
-    |> toScriptFile templateName
-
-let quickDeploy resourceGroupName deployment =
-    generateDeployScript resourceGroupName deployment
-    |> System.Diagnostics.Process.Start
+/// Converts the supplied ARMTemplate to JSON and then writes it out to the provided template name. The postfix ".json" will automatically be added to the filename.
+let quickWrite templateName deployment =
+    deployment.Template
+    |> toJson
+    |> toFile templateName
     |> ignore

@@ -2,6 +2,7 @@
 module Farmer.Resources.Storage
 
 open Farmer
+open Farmer
 open Farmer.Models
 
 module Sku =
@@ -13,7 +14,7 @@ module Sku =
     let StandardRAGZRS = "Standard_RAGZRS"
     let PremiumLRS = "Premium_LRS"
     let PremiumZRS = "Premium_ZRS"
-let buildKey (ResourceName name) =
+let internal buildKey (ResourceName name) =
     sprintf
         "concat('DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=', listKeys('%s', '2017-10-01').keys[0].value)"
             name
@@ -31,6 +32,9 @@ type StorageAccountConfig =
     member this.Key = buildKey this.Name
 type StorageAccountBuilder() =
     member __.Yield _ = { Name = ResourceName.Empty; Sku = Sku.StandardLRS; Containers = [] }
+    member _.Run(state:StorageAccountConfig) =
+        { state with
+            Name = state.Name |> Helpers.sanitiseStorage |> ResourceName }
     /// Sets the name of the storage account.
     [<CustomOperation "name">]
     member __.Name(state:StorageAccountConfig, name) = { state with Name = name }
@@ -50,11 +54,16 @@ type StorageAccountBuilder() =
 
 module Converters =
     let storage location (sac:StorageAccountConfig) =
-        {
-            Location = location
-            Name = sac.Name
-            Sku = sac.Sku
-            Containers = sac.Containers
+        { Location = location
+          Name = sac.Name
+          Sku = sac.Sku
+          Containers = sac.Containers }
+
+type Farmer.ArmBuilder.ArmBuilder with
+    member this.AddResource(state:ArmConfig, config:StorageAccountConfig) =
+        { state with
+            Resources = StorageAccount (Converters.storage state.Location config) :: state.Resources
         }
+    member this.AddResources (state, configs) = addResources<StorageAccountConfig> this.AddResource state configs
 
 let storageAccount = StorageAccountBuilder()

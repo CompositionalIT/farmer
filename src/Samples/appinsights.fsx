@@ -20,4 +20,4 @@ let template =
     }
 
 template
-|> Writer.quickDeploy "deleteme"
+|> Deploy.quick "deleteme"

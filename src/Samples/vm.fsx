@@ -11,6 +11,7 @@ let myVm = vm {
     os_disk 128 StandardSSD_LRS
     add_ssd_disk 128
     add_slow_disk 512
+    diagnostics_support
 }
 
 let template = arm {
@@ -19,4 +20,4 @@ let template = arm {
 }
 
 template
-|> Writer.quickDeploy "my-resource-group-name"
+|> Deploy.quick "my-resource-group-name"

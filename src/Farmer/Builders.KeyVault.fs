@@ -53,7 +53,7 @@ type NetworkAcl =
     { IpRules : string list
       VnetRules : string list
       DefaultAction : DefaultAction option
-      Bypass : Bypass option } 
+      Bypass : Bypass option }
 
 type SecretConfig =
     { Key : string
@@ -125,7 +125,7 @@ type KeyVaultBuilderState =
       Secrets : SecretConfig list }
 
 type KeyVaultBuilder() =
-    member __.Yield (_:unit) =        
+    member __.Yield (_:unit) =
         { Name = ResourceName.Empty
           TenantId = Guid.Empty
           Access = { VirtualMachineAccess = None; ResourceManagerAccess = None; AzureDiskEncryptionAccess = None; SoftDelete = None }
@@ -263,7 +263,7 @@ module Converters =
                     None
                 | Some SoftDeleteWithPurgeProtection
                 | Some SoftDeletionOnly ->
-                    Some true          
+                    Some true
               EnablePurgeProtection =
                 match kvc.Access.SoftDelete with
                 | None
@@ -305,12 +305,25 @@ module Converters =
                   Value = secret.Value
                   ContentType = secret.ContentType
                   Enabled = secret.Enabled |> Option.toNullable
-                  ActivationDate = secret.ActivationDate |> Option.map totalSecondsSince1970 |> Option.toNullable 
+                  ActivationDate = secret.ActivationDate |> Option.map totalSecondsSince1970 |> Option.toNullable
                   ExpirationDate = secret.ExpirationDate |> Option.map totalSecondsSince1970 |> Option.toNullable
                   Location = location
                   Dependencies = secret.Dependencies })
-        
+
         {| KeyVault = keyVault; Secrets = secretKeys |}
+
+open Farmer.Models
+type ArmBuilder.ArmBuilder with
+    member this.AddResource(state:ArmConfig, config:KeyVaultConfig) =
+        let output = Converters.keyVault state.Location config
+        let resources = [
+            KeyVault output.KeyVault
+            for secret in output.Secrets do
+                KeyVaultSecret secret
+        ]
+        { state with Resources = resources @ state.Resources }
+    member this.AddResources (state, configs) = addResources<KeyVaultConfig> this.AddResource state configs
+
 
 let accessPolicy = AccessPolicyBuilder()
 let keyVault = KeyVaultBuilder()

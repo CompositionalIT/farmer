@@ -190,13 +190,13 @@ let makeResourceName vmName = makeName vmName >> ResourceName
 type VmConfig =
     { Name : ResourceName
       DiagnosticsStorageAccount : ResourceRef option
-      
+
       Username : string
       Image : {| Publisher : string; Offer : string; Sku : string |}
       Size : string
       OsDisk : DiskInfo
       DataDisks : DiskInfo list
-      
+
       DomainNamePrefix : string option
       AddressPrefix : string
       SubnetPrefix : string }
@@ -245,8 +245,8 @@ type VirtualMachineBuilder() =
     [<CustomOperation "diagnostics_support">]
     member __.StorageAccountName(state:VmConfig) = { state with DiagnosticsStorageAccount = Some AutomaticPlaceholder }
     /// Turns on diagnostics support using an externally managed storage account.
-    [<CustomOperation "diagnostics_support">]
-    member __.StorageAccountName(state:VmConfig, name) = { state with DiagnosticsStorageAccount = Some (External name) }
+    [<CustomOperation "diagnostics_support_external">]
+    member __.StorageAccountNameExternal(state:VmConfig, name) = { state with DiagnosticsStorageAccount = Some (External name) }
     /// Sets the size of the VM.
     [<CustomOperation "vm_size">]
     member __.VmSize(state:VmConfig, size) = { state with Size = size }
@@ -280,7 +280,7 @@ type VirtualMachineBuilder() =
     member __.AddressPrefix(state:VmConfig, prefix) = { state with AddressPrefix = prefix }
     /// Sets the subnet prefix of the VM.
     [<CustomOperation "subnet_prefix">]
-    member __.SubnetPrefix(state:VmConfig, prefix) = { state with SubnetPrefix = prefix }        
+    member __.SubnetPrefix(state:VmConfig, prefix) = { state with SubnetPrefix = prefix }
 
 module Converters =
     open VM
@@ -293,7 +293,7 @@ module Converters =
                     { StorageAccount.Name = account
                       Location = location
                       Sku = Storage.Sku.StandardLRS
-                      Containers = [] }                    
+                      Containers = [] }
             | Some AutomaticPlaceholder
             | Some (External _)
             | None ->
@@ -333,5 +333,18 @@ module Converters =
               Location = location
               DomainNameLabel = config.DomainNamePrefix }
         {| Storage = storage; Vm = vm; Nic = nic; Vnet = vnet; Ip = ip |}
+
+type ArmBuilder.ArmBuilder with
+    member this.AddResource(state:ArmConfig, config:VmConfig) =
+        let output = Converters.vm state.Location config
+        let resources = [
+            Vm output.Vm
+            Vnet output.Vnet
+            Ip output.Ip
+            Nic output.Nic
+            match output.Storage with Some storage -> StorageAccount storage | None -> ()
+        ]
+        { state with Resources = state.Resources @ resources }
+    member this.AddResources (state, configs) = addResources<VmConfig> this.AddResource state configs
 
 let vm = VirtualMachineBuilder()
