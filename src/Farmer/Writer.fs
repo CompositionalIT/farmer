@@ -508,7 +508,6 @@ module Outputters =
         properties = {| rights = rule.Rights |}
     |}
 
-module TemplateGeneration =
     let cdnCustomDomain (parent:CdnEndpoint) (customDomain:CdnCustomDomain) =
         {| name = customDomain.Name.Value
            ``type`` = "Microsoft.Cdn/profiles/endpoints/customDomains"
@@ -516,7 +515,7 @@ module TemplateGeneration =
            dependsOn = [| parent.Name.Value |]
            properties = {| hostName = customDomain.HostName |}
         |}
-        
+
     let cdnEndpoint (parent:CdnProfile) (endpoint:CdnEndpoint) =
         {| name = endpoint.Name.Value
            ``type`` = "Microsoft.Cdn/profiles/endpoints"
@@ -577,6 +576,7 @@ module TemplateGeneration =
            resources = [| cdnEndpoint profile profile.Endpoint |]
         |}
 
+module TemplateGeneration =
     let processTemplate (template:ArmTemplate) = {|
         ``$schema`` = "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#"
         contentVersion = "1.0.0.0"

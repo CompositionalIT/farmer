@@ -163,7 +163,7 @@ module Converters =
             |> Option.map(fun server -> MergedResource(server, { server with Databases = database :: server.Databases }))
             |> Option.defaultValue (CouldNotLocate resourceName)
         | AutomaticPlaceholder ->
-            NotSet
+            ResourceReplacement.NotSet
 
 type ArmBuilder.ArmBuilder with
     member __.AddResource(state:ArmConfig, config:SqlAzureConfig) =

@@ -352,7 +352,7 @@ type GeoFilterAction = Block | Allow
 type CountryCode = CountryCode of string member this.Value = match this with CountryCode x -> x
 type RulePriority = Always | Custom of order:int * conditions:string array
 type CdnSku = Standard_Verizon | Premium_Verizon | Custom_Verizon | Standard_Akamai | Standard_ChinaCdn | Standard_Microsoft | Premium_ChinaCdn
-type CdnCustomDomain = { Name : ResourceName; HostName : string }    
+type CdnCustomDomain = { Name : ResourceName; HostName : string }
 type CdnEndpoint =
     { Name : ResourceName
       OriginHostHeader : string option
@@ -385,7 +385,7 @@ type CdnEndpoint =
 type CdnProfile =
     { Name : ResourceName
       Sku : CdnSku
-      Endpoint : CdnEndpoint }        
+      Endpoint : CdnEndpoint }
 
 open VM
 

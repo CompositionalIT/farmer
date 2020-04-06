@@ -17,7 +17,7 @@ type ContainerConfig =
       Cpu : int
       /// Max gigabytes of memory the container may use
       Memory : float<Gb>
-      
+
       /// The name of the container group.
       ContainerGroupName : ResourceRef
       /// Container group OS.
@@ -114,7 +114,7 @@ module Converters =
             |> Option.map(fun group -> MergedResource(group, { group with ContainerInstances = group.ContainerInstances @ [ container ] }))
             |> Option.defaultValue (CouldNotLocate resourceName)
         | AutomaticPlaceholder ->
-            NotSet
+            ResourceReplacement.NotSet
 
 type ArmBuilder.ArmBuilder with
     member __.AddResource(state:ArmConfig, config:ContainerConfig) =
