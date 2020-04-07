@@ -1,8 +1,8 @@
 # Farmer
 
 ![](Logo.png)
-****
-A .NET DSL for rapidly generating non-complex ARM templates.
+
+Farmer makes repeatable Azure deployments easy!
 
 See the full docs [here](https://compositionalit.github.io/farmer). Want to edit the docs? Check out the [docs branch](https://github.com/CompositionalIT/farmer/tree/docs).****
 
