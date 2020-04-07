@@ -6,7 +6,7 @@ chapter: false
 ---
 
 #### Overview
-The CosmosDb package containers two builders, used to create CosmosDB databases and containers. There is only support document databases (that support so-called "SQL" queries), with support for Graph, Table and Cassandra data models planned.
+The CosmosDb package containers two builders, used to create *databases* and *containers*. There is currently only support for document databases (the so-called "SQL API"), with support for Gremlin, Table and Cassandra data models planned.
 
 #### Cosmos DB Builder
 The CosmosDB builder abstracts the idea of server and database into one. If you wish to "re-use" an already-created Cosmos DB server, use `link_to_server` keyword - no server will be created and the database will be attached to the existing one.
