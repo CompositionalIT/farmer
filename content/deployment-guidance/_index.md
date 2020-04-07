@@ -42,7 +42,7 @@ end
 
 Watch this short video to see more!
 
-{{< youtube 5nRZwxMQUFE >}}
+{{< youtube id="5nRZwxMQUFE" >}}
 
 #### I already have an ARM deployment strategy
 If you already use ARM templates, you'll probably already have a strategy for working with templates and deploying them to Azure, such as [PowerShell](https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/deploy-powershell), the [Azure CLI](https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/deploy-cli) or a build system such as [Azure DevOps](https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/deploy/azure-resource-group-deployment?view=azure-devops) or [Octopus Deploy](https://octopus.com/docs/deployment-examples/azure-deployments/resource-groups). In such a case, you may want to use Farmer to *generate*, but not *deploy*, your ARM templates.

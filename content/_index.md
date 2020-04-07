@@ -4,9 +4,9 @@ date: 2020-02-04T00:36:21+01:00
 draft: false
 ---
 
-## Welcome to Farmer
+{{< figure src="images/logo.png" height="250">}}
 
-#### Farmer makes repeatable Azure deployments easy!
+### Making repeatable Azure deployments easy!
 
 Farmer is a DSL for rapidly generating non-complex ARM templates in a type-safe manner.
 
@@ -27,7 +27,7 @@ Farmer uses a simple DSL to declare resources and comes with helper functions to
 
 ### Farmer Templates
 
-These **23 lines of simple, readable and type-safe F# code** are translated into **142 lines of JSON ARM template!**
+These **23 lines of simple, readable and type-safe code** are translated into **142 lines of JSON ARM template!**
 
 ```fsharp
 // Create a storage account with a container
