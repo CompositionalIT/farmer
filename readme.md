@@ -1,8 +1,6 @@
-# Farmer
-
 ![](Logo.png)
 
-Farmer makes repeatable Azure deployments easy!
+## Farmer makes repeatable Azure deployments easy!
 
 See the full docs [here](https://compositionalit.github.io/farmer). Want to edit the docs? Check out the [docs branch](https://github.com/CompositionalIT/farmer/tree/docs).****
 
