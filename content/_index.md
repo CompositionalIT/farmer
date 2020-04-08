@@ -4,7 +4,7 @@ date: 2020-02-04T00:36:21+01:00
 draft: false
 ---
 
-{{< figure src="images/logo.png" height="250">}}
+{{< figure src="images/logo.png" height="139" width="315">}}
 
 ### Making repeatable Azure deployments easy!
 
