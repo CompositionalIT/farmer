@@ -96,6 +96,25 @@ module Converters =
             | Tls12 -> "1.2")
         }
 
+    module Outputters =
+        let redisCache (redis:Redis) = {|
+            ``type`` = "Microsoft.Cache/Redis"
+            apiVersion = "2018-03-01"
+            name = redis.Name.Value
+            location = redis.Location.Value
+            properties =
+                {| sku =
+                    {| name = redis.Sku.Name
+                       family = redis.Sku.Family
+                       capacity = redis.Sku.Capacity
+                    |}
+                   enableNonSslPort = redis.NonSslEnabled |> Option.toNullable
+                   shardCount = redis.ShardCount |> Option.toNullable
+                   minimumTlsVersion = redis.MinimumTlsVersion |> Option.toObj
+                   redisConfiguration = redis.RedisConfiguration
+                |}
+        |}
+
 type ArmBuilder.ArmBuilder with
     member this.AddResource(state:ArmConfig, config:RedisConfig) =
         let redis = Converters.redis state.Location config

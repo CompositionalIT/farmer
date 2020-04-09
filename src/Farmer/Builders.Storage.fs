@@ -59,6 +59,32 @@ module Converters =
           Sku = sac.Sku
           Containers = sac.Containers }
 
+    module Outputters =
+        let private containerAccess (a:StorageContainerAccess) =
+            match a with
+            | Private -> "None"
+            | Container -> "Container"
+            | Blob -> "Blob"
+
+        let private storageAccountContainer (parent:StorageAccount) (name, access) = {|
+            ``type`` = "blobServices/containers"
+            apiVersion = "2018-03-01-preview"
+            name = "default/" + name
+            dependsOn = [ parent.Name.Value ]
+            properties = {| publicAccess = containerAccess access |}
+        |}
+
+        let storageAccount (resource:StorageAccount) = {|
+            ``type`` = "Microsoft.Storage/storageAccounts"
+            sku = {| name = resource.Sku |}
+            kind = "StorageV2"
+            name = resource.Name.Value
+            apiVersion = "2018-07-01"
+            location = resource.Location.Value
+            resources = resource.Containers |> List.map (storageAccountContainer resource)
+        |}
+
+
 type Farmer.ArmBuilder.ArmBuilder with
     member this.AddResource(state:ArmConfig, config:StorageAccountConfig) =
         { state with

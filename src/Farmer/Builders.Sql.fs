@@ -127,7 +127,6 @@ type FunctionsBuilder with
         this.DependsOn(state, sqlDb.ServerName.ResourceName)
 
 module Converters =
-    open Farmer.Models
     let sql location (existingServers:SqlAzure list) (sql:SqlAzureConfig) =
         let database =
             {| Name = sql.DbName
@@ -164,6 +163,60 @@ module Converters =
             |> Option.defaultValue (CouldNotLocate resourceName)
         | AutomaticPlaceholder ->
             NotSet
+    module Outputters =
+        let sqlAzure (server:SqlAzure) = {|
+            ``type`` = "Microsoft.Sql/servers"
+            name = server.ServerName.Value
+            apiVersion = "2014-04-01-preview"
+            location = server.Location.Value
+            tags = {| displayName = server.ServerName.Value |}
+            properties =
+                {| administratorLogin = server.Credentials.Username
+                   administratorLoginPassword = server.Credentials.Password.AsArmRef.Eval()
+                   version = "12.0" |}
+            resources = [
+                for database in server.Databases do
+                    box
+                        {| ``type`` = "databases"
+                           name = database.Name.Value
+                           apiVersion = "2015-01-01"
+                           location = server.Location.Value
+                           tags = {| displayName = database.Name.Value |}
+                           properties =
+                            {| edition = database.Edition
+                               collation = database.Collation
+                               requestedServiceObjectiveName = database.Objective |}
+                           dependsOn = [
+                               server.ServerName.Value
+                           ]
+                           resources = [
+                               match database.TransparentDataEncryption with
+                               | Enabled ->
+                                   {| ``type`` = "transparentDataEncryption"
+                                      comments = "Transparent Data Encryption"
+                                      name = "current"
+                                      apiVersion = "2014-04-01-preview"
+                                      properties = {| status = string database.TransparentDataEncryption |}
+                                      dependsOn = [ database.Name.Value ]
+                                   |}
+                                | Disabled ->
+                                    ()
+                           ]
+                        |}
+                for rule in server.FirewallRules do
+                    box
+                        {| ``type`` = "firewallrules"
+                           name = rule.Name
+                           apiVersion = "2014-04-01"
+                           location = server.Location.Value
+                           properties =
+                            {| endIpAddress = string rule.Start
+                               startIpAddress = string rule.End |}
+                           dependsOn = [ server.ServerName.Value ]
+                        |}
+            ]
+        |}
+
 
 type ArmBuilder.ArmBuilder with
     member __.AddResource(state:ArmConfig, config:SqlAzureConfig) =

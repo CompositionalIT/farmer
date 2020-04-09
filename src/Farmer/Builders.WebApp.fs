@@ -445,6 +445,76 @@ module Converters =
           Location = location
           LinkedWebsite = None }
 
+    module Outputters =
+        let appInsights (resource:AppInsights) = {|
+            ``type`` = "Microsoft.Insights/components"
+            kind = "web"
+            name = resource.Name.Value
+            location = resource.Location.Value
+            apiVersion = "2014-04-01"
+            tags =
+                [ match resource.LinkedWebsite with
+                  | Some linkedWebsite -> sprintf "[concat('hidden-link:', resourceGroup().id, '/providers/Microsoft.Web/sites/', '%s')]" linkedWebsite.Value, "Resource"
+                  | None -> ()
+                  "displayName", "AppInsightsComponent" ]
+                |> Map.ofList
+            properties =
+             match resource.LinkedWebsite with
+             | Some linkedWebsite ->
+                box {| name = resource.Name.Value
+                       Application_Type = "web"
+                       ApplicationId = linkedWebsite.Value |}
+             | None ->
+                box {| name = resource.Name.Value
+                       Application_Type = "web" |}
+        |}
+        let serverFarm (farm:ServerFarm) =
+            {|  ``type`` = "Microsoft.Web/serverfarms"
+                sku =
+                    {| name = farm.Sku
+                       tier = farm.Tier
+                       size = farm.WorkerSize
+                       family = if farm.IsDynamic then "Y" else null
+                       capacity = if farm.IsDynamic then 0 else farm.WorkerCount |}
+                name = farm.Name.Value
+                apiVersion = "2018-02-01"
+                location = farm.Location.Value
+                properties =
+                    if farm.IsDynamic then
+                        box {| name = farm.Name.Value
+                               computeMode = "Dynamic"
+                               reserved = farm.IsLinux |}
+                    else
+                        box {| name = farm.Name.Value
+                               perSiteScaling = false
+                               reserved = farm.IsLinux |}
+                kind = farm.Kind |> Option.toObj
+            |}
+        let webApp (webApp:WebApp) = {|
+            ``type`` = "Microsoft.Web/sites"
+            name = webApp.Name.Value
+            apiVersion = "2016-08-01"
+            location = webApp.Location.Value
+            dependsOn = webApp.Dependencies |> List.map(fun p -> p.Value)
+            kind = webApp.Kind
+            properties =
+                {| serverFarmId = webApp.ServerFarm.Value
+                   siteConfig =
+                        [ "alwaysOn", box webApp.AlwaysOn
+                          "appSettings", webApp.AppSettings |> List.map(fun (k,v) -> {| name = k; value = v |}) |> box
+                          match webApp.LinuxFxVersion with Some v -> "linuxFxVersion", box v | None -> ()
+                          match webApp.AppCommandLine with Some v -> "appCommandLine", box v | None -> ()
+                          match webApp.NetFrameworkVersion with Some v -> "netFrameworkVersion", box v | None -> ()
+                          match webApp.JavaVersion with Some v -> "javaVersion", box v | None -> ()
+                          match webApp.JavaContainer with Some v -> "javaContainer", box v | None -> ()
+                          match webApp.JavaContainerVersion with Some v -> "javaContainerVersion", box v | None -> ()
+                          match webApp.PhpVersion with Some v -> "phpVersion", box v | None -> ()
+                          match webApp.PythonVersion with Some v -> "pythonVersion", box v | None -> ()
+                          "metadata", webApp.Metadata |> List.map(fun (k,v) -> {| name = k; value = v |}) |> box ]
+                        |> Map.ofList
+                 |}
+        |}
+
 
 type WebAppBuilder() =
     member __.Yield _ =

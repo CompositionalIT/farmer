@@ -349,6 +349,12 @@ type KeyVault =
 
 open VM
 
+type CognitiveServices =
+  { Name : ResourceName
+    Location : Location
+    Sku : string
+    Kind : string }
+
 type SupportedResource =
     | CosmosAccount of CosmosDbAccount | CosmosSqlDb of CosmosDbSql | CosmosContainer of CosmosDbContainer
     | ServerFarm of ServerFarm | WebApp of WebApp
@@ -361,6 +367,7 @@ type SupportedResource =
     | KeyVault of KeyVault | KeyVaultSecret of KeyVaultSecret
     | EventHub of EventHub | EventHubNamespace of EventHubNamespace | ConsumerGroup of EventHubConsumerGroup | EventHubAuthRule of EventHubAuthorizationRule
     | RedisCache of Redis
+    | CognitiveService of CognitiveServices
     member this.ResourceName =
         match this with
         | AppInsights x -> x.Name
@@ -374,6 +381,7 @@ type SupportedResource =
         | KeyVault x -> x.Name | KeyVaultSecret x -> x.Name
         | EventHub x -> x.Name | EventHubNamespace x -> x.Name | ConsumerGroup x -> x.Name | EventHubAuthRule x -> x.Name
         | RedisCache r -> r.Name
+        | CognitiveService c -> c.Name
 
 namespace Farmer
 open Farmer.Models

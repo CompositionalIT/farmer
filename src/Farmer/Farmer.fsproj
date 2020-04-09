@@ -50,6 +50,7 @@
     <Compile Include="Builders.Cosmos.fs" />
     <Compile Include="Builders.EventHub.fs" />
     <Compile Include="Builders.ContainerGroups.fs" />
+    <Compile Include="Builders.CognitiveSearch.fs" />
     <Compile Include="Writer.fs" />
     <Compile Include="Deploy.fs" />
   </ItemGroup>

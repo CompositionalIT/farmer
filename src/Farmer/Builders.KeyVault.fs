@@ -311,6 +311,60 @@ module Converters =
                   Dependencies = secret.Dependencies })
 
         {| KeyVault = keyVault; Secrets = secretKeys |}
+    module Outputters =
+        let keyVault (keyVault:KeyVault) = {|
+          ``type``= "Microsoft.KeyVault/vaults"
+          name = keyVault.Name.Value
+          apiVersion = "2018-02-14"
+          location = keyVault.Location.Value
+          properties =
+            {| tenantId = keyVault.TenantId
+               sku = {| name = keyVault.Sku; family = "A" |}
+               enabledForDeployment = keyVault.EnabledForDeployment |> Option.toNullable
+               enabledForDiskEncryption = keyVault.EnabledForDiskEncryption |> Option.toNullable
+               enabledForTemplateDeployment = keyVault.EnabledForTemplateDeployment |> Option.toNullable
+               enablePurgeProtection = keyVault.EnablePurgeProtection |> Option.toNullable
+               createMode = keyVault.CreateMode |> Option.toObj
+               vaultUri = keyVault.Uri |> Option.toObj
+               accessPolicies =
+                    [| for policy in keyVault.AccessPolicies do
+                        {| objectId = policy.ObjectId
+                           tenantId = keyVault.TenantId
+                           applicationId = policy.ApplicationId |> Option.toObj
+                           permissions =
+                            {| keys = policy.Permissions.Keys
+                               storage = policy.Permissions.Storage
+                               certificates = policy.Permissions.Certificates
+                               secrets = policy.Permissions.Secrets |}
+                        |}
+                    |]
+               networkAcls =
+                {| defaultAction = keyVault.DefaultAction |> Option.toObj
+                   bypass = keyVault.Bypass |> Option.toObj
+                   ipRules = keyVault.IpRules
+                   virtualNetworkRules = keyVault.VnetRules |}
+            |}
+        |}
+        let keyVaultSecret (keyVaultSecret:KeyVaultSecret) = {|
+            ``type`` = "Microsoft.KeyVault/vaults/secrets"
+            name = keyVaultSecret.Name.Value
+            apiVersion = "2018-02-14"
+            location = keyVaultSecret.Location.Value
+            dependsOn = [
+                keyVaultSecret.ParentKeyVault.Value
+                for dependency in keyVaultSecret.Dependencies do
+                    dependency.Value ]
+            properties =
+                {| value = keyVaultSecret.Value.Value
+                   contentType = keyVaultSecret.ContentType |> Option.toObj
+                   attributes =
+                    {| enabled = keyVaultSecret.Enabled
+                       nbf = keyVaultSecret.ActivationDate
+                       exp = keyVaultSecret.ExpirationDate
+                    |}
+                |}
+            |}
+
 
 open Farmer.Models
 type ArmBuilder.ArmBuilder with

@@ -333,6 +333,120 @@ module Converters =
               Location = location
               DomainNameLabel = config.DomainNamePrefix }
         {| Storage = storage; Vm = vm; Nic = nic; Vnet = vnet; Ip = ip |}
+    module Outputters =
+        let publicIpAddress (ipAddress:VM.PublicIpAddress) = {|
+            ``type`` = "Microsoft.Network/publicIPAddresses"
+            apiVersion = "2018-11-01"
+            name = ipAddress.Name.Value
+            location = ipAddress.Location.Value
+            properties =
+               match ipAddress.DomainNameLabel with
+               | Some label ->
+                   box
+                       {| publicIPAllocationMethod = "Dynamic"
+                          dnsSettings = {| domainNameLabel = label.ToLower() |}
+                       |}
+               | None ->
+                   box {| publicIPAllocationMethod = "Dynamic" |}
+        |}
+        let virtualNetwork (vnet:VM.VirtualNetwork) = {|
+            ``type`` = "Microsoft.Network/virtualNetworks"
+            apiVersion = "2018-11-01"
+            name = vnet.Name.Value
+            location = vnet.Location.Value
+            properties =
+                 {| addressSpace = {| addressPrefixes = vnet.AddressSpacePrefixes |}
+                    subnets =
+                     vnet.Subnets
+                     |> List.map(fun subnet ->
+                        {| name = subnet.Name.Value
+                           properties = {| addressPrefix = subnet.Prefix |}
+                        |})
+                 |}
+        |}
+        let networkInterface (nic:VM.NetworkInterface) = {|
+            ``type`` = "Microsoft.Network/networkInterfaces"
+            apiVersion = "2018-11-01"
+            name = nic.Name.Value
+            location = nic.Location.Value
+            dependsOn = [
+                nic.VirtualNetwork.Value
+                for config in nic.IpConfigs do
+                    config.PublicIpName.Value
+            ]
+            properties =
+                {| ipConfigurations =
+                     nic.IpConfigs
+                     |> List.mapi(fun index ipConfig ->
+                         {| name = sprintf "ipconfig%i" (index + 1)
+                            properties =
+                             {| privateIPAllocationMethod = "Dynamic"
+                                publicIPAddress = {| id = sprintf "[resourceId('Microsoft.Network/publicIPAddresses','%s')]" ipConfig.PublicIpName.Value |}
+                                subnet = {| id = sprintf "[resourceId('Microsoft.Network/virtualNetworks/subnets', '%s', '%s')]" nic.VirtualNetwork.Value ipConfig.SubnetName.Value |}
+                             |}
+                         |})
+                |}
+        |}
+        let virtualMachine (vm:VM.VirtualMachine) = {|
+            ``type`` = "Microsoft.Compute/virtualMachines"
+            apiVersion = "2018-10-01"
+            name = vm.Name.Value
+            location = vm.Location.Value
+            dependsOn = [
+                vm.NetworkInterfaceName.Value
+                match vm.StorageAccount with
+                | Some s -> s.Value
+                | None -> ()
+            ]
+            properties =
+             {| hardwareProfile = {| vmSize = vm.Size |}
+                osProfile =
+                 {|
+                    computerName = vm.Name.Value
+                    adminUsername = vm.Credentials.Username
+                    adminPassword = vm.Credentials.Password.AsArmRef.Eval()
+                 |}
+                storageProfile =
+                    let vmNameLowerCase = vm.Name.Value.ToLower()
+                    {| imageReference =
+                        {| publisher = vm.Image.Publisher
+                           offer = vm.Image.Offer
+                           sku = vm.Image.Sku
+                           version = "latest" |}
+                       osDisk =
+                        {| createOption = "FromImage"
+                           name = sprintf "%s-osdisk" vmNameLowerCase
+                           diskSizeGB = vm.OsDisk.Size
+                           managedDisk = {| storageAccountType = string vm.OsDisk.DiskType |}
+                        |}
+                       dataDisks =
+                        vm.DataDisks
+                        |> List.mapi(fun lun dataDisk ->
+                            {| createOption = "Empty"
+                               name = sprintf "%s-datadisk-%i" vmNameLowerCase lun
+                               diskSizeGB = dataDisk.Size
+                               lun = lun
+                               managedDisk = {| storageAccountType = string dataDisk.DiskType |} |})
+                    |}
+                networkProfile =
+                    {| networkInterfaces = [
+                        {| id = sprintf "[resourceId('Microsoft.Network/networkInterfaces','%s')]" vm.NetworkInterfaceName.Value |}
+                       ]
+                    |}
+                diagnosticsProfile =
+                    match vm.StorageAccount with
+                    | Some storageAccount ->
+                        box
+                            {| bootDiagnostics =
+                                {| enabled = true
+                                   storageUri = sprintf "[reference('%s').primaryEndpoints.blob]" storageAccount.Value
+                                |}
+                            |}
+                    | None ->
+                        box {| bootDiagnostics = {| enabled = false |} |}
+            |}
+        |}
+
 
 type ArmBuilder.ArmBuilder with
     member this.AddResource(state:ArmConfig, config:VmConfig) =

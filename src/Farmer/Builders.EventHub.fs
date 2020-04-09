@@ -155,6 +155,52 @@ module Converters =
            ConsumerGroups = consumerGroups
            Rights = authRules |}
 
+    module Outputters =
+        let eventHubNs (ns:EventHubNamespace) = {|
+            ``type`` = "Microsoft.EventHub/namespaces"
+            apiVersion = "2017-04-01"
+            name = ns.Name.Value
+            location = ns.Location.Value
+            sku =
+                {| name = ns.Sku.Name
+                   tier = ns.Sku.Tier
+                   capacity = ns.Sku.Capacity |}
+            properties =
+                {| zoneRedundant = ns.ZoneRedundant |> Option.toNullable
+                   isAutoInflateEnabled = ns.IsAutoInflateEnabled |> Option.toNullable
+                   maximumThroughputUnits = ns.MaxThroughputUnits |> Option.toNullable
+                   kafkaEnabled = ns.KafkaEnabled |> Option.toNullable |}
+        |}
+
+        let eventHub (hub:EventHub) = {|
+            ``type`` = "Microsoft.EventHub/namespaces/eventhubs"
+            apiVersion = "2017-04-01"
+            name = hub.Name.Value
+            location = hub.Location.Value
+            dependsOn = hub.Dependencies |> List.map(fun d -> d.Value)
+            properties =
+                {| messageRetentionInDays = hub.MessageRetentionDays |> Option.toNullable
+                   partitionCount = hub.Partitions
+                   status = "Active" |}
+        |}
+
+        let consumerGroup (group:EventHubConsumerGroup) = {|
+            ``type`` = "Microsoft.EventHub/namespaces/eventhubs/consumergroups"
+            apiVersion = "2017-04-01"
+            name = group.Name.Value
+            location = group.Location.Value
+            dependsOn = group.Dependencies |> List.map(fun d -> d.Value)
+        |}
+
+        let authRule (rule:EventHubAuthorizationRule) = {|
+            ``type`` = "Microsoft.EventHub/namespaces/eventhubs/AuthorizationRules"
+            apiVersion = "2017-04-01"
+            name = rule.Name.Value
+            location = rule.Location.Value
+            dependsOn = rule.Dependencies |> List.map(fun d -> d.Value)
+            properties = {| rights = rule.Rights |}
+        |}
+
 open Farmer.Models
 type ArmBuilder.ArmBuilder with
     member this.AddResource(state:ArmConfig, config:EventHubConfig) =

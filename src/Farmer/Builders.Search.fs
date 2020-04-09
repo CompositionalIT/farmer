@@ -61,8 +61,8 @@ type FunctionsBuilder with
         this.DependsOn(state, search.Name)
 
 module Converters =
-   open Farmer.Models
-   let search location (search:SearchConfig) =
+    open Farmer.Models
+    let search location (search:SearchConfig) =
         { Name = search.Name
           Location = location
           Sku =
@@ -81,11 +81,24 @@ module Converters =
             | Sku.Standard3 Sku.HighDensity -> "highDensity"
             | _ -> "default"
           }
+    module Outputters =
+        let search (search:Search) = {|
+            ``type`` = "Microsoft.Search/searchServices"
+            apiVersion = "2015-08-19"
+            name = search.Name.Value
+            location = search.Location.Value
+            sku =
+             {| name = search.Sku |}
+            properties =
+             {| replicaCount = search.ReplicaCount
+                partitionCount = search.PartitionCount
+                hostingMode = search.HostingMode |}
+        |}
 
 open Farmer.Models
 type ArmBuilder.ArmBuilder with
     member this.AddResource(state:ArmConfig, config:SearchConfig) =
-        { state with Resources = AzureSearch (Converters.search state.Location config) :: state.Resources } 
+        { state with Resources = AzureSearch (Converters.search state.Location config) :: state.Resources }
     member this.AddResources (state, configs) = addResources<SearchConfig> this.AddResource state configs
 
 let search = SearchBuilder()

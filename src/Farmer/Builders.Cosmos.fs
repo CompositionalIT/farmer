@@ -148,6 +148,84 @@ module Converters =
         {| Account = account
            SqlDb = sqlDb
            Containers = containers |}
+    module Outputters =
+        open System
+        let cosmosDbContainer (container:CosmosDbContainer) = {|
+            ``type`` = "Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers"
+            name = sprintf "%s/%s/%s" container.Account.Value container.Database.Value container.Name.Value
+            apiVersion = "2020-03-01"
+            dependsOn = [ container.Database.Value ]
+            properties =
+                {| resource =
+                    {| id = container.Name.Value
+                       partitionKey =
+                        {| paths = container.PartitionKey.Paths
+                           kind = string container.PartitionKey.Kind |}
+                       indexingPolicy =
+                        {| indexingMode = "consistent"
+                           includedPaths =
+                               container.IndexingPolicy.IncludedPaths
+                               |> List.map(fun p ->
+                                {| path = p.Path
+                                   indexes =
+                                    p.Indexes
+                                    |> List.map(fun i ->
+                                        {| kind = string i.Kind
+                                           dataType = (string i.DataType).ToLower()
+                                           precision = -1 |})
+                                |})
+                           excludedPaths =
+                            container.IndexingPolicy.ExcludedPaths
+                            |> List.map(fun p -> {| path = p |})
+                        |}
+                    |}
+                |}
+        |}
+        let cosmosDbAccount (account:CosmosDbAccount) = {|
+            ``type`` = "Microsoft.DocumentDB/databaseAccounts"
+            name = account.Name.Value
+            apiVersion = "2020-03-01"
+            location = account.Location.Value
+            kind = "GlobalDocumentDB"
+            tags =
+                {| defaultExperience = "Core (SQL)"
+                   CosmosAccountType = "Non-Production" |}
+            properties =
+                {| consistencyPolicy =
+                        match account.ConsistencyPolicy with
+                        | BoundedStaleness(maxStaleness, maxInterval) ->
+                            box {| defaultConsistencyLevel = "BoundedStaleness"
+                                   maxStalenessPrefix = maxStaleness
+                                   maxIntervalInSeconds = maxInterval |}
+                        | Session
+                        | Eventual
+                        | ConsistentPrefix
+                        | Strong ->
+                            box {| defaultConsistencyLevel = string account.ConsistencyPolicy |}
+                   databaseAccountOfferType = "Standard"
+                   enableAutomaticFailure = match account.WriteModel with AutoFailover _ -> Nullable true | _ -> Nullable()
+                   autoenableMultipleWriteLocations = match account.WriteModel with MultiMaster _ -> Nullable true | _ -> Nullable()
+                   locations =
+                    match account.WriteModel with
+                    | AutoFailover secondary
+                    | MultiMaster secondary ->
+                        [ {| locationName = account.Location.Value; failoverPriority = 0 |}
+                          {| locationName = secondary.Value; failoverPriority = 1 |} ] |> box
+                    | NoFailover ->
+                        Nullable() |> box
+                   publicNetworkAccess = string account.PublicNetworkAccess
+                   enableFreeTier = account.FreeTier
+                |} |> box
+        |}
+        let cosmosDbSql (db:CosmosDbSql) = {|
+            ``type`` = "Microsoft.DocumentDB/databaseAccounts/sqlDatabases"
+            name = sprintf "%s/%s" db.Account.Value db.Name.Value
+            apiVersion = "2020-03-01"
+            dependsOn = [ db.Account.Value ]
+            properties =
+                {| resource = {| id = db.Name.Value |}
+                   options = {| throughput = db.Throughput |} |}
+        |}
 
 open Farmer.Models
 type ArmBuilder.ArmBuilder with
