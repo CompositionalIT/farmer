@@ -1,5 +1,10 @@
 Release Notes
 =============
+## 0.9.0
+* Support for Cognitive Services
+* Ensure Functions Runtime is correct set (lower-case)
+* Support for Docker Hub on Web Apps
+
 ## 0.8.0
 * Improved support for What-If API
 * Post-deployment Web Deploy for App Service
