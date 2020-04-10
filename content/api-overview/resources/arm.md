@@ -1,7 +1,7 @@
 ---
 title: "ARM Deployment"
 date: 2020-02-05T08:53:46+01:00
-weight: 10
+weight: 1
 chapter: false
 ---
 
@@ -28,6 +28,6 @@ let deployment =
         add_resource myWebApp
 
         output "webAppName" myWebApp.Name
-        output "webAppPassword" myWebApp.PublishingPassword        
+        output "webAppPassword" myWebApp.PublishingPassword
     }
 ```
