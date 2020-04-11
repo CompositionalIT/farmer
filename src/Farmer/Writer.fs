@@ -63,8 +63,9 @@ module TemplateGeneration =
 let toJson = TemplateGeneration.processTemplate >> TemplateGeneration.serialize
 
 /// Writes the provided JSON to a file based on the supplied template name. The postfix ".json" will automatically be added to the filename.
-let toFile templateName json =
+let toFile folder templateName json =
     let filename = sprintf "%s.json" templateName
+    let filename = Path.Combine(folder, filename)
     File.WriteAllText(filename, json)
     filename
 
@@ -72,5 +73,5 @@ let toFile templateName json =
 let quickWrite templateName deployment =
     deployment.Template
     |> toJson
-    |> toFile templateName
+    |> toFile "." templateName
     |> ignore
