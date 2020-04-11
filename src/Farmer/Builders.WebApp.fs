@@ -5,8 +5,8 @@ open Farmer.Helpers
 open Farmer.Resources.Storage
 open Farmer
 
-type WorkerSize = Small | Medium | Large
-type WebAppSku = Shared | Free | Basic of string | Standard of string | Premium of string | PremiumV2 of string | Isolated of string
+type WorkerSize = Small | Medium | Large | Serverless
+type WebAppSku = Shared | Free | Basic of string | Standard of string | Premium of string | PremiumV2 of string | Isolated of string | Functions
 type FunctionsRuntime = DotNet | Node | Java | Python
 type FunctionsExtensionVersion = V1 | V2 | V3
 type OS = Windows | Linux
@@ -44,6 +44,7 @@ module Sku =
     let I1 = Isolated "I1"
     let I2 = Isolated "I2"
     let I3 = Isolated "I3"
+    let Y1 = Isolated "Y1"
 
 module AppSettings =
     let WebsiteNodeDefaultVersion version = "WEBSITE_NODE_DEFAULT_VERSION", version
@@ -131,8 +132,62 @@ type AppInsightsConfig =
     { Name : ResourceName }
     /// Gets the ARM expression path to the instrumentation key of this App Insights instance.
     member this.InstrumentationKey = Ai.instrumentationKey this.Name
+type ServerFarmConfig =
+    { Name : ResourceName
+      Sku : WebAppSku
+      WorkerSize : WorkerSize
+      WorkerCount : int
+      OperatingSystem : OS }
 
 module Converters =
+    let serverFarm location (sfc:ServerFarmConfig) =
+        { Location = location
+          Name = sfc.Name
+          Sku =
+            match sfc.Sku with
+            | Free ->
+                "F1"
+            | Shared ->
+                "D1"
+            | Basic sku
+            | Standard sku
+            | Premium sku
+            | PremiumV2 sku
+            | Isolated sku ->
+                sku
+            | Functions ->
+                "Y1"
+          WorkerSize =
+            match sfc.WorkerSize with
+            | Small -> "0"
+            | Medium -> "1"
+            | Large -> "2"
+            | Serverless -> "Y1"
+          IsDynamic =
+            match sfc.Sku, sfc.WorkerSize with
+            | Functions, Serverless -> true
+            | _ -> false
+          Kind =
+            match sfc.OperatingSystem with
+            | Linux -> Some "linux"
+            | _ -> None
+          Tier =
+            match sfc.Sku with
+            | Free -> "Free"
+            | Shared -> "Shared"
+            | Basic _ -> "Basic"
+            | Standard _ -> "Standard"
+            | Premium _ -> "Premium"
+            | PremiumV2 _ -> "PremiumV2"
+            | Isolated _ -> "Isolated"
+            | Functions -> "Dynamic"
+          IsLinux =
+            match sfc.OperatingSystem with
+            | Linux -> true
+            | Windows -> false
+          WorkerCount =
+            sfc.WorkerCount }
+
     let webApp location (wac:WebAppConfig) =
         let webApp =
             { Name = wac.Name
@@ -163,7 +218,11 @@ module Converters =
                 | Linux, _ ->
                     ()
               ]
-              Kind = "app"
+              Kind = [
+                "app"
+                match wac.OperatingSystem with Linux -> "linux" | Windows -> ()
+                match wac.DockerImage with Some _ -> "container" | _ -> ()
+              ] |> String.concat ","
               Dependencies = [
                 wac.ServicePlanName.ResourceName
                 yield! wac.Dependencies
@@ -278,54 +337,6 @@ module Converters =
               ZipDeployPath = wac.ZipDeployPath
             }
 
-        let serverFarm =
-            match wac.ServicePlanName with
-            | External _
-            | AutomaticPlaceholder ->
-                None
-            | AutomaticallyCreated resourceName ->
-                { Location = location
-                  Name = resourceName
-                  Sku =
-                    match wac.Sku with
-                    | Free ->
-                        "F1"
-                    | Shared ->
-                        "D1"
-                    | Basic sku
-                    | Standard sku
-                    | Premium sku
-                    | PremiumV2 sku
-                    | Isolated sku ->
-                        sku
-                  WorkerSize =
-                    match wac.WorkerSize with
-                    | Small -> "0"
-                    | Medium -> "1"
-                    | Large -> "2"
-                  IsDynamic = false
-                  Kind = [
-                    "app"
-                    match wac.OperatingSystem with Linux -> "linux" | _ -> ()
-                    match wac.DockerImage with Some _ -> "container" | _ -> ()
-                  ]
-                  |> String.concat ","
-                  |> Some
-                  Tier =
-                    match wac.Sku with
-                    | Free -> "Free"
-                    | Shared -> "Shared"
-                    | Basic _ -> "Basic"
-                    | Standard _ -> "Standard"
-                    | Premium _ -> "Premium"
-                    | PremiumV2 _ -> "PremiumV2"
-                    | Isolated _ -> "Isolated"
-                  IsLinux =
-                    match wac.OperatingSystem with
-                    | Linux -> true
-                    | Windows -> false
-                  WorkerCount =
-                    wac.WorkerCount } |> Some
         let ai =
             match wac.AppInsightsName with
             | Some (AutomaticallyCreated resourceName) ->
@@ -340,7 +351,23 @@ module Converters =
             | Some (External _)
             | None ->
                 None
-        {| Ai = ai; ServerFarm = serverFarm; WebApp = webApp |}
+
+        let serverFarmConfig =
+            match wac.ServicePlanName with
+            | External _
+            | AutomaticPlaceholder ->
+                None
+            | AutomaticallyCreated name ->
+                { Name = name
+                  Sku = wac.Sku
+                  WorkerSize = wac.WorkerSize
+                  WorkerCount = wac.WorkerCount
+                  OperatingSystem = wac.OperatingSystem }
+                |> Some
+
+        {| Ai = ai
+           ServerFarm = serverFarmConfig |> Option.map (serverFarm location)
+           WebApp = webApp |}
     let functions location (fns:FunctionsConfig) =
         let webApp =
             { Name = fns.Name
@@ -401,19 +428,13 @@ module Converters =
             | AutomaticPlaceholder ->
                 None
             | AutomaticallyCreated resourceName ->
-                { Location = location
-                  Name =  resourceName
-                  Sku = "Y1"
-                  WorkerSize = "Y1"
-                  Kind =
-                    match fns.OperatingSystem with
-                    | Windows -> None
-                    | Linux -> Some "linux"
-                  IsDynamic = true
-                  IsLinux = match fns.OperatingSystem with Linux -> true | Windows -> false
-                  Tier = "Dynamic"
-                  WorkerCount = 0 } |> Some
-
+                let serverFarmConfig =
+                    { Name = resourceName
+                      Sku = Sku.Y1
+                      WorkerSize = Serverless
+                      WorkerCount = 0
+                      OperatingSystem = fns.OperatingSystem }
+                serverFarm location serverFarmConfig |> Some
         let storage =
             match fns.StorageAccountName with
             | AutomaticallyCreated resourceName ->
@@ -439,7 +460,10 @@ module Converters =
             | Some AutomaticPlaceholder
             | None ->
                 None
-        {| Ai = ai; WebApp = webApp; ServerFarm = serverFarm; Storage = storage |}
+        {| Ai = ai
+           WebApp = webApp
+           ServerFarm = serverFarm
+           Storage = storage |}
     let appInsights location (ai:AppInsightsConfig) =
         { Name = ai.Name
           Location = location
@@ -704,6 +728,31 @@ type AppInsightsBuilder() =
     [<CustomOperation "name">]
     /// Sets the name of the App Insights instance.
     member __.Name(state:AppInsightsConfig, name) = { state with Name = ResourceName name }
+type ServerFarmBuilder() =
+    member __.Yield _ : ServerFarmConfig=
+        { Name = ResourceName.Empty
+          Sku = Free
+          WorkerSize = Small
+          WorkerCount = 1
+          OperatingSystem = Windows }
+    [<CustomOperation "name">]
+    /// Sets the name of the Server Farm.
+    member __.Name(state:ServerFarmConfig, name) = { state with Name = ResourceName name }
+    /// Sets the sku of the service plan.
+    [<CustomOperation "sku">]
+    member __.Sku(state:ServerFarmConfig, sku) = { state with Sku = sku }
+    /// Sets the size of the service plan worker.
+    [<CustomOperation "worker_size">]
+    member __.WorkerSize(state:ServerFarmConfig, workerSize) = { state with WorkerSize = workerSize }
+    /// Sets the number of instances on the service plan.
+    [<CustomOperation "number_of_workers">]
+    member __.NumberOfWorkers(state:ServerFarmConfig, workerCount) = { state with WorkerCount = workerCount }
+    [<CustomOperation "operating_system">]
+    /// Sets the operating system
+    member __.OperatingSystem(state:ServerFarmConfig, os) = { state with OperatingSystem = os }
+    [<CustomOperation "serverless">]
+    /// Configures this server farm to host serverless functions, not web apps.
+    member __.Serverless(state:ServerFarmConfig) = { state with Sku = Functions; WorkerSize = Serverless }
 
 [<AutoOpen>]
 module Extensions =
@@ -739,6 +788,9 @@ module Extensions =
                 match outputs.Storage with Some storage -> StorageAccount storage | None -> ()
             ]
             { state with Resources = state.Resources @ resources }
+        member __.AddResource(state:ArmConfig, config:ServerFarmConfig) =
+            let output = config |> Converters.serverFarm state.Location
+            { state with Resources = state.Resources @ [ ServerFarm output ]}
         member this.AddResource(state:ArmConfig, config:AppInsightsConfig) =
             { state with Resources = AppInsights (Converters.appInsights state.Location config) :: state.Resources }
         member this.AddResources (state, configs) = addResources<FunctionsConfig> this.AddResource state configs
@@ -749,3 +801,4 @@ module Extensions =
 let appInsights = AppInsightsBuilder()
 let webApp = WebAppBuilder()
 let functions = FunctionsBuilder()
+let serverFarm = ServerFarmBuilder()
