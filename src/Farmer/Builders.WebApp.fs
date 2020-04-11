@@ -556,7 +556,7 @@ type WebAppBuilder() =
     /// Sets the name of the service plan.
     [<CustomOperation "service_plan_name">]
     member __.ServicePlanName(state:WebAppConfig, name) = { state with ServicePlanName = AutomaticallyCreated name }
-    member this.ServicePlanName(state:WebAppConfig, name:string) = this.ServicePlanName(state, name)
+    member this.ServicePlanName(state:WebAppConfig, name:string) = this.ServicePlanName(state, ResourceName name)
     /// Do not create a service plan for this web app. Instead, link to another pre-defined one.
     [<CustomOperation "link_to_service_plan">]
     member __.LinkToServicePlan(state:WebAppConfig, name) = { state with ServicePlanName = External name }

@@ -1,5 +1,8 @@
 Release Notes
 =============
+## 0.9.1
+* Fix a bug with WebApp builder causing a stack overflow.
+*
 ## 0.9.0
 * Support for Cognitive Services
 * Ensure Functions Runtime is correct set (lower-case)
