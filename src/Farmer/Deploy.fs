@@ -4,6 +4,7 @@ open Farmer.ArmBuilder
 open Newtonsoft.Json
 open System
 open System.Diagnostics
+open System.IO
 
 /// Represents an Azure service principal which has permissions to
 /// deploy ARM templates on the supplied Subscription ID.
@@ -249,6 +250,8 @@ module AzureRest =
                     |> Error
         }
 
+let private deployFolder = ".farmer"
+
 /// Manages the full REST API deployment process.
 module RestDeployment =
     open System.Net
@@ -350,38 +353,6 @@ module RestDeployment =
         let client = new TimeoutWebClient(Credentials = NetworkCredential("$" + websiteName, password))
         printfn "Uploading %s to %s" zipFile destinationUri
         client.UploadData(destinationUri, IO.File.ReadAllBytes zipFile) |> ignore
-/// Executes the supplied Deployment against a resource group using the Azure REST API.
-/// It requires a service principle containing a client id, secret and tenant ID. Use this API for unattended installs e.g. continuous deployment etc.
-let fullDeploy credentials (subscriptionId:Guid) resourceGroupName parameters deployment =
-    /// First add password outputs for each required web app.
-    let deployment =
-        { deployment with
-            Template =
-                let webDeployTasks = deployment.PostDeployTasks |> List.choose(function RunFromZip wd -> Some wd)
-                (deployment.Template, webDeployTasks)
-                ||> List.fold(fun (template:ArmTemplate) item ->
-                    let password = Resources.WebApp.publishingPassword item.WebApp
-                    let newOutput = ("farmer-" + item.WebApp.Value + "-deploy"), password.Eval()
-                    { template with Outputs = newOutput :: deployment.Template.Outputs }) }
-
-    let armTemplateJson = deployment.Template |> Writer.toJson
-
-    let deploymentResult =
-        (armTemplateJson, parameters, deployment.Location.Value, resourceGroupName)
-        |> RestDeployment.deployTemplate credentials subscriptionId (printfn "%s")
-        |> RestDeployment.reportDeploymentProgress (fun stats -> printfn "In progress (%d / %d operations)..." stats.OperationsCompleted (stats.OperationsCompleted + stats.OperationsRemaining))
-
-    // If the deployment succeeded, upload all zip files for each web app.
-    match deploymentResult.Result with
-    | Ok outputs ->
-        for (RunFromZip wd) in deployment.PostDeployTasks do
-            let password = outputs.["farmer-" + wd.WebApp.Value + "-deploy"]
-            let zipFilePath = wd.Path.GetZipPath()
-            RestDeployment.deployApp wd.WebApp.Value password zipFilePath
-    | Error _ ->
-        ()
-
-    deploymentResult
 
 /// Provides access to the what-if Azure API
 let whatIf credentials (subscriptionId:Guid) resourceGroupName parameters deployment =
@@ -429,12 +400,12 @@ module ParameterFile =
                 |> Map.ofList
         |}
 
-    let generateParametersFile (armTemplate:ArmTemplate) =
+    let generateParametersFile folder (armTemplate:ArmTemplate) =
         armTemplate.Parameters
         |> List.map(fun (SecureParameter p) -> p, Passwords.generateConformingPassword 24 armTemplate)
         |> toParameters
         |> Writer.TemplateGeneration.serialize
-        |> Writer.toFile "farmer-deploy-parameters"
+        |> Writer.toFile folder "farmer-deploy-parameters"
 
 module AzureCli =
     open System.IO
@@ -454,7 +425,7 @@ module AzureCli =
         proc.WaitForExit() |> ignore
         filename
 
-    let toAzureCliCmd resourceGroupName (Location location) templateFilename parametersFilename deployCommands =
+    let createAzureCliCmd resourceGroupName (Location location) templateFilename parametersFilename deployCommands =
         let deploymentName = sprintf "farmer-deploy-%d" (RestDeployment.getDeployNumber())
         let commands =
             [ "az login"
@@ -474,29 +445,29 @@ module AzureCli =
     let toScriptFile armTemplateName azureCliCmd =
         match () with
         | OperatingSystem OSPlatform.Windows ->
-            let scriptFilename = sprintf "%s.bat" armTemplateName
+            let scriptFilename = Path.Combine(deployFolder, sprintf "%s.bat" armTemplateName)
             File.WriteAllText(scriptFilename, azureCliCmd)
             scriptFilename
         | OperatingSystem OSPlatform.OSX
         | OperatingSystem OSPlatform.Linux ->
             let bashHeader = "#!/bin/bash\n"
-            let scriptFilename = sprintf "%s.sh" armTemplateName
+            let scriptFilename = Path.Combine(deployFolder, sprintf "%s.sh" armTemplateName)
             File.WriteAllText(scriptFilename, bashHeader + azureCliCmd)
             setLinuxExecutePermissions scriptFilename
         | _ ->
             RuntimeInformation.OSDescription
             |> sprintf "OSPlatform: %s not supported"
-            |> System.NotImplementedException
+            |> NotImplementedException
             |> raise
 
     let prepareWebDeploy webAppName (zipDeployKind:ZipDeployKind) resourceGroupName =
-        let packageFilename = zipDeployKind.GetZipPath()
+        let packageFilename = zipDeployKind.GetZipPath(deployFolder)
         (sprintf """az webapp deployment source config-zip --resource-group "%s" --name "%s" --src %s""" resourceGroupName webAppName packageFilename)
 
     let generateDeployScript resourceGroupName (deployment:Deployment) =
         let templateName = "farmer-deploy"
-        let templateFilename = deployment.Template |> Writer.toJson |> Writer.toFile templateName
-        let parameterFilename = deployment.Template |> ParameterFile.generateParametersFile
+        let templateFilename = deployment.Template |> Writer.toJson |> Writer.toFile  deployFolder templateName
+        let parameterFilename = ParameterFile.generateParametersFile deployFolder deployment.Template
 
         let webDeploys = [
             for (RunFromZip wd) in deployment.PostDeployTasks do
@@ -504,13 +475,55 @@ module AzureCli =
         ]
 
         let script =
-            toAzureCliCmd resourceGroupName deployment.Location templateFilename parameterFilename webDeploys
+            createAzureCliCmd resourceGroupName deployment.Location templateFilename parameterFilename webDeploys
             |> toScriptFile templateName
 
         script
 
+
+let prepareDeploymentFolder() =
+    if Directory.Exists deployFolder then Directory.Delete(deployFolder, true)
+    Directory.CreateDirectory deployFolder |> ignore
+
+/// Executes the supplied Deployment against a resource group using the Azure REST API.
+/// It requires a service principle containing a client id, secret and tenant ID. Use this API for unattended installs e.g. continuous deployment etc.
+let fullDeploy credentials (subscriptionId:Guid) resourceGroupName parameters deployment =
+    prepareDeploymentFolder()
+
+    /// First add password outputs for each required web app.
+    let deployment =
+        { deployment with
+            Template =
+                let webDeployTasks = deployment.PostDeployTasks |> List.choose(function RunFromZip wd -> Some wd)
+                (deployment.Template, webDeployTasks)
+                ||> List.fold(fun (template:ArmTemplate) item ->
+                    let password = Resources.WebApp.publishingPassword item.WebApp
+                    let newOutput = ("farmer-" + item.WebApp.Value + "-deploy"), password.Eval()
+                    { template with Outputs = newOutput :: deployment.Template.Outputs }) }
+
+    let armTemplateJson = deployment.Template |> Writer.toJson
+
+    let deploymentResult =
+        (armTemplateJson, parameters, deployment.Location.Value, resourceGroupName)
+        |> RestDeployment.deployTemplate credentials subscriptionId (printfn "%s")
+        |> RestDeployment.reportDeploymentProgress (fun stats -> printfn "In progress (%d / %d operations)..." stats.OperationsCompleted (stats.OperationsCompleted + stats.OperationsRemaining))
+
+    // If the deployment succeeded, upload all zip files for each web app.
+    match deploymentResult.Result with
+    | Ok outputs ->
+        for (RunFromZip wd) in deployment.PostDeployTasks do
+            let password = outputs.["farmer-" + wd.WebApp.Value + "-deploy"]
+            let zipFilePath = wd.Path.GetZipPath(deployFolder)
+            RestDeployment.deployApp wd.WebApp.Value password zipFilePath
+    | Error _ ->
+        ()
+
+    deploymentResult
+
 /// Executes the supplied Deployment against a resource group using a locally-installed Azure CLI.
 let quick resourceGroupName deployment =
+    prepareDeploymentFolder()
+
     deployment
     |> AzureCli.generateDeployScript resourceGroupName
     |> Process.Start
