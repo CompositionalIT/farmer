@@ -3,6 +3,7 @@
 open Farmer.ArmBuilder
 open Newtonsoft.Json
 open System
+open System.Diagnostics
 
 /// Represents an Azure service principal which has permissions to
 /// deploy ARM templates on the supplied Subscription ID.
@@ -510,6 +511,7 @@ module AzureCli =
 
 /// Executes the supplied Deployment against a resource group using a locally-installed Azure CLI.
 let quick resourceGroupName deployment =
-    AzureCli.generateDeployScript resourceGroupName deployment
-    |> System.Diagnostics.Process.Start
-    |> ignore
+    deployment
+    |> AzureCli.generateDeployScript resourceGroupName
+    |> Process.Start
+    |> fun deployment -> deployment.WaitForExit()
