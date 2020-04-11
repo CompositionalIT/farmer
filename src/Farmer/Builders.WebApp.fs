@@ -621,7 +621,7 @@ type WebAppBuilder() =
     /// Specifies a folder path or a zip file containing the web application to install as a post-deployment task.
     member __.ZipDeploy(state:WebAppConfig, path) = { state with ZipDeployPath = Some path }
     [<CustomOperation "docker_image">]
-    /// Specifies a docker image to use (linux only).
+    /// Specifies a docker image to use from the registry (linux only), and the startup command to execute.
     member __.DockerImage(state:WebAppConfig, registryPath, startupFile) = { state with DockerImage = Some (registryPath, startupFile) }
 
 
