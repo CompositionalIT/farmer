@@ -26,7 +26,7 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Web App | website_node_default_version | Sets the node version of the web app. |
 | Web App | setting | Sets an app setting of the web app in the form "key" "value". |
 | Web App | depends_on | Sets a dependency for the web app. |
-| Web App | docker_image | Sets the images and startup file for a docker image to be pulled down from Docker Hub. Automatically sets the OS to Linux. |
+| Web App | docker_image | Sets the docker image to be pulled down from Docker Hub, and the command to execute as a second argument. Automatically sets the OS to Linux. |
 | Service Plan | service_plan_name | Sets the name of the service plan. If not set, uses the name of the web app postfixed with "-plan". |
 | Service Plan | always_on | Sets "Always On" flag. |
 | Service Plan | runtime_stack | Sets the runtime stack. |
