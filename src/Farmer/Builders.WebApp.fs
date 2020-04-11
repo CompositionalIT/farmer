@@ -607,6 +607,9 @@ type WebAppBuilder() =
     /// Sets "Always On" flag
     [<CustomOperation "always_on">]
     member __.AlwaysOn(state:WebAppConfig) = { state with AlwaysOn = true }
+    /// Disables http for this webapp so that only https is used.
+    [<CustomOperation "https_only">]
+    member __.HttpsOnly(state:WebAppConfig) = { state with HTTPSOnly = true }
     /// Sets the runtime stack
     [<CustomOperation "runtime_stack">]
     member __.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = runtime }
