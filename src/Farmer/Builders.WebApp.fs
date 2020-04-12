@@ -7,22 +7,54 @@ open Farmer
 type WorkerSize = Small | Medium | Large | Serverless
 type WebAppSku = Shared | Free | Basic of string | Standard of string | Premium of string | PremiumV2 of string | Isolated of string | Functions
 type OS = Windows | Linux
-type DotNetCoreRuntime = DotNetCore21 | DotNetCore31 | DotNetCoreLts | DotNetCoreLatest
-type AspNetRuntime = | AspNet47 | AspNet35
-type JavaHost = JavaSE | WildFly14 | Tomcat90 | Tomcat85
-type JavaRuntime = Java8 of JavaHost | Java11 of JavaHost
-type PhpRuntime = Php73 | Php72 | Php71 | Php70 | Php56
-type PythonRuntime = Python37 | Python36 | Python27
-type RubyRuntime = Ruby26 | Ruby25 | Ruby24 | Ruby23
-type NodeRuntime = Node6 | Node8 | Node10 | Node12 | NodeLts
+
+type JavaHost =
+    | JavaSE | WildFly14 | Tomcat of string
+    static member Tomcat85 = Tomcat "8.5"
+    static member Tomcat90 = Tomcat "9.0"
+type JavaRuntime =
+    | Java8 | Java11
+    member this.Version = match this with Java8 -> 8 | Java11 -> 11
+    member this.Jre = match this with Java8 -> "jre8" | Java11 -> "java11"
 type WebAppRuntime =
-    | DotNetCore of DotNetCoreRuntime
-    | AspNet of AspNetRuntime
-    | Java of JavaRuntime
-    | Node of NodeRuntime
-    | Php of PhpRuntime
-    | Python of PythonRuntime
-    | Ruby of RubyRuntime
+    | DotNetCore of string
+    | Node of string
+    | Php of string
+    | Ruby of string
+    | AspNet of version:string
+    | Java of JavaRuntime * JavaHost
+    | Python of linuxVersion:string * windowsVersion:string
+    static member Php73 = Php "7.3"
+    static member Php72 = Php "7.2"
+    static member Php71 = Php "7.1"
+    static member Php70 = Php "7.0"
+    static member Php56 = Php "5.6"
+    static member DotNetCore21 = DotNetCore "2.1"
+    static member DotNetCore31 = DotNetCore "3.1"
+    static member DotNetCoreLts = DotNetCore "LTS"
+    static member DotNetCoreLatest = DotNetCore "Latest"
+    static member Node6 = Node "6-lts"
+    static member Node8 = Node "8-lts"
+    static member Node10 = Node "10-lts"
+    static member Node12 = Node "12-lts"
+    static member NodeLts = Node "lts"
+    static member Ruby26 = Ruby "2.6"
+    static member Ruby25 = Ruby "2.5"
+    static member Ruby24 = Ruby "2.4"
+    static member Ruby23 = Ruby "2.3"
+    static member Java11 = Java (Java11, JavaSE)
+    static member Java11Tomcat90 = Java (Java11, JavaHost.Tomcat90)
+    static member Java11Tomcat85 = Java (Java11, JavaHost.Tomcat85)
+    static member Java8 = Java (Java8, JavaSE)
+    static member Java8WildFly14 = Java (Java8, WildFly14)
+    static member Java8Tomcat90 = Java (Java8, JavaHost.Tomcat90)
+    static member Java8Tomcat85 = Java (Java8, JavaHost.Tomcat85)
+    static member AspNet47 = AspNet "4.0"
+    static member AspNet35 = AspNet "2.0"
+    static member Python27 = Python ("2.7", "2.7")
+    static member Python36 = Python ("3.6", "3.4") // not typo, really version 3.4
+    static member Python37 = Python ("3.7", "3.7")
+
 module Sku =
     let D1 = Shared
     let F1 = Free
@@ -52,8 +84,6 @@ let publishingPassword (ResourceName name) =
     |> ArmExpression
 
 module Ai =
-    open Farmer.Models
-
     let tryCreateAppInsightsName aiName rootName =
         aiName
         |> Option.map(function
@@ -103,6 +133,163 @@ type ServicePlanConfig =
       WorkerCount : int
       OperatingSystem : OS }
 
+type WebAppBuilder() =
+    member __.Yield _ =
+        { Name = ResourceName.Empty
+          ServicePlanName = AutomaticPlaceholder
+          AppInsightsName = Some AutomaticPlaceholder
+          Sku = Sku.F1
+          WorkerSize = Small
+          WorkerCount = 1
+          RunFromPackage = false
+          WebsiteNodeDefaultVersion = None
+          AlwaysOn = false
+          HTTPSOnly = false
+          Settings = Map.empty
+          Dependencies = []
+          Runtime = WebAppRuntime.DotNetCoreLts
+          OperatingSystem = Windows
+          ZipDeployPath = None
+          DockerImage = None }
+    member __.Run(state:WebAppConfig) =
+        let operatingSystem =
+            match state.DockerImage with
+            | None -> state.OperatingSystem
+            | Some _ -> Linux
+        { state with
+            ServicePlanName =
+                match state.ServicePlanName with
+                | AutomaticPlaceholder -> AutomaticallyCreated (ResourceName (sprintf "%s-plan" state.Name.Value))
+                | AutomaticallyCreated x -> AutomaticallyCreated x
+                | External r -> External r
+            OperatingSystem =
+                operatingSystem
+            AppInsightsName =
+                Ai.tryCreateAppInsightsName state.AppInsightsName state.Name.Value
+        }
+    /// Sets the name of the web app.
+    [<CustomOperation "name">]
+    member __.Name(state:WebAppConfig, name) = { state with Name = name }
+    member this.Name(state:WebAppConfig, name:string) = this.Name(state, ResourceName name)
+    /// Sets the name of the service plan.
+    [<CustomOperation "service_plan_name">]
+    member _.ServicePlanName(state:WebAppConfig, name) = { state with ServicePlanName = name }
+    member this.ServicePlanName(state:WebAppConfig, name) = this.ServicePlanName(state, AutomaticallyCreated name)
+    member this.ServicePlanName(state:WebAppConfig, name:string) = this.ServicePlanName(state, ResourceName name)
+    /// Do not create a service plan for this web app. Instead, link to another pre-defined one.
+    [<CustomOperation "link_to_service_plan">]
+    member __.LinkToServicePlan(state:WebAppConfig, name) = { state with ServicePlanName = External name }
+    member this.LinkToServicePlan(state:WebAppConfig, name:string) = this.LinkToServicePlan (state, ResourceName name)
+    member this.LinkToServicePlan(state:WebAppConfig, config:ServicePlanConfig) = this.LinkToServicePlan (state, config.Name)
+    /// Sets the sku of the service plan.
+    [<CustomOperation "sku">]
+    member __.Sku(state:WebAppConfig, sku) = { state with Sku = sku }
+    /// Sets the size of the service plan worker.
+    [<CustomOperation "worker_size">]
+    member __.WorkerSize(state:WebAppConfig, workerSize) = { state with WorkerSize = workerSize }
+    /// Sets the number of instances on the service plan.
+    [<CustomOperation "number_of_workers">]
+    member __.NumberOfWorkers(state:WebAppConfig, workerCount) = { state with WorkerCount = workerCount }
+    /// Sets the name of the automatically-created app insights instance.
+    [<CustomOperation "app_insights_auto_name">]
+    member __.UseAppInsights(state:WebAppConfig, name) = { state with AppInsightsName = Some (AutomaticallyCreated name) }
+    member this.UseAppInsights(state:WebAppConfig, name:string) = this.UseAppInsights(state, ResourceName name)
+    /// Removes any automatic app insights creation, configuration and settings for this webapp.
+    [<CustomOperation "app_insights_off">]
+    member __.DeactivateAppInsights(state:WebAppConfig) = { state with AppInsightsName = None }
+    /// Instead of creating a new AI instance, configure this webapp to point to another AI instance that you are managing
+    /// yourself.
+    [<CustomOperation "link_to_app_insights">]
+    member __.LinkAppInsights(state:WebAppConfig, name) = { state with AppInsightsName = Some(External name) }
+    member this.LinkAppInsights(state:WebAppConfig, name) = this.LinkAppInsights(state, ResourceName name)
+    member __.LinkAppInsights(state:WebAppConfig, name) = { state with AppInsightsName = name |> Option.map External }
+    /// Sets the web app to use "run from package" deployment capabilities.
+    [<CustomOperation "run_from_package">]
+    member __.RunFromPackage(state:WebAppConfig) = { state with RunFromPackage = true }
+    /// Sets the node version of the web app.
+    [<CustomOperation "website_node_default_version">]
+    member __.NodeVersion(state:WebAppConfig, version) = { state with WebsiteNodeDefaultVersion = Some version }
+    /// Sets an app setting of the web app in the form "key" "value".
+    [<CustomOperation "setting">]
+    member __.AddSetting(state:WebAppConfig, key, value) = { state with Settings = state.Settings.Add(key, value) }
+    member __.AddSetting(state:WebAppConfig, key, value:ArmExpression) = { state with Settings = state.Settings.Add(key, value.Eval()) }
+    /// Sets a dependency for the web app.
+    [<CustomOperation "depends_on">]
+    member __.DependsOn(state:WebAppConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
+    /// Sets "Always On" flag
+    [<CustomOperation "always_on">]
+    member __.AlwaysOn(state:WebAppConfig) = { state with AlwaysOn = true }
+    /// Disables http for this webapp so that only https is used.
+    [<CustomOperation "https_only">]
+    member __.HttpsOnly(state:WebAppConfig) = { state with HTTPSOnly = true }
+    /// Sets the runtime stack
+    [<CustomOperation "runtime_stack">]
+    member __.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = runtime }
+    [<CustomOperation "operating_system">]
+    /// Sets the operating system
+    member __.OperatingSystem(state:WebAppConfig, os) = { state with OperatingSystem = os }
+    [<CustomOperation "zip_deploy">]
+    /// Specifies a folder path or a zip file containing the web application to install as a post-deployment task.
+    member __.ZipDeploy(state:WebAppConfig, path) = { state with ZipDeployPath = Some path }
+    [<CustomOperation "docker_image">]
+    /// Specifies a docker image to use from the registry (linux only), and the startup command to execute.
+    member __.DockerImage(state:WebAppConfig, registryPath, startupFile) = { state with DockerImage = Some (registryPath, startupFile) }
+type AppInsightsBuilder() =
+    member __.Yield _ =
+        { Name = ResourceName.Empty }
+    [<CustomOperation "name">]
+    /// Sets the name of the App Insights instance.
+    member __.Name(state:AppInsightsConfig, name) = { state with Name = ResourceName name }
+type ServicePlanBuilder() =
+    member __.Yield _ : ServicePlanConfig=
+        { Name = ResourceName.Empty
+          Sku = Free
+          WorkerSize = Small
+          WorkerCount = 1
+          OperatingSystem = Windows }
+    [<CustomOperation "name">]
+    /// Sets the name of the Server Farm.
+    member __.Name(state:ServicePlanConfig, name) = { state with Name = ResourceName name }
+    /// Sets the sku of the service plan.
+    [<CustomOperation "sku">]
+    member __.Sku(state:ServicePlanConfig, sku) = { state with Sku = sku }
+    /// Sets the size of the service plan worker.
+    [<CustomOperation "worker_size">]
+    member __.WorkerSize(state:ServicePlanConfig, workerSize) = { state with WorkerSize = workerSize }
+    /// Sets the number of instances on the service plan.
+    [<CustomOperation "number_of_workers">]
+    member __.NumberOfWorkers(state:ServicePlanConfig, workerCount) = { state with WorkerCount = workerCount }
+    [<CustomOperation "operating_system">]
+    /// Sets the operating system
+    member __.OperatingSystem(state:ServicePlanConfig, os) = { state with OperatingSystem = os }
+    [<CustomOperation "serverless">]
+    /// Configures this server farm to host serverless functions, not web apps.
+    member __.Serverless(state:ServicePlanConfig) = { state with Sku = Functions; WorkerSize = Serverless }
+
+[<AutoOpen>]
+module Extensions =
+    type WebAppBuilder with
+        member this.DependsOn(state:WebAppConfig, storageAccountConfig:StorageAccountConfig) =
+            this.DependsOn(state, storageAccountConfig.Name)
+        member this.DependsOn(state:WebAppConfig, appInsightsConfig:AppInsightsConfig) =
+            this.DependsOn(state, appInsightsConfig.Name)
+    type ArmBuilder.ArmBuilder with
+        member __.AddResource(state:ArmConfig, config:WebAppConfig) =
+            let outputs = Converters.webApp state.Location config
+            let resources = [
+                WebApp outputs.WebApp
+                match outputs.ServerFarm with Some farm -> ServerFarm farm | None -> ()
+                match outputs.Ai with Some ai -> AppInsights ai | None -> ()
+            ]
+            { state with Resources = state.Resources @ resources }
+        member __.AddResource(state:ArmConfig, config:ServicePlanConfig) =
+            let output = config |> Converters.serverFarm state.Location
+            { state with Resources = state.Resources @ [ ServerFarm output ]}
+        member this.AddResource(state:ArmConfig, config:AppInsightsConfig) =
+            { state with Resources = AppInsights (Converters.appInsights state.Location config) :: state.Resources }
+        member this.AddResources (state, configs) = addResources<AppInsightsConfig> this.AddResource state configs
+        member this.AddResources (state, configs) = addResources<WebAppConfig> this.AddResource state configs
+
 module Converters =
     let serverFarm location (sfc:ServicePlanConfig) =
         { Location = location
@@ -151,7 +338,6 @@ module Converters =
             | Windows -> false
           WorkerCount =
             sfc.WorkerCount }
-
     let webApp location (wac:WebAppConfig) =
         let webApp =
             { Name = wac.Name
@@ -201,101 +387,58 @@ module Converters =
               ]
               AlwaysOn = wac.AlwaysOn
               LinuxFxVersion =
-                match wac.DockerImage, wac.Runtime, wac.OperatingSystem with
-                | Some (image, _), _, Linux -> Some ("DOCKER|" + image)
-                | _, DotNetCore DotNetCore21, Linux -> Some "DOTNETCORE|2.1"
-                | _, DotNetCore DotNetCore31, Linux -> Some "DOTNETCORE|3.1"
-                | _, DotNetCore DotNetCoreLts, Linux -> Some "DOTNETCORE|LTS"
-                | _, DotNetCore DotNetCoreLatest, Linux -> Some "DOTNETCORE|Latest"
-                | _, Java (Java11 JavaSE), _ -> Some "JAVA|11-java11"
-                | _, Java (Java11 Tomcat90), Linux -> Some "TOMCAT|9.0-java11"
-                | _, Java (Java11 Tomcat85), Linux -> Some "TOMCAT|8.5-java11"
-                | _, Java (Java8 JavaSE), _ -> Some "JAVA|8-jre8"
-                | _, Java (Java8 WildFly14), _ -> Some "WILDFLY|14-jre8"
-                | _, Java (Java8 Tomcat90), Linux -> Some "TOMCAT|9.0-jre8"
-                | _, Java (Java8 Tomcat85), Linux -> Some "TOMCAT|8.5-jre8"
-                | _, Node Node6, _ -> Some "NODE|6-lts"
-                | _, Node Node8, _ -> Some "NODE|8-lts"
-                | _, Node Node10, _ -> Some "NODE|10-lts"
-                | _, Node Node12, _ -> Some "NODE|12-lts"
-                | _, Node NodeLts, _ -> Some "NODE|lts"
-                | _, Php Php73, Linux -> Some "PHP|7.3"
-                | _, Php Php72, Linux -> Some "PHP|7.2"
-                | _, Php Php70, Linux -> Some "PHP|7.0"
-                | _, Php Php56, Linux -> Some "PHP|5.6"
-                | _, Python Python37, _ -> Some "PYTHON|3.7"
-                | _, Python Python36, Linux -> Some "PYTHON|3.6"
-                | _, Python Python27, Linux -> Some "PYTHON|2.7"
-                | _, Ruby Ruby26, _ -> Some "RUBY|2.6"
-                | _, Ruby Ruby25, _ -> Some "RUBY|2.5"
-                | _, Ruby Ruby24, _ -> Some "RUBY|2.4"
-                | _, Ruby Ruby23, _ -> Some "RUBY|2.3"
-                | _ -> None
+                match wac.OperatingSystem with
+                | Windows ->
+                    None
+                | Linux ->
+                    match wac.DockerImage with
+                    | Some (image, _) ->
+                        Some ("DOCKER|" + image)
+                    | None ->
+                        match wac.Runtime with
+                        | DotNetCore version -> Some ("DOTNETCORE|" + version)
+                        | Node version -> Some ("NODE|" + version)
+                        | Php version -> Some ("PHP|" + version)
+                        | Ruby version -> Some ("RUBY|" + version)
+                        | Java (runtime, JavaSE) -> Some (sprintf "JAVA|%d-%s" runtime.Version runtime.Jre)
+                        | Java (runtime, (Tomcat version)) -> Some (sprintf "TOMCAT|%s-%s" version runtime.Jre)
+                        | Java (Java8, WildFly14) -> Some (sprintf "WILDFLY|14-%s" Java8.Jre)
+                        | Python (linuxVersion, _) -> Some (sprintf "PYTHON|%s" linuxVersion)
+                        | _ -> None
               NetFrameworkVersion =
                 match wac.Runtime with
-                | AspNet AspNet47 -> Some "v4.0"
-                | AspNet AspNet35 -> Some "v2.0"
+                | AspNet version -> Some (sprintf "v%s" version)
                 | _ -> None
+
               JavaVersion =
                 match wac.Runtime, wac.OperatingSystem with
-                | Java (Java11 Tomcat90), Windows
-                | Java (Java11 Tomcat85), Windows ->
-                    Some "11"
-                | Java (Java8 Tomcat90), Windows
-                | Java (Java8 Tomcat85), Windows ->
-                    Some "1.8"
-                | _ ->
-                    None
+                | Java (Java11, Tomcat _), Windows -> Some "11"
+                | Java (Java8, Tomcat _), Windows -> Some "1.8"
+                | _ -> None
               JavaContainer =
                 match wac.Runtime, wac.OperatingSystem with
-                | Java (Java11 Tomcat90), Windows
-                | Java (Java11 Tomcat85), Windows
-                | Java (Java8 Tomcat90), Windows
-                | Java (Java8 Tomcat85), Windows ->
-                    Some "Tomcat"
-                | _ ->
-                    None
+                | Java (_, Tomcat _), Windows -> Some "Tomcat"
+                | _ -> None
               JavaContainerVersion =
                 match wac.Runtime, wac.OperatingSystem with
-                | Java (Java11 Tomcat90), Windows
-                | Java (Java8 Tomcat90), Windows ->
-                    Some "9.0"
-                | Java (Java11 Tomcat85), Windows
-                | Java (Java8 Tomcat85), Windows ->
-                    Some "8.5"
-                | _ ->
-                    None
+                | Java (_, Tomcat version), Windows -> Some version
+                | _ -> None
               PhpVersion =
                 match wac.Runtime, wac.OperatingSystem with
-                | Php Php73, Windows -> Some "7.3"
-                | Php Php72, Windows -> Some "7.2"
-                | Php Php70, Windows -> Some "7.0"
-                | Php Php71, _ -> Some "7.1"
-                | Php Php56, Windows -> Some "5.6"
+                | Php version, Windows -> Some version
                 | _ -> None
               PythonVersion =
                 match wac.Runtime, wac.OperatingSystem with
-                | Python Python36, Windows -> Some "3.4" // not typo, really version 3.4
-                | Python Python27, Windows -> Some "2.7"
+                | Python (_, windowsVersion), Windows -> Some windowsVersion
                 | _ -> None
               Metadata =
                 match wac.Runtime, wac.OperatingSystem with
-                | Java (Java11 Tomcat90), Windows
-                | Java (Java11 Tomcat85), Windows
-                | Java (Java8 Tomcat90), Windows
-                | Java (Java8 Tomcat85), Windows ->
-                    Some "java"
-                | Php _, _ ->
-                    Some "php"
-                | Python Python36, Windows
-                | Python Python27, Windows ->
-                    Some "python"
-                | DotNetCore _, Windows ->
-                    Some "dotnetcore"
-                | AspNet _, _ ->
-                    Some "dotnet"
-                | _ ->
-                    None
+                | Java (_, Tomcat _), Windows -> Some "java"
+                | Php _, _ -> Some "php"
+                | Python _, Windows -> Some "python"
+                | DotNetCore _, Windows -> Some "dotnetcore"
+                | AspNet _, _ -> Some "dotnet"
+                | _ -> None
                 |> Option.map(fun stack -> "CURRENT_STACK", stack)
                 |> Option.toList
               AppCommandLine = wac.DockerImage |> Option.map snd
@@ -409,176 +552,6 @@ module Converters =
                         |> Map.ofList
                  |}
         |}
-
-type WebAppBuilder() =
-    member __.Yield _ =
-        { Name = ResourceName.Empty
-          ServicePlanName = AutomaticPlaceholder
-          AppInsightsName = Some AutomaticPlaceholder
-          Sku = Sku.F1
-          WorkerSize = Small
-          WorkerCount = 1
-          RunFromPackage = false
-          WebsiteNodeDefaultVersion = None
-          AlwaysOn = false
-          HTTPSOnly = false
-          Settings = Map.empty
-          Dependencies = []
-          Runtime = DotNetCore DotNetCoreLts
-          OperatingSystem = Windows
-          ZipDeployPath = None
-          DockerImage = None }
-    member __.Run(state:WebAppConfig) =
-        let operatingSystem =
-            match state.DockerImage with
-            | None -> state.OperatingSystem
-            | Some _ -> Linux
-        { state with
-            ServicePlanName =
-                match state.ServicePlanName with
-                | AutomaticPlaceholder -> AutomaticallyCreated (ResourceName (sprintf "%s-plan" state.Name.Value))
-                | AutomaticallyCreated x -> AutomaticallyCreated x
-                | External r -> External r
-            OperatingSystem =
-                operatingSystem
-            AppInsightsName =
-                Ai.tryCreateAppInsightsName state.AppInsightsName state.Name.Value
-        }
-    /// Sets the name of the web app.
-    [<CustomOperation "name">]
-    member __.Name(state:WebAppConfig, name) = { state with Name = name }
-    member this.Name(state:WebAppConfig, name:string) = this.Name(state, ResourceName name)
-    /// Sets the name of the service plan.
-    [<CustomOperation "service_plan_name">]
-    member _.ServicePlanName(state:WebAppConfig, name) = { state with ServicePlanName = name }
-    member this.ServicePlanName(state:WebAppConfig, name) = this.ServicePlanName(state, AutomaticallyCreated name)
-    member this.ServicePlanName(state:WebAppConfig, name:string) = this.ServicePlanName(state, ResourceName name)
-    /// Do not create a service plan for this web app. Instead, link to another pre-defined one.
-    [<CustomOperation "link_to_service_plan">]
-    member __.LinkToServicePlan(state:WebAppConfig, name) = { state with ServicePlanName = External name }
-    member this.LinkToServicePlan(state:WebAppConfig, name:string) = this.LinkToServicePlan (state, ResourceName name)
-    member this.LinkToServicePlan(state:WebAppConfig, config:ServicePlanConfig) = this.LinkToServicePlan (state, config.Name)
-    /// Sets the sku of the service plan.
-    [<CustomOperation "sku">]
-    member __.Sku(state:WebAppConfig, sku) = { state with Sku = sku }
-    /// Sets the size of the service plan worker.
-    [<CustomOperation "worker_size">]
-    member __.WorkerSize(state:WebAppConfig, workerSize) = { state with WorkerSize = workerSize }
-    /// Sets the number of instances on the service plan.
-    [<CustomOperation "number_of_workers">]
-    member __.NumberOfWorkers(state:WebAppConfig, workerCount) = { state with WorkerCount = workerCount }
-    /// Sets the name of the automatically-created app insights instance.
-    [<CustomOperation "app_insights_auto_name">]
-    member __.UseAppInsights(state:WebAppConfig, name) = { state with AppInsightsName = Some (AutomaticallyCreated name) }
-    member this.UseAppInsights(state:WebAppConfig, name:string) = this.UseAppInsights(state, ResourceName name)
-    /// Removes any automatic app insights creation, configuration and settings for this webapp.
-    [<CustomOperation "app_insights_off">]
-    member __.DeactivateAppInsights(state:WebAppConfig) = { state with AppInsightsName = None }
-    /// Instead of creating a new AI instance, configure this webapp to point to another AI instance that you are managing
-    /// yourself.
-    [<CustomOperation "link_to_app_insights">]
-    member __.LinkAppInsights(state:WebAppConfig, name) = { state with AppInsightsName = Some(External name) }
-    member this.LinkAppInsights(state:WebAppConfig, name) = this.LinkAppInsights(state, ResourceName name)
-    member __.LinkAppInsights(state:WebAppConfig, name) = { state with AppInsightsName = name |> Option.map External }
-    /// Sets the web app to use "run from package" deployment capabilities.
-    [<CustomOperation "run_from_package">]
-    member __.RunFromPackage(state:WebAppConfig) = { state with RunFromPackage = true }
-    /// Sets the node version of the web app.
-    [<CustomOperation "website_node_default_version">]
-    member __.NodeVersion(state:WebAppConfig, version) = { state with WebsiteNodeDefaultVersion = Some version }
-    /// Sets an app setting of the web app in the form "key" "value".
-    [<CustomOperation "setting">]
-    member __.AddSetting(state:WebAppConfig, key, value) = { state with Settings = state.Settings.Add(key, value) }
-    member __.AddSetting(state:WebAppConfig, key, value:ArmExpression) = { state with Settings = state.Settings.Add(key, value.Eval()) }
-    /// Sets a dependency for the web app.
-    [<CustomOperation "depends_on">]
-    member __.DependsOn(state:WebAppConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
-    /// Sets "Always On" flag
-    [<CustomOperation "always_on">]
-    member __.AlwaysOn(state:WebAppConfig) = { state with AlwaysOn = true }
-    /// Disables http for this webapp so that only https is used.
-    [<CustomOperation "https_only">]
-    member __.HttpsOnly(state:WebAppConfig) = { state with HTTPSOnly = true }
-    /// Sets the runtime stack
-    [<CustomOperation "runtime_stack">]
-    member __.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = runtime }
-    /// Sets the dotnetcore runtime stack
-    member __.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = DotNetCore runtime }
-    /// Sets the ASP NET runtime stack
-    member __.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = AspNet runtime }
-    /// Sets the Java runtime stack
-    member __.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = Java runtime }
-    /// Sets the PHP runtime stack
-    member __.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = Php runtime }
-    /// Sets the Python runtime stack
-    member __.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = Python runtime }
-    /// Sets the Ruby runtime stack
-    member __.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = Ruby runtime }
-    [<CustomOperation "operating_system">]
-    /// Sets the operating system
-    member __.OperatingSystem(state:WebAppConfig, os) = { state with OperatingSystem = os }
-    [<CustomOperation "zip_deploy">]
-    /// Specifies a folder path or a zip file containing the web application to install as a post-deployment task.
-    member __.ZipDeploy(state:WebAppConfig, path) = { state with ZipDeployPath = Some path }
-    [<CustomOperation "docker_image">]
-    /// Specifies a docker image to use from the registry (linux only), and the startup command to execute.
-    member __.DockerImage(state:WebAppConfig, registryPath, startupFile) = { state with DockerImage = Some (registryPath, startupFile) }
-
-type AppInsightsBuilder() =
-    member __.Yield _ =
-        { Name = ResourceName.Empty }
-    [<CustomOperation "name">]
-    /// Sets the name of the App Insights instance.
-    member __.Name(state:AppInsightsConfig, name) = { state with Name = ResourceName name }
-type ServicePlanBuilder() =
-    member __.Yield _ : ServicePlanConfig=
-        { Name = ResourceName.Empty
-          Sku = Free
-          WorkerSize = Small
-          WorkerCount = 1
-          OperatingSystem = Windows }
-    [<CustomOperation "name">]
-    /// Sets the name of the Server Farm.
-    member __.Name(state:ServicePlanConfig, name) = { state with Name = ResourceName name }
-    /// Sets the sku of the service plan.
-    [<CustomOperation "sku">]
-    member __.Sku(state:ServicePlanConfig, sku) = { state with Sku = sku }
-    /// Sets the size of the service plan worker.
-    [<CustomOperation "worker_size">]
-    member __.WorkerSize(state:ServicePlanConfig, workerSize) = { state with WorkerSize = workerSize }
-    /// Sets the number of instances on the service plan.
-    [<CustomOperation "number_of_workers">]
-    member __.NumberOfWorkers(state:ServicePlanConfig, workerCount) = { state with WorkerCount = workerCount }
-    [<CustomOperation "operating_system">]
-    /// Sets the operating system
-    member __.OperatingSystem(state:ServicePlanConfig, os) = { state with OperatingSystem = os }
-    [<CustomOperation "serverless">]
-    /// Configures this server farm to host serverless functions, not web apps.
-    member __.Serverless(state:ServicePlanConfig) = { state with Sku = Functions; WorkerSize = Serverless }
-
-[<AutoOpen>]
-module Extensions =
-    type WebAppBuilder with
-        member this.DependsOn(state:WebAppConfig, storageAccountConfig:StorageAccountConfig) =
-            this.DependsOn(state, storageAccountConfig.Name)
-        member this.DependsOn(state:WebAppConfig, appInsightsConfig:AppInsightsConfig) =
-            this.DependsOn(state, appInsightsConfig.Name)
-    type ArmBuilder.ArmBuilder with
-        member __.AddResource(state:ArmConfig, config:WebAppConfig) =
-            let outputs = Converters.webApp state.Location config
-            let resources = [
-                WebApp outputs.WebApp
-                match outputs.ServerFarm with Some farm -> ServerFarm farm | None -> ()
-                match outputs.Ai with Some ai -> AppInsights ai | None -> ()
-            ]
-            { state with Resources = state.Resources @ resources }
-        member __.AddResource(state:ArmConfig, config:ServicePlanConfig) =
-            let output = config |> Converters.serverFarm state.Location
-            { state with Resources = state.Resources @ [ ServerFarm output ]}
-        member this.AddResource(state:ArmConfig, config:AppInsightsConfig) =
-            { state with Resources = AppInsights (Converters.appInsights state.Location config) :: state.Resources }
-        member this.AddResources (state, configs) = addResources<AppInsightsConfig> this.AddResource state configs
-        member this.AddResources (state, configs) = addResources<WebAppConfig> this.AddResource state configs
 
 let appInsights = AppInsightsBuilder()
 let webApp = WebAppBuilder()

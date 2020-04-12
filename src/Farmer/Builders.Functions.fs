@@ -44,109 +44,6 @@ type FunctionsConfig =
     member this.StorageAccount =
         this.StorageAccountName.ResourceName
 
-module Converters =
-    open Farmer.Models
-    open Farmer.Resources
-    let functions location (fns:FunctionsConfig) =
-        let webApp =
-            { Name = fns.Name
-              ServicePlan = fns.ServicePlanName.ResourceName
-              Location = location
-              AppSettings = [
-                yield! fns.Settings |> Map.toList
-                "FUNCTIONS_WORKER_RUNTIME", (string fns.Runtime).ToLower()
-                "WEBSITE_NODE_DEFAULT_VERSION", "10.14.1"
-                "FUNCTIONS_EXTENSION_VERSION", match fns.ExtensionVersion with V1 -> "~1" | V2 -> "~2" | V3 -> "~3"
-                "AzureWebJobsStorage", Storage.buildKey fns.StorageAccountName.ResourceName |> ArmExpression.Eval
-                "AzureWebJobsDashboard", Storage.buildKey fns.StorageAccountName.ResourceName |> ArmExpression.Eval
-
-                match fns.AppInsightsName with
-                | Some (External resourceName)
-                | Some (AutomaticallyCreated resourceName) ->
-                    "APPINSIGHTS_INSTRUMENTATIONKEY", Ai.instrumentationKey resourceName |> ArmExpression.Eval
-                | Some AutomaticPlaceholder
-                | None -> ()
-
-                if fns.OperatingSystem = Windows then
-                    "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING", Storage.buildKey fns.StorageAccountName.ResourceName |> ArmExpression.Eval
-                    "WEBSITE_CONTENTSHARE", fns.Name.Value.ToLower()
-              ]
-
-              Kind =
-                match fns.OperatingSystem with
-                | Windows -> "functionapp"
-                | Linux -> "functionapp,linux"
-              Dependencies = [
-                yield! fns.Dependencies
-                match fns.AppInsightsName with
-                | Some (AutomaticallyCreated appInsightsName)
-                | Some (External appInsightsName) ->
-                    appInsightsName
-                | Some AutomaticPlaceholder
-                | None ->
-                    ()
-                match fns.ServicePlanName.ResourceNameOpt with Some resourceName -> resourceName | None -> ()
-                fns.StorageAccountName.ResourceName
-              ]
-              AlwaysOn = false
-              HTTPSOnly = false
-              LinuxFxVersion = None
-              NetFrameworkVersion = None
-              JavaVersion = None
-              JavaContainer = None
-              JavaContainerVersion = None
-              PhpVersion = None
-              PythonVersion = None
-              Metadata = []
-              ZipDeployPath = None
-              AppCommandLine = None
-            }
-
-        let serverFarm =
-            match fns.ServicePlanName with
-            | External _
-            | AutomaticPlaceholder ->
-                None
-            | AutomaticallyCreated resourceName ->
-                { Name = resourceName
-                  Sku = Sku.Y1
-                  WorkerSize = Serverless
-                  WorkerCount = 0
-                  OperatingSystem = fns.OperatingSystem }
-                |> Converters.serverFarm location
-                |> Some
-
-        let storage =
-            match fns.StorageAccountName with
-            | AutomaticallyCreated resourceName ->
-                { StorageAccount.Name = resourceName
-                  Location = location
-                  Sku = Storage.Sku.StandardLRS
-                  Containers = [] }
-                |> Some
-            | AutomaticPlaceholder | External _ ->
-                None
-
-        let ai =
-            match fns.AppInsightsName with
-            | Some (AutomaticallyCreated resourceName) ->
-                Some
-                    { Name = resourceName
-                      Location = location
-                      LinkedWebsite =
-                        match fns.OperatingSystem with
-                        | Windows -> Some fns.Name
-                        | Linux -> None }
-            | Some (External _)
-            | Some AutomaticPlaceholder
-            | None ->
-                None
-
-        {| Ai = ai
-           WebApp = webApp
-           ServerFarm = serverFarm
-           Storage = storage |}
-
 type FunctionsBuilder() =
     member __.Yield _ =
         { Name = ResourceName.Empty
@@ -247,4 +144,105 @@ module Extensions =
             { state with Resources = state.Resources @ resources }
         member this.AddResources (state, configs) =
             addResources<FunctionsConfig> this.AddResource state configs
+
+module Converters =
+    open Farmer.Models
+    open Farmer.Resources
+    let functions location (fns:FunctionsConfig) =
+        let webApp =
+            { Name = fns.Name
+              ServicePlan = fns.ServicePlanName.ResourceName
+              Location = location
+              AppSettings = [
+                yield! fns.Settings |> Map.toList
+                "FUNCTIONS_WORKER_RUNTIME", (string fns.Runtime).ToLower()
+                "WEBSITE_NODE_DEFAULT_VERSION", "10.14.1"
+                "FUNCTIONS_EXTENSION_VERSION", match fns.ExtensionVersion with V1 -> "~1" | V2 -> "~2" | V3 -> "~3"
+                "AzureWebJobsStorage", Storage.buildKey fns.StorageAccountName.ResourceName |> ArmExpression.Eval
+                "AzureWebJobsDashboard", Storage.buildKey fns.StorageAccountName.ResourceName |> ArmExpression.Eval
+
+                match fns.AppInsightsName with
+                | Some (External resourceName)
+                | Some (AutomaticallyCreated resourceName) ->
+                    "APPINSIGHTS_INSTRUMENTATIONKEY", Ai.instrumentationKey resourceName |> ArmExpression.Eval
+                | Some AutomaticPlaceholder
+                | None -> ()
+
+                if fns.OperatingSystem = Windows then
+                    "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING", Storage.buildKey fns.StorageAccountName.ResourceName |> ArmExpression.Eval
+                    "WEBSITE_CONTENTSHARE", fns.Name.Value.ToLower()
+              ]
+
+              Kind =
+                match fns.OperatingSystem with
+                | Windows -> "functionapp"
+                | Linux -> "functionapp,linux"
+              Dependencies = [
+                yield! fns.Dependencies
+                match fns.AppInsightsName with
+                | Some (AutomaticallyCreated appInsightsName)
+                | Some (External appInsightsName) ->
+                    appInsightsName
+                | Some AutomaticPlaceholder
+                | None ->
+                    ()
+                match fns.ServicePlanName.ResourceNameOpt with Some resourceName -> resourceName | None -> ()
+                fns.StorageAccountName.ResourceName
+              ]
+              AlwaysOn = false
+              HTTPSOnly = false
+              LinuxFxVersion = None
+              NetFrameworkVersion = None
+              JavaVersion = None
+              JavaContainer = None
+              JavaContainerVersion = None
+              PhpVersion = None
+              PythonVersion = None
+              Metadata = []
+              ZipDeployPath = None
+              AppCommandLine = None
+            }
+        let serverFarm =
+            match fns.ServicePlanName with
+            | External _
+            | AutomaticPlaceholder ->
+                None
+            | AutomaticallyCreated resourceName ->
+                { Name = resourceName
+                  Sku = Sku.Y1
+                  WorkerSize = Serverless
+                  WorkerCount = 0
+                  OperatingSystem = fns.OperatingSystem }
+                |> Converters.serverFarm location
+                |> Some
+        let storage =
+            match fns.StorageAccountName with
+            | AutomaticallyCreated resourceName ->
+                { StorageAccount.Name = resourceName
+                  Location = location
+                  Sku = Storage.Sku.StandardLRS
+                  Containers = [] }
+                |> Some
+            | AutomaticPlaceholder | External _ ->
+                None
+        let ai =
+            match fns.AppInsightsName with
+            | Some (AutomaticallyCreated resourceName) ->
+                Some
+                    { Name = resourceName
+                      Location = location
+                      LinkedWebsite =
+                        match fns.OperatingSystem with
+                        | Windows -> Some fns.Name
+                        | Linux -> None }
+            | Some (External _)
+            | Some AutomaticPlaceholder
+            | None ->
+                None
+
+        {| Ai = ai
+           WebApp = webApp
+           ServerFarm = serverFarm
+           Storage = storage |}
+
 let functions = FunctionsBuilder()
