@@ -501,12 +501,11 @@ module Converters =
             location = webApp.Location.Value
             dependsOn = webApp.Dependencies |> List.map(fun p -> p.Value)
             kind = webApp.Kind
-            https_only = webApp.HTTPSOnly
             properties =
                 {| serverFarmId = webApp.ServerFarm.Value
+                   httpsOnly = webApp.HTTPSOnly
                    siteConfig =
                         [ "alwaysOn", box webApp.AlwaysOn
-                          "httpsOnly", box webApp.HTTPSOnly
                           "appSettings", webApp.AppSettings |> List.map(fun (k,v) -> {| name = k; value = v |}) |> box
                           match webApp.LinuxFxVersion with Some v -> "linuxFxVersion", box v | None -> ()
                           match webApp.AppCommandLine with Some v -> "appCommandLine", box v | None -> ()
