@@ -45,6 +45,7 @@
     <Compile Include="Builders.KeyVault.fs" />
     <Compile Include="Builders.Vm.fs" />
     <Compile Include="Builders.WebApp.fs" />
+    <Compile Include="Builders.Functions.fs" />
     <Compile Include="Builders.Sql.fs" />
     <Compile Include="Builders.Search.fs" />
     <Compile Include="Builders.Cosmos.fs" />
