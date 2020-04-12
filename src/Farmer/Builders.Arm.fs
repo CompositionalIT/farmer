@@ -39,10 +39,10 @@ type ZipDeployKind =
     /// If the ZipDeployKind is a DeployFolder, the folder will be zipped first and the generated zip file returned.
     member this.GetZipPath(targetFolder) =
         match this with
-        | DeployFolder folder ->
-            let packageFilename = Path.Combine(folder, (Path.GetFileName folder) + ".zip")
+        | DeployFolder appFolder ->
+            let packageFilename = Path.Combine(targetFolder, (Path.GetFileName appFolder) + ".zip")
             File.Delete packageFilename
-            ZipFile.CreateFromDirectory(folder, packageFilename)
+            ZipFile.CreateFromDirectory(appFolder, packageFilename)
             packageFilename
         | DeployZip zipFilePath ->
             zipFilePath
