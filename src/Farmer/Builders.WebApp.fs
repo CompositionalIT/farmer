@@ -115,7 +115,9 @@ type WebAppConfig =
       AlwaysOn : bool
       Runtime : WebAppRuntime
       ZipDeployPath : string option
-      DockerImage : (string * string) option }
+      DockerImage : (string * string) option
+      DockerCi : bool
+      DockerRegistryCredentials : {| Url : string; Username : string; Password : SecureParameter |} option }
     /// Gets the ARM expression path to the publishing password of this web app.
     member this.PublishingPassword = publishingPassword this.Name
     /// Gets the Service Plan name for this web app.
@@ -150,7 +152,9 @@ type WebAppBuilder() =
           Runtime = WebAppRuntime.DotNetCoreLts
           OperatingSystem = Windows
           ZipDeployPath = None
-          DockerImage = None }
+          DockerImage = None
+          DockerCi = false
+          DockerRegistryCredentials = None }
     member __.Run(state:WebAppConfig) =
         let operatingSystem =
             match state.DockerImage with
@@ -234,6 +238,17 @@ type WebAppBuilder() =
     [<CustomOperation "docker_image">]
     /// Specifies a docker image to use from the registry (linux only), and the startup command to execute.
     member __.DockerImage(state:WebAppConfig, registryPath, startupFile) = { state with DockerImage = Some (registryPath, startupFile) }
+    [<CustomOperation "docker_ci">]
+    /// Have your custom Docker image automatically re-deployed when a new version is pushed to e.g. Docker hub.
+    member __.DockerCI(state:WebAppConfig) = { state with DockerCi = true }
+    [<CustomOperation "docker_registry_credentials">]
+    /// Have your custom Docker image automatically re-deployed when a new version is pushed to e.g. Docker hub.
+    member __.DockerRegistryCredentials(state:WebAppConfig, url, username) =
+        { state with
+            DockerRegistryCredentials =
+                Some {| Url = url
+                        Username = username
+                        Password = SecureParameter (sprintf "docker-password-for-%s" state.Name.Value) |} }
 type AppInsightsBuilder() =
     member __.Yield _ =
         { Name = ResourceName.Empty }
@@ -344,6 +359,16 @@ module Converters =
                 | Windows, None
                 | Linux, _ ->
                     ()
+
+                if wac.DockerCi then "DOCKER_ENABLE_CI", "true"
+
+                match wac.DockerRegistryCredentials with
+                | Some credentials ->
+                    "DOCKER_REGISTRY_SERVER_PASSWORD", credentials.Password.AsArmRef.Eval()
+                    "DOCKER_REGISTRY_SERVER_URL", credentials.Url
+                    "DOCKER_REGISTRY_SERVER_USERNAME", credentials.Username
+                | None ->
+                  ()
               ]
               Kind = [
                 "app"
@@ -419,6 +444,11 @@ module Converters =
                 |> Option.toList
               AppCommandLine = wac.DockerImage |> Option.map snd
               ZipDeployPath = wac.ZipDeployPath
+              Parameters = [
+                  match wac.DockerRegistryCredentials with
+                  | Some credentials -> credentials.Password
+                  | None -> ()
+              ]
             }
 
         let ai =

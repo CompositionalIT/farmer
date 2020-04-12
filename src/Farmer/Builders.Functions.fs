@@ -178,6 +178,7 @@ module Converters =
               Metadata = []
               ZipDeployPath = None
               AppCommandLine = None
+              Parameters = []
             }
         let serverFarm =
             match fns.ServicePlanName with

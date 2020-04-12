@@ -182,7 +182,8 @@ type WebApp =
       PhpVersion : string option
       PythonVersion : string option
       Metadata : List<string * string>
-      ZipDeployPath : string option }
+      ZipDeployPath : string option
+      Parameters : SecureParameter list }
 type ServerFarm =
     { Name : ResourceName
       Location : Location
