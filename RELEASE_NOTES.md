@@ -1,8 +1,16 @@
 Release Notes
 =============
+## 0.10.0
+* Allow supplying an explicit related service plan
+* Support for HTTPS-only on web app
+* Block when deploying via Azure CLI
+* Put all deploy transient files in a folder
+* Server Farm builder
+* Don't login on Azure CLI unless needed
+
 ## 0.9.1
 * Fix a bug with WebApp builder causing a stack overflow.
-*
+
 ## 0.9.0
 * Support for Cognitive Services
 * Ensure Functions Runtime is correct set (lower-case)
