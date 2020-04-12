@@ -170,6 +170,7 @@ type WebApp =
       Location : Location
       AppSettings : List<string * string>
       AlwaysOn : bool
+      HTTPSOnly : bool
       Dependencies : ResourceName list
       Kind : string
       LinuxFxVersion : string option

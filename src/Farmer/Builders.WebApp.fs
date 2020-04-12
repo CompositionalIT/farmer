@@ -81,6 +81,7 @@ type WebAppConfig =
       RunFromPackage : bool
       WebsiteNodeDefaultVersion : string option
       AlwaysOn : bool
+      HTTPSOnly : bool
       Settings : Map<string, string>
       Dependencies : ResourceName list
       Runtime : WebAppRuntime
@@ -98,6 +99,7 @@ type FunctionsConfig =
       ServicePlanName : ResourceRef
       StorageAccountName : ResourceRef
       AppInsightsName : ResourceRef option
+      HTTPSOnly : bool
       Runtime : FunctionsRuntime
       ExtensionVersion : FunctionsExtensionVersion
       OperatingSystem : OS
@@ -193,6 +195,7 @@ module Converters =
             { Name = wac.Name
               Location = location
               ServerFarm = wac.ServicePlanName.ResourceName
+              HTTPSOnly = wac.HTTPSOnly
               AppSettings = [
                 yield! wac.Settings |> Map.toList
                 if wac.RunFromPackage then AppSettings.RunFromPackage
@@ -410,6 +413,7 @@ module Converters =
                 fns.StorageAccountName.ResourceName
               ]
               AlwaysOn = false
+              HTTPSOnly = false
               LinuxFxVersion = None
               NetFrameworkVersion = None
               JavaVersion = None
@@ -523,6 +527,7 @@ module Converters =
             kind = webApp.Kind
             properties =
                 {| serverFarmId = webApp.ServerFarm.Value
+                   httpsOnly = webApp.HTTPSOnly
                    siteConfig =
                         [ "alwaysOn", box webApp.AlwaysOn
                           "appSettings", webApp.AppSettings |> List.map(fun (k,v) -> {| name = k; value = v |}) |> box
@@ -551,6 +556,7 @@ type WebAppBuilder() =
           RunFromPackage = false
           WebsiteNodeDefaultVersion = None
           AlwaysOn = false
+          HTTPSOnly = false
           Settings = Map.empty
           Dependencies = []
           Runtime = DotNetCore DotNetCoreLts
@@ -624,6 +630,9 @@ type WebAppBuilder() =
     /// Sets "Always On" flag
     [<CustomOperation "always_on">]
     member __.AlwaysOn(state:WebAppConfig) = { state with AlwaysOn = true }
+    /// Disables http for this webapp so that only https is used.
+    [<CustomOperation "https_only">]
+    member __.HttpsOnly(state:WebAppConfig) = { state with HTTPSOnly = true }
     /// Sets the runtime stack
     [<CustomOperation "runtime_stack">]
     member __.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = runtime }
@@ -658,6 +667,7 @@ type FunctionsBuilder() =
           StorageAccountName = AutomaticPlaceholder
           Runtime = DotNet
           ExtensionVersion = V2
+          HTTPSOnly = false
           OperatingSystem = Windows
           Settings = Map.empty
           Dependencies = [] }
@@ -701,6 +711,9 @@ type FunctionsBuilder() =
     /// Removes any automatic app insights creation, configuration and settings for this webapp.
     [<CustomOperation "app_insights_off">]
     member __.DeactivateAppInsights(state:FunctionsConfig) = { state with AppInsightsName = None }
+    /// Disables http for this webapp so that only https is used.
+    [<CustomOperation "https_only">]
+    member __.HttpsOnly(state:FunctionsConfig) = { state with HTTPSOnly = true }
     /// Instead of creating a new AI instance, configure this webapp to point to another AI instance that you are managing
     /// yourself.
     [<CustomOperation "link_to_app_insights">]

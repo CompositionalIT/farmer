@@ -3,6 +3,8 @@ module Farmer.ArmBuilder
 
 open Farmer.Resources
 open Farmer.Models
+open System.IO
+open System.IO.Compression
 
 /// Represents all configuration information to generate an ARM template.
 type ArmConfig =
@@ -27,20 +29,20 @@ type ZipDeployKind =
     member this.Value = match this with DeployFolder s | DeployZip s -> s
     /// Tries to create a ZipDeployKind from a string path.
     static member TryParse path =
-        if (System.IO.File.GetAttributes path).HasFlag System.IO.FileAttributes.Directory then
+        if (File.GetAttributes path).HasFlag FileAttributes.Directory then
             Some(DeployFolder path)
-        else if System.IO.Path.GetExtension path = ".zip" then
+        else if Path.GetExtension path = ".zip" then
             Some(DeployZip path)
         else
             None
     /// Processes a ZipDeployKind and returns the filename of the zip file.
     /// If the ZipDeployKind is a DeployFolder, the folder will be zipped first and the generated zip file returned.
-    member this.GetZipPath() =
+    member this.GetZipPath(targetFolder) =
         match this with
         | DeployFolder folder ->
-            let packageFilename = (System.IO.Path.GetFileName folder) + ".zip"
-            System.IO.File.Delete packageFilename
-            System.IO.Compression.ZipFile.CreateFromDirectory(folder, packageFilename)
+            let packageFilename = Path.Combine(folder, (Path.GetFileName folder) + ".zip")
+            File.Delete packageFilename
+            ZipFile.CreateFromDirectory(folder, packageFilename)
             packageFilename
         | DeployZip zipFilePath ->
             zipFilePath

@@ -353,3 +353,5 @@ MigrationBackup/
 
 # Rider working folder
 .idea/
+
+.farmer
