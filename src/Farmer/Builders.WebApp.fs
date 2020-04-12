@@ -134,7 +134,7 @@ type AppInsightsConfig =
     { Name : ResourceName }
     /// Gets the ARM expression path to the instrumentation key of this App Insights instance.
     member this.InstrumentationKey = Ai.instrumentationKey this.Name
-type ServerFarmConfig =
+type ServicePlanConfig =
     { Name : ResourceName
       Sku : WebAppSku
       WorkerSize : WorkerSize
@@ -142,7 +142,7 @@ type ServerFarmConfig =
       OperatingSystem : OS }
 
 module Converters =
-    let serverFarm location (sfc:ServerFarmConfig) =
+    let serverFarm location (sfc:ServicePlanConfig) =
         { Location = location
           Name = sfc.Name
           Sku =
@@ -194,7 +194,7 @@ module Converters =
         let webApp =
             { Name = wac.Name
               Location = location
-              ServerFarm = wac.ServicePlanName.ResourceName
+              ServicePlan = wac.ServicePlanName.ResourceName
               HTTPSOnly = wac.HTTPSOnly
               AppSettings = [
                 yield! wac.Settings |> Map.toList
@@ -355,7 +355,7 @@ module Converters =
             | None ->
                 None
 
-        let serverFarmConfig =
+        let serverFarm =
             match wac.ServicePlanName with
             | External _
             | AutomaticPlaceholder ->
@@ -366,15 +366,16 @@ module Converters =
                   WorkerSize = wac.WorkerSize
                   WorkerCount = wac.WorkerCount
                   OperatingSystem = wac.OperatingSystem }
+                |> serverFarm location
                 |> Some
 
         {| Ai = ai
-           ServerFarm = serverFarmConfig |> Option.map (serverFarm location)
+           ServerFarm = serverFarm
            WebApp = webApp |}
     let functions location (fns:FunctionsConfig) =
         let webApp =
             { Name = fns.Name
-              ServerFarm = fns.ServicePlanName.ResourceName
+              ServicePlan = fns.ServicePlanName.ResourceName
               Location = location
               AppSettings = [
                 yield! fns.Settings |> Map.toList
@@ -432,13 +433,13 @@ module Converters =
             | AutomaticPlaceholder ->
                 None
             | AutomaticallyCreated resourceName ->
-                let serverFarmConfig =
-                    { Name = resourceName
-                      Sku = Sku.Y1
-                      WorkerSize = Serverless
-                      WorkerCount = 0
-                      OperatingSystem = fns.OperatingSystem }
-                serverFarm location serverFarmConfig |> Some
+                { Name = resourceName
+                  Sku = Sku.Y1
+                  WorkerSize = Serverless
+                  WorkerCount = 0
+                  OperatingSystem = fns.OperatingSystem }
+                |> serverFarm location
+                |> Some
         let storage =
             match fns.StorageAccountName with
             | AutomaticallyCreated resourceName ->
@@ -526,7 +527,7 @@ module Converters =
             dependsOn = webApp.Dependencies |> List.map(fun p -> p.Value)
             kind = webApp.Kind
             properties =
-                {| serverFarmId = webApp.ServerFarm.Value
+                {| serverFarmId = webApp.ServicePlan.Value
                    httpsOnly = webApp.HTTPSOnly
                    siteConfig =
                         [ "alwaysOn", box webApp.AlwaysOn
@@ -592,6 +593,7 @@ type WebAppBuilder() =
     [<CustomOperation "link_to_service_plan">]
     member __.LinkToServicePlan(state:WebAppConfig, name) = { state with ServicePlanName = External name }
     member this.LinkToServicePlan(state:WebAppConfig, name:string) = this.LinkToServicePlan (state, ResourceName name)
+    member this.LinkToServicePlan(state:WebAppConfig, config:ServicePlanConfig) = this.LinkToServicePlan (state, config.Name)
     /// Sets the sku of the service plan.
     [<CustomOperation "sku">]
     member __.Sku(state:WebAppConfig, sku) = { state with Sku = sku }
@@ -741,8 +743,8 @@ type AppInsightsBuilder() =
     [<CustomOperation "name">]
     /// Sets the name of the App Insights instance.
     member __.Name(state:AppInsightsConfig, name) = { state with Name = ResourceName name }
-type ServerFarmBuilder() =
-    member __.Yield _ : ServerFarmConfig=
+type ServicePlanBuilder() =
+    member __.Yield _ : ServicePlanConfig=
         { Name = ResourceName.Empty
           Sku = Free
           WorkerSize = Small
@@ -750,22 +752,22 @@ type ServerFarmBuilder() =
           OperatingSystem = Windows }
     [<CustomOperation "name">]
     /// Sets the name of the Server Farm.
-    member __.Name(state:ServerFarmConfig, name) = { state with Name = ResourceName name }
+    member __.Name(state:ServicePlanConfig, name) = { state with Name = ResourceName name }
     /// Sets the sku of the service plan.
     [<CustomOperation "sku">]
-    member __.Sku(state:ServerFarmConfig, sku) = { state with Sku = sku }
+    member __.Sku(state:ServicePlanConfig, sku) = { state with Sku = sku }
     /// Sets the size of the service plan worker.
     [<CustomOperation "worker_size">]
-    member __.WorkerSize(state:ServerFarmConfig, workerSize) = { state with WorkerSize = workerSize }
+    member __.WorkerSize(state:ServicePlanConfig, workerSize) = { state with WorkerSize = workerSize }
     /// Sets the number of instances on the service plan.
     [<CustomOperation "number_of_workers">]
-    member __.NumberOfWorkers(state:ServerFarmConfig, workerCount) = { state with WorkerCount = workerCount }
+    member __.NumberOfWorkers(state:ServicePlanConfig, workerCount) = { state with WorkerCount = workerCount }
     [<CustomOperation "operating_system">]
     /// Sets the operating system
-    member __.OperatingSystem(state:ServerFarmConfig, os) = { state with OperatingSystem = os }
+    member __.OperatingSystem(state:ServicePlanConfig, os) = { state with OperatingSystem = os }
     [<CustomOperation "serverless">]
     /// Configures this server farm to host serverless functions, not web apps.
-    member __.Serverless(state:ServerFarmConfig) = { state with Sku = Functions; WorkerSize = Serverless }
+    member __.Serverless(state:ServicePlanConfig) = { state with Sku = Functions; WorkerSize = Serverless }
 
 [<AutoOpen>]
 module Extensions =
@@ -801,7 +803,7 @@ module Extensions =
                 match outputs.Storage with Some storage -> StorageAccount storage | None -> ()
             ]
             { state with Resources = state.Resources @ resources }
-        member __.AddResource(state:ArmConfig, config:ServerFarmConfig) =
+        member __.AddResource(state:ArmConfig, config:ServicePlanConfig) =
             let output = config |> Converters.serverFarm state.Location
             { state with Resources = state.Resources @ [ ServerFarm output ]}
         member this.AddResource(state:ArmConfig, config:AppInsightsConfig) =
@@ -810,8 +812,7 @@ module Extensions =
         member this.AddResources (state, configs) = addResources<AppInsightsConfig> this.AddResource state configs
         member this.AddResources (state, configs) = addResources<WebAppConfig> this.AddResource state configs
 
-
 let appInsights = AppInsightsBuilder()
 let webApp = WebAppBuilder()
 let functions = FunctionsBuilder()
-let serverFarm = ServerFarmBuilder()
+let servicePlan = ServicePlanBuilder()
