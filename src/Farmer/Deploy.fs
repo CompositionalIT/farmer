@@ -425,10 +425,10 @@ module AzureCli =
         proc.WaitForExit() |> ignore
         filename
 
-    let createAzureCliCmd resourceGroupName (Location location) templateFilename parametersFilename deployCommands =
+    let createAzureCliCmd isLoggedIn resourceGroupName (Location location) templateFilename parametersFilename deployCommands =
         let deploymentName = sprintf "farmer-deploy-%d" (RestDeployment.getDeployNumber())
         let commands =
-            [ "az login"
+            [ if not isLoggedIn then "az login"
               sprintf "az group create -l %s -n %s" location resourceGroupName
               sprintf "az group deployment create -g %s -n%s --template-file %s --parameters @%s"
                   resourceGroupName
@@ -464,9 +464,23 @@ module AzureCli =
         let packageFilename = zipDeployKind.GetZipPath(deployFolder)
         (sprintf """az webapp deployment source config-zip --resource-group "%s" --name "%s" --src %s""" resourceGroupName webAppName packageFilename)
 
-    let generateDeployScript resourceGroupName (deployment:Deployment) =
+    let isLoggedIn() =
+        let p =
+            ProcessStartInfo(
+                FileName = "az",
+                Arguments = "account show",
+                UseShellExecute = true,
+                CreateNoWindow = true,
+                WindowStyle = ProcessWindowStyle.Hidden)
+            |> Process.Start
+        p.WaitForExit()
+        match p.ExitCode with
+        | 0 -> true
+        | _ -> false
+
+    let generateDeployScript isLoggedIn resourceGroupName (deployment:Deployment) =
         let templateName = "farmer-deploy"
-        let templateFilename = deployment.Template |> Writer.toJson |> Writer.toFile  deployFolder templateName
+        let templateFilename = deployment.Template |> Writer.toJson |> Writer.toFile deployFolder templateName
         let parameterFilename = ParameterFile.generateParametersFile deployFolder deployment.Template
 
         let webDeploys = [
@@ -474,12 +488,8 @@ module AzureCli =
                 prepareWebDeploy wd.WebApp.Value wd.Path resourceGroupName
         ]
 
-        let script =
-            createAzureCliCmd resourceGroupName deployment.Location templateFilename parameterFilename webDeploys
-            |> toScriptFile templateName
-
-        script
-
+        createAzureCliCmd isLoggedIn resourceGroupName deployment.Location templateFilename parameterFilename webDeploys
+        |> toScriptFile templateName
 
 let prepareDeploymentFolder() =
     if Directory.Exists deployFolder then Directory.Delete(deployFolder, true)
@@ -523,8 +533,12 @@ let fullDeploy credentials (subscriptionId:Guid) resourceGroupName parameters de
 /// Executes the supplied Deployment against a resource group using a locally-installed Azure CLI.
 let quick resourceGroupName deployment =
     prepareDeploymentFolder()
+    printf "Checking Azure CLI logged in status... "
+    let isLoggedIn = AzureCli.isLoggedIn()
+    if not isLoggedIn then printfn "you are not logged in. Script will prompt for login."
+    else printfn "you are already logged in."
 
     deployment
-    |> AzureCli.generateDeployScript resourceGroupName
+    |> AzureCli.generateDeployScript isLoggedIn resourceGroupName
     |> Process.Start
     |> fun deployment -> deployment.WaitForExit()
