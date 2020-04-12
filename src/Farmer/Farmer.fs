@@ -166,7 +166,7 @@ open System
 
 type WebApp =
     { Name : ResourceName
-      ServerFarm : ResourceName
+      ServicePlan : ResourceName
       Location : Location
       AppSettings : List<string * string>
       AlwaysOn : bool
@@ -183,7 +183,6 @@ type WebApp =
       PythonVersion : string option
       Metadata : List<string * string>
       ZipDeployPath : string option }
-
 type ServerFarm =
     { Name : ResourceName
       Location : Location
