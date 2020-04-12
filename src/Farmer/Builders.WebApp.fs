@@ -266,30 +266,6 @@ type ServicePlanBuilder() =
     /// Configures this server farm to host serverless functions, not web apps.
     member __.Serverless(state:ServicePlanConfig) = { state with Sku = Functions; WorkerSize = Serverless }
 
-[<AutoOpen>]
-module Extensions =
-    type WebAppBuilder with
-        member this.DependsOn(state:WebAppConfig, storageAccountConfig:StorageAccountConfig) =
-            this.DependsOn(state, storageAccountConfig.Name)
-        member this.DependsOn(state:WebAppConfig, appInsightsConfig:AppInsightsConfig) =
-            this.DependsOn(state, appInsightsConfig.Name)
-    type ArmBuilder.ArmBuilder with
-        member __.AddResource(state:ArmConfig, config:WebAppConfig) =
-            let outputs = Converters.webApp state.Location config
-            let resources = [
-                WebApp outputs.WebApp
-                match outputs.ServerFarm with Some farm -> ServerFarm farm | None -> ()
-                match outputs.Ai with Some ai -> AppInsights ai | None -> ()
-            ]
-            { state with Resources = state.Resources @ resources }
-        member __.AddResource(state:ArmConfig, config:ServicePlanConfig) =
-            let output = config |> Converters.serverFarm state.Location
-            { state with Resources = state.Resources @ [ ServerFarm output ]}
-        member this.AddResource(state:ArmConfig, config:AppInsightsConfig) =
-            { state with Resources = AppInsights (Converters.appInsights state.Location config) :: state.Resources }
-        member this.AddResources (state, configs) = addResources<AppInsightsConfig> this.AddResource state configs
-        member this.AddResources (state, configs) = addResources<WebAppConfig> this.AddResource state configs
-
 module Converters =
     let serverFarm location (sfc:ServicePlanConfig) =
         { Location = location
@@ -552,6 +528,30 @@ module Converters =
                         |> Map.ofList
                  |}
         |}
+
+[<AutoOpen>]
+module Extensions =
+    type WebAppBuilder with
+        member this.DependsOn(state:WebAppConfig, storageAccountConfig:StorageAccountConfig) =
+            this.DependsOn(state, storageAccountConfig.Name)
+        member this.DependsOn(state:WebAppConfig, appInsightsConfig:AppInsightsConfig) =
+            this.DependsOn(state, appInsightsConfig.Name)
+    type ArmBuilder.ArmBuilder with
+        member __.AddResource(state:ArmConfig, config:WebAppConfig) =
+            let outputs = Converters.webApp state.Location config
+            let resources = [
+                WebApp outputs.WebApp
+                match outputs.ServerFarm with Some farm -> ServerFarm farm | None -> ()
+                match outputs.Ai with Some ai -> AppInsights ai | None -> ()
+            ]
+            { state with Resources = state.Resources @ resources }
+        member __.AddResource(state:ArmConfig, config:ServicePlanConfig) =
+            let output = config |> Converters.serverFarm state.Location
+            { state with Resources = state.Resources @ [ ServerFarm output ]}
+        member this.AddResource(state:ArmConfig, config:AppInsightsConfig) =
+            { state with Resources = AppInsights (Converters.appInsights state.Location config) :: state.Resources }
+        member this.AddResources (state, configs) = addResources<AppInsightsConfig> this.AddResource state configs
+        member this.AddResources (state, configs) = addResources<WebAppConfig> this.AddResource state configs
 
 let appInsights = AppInsightsBuilder()
 let webApp = WebAppBuilder()
