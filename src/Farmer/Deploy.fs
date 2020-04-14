@@ -14,8 +14,6 @@ let private getDeployNumber =
     let r = Random()
     fun () -> r.Next 10000
 
-
-
 module ParameterFile =
     module Passwords =
         open System
@@ -68,12 +66,12 @@ module Az =
     let (|OperatingSystem|_|) platform () =
         if RuntimeInformation.IsOSPlatform platform then Some() else None
 
-    let executeAzWindows arguments =
+    let private executeAzWindows arguments =
         let outputFile = Path.Combine(deployFolder, "output.txt")
         let p =
             ProcessStartInfo(
                 FileName = "az",
-                Arguments = arguments + " > " + outputFile,
+                Arguments = arguments + " 1> " + outputFile + " 2>&1",
                 UseShellExecute = true,
                 CreateNoWindow = true,
                 WindowStyle = ProcessWindowStyle.Hidden)
@@ -82,7 +80,7 @@ module Az =
         let response = File.ReadAllText outputFile
         File.Delete outputFile
         p, response
-    let executeAzLinux arguments =
+    let private executeAzLinux arguments =
         let p =
             ProcessStartInfo(
                 FileName = "az",
@@ -97,7 +95,7 @@ module Az =
             sb.AppendLine(p.StandardOutput.ReadLine()) |> ignore
         p, sb.ToString()
 
-    let processToResult (p:Process, response) =
+    let private processToResult (p:Process, response) =
         match p.ExitCode with
         | 0 -> Ok response
         | _ -> Error response
@@ -116,6 +114,7 @@ module Az =
         |> processToResult
     let isLoggedIn() = executeAz "account show" |> function Ok _ -> true | Error _ -> false
     let login() = executeAz "login" |> Result.ignore
+    let loginWithCredentials appId secret tenantId = executeAz (sprintf "login --service-principal --username %s --password %s --tenant %s" appId secret tenantId)
     let createResourceGroup location resourceGroup = executeAz (sprintf "group create -l %s -n %s" location resourceGroup) |> Result.ignore
     let deploy resourceGroup deploymentName templateFilename parametersFilename =
         sprintf "group deployment create -g %s -n%s --template-file %s --parameters @%s"
@@ -131,6 +130,12 @@ module Az =
 type OutputKey = string
 type OutputValue = string
 type OutputMap = Map<OutputKey, OutputValue>
+type Subscription = { ID : Guid; Name : string; IsDefault : bool }
+/// Authenticates into Azure using the supplied ApplicationId, Client Secret and Tenant Id
+let authenticate appId secret tenantId =
+    Az.loginWithCredentials appId secret tenantId
+    |> Result.map (JsonConvert.DeserializeObject<Subscription []>)
+
 /// Executes the supplied Deployment against a resource group using the Azure CLI.
 /// If successful, returns a Map of the output keys and values.
 let execute resourceGroupName deployment : Result<OutputMap, _> = result {
