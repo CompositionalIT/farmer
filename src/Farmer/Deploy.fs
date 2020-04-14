@@ -15,6 +15,7 @@ let private getDeployNumber =
     fun () -> r.Next 10000
 
 
+
 module ParameterFile =
     module Passwords =
         open System
@@ -63,8 +64,11 @@ module ParameterFile =
 
 /// Provides strongly-typed access to the Azure CLI
 module Az =
-    /// Executes a generic AZ CLI command.
-    let executeAz arguments =
+    open System.Runtime.InteropServices
+    let (|OperatingSystem|_|) platform () =
+        if RuntimeInformation.IsOSPlatform platform then Some() else None
+
+    let executeAzWindows arguments =
         let outputFile = Path.Combine(deployFolder, "output.txt")
         let p =
             ProcessStartInfo(
@@ -77,12 +81,42 @@ module Az =
         p.WaitForExit()
         let response = File.ReadAllText outputFile
         File.Delete outputFile
+        p, response
+    let executeAzLinux arguments =
+        let p =
+            ProcessStartInfo(
+                FileName = "az",
+                Arguments = arguments,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                WindowStyle = ProcessWindowStyle.Hidden)
+            |> Process.Start
+        let sb = Text.StringBuilder()
+        while not p.StandardOutput.EndOfStream do
+            sb.AppendLine(p.StandardOutput.ReadLine()) |> ignore
+        p, sb.ToString()
+
+    let processToResult (p:Process, response) =
         match p.ExitCode with
         | 0 -> Ok response
         | _ -> Error response
-    let isLoggedIn() = executeAz "account show" |> Result.map ignore
-    let login() = executeAz "login" |> Result.map ignore
-    let createResourceGroup location resourceGroup = executeAz (sprintf "group create -l %s -n %s" location resourceGroup)
+
+
+    /// Executes a generic AZ CLI command.
+    let executeAz arguments =
+        match () with
+        | OperatingSystem OSPlatform.Windows ->
+            executeAzWindows arguments
+        | OperatingSystem OSPlatform.Linux
+        | OperatingSystem OSPlatform.OSX ->
+            executeAzLinux arguments
+        | _ ->
+            failwithf "OSPlatform: %s not supported" RuntimeInformation.OSDescription
+        |> processToResult
+    let isLoggedIn() = executeAz "account show" |> function Ok _ -> true | Error _ -> false
+    let login() = executeAz "login" |> Result.ignore
+    let createResourceGroup location resourceGroup = executeAz (sprintf "group create -l %s -n %s" location resourceGroup) |> Result.ignore
     let deploy resourceGroup deploymentName templateFilename parametersFilename =
         sprintf "group deployment create -g %s -n%s --template-file %s --parameters @%s"
             resourceGroup
@@ -94,34 +128,35 @@ module Az =
         let packageFilename = zipDeployKind.GetZipPath deployFolder
         executeAz (sprintf """webapp deployment source config-zip --resource-group "%s" --name "%s" --src %s""" resourceGroup webAppName packageFilename)
 
+type OutputKey = string
+type OutputValue = string
+type OutputMap = Map<OutputKey, OutputValue>
 /// Executes the supplied Deployment against a resource group using the Azure CLI.
-let execute resourceGroupName deployment =
+/// If successful, returns a Map of the output keys and values.
+let execute resourceGroupName deployment : Result<OutputMap, _> = result {
     prepareDeploymentFolder()
-    printf "Checking Azure CLI logged in status... "
+    do!
+        printf "Checking Azure CLI logged in status... "
+        if Az.isLoggedIn() then printfn "you are already logged in, nothing to do."; Ok()
+        else printfn "logging you in."; Az.login()
 
-    match Az.isLoggedIn() with
-    | Ok _ -> printfn "You are already logged in!"; Ok()
-    | Error _ -> printfn ""; Az.login()
-    |> Result.bind(fun _ ->
-        printfn "Creating resource group %s..." resourceGroupName
-        Az.createResourceGroup deployment.Location.Value resourceGroupName)
-    |> Result.bind(fun _ ->
-        printfn "Deploying ARM template (please be patient, this can take a while)..."
-        let templateFilename = deployment.Template |> Writer.toJson |> Writer.toFile deployFolder "farmer-deploy"
-        let parameterFilename = ParameterFile.generateParametersFile deployFolder deployment.Template
-        let deploymentName = sprintf "farmer-deploy-%d" (getDeployNumber())
-        Az.deploy resourceGroupName deploymentName templateFilename parameterFilename)
-    |> Result.map(fun response ->
-        // First do any zip deployments
-        for (RunFromZip wd) in deployment.PostDeployTasks do
+    printfn "Creating resource group %s..." resourceGroupName
+    do! Az.createResourceGroup deployment.Location.Value resourceGroupName
+
+    printfn "Deploying ARM template (please be patient, this can take a while)..."
+    let templateFilename = deployment.Template |> Writer.toJson |> Writer.toFile deployFolder "farmer-deploy"
+    let parameterFilename = ParameterFile.generateParametersFile deployFolder deployment.Template
+    let deploymentName = sprintf "farmer-deploy-%d" (getDeployNumber())
+    let! response = Az.deploy resourceGroupName deploymentName templateFilename parameterFilename
+
+    do!
+        [ for (RunFromZip wd) in deployment.PostDeployTasks do
             printfn "Running ZIP deploy for %s" wd.Path.Value
-            //TODO: Result.sequence?
-            Az.zipDeploy wd.WebApp.Value wd.Path resourceGroupName |> ignore
+            Az.zipDeploy wd.WebApp.Value wd.Path resourceGroupName ]
+        |> Result.sequence
+        |> Result.ignore
 
-        printfn "All done, now parsing ARM response to get any outputs..."
-
-        // Now return any ARM outputs from the JSON response.
-        let response = response |> JsonConvert.DeserializeObject<{| properties : {| outputs : Map<string, {| value : string |}> |} |}>
-        response.properties.outputs
-        |> Map.map (fun _ value -> value.value)
-    )
+    printfn "All done, now parsing ARM response to get any outputs..."
+    let response = response |> JsonConvert.DeserializeObject<{| properties : {| outputs : Map<string, {| value : string |}> |} |}>
+    return response.properties.outputs |> Map.map (fun _ value -> value.value)
+}
