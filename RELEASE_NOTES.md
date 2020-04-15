@@ -1,5 +1,8 @@
 Release Notes
 =============
+## 0.11.1
+* Fix a bug with deploy parameterisation.
+
 ## 0.11.0
 * Remove REST API support.
 * Enhance Azure CLI support.

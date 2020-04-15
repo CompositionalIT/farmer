@@ -81,12 +81,11 @@ module Az =
         executeAz (sprintf "group create -l %s -n %s" location resourceGroup) |> Result.ignore
     /// Deploys an ARM template to an existing resource group.
     let deploy resourceGroup deploymentName templateFilename parameters =
-        sprintf "group deployment create -g %s -n %s --template-file %s --parameters %s"
-            resourceGroup
-            deploymentName
-            templateFilename
-            (parameters |> Seq.map(fun (a,b) -> sprintf "%s=%s" a b) |> String.concat " ")
-        |> executeAz
+        let parametersArgument =
+            match parameters with
+            | [] -> ""
+            | parameters -> sprintf "--parameters %s" (parameters |> List.map(fun (a,b) -> sprintf "%s=%s" a b) |> String.concat " ")
+        executeAz (sprintf "group deployment create -g %s -n %s --template-file %s %s" resourceGroup deploymentName templateFilename parametersArgument)
     /// Deploys a zip file to a web app using the Zip Deploy mechanism.
     let zipDeploy webAppName (zipDeployKind:ZipDeployKind) resourceGroup =
         let packageFilename = zipDeployKind.GetZipPath deployFolder
