@@ -3,7 +3,7 @@
 open Farmer
 open Farmer.Resources
 
-let myCosmosDb = cosmosDb {    
+let myCosmosDb = cosmosDb {
     db_name "isaacsappdb"
     server_name "isaacscosmosdb"
     throughput 400
@@ -26,4 +26,4 @@ let template =
     }
 
 template
-|> Deploy.quick "my-resource-group-name"
+|> Deploy.execute "my-resource-group-name"

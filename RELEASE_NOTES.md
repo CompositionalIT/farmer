@@ -1,5 +1,10 @@
 Release Notes
 =============
+## 0.11.0
+* Remove REST API support.
+* Enhance Azure CLI support.
+* Support for optional Azure CLI authentication.
+
 ## 0.10.0
 * Allow supplying an explicit related service plan
 * Support for HTTPS-only on web app

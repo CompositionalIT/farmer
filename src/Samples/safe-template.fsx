@@ -5,8 +5,8 @@ open Farmer.Resources
 
 let makeTemplate (environment:string) theLocation storageSku webAppSku =
     let environment = environment.ToLower()
-    let generateResourceName = sprintf "safe-%s-%s" environment 
-    
+    let generateResourceName = sprintf "safe-%s-%s" environment
+
     let myStorageAccount = storageAccount {
         name (sprintf "safe%sstorage" environment)
         sku storageSku
@@ -14,7 +14,7 @@ let makeTemplate (environment:string) theLocation storageSku webAppSku =
 
     let myWebApp = webApp {
         name (generateResourceName "web")
-        sku webAppSku        
+        sku webAppSku
 
         website_node_default_version "8.1.4"
         setting "public_path" "./public"
@@ -30,8 +30,8 @@ let makeTemplate (environment:string) theLocation storageSku webAppSku =
         add_resource myWebApp
 
         output "webAppName" myWebApp.Name
-        output "webAppPassword" myWebApp.PublishingPassword        
+        output "webAppPassword" myWebApp.PublishingPassword
     }
 
 makeTemplate "dev" NorthEurope Sku.StandardLRS Sku.F1
-|> Deploy.quick "my-resource-group-name"
+|> Deploy.execute "my-resource-group-name"

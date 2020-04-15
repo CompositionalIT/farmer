@@ -37,7 +37,7 @@ type ZipDeployKind =
             None
     /// Processes a ZipDeployKind and returns the filename of the zip file.
     /// If the ZipDeployKind is a DeployFolder, the folder will be zipped first and the generated zip file returned.
-    member this.GetZipPath(targetFolder) =
+    member this.GetZipPath targetFolder =
         match this with
         | DeployFolder appFolder ->
             let packageFilename = Path.Combine(targetFolder, (Path.GetFileName appFolder) + ".zip")
