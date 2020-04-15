@@ -6,59 +6,13 @@ open System
 open System.Diagnostics
 open System.IO
 
-let private deployFolder = ".farmer"
-let private prepareDeploymentFolder() =
+let deployFolder = ".farmer"
+let prepareDeploymentFolder() =
     if Directory.Exists deployFolder then Directory.Delete(deployFolder, true)
     Directory.CreateDirectory deployFolder |> ignore
-let private generateDeployNumber =
+let generateDeployNumber =
     let r = Random()
     fun () -> r.Next 10000
-
-module ParameterFile =
-    module Passwords =
-        open System
-        let lowerCaseLetters = String [|'a'..'z'|]
-        let upperCaseLetters = String [|'A'..'Z'|]
-        let digits = String [|'0' .. '9'|]
-        let special = "!�$%^&*()_-+="
-        let allCharacters = lowerCaseLetters + upperCaseLetters + digits + special
-
-        let isValid (s:string) =
-            let isInString (src:string) = s |> Seq.exists (string >> src.Contains)
-            isInString lowerCaseLetters && isInString upperCaseLetters && isInString digits && isInString special
-
-        let generatePassword randomNumber length =
-            Seq.init length (fun _ -> allCharacters.[randomNumber allCharacters.Length])
-            |> Seq.toArray
-            |> String
-
-        /// Creates a password that is known to conform to lower, upper and numeric constraints.
-        let generateConformingPassword length template =
-            let rnd = Random (template.GetHashCode())
-
-            Seq.initInfinite (fun _ -> generatePassword rnd.Next length)
-            |> Seq.take 100
-            |> Seq.filter isValid
-            |> Seq.tryHead
-            |> function
-            | None -> failwith "Unable to generate a valid password that meet the requested requirements!"
-            | Some password -> password
-
-    let toParameters parameters =
-        {| ``$schema`` = "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#"
-           contentVersion = "1.0.0.0"
-           parameters =
-                parameters
-                |> List.map(fun (name, value) -> name, {| value = value |})
-                |> Map.ofList
-        |}
-
-    let generateParametersFile folder (armTemplate:ArmTemplate) =
-        armTemplate.Parameters
-        |> List.map(fun (SecureParameter p) -> p, Passwords.generateConformingPassword 24 armTemplate)
-        |> toParameters
-        |> Writer.TemplateGeneration.serialize
-        |> Writer.toFile folder "farmer-deploy-parameters"
 
 /// Provides strongly-typed access to the Azure CLI
 module Az =
@@ -66,7 +20,7 @@ module Az =
     open System.Text
 
     [<AutoOpen>]
-    module private AzHelpers =
+    module AzHelpers =
         let outputFile = Path.Combine(deployFolder, "output.txt")
         let (|OperatingSystem|_|) platform () =
             if RuntimeInformation.IsOSPlatform platform then Some() else None
@@ -126,12 +80,12 @@ module Az =
     let createResourceGroup location resourceGroup =
         executeAz (sprintf "group create -l %s -n %s" location resourceGroup) |> Result.ignore
     /// Deploys an ARM template to an existing resource group.
-    let deploy resourceGroup deploymentName templateFilename parametersFilename =
-        sprintf "group deployment create -g %s -n%s --template-file %s --parameters @%s"
+    let deploy resourceGroup deploymentName templateFilename parameters =
+        sprintf "group deployment create -g %s -n %s --template-file %s --parameters %s"
             resourceGroup
             deploymentName
             templateFilename
-            parametersFilename
+            (parameters |> Seq.map(fun (a,b) -> sprintf "%s=%s" a b) |> String.concat " ")
         |> executeAz
     /// Deploys a zip file to a web app using the Zip Deploy mechanism.
     let zipDeploy webAppName (zipDeployKind:ZipDeployKind) resourceGroup =
@@ -149,10 +103,17 @@ let authenticate appId secret tenantId =
     Az.loginWithCredentials appId secret tenantId
     |> Result.map (JsonConvert.DeserializeObject<Subscription []>)
 
+let validateParameters suppliedParameters deployment =
+    let expected = deployment.Template.Parameters |> List.map(fun (SecureParameter p) -> p) |> Set
+    match (expected - (suppliedParameters |> List.map fst |> Set)) |> Seq.toList with
+    | [] -> Ok ()
+    | missingParameters -> Error (sprintf "The following parameters are missing: %s." (missingParameters |> String.concat ", "))
+
 /// Executes the supplied Deployment against a resource group using the Azure CLI.
 /// If successful, returns a Map of the output keys and values.
-let execute resourceGroupName deployment : Result<OutputMap, _> = result {
+let execute resourceGroupName parameters deployment : Result<OutputMap, _> = result {
     prepareDeploymentFolder()
+    do! deployment |> validateParameters parameters
     do!
         printf "Checking Azure CLI logged in status... "
         if Az.isLoggedIn() then printfn "you are already logged in, nothing to do."; Ok()
@@ -162,10 +123,11 @@ let execute resourceGroupName deployment : Result<OutputMap, _> = result {
     do! Az.createResourceGroup deployment.Location.Value resourceGroupName
 
     printfn "Deploying ARM template (please be patient, this can take a while)..."
-    let templateFilename = deployment.Template |> Writer.toJson |> Writer.toFile deployFolder "farmer-deploy"
-    let parameterFilename = ParameterFile.generateParametersFile deployFolder deployment.Template
-    let deploymentName = sprintf "farmer-deploy-%d" (generateDeployNumber())
-    let! response = Az.deploy resourceGroupName deploymentName templateFilename parameterFilename
+    let! response =
+        let deploymentName = sprintf "farmer-deploy-%d" (generateDeployNumber())
+        let templateFilename = deployment.Template |> Writer.toJson |> Writer.toFile deployFolder "farmer-deploy"
+        //let parameters = parameters |> List.map(fun (key:string, value:string) -> key, {| value = value |}) |> Map.ofList |> JsonConvert.SerializeObject
+        Az.deploy resourceGroupName deploymentName templateFilename parameters
 
     do!
         [ for (RunFromZip wd) in deployment.PostDeployTasks do
