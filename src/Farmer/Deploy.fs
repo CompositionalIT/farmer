@@ -10,7 +10,7 @@ let private deployFolder = ".farmer"
 let private prepareDeploymentFolder() =
     if Directory.Exists deployFolder then Directory.Delete(deployFolder, true)
     Directory.CreateDirectory deployFolder |> ignore
-let private getDeployNumber =
+let private generateDeployNumber =
     let r = Random()
     fun () -> r.Next 10000
 
@@ -65,43 +65,47 @@ module ParameterFile =
 /// Provides strongly-typed access to the Azure CLI
 module Az =
     open System.Runtime.InteropServices
-    let (|OperatingSystem|_|) platform () =
-        if RuntimeInformation.IsOSPlatform platform then Some() else None
+    open System.Text
 
-    let executeAzWindows arguments =
+    [<AutoOpen>]
+    module private AzHelpers =
         let outputFile = Path.Combine(deployFolder, "output.txt")
-        let p =
-            ProcessStartInfo(
-                FileName = "az",
-                Arguments = arguments + " > " + outputFile,
-                UseShellExecute = true,
-                CreateNoWindow = true,
-                WindowStyle = ProcessWindowStyle.Hidden)
-            |> Process.Start
-        p.WaitForExit()
-        let response = File.ReadAllText outputFile
-        File.Delete outputFile
-        p, response
-    let executeAzLinux arguments =
-        let p =
-            ProcessStartInfo(
-                FileName = "az",
-                Arguments = arguments,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                WindowStyle = ProcessWindowStyle.Hidden)
-            |> Process.Start
-        let sb = Text.StringBuilder()
-        while not p.StandardOutput.EndOfStream do
-            sb.AppendLine(p.StandardOutput.ReadLine()) |> ignore
-        p, sb.ToString()
+        let (|OperatingSystem|_|) platform () =
+            if RuntimeInformation.IsOSPlatform platform then Some() else None
 
-    let processToResult (p:Process, response) =
-        match p.ExitCode with
-        | 0 -> Ok response
-        | _ -> Error response
+        let executeAzWindows arguments =
+            let azProcess =
+                ProcessStartInfo(
+                    FileName = "az",
+                    Arguments = arguments + " > " + outputFile,
+                    UseShellExecute = true,
+                    CreateNoWindow = true,
+                    WindowStyle = ProcessWindowStyle.Hidden)
+                |> Process.Start
+            azProcess.WaitForExit()
+            let response = File.ReadAllText outputFile
+            File.Delete outputFile
+            azProcess, response
+        let executeAzLinux arguments =
+            let azProcess =
+                ProcessStartInfo(
+                    FileName = "az",
+                    Arguments = arguments,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    WindowStyle = ProcessWindowStyle.Hidden)
+                |> Process.Start
+            azProcess.WaitForExit()
+            let sb = StringBuilder()
+            while not azProcess.StandardOutput.EndOfStream do
+                sb.AppendLine(azProcess.StandardOutput.ReadLine()) |> ignore
+            azProcess, sb.ToString()
 
+        let processToResult (p:Process, response) =
+            match p.ExitCode with
+            | 0 -> Ok response
+            | _ -> Error response
 
     /// Executes a generic AZ CLI command.
     let executeAz arguments =
@@ -114,9 +118,14 @@ module Az =
         | _ ->
             failwithf "OSPlatform: %s not supported" RuntimeInformation.OSDescription
         |> processToResult
+    /// Tests if the Az CLI has logged in credentials.
     let isLoggedIn() = executeAz "account show" |> function Ok _ -> true | Error _ -> false
+    /// Logs you into Az CLI interactively.
     let login() = executeAz "login" |> Result.ignore
-    let createResourceGroup location resourceGroup = executeAz (sprintf "group create -l %s -n %s" location resourceGroup) |> Result.ignore
+    /// Creates a resource group.
+    let createResourceGroup location resourceGroup =
+        executeAz (sprintf "group create -l %s -n %s" location resourceGroup) |> Result.ignore
+    /// Deploys an ARM template to an existing resource group.
     let deploy resourceGroup deploymentName templateFilename parametersFilename =
         sprintf "group deployment create -g %s -n%s --template-file %s --parameters @%s"
             resourceGroup
@@ -124,6 +133,7 @@ module Az =
             templateFilename
             parametersFilename
         |> executeAz
+    /// Deploys a zip file to a web app using the Zip Deploy mechanism.
     let zipDeploy webAppName (zipDeployKind:ZipDeployKind) resourceGroup =
         let packageFilename = zipDeployKind.GetZipPath deployFolder
         executeAz (sprintf """webapp deployment source config-zip --resource-group "%s" --name "%s" --src %s""" resourceGroup webAppName packageFilename)
@@ -131,6 +141,7 @@ module Az =
 type OutputKey = string
 type OutputValue = string
 type OutputMap = Map<OutputKey, OutputValue>
+
 /// Executes the supplied Deployment against a resource group using the Azure CLI.
 /// If successful, returns a Map of the output keys and values.
 let execute resourceGroupName deployment : Result<OutputMap, _> = result {
@@ -146,7 +157,7 @@ let execute resourceGroupName deployment : Result<OutputMap, _> = result {
     printfn "Deploying ARM template (please be patient, this can take a while)..."
     let templateFilename = deployment.Template |> Writer.toJson |> Writer.toFile deployFolder "farmer-deploy"
     let parameterFilename = ParameterFile.generateParametersFile deployFolder deployment.Template
-    let deploymentName = sprintf "farmer-deploy-%d" (getDeployNumber())
+    let deploymentName = sprintf "farmer-deploy-%d" (generateDeployNumber())
     let! response = Az.deploy resourceGroupName deploymentName templateFilename parameterFilename
 
     do!
