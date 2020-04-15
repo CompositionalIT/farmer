@@ -1,23 +1,22 @@
 #r @"..\Farmer\bin\Debug\netstandard2.0\Farmer.dll"
 
 open Farmer
-open Farmer.Resources.WebApp
+open Farmer.Resources
 
-let myAppInsights = appInsights {    
+let myAppInsights = appInsights {
     name "isaacsAi"
 }
 
 let myFunctions = functions {
     name "mysuperwebapp"
-    app_insights_manual myAppInsights.Name
+    link_to_app_insights myAppInsights.Name
 }
 
-let template =
-    arm {
-        location NorthEurope
-        add_resource myAppInsights
-        add_resource myFunctions
-    }
+let template = arm {
+    location NorthEurope
+    add_resource myAppInsights
+    add_resource myFunctions
+}
 
 template
-|> Deploy.quick "deleteme"
+|> Deploy.execute "deleteme"
