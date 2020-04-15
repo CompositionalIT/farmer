@@ -14,8 +14,6 @@ let private generateDeployNumber =
     let r = Random()
     fun () -> r.Next 10000
 
-
-
 module ParameterFile =
     module Passwords =
         open System
@@ -77,7 +75,7 @@ module Az =
             let azProcess =
                 ProcessStartInfo(
                     FileName = "az",
-                    Arguments = arguments + " > " + outputFile,
+                    Arguments = arguments + " 1> " + outputFile + " 2>&1",
                     UseShellExecute = true,
                     CreateNoWindow = true,
                     WindowStyle = ProcessWindowStyle.Hidden)
@@ -122,6 +120,8 @@ module Az =
     let isLoggedIn() = executeAz "account show" |> function Ok _ -> true | Error _ -> false
     /// Logs you into Az CLI interactively.
     let login() = executeAz "login" |> Result.ignore
+    /// Logs you into the Az CLI using the supplied service principal credentials.
+    let loginWithCredentials appId secret tenantId = executeAz (sprintf "login --service-principal --username %s --password %s --tenant %s" appId secret tenantId)
     /// Creates a resource group.
     let createResourceGroup location resourceGroup =
         executeAz (sprintf "group create -l %s -n %s" location resourceGroup) |> Result.ignore
@@ -141,6 +141,13 @@ module Az =
 type OutputKey = string
 type OutputValue = string
 type OutputMap = Map<OutputKey, OutputValue>
+type Subscription = { ID : Guid; Name : string; IsDefault : bool }
+
+/// Authenticates the Az CLI using the supplied ApplicationId, Client Secret and Tenant Id.
+/// Returns the list of subscriptions, including which one the default is.
+let authenticate appId secret tenantId =
+    Az.loginWithCredentials appId secret tenantId
+    |> Result.map (JsonConvert.DeserializeObject<Subscription []>)
 
 /// Executes the supplied Deployment against a resource group using the Azure CLI.
 /// If successful, returns a Map of the output keys and values.
