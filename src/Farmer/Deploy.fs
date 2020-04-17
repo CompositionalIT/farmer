@@ -3,7 +3,6 @@
 open Farmer.ArmBuilder
 open Newtonsoft.Json
 open System
-open System.Diagnostics
 open System.IO
 
 let deployFolder = ".farmer"
@@ -17,7 +16,8 @@ let generateDeployNumber =
 /// Provides strongly-typed access to the Azure CLI
 module Az =
     open System.Runtime.InteropServices
-    open System.Text
+    open CliWrap
+    open CliWrap.Buffered
 
     [<AutoOpen>]
     module AzHelpers =
@@ -25,51 +25,34 @@ module Az =
         let (|OperatingSystem|_|) platform () =
             if RuntimeInformation.IsOSPlatform platform then Some() else None
 
-        let executeAzWindows arguments =
-            let azProcess =
-                ProcessStartInfo(
-                    FileName = "az",
-                    Arguments = arguments + " 1> " + outputFile + " 2>&1",
-                    UseShellExecute = true,
-                    CreateNoWindow = true,
-                    WindowStyle = ProcessWindowStyle.Hidden)
-                |> Process.Start
-            azProcess.WaitForExit()
-            let response = File.ReadAllText outputFile
-            File.Delete outputFile
-            azProcess, response
-        let executeAzLinux arguments =
-            let azProcess =
-                ProcessStartInfo(
-                    FileName = "az",
-                    Arguments = arguments,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    RedirectStandardOutput = true,
-                    WindowStyle = ProcessWindowStyle.Hidden)
-                |> Process.Start
-            azProcess.WaitForExit()
-            let sb = StringBuilder()
-            while not azProcess.StandardOutput.EndOfStream do
-                sb.AppendLine(azProcess.StandardOutput.ReadLine()) |> ignore
-            azProcess, sb.ToString()
-
-        let processToResult (p:Process, response) =
-            match p.ExitCode with
-            | 0 -> Ok response
-            | _ -> Error response
+        let findAz =
+            match () with
+            | OperatingSystem OSPlatform.Windows ->
+                Environment.GetEnvironmentVariable "PATH"
+                |> fun s -> s.Split Path.PathSeparator
+                |> Seq.map (fun s -> Path.Combine(s, "az.cmd"))
+                |> Seq.tryFind File.Exists
+                |> function Some s -> s | None -> invalidOp "Can't find Azure CLI"
+            | OperatingSystem OSPlatform.Linux
+            | OperatingSystem OSPlatform.OSX ->
+                "az"
+            | _ ->
+                failwithf "OSPlatform: %s not supported" RuntimeInformation.OSDescription
 
     /// Executes a generic AZ CLI command.
-    let executeAz arguments =
-        match () with
-        | OperatingSystem OSPlatform.Windows ->
-            executeAzWindows arguments
-        | OperatingSystem OSPlatform.Linux
-        | OperatingSystem OSPlatform.OSX ->
-            executeAzLinux arguments
-        | _ ->
-            failwithf "OSPlatform: %s not supported" RuntimeInformation.OSDescription
-        |> processToResult
+    let executeAz (arguments : string) =
+        async {
+            let cmd = Cli.Wrap(findAz)
+                         .WithArguments(arguments)
+                         .WithValidation(CommandResultValidation.None)
+
+            let! result = cmd.ExecuteBufferedAsync().Task |> Async.AwaitTask
+
+            return match result.ExitCode with
+                   | 0 -> Ok result.StandardOutput
+                   | _ -> Error result.StandardError
+        } |> Async.RunSynchronously
+
     /// Tests if the Az CLI has logged in credentials.
     let isLoggedIn() = executeAz "account show" |> function Ok _ -> true | Error _ -> false
     /// Logs you into Az CLI interactively.
