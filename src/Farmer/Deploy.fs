@@ -41,17 +41,15 @@ module Az =
 
     /// Executes a generic AZ CLI command.
     let executeAz (arguments : string) =
-        async {
-            let cmd = Cli.Wrap(findAz)
-                         .WithArguments(arguments)
-                         .WithValidation(CommandResultValidation.None)
+        let cmd = Cli.Wrap(findAz)
+                     .WithArguments(arguments)
+                     .WithValidation(CommandResultValidation.None)
 
-            let! result = cmd.ExecuteBufferedAsync().Task |> Async.AwaitTask
+        let result = cmd.ExecuteBufferedAsync().Task |> Async.AwaitTask |> Async.RunSynchronously
 
-            return match result.ExitCode with
-                   | 0 -> Ok result.StandardOutput
-                   | _ -> Error result.StandardError
-        } |> Async.RunSynchronously
+        match result.ExitCode with
+        | 0 -> Ok result.StandardOutput
+        | _ -> Error result.StandardError
 
     /// Tests if the Az CLI has logged in credentials.
     let isLoggedIn() = executeAz "account show" |> function Ok _ -> true | Error _ -> false
