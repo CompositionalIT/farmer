@@ -21,7 +21,6 @@ module Az =
 
     [<AutoOpen>]
     module AzHelpers =
-        let outputFile = Path.Combine(deployFolder, "output.txt")
         let (|OperatingSystem|_|) platform () =
             if RuntimeInformation.IsOSPlatform platform then Some() else None
 
