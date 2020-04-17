@@ -64,6 +64,11 @@ type RedisBuilder() =
     [<CustomOperation "setting">]
     member __.AddSetting(state:RedisConfig, key, value) = { state with RedisConfiguration = state.RedisConfiguration.Add(key, value) }
     member this.AddSetting(state:RedisConfig, key, value:int) = this.AddSetting(state, key, string value)
+    /// Adds a list of custom settings in the form "key" "value" to the Redis configuration.
+    [<CustomOperation "settings">]
+    member __.AddSettings(state:RedisConfig, settings: (string*int) list) =
+        settings
+        |> List.fold (fun state (key,value) -> __.AddSetting(state, key, value)) state
     /// Specifies whether the non-ssl Redis server port (6379) is enabled.
     [<CustomOperation "enable_non_ssl_port">]
     member __.EnableNonSsl(state:RedisConfig) = { state with NonSslEnabled = Some true }

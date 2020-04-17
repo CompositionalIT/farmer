@@ -217,6 +217,11 @@ type WebAppBuilder() =
     [<CustomOperation "setting">]
     member __.AddSetting(state:WebAppConfig, key, value) = { state with Settings = state.Settings.Add(key, value) }
     member __.AddSetting(state:WebAppConfig, key, value:ArmExpression) = { state with Settings = state.Settings.Add(key, value.Eval()) }
+    /// Sets a list of app setting of the web app in the form "key" "value".
+    [<CustomOperation "settings">]
+    member __.AddSettings(state:WebAppConfig, settings: (string*string) list) =
+        settings
+        |> List.fold (fun state (key, value: string) -> __.AddSetting(state, key, value)) state
     /// Sets a dependency for the web app.
     [<CustomOperation "depends_on">]
     member __.DependsOn(state:WebAppConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
