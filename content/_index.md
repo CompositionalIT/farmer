@@ -15,7 +15,7 @@ Farmer is a DSL for rapidly generating non-complex ARM templates in a type-safe 
 * **Completely backwards compatible with ARM templates**. Farmer generates standard ARM templates so you can continue to use existing deployment processes.
 * **Runs on .NET Core**.
 * **Safely create dependencies between resources**. Uses static typing to give confidence that your templates will work first time.
-* **Easily access common properties of resources**. No more fighting to concatinate cryptic strings!
+* **Easily access common properties of resources**. No more fighting to concatenate cryptic strings!
 * **Extensible API**. Add new helpers and members as needed.
 * **Open source and free**. Farmer is free to use. We welcome contributions to the project!
 
