@@ -108,6 +108,8 @@ let validateParameters suppliedParameters deployment =
     | [] -> Ok ()
     | missingParameters -> Error (sprintf "The following parameters are missing: %s." (missingParameters |> String.concat ", "))
 
+let NoParameters : (string * string) list= []
+
 /// Executes the supplied Deployment against a resource group using the Azure CLI.
 /// If successful, returns a Map of the output keys and values.
 let execute resourceGroupName parameters deployment : Result<OutputMap, _> = result {
@@ -125,7 +127,6 @@ let execute resourceGroupName parameters deployment : Result<OutputMap, _> = res
     let! response =
         let deploymentName = sprintf "farmer-deploy-%d" (generateDeployNumber())
         let templateFilename = deployment.Template |> Writer.toJson |> Writer.toFile deployFolder "farmer-deploy"
-        //let parameters = parameters |> List.map(fun (key:string, value:string) -> key, {| value = value |}) |> Map.ofList |> JsonConvert.SerializeObject
         Az.deploy resourceGroupName deploymentName templateFilename parameters
 
     do!
