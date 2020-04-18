@@ -44,12 +44,16 @@ module Az =
                     RedirectStandardOutput = true,
                     RedirectStandardError = true)
                 |> Process.Start
-            azProcess.WaitForExit()
             let sb = StringBuilder()
-            while not azProcess.StandardOutput.EndOfStream do
-                sb.AppendLine(azProcess.StandardOutput.ReadLine()) |> ignore
-            while not azProcess.StandardError.EndOfStream do
-                sb.AppendLine(azProcess.StandardError.ReadLine()) |> ignore
+            let flushContents() =
+                let flushStream (stream:StreamReader) =
+                    while not stream.EndOfStream do sb.AppendLine(stream.ReadLine()) |> ignore
+                [ azProcess.StandardOutput; azProcess.StandardError ] |> List.iter flushStream
+
+            flushContents() // For some reason if we don't try flushing before waiting for exit, sometimes stdout crashes.
+            azProcess.WaitForExit()
+            flushContents()
+
             azProcess, sb.ToString()
 
         let processToResult (p:Process, response) =
@@ -65,6 +69,9 @@ module Az =
     let login() = az "login" |> Result.ignore
     /// Logs you into the Az CLI using the supplied service principal credentials.
     let loginWithCredentials appId secret tenantId = az (sprintf "login --service-principal --username %s --password %s --tenant %s" appId secret tenantId)
+    /// Lists all subscriptions
+    let listSubscriptions() = az "account list"
+    let setSubscription subscriptionId = az (sprintf "account set --subscription %s" subscriptionId)
     /// Creates a resource group.
     let createResourceGroup location resourceGroup =
         az (sprintf "group create -l %s -n %s" location resourceGroup) |> Result.ignore
@@ -90,6 +97,16 @@ type Subscription = { ID : Guid; Name : string; IsDefault : bool }
 let authenticate appId secret tenantId =
     Az.loginWithCredentials appId secret tenantId
     |> Result.map (JsonConvert.DeserializeObject<Subscription []>)
+
+/// Lists all subscriptions that the logged in identity has access to.
+let listSubscriptions() = result {
+    let! response = Az.listSubscriptions()
+    return response |> JsonConvert.DeserializeObject<Subscription array>
+}
+
+/// Sets the currently active (default) subscription.
+let setSubscription (subscriptionId:Guid) =
+    Az.setSubscription (subscriptionId.ToString())
 
 let validateParameters suppliedParameters deployment =
     let expected = deployment.Template.Parameters |> List.map(fun (SecureParameter p) -> p) |> Set
