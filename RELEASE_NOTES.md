@@ -1,5 +1,12 @@
 Release Notes
 =============
+## 0.12.0
+* Rename "db_name" keywords to just "name" (consistency)
+* Improve CLI access on Windows
+* Better CLI error handling on Linux & Mac
+* Azure Container Registry support for Web Apps
+* Support for providing multiple settings at once on WebApp and Functions
+
 ## 0.11.1
 * Fix a bug with deploy parameterisation.
 
