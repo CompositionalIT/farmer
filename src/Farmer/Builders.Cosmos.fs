@@ -13,7 +13,7 @@ type CosmosDbConfig =
     { ServerName : ResourceRef
       ServerConsistencyPolicy : ConsistencyPolicy
       ServerFailoverPolicy : FailoverPolicy
-      DbName : ResourceName
+      Name : ResourceName
       DbThroughput : int
       Containers : CosmosDbContainerConfig list
       PublicNetworkAccess : FeatureFlag
@@ -47,7 +47,7 @@ type CosmosDbContainerBuilder() =
         { state with ExcludedPaths = path :: state.ExcludedPaths }
 type CosmosDbBuilder() =
     member __.Yield _ =
-        { DbName = ResourceName.Empty
+        { Name = ResourceName.Empty
           ServerName = AutomaticPlaceholder
           ServerConsistencyPolicy = Eventual
           ServerFailoverPolicy = NoFailover
@@ -61,7 +61,7 @@ type CosmosDbBuilder() =
         | External _ ->
             state
         | AutomaticPlaceholder ->
-            { state with ServerName = sprintf "%s-server" state.DbName.Value |> ResourceName |> AutomaticallyCreated }
+            { state with ServerName = sprintf "%s-server" state.Name.Value |> ResourceName |> AutomaticallyCreated }
     /// Sets the name of the CosmosDB server.
     [<CustomOperation "server_name">]
     member __.ServerName(state:CosmosDbConfig, serverName) = { state with ServerName = AutomaticallyCreated serverName }
@@ -70,9 +70,9 @@ type CosmosDbBuilder() =
     [<CustomOperation "link_to_server">]
     member __.LinkToServer(state:CosmosDbConfig, server:CosmosDbConfig) = { state with ServerName = External server.ServerName.ResourceName }
     /// Sets the name of the database.
-    [<CustomOperation "db_name">]
-    member __.DbName(state:CosmosDbConfig, name) = { state with DbName = name }
-    member this.DbName(state:CosmosDbConfig, name:string) = this.DbName(state, ResourceName name)
+    [<CustomOperation "name">]
+    member __.Name(state:CosmosDbConfig, name) = { state with Name = name }
+    member this.Name(state:CosmosDbConfig, name:string) = this.Name(state, ResourceName name)
     /// Sets the consistency policy of the database.
     [<CustomOperation "consistency_policy">]
     member __.ConsistencyPolicy(state:CosmosDbConfig, consistency:ConsistencyPolicy) = { state with ServerConsistencyPolicy = consistency }
@@ -98,10 +98,10 @@ type CosmosDbBuilder() =
 open WebApp
 type WebAppBuilder with
     member this.DependsOn(state:WebAppConfig, cosmosDbConfig:CosmosDbConfig) =
-        this.DependsOn(state, cosmosDbConfig.DbName)
+        this.DependsOn(state, cosmosDbConfig.Name)
 type FunctionsBuilder with
     member this.DependsOn(state:FunctionsConfig, cosmosDbConfig:CosmosDbConfig) =
-        this.DependsOn(state, cosmosDbConfig.DbName)
+        this.DependsOn(state, cosmosDbConfig.Name)
 
 module Converters =
     let cosmosDb location (cosmos:CosmosDbConfig) =
@@ -119,14 +119,14 @@ module Converters =
             | External _ ->
                 None
         let sqlDb =
-            { Name = cosmos.DbName
+            { Name = cosmos.Name
               Account = cosmos.ServerName.ResourceName
               Throughput = string cosmos.DbThroughput }
         let containers = [
             for container in cosmos.Containers do
                 { Name = container.Name
                   Account = cosmos.ServerName.ResourceName
-                  Database = cosmos.DbName
+                  Database = cosmos.Name
                   PartitionKey =
                     {| Paths = fst container.PartitionKey
                        Kind = snd container.PartitionKey |}

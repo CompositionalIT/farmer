@@ -21,37 +21,35 @@ module Az =
 
     [<AutoOpen>]
     module AzHelpers =
-        let outputFile = Path.Combine(deployFolder, "output.txt")
         let (|OperatingSystem|_|) platform () =
             if RuntimeInformation.IsOSPlatform platform then Some() else None
-
-        let executeAzWindows arguments =
+        let azCliPath =
+            lazy
+                match () with
+                | OperatingSystem OSPlatform.Windows ->
+                    Environment.GetEnvironmentVariable("PATH").Split Path.PathSeparator
+                    |> Seq.map (fun s -> Path.Combine(s, "az.cmd"))
+                    |> Seq.tryFind File.Exists
+                    |> Option.defaultWith (fun () -> invalidOp "Can't find Azure CLI")
+                | OperatingSystem OSPlatform.Linux
+                | OperatingSystem OSPlatform.OSX ->
+                    "az"
+                | _ ->
+                    failwithf "OSPlatform: %s not supported" RuntimeInformation.OSDescription
+        let executeAz arguments =
+            printf "\taz %s... " arguments
             let azProcess =
                 ProcessStartInfo(
-                    FileName = "az",
-                    Arguments = arguments + " 1> " + outputFile + " 2>&1",
-                    UseShellExecute = true,
-                    CreateNoWindow = true,
-                    WindowStyle = ProcessWindowStyle.Hidden)
-                |> Process.Start
-            azProcess.WaitForExit()
-            let response = File.ReadAllText outputFile
-            File.Delete outputFile
-            azProcess, response
-        let executeAzLinux arguments =
-            let azProcess =
-                ProcessStartInfo(
-                    FileName = "az",
+                    FileName = azCliPath.Value,
                     Arguments = arguments,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
                     RedirectStandardOutput = true,
-                    WindowStyle = ProcessWindowStyle.Hidden)
+                    RedirectStandardError = true)
                 |> Process.Start
             azProcess.WaitForExit()
             let sb = StringBuilder()
             while not azProcess.StandardOutput.EndOfStream do
                 sb.AppendLine(azProcess.StandardOutput.ReadLine()) |> ignore
+            printfn ""
             azProcess, sb.ToString()
 
         let processToResult (p:Process, response) =
@@ -60,36 +58,27 @@ module Az =
             | _ -> Error response
 
     /// Executes a generic AZ CLI command.
-    let executeAz arguments =
-        match () with
-        | OperatingSystem OSPlatform.Windows ->
-            executeAzWindows arguments
-        | OperatingSystem OSPlatform.Linux
-        | OperatingSystem OSPlatform.OSX ->
-            executeAzLinux arguments
-        | _ ->
-            failwithf "OSPlatform: %s not supported" RuntimeInformation.OSDescription
-        |> processToResult
+    let az = AzHelpers.executeAz >> processToResult
     /// Tests if the Az CLI has logged in credentials.
-    let isLoggedIn() = executeAz "account show" |> function Ok _ -> true | Error _ -> false
+    let isLoggedIn() = az "account show" |> function Ok _ -> true | Error _ -> false
     /// Logs you into Az CLI interactively.
-    let login() = executeAz "login" |> Result.ignore
+    let login() = az "login" |> Result.ignore
     /// Logs you into the Az CLI using the supplied service principal credentials.
-    let loginWithCredentials appId secret tenantId = executeAz (sprintf "login --service-principal --username %s --password %s --tenant %s" appId secret tenantId)
+    let loginWithCredentials appId secret tenantId = az (sprintf "login --service-principal --username %s --password %s --tenant %s" appId secret tenantId)
     /// Creates a resource group.
     let createResourceGroup location resourceGroup =
-        executeAz (sprintf "group create -l %s -n %s" location resourceGroup) |> Result.ignore
+        az (sprintf "group create -l %s -n %s" location resourceGroup) |> Result.ignore
     /// Deploys an ARM template to an existing resource group.
     let deploy resourceGroup deploymentName templateFilename parameters =
         let parametersArgument =
             match parameters with
             | [] -> ""
             | parameters -> sprintf "--parameters %s" (parameters |> List.map(fun (a,b) -> sprintf "%s=%s" a b) |> String.concat " ")
-        executeAz (sprintf "group deployment create -g %s -n %s --template-file %s %s" resourceGroup deploymentName templateFilename parametersArgument)
+        az (sprintf "group deployment create -g %s -n %s --template-file %s %s" resourceGroup deploymentName templateFilename parametersArgument)
     /// Deploys a zip file to a web app using the Zip Deploy mechanism.
     let zipDeploy webAppName (zipDeployKind:ZipDeployKind) resourceGroup =
         let packageFilename = zipDeployKind.GetZipPath deployFolder
-        executeAz (sprintf """webapp deployment source config-zip --resource-group "%s" --name "%s" --src %s""" resourceGroup webAppName packageFilename)
+        az (sprintf """webapp deployment source config-zip --resource-group "%s" --name "%s" --src %s""" resourceGroup webAppName packageFilename)
 
 type OutputKey = string
 type OutputValue = string
@@ -116,9 +105,9 @@ let execute resourceGroupName parameters deployment : Result<OutputMap, _> = res
     prepareDeploymentFolder()
     do! deployment |> validateParameters parameters
     do!
-        printf "Checking Azure CLI logged in status... "
-        if Az.isLoggedIn() then printfn "you are already logged in, nothing to do."; Ok()
-        else printfn "logging you in."; Az.login()
+        printfn "Checking Azure CLI logged in status"
+        if Az.isLoggedIn() then printfn "You are already logged in, nothing to do."; Ok()
+        else printfn "Logging you in."; Az.login()
 
     printfn "Creating resource group %s..." resourceGroupName
     do! Az.createResourceGroup deployment.Location.Value resourceGroupName
