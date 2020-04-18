@@ -28,7 +28,7 @@ module Sku =
 type SqlAzureConfig =
     { ServerName : ResourceRef
       AdministratorCredentials : {| UserName : string; Password : SecureParameter |}
-      DbName : ResourceName
+      Name : ResourceName
       DbEdition : SqlSku
       DbCollation : string
       Encryption : FeatureFlag
@@ -43,7 +43,7 @@ type SqlAzureConfig =
             [ literal
                 (sprintf "Server=tcp:%s.database.windows.net,1433;Initial Catalog=%s;Persist Security Info=False;User ID=%s;Password="
                     this.ServerName.ResourceName.Value
-                    this.DbName.Value
+                    this.Name.Value
                     this.AdministratorCredentials.UserName)
               this.AdministratorCredentials.Password.AsArmRef
               literal ";MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;" ]
@@ -55,7 +55,7 @@ type SqlBuilder() =
     member __.Yield _ =
         { ServerName = AutomaticPlaceholder
           AdministratorCredentials = {| UserName = ""; Password = SecureParameter "" |}
-          DbName = ResourceName ""
+          Name = ResourceName ""
           DbEdition = Free
           DbCollation = "SQL_Latin1_General_CP1_CI_AS"
           Encryption = Disabled
@@ -67,7 +67,7 @@ type SqlBuilder() =
                 | External x -> External(x |> Helpers.santitiseDb |> ResourceName)
                 | AutomaticallyCreated x -> AutomaticallyCreated(x |> Helpers.santitiseDb |> ResourceName)
                 | AutomaticPlaceholder -> failwith "You must specific an server name, or link to an existing server."
-            DbName = state.DbName |> Helpers.santitiseDb |> ResourceName
+            Name = state.Name |> Helpers.santitiseDb |> ResourceName
             AdministratorCredentials =
                 match state.ServerName with
                 | External _ -> state.AdministratorCredentials
@@ -85,8 +85,8 @@ type SqlBuilder() =
     member __.LinkToServerName(state:SqlAzureConfig, serverName) = { state with ServerName = External serverName }
     member this.LinkToServerName(state:SqlAzureConfig, serverName) = this.LinkToServerName(state, ResourceName serverName)
     /// Sets the name of the database.
-    [<CustomOperation "db_name">]
-    member __.Name(state:SqlAzureConfig, name) = { state with DbName = name }
+    [<CustomOperation "name">]
+    member __.Name(state:SqlAzureConfig, name) = { state with Name = name }
     member this.Name(state:SqlAzureConfig, name:string) = this.Name(state, ResourceName name)
     /// Sets the sku of the database.
     [<CustomOperation "sku">]
@@ -129,7 +129,7 @@ type FunctionsBuilder with
 module Converters =
     let sql location (existingServers:SqlAzure list) (sql:SqlAzureConfig) =
         let database =
-            {| Name = sql.DbName
+            {| Name = sql.Name
                Edition =
                  match sql.DbEdition with
                  | SqlSku.Basic -> "Basic"
