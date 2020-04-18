@@ -75,13 +75,15 @@ type ArmBuilder() =
                    printfn "Warning: %d resources were found with the same name of '%s'. The first one will be used." instances.Length resourceName.Value
                    Some resource)
         let output =
-            { Parameters =
-                [ for resource in resources do
+            { Parameters = [
+                for resource in resources do
                     match resource with
                     | SqlServer sql -> sql.Credentials.Password
                     | Vm vm -> vm.Credentials.Password
                     | KeyVaultSecret { Value = ParameterSecret secureParameter } -> secureParameter
-                    | _ -> () ]
+                    | WebApp wa -> yield! wa.Parameters
+                    | _ -> ()
+              ]
               Outputs = state.Outputs
               Resources = resources }
 

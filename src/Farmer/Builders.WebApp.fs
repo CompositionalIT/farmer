@@ -115,7 +115,10 @@ type WebAppConfig =
       AlwaysOn : bool
       Runtime : WebAppRuntime
       ZipDeployPath : string option
-      DockerImage : (string * string) option }
+      DockerImage : (string * string) option
+      DockerCi : bool
+      DockerAcrCredentials : {| RegistryName : string; Password : SecureParameter |} option }
+
     /// Gets the ARM expression path to the publishing password of this web app.
     member this.PublishingPassword = publishingPassword this.Name
     /// Gets the Service Plan name for this web app.
@@ -150,7 +153,9 @@ type WebAppBuilder() =
           Runtime = WebAppRuntime.DotNetCoreLts
           OperatingSystem = Windows
           ZipDeployPath = None
-          DockerImage = None }
+          DockerImage = None
+          DockerCi = false
+          DockerAcrCredentials = None }
     member __.Run(state:WebAppConfig) =
         let operatingSystem =
             match state.DockerImage with
@@ -166,6 +171,14 @@ type WebAppBuilder() =
                 operatingSystem
             AppInsightsName =
                 Ai.tryCreateAppInsightsName state.AppInsightsName state.Name.Value
+            DockerImage =
+                match state.DockerImage, state.DockerAcrCredentials with
+                | Some (image, tag), Some credentials when not (image.Contains "azurecr.io") ->
+                    Some (sprintf "%s.azurecr.io/%s" credentials.RegistryName image, tag)
+                | Some x, _ ->
+                    Some x
+                | None, _ ->
+                    None
         }
     /// Sets the name of the web app.
     [<CustomOperation "name">]
@@ -239,6 +252,16 @@ type WebAppBuilder() =
     [<CustomOperation "docker_image">]
     /// Specifies a docker image to use from the registry (linux only), and the startup command to execute.
     member __.DockerImage(state:WebAppConfig, registryPath, startupFile) = { state with DockerImage = Some (registryPath, startupFile) }
+    [<CustomOperation "docker_ci">]
+    /// Have your custom Docker image automatically re-deployed when a new version is pushed to e.g. Docker hub.
+    member __.DockerCI(state:WebAppConfig) = { state with DockerCi = true }
+    [<CustomOperation "docker_use_azure_registry">]
+    /// Have your custom Docker image automatically re-deployed when a new version is pushed to e.g. Docker hub.
+    member __.DockerAcrCredentials(state:WebAppConfig, registryName) =
+        { state with
+            DockerAcrCredentials =
+                Some {| RegistryName = registryName
+                        Password = SecureParameter (sprintf "docker-password-for-%s" state.Name.Value) |} }
 type AppInsightsBuilder() =
     member __.Yield _ =
         { Name = ResourceName.Empty }
@@ -349,6 +372,16 @@ module Converters =
                 | Windows, None
                 | Linux, _ ->
                     ()
+
+                if wac.DockerCi then "DOCKER_ENABLE_CI", "true"
+
+                match wac.DockerAcrCredentials with
+                | Some credentials ->
+                    "DOCKER_REGISTRY_SERVER_PASSWORD", credentials.Password.AsArmRef.Eval()
+                    "DOCKER_REGISTRY_SERVER_URL", sprintf "https://%s.azurecr.io" credentials.RegistryName
+                    "DOCKER_REGISTRY_SERVER_USERNAME", credentials.RegistryName
+                | None ->
+                  ()
               ]
               Kind = [
                 "app"
@@ -424,6 +457,11 @@ module Converters =
                 |> Option.toList
               AppCommandLine = wac.DockerImage |> Option.map snd
               ZipDeployPath = wac.ZipDeployPath
+              Parameters = [
+                  match wac.DockerAcrCredentials with
+                  | Some credentials -> credentials.Password
+                  | None -> ()
+              ]
             }
 
         let ai =

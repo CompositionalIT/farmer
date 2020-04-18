@@ -37,7 +37,6 @@ module Az =
                 | _ ->
                     failwithf "OSPlatform: %s not supported" RuntimeInformation.OSDescription
         let executeAz arguments =
-            printf "\taz %s... " arguments
             let azProcess =
                 ProcessStartInfo(
                     FileName = azCliPath.Value,
@@ -49,7 +48,8 @@ module Az =
             let sb = StringBuilder()
             while not azProcess.StandardOutput.EndOfStream do
                 sb.AppendLine(azProcess.StandardOutput.ReadLine()) |> ignore
-            printfn ""
+            while not azProcess.StandardError.EndOfStream do
+                sb.AppendLine(azProcess.StandardError.ReadLine()) |> ignore
             azProcess, sb.ToString()
 
         let processToResult (p:Process, response) =
@@ -74,7 +74,7 @@ module Az =
             match parameters with
             | [] -> ""
             | parameters -> sprintf "--parameters %s" (parameters |> List.map(fun (a,b) -> sprintf "%s=%s" a b) |> String.concat " ")
-        az (sprintf "group deployment create -g %s -n %s --template-file %s %s" resourceGroup deploymentName templateFilename parametersArgument)
+        az (sprintf "deployment group create -g %s -n %s --template-file %s %s" resourceGroup deploymentName templateFilename parametersArgument)
     /// Deploys a zip file to a web app using the Zip Deploy mechanism.
     let zipDeploy webAppName (zipDeployKind:ZipDeployKind) resourceGroup =
         let packageFilename = zipDeployKind.GetZipPath deployFolder
@@ -97,15 +97,17 @@ let validateParameters suppliedParameters deployment =
     | [] -> Ok ()
     | missingParameters -> Error (sprintf "The following parameters are missing: %s." (missingParameters |> String.concat ", "))
 
+let NoParameters : (string * string) list= []
+
 /// Executes the supplied Deployment against a resource group using the Azure CLI.
 /// If successful, returns a Map of the output keys and values.
 let execute resourceGroupName parameters deployment : Result<OutputMap, _> = result {
     prepareDeploymentFolder()
     do! deployment |> validateParameters parameters
     do!
-        printfn "Checking Azure CLI logged in status"
-        if Az.isLoggedIn() then printfn "You are already logged in, nothing to do."; Ok()
-        else printfn "Logging you in."; Az.login()
+        printf "Checking Azure CLI logged in status... "
+        if Az.isLoggedIn() then printfn "you are already logged in, nothing to do."; Ok()
+        else printfn "logging you in."; Az.login()
 
     printfn "Creating resource group %s..." resourceGroupName
     do! Az.createResourceGroup deployment.Location.Value resourceGroupName
@@ -114,7 +116,6 @@ let execute resourceGroupName parameters deployment : Result<OutputMap, _> = res
     let! response =
         let deploymentName = sprintf "farmer-deploy-%d" (generateDeployNumber())
         let templateFilename = deployment.Template |> Writer.toJson |> Writer.toFile deployFolder "farmer-deploy"
-        //let parameters = parameters |> List.map(fun (key:string, value:string) -> key, {| value = value |}) |> Map.ofList |> JsonConvert.SerializeObject
         Az.deploy resourceGroupName deploymentName templateFilename parameters
 
     do!
