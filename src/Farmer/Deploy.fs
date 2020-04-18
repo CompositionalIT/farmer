@@ -37,7 +37,6 @@ module Az =
                 | _ ->
                     failwithf "OSPlatform: %s not supported" RuntimeInformation.OSDescription
         let executeAz arguments =
-            printf "\taz %s... " arguments
             let azProcess =
                 ProcessStartInfo(
                     FileName = azCliPath.Value,
@@ -49,7 +48,8 @@ module Az =
             let sb = StringBuilder()
             while not azProcess.StandardOutput.EndOfStream do
                 sb.AppendLine(azProcess.StandardOutput.ReadLine()) |> ignore
-            printfn ""
+            while not azProcess.StandardError.EndOfStream do
+                sb.AppendLine(azProcess.StandardError.ReadLine()) |> ignore
             azProcess, sb.ToString()
 
         let processToResult (p:Process, response) =
@@ -74,7 +74,7 @@ module Az =
             match parameters with
             | [] -> ""
             | parameters -> sprintf "--parameters %s" (parameters |> List.map(fun (a,b) -> sprintf "%s=%s" a b) |> String.concat " ")
-        az (sprintf "group deployment create -g %s -n %s --template-file %s %s" resourceGroup deploymentName templateFilename parametersArgument)
+        az (sprintf "deployment group create -g %s -n %s --template-file %s %s" resourceGroup deploymentName templateFilename parametersArgument)
     /// Deploys a zip file to a web app using the Zip Deploy mechanism.
     let zipDeploy webAppName (zipDeployKind:ZipDeployKind) resourceGroup =
         let packageFilename = zipDeployKind.GetZipPath deployFolder
@@ -105,9 +105,9 @@ let execute resourceGroupName parameters deployment : Result<OutputMap, _> = res
     prepareDeploymentFolder()
     do! deployment |> validateParameters parameters
     do!
-        printfn "Checking Azure CLI logged in status"
-        if Az.isLoggedIn() then printfn "You are already logged in, nothing to do."; Ok()
-        else printfn "Logging you in."; Az.login()
+        printf "Checking Azure CLI logged in status... "
+        if Az.isLoggedIn() then printfn "you are already logged in, nothing to do."; Ok()
+        else printfn "logging you in."; Az.login()
 
     printfn "Creating resource group %s..." resourceGroupName
     do! Az.createResourceGroup deployment.Location.Value resourceGroupName

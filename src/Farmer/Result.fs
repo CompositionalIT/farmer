@@ -5,6 +5,7 @@ module Result =
     open System
 
     let ofOption error = function Some s -> Ok s | None -> Error error
+    let toOption = function Ok s -> Some s | Error _ -> None
     let ignore result = Result.map ignore result
     let sequence results =
         let successes = ResizeArray()
