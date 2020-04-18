@@ -11,7 +11,7 @@ Try out Farmer and see what you think.
 
 #### I have an Azure subscription, but I'm not an expert. I like the look of this - how do I "use" it?
 1. Create an [ARM template](https://docs.microsoft.com/en-us/azure/azure-resource-manager/template-deployment-overview) using the Farmer sample app.
-1. Follow the steps [here](../api-overview/writer) to deploy the generated template into Azure.
+1. Follow the steps [here](../api-overview/template-generation) to deploy the generated template into Azure.
 1. Log any issues or ideas that you find [here](https://github.com/CompositionalIT/farmer/issues/new).
 
 #### How do I get Farmer to work from a continuous deployment (CD) process?
