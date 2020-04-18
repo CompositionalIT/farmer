@@ -22,6 +22,7 @@ The Functions builder is used to create Azure Functions accounts. It abstracts t
 | service_plan_name | Sets the name of the service plan hosting the function instance. |
 | link_to_service_plan | Instructs Farmer to link this webapp to an existing service plan rather than creating a new one. |
 | link_to_storage_account | Do not create an automatic storage account; instead, link to a storage account that is created outside of this Functions instance. |
+| https_only | Disables http for this functions app so that only HTTPS is used. |
 | app_insights_auto_name | Sets the name of the automatically-created app insights instance. |
 | app_insights_off | Removes any automatic app insights creation, configuration and settings for this webapp. |
 | link_to_app_insights | Instead of creating a new AI instance, configure this webapp to point to another AI instance that you are managing yourself. |

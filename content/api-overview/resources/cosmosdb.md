@@ -15,16 +15,16 @@ The CosmosDB builder abstracts the idea of server and database into one. If you 
 
 | Applies To | Keyword | Purpose |
 |-|-|-|
+| Database | name | Sets the name of the database. |
+| Database | link_to_server | Instructs Farmer to link this database to an existing Cosmos DB server rather than creating a new one. |
+| Database | throughput | Sets the throughput of the server. |
+| Database | add_containers | Adds a list of containers to the database. |
 | Server | server_name | Sets the name of the CosmosDB server. |
 | Server | enable_public_network_access | Enables public network access for the server. |
 | Server | disable_public_network_access | Disables public network access for the server. |
 | Server | consistency_policy | Sets the consistency policy of the database. |
 | Server | failover_policy | Sets the failover policy of the database. |
 | Server | free_tier | Registers this server with the free pricing tier, if supported and allowed by Azure. |
-| Database | db_name | Sets the name of the database. |
-| Database | link_to_server | Instructs Farmer to link this database to an existing Cosmos DB server rather than creating a new one. |
-| Database | throughput | Sets the throughput of the server. |
-| Database | add_containers | Adds a list of containers to the database. |
 
 #### Cosmos Container Builder
 The container builder allows you to create and configure a specific container that is attached to a cosmos database.

@@ -12,7 +12,7 @@ If you wish to create a SQL Database attached to an existing server, use the `li
 #### Builder Keywords
 | Applies To | Keyword | Purpose |
 |-|-|-|
-| Database | db_name | Sets the name of the database. |
+| Database | name | Sets the name of the database. |
 | Database | sku | Sets the sku of the database. |
 | Database | collation | Sets the collation of the database. |
 | Database | use_encryption | Enables transparent data encryption of the database. |

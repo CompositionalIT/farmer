@@ -13,7 +13,7 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 * Application Insights (`Microsoft.Insights/components`)
 * Site Extension (`siteextensions`)
 
-#### Builder Keywords
+#### Web App Builder Keywords
 
 | Applies To | Keyword | Purpose |
 |-|-|-|
@@ -25,8 +25,12 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Web App | run_from_package | Sets the web app to use "run from package" deployment capabilities. |
 | Web App | website_node_default_version | Sets the node version of the web app. |
 | Web App | setting | Sets an app setting of the web app in the form "key" "value". |
+| Web App | settings | Sets a list of app setting of the web app as tuples in the form of ("key", "value"). |
+| Web App | https_only | Disables http for this webapp so that only HTTPS is used. |
 | Web App | depends_on | Sets a dependency for the web app. |
 | Web App | docker_image | Sets the docker image to be pulled down from Docker Hub, and the command to execute as a second argument. Automatically sets the OS to Linux. |
+| Web App | docker_ci | Turns on continuous integration of the web app from the Docker source repository using a webhook.
+| Web App | docker_use_azure_registry | Uses the supplied Azure Container Registry name as the source of the Docker image, instead of Docker Hub. You do not need to specify the full url, but just the name of the registry itself.
 | Service Plan | service_plan_name | Sets the name of the service plan. If not set, uses the name of the web app postfixed with "-plan". |
 | Service Plan | always_on | Sets "Always On" flag. |
 | Service Plan | runtime_stack | Sets the runtime stack. |
@@ -35,8 +39,12 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Service Plan | worker_size | Sets the size of the service plan worker. |
 | Service Plan | number_of_workers | Sets the number of instances on the service plan. |
 
+> **Farmer also comes with a dedicated Service Plan builder** that contains all of the above keywords that apply to a Service Plan.
+>
+> Use this builder if you wish to have an explicit and clear separation between your web app and service plan. Otherwise, it is recommended to use the service plan keywords that exist directly in the web app builder, and let Farmer handle the connections between them.
+
 #### Post-deployment Builder Keywords
-The App Service builder contains special commands that are executed *after* the ARM deployment is completed.
+The Web App builder contains special commands that are executed *after* the ARM deployment is completed.
 
 | Keyword | Purpose |
 |-|-|
