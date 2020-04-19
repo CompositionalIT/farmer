@@ -1,5 +1,10 @@
 Release Notes
 =============
+## 0.12.1
+* Minimum version check on Azure CLI (2.3.1)
+* List all subscriptions
+* Set minimum subscription
+
 ## 0.12.0
 * Rename "db_name" keywords to just "name" (consistency)
 * Improve CLI access on Windows

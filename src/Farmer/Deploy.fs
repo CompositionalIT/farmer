@@ -127,7 +127,7 @@ let validateParameters suppliedParameters deployment =
     | [] -> Ok ()
     | missingParameters -> Error (sprintf "The following parameters are missing: %s." (missingParameters |> String.concat ", "))
 
-let NoParameters : (string * string) list= []
+let NoParameters : (string * string) list = []
 
 /// Executes the supplied Deployment against a resource group using the Azure CLI.
 /// If successful, returns a Map of the output keys and values.
