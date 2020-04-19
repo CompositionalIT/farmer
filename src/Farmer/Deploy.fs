@@ -6,11 +6,11 @@ open System
 open System.Diagnostics
 open System.IO
 
-let deployFolder = ".farmer"
-let prepareDeploymentFolder() =
-    if Directory.Exists deployFolder then Directory.Delete(deployFolder, true)
-    Directory.CreateDirectory deployFolder |> ignore
-let generateDeployNumber =
+let private DeployFolder = ".farmer"
+let private prepareDeploymentFolder() =
+    if Directory.Exists DeployFolder then Directory.Delete(DeployFolder, true)
+    Directory.CreateDirectory DeployFolder |> ignore
+let private generateDeployNumber =
     let r = Random()
     fun () -> r.Next 10000
 
@@ -18,6 +18,8 @@ let generateDeployNumber =
 module Az =
     open System.Runtime.InteropServices
     open System.Text
+
+    let MinimumVersion = Version "2.3.1"
 
     [<AutoOpen>]
     module AzHelpers =
@@ -55,7 +57,6 @@ module Az =
             flushContents()
 
             azProcess, sb.ToString()
-
         let processToResult (p:Process, response) =
             match p.ExitCode with
             | 0 -> Ok response
@@ -69,6 +70,7 @@ module Az =
     let login() = az "login" |> Result.ignore
     /// Logs you into the Az CLI using the supplied service principal credentials.
     let loginWithCredentials appId secret tenantId = az (sprintf "login --service-principal --username %s --password %s --tenant %s" appId secret tenantId)
+    let version() = az "--version"
     /// Lists all subscriptions
     let listSubscriptions() = az "account list"
     let setSubscription subscriptionId = az (sprintf "account set --subscription %s" subscriptionId)
@@ -84,12 +86,10 @@ module Az =
         az (sprintf "deployment group create -g %s -n %s --template-file %s %s" resourceGroup deploymentName templateFilename parametersArgument)
     /// Deploys a zip file to a web app using the Zip Deploy mechanism.
     let zipDeploy webAppName (zipDeployKind:ZipDeployKind) resourceGroup =
-        let packageFilename = zipDeployKind.GetZipPath deployFolder
+        let packageFilename = zipDeployKind.GetZipPath DeployFolder
         az (sprintf """webapp deployment source config-zip --resource-group "%s" --name "%s" --src %s""" resourceGroup webAppName packageFilename)
 
-type OutputKey = string
-type OutputValue = string
-type OutputMap = Map<OutputKey, OutputValue>
+/// Represents an Azure subscription
 type Subscription = { ID : Guid; Name : string; IsDefault : bool }
 
 /// Authenticates the Az CLI using the supplied ApplicationId, Client Secret and Tenant Id.
@@ -102,6 +102,19 @@ let authenticate appId secret tenantId =
 let listSubscriptions() = result {
     let! response = Az.listSubscriptions()
     return response |> JsonConvert.DeserializeObject<Subscription array>
+}
+
+let checkVersion minimum = result {
+    let! version = Az.version()
+    let! version =
+        version.Split([| "\r\n" |], StringSplitOptions.RemoveEmptyEntries)
+        |> Array.tryHead
+        |> Option.bind(fun text -> text.Split([| ' ' |], StringSplitOptions.RemoveEmptyEntries) |> Array.tryLast)
+        |> Option.map Version
+        |> Result.ofOption "Unable to determine Azure CLI version."
+    return!
+        if version < minimum then Error (sprintf "Minimum version of Azure CLI is %O. You have installed %O" minimum version)
+        else Ok version
 }
 
 /// Sets the currently active (default) subscription.
@@ -118,7 +131,9 @@ let NoParameters : (string * string) list= []
 
 /// Executes the supplied Deployment against a resource group using the Azure CLI.
 /// If successful, returns a Map of the output keys and values.
-let execute resourceGroupName parameters deployment : Result<OutputMap, _> = result {
+let execute resourceGroupName parameters deployment = result {
+    let! version = checkVersion Az.MinimumVersion
+    printfn "Compatible version of Azure CLI %O detected" version
     prepareDeploymentFolder()
     do! deployment |> validateParameters parameters
     do!
@@ -132,7 +147,7 @@ let execute resourceGroupName parameters deployment : Result<OutputMap, _> = res
     printfn "Deploying ARM template (please be patient, this can take a while)..."
     let! response =
         let deploymentName = sprintf "farmer-deploy-%d" (generateDeployNumber())
-        let templateFilename = deployment.Template |> Writer.toJson |> Writer.toFile deployFolder "farmer-deploy"
+        let templateFilename = deployment.Template |> Writer.toJson |> Writer.toFile DeployFolder "farmer-deploy"
         Az.deploy resourceGroupName deploymentName templateFilename parameters
 
     do!
