@@ -1,5 +1,8 @@
 Release Notes
 =============
+## 0.12.2
+* More resilient version checking.
+
 ## 0.12.1
 * Minimum version check on Azure CLI (2.3.1)
 * List all subscriptions
