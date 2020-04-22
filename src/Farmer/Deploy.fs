@@ -109,11 +109,19 @@ let checkVersion minimum = result {
     let! version =
         version.Split([| "\r\n" |], StringSplitOptions.RemoveEmptyEntries)
         |> Array.tryHead
-        |> Option.bind(fun text -> text.Split([| ' ' |], StringSplitOptions.RemoveEmptyEntries) |> Array.tryLast)
-        |> Option.map Version
-        |> Result.ofOption "Unable to determine Azure CLI version."
+        |> Option.bind(fun text ->
+            match text.Split([| ' ' |], StringSplitOptions.RemoveEmptyEntries) with
+            | [| _; version |]
+            | [| _; version; _ |] ->
+                Some version
+            | _ ->
+                None)
+        |> Option.bind(fun versionText ->
+            try Some(Version versionText)
+            with _ -> None)
+        |> Result.ofOption (sprintf "Unable to determine Azure CLI version. You need to have at least %O installed." minimum)
     return!
-        if version < minimum then Error (sprintf "Minimum version of Azure CLI is %O. You have installed %O" minimum version)
+        if version < minimum then Error (sprintf "You have %O of the Azure CLI installed, but the minimum version is %O. Please upgrade." version minimum)
         else Ok version
 }
 
