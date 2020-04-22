@@ -83,7 +83,7 @@ type ArmBuilder() =
                     | KeyVaultSecret { Value = ParameterSecret secureParameter } -> secureParameter
                     | WebApp wa -> yield! wa.Parameters
                     | _ -> ()
-              ]
+              ] |> List.distinct
               Outputs = state.Outputs
               Resources = resources }
 

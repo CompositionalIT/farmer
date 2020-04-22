@@ -1,7 +1,9 @@
 Release Notes
 =============
 ## 0.12.2
-* More resilient version checking.
+* More resilient version checking
+* Better parameterisation for Docker credentials
+* Avoid duplicate parameters
 
 ## 0.12.1
 * Minimum version check on Azure CLI (2.3.1)

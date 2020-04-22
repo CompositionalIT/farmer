@@ -261,7 +261,7 @@ type WebAppBuilder() =
         { state with
             DockerAcrCredentials =
                 Some {| RegistryName = registryName
-                        Password = SecureParameter (sprintf "docker-password-for-%s" state.Name.Value) |} }
+                        Password = SecureParameter (sprintf "docker-password-for-%s" registryName) |} }
 type AppInsightsBuilder() =
     member __.Yield _ =
         { Name = ResourceName.Empty }
