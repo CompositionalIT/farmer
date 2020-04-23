@@ -105,9 +105,9 @@ let listSubscriptions() = result {
 }
 
 let checkVersion minimum = result {
-    let! version = Az.version()
+    let! versionOutput = Az.version()
     let! version =
-        version.Split([| "\r\n" |], StringSplitOptions.RemoveEmptyEntries)
+        versionOutput.Replace("\r\n","\n").Replace("\r","\n").Split([| "\n" |], StringSplitOptions.RemoveEmptyEntries)
         |> Array.tryHead
         |> Option.bind(fun text ->
             match text.Split([| ' ' |], StringSplitOptions.RemoveEmptyEntries) with
@@ -119,7 +119,7 @@ let checkVersion minimum = result {
         |> Option.bind(fun versionText ->
             try Some(Version versionText)
             with _ -> None)
-        |> Result.ofOption (sprintf "Unable to determine Azure CLI version. You need to have at least %O installed." minimum)
+        |> Result.ofOption (sprintf "Unable to determine Azure CLI version. You need to have at least %O installed. Output was: %s" minimum versionOutput)
     return!
         if version < minimum then Error (sprintf "You have %O of the Azure CLI installed, but the minimum version is %O. Please upgrade." version minimum)
         else Ok version
