@@ -17,9 +17,10 @@ steps:
   inputs:
     command: restore
     projects: '**/*.fsproj'
-
 - task: DotNetCoreCLI@2
-  displayName: 'Build'
+  displayName: 'Build and Package'
   inputs:
-    command: build
-    projects: '**/*.fsproj'
+    command: 'pack'
+    packagesToPack: 'src/Farmer'
+    configuration: Release
+    versioningScheme: 'off'
