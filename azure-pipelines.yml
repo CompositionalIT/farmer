@@ -2,9 +2,9 @@ trigger:
 - master
 strategy:
   matrix:
-    linux:
+    Linux:
       imageName: 'ubuntu-latest'
-    windows:
+    Windows:
       imageName: 'windows-latest'
 pool:
   vmImage: $(imageName)
@@ -25,5 +25,5 @@ steps:
   displayName: Store NuGet Package
   inputs:
     PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-    ArtifactName: 'FarmerPackage'
+    ArtifactName: 'FarmerPackage-$(imageName)'
     publishLocation: 'Container'
