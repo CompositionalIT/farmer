@@ -1,8 +1,13 @@
 trigger:
 - master
-
+strategy:
+  matrix:
+    linux:
+      imageName: 'ubuntu-latest'
+    windows:
+      imageName: 'windows-latest'
 pool:
-  vmImage: 'windows-latest'
+  vmImage: $(imageName)
 steps:
 - task: DotNetCoreCLI@2
   displayName: 'Build and Test'
