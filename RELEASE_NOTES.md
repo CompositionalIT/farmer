@@ -1,5 +1,8 @@
 Release Notes
 =============
+## 0.12.3
+* Improve support for Azure CLI on Linux
+
 ## 0.12.2
 * More resilient version checking
 * Better parameterisation for Docker credentials
