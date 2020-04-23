@@ -3,20 +3,7 @@ trigger:
 
 pool:
   vmImage: 'windows-latest'
-
 steps:
-- task: UseDotNet@2
-  displayName: 'Install dotnet 3.1'
-  inputs:
-    packageType: sdk
-    version: 3.1.101
-    installationPath: $(Agent.ToolsDirectory)/dotnet
-
-- task: DotNetCoreCLI@2
-  displayName: 'Restore'
-  inputs:
-    command: restore
-    projects: '**/*.fsproj'
 - task: DotNetCoreCLI@2
   displayName: 'Build and Package'
   inputs:
@@ -24,3 +11,9 @@ steps:
     packagesToPack: 'src/Farmer'
     configuration: Release
     versioningScheme: 'off'
+- task: PublishBuildArtifacts@1
+  displayName: Store NuGet Package
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    ArtifactName: 'FarmerPackage'
+    publishLocation: 'Container'
