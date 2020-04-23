@@ -5,7 +5,11 @@ pool:
   vmImage: 'windows-latest'
 steps:
 - task: DotNetCoreCLI@2
-  displayName: 'Build and Package'
+  displayName: 'Build and Test'
+  inputs:
+    command: 'test'
+- task: DotNetCoreCLI@2
+  displayName: 'Package'
   inputs:
     command: 'pack'
     packagesToPack: 'src/Farmer'
