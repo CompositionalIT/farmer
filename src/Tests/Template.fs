@@ -29,7 +29,7 @@ let ``Can create a basic template`` () =
     Assert.Empty template.resources
 
 [<Fact>]
-let ``Correct generates outputs`` () =
+let ``Correctly generates outputs`` () =
     let template = createSimpleDeployment [ "p1", "v1"; "p2", "v2" ] [] |> toTemplate
     Assert.Equal(template.outputs.["p1"].value, "v1")
     Assert.Equal(template.outputs.["p2"].value, "v2")

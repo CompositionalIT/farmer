@@ -33,31 +33,49 @@ let fsharpApp = container {
     cpu_cores 2
 }
 
-let deployment = arm {
-    location NorthEurope
-    add_resource nginx
-    add_resource fsharpApp
-}
-
 /// Client instance needed to get the serializer settings.
 let dummyClient = new ContainerInstanceManagementClient (Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
 
+let getContainerGroup deployment =
+    let resource =
+        deployment.Template
+        |> Writer.TemplateGeneration.processTemplate
+        |> fun containerGroup -> containerGroup.resources.[0]
+        |> SafeJsonConvert.SerializeObject
+
+    SafeJsonConvert.DeserializeObject<ContainerGroup> (resource, dummyClient.SerializationSettings)
+
 [<Fact>]
-let ``Validate Container Group Template Generation`` () =
-    let containerGroupTemplate = deployment.Template |> Writer.toJson
+let ``Single container in a group is correctly created`` () =
+    let deployment = arm {
+        location NorthEurope
+        add_resource nginx
+    }
 
-    let firstResource = JObject.Parse(containerGroupTemplate).["resources"].[0]
+    let group = getContainerGroup deployment
+    Assert.Equal ("appWithHttpFrontend", group.Name)
+    Assert.True (group.IpAddress.Ports.[0].PortProperty = 443)
+    Assert.True (group.IpAddress.Ports.[1].PortProperty = 80)
+    Assert.Equal ("Linux", group.OsType)
 
-    let containerGroupDeserialized = SafeJsonConvert.DeserializeObject<ContainerGroup> (firstResource.ToString(), dummyClient.SerializationSettings)
-    Assert.Equal ("appWithHttpFrontend", containerGroupDeserialized.Name)
-    Assert.NotNull containerGroupDeserialized.IpAddress
-    Assert.NotNull containerGroupDeserialized.IpAddress.Ports
-    Assert.Equal (2, containerGroupDeserialized.IpAddress.Ports.Count)
-    Assert.True (containerGroupDeserialized.IpAddress.Ports |> Seq.exists (fun p -> p.PortProperty = 80))
-    Assert.True (containerGroupDeserialized.IpAddress.Ports |> Seq.exists (fun p -> p.PortProperty = 443))
-    Assert.Equal ("Linux", containerGroupDeserialized.OsType)
-    Assert.Equal (2, containerGroupDeserialized.Containers.Count)
-    Assert.Equal ("nginx:1.17.6-alpine", containerGroupDeserialized.Containers.[0].Image)
-    Assert.Equal ("fsharpApp".ToLower(), containerGroupDeserialized.Containers.[1].Name)
-    Assert.Equal (1.5, containerGroupDeserialized.Containers.[1].Resources.Requests.MemoryInGB)
-    Assert.Equal (2., containerGroupDeserialized.Containers.[1].Resources.Requests.Cpu)
+    Assert.Equal ("nginx:1.17.6-alpine", group.Containers.[0].Image)
+    Assert.Equal ("nginx", group.Containers.[0].Name)
+    Assert.Equal (0.5, group.Containers.[0].Resources.Requests.MemoryInGB)
+    Assert.Equal (1., group.Containers.[0].Resources.Requests.Cpu)
+
+[<Fact>]
+let ``Multiple containers correctly link to a common container group`` () =
+    let deployment = arm {
+        location NorthEurope
+        add_resource nginx
+        add_resource fsharpApp
+    }
+
+    let group = getContainerGroup deployment
+
+    Assert.Equal (2, group.Containers.Count)
+    Assert.Equal ("nginx", group.Containers.[0].Name)
+    Assert.Equal ("fsharpapp", group.Containers.[1].Name)
+    Assert.Equal (1.5, group.Containers.[1].Resources.Requests.MemoryInGB)
+    Assert.Equal (2., group.Containers.[1].Resources.Requests.Cpu)
+    Assert.Equal (8080, group.Containers.[1].Ports.[0].Port)
