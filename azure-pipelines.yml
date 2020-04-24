@@ -17,13 +17,12 @@ steps:
   displayName: 'Build'
   inputs:
     command: 'build'
-    configuration: Release
+    arguments: '-c release'
 - task: DotNetCoreCLI@2
   displayName: 'Test'
   inputs:
-    configuration: Release
     command: 'test'
-    arguments: '-v n'
+    arguments: '-v n -c release'
 - task: DotNetCoreCLI@2
   displayName: 'Package'
   inputs:
