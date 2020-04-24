@@ -51,8 +51,8 @@ module TemplateGeneration =
         outputs =
             template.Outputs
             |> List.map(fun (k, v) ->
-                k, Map [ "type", "string"
-                         "value", v ])
+                k, {| ``type`` = "string"
+                      value = v |})
             |> Map.ofList
     |}
 

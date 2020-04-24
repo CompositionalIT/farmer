@@ -4,12 +4,11 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
 
     <IsPackable>false</IsPackable>
-    <GenerateProgramFile>false</GenerateProgramFile>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Tests.fs" />
-    <Compile Include="Program.fs" />
+    <Compile Include="Template.fs" />
+    <Compile Include="AzCli.fs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -140,10 +140,13 @@ let NoParameters : (string * string) list = []
 /// Executes the supplied Deployment against a resource group using the Azure CLI.
 /// If successful, returns a Map of the output keys and values.
 let execute resourceGroupName parameters deployment = result {
+    do! deployment |> validateParameters parameters
+
     let! version = checkVersion Az.MinimumVersion
     printfn "Compatible version of Azure CLI %O detected" version
+
     prepareDeploymentFolder()
-    do! deployment |> validateParameters parameters
+
     do!
         printf "Checking Azure CLI logged in status... "
         if Az.isLoggedIn() then printfn "you are already logged in, nothing to do."; Ok()
