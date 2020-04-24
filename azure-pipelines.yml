@@ -10,7 +10,15 @@ pool:
   vmImage: $(imageName)
 steps:
 - task: DotNetCoreCLI@2
-  displayName: 'Build and Test'
+  displayName: 'Restore'
+  inputs:
+    command: 'restore'
+- task: DotNetCoreCLI@2
+  displayName: 'Build'
+  inputs:
+    command: 'build'
+- task: DotNetCoreCLI@2
+  displayName: 'Test'
   inputs:
     command: 'test'
 - task: DotNetCoreCLI@2
