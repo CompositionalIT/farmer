@@ -23,6 +23,7 @@ steps:
   inputs:
     configuration: Release
     command: 'test'
+    arguments: '-v n'
 - task: DotNetCoreCLI@2
   displayName: 'Package'
   inputs:
