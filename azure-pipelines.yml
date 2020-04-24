@@ -31,7 +31,7 @@ steps:
     packagesToPack: 'src/Farmer'
     configuration: Release
     versioningScheme: 'off'
-    verbosityPack: 'Normal'
+    verbosityPack: 'Minimal'
 - task: PublishBuildArtifacts@1
   displayName: Store NuGet Package
   inputs:
