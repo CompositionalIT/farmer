@@ -17,9 +17,11 @@ steps:
   displayName: 'Build'
   inputs:
     command: 'build'
+    configuration: Release
 - task: DotNetCoreCLI@2
   displayName: 'Test'
   inputs:
+    configuration: Release
     command: 'test'
 - task: DotNetCoreCLI@2
   displayName: 'Package'
