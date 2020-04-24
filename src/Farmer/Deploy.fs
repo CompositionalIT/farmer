@@ -6,10 +6,10 @@ open System
 open System.Diagnostics
 open System.IO
 
-let private DeployFolder = ".farmer"
+let private deployFolder = ".farmer"
 let private prepareDeploymentFolder() =
-    if Directory.Exists DeployFolder then Directory.Delete(DeployFolder, true)
-    Directory.CreateDirectory DeployFolder |> ignore
+    if Directory.Exists deployFolder then Directory.Delete(deployFolder, true)
+    Directory.CreateDirectory deployFolder |> ignore
 let private generateDeployNumber =
     let r = Random()
     fun () -> r.Next 10000
@@ -86,7 +86,7 @@ module Az =
         az (sprintf "deployment group create -g %s -n %s --template-file %s %s" resourceGroup deploymentName templateFilename parametersArgument)
     /// Deploys a zip file to a web app using the Zip Deploy mechanism.
     let zipDeploy webAppName (zipDeployKind:ZipDeployKind) resourceGroup =
-        let packageFilename = zipDeployKind.GetZipPath DeployFolder
+        let packageFilename = zipDeployKind.GetZipPath deployFolder
         az (sprintf """webapp deployment source config-zip --resource-group "%s" --name "%s" --src %s""" resourceGroup webAppName packageFilename)
 
 /// Represents an Azure subscription
@@ -158,7 +158,7 @@ let execute resourceGroupName parameters deployment = result {
     printfn "Deploying ARM template (please be patient, this can take a while)..."
     let! response =
         let deploymentName = sprintf "farmer-deploy-%d" (generateDeployNumber())
-        let templateFilename = deployment.Template |> Writer.toJson |> Writer.toFile DeployFolder "farmer-deploy"
+        let templateFilename = deployment.Template |> Writer.toJson |> Writer.toFile deployFolder "farmer-deploy"
         Az.deploy resourceGroupName deploymentName templateFilename parameters
 
     do!

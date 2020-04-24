@@ -11,6 +11,6 @@ let ``Can connect to Az CLI``() =
 
 [<Fact>]
 let ``If parameters are missing, deployment is immediately rejected``() =
-    let deployment = Template.TestHelpers.createDeployment [] [ "foo" ]
+    let deployment = Template.TestHelpers.createSimpleDeployment [] [ "p1" ]
     let result = deployment |> Deploy.execute "sample-rg" [] |> sprintf "%A"
-    Assert.Equal(result, Error "The following parameters are missing: foo." |> sprintf "%A")
+    Assert.Equal(result, Error "The following parameters are missing: p1." |> sprintf "%A")
