@@ -13,7 +13,7 @@ steps:
   displayName: 'Restore'
   inputs:
     command: 'restore'
-    restoreArguments: '-v n'
+    verbosityRestore: 'Normal'
 - task: DotNetCoreCLI@2
   displayName: 'Build'
   inputs:
