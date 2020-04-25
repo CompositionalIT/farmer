@@ -6,7 +6,6 @@ open Farmer.Resources
 open Microsoft.Azure.Management.ContainerInstance
 open Microsoft.Azure.Management.ContainerInstance.Models
 open Microsoft.Rest
-open Microsoft.Rest.Serialization
 open System
 
 let nginx = container {
@@ -35,23 +34,18 @@ let fsharpApp = container {
 /// Client instance needed to get the serializer settings.
 let dummyClient = new ContainerInstanceManagementClient (Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
 
-let getContainerGroup deployment =
-    let resource =
-        deployment.Template
-        |> Writer.TemplateGeneration.processTemplate
-        |> fun containerGroup -> containerGroup.resources.[0]
-        |> SafeJsonConvert.SerializeObject
-
-    SafeJsonConvert.DeserializeObject<ContainerGroup> (resource, dummyClient.SerializationSettings)
-
 let tests = testList "Container Group Tests" [
     test "Single container in a group is correctly created" {
-        let deployment = arm {
-            location NorthEurope
-            add_resource nginx
-        }
+        let group =
+            arm {
+                location NorthEurope
+                add_resource nginx
+            }
+            |> findAzureResources<ContainerGroup> dummyClient.SerializationSettings
+            |> List.head
 
-        let group = getContainerGroup deployment
+        group.Validate()
+
         Expect.equal group.Name "appWithHttpFrontend" ""
         Expect.equal group.IpAddress.Ports.[0].PortProperty 443 ""
         Expect.equal group.IpAddress.Ports.[1].PortProperty 80 ""
@@ -64,14 +58,15 @@ let tests = testList "Container Group Tests" [
     }
 
     test "Multiple containers correctly link to a common container group" {
-        let deployment = arm {
-            location NorthEurope
-            add_resource nginx
-            add_resource fsharpApp
-        }
-
-        let group = getContainerGroup deployment
-
+        let group =
+            arm {
+                location NorthEurope
+                add_resource nginx
+                add_resource fsharpApp
+            }
+            |> findAzureResources<ContainerGroup> dummyClient.SerializationSettings
+            |> List.head
+        group.Validate()
         Expect.equal group.Containers.Count 2 ""
         Expect.equal group.Containers.[0].Name "nginx" ""
         Expect.equal group.Containers.[1].Name "fsharpapp" ""
