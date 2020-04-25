@@ -141,7 +141,7 @@ let NoParameters : (string * string) list = []
 
 /// Executes the supplied Deployment against a resource group using the Azure CLI.
 /// If successful, returns a Map of the output keys and values.
-let execute resourceGroupName parameters deployment = result {
+let tryExecute resourceGroupName parameters deployment = result {
     do! deployment |> validateParameters parameters
 
     let! version = checkVersion Az.MinimumVersion
@@ -175,7 +175,7 @@ let execute resourceGroupName parameters deployment = result {
     return response.properties.outputs |> Map.map (fun _ value -> value.value)
 }
 
-let tryExecute resourceGroupName parameters deployment =
-    match execute resourceGroupName parameters deployment with
+let execute resourceGroupName parameters deployment =
+    match tryExecute resourceGroupName parameters deployment with
     | Ok output -> output
     | Error message -> failwith message
