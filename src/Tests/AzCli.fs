@@ -11,7 +11,7 @@ let tests = testList "Azure CLI" [
     }
     test "If parameters are missing, deployment is immediately rejected" {
         let deployment = Template.TestHelpers.createSimpleDeployment [ "p1" ]
-        let result = deployment |> Deploy.execute "sample-rg" []
+        let result = deployment |> Deploy.tryExecute "sample-rg" []
         Expect.equal result (Error "The following parameters are missing: p1.") ""
     }
 
@@ -19,7 +19,7 @@ let tests = testList "Azure CLI" [
         let deployment = arm { location NorthEurope }
         let resourceGroupName = sprintf "farmer-integration-test-delete-%O" (Guid.NewGuid())
         printfn "Creating resource group %s..." resourceGroupName
-        let deployResponse = deployment |> Deploy.execute resourceGroupName []
+        let deployResponse = deployment |> Deploy.tryExecute resourceGroupName []
         let deleteResponse = Deploy.Az.delete resourceGroupName
 
         match deployResponse, deleteResponse with
