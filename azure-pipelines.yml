@@ -17,11 +17,13 @@ steps:
   inputs:
     command: 'build'
     arguments: '-c release'
-- task: DotNetCoreCLI@2
+- task: AzureCLI@2
   displayName: 'Test'
   inputs:
-    command: 'test'
-    arguments: '-v n -c release'
+    azureSubscription: 'Microsoft Azure Sponsorship(6c9e2629-3964-4b24-bc32-97dafc8c90f3)'
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: 'dotnet test -v n -c release'
 - task: DotNetCoreCLI@2
   displayName: 'Package'
   inputs:
