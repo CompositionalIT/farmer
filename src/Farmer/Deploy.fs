@@ -174,3 +174,8 @@ let execute resourceGroupName parameters deployment = result {
     let response = response |> JsonConvert.DeserializeObject<{| properties : {| outputs : Map<string, {| value : string |}> |} |}>
     return response.properties.outputs |> Map.map (fun _ value -> value.value)
 }
+
+let tryExecute resourceGroupName parameters deployment =
+    match execute resourceGroupName parameters deployment with
+    | Ok output -> output
+    | Error message -> failwith message
