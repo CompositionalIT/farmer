@@ -1,14 +1,13 @@
-module ContainerGroupTests
+module ContainerGroup
 
+open Expecto
 open Farmer
 open Farmer.Resources
 open Microsoft.Azure.Management.ContainerInstance
 open Microsoft.Azure.Management.ContainerInstance.Models
 open Microsoft.Rest
 open Microsoft.Rest.Serialization
-open Newtonsoft.Json.Linq
 open System
-open Xunit
 
 let nginx = container {
     group_name "appWithHttpFrontend"
@@ -45,37 +44,40 @@ let getContainerGroup deployment =
 
     SafeJsonConvert.DeserializeObject<ContainerGroup> (resource, dummyClient.SerializationSettings)
 
-[<Fact>]
-let ``Single container in a group is correctly created`` () =
-    let deployment = arm {
-        location NorthEurope
-        add_resource nginx
+let tests = testList "Container Group Tests" [
+    test "Single container in a group is correctly created" {
+        let deployment = arm {
+            location NorthEurope
+            add_resource nginx
+        }
+
+        let group = getContainerGroup deployment
+        Expect.equal group.Name "appWithHttpFrontend" ""
+        Expect.equal group.IpAddress.Ports.[0].PortProperty 443 ""
+        Expect.equal group.IpAddress.Ports.[1].PortProperty 80 ""
+        Expect.equal group.OsType "Linux" ""
+
+        Expect.equal group.Containers.[0].Image "nginx:1.17.6-alpine" ""
+        Expect.equal group.Containers.[0].Name "nginx" ""
+        Expect.equal group.Containers.[0].Resources.Requests.MemoryInGB 0.5 ""
+        Expect.equal group.Containers.[0].Resources.Requests.Cpu 1.0 ""
     }
 
-    let group = getContainerGroup deployment
-    Assert.Equal ("appWithHttpFrontend", group.Name)
-    Assert.True (group.IpAddress.Ports.[0].PortProperty = 443)
-    Assert.True (group.IpAddress.Ports.[1].PortProperty = 80)
-    Assert.Equal ("Linux", group.OsType)
+    test "Multiple containers correctly link to a common container group" {
+        let deployment = arm {
+            location NorthEurope
+            add_resource nginx
+            add_resource fsharpApp
+        }
 
-    Assert.Equal ("nginx:1.17.6-alpine", group.Containers.[0].Image)
-    Assert.Equal ("nginx", group.Containers.[0].Name)
-    Assert.Equal (0.5, group.Containers.[0].Resources.Requests.MemoryInGB)
-    Assert.Equal (1., group.Containers.[0].Resources.Requests.Cpu)
+        let group = getContainerGroup deployment
 
-[<Fact>]
-let ``Multiple containers correctly link to a common container group`` () =
-    let deployment = arm {
-        location NorthEurope
-        add_resource nginx
-        add_resource fsharpApp
+        Expect.equal group.Containers.Count 2 ""
+        Expect.equal group.Containers.[0].Name "nginx" ""
+        Expect.equal group.Containers.[1].Name "fsharpapp" ""
+        Expect.equal group.Containers.[1].Resources.Requests.MemoryInGB 1.5 ""
+        Expect.equal group.Containers.[1].Resources.Requests.Cpu 2.0 ""
+        Expect.equal group.Containers.[1].Ports.[0].Port 8080 ""
     }
+]
 
-    let group = getContainerGroup deployment
-
-    Assert.Equal (2, group.Containers.Count)
-    Assert.Equal ("nginx", group.Containers.[0].Name)
-    Assert.Equal ("fsharpapp", group.Containers.[1].Name)
-    Assert.Equal (1.5, group.Containers.[1].Resources.Requests.MemoryInGB)
-    Assert.Equal (2., group.Containers.[1].Resources.Requests.Cpu)
-    Assert.Equal (8080, group.Containers.[1].Ports.[0].Port)
