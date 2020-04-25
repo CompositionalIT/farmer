@@ -26,6 +26,8 @@ steps:
     inlineScript: 'dotnet test -v n -c release -l trx'
 - task: PublishTestResults@2
   displayName: 'Publish Test Results'
+  testResultsFiles: '**/*.trx'
+  testResultsFormat: VSTest
 - task: DotNetCoreCLI@2
   displayName: 'Package'
   inputs:
