@@ -1,5 +1,3 @@
-trigger:
-- master
 strategy:
   matrix:
     Linux:
@@ -13,16 +11,17 @@ steps:
   displayName: 'Restore'
   inputs:
     command: 'restore'
+    verbosityRestore: 'Normal'
 - task: DotNetCoreCLI@2
   displayName: 'Build'
   inputs:
     command: 'build'
-    configuration: Release
+    arguments: '-c release'
 - task: DotNetCoreCLI@2
   displayName: 'Test'
   inputs:
-    configuration: Release
     command: 'test'
+    arguments: '-v n -c release'
 - task: DotNetCoreCLI@2
   displayName: 'Package'
   inputs:
@@ -30,7 +29,7 @@ steps:
     packagesToPack: 'src/Farmer'
     configuration: Release
     versioningScheme: 'off'
-    verbosityPack: 'Normal'
+    verbosityPack: 'Minimal'
 - task: PublishBuildArtifacts@1
   displayName: Store NuGet Package
   inputs:
