@@ -11,7 +11,7 @@ steps:
   displayName: 'Restore'
   inputs:
     command: 'restore'
-    verbosityRestore: 'Normal'
+    verbosityRestore: 'Minimal'
 - task: DotNetCoreCLI@2
   displayName: 'Build'
   inputs:
