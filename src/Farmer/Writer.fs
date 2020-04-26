@@ -43,6 +43,7 @@ module TemplateGeneration =
                 | EventHubAuthRule rule -> Converters.Outputters.authRule rule |> box
 
                 | CognitiveService service -> Converters.Outputters.cognitiveServices service |> box
+                | ServiceBusNamespace ns -> Converters.Outputters.serviceBusNamespace ns |> box
             )
         parameters =
             template.Parameters
