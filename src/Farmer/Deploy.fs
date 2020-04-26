@@ -43,6 +43,7 @@ module Az =
                 ProcessStartInfo(
                     FileName = azCliPath.Value,
                     Arguments = arguments,
+                    UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true)
                 |> Process.Start

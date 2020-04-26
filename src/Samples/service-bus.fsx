@@ -4,16 +4,25 @@
 open Farmer
 open Farmer.Resources
 
-let myQueue = queue {
+let myQueue = serviceBus {
+    namespace_name "allMyQueues"
     name "isaacssuperqueue"
-    sku ServiceBusNamespaceSku.Standard
 }
 
-let d = arm {
+let mySecondQueue = serviceBus {
+    name "isaacssecondsuperqueue"
+    link_to_namespace myQueue
+}
+
+let deployment = arm {
     location NorthEurope
     add_resource myQueue
-    output "NamespaceDefaultConnectionString" myQueue.NamespaceDefaultConnectionString
-    output "DefaultSharedAccessPolicyPrimaryKey" myQueue.DefaultSharedAccessPolicyPrimaryKey
+    add_resource mySecondQueue
+    output "1-NamespaceDefaultConnectionString" myQueue.NamespaceDefaultConnectionString
+    output "1-DefaultSharedAccessPolicyPrimaryKey" myQueue.DefaultSharedAccessPolicyPrimaryKey
+    output "2-NamespaceDefaultConnectionString" mySecondQueue.NamespaceDefaultConnectionString
+    output "2-DefaultSharedAccessPolicyPrimaryKey" mySecondQueue.DefaultSharedAccessPolicyPrimaryKey
 }
 
-let r = d |> Deploy.execute "service-bus-test" []
+deployment
+|> Deploy.execute "service-bus-test" []

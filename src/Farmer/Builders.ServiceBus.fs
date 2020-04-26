@@ -21,7 +21,7 @@ type ServiceBusQueueConfig =
       MaxDeliveryCount : int option
       EnablePartitioning : bool option
       DependsOn : ResourceName list }
-    member private this.GetKeyPath sbNsName property =
+    member private _.GetKeyPath sbNsName property =
         sprintf
             "listkeys(resourceId('Microsoft.ServiceBus/namespaces/authorizationRules', '%s', 'RootManageSharedAccessKey'), '2017-04-01').%s"
             sbNsName
@@ -51,6 +51,10 @@ type ServiceBusQueueBuilder() =
 
     /// The name of the namespace that holds the queue.
     [<CustomOperation "namespace_name">] member _.NamespaceName(state:ServiceBusQueueConfig, name) = { state with NamespaceName = AutomaticallyCreated (ResourceName name) }
+    /// Link this queue to an existing namespace instead of creating a new one.
+    [<CustomOperation "link_to_namespace">]
+    member _.LinkToNamespace(state:ServiceBusQueueConfig, name) = { state with NamespaceName = External name }
+    member _.LinkToNamespace(state:ServiceBusQueueConfig, config) = { state with NamespaceName = External config.NamespaceName.ResourceName }
     /// The SKU of the namespace.
     [<CustomOperation "sku">] member _.Sku(state:ServiceBusQueueConfig, sku) = { state with NamespaceSku = sku }
     /// The name of the queue.
@@ -71,24 +75,8 @@ type ServiceBusQueueBuilder() =
     [<CustomOperation "depends_on">] member _.DependsOn(state:ServiceBusQueueConfig, resourceName) = { state with DependsOn = resourceName :: state.DependsOn }
 
 module Converters =
-    let serviceBusNamespace location config : ServiceBusNamespace =
-        { Name = config.NamespaceName.ResourceName
-          Location = location
-          Sku =
-            match config.NamespaceSku with
-            | Basic -> "Basic"
-            | Standard -> "Standard"
-            | Premium _ -> "Premium"
-          Capacity =
-            match config.NamespaceSku with
-            | Basic -> None
-            | Standard -> None
-            | Premium OneUnit -> Some 1
-            | Premium TwoUnits -> Some 2
-            | Premium FourUnits -> Some 4
-          DependsOn =
-            config.DependsOn
-          Queues = [
+    let serviceBusNamespace location (existingNamespaces:ServiceBusNamespace list) config =
+        let queue =
               {| Name = config.Name
                  LockDuration = config.LockDurationMinutes |> Option.map (sprintf "PT%dM")
                  DuplicateDetection = config.DuplicateDetection |> Option.map(fun _ -> true)
@@ -98,8 +86,35 @@ module Converters =
                  MaxDeliveryCount = config.MaxDeliveryCount
                  EnablePartitioning = config.EnablePartitioning
                  DependsOn = [ config.NamespaceName.ResourceName ] |}
-          ]
-        }
+
+        match config.NamespaceName with
+        | AutomaticallyCreated serverName ->
+            { Name = serverName
+              Location = location
+              Sku =
+                match config.NamespaceSku with
+                | Basic -> "Basic"
+                | Standard -> "Standard"
+                | Premium _ -> "Premium"
+              Capacity =
+                match config.NamespaceSku with
+                | Basic -> None
+                | Standard -> None
+                | Premium OneUnit -> Some 1
+                | Premium TwoUnits -> Some 2
+                | Premium FourUnits -> Some 4
+              DependsOn =
+                config.DependsOn
+              Queues = [ queue ]
+            } |> NewResource
+        | External resourceName ->
+            existingNamespaces
+            |> List.tryFind(fun g -> g.Name = resourceName)
+            |> Option.map(fun ns -> MergedResource(ns, { ns with Queues = queue :: ns.Queues }))
+            |> Option.defaultValue (CouldNotLocate resourceName)
+        | AutomaticPlaceholder ->
+            NotSet
+
     module Outputters =
         let serviceBusNamespace (ns:ServiceBusNamespace) =
             {| ``type`` = "Microsoft.ServiceBus/namespaces"
@@ -128,11 +143,9 @@ module Converters =
                  ]
             |}
 
-let queue = ServiceBusQueueBuilder()
+let serviceBus = ServiceBusQueueBuilder()
 
 type Farmer.ArmBuilder.ArmBuilder with
     member _.AddResource(state:ArmConfig, config) =
-        { state with
-            Resources = ServiceBusNamespace (Converters.serviceBusNamespace state.Location config) :: state.Resources
-        }
+        state.AddOrMergeResource (Converters.serviceBusNamespace state.Location) config (function ServiceBusNamespace config -> Some config | _ -> None) ServiceBusNamespace
     member this.AddResources (state, configs) = addResources<ServiceBusQueueConfig> this.AddResource state configs

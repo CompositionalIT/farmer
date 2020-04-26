@@ -11,10 +11,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		src\Samples\appinsights.fsx = src\Samples\appinsights.fsx
 		src\Samples\cosmos.fsx = src\Samples\cosmos.fsx
+		src\Samples\eventhubs.fsx = src\Samples\eventhubs.fsx
 		src\Samples\functions.fsx = src\Samples\functions.fsx
 		src\Samples\keyvault.fsx = src\Samples\keyvault.fsx
+		src\Samples\redis.fsx = src\Samples\redis.fsx
 		src\Samples\safe-template.fsx = src\Samples\safe-template.fsx
 		src\Samples\search.fsx = src\Samples\search.fsx
+		src\Samples\service-bus.fsx = src\Samples\service-bus.fsx
 		src\Samples\vm.fsx = src\Samples\vm.fsx
 		src\Samples\webapp-appinsights.fsx = src\Samples\webapp-appinsights.fsx
 		src\Samples\webapp-storage.fsx = src\Samples\webapp-storage.fsx
@@ -22,7 +25,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{2172A656-578A-48D4-81A2-126CBE1EF993}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Tests", "src\Tests\Tests.fsproj", "{D68F5B81-6F18-4FC7-B9FD-2113EE7614CE}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Tests", "src\Tests\Tests.fsproj", "{D68F5B81-6F18-4FC7-B9FD-2113EE7614CE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -46,10 +49,10 @@ Global
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
-	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {63B0361D-FC8A-40CF-B988-5BE797ADD2CE}
-	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{D68F5B81-6F18-4FC7-B9FD-2113EE7614CE} = {2172A656-578A-48D4-81A2-126CBE1EF993}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {63B0361D-FC8A-40CF-B988-5BE797ADD2CE}
 	EndGlobalSection
 EndGlobal
