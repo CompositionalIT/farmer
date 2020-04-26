@@ -79,7 +79,7 @@ module Az =
         az (sprintf "group create -l %s -n %s" location resourceGroup) |> Result.ignore
 
     type DeploymentCommand =
-    | Deploy
+    | Create
     | Validate
         member this.Description = this.ToString().ToLower()
 
@@ -90,7 +90,7 @@ module Az =
             | parameters -> sprintf "--parameters %s" (parameters |> List.map(fun (a,b) -> sprintf "%s=%s" a b) |> String.concat " ")
         az (sprintf "deployment group %s -g %s -n %s --template-file %s %s" deploymentCommand.Description resourceGroup deploymentName templateFilename parametersArgument)
     /// Deploys an ARM template to an existing resource group.
-    let deploy resourceGroup deploymentName templateFilename parameters = deployOrValidate Deploy resourceGroup deploymentName templateFilename parameters
+    let deploy resourceGroup deploymentName templateFilename parameters = deployOrValidate Create resourceGroup deploymentName templateFilename parameters
     let validate resourceGroup deploymentName templateFilename parameters = deployOrValidate Validate resourceGroup deploymentName templateFilename parameters |> Result.ignore
     /// Deploys a zip file to a web app using the Zip Deploy mechanism.
     let zipDeploy webAppName (zipDeployKind:ZipDeployKind) resourceGroup =
