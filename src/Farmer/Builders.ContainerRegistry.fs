@@ -3,27 +3,6 @@ module Farmer.Resources.ContainerRegistry
 
 open Farmer
 open Farmer.Models
-// Requirements 
-// minimum version is 2.3.1 of Azure CLI
-
-// Step 1: Check feature does not already exist then open an issue asking about progress on feature and whether you want to pick it up.
-//    Result1: https://github.com/CompositionalIT/farmer/issues/48
-// Step 2: Find a good template to see structure and glean DU for options like SKUs
-//    Result1: https//docs.microsoft.com/en-us/azure/templates/microsoft.containerregistry/2017-10-01/registries
-//    Result2: https://github.com/Azure/azure-quickstart-templates/tree/master/101-container-registry-geo-replication
-// Step 3: Define DU types found in step 2
-
-// Step 4: Define config type
-
-// Step 5: Define builder
-
-// Step 5: Define Resource type in Farmer.fs. Add to SupportedResources
-
-// Step 6: Tests
-
-// Step 7: Converters + Outputters
-
-// Step 8: Add to Writer
 
 /// Container Registry SKU
 type ContainerRegistrySku =

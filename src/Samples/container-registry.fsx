@@ -10,10 +10,11 @@ let myRegistry = containerRegistry {
 }
 
 let deployment = arm {
-    location WestEurope
+    location NorthEurope
     add_resource myRegistry
     output "registry" myRegistry.Name
 }
 
 deployment
 |> Deploy.execute "FarmerTest" Deploy.NoParameters
+|> printfn "%A"
