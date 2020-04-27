@@ -10,6 +10,7 @@
     <Compile Include="ContainerGroup.fs" />
     <Compile Include="Template.fs" />
     <Compile Include="AzCli.fs" />
+    <Compile Include="ContainerRegisterTests.fs" />
   </ItemGroup>
 
   <ItemGroup>
