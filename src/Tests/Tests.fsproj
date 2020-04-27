@@ -2,23 +2,28 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
-
     <IsPackable>false</IsPackable>
+    <GenerateProgramFile>false</GenerateProgramFile>
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Helpers.fs" />
     <Compile Include="ContainerGroup.fs" />
+    <Compile Include="Storage.fs" />
     <Compile Include="Template.fs" />
     <Compile Include="AzCli.fs" />
     <Compile Include="ContainerRegisterTests.fs" />
+    <Compile Include="AllTests.fs" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="expecto" Version="9.0.0" />
     <PackageReference Include="Microsoft.Azure.Management.ContainerInstance" Version="2.0.0" />
+    <PackageReference Include="Microsoft.Azure.Management.Storage" Version="16.0.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.2.0" />
-    <PackageReference Include="xunit" Version="2.4.0" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.0" />
     <PackageReference Include="coverlet.collector" Version="1.2.0" />
+    <PackageReference Include="YoloDev.Expecto.TestSdk" Version="0.9.1" />
+    <PackageReference Update="FSharp.Core" Version="4.7.1" />
   </ItemGroup>
 
   <ItemGroup>

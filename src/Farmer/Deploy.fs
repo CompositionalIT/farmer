@@ -77,17 +77,27 @@ module Az =
     /// Creates a resource group.
     let createResourceGroup location resourceGroup =
         az (sprintf "group create -l %s -n %s" location resourceGroup) |> Result.ignore
-    /// Deploys an ARM template to an existing resource group.
-    let deploy resourceGroup deploymentName templateFilename parameters =
+
+    type DeploymentCommand =
+    | Create
+    | Validate
+        member this.Description = this.ToString().ToLower()
+
+    let private deployOrValidate (deploymentCommand:DeploymentCommand) resourceGroup deploymentName templateFilename parameters =
         let parametersArgument =
             match parameters with
             | [] -> ""
             | parameters -> sprintf "--parameters %s" (parameters |> List.map(fun (a,b) -> sprintf "%s=%s" a b) |> String.concat " ")
-        az (sprintf "deployment group create -g %s -n %s --template-file %s %s" resourceGroup deploymentName templateFilename parametersArgument)
+        az (sprintf "deployment group %s -g %s -n %s --template-file %s %s" deploymentCommand.Description resourceGroup deploymentName templateFilename parametersArgument)
+    /// Deploys an ARM template to an existing resource group.
+    let deploy resourceGroup deploymentName templateFilename parameters = deployOrValidate Create resourceGroup deploymentName templateFilename parameters
+    let validate resourceGroup deploymentName templateFilename parameters = deployOrValidate Validate resourceGroup deploymentName templateFilename parameters |> Result.ignore
     /// Deploys a zip file to a web app using the Zip Deploy mechanism.
     let zipDeploy webAppName (zipDeployKind:ZipDeployKind) resourceGroup =
         let packageFilename = zipDeployKind.GetZipPath deployFolder
         az (sprintf """webapp deployment source config-zip --resource-group "%s" --name "%s" --src %s""" resourceGroup webAppName packageFilename)
+    let delete resourceGroup =
+        az (sprintf "group delete --name %s --yes --no-wait" resourceGroup)
 
 /// Represents an Azure subscription
 type Subscription = { ID : Guid; Name : string; IsDefault : bool }
@@ -104,6 +114,7 @@ let listSubscriptions() = result {
     return response |> JsonConvert.DeserializeObject<Subscription array>
 }
 
+/// Checks that the version of the Azure CLI meets minimum version.
 let checkVersion minimum = result {
     let! versionOutput = Az.version()
     let! version =
@@ -129,6 +140,7 @@ let checkVersion minimum = result {
 let setSubscription (subscriptionId:Guid) =
     Az.setSubscription (subscriptionId.ToString())
 
+/// Validates that the parameters supplied meet the deployment requirements.
 let validateParameters suppliedParameters deployment =
     let expected = deployment.Template.Parameters |> List.map(fun (SecureParameter p) -> p) |> Set
     match (expected - (suppliedParameters |> List.map fst |> Set)) |> Seq.toList with
@@ -137,9 +149,7 @@ let validateParameters suppliedParameters deployment =
 
 let NoParameters : (string * string) list = []
 
-/// Executes the supplied Deployment against a resource group using the Azure CLI.
-/// If successful, returns a Map of the output keys and values.
-let execute resourceGroupName parameters deployment = result {
+let private prepareForDeployment parameters resourceGroupName deployment = result {
     do! deployment |> validateParameters parameters
 
     let! version = checkVersion Az.MinimumVersion
@@ -155,11 +165,24 @@ let execute resourceGroupName parameters deployment = result {
     printfn "Creating resource group %s..." resourceGroupName
     do! Az.createResourceGroup deployment.Location.Value resourceGroupName
 
+    return
+        {| DeploymentName = sprintf "farmer-deploy-%d" (generateDeployNumber())
+           TemplateFilename = deployment.Template |> Writer.toJson |> Writer.toFile deployFolder "farmer-deploy" |}
+}
+
+/// Validates a deployment against a resource group. If the resource group does not exist, it will be created automatically.
+let tryValidate resourceGroupName parameters deployment = result {
+    let! deploymentParameters = deployment |> prepareForDeployment parameters resourceGroupName
+    return! Az.validate resourceGroupName deploymentParameters.DeploymentName deploymentParameters.TemplateFilename parameters
+}
+
+/// Executes the supplied Deployment against a resource group using the Azure CLI.
+/// If successful, returns a Map of the output keys and values.
+let tryExecute resourceGroupName parameters deployment = result {
+    let! deploymentParameters = deployment |> prepareForDeployment parameters resourceGroupName
+
     printfn "Deploying ARM template (please be patient, this can take a while)..."
-    let! response =
-        let deploymentName = sprintf "farmer-deploy-%d" (generateDeployNumber())
-        let templateFilename = deployment.Template |> Writer.toJson |> Writer.toFile deployFolder "farmer-deploy"
-        Az.deploy resourceGroupName deploymentName templateFilename parameters
+    let! response = Az.deploy resourceGroupName deploymentParameters.DeploymentName deploymentParameters.TemplateFilename parameters
 
     do!
         [ for (RunFromZip wd) in deployment.PostDeployTasks do
@@ -172,3 +195,10 @@ let execute resourceGroupName parameters deployment = result {
     let response = response |> JsonConvert.DeserializeObject<{| properties : {| outputs : Map<string, {| value : string |}> |} |}>
     return response.properties.outputs |> Map.map (fun _ value -> value.value)
 }
+
+/// Executes the supplied Deployment against a resource group using the Azure CLI.
+/// If successful, returns a Map of the output keys and values, otherwise returns any error as an exception.
+let execute resourceGroupName parameters deployment =
+    match tryExecute resourceGroupName parameters deployment with
+    | Ok output -> output
+    | Error message -> failwith message
