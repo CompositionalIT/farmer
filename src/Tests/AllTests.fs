@@ -13,6 +13,7 @@ let allTests =
         testList "Builders" [
             ContainerGroup.tests
             Storage.tests
+            ContainerRegister.tests
         ]
     ]
 
