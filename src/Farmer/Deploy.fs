@@ -163,7 +163,7 @@ let private prepareForDeployment parameters resourceGroupName deployment = resul
         else printfn "logging you in."; Az.login()
 
     printfn "Creating resource group %s..." resourceGroupName
-    do! Az.createResourceGroup deployment.Location.Value resourceGroupName
+    do! Az.createResourceGroup deployment.Location.ArmValue resourceGroupName
 
     return
         {| DeploymentName = sprintf "farmer-deploy-%d" (generateDeployNumber())

@@ -160,7 +160,7 @@ module Converters =
             ``type`` = "Microsoft.EventHub/namespaces"
             apiVersion = "2017-04-01"
             name = ns.Name.Value
-            location = ns.Location.Value
+            location = ns.Location.ArmValue
             sku =
                 {| name = ns.Sku.Name
                    tier = ns.Sku.Tier
@@ -176,7 +176,7 @@ module Converters =
             ``type`` = "Microsoft.EventHub/namespaces/eventhubs"
             apiVersion = "2017-04-01"
             name = hub.Name.Value
-            location = hub.Location.Value
+            location = hub.Location.ArmValue
             dependsOn = hub.Dependencies |> List.map(fun d -> d.Value)
             properties =
                 {| messageRetentionInDays = hub.MessageRetentionDays |> Option.toNullable
@@ -188,7 +188,7 @@ module Converters =
             ``type`` = "Microsoft.EventHub/namespaces/eventhubs/consumergroups"
             apiVersion = "2017-04-01"
             name = group.Name.Value
-            location = group.Location.Value
+            location = group.Location.ArmValue
             dependsOn = group.Dependencies |> List.map(fun d -> d.Value)
         |}
 
@@ -196,7 +196,7 @@ module Converters =
             ``type`` = "Microsoft.EventHub/namespaces/eventhubs/AuthorizationRules"
             apiVersion = "2017-04-01"
             name = rule.Name.Value
-            location = rule.Location.Value
+            location = rule.Location.ArmValue
             dependsOn = rule.Dependencies |> List.map(fun d -> d.Value)
             properties = {| rights = rule.Rights |}
         |}

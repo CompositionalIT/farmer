@@ -2,18 +2,7 @@
 module Farmer.Resources.Storage
 
 open Farmer
-open Farmer
 open Farmer.Models
-
-module Sku =
-    let StandardLRS = "Standard_LRS"
-    let StandardGRS = "Standard_GRS"
-    let StandardRAGRS = "Standard_RAGRS"
-    let StandardZRS = "Standard_ZRS"
-    let StandardGZRS = "Standard_GZRS"
-    let StandardRAGZRS = "Standard_RAGZRS"
-    let PremiumLRS = "Premium_LRS"
-    let PremiumZRS = "Premium_ZRS"
 let internal buildKey (ResourceName name) =
     sprintf
         "concat('DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=', listKeys('%s', '2017-10-01').keys[0].value)"
@@ -25,7 +14,7 @@ type StorageAccountConfig =
     { /// The name of the storage account.
       Name : ResourceName
       /// The sku of the storage account.
-      Sku : string
+      Sku : Sku
       /// Containers for the storage account.
       Containers : (string * StorageContainerAccess) list}
     /// Gets the ARM expression path to the key of this storage account.
@@ -76,11 +65,11 @@ module Converters =
 
         let storageAccount (resource:StorageAccount) = {|
             ``type`` = "Microsoft.Storage/storageAccounts"
-            sku = {| name = resource.Sku |}
+            sku = {| name = resource.Sku.ArmValue |}
             kind = "StorageV2"
             name = resource.Name.Value
             apiVersion = "2018-07-01"
-            location = resource.Location.Value
+            location = resource.Location.ArmValue
             resources = resource.Containers |> List.map (storageAccountContainer resource)
         |}
 

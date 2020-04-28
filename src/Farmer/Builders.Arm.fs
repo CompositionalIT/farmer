@@ -1,7 +1,6 @@
 [<AutoOpen>]
 module Farmer.ArmBuilder
 
-open Farmer.Resources
 open Farmer.Models
 open System.IO
 open System.IO.Compression
@@ -10,7 +9,7 @@ open System.IO.Compression
 type ArmConfig =
     { Parameters : string Set
       Outputs : (string * string) list
-      Location : Location
+      Location : Locations
       Resources : SupportedResource list }
     member internal this.AddOrMergeResource tryConvert existingConfig unwrap wrap =
         let matchingResources = this.Resources |> List.choose unwrap
@@ -50,7 +49,7 @@ type ZipDeployKind =
 type PostDeployTask =
     | RunFromZip of {| WebApp:ResourceName; Path : ZipDeployKind |}
 type Deployment =
-    { Location : Location
+    { Location : Locations
       Template : ArmTemplate
       PostDeployTasks : PostDeployTask list }
 
