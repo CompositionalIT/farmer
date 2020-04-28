@@ -348,7 +348,7 @@ type CognitiveServices =
     Location : Location
     Sku : string
     Kind : string }
-  
+
 type ContainerRegistry =
   {
     Name : ResourceName

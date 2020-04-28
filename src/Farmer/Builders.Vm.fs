@@ -292,7 +292,7 @@ module Converters =
                 Some
                     { StorageAccount.Name = account
                       Location = location
-                      Sku = Storage.Sku.StandardLRS
+                      Sku = Sku.StandardLRS
                       Containers = [] }
             | Some AutomaticPlaceholder
             | Some (External _)

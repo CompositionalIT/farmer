@@ -13,6 +13,7 @@ let deployment = arm {
     location NorthEurope
     add_resource myRegistry
     output "registry" myRegistry.Name
+    output "loginServer" myRegistry.LoginServer
 }
 
 deployment

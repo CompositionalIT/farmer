@@ -16,25 +16,27 @@ type ContainerRegistrySku =
 // TODO: dataEndpointEnabled
 
 type ContainerRegistryConfig =
-    {
-      Name : ResourceName
+    { Name : ResourceName
       Sku : ContainerRegistrySku
       AdminUserEnabled : bool }
-    
+    member this.LoginServer =
+        (sprintf "reference(resourceId('Microsoft.ContainerRegistry/registries', '%s'),'2019-05-01').loginServer" this.Name.Value)
+        |> ArmExpression
+
 type ContainerRegistryBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
           Sku = Basic
           AdminUserEnabled = false }
-    
+
     [<CustomOperation "name">]
     /// Sets the name of the Azure Container Registry instance.
     member _.Name (state:ContainerRegistryConfig, name) = { state with Name = ResourceName name }
-    
+
     [<CustomOperation "sku">]
     /// Sets the name of the SKU/Tier for the Container Registry instance.
     member _.Sku (state:ContainerRegistryConfig, sku) = { state with Sku = sku }
-    
+
     [<CustomOperation "enable_admin_user">]
     /// Enables the admin user on the Azure Container Registry.
     member _.EnableAdminUser (state:ContainerRegistryConfig) = { state with AdminUserEnabled = true }
@@ -54,8 +56,8 @@ module Converters =
                sku = {| name = service.Sku |}
                location = service.Location.Value
                tags = {||}
-               properties = {|
-                              adminUserEnabled = service.AdminUserEnabled |} |}
+               properties = {| adminUserEnabled = service.AdminUserEnabled |}
+            |}
 
 let containerRegistry = ContainerRegistryBuilder()
 
