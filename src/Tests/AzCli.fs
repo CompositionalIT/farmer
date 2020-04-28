@@ -3,8 +3,6 @@ module AzCli
 open Expecto
 open Farmer
 open System
-open Expecto.Logging.LoggerEx
-open Expecto.Logging.Message
 
 let tests = testList "Azure CLI" [
     test "Can connect to Az CLI" {
@@ -21,7 +19,7 @@ let tests = testList "Azure CLI" [
     test "Deploys and deletes a resource group" {
         let deployment = arm { location NorthEurope }
         let resourceGroupName = sprintf "farmer-integration-test-delete-%O" (Guid.NewGuid())
-        logger.info (eventX (sprintf "Creating resource group %s..." resourceGroupName))
+        printfn "Creating resource group %s..." resourceGroupName
         let deployResponse = deployment |> Deploy.tryExecute resourceGroupName []
         let deleteResponse = Deploy.Az.delete resourceGroupName
 
