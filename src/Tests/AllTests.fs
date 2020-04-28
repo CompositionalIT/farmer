@@ -5,20 +5,21 @@ open System
 
 [<Tests>]
 let allTests =
-    testList "All Tests" [
-        testList "Control" [
-            Template.tests
-            if Environment.GetEnvironmentVariable "TF_BUILD" = "True" then AzCli.tests
+    testSequencedGroup "" <|
+        testList "All Tests" [
+            testList "Builders" [
+                ContainerGroup.tests
+                Storage.tests
+                ContainerRegistry.tests
+                VirtualMachine.tests
+            ]
+            testList "Control" [
+                Template.tests
+                AzCli.tests
+            ]
         ]
-        testList "Builders" [
-            ContainerGroup.tests
-            Storage.tests
-            ContainerRegistry.tests
-            VirtualMachine.tests
-        ]
-    ]
 
 [<EntryPoint>]
 let main _ =
     printfn "Running tests!"
-    runTests { defaultConfig with verbosity = Logging.LogLevel.Verbose } allTests
+    runTests { defaultConfig with verbosity = Logging.LogLevel.Debug } allTests
