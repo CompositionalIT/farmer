@@ -168,7 +168,7 @@ module Converters =
             ``type`` = "Microsoft.Sql/servers"
             name = server.ServerName.Value
             apiVersion = "2014-04-01-preview"
-            location = server.Location.Value
+            location = server.Location.ArmValue
             tags = {| displayName = server.ServerName.Value |}
             properties =
                 {| administratorLogin = server.Credentials.Username
@@ -180,7 +180,7 @@ module Converters =
                         {| ``type`` = "databases"
                            name = database.Name.Value
                            apiVersion = "2015-01-01"
-                           location = server.Location.Value
+                           location = server.Location.ArmValue
                            tags = {| displayName = database.Name.Value |}
                            properties =
                             {| edition = database.Edition
@@ -208,7 +208,7 @@ module Converters =
                         {| ``type`` = "firewallrules"
                            name = rule.Name
                            apiVersion = "2014-04-01"
-                           location = server.Location.Value
+                           location = server.Location.ArmValue
                            properties =
                             {| endIpAddress = string rule.Start
                                startIpAddress = string rule.End |}

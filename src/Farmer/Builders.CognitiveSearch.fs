@@ -64,7 +64,7 @@ module Converters =
                apiVersion = "2017-04-18"
                sku = {| name = service.Sku |}
                kind = service.Kind
-               location = service.Location.Value
+               location = service.Location.ArmValue
                tags = {||}
                properties = {||} |}
 

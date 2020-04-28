@@ -13,8 +13,6 @@ type ResourceName =
         | r -> r
     member this.Map mapper = match this with ResourceName r -> ResourceName (mapper r)
 
-type Location = Location of string member this.Value = match this with (Location l) -> l
-
 /// Represents an expression used within an ARM template
 type ArmExpression =
     | ArmExpression of string
@@ -67,7 +65,7 @@ open Farmer
 /// The consistency policy of a CosmosDB database.
 type ConsistencyPolicy = Eventual | ConsistentPrefix | Session | BoundedStaleness of maxStaleness:int * maxIntervalSeconds : int | Strong
 /// The failover policy of a CosmosDB database.
-type FailoverPolicy = NoFailover | AutoFailover of secondaryLocation:Location | MultiMaster of secondaryLocation:Location
+type FailoverPolicy = NoFailover | AutoFailover of secondaryLocation:Locations | MultiMaster of secondaryLocation:Locations
 /// The kind of index to use on a CosmoDB container.
 type CosmosDbIndexKind = Hash | Range
 /// The datatype for the key of index to use on a CosmoDB container.
@@ -92,7 +90,7 @@ type ResourceReplacement<'T> =
 
 type AppInsights =
     { Name : ResourceName
-      Location : Location
+      Location : Locations
       LinkedWebsite : ResourceName option }
 type StorageContainerAccess =
     | Private
@@ -100,13 +98,13 @@ type StorageContainerAccess =
     | Blob
 type StorageAccount =
     { Name : ResourceName
-      Location : Location
-      Sku : string
+      Location : Locations
+      Sku : Sku
       Containers : (string * StorageContainerAccess) list }
 
 type Redis =
     { Name : ResourceName
-      Location : Location
+      Location : Locations
       Sku :
         {| Name : string
            Family : char
@@ -155,7 +153,7 @@ module ContainerGroups =
     [<RequireQualifiedAccess>]
     type ContainerGroup =
         { Name : ResourceName
-          Location : Location
+          Location : Locations
           ContainerInstances : ContainerInstance list
           OsType : ContainerGroupOsType
           RestartPolicy : ContainerGroupRestartPolicy
@@ -167,7 +165,7 @@ open System
 type WebApp =
     { Name : ResourceName
       ServicePlan : ResourceName
-      Location : Location
+      Location : Locations
       AppSettings : List<string * string>
       AlwaysOn : bool
       HTTPSOnly : bool
@@ -186,7 +184,7 @@ type WebApp =
       Parameters : SecureParameter list }
 type ServerFarm =
     { Name : ResourceName
-      Location : Location
+      Location : Locations
       Sku: string
       WorkerSize : string
       IsDynamic : bool
@@ -213,7 +211,7 @@ type CosmosDbContainer =
     }
 type SqlAzure =
   { ServerName : ResourceName
-    Location : Location
+    Location : Locations
     Credentials : {| Username : string; Password : SecureParameter |}
     Databases :
         {| Name : ResourceName
@@ -233,7 +231,7 @@ type CosmosDbSql =
       Throughput : string }
 type CosmosDbAccount =
     { Name : ResourceName
-      Location : Location
+      Location : Locations
       ConsistencyPolicy : ConsistencyPolicy
       WriteModel : FailoverPolicy
       PublicNetworkAccess : FeatureFlag
@@ -241,7 +239,7 @@ type CosmosDbAccount =
 
 type Search =
     { Name : ResourceName
-      Location : Location
+      Location : Locations
       Sku : string
       HostingMode : string
       ReplicaCount : int
@@ -249,7 +247,7 @@ type Search =
 
 type EventHubNamespace =
   { Name : ResourceName
-    Location : Location
+    Location : Locations
     Sku : {| Name : string; Tier : string; Capacity : int |}
     ZoneRedundant : bool option
     IsAutoInflateEnabled : bool option
@@ -258,44 +256,44 @@ type EventHubNamespace =
 
 type EventHub =
   { Name : ResourceName
-    Location : Location
+    Location : Locations
     MessageRetentionDays : int option
     Partitions : int
     Dependencies : ResourceName list }
 
 type EventHubConsumerGroup =
   { Name : ResourceName
-    Location : Location
+    Location : Locations
     Dependencies : ResourceName list }
 type EventHubAuthorizationRule =
   { Name : ResourceName
-    Location : Location
+    Location : Locations
     Dependencies : ResourceName list
     Rights : string list }
 module VM =
     type PublicIpAddress =
         { Name : ResourceName
-          Location : Location
+          Location : Locations
           DomainNameLabel : string option }
     type VirtualNetwork =
         { Name : ResourceName
-          Location : Location
+          Location : Locations
           AddressSpacePrefixes : string list
           Subnets : {| Name : ResourceName; Prefix : string |} list }
     type NetworkInterface =
         { Name : ResourceName
-          Location : Location
+          Location : Locations
           IpConfigs :
             {| SubnetName : ResourceName
                PublicIpName : ResourceName |} list
           VirtualNetwork : ResourceName }
     type VirtualMachine =
         { Name : ResourceName
-          Location : Location
+          Location : Locations
           StorageAccount : ResourceName option
-          Size : string
+          Size : VMSize
           Credentials : {| Username : string; Password : SecureParameter |}
-          Image : {| Publisher : string; Offer : string; Sku : string |}
+          Image : ImageDefinition
           OsDisk : DiskInfo
           DataDisks : DiskInfo list
           NetworkInterfaceName : ResourceName }
@@ -311,7 +309,7 @@ type KeyVaultSecret =
     { Name : ResourceName
       Value : SecretValue
       ParentKeyVault : ResourceName
-      Location : Location
+      Location : Locations
       ContentType : string option
       Enabled : bool Nullable
       ActivationDate : int Nullable
@@ -319,7 +317,7 @@ type KeyVaultSecret =
       Dependencies : ResourceName list }
 type KeyVault =
     { Name : ResourceName
-      Location : Location
+      Location : Locations
       TenantId : string
       Sku : string
       Uri : string option
@@ -345,7 +343,7 @@ type KeyVault =
 
 type CognitiveServices =
   { Name : ResourceName
-    Location : Location
+    Location : Locations
     Sku : string
     Kind : string }
 
@@ -390,27 +388,6 @@ type SupportedResource =
 
 namespace Farmer
 open Farmer.Models
-
-[<AutoOpen>]
-module Locations =
-    let EastAsia = Location "eastasia"
-    let SoutheastAsia = Location "southeastasia"
-    let CentralUS = Location "centralus"
-    let EastUS = Location "eastus"
-    let EastUS2 = Location "eastus2"
-    let WestUS = Location "westus"
-    let NorthCentralUS = Location "northcentralus"
-    let SouthCentralUS = Location "southcentralus"
-    let NorthEurope = Location "northeurope"
-    let WestEurope = Location "westeurope"
-    let JapanWest = Location "japanwest"
-    let JapanEast = Location "japaneast"
-    let BrazilSouth = Location "brazilsouth"
-    let AustraliaEast = Location "australiaeast"
-    let AustraliaSoutheast = Location "australiasoutheast"
-    let SouthIndia = Location "southindia"
-    let CentralIndia = Location "centralindia"
-    let WestIndia = Location "westindia"
 
 type ArmTemplate =
     { Parameters : SecureParameter list
