@@ -11,7 +11,7 @@ open System
 /// Client instance needed to get the serializer settings.
 let client = new ComputeManagementClient(Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
 
-let tests = testList "Virtual Machine Tests" [
+let tests = testList "Virtual Machine" [
     test "Can create a basic virtual machine" {
         let resource =
             let myVm = vm {

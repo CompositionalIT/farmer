@@ -43,7 +43,7 @@ let shouldHaveAdminUserDisabled (r : RegistryJson) =
     Expect.isFalse b "adminUserEnabled was expected to be disabled"
     r
 
-let tests = testList "Container Register tests" [
+let tests = testList "Container Registry" [
     test "Basic resource settings are written to template resource" {
         containerRegistry {
             name "test"
