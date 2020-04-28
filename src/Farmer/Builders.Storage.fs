@@ -14,13 +14,13 @@ type StorageAccountConfig =
     { /// The name of the storage account.
       Name : ResourceName
       /// The sku of the storage account.
-      Sku : Sku
+      Sku : StorageSku
       /// Containers for the storage account.
       Containers : (string * StorageContainerAccess) list}
     /// Gets the ARM expression path to the key of this storage account.
     member this.Key = buildKey this.Name
 type StorageAccountBuilder() =
-    member __.Yield _ = { Name = ResourceName.Empty; Sku = Sku.StandardLRS; Containers = [] }
+    member __.Yield _ = { Name = ResourceName.Empty; Sku = StorageSku.Standard_LRS; Containers = [] }
     member _.Run(state:StorageAccountConfig) =
         { state with
             Name = state.Name |> Helpers.sanitiseStorage |> ResourceName }

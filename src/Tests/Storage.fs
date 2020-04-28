@@ -15,7 +15,7 @@ let tests = testList "Storage Tests" [
         let resource =
             let account = storageAccount {
                 name "myStorage123~@"
-                sku Sku.PremiumLRS
+                sku StorageSku.Premium_LRS
             }
             arm { add_resource account }
             |> findAzureResources<StorageAccount> client.SerializationSettings

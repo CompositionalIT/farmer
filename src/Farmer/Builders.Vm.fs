@@ -30,12 +30,12 @@ type VirtualMachineBuilder() =
     member __.Yield _ =
         { Name = ResourceName.Empty
           DiagnosticsStorageAccount = None
-          Size = VMSize.Basic_A0
+          Size = Basic_A0
           Username = "admin"
-          Image = CommonImages.WindowsServer_2012Datacenter
+          Image = WindowsServer_2012Datacenter
           DataDisks = [ ]
           DomainNamePrefix = None
-          OsDisk = { Size = 128; DiskType = Standard_LRS }
+          OsDisk = { Size = 128; DiskType = DiskType.Standard_LRS }
           AddressPrefix = "10.0.0.0/16"
           SubnetPrefix = "10.0.0.0/24" }
 
@@ -54,7 +54,7 @@ type VirtualMachineBuilder() =
                     | External _
                     | AutomaticallyCreated _ ->
                         account)
-            DataDisks = match state.DataDisks with [] -> [ { Size = 1024; DiskType = Standard_LRS } ] | other -> other
+            DataDisks = match state.DataDisks with [] -> [ { Size = 1024; DiskType = DiskType.Standard_LRS } ] | other -> other
         }
 
     /// Sets the name of the VM.
@@ -91,7 +91,7 @@ type VirtualMachineBuilder() =
     member this.AddSsd(state:VmConfig, size) = this.AddDisk(state, size, StandardSSD_LRS)
     /// Adds a conventional (non-SSD) data disk to the VM with a specific size.
     [<CustomOperation "add_slow_disk">]
-    member this.AddSlowDisk(state:VmConfig, size) = this.AddDisk(state, size, Standard_LRS)
+    member this.AddSlowDisk(state:VmConfig, size) = this.AddDisk(state, size, DiskType.Standard_LRS)
     /// Sets the prefix for the domain name of the VM.
     [<CustomOperation "domain_name_prefix">]
     member __.DomainNamePrefix(state:VmConfig, prefix) = { state with DomainNamePrefix = prefix }
@@ -112,7 +112,7 @@ module Converters =
                 Some
                     { StorageAccount.Name = account
                       Location = location
-                      Sku = Sku.StandardLRS
+                      Sku = Standard_LRS
                       Containers = [] }
             | Some AutomaticPlaceholder
             | Some (External _)
@@ -219,7 +219,7 @@ module Converters =
                 | None -> ()
             ]
             properties =
-             {| hardwareProfile = {| vmSize = vm.Size |}
+             {| hardwareProfile = {| vmSize = vm.Size.ArmValue |}
                 osProfile =
                  {|
                     computerName = vm.Name.Value
@@ -229,15 +229,15 @@ module Converters =
                 storageProfile =
                     let vmNameLowerCase = vm.Name.Value.ToLower()
                     {| imageReference =
-                        {| publisher = vm.Image.Publisher
-                           offer = vm.Image.Offer
-                           sku = vm.Image.Sku
+                        {| publisher = vm.Image.Publisher.ArmValue
+                           offer = vm.Image.Offer.ArmValue
+                           sku = vm.Image.Sku.ArmValue
                            version = "latest" |}
                        osDisk =
                         {| createOption = "FromImage"
                            name = sprintf "%s-osdisk" vmNameLowerCase
                            diskSizeGB = vm.OsDisk.Size
-                           managedDisk = {| storageAccountType = string vm.OsDisk.DiskType |}
+                           managedDisk = {| storageAccountType = vm.OsDisk.DiskType.ArmValue |}
                         |}
                        dataDisks =
                         vm.DataDisks

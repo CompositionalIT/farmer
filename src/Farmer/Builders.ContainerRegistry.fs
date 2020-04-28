@@ -54,7 +54,7 @@ module Converters =
                ``type`` = "Microsoft.ContainerRegistry/registries"
                apiVersion = "2019-05-01"
                sku = {| name = service.Sku |}
-               location = service.Location.Value
+               location = service.Location.ArmValue
                tags = {||}
                properties = {| adminUserEnabled = service.AdminUserEnabled |}
             |}

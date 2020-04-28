@@ -65,7 +65,7 @@ open Farmer
 /// The consistency policy of a CosmosDB database.
 type ConsistencyPolicy = Eventual | ConsistentPrefix | Session | BoundedStaleness of maxStaleness:int * maxIntervalSeconds : int | Strong
 /// The failover policy of a CosmosDB database.
-type FailoverPolicy = NoFailover | AutoFailover of secondaryLocation:Locations | MultiMaster of secondaryLocation:Locations
+type FailoverPolicy = NoFailover | AutoFailover of secondaryLocation:Location | MultiMaster of secondaryLocation:Location
 /// The kind of index to use on a CosmoDB container.
 type CosmosDbIndexKind = Hash | Range
 /// The datatype for the key of index to use on a CosmoDB container.
@@ -73,7 +73,7 @@ type CosmosDbIndexDataType = Number | String
 /// Whether a specific feature is active or not.
 type FeatureFlag = Enabled | Disabled member this.AsBoolean = match this with Enabled -> true | Disabled -> false
 /// The type of disk to use.
-type DiskType = StandardSSD_LRS | Standard_LRS | Premium_LRS
+type DiskType = StandardSSD_LRS | Standard_LRS | Premium_LRS member this.ArmValue = match this with x -> x.ToString()
 /// Represents a disk in a VM.
 type DiskInfo = { Size : int; DiskType : DiskType }
 
@@ -90,7 +90,7 @@ type ResourceReplacement<'T> =
 
 type AppInsights =
     { Name : ResourceName
-      Location : Locations
+      Location : Location
       LinkedWebsite : ResourceName option }
 type StorageContainerAccess =
     | Private
@@ -98,13 +98,13 @@ type StorageContainerAccess =
     | Blob
 type StorageAccount =
     { Name : ResourceName
-      Location : Locations
-      Sku : Sku
+      Location : Location
+      Sku : StorageSku
       Containers : (string * StorageContainerAccess) list }
 
 type Redis =
     { Name : ResourceName
-      Location : Locations
+      Location : Location
       Sku :
         {| Name : string
            Family : char
@@ -153,7 +153,7 @@ module ContainerGroups =
     [<RequireQualifiedAccess>]
     type ContainerGroup =
         { Name : ResourceName
-          Location : Locations
+          Location : Location
           ContainerInstances : ContainerInstance list
           OsType : ContainerGroupOsType
           RestartPolicy : ContainerGroupRestartPolicy
@@ -165,7 +165,7 @@ open System
 type WebApp =
     { Name : ResourceName
       ServicePlan : ResourceName
-      Location : Locations
+      Location : Location
       AppSettings : List<string * string>
       AlwaysOn : bool
       HTTPSOnly : bool
@@ -184,7 +184,7 @@ type WebApp =
       Parameters : SecureParameter list }
 type ServerFarm =
     { Name : ResourceName
-      Location : Locations
+      Location : Location
       Sku: string
       WorkerSize : string
       IsDynamic : bool
@@ -211,7 +211,7 @@ type CosmosDbContainer =
     }
 type SqlAzure =
   { ServerName : ResourceName
-    Location : Locations
+    Location : Location
     Credentials : {| Username : string; Password : SecureParameter |}
     Databases :
         {| Name : ResourceName
@@ -231,7 +231,7 @@ type CosmosDbSql =
       Throughput : string }
 type CosmosDbAccount =
     { Name : ResourceName
-      Location : Locations
+      Location : Location
       ConsistencyPolicy : ConsistencyPolicy
       WriteModel : FailoverPolicy
       PublicNetworkAccess : FeatureFlag
@@ -239,7 +239,7 @@ type CosmosDbAccount =
 
 type Search =
     { Name : ResourceName
-      Location : Locations
+      Location : Location
       Sku : string
       HostingMode : string
       ReplicaCount : int
@@ -247,7 +247,7 @@ type Search =
 
 type EventHubNamespace =
   { Name : ResourceName
-    Location : Locations
+    Location : Location
     Sku : {| Name : string; Tier : string; Capacity : int |}
     ZoneRedundant : bool option
     IsAutoInflateEnabled : bool option
@@ -256,40 +256,40 @@ type EventHubNamespace =
 
 type EventHub =
   { Name : ResourceName
-    Location : Locations
+    Location : Location
     MessageRetentionDays : int option
     Partitions : int
     Dependencies : ResourceName list }
 
 type EventHubConsumerGroup =
   { Name : ResourceName
-    Location : Locations
+    Location : Location
     Dependencies : ResourceName list }
 type EventHubAuthorizationRule =
   { Name : ResourceName
-    Location : Locations
+    Location : Location
     Dependencies : ResourceName list
     Rights : string list }
 module VM =
     type PublicIpAddress =
         { Name : ResourceName
-          Location : Locations
+          Location : Location
           DomainNameLabel : string option }
     type VirtualNetwork =
         { Name : ResourceName
-          Location : Locations
+          Location : Location
           AddressSpacePrefixes : string list
           Subnets : {| Name : ResourceName; Prefix : string |} list }
     type NetworkInterface =
         { Name : ResourceName
-          Location : Locations
+          Location : Location
           IpConfigs :
             {| SubnetName : ResourceName
                PublicIpName : ResourceName |} list
           VirtualNetwork : ResourceName }
     type VirtualMachine =
         { Name : ResourceName
-          Location : Locations
+          Location : Location
           StorageAccount : ResourceName option
           Size : VMSize
           Credentials : {| Username : string; Password : SecureParameter |}
@@ -309,7 +309,7 @@ type KeyVaultSecret =
     { Name : ResourceName
       Value : SecretValue
       ParentKeyVault : ResourceName
-      Location : Locations
+      Location : Location
       ContentType : string option
       Enabled : bool Nullable
       ActivationDate : int Nullable
@@ -317,7 +317,7 @@ type KeyVaultSecret =
       Dependencies : ResourceName list }
 type KeyVault =
     { Name : ResourceName
-      Location : Locations
+      Location : Location
       TenantId : string
       Sku : string
       Uri : string option
@@ -343,7 +343,7 @@ type KeyVault =
 
 type CognitiveServices =
   { Name : ResourceName
-    Location : Locations
+    Location : Location
     Sku : string
     Kind : string }
 

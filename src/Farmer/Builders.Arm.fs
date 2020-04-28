@@ -9,7 +9,7 @@ open System.IO.Compression
 type ArmConfig =
     { Parameters : string Set
       Outputs : (string * string) list
-      Location : Locations
+      Location : Location
       Resources : SupportedResource list }
     member internal this.AddOrMergeResource tryConvert existingConfig unwrap wrap =
         let matchingResources = this.Resources |> List.choose unwrap
@@ -49,7 +49,7 @@ type ZipDeployKind =
 type PostDeployTask =
     | RunFromZip of {| WebApp:ResourceName; Path : ZipDeployKind |}
 type Deployment =
-    { Location : Locations
+    { Location : Location
       Template : ArmTemplate
       PostDeployTasks : PostDeployTask list }
 

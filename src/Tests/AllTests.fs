@@ -14,6 +14,7 @@ let allTests =
             ContainerGroup.tests
             Storage.tests
             ContainerRegistry.tests
+            VirtualMachine.tests
         ]
     ]
 
