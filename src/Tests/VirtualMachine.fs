@@ -36,4 +36,14 @@ let tests = testList "Virtual Machine" [
         Expect.equal resource.OsProfile.AdminUsername "isaac" "Incorrect username"
         Expect.isTrue (resource.DiagnosticsProfile.BootDiagnostics.Enabled.GetValueOrDefault false) "Boot Diagnostics should be enabled"
     }
+    test "Creates a parameter for the password" {
+        let deployment =
+            arm {
+                add_resource
+                    (vm { name "isaac" })
+            }
+        let template = deployment.Template |> Writer.TemplateGeneration.processTemplate
+        Expect.equal (template.parameters |> Map.toList |> List.head |> fst) "password-for-isaac" "Missing parameter"
+        Expect.equal template.parameters.Count 1 "Should only be one parameter"
+    }
 ]
