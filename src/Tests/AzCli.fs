@@ -3,6 +3,9 @@ module AzCli
 open Expecto
 open Farmer
 open System
+open Expecto.Logging.LoggerEx
+open Expecto.Logging.Message
+
 let tests = testList "Azure CLI" [
     test "Can connect to Az CLI" {
         match Deploy.checkVersion Deploy.Az.MinimumVersion with
@@ -15,10 +18,10 @@ let tests = testList "Azure CLI" [
         Expect.equal result (Error "The following parameters are missing: p1.") ""
     }
 
-    test "Deploys and Deletes a resource group" {
+    test "Deploys and deletes a resource group" {
         let deployment = arm { location NorthEurope }
         let resourceGroupName = sprintf "farmer-integration-test-delete-%O" (Guid.NewGuid())
-        printfn "Creating resource group %s..." resourceGroupName
+        logger.info (eventX (sprintf "Creating resource group %s..." resourceGroupName))
         let deployResponse = deployment |> Deploy.tryExecute resourceGroupName []
         let deleteResponse = Deploy.Az.delete resourceGroupName
 
