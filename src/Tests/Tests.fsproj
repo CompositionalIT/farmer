@@ -12,6 +12,7 @@
     <Compile Include="Storage.fs" />
     <Compile Include="Template.fs" />
     <Compile Include="AzCli.fs" />
+    <Compile Include="ContainerRegister.fs" />
     <Compile Include="AllTests.fs" />
   </ItemGroup>
 

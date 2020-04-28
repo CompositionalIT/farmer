@@ -343,13 +343,20 @@ type KeyVault =
       IpRules : string list
       VnetRules : string list }
 
-open VM
-
 type CognitiveServices =
   { Name : ResourceName
     Location : Location
     Sku : string
     Kind : string }
+  
+type ContainerRegistry =
+  {
+    Name : ResourceName
+    Location : Location
+    Sku : string
+    AdminUserEnabled : bool }
+
+open VM
 
 type SupportedResource =
     | CosmosAccount of CosmosDbAccount | CosmosSqlDb of CosmosDbSql | CosmosContainer of CosmosDbContainer
@@ -364,6 +371,7 @@ type SupportedResource =
     | EventHub of EventHub | EventHubNamespace of EventHubNamespace | ConsumerGroup of EventHubConsumerGroup | EventHubAuthRule of EventHubAuthorizationRule
     | RedisCache of Redis
     | CognitiveService of CognitiveServices
+    | ContainerRegistry of ContainerRegistry
     member this.ResourceName =
         match this with
         | AppInsights x -> x.Name
@@ -378,6 +386,7 @@ type SupportedResource =
         | EventHub x -> x.Name | EventHubNamespace x -> x.Name | ConsumerGroup x -> x.Name | EventHubAuthRule x -> x.Name
         | RedisCache r -> r.Name
         | CognitiveService c -> c.Name
+        | ContainerRegistry r -> r.Name
 
 namespace Farmer
 open Farmer.Models
