@@ -16,6 +16,7 @@
 
     <!-- NuGet Pack settings -->
     <PackageId>Farmer</PackageId>
+    <Icon>..\..\LogoSmall.jpg</Icon>
     <PackageTags>azure;resource-manager;template;dsl;fsharp;infrastructure-as-code</PackageTags>
     <PackageReleaseNotes>https://raw.githubusercontent.com/CompositionalIT/farmer/master/RELEASE_NOTES.md</PackageReleaseNotes>
     <PackageProjectUrl>https://compositionalit.github.io/farmer</PackageProjectUrl>
