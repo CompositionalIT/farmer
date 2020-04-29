@@ -6,7 +6,7 @@ open Farmer.Resources
 let myVm = vm {
     name "isaacsVM"
     username "isaac"
-    vm_size Size.Standard_A2
+    vm_size Standard_A2
     operating_system CommonImages.WindowsServer_2012Datacenter
     os_disk 128 StandardSSD_LRS
     add_ssd_disk 128
@@ -14,10 +14,10 @@ let myVm = vm {
     diagnostics_support
 }
 
-let template = arm {
+let deployment = arm {
     location NorthEurope
     add_resource myVm
 }
 
-template
-|> Deploy.execute "my-resource-group-name"
+deployment
+|> Deploy.execute "my-resource-group-name" Deploy.NoParameters

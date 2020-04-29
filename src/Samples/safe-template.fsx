@@ -3,7 +3,7 @@
 open Farmer
 open Farmer.Resources
 
-let makeTemplate (environment:string) theLocation storageSku webAppSku =
+let makeSafeApp (environment:string) theLocation storageSku webAppSku =
     let environment = environment.ToLower()
     let generateResourceName = sprintf "safe-%s-%s" environment
 
@@ -33,5 +33,5 @@ let makeTemplate (environment:string) theLocation storageSku webAppSku =
         output "webAppPassword" myWebApp.PublishingPassword
     }
 
-makeTemplate "dev" NorthEurope Sku.StandardLRS Sku.F1
-|> Deploy.execute "my-resource-group-name"
+makeSafeApp "dev" NorthEurope StorageSku.Standard_LRS Sku.F1
+|> Deploy.execute "my-resource-group-name" Deploy.NoParameters

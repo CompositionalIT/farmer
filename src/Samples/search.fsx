@@ -1,19 +1,19 @@
 #r @"..\Farmer\bin\Debug\netstandard2.0\Farmer.dll"
 
 open Farmer
-open Farmer.Resources.Search
+open Farmer.Resources
 
 let mySearch = search {
     name "isaacsSearch"
-    sku Sku.Basic
+    sku SearchSku.Basic
 }
 
-let template = arm {
+let deployment = arm {
     location NorthEurope
     add_resource mySearch
     output "search-admin-key" mySearch.AdminKey
     output "search-query-key" mySearch.QueryKey
 }
 
-template
-|> Deploy.execute "my-resource-group-name"
+deployment
+|> Deploy.execute "my-resource-group-name" Deploy.NoParameters

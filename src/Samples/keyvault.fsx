@@ -50,6 +50,4 @@ let deployment = arm {
 }
 
 deployment
-|> Writer.quickWrite (__SOURCE_DIRECTORY__ + "\\foo")
-
-
+|> Writer.quickWrite "output"

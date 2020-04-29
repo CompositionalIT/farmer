@@ -19,4 +19,4 @@ let template = arm {
 }
 
 template
-|> Deploy.execute "deleteme"
+|> Deploy.execute "deleteme" Deploy.NoParameters

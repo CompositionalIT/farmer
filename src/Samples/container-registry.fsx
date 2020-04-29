@@ -18,4 +18,3 @@ let deployment = arm {
 
 deployment
 |> Deploy.execute "FarmerTest" Deploy.NoParameters
-|> printfn "%A"
