@@ -77,15 +77,15 @@ type ServiceBusQueueBuilder() =
 module Converters =
     let serviceBusNamespace location (existingNamespaces:ServiceBusNamespace list) config =
         let queue =
-              {| Name = config.Name
-                 LockDuration = config.LockDurationMinutes |> Option.map (sprintf "PT%dM")
-                 DuplicateDetection = config.DuplicateDetection |> Option.map(fun _ -> true)
-                 DuplicateDetectionHistoryTimeWindow = config.DuplicateDetection |> Option.map (sprintf "PT%dM")
-                 Session = config.Session
-                 DeadLetteringOnMessageExpiration = config.DeadLetteringOnMessageExpiration
-                 MaxDeliveryCount = config.MaxDeliveryCount
-                 EnablePartitioning = config.EnablePartitioning
-                 DependsOn = [ config.NamespaceName.ResourceName ] |}
+              { Name = config.Name
+                LockDuration = config.LockDurationMinutes |> Option.map (sprintf "PT%dM")
+                DuplicateDetection = config.DuplicateDetection |> Option.map(fun _ -> true)
+                DuplicateDetectionHistoryTimeWindow = config.DuplicateDetection |> Option.map (sprintf "PT%dM")
+                Session = config.Session
+                DeadLetteringOnMessageExpiration = config.DeadLetteringOnMessageExpiration
+                MaxDeliveryCount = config.MaxDeliveryCount
+                EnablePartitioning = config.EnablePartitioning
+                DependsOn = [ config.NamespaceName.ResourceName ] }
 
         match config.NamespaceName with
         | AutomaticallyCreated namespaceName ->

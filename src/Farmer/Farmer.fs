@@ -357,21 +357,23 @@ type ContainerRegistry =
     Sku : string
     AdminUserEnabled : bool }
 
+type ServiceBusQueue =
+    { Name : ResourceName
+      LockDuration : string option
+      DuplicateDetection : bool option
+      DuplicateDetectionHistoryTimeWindow : string option
+      Session : bool option
+      DeadLetteringOnMessageExpiration : bool option
+      MaxDeliveryCount : int option
+      EnablePartitioning : bool option
+      DependsOn : ResourceName list }
+
 type ServiceBusNamespace =
     { Name : ResourceName
       Location : Location
       Sku : string
       Capacity : int option
-      Queues :
-        {| Name : ResourceName
-           LockDuration : string option
-           DuplicateDetection : bool option
-           DuplicateDetectionHistoryTimeWindow : string option
-           Session : bool option
-           DeadLetteringOnMessageExpiration : bool option
-           MaxDeliveryCount : int option
-           EnablePartitioning : bool option
-           DependsOn : ResourceName list |} list
+      Queues :ServiceBusQueue list
       DependsOn : ResourceName list }
 
 open VM
