@@ -9,6 +9,8 @@ chapter: false
 The SQL Azure builder is used to called SQL Azure servers and databases. It supports features such as encryption and firewalls. Every SQL Azure server you create will automatically create a SecureString parameter for the admin account password.
 If you wish to create a SQL Database attached to an existing server, use the `link_to_server` keyword and supply the resource name of the existing server.
 
+* SQL Azure server (`Microsoft.Sql/servers`)
+
 #### Builder Keywords
 | Applies To | Keyword | Purpose |
 |-|-|-|

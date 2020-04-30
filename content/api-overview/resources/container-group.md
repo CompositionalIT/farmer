@@ -8,6 +8,8 @@ chapter: false
 #### Overview
 The Container Group builder is used to create Azure Container Group instances.
 
+* Container Group (`Microsoft.ContainerInstance/containerGroups`)
+
 #### Builder Keywords
 | Keyword | Purpose |
 |-|-|

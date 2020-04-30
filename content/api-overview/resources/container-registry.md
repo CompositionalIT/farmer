@@ -6,7 +6,9 @@ chapter: false
 ---
 
 #### Overview
-The Container Registry builder is used to create Azure Container Registry instances.
+The Container Registry builder is used to create Azure Container Registry (ACR) instances.
+
+* Container Registry (`Microsoft.ContainerRegistry/registries`)
 
 #### Builder Keywords
 | Keyword | Purpose |

@@ -8,6 +8,8 @@ chapter: false
 #### Overview
 The Cognitive Services builder is used to create Azure Cognitive Services instances.
 
+* Cognitive Services (`Microsoft.CognitiveServices/accounts`)
+
 #### Builder Keywords
 | Keyword | Purpose |
 |-|-|

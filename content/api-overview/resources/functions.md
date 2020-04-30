@@ -11,7 +11,6 @@ The Functions builder is used to create Azure Functions accounts. It abstracts t
 * Web Site (`Microsoft.Web/sites`)
 * Web Host (`Microsoft.Web/serverfarms`)
 * Application Insights (`Microsoft.Insights/components`)
-* Site Extension (`siteextensions`)
 * Storage Accounts (`Microsoft.Storage/storageAccounts`)
 
 #### Builder Keywords

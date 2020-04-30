@@ -8,6 +8,10 @@ chapter: false
 #### Overview
 The CosmosDb package containers two builders, used to create *databases* and *containers*.
 
+* CosmosDB Account (`Microsoft.DocumentDb/databaseAccounts`)
+* CosmosDB SQL (`"Microsoft.DocumentDB/databaseAccounts/sqlDatabases`)
+* CosmosDB SQL Container (`Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers`)
+
 > There is currently only support for document databases (the so-called "SQL API"), with support for Gremlin, Table and Cassandra data models planned.
 
 #### Cosmos DB Builder
