@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Farmer\Farmer.fsproj"/>
+    <ProjectReference Include="..\..\src\Farmer\Farmer.fsproj"/>
     <Compile Include="Program.fs" />
   </ItemGroup>
 
