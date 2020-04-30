@@ -363,7 +363,7 @@ type ServiceBusNamespace =
         {| Name : ResourceName
            LockDuration : string option
            DuplicateDetection : bool option
-           DuplicateDetectionHistoryTimeWindow : int option
+           DuplicateDetectionHistoryTimeWindow : string option
            Session : bool option
            DeadLetteringOnMessageExpiration : bool option
            MaxDeliveryCount : int option

@@ -80,7 +80,7 @@ module Converters =
               {| Name = config.Name
                  LockDuration = config.LockDurationMinutes |> Option.map (sprintf "PT%dM")
                  DuplicateDetection = config.DuplicateDetection |> Option.map(fun _ -> true)
-                 DuplicateDetectionHistoryTimeWindow = config.DuplicateDetection
+                 DuplicateDetectionHistoryTimeWindow = config.DuplicateDetection |> Option.map (sprintf "PT%dM")
                  Session = config.Session
                  DeadLetteringOnMessageExpiration = config.DeadLetteringOnMessageExpiration
                  MaxDeliveryCount = config.MaxDeliveryCount
@@ -88,8 +88,8 @@ module Converters =
                  DependsOn = [ config.NamespaceName.ResourceName ] |}
 
         match config.NamespaceName with
-        | AutomaticallyCreated serverName ->
-            { Name = serverName
+        | AutomaticallyCreated namespaceName ->
+            { Name = namespaceName
               Location = location
               Sku =
                 match config.NamespaceSku with
@@ -135,6 +135,7 @@ module Converters =
                         properties =
                          {| lockDuration = queue.LockDuration |> Option.toObj
                             requiresDuplicateDetection = queue.DuplicateDetection |> Option.toNullable
+                            duplicateDetectionHistoryTimeWindow = queue.DuplicateDetectionHistoryTimeWindow |> Option.toObj
                             requiresSession = queue.Session |> Option.toNullable
                             deadLetteringOnMessageExpiration = queue.DeadLetteringOnMessageExpiration |> Option.toNullable
                             maxDeliveryCount = queue.MaxDeliveryCount |> Option.toNullable
