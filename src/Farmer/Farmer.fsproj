@@ -2,7 +2,7 @@
   <PropertyGroup>
     <!-- General -->
     <AssemblyName>Farmer</AssemblyName>
-    <Version>0.12.3</Version>
+    <Version>0.13.0</Version>
     <Description>A DSL for rapidly generating non-complex ARM templates.</Description>
     <Copyright>Copyright 2019, 2020 Compositional IT Ltd.</Copyright>
     <Company>Compositional IT</Company>
@@ -16,6 +16,7 @@
 
     <!-- NuGet Pack settings -->
     <PackageId>Farmer</PackageId>
+    <Icon>..\..\LogoSmall.jpg</Icon>
     <PackageTags>azure;resource-manager;template;dsl;fsharp;infrastructure-as-code</PackageTags>
     <PackageReleaseNotes>https://raw.githubusercontent.com/CompositionalIT/farmer/master/RELEASE_NOTES.md</PackageReleaseNotes>
     <PackageProjectUrl>https://compositionalit.github.io/farmer</PackageProjectUrl>
@@ -35,6 +36,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="Common.fs" />
     <Compile Include="Result.fs" />
     <Compile Include="Farmer.fs" />
     <Compile Include="Builders.Helpers.fs" />
@@ -51,6 +53,7 @@
     <Compile Include="Builders.EventHub.fs" />
     <Compile Include="Builders.ContainerGroups.fs" />
     <Compile Include="Builders.CognitiveSearch.fs" />
+    <Compile Include="Builders.ContainerRegistry.fs" />
     <Compile Include="Builders.ServiceBus.fs" />
     <Compile Include="Writer.fs" />
     <Compile Include="Deploy.fs" />

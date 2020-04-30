@@ -1,4 +1,5 @@
-#r @"..\Farmer\bin\Debug\netstandard2.0\Farmer.dll"
+#r @"./libs/Newtonsoft.Json.dll"
+#r @"../../src/Farmer/bin/Debug/netstandard2.0/Farmer.dll"
 
 open Farmer
 open Farmer.Resources.WebApp
@@ -15,4 +16,4 @@ let template =
     }
 
 template
-|> Deploy.execute "my-resource-group-name"
+|> Deploy.execute "my-resource-group-name" Deploy.NoParameters

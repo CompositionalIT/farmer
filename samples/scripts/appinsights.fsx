@@ -1,4 +1,5 @@
-#r @"..\Farmer\bin\Debug\netstandard2.0\Farmer.dll"
+#r @"./libs/Newtonsoft.Json.dll"
+#r @"../../src/Farmer/bin/Debug/netstandard2.0/Farmer.dll"
 
 open Farmer
 open Farmer.Resources
@@ -19,4 +20,4 @@ let template = arm {
 }
 
 template
-|> Deploy.execute "deleteme"
+|> Deploy.execute "deleteme" Deploy.NoParameters

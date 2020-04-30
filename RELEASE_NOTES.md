@@ -1,5 +1,12 @@
 Release Notes
 =============
+## 0.13.0
+* Support for executing a deployment with fast fail
+* ARM template Validation support
+* Service Bus Queues support
+* Azure Container Registry support
+* Refactor some values to improve type safety
+
 ## 0.12.3
 * Improve support for Azure CLI on Linux
 

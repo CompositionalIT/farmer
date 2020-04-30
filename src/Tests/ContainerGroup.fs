@@ -34,7 +34,7 @@ let fsharpApp = container {
 /// Client instance needed to get the serializer settings.
 let dummyClient = new ContainerInstanceManagementClient (Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
 
-let tests = testList "Container Group Tests" [
+let tests = testList "Container Group" [
     test "Single container in a group is correctly created" {
         let group =
             arm {

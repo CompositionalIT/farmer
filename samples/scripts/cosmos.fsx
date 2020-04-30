@@ -1,10 +1,11 @@
-#r @"..\Farmer\bin\Debug\netstandard2.0\Farmer.dll"
+#r @"./libs/Newtonsoft.Json.dll"
+#r @"../../src/Farmer/bin/Debug/netstandard2.0/Farmer.dll"
 
 open Farmer
 open Farmer.Resources
 
 let myCosmosDb = cosmosDb {
-    db_name "isaacsappdb"
+    name "isaacsappdb"
     server_name "isaacscosmosdb"
     throughput 400
     failover_policy NoFailover
@@ -19,11 +20,11 @@ let myCosmosDb = cosmosDb {
     ]
 }
 
-let template =
+let deployment =
     arm {
         location NorthEurope
         add_resource myCosmosDb
     }
 
-template
-|> Deploy.execute "my-resource-group-name"
+deployment
+|> Deploy.execute "my-resource-group-name" Deploy.NoParameters

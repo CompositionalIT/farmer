@@ -20,7 +20,7 @@ let toTemplate (deployment:Deployment) =
     deployment.Template
     |> Writer.TemplateGeneration.processTemplate
 
-let tests = testList "Template Tests" [
+let tests = testList "Template" [
     test "Can create a basic template" {
         let template = arm { location NorthEurope } |> toTemplate
         Expect.equal template.``$schema`` "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#" ""

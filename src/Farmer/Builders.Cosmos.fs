@@ -185,7 +185,7 @@ module Converters =
             ``type`` = "Microsoft.DocumentDB/databaseAccounts"
             name = account.Name.Value
             apiVersion = "2020-03-01"
-            location = account.Location.Value
+            location = account.Location.ArmValue
             kind = "GlobalDocumentDB"
             tags =
                 {| defaultExperience = "Core (SQL)"
@@ -209,8 +209,8 @@ module Converters =
                     match account.WriteModel with
                     | AutoFailover secondary
                     | MultiMaster secondary ->
-                        [ {| locationName = account.Location.Value; failoverPriority = 0 |}
-                          {| locationName = secondary.Value; failoverPriority = 1 |} ] |> box
+                        [ {| locationName = account.Location.ArmValue; failoverPriority = 0 |}
+                          {| locationName = secondary.ArmValue; failoverPriority = 1 |} ] |> box
                     | NoFailover ->
                         Nullable() |> box
                    publicNetworkAccess = string account.PublicNetworkAccess

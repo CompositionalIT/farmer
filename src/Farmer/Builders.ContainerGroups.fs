@@ -121,7 +121,7 @@ module Converters =
             ``type`` = "Microsoft.ContainerInstance/containerGroups"
             apiVersion = "2018-10-01"
             name = resource.Name.Value
-            location = resource.Location.Value
+            location = resource.Location.ArmValue
             properties =
                 {| containers =
                     resource.ContainerInstances

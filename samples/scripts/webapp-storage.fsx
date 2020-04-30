@@ -1,11 +1,12 @@
-#r @"..\Farmer\bin\Debug\netstandard2.0\Farmer.dll"
+#r @"./libs/Newtonsoft.Json.dll"
+#r @"../../src/Farmer/bin/Debug/netstandard2.0/Farmer.dll"
 
 open Farmer
 open Farmer.Resources
 
 let myStorage = storageAccount {
     name "mystorage"
-    sku Sku.PremiumLRS
+    sku StorageSku.Premium_LRS
 }
 
 let myWebApp = webApp {
@@ -16,7 +17,7 @@ let myWebApp = webApp {
     depends_on myStorage
 }
 
-let template = arm {
+let deployment = arm {
     location NorthEurope
     add_resource myStorage
     add_resource myWebApp
@@ -24,5 +25,5 @@ let template = arm {
     output "web_password" myWebApp.PublishingPassword
 }
 
-template
-|> Deploy.execute "my-resource-group-name"
+deployment
+|> Deploy.execute "my-resource-group-name" Deploy.NoParameters

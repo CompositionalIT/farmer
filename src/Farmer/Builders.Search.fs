@@ -4,21 +4,20 @@ module Farmer.Resources.Search
 open Farmer.Helpers
 open Farmer
 
-module Sku =
-    type HostingMode = Default | HighDensity
-    /// The SKU of the search service you want to create. E.g. free or standard.
-    type SearchSku =
-        | Free
-        | Basic
-        | Standard
-        | Standard2
-        | Standard3 of HostingMode
-        | StorageOptimisedL1
-        | StorageOptimisedL2
+type HostingMode = Default | HighDensity
+/// The SKU of the search service you want to create. E.g. free or standard.
+type SearchSku =
+    | Free
+    | Basic
+    | Standard
+    | Standard2
+    | Standard3 of HostingMode
+    | StorageOptimisedL1
+    | StorageOptimisedL2
 
 type SearchConfig =
     { Name : ResourceName
-      Sku : Sku.SearchSku
+      Sku : SearchSku
       Replicas : int
       Partitions : int }
     /// Gets an ARM expression for the admin key of the search instance.
@@ -33,7 +32,7 @@ type SearchConfig =
 type SearchBuilder() =
     member __.Yield _ =
         { Name = ResourceName.Empty
-          Sku = Sku.Standard
+          Sku = SearchSku.Standard
           Replicas = 1
           Partitions = 1 }
     member __.Run(state:SearchConfig) =
@@ -67,18 +66,18 @@ module Converters =
           Location = location
           Sku =
             match search.Sku with
-            | Sku.Free -> "free"
-            | Sku.Basic -> "basic"
-            | Sku.Standard -> "standard"
-            | Sku.Standard2 -> "standard2"
-            | Sku.Standard3 _ -> "standard3"
-            | Sku.StorageOptimisedL1 -> "storage_optimized_l1"
-            | Sku.StorageOptimisedL2 -> "storage_optimized_l2"
+            | SearchSku.Free -> "free"
+            | SearchSku.Basic -> "basic"
+            | SearchSku.Standard -> "standard"
+            | SearchSku.Standard2 -> "standard2"
+            | SearchSku.Standard3 _ -> "standard3"
+            | SearchSku.StorageOptimisedL1 -> "storage_optimized_l1"
+            | SearchSku.StorageOptimisedL2 -> "storage_optimized_l2"
           ReplicaCount = search.Replicas
           PartitionCount = search.Partitions
           HostingMode =
             match search.Sku with
-            | Sku.Standard3 Sku.HighDensity -> "highDensity"
+            | SearchSku.Standard3 HighDensity -> "highDensity"
             | _ -> "default"
           }
     module Outputters =
@@ -86,7 +85,7 @@ module Converters =
             ``type`` = "Microsoft.Search/searchServices"
             apiVersion = "2015-08-19"
             name = search.Name.Value
-            location = search.Location.Value
+            location = search.Location.ArmValue
             sku =
              {| name = search.Sku |}
             properties =

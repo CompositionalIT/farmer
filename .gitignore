@@ -355,3 +355,4 @@ MigrationBackup/
 .idea/
 
 .farmer
+**/.DS_Store

@@ -1,4 +1,5 @@
-#r @"..\Farmer\bin\Debug\netstandard2.0\Farmer.dll"
+#r @"./libs/Newtonsoft.Json.dll"
+#r @"../../src/Farmer/bin/Debug/netstandard2.0/Farmer.dll"
 
 open Farmer
 open Farmer.Resources.KeyVault
@@ -50,6 +51,4 @@ let deployment = arm {
 }
 
 deployment
-|> Writer.quickWrite (__SOURCE_DIRECTORY__ + "\\foo")
-
-
+|> Writer.quickWrite "output"

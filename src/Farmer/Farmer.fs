@@ -13,8 +13,6 @@ type ResourceName =
         | r -> r
     member this.Map mapper = match this with ResourceName r -> ResourceName (mapper r)
 
-type Location = Location of string member this.Value = match this with (Location l) -> l
-
 /// Represents an expression used within an ARM template
 type ArmExpression =
     | ArmExpression of string
@@ -78,7 +76,7 @@ type CosmosDbIndexDataType = Number | String
 /// Whether a specific feature is active or not.
 type FeatureFlag = Enabled | Disabled member this.AsBoolean = match this with Enabled -> true | Disabled -> false
 /// The type of disk to use.
-type DiskType = StandardSSD_LRS | Standard_LRS | Premium_LRS
+type DiskType = StandardSSD_LRS | Standard_LRS | Premium_LRS member this.ArmValue = match this with x -> x.ToString()
 /// Represents a disk in a VM.
 type DiskInfo = { Size : int; DiskType : DiskType }
 
@@ -104,7 +102,7 @@ type StorageContainerAccess =
 type StorageAccount =
     { Name : ResourceName
       Location : Location
-      Sku : string
+      Sku : StorageSku
       Containers : (string * StorageContainerAccess) list }
 
 type Redis =
@@ -296,9 +294,9 @@ module VM =
         { Name : ResourceName
           Location : Location
           StorageAccount : ResourceName option
-          Size : string
+          Size : VMSize
           Credentials : {| Username : string; Password : SecureParameter |}
-          Image : {| Publisher : string; Offer : string; Sku : string |}
+          Image : ImageDefinition
           OsDisk : DiskInfo
           DataDisks : DiskInfo list
           NetworkInterfaceName : ResourceName }
@@ -346,13 +344,18 @@ type KeyVault =
       IpRules : string list
       VnetRules : string list }
 
-open VM
-
 type CognitiveServices =
   { Name : ResourceName
     Location : Location
     Sku : string
     Kind : string }
+
+type ContainerRegistry =
+  {
+    Name : ResourceName
+    Location : Location
+    Sku : string
+    AdminUserEnabled : bool }
 
 type ServiceBusNamespace =
     { Name : ResourceName
@@ -371,6 +374,8 @@ type ServiceBusNamespace =
            DependsOn : ResourceName list |} list
       DependsOn : ResourceName list }
 
+open VM
+
 type SupportedResource =
     | CosmosAccount of CosmosDbAccount | CosmosSqlDb of CosmosDbSql | CosmosContainer of CosmosDbContainer
     | ServerFarm of ServerFarm | WebApp of WebApp
@@ -384,6 +389,7 @@ type SupportedResource =
     | EventHub of EventHub | EventHubNamespace of EventHubNamespace | ConsumerGroup of EventHubConsumerGroup | EventHubAuthRule of EventHubAuthorizationRule
     | RedisCache of Redis
     | CognitiveService of CognitiveServices
+    | ContainerRegistry of ContainerRegistry
     | ServiceBusNamespace of ServiceBusNamespace
     member this.ResourceName =
         match this with
@@ -399,31 +405,11 @@ type SupportedResource =
         | EventHub x -> x.Name | EventHubNamespace x -> x.Name | ConsumerGroup x -> x.Name | EventHubAuthRule x -> x.Name
         | RedisCache r -> r.Name
         | CognitiveService c -> c.Name
+        | ContainerRegistry r -> r.Name
         | ServiceBusNamespace s -> s.Name
 
 namespace Farmer
 open Farmer.Models
-
-[<AutoOpen>]
-module Locations =
-    let EastAsia = Location "eastasia"
-    let SoutheastAsia = Location "southeastasia"
-    let CentralUS = Location "centralus"
-    let EastUS = Location "eastus"
-    let EastUS2 = Location "eastus2"
-    let WestUS = Location "westus"
-    let NorthCentralUS = Location "northcentralus"
-    let SouthCentralUS = Location "southcentralus"
-    let NorthEurope = Location "northeurope"
-    let WestEurope = Location "westeurope"
-    let JapanWest = Location "japanwest"
-    let JapanEast = Location "japaneast"
-    let BrazilSouth = Location "brazilsouth"
-    let AustraliaEast = Location "australiaeast"
-    let AustraliaSoutheast = Location "australiasoutheast"
-    let SouthIndia = Location "southindia"
-    let CentralIndia = Location "centralindia"
-    let WestIndia = Location "westindia"
 
 type ArmTemplate =
     { Parameters : SecureParameter list

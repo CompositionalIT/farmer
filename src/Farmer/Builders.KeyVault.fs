@@ -316,7 +316,7 @@ module Converters =
           ``type``= "Microsoft.KeyVault/vaults"
           name = keyVault.Name.Value
           apiVersion = "2018-02-14"
-          location = keyVault.Location.Value
+          location = keyVault.Location.ArmValue
           properties =
             {| tenantId = keyVault.TenantId
                sku = {| name = keyVault.Sku; family = "A" |}
@@ -349,7 +349,7 @@ module Converters =
             ``type`` = "Microsoft.KeyVault/vaults/secrets"
             name = keyVaultSecret.Name.Value
             apiVersion = "2018-02-14"
-            location = keyVaultSecret.Location.Value
+            location = keyVaultSecret.Location.ArmValue
             dependsOn = [
                 keyVaultSecret.ParentKeyVault.Value
                 for dependency in keyVaultSecret.Dependencies do

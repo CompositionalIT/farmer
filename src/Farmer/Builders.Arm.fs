@@ -1,7 +1,6 @@
 [<AutoOpen>]
 module Farmer.ArmBuilder
 
-open Farmer.Resources
 open Farmer.Models
 open System.IO
 open System.IO.Compression

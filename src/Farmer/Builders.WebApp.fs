@@ -506,7 +506,7 @@ module Converters =
             ``type`` = "Microsoft.Insights/components"
             kind = "web"
             name = resource.Name.Value
-            location = resource.Location.Value
+            location = resource.Location.ArmValue
             apiVersion = "2014-04-01"
             tags =
                 [ match resource.LinkedWebsite with
@@ -534,7 +534,7 @@ module Converters =
                        capacity = if farm.IsDynamic then 0 else farm.WorkerCount |}
                 name = farm.Name.Value
                 apiVersion = "2018-02-01"
-                location = farm.Location.Value
+                location = farm.Location.ArmValue
                 properties =
                     if farm.IsDynamic then
                         box {| name = farm.Name.Value
@@ -550,7 +550,7 @@ module Converters =
             ``type`` = "Microsoft.Web/sites"
             name = webApp.Name.Value
             apiVersion = "2016-08-01"
-            location = webApp.Location.Value
+            location = webApp.Location.ArmValue
             dependsOn = webApp.Dependencies |> List.map(fun p -> p.Value)
             kind = webApp.Kind
             properties =
