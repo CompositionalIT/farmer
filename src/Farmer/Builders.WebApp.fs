@@ -5,6 +5,7 @@ open Farmer.Resources.Storage
 open Farmer
 
 type WorkerSize = Small | Medium | Large | Serverless
+[<RequireQualifiedAccess>]
 type WebAppSku = Shared | Free | Basic of string | Standard of string | Premium of string | PremiumV2 of string | Isolated of string | Functions
 type OS = Windows | Linux
 
@@ -56,24 +57,24 @@ type WebAppRuntime =
     static member Python37 = Python ("3.7", "3.7")
 
 module Sku =
-    let D1 = Shared
-    let F1 = Free
-    let B1 = Basic "B1"
-    let B2 = Basic "B2"
-    let B3 = Basic "B3"
-    let S1 = Standard "S1"
-    let S2 = Standard "S2"
-    let S3 = Standard "S3"
-    let P1 = Premium "P1"
-    let P2 = Premium "P2"
-    let P3 = Premium "P3"
-    let P1V2 = PremiumV2 "P1V2"
-    let P2V2 = PremiumV2 "P2V2"
-    let P3V2 = PremiumV2 "P3V2"
-    let I1 = Isolated "I1"
-    let I2 = Isolated "I2"
-    let I3 = Isolated "I3"
-    let Y1 = Isolated "Y1"
+    let D1 = WebAppSku.Shared
+    let F1 = WebAppSku.Free
+    let B1 = WebAppSku.Basic "B1"
+    let B2 = WebAppSku.Basic "B2"
+    let B3 = WebAppSku.Basic "B3"
+    let S1 = WebAppSku.Standard "S1"
+    let S2 = WebAppSku.Standard "S2"
+    let S3 = WebAppSku.Standard "S3"
+    let P1 = WebAppSku.Premium "P1"
+    let P2 = WebAppSku.Premium "P2"
+    let P3 = WebAppSku.Premium "P3"
+    let P1V2 = WebAppSku.PremiumV2 "P1V2"
+    let P2V2 = WebAppSku.PremiumV2 "P2V2"
+    let P3V2 = WebAppSku.PremiumV2 "P3V2"
+    let I1 = WebAppSku.Isolated "I1"
+    let I2 = WebAppSku.Isolated "I2"
+    let I3 = WebAppSku.Isolated "I3"
+    let Y1 = WebAppSku.Isolated "Y1"
 
 module AppSettings =
     let WebsiteNodeDefaultVersion version = "WEBSITE_NODE_DEFAULT_VERSION", version
@@ -271,7 +272,7 @@ type AppInsightsBuilder() =
 type ServicePlanBuilder() =
     member __.Yield _ : ServicePlanConfig=
         { Name = ResourceName.Empty
-          Sku = Free
+          Sku = WebAppSku.Free
           WorkerSize = Small
           WorkerCount = 1
           OperatingSystem = Windows }
@@ -292,7 +293,7 @@ type ServicePlanBuilder() =
     member __.OperatingSystem(state:ServicePlanConfig, os) = { state with OperatingSystem = os }
     [<CustomOperation "serverless">]
     /// Configures this server farm to host serverless functions, not web apps.
-    member __.Serverless(state:ServicePlanConfig) = { state with Sku = Functions; WorkerSize = Serverless }
+    member __.Serverless(state:ServicePlanConfig) = { state with Sku = WebAppSku.Functions; WorkerSize = Serverless }
 
 module Converters =
     let serverFarm location (sfc:ServicePlanConfig) =
@@ -300,17 +301,17 @@ module Converters =
           Name = sfc.Name
           Sku =
             match sfc.Sku with
-            | Free ->
+            | WebAppSku.Free ->
                 "F1"
-            | Shared ->
+            | WebAppSku.Shared ->
                 "D1"
-            | Basic sku
-            | Standard sku
-            | Premium sku
-            | PremiumV2 sku
-            | Isolated sku ->
+            | WebAppSku.Basic sku
+            | WebAppSku.Standard sku
+            | WebAppSku.Premium sku
+            | WebAppSku.PremiumV2 sku
+            | WebAppSku.Isolated sku ->
                 sku
-            | Functions ->
+            | WebAppSku.Functions ->
                 "Y1"
           WorkerSize =
             match sfc.WorkerSize with
@@ -320,7 +321,7 @@ module Converters =
             | Serverless -> "Y1"
           IsDynamic =
             match sfc.Sku, sfc.WorkerSize with
-            | Functions, Serverless -> true
+            | WebAppSku.Functions, Serverless -> true
             | _ -> false
           Kind =
             match sfc.OperatingSystem with
@@ -328,14 +329,14 @@ module Converters =
             | _ -> None
           Tier =
             match sfc.Sku with
-            | Free -> "Free"
-            | Shared -> "Shared"
-            | Basic _ -> "Basic"
-            | Standard _ -> "Standard"
-            | Premium _ -> "Premium"
-            | PremiumV2 _ -> "PremiumV2"
-            | Isolated _ -> "Isolated"
-            | Functions -> "Dynamic"
+            | WebAppSku.Free -> "Free"
+            | WebAppSku.Shared -> "Shared"
+            | WebAppSku.Basic _ -> "Basic"
+            | WebAppSku.Standard _ -> "Standard"
+            | WebAppSku.Premium _ -> "Premium"
+            | WebAppSku.PremiumV2 _ -> "PremiumV2"
+            | WebAppSku.Isolated _ -> "Isolated"
+            | WebAppSku.Functions -> "Dynamic"
           IsLinux =
             match sfc.OperatingSystem with
             | Linux -> true

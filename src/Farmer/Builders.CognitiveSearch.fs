@@ -4,6 +4,7 @@ module Farmer.Resources.CognitiveSearch
 open Farmer
 open Farmer.Models
 
+[<RequireQualifiedAccess>]
 /// Type of SKU. See https://github.com/Azure/azure-quickstart-templates/tree/master/101-cognitive-services-translate
 type CognitiveServicesSku =
     /// Free Tier
@@ -41,7 +42,7 @@ type CognitiveServicesConfig =
 type CognitiveServicesBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
-          Sku = F0
+          Sku = CognitiveServicesSku.F0
           Api = AllInOne }
     [<CustomOperation "name">]
     member _.Name (state:CognitiveServicesConfig, name) = { state with Name = ResourceName name }

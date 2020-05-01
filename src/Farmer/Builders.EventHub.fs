@@ -4,6 +4,7 @@ module Farmer.Resources.EventHub
 open Farmer
 open Farmer.Models
 
+[<RequireQualifiedAccess>]
 /// The SKU of the event hub instance.
 type EventHubSku =
     | Basic
@@ -46,7 +47,7 @@ type EventHubBuilder() =
     member __.Yield _ =
         { Name = ResourceName "hub"
           EventHubNamespace = AutomaticPlaceholder
-          Sku = Standard
+          Sku = EventHubSku.Standard
           Capacity = 1
           ZoneRedundant = None
           ThroughputSettings = None

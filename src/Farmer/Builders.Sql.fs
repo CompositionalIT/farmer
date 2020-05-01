@@ -3,27 +3,27 @@ module Farmer.Resources.SqlAzure
 
 open Farmer
 open Farmer.Models
-
+[<RequireQualifiedAccess>]
 type SqlSku = Free | Basic | Standard of string | Premium of string
 
 module Sku =
-    let ``Free`` = Free
-    let ``Basic`` = Basic
-    let ``S0`` = Standard "S0"
-    let ``S1`` = Standard "S1"
-    let ``S2`` = Standard "S2"
-    let ``S3`` = Standard "S3"
-    let ``S4`` = Standard "S4"
-    let ``S6`` = Standard "S6"
-    let ``S7`` = Standard "S7"
-    let ``S9`` = Standard "S9"
-    let ``S12`` =Standard "S12"
-    let ``P1`` = Premium "P1"
-    let ``P2`` = Premium "P2"
-    let ``P4`` = Premium "P4"
-    let ``P6`` = Premium "P6"
-    let ``P11`` = Premium "P11"
-    let ``P15`` = Premium "P15"
+    let ``Free`` = SqlSku.Free
+    let ``Basic`` = SqlSku.Basic
+    let ``S0`` = SqlSku.Standard "S0"
+    let ``S1`` = SqlSku.Standard "S1"
+    let ``S2`` = SqlSku.Standard "S2"
+    let ``S3`` = SqlSku.Standard "S3"
+    let ``S4`` = SqlSku.Standard "S4"
+    let ``S6`` = SqlSku.Standard "S6"
+    let ``S7`` = SqlSku.Standard "S7"
+    let ``S9`` = SqlSku.Standard "S9"
+    let ``S12`` =SqlSku.Standard "S12"
+    let ``P1`` = SqlSku.Premium "P1"
+    let ``P2`` = SqlSku.Premium "P2"
+    let ``P4`` = SqlSku.Premium "P4"
+    let ``P6`` = SqlSku.Premium "P6"
+    let ``P11`` = SqlSku.Premium "P11"
+    let ``P15`` = SqlSku.Premium "P15"
 
 type SqlAzureConfig =
     { ServerName : ResourceRef
@@ -56,7 +56,7 @@ type SqlBuilder() =
         { ServerName = AutomaticPlaceholder
           AdministratorCredentials = {| UserName = ""; Password = SecureParameter "" |}
           Name = ResourceName ""
-          DbEdition = Free
+          DbEdition = SqlSku.Free
           DbCollation = "SQL_Latin1_General_CP1_CI_AS"
           Encryption = Disabled
           FirewallRules = [] }

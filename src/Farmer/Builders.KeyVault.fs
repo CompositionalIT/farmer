@@ -36,6 +36,7 @@ type NonEmptyList<'T> = 'T * 'T List
 
 type CreateMode = Recover of NonEmptyList<AccessPolicy> | Default of AccessPolicy list | Unspecified of AccessPolicy list
 type SoftDeletionMode = SoftDeleteWithPurgeProtection | SoftDeletionOnly
+[<RequireQualifiedAccess>]
 type KeyVaultSku = Standard | Premium
 type KeyVaultSettings =
     { /// Specifies whether Azure Virtual Machines are permitted to retrieve certificates stored as secrets from the key vault.
