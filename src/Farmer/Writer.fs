@@ -10,42 +10,7 @@ module TemplateGeneration =
         ``$schema`` = "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#"
         contentVersion = "1.0.0.0"
         resources =
-            template.Resources
-            |> List.map(function
-                | StorageAccount s -> Converters.Outputters.storageAccount s |> box
-
-                | AppInsights ai -> Converters.Outputters.appInsights ai |> box
-                | ServerFarm s -> Converters.Outputters.serverFarm s |> box
-                | WebApp wa -> Converters.Outputters.webApp wa |> box
-
-                | CosmosAccount cds -> Converters.Outputters.cosmosDbAccount cds |> box
-                | CosmosSqlDb db -> Converters.Outputters.cosmosDbSql db |> box
-                | CosmosContainer c -> Converters.Outputters.cosmosDbContainer c |> box
-
-                | SqlServer sql -> Converters.Outputters.sqlAzure sql |> box
-
-                | ContainerGroup g -> Converters.Outputters.containerGroup g |> box
-                | Ip address -> Converters.Outputters.publicIpAddress address |> box
-                | Vnet vnet -> Converters.Outputters.virtualNetwork vnet |> box
-                | Nic nic -> Converters.Outputters.networkInterface nic |> box
-                | Vm vm -> Converters.Outputters.virtualMachine vm |> box
-
-                | AzureSearch search -> Converters.Outputters.search search |> box
-
-                | KeyVault vault -> Converters.Outputters.keyVault vault |> box
-                | KeyVaultSecret secret -> Converters.Outputters.keyVaultSecret secret |> box
-
-                | RedisCache redis -> Converters.Outputters.redisCache redis |> box
-
-                | EventHub hub -> Converters.Outputters.eventHub hub |> box
-                | EventHubNamespace ns -> Converters.Outputters.eventHubNs ns |> box
-                | ConsumerGroup group -> Converters.Outputters.consumerGroup group |> box
-                | EventHubAuthRule rule -> Converters.Outputters.authRule rule |> box
-
-                | CognitiveService service -> Converters.Outputters.cognitiveServices service |> box
-                | ContainerRegistry registry -> Converters.Outputters.containerRegistry registry |> box
-                | ServiceBusNamespace ns -> Converters.Outputters.serviceBusNamespace ns |> box
-            )
+            template.Resources |> List.map(fun r -> r.ToArmObject())
         parameters =
             template.Parameters
             |> List.map(fun (SecureParameter p) -> p, {| ``type`` = "securestring" |})

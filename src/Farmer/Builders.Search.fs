@@ -4,6 +4,28 @@ module Farmer.Resources.Search
 open Farmer.Helpers
 open Farmer
 
+type Search =
+    { Name : ResourceName
+      Location : Location
+      Sku : string
+      HostingMode : string
+      ReplicaCount : int
+      PartitionCount : int }
+    interface IResource with
+        member this.ResourceName = this.Name
+        member this.ToArmObject() =
+            {| ``type`` = "Microsoft.Search/searchServices"
+               apiVersion = "2015-08-19"
+               name = this.Name.Value
+               location = this.Location.ArmValue
+               sku =
+                {| name = this.Sku |}
+               properties =
+                {| replicaCount = this.ReplicaCount
+                   partitionCount = this.PartitionCount
+                   hostingMode = this.HostingMode |}
+            |} :> _
+
 type HostingMode = Default | HighDensity
 /// The SKU of the search service you want to create. E.g. free or standard.
 type SearchSku =
@@ -28,6 +50,28 @@ type SearchConfig =
     member this.QueryKey =
         sprintf "listQueryKeys('Microsoft.Search/searchServices/%s', '2015-08-19').value[0].key" this.Name.Value
         |> ArmExpression
+    interface IResourceBuilder with
+        member this.BuildResources location _ = [
+            NewResource
+                { Name = this.Name
+                  Location = location
+                  Sku =
+                    match this.Sku with
+                    | SearchSku.Free -> "free"
+                    | SearchSku.Basic -> "basic"
+                    | SearchSku.Standard -> "standard"
+                    | SearchSku.Standard2 -> "standard2"
+                    | SearchSku.Standard3 _ -> "standard3"
+                    | SearchSku.StorageOptimisedL1 -> "storage_optimized_l1"
+                    | SearchSku.StorageOptimisedL2 -> "storage_optimized_l2"
+                  ReplicaCount = this.Replicas
+                  PartitionCount = this.Partitions
+                  HostingMode =
+                    match this.Sku with
+                    | SearchSku.Standard3 HighDensity -> "highDensity"
+                    | _ -> "default"
+                  }
+        ]
 
 type SearchBuilder() =
     member __.Yield _ =
@@ -58,46 +102,5 @@ type WebAppBuilder with
 type FunctionsBuilder with
     member this.DependsOn(state:FunctionsConfig, search:SearchConfig) =
         this.DependsOn(state, search.Name)
-
-module Converters =
-    open Farmer.Models
-    let search location (search:SearchConfig) =
-        { Name = search.Name
-          Location = location
-          Sku =
-            match search.Sku with
-            | SearchSku.Free -> "free"
-            | SearchSku.Basic -> "basic"
-            | SearchSku.Standard -> "standard"
-            | SearchSku.Standard2 -> "standard2"
-            | SearchSku.Standard3 _ -> "standard3"
-            | SearchSku.StorageOptimisedL1 -> "storage_optimized_l1"
-            | SearchSku.StorageOptimisedL2 -> "storage_optimized_l2"
-          ReplicaCount = search.Replicas
-          PartitionCount = search.Partitions
-          HostingMode =
-            match search.Sku with
-            | SearchSku.Standard3 HighDensity -> "highDensity"
-            | _ -> "default"
-          }
-    module Outputters =
-        let search (search:Search) = {|
-            ``type`` = "Microsoft.Search/searchServices"
-            apiVersion = "2015-08-19"
-            name = search.Name.Value
-            location = search.Location.ArmValue
-            sku =
-             {| name = search.Sku |}
-            properties =
-             {| replicaCount = search.ReplicaCount
-                partitionCount = search.PartitionCount
-                hostingMode = search.HostingMode |}
-        |}
-
-open Farmer.Models
-type ArmBuilder.ArmBuilder with
-    member this.AddResource(state:ArmConfig, config:SearchConfig) =
-        { state with Resources = AzureSearch (Converters.search state.Location config) :: state.Resources }
-    member this.AddResources (state, configs) = addResources<SearchConfig> this.AddResource state configs
 
 let search = SearchBuilder()

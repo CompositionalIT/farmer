@@ -1,8 +1,119 @@
 [<AutoOpen>]
 module Farmer.Resources.WebApp
 
-open Farmer.Resources.Storage
 open Farmer
+
+type ServerFarm =
+    { Name : ResourceName
+      Location : Location
+      Sku: string
+      WorkerSize : string
+      IsDynamic : bool
+      Kind : string option
+      Tier : string
+      WorkerCount : int
+      IsLinux : bool }
+    interface IResource with
+        member this.ResourceName = this.Name
+        member this.ToArmObject() =
+            {| ``type`` = "Microsoft.Web/serverfarms"
+               sku =
+                   {| name = this.Sku
+                      tier = this.Tier
+                      size = this.WorkerSize
+                      family = if this.IsDynamic then "Y" else null
+                      capacity = if this.IsDynamic then 0 else this.WorkerCount |}
+               name = this.Name.Value
+               apiVersion = "2018-02-01"
+               location = this.Location.ArmValue
+               properties =
+                   if this.IsDynamic then
+                       box {| name = this.Name.Value
+                              computeMode = "Dynamic"
+                              reserved = this.IsLinux |}
+                   else
+                       box {| name = this.Name.Value
+                              perSiteScaling = false
+                              reserved = this.IsLinux |}
+               kind = this.Kind |> Option.toObj
+            |} :> _
+
+type WebApp =
+    { Name : ResourceName
+      ServicePlan : ResourceName
+      Location : Location
+      AppSettings : List<string * string>
+      AlwaysOn : bool
+      HTTPSOnly : bool
+      Dependencies : ResourceName list
+      Kind : string
+      LinuxFxVersion : string option
+      AppCommandLine : string option
+      NetFrameworkVersion : string option
+      JavaVersion : string option
+      JavaContainer : string option
+      JavaContainerVersion : string option
+      PhpVersion : string option
+      PythonVersion : string option
+      Metadata : List<string * string>
+      ZipDeployPath : string option
+      Parameters : SecureParameter list }
+    interface IResource with
+        member this.ResourceName = this.Name
+        member this.ToArmObject() =
+            {| ``type`` = "Microsoft.Web/sites"
+               name = this.Name.Value
+               apiVersion = "2016-08-01"
+               location = this.Location.ArmValue
+               dependsOn = this.Dependencies |> List.map(fun p -> p.Value)
+               kind = this.Kind
+               properties =
+                   {| serverFarmId = this.ServicePlan.Value
+                      httpsOnly = this.HTTPSOnly
+                      siteConfig =
+                           [ "alwaysOn", box this.AlwaysOn
+                             "appSettings", this.AppSettings |> List.map(fun (k,v) -> {| name = k; value = v |}) |> box
+                             match this.LinuxFxVersion with Some v -> "linuxFxVersion", box v | None -> ()
+                             match this.AppCommandLine with Some v -> "appCommandLine", box v | None -> ()
+                             match this.NetFrameworkVersion with Some v -> "netFrameworkVersion", box v | None -> ()
+                             match this.JavaVersion with Some v -> "javaVersion", box v | None -> ()
+                             match this.JavaContainer with Some v -> "javaContainer", box v | None -> ()
+                             match this.JavaContainerVersion with Some v -> "javaContainerVersion", box v | None -> ()
+                             match this.PhpVersion with Some v -> "phpVersion", box v | None -> ()
+                             match this.PythonVersion with Some v -> "pythonVersion", box v | None -> ()
+                             "metadata", this.Metadata |> List.map(fun (k,v) -> {| name = k; value = v |}) |> box ]
+                           |> Map.ofList
+                    |}
+            |} :> _
+
+type AppInsights =
+    { Name : ResourceName
+      Location : Location
+      LinkedWebsite : ResourceName option }
+    interface IResource with
+        member this.ResourceName = this.Name
+        member this.ToArmObject() =
+            {| ``type`` = "Microsoft.Insights/components"
+               kind = "web"
+               name = this.Name.Value
+               location = this.Location.ArmValue
+               apiVersion = "2014-04-01"
+               tags =
+                   [ match this.LinkedWebsite with
+                     | Some linkedWebsite -> sprintf "[concat('hidden-link:', resourceGroup().id, '/providers/Microsoft.Web/sites/', '%s')]" linkedWebsite.Value, "Resource"
+                     | None -> ()
+                     "displayName", "AppInsightsComponent" ]
+                   |> Map.ofList
+               properties =
+                match this.LinkedWebsite with
+                | Some linkedWebsite ->
+                   box {| name = this.Name.Value
+                          Application_Type = "web"
+                          ApplicationId = linkedWebsite.Value |}
+                | None ->
+                   box {| name = this.Name.Value
+                          Application_Type = "web" |}
+            |} :> _
 
 type WorkerSize = Small | Medium | Large | Serverless
 type WebAppSku = Shared | Free | Basic of string | Standard of string | Premium of string | PremiumV2 of string | Isolated of string | Functions
@@ -96,7 +207,73 @@ module Ai =
         sprintf "reference('Microsoft.Insights/components/%s').InstrumentationKey" accountName
         |> ArmExpression
 
-open Farmer.Models
+type AppInsightsConfig =
+    { Name : ResourceName }
+    /// Gets the ARM expression path to the instrumentation key of this App Insights instance.
+    member this.InstrumentationKey = Ai.instrumentationKey this.Name
+    interface IResourceBuilder with
+        member this.BuildResources location _ = [
+            NewResource { Name = this.Name
+                          Location = location
+                          LinkedWebsite = None }
+        ]
+
+type ServicePlanConfig =
+    { Name : ResourceName
+      Sku : WebAppSku
+      WorkerSize : WorkerSize
+      WorkerCount : int
+      OperatingSystem : OS }
+    interface IResourceBuilder with
+        member this.BuildResources location _ = [
+            NewResource
+              { Location = location
+                Name = this.Name
+                Sku =
+                  match this.Sku with
+                  | Free ->
+                      "F1"
+                  | Shared ->
+                      "D1"
+                  | Basic sku
+                  | Standard sku
+                  | Premium sku
+                  | PremiumV2 sku
+                  | Isolated sku ->
+                      sku
+                  | Functions ->
+                      "Y1"
+                WorkerSize =
+                  match this.WorkerSize with
+                  | Small -> "0"
+                  | Medium -> "1"
+                  | Large -> "2"
+                  | Serverless -> "Y1"
+                IsDynamic =
+                  match this.Sku, this.WorkerSize with
+                  | Functions, Serverless -> true
+                  | _ -> false
+                Kind =
+                  match this.OperatingSystem with
+                  | Linux -> Some "linux"
+                  | _ -> None
+                Tier =
+                  match this.Sku with
+                  | Free -> "Free"
+                  | Shared -> "Shared"
+                  | Basic _ -> "Basic"
+                  | Standard _ -> "Standard"
+                  | Premium _ -> "Premium"
+                  | PremiumV2 _ -> "PremiumV2"
+                  | Isolated _ -> "Isolated"
+                  | Functions -> "Dynamic"
+                IsLinux =
+                  match this.OperatingSystem with
+                  | Linux -> true
+                  | Windows -> false
+                WorkerCount =
+                  this.WorkerCount }
+        ]
 
 type WebAppConfig =
     { Name : ResourceName
@@ -125,16 +302,160 @@ type WebAppConfig =
     member this.ServicePlan = this.ServicePlanName.ResourceName
     /// Gets the App Insights name for this web app, if it exists.
     member this.AppInsights = this.AppInsightsName |> Option.map (fun ai -> ai.ResourceName)
-type AppInsightsConfig =
-    { Name : ResourceName }
-    /// Gets the ARM expression path to the instrumentation key of this App Insights instance.
-    member this.InstrumentationKey = Ai.instrumentationKey this.Name
-type ServicePlanConfig =
-    { Name : ResourceName
-      Sku : WebAppSku
-      WorkerSize : WorkerSize
-      WorkerCount : int
-      OperatingSystem : OS }
+    interface IResourceBuilder with
+        member this.BuildResources location existingResources = [
+            let webApp =
+                { Name = this.Name
+                  Location = location
+                  ServicePlan = this.ServicePlanName.ResourceName
+                  HTTPSOnly = this.HTTPSOnly
+                  AppSettings = [
+                    yield! this.Settings |> Map.toList
+                    if this.RunFromPackage then AppSettings.RunFromPackage
+
+                    match this.WebsiteNodeDefaultVersion with
+                    | Some v -> AppSettings.WebsiteNodeDefaultVersion v
+                    | None -> ()
+
+                    match this.OperatingSystem, this.AppInsightsName with
+                    | Windows, Some (External resourceName)
+                    | Windows, Some (AutomaticallyCreated resourceName) ->
+                        "APPINSIGHTS_INSTRUMENTATIONKEY", Ai.instrumentationKey resourceName |> ArmExpression.Eval
+                        "APPINSIGHTS_PROFILERFEATURE_VERSION", "1.0.0"
+                        "APPINSIGHTS_SNAPSHOTFEATURE_VERSION", "1.0.0"
+                        "ApplicationInsightsAgent_EXTENSION_VERSION", "~2"
+                        "DiagnosticServices_EXTENSION_VERSION", "~3"
+                        "InstrumentationEngine_EXTENSION_VERSION", "~1"
+                        "SnapshotDebugger_EXTENSION_VERSION", "~1"
+                        "XDT_MicrosoftApplicationInsights_BaseExtensions", "~1"
+                        "XDT_MicrosoftApplicationInsights_Mode", "recommended"
+                    | Windows, Some AutomaticPlaceholder
+                    | Windows, None
+                    | Linux, _ ->
+                        ()
+
+                    if this.DockerCi then "DOCKER_ENABLE_CI", "true"
+
+                    match this.DockerAcrCredentials with
+                    | Some credentials ->
+                        "DOCKER_REGISTRY_SERVER_PASSWORD", credentials.Password.AsArmRef.Eval()
+                        "DOCKER_REGISTRY_SERVER_URL", sprintf "https://%s.azurecr.io" credentials.RegistryName
+                        "DOCKER_REGISTRY_SERVER_USERNAME", credentials.RegistryName
+                    | None ->
+                      ()
+                  ]
+                  Kind = [
+                    "app"
+                    match this.OperatingSystem with Linux -> "linux" | Windows -> ()
+                    match this.DockerImage with Some _ -> "container" | _ -> ()
+                  ] |> String.concat ","
+                  Dependencies = [
+                    this.ServicePlanName.ResourceName
+                    yield! this.Dependencies
+                    match this.AppInsightsName with
+                    | Some (AutomaticallyCreated appInsightsName)
+                    | Some (External appInsightsName) ->
+                        appInsightsName
+                    | Some AutomaticPlaceholder
+                    | None ->
+                        ()
+                  ]
+                  AlwaysOn = this.AlwaysOn
+                  LinuxFxVersion =
+                    match this.OperatingSystem with
+                    | Windows ->
+                        None
+                    | Linux ->
+                        match this.DockerImage with
+                        | Some (image, _) ->
+                            Some ("DOCKER|" + image)
+                        | None ->
+                            match this.Runtime with
+                            | DotNetCore version -> Some ("DOTNETCORE|" + version)
+                            | Node version -> Some ("NODE|" + version)
+                            | Php version -> Some ("PHP|" + version)
+                            | Ruby version -> Some ("RUBY|" + version)
+                            | Java (runtime, JavaSE) -> Some (sprintf "JAVA|%d-%s" runtime.Version runtime.Jre)
+                            | Java (runtime, (Tomcat version)) -> Some (sprintf "TOMCAT|%s-%s" version runtime.Jre)
+                            | Java (Java8, WildFly14) -> Some (sprintf "WILDFLY|14-%s" Java8.Jre)
+                            | Python (linuxVersion, _) -> Some (sprintf "PYTHON|%s" linuxVersion)
+                            | _ -> None
+                  NetFrameworkVersion =
+                    match this.Runtime with
+                    | AspNet version -> Some (sprintf "v%s" version)
+                    | _ -> None
+
+                  JavaVersion =
+                    match this.Runtime, this.OperatingSystem with
+                    | Java (Java11, Tomcat _), Windows -> Some "11"
+                    | Java (Java8, Tomcat _), Windows -> Some "1.8"
+                    | _ -> None
+                  JavaContainer =
+                    match this.Runtime, this.OperatingSystem with
+                    | Java (_, Tomcat _), Windows -> Some "Tomcat"
+                    | _ -> None
+                  JavaContainerVersion =
+                    match this.Runtime, this.OperatingSystem with
+                    | Java (_, Tomcat version), Windows -> Some version
+                    | _ -> None
+                  PhpVersion =
+                    match this.Runtime, this.OperatingSystem with
+                    | Php version, Windows -> Some version
+                    | _ -> None
+                  PythonVersion =
+                    match this.Runtime, this.OperatingSystem with
+                    | Python (_, windowsVersion), Windows -> Some windowsVersion
+                    | _ -> None
+                  Metadata =
+                    match this.Runtime, this.OperatingSystem with
+                    | Java (_, Tomcat _), Windows -> Some "java"
+                    | Php _, _ -> Some "php"
+                    | Python _, Windows -> Some "python"
+                    | DotNetCore _, Windows -> Some "dotnetcore"
+                    | AspNet _, _ -> Some "dotnet"
+                    | _ -> None
+                    |> Option.map(fun stack -> "CURRENT_STACK", stack)
+                    |> Option.toList
+                  AppCommandLine = this.DockerImage |> Option.map snd
+                  ZipDeployPath = this.ZipDeployPath
+                  Parameters = [
+                      match this.DockerAcrCredentials with
+                      | Some credentials -> credentials.Password
+                      | None -> ()
+                  ]
+                }
+
+            let ai =
+                match this.AppInsightsName with
+                | Some (AutomaticallyCreated resourceName) ->
+                    { Name = resourceName
+                      Location = location
+                      LinkedWebsite =
+                        match this.OperatingSystem with
+                        | Windows -> Some this.Name
+                        | Linux -> None }
+                    |> Some
+                | Some AutomaticPlaceholder
+                | Some (External _)
+                | None ->
+                    None
+
+            let serverFarm =
+                match this.ServicePlanName with
+                | External _
+                | AutomaticPlaceholder ->
+                    None
+                | AutomaticallyCreated name ->
+                    { Name = name
+                      Sku = this.Sku
+                      WorkerSize = this.WorkerSize
+                      WorkerCount = this.WorkerCount
+                      OperatingSystem = this.OperatingSystem }
+                    |> Some
+            NewResource webApp
+            match ai with Some ai -> NewResource ai | None -> ()
+            match serverFarm with Some serverFarm -> yield! (serverFarm :> IResourceBuilder).BuildResources location existingResources | None -> ()
+        ]
 
 type WebAppBuilder() =
     member __.Yield _ =
@@ -293,308 +614,6 @@ type ServicePlanBuilder() =
     [<CustomOperation "serverless">]
     /// Configures this server farm to host serverless functions, not web apps.
     member __.Serverless(state:ServicePlanConfig) = { state with Sku = Functions; WorkerSize = Serverless }
-
-module Converters =
-    let serverFarm location (sfc:ServicePlanConfig) =
-        { Location = location
-          Name = sfc.Name
-          Sku =
-            match sfc.Sku with
-            | Free ->
-                "F1"
-            | Shared ->
-                "D1"
-            | Basic sku
-            | Standard sku
-            | Premium sku
-            | PremiumV2 sku
-            | Isolated sku ->
-                sku
-            | Functions ->
-                "Y1"
-          WorkerSize =
-            match sfc.WorkerSize with
-            | Small -> "0"
-            | Medium -> "1"
-            | Large -> "2"
-            | Serverless -> "Y1"
-          IsDynamic =
-            match sfc.Sku, sfc.WorkerSize with
-            | Functions, Serverless -> true
-            | _ -> false
-          Kind =
-            match sfc.OperatingSystem with
-            | Linux -> Some "linux"
-            | _ -> None
-          Tier =
-            match sfc.Sku with
-            | Free -> "Free"
-            | Shared -> "Shared"
-            | Basic _ -> "Basic"
-            | Standard _ -> "Standard"
-            | Premium _ -> "Premium"
-            | PremiumV2 _ -> "PremiumV2"
-            | Isolated _ -> "Isolated"
-            | Functions -> "Dynamic"
-          IsLinux =
-            match sfc.OperatingSystem with
-            | Linux -> true
-            | Windows -> false
-          WorkerCount =
-            sfc.WorkerCount }
-    let webApp location (wac:WebAppConfig) =
-        let webApp =
-            { Name = wac.Name
-              Location = location
-              ServicePlan = wac.ServicePlanName.ResourceName
-              HTTPSOnly = wac.HTTPSOnly
-              AppSettings = [
-                yield! wac.Settings |> Map.toList
-                if wac.RunFromPackage then AppSettings.RunFromPackage
-
-                match wac.WebsiteNodeDefaultVersion with
-                | Some v -> AppSettings.WebsiteNodeDefaultVersion v
-                | None -> ()
-
-                match wac.OperatingSystem, wac.AppInsightsName with
-                | Windows, Some (External resourceName)
-                | Windows, Some (AutomaticallyCreated resourceName) ->
-                    "APPINSIGHTS_INSTRUMENTATIONKEY", Ai.instrumentationKey resourceName |> ArmExpression.Eval
-                    "APPINSIGHTS_PROFILERFEATURE_VERSION", "1.0.0"
-                    "APPINSIGHTS_SNAPSHOTFEATURE_VERSION", "1.0.0"
-                    "ApplicationInsightsAgent_EXTENSION_VERSION", "~2"
-                    "DiagnosticServices_EXTENSION_VERSION", "~3"
-                    "InstrumentationEngine_EXTENSION_VERSION", "~1"
-                    "SnapshotDebugger_EXTENSION_VERSION", "~1"
-                    "XDT_MicrosoftApplicationInsights_BaseExtensions", "~1"
-                    "XDT_MicrosoftApplicationInsights_Mode", "recommended"
-                | Windows, Some AutomaticPlaceholder
-                | Windows, None
-                | Linux, _ ->
-                    ()
-
-                if wac.DockerCi then "DOCKER_ENABLE_CI", "true"
-
-                match wac.DockerAcrCredentials with
-                | Some credentials ->
-                    "DOCKER_REGISTRY_SERVER_PASSWORD", credentials.Password.AsArmRef.Eval()
-                    "DOCKER_REGISTRY_SERVER_URL", sprintf "https://%s.azurecr.io" credentials.RegistryName
-                    "DOCKER_REGISTRY_SERVER_USERNAME", credentials.RegistryName
-                | None ->
-                  ()
-              ]
-              Kind = [
-                "app"
-                match wac.OperatingSystem with Linux -> "linux" | Windows -> ()
-                match wac.DockerImage with Some _ -> "container" | _ -> ()
-              ] |> String.concat ","
-              Dependencies = [
-                wac.ServicePlanName.ResourceName
-                yield! wac.Dependencies
-                match wac.AppInsightsName with
-                | Some (AutomaticallyCreated appInsightsName)
-                | Some (External appInsightsName) ->
-                    appInsightsName
-                | Some AutomaticPlaceholder
-                | None ->
-                    ()
-              ]
-              AlwaysOn = wac.AlwaysOn
-              LinuxFxVersion =
-                match wac.OperatingSystem with
-                | Windows ->
-                    None
-                | Linux ->
-                    match wac.DockerImage with
-                    | Some (image, _) ->
-                        Some ("DOCKER|" + image)
-                    | None ->
-                        match wac.Runtime with
-                        | DotNetCore version -> Some ("DOTNETCORE|" + version)
-                        | Node version -> Some ("NODE|" + version)
-                        | Php version -> Some ("PHP|" + version)
-                        | Ruby version -> Some ("RUBY|" + version)
-                        | Java (runtime, JavaSE) -> Some (sprintf "JAVA|%d-%s" runtime.Version runtime.Jre)
-                        | Java (runtime, (Tomcat version)) -> Some (sprintf "TOMCAT|%s-%s" version runtime.Jre)
-                        | Java (Java8, WildFly14) -> Some (sprintf "WILDFLY|14-%s" Java8.Jre)
-                        | Python (linuxVersion, _) -> Some (sprintf "PYTHON|%s" linuxVersion)
-                        | _ -> None
-              NetFrameworkVersion =
-                match wac.Runtime with
-                | AspNet version -> Some (sprintf "v%s" version)
-                | _ -> None
-
-              JavaVersion =
-                match wac.Runtime, wac.OperatingSystem with
-                | Java (Java11, Tomcat _), Windows -> Some "11"
-                | Java (Java8, Tomcat _), Windows -> Some "1.8"
-                | _ -> None
-              JavaContainer =
-                match wac.Runtime, wac.OperatingSystem with
-                | Java (_, Tomcat _), Windows -> Some "Tomcat"
-                | _ -> None
-              JavaContainerVersion =
-                match wac.Runtime, wac.OperatingSystem with
-                | Java (_, Tomcat version), Windows -> Some version
-                | _ -> None
-              PhpVersion =
-                match wac.Runtime, wac.OperatingSystem with
-                | Php version, Windows -> Some version
-                | _ -> None
-              PythonVersion =
-                match wac.Runtime, wac.OperatingSystem with
-                | Python (_, windowsVersion), Windows -> Some windowsVersion
-                | _ -> None
-              Metadata =
-                match wac.Runtime, wac.OperatingSystem with
-                | Java (_, Tomcat _), Windows -> Some "java"
-                | Php _, _ -> Some "php"
-                | Python _, Windows -> Some "python"
-                | DotNetCore _, Windows -> Some "dotnetcore"
-                | AspNet _, _ -> Some "dotnet"
-                | _ -> None
-                |> Option.map(fun stack -> "CURRENT_STACK", stack)
-                |> Option.toList
-              AppCommandLine = wac.DockerImage |> Option.map snd
-              ZipDeployPath = wac.ZipDeployPath
-              Parameters = [
-                  match wac.DockerAcrCredentials with
-                  | Some credentials -> credentials.Password
-                  | None -> ()
-              ]
-            }
-
-        let ai =
-            match wac.AppInsightsName with
-            | Some (AutomaticallyCreated resourceName) ->
-                { Name = resourceName
-                  Location = location
-                  LinkedWebsite =
-                    match wac.OperatingSystem with
-                    | Windows -> Some wac.Name
-                    | Linux -> None }
-                |> Some
-            | Some AutomaticPlaceholder
-            | Some (External _)
-            | None ->
-                None
-
-        let serverFarm =
-            match wac.ServicePlanName with
-            | External _
-            | AutomaticPlaceholder ->
-                None
-            | AutomaticallyCreated name ->
-                { Name = name
-                  Sku = wac.Sku
-                  WorkerSize = wac.WorkerSize
-                  WorkerCount = wac.WorkerCount
-                  OperatingSystem = wac.OperatingSystem }
-                |> serverFarm location
-                |> Some
-
-        {| Ai = ai
-           ServerFarm = serverFarm
-           WebApp = webApp |}
-    let appInsights location (ai:AppInsightsConfig) =
-        { Name = ai.Name
-          Location = location
-          LinkedWebsite = None }
-
-    module Outputters =
-        let appInsights (resource:AppInsights) = {|
-            ``type`` = "Microsoft.Insights/components"
-            kind = "web"
-            name = resource.Name.Value
-            location = resource.Location.ArmValue
-            apiVersion = "2014-04-01"
-            tags =
-                [ match resource.LinkedWebsite with
-                  | Some linkedWebsite -> sprintf "[concat('hidden-link:', resourceGroup().id, '/providers/Microsoft.Web/sites/', '%s')]" linkedWebsite.Value, "Resource"
-                  | None -> ()
-                  "displayName", "AppInsightsComponent" ]
-                |> Map.ofList
-            properties =
-             match resource.LinkedWebsite with
-             | Some linkedWebsite ->
-                box {| name = resource.Name.Value
-                       Application_Type = "web"
-                       ApplicationId = linkedWebsite.Value |}
-             | None ->
-                box {| name = resource.Name.Value
-                       Application_Type = "web" |}
-        |}
-        let serverFarm (farm:ServerFarm) =
-            {|  ``type`` = "Microsoft.Web/serverfarms"
-                sku =
-                    {| name = farm.Sku
-                       tier = farm.Tier
-                       size = farm.WorkerSize
-                       family = if farm.IsDynamic then "Y" else null
-                       capacity = if farm.IsDynamic then 0 else farm.WorkerCount |}
-                name = farm.Name.Value
-                apiVersion = "2018-02-01"
-                location = farm.Location.ArmValue
-                properties =
-                    if farm.IsDynamic then
-                        box {| name = farm.Name.Value
-                               computeMode = "Dynamic"
-                               reserved = farm.IsLinux |}
-                    else
-                        box {| name = farm.Name.Value
-                               perSiteScaling = false
-                               reserved = farm.IsLinux |}
-                kind = farm.Kind |> Option.toObj
-            |}
-        let webApp (webApp:WebApp) = {|
-            ``type`` = "Microsoft.Web/sites"
-            name = webApp.Name.Value
-            apiVersion = "2016-08-01"
-            location = webApp.Location.ArmValue
-            dependsOn = webApp.Dependencies |> List.map(fun p -> p.Value)
-            kind = webApp.Kind
-            properties =
-                {| serverFarmId = webApp.ServicePlan.Value
-                   httpsOnly = webApp.HTTPSOnly
-                   siteConfig =
-                        [ "alwaysOn", box webApp.AlwaysOn
-                          "appSettings", webApp.AppSettings |> List.map(fun (k,v) -> {| name = k; value = v |}) |> box
-                          match webApp.LinuxFxVersion with Some v -> "linuxFxVersion", box v | None -> ()
-                          match webApp.AppCommandLine with Some v -> "appCommandLine", box v | None -> ()
-                          match webApp.NetFrameworkVersion with Some v -> "netFrameworkVersion", box v | None -> ()
-                          match webApp.JavaVersion with Some v -> "javaVersion", box v | None -> ()
-                          match webApp.JavaContainer with Some v -> "javaContainer", box v | None -> ()
-                          match webApp.JavaContainerVersion with Some v -> "javaContainerVersion", box v | None -> ()
-                          match webApp.PhpVersion with Some v -> "phpVersion", box v | None -> ()
-                          match webApp.PythonVersion with Some v -> "pythonVersion", box v | None -> ()
-                          "metadata", webApp.Metadata |> List.map(fun (k,v) -> {| name = k; value = v |}) |> box ]
-                        |> Map.ofList
-                 |}
-        |}
-
-[<AutoOpen>]
-module Extensions =
-    type WebAppBuilder with
-        member this.DependsOn(state:WebAppConfig, storageAccountConfig:StorageAccountConfig) =
-            this.DependsOn(state, storageAccountConfig.Name)
-        member this.DependsOn(state:WebAppConfig, appInsightsConfig:AppInsightsConfig) =
-            this.DependsOn(state, appInsightsConfig.Name)
-    type ArmBuilder.ArmBuilder with
-        member __.AddResource(state:ArmConfig, config:WebAppConfig) =
-            let outputs = Converters.webApp state.Location config
-            let resources = [
-                WebApp outputs.WebApp
-                match outputs.ServerFarm with Some farm -> ServerFarm farm | None -> ()
-                match outputs.Ai with Some ai -> AppInsights ai | None -> ()
-            ]
-            { state with Resources = state.Resources @ resources }
-        member __.AddResource(state:ArmConfig, config:ServicePlanConfig) =
-            let output = config |> Converters.serverFarm state.Location
-            { state with Resources = state.Resources @ [ ServerFarm output ]}
-        member this.AddResource(state:ArmConfig, config:AppInsightsConfig) =
-            { state with Resources = AppInsights (Converters.appInsights state.Location config) :: state.Resources }
-        member this.AddResources (state, configs) = addResources<AppInsightsConfig> this.AddResource state configs
-        member this.AddResources (state, configs) = addResources<WebAppConfig> this.AddResource state configs
 
 let appInsights = AppInsightsBuilder()
 let webApp = WebAppBuilder()

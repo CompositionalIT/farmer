@@ -2,8 +2,87 @@
 module Farmer.Resources.ContainerGroups
 
 open Farmer
-open Farmer.Models
-open Farmer.Models.ContainerGroups
+
+type [<Measure>] Gb
+type ContainerGroupOsType =
+    | Windows
+    | Linux
+type ContainerGroupRestartPolicy =
+    | Never
+    | Always
+    | OnFailure
+type ContainerGroupIpAddressType =
+    | PublicAddress
+    | PrivateAddress
+type ContainerProtocol = TCP | UDP
+type ContainerPort =
+    { Protocol : ContainerProtocol
+      Port : uint16 }
+type ContainerGroupIpAddress =
+    { Type : ContainerGroupIpAddressType
+      Ports : ContainerPort list }
+/// Gigabytes
+type ContainerResourceRequest =
+    { Cpu : int
+      Memory : float<Gb> }
+type ContainerInstance =
+    { Name : ResourceName
+      Image : string
+      Ports : uint16 list
+      Resources : ContainerResourceRequest }
+
+
+type ContainerGroup =
+    { Name : ResourceName
+      Location : Location
+      ContainerInstances : ContainerInstance list
+      OsType : ContainerGroupOsType
+      RestartPolicy : ContainerGroupRestartPolicy
+      IpAddress : ContainerGroupIpAddress }
+    interface IResource with
+        member this.ResourceName = this.Name
+        member this.ToArmObject() =
+            {| ``type`` = "Microsoft.ContainerInstance/containerGroups"
+               apiVersion = "2018-10-01"
+               name = this.Name.Value
+               location = this.Location.ArmValue
+               properties =
+                   {| containers =
+                       this.ContainerInstances
+                       |> List.map (fun container ->
+                           {| name = container.Name.Value.ToLowerInvariant ()
+                              properties =
+                               {| image = container.Image
+                                  ports = container.Ports |> List.map (fun port -> {| port = port |})
+                                  resources =
+                                   {| requests =
+                                       {| cpu = container.Resources.Cpu
+                                          memoryInGb = container.Resources.Memory |}
+                                   |}
+                               |}
+                           |})
+                      osType =
+                          match this.OsType with
+                          | ContainerGroupOsType.Windows -> "Windows"
+                          | ContainerGroupOsType.Linux -> "Linux"
+                      restartPolicy =
+                          match this.RestartPolicy with
+                          | ContainerGroupRestartPolicy.Always -> "always"
+                          | ContainerGroupRestartPolicy.Never -> "never"
+                          | ContainerGroupRestartPolicy.OnFailure -> "onfailure"
+                      ipAddress =
+                       {| ``type`` =
+                           match this.IpAddress.Type with
+                           | ContainerGroupIpAddressType.PublicAddress -> "Public"
+                           | ContainerGroupIpAddressType.PrivateAddress -> "Private"
+                          ports = this.IpAddress.Ports
+                          |> List.map (fun port ->
+                           {| protocol = port.Protocol.ToString()
+                              port = port.Port |})
+                       |}
+                   |}
+            |} :> _
+
 
 /// Represents configuration for a single Container.
 type ContainerConfig =
@@ -32,6 +111,33 @@ type ContainerConfig =
     member this.GroupKey = buildKey this.ContainerGroupName.ResourceName
     /// Gets the name of the container group.
     member this.GroupName = this.ContainerGroupName.ResourceName
+    interface IResourceBuilder with
+        member this.BuildResources location existingResources = [
+            let container : ContainerInstance =
+                { Name = this.Name
+                  Image = this.Image
+                  Ports = this.Ports
+                  Resources =
+                    { Cpu = this.Cpu
+                      Memory = this.Memory } }
+            match this.ContainerGroupName with
+            | AutomaticallyCreated groupName ->
+                NewResource
+                    { ContainerGroup.Location = location
+                      ContainerGroup.Name = groupName
+                      ContainerGroup.ContainerInstances = [ container ]
+                      ContainerGroup.OsType = this.OsType
+                      ContainerGroup.RestartPolicy = this.RestartPolicy
+                      ContainerGroup.IpAddress = this.IpAddress }
+            | External resourceName ->
+                existingResources
+                |> List.choose(function :? ContainerGroup as cg -> Some cg | _ -> None)
+                |> List.tryFind(fun g -> g.Name = resourceName)
+                |> Option.map(fun group -> MergedResource(group, { group with ContainerInstances = group.ContainerInstances @ [ container ] }))
+                |> Option.defaultValue (CouldNotLocate resourceName)
+            | AutomaticPlaceholder ->
+                NotSet
+        ]
 
 type ContainerBuilder() =
     member __.Yield _ =
@@ -89,79 +195,3 @@ type ContainerBuilder() =
     [<CustomOperation "add_udp_port">]
     member __.AddUdpPort(state:ContainerConfig, port) = { state with IpAddress = { state.IpAddress with Ports = { Protocol= UDP; Port = port } :: state.IpAddress.Ports } }
 let container = ContainerBuilder()
-
-module Converters =
-    let containerInstance location (existingGroups:ContainerGroup list)  (config:ContainerConfig) =
-        let container : ContainerInstance =
-            { Name = config.Name
-              Image = config.Image
-              Ports = config.Ports
-              Resources =
-                { Cpu = config.Cpu
-                  Memory = config.Memory } }
-        match config.ContainerGroupName with
-        | AutomaticallyCreated groupName ->
-            { ContainerGroup.Location = location
-              ContainerGroup.Name = groupName
-              ContainerGroup.ContainerInstances = [ container ]
-              ContainerGroup.OsType = config.OsType
-              ContainerGroup.RestartPolicy = config.RestartPolicy
-              ContainerGroup.IpAddress = config.IpAddress }
-            |> NewResource
-        | External resourceName ->
-            existingGroups
-            |> List.tryFind(fun g -> g.Name = resourceName)
-            |> Option.map(fun group -> MergedResource(group, { group with ContainerInstances = group.ContainerInstances @ [ container ] }))
-            |> Option.defaultValue (CouldNotLocate resourceName)
-        | AutomaticPlaceholder ->
-            NotSet
-
-    module Outputters =
-        let containerGroup (resource:ContainerGroups.ContainerGroup) = {|
-            ``type`` = "Microsoft.ContainerInstance/containerGroups"
-            apiVersion = "2018-10-01"
-            name = resource.Name.Value
-            location = resource.Location.ArmValue
-            properties =
-                {| containers =
-                    resource.ContainerInstances
-                    |> List.map (fun container ->
-                        {| name = container.Name.Value.ToLowerInvariant ()
-                           properties =
-                            {| image = container.Image
-                               ports = container.Ports |> List.map (fun port -> {| port = port |})
-                               resources =
-                                {| requests =
-                                    {| cpu = container.Resources.Cpu
-                                       memoryInGb = container.Resources.Memory |}
-                                |}
-                            |}
-                        |})
-                   osType =
-                       match resource.OsType with
-                       | ContainerGroups.ContainerGroupOsType.Windows -> "Windows"
-                       | ContainerGroups.ContainerGroupOsType.Linux -> "Linux"
-                   restartPolicy =
-                       match resource.RestartPolicy with
-                       | ContainerGroups.ContainerGroupRestartPolicy.Always -> "always"
-                       | ContainerGroups.ContainerGroupRestartPolicy.Never -> "never"
-                       | ContainerGroups.ContainerGroupRestartPolicy.OnFailure -> "onfailure"
-                   ipAddress =
-                    {| ``type`` =
-                        match resource.IpAddress.Type with
-                        | ContainerGroups.ContainerGroupIpAddressType.PublicAddress -> "Public"
-                        | ContainerGroups.ContainerGroupIpAddressType.PrivateAddress -> "Private"
-                       ports = resource.IpAddress.Ports
-                       |> List.map (fun port ->
-                        {| protocol = port.Protocol.ToString()
-                           port = port.Port |})
-                    |}
-                |}
-        |}
-
-
-type ArmBuilder.ArmBuilder with
-    member __.AddResource(state:ArmConfig, config:ContainerConfig) =
-        state.AddOrMergeResource (Converters.containerInstance state.Location) config (function ContainerGroup g -> Some g | _ -> None) ContainerGroup
-    member this.AddResources (state, configs) =
-        addResources<ContainerConfig> this.AddResource state configs

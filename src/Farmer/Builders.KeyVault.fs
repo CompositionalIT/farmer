@@ -55,9 +55,102 @@ type NetworkAcl =
       DefaultAction : DefaultAction option
       Bypass : Bypass option }
 
+type KeyVaultSecret =
+    { Name : ResourceName
+      Value : SecretValue
+      ParentKeyVault : ResourceName
+      Location : Location
+      ContentType : string option
+      Enabled : bool Nullable
+      ActivationDate : int Nullable
+      ExpirationDate : int Nullable
+      Dependencies : ResourceName list }
+    interface IResource with
+        member this.ResourceName = this.Name
+        member this.ToArmObject() =
+            {| ``type`` = "Microsoft.KeyVault/vaults/secrets"
+               name = this.Name.Value
+               apiVersion = "2018-02-14"
+               location = this.Location.ArmValue
+               dependsOn = [
+                   this.ParentKeyVault.Value
+                   for dependency in this.Dependencies do
+                       dependency.Value ]
+               properties =
+                   {| value = this.Value.Value
+                      contentType = this.ContentType |> Option.toObj
+                      attributes =
+                       {| enabled = this.Enabled
+                          nbf = this.ActivationDate
+                          exp = this.ExpirationDate
+                       |}
+                   |}
+               |} :> _
+
+type KeyVault =
+    { Name : ResourceName
+      Location : Location
+      TenantId : string
+      Sku : string
+      Uri : string option
+      EnabledForDeployment : bool option
+      EnabledForDiskEncryption : bool option
+      EnabledForTemplateDeployment : bool option
+      EnableSoftDelete : bool option
+      CreateMode : string option
+      EnablePurgeProtection : bool option
+      AccessPolicies :
+        {| ObjectId : string
+           ApplicationId : string option
+           Permissions :
+            {| Keys : string array
+               Secrets : string array
+               Certificates : string array
+               Storage : string array |}
+        |} array
+      DefaultAction : string option
+      Bypass: string option
+      IpRules : string list
+      VnetRules : string list }
+    interface IResource with
+        member this.ResourceName = this.Name
+        member this.ToArmObject() =
+            {| ``type``= "Microsoft.KeyVault/vaults"
+               name = this.Name.Value
+               apiVersion = "2018-02-14"
+               location = this.Location.ArmValue
+               properties =
+                 {| tenantId = this.TenantId
+                    sku = {| name = this.Sku; family = "A" |}
+                    enabledForDeployment = this.EnabledForDeployment |> Option.toNullable
+                    enabledForDiskEncryption = this.EnabledForDiskEncryption |> Option.toNullable
+                    enabledForTemplateDeployment = this.EnabledForTemplateDeployment |> Option.toNullable
+                    enablePurgeProtection = this.EnablePurgeProtection |> Option.toNullable
+                    createMode = this.CreateMode |> Option.toObj
+                    vaultUri = this.Uri |> Option.toObj
+                    accessPolicies =
+                         [| for policy in this.AccessPolicies do
+                             {| objectId = policy.ObjectId
+                                tenantId = this.TenantId
+                                applicationId = policy.ApplicationId |> Option.toObj
+                                permissions =
+                                 {| keys = policy.Permissions.Keys
+                                    storage = policy.Permissions.Storage
+                                    certificates = policy.Permissions.Certificates
+                                    secrets = policy.Permissions.Secrets |}
+                             |}
+                         |]
+                    networkAcls =
+                     {| defaultAction = this.DefaultAction |> Option.toObj
+                        bypass = this.Bypass |> Option.toObj
+                        ipRules = this.IpRules
+                        virtualNetworkRules = this.VnetRules |}
+                 |}
+             |} :> _
+
 type SecretConfig =
     { Key : string
-      Value : Models.SecretValue
+      Value : SecretValue
       ContentType : string option
       Enabled : bool option
       ActivationDate : DateTime option
@@ -65,7 +158,7 @@ type SecretConfig =
       Dependencies : ResourceName list }
     static member Create key =
         { Key = key
-          Value = Models.ParameterSecret(SecureParameter key)
+          Value = ParameterSecret(SecureParameter key)
           ContentType = None
           Enabled = None
           ActivationDate = None
@@ -73,9 +166,13 @@ type SecretConfig =
           Dependencies = [] }
     static member Create (key, expression, resourceOwner) =
         { SecretConfig.Create key with
-            Value = Models.ExpressionSecret expression
+            Value = ExpressionSecret expression
             Dependencies = [ resourceOwner ] }
 
+let private ``1970`` = DateTime(1970,1,1,0,0,0)
+let private totalSecondsSince1970 (d:DateTime) = (d.Subtract ``1970``).TotalSeconds |> int
+let inline private toStringArray theSet = theSet |> Set.map(fun s -> s.ToString().ToLower()) |> Set.toArray
+let inline private maybeBoolean (f:FeatureFlag) = f.AsBoolean
 type KeyVaultConfig =
     { Name : ResourceName
       TenantId : Guid
@@ -85,6 +182,71 @@ type KeyVaultConfig =
       NetworkAcl : NetworkAcl
       Uri : Uri option
       Secrets : SecretConfig list }
+    interface IResourceBuilder with
+        member kvc.BuildResources location _ = [
+            let keyVault =
+                { Name = kvc.Name
+                  Location = location
+                  TenantId = kvc.TenantId.ToString()
+                  Sku = kvc.Sku.ToString().ToLower()
+
+                  EnabledForTemplateDeployment = kvc.Access.ResourceManagerAccess |> Option.map maybeBoolean
+                  EnabledForDiskEncryption = kvc.Access.AzureDiskEncryptionAccess |> Option.map maybeBoolean
+                  EnabledForDeployment = kvc.Access.VirtualMachineAccess |> Option.map maybeBoolean
+                  EnableSoftDelete =
+                    match kvc.Access.SoftDelete with
+                    | None ->
+                        None
+                    | Some SoftDeleteWithPurgeProtection
+                    | Some SoftDeletionOnly ->
+                        Some true
+                  EnablePurgeProtection =
+                    match kvc.Access.SoftDelete with
+                    | None
+                    | Some SoftDeletionOnly ->
+                        None
+                    | Some SoftDeleteWithPurgeProtection ->
+                        Some true
+                  CreateMode =
+                    match kvc.Policies with
+                    | Unspecified _ -> None
+                    | Recover _ -> Some "recover"
+                    | Default _ -> Some "default"
+                  AccessPolicies =
+                    let policies =
+                        match kvc.Policies with
+                        | Unspecified policies -> policies
+                        | Recover(policy, secondaryPolicies) -> policy :: secondaryPolicies
+                        | Default policies -> policies
+                    [| for policy in policies do
+                        {| ObjectId = string policy.ObjectId
+                           ApplicationId = policy.ApplicationId |> Option.map string
+                           Permissions =
+                            {| Certificates = policy.Permissions.Certificates |> toStringArray
+                               Storage = policy.Permissions.Storage |> toStringArray
+                               Keys = policy.Permissions.Keys |> toStringArray
+                               Secrets = policy.Permissions.Secrets |> toStringArray |}
+                        |}
+                    |]
+                  Uri = kvc.Uri |> Option.map string
+                  DefaultAction = kvc.NetworkAcl.DefaultAction |> Option.map string
+                  Bypass = kvc.NetworkAcl.Bypass |> Option.map string
+                  IpRules = kvc.NetworkAcl.IpRules
+                  VnetRules = kvc.NetworkAcl.VnetRules }
+
+            NewResource keyVault
+            yield!
+                [ for secret in kvc.Secrets do
+                    NewResource { ParentKeyVault = kvc.Name
+                                  Name = sprintf "%s/%s" kvc.Name.Value secret.Key |> ResourceName
+                                  Value = secret.Value
+                                  ContentType = secret.ContentType
+                                  Enabled = secret.Enabled |> Option.toNullable
+                                  ActivationDate = secret.ActivationDate |> Option.map totalSecondsSince1970 |> Option.toNullable
+                                  ExpirationDate = secret.ExpirationDate |> Option.map totalSecondsSince1970 |> Option.toNullable
+                                  Location = location
+                                  Dependencies = secret.Dependencies } ]
+        ]
 
 type AccessPolicyBuilder() =
     member __.Yield _ =
@@ -223,161 +385,22 @@ type KeyVaultBuilder() =
 type SecretBuilder() =
     member __.Yield (_:unit) = SecretConfig.Create ""
     [<CustomOperation "name">]
-    member __.Name(state:SecretConfig, name) = { state with Key = name; Value = Models.ParameterSecret(SecureParameter name) }
+    member __.Name(state:SecretConfig, name) = { state with Key = name; Value = ParameterSecret(SecureParameter name) }
     [<CustomOperation "value">]
-    member __.Value(state:SecretConfig, value) = { state with Value = Models.ExpressionSecret value }
+    member __.Value(state:SecretConfig, value) = { state with Value = ExpressionSecret value }
     [<CustomOperation "content_type">]
-    member __.ContentType(state, contentType) = { state with ContentType = Some contentType }
+    member __.ContentType(state:SecretConfig, contentType) = { state with ContentType = Some contentType }
     [<CustomOperation "enable_secret">]
-    member __.Enabled(state) = { state with Enabled = Some true }
+    member __.Enabled(state:SecretConfig) = { state with Enabled = Some true }
     [<CustomOperation "disable_secret">]
-    member __.Disabled(state) = { state with Enabled = Some false }
+    member __.Disabled(state:SecretConfig) = { state with Enabled = Some false }
     [<CustomOperation "activation_date">]
-    member __.ActivationDate(state, activationDate) = { state with ActivationDate = Some activationDate }
+    member __.ActivationDate(state:SecretConfig, activationDate) = { state with ActivationDate = Some activationDate }
     [<CustomOperation "expiration_date">]
-    member __.ExpirationDate(state, expirationDate) = { state with ExpirationDate = Some expirationDate }
+    member __.ExpirationDate(state:SecretConfig, expirationDate) = { state with ExpirationDate = Some expirationDate }
     [<CustomOperation "depends_on">]
     member __.DependsOn(state:SecretConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
 
 let secret = SecretBuilder()
-
-module Converters =
-    open Farmer.Models
-    let private ``1970`` = DateTime(1970,1,1,0,0,0)
-    let private totalSecondsSince1970 (d:DateTime) = (d.Subtract ``1970``).TotalSeconds |> int
-    let inline private toStringArray theSet = theSet |> Set.map(fun s -> s.ToString().ToLower()) |> Set.toArray
-    let inline private maybeBoolean (f:FeatureFlag) = f.AsBoolean
-    let keyVault location (kvc:KeyVaultConfig) =
-        let keyVault =
-            { Name = kvc.Name
-              Location = location
-              TenantId = kvc.TenantId.ToString()
-              Sku = kvc.Sku.ToString().ToLower()
-
-              EnabledForTemplateDeployment = kvc.Access.ResourceManagerAccess |> Option.map maybeBoolean
-              EnabledForDiskEncryption = kvc.Access.AzureDiskEncryptionAccess |> Option.map maybeBoolean
-              EnabledForDeployment = kvc.Access.VirtualMachineAccess |> Option.map maybeBoolean
-              EnableSoftDelete =
-                match kvc.Access.SoftDelete with
-                | None ->
-                    None
-                | Some SoftDeleteWithPurgeProtection
-                | Some SoftDeletionOnly ->
-                    Some true
-              EnablePurgeProtection =
-                match kvc.Access.SoftDelete with
-                | None
-                | Some SoftDeletionOnly ->
-                    None
-                | Some SoftDeleteWithPurgeProtection ->
-                    Some true
-              CreateMode =
-                match kvc.Policies with
-                | Unspecified _ -> None
-                | Recover _ -> Some "recover"
-                | Default _ -> Some "default"
-              AccessPolicies =
-                let policies =
-                    match kvc.Policies with
-                    | Unspecified policies -> policies
-                    | Recover(policy, secondaryPolicies) -> policy :: secondaryPolicies
-                    | Default policies -> policies
-                [| for policy in policies do
-                    {| ObjectId = string policy.ObjectId
-                       ApplicationId = policy.ApplicationId |> Option.map string
-                       Permissions =
-                        {| Certificates = policy.Permissions.Certificates |> toStringArray
-                           Storage = policy.Permissions.Storage |> toStringArray
-                           Keys = policy.Permissions.Keys |> toStringArray
-                           Secrets = policy.Permissions.Secrets |> toStringArray |}
-                    |}
-                |]
-              Uri = kvc.Uri |> Option.map string
-              DefaultAction = kvc.NetworkAcl.DefaultAction |> Option.map string
-              Bypass = kvc.NetworkAcl.Bypass |> Option.map string
-              IpRules = kvc.NetworkAcl.IpRules
-              VnetRules = kvc.NetworkAcl.VnetRules }
-        let secretKeys =
-            kvc.Secrets
-            |> List.map(fun secret ->
-                { ParentKeyVault = kvc.Name
-                  Name = sprintf "%s/%s" kvc.Name.Value secret.Key |> ResourceName
-                  Value = secret.Value
-                  ContentType = secret.ContentType
-                  Enabled = secret.Enabled |> Option.toNullable
-                  ActivationDate = secret.ActivationDate |> Option.map totalSecondsSince1970 |> Option.toNullable
-                  ExpirationDate = secret.ExpirationDate |> Option.map totalSecondsSince1970 |> Option.toNullable
-                  Location = location
-                  Dependencies = secret.Dependencies })
-
-        {| KeyVault = keyVault; Secrets = secretKeys |}
-    module Outputters =
-        let keyVault (keyVault:KeyVault) = {|
-          ``type``= "Microsoft.KeyVault/vaults"
-          name = keyVault.Name.Value
-          apiVersion = "2018-02-14"
-          location = keyVault.Location.ArmValue
-          properties =
-            {| tenantId = keyVault.TenantId
-               sku = {| name = keyVault.Sku; family = "A" |}
-               enabledForDeployment = keyVault.EnabledForDeployment |> Option.toNullable
-               enabledForDiskEncryption = keyVault.EnabledForDiskEncryption |> Option.toNullable
-               enabledForTemplateDeployment = keyVault.EnabledForTemplateDeployment |> Option.toNullable
-               enablePurgeProtection = keyVault.EnablePurgeProtection |> Option.toNullable
-               createMode = keyVault.CreateMode |> Option.toObj
-               vaultUri = keyVault.Uri |> Option.toObj
-               accessPolicies =
-                    [| for policy in keyVault.AccessPolicies do
-                        {| objectId = policy.ObjectId
-                           tenantId = keyVault.TenantId
-                           applicationId = policy.ApplicationId |> Option.toObj
-                           permissions =
-                            {| keys = policy.Permissions.Keys
-                               storage = policy.Permissions.Storage
-                               certificates = policy.Permissions.Certificates
-                               secrets = policy.Permissions.Secrets |}
-                        |}
-                    |]
-               networkAcls =
-                {| defaultAction = keyVault.DefaultAction |> Option.toObj
-                   bypass = keyVault.Bypass |> Option.toObj
-                   ipRules = keyVault.IpRules
-                   virtualNetworkRules = keyVault.VnetRules |}
-            |}
-        |}
-        let keyVaultSecret (keyVaultSecret:KeyVaultSecret) = {|
-            ``type`` = "Microsoft.KeyVault/vaults/secrets"
-            name = keyVaultSecret.Name.Value
-            apiVersion = "2018-02-14"
-            location = keyVaultSecret.Location.ArmValue
-            dependsOn = [
-                keyVaultSecret.ParentKeyVault.Value
-                for dependency in keyVaultSecret.Dependencies do
-                    dependency.Value ]
-            properties =
-                {| value = keyVaultSecret.Value.Value
-                   contentType = keyVaultSecret.ContentType |> Option.toObj
-                   attributes =
-                    {| enabled = keyVaultSecret.Enabled
-                       nbf = keyVaultSecret.ActivationDate
-                       exp = keyVaultSecret.ExpirationDate
-                    |}
-                |}
-            |}
-
-
-open Farmer.Models
-type ArmBuilder.ArmBuilder with
-    member this.AddResource(state:ArmConfig, config:KeyVaultConfig) =
-        let output = Converters.keyVault state.Location config
-        let resources = [
-            KeyVault output.KeyVault
-            for secret in output.Secrets do
-                KeyVaultSecret secret
-        ]
-        { state with Resources = resources @ state.Resources }
-    member this.AddResources (state, configs) = addResources<KeyVaultConfig> this.AddResource state configs
-
-
 let accessPolicy = AccessPolicyBuilder()
 let keyVault = KeyVaultBuilder()

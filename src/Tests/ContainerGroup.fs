@@ -10,15 +10,15 @@ open System
 
 let nginx = container {
     group_name "appWithHttpFrontend"
-    os_type Models.ContainerGroups.ContainerGroupOsType.Linux
+    os_type ContainerGroupOsType.Linux
     add_tcp_port 80us
     add_tcp_port 443us
-    restart_policy Models.ContainerGroups.ContainerGroupRestartPolicy.Always
+    restart_policy ContainerGroups.ContainerGroupRestartPolicy.Always
 
     name "nginx"
     image "nginx:1.17.6-alpine"
     ports [ 80us; 443us ]
-    memory 0.5<Models.ContainerGroups.Gb>
+    memory 0.5<Gb>
     cpu_cores 1
 }
 
@@ -27,7 +27,7 @@ let fsharpApp = container {
     name "fsharpApp"
     image "myapp:1.7.2"
     ports [ 8080us ]
-    memory 1.5<Models.ContainerGroups.Gb>
+    memory 1.5<Gb>
     cpu_cores 2
 }
 

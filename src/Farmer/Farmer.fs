@@ -13,6 +13,19 @@ type ResourceName =
         | r -> r
     member this.Map mapper = match this with ResourceName r -> ResourceName (mapper r)
 
+type IResource =
+  abstract member ResourceName : ResourceName
+  abstract member ToArmObject : unit -> obj
+
+type ResourceAction =
+  | NewResource of IResource
+  | MergedResource of old:IResource * replacement:IResource
+  | CouldNotLocate of ResourceName
+  | NotSet
+
+type IResourceBuilder =
+  abstract member BuildResources : Location -> IResource list -> ResourceAction list
+
 /// Represents an expression used within an ARM template
 type ArmExpression =
     | ArmExpression of string
@@ -82,224 +95,13 @@ type DiskInfo = { Size : int; DiskType : DiskType }
 
 namespace Farmer.Models
 
-open Farmer
-open Farmer.Resources
-
-type ResourceReplacement<'T> =
-  | NewResource of 'T
-  | MergedResource of old:'T * replacement:'T
-  | CouldNotLocate of ResourceName
-  | NotSet
-
-type AppInsights =
-    { Name : ResourceName
-      Location : Location
-      LinkedWebsite : ResourceName option }
 type StorageContainerAccess =
     | Private
     | Container
     | Blob
-type StorageAccount =
-    { Name : ResourceName
-      Location : Location
-      Sku : StorageSku
-      Containers : (string * StorageContainerAccess) list }
 
-type Redis =
-    { Name : ResourceName
-      Location : Location
-      Sku :
-        {| Name : string
-           Family : char
-           Capacity : int |}
-      RedisConfiguration : Map<string, string>
-      NonSslEnabled : bool option
-      ShardCount : int option
-      MinimumTlsVersion : string option }
+namespace Farmer
 
-module ContainerGroups =
-    [<RequireQualifiedAccess>]
-    type ContainerGroupOsType =
-        | Windows
-        | Linux
-    [<RequireQualifiedAccess>]
-    type ContainerGroupRestartPolicy =
-        | Never
-        | Always
-        | OnFailure
-    [<RequireQualifiedAccess>]
-    type ContainerGroupIpAddressType =
-        | PublicAddress
-        | PrivateAddress
-    type ContainerProtocol = TCP | UDP
-    [<RequireQualifiedAccess>]
-    type ContainerPort =
-        { Protocol : ContainerProtocol
-          Port : uint16 }
-    [<RequireQualifiedAccess>]
-    type ContainerGroupIpAddress =
-        { Type : ContainerGroupIpAddressType
-          Ports : ContainerPort list }
-    /// Gigabytes
-    [<RequireQualifiedAccess>]
-    type [<Measure>] Gb
-    [<RequireQualifiedAccess>]
-    type ContainerResourceRequest =
-        { Cpu : int
-          Memory : float<Gb> }
-    [<RequireQualifiedAccess>]
-    type ContainerInstance =
-        { Name : ResourceName
-          Image : string
-          Ports : uint16 list
-          Resources : ContainerResourceRequest }
-    [<RequireQualifiedAccess>]
-    type ContainerGroup =
-        { Name : ResourceName
-          Location : Location
-          ContainerInstances : ContainerInstance list
-          OsType : ContainerGroupOsType
-          RestartPolicy : ContainerGroupRestartPolicy
-          IpAddress : ContainerGroupIpAddress }
-
-open ContainerGroups
-open System
-
-type WebApp =
-    { Name : ResourceName
-      ServicePlan : ResourceName
-      Location : Location
-      AppSettings : List<string * string>
-      AlwaysOn : bool
-      HTTPSOnly : bool
-      Dependencies : ResourceName list
-      Kind : string
-      LinuxFxVersion : string option
-      AppCommandLine : string option
-      NetFrameworkVersion : string option
-      JavaVersion : string option
-      JavaContainer : string option
-      JavaContainerVersion : string option
-      PhpVersion : string option
-      PythonVersion : string option
-      Metadata : List<string * string>
-      ZipDeployPath : string option
-      Parameters : SecureParameter list }
-type ServerFarm =
-    { Name : ResourceName
-      Location : Location
-      Sku: string
-      WorkerSize : string
-      IsDynamic : bool
-      Kind : string option
-      Tier : string
-      WorkerCount : int
-      IsLinux : bool }
-type CosmosDbContainer =
-    { Name : ResourceName
-      Account : ResourceName
-      Database : ResourceName
-      PartitionKey :
-        {| Paths : string list
-           Kind : CosmosDbIndexKind |}
-      IndexingPolicy :
-        {| IncludedPaths :
-            {| Path : string
-               Indexes :
-                {| Kind : CosmosDbIndexKind
-                   DataType : CosmosDbIndexDataType |} list
-            |} list
-           ExcludedPaths : string list
-        |}
-    }
-type SqlAzure =
-  { ServerName : ResourceName
-    Location : Location
-    Credentials : {| Username : string; Password : SecureParameter |}
-    Databases :
-        {| Name : ResourceName
-           Edition : string
-           Collation : string
-           Objective : string
-           TransparentDataEncryption : FeatureFlag |} list
-    FirewallRules :
-        {| Name : string
-           Start : System.Net.IPAddress
-           End : System.Net.IPAddress |} list
-  }
-
-type CosmosDbSql =
-    { Name : ResourceName
-      Account : ResourceName
-      Throughput : string }
-type CosmosDbAccount =
-    { Name : ResourceName
-      Location : Location
-      ConsistencyPolicy : ConsistencyPolicy
-      WriteModel : FailoverPolicy
-      PublicNetworkAccess : FeatureFlag
-      FreeTier : bool }
-
-type Search =
-    { Name : ResourceName
-      Location : Location
-      Sku : string
-      HostingMode : string
-      ReplicaCount : int
-      PartitionCount : int }
-
-type EventHubNamespace =
-  { Name : ResourceName
-    Location : Location
-    Sku : {| Name : string; Tier : string; Capacity : int |}
-    ZoneRedundant : bool option
-    IsAutoInflateEnabled : bool option
-    MaxThroughputUnits : int option
-    KafkaEnabled : bool option }
-
-type EventHub =
-  { Name : ResourceName
-    Location : Location
-    MessageRetentionDays : int option
-    Partitions : int
-    Dependencies : ResourceName list }
-
-type EventHubConsumerGroup =
-  { Name : ResourceName
-    Location : Location
-    Dependencies : ResourceName list }
-type EventHubAuthorizationRule =
-  { Name : ResourceName
-    Location : Location
-    Dependencies : ResourceName list
-    Rights : string list }
-module VM =
-    type PublicIpAddress =
-        { Name : ResourceName
-          Location : Location
-          DomainNameLabel : string option }
-    type VirtualNetwork =
-        { Name : ResourceName
-          Location : Location
-          AddressSpacePrefixes : string list
-          Subnets : {| Name : ResourceName; Prefix : string |} list }
-    type NetworkInterface =
-        { Name : ResourceName
-          Location : Location
-          IpConfigs :
-            {| SubnetName : ResourceName
-               PublicIpName : ResourceName |} list
-          VirtualNetwork : ResourceName }
-    type VirtualMachine =
-        { Name : ResourceName
-          Location : Location
-          StorageAccount : ResourceName option
-          Size : VMSize
-          Credentials : {| Username : string; Password : SecureParameter |}
-          Image : ImageDefinition
-          OsDisk : DiskInfo
-          DataDisks : DiskInfo list
-          NetworkInterfaceName : ResourceName }
 type SecretValue =
     | ParameterSecret of SecureParameter
     | ExpressionSecret of ArmExpression
@@ -308,112 +110,7 @@ type SecretValue =
         | ParameterSecret secureParameter -> secureParameter.AsArmRef.Eval()
         | ExpressionSecret armExpression -> armExpression.Eval()
 
-type KeyVaultSecret =
-    { Name : ResourceName
-      Value : SecretValue
-      ParentKeyVault : ResourceName
-      Location : Location
-      ContentType : string option
-      Enabled : bool Nullable
-      ActivationDate : int Nullable
-      ExpirationDate : int Nullable
-      Dependencies : ResourceName list }
-type KeyVault =
-    { Name : ResourceName
-      Location : Location
-      TenantId : string
-      Sku : string
-      Uri : string option
-      EnabledForDeployment : bool option
-      EnabledForDiskEncryption : bool option
-      EnabledForTemplateDeployment : bool option
-      EnableSoftDelete : bool option
-      CreateMode : string option
-      EnablePurgeProtection : bool option
-      AccessPolicies :
-        {| ObjectId : string
-           ApplicationId : string option
-           Permissions :
-            {| Keys : string array
-               Secrets : string array
-               Certificates : string array
-               Storage : string array |}
-        |} array
-      DefaultAction : string option
-      Bypass: string option
-      IpRules : string list
-      VnetRules : string list }
-
-type CognitiveServices =
-  { Name : ResourceName
-    Location : Location
-    Sku : string
-    Kind : string }
-
-type ContainerRegistry =
-  {
-    Name : ResourceName
-    Location : Location
-    Sku : string
-    AdminUserEnabled : bool }
-
-type ServiceBusQueue =
-    { Name : ResourceName
-      LockDuration : string option
-      DuplicateDetection : bool option
-      DuplicateDetectionHistoryTimeWindow : string option
-      Session : bool option
-      DeadLetteringOnMessageExpiration : bool option
-      MaxDeliveryCount : int option
-      EnablePartitioning : bool option
-      DependsOn : ResourceName list }
-
-type ServiceBusNamespace =
-    { Name : ResourceName
-      Location : Location
-      Sku : string
-      Capacity : int option
-      Queues :ServiceBusQueue list
-      DependsOn : ResourceName list }
-
-open VM
-
-type SupportedResource =
-    | CosmosAccount of CosmosDbAccount | CosmosSqlDb of CosmosDbSql | CosmosContainer of CosmosDbContainer
-    | ServerFarm of ServerFarm | WebApp of WebApp
-    | SqlServer of SqlAzure
-    | StorageAccount of StorageAccount
-    | ContainerGroup of ContainerGroup
-    | AppInsights of AppInsights
-    | Ip of PublicIpAddress | Vnet of VirtualNetwork | Nic of NetworkInterface | Vm of VirtualMachine
-    | AzureSearch of Search
-    | KeyVault of KeyVault | KeyVaultSecret of KeyVaultSecret
-    | EventHub of EventHub | EventHubNamespace of EventHubNamespace | ConsumerGroup of EventHubConsumerGroup | EventHubAuthRule of EventHubAuthorizationRule
-    | RedisCache of Redis
-    | CognitiveService of CognitiveServices
-    | ContainerRegistry of ContainerRegistry
-    | ServiceBusNamespace of ServiceBusNamespace
-    member this.ResourceName =
-        match this with
-        | AppInsights x -> x.Name
-        | CosmosAccount x -> x.Name | CosmosSqlDb x -> x.Name | CosmosContainer x -> x.Name
-        | ServerFarm x -> x.Name | WebApp x -> x.Name
-        | SqlServer x -> x.ServerName
-        | StorageAccount x -> x.Name
-        | ContainerGroup x -> x.Name
-        | Ip x -> x.Name | Vnet x -> x.Name | Nic x -> x.Name | Vm x -> x.Name
-        | AzureSearch x -> x.Name
-        | KeyVault x -> x.Name | KeyVaultSecret x -> x.Name
-        | EventHub x -> x.Name | EventHubNamespace x -> x.Name | ConsumerGroup x -> x.Name | EventHubAuthRule x -> x.Name
-        | RedisCache r -> r.Name
-        | CognitiveService c -> c.Name
-        | ContainerRegistry r -> r.Name
-        | ServiceBusNamespace s -> s.Name
-
-namespace Farmer
-open Farmer.Models
-
 type ArmTemplate =
     { Parameters : SecureParameter list
       Outputs : (string * string) list
-      Resources : SupportedResource list }
+      Resources : IResource list }

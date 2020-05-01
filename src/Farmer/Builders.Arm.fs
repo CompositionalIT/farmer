@@ -1,7 +1,6 @@
 [<AutoOpen>]
 module Farmer.ArmBuilder
 
-open Farmer.Models
 open System.IO
 open System.IO.Compression
 
@@ -10,19 +9,8 @@ type ArmConfig =
     { Parameters : string Set
       Outputs : (string * string) list
       Location : Location
-      Resources : SupportedResource list }
-    member internal this.AddOrMergeResource tryConvert existingConfig unwrap wrap =
-        let matchingResources = this.Resources |> List.choose unwrap
-        match tryConvert matchingResources existingConfig with
-        | NewResource newResource ->
-            { this with Resources = this.Resources @ [ wrap newResource ] }
-        | MergedResource(oldVersion, newVersion) ->
-            let oldVersion = wrap oldVersion
-            { this with Resources = (this.Resources |> List.filter ((<>) oldVersion)) @ [ wrap newVersion ] }
-        | CouldNotLocate (ResourceName resourceName) ->
-            failwithf "Could not locate the parent resource ('%s'). Make sure you have correctly specified the name, and that it was added to the arm { } builder before this one." resourceName
-        | NotSet ->
-            failwithf "No parent resource name was set for this resource to link to: %A" existingConfig
+      Resources : IResource list }
+
 type ZipDeployKind =
     | DeployFolder of string
     | DeployZip of string
@@ -77,25 +65,34 @@ type ArmBuilder() =
         let output =
             { Parameters = [
                 for resource in resources do
+                    //TODO: Make an IParameterOutput?
                     match resource with
-                    | SqlServer sql -> sql.Credentials.Password
-                    | Vm vm -> vm.Credentials.Password
-                    | KeyVaultSecret { Value = ParameterSecret secureParameter } -> secureParameter
-                    | WebApp wa -> yield! wa.Parameters
+                    | :? Resources.SqlAzure.SqlAzure as sql -> sql.Credentials.Password
+                    | :? Resources.VirtualMachine.VirtualMachine as vm -> vm.Credentials.Password
+                    | :? Resources.KeyVault.KeyVaultSecret as kvs ->
+                        match kvs with
+                        | { Value = ParameterSecret secureParameter } -> secureParameter
+                        | _ -> ()
+                    | :? Farmer.Resources.WebApp.WebApp as wa -> yield! wa.Parameters
                     | _ -> ()
               ] |> List.distinct
               Outputs = state.Outputs
               Resources = resources }
 
+        //TODO: Replace with IPostDeploy?
         let webDeploys = [
             for resource in resources do
                 match resource with
-                | WebApp { ZipDeployPath = Some path; Name = name } ->
-                    let path =
-                        ZipDeployKind.TryParse path
-                        |> Option.defaultWith (fun () ->
-                            failwithf "Path '%s' must either be a folder to be zipped, or an existing zip." path)
-                    RunFromZip {| Path = path; WebApp = name |}
+                | :? Farmer.Resources.WebApp.WebApp as wa ->
+                    match wa with
+                    | { ZipDeployPath = Some path; Name = name } ->
+                        let path =
+                            ZipDeployKind.TryParse path
+                            |> Option.defaultWith (fun () ->
+                                failwithf "Path '%s' must either be a folder to be zipped, or an existing zip." path)
+                        RunFromZip {| Path = path; WebApp = name |}
+                    | _ ->
+                        ()
                 | _ ->
                     ()
             ]
@@ -127,7 +124,17 @@ type ArmBuilder() =
        is always available. *)
 
     /// Adds a single resource to the ARM template.
-    member __.AddResource (state:ArmConfig, ()) = state
+    member __.AddResource (state:ArmConfig, builder:IResourceBuilder) =
+        let resources =
+            builder.BuildResources state.Location state.Resources
+            |> List.fold(fun resources action ->
+                match action with
+                | NewResource newResource -> resources @ [ newResource ]
+                | MergedResource(oldVersion, newVersion) -> (resources |> List.filter ((<>) oldVersion)) @ [ newVersion ]
+                | CouldNotLocate (ResourceName resourceName) -> failwithf "Could not locate the parent resource ('%s'). Make sure you have correctly specified the name, and that it was added to the arm { } builder before this one." resourceName
+                | NotSet -> failwith "No parent resource name was set for this resource to link to.") state.Resources
+
+        { state with Resources = resources }
     [<CustomOperation "add_resources">]
     /// Adds a sequence of resources to the ARM template.
     member __.AddResources (state:ArmConfig, ()) = state

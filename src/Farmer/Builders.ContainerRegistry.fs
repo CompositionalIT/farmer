@@ -2,7 +2,23 @@
 module Farmer.Resources.ContainerRegistry
 
 open Farmer
-open Farmer.Models
+
+type ContainerRegistry =
+    { Name : ResourceName
+      Location : Location
+      Sku : string
+      AdminUserEnabled : bool }
+    interface IResource with
+        member this.ResourceName = this.Name
+        member this.ToArmObject() =
+            {| name = this.Name.Value
+               ``type`` = "Microsoft.ContainerRegistry/registries"
+               apiVersion = "2019-05-01"
+               sku = {| name = this.Sku |}
+               location = this.Location.ArmValue
+               tags = {||}
+               properties = {| adminUserEnabled = this.AdminUserEnabled |}
+            |} :> _
 
 /// Container Registry SKU
 type ContainerRegistrySku =
@@ -22,7 +38,13 @@ type ContainerRegistryConfig =
     member this.LoginServer =
         (sprintf "reference(resourceId('Microsoft.ContainerRegistry/registries', '%s'),'2019-05-01').loginServer" this.Name.Value)
         |> ArmExpression
-
+    interface IResourceBuilder with
+        member this.BuildResources location _ = [
+            NewResource { Name = this.Name
+                          Location = location
+                          Sku = this.Sku.ToString().Replace("_", ".")
+                          AdminUserEnabled = this.AdminUserEnabled }
+        ]
 type ContainerRegistryBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
@@ -41,29 +63,4 @@ type ContainerRegistryBuilder() =
     /// Enables the admin user on the Azure Container Registry.
     member _.EnableAdminUser (state:ContainerRegistryConfig) = { state with AdminUserEnabled = true }
 
-module Converters =
-    let containerRegistry location (config:ContainerRegistryConfig) : ContainerRegistry =
-        { Name = config.Name
-          Location = location
-          Sku = config.Sku.ToString().Replace("_", ".")
-          AdminUserEnabled = config.AdminUserEnabled }
-
-    module Outputters =
-        let containerRegistry (service:Farmer.Models.ContainerRegistry) =
-            {| name = service.Name.Value
-               ``type`` = "Microsoft.ContainerRegistry/registries"
-               apiVersion = "2019-05-01"
-               sku = {| name = service.Sku |}
-               location = service.Location.ArmValue
-               tags = {||}
-               properties = {| adminUserEnabled = service.AdminUserEnabled |}
-            |}
-
 let containerRegistry = ContainerRegistryBuilder()
-
-type Farmer.ArmBuilder.ArmBuilder with
-    member this.AddResource(state:ArmConfig, config) =
-        { state with
-            Resources = ContainerRegistry (Converters.containerRegistry state.Location config) :: state.Resources
-        }
-    member this.AddResources (state, configs) = addResources<ContainerRegistryConfig> this.AddResource state configs

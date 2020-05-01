@@ -26,7 +26,7 @@ let tests = testList "Virtual Machine" [
             }
             arm { add_resource myVm }
             |> findAzureResources<VirtualMachine> client.SerializationSettings
-            |> List.head
+            |> List.find(fun r -> r.StorageProfile |> isNull |> not)
 
         resource.Validate()
 

@@ -4,6 +4,76 @@ module Farmer.Resources.SqlAzure
 open Farmer
 open Farmer.Models
 
+type SqlAzure =
+    { ServerName : ResourceName
+      Location : Location
+      Credentials : {| Username : string; Password : SecureParameter |}
+      Databases :
+          {| Name : ResourceName
+             Edition : string
+             Collation : string
+             Objective : string
+             TransparentDataEncryption : FeatureFlag |} list
+      FirewallRules :
+          {| Name : string
+             Start : System.Net.IPAddress
+             End : System.Net.IPAddress |} list
+    }
+    interface IResource with
+        member this.ResourceName = this.ServerName
+        member this.ToArmObject() =
+            {| ``type`` = "Microsoft.Sql/servers"
+               name = this.ServerName.Value
+               apiVersion = "2014-04-01-preview"
+               location = this.Location.ArmValue
+               tags = {| displayName = this.ServerName.Value |}
+               properties =
+                   {| administratorLogin = this.Credentials.Username
+                      administratorLoginPassword = this.Credentials.Password.AsArmRef.Eval()
+                      version = "12.0" |}
+               resources = [
+                   for database in this.Databases do
+                       box
+                           {| ``type`` = "databases"
+                              name = database.Name.Value
+                              apiVersion = "2015-01-01"
+                              location = this.Location.ArmValue
+                              tags = {| displayName = database.Name.Value |}
+                              properties =
+                               {| edition = database.Edition
+                                  collation = database.Collation
+                                  requestedServiceObjectiveName = database.Objective |}
+                              dependsOn = [
+                                  this.ServerName.Value
+                              ]
+                              resources = [
+                                  match database.TransparentDataEncryption with
+                                  | Enabled ->
+                                      {| ``type`` = "transparentDataEncryption"
+                                         comments = "Transparent Data Encryption"
+                                         name = "current"
+                                         apiVersion = "2014-04-01-preview"
+                                         properties = {| status = string database.TransparentDataEncryption |}
+                                         dependsOn = [ database.Name.Value ]
+                                      |}
+                                   | Disabled ->
+                                       ()
+                              ]
+                           |}
+                   for rule in this.FirewallRules do
+                       box
+                           {| ``type`` = "firewallrules"
+                              name = rule.Name
+                              apiVersion = "2014-04-01"
+                              location = this.Location.ArmValue
+                              properties =
+                               {| endIpAddress = string rule.Start
+                                  startIpAddress = string rule.End |}
+                              dependsOn = [ this.ServerName.Value ]
+                           |}
+               ]
+            |} :> _
+
 type SqlSku = Free | Basic | Standard of string | Premium of string
 
 module Sku =
@@ -49,6 +119,47 @@ type SqlAzureConfig =
               literal ";MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;" ]
     member this.Server =
         this.ServerName.ResourceName
+    interface IResourceBuilder with
+        member this.BuildResources location resources = [
+            let database =
+                {| Name = this.Name
+                   Edition =
+                     match this.DbEdition with
+                     | SqlSku.Basic -> "Basic"
+                     | SqlSku.Free -> "Free"
+                     | SqlSku.Standard _ -> "Standard"
+                     | SqlSku.Premium _ -> "Premium"
+                   Objective =
+                     match this.DbEdition with
+                     | SqlSku.Basic -> "Basic"
+                     | SqlSku.Free -> "Free"
+                     | SqlSku.Standard s -> s
+                     | SqlSku.Premium p -> p
+                   Collation = this.DbCollation
+                   TransparentDataEncryption = this.Encryption |}
+
+            let server =
+                match this.ServerName with
+                | AutomaticallyCreated serverName ->
+                    NewResource
+                        { ServerName = serverName
+                          Location = location
+                          Credentials =
+                            {| Username = this.AdministratorCredentials.UserName
+                               Password = this.AdministratorCredentials.Password |}
+                          FirewallRules = this.FirewallRules
+                          Databases = [ database ]
+                        }
+                | External resourceName ->
+                    resources
+                    |> List.choose(function :? SqlAzure as s -> Some s | _ -> None)
+                    |> List.tryFind(fun g -> g.ServerName = resourceName)
+                    |> Option.map(fun server -> MergedResource(server, { server with Databases = database :: server.Databases }))
+                    |> Option.defaultValue (CouldNotLocate resourceName)
+                | AutomaticPlaceholder ->
+                    NotSet
+            server
+        ]
 
 type SqlBuilder() =
     let makeIp = System.Net.IPAddress.Parse
@@ -125,102 +236,5 @@ type WebAppBuilder with
 type FunctionsBuilder with
     member this.DependsOn(state:FunctionsConfig, sqlDb:SqlAzureConfig) =
         this.DependsOn(state, sqlDb.ServerName.ResourceName)
-
-module Converters =
-    let sql location (existingServers:SqlAzure list) (sql:SqlAzureConfig) =
-        let database =
-            {| Name = sql.Name
-               Edition =
-                 match sql.DbEdition with
-                 | SqlSku.Basic -> "Basic"
-                 | SqlSku.Free -> "Free"
-                 | SqlSku.Standard _ -> "Standard"
-                 | SqlSku.Premium _ -> "Premium"
-               Objective =
-                 match sql.DbEdition with
-                 | SqlSku.Basic -> "Basic"
-                 | SqlSku.Free -> "Free"
-                 | SqlSku.Standard s -> s
-                 | SqlSku.Premium p -> p
-               Collation = sql.DbCollation
-               TransparentDataEncryption = sql.Encryption |}
-
-        match sql.ServerName with
-        | AutomaticallyCreated serverName ->
-            { ServerName = serverName
-              Location = location
-              Credentials =
-                {| Username = sql.AdministratorCredentials.UserName
-                   Password = sql.AdministratorCredentials.Password |}
-              FirewallRules = sql.FirewallRules
-              Databases = [ database ]
-            }
-            |> NewResource
-        | External resourceName ->
-            existingServers
-            |> List.tryFind(fun g -> g.ServerName = resourceName)
-            |> Option.map(fun server -> MergedResource(server, { server with Databases = database :: server.Databases }))
-            |> Option.defaultValue (CouldNotLocate resourceName)
-        | AutomaticPlaceholder ->
-            NotSet
-    module Outputters =
-        let sqlAzure (server:SqlAzure) = {|
-            ``type`` = "Microsoft.Sql/servers"
-            name = server.ServerName.Value
-            apiVersion = "2014-04-01-preview"
-            location = server.Location.ArmValue
-            tags = {| displayName = server.ServerName.Value |}
-            properties =
-                {| administratorLogin = server.Credentials.Username
-                   administratorLoginPassword = server.Credentials.Password.AsArmRef.Eval()
-                   version = "12.0" |}
-            resources = [
-                for database in server.Databases do
-                    box
-                        {| ``type`` = "databases"
-                           name = database.Name.Value
-                           apiVersion = "2015-01-01"
-                           location = server.Location.ArmValue
-                           tags = {| displayName = database.Name.Value |}
-                           properties =
-                            {| edition = database.Edition
-                               collation = database.Collation
-                               requestedServiceObjectiveName = database.Objective |}
-                           dependsOn = [
-                               server.ServerName.Value
-                           ]
-                           resources = [
-                               match database.TransparentDataEncryption with
-                               | Enabled ->
-                                   {| ``type`` = "transparentDataEncryption"
-                                      comments = "Transparent Data Encryption"
-                                      name = "current"
-                                      apiVersion = "2014-04-01-preview"
-                                      properties = {| status = string database.TransparentDataEncryption |}
-                                      dependsOn = [ database.Name.Value ]
-                                   |}
-                                | Disabled ->
-                                    ()
-                           ]
-                        |}
-                for rule in server.FirewallRules do
-                    box
-                        {| ``type`` = "firewallrules"
-                           name = rule.Name
-                           apiVersion = "2014-04-01"
-                           location = server.Location.ArmValue
-                           properties =
-                            {| endIpAddress = string rule.Start
-                               startIpAddress = string rule.End |}
-                           dependsOn = [ server.ServerName.Value ]
-                        |}
-            ]
-        |}
-
-
-type ArmBuilder.ArmBuilder with
-    member __.AddResource(state:ArmConfig, config:SqlAzureConfig) =
-        state.AddOrMergeResource (Converters.sql state.Location) config (function SqlServer config -> Some config | _ -> None) SqlServer
-    member this.AddResources (state, configs) = addResources<SqlAzureConfig> this.AddResource state configs
 
 let sql = SqlBuilder()

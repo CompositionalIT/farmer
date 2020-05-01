@@ -2,7 +2,23 @@
 module Farmer.Resources.CognitiveSearch
 
 open Farmer
-open Farmer.Models
+
+type CognitiveServices =
+    { Name : ResourceName
+      Location : Location
+      Sku : string
+      Kind : string }
+    interface IResource with
+        member this.ResourceName = this.Name
+        member this.ToArmObject() =
+            {| name = this.Name.Value
+               ``type`` = "Microsoft.CognitiveServices/accounts"
+               apiVersion = "2017-04-18"
+               sku = {| name = this.Sku |}
+               kind = this.Kind
+               location = this.Location.ArmValue
+               tags = {||}
+               properties = {||} |} :> _
 
 /// Type of SKU. See https://github.com/Azure/azure-quickstart-templates/tree/master/101-cognitive-services-translate
 type CognitiveServicesSku =
@@ -37,6 +53,13 @@ type CognitiveServicesConfig =
     { Name : ResourceName
       Sku : CognitiveServicesSku
       Api : CognitiveServicesApi }
+    interface IResourceBuilder with
+        member this.BuildResources location _ = [
+            NewResource { Name = this.Name
+                          Location = location
+                          Sku = this.Sku.ToString().Replace("_", ".")
+                          Kind = this.Api.ToString() }
+        ]
 
 type CognitiveServicesBuilder() =
     member _.Yield _ =
@@ -50,29 +73,4 @@ type CognitiveServicesBuilder() =
     [<CustomOperation "api">]
     member _.Api (state:CognitiveServicesConfig, api) = { state with Api = api }
 
-module Converters =
-    let cognitiveServices location config =
-        { Name = config.Name
-          Location = location
-          Sku = config.Sku.ToString().Replace("_", ".")
-          Kind = config.Api.ToString() }
-
-    module Outputters =
-        let cognitiveServices (service:Farmer.Models.CognitiveServices) =
-            {| name = service.Name.Value
-               ``type`` = "Microsoft.CognitiveServices/accounts"
-               apiVersion = "2017-04-18"
-               sku = {| name = service.Sku |}
-               kind = service.Kind
-               location = service.Location.ArmValue
-               tags = {||}
-               properties = {||} |}
-
 let cognitiveServices = CognitiveServicesBuilder()
-
-type Farmer.ArmBuilder.ArmBuilder with
-    member this.AddResource(state:ArmConfig, config) =
-        { state with
-            Resources = CognitiveService (Converters.cognitiveServices state.Location config) :: state.Resources
-        }
-    member this.AddResources (state, configs) = addResources<CognitiveServicesConfig> this.AddResource state configs
