@@ -89,6 +89,8 @@ type VirtualMachine =
       OsDisk : DiskInfo
       DataDisks : DiskInfo list
       NetworkInterfaceName : ResourceName }
+    interface IParameters with
+        member this.SecureParameters = [ this.Credentials.Password ]
     interface IResource with
         member this.ResourceName = this.Name
         member this.ToArmObject() =

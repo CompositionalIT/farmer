@@ -14,17 +14,8 @@ type ResourceName =
     member this.Map mapper = match this with ResourceName r -> ResourceName (mapper r)
 
 type IResource =
-  abstract member ResourceName : ResourceName
-  abstract member ToArmObject : unit -> obj
-
-type ResourceAction =
-  | NewResource of IResource
-  | MergedResource of old:IResource * replacement:IResource
-  | CouldNotLocate of ResourceName
-  | NotSet
-
-type IResourceBuilder =
-  abstract member BuildResources : Location -> IResource list -> ResourceAction list
+    abstract member ResourceName : ResourceName
+    abstract member ToArmObject : unit -> obj
 
 /// Represents an expression used within an ARM template
 type ArmExpression =
@@ -47,6 +38,21 @@ type SecureParameter =
     member this.Value = match this with SecureParameter value -> value
     /// Gets an ARM expression reference to the password e.g. parameters('my-password')
     member this.AsArmRef = sprintf "parameters('%s')" this.Value |> ArmExpression
+
+type IParameters =
+    abstract member SecureParameters : SecureParameter list
+
+type IPostDeploy =
+    abstract member Run : resourceGroupName:string -> Option<Result<string, string>>
+
+type ResourceAction =
+    | NewResource of IResource
+    | MergedResource of old:IResource * replacement:IResource
+    | CouldNotLocate of ResourceName
+    | NotSet
+
+type IResourceBuilder =
+    abstract member BuildResources : Location -> IResource list -> ResourceAction list
 
 [<AutoOpen>]
 module ArmExpression =

@@ -19,6 +19,8 @@ type SqlAzure =
              Start : System.Net.IPAddress
              End : System.Net.IPAddress |} list
     }
+    interface IParameters with
+        member this.SecureParameters = [ this.Credentials.Password ]
     interface IResource with
         member this.ResourceName = this.ServerName
         member this.ToArmObject() =

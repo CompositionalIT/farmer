@@ -11,36 +11,10 @@ type ArmConfig =
       Location : Location
       Resources : IResource list }
 
-type ZipDeployKind =
-    | DeployFolder of string
-    | DeployZip of string
-    member this.Value = match this with DeployFolder s | DeployZip s -> s
-    /// Tries to create a ZipDeployKind from a string path.
-    static member TryParse path =
-        if (File.GetAttributes path).HasFlag FileAttributes.Directory then
-            Some(DeployFolder path)
-        else if Path.GetExtension path = ".zip" then
-            Some(DeployZip path)
-        else
-            None
-    /// Processes a ZipDeployKind and returns the filename of the zip file.
-    /// If the ZipDeployKind is a DeployFolder, the folder will be zipped first and the generated zip file returned.
-    member this.GetZipPath targetFolder =
-        match this with
-        | DeployFolder appFolder ->
-            let packageFilename = Path.Combine(targetFolder, (Path.GetFileName appFolder) + ".zip")
-            File.Delete packageFilename
-            ZipFile.CreateFromDirectory(appFolder, packageFilename)
-            packageFilename
-        | DeployZip zipFilePath ->
-            zipFilePath
-
-type PostDeployTask =
-    | RunFromZip of {| WebApp:ResourceName; Path : ZipDeployKind |}
 type Deployment =
     { Location : Location
       Template : ArmTemplate
-      PostDeployTasks : PostDeployTask list }
+      PostDeployTasks : IPostDeploy list }
 
 type ArmBuilder() =
     member __.Yield _ =
@@ -62,44 +36,26 @@ type ArmBuilder() =
                 | resource :: _ ->
                    printfn "Warning: %d resources were found with the same name of '%s'. The first one will be used." instances.Length resourceName.Value
                    Some resource)
-        let output =
+        let template =
             { Parameters = [
                 for resource in resources do
-                    //TODO: Make an IParameterOutput?
                     match resource with
-                    | :? Resources.SqlAzure.SqlAzure as sql -> sql.Credentials.Password
-                    | :? Resources.VirtualMachine.VirtualMachine as vm -> vm.Credentials.Password
-                    | :? Resources.KeyVault.KeyVaultSecret as kvs ->
-                        match kvs with
-                        | { Value = ParameterSecret secureParameter } -> secureParameter
-                        | _ -> ()
-                    | :? Farmer.Resources.WebApp.WebApp as wa -> yield! wa.Parameters
+                    | :? IParameters as p -> yield! p.SecureParameters
                     | _ -> ()
               ] |> List.distinct
               Outputs = state.Outputs
               Resources = resources }
 
-        //TODO: Replace with IPostDeploy?
-        let webDeploys = [
+        let postDeployTasks = [
             for resource in resources do
                 match resource with
-                | :? Farmer.Resources.WebApp.WebApp as wa ->
-                    match wa with
-                    | { ZipDeployPath = Some path; Name = name } ->
-                        let path =
-                            ZipDeployKind.TryParse path
-                            |> Option.defaultWith (fun () ->
-                                failwithf "Path '%s' must either be a folder to be zipped, or an existing zip." path)
-                        RunFromZip {| Path = path; WebApp = name |}
-                    | _ ->
-                        ()
-                | _ ->
-                    ()
+                | :? IPostDeploy as pd -> pd
+                | _ -> ()
             ]
 
         { Location = state.Location
-          Template = output
-          PostDeployTasks = webDeploys }
+          Template = template
+          PostDeployTasks = postDeployTasks }
 
     /// Creates an output value that will be returned by the ARM template.
     [<CustomOperation "output">]

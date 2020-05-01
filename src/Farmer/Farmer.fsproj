@@ -40,6 +40,9 @@
     <Compile Include="Result.fs" />
     <Compile Include="Farmer.fs" />
     <Compile Include="Builders.Helpers.fs" />
+    <Compile Include="Builders.Arm.fs" />
+    <Compile Include="Writer.fs" />
+    <Compile Include="Deploy.fs" />
     <Compile Include="Builders.Storage.fs" />
     <Compile Include="Builders.Redis.fs" />
     <Compile Include="Builders.KeyVault.fs" />
@@ -54,8 +57,5 @@
     <Compile Include="Builders.CognitiveServices.fs" />
     <Compile Include="Builders.ContainerRegistry.fs" />
     <Compile Include="Builders.ServiceBus.fs" />
-    <Compile Include="Builders.Arm.fs" />
-    <Compile Include="Writer.fs" />
-    <Compile Include="Deploy.fs" />
   </ItemGroup>
 </Project>

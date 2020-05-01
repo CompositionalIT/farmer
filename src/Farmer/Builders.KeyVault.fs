@@ -65,6 +65,11 @@ type KeyVaultSecret =
       ActivationDate : int Nullable
       ExpirationDate : int Nullable
       Dependencies : ResourceName list }
+    interface IParameters with
+        member this.SecureParameters =
+            match this with
+            | { Value = ParameterSecret secureParameter } -> [ secureParameter ]
+            | _ -> []
     interface IResource with
         member this.ResourceName = this.Name
         member this.ToArmObject() =

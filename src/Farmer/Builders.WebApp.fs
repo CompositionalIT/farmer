@@ -38,6 +38,34 @@ type ServerFarm =
                kind = this.Kind |> Option.toObj
             |} :> _
 
+module ZipDeploy =
+    open System.IO
+    open System.IO.Compression
+
+    type ZipDeployKind =
+        | DeployFolder of string
+        | DeployZip of string
+        member this.Value = match this with DeployFolder s | DeployZip s -> s
+        /// Tries to create a ZipDeployKind from a string path.
+        static member TryParse path =
+            if (File.GetAttributes path).HasFlag FileAttributes.Directory then
+                Some(DeployFolder path)
+            else if Path.GetExtension path = ".zip" then
+                Some(DeployZip path)
+            else
+                None
+        /// Processes a ZipDeployKind and returns the filename of the zip file.
+        /// If the ZipDeployKind is a DeployFolder, the folder will be zipped first and the generated zip file returned.
+        member this.GetZipPath targetFolder =
+            match this with
+            | DeployFolder appFolder ->
+                let packageFilename = Path.Combine(targetFolder, (Path.GetFileName appFolder) + ".zip")
+                File.Delete packageFilename
+                ZipFile.CreateFromDirectory(appFolder, packageFilename)
+                packageFilename
+            | DeployZip zipFilePath ->
+                zipFilePath
+
 type WebApp =
     { Name : ResourceName
       ServicePlan : ResourceName
@@ -58,6 +86,20 @@ type WebApp =
       Metadata : List<string * string>
       ZipDeployPath : string option
       Parameters : SecureParameter list }
+    interface IParameters with
+        member this.SecureParameters = this.Parameters
+    interface IPostDeploy with
+        member this.Run resourceGroupName =
+            match this with
+            | { ZipDeployPath = Some path; Name = name } ->
+                let path =
+                    ZipDeploy.ZipDeployKind.TryParse path
+                    |> Option.defaultWith (fun () ->
+                        failwithf "Path '%s' must either be a folder to be zipped, or an existing zip." path)
+                printfn "Running ZIP deploy for %s" path.Value
+                Some(Deploy.Az.zipDeploy name.Value path.GetZipPath resourceGroupName)
+            | _ ->
+                None
     interface IResource with
         member this.ResourceName = this.Name
         member this.ToArmObject() =
