@@ -15,7 +15,7 @@ The Container Registry builder is used to create Azure Container Registry (ACR) 
 |-|-|
 | name | Sets the name of the Container Registry instance. |
 | sku | Sets the SKU of the instance. Defaults to Basic. |
-| api | The value that indicates whether the admin user is enabled. |
+| enable_admin_user | The value that indicates whether the admin user is enabled. |
 
 #### Example
 ```fsharp
