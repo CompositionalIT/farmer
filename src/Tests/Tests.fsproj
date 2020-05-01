@@ -10,6 +10,7 @@
     <Compile Include="Helpers.fs" />
     <Compile Include="ContainerGroup.fs" />
     <Compile Include="Storage.fs" />
+    <Compile Include="ServiceBus.fs" />
     <Compile Include="Template.fs" />
     <Compile Include="AzCli.fs" />
     <Compile Include="VirtualMachine.fs" />
@@ -22,6 +23,7 @@
     <PackageReference Include="Microsoft.Azure.Management.Compute" Version="35.2.0" />
     <PackageReference Include="Microsoft.Azure.Management.ContainerInstance" Version="2.0.0" />
     <PackageReference Include="Microsoft.Azure.Management.Storage" Version="16.0.0" />
+    <PackageReference Include="Microsoft.Azure.Management.ServiceBus" Version="2.1.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.2.0" />
     <PackageReference Include="coverlet.collector" Version="1.2.0" />
     <PackageReference Include="YoloDev.Expecto.TestSdk" Version="0.9.1" />

@@ -44,6 +44,7 @@ module TemplateGeneration =
 
                 | CognitiveService service -> Converters.Outputters.cognitiveServices service |> box
                 | ContainerRegistry registry -> Converters.Outputters.containerRegistry registry |> box
+                | ServiceBusNamespace ns -> Converters.Outputters.serviceBusNamespace ns |> box
             )
         parameters =
             template.Parameters

@@ -52,8 +52,11 @@ module ArmExpression =
 /// such as AppInsights on WebApp. WebApps can automatically create and configure an AI instance for the webapp,
 /// or configure the web app to an existing AI instance, or do nothing.
 type ResourceRef =
+      /// The resource has been created externally.
     | External of ResourceName
+      /// The resource will be automatically created and its name be automatically generated.
     | AutomaticPlaceholder
+      /// The resource will be automatically created using the supplied name.
     | AutomaticallyCreated of ResourceName
     member this.ResourceNameOpt = match this with External r | AutomaticallyCreated r -> Some r | AutomaticPlaceholder -> None
     member this.ResourceName = this.ResourceNameOpt |> Option.defaultValue ResourceName.Empty
@@ -354,6 +357,25 @@ type ContainerRegistry =
     Sku : string
     AdminUserEnabled : bool }
 
+type ServiceBusQueue =
+    { Name : ResourceName
+      LockDuration : string option
+      DuplicateDetection : bool option
+      DuplicateDetectionHistoryTimeWindow : string option
+      Session : bool option
+      DeadLetteringOnMessageExpiration : bool option
+      MaxDeliveryCount : int option
+      EnablePartitioning : bool option
+      DependsOn : ResourceName list }
+
+type ServiceBusNamespace =
+    { Name : ResourceName
+      Location : Location
+      Sku : string
+      Capacity : int option
+      Queues :ServiceBusQueue list
+      DependsOn : ResourceName list }
+
 open VM
 
 type SupportedResource =
@@ -370,6 +392,7 @@ type SupportedResource =
     | RedisCache of Redis
     | CognitiveService of CognitiveServices
     | ContainerRegistry of ContainerRegistry
+    | ServiceBusNamespace of ServiceBusNamespace
     member this.ResourceName =
         match this with
         | AppInsights x -> x.Name
@@ -385,6 +408,7 @@ type SupportedResource =
         | RedisCache r -> r.Name
         | CognitiveService c -> c.Name
         | ContainerRegistry r -> r.Name
+        | ServiceBusNamespace s -> s.Name
 
 namespace Farmer
 open Farmer.Models
