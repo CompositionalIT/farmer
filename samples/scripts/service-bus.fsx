@@ -1,11 +1,12 @@
-#r @"..\Farmer\bin\Debug\netstandard2.0\Farmer.dll"
-#r @"../../../../../.nuget/packages/Newtonsoft.Json/12.0.2/lib/netstandard2.0/Newtonsoft.Json.dll"
+#r @"..\..\src\Farmer\bin\Debug\netstandard2.0\Farmer.dll"
 
 open Farmer
 open Farmer.Resources
 
 let myQueue = serviceBus {
     namespace_name "allMyQueues"
+    sku ServiceBusNamespaceSku.Standard
+
     name "isaacssuperqueue"
 }
 
@@ -13,6 +14,7 @@ let mySecondQueue = serviceBus {
     name "isaacssecondsuperqueue"
     link_to_namespace myQueue
 }
+
 
 let deployment = arm {
     location NorthEurope
