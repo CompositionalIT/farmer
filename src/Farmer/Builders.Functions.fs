@@ -30,7 +30,7 @@ type FunctionsConfig =
     member this.AppInsightsKey =
         this.AppInsightsName
         |> Option.bind (fun r -> r.ResourceNameOpt)
-        |> Option.map Ai.instrumentationKey
+        |> Option.map instrumentationKey
     /// Gets the default key for the functions site
     member this.DefaultKey =
         sprintf "listkeys(concat(resourceId('Microsoft.Web/sites', '%s'), '/host/default/'),'2016-08-01').functionKeys.default" this.Name.Value
@@ -62,7 +62,7 @@ type FunctionsConfig =
                     match this.AppInsightsName with
                     | Some (External resourceName)
                     | Some (AutomaticallyCreated resourceName) ->
-                        "APPINSIGHTS_INSTRUMENTATIONKEY", Ai.instrumentationKey resourceName |> ArmExpression.Eval
+                        "APPINSIGHTS_INSTRUMENTATIONKEY", instrumentationKey resourceName |> ArmExpression.Eval
                     | Some AutomaticPlaceholder
                     | None -> ()
 
@@ -108,7 +108,7 @@ type FunctionsConfig =
             | AutomaticallyCreated resourceName ->
                 let servicePlanConfig =
                     { Name = resourceName
-                      Sku = Sku.Y1
+                      Sku = WebAppSkus.Y1
                       WorkerSize = Serverless
                       WorkerCount = 0
                       OperatingSystem = this.OperatingSystem }
@@ -166,7 +166,7 @@ type FunctionsBuilder() =
                 | External _ ->
                     state.StorageAccountName
             AppInsightsName =
-                Ai.tryCreateAppInsightsName state.AppInsightsName state.Name.Value
+                tryCreateAppInsightsName state.AppInsightsName state.Name.Value
         }
     /// Sets the name of the functions instance.
     [<CustomOperation "name">]

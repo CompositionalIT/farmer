@@ -1,4 +1,5 @@
-﻿module Farmer.Resources.AppInsights
+﻿[<AutoOpen>]
+module Farmer.Resources.AppInsights
 
 open Farmer
 open Arm.Insights

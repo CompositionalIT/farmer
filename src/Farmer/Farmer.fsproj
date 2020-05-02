@@ -48,6 +48,8 @@
     <Compile Include="Builders.Redis.fs" />
     <Compile Include="Builders.KeyVault.fs" />
     <Compile Include="Builders.Vm.fs" />
+    <Compile Include="Builders.ServicePlan.fs" />
+    <Compile Include="Builders.AppInsights.fs" />
     <Compile Include="Builders.WebApp.fs" />
     <Compile Include="Builders.Functions.fs" />
     <Compile Include="Builders.Sql.fs" />

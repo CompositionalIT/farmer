@@ -279,7 +279,7 @@ type WebAppBuilder() =
             OperatingSystem =
                 operatingSystem
             AppInsightsName =
-                AppInsights.tryCreateAppInsightsName state.AppInsightsName state.Name.Value
+                tryCreateAppInsightsName state.AppInsightsName state.Name.Value
             DockerImage =
                 match state.DockerImage, state.DockerAcrCredentials with
                 | Some (image, tag), Some credentials when not (image.Contains "azurecr.io") ->
