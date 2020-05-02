@@ -80,12 +80,9 @@ type SqlAzureConfig =
                           FirewallRules = this.FirewallRules
                           Databases = [ database ]
                         }
-                | External resourceName ->
+                | External serverName ->
                     resources
-                    |> List.choose(function :? Server as s -> Some s | _ -> None)
-                    |> List.tryFind(fun g -> g.ServerName = resourceName)
-                    |> Option.map(fun server -> MergedResource(server, { server with Databases = database :: server.Databases }))
-                    |> Option.defaultValue (CouldNotLocate resourceName)
+                    |> Helpers.tryMergeResource serverName (fun server -> { server with Databases = database :: server.Databases })
                 | AutomaticPlaceholder ->
                     NotSet
             server

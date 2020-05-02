@@ -64,7 +64,7 @@ let tests = testList "Template" [
         Expect.equal template.Template.Resources.Length 2 "Should be two resources"
     }
 
-    test "De-dupes the same resource name" {
+    test "De-dupes the same resource name and type" {
         let template = arm {
             add_resources [
                 storageAccount { name "test" }
@@ -73,5 +73,16 @@ let tests = testList "Template" [
         }
 
         Expect.equal template.Template.Resources.Length 1 "Should be a single resource"
+    }
+
+    test "Does not de-dupe the same resource name but different type" {
+        let template = arm {
+            add_resources [
+                storageAccount { name "test" }
+                cognitiveServices { name "test" }
+            ]
+        }
+
+        Expect.equal template.Template.Resources.Length 2 "Should be two resources"
     }
 ]

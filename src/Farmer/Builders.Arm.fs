@@ -18,15 +18,15 @@ type ArmBuilder() =
     member __.Run (state:ArmConfig) =
         let resources =
             state.Resources
-            |> List.groupBy(fun r -> r.ResourceName)
-            |> List.choose(fun (resourceName, instances) ->
+            |> List.groupBy(fun r -> r.GetType(), r.ResourceName)
+            |> List.choose(fun ((resourceType, resourceName), instances) ->
                 match instances with
                 | [] ->
                    None
                 | [ resource ] ->
                    Some resource
                 | resource :: _ ->
-                   printfn "Warning: %d resources were found with the same name of '%s'. The first one will be used." instances.Length resourceName.Value
+                   printfn "Warning: %d %s resources were found with the same name of '%s'. The first one will be used." instances.Length resourceType.Name resourceName.Value
                    Some resource)
         let template =
             { Parameters = [
@@ -83,7 +83,7 @@ type ArmBuilder() =
 
     [<CustomOperation "add_resources">]
     /// Adds a sequence of resources to the ARM template.
-    member this.AddResources (state:ArmConfig, resources) =
+    member this.AddResources (state:ArmConfig, resources:IResourceBuilder list) =
         resources
         |> Seq.fold(fun state resource -> this.AddResource(state, resource)) state
 

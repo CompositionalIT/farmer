@@ -63,12 +63,9 @@ type ServiceBusQueueConfig =
                         this.DependsOn
                       Queues = [ queue ]
                     }
-            | External resourceName ->
+            | External namespaceName ->
                 existingResources
-                |> List.choose(function :? Namespace as ns -> Some ns | _ -> None)
-                |> List.tryFind(fun g -> g.Name = resourceName)
-                |> Option.map(fun ns -> MergedResource(ns, { ns with Queues = queue :: ns.Queues }))
-                |> Option.defaultValue (CouldNotLocate resourceName)
+                |> Helpers.tryMergeResource namespaceName (fun ns -> { ns with Queues = queue :: ns.Queues })
             | AutomaticPlaceholder ->
                 NotSet
         ]

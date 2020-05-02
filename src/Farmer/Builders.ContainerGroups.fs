@@ -83,12 +83,9 @@ type ContainerConfig =
                             | PublicAddress -> "Public"
                             | PrivateAddress -> "Private" |}
                     }
-            | External resourceName ->
+            | External containerGroupName ->
                 existingResources
-                |> List.choose(function :? ContainerGroup as cg -> Some cg | _ -> None)
-                |> List.tryFind(fun g -> g.Name = resourceName)
-                |> Option.map(fun group -> MergedResource(group, { group with ContainerInstances = group.ContainerInstances @ [ container ] }))
-                |> Option.defaultValue (CouldNotLocate resourceName)
+                |> Helpers.tryMergeResource containerGroupName (fun group -> { group with ContainerInstances = group.ContainerInstances @ [ container ] })
             | AutomaticPlaceholder ->
                 NotSet
         ]
