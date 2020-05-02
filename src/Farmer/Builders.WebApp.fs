@@ -5,75 +5,55 @@ open Farmer
 open Arm.Web
 open Arm.Insights
 
-type WorkerSize = Small | Medium | Large | Serverless
-type WebAppSku = Shared | Free | Basic of string | Standard of string | Premium of string | PremiumV2 of string | Isolated of string | Functions
+module Runtimes =
+    type JavaHost =
+        | JavaSE | WildFly14 | Tomcat of string
+        static member Tomcat85 = Tomcat "8.5"
+        static member Tomcat90 = Tomcat "9.0"
+    type JavaRuntime =
+        | Java8 | Java11
+        member this.Version = match this with Java8 -> 8 | Java11 -> 11
+        member this.Jre = match this with Java8 -> "jre8" | Java11 -> "java11"
+    type WebAppRuntime =
+        | DotNetCore of string
+        | Node of string
+        | Php of string
+        | Ruby of string
+        | AspNet of version:string
+        | Java of JavaRuntime * JavaHost
+        | Python of linuxVersion:string * windowsVersion:string
+        static member Php73 = Php "7.3"
+        static member Php72 = Php "7.2"
+        static member Php71 = Php "7.1"
+        static member Php70 = Php "7.0"
+        static member Php56 = Php "5.6"
+        static member DotNetCore21 = DotNetCore "2.1"
+        static member DotNetCore31 = DotNetCore "3.1"
+        static member DotNetCoreLts = DotNetCore "LTS"
+        static member DotNetCoreLatest = DotNetCore "Latest"
+        static member Node6 = Node "6-lts"
+        static member Node8 = Node "8-lts"
+        static member Node10 = Node "10-lts"
+        static member Node12 = Node "12-lts"
+        static member NodeLts = Node "lts"
+        static member Ruby26 = Ruby "2.6"
+        static member Ruby25 = Ruby "2.5"
+        static member Ruby24 = Ruby "2.4"
+        static member Ruby23 = Ruby "2.3"
+        static member Java11 = Java (Java11, JavaSE)
+        static member Java11Tomcat90 = Java (Java11, JavaHost.Tomcat90)
+        static member Java11Tomcat85 = Java (Java11, JavaHost.Tomcat85)
+        static member Java8 = Java (Java8, JavaSE)
+        static member Java8WildFly14 = Java (Java8, WildFly14)
+        static member Java8Tomcat90 = Java (Java8, JavaHost.Tomcat90)
+        static member Java8Tomcat85 = Java (Java8, JavaHost.Tomcat85)
+        static member AspNet47 = AspNet "4.0"
+        static member AspNet35 = AspNet "2.0"
+        static member Python27 = Python ("2.7", "2.7")
+        static member Python36 = Python ("3.6", "3.4") // not typo, really version 3.4
+        static member Python37 = Python ("3.7", "3.7")
 
-type JavaHost =
-    | JavaSE | WildFly14 | Tomcat of string
-    static member Tomcat85 = Tomcat "8.5"
-    static member Tomcat90 = Tomcat "9.0"
-type JavaRuntime =
-    | Java8 | Java11
-    member this.Version = match this with Java8 -> 8 | Java11 -> 11
-    member this.Jre = match this with Java8 -> "jre8" | Java11 -> "java11"
-type WebAppRuntime =
-    | DotNetCore of string
-    | Node of string
-    | Php of string
-    | Ruby of string
-    | AspNet of version:string
-    | Java of JavaRuntime * JavaHost
-    | Python of linuxVersion:string * windowsVersion:string
-    static member Php73 = Php "7.3"
-    static member Php72 = Php "7.2"
-    static member Php71 = Php "7.1"
-    static member Php70 = Php "7.0"
-    static member Php56 = Php "5.6"
-    static member DotNetCore21 = DotNetCore "2.1"
-    static member DotNetCore31 = DotNetCore "3.1"
-    static member DotNetCoreLts = DotNetCore "LTS"
-    static member DotNetCoreLatest = DotNetCore "Latest"
-    static member Node6 = Node "6-lts"
-    static member Node8 = Node "8-lts"
-    static member Node10 = Node "10-lts"
-    static member Node12 = Node "12-lts"
-    static member NodeLts = Node "lts"
-    static member Ruby26 = Ruby "2.6"
-    static member Ruby25 = Ruby "2.5"
-    static member Ruby24 = Ruby "2.4"
-    static member Ruby23 = Ruby "2.3"
-    static member Java11 = Java (Java11, JavaSE)
-    static member Java11Tomcat90 = Java (Java11, JavaHost.Tomcat90)
-    static member Java11Tomcat85 = Java (Java11, JavaHost.Tomcat85)
-    static member Java8 = Java (Java8, JavaSE)
-    static member Java8WildFly14 = Java (Java8, WildFly14)
-    static member Java8Tomcat90 = Java (Java8, JavaHost.Tomcat90)
-    static member Java8Tomcat85 = Java (Java8, JavaHost.Tomcat85)
-    static member AspNet47 = AspNet "4.0"
-    static member AspNet35 = AspNet "2.0"
-    static member Python27 = Python ("2.7", "2.7")
-    static member Python36 = Python ("3.6", "3.4") // not typo, really version 3.4
-    static member Python37 = Python ("3.7", "3.7")
-
-module Sku =
-    let D1 = Shared
-    let F1 = Free
-    let B1 = Basic "B1"
-    let B2 = Basic "B2"
-    let B3 = Basic "B3"
-    let S1 = Standard "S1"
-    let S2 = Standard "S2"
-    let S3 = Standard "S3"
-    let P1 = Premium "P1"
-    let P2 = Premium "P2"
-    let P3 = Premium "P3"
-    let P1V2 = PremiumV2 "P1V2"
-    let P2V2 = PremiumV2 "P2V2"
-    let P3V2 = PremiumV2 "P3V2"
-    let I1 = Isolated "I1"
-    let I2 = Isolated "I2"
-    let I3 = Isolated "I3"
-    let Y1 = Isolated "Y1"
+open Runtimes
 
 module AppSettings =
     let WebsiteNodeDefaultVersion version = "WEBSITE_NODE_DEFAULT_VERSION", version
@@ -82,87 +62,6 @@ module AppSettings =
 let publishingPassword (ResourceName name) =
     sprintf "list(resourceId('Microsoft.Web/sites/config', '%s', 'publishingcredentials'), '2014-06-01').properties.publishingPassword" name
     |> ArmExpression
-
-module Ai =
-    let tryCreateAppInsightsName aiName rootName =
-        aiName
-        |> Option.map(function
-        | AutomaticPlaceholder ->
-          AutomaticallyCreated(ResourceName(sprintf "%s-ai" rootName))
-        | (External _ as resourceRef)
-        | (AutomaticallyCreated _ as resourceRef) ->
-            resourceRef)
-    let instrumentationKey (ResourceName accountName) =
-        sprintf "reference('Microsoft.Insights/components/%s').InstrumentationKey" accountName
-        |> ArmExpression
-
-type AppInsightsConfig =
-    { Name : ResourceName }
-    /// Gets the ARM expression path to the instrumentation key of this App Insights instance.
-    member this.InstrumentationKey = Ai.instrumentationKey this.Name
-    interface IResourceBuilder with
-        member this.BuildResources location _ = [
-            NewResource { Name = this.Name
-                          Location = location
-                          LinkedWebsite = None }
-        ]
-
-type ServicePlanConfig =
-    { Name : ResourceName
-      Sku : WebAppSku
-      WorkerSize : WorkerSize
-      WorkerCount : int
-      OperatingSystem : OS }
-    interface IResourceBuilder with
-        member this.BuildResources location _ = [
-            NewResource
-              { Location = location
-                Name = this.Name
-                Sku =
-                  match this.Sku with
-                  | Free ->
-                      "F1"
-                  | Shared ->
-                      "D1"
-                  | Basic sku
-                  | Standard sku
-                  | Premium sku
-                  | PremiumV2 sku
-                  | Isolated sku ->
-                      sku
-                  | Functions ->
-                      "Y1"
-                WorkerSize =
-                  match this.WorkerSize with
-                  | Small -> "0"
-                  | Medium -> "1"
-                  | Large -> "2"
-                  | Serverless -> "Y1"
-                IsDynamic =
-                  match this.Sku, this.WorkerSize with
-                  | Functions, Serverless -> true
-                  | _ -> false
-                Kind =
-                  match this.OperatingSystem with
-                  | Linux -> Some "linux"
-                  | _ -> None
-                Tier =
-                  match this.Sku with
-                  | Free -> "Free"
-                  | Shared -> "Shared"
-                  | Basic _ -> "Basic"
-                  | Standard _ -> "Standard"
-                  | Premium _ -> "Premium"
-                  | PremiumV2 _ -> "PremiumV2"
-                  | Isolated _ -> "Isolated"
-                  | Functions -> "Dynamic"
-                IsLinux =
-                  match this.OperatingSystem with
-                  | Linux -> true
-                  | Windows -> false
-                WorkerCount =
-                  this.WorkerCount }
-        ]
 
 type WebAppConfig =
     { Name : ResourceName
@@ -209,7 +108,7 @@ type WebAppConfig =
                     match this.OperatingSystem, this.AppInsightsName with
                     | Windows, Some (External resourceName)
                     | Windows, Some (AutomaticallyCreated resourceName) ->
-                        "APPINSIGHTS_INSTRUMENTATIONKEY", Ai.instrumentationKey resourceName |> ArmExpression.Eval
+                        "APPINSIGHTS_INSTRUMENTATIONKEY", instrumentationKey resourceName |> ArmExpression.Eval
                         "APPINSIGHTS_PROFILERFEATURE_VERSION", "1.0.0"
                         "APPINSIGHTS_SNAPSHOTFEATURE_VERSION", "1.0.0"
                         "ApplicationInsightsAgent_EXTENSION_VERSION", "~2"
@@ -351,7 +250,7 @@ type WebAppBuilder() =
         { Name = ResourceName.Empty
           ServicePlanName = AutomaticPlaceholder
           AppInsightsName = Some AutomaticPlaceholder
-          Sku = Sku.F1
+          Sku = WebAppSkus.F1
           WorkerSize = Small
           WorkerCount = 1
           RunFromPackage = false
@@ -380,7 +279,7 @@ type WebAppBuilder() =
             OperatingSystem =
                 operatingSystem
             AppInsightsName =
-                Ai.tryCreateAppInsightsName state.AppInsightsName state.Name.Value
+                AppInsights.tryCreateAppInsightsName state.AppInsightsName state.Name.Value
             DockerImage =
                 match state.DockerImage, state.DockerAcrCredentials with
                 | Some (image, tag), Some credentials when not (image.Contains "azurecr.io") ->
@@ -472,38 +371,5 @@ type WebAppBuilder() =
             DockerAcrCredentials =
                 Some {| RegistryName = registryName
                         Password = SecureParameter (sprintf "docker-password-for-%s" registryName) |} }
-type AppInsightsBuilder() =
-    member __.Yield _ =
-        { Name = ResourceName.Empty }
-    [<CustomOperation "name">]
-    /// Sets the name of the App Insights instance.
-    member __.Name(state:AppInsightsConfig, name) = { state with Name = ResourceName name }
-type ServicePlanBuilder() =
-    member __.Yield _ : ServicePlanConfig=
-        { Name = ResourceName.Empty
-          Sku = Free
-          WorkerSize = Small
-          WorkerCount = 1
-          OperatingSystem = Windows }
-    [<CustomOperation "name">]
-    /// Sets the name of the Server Farm.
-    member __.Name(state:ServicePlanConfig, name) = { state with Name = ResourceName name }
-    /// Sets the sku of the service plan.
-    [<CustomOperation "sku">]
-    member __.Sku(state:ServicePlanConfig, sku) = { state with Sku = sku }
-    /// Sets the size of the service plan worker.
-    [<CustomOperation "worker_size">]
-    member __.WorkerSize(state:ServicePlanConfig, workerSize) = { state with WorkerSize = workerSize }
-    /// Sets the number of instances on the service plan.
-    [<CustomOperation "number_of_workers">]
-    member __.NumberOfWorkers(state:ServicePlanConfig, workerCount) = { state with WorkerCount = workerCount }
-    [<CustomOperation "operating_system">]
-    /// Sets the operating system
-    member __.OperatingSystem(state:ServicePlanConfig, os) = { state with OperatingSystem = os }
-    [<CustomOperation "serverless">]
-    /// Configures this server farm to host serverless functions, not web apps.
-    member __.Serverless(state:ServicePlanConfig) = { state with Sku = Functions; WorkerSize = Serverless }
 
-let appInsights = AppInsightsBuilder()
 let webApp = WebAppBuilder()
-let servicePlan = ServicePlanBuilder()
