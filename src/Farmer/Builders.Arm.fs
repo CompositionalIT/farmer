@@ -1,20 +1,12 @@
 [<AutoOpen>]
 module Farmer.ArmBuilder
 
-open System.IO
-open System.IO.Compression
-
 /// Represents all configuration information to generate an ARM template.
 type ArmConfig =
     { Parameters : string Set
       Outputs : (string * string) list
       Location : Location
       Resources : IResource list }
-
-type Deployment =
-    { Location : Location
-      Template : ArmTemplate
-      PostDeployTasks : IPostDeploy list }
 
 type ArmBuilder() =
     member __.Yield _ =
@@ -74,12 +66,9 @@ type ArmBuilder() =
     /// Sets the default location of all resources.
     [<CustomOperation "location">]
     member __.Location (state, location) : ArmConfig = { state with Location = location }
-    [<CustomOperation "add_resource">]
-
-    (* These two "fake" methods are needed to ensure that extension members for each builder
-       is always available. *)
 
     /// Adds a single resource to the ARM template.
+    [<CustomOperation "add_resource">]
     member __.AddResource (state:ArmConfig, builder:IResourceBuilder) =
         let resources =
             builder.BuildResources state.Location state.Resources
@@ -91,12 +80,11 @@ type ArmBuilder() =
                 | NotSet -> failwith "No parent resource name was set for this resource to link to.") state.Resources
 
         { state with Resources = resources }
+
     [<CustomOperation "add_resources">]
     /// Adds a sequence of resources to the ARM template.
-    member __.AddResources (state:ArmConfig, ()) = state
-
-let internal addResources<'a> (addOne:ArmConfig * 'a -> ArmConfig) (state:ArmConfig) resources =
-    (state, resources)
-    ||> Seq.fold(fun state resource -> addOne (state, resource))
+    member this.AddResources (state:ArmConfig, resources) =
+        resources
+        |> Seq.fold(fun state resource -> this.AddResource(state, resource)) state
 
 let arm = ArmBuilder()

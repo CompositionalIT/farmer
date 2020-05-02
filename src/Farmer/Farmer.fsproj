@@ -43,6 +43,7 @@
     <Compile Include="Builders.Arm.fs" />
     <Compile Include="Writer.fs" />
     <Compile Include="Deploy.fs" />
+    <Compile Include="Farmer.Resources.fs" />
     <Compile Include="Builders.Storage.fs" />
     <Compile Include="Builders.Redis.fs" />
     <Compile Include="Builders.KeyVault.fs" />

@@ -1,24 +1,8 @@
 [<AutoOpen>]
-module Farmer.Resources.CognitiveSearch
+module Farmer.Resources.CognitiveServices
 
 open Farmer
-
-type CognitiveServices =
-    { Name : ResourceName
-      Location : Location
-      Sku : string
-      Kind : string }
-    interface IResource with
-        member this.ResourceName = this.Name
-        member this.ToArmObject() =
-            {| name = this.Name.Value
-               ``type`` = "Microsoft.CognitiveServices/accounts"
-               apiVersion = "2017-04-18"
-               sku = {| name = this.Sku |}
-               kind = this.Kind
-               location = this.Location.ArmValue
-               tags = {||}
-               properties = {||} |} :> _
+open Arm.CognitiveServices
 
 /// Type of SKU. See https://github.com/Azure/azure-quickstart-templates/tree/master/101-cognitive-services-translate
 type CognitiveServicesSku =

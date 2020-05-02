@@ -227,16 +227,17 @@ module Storage =
     with
         member this.ArmValue = this.ToString()
 
+type OS = Windows | Linux
+
 [<AutoOpen>]
 module CommonImages =
     type Offer = Offer of string member this.ArmValue = match this with Offer o -> o
     type Publisher = Publisher of string member this.ArmValue = match this with Publisher p -> p
     type VmImageSku = ImageSku of string member this.ArmValue = match this with ImageSku i -> i
-    type ImageDefinition = {
-        Offer : Offer
-        Publisher : Publisher
-        Sku : VmImageSku
-    }
+    type ImageDefinition =
+        { Offer : Offer
+          Publisher : Publisher
+          Sku : VmImageSku }
     let makeVm offer publisher sku = { Offer = Offer offer; Publisher = Publisher publisher; Sku = ImageSku sku }
     let makeWindowsVm = makeVm "WindowsServer" "MicrosoftWindowsServer"
 

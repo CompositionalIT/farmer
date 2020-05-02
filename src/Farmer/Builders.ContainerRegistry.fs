@@ -2,23 +2,7 @@
 module Farmer.Resources.ContainerRegistry
 
 open Farmer
-
-type ContainerRegistry =
-    { Name : ResourceName
-      Location : Location
-      Sku : string
-      AdminUserEnabled : bool }
-    interface IResource with
-        member this.ResourceName = this.Name
-        member this.ToArmObject() =
-            {| name = this.Name.Value
-               ``type`` = "Microsoft.ContainerRegistry/registries"
-               apiVersion = "2019-05-01"
-               sku = {| name = this.Sku |}
-               location = this.Location.ArmValue
-               tags = {||}
-               properties = {| adminUserEnabled = this.AdminUserEnabled |}
-            |} :> _
+open Arm.ContainerRegistry
 
 /// Container Registry SKU
 type ContainerRegistrySku =

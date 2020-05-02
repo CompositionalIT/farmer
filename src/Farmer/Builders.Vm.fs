@@ -1,160 +1,25 @@
 [<AutoOpen>]
 module Farmer.Resources.VirtualMachine
 
-open Farmer.Helpers
 open Farmer
-
-type PublicIpAddress =
-    { Name : ResourceName
-      Location : Location
-      DomainNameLabel : string option }
-    interface IResource with
-        member this.ResourceName = this.Name
-        member this.ToArmObject() =
-            {| ``type`` = "Microsoft.Network/publicIPAddresses"
-               apiVersion = "2018-11-01"
-               name = this.Name.Value
-               location = this.Location.ArmValue
-               properties =
-                  match this.DomainNameLabel with
-                  | Some label ->
-                      box
-                          {| publicIPAllocationMethod = "Dynamic"
-                             dnsSettings = {| domainNameLabel = label.ToLower() |}
-                          |}
-                  | None ->
-                      box {| publicIPAllocationMethod = "Dynamic" |}
-            |} :> _
-type VirtualNetwork =
-    { Name : ResourceName
-      Location : Location
-      AddressSpacePrefixes : string list
-      Subnets : {| Name : ResourceName; Prefix : string |} list }
-    interface IResource with
-        member this.ResourceName = this.Name
-        member this.ToArmObject() =
-            {| ``type`` = "Microsoft.Network/virtualNetworks"
-               apiVersion = "2018-11-01"
-               name = this.Name.Value
-               location = this.Location.ArmValue
-               properties =
-                    {| addressSpace = {| addressPrefixes = this.AddressSpacePrefixes |}
-                       subnets =
-                        this.Subnets
-                        |> List.map(fun subnet ->
-                           {| name = subnet.Name.Value
-                              properties = {| addressPrefix = subnet.Prefix |}
-                           |})
-                    |}
-            |} :> _
-type NetworkInterface =
-    { Name : ResourceName
-      Location : Location
-      IpConfigs :
-        {| SubnetName : ResourceName
-           PublicIpName : ResourceName |} list
-      VirtualNetwork : ResourceName }
-    interface IResource with
-        member this.ResourceName = this.Name
-        member this.ToArmObject() =
-            {| ``type`` = "Microsoft.Network/networkInterfaces"
-               apiVersion = "2018-11-01"
-               name = this.Name.Value
-               location = this.Location.ArmValue
-               dependsOn = [
-                   this.VirtualNetwork.Value
-                   for config in this.IpConfigs do
-                       config.PublicIpName.Value
-               ]
-               properties =
-                   {| ipConfigurations =
-                        this.IpConfigs
-                        |> List.mapi(fun index ipConfig ->
-                            {| name = sprintf "ipconfig%i" (index + 1)
-                               properties =
-                                {| privateIPAllocationMethod = "Dynamic"
-                                   publicIPAddress = {| id = sprintf "[resourceId('Microsoft.Network/publicIPAddresses','%s')]" ipConfig.PublicIpName.Value |}
-                                   subnet = {| id = sprintf "[resourceId('Microsoft.Network/virtualNetworks/subnets', '%s', '%s')]" this.VirtualNetwork.Value ipConfig.SubnetName.Value |}
-                                |}
-                            |})
-                   |}
-            |} :> _
-type VirtualMachine =
-    { Name : ResourceName
-      Location : Location
-      StorageAccount : ResourceName option
-      Size : VMSize
-      Credentials : {| Username : string; Password : SecureParameter |}
-      Image : ImageDefinition
-      OsDisk : DiskInfo
-      DataDisks : DiskInfo list
-      NetworkInterfaceName : ResourceName }
-    interface IParameters with
-        member this.SecureParameters = [ this.Credentials.Password ]
-    interface IResource with
-        member this.ResourceName = this.Name
-        member this.ToArmObject() =
-            {| ``type`` = "Microsoft.Compute/virtualMachines"
-               apiVersion = "2018-10-01"
-               name = this.Name.Value
-               location = this.Location.ArmValue
-               dependsOn = [
-                   this.NetworkInterfaceName.Value
-                   match this.StorageAccount with
-                   | Some s -> s.Value
-                   | None -> ()
-               ]
-               properties =
-                {| hardwareProfile = {| vmSize = this.Size.ArmValue |}
-                   osProfile =
-                    {|
-                       computerName = this.Name.Value
-                       adminUsername = this.Credentials.Username
-                       adminPassword = this.Credentials.Password.AsArmRef.Eval()
-                    |}
-                   storageProfile =
-                       let vmNameLowerCase = this.Name.Value.ToLower()
-                       {| imageReference =
-                           {| publisher = this.Image.Publisher.ArmValue
-                              offer = this.Image.Offer.ArmValue
-                              sku = this.Image.Sku.ArmValue
-                              version = "latest" |}
-                          osDisk =
-                           {| createOption = "FromImage"
-                              name = sprintf "%s-osdisk" vmNameLowerCase
-                              diskSizeGB = this.OsDisk.Size
-                              managedDisk = {| storageAccountType = this.OsDisk.DiskType.ArmValue |}
-                           |}
-                          dataDisks =
-                           this.DataDisks
-                           |> List.mapi(fun lun dataDisk ->
-                               {| createOption = "Empty"
-                                  name = sprintf "%s-datadisk-%i" vmNameLowerCase lun
-                                  diskSizeGB = dataDisk.Size
-                                  lun = lun
-                                  managedDisk = {| storageAccountType = string dataDisk.DiskType |} |})
-                       |}
-                   networkProfile =
-                       {| networkInterfaces = [
-                           {| id = sprintf "[resourceId('Microsoft.Network/networkInterfaces','%s')]" this.NetworkInterfaceName.Value |}
-                          ]
-                       |}
-                   diagnosticsProfile =
-                       match this.StorageAccount with
-                       | Some storageAccount ->
-                           box
-                               {| bootDiagnostics =
-                                   {| enabled = true
-                                      storageUri = sprintf "[reference('%s').primaryEndpoints.blob]" storageAccount.Value
-                                   |}
-                               |}
-                       | None ->
-                           box {| bootDiagnostics = {| enabled = false |} |}
-               |}
-            |} :> _
+open Farmer.Helpers
+open Arm.Compute
+open Arm.Network
+open Arm.Storage
 
 let makeName (vmName:ResourceName) elementType = sprintf "%s-%s" vmName.Value elementType
 let makeResourceName vmName = makeName vmName >> ResourceName
+
+/// The type of disk to use.
+type DiskType =
+    | StandardSSD_LRS
+    | Standard_LRS
+    | Premium_LRS
+    member this.ArmValue = match this with x -> x.ToString()
+
+/// Represents a disk in a VM.
+type DiskInfo = { Size : int; DiskType : DiskType }
+
 type VmConfig =
     { Name : ResourceName
       DiagnosticsStorageAccount : ResourceRef option
@@ -180,9 +45,9 @@ type VmConfig =
                 match this.DiagnosticsStorageAccount with
                 | Some (AutomaticallyCreated account) ->
                     Some
-                        { StorageAccount.Name = account
+                        { Name = account
                           Location = location
-                          Sku = Standard_LRS
+                          Sku = StorageSku.Standard_LRS
                           Containers = [] }
                 | Some AutomaticPlaceholder
                 | Some (External _)
@@ -201,8 +66,12 @@ type VmConfig =
                   Size = this.Size
                   Credentials = {| Username = this.Username; Password = SecureParameter (sprintf "password-for-%s" this.Name.Value) |}
                   Image = this.Image
-                  OsDisk = this.OsDisk
-                  DataDisks = this.DataDisks }
+                  OsDisk = {| Size = this.OsDisk.Size; DiskType = string this.OsDisk.DiskType |}
+                  DataDisks = [
+                    for dataDisk in this.DataDisks do
+                        {| Size = dataDisk.Size
+                           DiskType = string dataDisk.DiskType |}
+                  ] }
             let nic =
                 { Name = this.NicName
                   Location = location

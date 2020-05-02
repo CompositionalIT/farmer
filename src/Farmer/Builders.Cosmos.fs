@@ -2,120 +2,18 @@
 module Farmer.Resources.CosmosDb
 
 open Farmer
-open System
+open Arm.DocumentDb
+open DatabaseAccounts
+open SqlDatabases
 
-type CosmosDbContainer =
-    { Name : ResourceName
-      Account : ResourceName
-      Database : ResourceName
-      PartitionKey :
-        {| Paths : string list
-           Kind : CosmosDbIndexKind |}
-      IndexingPolicy :
-        {| IncludedPaths :
-            {| Path : string
-               Indexes :
-                {| Kind : CosmosDbIndexKind
-                   DataType : CosmosDbIndexDataType |} list
-            |} list
-           ExcludedPaths : string list
-        |}
-    }
-    interface IResource with
-        member this.ResourceName = this.Name
-        member this.ToArmObject() =
-            {| ``type`` = "Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers"
-               name = sprintf "%s/%s/%s" this.Account.Value this.Database.Value this.Name.Value
-               apiVersion = "2020-03-01"
-               dependsOn = [ this.Database.Value ]
-               properties =
-                   {| resource =
-                       {| id = this.Name.Value
-                          partitionKey =
-                           {| paths = this.PartitionKey.Paths
-                              kind = string this.PartitionKey.Kind |}
-                          indexingPolicy =
-                           {| indexingMode = "consistent"
-                              includedPaths =
-                                  this.IndexingPolicy.IncludedPaths
-                                  |> List.map(fun p ->
-                                   {| path = p.Path
-                                      indexes =
-                                       p.Indexes
-                                       |> List.map(fun i ->
-                                           {| kind = string i.Kind
-                                              dataType = (string i.DataType).ToLower()
-                                              precision = -1 |})
-                                   |})
-                              excludedPaths =
-                               this.IndexingPolicy.ExcludedPaths
-                               |> List.map(fun p -> {| path = p |})
-                           |}
-                       |}
-                   |}
-            |} :> _
-
-type CosmosDbSql =
-    { Name : ResourceName
-      Account : ResourceName
-      Throughput : string }
-    interface IResource with
-        member this.ResourceName = this.Name
-        member this.ToArmObject() =
-            {| ``type`` = "Microsoft.DocumentDB/databaseAccounts/sqlDatabases"
-               name = sprintf "%s/%s" this.Account.Value this.Name.Value
-               apiVersion = "2020-03-01"
-               dependsOn = [ this.Account.Value ]
-               properties =
-                   {| resource = {| id = this.Name.Value |}
-                      options = {| throughput = this.Throughput |} |}
-            |} :> _
-
-type CosmosDbAccount =
-    { Name : ResourceName
-      Location : Location
-      ConsistencyPolicy : ConsistencyPolicy
-      WriteModel : FailoverPolicy
-      PublicNetworkAccess : FeatureFlag
-      FreeTier : bool }
-    interface IResource with
-        member this.ResourceName = this.Name
-        member this.ToArmObject() =
-            {| ``type`` = "Microsoft.DocumentDB/databaseAccounts"
-               name = this.Name.Value
-               apiVersion = "2020-03-01"
-               location = this.Location.ArmValue
-               kind = "GlobalDocumentDB"
-               tags =
-                   {| defaultExperience = "Core (SQL)"
-                      CosmosAccountType = "Non-Production" |}
-               properties =
-                   {| consistencyPolicy =
-                           match this.ConsistencyPolicy with
-                           | BoundedStaleness(maxStaleness, maxInterval) ->
-                               box {| defaultConsistencyLevel = "BoundedStaleness"
-                                      maxStalenessPrefix = maxStaleness
-                                      maxIntervalInSeconds = maxInterval |}
-                           | Session
-                           | Eventual
-                           | ConsistentPrefix
-                           | Strong ->
-                               box {| defaultConsistencyLevel = string this.ConsistencyPolicy |}
-                      databaseAccountOfferType = "Standard"
-                      enableAutomaticFailure = match this.WriteModel with AutoFailover _ -> Nullable true | _ -> Nullable()
-                      autoenableMultipleWriteLocations = match this.WriteModel with MultiMaster _ -> Nullable true | _ -> Nullable()
-                      locations =
-                       match this.WriteModel with
-                       | AutoFailover secondary
-                       | MultiMaster secondary ->
-                           [ {| locationName = this.Location.ArmValue; failoverPriority = 0 |}
-                             {| locationName = secondary.ArmValue; failoverPriority = 1 |} ] |> box
-                       | NoFailover ->
-                           Nullable() |> box
-                      publicNetworkAccess = string this.PublicNetworkAccess
-                      enableFreeTier = this.FreeTier
-                   |} |> box
-            |} :> _
+/// The consistency policy of a CosmosDB database.
+type ConsistencyPolicy = Eventual | ConsistentPrefix | Session | BoundedStaleness of maxStaleness:int * maxIntervalSeconds : int | Strong
+/// The failover policy of a CosmosDB database.
+type FailoverPolicy = NoFailover | AutoFailover of secondaryLocation:Location | MultiMaster of secondaryLocation:Location
+/// The kind of index to use on a CosmoDB container.
+type CosmosDbIndexKind = Hash | Range
+/// The datatype for the key of index to use on a CosmoDB container.
+type CosmosDbIndexDataType = Number | String
 
 type CosmosDbContainerConfig =
     { Name : ResourceName
@@ -138,19 +36,39 @@ type CosmosDbConfig =
                 NewResource
                     { Name = name
                       Location = location
-                      ConsistencyPolicy = this.ServerConsistencyPolicy
-                      WriteModel = this.ServerFailoverPolicy
+                      ConsistencyPolicy =
+                        match this.ServerConsistencyPolicy with
+                        | BoundedStaleness _ -> "BoundedStaleness"
+                        | Session | Eventual | ConsistentPrefix | Strong -> string this.ServerConsistencyPolicy
+                      MaxStaleness =
+                        match this.ServerConsistencyPolicy with
+                        | BoundedStaleness (staleness, _) -> Some staleness
+                        | Session | Eventual | ConsistentPrefix | Strong -> None
+                      MaxInterval =
+                        match this.ServerConsistencyPolicy with
+                        | BoundedStaleness (_, interval) -> Some interval
+                        | Session | Eventual | ConsistentPrefix | Strong -> None
+                      EnableAutomaticFailure = match this.ServerFailoverPolicy with AutoFailover _ -> Some true | _ -> None
                       PublicNetworkAccess = this.PublicNetworkAccess
-                      FreeTier = this.FreeTier }
+                      FreeTier = this.FreeTier
+                      EnableMultipleWriteLocations = match this.ServerFailoverPolicy with MultiMaster _ -> Some true | _ -> None
+                      FailoverLocations = [
+                            match this.ServerFailoverPolicy with
+                            | AutoFailover secondary
+                            | MultiMaster secondary ->
+                                {| Location = location; Priority = 0 |}
+                                {| Location = secondary; Priority = 1 |}
+                            | NoFailover ->
+                                ()
+                      ] }
             | AutomaticPlaceholder ->
                 failwith "No CosmosDB server was specified."
             | External _ ->
                 ()
-            let sqlDb =
-                NewResource
-                    { Name = this.Name
-                      Account = this.ServerName.ResourceName
-                      Throughput = string this.DbThroughput }
+            NewResource
+                { Name = this.Name
+                  Account = this.ServerName.ResourceName
+                  Throughput = string this.DbThroughput }
             for container in this.Containers do
                 NewResource
                     { Name = container.Name
@@ -158,7 +76,7 @@ type CosmosDbConfig =
                       Database = this.Name
                       PartitionKey =
                         {| Paths = fst container.PartitionKey
-                           Kind = snd container.PartitionKey |}
+                           Kind = snd container.PartitionKey |> string |}
                       IndexingPolicy =
                         {| ExcludedPaths = container.ExcludedPaths
                            IncludedPaths = [
@@ -166,8 +84,8 @@ type CosmosDbConfig =
                                     {| Path = path
                                        Indexes = [
                                            for (dataType, kind) in indexes do
-                                            {| DataType = dataType
-                                               Kind = kind |}
+                                            {| DataType = (string dataType).ToLower()
+                                               Kind = string kind |}
                                        ]
                                     |}
                            ]

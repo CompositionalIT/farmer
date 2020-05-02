@@ -1,8 +1,11 @@
 [<AutoOpen>]
 module Farmer.Resources.Functions
 
-open Farmer.Helpers
 open Farmer
+open Farmer.Helpers
+open Arm.Web
+open Arm.Insights
+open Arm.Storage
 
 type FunctionsRuntime = DotNet | Node | Java | Python
 type FunctionsExtensionVersion = V1 | V2 | V3
@@ -217,7 +220,6 @@ type FunctionsBuilder() =
 [<AutoOpen>]
 module Extensions =
     open Farmer.Resources
-    open Farmer.Models
     type FunctionsBuilder with
         member this.DependsOn(state:FunctionsConfig, storageAccountConfig:StorageAccountConfig) =
             this.DependsOn(state, storageAccountConfig.Name)

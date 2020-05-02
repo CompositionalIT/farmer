@@ -1,8 +1,9 @@
 [<AutoOpen>]
 module Farmer.Resources.Storage
 
+open Arm.Storage
 open Farmer
-open Farmer.Models
+
 let internal buildKey (ResourceName name) =
     sprintf
         "concat('DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=', listKeys('%s', '2017-10-01').keys[0].value)"
@@ -10,36 +11,11 @@ let internal buildKey (ResourceName name) =
             name
     |> ArmExpression
 
-type StorageAccount =
-    { Name : ResourceName
-      Location : Location
-      Sku : StorageSku
-      Containers : (string * StorageContainerAccess) list }
-    interface IResource with
-        member this.ResourceName = this.Name
-        member this.ToArmObject() =
-            {| ``type`` = "Microsoft.Storage/storageAccounts"
-               sku = {| name = this.Sku.ArmValue |}
-               kind = "StorageV2"
-               name = this.Name.Value
-               apiVersion = "2018-07-01"
-               location = this.Location.ArmValue
-               resources = [
-                   for (name, access) in this.Containers do
-                    {| ``type`` = "blobServices/containers"
-                       apiVersion = "2018-03-01-preview"
-                       name = "default/" + name
-                       dependsOn = [ this.Name.Value ]
-                       properties =
-                           {| publicAccess =
-                               match access with
-                               | Private -> "None"
-                               | Container -> "Container"
-                               | Blob -> "Blob"
-                           |}
-                    |}
-               ]
-            |} :> _
+
+type StorageContainerAccess =
+    | Private
+    | Container
+    | Blob
 
 type StorageAccountConfig =
     { /// The name of the storage account.
@@ -51,11 +27,19 @@ type StorageAccountConfig =
     /// Gets the ARM expression path to the key of this storage account.
     member this.Key = buildKey this.Name
     interface IResourceBuilder with
-        member this.BuildResources location _ =
-            [ NewResource { Location = location
-                            Name = this.Name
-                            Sku = this.Sku
-                            Containers = this.Containers } ]
+        member this.BuildResources location _ = [
+            NewResource
+                { Location = location
+                  Name = this.Name
+                  Sku = this.Sku
+                  Containers = [
+                    for container, access in this.Containers do
+                        container, match access with
+                                   | Private -> "None"
+                                   | Container -> "Container"
+                                   | Blob -> "Blob"
+                ] }
+        ]
 
 type StorageAccountBuilder() =
     member __.Yield _ = { Name = ResourceName.Empty; Sku = StorageSku.Standard_LRS; Containers = [] }

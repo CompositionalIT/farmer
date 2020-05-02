@@ -1,7 +1,5 @@
 module Farmer.Writer
 
-open Farmer.Models
-open Farmer.Resources
 open Newtonsoft.Json
 open System.IO
 

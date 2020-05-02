@@ -1,30 +1,9 @@
 [<AutoOpen>]
 module Farmer.Resources.Search
 
-open Farmer.Helpers
 open Farmer
-
-type Search =
-    { Name : ResourceName
-      Location : Location
-      Sku : string
-      HostingMode : string
-      ReplicaCount : int
-      PartitionCount : int }
-    interface IResource with
-        member this.ResourceName = this.Name
-        member this.ToArmObject() =
-            {| ``type`` = "Microsoft.Search/searchServices"
-               apiVersion = "2015-08-19"
-               name = this.Name.Value
-               location = this.Location.ArmValue
-               sku =
-                {| name = this.Sku |}
-               properties =
-                {| replicaCount = this.ReplicaCount
-                   partitionCount = this.PartitionCount
-                   hostingMode = this.HostingMode |}
-            |} :> _
+open Farmer.Helpers
+open Arm.Search
 
 type HostingMode = Default | HighDensity
 /// The SKU of the search service you want to create. E.g. free or standard.

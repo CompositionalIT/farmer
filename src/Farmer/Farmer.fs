@@ -13,6 +13,7 @@ type ResourceName =
         | r -> r
     member this.Map mapper = match this with ResourceName r -> ResourceName (mapper r)
 
+/// An Azure ARM resource
 type IResource =
     abstract member ResourceName : ResourceName
     abstract member ToArmObject : unit -> obj
@@ -33,24 +34,29 @@ type ArmExpression =
     static member Eval (expression:ArmExpression) = expression.Eval()
     static member Empty = ArmExpression ""
 
+/// A secure parameter to be captured in an ARM template.
 type SecureParameter =
     | SecureParameter of name:string
     member this.Value = match this with SecureParameter value -> value
     /// Gets an ARM expression reference to the password e.g. parameters('my-password')
     member this.AsArmRef = sprintf "parameters('%s')" this.Value |> ArmExpression
 
+/// Exposes parameters which are required by a specific IResource.
 type IParameters =
     abstract member SecureParameters : SecureParameter list
 
+/// An action that needs to be run after the ARM template has been deployed.
 type IPostDeploy =
     abstract member Run : resourceGroupName:string -> Option<Result<string, string>>
 
+/// Potential actions that can occur as a result of attempting to generate a resource action.
 type ResourceAction =
     | NewResource of IResource
     | MergedResource of old:IResource * replacement:IResource
     | CouldNotLocate of ResourceName
     | NotSet
 
+/// Represents a high-level configuration which can create a set of Resources.
 type IResourceBuilder =
     abstract member BuildResources : Location -> IResource list -> ResourceAction list
 
@@ -80,34 +86,10 @@ type ResourceRef =
     member this.ResourceNameOpt = match this with External r | AutomaticallyCreated r -> Some r | AutomaticPlaceholder -> None
     member this.ResourceName = this.ResourceNameOpt |> Option.defaultValue ResourceName.Empty
 
-namespace Farmer.Resources
-
-open Farmer
-
-/// The consistency policy of a CosmosDB database.
-type ConsistencyPolicy = Eventual | ConsistentPrefix | Session | BoundedStaleness of maxStaleness:int * maxIntervalSeconds : int | Strong
-/// The failover policy of a CosmosDB database.
-type FailoverPolicy = NoFailover | AutoFailover of secondaryLocation:Location | MultiMaster of secondaryLocation:Location
-/// The kind of index to use on a CosmoDB container.
-type CosmosDbIndexKind = Hash | Range
-/// The datatype for the key of index to use on a CosmoDB container.
-type CosmosDbIndexDataType = Number | String
 /// Whether a specific feature is active or not.
 type FeatureFlag = Enabled | Disabled member this.AsBoolean = match this with Enabled -> true | Disabled -> false
-/// The type of disk to use.
-type DiskType = StandardSSD_LRS | Standard_LRS | Premium_LRS member this.ArmValue = match this with x -> x.ToString()
-/// Represents a disk in a VM.
-type DiskInfo = { Size : int; DiskType : DiskType }
 
-namespace Farmer.Models
-
-type StorageContainerAccess =
-    | Private
-    | Container
-    | Blob
-
-namespace Farmer
-
+/// Represents a secret to be captured either via an ARM expression or a secure parameter.
 type SecretValue =
     | ParameterSecret of SecureParameter
     | ExpressionSecret of ArmExpression
@@ -120,3 +102,8 @@ type ArmTemplate =
     { Parameters : SecureParameter list
       Outputs : (string * string) list
       Resources : IResource list }
+
+type Deployment =
+    { Location : Location
+      Template : ArmTemplate
+      PostDeployTasks : IPostDeploy list }

@@ -1,6 +1,7 @@
 module Template
 
 open Farmer
+open Farmer.Resources
 open Expecto
 
 module TestHelpers =
@@ -42,5 +43,35 @@ let tests = testList "Template" [
         Expect.equal template.parameters.["p1"].``type`` "securestring" ""
         Expect.equal template.parameters.["p2"].``type`` "securestring" ""
         Expect.equal template.parameters.Count 2 ""
+    }
+
+    test "Can create a single resource" {
+        let template = arm {
+            add_resource (storageAccount { name "test" })
+        }
+
+        Expect.equal template.Template.Resources.Length 1 "Should be a single resource"
+    }
+
+    test "Can create multiple resources simultaneously" {
+        let template = arm {
+            add_resources [
+                storageAccount { name "test" }
+                storageAccount { name "test2" }
+            ]
+        }
+
+        Expect.equal template.Template.Resources.Length 2 "Should be two resources"
+    }
+
+    test "De-dupes the same resource name" {
+        let template = arm {
+            add_resources [
+                storageAccount { name "test" }
+                storageAccount { name "test" }
+            ]
+        }
+
+        Expect.equal template.Template.Resources.Length 1 "Should be a single resource"
     }
 ]

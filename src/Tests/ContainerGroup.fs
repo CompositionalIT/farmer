@@ -10,7 +10,7 @@ open System
 
 let nginx = container {
     group_name "appWithHttpFrontend"
-    os_type ContainerGroupOsType.Linux
+    os_type Linux
     add_tcp_port 80us
     add_tcp_port 443us
     restart_policy ContainerGroups.ContainerGroupRestartPolicy.Always

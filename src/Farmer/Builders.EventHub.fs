@@ -2,83 +2,9 @@
 module Farmer.Resources.EventHub
 
 open Farmer
-
-type EventHubNamespace =
-    { Name : ResourceName
-      Location : Location
-      Sku : {| Name : string; Tier : string; Capacity : int |}
-      ZoneRedundant : bool option
-      IsAutoInflateEnabled : bool option
-      MaxThroughputUnits : int option
-      KafkaEnabled : bool option }
-    interface IResource with
-        member this.ResourceName = this.Name
-        member this.ToArmObject() =
-            {| ``type`` = "Microsoft.EventHub/namespaces"
-               apiVersion = "2017-04-01"
-               name = this.Name.Value
-               location = this.Location.ArmValue
-               sku =
-                   {| name = this.Sku.Name
-                      tier = this.Sku.Tier
-                      capacity = this.Sku.Capacity |}
-               properties =
-                   {| zoneRedundant = this.ZoneRedundant |> Option.toNullable
-                      isAutoInflateEnabled = this.IsAutoInflateEnabled |> Option.toNullable
-                      maximumThroughputUnits = this.MaxThroughputUnits |> Option.toNullable
-                      kafkaEnabled = this.KafkaEnabled |> Option.toNullable |}
-            |} :> _
-
-type EventHub =
-    { Name : ResourceName
-      Location : Location
-      MessageRetentionDays : int option
-      Partitions : int
-      Dependencies : ResourceName list }
-    interface IResource with
-        member this.ResourceName = this.Name
-        member this.ToArmObject() =
-           {| ``type`` = "Microsoft.EventHub/namespaces/eventhubs"
-              apiVersion = "2017-04-01"
-              name = this.Name.Value
-              location = this.Location.ArmValue
-              dependsOn = this.Dependencies |> List.map(fun d -> d.Value)
-              properties =
-                  {| messageRetentionInDays = this.MessageRetentionDays |> Option.toNullable
-                     partitionCount = this.Partitions
-                     status = "Active" |}
-           |} :> _
-
-type EventHubConsumerGroup =
-    { Name : ResourceName
-      Location : Location
-      Dependencies : ResourceName list }
-    interface IResource with
-        member this.ResourceName = this.Name
-        member this.ToArmObject() =
-            {| ``type`` = "Microsoft.EventHub/namespaces/eventhubs/consumergroups"
-               apiVersion = "2017-04-01"
-               name = this.Name.Value
-               location = this.Location.ArmValue
-               dependsOn = this.Dependencies |> List.map(fun d -> d.Value)
-            |} :> _
-
-type EventHubAuthorizationRule =
-    { Name : ResourceName
-      Location : Location
-      Dependencies : ResourceName list
-      Rights : string list }
-    interface IResource with
-        member this.ResourceName = this.Name
-        member this.ToArmObject() =
-            {| ``type`` = "Microsoft.EventHub/namespaces/eventhubs/AuthorizationRules"
-               apiVersion = "2017-04-01"
-               name = this.Name.Value
-               location = this.Location.ArmValue
-               dependsOn = this.Dependencies |> List.map(fun d -> d.Value)
-               properties = {| rights = this.Rights |}
-            |} :> _
-
+open Arm.EventHub
+open Namespaces
+open EventHubs
 
 /// The SKU of the event hub instance.
 type EventHubSku =

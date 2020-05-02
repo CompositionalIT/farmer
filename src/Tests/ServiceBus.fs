@@ -3,6 +3,7 @@ module ServiceBus
 open Expecto
 open Farmer
 open Farmer.Resources
+open Arm.ServiceBus
 open Microsoft.Azure.Management.ServiceBus
 open Microsoft.Azure.Management.ServiceBus.Models
 open Microsoft.Rest
@@ -57,7 +58,7 @@ let tests = testList "Service Bus Tests" [
         let queueB = serviceBus { name "queue-b"; link_to_namespace queueA }
         let deployment = arm { add_resource queueA; add_resource queueB }
         match deployment.Template.Resources with
-        | [ :? ServiceBusNamespace as ns ] when ns.Queues.Length = 2 ->
+        | [ :? Namespace as ns ] when ns.Queues.Length = 2 ->
             ()
         | _ ->
             failwith "Should have two queues in a single namespace."
