@@ -58,6 +58,7 @@ type ResourceAction =
 
 /// Represents a high-level configuration which can create a set of Resources.
 type IResourceBuilder =
+    /// Given a location and the currently-built resources, returns a set of resource actions.
     abstract member BuildResources : Location -> IResource list -> ResourceAction list
 
 [<AutoOpen>]

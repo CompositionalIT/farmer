@@ -41,19 +41,8 @@ type VmConfig =
     member this.Hostname = sprintf "reference('%s').dnsSettings.fqdn" this.IpName.Value |> ArmExpression
     interface IResourceBuilder with
         member this.BuildResources location _ = [
-            let storage =
-                match this.DiagnosticsStorageAccount with
-                | Some (AutomaticallyCreated account) ->
-                    Some
-                        { Name = account
-                          Location = location
-                          Sku = StorageSku.Standard_LRS
-                          Containers = [] }
-                | Some AutomaticPlaceholder
-                | Some (External _)
-                | None ->
-                    None
-            let vm =
+            // VM itself
+            NewResource
                 { Name = this.Name
                   Location = location
                   StorageAccount =
@@ -72,14 +61,18 @@ type VmConfig =
                         {| Size = dataDisk.Size
                            DiskType = string dataDisk.DiskType |}
                   ] }
-            let nic =
+            
+            // NIC
+            NewResource
                 { Name = this.NicName
                   Location = location
                   IpConfigs = [
                     {| SubnetName = this.SubnetName
                        PublicIpName = this.IpName |} ]
                   VirtualNetwork = this.VnetName }
-            let vnet =
+            
+            // VNET
+            NewResource
                 { Name = this.VnetName
                   Location = location
                   AddressSpacePrefixes = [ this.AddressPrefix ]
@@ -87,15 +80,25 @@ type VmConfig =
                       {| Name = this.SubnetName
                          Prefix = this.SubnetPrefix |}
                   ] }
-            let ip =
+
+            // IP Address
+            NewResource
                 { Name = this.IpName
                   Location = location
                   DomainNameLabel = this.DomainNamePrefix }
-            match storage with Some storage -> NewResource storage | None -> ()
-            NewResource vm
-            NewResource nic
-            NewResource vnet
-            NewResource ip
+
+            // Storage account - optional
+            match this.DiagnosticsStorageAccount with
+            | Some (AutomaticallyCreated account) ->
+                NewResource
+                    { Name = account
+                      Location = location
+                      Sku = StorageSku.Standard_LRS
+                      Containers = [] }
+            | Some AutomaticPlaceholder
+            | Some (External _)
+            | None ->
+                ()
         ]
 
 type VirtualMachineBuilder() =
