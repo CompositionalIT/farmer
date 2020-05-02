@@ -4,14 +4,14 @@ module Farmer.ArmBuilder
 /// Represents all configuration information to generate an ARM template.
 type ArmConfig =
     { Parameters : string Set
-      Outputs : (string * string) list
+      Outputs : Map<string, string>
       Location : Location
       Resources : IResource list }
 
 type ArmBuilder() =
     member __.Yield _ =
         { Parameters = Set.empty
-          Outputs = List.empty
+          Outputs = Map.empty
           Resources = List.empty
           Location = WestEurope }
 
@@ -35,7 +35,7 @@ type ArmBuilder() =
                     | :? IParameters as p -> yield! p.SecureParameters
                     | _ -> ()
               ] |> List.distinct
-              Outputs = state.Outputs
+              Outputs = state.Outputs |> Map.toList
               Resources = resources }
 
         let postDeployTasks = [
@@ -51,7 +51,7 @@ type ArmBuilder() =
 
     /// Creates an output value that will be returned by the ARM template.
     [<CustomOperation "output">]
-    member __.Output (state, outputName, outputValue) : ArmConfig = { state with Outputs = (outputName, outputValue) :: state.Outputs }
+    member __.Output (state, outputName, outputValue) : ArmConfig = { state with Outputs = state.Outputs.Add(outputName, outputValue) }
     member this.Output (state:ArmConfig, outputName:string, (ResourceName outputValue)) = this.Output(state, outputName, outputValue)
     member this.Output (state:ArmConfig, outputName:string, outputValue:ArmExpression) = this.Output(state, outputName, outputValue.Eval())
     member this.Output (state:ArmConfig, outputName:string, outputValue:string option) =
@@ -69,9 +69,9 @@ type ArmBuilder() =
 
     /// Adds a single resource to the ARM template.
     [<CustomOperation "add_resource">]
-    member __.AddResource (state:ArmConfig, builder:IResourceBuilder) =
+    member __.AddResource (state:ArmConfig, builder:ResourceBuilder) =
         let resources =
-            builder.BuildResources state.Location state.Resources
+            builder state.Location state.Resources
             |> List.fold(fun resources action ->
                 match action with
                 | NewResource newResource -> resources @ [ newResource ]
@@ -80,11 +80,13 @@ type ArmBuilder() =
                 | NotSet -> failwith "No parent resource name was set for this resource to link to.") state.Resources
 
         { state with Resources = resources }
+    member this.AddResource (state:ArmConfig, builder:IResourceBuilder) =
+        this.AddResource(state, builder.BuildResources)
 
     [<CustomOperation "add_resources">]
     /// Adds a sequence of resources to the ARM template.
     member this.AddResources (state:ArmConfig, resources:IResourceBuilder list) =
         resources
-        |> Seq.fold(fun state resource -> this.AddResource(state, resource)) state
+        |> Seq.fold(fun state resource -> this.AddResource(state, resource.BuildResources)) state
 
 let arm = ArmBuilder()

@@ -61,6 +61,8 @@ type IResourceBuilder =
     /// Given a location and the currently-built resources, returns a set of resource actions.
     abstract member BuildResources : Location -> IResource list -> ResourceAction list
 
+type ResourceBuilder = Location -> IResource list -> ResourceAction list
+
 [<AutoOpen>]
 module ArmExpression =
     /// A helper function used when building complex ARM expressions; lifts a literal string into a quoted ARM expression

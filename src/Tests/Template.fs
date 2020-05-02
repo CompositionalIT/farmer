@@ -3,6 +3,7 @@ module Template
 open Farmer
 open Farmer.Resources
 open Expecto
+open Newtonsoft.Json
 
 module TestHelpers =
     let createSimpleDeployment parameters =
@@ -14,6 +15,7 @@ module TestHelpers =
               Resources = []
           }
         }
+    let convertTo<'T> = JsonConvert.SerializeObject >> JsonConvert.DeserializeObject<'T>
 
 open TestHelpers
 
@@ -84,5 +86,64 @@ let tests = testList "Template" [
         }
 
         Expect.equal template.Template.Resources.Length 2 "Should be two resources"
+    }
+
+    test "Location is cascaded to all resources" {
+        let template = arm {
+            location NorthCentralUS
+            add_resources [
+                storageAccount { name "test" }
+                storageAccount { name "test2" }
+            ]
+        }
+
+        let allLocations = template.Template.Resources |> List.map (fun r -> r.ToArmObject() |> convertTo<{| Location : string |}>)
+        Expect.sequenceEqual allLocations [ {| Location = NorthCentralUS.ArmValue |}; {| Location = NorthCentralUS.ArmValue |} ] "Incorrect Location"
+    }
+    
+    test "Secure parameter is correctly added" {
+        let template = arm {
+            add_resource (vm { name "isaacvm" })
+        }
+        Expect.sequenceEqual template.Template.Parameters [ SecureParameter "password-for-isaacvm" ] "Missing parameter for VM."
+    }
+
+    test "Fails if can't locate a parent resource" {
+        Expect.throws(fun () ->
+            arm {
+                add_resource (fun _ _ -> [ CouldNotLocate (ResourceName "test") ])
+            } |> ignore) "Should throw an could not locate exception." 
+    }
+
+    test "Fails if can't parent resource is not set" {
+        Expect.throws(fun () ->
+            arm {
+                add_resource (fun _ _ -> [ NotSet ])
+            } |> ignore) "Should throw an not set exception." 
+    }
+
+    test "Correctly replaces a merged resource" {
+        let original =
+            { new IResource with
+                member _.ResourceName = ResourceName "A"; 
+                member _.ToArmObject() = obj() }
+        let updated =
+            { new IResource with
+                member _.ResourceName = ResourceName "B"; 
+                member _.ToArmObject() = obj() }
+        let template = arm {
+            add_resource (fun _ _ -> [ NewResource original ])
+            add_resource (fun _ _ -> [ MergedResource (original, updated) ])
+        }
+        Expect.equal template.Template.Resources [ updated ] "Should have removed the original resource."
+    }
+
+    test "Outputs are correctly added" {
+        let template = arm {
+            output "foo" "bar"
+            output "foo" "baz"
+            output "bar" "bop"
+        }
+        Expect.sequenceEqual template.Template.Outputs [ "bar", "bop"; "foo", "baz" ] "Outputs should work like a key/value store"
     }
 ]
