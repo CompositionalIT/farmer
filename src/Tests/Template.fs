@@ -100,7 +100,7 @@ let tests = testList "Template" [
         let allLocations = template.Template.Resources |> List.map (fun r -> r.ToArmObject() |> convertTo<{| Location : string |}>)
         Expect.sequenceEqual allLocations [ {| Location = NorthCentralUS.ArmValue |}; {| Location = NorthCentralUS.ArmValue |} ] "Incorrect Location"
     }
-    
+
     test "Secure parameter is correctly added" {
         let template = arm {
             add_resource (vm { name "isaacvm" })
@@ -112,24 +112,24 @@ let tests = testList "Template" [
         Expect.throws(fun () ->
             arm {
                 add_resource (fun _ _ -> [ CouldNotLocate (ResourceName "test") ])
-            } |> ignore) "Should throw an could not locate exception." 
+            } |> ignore) "Should throw an could not locate exception."
     }
 
-    test "Fails if can't parent resource is not set" {
+    test "Fails if parent resource is not set" {
         Expect.throws(fun () ->
             arm {
                 add_resource (fun _ _ -> [ NotSet ])
-            } |> ignore) "Should throw an not set exception." 
+            } |> ignore) "Should throw an not set exception."
     }
 
     test "Correctly replaces a merged resource" {
         let original =
             { new IResource with
-                member _.ResourceName = ResourceName "A"; 
+                member _.ResourceName = ResourceName "A";
                 member _.ToArmObject() = obj() }
         let updated =
             { new IResource with
-                member _.ResourceName = ResourceName "B"; 
+                member _.ResourceName = ResourceName "B";
                 member _.ToArmObject() = obj() }
         let template = arm {
             add_resource (fun _ _ -> [ NewResource original ])

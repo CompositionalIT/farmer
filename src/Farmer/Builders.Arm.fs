@@ -1,6 +1,19 @@
 [<AutoOpen>]
 module Farmer.ArmBuilder
 
+module Helpers =
+    /// Adapts a raw ArmResourceBuilder into a "full" ResourceBuilder that can be added as a resource to arm { } expressions.
+    let asResourceBuilder (builder:ArmResourceBuilder) =
+        let output : ResourceBuilder =
+            fun (location:Location) _ -> [
+                for resourceName, armObject in builder location do
+                    NewResource
+                        { new IResource with
+                            member _.ResourceName = ResourceName resourceName
+                            member _.ToArmObject() = armObject }
+            ]
+        output
+
 /// Represents all configuration information to generate an ARM template.
 type ArmConfig =
     { Parameters : string Set
@@ -69,6 +82,9 @@ type ArmBuilder() =
 
     /// Adds a single resource to the ARM template.
     [<CustomOperation "add_resource">]
+    member this.AddResource (state:ArmConfig, builder:IResourceBuilder) =
+        this.AddResource(state, builder.BuildResources)
+
     member __.AddResource (state:ArmConfig, builder:ResourceBuilder) =
         let resources =
             builder state.Location state.Resources
@@ -80,13 +96,11 @@ type ArmBuilder() =
                 | NotSet -> failwith "No parent resource name was set for this resource to link to.") state.Resources
 
         { state with Resources = resources }
-    member this.AddResource (state:ArmConfig, builder:IResourceBuilder) =
-        this.AddResource(state, builder.BuildResources)
 
     [<CustomOperation "add_resources">]
     /// Adds a sequence of resources to the ARM template.
-    member this.AddResources (state:ArmConfig, resources:IResourceBuilder list) =
-        resources
-        |> Seq.fold(fun state resource -> this.AddResource(state, resource.BuildResources)) state
+    member this.AddResources (state:ArmConfig, builders:IResourceBuilder list) =
+        builders
+        |> Seq.fold(fun state builder -> this.AddResource(state, builder)) state
 
 let arm = ArmBuilder()

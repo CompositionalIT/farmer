@@ -56,17 +56,23 @@ type ResourceAction =
     | CouldNotLocate of ResourceName
     | NotSet
 
-/// Represents a high-level configuration which can create a set of Resources.
+/// Represents a high-level configuration that can create a set of Resources.
 type IResourceBuilder =
     /// Given a location and the currently-built resources, returns a set of resource actions.
     abstract member BuildResources : Location -> IResource list -> ResourceAction list
 
+/// A functional equivalent of the IResourceBuilder's BuildResources method.
 type ResourceBuilder = Location -> IResource list -> ResourceAction list
+
+/// A low-level builder that takes in a location and generates raw ARM resources (and their
+/// resource name) in a form ready for JSON serialization.
+type ArmResourceBuilder = Location -> (string * obj) list
 
 [<AutoOpen>]
 module ArmExpression =
-    /// A helper function used when building complex ARM expressions; lifts a literal string into a quoted ARM expression
-    /// e.g. text becomes 'text'. This is useful for working with functions that can mix literal values and parameters.
+    /// A helper function used when building complex ARM expressions; lifts a literal string into a
+    /// quoted ARM expression e.g. text becomes 'text'. This is useful for working with functions
+    /// that can mix literal values and parameters.
     let literal = sprintf "'%s'" >> ArmExpression
     /// Generates an ARM expression for concatination.
     let concat values =
