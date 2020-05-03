@@ -17,7 +17,8 @@ type ArmConfig =
         | NewResource newResource ->
             { this with Resources = this.Resources @ [ wrap newResource ] }
         | MergedResource(oldVersion, newVersion) ->
-            { this with Resources = (this.Resources |> List.filter ((<>) (wrap oldVersion))) @ [ wrap newVersion ] }
+            let oldVersion = wrap oldVersion
+            { this with Resources = (this.Resources |> List.filter ((<>) oldVersion)) @ [ wrap newVersion ] }
         | CouldNotLocate (ResourceName resourceName) ->
             failwithf "Could not locate the parent resource ('%s'). Make sure you have correctly specified the name, and that it was added to the arm { } builder before this one." resourceName
         | NotSet ->

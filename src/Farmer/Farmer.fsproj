@@ -55,6 +55,7 @@
     <Compile Include="Builders.ContainerGroups.fs" />
     <Compile Include="Builders.CognitiveSearch.fs" />
     <Compile Include="Builders.ContainerRegistry.fs" />
+    <Compile Include="Builders.ServiceBus.fs" />
     <Compile Include="Writer.fs" />
     <Compile Include="Deploy.fs" />
   </ItemGroup>

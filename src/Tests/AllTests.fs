@@ -12,6 +12,7 @@ let allTests =
                 Storage.tests
                 ContainerRegistry.tests
                 ExpressRoute.tests
+                ServiceBus.tests
                 VirtualMachine.tests
             ]
             testList "Control" [
