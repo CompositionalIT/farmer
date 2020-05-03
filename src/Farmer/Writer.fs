@@ -44,6 +44,7 @@ module TemplateGeneration =
 
                 | CognitiveService service -> Converters.Outputters.cognitiveServices service |> box
                 | ContainerRegistry registry -> Converters.Outputters.containerRegistry registry |> box
+                | ExpressRoute circuit -> Converters.Outputters.expressRoute circuit |> box
             )
         parameters =
             template.Parameters
