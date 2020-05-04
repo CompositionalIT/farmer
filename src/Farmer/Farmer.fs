@@ -273,6 +273,62 @@ type EventHubAuthorizationRule =
     Location : Location
     Dependencies : ResourceName list
     Rights : string list }
+[<RequireQualifiedAccess>]
+type ExpressRouteTier =
+  | Standard
+  | Premium
+type ExpressRouteFamily =
+  | UnlimitedData
+  | MeteredData
+type ExpressRouteCircuitPeeringType =
+  | AzurePrivatePeering
+  | MicrosoftPeering
+module ExpressRouteCircuitPeeringType =
+  let format = function
+    | AzurePrivatePeering -> "AzurePrivatePeering"
+    | MicrosoftPeering -> "MicrosoftPeering"
+/// An IP address block in CIDR notation, such as 10.100.0.0/16.
+type IPAddressCidr =
+  { Address : System.Net.IPAddress
+    Prefix : int
+  }
+module IPAddressCidr =
+    let parse (s:string) : IPAddressCidr =
+        match s.Split([|'/'|], StringSplitOptions.RemoveEmptyEntries) with
+        [| ip; prefix |] -> 
+            {
+                Address = System.Net.IPAddress.Parse (ip.Trim())
+                Prefix = Int32.Parse prefix
+            }
+        | _ -> raise (ArgumentOutOfRangeException "Malformed CIDR, expecting and IP and prefix separated by '/'")
+    let safeParse (s:string) : Result<IPAddressCidr, Exception> =
+        try parse s |> Ok
+        with ex -> Error ex
+    let format (cidr:IPAddressCidr) =
+        String.Format ("{0}/{1}", cidr.Address, cidr.Prefix)
+type ExpressRouteCircuitPeering =
+  { PeeringType : ExpressRouteCircuitPeeringType
+    AzureASN : int
+    PeerASN : int64
+    /// A /30 IP address block to use for the primary link
+    PrimaryPeerAddressPrefix : IPAddressCidr
+    /// A /30 IP address block to use for the secondary link
+    SecondaryPeerAddressPrefix : IPAddressCidr
+    SharedKey : string option
+    VlanId : int
+  }
+type [<Measure>] Mbps
+type ExpressRouteCircuit =
+  { Name : ResourceName
+    Location : Location
+    Tier : ExpressRouteTier
+    Family : ExpressRouteFamily
+    ServiceProviderName : string
+    PeeringLocation : string
+    Bandwidth : int<Mbps>
+    GlobalReachEnabled : bool
+    Peerings : ExpressRouteCircuitPeering list
+  }
 module VM =
     type PublicIpAddress =
         { Name : ResourceName
@@ -392,6 +448,7 @@ type SupportedResource =
     | RedisCache of Redis
     | CognitiveService of CognitiveServices
     | ContainerRegistry of ContainerRegistry
+    | ExpressRoute of ExpressRouteCircuit
     | ServiceBusNamespace of ServiceBusNamespace
     member this.ResourceName =
         match this with
@@ -408,6 +465,7 @@ type SupportedResource =
         | RedisCache r -> r.Name
         | CognitiveService c -> c.Name
         | ContainerRegistry r -> r.Name
+        | ExpressRoute e -> e.Name
         | ServiceBusNamespace s -> s.Name
 
 namespace Farmer
