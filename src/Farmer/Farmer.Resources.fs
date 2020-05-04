@@ -806,6 +806,52 @@ module Network =
                        |}
                 |} :> _
 
+    type ExpressRouteCircuit =
+        { Name : ResourceName
+          Location : Location
+          Tier : string // ExpressRouteTier
+          Family : string // ExpressRouteFamily
+          ServiceProviderName : string
+          PeeringLocation : string
+          Bandwidth : int
+          GlobalReachEnabled : bool
+          Peerings :
+            {| PeeringType : string
+               AzureASN : int
+               PeerASN : int64
+               PrimaryPeerAddressPrefix : string
+               SecondaryPeerAddressPrefix : string
+               SharedKey : string option
+               VlanId : int
+            |} list }
+        interface IResource with
+            member this.ResourceName = this.Name
+            member this.ToArmObject() =
+                {| ``type`` = "Microsoft.Network/expressRouteCircuits"
+                   apiVersion = "2019-02-01"
+                   name = this.Name.Value
+                   location = this.Location.ArmValue
+                   sku = {| name = String.Format("{0}_{1}", this.Tier, this.Family); tier = this.Tier; family = this.Family |}
+                   properties =
+                       {| peerings = [
+                            for peer in this.Peerings do
+                                {| name = peer.PeeringType
+                                   properties =
+                                       {| peeringType = peer.PeeringType
+                                          azureASN = peer.AzureASN
+                                          peerASN = peer.PeerASN
+                                          primaryPeerAddressPrefix = peer.PrimaryPeerAddressPrefix
+                                          secondaryPeerAddressPrefix = peer.SecondaryPeerAddressPrefix
+                                          vlanId = peer.VlanId
+                                          sharedKey = peer.SharedKey |}
+                                |}
+                          ]
+                          serviceProviderProperties =
+                            {| serviceProviderName = this.ServiceProviderName
+                               peeringLocation = this.PeeringLocation
+                               bandwidthInMbps = this.Bandwidth |}
+                          globalReachEnabled = this.GlobalReachEnabled |}
+                |} :> _
 module Compute =
     type VirtualMachine =
         { Name : ResourceName

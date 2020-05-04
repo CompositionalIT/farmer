@@ -56,6 +56,7 @@
     <Compile Include="Builders.Search.fs" />
     <Compile Include="Builders.Cosmos.fs" />
     <Compile Include="Builders.EventHub.fs" />
+    <Compile Include="Builders.ExpressRoute.fs" />
     <Compile Include="Builders.ContainerGroups.fs" />
     <Compile Include="Builders.CognitiveServices.fs" />
     <Compile Include="Builders.ContainerRegistry.fs" />

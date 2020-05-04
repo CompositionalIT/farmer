@@ -13,7 +13,6 @@ type JavaRuntime =
     | Java8 | Java11
     member this.Version = match this with Java8 -> 8 | Java11 -> 11
     member this.Jre = match this with Java8 -> "jre8" | Java11 -> "java11"
-
 type WebAppRuntime =
     | DotNetCore of string
     | Node of string
