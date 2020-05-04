@@ -6,7 +6,7 @@ open Farmer.Resources.ContainerRegistry
 
 let myRegistry = containerRegistry {
     name "devonRegistry"
-    sku Basic
+    sku ContainerRegistrySku.Basic
     enable_admin_user
 }
 

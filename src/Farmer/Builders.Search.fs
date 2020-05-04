@@ -6,6 +6,7 @@ open Farmer.Helpers
 open Arm.Search
 
 type HostingMode = Default | HighDensity
+[<RequireQualifiedAccess>]
 /// The SKU of the search service you want to create. E.g. free or standard.
 type SearchSku =
     | Free

@@ -5,55 +5,53 @@ open Farmer
 open Arm.Web
 open Arm.Insights
 
-module Runtimes =
-    type JavaHost =
-        | JavaSE | WildFly14 | Tomcat of string
-        static member Tomcat85 = Tomcat "8.5"
-        static member Tomcat90 = Tomcat "9.0"
-    type JavaRuntime =
-        | Java8 | Java11
-        member this.Version = match this with Java8 -> 8 | Java11 -> 11
-        member this.Jre = match this with Java8 -> "jre8" | Java11 -> "java11"
-    type WebAppRuntime =
-        | DotNetCore of string
-        | Node of string
-        | Php of string
-        | Ruby of string
-        | AspNet of version:string
-        | Java of JavaRuntime * JavaHost
-        | Python of linuxVersion:string * windowsVersion:string
-        static member Php73 = Php "7.3"
-        static member Php72 = Php "7.2"
-        static member Php71 = Php "7.1"
-        static member Php70 = Php "7.0"
-        static member Php56 = Php "5.6"
-        static member DotNetCore21 = DotNetCore "2.1"
-        static member DotNetCore31 = DotNetCore "3.1"
-        static member DotNetCoreLts = DotNetCore "LTS"
-        static member DotNetCoreLatest = DotNetCore "Latest"
-        static member Node6 = Node "6-lts"
-        static member Node8 = Node "8-lts"
-        static member Node10 = Node "10-lts"
-        static member Node12 = Node "12-lts"
-        static member NodeLts = Node "lts"
-        static member Ruby26 = Ruby "2.6"
-        static member Ruby25 = Ruby "2.5"
-        static member Ruby24 = Ruby "2.4"
-        static member Ruby23 = Ruby "2.3"
-        static member Java11 = Java (Java11, JavaSE)
-        static member Java11Tomcat90 = Java (Java11, JavaHost.Tomcat90)
-        static member Java11Tomcat85 = Java (Java11, JavaHost.Tomcat85)
-        static member Java8 = Java (Java8, JavaSE)
-        static member Java8WildFly14 = Java (Java8, WildFly14)
-        static member Java8Tomcat90 = Java (Java8, JavaHost.Tomcat90)
-        static member Java8Tomcat85 = Java (Java8, JavaHost.Tomcat85)
-        static member AspNet47 = AspNet "4.0"
-        static member AspNet35 = AspNet "2.0"
-        static member Python27 = Python ("2.7", "2.7")
-        static member Python36 = Python ("3.6", "3.4") // not typo, really version 3.4
-        static member Python37 = Python ("3.7", "3.7")
+type JavaHost =
+    | JavaSE | WildFly14 | Tomcat of string
+    static member Tomcat85 = Tomcat "8.5"
+    static member Tomcat90 = Tomcat "9.0"
+type JavaRuntime =
+    | Java8 | Java11
+    member this.Version = match this with Java8 -> 8 | Java11 -> 11
+    member this.Jre = match this with Java8 -> "jre8" | Java11 -> "java11"
 
-open Runtimes
+type WebAppRuntime =
+    | DotNetCore of string
+    | Node of string
+    | Php of string
+    | Ruby of string
+    | AspNet of version:string
+    | Java of JavaRuntime * JavaHost
+    | Python of linuxVersion:string * windowsVersion:string
+    static member Php73 = Php "7.3"
+    static member Php72 = Php "7.2"
+    static member Php71 = Php "7.1"
+    static member Php70 = Php "7.0"
+    static member Php56 = Php "5.6"
+    static member DotNetCore21 = DotNetCore "2.1"
+    static member DotNetCore31 = DotNetCore "3.1"
+    static member DotNetCoreLts = DotNetCore "LTS"
+    static member DotNetCoreLatest = DotNetCore "Latest"
+    static member Node6 = Node "6-lts"
+    static member Node8 = Node "8-lts"
+    static member Node10 = Node "10-lts"
+    static member Node12 = Node "12-lts"
+    static member NodeLts = Node "lts"
+    static member Ruby26 = Ruby "2.6"
+    static member Ruby25 = Ruby "2.5"
+    static member Ruby24 = Ruby "2.4"
+    static member Ruby23 = Ruby "2.3"
+    static member Java11 = Java (Java11, JavaSE)
+    static member Java11Tomcat90 = Java (Java11, JavaHost.Tomcat90)
+    static member Java11Tomcat85 = Java (Java11, JavaHost.Tomcat85)
+    static member Java8 = Java (Java8, JavaSE)
+    static member Java8WildFly14 = Java (Java8, WildFly14)
+    static member Java8Tomcat90 = Java (Java8, JavaHost.Tomcat90)
+    static member Java8Tomcat85 = Java (Java8, JavaHost.Tomcat85)
+    static member AspNet47 = AspNet "4.0"
+    static member AspNet35 = AspNet "2.0"
+    static member Python27 = Python ("2.7", "2.7")
+    static member Python36 = Python ("3.6", "3.4") // not typo, really version 3.4
+    static member Python37 = Python ("3.7", "3.7")
 
 module AppSettings =
     let WebsiteNodeDefaultVersion version = "WEBSITE_NODE_DEFAULT_VERSION", version

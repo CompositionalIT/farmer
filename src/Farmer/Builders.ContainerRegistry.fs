@@ -4,16 +4,12 @@ module Farmer.Resources.ContainerRegistry
 open Farmer
 open Arm.ContainerRegistry
 
+[<RequireQualifiedAccess>]
 /// Container Registry SKU
 type ContainerRegistrySku =
     | Basic
     | Standard
     | Premium
-
-// TODO: networkRuleSet
-// TODO: policies
-// TODO: encryption
-// TODO: dataEndpointEnabled
 
 type ContainerRegistryConfig =
     { Name : ResourceName
@@ -33,7 +29,7 @@ type ContainerRegistryConfig =
 type ContainerRegistryBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
-          Sku = Basic
+          Sku = ContainerRegistrySku.Basic
           AdminUserEnabled = false }
 
     [<CustomOperation "name">]

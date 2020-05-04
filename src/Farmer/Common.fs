@@ -215,6 +215,7 @@ module VMSize =
 
 [<AutoOpen>]
 module Storage =
+    [<RequireQualifiedAccess>]
     type StorageSku =
     | Standard_LRS
     | Standard_GRS
