@@ -809,8 +809,8 @@ module Network =
     type ExpressRouteCircuit =
         { Name : ResourceName
           Location : Location
-          Tier : string // ExpressRouteTier
-          Family : string // ExpressRouteFamily
+          Tier : string
+          Family : string
           ServiceProviderName : string
           PeeringLocation : string
           Bandwidth : int
