@@ -26,26 +26,25 @@ type RedisConfig =
     member this.Key = buildRedisKey this.Name
     interface IResourceBuilder with
         member this.BuildResources location _ = [
-            NewResource
-                { Name = this.Name
-                  Location = location
-                  Sku =
-                    {| Name = string this.Sku
-                       Family =
-                        match this.Sku with
-                        | RedisSku.Basic | RedisSku.Standard -> 'C'
-                        | RedisSku.Premium -> 'P'
-                       Capacity = this.Capacity |}
-                  RedisConfiguration = this.RedisConfiguration
-                  NonSslEnabled = this.NonSslEnabled
-                  ShardCount = this.ShardCount
-                  MinimumTlsVersion =
-                    this.MinimumTlsVersion
-                    |> Option.map(function
-                    | Tls10 -> "1.0"
-                    | Tls11 -> "1.1"
-                    | Tls12 -> "1.2")
-                }
+            { Name = this.Name
+              Location = location
+              Sku =
+                {| Name = string this.Sku
+                   Family =
+                    match this.Sku with
+                    | RedisSku.Basic | RedisSku.Standard -> 'C'
+                    | RedisSku.Premium -> 'P'
+                   Capacity = this.Capacity |}
+              RedisConfiguration = this.RedisConfiguration
+              NonSslEnabled = this.NonSslEnabled
+              ShardCount = this.ShardCount
+              MinimumTlsVersion =
+                this.MinimumTlsVersion
+                |> Option.map(function
+                | Tls10 -> "1.0"
+                | Tls11 -> "1.1"
+                | Tls12 -> "1.2")
+            }
         ]
 
 type RedisBuilder() =

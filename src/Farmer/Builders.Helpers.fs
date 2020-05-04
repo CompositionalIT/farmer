@@ -15,7 +15,6 @@ let santitiseDb = sanitise [ Char.IsLetterOrDigit ] 100 >> fun r -> r.ToLower()
 let tryMergeResource<'T when 'T :> IResource> resourceName (merge:'T -> 'T) (existingResources:IResource list) =
     existingResources
     |> List.filter(fun g -> g.ResourceName = resourceName)
-    |> List.choose(function :? 'T as resource -> Some resource | _ -> None)
-    |> List.tryHead
-    |> Option.map(fun resource -> MergedResource(resource, merge resource))
-    |> Option.defaultValue (CouldNotLocate resourceName)
+    |> List.tryPick(function :? 'T as resource -> Some resource | _ -> None)
+    |> Option.map merge
+    |> Option.defaultWith (fun () -> failwithf "could not locate %O" resourceName)

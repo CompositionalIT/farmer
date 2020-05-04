@@ -33,64 +33,61 @@ type CosmosDbConfig =
         member this.BuildResources location _ = [
             match this.ServerName with
             | AutomaticallyCreated name ->
-                NewResource
-                    { Name = name
-                      Location = location
-                      ConsistencyPolicy =
-                        match this.ServerConsistencyPolicy with
-                        | BoundedStaleness _ -> "BoundedStaleness"
-                        | Session | Eventual | ConsistentPrefix | Strong -> string this.ServerConsistencyPolicy
-                      MaxStaleness =
-                        match this.ServerConsistencyPolicy with
-                        | BoundedStaleness (staleness, _) -> Some staleness
-                        | Session | Eventual | ConsistentPrefix | Strong -> None
-                      MaxInterval =
-                        match this.ServerConsistencyPolicy with
-                        | BoundedStaleness (_, interval) -> Some interval
-                        | Session | Eventual | ConsistentPrefix | Strong -> None
-                      EnableAutomaticFailure = match this.ServerFailoverPolicy with AutoFailover _ -> Some true | _ -> None
-                      PublicNetworkAccess = this.PublicNetworkAccess
-                      FreeTier = this.FreeTier
-                      EnableMultipleWriteLocations = match this.ServerFailoverPolicy with MultiMaster _ -> Some true | _ -> None
-                      FailoverLocations = [
-                            match this.ServerFailoverPolicy with
-                            | AutoFailover secondary
-                            | MultiMaster secondary ->
-                                {| Location = location; Priority = 0 |}
-                                {| Location = secondary; Priority = 1 |}
-                            | NoFailover ->
-                                ()
-                      ] }
+                { Name = name
+                  Location = location
+                  ConsistencyPolicy =
+                    match this.ServerConsistencyPolicy with
+                    | BoundedStaleness _ -> "BoundedStaleness"
+                    | Session | Eventual | ConsistentPrefix | Strong -> string this.ServerConsistencyPolicy
+                  MaxStaleness =
+                    match this.ServerConsistencyPolicy with
+                    | BoundedStaleness (staleness, _) -> Some staleness
+                    | Session | Eventual | ConsistentPrefix | Strong -> None
+                  MaxInterval =
+                    match this.ServerConsistencyPolicy with
+                    | BoundedStaleness (_, interval) -> Some interval
+                    | Session | Eventual | ConsistentPrefix | Strong -> None
+                  EnableAutomaticFailure = match this.ServerFailoverPolicy with AutoFailover _ -> Some true | _ -> None
+                  PublicNetworkAccess = this.PublicNetworkAccess
+                  FreeTier = this.FreeTier
+                  EnableMultipleWriteLocations = match this.ServerFailoverPolicy with MultiMaster _ -> Some true | _ -> None
+                  FailoverLocations = [
+                        match this.ServerFailoverPolicy with
+                        | AutoFailover secondary
+                        | MultiMaster secondary ->
+                            {| Location = location; Priority = 0 |}
+                            {| Location = secondary; Priority = 1 |}
+                        | NoFailover ->
+                            ()
+                  ] }
             | AutomaticPlaceholder ->
                 failwith "No CosmosDB server was specified."
             | External _ ->
                 ()
-            NewResource
-                { Name = this.Name
-                  Account = this.ServerName.ResourceName
-                  Throughput = string this.DbThroughput }
+            { Name = this.Name
+              Account = this.ServerName.ResourceName
+              Throughput = string this.DbThroughput }
             for container in this.Containers do
-                NewResource
-                    { Name = container.Name
-                      Account = this.ServerName.ResourceName
-                      Database = this.Name
-                      PartitionKey =
-                        {| Paths = fst container.PartitionKey
-                           Kind = snd container.PartitionKey |> string |}
-                      IndexingPolicy =
-                        {| ExcludedPaths = container.ExcludedPaths
-                           IncludedPaths = [
-                                for (path, indexes) in container.Indexes do
-                                    {| Path = path
-                                       Indexes = [
-                                           for (dataType, kind) in indexes do
-                                            {| DataType = (string dataType).ToLower()
-                                               Kind = string kind |}
-                                       ]
-                                    |}
-                           ]
-                        |}
-                    }
+                { Name = container.Name
+                  Account = this.ServerName.ResourceName
+                  Database = this.Name
+                  PartitionKey =
+                    {| Paths = fst container.PartitionKey
+                       Kind = snd container.PartitionKey |> string |}
+                  IndexingPolicy =
+                    {| ExcludedPaths = container.ExcludedPaths
+                       IncludedPaths = [
+                            for (path, indexes) in container.Indexes do
+                                {| Path = path
+                                   Indexes = [
+                                       for (dataType, kind) in indexes do
+                                        {| DataType = (string dataType).ToLower()
+                                           Kind = string kind |}
+                                   ]
+                                |}
+                       ]
+                    |}
+                }
         ]
 
 

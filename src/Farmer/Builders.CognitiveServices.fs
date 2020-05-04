@@ -40,10 +40,10 @@ type CognitiveServicesConfig =
       Api : CognitiveServicesApi }
     interface IResourceBuilder with
         member this.BuildResources location _ = [
-            NewResource { Name = this.Name
-                          Location = location
-                          Sku = this.Sku.ToString().Replace("_", ".")
-                          Kind = this.Api.ToString() }
+            { Name = this.Name
+              Location = location
+              Sku = this.Sku.ToString().Replace("_", ".")
+              Kind = this.Api.ToString() }
         ]
 
 type CognitiveServicesBuilder() =

@@ -47,60 +47,59 @@ type FunctionsConfig =
     member this.StorageAccount = this.StorageAccountName.ResourceName
     interface IResourceBuilder with
         member this.BuildResources location existingResources = [
-            NewResource
-                { Name = this.Name
-                  ServicePlan = this.ServicePlanName.ResourceName
-                  Location = location
-                  AppSettings = [
-                    yield! this.Settings |> Map.toList
-                    "FUNCTIONS_WORKER_RUNTIME", (string this.Runtime).ToLower()
-                    "WEBSITE_NODE_DEFAULT_VERSION", "10.14.1"
-                    "FUNCTIONS_EXTENSION_VERSION", match this.ExtensionVersion with V1 -> "~1" | V2 -> "~2" | V3 -> "~3"
-                    "AzureWebJobsStorage", Storage.buildKey this.StorageAccountName.ResourceName |> ArmExpression.Eval
-                    "AzureWebJobsDashboard", Storage.buildKey this.StorageAccountName.ResourceName |> ArmExpression.Eval
+            { Name = this.Name
+              ServicePlan = this.ServicePlanName.ResourceName
+              Location = location
+              AppSettings = [
+                yield! this.Settings |> Map.toList
+                "FUNCTIONS_WORKER_RUNTIME", (string this.Runtime).ToLower()
+                "WEBSITE_NODE_DEFAULT_VERSION", "10.14.1"
+                "FUNCTIONS_EXTENSION_VERSION", match this.ExtensionVersion with V1 -> "~1" | V2 -> "~2" | V3 -> "~3"
+                "AzureWebJobsStorage", Storage.buildKey this.StorageAccountName.ResourceName |> ArmExpression.Eval
+                "AzureWebJobsDashboard", Storage.buildKey this.StorageAccountName.ResourceName |> ArmExpression.Eval
 
-                    match this.AppInsightsName with
-                    | Some (External resourceName)
-                    | Some (AutomaticallyCreated resourceName) ->
-                        "APPINSIGHTS_INSTRUMENTATIONKEY", instrumentationKey resourceName |> ArmExpression.Eval
-                    | Some AutomaticPlaceholder
-                    | None -> ()
+                match this.AppInsightsName with
+                | Some (External resourceName)
+                | Some (AutomaticallyCreated resourceName) ->
+                    "APPINSIGHTS_INSTRUMENTATIONKEY", instrumentationKey resourceName |> ArmExpression.Eval
+                | Some AutomaticPlaceholder
+                | None -> ()
 
-                    if this.OperatingSystem = Windows then
-                        "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING", Storage.buildKey this.StorageAccountName.ResourceName |> ArmExpression.Eval
-                        "WEBSITE_CONTENTSHARE", this.Name.Value.ToLower()
-                  ]
+                if this.OperatingSystem = Windows then
+                    "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING", Storage.buildKey this.StorageAccountName.ResourceName |> ArmExpression.Eval
+                    "WEBSITE_CONTENTSHARE", this.Name.Value.ToLower()
+              ]
 
-                  Kind =
-                    match this.OperatingSystem with
-                    | Windows -> "functionapp"
-                    | Linux -> "functionapp,linux"
-                  Dependencies = [
-                    yield! this.Dependencies
-                    match this.AppInsightsName with
-                    | Some (AutomaticallyCreated appInsightsName)
-                    | Some (External appInsightsName) ->
-                        appInsightsName
-                    | Some AutomaticPlaceholder
-                    | None ->
-                        ()
-                    match this.ServicePlanName.ResourceNameOpt with Some resourceName -> resourceName | None -> ()
-                    this.StorageAccountName.ResourceName
-                  ]
-                  AlwaysOn = false
-                  HTTPSOnly = false
-                  LinuxFxVersion = None
-                  NetFrameworkVersion = None
-                  JavaVersion = None
-                  JavaContainer = None
-                  JavaContainerVersion = None
-                  PhpVersion = None
-                  PythonVersion = None
-                  Metadata = []
-                  ZipDeployPath = None
-                  AppCommandLine = None
-                  Parameters = []
-                }
+              Kind =
+                match this.OperatingSystem with
+                | Windows -> "functionapp"
+                | Linux -> "functionapp,linux"
+              Dependencies = [
+                yield! this.Dependencies
+                match this.AppInsightsName with
+                | Some (AutomaticallyCreated appInsightsName)
+                | Some (External appInsightsName) ->
+                    appInsightsName
+                | Some AutomaticPlaceholder
+                | None ->
+                    ()
+                match this.ServicePlanName.ResourceNameOpt with Some resourceName -> resourceName | None -> ()
+                this.StorageAccountName.ResourceName
+              ]
+              AlwaysOn = false
+              HTTPSOnly = false
+              LinuxFxVersion = None
+              NetFrameworkVersion = None
+              JavaVersion = None
+              JavaContainer = None
+              JavaContainerVersion = None
+              PhpVersion = None
+              PythonVersion = None
+              Metadata = []
+              ZipDeployPath = None
+              AppCommandLine = None
+              Parameters = []
+            }
             match this.ServicePlanName with
             | External _
             | AutomaticPlaceholder ->
@@ -115,20 +114,20 @@ type FunctionsConfig =
                 yield! (servicePlanConfig :> IResourceBuilder).BuildResources location existingResources
             match this.StorageAccountName with
             | AutomaticallyCreated resourceName ->
-                NewResource { StorageAccount.Name = resourceName
-                              Location = location
-                              Sku = StorageSku.Standard_LRS
-                              Containers = [] }
+                { StorageAccount.Name = resourceName
+                  Location = location
+                  Sku = StorageSku.Standard_LRS
+                  Containers = [] }
             | AutomaticPlaceholder | External _ ->
                 ()
             match this.AppInsightsName with
             | Some (AutomaticallyCreated resourceName) ->
-                NewResource { Name = resourceName
-                              Location = location
-                              LinkedWebsite =
-                                match this.OperatingSystem with
-                                | Windows -> Some this.Name
-                                | Linux -> None }
+                { Name = resourceName
+                  Location = location
+                  LinkedWebsite =
+                    match this.OperatingSystem with
+                    | Windows -> Some this.Name
+                    | Linux -> None }
             | Some (External _)
             | Some AutomaticPlaceholder
             | None ->

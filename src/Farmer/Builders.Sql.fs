@@ -3,6 +3,7 @@ module Farmer.Resources.SqlAzure
 
 open Farmer
 open Arm.Sql
+open System.Net
 [<RequireQualifiedAccess>]
 type SqlSku = Free | Basic | Standard of string | Premium of string
 
@@ -71,25 +72,23 @@ type SqlAzureConfig =
             let server =
                 match this.ServerName with
                 | AutomaticallyCreated serverName ->
-                    NewResource
-                        { ServerName = serverName
-                          Location = location
-                          Credentials =
-                            {| Username = this.AdministratorCredentials.UserName
-                               Password = this.AdministratorCredentials.Password |}
-                          FirewallRules = this.FirewallRules
-                          Databases = [ database ]
-                        }
+                    { ServerName = serverName
+                      Location = location
+                      Credentials =
+                        {| Username = this.AdministratorCredentials.UserName
+                           Password = this.AdministratorCredentials.Password |}
+                      FirewallRules = this.FirewallRules
+                      Databases = [ database ] }
                 | External serverName ->
                     resources
                     |> Helpers.tryMergeResource serverName (fun server -> { server with Databases = database :: server.Databases })
                 | AutomaticPlaceholder ->
-                    NotSet
+                    failwith "SQL Server Name has not been set."
             server
         ]
 
 type SqlBuilder() =
-    let makeIp = System.Net.IPAddress.Parse
+    let makeIp = IPAddress.Parse
     member __.Yield _ =
         { ServerName = AutomaticPlaceholder
           AdministratorCredentials = {| UserName = ""; Password = SecureParameter "" |}
@@ -104,7 +103,7 @@ type SqlBuilder() =
                 match state.ServerName with
                 | External x -> External(x |> Helpers.santitiseDb |> ResourceName)
                 | AutomaticallyCreated x -> AutomaticallyCreated(x |> Helpers.santitiseDb |> ResourceName)
-                | AutomaticPlaceholder -> failwith "You must specific an server name, or link to an existing server."
+                | AutomaticPlaceholder -> failwith "You must specific a server name, or link to an existing server."
             Name = state.Name |> Helpers.santitiseDb |> ResourceName
             AdministratorCredentials =
                 match state.ServerName with

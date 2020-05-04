@@ -20,11 +20,10 @@ type ContainerRegistryConfig =
         |> ArmExpression
     interface IResourceBuilder with
         member this.BuildResources location _ = [
-            NewResource
-                { Name = this.Name
-                  Location = location
-                  Sku = this.Sku.ToString().Replace("_", ".")
-                  AdminUserEnabled = this.AdminUserEnabled }
+            { Name = this.Name
+              Location = location
+              Sku = this.Sku.ToString().Replace("_", ".")
+              AdminUserEnabled = this.AdminUserEnabled }
         ]
 type ContainerRegistryBuilder() =
     member _.Yield _ =

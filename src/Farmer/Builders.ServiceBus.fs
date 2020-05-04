@@ -5,14 +5,15 @@ open Farmer
 open Arm.ServiceBus
 
 type MessagingUnits = OneUnit | TwoUnits | FourUnits
-type ServiceBusNamespaceSku =
+[<RequireQualifiedAccess>]
+type ServiceBusSku =
     | Basic
     | Standard
     | Premium of MessagingUnits
 
 type ServiceBusQueueConfig =
     { NamespaceName : ResourceRef
-      NamespaceSku : ServiceBusNamespaceSku
+      NamespaceSku : ServiceBusSku
       Name : ResourceName
       LockDurationMinutes : int option
       DuplicateDetection : int option
@@ -44,36 +45,35 @@ type ServiceBusQueueConfig =
 
             match this.NamespaceName with
             | AutomaticallyCreated namespaceName ->
-                NewResource
-                    { Name = namespaceName
-                      Location = location
-                      Sku =
-                        match this.NamespaceSku with
-                        | Basic -> "Basic"
-                        | Standard -> "Standard"
-                        | Premium _ -> "Premium"
-                      Capacity =
-                        match this.NamespaceSku with
-                        | Basic -> None
-                        | Standard -> None
-                        | Premium OneUnit -> Some 1
-                        | Premium TwoUnits -> Some 2
-                        | Premium FourUnits -> Some 4
-                      DependsOn =
-                        this.DependsOn
-                      Queues = [ queue ]
-                    }
+                { Name = namespaceName
+                  Location = location
+                  Sku =
+                    match this.NamespaceSku with
+                    | ServiceBusSku.Basic -> "Basic"
+                    | ServiceBusSku.Standard -> "Standard"
+                    | ServiceBusSku.Premium _ -> "Premium"
+                  Capacity =
+                    match this.NamespaceSku with
+                    | ServiceBusSku.Basic -> None
+                    | ServiceBusSku.Standard -> None
+                    | ServiceBusSku.Premium OneUnit -> Some 1
+                    | ServiceBusSku.Premium TwoUnits -> Some 2
+                    | ServiceBusSku.Premium FourUnits -> Some 4
+                  DependsOn =
+                    this.DependsOn
+                  Queues = [ queue ]
+                }
             | External namespaceName ->
                 existingResources
                 |> Helpers.tryMergeResource namespaceName (fun ns -> { ns with Queues = queue :: ns.Queues })
             | AutomaticPlaceholder ->
-                NotSet
+                failwith "Service Bus Namespace Name has not been set."
         ]
 
 type ServiceBusQueueBuilder() =
     member _.Yield _ =
-        { NamespaceName = ResourceRef.AutomaticPlaceholder
-          NamespaceSku = Basic
+        { NamespaceName = AutomaticPlaceholder
+          NamespaceSku = ServiceBusSku.Basic
           Name = ResourceName.Empty
           LockDurationMinutes = None
           DuplicateDetection = None

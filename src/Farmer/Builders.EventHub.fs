@@ -97,10 +97,10 @@ type EventHubConfig =
                       Rights = rule.Value |> Set.map string |> Set.toList }
                 ]
 
-            match eventHubNamespace with Some n -> NewResource n | None -> ()
-            NewResource eventHub
-            for cg in consumerGroups do NewResource cg
-            for rule in authRules do NewResource rule
+            match eventHubNamespace with Some n -> n | None -> ()
+            eventHub
+            for cg in consumerGroups do cg
+            for rule in authRules do rule
         ]
 
 type EventHubBuilder() =

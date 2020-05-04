@@ -22,9 +22,9 @@ type AppInsightsConfig =
     member this.InstrumentationKey = instrumentationKey this.Name
     interface IResourceBuilder with
         member this.BuildResources location _ = [
-            NewResource { Name = this.Name
-                          Location = location
-                          LinkedWebsite = None }
+            { Name = this.Name
+              Location = location
+              LinkedWebsite = None }
         ]
 
 type AppInsightsBuilder() =
