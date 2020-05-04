@@ -42,59 +42,54 @@ type VmConfig =
     interface IResourceBuilder with
         member this.BuildResources location _ = [
             // VM itself
-            NewResource
-                { Name = this.Name
-                  Location = location
-                  StorageAccount =
-                    this.DiagnosticsStorageAccount
-                    |> Option.bind(function
-                        | AutomaticPlaceholder -> None
-                        | AutomaticallyCreated r -> Some r
-                        | External r -> Some r)
-                  NetworkInterfaceName = this.NicName
-                  Size = this.Size
-                  Credentials = {| Username = this.Username; Password = SecureParameter (sprintf "password-for-%s" this.Name.Value) |}
-                  Image = this.Image
-                  OsDisk = {| Size = this.OsDisk.Size; DiskType = string this.OsDisk.DiskType |}
-                  DataDisks = [
-                    for dataDisk in this.DataDisks do
-                        {| Size = dataDisk.Size
-                           DiskType = string dataDisk.DiskType |}
-                  ] }
-            
+            { Name = this.Name
+              Location = location
+              StorageAccount =
+                this.DiagnosticsStorageAccount
+                |> Option.bind(function
+                    | AutomaticPlaceholder -> None
+                    | AutomaticallyCreated r -> Some r
+                    | External r -> Some r)
+              NetworkInterfaceName = this.NicName
+              Size = this.Size
+              Credentials = {| Username = this.Username; Password = SecureParameter (sprintf "password-for-%s" this.Name.Value) |}
+              Image = this.Image
+              OsDisk = {| Size = this.OsDisk.Size; DiskType = string this.OsDisk.DiskType |}
+              DataDisks = [
+                for dataDisk in this.DataDisks do
+                    {| Size = dataDisk.Size
+                       DiskType = string dataDisk.DiskType |}
+              ] }
+
             // NIC
-            NewResource
-                { Name = this.NicName
-                  Location = location
-                  IpConfigs = [
-                    {| SubnetName = this.SubnetName
-                       PublicIpName = this.IpName |} ]
-                  VirtualNetwork = this.VnetName }
-            
+            { Name = this.NicName
+              Location = location
+              IpConfigs = [
+                {| SubnetName = this.SubnetName
+                   PublicIpName = this.IpName |} ]
+              VirtualNetwork = this.VnetName }
+
             // VNET
-            NewResource
-                { Name = this.VnetName
-                  Location = location
-                  AddressSpacePrefixes = [ this.AddressPrefix ]
-                  Subnets = [
-                      {| Name = this.SubnetName
-                         Prefix = this.SubnetPrefix |}
-                  ] }
+            { Name = this.VnetName
+              Location = location
+              AddressSpacePrefixes = [ this.AddressPrefix ]
+              Subnets = [
+                  {| Name = this.SubnetName
+                     Prefix = this.SubnetPrefix |}
+              ] }
 
             // IP Address
-            NewResource
-                { Name = this.IpName
-                  Location = location
-                  DomainNameLabel = this.DomainNamePrefix }
+            { Name = this.IpName
+              Location = location
+              DomainNameLabel = this.DomainNamePrefix }
 
             // Storage account - optional
             match this.DiagnosticsStorageAccount with
             | Some (AutomaticallyCreated account) ->
-                NewResource
-                    { Name = account
-                      Location = location
-                      Sku = StorageSku.Standard_LRS
-                      Containers = [] }
+                { Name = account
+                  Location = location
+                  Sku = StorageSku.Standard_LRS
+                  Containers = [] }
             | Some AutomaticPlaceholder
             | Some (External _)
             | None ->

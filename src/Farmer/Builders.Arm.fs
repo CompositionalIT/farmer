@@ -7,10 +7,9 @@ module Helpers =
         let output : ResourceBuilder =
             fun (location:Location) _ -> [
                 for resourceName, armObject in builder location do
-                    NewResource
-                        { new IResource with
-                            member _.ResourceName = ResourceName resourceName
-                            member _.ToArmObject() = armObject }
+                    { new IResource with
+                         member _.ResourceName = ResourceName resourceName
+                         member _.ToArmObject() = armObject }
             ]
         output
 
@@ -29,30 +28,18 @@ type ArmBuilder() =
           Location = WestEurope }
 
     member __.Run (state:ArmConfig) =
-        let resources =
-            state.Resources
-            |> List.groupBy(fun r -> r.GetType(), r.ResourceName)
-            |> List.choose(fun ((resourceType, resourceName), instances) ->
-                match instances with
-                | [] ->
-                   None
-                | [ resource ] ->
-                   Some resource
-                | resource :: _ ->
-                   printfn "Warning: %d %s resources were found with the same name of '%s'. The first one will be used." instances.Length resourceType.Name resourceName.Value
-                   Some resource)
         let template =
             { Parameters = [
-                for resource in resources do
+                for resource in state.Resources do
                     match resource with
                     | :? IParameters as p -> yield! p.SecureParameters
                     | _ -> ()
               ] |> List.distinct
               Outputs = state.Outputs |> Map.toList
-              Resources = resources }
+              Resources = state.Resources }
 
         let postDeployTasks = [
-            for resource in resources do
+            for resource in state.Resources do
                 match resource with
                 | :? IPostDeploy as pd -> pd
                 | _ -> ()
@@ -86,16 +73,23 @@ type ArmBuilder() =
         this.AddResource(state, builder.BuildResources)
 
     member __.AddResource (state:ArmConfig, builder:ResourceBuilder) =
-        let resources =
+        let updatedResources =
             builder state.Location state.Resources
-            |> List.fold(fun resources action ->
-                match action with
-                | NewResource newResource -> resources @ [ newResource ]
-                | MergedResource(oldVersion, newVersion) -> (resources |> List.filter ((<>) oldVersion)) @ [ newVersion ]
-                | CouldNotLocate (ResourceName resourceName) -> failwithf "Could not locate the parent resource ('%s'). Make sure you have correctly specified the name, and that it was added to the arm { } builder before this one." resourceName
-                | NotSet -> failwith "No parent resource name was set for this resource to link to.") state.Resources
+            |> List.fold(fun resources newResource ->
+                let resourceType = newResource.GetType()
+                let existing =
+                    resources
+                    |> List.filter(fun (r:IResource) ->
+                        r.ResourceName = newResource.ResourceName &&
+                        r.GetType() = resourceType)
 
-        { state with Resources = resources }
+                match existing with
+                | _ :: _ -> printfn "'%s/%s' has been replaced or updated." resourceType.Name newResource.ResourceName.Value
+                | [] -> ()
+                newResource :: (resources |> List.except existing)) state.Resources
+            |> List.rev
+
+        { state with Resources = updatedResources }
 
     [<CustomOperation "add_resources">]
     /// Adds a sequence of resources to the ARM template.

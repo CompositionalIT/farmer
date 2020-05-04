@@ -108,36 +108,6 @@ let tests = testList "Template" [
         Expect.sequenceEqual template.Template.Parameters [ SecureParameter "password-for-isaacvm" ] "Missing parameter for VM."
     }
 
-    test "Fails if can't locate a parent resource" {
-        Expect.throws(fun () ->
-            arm {
-                add_resource (fun _ _ -> [ CouldNotLocate (ResourceName "test") ])
-            } |> ignore) "Should throw an could not locate exception."
-    }
-
-    test "Fails if parent resource is not set" {
-        Expect.throws(fun () ->
-            arm {
-                add_resource (fun _ _ -> [ NotSet ])
-            } |> ignore) "Should throw an not set exception."
-    }
-
-    test "Correctly replaces a merged resource" {
-        let original =
-            { new IResource with
-                member _.ResourceName = ResourceName "A";
-                member _.ToArmObject() = obj() }
-        let updated =
-            { new IResource with
-                member _.ResourceName = ResourceName "B";
-                member _.ToArmObject() = obj() }
-        let template = arm {
-            add_resource (fun _ _ -> [ NewResource original ])
-            add_resource (fun _ _ -> [ MergedResource (original, updated) ])
-        }
-        Expect.equal template.Template.Resources [ updated ] "Should have removed the original resource."
-    }
-
     test "Outputs are correctly added" {
         let template = arm {
             output "foo" "bar"

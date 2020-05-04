@@ -19,7 +19,7 @@ let tests = testList "Service Bus Tests" [
                 add_resource (
                     serviceBus {
                         name "my-queue"
-                        sku ServiceBusNamespaceSku.Standard
+                        sku ServiceBusSku.Standard
                     })
             }
             |> findAzureResources<SBNamespace> dummyClient.SerializationSettings
@@ -53,7 +53,7 @@ let tests = testList "Service Bus Tests" [
         Expect.equal queue.MaxDeliveryCount (Nullable 3) "Max delivery count incorrect"
     }
 
-    test "Correctly created multiple queues" {
+    test "Correctly creates multiple queues" {
         let queueA = serviceBus { name "queue-a" }
         let queueB = serviceBus { name "queue-b"; link_to_namespace queueA }
         let deployment = arm { add_resource queueA; add_resource queueB }

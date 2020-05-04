@@ -28,17 +28,16 @@ type StorageAccountConfig =
     member this.Key = buildKey this.Name
     interface IResourceBuilder with
         member this.BuildResources location _ = [
-            NewResource
-                { Location = location
-                  Name = this.Name
-                  Sku = this.Sku
-                  Containers = [
-                    for container, access in this.Containers do
-                        container, match access with
-                                   | Private -> "None"
-                                   | Container -> "Container"
-                                   | Blob -> "Blob"
-                ] }
+            { Location = location
+              Name = this.Name
+              Sku = this.Sku
+              Containers = [
+                for container, access in this.Containers do
+                    container, match access with
+                               | Private -> "None"
+                               | Container -> "Container"
+                               | Blob -> "Blob"
+              ] }
         ]
 
 type StorageAccountBuilder() =

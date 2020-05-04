@@ -112,25 +112,24 @@ type ExpressRouteConfig =
     Peerings : ExpressRouteCircuitPeeringConfig list }
     interface IResourceBuilder with
         member exr.BuildResources location _ = [
-            NewResource
-                { Name = exr.Name
-                  Location = location
-                  Tier = string exr.Tier
-                  Family = string exr.Family
-                  ServiceProviderName = exr.ServiceProviderName
-                  PeeringLocation = exr.PeeringLocation
-                  Bandwidth = int exr.Bandwidth
-                  GlobalReachEnabled = exr.GlobalReachEnabled
-                  Peerings = [
-                      for peering in exr.Peerings do
-                          {| PeeringType = peering.PeeringType |> ExpressRouteCircuitPeeringType.format
-                             AzureASN = peering.AzureASN
-                             PeerASN = peering.PeerASN
-                             PrimaryPeerAddressPrefix = peering.PrimaryPeerAddressPrefix |> IPAddressCidr.format
-                             SecondaryPeerAddressPrefix = peering.SecondaryPeerAddressPrefix |> IPAddressCidr.format
-                             SharedKey = peering.SharedKey
-                             VlanId = peering.VlanId |}
-                  ] }
+            { Name = exr.Name
+              Location = location
+              Tier = string exr.Tier
+              Family = string exr.Family
+              ServiceProviderName = exr.ServiceProviderName
+              PeeringLocation = exr.PeeringLocation
+              Bandwidth = int exr.Bandwidth
+              GlobalReachEnabled = exr.GlobalReachEnabled
+              Peerings = [
+                  for peering in exr.Peerings do
+                      {| PeeringType = peering.PeeringType |> ExpressRouteCircuitPeeringType.format
+                         AzureASN = peering.AzureASN
+                         PeerASN = peering.PeerASN
+                         PrimaryPeerAddressPrefix = peering.PrimaryPeerAddressPrefix |> IPAddressCidr.format
+                         SecondaryPeerAddressPrefix = peering.SecondaryPeerAddressPrefix |> IPAddressCidr.format
+                         SharedKey = peering.SharedKey
+                         VlanId = peering.VlanId |}
+              ] }
         ]
 
 type ExpressRouteBuilder() =

@@ -144,18 +144,17 @@ type KeyVaultConfig =
                   IpRules = kvc.NetworkAcl.IpRules
                   VnetRules = kvc.NetworkAcl.VnetRules }
 
-            NewResource keyVault
-            yield!
-                [ for secret in kvc.Secrets do
-                    NewResource { ParentKeyVault = kvc.Name
-                                  Name = sprintf "%s/%s" kvc.Name.Value secret.Key |> ResourceName
-                                  Value = secret.Value
-                                  ContentType = secret.ContentType
-                                  Enabled = secret.Enabled |> Option.toNullable
-                                  ActivationDate = secret.ActivationDate |> Option.map totalSecondsSince1970 |> Option.toNullable
-                                  ExpirationDate = secret.ExpirationDate |> Option.map totalSecondsSince1970 |> Option.toNullable
-                                  Location = location
-                                  Dependencies = secret.Dependencies } ]
+            keyVault
+            for secret in kvc.Secrets do
+                { ParentKeyVault = kvc.Name
+                  Name = sprintf "%s/%s" kvc.Name.Value secret.Key |> ResourceName
+                  Value = secret.Value
+                  ContentType = secret.ContentType
+                  Enabled = secret.Enabled |> Option.toNullable
+                  ActivationDate = secret.ActivationDate |> Option.map totalSecondsSince1970 |> Option.toNullable
+                  ExpirationDate = secret.ExpirationDate |> Option.map totalSecondsSince1970 |> Option.toNullable
+                  Location = location
+                  Dependencies = secret.Dependencies }
         ]
 
 type AccessPolicyBuilder() =

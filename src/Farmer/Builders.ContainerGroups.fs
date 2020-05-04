@@ -66,28 +66,27 @@ type ContainerConfig =
                    Memory = float this.Memory |}
             match this.ContainerGroupName with
             | AutomaticallyCreated groupName ->
-                NewResource
-                    { Location = location
-                      Name = groupName
-                      ContainerInstances = [ container ]
-                      OsType = this.OsType.ToString()
-                      RestartPolicy = this.RestartPolicy.Value
-                      IpAddress =
-                        {| Ports = [
-                            for port in this.IpAddress.Ports do
-                                {| Protocol = port.Protocol.ToString()
-                                   Port = port.Port |}
-                           ]
-                           Type =
-                            match this.IpAddress.Type with
-                            | PublicAddress -> "Public"
-                            | PrivateAddress -> "Private" |}
-                    }
+                { Location = location
+                  Name = groupName
+                  ContainerInstances = [ container ]
+                  OsType = this.OsType.ToString()
+                  RestartPolicy = this.RestartPolicy.Value
+                  IpAddress =
+                    {| Ports = [
+                        for port in this.IpAddress.Ports do
+                            {| Protocol = port.Protocol.ToString()
+                               Port = port.Port |}
+                       ]
+                       Type =
+                        match this.IpAddress.Type with
+                        | PublicAddress -> "Public"
+                        | PrivateAddress -> "Private" |}
+                }
             | External containerGroupName ->
                 existingResources
                 |> Helpers.tryMergeResource containerGroupName (fun group -> { group with ContainerInstances = group.ContainerInstances @ [ container ] })
             | AutomaticPlaceholder ->
-                NotSet
+                failwith "Container Group Name has not been set."
         ]
 
 type ContainerBuilder() =

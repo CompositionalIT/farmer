@@ -49,20 +49,13 @@ type IParameters =
 type IPostDeploy =
     abstract member Run : resourceGroupName:string -> Option<Result<string, string>>
 
-/// Potential actions that can occur as a result of attempting to generate a resource action.
-type ResourceAction =
-    | NewResource of IResource
-    | MergedResource of old:IResource * replacement:IResource
-    | CouldNotLocate of ResourceName
-    | NotSet
-
 /// Represents a high-level configuration that can create a set of Resources.
 type IResourceBuilder =
     /// Given a location and the currently-built resources, returns a set of resource actions.
-    abstract member BuildResources : Location -> IResource list -> ResourceAction list
+    abstract member BuildResources : Location -> IResource list -> IResource list
 
 /// A functional equivalent of the IResourceBuilder's BuildResources method.
-type ResourceBuilder = Location -> IResource list -> ResourceAction list
+type ResourceBuilder = Location -> IResource list -> IResource list
 
 /// A low-level builder that takes in a location and generates raw ARM resources (and their
 /// resource name) in a form ready for JSON serialization.

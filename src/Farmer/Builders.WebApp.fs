@@ -237,8 +237,8 @@ type WebAppConfig =
                       WorkerCount = this.WorkerCount
                       OperatingSystem = this.OperatingSystem }
                     |> Some
-            NewResource webApp
-            match ai with Some ai -> NewResource ai | None -> ()
+            webApp
+            match ai with Some ai -> ai | None -> ()
             match serverFarm with Some serverFarm -> yield! (serverFarm :> IResourceBuilder).BuildResources location existingResources | None -> ()
         ]
 

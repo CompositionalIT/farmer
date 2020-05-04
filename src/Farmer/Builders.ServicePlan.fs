@@ -37,53 +37,52 @@ type ServicePlanConfig =
       OperatingSystem : OS }
     interface IResourceBuilder with
         member this.BuildResources location _ = [
-            NewResource
-              { Location = location
-                Name = this.Name
-                Sku =
-                  match this.Sku with
-                  | WebAppSku.Free ->
-                      "F1"
-                  | WebAppSku.Shared ->
-                      "D1"
-                  | WebAppSku.Basic sku
-                  | WebAppSku.Standard sku
-                  | WebAppSku.Premium sku
-                  | WebAppSku.PremiumV2 sku
-                  | WebAppSku.Isolated sku ->
-                      sku
-                  | WebAppSku.Functions ->
-                      "Y1"
-                WorkerSize =
-                  match this.WorkerSize with
-                  | Small -> "0"
-                  | Medium -> "1"
-                  | Large -> "2"
-                  | Serverless -> "Y1"
-                IsDynamic =
-                  match this.Sku, this.WorkerSize with
-                  | WebAppSku.Functions, Serverless -> true
-                  | _ -> false
-                Kind =
-                  match this.OperatingSystem with
-                  | Linux -> Some "linux"
-                  | _ -> None
-                Tier =
-                  match this.Sku with
-                  | WebAppSku.Free -> "Free"
-                  | WebAppSku.Shared -> "Shared"
-                  | WebAppSku.Basic _ -> "Basic"
-                  | WebAppSku.Standard _ -> "Standard"
-                  | WebAppSku.Premium _ -> "Premium"
-                  | WebAppSku.PremiumV2 _ -> "PremiumV2"
-                  | WebAppSku.Isolated _ -> "Isolated"
-                  | WebAppSku.Functions -> "Dynamic"
-                IsLinux =
-                  match this.OperatingSystem with
-                  | Linux -> true
-                  | Windows -> false
-                WorkerCount =
-                  this.WorkerCount }
+          { Location = location
+            Name = this.Name
+            Sku =
+              match this.Sku with
+              | WebAppSku.Free ->
+                  "F1"
+              | WebAppSku.Shared ->
+                  "D1"
+              | WebAppSku.Basic sku
+              | WebAppSku.Standard sku
+              | WebAppSku.Premium sku
+              | WebAppSku.PremiumV2 sku
+              | WebAppSku.Isolated sku ->
+                  sku
+              | WebAppSku.Functions ->
+                  "Y1"
+            WorkerSize =
+              match this.WorkerSize with
+              | Small -> "0"
+              | Medium -> "1"
+              | Large -> "2"
+              | Serverless -> "Y1"
+            IsDynamic =
+              match this.Sku, this.WorkerSize with
+              | WebAppSku.Functions, Serverless -> true
+              | _ -> false
+            Kind =
+              match this.OperatingSystem with
+              | Linux -> Some "linux"
+              | _ -> None
+            Tier =
+              match this.Sku with
+              | WebAppSku.Free -> "Free"
+              | WebAppSku.Shared -> "Shared"
+              | WebAppSku.Basic _ -> "Basic"
+              | WebAppSku.Standard _ -> "Standard"
+              | WebAppSku.Premium _ -> "Premium"
+              | WebAppSku.PremiumV2 _ -> "PremiumV2"
+              | WebAppSku.Isolated _ -> "Isolated"
+              | WebAppSku.Functions -> "Dynamic"
+            IsLinux =
+              match this.OperatingSystem with
+              | Linux -> true
+              | Windows -> false
+            WorkerCount =
+              this.WorkerCount }
         ]
 
 

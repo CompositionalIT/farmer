@@ -32,25 +32,24 @@ type SearchConfig =
         |> ArmExpression
     interface IResourceBuilder with
         member this.BuildResources location _ = [
-            NewResource
-                { Name = this.Name
-                  Location = location
-                  Sku =
-                    match this.Sku with
-                    | SearchSku.Free -> "free"
-                    | SearchSku.Basic -> "basic"
-                    | SearchSku.Standard -> "standard"
-                    | SearchSku.Standard2 -> "standard2"
-                    | SearchSku.Standard3 _ -> "standard3"
-                    | SearchSku.StorageOptimisedL1 -> "storage_optimized_l1"
-                    | SearchSku.StorageOptimisedL2 -> "storage_optimized_l2"
-                  ReplicaCount = this.Replicas
-                  PartitionCount = this.Partitions
-                  HostingMode =
-                    match this.Sku with
-                    | SearchSku.Standard3 HighDensity -> "highDensity"
-                    | _ -> "default"
-                  }
+            { Name = this.Name
+              Location = location
+              Sku =
+                match this.Sku with
+                | SearchSku.Free -> "free"
+                | SearchSku.Basic -> "basic"
+                | SearchSku.Standard -> "standard"
+                | SearchSku.Standard2 -> "standard2"
+                | SearchSku.Standard3 _ -> "standard3"
+                | SearchSku.StorageOptimisedL1 -> "storage_optimized_l1"
+                | SearchSku.StorageOptimisedL2 -> "storage_optimized_l2"
+              ReplicaCount = this.Replicas
+              PartitionCount = this.Partitions
+              HostingMode =
+                match this.Sku with
+                | SearchSku.Standard3 HighDensity -> "highDensity"
+                | _ -> "default"
+              }
         ]
 
 type SearchBuilder() =
