@@ -2,7 +2,6 @@ module ExpressRoute
 
 open Expecto
 open Farmer
-open Farmer.Models
 open Farmer.Resources
 open Microsoft.Azure.Management.Network
 open Microsoft.Azure.Management.Network.Models
@@ -22,7 +21,7 @@ let tests = testList "ExpressRoute" [
             arm { add_resource er }
             |> findAzureResources<ExpressRouteCircuit> client.SerializationSettings
             |> List.head
-        
+
         Expect.equal resource.Name "my-circuit" ""
         Expect.equal resource.Sku.Name "Standard_MeteredData" ""
         Expect.equal resource.Sku.Family "MeteredData" ""
@@ -32,7 +31,7 @@ let tests = testList "ExpressRoute" [
         Expect.equal resource.ServiceProviderProperties.PeeringLocation "My ISP's Location" ""
         Expect.equal resource.GlobalReachEnabled (Nullable false) ""
     }
-    
+
     test "Can create an ExR with one private peering" {
         let resource =
             let er = expressRoute {
@@ -44,8 +43,8 @@ let tests = testList "ExpressRoute" [
                         azure_asn 65412
                         peer_asn 39917L
                         vlan 199
-                        primary_prefix (Models.IPAddressCidr.parse "10.99.250.0/30")
-                        secondary_prefix (Models.IPAddressCidr.parse "10.99.250.4/30")
+                        primary_prefix (IPAddressCidr.parse "10.99.250.0/30")
+                        secondary_prefix (IPAddressCidr.parse "10.99.250.4/30")
                     }
                 )
                 enable_global_reach
@@ -54,13 +53,13 @@ let tests = testList "ExpressRoute" [
             arm { add_resource er }
             |> findAzureResources<ExpressRouteCircuit> client.SerializationSettings
             |> List.head
-        
+
         Expect.equal resource.Peerings.[0].AzureASN (Nullable 65412) ""
         Expect.equal resource.Peerings.[0].PeerASN (Nullable 39917L) ""
         Expect.equal resource.Peerings.[0].VlanId (Nullable 199) ""
         Expect.equal resource.Peerings.[0].PrimaryPeerAddressPrefix "10.99.250.0/30" ""
     }
-    
+
     test "Can create an ExR with global reach, premium tier, unlimited data" {
         let resource =
             let er = expressRoute {
@@ -74,8 +73,8 @@ let tests = testList "ExpressRoute" [
                         azure_asn 65412
                         peer_asn 39917L
                         vlan 199
-                        primary_prefix (Models.IPAddressCidr.parse "10.99.250.0/30")
-                        secondary_prefix (Models.IPAddressCidr.parse "10.99.250.4/30")
+                        primary_prefix (IPAddressCidr.parse "10.99.250.0/30")
+                        secondary_prefix (IPAddressCidr.parse "10.99.250.4/30")
                     }
                 )
                 enable_global_reach
@@ -84,7 +83,7 @@ let tests = testList "ExpressRoute" [
             arm { add_resource er }
             |> findAzureResources<ExpressRouteCircuit> client.SerializationSettings
             |> List.head
-        
+
         Expect.equal resource.Sku.Name "Premium_UnlimitedData" ""
         Expect.equal resource.Sku.Family "UnlimitedData" ""
         Expect.equal resource.Sku.Tier "Premium" ""

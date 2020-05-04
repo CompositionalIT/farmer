@@ -2,7 +2,7 @@
 module Farmer.Resources.ServiceBus
 
 open Farmer
-open Farmer.Models
+open Arm.ServiceBus
 
 type MessagingUnits = OneUnit | TwoUnits | FourUnits
 type ServiceBusNamespaceSku =
@@ -29,6 +29,47 @@ type ServiceBusQueueConfig =
         |> ArmExpression
     member this.NamespaceDefaultConnectionString = this.GetKeyPath this.NamespaceName.ResourceName.Value "primaryConnectionString"
     member this.DefaultSharedAccessPolicyPrimaryKey = this.GetKeyPath this.NamespaceName.ResourceName.Value "primaryKey"
+    interface IResourceBuilder with
+        member this.BuildResources location existingResources = [
+            let queue =
+                  { Name = this.Name
+                    LockDuration = this.LockDurationMinutes |> Option.map (sprintf "PT%dM")
+                    DuplicateDetection = this.DuplicateDetection |> Option.map(fun _ -> true)
+                    DuplicateDetectionHistoryTimeWindow = this.DuplicateDetection |> Option.map (sprintf "PT%dM")
+                    Session = this.Session
+                    DeadLetteringOnMessageExpiration = this.DeadLetteringOnMessageExpiration
+                    MaxDeliveryCount = this.MaxDeliveryCount
+                    EnablePartitioning = this.EnablePartitioning
+                    DependsOn = [ this.NamespaceName.ResourceName ] }
+
+            match this.NamespaceName with
+            | AutomaticallyCreated namespaceName ->
+                NewResource
+                    { Name = namespaceName
+                      Location = location
+                      Sku =
+                        match this.NamespaceSku with
+                        | Basic -> "Basic"
+                        | Standard -> "Standard"
+                        | Premium _ -> "Premium"
+                      Capacity =
+                        match this.NamespaceSku with
+                        | Basic -> None
+                        | Standard -> None
+                        | Premium OneUnit -> Some 1
+                        | Premium TwoUnits -> Some 2
+                        | Premium FourUnits -> Some 4
+                      DependsOn =
+                        this.DependsOn
+                      Queues = [ queue ]
+                    }
+            | External namespaceName ->
+                existingResources
+                |> Helpers.tryMergeResource namespaceName (fun ns -> { ns with Queues = queue :: ns.Queues })
+            | AutomaticPlaceholder ->
+                NotSet
+        ]
+
 type ServiceBusQueueBuilder() =
     member _.Yield _ =
         { NamespaceName = ResourceRef.AutomaticPlaceholder
@@ -74,79 +115,4 @@ type ServiceBusQueueBuilder() =
     /// Adds a resource that the service bus depends on.
     [<CustomOperation "depends_on">] member _.DependsOn(state:ServiceBusQueueConfig, resourceName) = { state with DependsOn = resourceName :: state.DependsOn }
 
-module Converters =
-    let serviceBusNamespace location (existingNamespaces:ServiceBusNamespace list) config =
-        let queue =
-              { Name = config.Name
-                LockDuration = config.LockDurationMinutes |> Option.map (sprintf "PT%dM")
-                DuplicateDetection = config.DuplicateDetection |> Option.map(fun _ -> true)
-                DuplicateDetectionHistoryTimeWindow = config.DuplicateDetection |> Option.map (sprintf "PT%dM")
-                Session = config.Session
-                DeadLetteringOnMessageExpiration = config.DeadLetteringOnMessageExpiration
-                MaxDeliveryCount = config.MaxDeliveryCount
-                EnablePartitioning = config.EnablePartitioning
-                DependsOn = [ config.NamespaceName.ResourceName ] }
-
-        match config.NamespaceName with
-        | AutomaticallyCreated namespaceName ->
-            { Name = namespaceName
-              Location = location
-              Sku =
-                match config.NamespaceSku with
-                | Basic -> "Basic"
-                | Standard -> "Standard"
-                | Premium _ -> "Premium"
-              Capacity =
-                match config.NamespaceSku with
-                | Basic -> None
-                | Standard -> None
-                | Premium OneUnit -> Some 1
-                | Premium TwoUnits -> Some 2
-                | Premium FourUnits -> Some 4
-              DependsOn =
-                config.DependsOn
-              Queues = [ queue ]
-            } |> NewResource
-        | External resourceName ->
-            existingNamespaces
-            |> List.tryFind(fun g -> g.Name = resourceName)
-            |> Option.map(fun ns -> MergedResource(ns, { ns with Queues = queue :: ns.Queues }))
-            |> Option.defaultValue (CouldNotLocate resourceName)
-        | AutomaticPlaceholder ->
-            NotSet
-
-    module Outputters =
-        let serviceBusNamespace (ns:ServiceBusNamespace) =
-            {| ``type`` = "Microsoft.ServiceBus/namespaces"
-               apiVersion = "2017-04-01"
-               name = ns.Name.Value
-               location = ns.Location.ArmValue
-               sku =
-                 {| name = ns.Sku
-                    tier = ns.Sku
-                    capacity = ns.Capacity |> Option.toNullable |}
-               dependsOn = ns.DependsOn |> List.map (fun r -> r.Value)
-               resources =
-                 [ for queue in ns.Queues do
-                     {| apiVersion = "2017-04-01"
-                        name = queue.Name.Value
-                        ``type`` = "Queues"
-                        dependsOn = queue.DependsOn |> List.map (fun r -> r.Value)
-                        properties =
-                         {| lockDuration = queue.LockDuration |> Option.toObj
-                            requiresDuplicateDetection = queue.DuplicateDetection |> Option.toNullable
-                            duplicateDetectionHistoryTimeWindow = queue.DuplicateDetectionHistoryTimeWindow |> Option.toObj
-                            requiresSession = queue.Session |> Option.toNullable
-                            deadLetteringOnMessageExpiration = queue.DeadLetteringOnMessageExpiration |> Option.toNullable
-                            maxDeliveryCount = queue.MaxDeliveryCount |> Option.toNullable
-                            enablePartitioning = queue.EnablePartitioning |> Option.toNullable |}
-                     |}
-                 ]
-            |}
-
 let serviceBus = ServiceBusQueueBuilder()
-
-type Farmer.ArmBuilder.ArmBuilder with
-    member _.AddResource(state:ArmConfig, config) =
-        state.AddOrMergeResource (Converters.serviceBusNamespace state.Location) config (function ServiceBusNamespace config -> Some config | _ -> None) ServiceBusNamespace
-    member this.AddResources (state, configs) = addResources<ServiceBusQueueConfig> this.AddResource state configs

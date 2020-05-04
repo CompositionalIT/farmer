@@ -94,8 +94,8 @@ module Az =
     let deploy resourceGroup deploymentName templateFilename parameters = deployOrValidate Create resourceGroup deploymentName templateFilename parameters
     let validate resourceGroup deploymentName templateFilename parameters = deployOrValidate Validate resourceGroup deploymentName templateFilename parameters |> Result.ignore
     /// Deploys a zip file to a web app using the Zip Deploy mechanism.
-    let zipDeploy webAppName (zipDeployKind:ZipDeployKind) resourceGroup =
-        let packageFilename = zipDeployKind.GetZipPath deployFolder
+    let zipDeploy webAppName getZipPath resourceGroup =
+        let packageFilename = getZipPath deployFolder
         az (sprintf """webapp deployment source config-zip --resource-group "%s" --name "%s" --src %s""" resourceGroup webAppName packageFilename)
     let delete resourceGroup =
         az (sprintf "group delete --name %s --yes --no-wait" resourceGroup)
@@ -186,9 +186,8 @@ let tryExecute resourceGroupName parameters deployment = result {
     let! response = Az.deploy resourceGroupName deploymentParameters.DeploymentName deploymentParameters.TemplateFilename parameters
 
     do!
-        [ for (RunFromZip wd) in deployment.PostDeployTasks do
-            printfn "Running ZIP deploy for %s" wd.Path.Value
-            Az.zipDeploy wd.WebApp.Value wd.Path resourceGroupName ]
+        [ for task in deployment.PostDeployTasks do task.Run resourceGroupName ]
+        |> List.choose id
         |> Result.sequence
         |> Result.ignore
 

@@ -2,35 +2,80 @@
 module Farmer.Resources.ExpressRoute
 
 open Farmer
-open Farmer.Models
+open System
+open System.Net
+open Arm.Network
+
+[<RequireQualifiedAccess>]
+type ExpressRouteTier =
+    | Standard
+    | Premium
+type ExpressRouteFamily =
+    | UnlimitedData
+    | MeteredData
+type ExpressRouteCircuitPeeringType =
+    | AzurePrivatePeering
+    | MicrosoftPeering
+module ExpressRouteCircuitPeeringType =
+    let format = function
+        | AzurePrivatePeering -> "AzurePrivatePeering"
+        | MicrosoftPeering -> "MicrosoftPeering"
+/// An IP address block in CIDR notation, such as 10.100.0.0/16.
+type IPAddressCidr =
+    { Address : IPAddress
+      Prefix : int }
+
+module IPAddressCidr =
+    let parse (s:string) : IPAddressCidr =
+        match s.Split([|'/'|], StringSplitOptions.RemoveEmptyEntries) with
+        [| ip; prefix |] ->
+            {
+                Address = IPAddress.Parse (ip.Trim())
+                Prefix = Int32.Parse prefix }
+        | _ -> raise (ArgumentOutOfRangeException "Malformed CIDR, expecting and IP and prefix separated by '/'")
+    let safeParse (s:string) : Result<IPAddressCidr, Exception> =
+        try parse s |> Ok
+        with ex -> Error ex
+    let format (cidr:IPAddressCidr) =
+        String.Format ("{0}/{1}", cidr.Address, cidr.Prefix)
+type ExpressRouteCircuitPeering =
+    { PeeringType : ExpressRouteCircuitPeeringType
+      AzureASN : int
+      PeerASN : int64
+      /// A /30 IP address block to use for the primary link
+      PrimaryPeerAddressPrefix : IPAddressCidr
+      /// A /30 IP address block to use for the secondary link
+      SecondaryPeerAddressPrefix : IPAddressCidr
+      SharedKey : string option
+      VlanId : int }
+
+type [<Measure>] Mbps
 
 type ExpressRouteCircuitPeeringConfig =
-  { /// The peering type
-    PeeringType : ExpressRouteCircuitPeeringType
-    /// Azure-side BGP Autonomous System Number (ASN)
-    AzureASN : int
-    /// Peer-side BGP Autonomous System Number (ASN)
-    PeerASN : int64
-    /// A /30 IP address block to use for the primary link
-    PrimaryPeerAddressPrefix : IPAddressCidr
-    /// A /30 IP address block to use for the secondary link
-    SecondaryPeerAddressPrefix : IPAddressCidr
-    /// An optional shared key that can be used when creating the peering
-    SharedKey : string option
-    /// The VLAN tag.
-    VlanId : int
-  }
+    { /// The peering type
+      PeeringType : ExpressRouteCircuitPeeringType
+      /// Azure-side BGP Autonomous System Number (ASN)
+      AzureASN : int
+      /// Peer-side BGP Autonomous System Number (ASN)
+      PeerASN : int64
+      /// A /30 IP address block to use for the primary link
+      PrimaryPeerAddressPrefix : IPAddressCidr
+      /// A /30 IP address block to use for the secondary link
+      SecondaryPeerAddressPrefix : IPAddressCidr
+      /// An optional shared key that can be used when creating the peering
+      SharedKey : string option
+      /// The VLAN tag.
+      VlanId : int }
 
 type ExpressRouteCircuitPeeringBuilder() =
     member __.Yield _ =
       { PeeringType = AzurePrivatePeering
         AzureASN = 0
         PeerASN = 0L
-        PrimaryPeerAddressPrefix = { Address = System.Net.IPAddress.None; Prefix = 0}
-        SecondaryPeerAddressPrefix = { Address = System.Net.IPAddress.None; Prefix = 0}
+        PrimaryPeerAddressPrefix = { Address = IPAddress.None; Prefix = 0}
+        SecondaryPeerAddressPrefix = { Address = IPAddress.None; Prefix = 0}
         SharedKey = None
-        VlanId = 0
-      }
+        VlanId = 0 }
     /// Sets the peering type.
     [<CustomOperation "peering_type">]
     member __.PeeringType (state:ExpressRouteCircuitPeeringConfig, peeringType) = { state with PeeringType = peeringType }
@@ -64,20 +109,40 @@ type ExpressRouteConfig =
     /// Indicates if global reach is enabled on this circuit
     GlobalReachEnabled : bool
     /// Peerings on this circuit
-    Peerings : ExpressRouteCircuitPeeringConfig list
-  }
+    Peerings : ExpressRouteCircuitPeeringConfig list }
+    interface IResourceBuilder with
+        member exr.BuildResources location _ = [
+            NewResource
+                { Name = exr.Name
+                  Location = location
+                  Tier = string exr.Tier
+                  Family = string exr.Family
+                  ServiceProviderName = exr.ServiceProviderName
+                  PeeringLocation = exr.PeeringLocation
+                  Bandwidth = int exr.Bandwidth
+                  GlobalReachEnabled = exr.GlobalReachEnabled
+                  Peerings = [
+                      for peering in exr.Peerings do
+                          {| PeeringType = peering.PeeringType |> ExpressRouteCircuitPeeringType.format
+                             AzureASN = peering.AzureASN
+                             PeerASN = peering.PeerASN
+                             PrimaryPeerAddressPrefix = peering.PrimaryPeerAddressPrefix |> IPAddressCidr.format
+                             SecondaryPeerAddressPrefix = peering.SecondaryPeerAddressPrefix |> IPAddressCidr.format
+                             SharedKey = peering.SharedKey
+                             VlanId = peering.VlanId |}
+                  ] }
+        ]
 
 type ExpressRouteBuilder() =
     member __.Yield _ =
       { Name = ResourceName.Empty
         Tier = ExpressRouteTier.Standard
-        Family = ExpressRouteFamily.MeteredData
+        Family = MeteredData
         ServiceProviderName = ""
         PeeringLocation = ""
         Bandwidth = 50<Mbps>
         GlobalReachEnabled = false
-        Peerings = []
-      }
+        Peerings = [] }
     /// Sets the name of the circuit
     [<CustomOperation "name">]
     member __.Name(state:ExpressRouteConfig, name) = { state with Name = ResourceName name }
@@ -103,70 +168,3 @@ type ExpressRouteBuilder() =
     [<CustomOperation "enable_global_reach">]
     member __.EnableGlobalReach(state:ExpressRouteConfig) = { state with GlobalReachEnabled = true }
 let expressRoute = ExpressRouteBuilder()
-
-module Converters =
-    let private peering (p:ExpressRouteCircuitPeeringConfig) : ExpressRouteCircuitPeering =
-        {
-            PeeringType = p.PeeringType
-            AzureASN = p.AzureASN
-            PeerASN = p.PeerASN
-            PrimaryPeerAddressPrefix = p.PrimaryPeerAddressPrefix
-            SecondaryPeerAddressPrefix = p.SecondaryPeerAddressPrefix
-            SharedKey = p.SharedKey
-            VlanId = p.VlanId
-        }
-        
-    let expressRoute location (exr:ExpressRouteConfig) : ExpressRouteCircuit =
-        {
-            Location = location
-            Name = exr.Name
-            Tier = exr.Tier
-            Family = exr.Family
-            ServiceProviderName = exr.ServiceProviderName
-            PeeringLocation = exr.PeeringLocation
-            Bandwidth = exr.Bandwidth
-            GlobalReachEnabled = exr.GlobalReachEnabled
-            Peerings =
-                exr.Peerings |> List.map peering
-        }
-    
-    module Outputters =
-        let private peering (p:ExpressRouteCircuitPeering) = {|
-            name = p.PeeringType |> ExpressRouteCircuitPeeringType.format
-            properties =
-                {| peeringType = p.PeeringType |> ExpressRouteCircuitPeeringType.format
-                   azureASN = p.AzureASN
-                   peerASN = p.PeerASN
-                   primaryPeerAddressPrefix = p.PrimaryPeerAddressPrefix |> IPAddressCidr.format
-                   secondaryPeerAddressPrefix = p.SecondaryPeerAddressPrefix |> IPAddressCidr.format
-                   vlanId = p.VlanId
-                   sharedKey = p.SharedKey
-                |}
-        |}
-        
-        let expressRoute (exr:ExpressRouteCircuit) = {|
-            ``type`` = "Microsoft.Network/expressRouteCircuits"
-            apiVersion = "2019-02-01"
-            name = exr.Name.Value
-            location = exr.Location.ArmValue
-            sku = {| name = System.String.Format("{0}_{1}", exr.Tier, exr.Family); tier = string exr.Tier; family = string exr.Family |}
-            properties =
-                {|
-                    peerings = exr.Peerings |> List.map peering
-                    serviceProviderProperties =
-                        {|
-                            serviceProviderName = exr.ServiceProviderName
-                            peeringLocation = exr.PeeringLocation
-                            bandwidthInMbps = exr.Bandwidth
-                        |}
-                    globalReachEnabled = exr.GlobalReachEnabled
-                |}
-        |}
-
-type ArmBuilder.ArmBuilder with
-    member __.AddResource(state:ArmConfig, config:ExpressRouteConfig) =
-        { state with
-            Resources = ExpressRoute (Converters.expressRoute state.Location config) :: state.Resources
-        }
-    member this.AddResources (state, configs) =
-        addResources<ExpressRouteConfig> this.AddResource state configs
