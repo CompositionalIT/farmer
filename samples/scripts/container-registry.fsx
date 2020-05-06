@@ -6,7 +6,7 @@ open Farmer.Resources.ContainerRegistry
 
 let myRegistry = containerRegistry {
     name "devonRegistry"
-    sku Basic
+    sku ContainerRegistrySku.Basic
     enable_admin_user
 }
 
@@ -18,4 +18,5 @@ let deployment = arm {
 }
 
 deployment
-|> Deploy.execute "FarmerTest" Deploy.NoParameters
+|> Deploy.whatIf "FarmerTest" Deploy.NoParameters
+|> printfn "%A"

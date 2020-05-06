@@ -41,21 +41,25 @@
     <Compile Include="Farmer.fs" />
     <Compile Include="Builders.Helpers.fs" />
     <Compile Include="Builders.Arm.fs" />
+    <Compile Include="Writer.fs" />
+    <Compile Include="Deploy.fs" />
+    <Compile Include="Farmer.Resources.fs" />
     <Compile Include="Builders.Storage.fs" />
     <Compile Include="Builders.Redis.fs" />
     <Compile Include="Builders.KeyVault.fs" />
     <Compile Include="Builders.Vm.fs" />
+    <Compile Include="Builders.ServicePlan.fs" />
+    <Compile Include="Builders.AppInsights.fs" />
     <Compile Include="Builders.WebApp.fs" />
     <Compile Include="Builders.Functions.fs" />
     <Compile Include="Builders.Sql.fs" />
     <Compile Include="Builders.Search.fs" />
     <Compile Include="Builders.Cosmos.fs" />
     <Compile Include="Builders.EventHub.fs" />
+    <Compile Include="Builders.ExpressRoute.fs" />
     <Compile Include="Builders.ContainerGroups.fs" />
-    <Compile Include="Builders.CognitiveSearch.fs" />
+    <Compile Include="Builders.CognitiveServices.fs" />
     <Compile Include="Builders.ContainerRegistry.fs" />
     <Compile Include="Builders.ServiceBus.fs" />
-    <Compile Include="Writer.fs" />
-    <Compile Include="Deploy.fs" />
   </ItemGroup>
 </Project>

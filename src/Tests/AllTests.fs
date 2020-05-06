@@ -11,6 +11,7 @@ let allTests =
                 ContainerGroup.tests
                 Storage.tests
                 ContainerRegistry.tests
+                ExpressRoute.tests
                 ServiceBus.tests
                 VirtualMachine.tests
             ]

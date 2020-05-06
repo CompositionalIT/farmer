@@ -25,7 +25,7 @@ let vault =
 
     keyVault {
         name "MyVault"
-        sku Standard
+        sku KeyVaultSku.Standard
         tenant_id Guid.Empty
 
         enable_disk_encryption_access

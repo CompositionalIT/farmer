@@ -1,7 +1,9 @@
 module Template
 
 open Farmer
+open Farmer.Resources
 open Expecto
+open Newtonsoft.Json
 
 module TestHelpers =
     let createSimpleDeployment parameters =
@@ -13,6 +15,7 @@ module TestHelpers =
               Resources = []
           }
         }
+    let convertTo<'T> = JsonConvert.SerializeObject >> JsonConvert.DeserializeObject<'T>
 
 open TestHelpers
 
@@ -42,5 +45,75 @@ let tests = testList "Template" [
         Expect.equal template.parameters.["p1"].``type`` "securestring" ""
         Expect.equal template.parameters.["p2"].``type`` "securestring" ""
         Expect.equal template.parameters.Count 2 ""
+    }
+
+    test "Can create a single resource" {
+        let template = arm {
+            add_resource (storageAccount { name "test" })
+        }
+
+        Expect.equal template.Template.Resources.Length 1 "Should be a single resource"
+    }
+
+    test "Can create multiple resources simultaneously" {
+        let template = arm {
+            add_resources [
+                storageAccount { name "test" }
+                storageAccount { name "test2" }
+            ]
+        }
+
+        Expect.equal template.Template.Resources.Length 2 "Should be two resources"
+    }
+
+    test "De-dupes the same resource name and type" {
+        let template = arm {
+            add_resources [
+                storageAccount { name "test" }
+                storageAccount { name "test" }
+            ]
+        }
+
+        Expect.equal template.Template.Resources.Length 1 "Should be a single resource"
+    }
+
+    test "Does not de-dupe the same resource name but different type" {
+        let template = arm {
+            add_resources [
+                storageAccount { name "test" }
+                cognitiveServices { name "test" }
+            ]
+        }
+
+        Expect.equal template.Template.Resources.Length 2 "Should be two resources"
+    }
+
+    test "Location is cascaded to all resources" {
+        let template = arm {
+            location NorthCentralUS
+            add_resources [
+                storageAccount { name "test" }
+                storageAccount { name "test2" }
+            ]
+        }
+
+        let allLocations = template.Template.Resources |> List.map (fun r -> r.ToArmObject() |> convertTo<{| Location : string |}>)
+        Expect.sequenceEqual allLocations [ {| Location = NorthCentralUS.ArmValue |}; {| Location = NorthCentralUS.ArmValue |} ] "Incorrect Location"
+    }
+
+    test "Secure parameter is correctly added" {
+        let template = arm {
+            add_resource (vm { name "isaacvm" })
+        }
+        Expect.sequenceEqual template.Template.Parameters [ SecureParameter "password-for-isaacvm" ] "Missing parameter for VM."
+    }
+
+    test "Outputs are correctly added" {
+        let template = arm {
+            output "foo" "bar"
+            output "foo" "baz"
+            output "bar" "bop"
+        }
+        Expect.sequenceEqual template.Template.Outputs [ "bar", "bop"; "foo", "baz" ] "Outputs should work like a key/value store"
     }
 ]

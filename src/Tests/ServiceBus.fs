@@ -2,8 +2,8 @@ module ServiceBus
 
 open Expecto
 open Farmer
-open Farmer.Models
 open Farmer.Resources
+open Arm.ServiceBus
 open Microsoft.Azure.Management.ServiceBus
 open Microsoft.Azure.Management.ServiceBus.Models
 open Microsoft.Rest
@@ -19,7 +19,7 @@ let tests = testList "Service Bus Tests" [
                 add_resource (
                     serviceBus {
                         name "my-queue"
-                        sku ServiceBusNamespaceSku.Standard
+                        sku ServiceBusSku.Standard
                     })
             }
             |> findAzureResources<SBNamespace> dummyClient.SerializationSettings
@@ -41,7 +41,7 @@ let tests = testList "Service Bus Tests" [
                 enable_session
                 lock_duration_minutes 10
                 max_delivery_count 3
-            } |> convertSingleConfig Converters.serviceBusNamespace Converters.Outputters.serviceBusNamespace (fun s -> s.resources.[0]) dummyClient.SerializationSettings
+            } |> convertResourceBuilder (fun (ns:{| resources:obj list |}) -> ns.resources.[0]) dummyClient.SerializationSettings
 
         Expect.equal queue.Name "my-queue" "Invalid queue name"
         Expect.isTrue (queue.RequiresDuplicateDetection.GetValueOrDefault false) "Duplicate detection should be enabled"
@@ -53,12 +53,12 @@ let tests = testList "Service Bus Tests" [
         Expect.equal queue.MaxDeliveryCount (Nullable 3) "Max delivery count incorrect"
     }
 
-    test "Correctly created multiple queues" {
+    test "Correctly creates multiple queues" {
         let queueA = serviceBus { name "queue-a" }
         let queueB = serviceBus { name "queue-b"; link_to_namespace queueA }
         let deployment = arm { add_resource queueA; add_resource queueB }
         match deployment.Template.Resources with
-        | [ ServiceBusNamespace { Queues = [ _; _ ] } ] ->
+        | [ :? Namespace as ns ] when ns.Queues.Length = 2 ->
             ()
         | _ ->
             failwith "Should have two queues in a single namespace."

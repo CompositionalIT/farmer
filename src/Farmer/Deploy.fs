@@ -81,25 +81,34 @@ module Az =
 
     type DeploymentCommand =
     | Create
+    | WhatIf
     | Validate
-        member this.Description = this.ToString().ToLower()
+        member this.Description =
+            match this with
+            | Create -> "create"
+            | WhatIf -> "what-if"
+            | Validate -> "validate"
 
     let private deployOrValidate (deploymentCommand:DeploymentCommand) resourceGroup deploymentName templateFilename parameters =
         let parametersArgument =
             match parameters with
             | [] -> ""
             | parameters -> sprintf "--parameters %s" (parameters |> List.map(fun (a,b) -> sprintf "%s=%s" a b) |> String.concat " ")
-        az (sprintf "deployment group %s -g %s -n %s --template-file %s %s" deploymentCommand.Description resourceGroup deploymentName templateFilename parametersArgument)
+        let cmd = sprintf """deployment group %s -g %s -n %s --template-file %s %s""" deploymentCommand.Description resourceGroup deploymentName templateFilename parametersArgument
+        az cmd
     /// Deploys an ARM template to an existing resource group.
     let deploy resourceGroup deploymentName templateFilename parameters = deployOrValidate Create resourceGroup deploymentName templateFilename parameters
+    /// Validates whether the specified template is syntactically correct and will be accepted by Azure Resource Manager.
     let validate resourceGroup deploymentName templateFilename parameters = deployOrValidate Validate resourceGroup deploymentName templateFilename parameters |> Result.ignore
+    // The what-if operation doesn't make any changes to existing resources. Instead, it predicts the changes if the specified template is deployed.
+    let whatIf resourceGroup deploymentName templateFilename parameters = deployOrValidate WhatIf resourceGroup deploymentName templateFilename parameters
     /// Deploys a zip file to a web app using the Zip Deploy mechanism.
-    let zipDeploy webAppName (zipDeployKind:ZipDeployKind) resourceGroup =
-        let packageFilename = zipDeployKind.GetZipPath deployFolder
+    let zipDeploy webAppName getZipPath resourceGroup =
+        let packageFilename = getZipPath deployFolder
         az (sprintf """webapp deployment source config-zip --resource-group "%s" --name "%s" --src %s""" resourceGroup webAppName packageFilename)
     let delete resourceGroup =
         az (sprintf "group delete --name %s --yes --no-wait" resourceGroup)
-
+    
 /// Represents an Azure subscription
 type Subscription = { ID : Guid; Name : string; IsDefault : bool }
 
@@ -177,6 +186,12 @@ let tryValidate resourceGroupName parameters deployment = result {
     return! Az.validate resourceGroupName deploymentParameters.DeploymentName deploymentParameters.TemplateFilename parameters
 }
 
+/// Validates a deployment against a resource group. If the resource group does not exist, it will be created automatically.
+let tryWhatIf resourceGroupName parameters deployment = result {
+    let! deploymentParameters = deployment |> prepareForDeployment parameters resourceGroupName
+    return! Az.whatIf resourceGroupName deploymentParameters.DeploymentName deploymentParameters.TemplateFilename parameters
+}
+
 /// Executes the supplied Deployment against a resource group using the Azure CLI.
 /// If successful, returns a Map of the output keys and values.
 let tryExecute resourceGroupName parameters deployment = result {
@@ -186,9 +201,8 @@ let tryExecute resourceGroupName parameters deployment = result {
     let! response = Az.deploy resourceGroupName deploymentParameters.DeploymentName deploymentParameters.TemplateFilename parameters
 
     do!
-        [ for (RunFromZip wd) in deployment.PostDeployTasks do
-            printfn "Running ZIP deploy for %s" wd.Path.Value
-            Az.zipDeploy wd.WebApp.Value wd.Path resourceGroupName ]
+        [ for task in deployment.PostDeployTasks do task.Run resourceGroupName ]
+        |> List.choose id
         |> Result.sequence
         |> Result.ignore
 
@@ -203,3 +217,9 @@ let execute resourceGroupName parameters deployment =
     match tryExecute resourceGroupName parameters deployment with
     | Ok output -> output
     | Error message -> failwith message
+    
+let whatIf resourceGroupName parameters deployment =
+    match tryWhatIf resourceGroupName parameters deployment with
+    | Ok output -> output
+    | Error message -> failwith message
+

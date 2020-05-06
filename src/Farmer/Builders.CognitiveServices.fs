@@ -1,9 +1,10 @@
 [<AutoOpen>]
-module Farmer.Resources.CognitiveSearch
+module Farmer.Resources.CognitiveServices
 
 open Farmer
-open Farmer.Models
+open Arm.CognitiveServices
 
+[<RequireQualifiedAccess>]
 /// Type of SKU. See https://github.com/Azure/azure-quickstart-templates/tree/master/101-cognitive-services-translate
 type CognitiveServicesSku =
     /// Free Tier
@@ -37,11 +38,18 @@ type CognitiveServicesConfig =
     { Name : ResourceName
       Sku : CognitiveServicesSku
       Api : CognitiveServicesApi }
+    interface IResourceBuilder with
+        member this.BuildResources location _ = [
+            { Name = this.Name
+              Location = location
+              Sku = this.Sku.ToString().Replace("_", ".")
+              Kind = this.Api.ToString() }
+        ]
 
 type CognitiveServicesBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
-          Sku = F0
+          Sku = CognitiveServicesSku.F0
           Api = AllInOne }
     [<CustomOperation "name">]
     member _.Name (state:CognitiveServicesConfig, name) = { state with Name = ResourceName name }
@@ -50,29 +58,4 @@ type CognitiveServicesBuilder() =
     [<CustomOperation "api">]
     member _.Api (state:CognitiveServicesConfig, api) = { state with Api = api }
 
-module Converters =
-    let cognitiveServices location config =
-        { Name = config.Name
-          Location = location
-          Sku = config.Sku.ToString().Replace("_", ".")
-          Kind = config.Api.ToString() }
-
-    module Outputters =
-        let cognitiveServices (service:Farmer.Models.CognitiveServices) =
-            {| name = service.Name.Value
-               ``type`` = "Microsoft.CognitiveServices/accounts"
-               apiVersion = "2017-04-18"
-               sku = {| name = service.Sku |}
-               kind = service.Kind
-               location = service.Location.ArmValue
-               tags = {||}
-               properties = {||} |}
-
 let cognitiveServices = CognitiveServicesBuilder()
-
-type Farmer.ArmBuilder.ArmBuilder with
-    member this.AddResource(state:ArmConfig, config) =
-        { state with
-            Resources = CognitiveService (Converters.cognitiveServices state.Location config) :: state.Resources
-        }
-    member this.AddResources (state, configs) = addResources<CognitiveServicesConfig> this.AddResource state configs

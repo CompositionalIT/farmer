@@ -2,7 +2,7 @@
 module Farmer.Resources.Redis
 
 open Farmer
-open Farmer.Models
+open Arm.Cache
 
 type TlsVersion = Tls10 | Tls11 | Tls12
 [<RequireQualifiedAccess>]
@@ -24,6 +24,28 @@ type RedisConfig =
       ShardCount : int option
       MinimumTlsVersion : TlsVersion option }
     member this.Key = buildRedisKey this.Name
+    interface IResourceBuilder with
+        member this.BuildResources location _ = [
+            { Name = this.Name
+              Location = location
+              Sku =
+                {| Name = string this.Sku
+                   Family =
+                    match this.Sku with
+                    | RedisSku.Basic | RedisSku.Standard -> 'C'
+                    | RedisSku.Premium -> 'P'
+                   Capacity = this.Capacity |}
+              RedisConfiguration = this.RedisConfiguration
+              NonSslEnabled = this.NonSslEnabled
+              ShardCount = this.ShardCount
+              MinimumTlsVersion =
+                this.MinimumTlsVersion
+                |> Option.map(function
+                | Tls10 -> "1.0"
+                | Tls11 -> "1.1"
+                | Tls12 -> "1.2")
+            }
+        ]
 
 type RedisBuilder() =
     member __.Yield _ =
@@ -76,54 +98,5 @@ type RedisBuilder() =
     member __.ShardCount(state:RedisConfig, shardCount) = { state with ShardCount = Some shardCount }
     [<CustomOperation "minimum_tls_version">]
     member __.MinimumTlsVersion(state:RedisConfig, tlsVersion) = { state with MinimumTlsVersion = Some tlsVersion }
-
-module Converters =
-    open Farmer.Models
-
-    let redis location (redis:RedisConfig) : Redis =
-        { Name = redis.Name
-          Location = location
-          Sku =
-            {| Name = string redis.Sku
-               Family =
-                match redis.Sku with
-                | RedisSku.Basic | RedisSku.Standard -> 'C'
-                | RedisSku.Premium -> 'P'
-               Capacity = redis.Capacity |}
-          RedisConfiguration = redis.RedisConfiguration
-          NonSslEnabled = redis.NonSslEnabled
-          ShardCount = redis.ShardCount
-          MinimumTlsVersion =
-            redis.MinimumTlsVersion
-            |> Option.map(function
-            | Tls10 -> "1.0"
-            | Tls11 -> "1.1"
-            | Tls12 -> "1.2")
-        }
-
-    module Outputters =
-        let redisCache (redis:Redis) = {|
-            ``type`` = "Microsoft.Cache/Redis"
-            apiVersion = "2018-03-01"
-            name = redis.Name.Value
-            location = redis.Location.ArmValue
-            properties =
-                {| sku =
-                    {| name = redis.Sku.Name
-                       family = redis.Sku.Family
-                       capacity = redis.Sku.Capacity
-                    |}
-                   enableNonSslPort = redis.NonSslEnabled |> Option.toNullable
-                   shardCount = redis.ShardCount |> Option.toNullable
-                   minimumTlsVersion = redis.MinimumTlsVersion |> Option.toObj
-                   redisConfiguration = redis.RedisConfiguration
-                |}
-        |}
-
-type ArmBuilder.ArmBuilder with
-    member this.AddResource(state:ArmConfig, config:RedisConfig) =
-        let redis = Converters.redis state.Location config
-        { state with Resources = RedisCache redis :: state.Resources }
-    member this.AddResources (state, configs) = addResources<RedisConfig> this.AddResource state configs
 
 let redis = RedisBuilder()
