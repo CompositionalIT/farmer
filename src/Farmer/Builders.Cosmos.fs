@@ -29,6 +29,9 @@ type CosmosDbConfig =
       Containers : CosmosDbContainerConfig list
       PublicNetworkAccess : FeatureFlag
       FreeTier : bool }
+    member this.PrimaryKey =
+        sprintf "[listKeys(resourceId('Microsoft.DocumentDB/databaseAccounts', '%s'), providers('Microsoft.DocumentDB','databaseAccounts').apiVersions[0]).primaryMasterKey]"
+            this.ServerName.ResourceName.Value
     interface IResourceBuilder with
         member this.BuildResources location _ = [
             match this.ServerName with

@@ -339,11 +339,15 @@ module DocumentDb =
                           databaseAccountOfferType = "Standard"
                           enableAutomaticFailure = this.EnableAutomaticFailure |> Option.toNullable
                           autoenableMultipleWriteLocations = this.EnableMultipleWriteLocations |> Option.toNullable
-                          locations = [
-                            for location in this.FailoverLocations do
-                                {| locationName = location.Location.ArmValue
-                                   failoverPriority = location.Priority |}
-                          ]
+                          locations =
+                            match this.FailoverLocations with
+                            | [] ->
+                                null
+                            | locations ->
+                                [ for location in locations do
+                                    {| locationName = location.Location.ArmValue
+                                       failoverPriority = location.Priority |}
+                                ] |> box
                           publicNetworkAccess = string this.PublicNetworkAccess
                           enableFreeTier = this.FreeTier
                        |} |> box
