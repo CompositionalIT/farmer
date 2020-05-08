@@ -2,7 +2,7 @@ module Storage
 
 open Expecto
 open Farmer
-open Farmer.Resources
+open Farmer.Builders
 open Microsoft.Azure.Management.Storage
 open Microsoft.Azure.Management.Storage.Models
 open Microsoft.Rest

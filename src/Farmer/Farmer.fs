@@ -14,7 +14,7 @@ type ResourceName =
     member this.Map mapper = match this with ResourceName r -> ResourceName (mapper r)
 
 /// An Azure ARM resource
-type IResource =
+type IArmResource =
     abstract member ResourceName : ResourceName
     abstract member ToArmObject : unit -> obj
 
@@ -41,7 +41,7 @@ type SecureParameter =
     /// Gets an ARM expression reference to the password e.g. parameters('my-password')
     member this.AsArmRef = sprintf "parameters('%s')" this.Value |> ArmExpression
 
-/// Exposes parameters which are required by a specific IResource.
+/// Exposes parameters which are required by a specific IArmResource.
 type IParameters =
     abstract member SecureParameters : SecureParameter list
 
@@ -49,17 +49,13 @@ type IParameters =
 type IPostDeploy =
     abstract member Run : resourceGroupName:string -> Option<Result<string, string>>
 
-/// Represents a high-level configuration that can create a set of Resources.
-type IResourceBuilder =
+/// Represents a high-level configuration that can create a set of ARM Resources.
+type IBuilder =
     /// Given a location and the currently-built resources, returns a set of resource actions.
-    abstract member BuildResources : Location -> IResource list -> IResource list
+    abstract member BuildResources : Location -> IArmResource list -> IArmResource list
 
-/// A functional equivalent of the IResourceBuilder's BuildResources method.
-type ResourceBuilder = Location -> IResource list -> IResource list
-
-/// A low-level builder that takes in a location and generates raw ARM resources (and their
-/// resource name) in a form ready for JSON serialization.
-type ArmResourceBuilder = Location -> (string * obj) list
+/// A functional equivalent of the IBuilder's BuildResources method.
+type Builder = Location -> IArmResource list -> IArmResource list
 
 [<AutoOpen>]
 module ArmExpression =
@@ -103,7 +99,7 @@ type SecretValue =
 type ArmTemplate =
     { Parameters : SecureParameter list
       Outputs : (string * string) list
-      Resources : IResource list }
+      Resources : IArmResource list }
 
 type Deployment =
     { Location : Location

@@ -1,8 +1,8 @@
 [<AutoOpen>]
-module Farmer.Resources.CognitiveServices
+module Farmer.Builders.CognitiveServices
 
 open Farmer
-open Arm.CognitiveServices
+open Farmer.Arm.CognitiveServices
 
 [<RequireQualifiedAccess>]
 /// Type of SKU. See https://github.com/Azure/azure-quickstart-templates/tree/master/101-cognitive-services-translate
@@ -38,7 +38,7 @@ type CognitiveServicesConfig =
     { Name : ResourceName
       Sku : CognitiveServicesSku
       Api : CognitiveServicesApi }
-    interface IResourceBuilder with
+    interface IBuilder with
         member this.BuildResources location _ = [
             { Name = this.Name
               Location = location

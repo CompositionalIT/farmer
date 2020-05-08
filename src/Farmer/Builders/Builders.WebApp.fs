@@ -1,9 +1,9 @@
 [<AutoOpen>]
-module Farmer.Resources.WebApp
+module Farmer.Builders.WebApp
 
 open Farmer
-open Arm.Web
-open Arm.Insights
+open Farmer.Arm.Web
+open Farmer.Arm.Insights
 
 type JavaHost =
     | JavaSE | WildFly14 | Tomcat of string
@@ -87,7 +87,7 @@ type WebAppConfig =
     member this.ServicePlan = this.ServicePlanName.ResourceName
     /// Gets the App Insights name for this web app, if it exists.
     member this.AppInsights = this.AppInsightsName |> Option.map (fun ai -> ai.ResourceName)
-    interface IResourceBuilder with
+    interface IBuilder with
         member this.BuildResources location existingResources = [
             let webApp =
                 { Name = this.Name
@@ -239,7 +239,7 @@ type WebAppConfig =
                     |> Some
             webApp
             match ai with Some ai -> ai | None -> ()
-            match serverFarm with Some serverFarm -> yield! (serverFarm :> IResourceBuilder).BuildResources location existingResources | None -> ()
+            match serverFarm with Some serverFarm -> yield! (serverFarm :> IBuilder).BuildResources location existingResources | None -> ()
         ]
 
 type WebAppBuilder() =

@@ -1,8 +1,8 @@
 [<AutoOpen>]
-module Farmer.Resources.SqlAzure
+module Farmer.Builders.SqlAzure
 
 open Farmer
-open Arm.Sql
+open Farmer.Arm.Sql
 open System.Net
 [<RequireQualifiedAccess>]
 type SqlSku = Free | Basic | Standard of string | Premium of string
@@ -50,7 +50,7 @@ type SqlAzureConfig =
               literal ";MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;" ]
     member this.Server =
         this.ServerName.ResourceName
-    interface IResourceBuilder with
+    interface IBuilder with
         member this.BuildResources location resources = [
             let database =
                 {| Name = this.Name

@@ -1,10 +1,10 @@
 [<AutoOpen>]
-module Farmer.Resources.ExpressRoute
+module Farmer.Builders.ExpressRoute
 
 open Farmer
 open System
 open System.Net
-open Arm.Network
+open Farmer.Arm.Network
 
 [<RequireQualifiedAccess>]
 type ExpressRouteTier =
@@ -29,15 +29,14 @@ module IPAddressCidr =
     let parse (s:string) : IPAddressCidr =
         match s.Split([|'/'|], StringSplitOptions.RemoveEmptyEntries) with
         [| ip; prefix |] ->
-            {
-                Address = IPAddress.Parse (ip.Trim())
-                Prefix = Int32.Parse prefix }
+            { Address = IPAddress.Parse (ip.Trim ())
+              Prefix = int prefix }
         | _ -> raise (ArgumentOutOfRangeException "Malformed CIDR, expecting and IP and prefix separated by '/'")
     let safeParse (s:string) : Result<IPAddressCidr, Exception> =
         try parse s |> Ok
         with ex -> Error ex
-    let format (cidr:IPAddressCidr) =
-        String.Format ("{0}/{1}", cidr.Address, cidr.Prefix)
+    let format cidr =
+        sprintf "%O/%d" cidr.Address cidr.Prefix
 type ExpressRouteCircuitPeering =
     { PeeringType : ExpressRouteCircuitPeeringType
       AzureASN : int
@@ -110,7 +109,7 @@ type ExpressRouteConfig =
     GlobalReachEnabled : bool
     /// Peerings on this circuit
     Peerings : ExpressRouteCircuitPeeringConfig list }
-    interface IResourceBuilder with
+    interface IBuilder with
         member exr.BuildResources location _ = [
             { Name = exr.Name
               Location = location

@@ -1,9 +1,9 @@
 ﻿[<AutoOpen>]
-module Farmer.Resources.KeyVault
+module Farmer.Builders.KeyVault
 
 open Farmer
 open System
-open Arm.KeyVault
+open Farmer.Arm.KeyVault
 open Vaults
 
 type [<RequireQualifiedAccess>] Key = Encrypt | Decrypt | WrapKey | UnwrapKey | Sign | Verify | Get | List | Create | Update | Import | Delete | Backup | Restore | Recover | Purge
@@ -92,7 +92,7 @@ type KeyVaultConfig =
       NetworkAcl : NetworkAcl
       Uri : Uri option
       Secrets : SecretConfig list }
-    interface IResourceBuilder with
+    interface IBuilder with
         member kvc.BuildResources location _ = [
             let keyVault =
                 { Name = kvc.Name

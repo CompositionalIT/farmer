@@ -1,18 +1,42 @@
 ﻿open Farmer
-open Farmer.Resources
+open Farmer.Builders
 
-//TODO: Create resources here!
+let eventGrid (topicName, subscriptionName, subscriptionUrl:string) (location:Location) = [
+        topicName,
+            box {| name = topicName
+                   ``type`` = "Microsoft.EventGrid/topics"
+                   location = location.ArmValue
+                   apiVersion = "2018-01-01" |}
+
+        topicName + "/Microsoft.EventGrid/" + subscriptionName,
+            box {| name = topicName + "/Microsoft.EventGrid/" + subscriptionName
+                   ``type`` = "Microsoft.EventGrid/topics/providers/eventSubscriptions"
+                   location = location.ArmValue
+                   apiVersion = "2018-01-01"
+                   properties =
+                       {| destination =
+                            {| endpointType = "WebHook"
+                               properties = {| endpointUrl = subscriptionUrl |}
+                            |}
+                          filter = {| includedEventTypes = [ "All" ] |}
+                       |}
+                   dependsOn = [ topicName ]
+                |}
+    ]
+
+let createEventGrid = eventGrid >> Helpers.asResourceBuilder
+
+let myEventGrid = createEventGrid ("THE-TOPIC", "THE-SUB", "https://requestb.in/1jz6i2h1")
+
+let storage = storageAccount {
+    name "isaacstorage"
+}
 
 let deployment = arm {
     location NorthEurope
-
-    //TODO: Assign resources here using the add_resource keyword
+    add_resource storage
+    add_resource myEventGrid
 }
 
-// Generate the ARM template here...
 deployment
 |> Writer.quickWrite @"generated-template"
-
-// Or deploy it directly to Azure here... (required Azure CLI installed!)
-// deployment
-// |> Deploy.quick "my-resource-group"

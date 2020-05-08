@@ -1,8 +1,8 @@
 [<AutoOpen>]
-module Farmer.Resources.CosmosDb
+module Farmer.Builders.CosmosDb
 
 open Farmer
-open Arm.DocumentDb
+open Farmer.Arm.DocumentDb
 open DatabaseAccounts
 open SqlDatabases
 
@@ -29,7 +29,7 @@ type CosmosDbConfig =
       Containers : CosmosDbContainerConfig list
       PublicNetworkAccess : FeatureFlag
       FreeTier : bool }
-    interface IResourceBuilder with
+    interface IBuilder with
         member this.BuildResources location _ = [
             match this.ServerName with
             | AutomaticallyCreated name ->

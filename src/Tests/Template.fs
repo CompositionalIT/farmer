@@ -1,7 +1,7 @@
 module Template
 
 open Farmer
-open Farmer.Resources
+open Farmer.Builders
 open Expecto
 open Newtonsoft.Json
 

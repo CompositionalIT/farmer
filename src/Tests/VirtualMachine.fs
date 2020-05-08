@@ -2,7 +2,7 @@ module VirtualMachine
 
 open Expecto
 open Farmer
-open Farmer.Resources
+open Farmer.Builders
 open Microsoft.Azure.Management.Compute
 open Microsoft.Azure.Management.Compute.Models
 open Microsoft.Rest

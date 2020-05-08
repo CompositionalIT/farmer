@@ -1,11 +1,11 @@
 [<AutoOpen>]
-module Farmer.Resources.Functions
+module Farmer.Builders.Functions
 
 open Farmer
 open Farmer.Helpers
-open Arm.Web
-open Arm.Insights
-open Arm.Storage
+open Farmer.Arm.Web
+open Farmer.Arm.Insights
+open Farmer.Arm.Storage
 
 type FunctionsRuntime = DotNet | Node | Java | Python
 type FunctionsExtensionVersion = V1 | V2 | V3
@@ -45,7 +45,7 @@ type FunctionsConfig =
     member this.AppInsights = this.AppInsightsName |> Option.map (fun ai -> ai.ResourceName)
     /// Gets the Storage Account name for this functions app.
     member this.StorageAccount = this.StorageAccountName.ResourceName
-    interface IResourceBuilder with
+    interface IBuilder with
         member this.BuildResources location existingResources = [
             { Name = this.Name
               ServicePlan = this.ServicePlanName.ResourceName
@@ -111,7 +111,7 @@ type FunctionsConfig =
                       WorkerSize = Serverless
                       WorkerCount = 0
                       OperatingSystem = this.OperatingSystem }
-                yield! (servicePlanConfig :> IResourceBuilder).BuildResources location existingResources
+                yield! (servicePlanConfig :> IBuilder).BuildResources location existingResources
             match this.StorageAccountName with
             | AutomaticallyCreated resourceName ->
                 { StorageAccount.Name = resourceName
@@ -218,7 +218,7 @@ type FunctionsBuilder() =
 
 [<AutoOpen>]
 module Extensions =
-    open Farmer.Resources
+    open Farmer.Builders
     type FunctionsBuilder with
         member this.DependsOn(state:FunctionsConfig, storageAccountConfig:StorageAccountConfig) =
             this.DependsOn(state, storageAccountConfig.Name)

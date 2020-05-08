@@ -1,8 +1,8 @@
 [<AutoOpen>]
-module Farmer.Resources.EventHub
+module Farmer.Builders.EventHub
 
 open Farmer
-open Arm.EventHub
+open Farmer.Arm.EventHub
 open Namespaces
 open EventHubs
 
@@ -43,7 +43,7 @@ type EventHubConfig =
         sprintf "resourceId('Microsoft.EventHub/namespaces/authorizationRules', '%s', 'RootManageSharedAccessKey')"
             this.EventHubNamespace.ResourceName.Value
         |> this.ToKeyExpression
-    interface IResourceBuilder with
+    interface IBuilder with
         member eventHubConfig.BuildResources location _ = [
             let eventHubNamespaceName = eventHubConfig.EventHubNamespace.ResourceName
             let eventHubNamespace =

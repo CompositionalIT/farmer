@@ -2,12 +2,16 @@
 module Farmer.ArmBuilder
 
 module Helpers =
-    /// Adapts a raw ArmResourceBuilder into a "full" ResourceBuilder that can be added as a resource to arm { } expressions.
-    let asResourceBuilder (builder:ArmResourceBuilder) =
-        let output : ResourceBuilder =
+    /// A low-level builder that takes in a location and generates raw ARM resources (and their
+    /// resource name) in a form ready for JSON serialization.
+    type ArmResourcesBuilder = Location -> (string * obj) list
+
+    /// Adapts a raw ArmResourceBuilder into a "full" Builder that can be added as a resource to arm { } expressions.
+    let asResourceBuilder (builder:ArmResourcesBuilder) =
+        let output : Builder =
             fun (location:Location) _ -> [
                 for resourceName, armObject in builder location do
-                    { new IResource with
+                    { new IArmResource with
                          member _.ResourceName = ResourceName resourceName
                          member _.ToArmObject() = armObject }
             ]
@@ -18,7 +22,7 @@ type ArmConfig =
     { Parameters : string Set
       Outputs : Map<string, string>
       Location : Location
-      Resources : IResource list }
+      Resources : IArmResource list }
 
 type ArmBuilder() =
     member __.Yield _ =
@@ -69,17 +73,17 @@ type ArmBuilder() =
 
     /// Adds a single resource to the ARM template.
     [<CustomOperation "add_resource">]
-    member this.AddResource (state:ArmConfig, builder:IResourceBuilder) =
+    member this.AddResource (state:ArmConfig, builder:IBuilder) =
         this.AddResource(state, builder.BuildResources)
 
-    member __.AddResource (state:ArmConfig, builder:ResourceBuilder) =
+    member __.AddResource (state:ArmConfig, builder:Builder) =
         let updatedResources =
             builder state.Location state.Resources
             |> List.fold(fun resources newResource ->
                 let resourceType = newResource.GetType()
                 let existing =
                     resources
-                    |> List.filter(fun (r:IResource) ->
+                    |> List.filter(fun (r:IArmResource) ->
                         r.ResourceName = newResource.ResourceName &&
                         r.GetType() = resourceType)
 
@@ -93,7 +97,7 @@ type ArmBuilder() =
 
     [<CustomOperation "add_resources">]
     /// Adds a sequence of resources to the ARM template.
-    member this.AddResources (state:ArmConfig, builders:IResourceBuilder list) =
+    member this.AddResources (state:ArmConfig, builders:IBuilder list) =
         builders
         |> Seq.fold(fun state builder -> this.AddResource(state, builder)) state
 
