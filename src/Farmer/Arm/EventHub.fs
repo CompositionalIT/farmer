@@ -13,11 +13,11 @@ type Namespace =
       KafkaEnabled : bool option }
     interface IArmResource with
         member this.ResourceName = this.Name
-        member this.ToArmObject location =
+        member this.JsonValue =
             {| ``type`` = "Microsoft.EventHub/namespaces"
                apiVersion = "2017-04-01"
                name = this.Name.Value
-               location = location.ArmValue
+               location = this.Location.ArmValue
                sku =
                    {| name = this.Sku.Name
                       tier = this.Sku.Tier
@@ -31,16 +31,17 @@ type Namespace =
 module Namespaces =
     type EventHub =
         { Name : ResourceName
+          Location : Location
           MessageRetentionDays : int option
           Partitions : int
           Dependencies : ResourceName list }
         interface IArmResource with
             member this.ResourceName = this.Name
-            member this.ToArmObject location =
+            member this.JsonValue =
                {| ``type`` = "Microsoft.EventHub/namespaces/eventhubs"
                   apiVersion = "2017-04-01"
                   name = this.Name.Value
-                  location = location.ArmValue
+                  location = this.Location.ArmValue
                   dependsOn = this.Dependencies |> List.map(fun d -> d.Value)
                   properties =
                       {| messageRetentionInDays = this.MessageRetentionDays |> Option.toNullable
@@ -50,28 +51,30 @@ module Namespaces =
     module EventHubs =
         type ConsumerGroup =
             { Name : ResourceName
+              Location : Location
               Dependencies : ResourceName list }
             interface IArmResource with
                 member this.ResourceName = this.Name
-                member this.ToArmObject location =
+                member this.JsonValue =
                     {| ``type`` = "Microsoft.EventHub/namespaces/eventhubs/consumergroups"
                        apiVersion = "2017-04-01"
                        name = this.Name.Value
-                       location = location.ArmValue
+                       location = this.Location.ArmValue
                        dependsOn = this.Dependencies |> List.map(fun d -> d.Value)
                     |} :> _
 
         type AuthorizationRule =
             { Name : ResourceName
+              Location : Location
               Dependencies : ResourceName list
               Rights : string list }
             interface IArmResource with
                 member this.ResourceName = this.Name
-                member this.ToArmObject location =
+                member this.JsonValue =
                     {| ``type`` = "Microsoft.EventHub/namespaces/eventhubs/AuthorizationRules"
                        apiVersion = "2017-04-01"
                        name = this.Name.Value
-                       location = location.ArmValue
+                       location = this.Location.ArmValue
                        dependsOn = this.Dependencies |> List.map(fun d -> d.Value)
                        properties = {| rights = this.Rights |}
                     |} :> _

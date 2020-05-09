@@ -5,6 +5,7 @@ open Farmer
 
 type Redis =
     { Name : ResourceName
+      Location : Location
       Sku :
         {| Name : string
            Family : char
@@ -15,11 +16,11 @@ type Redis =
       MinimumTlsVersion : string option }
     interface IArmResource with
         member this.ResourceName = this.Name
-        member this.ToArmObject location =
+        member this.JsonValue =
             {| ``type`` = "Microsoft.Cache/Redis"
                apiVersion = "2018-03-01"
                name = this.Name.Value
-               location = location.ArmValue
+               location = this.Location.ArmValue
                properties =
                    {| sku =
                        {| name = this.Sku.Name

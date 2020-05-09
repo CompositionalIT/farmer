@@ -15,7 +15,7 @@ let findAzureResources<'T when 'T : null> (serializationSettings:Newtonsoft.Json
 let convertResourceBuilder mapper (serializationSettings:Newtonsoft.Json.JsonSerializerSettings) (resourceBuilder:IBuilder) =
     resourceBuilder.BuildResources NorthEurope []
     |> List.pick(fun r ->
-            r.ToArmObject()
+            r.JsonValue
             |> SafeJsonConvert.SerializeObject
             |> SafeJsonConvert.DeserializeObject
             |> mapper

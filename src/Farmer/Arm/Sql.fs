@@ -5,6 +5,7 @@ open Farmer
 
 type Server =
     { ServerName : ResourceName
+      Location : Location
       Credentials : {| Username : string; Password : SecureParameter |}
       Databases :
           {| Name : ResourceName
@@ -21,11 +22,11 @@ type Server =
         member this.SecureParameters = [ this.Credentials.Password ]
     interface IArmResource with
         member this.ResourceName = this.ServerName
-        member this.ToArmObject location =
+        member this.JsonValue =
             {| ``type`` = "Microsoft.Sql/servers"
                name = this.ServerName.Value
                apiVersion = "2014-04-01-preview"
-               location = location.ArmValue
+               location = this.Location.ArmValue
                tags = {| displayName = this.ServerName.Value |}
                properties =
                    {| administratorLogin = this.Credentials.Username
@@ -37,7 +38,7 @@ type Server =
                            {| ``type`` = "databases"
                               name = database.Name.Value
                               apiVersion = "2015-01-01"
-                              location = location.ArmValue
+                              location = this.Location.ArmValue
                               tags = {| displayName = database.Name.Value |}
                               properties =
                                {| edition = database.Edition
@@ -65,7 +66,7 @@ type Server =
                            {| ``type`` = "firewallrules"
                               name = rule.Name
                               apiVersion = "2014-04-01"
-                              location = location.ArmValue
+                              location = this.Location.ArmValue
                               properties =
                                {| endIpAddress = string rule.Start
                                   startIpAddress = string rule.End |}

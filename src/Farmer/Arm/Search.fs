@@ -5,17 +5,18 @@ open Farmer
 
 type SearchService =
     { Name : ResourceName
+      Location : Location
       Sku : string
       HostingMode : string
       ReplicaCount : int
       PartitionCount : int }
     interface IArmResource with
         member this.ResourceName = this.Name
-        member this.ToArmObject location =
+        member this.JsonValue =
             {| ``type`` = "Microsoft.Search/searchServices"
                apiVersion = "2015-08-19"
                name = this.Name.Value
-               location = location.ArmValue
+               location = this.Location.ArmValue
                sku =
                 {| name = this.Sku |}
                properties =

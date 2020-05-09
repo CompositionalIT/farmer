@@ -16,7 +16,7 @@ type ResourceName =
 /// An Azure ARM resource value, which can be serialized to JSON.
 type IArmResource =
     abstract member ResourceName : ResourceName
-    abstract member ToArmObject : unit -> obj
+    abstract member JsonValue : obj
 
 /// Represents an expression used within an ARM template
 type ArmExpression =

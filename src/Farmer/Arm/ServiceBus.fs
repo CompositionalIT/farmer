@@ -16,17 +16,18 @@ type ServiceBusQueue =
 
 type Namespace =
     { Name : ResourceName
+      Location : Location
       Sku : string
       Capacity : int option
       Queues :ServiceBusQueue list
       DependsOn : ResourceName list }
     interface IArmResource with
         member this.ResourceName = this.Name
-        member this.ToArmObject location =
+        member this.JsonValue =
             {| ``type`` = "Microsoft.ServiceBus/namespaces"
                apiVersion = "2017-04-01"
                name = this.Name.Value
-               location = location.ArmValue
+               location = this.Location.ArmValue
                sku =
                  {| name = this.Sku
                     tier = this.Sku

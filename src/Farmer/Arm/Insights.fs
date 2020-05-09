@@ -5,14 +5,15 @@ open Farmer
 
 type Components =
     { Name : ResourceName
+      Location : Location
       LinkedWebsite : ResourceName option }
     interface IArmResource with
         member this.ResourceName = this.Name
-        member this.ToArmObject location =
+        member this.JsonValue =
             {| ``type`` = "Microsoft.Insights/components"
                kind = "web"
                name = this.Name.Value
-               location = location.ArmValue
+               location = this.Location.ArmValue
                apiVersion = "2014-04-01"
                tags =
                    [ match this.LinkedWebsite with

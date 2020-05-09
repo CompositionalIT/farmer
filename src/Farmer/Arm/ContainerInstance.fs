@@ -5,6 +5,7 @@ open Farmer
 
 type ContainerGroup =
     { Name : ResourceName
+      Location : Location
       ContainerInstances :
         {| Name : ResourceName
            Image : string
@@ -17,11 +18,11 @@ type ContainerGroup =
 
     interface IArmResource with
         member this.ResourceName = this.Name
-        member this.ToArmObject location =
+        member this.JsonValue =
             {| ``type`` = "Microsoft.ContainerInstance/containerGroups"
                apiVersion = "2018-10-01"
                name = this.Name.Value
-               location = location.ArmValue
+               location = this.Location.ArmValue
                properties =
                    {| containers =
                        this.ContainerInstances

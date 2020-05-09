@@ -5,6 +5,7 @@ open Farmer
 
 type ServerFarm =
     { Name : ResourceName
+      Location : Location
       Sku: string
       WorkerSize : string
       IsDynamic : bool
@@ -14,7 +15,7 @@ type ServerFarm =
       IsLinux : bool }
     interface IArmResource with
         member this.ResourceName = this.Name
-        member this.ToArmObject location =
+        member this.JsonValue =
             {| ``type`` = "Microsoft.Web/serverfarms"
                sku =
                    {| name = this.Sku
@@ -24,7 +25,7 @@ type ServerFarm =
                       capacity = if this.IsDynamic then 0 else this.WorkerCount |}
                name = this.Name.Value
                apiVersion = "2018-02-01"
-               location = location.ArmValue
+               location = this.Location.ArmValue
                properties =
                    if this.IsDynamic then
                        box {| name = this.Name.Value
@@ -67,6 +68,7 @@ module ZipDeploy =
 
 type Sites =
     { Name : ResourceName
+      Location : Location
       ServicePlan : ResourceName
       AppSettings : List<string * string>
       AlwaysOn : bool
@@ -100,11 +102,11 @@ type Sites =
                 None
     interface IArmResource with
         member this.ResourceName = this.Name
-        member this.ToArmObject location =
+        member this.JsonValue =
             {| ``type`` = "Microsoft.Web/sites"
                name = this.Name.Value
                apiVersion = "2016-08-01"
-               location = location.ArmValue
+               location = this.Location.ArmValue
                dependsOn = this.Dependencies |> List.map(fun p -> p.Value)
                kind = this.Kind
                properties =

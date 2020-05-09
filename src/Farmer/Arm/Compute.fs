@@ -5,6 +5,7 @@ open Farmer
 
 type VirtualMachine =
     { Name : ResourceName
+      Location : Location
       StorageAccount : ResourceName option
       Size : VMSize
       Credentials : {| Username : string; Password : SecureParameter |}
@@ -16,11 +17,11 @@ type VirtualMachine =
         member this.SecureParameters = [ this.Credentials.Password ]
     interface IArmResource with
         member this.ResourceName = this.Name
-        member this.ToArmObject location =
+        member this.JsonValue =
             {| ``type`` = "Microsoft.Compute/virtualMachines"
                apiVersion = "2018-10-01"
                name = this.Name.Value
-               location = location.ArmValue
+               location = this.Location.ArmValue
                dependsOn = [
                    this.NetworkInterfaceName.Value
                    match this.StorageAccount with

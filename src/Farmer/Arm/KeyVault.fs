@@ -7,6 +7,7 @@ open System
 module Vaults =
     type Secret =
         { Name : ResourceName
+          Location : Location
           Value : SecretValue
           ParentKeyVault : ResourceName
           ContentType : string option
@@ -21,11 +22,11 @@ module Vaults =
                 | _ -> []
         interface IArmResource with
             member this.ResourceName = this.Name
-            member this.ToArmObject location =
+            member this.JsonValue =
                 {| ``type`` = "Microsoft.KeyVault/vaults/secrets"
                    name = this.Name.Value
                    apiVersion = "2018-02-14"
-                   location = location.ArmValue
+                   location = this.Location.ArmValue
                    dependsOn = [
                        this.ParentKeyVault.Value
                        for dependency in this.Dependencies do
@@ -43,6 +44,7 @@ module Vaults =
 
 type Vault =
     { Name : ResourceName
+      Location : Location
       TenantId : string
       Sku : string
       Uri : string option
@@ -67,11 +69,11 @@ type Vault =
       VnetRules : string list }
     interface IArmResource with
         member this.ResourceName = this.Name
-        member this.ToArmObject location =
+        member this.JsonValue =
             {| ``type``= "Microsoft.KeyVault/vaults"
                name = this.Name.Value
                apiVersion = "2018-02-14"
-               location = location.ArmValue
+               location = this.Location.ArmValue
                properties =
                  {| tenantId = this.TenantId
                     sku = {| name = this.Sku; family = "A" |}

@@ -5,17 +5,18 @@ open Farmer
 
 type StorageAccount =
     { Name : ResourceName
+      Location : Location
       Sku : StorageSku
       Containers : (string * string) list }
     interface IArmResource with
         member this.ResourceName = this.Name
-        member this.ToArmObject location =
+        member this.JsonValue =
             {| ``type`` = "Microsoft.Storage/storageAccounts"
                sku = {| name = this.Sku.ArmValue |}
                kind = "StorageV2"
                name = this.Name.Value
                apiVersion = "2018-07-01"
-               location = location.ArmValue
+               location = this.Location.ArmValue
                resources = [
                    for (name, access) in this.Containers do
                     {| ``type`` = "blobServices/containers"

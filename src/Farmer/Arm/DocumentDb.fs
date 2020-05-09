@@ -24,7 +24,7 @@ module DatabaseAccounts =
             }
             interface IArmResource with
                 member this.ResourceName = this.Name
-                member this.ToArmObject location =
+                member this.JsonValue =
                     {| ``type`` = "Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers"
                        name = sprintf "%s/%s/%s" this.Account.Value this.Database.Value this.Name.Value
                        apiVersion = "2020-03-01"
@@ -62,7 +62,7 @@ module DatabaseAccounts =
           Throughput : string }
         interface IArmResource with
             member this.ResourceName = this.Name
-            member this.ToArmObject location =
+            member this.JsonValue =
                 {| ``type`` = "Microsoft.DocumentDB/databaseAccounts/sqlDatabases"
                    name = sprintf "%s/%s" this.Account.Value this.Name.Value
                    apiVersion = "2020-03-01"
@@ -74,6 +74,7 @@ module DatabaseAccounts =
 
 type DatabaseAccount =
     { Name : ResourceName
+      Location : Location
       ConsistencyPolicy : string
       MaxStaleness : int option
       MaxInterval : int option
@@ -84,11 +85,11 @@ type DatabaseAccount =
       FreeTier : bool }
     interface IArmResource with
         member this.ResourceName = this.Name
-        member this.ToArmObject location =
+        member this.JsonValue =
             {| ``type`` = "Microsoft.DocumentDB/databaseAccounts"
                name = this.Name.Value
                apiVersion = "2020-03-01"
-               location = location.ArmValue
+               location = this.Location.ArmValue
                kind = "GlobalDocumentDB"
                tags =
                    {| defaultExperience = "Core (SQL)"
