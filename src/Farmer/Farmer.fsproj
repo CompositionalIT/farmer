@@ -31,14 +31,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="FSharp.Core" Version="4.7.0" />
+    <PackageReference Update="FSharp.Core" Version="4.7.1" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
   </ItemGroup>
 
   <ItemGroup>
     <Compile Include="Common.fs" />
     <Compile Include="Result.fs" />
-    <Compile Include="Farmer.fs" />
+    <Compile Include="Types.fs" />
     <Compile Include="ArmBuilder.fs" />
     <Compile Include="Writer.fs" />
     <Compile Include="Deploy.fs" />

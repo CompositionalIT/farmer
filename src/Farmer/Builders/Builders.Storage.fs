@@ -11,7 +11,6 @@ let internal buildKey (ResourceName name) =
             name
     |> ArmExpression
 
-
 type StorageContainerAccess =
     | Private
     | Container

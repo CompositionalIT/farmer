@@ -42,8 +42,8 @@ type CognitiveServicesConfig =
         member this.BuildResources location _ = [
             { Name = this.Name
               Location = location
-              Sku = this.Sku.ToString().Replace("_", ".")
-              Kind = this.Api.ToString() }
+              Sku = this.Sku.ToString()
+              Kind = this.Api.ToString().Replace("_", ".") }
         ]
 
 type CognitiveServicesBuilder() =
