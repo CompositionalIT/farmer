@@ -101,10 +101,10 @@ type SqlBuilder() =
         { state with
             ServerName =
                 match state.ServerName with
-                | External x -> External(x |> Helpers.santitiseDb |> ResourceName)
-                | AutomaticallyCreated x -> AutomaticallyCreated(x |> Helpers.santitiseDb |> ResourceName)
+                | External x -> External(x |> Helpers.sanitiseDb |> ResourceName)
+                | AutomaticallyCreated x -> AutomaticallyCreated(x |> Helpers.sanitiseDb |> ResourceName)
                 | AutomaticPlaceholder -> failwith "You must specific a server name, or link to an existing server."
-            Name = state.Name |> Helpers.santitiseDb |> ResourceName
+            Name = state.Name |> Helpers.sanitiseDb |> ResourceName
             AdministratorCredentials =
                 match state.ServerName with
                 | External _ -> state.AdministratorCredentials
