@@ -634,6 +634,133 @@ module ServiceBus =
                      ]
                 |} :> _
 
+module PostgreSQL =
+    type SkuTier = 
+        | Basic 
+        | GeneralPurpose 
+        | MemoryOptimized
+        override this.ToString() =
+            match this with
+            | Basic -> "B"
+            | GeneralPurpose -> "G"
+            | MemoryOptimized -> "M"
+        
+    type SkuFamily = Gen5
+    
+    type StorageSizeInMBs = private | StorageSizeInMBs of int
+    
+    module StorageSizeInMBs =
+        let private MIN_SIZE_MB = 5 * 1024
+        let private MAX_SIZE_MB = 1024 * 1024
+        
+        let ofInt n =
+            if n >= MIN_SIZE_MB && n <= MAX_SIZE_MB then StorageSizeInMBs n
+            else failwithf "StorageSizeInMBs must be between %d and %d inclusive, was %d" MIN_SIZE_MB MAX_SIZE_MB n 
+            
+        let toInt = function
+            | StorageSizeInMBs n -> n
+
+    type SkuCapacity =
+        | VCores_1
+        | VCores_2
+        | VCores_4
+        | VCores_8
+        | VCores_16
+        | VCores_32
+        | VCores_64
+        member this.ToInt() =
+            match this with
+            | VCores_1 -> 1
+            | VCores_2 -> 2
+            | VCores_4 -> 4
+            | VCores_8 -> 8
+            | VCores_16 -> 16
+            | VCores_32 -> 32
+            | VCores_64 -> 64
+            
+    type SkuSpec =
+        { Tier : SkuTier
+          Capacity : SkuCapacity
+          Size : StorageSizeInMBs
+          Family : SkuFamily }
+        member this.ToArmObject () =
+            {| name = sprintf "%O_%O_%O" this.Tier this.Family this.Capacity
+               tier = this.Tier.ToString()
+               capacity = this.Capacity.ToString()
+               family = this.Family.ToString()
+               size = StorageSizeInMBs.toInt this.Size |}
+    
+
+    type BackupRetentionInDays = private | BackupRetentionInDays of int
+        
+    module BackupRetentionInDays =
+        let private MIN_SIZE_DAYS = 7
+        let private MAX_SIZE_DAYS = 35
+        
+        let ofInt days =
+            if days >= MIN_SIZE_DAYS && days <= MAX_SIZE_DAYS then BackupRetentionInDays days
+            else failwithf "BackupRetentionInDays must be between %d and %d inclusive, was %d"
+                     MIN_SIZE_DAYS MAX_SIZE_DAYS days 
+            
+        let toInt = function
+            | BackupRetentionInDays days -> days
+
+    type ServerVersion =
+        | VS_9_5
+        | VS_9_6
+        | VS_10
+        | VS_11
+        override this.ToString() =
+            match this with
+            | VS_9_5 -> "9.5"
+            | VS_9_6 -> "9.6"
+            | VS_10 -> "10"
+            | VS_11 -> "11"
+        
+    type Server =
+        { ServerName : ResourceName
+          Location : Location
+          Credentials : {| Username : string; Password : SecureParameter |}
+          Version : ServerVersion
+          Sku : SkuSpec
+          GeoRedundantBackup : FeatureFlag
+          StorageAutoGrow : FeatureFlag
+          BackupRetention : BackupRetentionInDays 
+          Databases :
+            {| Name : ResourceName 
+               Edition : string 
+               Collation : string |} list
+        }
+
+        member this.GetStorageProfile () = {|
+            storageMB = StorageSizeInMBs.toInt this.Sku.Size
+            backupRetentionDays = BackupRetentionInDays.toInt this.BackupRetention
+            geoRedundantBackup = this.GeoRedundantBackup.ToString()
+            storageAutoGrow = this.StorageAutoGrow.ToString()
+        |}
+        
+        member this.GetProperties () = {|
+            administratorLogin = this.Credentials.Username
+            administratorLoginPassword = this.Credentials.Password.AsArmRef.Eval()
+            version = this.Version.ToString()
+            storageProfile = this.GetStorageProfile()
+        |}
+        
+        interface IParameters with
+            member this.SecureParameters = [ this.Credentials.Password ]
+            
+        interface IResource with
+            member this.ResourceName = this.ServerName
+            member this.ToArmObject() =
+                box {| ``type`` = "Microsoft.DBforPostgreSQL/servers"
+                       apiVersion = "2017-12-01"
+                       name = this.ServerName.Value
+                       location = this.Location.ArmValue
+                       tags = {| displayName = this.ServerName.Value |}
+                       sku = this.Sku.ToArmObject()
+                       properties = this.GetProperties()
+                |} 
+
 module Sql =
     type Server =
         { ServerName : ResourceName
@@ -856,6 +983,7 @@ module Network =
                                bandwidthInMbps = this.Bandwidth |}
                           globalReachEnabled = this.GlobalReachEnabled |}
                 |} :> _
+
 module Compute =
     type VirtualMachine =
         { Name : ResourceName
