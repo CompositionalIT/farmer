@@ -2,14 +2,14 @@
 module Farmer.ArmBuilder
 
 module Helpers =
-    /// Quickly creates a unique IArmResource
-    let asArmResource armObject =
+    /// Creates a unique IArmResource from an arbitrary object.
+    let toArmResource armObject =
         { new IArmResource with
              member _.ResourceName = ResourceName (System.Guid.NewGuid().ToString())
              member _.ToArmObject() = armObject }
 
-    /// Adapts a raw ArmResourceBuilder into a "full" Builder that can be added as a resource to arm { } expressions.
-    let asResourceBuilder builder : Builder =
+    /// Creates a Builder that can be added to arm { } expressions.
+    let asBuilder builder : Builder =
         fun location _ -> builder location
 
 /// Represents all configuration information to generate an ARM template.

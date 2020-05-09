@@ -1,30 +1,29 @@
 ﻿open Farmer
 open Farmer.Builders
+open Farmer.ArmBuilder.Helpers
 
 let eventGrid (topicName, subscriptionName, subscriptionUrl:string) (location:Location) = [
-        topicName,
-            box {| name = topicName
-                   ``type`` = "Microsoft.EventGrid/topics"
-                   location = location.ArmValue
-                   apiVersion = "2018-01-01" |}
+   {| name = topicName
+      ``type`` = "Microsoft.EventGrid/topics"
+      location = location.ArmValue
+      apiVersion = "2018-01-01" |} |> toArmResource
 
-        topicName + "/Microsoft.EventGrid/" + subscriptionName,
-            box {| name = topicName + "/Microsoft.EventGrid/" + subscriptionName
-                   ``type`` = "Microsoft.EventGrid/topics/providers/eventSubscriptions"
-                   location = location.ArmValue
-                   apiVersion = "2018-01-01"
-                   properties =
-                       {| destination =
-                            {| endpointType = "WebHook"
-                               properties = {| endpointUrl = subscriptionUrl |}
-                            |}
-                          filter = {| includedEventTypes = [ "All" ] |}
-                       |}
-                   dependsOn = [ topicName ]
-                |}
-    ]
+   {| name = topicName + "/Microsoft.EventGrid/" + subscriptionName
+      ``type`` = "Microsoft.EventGrid/topics/providers/eventSubscriptions"
+      location = location.ArmValue
+      apiVersion = "2018-01-01"
+      properties =
+          {| destination =
+               {| endpointType = "WebHook"
+                  properties = {| endpointUrl = subscriptionUrl |}
+               |}
+             filter = {| includedEventTypes = [ "All" ] |}
+          |}
+      dependsOn = [ topicName ]
+   |} |> toArmResource
+]
 
-let createEventGrid = eventGrid >> Helpers.asResourceBuilder
+let createEventGrid = eventGrid >> asBuilder
 
 let myEventGrid = createEventGrid ("THE-TOPIC", "THE-SUB", "https://requestb.in/1jz6i2h1")
 

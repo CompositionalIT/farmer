@@ -13,7 +13,7 @@ type ResourceName =
         | r -> r
     member this.Map mapper = match this with ResourceName r -> ResourceName (mapper r)
 
-/// An Azure ARM resource
+/// An Azure ARM resource value, which can be serialized to JSON.
 type IArmResource =
     abstract member ResourceName : ResourceName
     abstract member ToArmObject : unit -> obj
