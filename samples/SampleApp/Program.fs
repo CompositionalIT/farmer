@@ -1,5 +1,5 @@
 ﻿open Farmer
-open Farmer.Resources
+open Farmer.Builders
 
 //TODO: Create resources here!
 
