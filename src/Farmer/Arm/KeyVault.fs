@@ -22,7 +22,7 @@ module Vaults =
                 | _ -> []
         interface IArmResource with
             member this.ResourceName = this.Name
-            member this.JsonValue =
+            member this.JsonModel =
                 {| ``type`` = "Microsoft.KeyVault/vaults/secrets"
                    name = this.Name.Value
                    apiVersion = "2018-02-14"
@@ -69,7 +69,7 @@ type Vault =
       VnetRules : string list }
     interface IArmResource with
         member this.ResourceName = this.Name
-        member this.JsonValue =
+        member this.JsonModel =
             {| ``type``= "Microsoft.KeyVault/vaults"
                name = this.Name.Value
                apiVersion = "2018-02-14"

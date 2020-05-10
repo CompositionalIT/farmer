@@ -13,10 +13,12 @@ type ResourceName =
         | r -> r
     member this.Map mapper = match this with ResourceName r -> ResourceName (mapper r)
 
-/// An Azure ARM resource value, which can be serialized to JSON.
+/// An Azure ARM resource value which can be mapped into an ARM template.
 type IArmResource =
+    /// The name of the resource, to uniquely identify against other resources in the template.
     abstract member ResourceName : ResourceName
-    abstract member JsonValue : obj
+    /// A raw object that is ready for serialization directly to JSON.
+    abstract member JsonModel : obj
 
 /// Represents an expression used within an ARM template
 type ArmExpression =

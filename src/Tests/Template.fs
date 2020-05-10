@@ -97,7 +97,7 @@ let tests = testList "Template" [
             ]
         }
 
-        let allLocations = template.Template.Resources |> List.map (fun r -> r.JsonValue |> convertTo<{| Location : string |}>)
+        let allLocations = template.Template.Resources |> List.map (fun r -> r.JsonModel |> convertTo<{| Location : string |}>)
         Expect.sequenceEqual allLocations [ {| Location = NorthCentralUS.ArmValue |}; {| Location = NorthCentralUS.ArmValue |} ] "Incorrect Location"
     }
 

@@ -23,7 +23,7 @@ type Namespace =
       DependsOn : ResourceName list }
     interface IArmResource with
         member this.ResourceName = this.Name
-        member this.JsonValue =
+        member this.JsonModel =
             {| ``type`` = "Microsoft.ServiceBus/namespaces"
                apiVersion = "2017-04-01"
                name = this.Name.Value

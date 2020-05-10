@@ -13,7 +13,7 @@ type Registries =
         |> ArmExpression
     interface IArmResource with
         member this.ResourceName = this.Name
-        member this.JsonValue =
+        member this.JsonModel =
             {| name = this.Name.Value
                ``type`` = "Microsoft.ContainerRegistry/registries"
                apiVersion = "2019-05-01"

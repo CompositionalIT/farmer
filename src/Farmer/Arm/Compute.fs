@@ -17,7 +17,7 @@ type VirtualMachine =
         member this.SecureParameters = [ this.Credentials.Password ]
     interface IArmResource with
         member this.ResourceName = this.Name
-        member this.JsonValue =
+        member this.JsonModel =
             {| ``type`` = "Microsoft.Compute/virtualMachines"
                apiVersion = "2018-10-01"
                name = this.Name.Value

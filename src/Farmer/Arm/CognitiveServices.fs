@@ -10,7 +10,7 @@ type Accounts =
       Kind : string }
     interface IArmResource with
         member this.ResourceName = this.Name
-        member this.JsonValue =
+        member this.JsonModel =
             {| name = this.Name.Value
                ``type`` = "Microsoft.CognitiveServices/accounts"
                apiVersion = "2017-04-18"

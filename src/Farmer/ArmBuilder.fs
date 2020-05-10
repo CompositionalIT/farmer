@@ -6,7 +6,7 @@ module Helpers =
     let toArmResource armObject =
         { new IArmResource with
              member _.ResourceName = ResourceName (System.Guid.NewGuid().ToString())
-             member _.JsonValue = armObject }
+             member _.JsonModel = armObject }
 
     /// Creates a Builder that can be added to arm { } expressions.
     let asBuilder builder : Builder =

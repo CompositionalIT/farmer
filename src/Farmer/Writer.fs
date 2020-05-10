@@ -7,7 +7,7 @@ module TemplateGeneration =
     let processTemplate (template:ArmTemplate) = {|
         ``$schema`` = "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#"
         contentVersion = "1.0.0.0"
-        resources = template.Resources |> List.map(fun r -> r.JsonValue)
+        resources = template.Resources |> List.map(fun r -> r.JsonModel)
         parameters =
             template.Parameters
             |> List.map(fun (SecureParameter p) -> p, {| ``type`` = "securestring" |})
