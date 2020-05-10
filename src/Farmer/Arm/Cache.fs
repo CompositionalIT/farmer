@@ -26,20 +26,20 @@ type Redis =
                name = this.Name.Value
                location = this.Location.ArmValue
                properties =
-                   {| sku =
-                       {| name = string this.Sku
-                          family = this.Family
-                          capacity = this.Sku.Capacity
-                       |}
-                      enableNonSslPort = this.NonSslEnabled |> Option.toNullable
-                      shardCount = this.ShardCount |> Option.toNullable
-                      minimumTlsVersion =
-                        this.MinimumTlsVersion
-                        |> Option.map(function
-                            | Tls10 -> "1.0"
-                            | Tls11 -> "1.1"
-                            | Tls12 -> "1.2")
-                        |> Option.toObj
-                      redisConfiguration = this.RedisConfiguration
+                    {| sku =
+                        {| name = string this.Sku
+                           family = this.Family
+                           capacity = this.Sku.Capacity
+                        |}
+                       enableNonSslPort = this.NonSslEnabled |> Option.toNullable
+                       shardCount = this.ShardCount |> Option.toNullable
+                       minimumTlsVersion =
+                         this.MinimumTlsVersion
+                         |> Option.map(function
+                             | Tls10 -> "1.0"
+                             | Tls11 -> "1.1"
+                             | Tls12 -> "1.2")
+                         |> Option.toObj
+                       redisConfiguration = this.RedisConfiguration
                    |}
             |} :> _

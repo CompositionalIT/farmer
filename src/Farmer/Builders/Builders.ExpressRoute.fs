@@ -6,37 +6,21 @@ open System
 open System.Net
 open Farmer.Arm.Network
 
-[<RequireQualifiedAccess>]
-type ExpressRouteTier =
-    | Standard
-    | Premium
-type ExpressRouteFamily =
-    | UnlimitedData
-    | MeteredData
-type ExpressRouteCircuitPeeringType =
-    | AzurePrivatePeering
-    | MicrosoftPeering
-module ExpressRouteCircuitPeeringType =
-    let format = function
-        | AzurePrivatePeering -> "AzurePrivatePeering"
-        | MicrosoftPeering -> "MicrosoftPeering"
 /// An IP address block in CIDR notation, such as 10.100.0.0/16.
-type IPAddressCidr =
-    { Address : IPAddress
-      Prefix : int }
+type internal IPAddressCidr =
+    {| Address : IPAddress
+       Prefix : int |}
 
 module IPAddressCidr =
     let parse (s:string) : IPAddressCidr =
         match s.Split([|'/'|], StringSplitOptions.RemoveEmptyEntries) with
         [| ip; prefix |] ->
-            { Address = IPAddress.Parse (ip.Trim ())
-              Prefix = int prefix }
+            {| Address = IPAddress.Parse (ip.Trim ())
+               Prefix = int prefix |}
         | _ -> raise (ArgumentOutOfRangeException "Malformed CIDR, expecting and IP and prefix separated by '/'")
     let safeParse (s:string) : Result<IPAddressCidr, Exception> =
         try parse s |> Ok
         with ex -> Error ex
-    let format cidr =
-        sprintf "%O/%d" cidr.Address cidr.Prefix
 type ExpressRouteCircuitPeering =
     { PeeringType : ExpressRouteCircuitPeeringType
       AzureASN : int
@@ -47,8 +31,6 @@ type ExpressRouteCircuitPeering =
       SecondaryPeerAddressPrefix : IPAddressCidr
       SharedKey : string option
       VlanId : int }
-
-type [<Measure>] Mbps
 
 type ExpressRouteCircuitPeeringConfig =
     { /// The peering type
@@ -71,8 +53,8 @@ type ExpressRouteCircuitPeeringBuilder() =
       { PeeringType = AzurePrivatePeering
         AzureASN = 0
         PeerASN = 0L
-        PrimaryPeerAddressPrefix = { Address = IPAddress.None; Prefix = 0}
-        SecondaryPeerAddressPrefix = { Address = IPAddress.None; Prefix = 0}
+        PrimaryPeerAddressPrefix = {| Address = IPAddress.None; Prefix = 0 |}
+        SecondaryPeerAddressPrefix = {| Address = IPAddress.None; Prefix = 0 |}
         SharedKey = None
         VlanId = 0 }
     /// Sets the peering type.
@@ -109,26 +91,28 @@ type ExpressRouteConfig =
     GlobalReachEnabled : bool
     /// Peerings on this circuit
     Peerings : ExpressRouteCircuitPeeringConfig list }
+
     interface IBuilder with
         member exr.BuildResources location _ = [
             { Name = exr.Name
               Location = location
-              Tier = string exr.Tier
-              Family = string exr.Family
+              Tier = exr.Tier
+              Family = exr.Family
               ServiceProviderName = exr.ServiceProviderName
               PeeringLocation = exr.PeeringLocation
-              Bandwidth = int exr.Bandwidth
+              Bandwidth = exr.Bandwidth
               GlobalReachEnabled = exr.GlobalReachEnabled
               Peerings = [
                   for peering in exr.Peerings do
-                      {| PeeringType = peering.PeeringType |> ExpressRouteCircuitPeeringType.format
+                      {| PeeringType = peering.PeeringType
                          AzureASN = peering.AzureASN
                          PeerASN = peering.PeerASN
-                         PrimaryPeerAddressPrefix = peering.PrimaryPeerAddressPrefix |> IPAddressCidr.format
-                         SecondaryPeerAddressPrefix = peering.SecondaryPeerAddressPrefix |> IPAddressCidr.format
+                         PrimaryPeerAddressPrefix = peering.PrimaryPeerAddressPrefix
+                         SecondaryPeerAddressPrefix = peering.SecondaryPeerAddressPrefix
                          SharedKey = peering.SharedKey
                          VlanId = peering.VlanId |}
-              ] }
+              ]
+            }
         ]
 
 type ExpressRouteBuilder() =

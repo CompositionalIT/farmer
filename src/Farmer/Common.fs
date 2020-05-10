@@ -382,13 +382,18 @@ type SoftDeletionMode = SoftDeleteWithPurgeProtection | SoftDeletionOnly
 type Bypass = AzureServices | NoTraffic
 type DefaultAction = Allow | Deny
 
-module internal Helpers =
+[<AutoOpen>]
+module internal DuHelpers =
     let makeAll<'TUnion> =
         Reflection.FSharpType.GetUnionCases(typeof<'TUnion>)
         |> Array.map(fun t -> Reflection.FSharpValue.MakeUnion(t, null) :?> 'TUnion)
         |> Array.toList
 
-type [<RequireQualifiedAccess>] VaultKey = Encrypt | Decrypt | WrapKey | UnwrapKey | Sign | Verify | Get | List | Create | Update | Import | Delete | Backup | Restore | Recover | Purge static member All = Helpers.makeAll<VaultKey>
-type [<RequireQualifiedAccess>] VaultSecret = Get | List | Set | Delete | Backup | Restore | Recover | Purge static member All = Helpers.makeAll<VaultSecret>
-type [<RequireQualifiedAccess>] VaultCertificate = Get | List | Delete | Create | Import | Update | ManageContacts | GetIssuers | ListIssuers | SetIssuers | DeleteIssuers | ManageIssuers | Recover | Purge | Backup | Restore static member All = Helpers.makeAll<VaultCertificate>
-type [<RequireQualifiedAccess>] VaultStorage = Get | List | Delete | Set | Update | RegenerateKey | Recover | Purge | Backup | Restore | SetSas | ListSas | GetSas | DeleteSas static member All = Helpers.makeAll<VaultStorage>
+type [<RequireQualifiedAccess>] VaultKey = Encrypt | Decrypt | WrapKey | UnwrapKey | Sign | Verify | Get | List | Create | Update | Import | Delete | Backup | Restore | Recover | Purge static member All = makeAll<VaultKey>
+type [<RequireQualifiedAccess>] VaultSecret = Get | List | Set | Delete | Backup | Restore | Recover | Purge static member All = makeAll<VaultSecret>
+type [<RequireQualifiedAccess>] VaultCertificate = Get | List | Delete | Create | Import | Update | ManageContacts | GetIssuers | ListIssuers | SetIssuers | DeleteIssuers | ManageIssuers | Recover | Purge | Backup | Restore static member All = makeAll<VaultCertificate>
+type [<RequireQualifiedAccess>] VaultStorage = Get | List | Delete | Set | Update | RegenerateKey | Recover | Purge | Backup | Restore | SetSas | ListSas | GetSas | DeleteSas static member All = makeAll<VaultStorage>
+[<RequireQualifiedAccess>] type ExpressRouteTier = Standard | Premium
+type ExpressRouteFamily = UnlimitedData | MeteredData
+type ExpressRouteCircuitPeeringType = AzurePrivatePeering | MicrosoftPeering member this.Value = this.ToString()
+type [<Measure>] Mbps

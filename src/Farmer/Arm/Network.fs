@@ -2,7 +2,7 @@
 module Farmer.Arm.Network
 
 open Farmer
-open System
+open System.Net
 
 type PublicIpAddress =
     { Name : ResourceName
@@ -80,21 +80,23 @@ type NetworkInterface =
 type ExpressRouteCircuit =
     { Name : ResourceName
       Location : Location
-      Tier : string
-      Family : string
+      Tier : ExpressRouteTier
+      Family : ExpressRouteFamily
       ServiceProviderName : string
       PeeringLocation : string
-      Bandwidth : int
+      Bandwidth : int<Mbps>
       GlobalReachEnabled : bool
       Peerings :
-        {| PeeringType : string
+        {| PeeringType : ExpressRouteCircuitPeeringType
            AzureASN : int
            PeerASN : int64
-           PrimaryPeerAddressPrefix : string
-           SecondaryPeerAddressPrefix : string
+           PrimaryPeerAddressPrefix : {| Address : IPAddress; Prefix : int |}
+           SecondaryPeerAddressPrefix : {| Address : IPAddress; Prefix : int |}
            SharedKey : string option
            VlanId : int
         |} list }
+    static member FormatCidr address prefix = sprintf "%O/%d" address prefix
+
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonValue =
@@ -102,17 +104,20 @@ type ExpressRouteCircuit =
                apiVersion = "2019-02-01"
                name = this.Name.Value
                location = this.Location.ArmValue
-               sku = {| name = String.Format("{0}_{1}", this.Tier, this.Family); tier = this.Tier; family = this.Family |}
+               sku =
+                {| name = sprintf "%O_%O" this.Tier this.Family
+                   tier = string this.Tier
+                   family = string this.Family |}
                properties =
                    {| peerings = [
                         for peer in this.Peerings do
-                            {| name = peer.PeeringType
+                            {| name = peer.PeeringType.Value
                                properties =
-                                   {| peeringType = peer.PeeringType
+                                   {| peeringType = peer.PeeringType.Value
                                       azureASN = peer.AzureASN
                                       peerASN = peer.PeerASN
-                                      primaryPeerAddressPrefix = peer.PrimaryPeerAddressPrefix
-                                      secondaryPeerAddressPrefix = peer.SecondaryPeerAddressPrefix
+                                      primaryPeerAddressPrefix = ExpressRouteCircuit.FormatCidr peer.PrimaryPeerAddressPrefix.Address peer.PrimaryPeerAddressPrefix.Prefix
+                                      secondaryPeerAddressPrefix = ExpressRouteCircuit.FormatCidr peer.SecondaryPeerAddressPrefix.Address peer.SecondaryPeerAddressPrefix.Prefix
                                       vlanId = peer.VlanId
                                       sharedKey = peer.SharedKey |}
                             |}
