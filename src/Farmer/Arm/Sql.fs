@@ -2,6 +2,7 @@
 module Farmer.Arm.Sql
 
 open Farmer
+open System.Net
 
 type Server =
     { ServerName : ResourceName
@@ -9,14 +10,13 @@ type Server =
       Credentials : {| Username : string; Password : SecureParameter |}
       Databases :
           {| Name : ResourceName
-             Edition : string
+             Sku : SqlSku
              Collation : string
-             Objective : string
              TransparentDataEncryption : FeatureFlag |} list
       FirewallRules :
           {| Name : string
-             Start : System.Net.IPAddress
-             End : System.Net.IPAddress |} list
+             Start : IPAddress
+             End : IPAddress |} list
     }
     interface IParameters with
         member this.SecureParameters = [ this.Credentials.Password ]
@@ -41,12 +41,11 @@ type Server =
                               location = this.Location.ArmValue
                               tags = {| displayName = database.Name.Value |}
                               properties =
-                               {| edition = database.Edition
+                               {| edition = database.Sku.Edition
                                   collation = database.Collation
-                                  requestedServiceObjectiveName = database.Objective |}
-                              dependsOn = [
-                                  this.ServerName.Value
-                              ]
+                                  requestedServiceObjectiveName = database.Sku.Objective |}
+                              dependsOn =
+                                [ this.ServerName.Value ]
                               resources = [
                                   match database.TransparentDataEncryption with
                                   | Enabled ->

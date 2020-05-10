@@ -16,15 +16,13 @@ type PublicIpAddress =
                name = this.Name.Value
                location = this.Location.ArmValue
                properties =
-                  match this.DomainNameLabel with
-                  | Some label ->
-                      box
-                          {| publicIPAllocationMethod = "Dynamic"
-                             dnsSettings = {| domainNameLabel = label.ToLower() |}
-                          |}
-                  | None ->
-                      box {| publicIPAllocationMethod = "Dynamic" |}
+                  {| publicIPAllocationMethod = "Dynamic"
+                     dnsSettings =
+                        match this.DomainNameLabel with
+                        | Some label -> box {| domainNameLabel = label.ToLower() |}
+                        | None -> null |}
             |} :> _
+
 type VirtualNetwork =
     { Name : ResourceName
       Location : Location

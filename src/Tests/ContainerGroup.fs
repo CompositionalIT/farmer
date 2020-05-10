@@ -13,7 +13,7 @@ let nginx = container {
     os_type Linux
     add_tcp_port 80us
     add_tcp_port 443us
-    restart_policy ContainerGroups.ContainerGroupRestartPolicy.Always
+    restart_policy Always
 
     name "nginx"
     image "nginx:1.17.6-alpine"

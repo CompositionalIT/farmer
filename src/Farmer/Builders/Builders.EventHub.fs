@@ -6,23 +6,16 @@ open Farmer.Arm.EventHub
 open Namespaces
 open EventHubs
 
-[<RequireQualifiedAccess>]
-/// The SKU of the event hub instance.
-type EventHubSku =
-    | Basic
-    | Standard
-    | Premium
-type AuthorizationRuleRight = Manage | Send | Listen
 /// Shortcut for Manage, Send and Listen rights.
 let AllAuthorizationRights = [ Manage; Send; Listen ]
-type ThroughputSettings = ManualInflate | AutoInflate of maxThroughput:int
+
 type EventHubConfig =
     { EventHubNamespace : ResourceRef
       Name : ResourceName
       Sku : EventHubSku
       Capacity : int
       ZoneRedundant : bool option
-      ThroughputSettings : ThroughputSettings option
+      ThroughputSettings : InflateSetting option
       KafkaEnabled : bool option
       MessageRetentionInDays : int option
       Partitions : int
@@ -44,63 +37,53 @@ type EventHubConfig =
             this.EventHubNamespace.ResourceName.Value
         |> this.ToKeyExpression
     interface IBuilder with
-        member eventHubConfig.BuildResources location _ = [
-            let eventHubNamespaceName = eventHubConfig.EventHubNamespace.ResourceName
+        member this.BuildResources location _ = [
+            let eventHubNamespaceName = this.EventHubNamespace.ResourceName
             let eventHubNamespace =
-                match eventHubConfig.EventHubNamespace with
+                match this.EventHubNamespace with
                 | External _ ->
                     None
                 | AutomaticPlaceholder | AutomaticallyCreated _ ->
                     { Name = eventHubNamespaceName
                       Location = location
                       Sku =
-                        {| Name = string eventHubConfig.Sku
-                           Tier = string eventHubConfig.Sku
-                           Capacity = eventHubConfig.Capacity |}
-                      ZoneRedundant = eventHubConfig.ZoneRedundant
-                      IsAutoInflateEnabled =
-                            eventHubConfig.ThroughputSettings
-                            |> Option.map (function
-                                | AutoInflate _ -> true
-                                | ManualInflate -> false)
-                      MaxThroughputUnits =
-                            eventHubConfig.ThroughputSettings
-                            |> Option.bind (function
-                                | AutoInflate throughput -> Some throughput
-                                | ManualInflate -> None)
-                      KafkaEnabled = eventHubConfig.KafkaEnabled }
+                        {| Name = this.Sku
+                           Capacity = this.Capacity |}
+                      ZoneRedundant = this.ZoneRedundant
+                      AutoInflateSettings = this.ThroughputSettings
+                      KafkaEnabled = this.KafkaEnabled }
                     |> Some
             let eventHub =
-                { Name = eventHubConfig.Name.Map(sprintf "%s/%s" eventHubNamespaceName.Value)
+                { Name = this.Name.Map(sprintf "%s/%s" eventHubNamespaceName.Value)
                   Location = location
-                  MessageRetentionDays = eventHubConfig.MessageRetentionInDays
-                  Partitions = eventHubConfig.Partitions
+                  MessageRetentionDays = this.MessageRetentionInDays
+                  Partitions = this.Partitions
                   Dependencies = [ eventHubNamespaceName ] }
             let consumerGroups =
-                [ for consumerGroup in eventHubConfig.ConsumerGroups ->
+                [ for consumerGroup in this.ConsumerGroups ->
                     { Name = eventHub.Name.Map(fun name -> sprintf "%s/%s" eventHub.Name.Value consumerGroup)
                       Location = location
                       Dependencies = [
                           eventHubNamespaceName
-                          eventHubConfig.Name.Map(sprintf "[resourceId('Microsoft.EventHub/namespaces/eventhubs', '%s', '%s')]" eventHubNamespaceName.Value)
+                          this.Name.Map(sprintf "[resourceId('Microsoft.EventHub/namespaces/eventhubs', '%s', '%s')]" eventHubNamespaceName.Value)
                       ]
                     }
                 ]
             let authRules =
-                [ for rule in eventHubConfig.AuthorizationRules ->
-                    { Name = rule.Key.Map(sprintf "%s/%s/%s" eventHubNamespaceName.Value eventHubConfig.Name.Value)
+                [ for rule in this.AuthorizationRules ->
+                    { Name = rule.Key.Map(sprintf "%s/%s/%s" eventHubNamespaceName.Value this.Name.Value)
                       Location = location
                       Dependencies = [
                           eventHubNamespaceName.Map(sprintf "[resourceId('Microsoft.EventHub/namespaces', '%s')]")
-                          eventHubConfig.Name.Map(sprintf "[resourceId('Microsoft.EventHub/namespaces/eventhubs', '%s', '%s')]" eventHubNamespaceName.Value)
+                          this.Name.Map(sprintf "[resourceId('Microsoft.EventHub/namespaces/eventhubs', '%s', '%s')]" eventHubNamespaceName.Value)
                       ]
-                      Rights = rule.Value |> Set.map string |> Set.toList }
+                      Rights = rule.Value }
                 ]
 
-            match eventHubNamespace with Some n -> n | None -> ()
+            match eventHubNamespace with Some ns -> ns | None -> ()
             eventHub
-            for cg in consumerGroups do cg
-            for rule in authRules do rule
+            for consumerGroup in consumerGroups do consumerGroup
+            for authRule in authRules do authRule
         ]
 
 type EventHubBuilder() =

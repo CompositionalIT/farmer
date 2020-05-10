@@ -4,10 +4,6 @@ module Farmer.Builders.Redis
 open Farmer
 open Farmer.Arm.Cache
 
-type TlsVersion = Tls10 | Tls11 | Tls12
-[<RequireQualifiedAccess>]
-type RedisSku = Basic | Standard | Premium
-
 let internal buildRedisKey (ResourceName name) =
     sprintf
         "concat('%s.redis.cache.windows.net,abortConnect=false,ssl=true,password=', listKeys('%s', '2015-08-01').primaryKey)"
@@ -29,22 +25,12 @@ type RedisConfig =
             { Name = this.Name
               Location = location
               Sku =
-                {| Name = string this.Sku
-                   Family =
-                    match this.Sku with
-                    | RedisSku.Basic | RedisSku.Standard -> 'C'
-                    | RedisSku.Premium -> 'P'
+                {| Sku = this.Sku
                    Capacity = this.Capacity |}
               RedisConfiguration = this.RedisConfiguration
               NonSslEnabled = this.NonSslEnabled
               ShardCount = this.ShardCount
-              MinimumTlsVersion =
-                this.MinimumTlsVersion
-                |> Option.map(function
-                | Tls10 -> "1.0"
-                | Tls11 -> "1.1"
-                | Tls12 -> "1.2")
-            }
+              MinimumTlsVersion = this.MinimumTlsVersion }
         ]
 
 type RedisBuilder() =

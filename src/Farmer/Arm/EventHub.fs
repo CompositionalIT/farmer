@@ -6,11 +6,15 @@ open Farmer
 type Namespace =
     { Name : ResourceName
       Location : Location
-      Sku : {| Name : string; Tier : string; Capacity : int |}
+      Sku : {| Name : EventHubSku; Capacity : int |}
       ZoneRedundant : bool option
-      IsAutoInflateEnabled : bool option
-      MaxThroughputUnits : int option
+      AutoInflateSettings : InflateSetting option
       KafkaEnabled : bool option }
+    member this.MaxThroughputUnits =
+        this.AutoInflateSettings
+        |> Option.bind (function
+            | AutoInflate throughput -> Some throughput
+            | ManualInflate -> None)
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonValue =
@@ -19,12 +23,17 @@ type Namespace =
                name = this.Name.Value
                location = this.Location.ArmValue
                sku =
-                   {| name = this.Sku.Name
-                      tier = this.Sku.Tier
+                   {| name = string this.Sku.Name
+                      tier = string this.Sku.Name
                       capacity = this.Sku.Capacity |}
                properties =
                    {| zoneRedundant = this.ZoneRedundant |> Option.toNullable
-                      isAutoInflateEnabled = this.IsAutoInflateEnabled |> Option.toNullable
+                      isAutoInflateEnabled =
+                        this.AutoInflateSettings
+                        |> Option.map (function
+                            | AutoInflate _ -> true
+                            | ManualInflate -> false)
+                        |> Option.toNullable
                       maximumThroughputUnits = this.MaxThroughputUnits |> Option.toNullable
                       kafkaEnabled = this.KafkaEnabled |> Option.toNullable |}
             |} :> _
@@ -67,7 +76,7 @@ module Namespaces =
             { Name : ResourceName
               Location : Location
               Dependencies : ResourceName list
-              Rights : string list }
+              Rights : AuthorizationRuleRight Set }
             interface IArmResource with
                 member this.ResourceName = this.Name
                 member this.JsonValue =
@@ -76,6 +85,6 @@ module Namespaces =
                        name = this.Name.Value
                        location = this.Location.ArmValue
                        dependsOn = this.Dependencies |> List.map(fun d -> d.Value)
-                       properties = {| rights = this.Rights |}
+                       properties = {| rights = this.Rights |> Set.map string |> Set.toList |}
                     |} :> _
 

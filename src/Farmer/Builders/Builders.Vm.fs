@@ -10,16 +10,6 @@ open Farmer.Arm.Storage
 let makeName (vmName:ResourceName) elementType = sprintf "%s-%s" vmName.Value elementType
 let makeResourceName vmName = makeName vmName >> ResourceName
 
-/// The type of disk to use.
-type DiskType =
-    | StandardSSD_LRS
-    | Standard_LRS
-    | Premium_LRS
-    member this.ArmValue = match this with x -> x.ToString()
-
-/// Represents a disk in a VM.
-type DiskInfo = { Size : int; DiskType : DiskType }
-
 type VmConfig =
     { Name : ResourceName
       DiagnosticsStorageAccount : ResourceRef option
@@ -54,12 +44,8 @@ type VmConfig =
               Size = this.Size
               Credentials = {| Username = this.Username; Password = SecureParameter (sprintf "password-for-%s" this.Name.Value) |}
               Image = this.Image
-              OsDisk = {| Size = this.OsDisk.Size; DiskType = string this.OsDisk.DiskType |}
-              DataDisks = [
-                for dataDisk in this.DataDisks do
-                    {| Size = dataDisk.Size
-                       DiskType = string dataDisk.DiskType |}
-              ] }
+              OsDisk = this.OsDisk
+              DataDisks = this.DataDisks }
 
             // NIC
             { Name = this.NicName

@@ -11,11 +11,6 @@ let internal buildKey (ResourceName name) =
             name
     |> ArmExpression
 
-type StorageContainerAccess =
-    | Private
-    | Container
-    | Blob
-
 type StorageAccountConfig =
     { /// The name of the storage account.
       Name : ResourceName
@@ -27,16 +22,10 @@ type StorageAccountConfig =
     member this.Key = buildKey this.Name
     interface IBuilder with
         member this.BuildResources location _ = [
-            { Location = location
-              Name = this.Name
+            { Name = this.Name
+              Location = location
               Sku = this.Sku
-              Containers = [
-                for container, access in this.Containers do
-                    container, match access with
-                               | Private -> "None"
-                               | Container -> "Container"
-                               | Blob -> "Blob"
-              ] }
+              Containers = this.Containers }
         ]
 
 type StorageAccountBuilder() =

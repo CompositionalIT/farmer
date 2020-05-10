@@ -105,13 +105,12 @@ type FunctionsConfig =
             | AutomaticPlaceholder ->
                 ()
             | AutomaticallyCreated resourceName ->
-                let servicePlanConfig =
-                    { Name = resourceName
-                      Sku = WebAppSkus.Y1
-                      WorkerSize = Serverless
-                      WorkerCount = 0
-                      OperatingSystem = this.OperatingSystem }
-                yield! (servicePlanConfig :> IBuilder).BuildResources location existingResources
+                { Name = resourceName
+                  Location = location
+                  Sku = WebAppSku.Y1
+                  WorkerSize = Serverless
+                  WorkerCount = 0
+                  OperatingSystem = this.OperatingSystem }
             match this.StorageAccountName with
             | AutomaticallyCreated resourceName ->
                 { StorageAccount.Name = resourceName

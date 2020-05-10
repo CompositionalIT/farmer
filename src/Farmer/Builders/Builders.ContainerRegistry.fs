@@ -4,13 +4,6 @@ module Farmer.Builders.ContainerRegistry
 open Farmer
 open Farmer.Arm.ContainerRegistry
 
-[<RequireQualifiedAccess>]
-/// Container Registry SKU
-type ContainerRegistrySku =
-    | Basic
-    | Standard
-    | Premium
-
 type ContainerRegistryConfig =
     { Name : ResourceName
       Sku : ContainerRegistrySku
@@ -22,7 +15,7 @@ type ContainerRegistryConfig =
         member this.BuildResources location _ = [
             { Name = this.Name
               Location = location
-              Sku = this.Sku.ToString().Replace("_", ".")
+              Sku = this.Sku
               AdminUserEnabled = this.AdminUserEnabled }
         ]
 type ContainerRegistryBuilder() =

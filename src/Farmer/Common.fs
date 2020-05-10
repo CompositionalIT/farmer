@@ -1,5 +1,7 @@
 ﻿namespace Farmer
 
+open System
+
 type Location =
 | EastAsia
 | SoutheastAsia
@@ -233,3 +235,160 @@ module CommonImages =
     let WindowsServer_2012R2Datacenter = makeWindowsVm "2012-R2-Datacenter"
     let WindowsServer_2012Datacenter = makeWindowsVm "2012-Datacenter"
     let WindowsServer_2008R2SP1 = makeWindowsVm "2008-R2-SP1"
+
+type StorageContainerAccess =
+| Private
+| Container
+| Blob
+
+type WorkerSize = Small | Medium | Large | Serverless
+[<RequireQualifiedAccess>]
+type WebAppSku =
+    | Shared
+    | Free
+    | Basic of string
+    | Standard of string
+    | Premium of string
+    | PremiumV2 of string
+    | Isolated of string
+    | Dynamic
+    static member D1 = Shared
+    static member F1 = Free
+    static member B1 = Basic "B1"
+    static member B2 = Basic "B2"
+    static member B3 = Basic "B3"
+    static member S1 = Standard "S1"
+    static member S2 = Standard "S2"
+    static member S3 = Standard "S3"
+    static member P1 = Premium "P1"
+    static member P2 = Premium "P2"
+    static member P3 = Premium "P3"
+    static member P1V2 = PremiumV2 "P1V2"
+    static member P2V2 = PremiumV2 "P2V2"
+    static member P3V2 = PremiumV2 "P3V2"
+    static member I1 = Isolated "I1"
+    static member I2 = Isolated "I2"
+    static member I3 = Isolated "I3"
+    static member Y1 = Dynamic
+
+[<RequireQualifiedAccess>]
+/// Type of SKU. See https://github.com/Azure/azure-quickstart-templates/tree/master/101-cognitive-services-translate
+type CognitiveServicesSku =
+    /// Free Tier
+    | F0
+    | S1
+    | S2
+    | S3
+    | S4
+
+type CognitiveServicesApi =
+    | AllInOne
+    | AnomalyDetector
+    | Bing_Autosuggest_v7 | Bing_CustomSearch | Bing_EntitySearch | Bing_Search_v7 | Bing_SpellCheck_v7
+    | CognitiveServices
+    | ComputerVision
+    | ContentModerator
+    | CustomVision_Prediction | CustomVision_Training
+    | Face
+    | FormRecognizer
+    | ImmersiveReader
+    | InkRecognizer
+    | LUIS | LUIS_Authoring
+    | Personalizer
+    | QnAMaker
+    | SpeakerRecognition
+    | SpeechServices
+    | TextAnalytics
+    | TextTranslation
+
+/// The type of disk to use.
+type DiskType =
+    | StandardSSD_LRS
+    | Standard_LRS
+    | Premium_LRS
+    member this.ArmValue = match this with x -> x.ToString()
+
+/// Represents a disk in a VM.
+type DiskInfo = { Size : int; DiskType : DiskType }
+
+[<RequireQualifiedAccess>]
+/// Container Registry SKU
+type ContainerRegistrySku =
+    | Basic
+    | Standard
+    | Premium
+
+type HostingMode = Default | HighDensity
+[<RequireQualifiedAccess>]
+/// The SKU of the search service you want to create. E.g. free or standard.
+type SearchSku =
+    | Free
+    | Basic
+    | Standard
+    | Standard2
+    | Standard3 of HostingMode
+    | StorageOptimisedL1
+    | StorageOptimisedL2
+
+[<RequireQualifiedAccess>]
+type SqlSku =
+    | Free
+    | Basic
+    | Standard of string
+    | Premium of string
+    static member S0 = Standard "S0"
+    static member S1 = Standard "S1"
+    static member S2 = Standard "S2"
+    static member S3 = Standard "S3"
+    static member S4 = Standard "S4"
+    static member S6 = Standard "S6"
+    static member S7 = Standard "S7"
+    static member S9 = Standard "S9"
+    static member S12 =Standard "S12"
+    static member P1 = Premium "P1"
+    static member P2 = Premium "P2"
+    static member P4 = Premium "P4"
+    static member P6 = Premium "P6"
+    static member P11 = Premium "P11"
+    static member P15 = Premium "P15"
+    member this.Edition =
+        match this with
+        | Basic -> "Basic"
+        | Free -> "Free"
+        | Standard _ -> "Standard"
+        | Premium _ -> "Premium"
+     member this.Objective =
+        match this with
+        | Basic -> "Basic"
+        | Free -> "Free"
+        | Standard s -> s
+        | Premium p -> p
+type [<Measure>] Gb
+type ContainerGroupRestartPolicy = Never | Always | OnFailure
+type ContainerGroupIpAddressType = PublicAddress | PrivateAddress
+type TransmissionProtocol = TCP | UDP
+type TlsVersion = Tls10 | Tls11 | Tls12
+[<RequireQualifiedAccess>]
+type RedisSku = Basic | Standard | Premium
+[<RequireQualifiedAccess>]
+/// The SKU of the event hub instance.
+type EventHubSku =
+    | Basic
+    | Standard
+    | Premium
+type InflateSetting = ManualInflate | AutoInflate of maxThroughput:int
+type AuthorizationRuleRight = Manage | Send | Listen
+type SoftDeletionMode = SoftDeleteWithPurgeProtection | SoftDeletionOnly
+type Bypass = AzureServices | NoTraffic
+type DefaultAction = Allow | Deny
+
+module internal Helpers =
+    let makeAll<'TUnion> =
+        Reflection.FSharpType.GetUnionCases(typeof<'TUnion>)
+        |> Array.map(fun t -> Reflection.FSharpValue.MakeUnion(t, null) :?> 'TUnion)
+        |> Array.toList
+
+type [<RequireQualifiedAccess>] VaultKey = Encrypt | Decrypt | WrapKey | UnwrapKey | Sign | Verify | Get | List | Create | Update | Import | Delete | Backup | Restore | Recover | Purge static member All = Helpers.makeAll<VaultKey>
+type [<RequireQualifiedAccess>] VaultSecret = Get | List | Set | Delete | Backup | Restore | Recover | Purge static member All = Helpers.makeAll<VaultSecret>
+type [<RequireQualifiedAccess>] VaultCertificate = Get | List | Delete | Create | Import | Update | ManageContacts | GetIssuers | ListIssuers | SetIssuers | DeleteIssuers | ManageIssuers | Recover | Purge | Backup | Restore static member All = Helpers.makeAll<VaultCertificate>
+type [<RequireQualifiedAccess>] VaultStorage = Get | List | Delete | Set | Update | RegenerateKey | Recover | Purge | Backup | Restore | SetSas | ListSas | GetSas | DeleteSas static member All = Helpers.makeAll<VaultStorage>

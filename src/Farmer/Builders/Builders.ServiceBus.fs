@@ -65,7 +65,7 @@ type ServiceBusQueueConfig =
                 }
             | External namespaceName ->
                 existingResources
-                |> Helpers.tryMergeResource namespaceName (fun ns -> { ns with Queues = queue :: ns.Queues })
+                |> Helpers.mergeResource namespaceName (fun ns -> { ns with Queues = queue :: ns.Queues })
             | AutomaticPlaceholder ->
                 failwith "Service Bus Namespace Name has not been set."
         ]

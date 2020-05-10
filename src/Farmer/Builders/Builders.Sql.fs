@@ -4,27 +4,6 @@ module Farmer.Builders.SqlAzure
 open Farmer
 open Farmer.Arm.Sql
 open System.Net
-[<RequireQualifiedAccess>]
-type SqlSku = Free | Basic | Standard of string | Premium of string
-
-module Sku =
-    let ``Free`` = SqlSku.Free
-    let ``Basic`` = SqlSku.Basic
-    let ``S0`` = SqlSku.Standard "S0"
-    let ``S1`` = SqlSku.Standard "S1"
-    let ``S2`` = SqlSku.Standard "S2"
-    let ``S3`` = SqlSku.Standard "S3"
-    let ``S4`` = SqlSku.Standard "S4"
-    let ``S6`` = SqlSku.Standard "S6"
-    let ``S7`` = SqlSku.Standard "S7"
-    let ``S9`` = SqlSku.Standard "S9"
-    let ``S12`` =SqlSku.Standard "S12"
-    let ``P1`` = SqlSku.Premium "P1"
-    let ``P2`` = SqlSku.Premium "P2"
-    let ``P4`` = SqlSku.Premium "P4"
-    let ``P6`` = SqlSku.Premium "P6"
-    let ``P11`` = SqlSku.Premium "P11"
-    let ``P15`` = SqlSku.Premium "P15"
 
 type SqlAzureConfig =
     { ServerName : ResourceRef
@@ -33,7 +12,7 @@ type SqlAzureConfig =
       DbEdition : SqlSku
       DbCollation : string
       Encryption : FeatureFlag
-      FirewallRules : {| Name : string; Start : System.Net.IPAddress; End : System.Net.IPAddress |} list }
+      FirewallRules : {| Name : string; Start : IPAddress; End : IPAddress |} list }
     /// Gets the ARM expression path to the FQDN of this VM.
     member this.FullyQualifiedDomainName =
         sprintf "reference(concat('Microsoft.Sql/servers/', variables('%s'))).fullyQualifiedDomainName" this.ServerName.ResourceName.Value
@@ -54,37 +33,24 @@ type SqlAzureConfig =
         member this.BuildResources location resources = [
             let database =
                 {| Name = this.Name
-                   Edition =
-                     match this.DbEdition with
-                     | SqlSku.Basic -> "Basic"
-                     | SqlSku.Free -> "Free"
-                     | SqlSku.Standard _ -> "Standard"
-                     | SqlSku.Premium _ -> "Premium"
-                   Objective =
-                     match this.DbEdition with
-                     | SqlSku.Basic -> "Basic"
-                     | SqlSku.Free -> "Free"
-                     | SqlSku.Standard s -> s
-                     | SqlSku.Premium p -> p
+                   Sku = this.DbEdition
                    Collation = this.DbCollation
                    TransparentDataEncryption = this.Encryption |}
 
-            let server =
-                match this.ServerName with
-                | AutomaticallyCreated serverName ->
-                    { ServerName = serverName
-                      Location = location
-                      Credentials =
-                        {| Username = this.AdministratorCredentials.UserName
-                           Password = this.AdministratorCredentials.Password |}
-                      FirewallRules = this.FirewallRules
-                      Databases = [ database ] }
-                | External serverName ->
-                    resources
-                    |> Helpers.tryMergeResource serverName (fun server -> { server with Databases = database :: server.Databases })
-                | AutomaticPlaceholder ->
-                    failwith "SQL Server Name has not been set."
-            server
+            match this.ServerName with
+            | AutomaticallyCreated serverName ->
+                { ServerName = serverName
+                  Location = location
+                  Credentials =
+                    {| Username = this.AdministratorCredentials.UserName
+                       Password = this.AdministratorCredentials.Password |}
+                  FirewallRules = this.FirewallRules
+                  Databases = [ database ] }
+            | External serverName ->
+                resources
+                |> Helpers.mergeResource serverName (fun server -> { server with Databases = database :: server.Databases })
+            | AutomaticPlaceholder ->
+                failwith "SQL Server Name has not been set."
         ]
 
 type SqlBuilder() =

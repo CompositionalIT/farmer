@@ -3,6 +3,13 @@ module Farmer.Arm.ContainerInstance
 
 open Farmer
 
+type ContainerGroupIpAddress =
+    { Type : ContainerGroupIpAddressType
+      Ports :
+        {| Protocol : TransmissionProtocol
+           Port : uint16 |} list
+    }
+
 type ContainerGroup =
     { Name : ResourceName
       Location : Location
@@ -11,10 +18,10 @@ type ContainerGroup =
            Image : string
            Ports : uint16 list
            Cpu : int
-           Memory : float |} list
+           Memory : float<Gb> |} list
       OsType : string
-      RestartPolicy : string
-      IpAddress : {| Type : string; Ports : {| Protocol : string; Port : uint16 |} list |} }
+      RestartPolicy : ContainerGroupRestartPolicy
+      IpAddress : ContainerGroupIpAddress }
 
     interface IArmResource with
         member this.ResourceName = this.Name
@@ -39,7 +46,17 @@ type ContainerGroup =
                                |}
                            |})
                       osType = this.OsType
-                      restartPolicy = this.RestartPolicy
-                      ipAddress = this.IpAddress
+                      restartPolicy = this.RestartPolicy.ToString().ToLower()
+                      ipAddress =
+                        {| Type =
+                            match this.IpAddress.Type with
+                            | PublicAddress -> "Public"
+                            | PrivateAddress -> "Private"
+                           Ports = [
+                               for port in this.IpAddress.Ports do
+                                {| Protocol = string port.Protocol
+                                   Port = port.Port |}
+                           ]
+                        |}
                    |}
             |} :> _

@@ -7,7 +7,7 @@ type StorageAccount =
     { Name : ResourceName
       Location : Location
       Sku : StorageSku
-      Containers : (string * string) list }
+      Containers : (string * StorageContainerAccess) list }
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonValue =
@@ -23,7 +23,12 @@ type StorageAccount =
                        apiVersion = "2018-03-01-preview"
                        name = "default/" + name
                        dependsOn = [ this.Name.Value ]
-                       properties = {| publicAccess = access |}
+                       properties =
+                        {| publicAccess =
+                            match access with
+                            | Private -> "None"
+                            | Container -> "Container"
+                            | Blob -> "Blob" |}
                     |}
                ]
             |} :> _

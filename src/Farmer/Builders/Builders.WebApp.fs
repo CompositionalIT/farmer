@@ -232,6 +232,7 @@ type WebAppConfig =
                     None
                 | AutomaticallyCreated name ->
                     { Name = name
+                      Location = location
                       Sku = this.Sku
                       WorkerSize = this.WorkerSize
                       WorkerCount = this.WorkerCount
@@ -239,7 +240,7 @@ type WebAppConfig =
                     |> Some
             webApp
             match ai with Some ai -> ai | None -> ()
-            match serverFarm with Some serverFarm -> yield! (serverFarm :> IBuilder).BuildResources location existingResources | None -> ()
+            match serverFarm with Some serverFarm -> serverFarm | None -> ()
         ]
 
 type WebAppBuilder() =
@@ -247,7 +248,7 @@ type WebAppBuilder() =
         { Name = ResourceName.Empty
           ServicePlanName = AutomaticPlaceholder
           AppInsightsName = Some AutomaticPlaceholder
-          Sku = WebAppSkus.F1
+          Sku = WebAppSku.F1
           WorkerSize = Small
           WorkerCount = 1
           RunFromPackage = false

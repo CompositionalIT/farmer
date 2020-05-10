@@ -9,12 +9,13 @@ module Vaults =
         { Name : ResourceName
           Location : Location
           Value : SecretValue
-          ParentKeyVault : ResourceName
           ContentType : string option
-          Enabled : bool Nullable
-          ActivationDate : int Nullable
-          ExpirationDate : int Nullable
+          Enabled : bool option
+          ActivationDate : DateTime option
+          ExpirationDate : DateTime option
           Dependencies : ResourceName list }
+        static member ``1970`` = DateTime(1970,1,1,0,0,0)
+        static member TotalSecondsSince1970 (d:DateTime) = (d.Subtract Secret.``1970``).TotalSeconds |> int
         interface IParameters with
             member this.SecureParameters =
                 match this with
@@ -28,45 +29,52 @@ module Vaults =
                    apiVersion = "2018-02-14"
                    location = this.Location.ArmValue
                    dependsOn = [
-                       this.ParentKeyVault.Value
                        for dependency in this.Dependencies do
                            dependency.Value ]
                    properties =
                        {| value = this.Value.Value
                           contentType = this.ContentType |> Option.toObj
                           attributes =
-                           {| enabled = this.Enabled
-                              nbf = this.ActivationDate
-                              exp = this.ExpirationDate
+                           {| enabled = this.Enabled |> Option.toNullable
+                              nbf = this.ActivationDate |> Option.map Secret.TotalSecondsSince1970 |> Option.toNullable
+                              exp = this.ExpirationDate |> Option.map Secret.TotalSecondsSince1970 |> Option.toNullable
                            |}
                        |}
                    |} :> _
 
+type CreateMode = Recover | Default
 type Vault =
     { Name : ResourceName
       Location : Location
       TenantId : string
       Sku : string
-      Uri : string option
-      EnabledForDeployment : bool option
-      EnabledForDiskEncryption : bool option
-      EnabledForTemplateDeployment : bool option
-      EnableSoftDelete : bool option
-      CreateMode : string option
-      EnablePurgeProtection : bool option
+      Uri : Uri option
+      Deployment : FeatureFlag option
+      DiskEncryption : FeatureFlag option
+      TemplateDeployment : FeatureFlag option
+      SoftDelete : SoftDeletionMode option
+      CreateMode : CreateMode option
       AccessPolicies :
-        {| ObjectId : string
-           ApplicationId : string option
+        {| ObjectId : Guid
+           ApplicationId : Guid option
            Permissions :
-            {| Keys : string array
-               Secrets : string array
-               Certificates : string array
-               Storage : string array |}
+            {| Keys : VaultKey Set
+               Secrets : VaultSecret Set
+               Certificates : VaultCertificate Set
+               Storage : VaultStorage Set |}
         |} array
-      DefaultAction : string option
-      Bypass: string option
+      DefaultAction : DefaultAction option
+      Bypass: Bypass option
       IpRules : string list
       VnetRules : string list }
+      member this.PurgeProtection =
+        match this.SoftDelete with
+        | None
+        | Some SoftDeletionOnly ->
+            None
+        | Some SoftDeleteWithPurgeProtection ->
+            Some true
+      member private this.ToStringArray s = s |> Set.map(fun s -> s.ToString().ToLower()) |> Set.toArray
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonValue =
@@ -77,27 +85,34 @@ type Vault =
                properties =
                  {| tenantId = this.TenantId
                     sku = {| name = this.Sku; family = "A" |}
-                    enabledForDeployment = this.EnabledForDeployment |> Option.toNullable
-                    enabledForDiskEncryption = this.EnabledForDiskEncryption |> Option.toNullable
-                    enabledForTemplateDeployment = this.EnabledForTemplateDeployment |> Option.toNullable
-                    enablePurgeProtection = this.EnablePurgeProtection |> Option.toNullable
-                    createMode = this.CreateMode |> Option.toObj
-                    vaultUri = this.Uri |> Option.toObj
+                    enabledForDeployment = this.Deployment |> Option.map(fun f -> f.AsBoolean) |> Option.toNullable
+                    enabledForDiskEncryption = this.DiskEncryption |> Option.map(fun f -> f.AsBoolean) |> Option.toNullable
+                    enabledForTemplateDeployment = this.TemplateDeployment |> Option.map(fun f -> f.AsBoolean) |> Option.toNullable
+                    enableSoftDelete =
+                        match this.SoftDelete with
+                        | None ->
+                            Nullable()
+                        | Some SoftDeleteWithPurgeProtection
+                        | Some SoftDeletionOnly ->
+                            Nullable true
+                    createMode = this.CreateMode |> Option.map(fun m -> m.ToString().ToLower()) |> Option.toObj
+                    enablePurgeProtection = this.PurgeProtection
+                    vaultUri = this.Uri |> Option.map string |> Option.toObj
                     accessPolicies =
                          [| for policy in this.AccessPolicies do
-                             {| objectId = policy.ObjectId
+                             {| objectId = string policy.ObjectId
                                 tenantId = this.TenantId
-                                applicationId = policy.ApplicationId |> Option.toObj
+                                applicationId = policy.ApplicationId |> Option.map string |> Option.toObj
                                 permissions =
-                                 {| keys = policy.Permissions.Keys
-                                    storage = policy.Permissions.Storage
-                                    certificates = policy.Permissions.Certificates
-                                    secrets = policy.Permissions.Secrets |}
+                                 {| keys = this.ToStringArray policy.Permissions.Keys
+                                    storage = this.ToStringArray policy.Permissions.Storage
+                                    certificates = this.ToStringArray policy.Permissions.Certificates
+                                    secrets = this.ToStringArray policy.Permissions.Secrets |}
                              |}
                          |]
                     networkAcls =
-                     {| defaultAction = this.DefaultAction |> Option.toObj
-                        bypass = this.Bypass |> Option.toObj
+                     {| defaultAction = this.DefaultAction  |> Option.map string |> Option.toObj
+                        bypass = this.Bypass  |> Option.map string |> Option.toObj
                         ipRules = this.IpRules
                         virtualNetworkRules = this.VnetRules |}
                  |}

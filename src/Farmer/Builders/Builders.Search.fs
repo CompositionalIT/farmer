@@ -5,18 +5,6 @@ open Farmer
 open Farmer.Helpers
 open Farmer.Arm.Search
 
-type HostingMode = Default | HighDensity
-[<RequireQualifiedAccess>]
-/// The SKU of the search service you want to create. E.g. free or standard.
-type SearchSku =
-    | Free
-    | Basic
-    | Standard
-    | Standard2
-    | Standard3 of HostingMode
-    | StorageOptimisedL1
-    | StorageOptimisedL2
-
 type SearchConfig =
     { Name : ResourceName
       Sku : SearchSku
@@ -34,22 +22,9 @@ type SearchConfig =
         member this.BuildResources location _ = [
             { Name = this.Name
               Location = location
-              Sku =
-                match this.Sku with
-                | SearchSku.Free -> "free"
-                | SearchSku.Basic -> "basic"
-                | SearchSku.Standard -> "standard"
-                | SearchSku.Standard2 -> "standard2"
-                | SearchSku.Standard3 _ -> "standard3"
-                | SearchSku.StorageOptimisedL1 -> "storage_optimized_l1"
-                | SearchSku.StorageOptimisedL2 -> "storage_optimized_l2"
+              Sku = this.Sku
               ReplicaCount = this.Replicas
-              PartitionCount = this.Partitions
-              HostingMode =
-                match this.Sku with
-                | SearchSku.Standard3 HighDensity -> "highDensity"
-                | _ -> "default"
-              }
+              PartitionCount = this.Partitions }
         ]
 
 type SearchBuilder() =

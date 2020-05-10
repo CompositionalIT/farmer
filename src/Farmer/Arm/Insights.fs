@@ -22,12 +22,10 @@ type Components =
                      "displayName", "AppInsightsComponent" ]
                    |> Map.ofList
                properties =
-                match this.LinkedWebsite with
-                | Some linkedWebsite ->
-                   box {| name = this.Name.Value
-                          Application_Type = "web"
-                          ApplicationId = linkedWebsite.Value |}
-                | None ->
-                   box {| name = this.Name.Value
-                          Application_Type = "web" |}
+                {| name = this.Name.Value
+                   Application_Type = "web"
+                   ApplicationId =
+                     match this.LinkedWebsite with
+                     | Some linkedWebsite -> linkedWebsite.Value
+                     | None -> null |}
             |} :> _
