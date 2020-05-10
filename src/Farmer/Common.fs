@@ -397,3 +397,9 @@ type [<RequireQualifiedAccess>] VaultStorage = Get | List | Delete | Set | Updat
 type ExpressRouteFamily = UnlimitedData | MeteredData
 type ExpressRouteCircuitPeeringType = AzurePrivatePeering | MicrosoftPeering member this.Value = this.ToString()
 type [<Measure>] Mbps
+type MessagingUnits = OneUnit | TwoUnits | FourUnits
+[<RequireQualifiedAccess>]
+type ServiceBusSku =
+    | Basic
+    | Standard
+    | Premium of MessagingUnits

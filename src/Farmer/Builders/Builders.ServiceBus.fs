@@ -4,13 +4,6 @@ module Farmer.Builders.ServiceBus
 open Farmer
 open Farmer.Arm.ServiceBus
 
-type MessagingUnits = OneUnit | TwoUnits | FourUnits
-[<RequireQualifiedAccess>]
-type ServiceBusSku =
-    | Basic
-    | Standard
-    | Premium of MessagingUnits
-
 type ServiceBusQueueConfig =
     { NamespaceName : ResourceRef
       NamespaceSku : ServiceBusSku
@@ -34,9 +27,8 @@ type ServiceBusQueueConfig =
         member this.BuildResources location existingResources = [
             let queue =
                   { Name = this.Name
-                    LockDuration = this.LockDurationMinutes |> Option.map (sprintf "PT%dM")
-                    DuplicateDetection = this.DuplicateDetection |> Option.map(fun _ -> true)
-                    DuplicateDetectionHistoryTimeWindow = this.DuplicateDetection |> Option.map (sprintf "PT%dM")
+                    LockDurationMinutes = this.LockDurationMinutes
+                    DuplicateDetectionHistoryTimeWindowMinutes = this.DuplicateDetection
                     Session = this.Session
                     DeadLetteringOnMessageExpiration = this.DeadLetteringOnMessageExpiration
                     MaxDeliveryCount = this.MaxDeliveryCount
@@ -47,22 +39,9 @@ type ServiceBusQueueConfig =
             | AutomaticallyCreated namespaceName ->
                 { Name = namespaceName
                   Location = location
-                  Sku =
-                    match this.NamespaceSku with
-                    | ServiceBusSku.Basic -> "Basic"
-                    | ServiceBusSku.Standard -> "Standard"
-                    | ServiceBusSku.Premium _ -> "Premium"
-                  Capacity =
-                    match this.NamespaceSku with
-                    | ServiceBusSku.Basic -> None
-                    | ServiceBusSku.Standard -> None
-                    | ServiceBusSku.Premium OneUnit -> Some 1
-                    | ServiceBusSku.Premium TwoUnits -> Some 2
-                    | ServiceBusSku.Premium FourUnits -> Some 4
-                  DependsOn =
-                    this.DependsOn
-                  Queues = [ queue ]
-                }
+                  Sku = this.NamespaceSku
+                  DependsOn = this.DependsOn
+                  Queues = [ queue ] }
             | External namespaceName ->
                 existingResources
                 |> Helpers.mergeResource namespaceName (fun ns -> { ns with Queues = queue :: ns.Queues })
