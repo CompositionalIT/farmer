@@ -17,7 +17,7 @@ type Namespace =
             | ManualInflate -> None)
     interface IArmResource with
         member this.ResourceName = this.Name
-        member this.JsonValue =
+        member this.JsonModel =
             {| ``type`` = "Microsoft.EventHub/namespaces"
                apiVersion = "2017-04-01"
                name = this.Name.Value
@@ -46,7 +46,7 @@ module Namespaces =
           Dependencies : ResourceName list }
         interface IArmResource with
             member this.ResourceName = this.Name
-            member this.JsonValue =
+            member this.JsonModel =
                {| ``type`` = "Microsoft.EventHub/namespaces/eventhubs"
                   apiVersion = "2017-04-01"
                   name = this.Name.Value
@@ -64,7 +64,7 @@ module Namespaces =
               Dependencies : ResourceName list }
             interface IArmResource with
                 member this.ResourceName = this.Name
-                member this.JsonValue =
+                member this.JsonModel =
                     {| ``type`` = "Microsoft.EventHub/namespaces/eventhubs/consumergroups"
                        apiVersion = "2017-04-01"
                        name = this.Name.Value
@@ -79,7 +79,7 @@ module Namespaces =
               Rights : AuthorizationRuleRight Set }
             interface IArmResource with
                 member this.ResourceName = this.Name
-                member this.JsonValue =
+                member this.JsonModel =
                     {| ``type`` = "Microsoft.EventHub/namespaces/eventhubs/AuthorizationRules"
                        apiVersion = "2017-04-01"
                        name = this.Name.Value

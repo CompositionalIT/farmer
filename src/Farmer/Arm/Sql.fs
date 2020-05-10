@@ -22,7 +22,7 @@ type Server =
         member this.SecureParameters = [ this.Credentials.Password ]
     interface IArmResource with
         member this.ResourceName = this.ServerName
-        member this.JsonValue =
+        member this.JsonModel =
             {| ``type`` = "Microsoft.Sql/servers"
                name = this.ServerName.Value
                apiVersion = "2014-04-01-preview"

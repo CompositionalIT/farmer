@@ -9,7 +9,7 @@ type Components =
       LinkedWebsite : ResourceName option }
     interface IArmResource with
         member this.ResourceName = this.Name
-        member this.JsonValue =
+        member this.JsonModel =
             {| ``type`` = "Microsoft.Insights/components"
                kind = "web"
                name = this.Name.Value

@@ -10,7 +10,7 @@ type PublicIpAddress =
       DomainNameLabel : string option }
     interface IArmResource with
         member this.ResourceName = this.Name
-        member this.JsonValue =
+        member this.JsonModel =
             {| ``type`` = "Microsoft.Network/publicIPAddresses"
                apiVersion = "2018-11-01"
                name = this.Name.Value
@@ -30,7 +30,7 @@ type VirtualNetwork =
       Subnets : {| Name : ResourceName; Prefix : string |} list }
     interface IArmResource with
         member this.ResourceName = this.Name
-        member this.JsonValue =
+        member this.JsonModel =
             {| ``type`` = "Microsoft.Network/virtualNetworks"
                apiVersion = "2018-11-01"
                name = this.Name.Value
@@ -54,7 +54,7 @@ type NetworkInterface =
       VirtualNetwork : ResourceName }
     interface IArmResource with
         member this.ResourceName = this.Name
-        member this.JsonValue =
+        member this.JsonModel =
             {| ``type`` = "Microsoft.Network/networkInterfaces"
                apiVersion = "2018-11-01"
                name = this.Name.Value
@@ -99,7 +99,7 @@ type ExpressRouteCircuit =
 
     interface IArmResource with
         member this.ResourceName = this.Name
-        member this.JsonValue =
+        member this.JsonModel =
             {| ``type`` = "Microsoft.Network/expressRouteCircuits"
                apiVersion = "2019-02-01"
                name = this.Name.Value

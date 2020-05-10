@@ -15,7 +15,7 @@ type SearchService =
         | _ -> "default"
     interface IArmResource with
         member this.ResourceName = this.Name
-        member this.JsonValue =
+        member this.JsonModel =
             {| ``type`` = "Microsoft.Search/searchServices"
                apiVersion = "2015-08-19"
                name = this.Name.Value

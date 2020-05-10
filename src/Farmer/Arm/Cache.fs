@@ -20,7 +20,7 @@ type Redis =
 
     interface IArmResource with
         member this.ResourceName = this.Name
-        member this.JsonValue =
+        member this.JsonModel =
             {| ``type`` = "Microsoft.Cache/Redis"
                apiVersion = "2018-03-01"
                name = this.Name.Value

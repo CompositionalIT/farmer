@@ -10,7 +10,7 @@ type StorageAccount =
       Containers : (string * StorageContainerAccess) list }
     interface IArmResource with
         member this.ResourceName = this.Name
-        member this.JsonValue =
+        member this.JsonModel =
             {| ``type`` = "Microsoft.Storage/storageAccounts"
                sku = {| name = this.Sku.ArmValue |}
                kind = "StorageV2"

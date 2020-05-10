@@ -23,7 +23,7 @@ module DatabaseAccounts =
             }
             interface IArmResource with
                 member this.ResourceName = this.Name
-                member this.JsonValue =
+                member this.JsonModel =
                     {| ``type`` = "Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers"
                        name = sprintf "%s/%s/%s" this.Account.Value this.Database.Value this.Name.Value
                        apiVersion = "2020-03-01"
@@ -61,7 +61,7 @@ module DatabaseAccounts =
           Throughput : int }
         interface IArmResource with
             member this.ResourceName = this.Name
-            member this.JsonValue =
+            member this.JsonModel =
                 {| ``type`` = "Microsoft.DocumentDB/databaseAccounts/sqlDatabases"
                    name = sprintf "%s/%s" this.Account.Value this.Name.Value
                    apiVersion = "2020-03-01"
@@ -106,7 +106,7 @@ type DatabaseAccount =
 
     interface IArmResource with
         member this.ResourceName = this.Name
-        member this.JsonValue =
+        member this.JsonModel =
             {| ``type`` = "Microsoft.DocumentDB/databaseAccounts"
                name = this.Name.Value
                apiVersion = "2020-03-01"

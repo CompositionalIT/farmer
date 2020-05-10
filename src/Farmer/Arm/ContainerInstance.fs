@@ -25,7 +25,7 @@ type ContainerGroup =
 
     interface IArmResource with
         member this.ResourceName = this.Name
-        member this.JsonValue =
+        member this.JsonModel =
             {| ``type`` = "Microsoft.ContainerInstance/containerGroups"
                apiVersion = "2018-10-01"
                name = this.Name.Value

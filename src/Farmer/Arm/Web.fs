@@ -35,7 +35,7 @@ type ServerFarm =
         | WebAppSku.Isolated _ -> "Isolated"
     interface IArmResource with
         member this.ResourceName = this.Name
-        member this.JsonValue =
+        member this.JsonModel =
             {| ``type`` = "Microsoft.Web/serverfarms"
                sku =
                    {| name =
@@ -136,7 +136,7 @@ type Sites =
                 None
     interface IArmResource with
         member this.ResourceName = this.Name
-        member this.JsonValue =
+        member this.JsonModel =
             {| ``type`` = "Microsoft.Web/sites"
                name = this.Name.Value
                apiVersion = "2016-08-01"
