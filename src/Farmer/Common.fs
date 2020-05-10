@@ -403,3 +403,12 @@ type ServiceBusSku =
     | Basic
     | Standard
     | Premium of MessagingUnits
+
+/// The consistency policy of a CosmosDB account.
+type ConsistencyPolicy = Eventual | ConsistentPrefix | Session | BoundedStaleness of maxStaleness:int * maxIntervalSeconds : int | Strong
+/// The failover policy of a CosmosDB account.
+type FailoverPolicy = NoFailover | AutoFailover of secondaryLocation:Location | MultiMaster of secondaryLocation:Location
+/// The kind of index to use on a CosmoDB container.
+type CosmosDbIndexKind = Hash | Range
+/// The datatype for the key of index to use on a CosmoDB container.
+type CosmosDbIndexDataType = Number | String
