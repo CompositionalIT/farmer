@@ -635,119 +635,65 @@ module ServiceBus =
                 |} :> _
 
 module PostgreSQL =
-    type SkuTier = 
-        | Basic 
-        | GeneralPurpose 
-        | MemoryOptimized
-        override this.ToString() =
-            match this with
-            | Basic -> "B"
-            | GeneralPurpose -> "G"
-            | MemoryOptimized -> "M"
-        
     type SkuFamily = Gen5
-    
-    type StorageSizeInMBs = private | StorageSizeInMBs of int
-    
-    module StorageSizeInMBs =
-        let private MIN_SIZE_MB = 5 * 1024
-        let private MAX_SIZE_MB = 1024 * 1024
-        
-        let ofInt n =
-            if n >= MIN_SIZE_MB && n <= MAX_SIZE_MB then StorageSizeInMBs n
-            else failwithf "StorageSizeInMBs must be between %d and %d inclusive, was %d" MIN_SIZE_MB MAX_SIZE_MB n 
-            
-        let toInt = function
-            | StorageSizeInMBs n -> n
+    type SkuTier = Basic | GeneralPurpose | MemoryOptimized
+    type ServerVersion = VS_9_5 | VS_9_6 | VS_10 | VS_11
 
-    type SkuCapacity =
-        | VCores_1
-        | VCores_2
-        | VCores_4
-        | VCores_8
-        | VCores_16
-        | VCores_32
-        | VCores_64
-        member this.ToInt() =
-            match this with
-            | VCores_1 -> 1
-            | VCores_2 -> 2
-            | VCores_4 -> 4
-            | VCores_8 -> 8
-            | VCores_16 -> 16
-            | VCores_32 -> 32
-            | VCores_64 -> 64
-            
-    type SkuSpec =
-        { Tier : SkuTier
-          Capacity : SkuCapacity
-          Size : StorageSizeInMBs
-          Family : SkuFamily }
-        member this.ToArmObject () =
-            {| name = sprintf "%O_%O_%O" this.Tier this.Family this.Capacity
-               tier = this.Tier.ToString()
-               capacity = this.Capacity.ToString()
-               family = this.Family.ToString()
-               size = StorageSizeInMBs.toInt this.Size |}
+    type Database = {
+        Name : ResourceName 
+        Edition : string 
+        Collation : string
+    }
     
-
-    type BackupRetentionInDays = private | BackupRetentionInDays of int
-        
-    module BackupRetentionInDays =
-        let private MIN_SIZE_DAYS = 7
-        let private MAX_SIZE_DAYS = 35
-        
-        let ofInt days =
-            if days >= MIN_SIZE_DAYS && days <= MAX_SIZE_DAYS then BackupRetentionInDays days
-            else failwithf "BackupRetentionInDays must be between %d and %d inclusive, was %d"
-                     MIN_SIZE_DAYS MAX_SIZE_DAYS days 
-            
-        let toInt = function
-            | BackupRetentionInDays days -> days
-
-    type ServerVersion =
-        | VS_9_5
-        | VS_9_6
-        | VS_10
-        | VS_11
-        override this.ToString() =
-            match this with
-            | VS_9_5 -> "9.5"
-            | VS_9_6 -> "9.6"
-            | VS_10 -> "10"
-            | VS_11 -> "11"
-        
     type Server =
-        { ServerName : ResourceName
-          Location : Location
-          Credentials : {| Username : string; Password : SecureParameter |}
-          Version : ServerVersion
-          Sku : SkuSpec
-          GeoRedundantBackup : FeatureFlag
-          StorageAutoGrow : FeatureFlag
-          BackupRetention : BackupRetentionInDays 
-          Databases :
-            {| Name : ResourceName 
-               Edition : string 
-               Collation : string |} list
-        }
+        {   ServerName : ResourceName
+            Location : Location
+            Username : string
+            Password : SecureParameter
+            Version : ServerVersion
+            Capacity : int
+            StorageSize : int
+            Tier : SkuTier
+            Family : SkuFamily
+            GeoRedundantBackup : FeatureFlag
+            StorageAutoGrow : FeatureFlag
+            BackupRetention : int 
+            Databases : Database list    }
 
+        member this.getSku () =
+            let tierName =
+                match this.Tier with
+                | Basic -> "B"
+                | GeneralPurpose -> "GP"
+                | MemoryOptimized -> "MO"
+            
+            {| name = sprintf "%s_%O_%d" tierName this.Family this.Capacity
+               tier = this.Tier.ToString()
+               capacity = this.Capacity
+               family = this.Family.ToString()
+               size = this.StorageSize |}
+               
         member this.GetStorageProfile () = {|
-            storageMB = StorageSizeInMBs.toInt this.Sku.Size
-            backupRetentionDays = BackupRetentionInDays.toInt this.BackupRetention
+            storageMB = this.StorageSize
+            backupRetentionDays = this.BackupRetention
             geoRedundantBackup = this.GeoRedundantBackup.ToString()
             storageAutoGrow = this.StorageAutoGrow.ToString()
         |}
         
-        member this.GetProperties () = {|
-            administratorLogin = this.Credentials.Username
-            administratorLoginPassword = this.Credentials.Password.AsArmRef.Eval()
-            version = this.Version.ToString()
-            storageProfile = this.GetStorageProfile()
-        |}
+        member this.GetProperties () =
+            let version =
+                match this.Version with
+                | VS_9_5 -> "9.5"
+                | VS_9_6 -> "9.6"
+                | VS_10 -> "10"
+                | VS_11 -> "11"
+            {| administratorLogin = this.Username
+               administratorLoginPassword = this.Password.AsArmRef.Eval()
+               version = version
+               storageProfile = this.GetStorageProfile() |}
         
         interface IParameters with
-            member this.SecureParameters = [ this.Credentials.Password ]
+            member this.SecureParameters = [ this.Password ]
             
         interface IResource with
             member this.ResourceName = this.ServerName
@@ -757,7 +703,7 @@ module PostgreSQL =
                        name = this.ServerName.Value
                        location = this.Location.ArmValue
                        tags = {| displayName = this.ServerName.Value |}
-                       sku = this.Sku.ToArmObject()
+                       sku = this.getSku()
                        properties = this.GetProperties()
                 |} 
 
@@ -793,8 +739,7 @@ module Sql =
                           version = "12.0" |}
                    resources = [
                        for database in this.Databases do
-                           box
-                               {| ``type`` = "databases"
+                           box {| ``type`` = "databases"
                                   name = database.Name.Value
                                   apiVersion = "2015-01-01"
                                   location = this.Location.ArmValue
