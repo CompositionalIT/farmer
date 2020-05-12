@@ -110,12 +110,12 @@ type CosmosDbBuilder() =
         | AutomaticPlaceholder ->
             { state with ServerName = sprintf "%s-server" state.Name.Value |> ResourceName |> AutomaticallyCreated }
     /// Sets the name of the CosmosDB server.
-    [<CustomOperation "server_name">]
-    member __.ServerName(state:CosmosDbConfig, serverName) = { state with ServerName = AutomaticallyCreated serverName }
-    member this.ServerName(state:CosmosDbConfig, serverName:string) = this.ServerName(state, ResourceName serverName)
+    [<CustomOperation "account_name">]
+    member __.AccountName(state:CosmosDbConfig, serverName) = { state with ServerName = AutomaticallyCreated serverName }
+    member this.AccountName(state:CosmosDbConfig, serverName:string) = this.AccountName(state, ResourceName serverName)
     /// Links the database to an existing server
-    [<CustomOperation "link_to_server">]
-    member __.LinkToServer(state:CosmosDbConfig, server:CosmosDbConfig) = { state with ServerName = External server.ServerName.ResourceName }
+    [<CustomOperation "link_to_account">]
+    member __.LinkToAccount(state:CosmosDbConfig, server:CosmosDbConfig) = { state with ServerName = External server.ServerName.ResourceName }
     /// Sets the name of the database.
     [<CustomOperation "name">]
     member __.Name(state:CosmosDbConfig, name) = { state with Name = name }

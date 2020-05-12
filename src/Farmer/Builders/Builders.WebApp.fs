@@ -169,7 +169,6 @@ type WebAppConfig =
                     match this.Runtime with
                     | AspNet version -> Some (sprintf "v%s" version)
                     | _ -> None
-
                   JavaVersion =
                     match this.Runtime, this.OperatingSystem with
                     | Java (Java11, Tomcat _), Windows -> Some "11"

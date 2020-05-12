@@ -11,7 +11,7 @@ let sanitise filters maxLength (resourceName:ResourceName) =
     |> System.String
 let sanitiseStorage = sanitise [ Char.IsLetterOrDigit ] 16
 let sanitiseSearch = sanitise [ Char.IsLetterOrDigit; (=) '-' ] 60
-let santitiseDb = sanitise [ Char.IsLetterOrDigit ] 100 >> fun r -> r.ToLower()
+let sanitiseDb = sanitise [ Char.IsLetterOrDigit ] 100 >> fun r -> r.ToLower()
 let mergeResource<'T when 'T :> IArmResource> resourceName (merge:'T -> 'T) (existingResources:IArmResource list) =
     existingResources
     |> List.filter(fun g -> g.ResourceName = resourceName)

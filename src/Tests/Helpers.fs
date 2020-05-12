@@ -23,3 +23,23 @@ let convertResourceBuilder mapper (serializationSettings:Newtonsoft.Json.JsonSer
             |> fun json -> SafeJsonConvert.DeserializeObject(json, serializationSettings)
             |> Option.ofObj
     )
+
+type TypedArmTemplate<'ResT> = { Resources : 'ResT array }
+
+let getFirstResourceOrFail (template: TypedArmTemplate<'ResT>) =
+    if Array.length template.Resources < 1 then
+        failwith "Template had no resources"
+    template.Resources.[0]
+
+let toTemplate loc (d : IBuilder) =
+    let a = arm {
+        location loc
+        add_resource d
+    }
+    a.Template
+
+let toTypedTemplate<'ResT> loc =
+    toTemplate loc
+    >> Writer.toJson
+    >> SafeJsonConvert.DeserializeObject<TypedArmTemplate<'ResT>>
+    >> getFirstResourceOrFail
