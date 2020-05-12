@@ -91,6 +91,9 @@ type ResourceRef =
 /// Whether a specific feature is active or not.
 type FeatureFlag = Enabled | Disabled member this.AsBoolean = match this with Enabled -> true | Disabled -> false
 
+module FeatureFlag =
+    let ofBool enabled = if enabled then Enabled else Disabled
+    
 /// Represents a secret to be captured either via an ARM expression or a secure parameter.
 type SecretValue =
     | ParameterSecret of SecureParameter

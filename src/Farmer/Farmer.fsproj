@@ -52,6 +52,7 @@
     <Compile Include="Builders.AppInsights.fs" />
     <Compile Include="Builders.WebApp.fs" />
     <Compile Include="Builders.Functions.fs" />
+    <Compile Include="Builders.PostgreSQL.fs" />
     <Compile Include="Builders.Sql.fs" />
     <Compile Include="Builders.Search.fs" />
     <Compile Include="Builders.Cosmos.fs" />
