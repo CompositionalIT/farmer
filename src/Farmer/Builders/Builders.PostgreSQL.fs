@@ -3,7 +3,7 @@ module Farmer.Builders.PostgreSQLAzure
 
 open System
 open Farmer
-open Arm.PostgreSQL
+open Arm.DBforPostgreSQL
 
 [<Measure>] type Days
 [<Measure>] type GB
