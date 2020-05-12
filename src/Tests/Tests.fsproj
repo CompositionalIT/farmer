@@ -16,6 +16,7 @@
     <Compile Include="AzCli.fs" />
     <Compile Include="VirtualMachine.fs" />
     <Compile Include="ContainerRegistry.fs" />
+    <Compile Include="PostgreSQL.fs" />
     <Compile Include="AllTests.fs" />
   </ItemGroup>
 

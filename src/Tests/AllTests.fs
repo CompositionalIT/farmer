@@ -14,6 +14,7 @@ let allTests =
                 ExpressRoute.tests
                 ServiceBus.tests
                 VirtualMachine.tests
+                PostgreSQL.tests
             ]
             testList "Control" [
                 Template.tests
