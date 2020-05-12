@@ -3,8 +3,7 @@ module PostgreSQL
 open System
 open Expecto
 open Farmer
-open Farmer.Resources
-
+open Farmer.Builders
 
 type PostgresSku = {
     name : string
@@ -36,7 +35,7 @@ type PostgresTemplate =
       sku : PostgresSku
       location : string
       geoRedundantBackup : string
-      properties : Properties } 
+      properties : Properties }
 
 let runBuilder builder = toTypedTemplate<PostgresTemplate> NorthEurope builder
 
@@ -45,7 +44,7 @@ module Expect =
         let thrown =
             try
                 f ()
-                None 
+                None
             with e ->
                 Some e.Message
         match thrown with
@@ -59,11 +58,11 @@ let tests = testList "PostgreSQL Database Service" [
         let actual = runBuilder <| postgreSQL {
             server_name "testdb"
             admin_username "myadminuser"
-            server_version Arm.PostgreSQL.VS_10
+            server_version Arm.DBforPostgreSQL.VS_10
             storage_size 50<GB>
-            backup_retention 17<days>
-            capacity 4<vCores>
-            tier Arm.PostgreSQL.GeneralPurpose
+            backup_retention 17<Days>
+            capacity 4<VCores>
+            tier Arm.DBforPostgreSQL.GeneralPurpose
             enable_geo_redundant_backup
             disable_storage_autogrow
         }
@@ -81,39 +80,39 @@ let tests = testList "PostgreSQL Database Service" [
         Expect.equal actual.properties.storageProfile.storageAutoGrow "Disabled" "storage autogrow"
         Expect.equal actual.properties.storageProfile.backupRetentionDays 17 "backup retention"
     }
-    
+
     test "Server name must be given" {
         Expect.throws (fun () -> runBuilder <| postgreSQL { admin_username "adminuser" } |> ignore) "Missing server name"
     }
-    
+
     test "Admin username must be given" {
         Expect.throws (fun () -> runBuilder <| postgreSQL { server_name "servername" } |> ignore) "Missing admin username"
     }
-    
+
     test "server_name is validated when set" {
         Expect.throws (fun () -> postgreSQL { server_name "123bad" } |> ignore) "Bad server name"
     }
-    
+
     test "admin_username is validated when set" {
         Expect.throws (fun () -> postgreSQL { admin_username "123bad" } |> ignore) "Bad admin username"
     }
-    
+
     test "backup_retention is validated when set" {
-        Expect.throws (fun () -> postgreSQL { backup_retention 2<days> } |> ignore) "Bad backup retention"
+        Expect.throws (fun () -> postgreSQL { backup_retention 2<Days> } |> ignore) "Bad backup retention"
     }
-    
+
     test "storage_size is validated when set" {
         Expect.throws (fun () -> postgreSQL { storage_size 1<GB> } |> ignore) "Bad backup retention"
     }
-    
+
     test "capacity is validated when set" {
-        Expect.throws (fun () -> postgreSQL { capacity 6<vCores> } |> ignore) "Bad capacity"
+        Expect.throws (fun () -> postgreSQL { capacity 6<VCores> } |> ignore) "Bad capacity"
     }
-    
+
     test "Username can be validated" {
         let validate c =
             fun () ->
-                Validate.username "u" c 
+                Validate.username "u" c
         let badNames = [
             (null, "Null username"); ("", "Empty username"); ("   /t ", "Blank username")
             (new String('a', 64), "Username too long")
@@ -134,11 +133,11 @@ let tests = testList "PostgreSQL Database Service" [
             Expect.throwsNot (validate candidate) (sprintf "'%s' should work" candidate)
         )
     }
-    
+
     test "Servername can be validated" {
         let validate c =
             fun () ->
-                Validate.servername c 
+                Validate.servername c
 
         let badNames = [
             (null, "Null servername"); ("", "Empty servername"); ("   /t ", "Blank servername")
@@ -160,7 +159,7 @@ let tests = testList "PostgreSQL Database Service" [
             Expect.throwsNot (validate candidate) (sprintf "'%s' should work" candidate)
         )
     }
-    
+
     test "Storage size can be validated" {
         Expect.throws (fun () -> Validate.storageSize 4<GB>) "Storage size too small"
         Expect.throws (fun () -> Validate.storageSize 1025<GB>) "Storage size too large"
@@ -168,17 +167,17 @@ let tests = testList "PostgreSQL Database Service" [
         Expect.throwsNot (fun () -> Validate.storageSize 50<GB>) "Storage size just right"
         Expect.throwsNot (fun () -> Validate.storageSize 1024<GB>) "Storage size just right, max"
     }
-    
+
     test "Backup retention can be validated" {
-        Expect.throws (fun () -> Validate.backupRetention 4<days>) "Backup retention too small"
-        Expect.throws (fun () -> Validate.backupRetention 1000<days>) "Backup retention too large"
-        Expect.throwsNot (fun () -> Validate.backupRetention 21<days>) "Backup retention just right"
+        Expect.throws (fun () -> Validate.backupRetention 4<Days>) "Backup retention too small"
+        Expect.throws (fun () -> Validate.backupRetention 1000<Days>) "Backup retention too large"
+        Expect.throwsNot (fun () -> Validate.backupRetention 21<Days>) "Backup retention just right"
     }
 
     test "Capacity can be validated" {
-        Expect.throws (fun () -> Validate.capacity 0<vCores>) "Capacity too small"
-        Expect.throws (fun () -> Validate.capacity 128<vCores>) "Capacity too large"
-        Expect.throws (fun () -> Validate.capacity 13<vCores>) "Capacity not a power of two"
-        Expect.throwsNot (fun () -> Validate.capacity 16<vCores>) "Capacity just right"
+        Expect.throws (fun () -> Validate.capacity 0<VCores>) "Capacity too small"
+        Expect.throws (fun () -> Validate.capacity 128<VCores>) "Capacity too large"
+        Expect.throws (fun () -> Validate.capacity 13<VCores>) "Capacity not a power of two"
+        Expect.throwsNot (fun () -> Validate.capacity 16<VCores>) "Capacity just right"
     }
-]    
+]

@@ -2,8 +2,8 @@ module ServiceBus
 
 open Expecto
 open Farmer
-open Farmer.Resources
-open Arm.ServiceBus
+open Farmer.Builders
+open Farmer.Arm.ServiceBus
 open Microsoft.Azure.Management.ServiceBus
 open Microsoft.Azure.Management.ServiceBus.Models
 open Microsoft.Rest

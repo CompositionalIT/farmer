@@ -1,8 +1,8 @@
 ﻿[<AutoOpen>]
-module Farmer.Resources.ServicePlan
+module Farmer.Builders.ServicePlan
 
 open Farmer
-open Arm.Web
+open Farmer.Arm.Web
 
 type WorkerSize = Small | Medium | Large | Serverless
 [<RequireQualifiedAccess>]
@@ -35,7 +35,7 @@ type ServicePlanConfig =
       WorkerSize : WorkerSize
       WorkerCount : int
       OperatingSystem : OS }
-    interface IResourceBuilder with
+    interface IBuilder with
         member this.BuildResources location _ = [
           { Location = location
             Name = this.Name

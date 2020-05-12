@@ -1,8 +1,8 @@
 [<AutoOpen>]
-module Farmer.Resources.Redis
+module Farmer.Builders.Redis
 
 open Farmer
-open Arm.Cache
+open Farmer.Arm.Cache
 
 type TlsVersion = Tls10 | Tls11 | Tls12
 [<RequireQualifiedAccess>]
@@ -24,7 +24,7 @@ type RedisConfig =
       ShardCount : int option
       MinimumTlsVersion : TlsVersion option }
     member this.Key = buildRedisKey this.Name
-    interface IResourceBuilder with
+    interface IBuilder with
         member this.BuildResources location _ = [
             { Name = this.Name
               Location = location

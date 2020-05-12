@@ -1,8 +1,8 @@
 ﻿[<AutoOpen>]
-module Farmer.Resources.AppInsights
+module Farmer.Builders.AppInsights
 
 open Farmer
-open Arm.Insights
+open Farmer.Arm.Insights
 
 let tryCreateAppInsightsName aiName rootName =
     aiName
@@ -12,6 +12,7 @@ let tryCreateAppInsightsName aiName rootName =
     | (External _ as resourceRef)
     | (AutomaticallyCreated _ as resourceRef) ->
         resourceRef)
+
 let instrumentationKey (ResourceName accountName) =
     sprintf "reference('Microsoft.Insights/components/%s').InstrumentationKey" accountName
     |> ArmExpression
@@ -20,7 +21,8 @@ type AppInsightsConfig =
     { Name : ResourceName }
     /// Gets the ARM expression path to the instrumentation key of this App Insights instance.
     member this.InstrumentationKey = instrumentationKey this.Name
-    interface IResourceBuilder with
+
+    interface IBuilder with
         member this.BuildResources location _ = [
             { Name = this.Name
               Location = location

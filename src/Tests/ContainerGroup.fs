@@ -2,7 +2,7 @@ module ContainerGroup
 
 open Expecto
 open Farmer
-open Farmer.Resources
+open Farmer.Builders
 open Microsoft.Azure.Management.ContainerInstance
 open Microsoft.Azure.Management.ContainerInstance.Models
 open Microsoft.Rest

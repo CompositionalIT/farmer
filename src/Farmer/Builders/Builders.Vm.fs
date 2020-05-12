@@ -1,11 +1,11 @@
 [<AutoOpen>]
-module Farmer.Resources.VirtualMachine
+module Farmer.Builders.VirtualMachine
 
 open Farmer
 open Farmer.Helpers
-open Arm.Compute
-open Arm.Network
-open Arm.Storage
+open Farmer.Arm.Compute
+open Farmer.Arm.Network
+open Farmer.Arm.Storage
 
 let makeName (vmName:ResourceName) elementType = sprintf "%s-%s" vmName.Value elementType
 let makeResourceName vmName = makeName vmName >> ResourceName
@@ -39,7 +39,7 @@ type VmConfig =
     member this.SubnetName = makeResourceName this.Name "subnet"
     member this.IpName = makeResourceName this.Name "ip"
     member this.Hostname = sprintf "reference('%s').dnsSettings.fqdn" this.IpName.Value |> ArmExpression
-    interface IResourceBuilder with
+    interface IBuilder with
         member this.BuildResources location _ = [
             // VM itself
             { Name = this.Name

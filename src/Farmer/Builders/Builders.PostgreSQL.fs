@@ -1,19 +1,13 @@
 [<AutoOpen>]
-module Farmer.Resources.PostgreSQLAzure
+module Farmer.Builders.PostgreSQLAzure
 
 open System
 open Farmer
-open Arm.PostgreSQL
+open Arm.DBforPostgreSQL
 
-
-[<Measure>]
-type days
-
-[<Measure>]
-type GB
-
-[<Measure>]
-type vCores
+[<Measure>] type Days
+[<Measure>] type GB
+[<Measure>] type VCores
 
 
 type PostgreSQLBuilderState = {
@@ -22,9 +16,9 @@ type PostgreSQLBuilderState = {
     Version : ServerVersion
     GeoRedundantBackup : bool
     StorageAutogrow : bool
-    BackupRetention : int<days>
+    BackupRetention : int<Days>
     StorageSize : int<GB>
-    Capacity : int<vCores>
+    Capacity : int<VCores>
     Tier : SkuTier
 }
 
@@ -41,16 +35,16 @@ module private Helpers =
     let isAsciiUppercase (c : char) = (c >= 'A' && c <= 'Z')
     let isAsciiLetter (c : Char) = isAsciiLowercase c || isAsciiUppercase c
     let isAsciiLetterOrDigit (c : Char) = isAsciiLetter c || isAsciiDigit c
-    
+
     let isLegalServernameChar c = isAsciiLowercase c || isAsciiDigit c || c = '-'
-    
-    
-[<RequireQualifiedAccess>]    
+
+
+[<RequireQualifiedAccess>]
 module Validate =
     let reservedUsernames = [
         "azure_pg_admin"; "admin"; "root"; "azure_superuser"; "administrator"; "root"; "guest"
     ]
-    
+
     let username (paramName : string) (candidate : string) =
         if String.IsNullOrWhiteSpace candidate then
             failwithf "%s can not be null, empty, or blank" paramName
@@ -76,24 +70,24 @@ module Validate =
             failwith "Server name must not start with a digit"
         if not (Seq.forall isLegalServernameChar name) then
             failwithf "Server name can only consist of ASCII lowercase letters, digits, or hyphens. Was '%s'" name
-            
-    let minBackupRetention = 7<days>        
-    let maxBackupRetention = 35<days>        
-    let backupRetention (days: int<days>) =
+
+    let minBackupRetention = 7<Days>
+    let maxBackupRetention = 35<Days>
+    let backupRetention (days: int<Days>) =
         if days < minBackupRetention || days > maxBackupRetention then
             failwithf "Backup retention must be between %d and %d days, was %d"
                 minBackupRetention maxBackupRetention days
-                
+
     let minStorageSize = 5<GB>
-    let maxStorageSize = 1024<GB> 
+    let maxStorageSize = 1024<GB>
     let storageSize (size : int<GB>) =
         if size < minStorageSize || size > maxStorageSize then
             failwithf "Storage space must between %d and %d GB, was %d"
                 minStorageSize maxStorageSize size
-    
-    let minCapacity = 1<vCores>
-    let maxCapacity = 64<vCores>
-    let capacity (capacity:int<vCores>) =
+
+    let minCapacity = 1<VCores>
+    let maxCapacity = 64<VCores>
+    let capacity (capacity:int<VCores>) =
         if capacity < minCapacity || capacity > maxCapacity then
             failwithf "Capacity must be between %d and %d cores, was %d"
                 minCapacity maxCapacity capacity
@@ -101,10 +95,10 @@ module Validate =
         if ((c &&& (c - 1)) <> 0) then
             failwithf "Capacity must be a power of two, was %d" capacity
 
-            
+
 type PostgreSQLBuilder() =
     let inMB (gb: int<GB>) = 1024 * (int gb)
-    
+
     member _this.Yield _ = {
         PostgreSQLBuilderState.ServerName = AutomaticPlaceholder
         AdminUserName = None
@@ -113,15 +107,15 @@ type PostgreSQLBuilder() =
         StorageAutogrow = true
         BackupRetention = Validate.minBackupRetention
         StorageSize = Validate.minStorageSize
-        Capacity = 2<vCores>
+        Capacity = 2<VCores>
         Tier = Basic
     }
-    
+
     member _this.Run (state: PostgreSQLBuilderState) =
         let adminName = state.AdminUserName |> Option.getOrFailWith "admin username not set"
-        
-        { new IResourceBuilder with
-            member this.BuildResources location resources = 
+
+        { new IBuilder with
+            member this.BuildResources location resources =
                 let serverResource =
                     match state.ServerName with
                     | External resName ->
@@ -136,14 +130,14 @@ type PostgreSQLBuilder() =
                           Capacity = int state.Capacity
                           Tier = state.Tier
                           Family = Gen5
-                          GeoRedundantBackup = FeatureFlag.ofBool state.GeoRedundantBackup 
+                          GeoRedundantBackup = FeatureFlag.ofBool state.GeoRedundantBackup
                           StorageAutoGrow = FeatureFlag.ofBool state.StorageAutogrow
                           BackupRetention = int state.BackupRetention
                           Databases = [] }
                     | AutomaticPlaceholder -> failwith "You must specific a server name, or link to an existing server."
-                    
+
                 [serverResource] }
-        
+
     /// Sets the name of the PostgreSQL server
     [<CustomOperation "server_name">]
     member _this.ServerName(state:PostgreSQLBuilderState, serverName) =
@@ -183,7 +177,7 @@ type PostgreSQLBuilder() =
     [<CustomOperation "enable_storage_autogrow">]
     member this.EnableStorageAutogrow(state:PostgreSQLBuilderState) =
         this.SetStorageAutogrow(state, true)
-        
+
     /// Disables storage autogrow
     [<CustomOperation "disable_storage_autogrow">]
     member this.DisableStorageAutogrow(state:PostgreSQLBuilderState) =
@@ -197,7 +191,7 @@ type PostgreSQLBuilder() =
 
     /// sets the backup retention in days
     [<CustomOperation "backup_retention">]
-    member this.SetBackupRetention (state:PostgreSQLBuilderState, retention:int<days>) =
+    member this.SetBackupRetention (state:PostgreSQLBuilderState, retention:int<Days>) =
         Validate.backupRetention retention
         { state with BackupRetention = retention }
 
@@ -205,10 +199,10 @@ type PostgreSQLBuilder() =
     [<CustomOperation "server_version">]
     member this.SetServerVersion (state:PostgreSQLBuilderState, version:ServerVersion) =
         { state with Version = version }
-       
+
     /// Sets capacity
     [<CustomOperation "capacity">]
-    member this.SetCapacity (state:PostgreSQLBuilderState, capacity:int<vCores>) =
+    member this.SetCapacity (state:PostgreSQLBuilderState, capacity:int<VCores>) =
         Validate.capacity capacity
         { state with Capacity = capacity }
 
@@ -217,5 +211,5 @@ type PostgreSQLBuilder() =
     member this.SetTier (state:PostgreSQLBuilderState, tier:SkuTier) =
         { state with Tier = tier }
 
-       
+
 let postgreSQL = PostgreSQLBuilder()

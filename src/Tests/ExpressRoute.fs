@@ -2,7 +2,7 @@ module ExpressRoute
 
 open Expecto
 open Farmer
-open Farmer.Resources
+open Farmer.Builders
 open Microsoft.Azure.Management.Network
 open Microsoft.Azure.Management.Network.Models
 open Microsoft.Rest

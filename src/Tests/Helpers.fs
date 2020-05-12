@@ -12,10 +12,10 @@ let findAzureResources<'T when 'T : null> (serializationSettings:Newtonsoft.Json
     |> Seq.choose (fun json -> SafeJsonConvert.DeserializeObject<'T>(json, serializationSettings) |> Option.ofObj)
     |> Seq.toList
 
-let convertResourceBuilder mapper (serializationSettings:Newtonsoft.Json.JsonSerializerSettings) (resourceBuilder:IResourceBuilder) =
+let convertResourceBuilder mapper (serializationSettings:Newtonsoft.Json.JsonSerializerSettings) (resourceBuilder:IBuilder) =
     resourceBuilder.BuildResources NorthEurope []
     |> List.pick(fun r ->
-            r.ToArmObject()
+            r.JsonModel
             |> SafeJsonConvert.SerializeObject
             |> SafeJsonConvert.DeserializeObject
             |> mapper
@@ -24,7 +24,7 @@ let convertResourceBuilder mapper (serializationSettings:Newtonsoft.Json.JsonSer
             |> Option.ofObj
     )
 
-    
+
 type TypedArmTemplate<'ResT> = { Resources : 'ResT array }
 
 
@@ -33,7 +33,7 @@ let getFirstResourceOrFail (template: TypedArmTemplate<'ResT>) =
         failwith "Template had no resources"
     template.Resources.[0]
 
-let toTemplate loc (d : IResourceBuilder) =
+let toTemplate loc (d : IBuilder) =
     let a = arm {
         location loc
         add_resource d

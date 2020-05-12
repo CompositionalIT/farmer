@@ -1,7 +1,7 @@
 [<AutoOpen>]
-module Farmer.Resources.Storage
+module Farmer.Builders.Storage
 
-open Arm.Storage
+open Farmer.Arm.Storage
 open Farmer
 
 let internal buildKey (ResourceName name) =
@@ -10,7 +10,6 @@ let internal buildKey (ResourceName name) =
             name
             name
     |> ArmExpression
-
 
 type StorageContainerAccess =
     | Private
@@ -26,7 +25,7 @@ type StorageAccountConfig =
       Containers : (string * StorageContainerAccess) list}
     /// Gets the ARM expression path to the key of this storage account.
     member this.Key = buildKey this.Name
-    interface IResourceBuilder with
+    interface IBuilder with
         member this.BuildResources location _ = [
             { Location = location
               Name = this.Name

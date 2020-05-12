@@ -1,8 +1,8 @@
 [<AutoOpen>]
-module Farmer.Resources.ContainerGroups
+module Farmer.Builders.ContainerGroups
 
 open Farmer
-open Arm.ContainerInstance
+open Farmer.Arm.ContainerInstance
 
 type [<Measure>] Gb
 type ContainerGroupRestartPolicy =
@@ -56,7 +56,7 @@ type ContainerConfig =
     member this.GroupKey = buildKey this.ContainerGroupName.ResourceName
     /// Gets the name of the container group.
     member this.GroupName = this.ContainerGroupName.ResourceName
-    interface IResourceBuilder with
+    interface IBuilder with
         member this.BuildResources location existingResources = [
             let container =
                 {| Name = this.Name

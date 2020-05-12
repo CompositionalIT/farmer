@@ -1,7 +1,7 @@
 module Template
 
 open Farmer
-open Farmer.Resources
+open Farmer.Builders
 open Expecto
 open Newtonsoft.Json
 
@@ -97,7 +97,7 @@ let tests = testList "Template" [
             ]
         }
 
-        let allLocations = template.Template.Resources |> List.map (fun r -> r.ToArmObject() |> convertTo<{| Location : string |}>)
+        let allLocations = template.Template.Resources |> List.map (fun r -> r.JsonModel |> convertTo<{| Location : string |}>)
         Expect.sequenceEqual allLocations [ {| Location = NorthCentralUS.ArmValue |}; {| Location = NorthCentralUS.ArmValue |} ] "Incorrect Location"
     }
 

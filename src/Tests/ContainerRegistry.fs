@@ -2,7 +2,7 @@ module ContainerRegistry
 
 open Expecto
 open Farmer
-open Farmer.Resources
+open Farmer.Builders
 open Microsoft.Rest.Serialization
 open Newtonsoft.Json.Linq
 

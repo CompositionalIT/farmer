@@ -1,8 +1,8 @@
 [<AutoOpen>]
-module Farmer.Resources.CosmosDb
+module Farmer.Builders.CosmosDb
 
 open Farmer
-open Arm.DocumentDb
+open Farmer.Arm.DocumentDb
 open DatabaseAccounts
 open SqlDatabases
 
@@ -34,7 +34,7 @@ type CosmosDbConfig =
             this.ServerName.ResourceName.Value
     member this.Endpoint =
         sprintf "[reference(concat('Microsoft.DocumentDb/databaseAccounts/', '%s')).documentEndpoint]" this.ServerName.ResourceName.Value
-    interface IResourceBuilder with
+    interface IBuilder with
         member this.BuildResources location _ = [
             match this.ServerName with
             | AutomaticallyCreated name ->

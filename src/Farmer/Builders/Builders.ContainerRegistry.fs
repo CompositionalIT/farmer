@@ -1,8 +1,8 @@
 [<AutoOpen>]
-module Farmer.Resources.ContainerRegistry
+module Farmer.Builders.ContainerRegistry
 
 open Farmer
-open Arm.ContainerRegistry
+open Farmer.Arm.ContainerRegistry
 
 [<RequireQualifiedAccess>]
 /// Container Registry SKU
@@ -18,7 +18,7 @@ type ContainerRegistryConfig =
     member this.LoginServer =
         (sprintf "reference(resourceId('Microsoft.ContainerRegistry/registries', '%s'),'2019-05-01').loginServer" this.Name.Value)
         |> ArmExpression
-    interface IResourceBuilder with
+    interface IBuilder with
         member this.BuildResources location _ = [
             { Name = this.Name
               Location = location

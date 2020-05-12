@@ -31,36 +31,53 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="FSharp.Core" Version="4.7.0" />
+    <PackageReference Update="FSharp.Core" Version="4.7.1" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
   </ItemGroup>
 
   <ItemGroup>
     <Compile Include="Common.fs" />
     <Compile Include="Result.fs" />
-    <Compile Include="Farmer.fs" />
-    <Compile Include="Builders.Helpers.fs" />
-    <Compile Include="Builders.Arm.fs" />
+    <Compile Include="Types.fs" />
+    <Compile Include="ArmBuilder.fs" />
     <Compile Include="Writer.fs" />
     <Compile Include="Deploy.fs" />
-    <Compile Include="Farmer.Resources.fs" />
-    <Compile Include="Builders.Storage.fs" />
-    <Compile Include="Builders.Redis.fs" />
-    <Compile Include="Builders.KeyVault.fs" />
-    <Compile Include="Builders.Vm.fs" />
-    <Compile Include="Builders.ServicePlan.fs" />
-    <Compile Include="Builders.AppInsights.fs" />
-    <Compile Include="Builders.WebApp.fs" />
-    <Compile Include="Builders.Functions.fs" />
-    <Compile Include="Builders.PostgreSQL.fs" />
-    <Compile Include="Builders.Sql.fs" />
-    <Compile Include="Builders.Search.fs" />
-    <Compile Include="Builders.Cosmos.fs" />
-    <Compile Include="Builders.EventHub.fs" />
-    <Compile Include="Builders.ExpressRoute.fs" />
-    <Compile Include="Builders.ContainerGroups.fs" />
-    <Compile Include="Builders.CognitiveServices.fs" />
-    <Compile Include="Builders.ContainerRegistry.fs" />
-    <Compile Include="Builders.ServiceBus.fs" />
+
+    <Compile Include="Arm/Cache.fs"/>
+    <Compile Include="Arm/CognitiveServices.fs"/>
+    <Compile Include="Arm/Compute.fs"/>
+    <Compile Include="Arm/ContainerInstance.fs"/>
+    <Compile Include="Arm/ContainerRegistry.fs"/>
+    <Compile Include="Arm/DBforPostgreSQL.fs"/>
+    <Compile Include="Arm/DocumentDb.fs"/>
+    <Compile Include="Arm/EventHub.fs"/>
+    <Compile Include="Arm/Insights.fs"/>
+    <Compile Include="Arm/Network.fs"/>
+    <Compile Include="Arm/KeyVault.fs"/>
+    <Compile Include="Arm/Search.fs"/>
+    <Compile Include="Arm/ServiceBus.fs"/>
+    <Compile Include="Arm/Sql.fs"/>
+    <Compile Include="Arm/Storage.fs"/>
+    <Compile Include="Arm/Web.fs"/>
+
+    <Compile Include="Builders/Builders.Helpers.fs" />
+    <Compile Include="Builders/Builders.PostgreSQL.fs" />
+    <Compile Include="Builders/Builders.Storage.fs" />
+    <Compile Include="Builders/Builders.Redis.fs" />
+    <Compile Include="Builders/Builders.KeyVault.fs" />
+    <Compile Include="Builders/Builders.Vm.fs" />
+    <Compile Include="Builders/Builders.ServicePlan.fs" />
+    <Compile Include="Builders/Builders.AppInsights.fs" />
+    <Compile Include="Builders/Builders.WebApp.fs" />
+    <Compile Include="Builders/Builders.Functions.fs" />
+    <Compile Include="Builders/Builders.Sql.fs" />
+    <Compile Include="Builders/Builders.Search.fs" />
+    <Compile Include="Builders/Builders.Cosmos.fs" />
+    <Compile Include="Builders/Builders.EventHub.fs" />
+    <Compile Include="Builders/Builders.ExpressRoute.fs" />
+    <Compile Include="Builders/Builders.ContainerGroups.fs" />
+    <Compile Include="Builders/Builders.CognitiveServices.fs" />
+    <Compile Include="Builders/Builders.ContainerRegistry.fs" />
+    <Compile Include="Builders/Builders.ServiceBus.fs" />
   </ItemGroup>
 </Project>

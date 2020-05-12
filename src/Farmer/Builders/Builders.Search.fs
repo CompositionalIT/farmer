@@ -1,9 +1,9 @@
 [<AutoOpen>]
-module Farmer.Resources.Search
+module Farmer.Builders.Search
 
 open Farmer
 open Farmer.Helpers
-open Arm.Search
+open Farmer.Arm.Search
 
 type HostingMode = Default | HighDensity
 [<RequireQualifiedAccess>]
@@ -30,7 +30,7 @@ type SearchConfig =
     member this.QueryKey =
         sprintf "listQueryKeys('Microsoft.Search/searchServices/%s', '2015-08-19').value[0].key" this.Name.Value
         |> ArmExpression
-    interface IResourceBuilder with
+    interface IBuilder with
         member this.BuildResources location _ = [
             { Name = this.Name
               Location = location
