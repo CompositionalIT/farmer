@@ -2,6 +2,7 @@ module PostgreSQL
 
 open Expecto
 open Farmer
+open Farmer.PostgreSQL
 open Farmer.Builders
 
 type PostgresSku =
@@ -33,7 +34,7 @@ type PostgresTemplate =
       geoRedundantBackup : string
       properties : Properties }
 
-let runBuilder builder = toTypedTemplate<PostgresTemplate> NorthEurope builder
+let runBuilder builder = toTypedTemplate<PostgresTemplate> Location.NorthEurope builder
 
 module Expect =
     let throwsNot f message =
@@ -53,11 +54,11 @@ let tests = testList "PostgreSQL Database Service" [
         let actual = runBuilder <| postgreSQL {
             server_name "testdb"
             admin_username "myadminuser"
-            server_version PostgreSQLVersion.VS_10
-            storage_size 50<GB>
+            server_version VS_10
+            storage_size 50<Gb>
             backup_retention 17<Days>
             capacity 4<VCores>
-            tier PostgreSQLSku.GeneralPurpose
+            tier GeneralPurpose
             enable_geo_redundant_backup
             disable_storage_autogrow
         }
@@ -97,7 +98,7 @@ let tests = testList "PostgreSQL Database Service" [
     }
 
     test "storage_size is validated when set" {
-        Expect.throws (fun () -> postgreSQL { storage_size 1<GB> } |> ignore) "Bad backup retention"
+        Expect.throws (fun () -> postgreSQL { storage_size 1<Gb> } |> ignore) "Bad backup retention"
     }
 
     test "capacity is validated when set" {
@@ -154,11 +155,11 @@ let tests = testList "PostgreSQL Database Service" [
     }
 
     test "Storage size can be validated" {
-        Expect.throws (fun () -> Validate.storageSize 4<GB>) "Storage size too small"
-        Expect.throws (fun () -> Validate.storageSize 1025<GB>) "Storage size too large"
-        Expect.throwsNot (fun () -> Validate.storageSize 5<GB>) "Storage size just right, min"
-        Expect.throwsNot (fun () -> Validate.storageSize 50<GB>) "Storage size just right"
-        Expect.throwsNot (fun () -> Validate.storageSize 1024<GB>) "Storage size just right, max"
+        Expect.throws (fun () -> Validate.storageSize 4<Gb>) "Storage size too small"
+        Expect.throws (fun () -> Validate.storageSize 1025<Gb>) "Storage size too large"
+        Expect.throwsNot (fun () -> Validate.storageSize 5<Gb>) "Storage size just right, min"
+        Expect.throwsNot (fun () -> Validate.storageSize 50<Gb>) "Storage size just right"
+        Expect.throwsNot (fun () -> Validate.storageSize 1024<Gb>) "Storage size just right, max"
     }
 
     test "Backup retention can be validated" {

@@ -2,6 +2,8 @@
 module Farmer.Arm.ServiceBus
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.ServiceBus
 open System
 
 type ServiceBusQueue =
@@ -17,16 +19,16 @@ type ServiceBusQueue =
 type Namespace =
     { Name : ResourceName
       Location : Location
-      Sku : ServiceBusSku
+      Sku : Sku
       Queues :ServiceBusQueue list
       DependsOn : ResourceName list }
     member this.Capacity =
         match this.Sku with
-        | ServiceBusSku.Basic -> None
-        | ServiceBusSku.Standard -> None
-        | ServiceBusSku.Premium OneUnit -> Some 1
-        | ServiceBusSku.Premium TwoUnits -> Some 2
-        | ServiceBusSku.Premium FourUnits -> Some 4
+        | Basic -> None
+        | Standard -> None
+        | Premium OneUnit -> Some 1
+        | Premium TwoUnits -> Some 2
+        | Premium FourUnits -> Some 4
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =

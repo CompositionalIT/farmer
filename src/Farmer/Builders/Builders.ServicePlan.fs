@@ -2,11 +2,13 @@
 module Farmer.Builders.ServicePlan
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.Web
 open Arm.Web
 
 type ServicePlanConfig =
     { Name : ResourceName
-      Sku : WebAppSku
+      Sku : Sku
       WorkerSize : WorkerSize
       WorkerCount : int
       OperatingSystem : OS }
@@ -23,7 +25,7 @@ type ServicePlanConfig =
 type ServicePlanBuilder() =
     member __.Yield _ : ServicePlanConfig=
         { Name = ResourceName.Empty
-          Sku = WebAppSku.Free
+          Sku = Free
           WorkerSize = Small
           WorkerCount = 1
           OperatingSystem = Windows }
@@ -44,6 +46,6 @@ type ServicePlanBuilder() =
     member __.OperatingSystem(state:ServicePlanConfig, os) = { state with OperatingSystem = os }
     [<CustomOperation "serverless">]
     /// Configures this server farm to host serverless functions, not web apps.
-    member __.Serverless(state:ServicePlanConfig) = { state with Sku = WebAppSku.Dynamic; WorkerSize = Serverless }
+    member __.Serverless(state:ServicePlanConfig) = { state with Sku = Dynamic; WorkerSize = Serverless }
 
 let servicePlan = ServicePlanBuilder()

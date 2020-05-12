@@ -2,14 +2,16 @@
 module Farmer.Builders.CosmosDb
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.CosmosDb
 open Farmer.Arm.DocumentDb
 open DatabaseAccounts
 open SqlDatabases
 
 type CosmosDbContainerConfig =
     { Name : ResourceName
-      PartitionKey : string list * CosmosDbIndexKind
-      Indexes : (string * (CosmosDbIndexDataType * CosmosDbIndexKind) list) list
+      PartitionKey : string list * IndexKind
+      Indexes : (string * (IndexDataType * IndexKind) list) list
       ExcludedPaths : string list }
 type CosmosDbConfig =
     { ServerName : ResourceRef

@@ -2,6 +2,7 @@
 module TestHelpers
 
 open Farmer
+open Farmer.CoreTypes
 open Microsoft.Rest.Serialization
 
 let findAzureResources<'T when 'T : null> (serializationSettings:Newtonsoft.Json.JsonSerializerSettings) (deployment:Deployment) =
@@ -13,7 +14,7 @@ let findAzureResources<'T when 'T : null> (serializationSettings:Newtonsoft.Json
     |> Seq.toList
 
 let convertResourceBuilder mapper (serializationSettings:Newtonsoft.Json.JsonSerializerSettings) (resourceBuilder:IBuilder) =
-    resourceBuilder.BuildResources NorthEurope []
+    resourceBuilder.BuildResources Location.NorthEurope []
     |> List.pick(fun r ->
             r.JsonModel
             |> SafeJsonConvert.SerializeObject

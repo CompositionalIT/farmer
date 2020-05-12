@@ -1,13 +1,14 @@
 [<AutoOpen>]
 module Farmer.Builders.CognitiveServices
 
-open Farmer
+open Farmer.CoreTypes
 open Farmer.Arm.CognitiveServices
+open Farmer.CognitiveServices
 
 type CognitiveServicesConfig =
     { Name : ResourceName
-      Sku : CognitiveServicesSku
-      Api : CognitiveServicesApi }
+      Sku : Sku
+      Api : Kind }
     interface IBuilder with
         member this.BuildResources location _ = [
             { Name = this.Name
@@ -19,7 +20,7 @@ type CognitiveServicesConfig =
 type CognitiveServicesBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
-          Sku = CognitiveServicesSku.F0
+          Sku = F0
           Api = AllInOne }
     [<CustomOperation "name">]
     member _.Name (state:CognitiveServicesConfig, name) = { state with Name = ResourceName name }

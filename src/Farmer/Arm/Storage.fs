@@ -2,11 +2,13 @@
 module Farmer.Arm.Storage
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.Storage
 
 type StorageAccount =
     { Name : ResourceName
       Location : Location
-      Sku : StorageSku
+      Sku : Sku
       Containers : (string * StorageContainerAccess) list }
     interface IArmResource with
         member this.ResourceName = this.Name

@@ -2,6 +2,8 @@
 module Farmer.Arm.EventHub
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.EventHub
 
 type Namespace =
     { Name : ResourceName

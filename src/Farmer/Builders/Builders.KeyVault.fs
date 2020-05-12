@@ -2,6 +2,8 @@
 module Farmer.Builders.KeyVault
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.KeyVault
 open Farmer.Arm.KeyVault
 open System
 open Vaults
@@ -11,10 +13,10 @@ type AccessPolicy =
     { ObjectId : Guid
       ApplicationId : Guid option
       Permissions :
-        {| Keys : VaultKey Set
-           Secrets : VaultSecret Set
-           Certificates : VaultCertificate Set
-           Storage : VaultStorage Set |}
+        {| Keys : Key Set
+           Secrets : KeyVault.Secret Set
+           Certificates : Certificate Set
+           Storage : Storage Set |}
     }
 type CreateMode =
     | Recover of NonEmptyList<AccessPolicy>
@@ -134,16 +136,16 @@ type AccessPolicyBuilder() =
     member __.ApplicationId(state:AccessPolicy, applicationId) = { state with ApplicationId = Some applicationId }
     /// Sets the Key permissions of the permission set.
     [<CustomOperation "key_permissions">]
-    member __.SetKeyPermissions(state:AccessPolicy, permissions) = { state with Permissions = {| state.Permissions with Keys = Set permissions |} }
+    member __.SetKeyPermissions(state:AccessPolicy, permissions) = { state with Permissions = {| state.Permissions with Keys = set permissions |} }
     /// Sets the Storage permissions of the permission set.
     [<CustomOperation "storage_permissions">]
-    member __.SetStoragePermissions(state:AccessPolicy, permissions) = { state with Permissions = {| state.Permissions with Storage = Set permissions |} }
+    member __.SetStoragePermissions(state:AccessPolicy, permissions) = { state with Permissions = {| state.Permissions with Storage = set permissions |} }
     /// Sets the Secret permissions of the permission set.
     [<CustomOperation "secret_permissions">]
-    member __.SetSecretPermissions(state:AccessPolicy, permissions) = { state with Permissions = {| state.Permissions with Secrets = Set permissions |} }
+    member __.SetSecretPermissions(state:AccessPolicy, permissions) = { state with Permissions = {| state.Permissions with Secrets = set permissions |} }
     /// Sets the Certificate permissions of the permission set.
     [<CustomOperation "certificate_permissions">]
-    member __.SetCertificatePermissions(state:AccessPolicy, permissions) = { state with Permissions = {| state.Permissions with Certificates = Set permissions |} }
+    member __.SetCertificatePermissions(state:AccessPolicy, permissions) = { state with Permissions = {| state.Permissions with Certificates = set permissions |} }
 
 [<RequireQualifiedAccess>]
 type SimpleCreateMode = Recover | Default

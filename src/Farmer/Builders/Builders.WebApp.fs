@@ -2,6 +2,8 @@
 module Farmer.Builders.WebApp
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.Web
 open Farmer.Arm.Web
 open Farmer.Arm.Insights
 
@@ -69,7 +71,7 @@ type WebAppConfig =
       Settings : Map<string, string>
       Dependencies : ResourceName list
 
-      Sku : WebAppSku
+      Sku : Sku
       WorkerSize : WorkerSize
       WorkerCount : int
       RunFromPackage : bool
@@ -247,7 +249,7 @@ type WebAppBuilder() =
         { Name = ResourceName.Empty
           ServicePlanName = AutomaticPlaceholder
           AppInsightsName = Some AutomaticPlaceholder
-          Sku = WebAppSku.F1
+          Sku = Sku.F1
           WorkerSize = Small
           WorkerCount = 1
           RunFromPackage = false

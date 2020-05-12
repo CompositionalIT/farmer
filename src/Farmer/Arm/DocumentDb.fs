@@ -2,6 +2,8 @@
 module Farmer.Arm.DocumentDb
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.CosmosDb
 open System
 
 module DatabaseAccounts =
@@ -12,11 +14,11 @@ module DatabaseAccounts =
               Database : ResourceName
               PartitionKey :
                 {| Paths : string list
-                   Kind : CosmosDbIndexKind |}
+                   Kind : IndexKind |}
               IndexingPolicy :
                 {| IncludedPaths :
                     {| Path : string
-                       Indexes : (CosmosDbIndexDataType * CosmosDbIndexKind) list
+                       Indexes : (IndexDataType * IndexKind) list
                     |} list
                    ExcludedPaths : string list
                 |}

@@ -1,6 +1,6 @@
 module Farmer.Helpers
 
-open Farmer
+open Farmer.CoreTypes
 open System
 
 let sanitise filters maxLength (resourceName:ResourceName) =

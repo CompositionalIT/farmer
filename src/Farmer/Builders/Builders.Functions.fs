@@ -2,7 +2,9 @@
 module Farmer.Builders.Functions
 
 open Farmer
+open Farmer.CoreTypes
 open Farmer.Helpers
+open Farmer.Web
 open Farmer.Arm.Web
 open Farmer.Arm.Insights
 open Farmer.Arm.Storage
@@ -107,7 +109,7 @@ type FunctionsConfig =
             | AutomaticallyCreated resourceName ->
                 { Name = resourceName
                   Location = location
-                  Sku = WebAppSku.Y1
+                  Sku = Sku.Y1
                   WorkerSize = Serverless
                   WorkerCount = 0
                   OperatingSystem = this.OperatingSystem }
@@ -115,7 +117,7 @@ type FunctionsConfig =
             | AutomaticallyCreated resourceName ->
                 { StorageAccount.Name = resourceName
                   Location = location
-                  Sku = StorageSku.Standard_LRS
+                  Sku = Storage.Standard_LRS
                   Containers = [] }
             | AutomaticPlaceholder | External _ ->
                 ()

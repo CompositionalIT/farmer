@@ -2,12 +2,13 @@
 module Farmer.Arm.CognitiveServices
 
 open Farmer
+open Farmer.CoreTypes
 
 type Accounts =
     { Name : ResourceName
       Location : Location
-      Sku : CognitiveServicesSku
-      Kind : CognitiveServicesApi }
+      Sku : CognitiveServices.Sku
+      Kind : CognitiveServices.Kind }
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =

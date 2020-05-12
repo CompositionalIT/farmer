@@ -2,6 +2,8 @@
 module Farmer.Arm.KeyVault
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.KeyVault
 open System
 
 module Vaults =
@@ -58,10 +60,10 @@ type Vault =
         {| ObjectId : Guid
            ApplicationId : Guid option
            Permissions :
-            {| Keys : VaultKey Set
-               Secrets : VaultSecret Set
-               Certificates : VaultCertificate Set
-               Storage : VaultStorage Set |}
+            {| Keys : Key Set
+               Secrets : Secret Set
+               Certificates : Certificate Set
+               Storage : Storage Set |}
         |} array
       DefaultAction : DefaultAction option
       Bypass: Bypass option

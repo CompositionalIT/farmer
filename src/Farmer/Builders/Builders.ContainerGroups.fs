@@ -2,6 +2,8 @@
 module Farmer.Builders.ContainerGroups
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.ContainerGroup
 open Farmer.Arm.ContainerInstance
 
 /// Represents configuration for a single Container.
@@ -22,7 +24,7 @@ type ContainerConfig =
       /// Container group OS.
       OsType : OS
       /// Restart policy for the container group.
-      RestartPolicy : ContainerGroupRestartPolicy
+      RestartPolicy : RestartPolicy
       /// IP address for the container group.
       IpAddress : ContainerGroupIpAddress }
 
@@ -63,8 +65,8 @@ type ContainerBuilder() =
         Memory = 1.5<Gb>
         ContainerGroupName = AutomaticPlaceholder
         OsType = Linux
-        RestartPolicy = ContainerGroupRestartPolicy.Always
-        IpAddress = { Type = ContainerGroupIpAddressType.PublicAddress; Ports = [] } }
+        RestartPolicy = Always
+        IpAddress = { Type = PublicAddress; Ports = [] } }
     member __.Run state =
         { state with
             ContainerGroupName =

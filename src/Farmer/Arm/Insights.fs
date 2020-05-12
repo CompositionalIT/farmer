@@ -2,6 +2,7 @@
 module Farmer.Arm.Insights
 
 open Farmer
+open Farmer.CoreTypes
 
 type Components =
     { Name : ResourceName

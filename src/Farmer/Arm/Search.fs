@@ -2,16 +2,18 @@
 module Farmer.Arm.Search
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.Search
 
 type SearchService =
     { Name : ResourceName
       Location : Location
-      Sku : SearchSku
+      Sku :Sku
       ReplicaCount : int
       PartitionCount : int }
     member this.HostingMode =
         match this.Sku with
-        | SearchSku.Standard3 HighDensity -> "highDensity"
+        | Standard3 HighDensity -> "highDensity"
         | _ -> "default"
     interface IArmResource with
         member this.ResourceName = this.Name
@@ -23,13 +25,13 @@ type SearchService =
                sku =
                 {| name =
                     match this.Sku with
-                    | SearchSku.Free -> "free"
-                    | SearchSku.Basic -> "basic"
-                    | SearchSku.Standard -> "standard"
-                    | SearchSku.Standard2 -> "standard2"
-                    | SearchSku.Standard3 _ -> "standard3"
-                    | SearchSku.StorageOptimisedL1 -> "storage_optimized_l1"
-                    | SearchSku.StorageOptimisedL2 -> "storage_optimized_l2" |}
+                    | Free -> "free"
+                    | Basic -> "basic"
+                    | Standard -> "standard"
+                    | Standard2 -> "standard2"
+                    | Standard3 _ -> "standard3"
+                    | StorageOptimisedL1 -> "storage_optimized_l1"
+                    | StorageOptimisedL2 -> "storage_optimized_l2" |}
                properties =
                 {| replicaCount = this.ReplicaCount
                    partitionCount = this.PartitionCount

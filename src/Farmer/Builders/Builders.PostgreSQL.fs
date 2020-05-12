@@ -3,18 +3,20 @@ module Farmer.Builders.PostgreSQLAzure
 
 open System
 open Farmer
+open Farmer.CoreTypes
+open Farmer.PostgreSQL
 open Arm.DBforPostgreSQL
 
 type PostgreSQLBuilderConfig =
     { ServerName : ResourceRef
       AdminUserName : string option
-      Version : PostgreSQLVersion
+      Version : Version
       GeoRedundantBackup : bool
       StorageAutogrow : bool
       BackupRetention : int<Days>
-      StorageSize : int<GB>
+      StorageSize : int<Gb>
       Capacity : int<VCores>
-      Tier : PostgreSQLSku }
+      Tier : Sku }
 
 [<AutoOpen>]
 module private Helpers =
@@ -71,9 +73,9 @@ module Validate =
             failwithf "Backup retention must be between %d and %d days, was %d"
                 minBackupRetention maxBackupRetention days
 
-    let minStorageSize = 5<GB>
-    let maxStorageSize = 1024<GB>
-    let storageSize (size : int<GB>) =
+    let minStorageSize = 5<Gb>
+    let maxStorageSize = 1024<Gb>
+    let storageSize (size : int<Gb>) =
         if size < minStorageSize || size > maxStorageSize then
             failwithf "Storage space must between %d and %d GB, was %d"
                 minStorageSize maxStorageSize size
@@ -90,18 +92,18 @@ module Validate =
 
 
 type PostgreSQLBuilder() =
-    let inMB (gb: int<GB>) = 1024 * (int gb)
+    let inMB (gb: int<Gb>) = 1024 * (int gb)
 
     member _this.Yield _ =
         { PostgreSQLBuilderConfig.ServerName = AutomaticPlaceholder
           AdminUserName = None
-          Version = PostgreSQLVersion.VS_11
+          Version = VS_11
           GeoRedundantBackup = false
           StorageAutogrow = true
           BackupRetention = Validate.minBackupRetention
           StorageSize = Validate.minStorageSize
           Capacity = 2<VCores>
-          Tier = PostgreSQLSku.Basic }
+          Tier = Basic }
 
     member _this.Run (state: PostgreSQLBuilderConfig) =
         let adminName = state.AdminUserName |> Option.getOrFailWith "admin username not set"
@@ -176,7 +178,7 @@ type PostgreSQLBuilder() =
 
     /// sets storage size in MBs
     [<CustomOperation "storage_size">]
-    member this.SetStorageSizeInMBs(state:PostgreSQLBuilderConfig, size:int<GB>) =
+    member this.SetStorageSizeInMBs(state:PostgreSQLBuilderConfig, size:int<Gb>) =
         Validate.storageSize size
         { state with StorageSize = size }
 
@@ -188,7 +190,7 @@ type PostgreSQLBuilder() =
 
     /// Sets the PostgreSQl server version
     [<CustomOperation "server_version">]
-    member this.SetServerVersion (state:PostgreSQLBuilderConfig, version:PostgreSQLVersion) =
+    member this.SetServerVersion (state:PostgreSQLBuilderConfig, version:Version) =
         { state with Version = version }
 
     /// Sets capacity
@@ -199,7 +201,7 @@ type PostgreSQLBuilder() =
 
     /// Sets tier
     [<CustomOperation "tier">]
-    member this.SetTier (state:PostgreSQLBuilderConfig, tier:PostgreSQLSku) =
+    member this.SetTier (state:PostgreSQLBuilderConfig, tier:Sku) =
         { state with Tier = tier }
 
 let postgreSQL = PostgreSQLBuilder()

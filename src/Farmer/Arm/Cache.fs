@@ -2,12 +2,14 @@
 module Farmer.Arm.Cache
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.Redis
 
 type Redis =
     { Name : ResourceName
       Location : Location
       Sku :
-        {| Sku : RedisSku
+        {| Sku : Sku
            Capacity : int |}
       RedisConfiguration : Map<string, string>
       NonSslEnabled : bool option
@@ -15,8 +17,8 @@ type Redis =
       MinimumTlsVersion : TlsVersion option }
       member this.Family =
         match this.Sku.Sku with
-        | RedisSku.Basic | RedisSku.Standard -> 'C'
-        | RedisSku.Premium -> 'P'
+        | Basic | Standard -> 'C'
+        | Premium -> 'P'
 
     interface IArmResource with
         member this.ResourceName = this.Name

@@ -2,11 +2,13 @@
 module Farmer.Builders.ContainerRegistry
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.ContainerRegistry
 open Farmer.Arm.ContainerRegistry
 
 type ContainerRegistryConfig =
     { Name : ResourceName
-      Sku : ContainerRegistrySku
+      Sku : Sku
       AdminUserEnabled : bool }
     member this.LoginServer =
         (sprintf "reference(resourceId('Microsoft.ContainerRegistry/registries', '%s'),'2019-05-01').loginServer" this.Name.Value)
@@ -21,7 +23,7 @@ type ContainerRegistryConfig =
 type ContainerRegistryBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
-          Sku = ContainerRegistrySku.Basic
+          Sku = Basic
           AdminUserEnabled = false }
 
     [<CustomOperation "name">]

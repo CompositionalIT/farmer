@@ -2,11 +2,13 @@
 module Farmer.Arm.ContainerRegistry
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.ContainerRegistry
 
 type Registries =
     { Name : ResourceName
       Location : Location
-      Sku : ContainerRegistrySku
+      Sku : Sku
       AdminUserEnabled : bool }
     member this.LoginServer =
         (sprintf "reference(resourceId('Microsoft.ContainerRegistry/registries', '%s'),'2019-05-01').loginServer" this.Name.Value)

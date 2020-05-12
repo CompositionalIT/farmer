@@ -2,6 +2,8 @@
 module Farmer.Builders.VirtualMachine
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.Vm
 open Farmer.Helpers
 open Farmer.Arm.Compute
 open Farmer.Arm.Network
@@ -74,7 +76,7 @@ type VmConfig =
             | Some (AutomaticallyCreated account) ->
                 { Name = account
                   Location = location
-                  Sku = StorageSku.Standard_LRS
+                  Sku = Storage.Standard_LRS
                   Containers = [] }
             | Some AutomaticPlaceholder
             | Some (External _)

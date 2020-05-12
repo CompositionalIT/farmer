@@ -2,6 +2,8 @@
 module Farmer.Builders.ExpressRoute
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.ExpressRoute
 open System
 open System.Net
 open Farmer.Arm.Network
@@ -22,7 +24,7 @@ module IPAddressCidr =
         try parse s |> Ok
         with ex -> Error ex
 type ExpressRouteCircuitPeering =
-    { PeeringType : ExpressRouteCircuitPeeringType
+    { PeeringType : PeeringType
       AzureASN : int
       PeerASN : int64
       /// A /30 IP address block to use for the primary link
@@ -34,7 +36,7 @@ type ExpressRouteCircuitPeering =
 
 type ExpressRouteCircuitPeeringConfig =
     { /// The peering type
-      PeeringType : ExpressRouteCircuitPeeringType
+      PeeringType : PeeringType
       /// Azure-side BGP Autonomous System Number (ASN)
       AzureASN : int
       /// Peer-side BGP Autonomous System Number (ASN)
@@ -78,9 +80,9 @@ type ExpressRouteConfig =
   { /// The name of the express route circuit
     Name : ResourceName
     /// Tier of the circuit (standard or premium)
-    Tier : ExpressRouteTier
+    Tier : Tier
     /// Unlimited or metered data
-    Family : ExpressRouteFamily
+    Family : Family
     /// The service provider name for the circuit
     ServiceProviderName : string
     /// A valid peering location
@@ -118,7 +120,7 @@ type ExpressRouteConfig =
 type ExpressRouteBuilder() =
     member __.Yield _ =
       { Name = ResourceName.Empty
-        Tier = ExpressRouteTier.Standard
+        Tier = Standard
         Family = MeteredData
         ServiceProviderName = ""
         PeeringLocation = ""

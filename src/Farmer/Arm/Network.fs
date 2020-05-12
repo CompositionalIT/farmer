@@ -2,6 +2,8 @@
 module Farmer.Arm.Network
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.ExpressRoute
 open System.Net
 
 type PublicIpAddress =
@@ -80,14 +82,14 @@ type NetworkInterface =
 type ExpressRouteCircuit =
     { Name : ResourceName
       Location : Location
-      Tier : ExpressRouteTier
-      Family : ExpressRouteFamily
+      Tier : Tier
+      Family : Family
       ServiceProviderName : string
       PeeringLocation : string
       Bandwidth : int<Mbps>
       GlobalReachEnabled : bool
       Peerings :
-        {| PeeringType : ExpressRouteCircuitPeeringType
+        {| PeeringType : PeeringType
            AzureASN : int
            PeerASN : int64
            PrimaryPeerAddressPrefix : {| Address : IPAddress; Prefix : int |}

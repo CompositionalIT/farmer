@@ -2,12 +2,14 @@
 module Farmer.Builders.Search
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.Search
 open Farmer.Helpers
 open Farmer.Arm.Search
 
 type SearchConfig =
     { Name : ResourceName
-      Sku : SearchSku
+      Sku : Sku
       Replicas : int
       Partitions : int }
     /// Gets an ARM expression for the admin key of the search instance.
@@ -30,7 +32,7 @@ type SearchConfig =
 type SearchBuilder() =
     member __.Yield _ =
         { Name = ResourceName.Empty
-          Sku = SearchSku.Standard
+          Sku = Standard
           Replicas = 1
           Partitions = 1 }
     member __.Run(state:SearchConfig) =

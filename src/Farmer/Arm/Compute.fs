@@ -2,6 +2,8 @@
 module Farmer.Arm.Compute
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.Vm
 
 type VirtualMachine =
     { Name : ResourceName

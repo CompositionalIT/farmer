@@ -2,6 +2,8 @@
 module Farmer.Builders.EventHub
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.EventHub
 open Farmer.Arm.EventHub
 open Namespaces
 open EventHubs
@@ -90,7 +92,7 @@ type EventHubBuilder() =
     member __.Yield _ =
         { Name = ResourceName "hub"
           EventHubNamespace = AutomaticPlaceholder
-          Sku = EventHubSku.Standard
+          Sku = Standard
           Capacity = 1
           ZoneRedundant = None
           ThroughputSettings = None

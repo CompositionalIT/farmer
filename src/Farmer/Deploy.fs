@@ -1,6 +1,6 @@
 ﻿module Farmer.Deploy
 
-open Farmer.ArmBuilder
+open Farmer.CoreTypes
 open Newtonsoft.Json
 open System
 open System.Diagnostics
@@ -108,7 +108,7 @@ module Az =
         az (sprintf """webapp deployment source config-zip --resource-group "%s" --name "%s" --src %s""" resourceGroup webAppName packageFilename)
     let delete resourceGroup =
         az (sprintf "group delete --name %s --yes --no-wait" resourceGroup)
-    
+
 /// Represents an Azure subscription
 type Subscription = { ID : Guid; Name : string; IsDefault : bool }
 
@@ -217,7 +217,7 @@ let execute resourceGroupName parameters deployment =
     match tryExecute resourceGroupName parameters deployment with
     | Ok output -> output
     | Error message -> failwith message
-    
+
 let whatIf resourceGroupName parameters deployment =
     match tryWhatIf resourceGroupName parameters deployment with
     | Ok output -> output

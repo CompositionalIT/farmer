@@ -2,8 +2,9 @@ module ServiceBus
 
 open Expecto
 open Farmer
-open Farmer.Builders
 open Farmer.Arm.ServiceBus
+open Farmer.Builders
+open Farmer.ServiceBus
 open Microsoft.Azure.Management.ServiceBus
 open Microsoft.Azure.Management.ServiceBus.Models
 open Microsoft.Rest
@@ -19,7 +20,7 @@ let tests = testList "Service Bus Tests" [
                 add_resource (
                     serviceBus {
                         name "my-queue"
-                        sku ServiceBusSku.Standard
+                        sku Standard
                     })
             }
             |> findAzureResources<SBNamespace> dummyClient.SerializationSettings

@@ -2,6 +2,8 @@
 module Farmer.Arm.DBforPostgreSQL
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.PostgreSQL
 
 type [<RequireQualifiedAccess>] PostgreSQLFamily = Gen5
 
@@ -15,10 +17,10 @@ type Server =
       Location : Location
       Username : string
       Password : SecureParameter
-      Version : PostgreSQLVersion
+      Version : Version
       Capacity : int
       StorageSize : int
-      Tier : PostgreSQLSku
+      Tier : Sku
       Family : PostgreSQLFamily
       GeoRedundantBackup : FeatureFlag
       StorageAutoGrow : FeatureFlag
@@ -42,10 +44,10 @@ type Server =
     member this.GetProperties () =
         let version =
             match this.Version with
-            | PostgreSQLVersion.VS_9_5 -> "9.5"
-            | PostgreSQLVersion.VS_9_6 -> "9.6"
-            | PostgreSQLVersion.VS_10 -> "10"
-            | PostgreSQLVersion.VS_11 -> "11"
+            | VS_9_5 -> "9.5"
+            | VS_9_6 -> "9.6"
+            | VS_10 -> "10"
+            | VS_11 -> "11"
         {| administratorLogin = this.Username
            administratorLoginPassword = this.Password.AsArmRef.Eval()
            version = version

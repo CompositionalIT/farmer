@@ -2,11 +2,13 @@
 module Farmer.Builders.ServiceBus
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.ServiceBus
 open Farmer.Arm.ServiceBus
 
 type ServiceBusQueueConfig =
     { NamespaceName : ResourceRef
-      NamespaceSku : ServiceBusSku
+      NamespaceSku : Sku
       Name : ResourceName
       LockDurationMinutes : int option
       DuplicateDetection : int option
@@ -52,7 +54,7 @@ type ServiceBusQueueConfig =
 type ServiceBusQueueBuilder() =
     member _.Yield _ =
         { NamespaceName = AutomaticPlaceholder
-          NamespaceSku = ServiceBusSku.Basic
+          NamespaceSku = Basic
           Name = ResourceName.Empty
           LockDurationMinutes = None
           DuplicateDetection = None

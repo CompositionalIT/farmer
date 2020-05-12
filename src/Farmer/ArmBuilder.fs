@@ -1,6 +1,9 @@
 [<AutoOpen>]
 module Farmer.ArmBuilder
 
+open Farmer.CoreTypes
+open Farmer
+
 module Helpers =
     /// Creates a unique IArmResource from an arbitrary object.
     let toArmResource armObject =
@@ -37,7 +40,7 @@ type ArmBuilder() =
         { Parameters = Set.empty
           Outputs = Map.empty
           Resources = List.empty
-          Location = WestEurope }
+          Location = Location.WestEurope }
 
     member __.Run (state:ArmConfig) =
         let template =

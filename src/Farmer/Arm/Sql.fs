@@ -2,6 +2,8 @@
 module Farmer.Arm.Sql
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.Sql
 open System.Net
 
 type Server =
@@ -10,7 +12,7 @@ type Server =
       Credentials : {| Username : string; Password : SecureParameter |}
       Databases :
           {| Name : ResourceName
-             Sku : SqlSku
+             Sku : Sku
              Collation : string
              TransparentDataEncryption : FeatureFlag |} list
       FirewallRules :
@@ -73,4 +75,3 @@ type Server =
                            |}
                ]
             |} :> _
-

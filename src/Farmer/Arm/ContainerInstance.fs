@@ -2,9 +2,11 @@
 module Farmer.Arm.ContainerInstance
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.ContainerGroup
 
 type ContainerGroupIpAddress =
-    { Type : ContainerGroupIpAddressType
+    { Type : IpAddressType
       Ports :
         {| Protocol : TransmissionProtocol
            Port : uint16 |} list
@@ -20,7 +22,7 @@ type ContainerGroup =
            Cpu : int
            Memory : float<Gb> |} list
       OsType : string
-      RestartPolicy : ContainerGroupRestartPolicy
+      RestartPolicy : RestartPolicy
       IpAddress : ContainerGroupIpAddress }
 
     interface IArmResource with

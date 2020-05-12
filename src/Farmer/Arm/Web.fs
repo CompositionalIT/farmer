@@ -2,18 +2,20 @@
 module Farmer.Arm.Web
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.Web
 open System
 
 type ServerFarm =
     { Name : ResourceName
       Location : Location
-      Sku: WebAppSku
+      Sku: Sku
       WorkerSize : WorkerSize
       WorkerCount : int
       OperatingSystem : OS }
     member this.IsDynamic =
         match this.Sku, this.WorkerSize with
-        | WebAppSku.Isolated "Y1", Serverless -> true
+        | Isolated "Y1", Serverless -> true
         | _ -> false
     member this.Reserved =
         match this.OperatingSystem with
@@ -25,14 +27,14 @@ type ServerFarm =
         | _ -> None
     member this.Tier =
         match this.Sku with
-        | WebAppSku.Free -> "Free"
-        | WebAppSku.Shared -> "Shared"
-        | WebAppSku.Basic _ -> "Basic"
-        | WebAppSku.Standard _ -> "Standard"
-        | WebAppSku.Premium _ -> "Premium"
-        | WebAppSku.PremiumV2 _ -> "PremiumV2"
-        | WebAppSku.Dynamic -> "Dynamic"
-        | WebAppSku.Isolated _ -> "Isolated"
+        | Free -> "Free"
+        | Shared -> "Shared"
+        | Basic _ -> "Basic"
+        | Standard _ -> "Standard"
+        | Premium _ -> "Premium"
+        | PremiumV2 _ -> "PremiumV2"
+        | Dynamic -> "Dynamic"
+        | Isolated _ -> "Isolated"
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
@@ -40,17 +42,17 @@ type ServerFarm =
                sku =
                    {| name =
                         match this.Sku with
-                        | WebAppSku.Free ->
+                        | Free ->
                             "F1"
-                        | WebAppSku.Shared ->
+                        | Shared ->
                             "D1"
-                        | WebAppSku.Basic sku
-                        | WebAppSku.Standard sku
-                        | WebAppSku.Premium sku
-                        | WebAppSku.PremiumV2 sku
-                        | WebAppSku.Isolated sku ->
+                        | Basic sku
+                        | Standard sku
+                        | Premium sku
+                        | PremiumV2 sku
+                        | Isolated sku ->
                             sku
-                        | WebAppSku.Dynamic ->
+                        | Dynamic ->
                             "Y1"
                       tier = this.Tier
                       size =

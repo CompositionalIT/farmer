@@ -2,6 +2,8 @@
 module Farmer.Builders.SqlAzure
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.Sql
 open Farmer.Arm.Sql
 open System.Net
 
@@ -9,7 +11,7 @@ type SqlAzureConfig =
     { ServerName : ResourceRef
       AdministratorCredentials : {| UserName : string; Password : SecureParameter |}
       Name : ResourceName
-      DbEdition : SqlSku
+      DbEdition : Sku
       DbCollation : string
       Encryption : FeatureFlag
       FirewallRules : {| Name : string; Start : IPAddress; End : IPAddress |} list }
@@ -59,7 +61,7 @@ type SqlBuilder() =
         { ServerName = AutomaticPlaceholder
           AdministratorCredentials = {| UserName = ""; Password = SecureParameter "" |}
           Name = ResourceName ""
-          DbEdition = SqlSku.Free
+          DbEdition = Free
           DbCollation = "SQL_Latin1_General_CP1_CI_AS"
           Encryption = Disabled
           FirewallRules = [] }
@@ -93,7 +95,7 @@ type SqlBuilder() =
     member this.Name(state:SqlAzureConfig, name:string) = this.Name(state, ResourceName name)
     /// Sets the sku of the database.
     [<CustomOperation "sku">]
-    member __.DatabaseEdition(state:SqlAzureConfig, edition:SqlSku) = { state with DbEdition = edition }
+    member __.DatabaseEdition(state:SqlAzureConfig, edition:Sku) = { state with DbEdition = edition }
     /// Sets the collation of the database.
     [<CustomOperation "collation">]
     member __.Collation(state:SqlAzureConfig, collation:string) = { state with DbCollation = collation }
