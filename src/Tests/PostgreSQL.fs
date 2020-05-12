@@ -1,32 +1,28 @@
 module PostgreSQL
 
-open System
 open Expecto
 open Farmer
 open Farmer.Builders
 
-type PostgresSku = {
-    name : string
-    family : string
-    capacity : int
-    tier : string
-    size : int
-}
+type PostgresSku =
+    { name : string
+      family : string
+      capacity : int
+      tier : string
+      size : int }
 
 
-type StorageProfile = {
-    backupRetentionDays : int
-    geoRedundantBackup : string
-    storageAutoGrow : string
-    storageMB : int
-}
+type StorageProfile =
+    { backupRetentionDays : int
+      geoRedundantBackup : string
+      storageAutoGrow : string
+      storageMB : int }
 
-type Properties = {
-    administratorLogin : string
-    administratorLoginPassword : string
-    version : string
-    storageProfile : StorageProfile
-}
+type Properties =
+    { administratorLogin : string
+      administratorLoginPassword : string
+      version : string
+      storageProfile : StorageProfile }
 
 type PostgresTemplate =
     { name : string
@@ -51,7 +47,6 @@ module Expect =
         | None -> ()
         | Some msg ->
             failtestf "%s. Expected f to not throw, but it did. Exception message: %s" message msg
-
 
 let tests = testList "PostgreSQL Database Service" [
     test "Basic resource settings come through" {
@@ -115,23 +110,22 @@ let tests = testList "PostgreSQL Database Service" [
                 Validate.username "u" c
         let badNames = [
             (null, "Null username"); ("", "Empty username"); ("   /t ", "Blank username")
-            (new String('a', 64), "Username too long")
+            (System.String('a', 64), "Username too long")
             ("Ædmin", "Bad chars in username")
             ("123abc", "Can not begin with number")
             ("admin_123", "More bad chars in username")
         ]
-        badNames |> List.iter (fun (candidate,label) ->
+        for (candidate,label) in badNames do
             Expect.throws (validate candidate) label
-        )
+
         Validate.reservedUsernames |> List.iter (fun candidate ->
             Expect.throws (validate candidate) (sprintf "Reserved name '%s'" candidate)
         )
         let goodNames = [
-            "a"; "abd23"; (new String('a', 63))
+            "a"; "abd23"; (System.String('a', 63))
         ]
-        goodNames |> List.iter (fun candidate ->
+        for candidate in goodNames do
             Expect.throwsNot (validate candidate) (sprintf "'%s' should work" candidate)
-        )
     }
 
     test "Servername can be validated" {
@@ -141,7 +135,7 @@ let tests = testList "PostgreSQL Database Service" [
 
         let badNames = [
             (null, "Null servername"); ("", "Empty servername"); ("   /t ", "Blank servername")
-            (new String('a', 64), "servername too long")
+            (System.String('a', 64), "servername too long")
             ("ab", "servername too short")
             ("aBcd", "uppercase char in servername")
             ("-server", "Beginning hyphen")
@@ -149,15 +143,14 @@ let tests = testList "PostgreSQL Database Service" [
             ("særver", "Bad chars in servername")
             ("123abc", "Can not begin with number")
         ]
-        badNames |> List.iter (fun (candidate,label) ->
+        for candidate,label in badNames do
             Expect.throws (validate candidate) label
-        )
+
         let goodNames = [
-            "abc"; "abd-23"; (new String('a', 63))
+            "abc"; "abd-23"; (System.String('a', 63))
         ]
-        goodNames |> List.iter (fun candidate ->
+        for candidate in goodNames do
             Expect.throwsNot (validate candidate) (sprintf "'%s' should work" candidate)
-        )
     }
 
     test "Storage size can be validated" {

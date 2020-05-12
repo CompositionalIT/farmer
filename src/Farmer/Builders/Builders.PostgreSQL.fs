@@ -114,28 +114,27 @@ type PostgreSQLBuilder() =
         let adminName = state.AdminUserName |> Option.getOrFailWith "admin username not set"
 
         { new IBuilder with
-            member _.BuildResources location resources =
-                let serverResource =
-                    match state.ServerName with
-                    | External resName ->
-                        resources |> Helpers.mergeResource resName (fun server -> { server with Databases = [] })
-                    | AutomaticallyCreated serverName ->
-                        { ServerName = serverName
-                          Location = location
-                          Username = adminName
-                          Password = SecureParameter "administratorLoginPassword"
-                          Version = state.Version
-                          StorageSize = state.StorageSize |> inMB
-                          Capacity = int state.Capacity
-                          Tier = state.Tier
-                          Family = Gen5
-                          GeoRedundantBackup = FeatureFlag.ofBool state.GeoRedundantBackup
-                          StorageAutoGrow = FeatureFlag.ofBool state.StorageAutogrow
-                          BackupRetention = int state.BackupRetention
-                          Databases = [] }
-                    | AutomaticPlaceholder -> failwith "You must specific a server name, or link to an existing server."
-
-                [serverResource] }
+            member _.BuildResources location resources = [
+                match state.ServerName with
+                | External resName ->
+                    resources |> Helpers.mergeResource resName (fun server -> { server with Databases = [] })
+                | AutomaticallyCreated serverName ->
+                    { ServerName = serverName
+                      Location = location
+                      Username = adminName
+                      Password = SecureParameter "administratorLoginPassword"
+                      Version = state.Version
+                      StorageSize = state.StorageSize |> inMB
+                      Capacity = int state.Capacity
+                      Tier = state.Tier
+                      Family = Gen5
+                      GeoRedundantBackup = FeatureFlag.ofBool state.GeoRedundantBackup
+                      StorageAutoGrow = FeatureFlag.ofBool state.StorageAutogrow
+                      BackupRetention = int state.BackupRetention
+                      Databases = [] }
+                | AutomaticPlaceholder ->
+                    failwith "You must specify a server name, or link to an existing server."
+            ] }
 
     /// Sets the name of the PostgreSQL server
     [<CustomOperation "server_name">]

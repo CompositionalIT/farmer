@@ -54,7 +54,6 @@
     <Compile Include="Arm/Insights.fs"/>
     <Compile Include="Arm/Network.fs"/>
     <Compile Include="Arm/KeyVault.fs"/>
-    <Compile Include="Arm/DbForPostgreSQL.fs"/>
     <Compile Include="Arm/Search.fs"/>
     <Compile Include="Arm/ServiceBus.fs"/>
     <Compile Include="Arm/Sql.fs"/>
