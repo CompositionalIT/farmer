@@ -412,3 +412,20 @@ type FailoverPolicy = NoFailover | AutoFailover of secondaryLocation:Location | 
 type CosmosDbIndexKind = Hash | Range
 /// The datatype for the key of index to use on a CosmoDB container.
 type CosmosDbIndexDataType = Number | String
+
+[<RequireQualifiedAccess>]
+type PostgreSQLSku =
+    | Basic
+    | GeneralPurpose
+    | MemoryOptimized
+    member this.Name =
+        match this with
+        | Basic -> "B"
+        | GeneralPurpose -> "GP"
+        | MemoryOptimized -> "MO"
+
+type [<RequireQualifiedAccess>] PostgreSQLVersion = VS_9_5 | VS_9_6 | VS_10 | VS_11
+
+[<Measure>] type Days
+[<Measure>] type GB
+[<Measure>] type VCores

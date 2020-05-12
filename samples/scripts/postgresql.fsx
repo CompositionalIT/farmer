@@ -2,14 +2,14 @@
 #r @"../../src/Farmer/bin/Debug/netstandard2.0/Farmer.dll"
 
 open Farmer
-open Farmer.Resources
+open Farmer.Builders
 
 let myPostgres = postgreSQL {
     admin_username "adminallthethings"
     server_name "aserverformultitudes42"
-    capacity 4<vCores>
+    capacity 4<VCores>
     storage_size 50<GB>
-    tier Arm.PostgreSQL.GeneralPurpose
+    tier PostgreSQLSku.GeneralPurpose
 }
 
 let template = arm {

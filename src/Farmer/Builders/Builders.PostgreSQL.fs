@@ -5,20 +5,16 @@ open System
 open Farmer
 open Arm.DBforPostgreSQL
 
-[<Measure>] type Days
-[<Measure>] type GB
-[<Measure>] type VCores
-
 type PostgreSQLBuilderConfig =
     { ServerName : ResourceRef
       AdminUserName : string option
-      Version : ServerVersion
+      Version : PostgreSQLVersion
       GeoRedundantBackup : bool
       StorageAutogrow : bool
       BackupRetention : int<Days>
       StorageSize : int<GB>
       Capacity : int<VCores>
-      Tier : SkuTier }
+      Tier : PostgreSQLSku }
 
 [<AutoOpen>]
 module private Helpers =
@@ -99,13 +95,13 @@ type PostgreSQLBuilder() =
     member _this.Yield _ =
         { PostgreSQLBuilderConfig.ServerName = AutomaticPlaceholder
           AdminUserName = None
-          Version = VS_11
+          Version = PostgreSQLVersion.VS_11
           GeoRedundantBackup = false
           StorageAutogrow = true
           BackupRetention = Validate.minBackupRetention
           StorageSize = Validate.minStorageSize
           Capacity = 2<VCores>
-          Tier = Basic }
+          Tier = PostgreSQLSku.Basic }
 
     member _this.Run (state: PostgreSQLBuilderConfig) =
         let adminName = state.AdminUserName |> Option.getOrFailWith "admin username not set"
@@ -124,7 +120,7 @@ type PostgreSQLBuilder() =
                       StorageSize = state.StorageSize |> inMB
                       Capacity = int state.Capacity
                       Tier = state.Tier
-                      Family = Gen5
+                      Family = PostgreSQLFamily.Gen5
                       GeoRedundantBackup = FeatureFlag.ofBool state.GeoRedundantBackup
                       StorageAutoGrow = FeatureFlag.ofBool state.StorageAutogrow
                       BackupRetention = int state.BackupRetention
@@ -192,7 +188,7 @@ type PostgreSQLBuilder() =
 
     /// Sets the PostgreSQl server version
     [<CustomOperation "server_version">]
-    member this.SetServerVersion (state:PostgreSQLBuilderConfig, version:ServerVersion) =
+    member this.SetServerVersion (state:PostgreSQLBuilderConfig, version:PostgreSQLVersion) =
         { state with Version = version }
 
     /// Sets capacity
@@ -203,7 +199,7 @@ type PostgreSQLBuilder() =
 
     /// Sets tier
     [<CustomOperation "tier">]
-    member this.SetTier (state:PostgreSQLBuilderConfig, tier:SkuTier) =
+    member this.SetTier (state:PostgreSQLBuilderConfig, tier:PostgreSQLSku) =
         { state with Tier = tier }
 
 let postgreSQL = PostgreSQLBuilder()

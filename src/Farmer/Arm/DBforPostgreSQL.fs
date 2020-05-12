@@ -3,9 +3,7 @@ module Farmer.Arm.DBforPostgreSQL
 
 open Farmer
 
-type SkuFamily = Gen5
-type SkuTier = Basic | GeneralPurpose | MemoryOptimized
-type ServerVersion = VS_9_5 | VS_9_6 | VS_10 | VS_11
+type [<RequireQualifiedAccess>] PostgreSQLFamily = Gen5
 
 type Database =
     { Name : ResourceName
@@ -17,24 +15,18 @@ type Server =
       Location : Location
       Username : string
       Password : SecureParameter
-      Version : ServerVersion
+      Version : PostgreSQLVersion
       Capacity : int
       StorageSize : int
-      Tier : SkuTier
-      Family : SkuFamily
+      Tier : PostgreSQLSku
+      Family : PostgreSQLFamily
       GeoRedundantBackup : FeatureFlag
       StorageAutoGrow : FeatureFlag
       BackupRetention : int
       Databases : Database list }
 
-    member this.getSku () =
-        let tierName =
-            match this.Tier with
-            | Basic -> "B"
-            | GeneralPurpose -> "GP"
-            | MemoryOptimized -> "MO"
-
-        {| name = sprintf "%s_%O_%d" tierName this.Family this.Capacity
+    member this.Sku =
+        {| name = sprintf "%s_%O_%d" this.Tier.Name this.Family this.Capacity
            tier = this.Tier.ToString()
            capacity = this.Capacity
            family = this.Family.ToString()
@@ -50,10 +42,10 @@ type Server =
     member this.GetProperties () =
         let version =
             match this.Version with
-            | VS_9_5 -> "9.5"
-            | VS_9_6 -> "9.6"
-            | VS_10 -> "10"
-            | VS_11 -> "11"
+            | PostgreSQLVersion.VS_9_5 -> "9.5"
+            | PostgreSQLVersion.VS_9_6 -> "9.6"
+            | PostgreSQLVersion.VS_10 -> "10"
+            | PostgreSQLVersion.VS_11 -> "11"
         {| administratorLogin = this.Username
            administratorLoginPassword = this.Password.AsArmRef.Eval()
            version = version
@@ -70,6 +62,6 @@ type Server =
                    name = this.ServerName.Value
                    location = this.Location.ArmValue
                    tags = {| displayName = this.ServerName.Value |}
-                   sku = this.getSku()
+                   sku = this.Sku
                    properties = this.GetProperties()
             |}

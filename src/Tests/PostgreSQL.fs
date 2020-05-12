@@ -53,11 +53,11 @@ let tests = testList "PostgreSQL Database Service" [
         let actual = runBuilder <| postgreSQL {
             server_name "testdb"
             admin_username "myadminuser"
-            server_version Arm.DBforPostgreSQL.VS_10
+            server_version PostgreSQLVersion.VS_10
             storage_size 50<GB>
             backup_retention 17<Days>
             capacity 4<VCores>
-            tier Arm.DBforPostgreSQL.GeneralPurpose
+            tier PostgreSQLSku.GeneralPurpose
             enable_geo_redundant_backup
             disable_storage_autogrow
         }
