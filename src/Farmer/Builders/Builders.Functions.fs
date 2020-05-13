@@ -152,7 +152,7 @@ type FunctionsBuilder() =
             ServicePlanName =
                 match state.ServicePlanName with
                 | External e -> External e
-                | AutomaticPlaceholder -> AutomaticallyCreated(ResourceName(sprintf "%s-plan" state.Name.Value))
+                | AutomaticPlaceholder -> AutomaticallyCreated(ResourceName(sprintf "%s-farm" state.Name.Value))
                 | AutomaticallyCreated a -> AutomaticallyCreated a
             StorageAccountName =
                 match state.StorageAccountName with

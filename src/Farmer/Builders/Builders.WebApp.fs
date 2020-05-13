@@ -272,7 +272,7 @@ type WebAppBuilder() =
         { state with
             ServicePlanName =
                 match state.ServicePlanName with
-                | AutomaticPlaceholder -> AutomaticallyCreated (ResourceName (sprintf "%s-plan" state.Name.Value))
+                | AutomaticPlaceholder -> AutomaticallyCreated (ResourceName (sprintf "%s-farm" state.Name.Value))
                 | AutomaticallyCreated x -> AutomaticallyCreated x
                 | External r -> External r
             OperatingSystem =
