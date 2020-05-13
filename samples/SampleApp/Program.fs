@@ -4,7 +4,7 @@ open Farmer.Builders
 //TODO: Create resources here!
 
 let deployment = arm {
-    location NorthEurope
+    location Location.NorthEurope
 
     //TODO: Assign resources here using the add_resource keyword
 }
