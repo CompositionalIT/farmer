@@ -15,4 +15,4 @@ deployment
 
 // Or deploy it directly to Azure here... (required Azure CLI installed!)
 // deployment
-// |> Deploy.quick "my-resource-group"
+// |> Deploy.execute "my-resource-group" Deploy.NoParameters
