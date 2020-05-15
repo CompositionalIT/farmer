@@ -10,9 +10,6 @@ type Registries =
       Location : Location
       Sku : Sku
       AdminUserEnabled : bool }
-    member this.LoginServer =
-        (sprintf "reference(resourceId('Microsoft.ContainerRegistry/registries', '%s'),'2019-05-01').loginServer" this.Name.Value)
-        |> ArmExpression
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
