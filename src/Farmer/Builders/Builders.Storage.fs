@@ -1,8 +1,10 @@
 [<AutoOpen>]
 module Farmer.Builders.Storage
 
-open Farmer.Arm.Storage
 open Farmer
+open Farmer.CoreTypes
+open Farmer.Storage
+open Farmer.Arm.Storage
 
 let internal buildKey (ResourceName name) =
     sprintf
@@ -11,36 +13,25 @@ let internal buildKey (ResourceName name) =
             name
     |> ArmExpression
 
-type StorageContainerAccess =
-    | Private
-    | Container
-    | Blob
-
 type StorageAccountConfig =
     { /// The name of the storage account.
       Name : ResourceName
       /// The sku of the storage account.
-      Sku : StorageSku
+      Sku : Sku
       /// Containers for the storage account.
       Containers : (string * StorageContainerAccess) list}
     /// Gets the ARM expression path to the key of this storage account.
     member this.Key = buildKey this.Name
     interface IBuilder with
         member this.BuildResources location _ = [
-            { Location = location
-              Name = this.Name
+            { Name = this.Name
+              Location = location
               Sku = this.Sku
-              Containers = [
-                for container, access in this.Containers do
-                    container, match access with
-                               | Private -> "None"
-                               | Container -> "Container"
-                               | Blob -> "Blob"
-              ] }
+              Containers = this.Containers }
         ]
 
 type StorageAccountBuilder() =
-    member __.Yield _ = { Name = ResourceName.Empty; Sku = StorageSku.Standard_LRS; Containers = [] }
+    member __.Yield _ = { Name = ResourceName.Empty; Sku = Standard_LRS; Containers = [] }
     member _.Run(state:StorageAccountConfig) =
         { state with
             Name = state.Name |> Helpers.sanitiseStorage |> ResourceName }

@@ -2,21 +2,18 @@
 module Farmer.Builders.ServiceBus
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.ServiceBus
 open Farmer.Arm.ServiceBus
-
-type MessagingUnits = OneUnit | TwoUnits | FourUnits
-[<RequireQualifiedAccess>]
-type ServiceBusSku =
-    | Basic
-    | Standard
-    | Premium of MessagingUnits
+open System
 
 type ServiceBusQueueConfig =
     { NamespaceName : ResourceRef
-      NamespaceSku : ServiceBusSku
+      NamespaceSku : Sku
       Name : ResourceName
-      LockDurationMinutes : int option
-      DuplicateDetection : int option
+      LockDuration : TimeSpan option
+      DuplicateDetection : TimeSpan option
+      DefaultMessageTimeToLive : TimeSpan option
       Session : bool option
       DeadLetteringOnMessageExpiration : bool option
       MaxDeliveryCount : int option
@@ -34,11 +31,16 @@ type ServiceBusQueueConfig =
         member this.BuildResources location existingResources = [
             let queue =
                   { Name = this.Name
-                    LockDuration = this.LockDurationMinutes |> Option.map (sprintf "PT%dM")
-                    DuplicateDetection = this.DuplicateDetection |> Option.map(fun _ -> true)
-                    DuplicateDetectionHistoryTimeWindow = this.DuplicateDetection |> Option.map (sprintf "PT%dM")
+                    LockDuration = this.LockDuration |> Option.map IsoDateTime.OfTimeSpan
+                    DuplicateDetectionHistoryTimeWindow = this.DuplicateDetection |> Option.map IsoDateTime.OfTimeSpan
                     Session = this.Session
                     DeadLetteringOnMessageExpiration = this.DeadLetteringOnMessageExpiration
+                    DefaultMessageTimeToLive =
+                        match this.DefaultMessageTimeToLive, this.NamespaceSku with
+                        | None, Sku.Basic -> TimeSpan.FromDays 14.
+                        | None, (Sku.Standard | Sku.Premium _) -> TimeSpan.MaxValue
+                        | Some ttl, _ -> ttl
+                        |> IsoDateTime.OfTimeSpan
                     MaxDeliveryCount = this.MaxDeliveryCount
                     EnablePartitioning = this.EnablePartitioning
                     DependsOn = [ this.NamespaceName.ResourceName ] }
@@ -47,25 +49,12 @@ type ServiceBusQueueConfig =
             | AutomaticallyCreated namespaceName ->
                 { Name = namespaceName
                   Location = location
-                  Sku =
-                    match this.NamespaceSku with
-                    | ServiceBusSku.Basic -> "Basic"
-                    | ServiceBusSku.Standard -> "Standard"
-                    | ServiceBusSku.Premium _ -> "Premium"
-                  Capacity =
-                    match this.NamespaceSku with
-                    | ServiceBusSku.Basic -> None
-                    | ServiceBusSku.Standard -> None
-                    | ServiceBusSku.Premium OneUnit -> Some 1
-                    | ServiceBusSku.Premium TwoUnits -> Some 2
-                    | ServiceBusSku.Premium FourUnits -> Some 4
-                  DependsOn =
-                    this.DependsOn
-                  Queues = [ queue ]
-                }
+                  Sku = this.NamespaceSku
+                  DependsOn = this.DependsOn
+                  Queues = [ queue ] }
             | External namespaceName ->
                 existingResources
-                |> Helpers.tryMergeResource namespaceName (fun ns -> { ns with Queues = queue :: ns.Queues })
+                |> Helpers.mergeResource namespaceName (fun ns -> { ns with Queues = queue :: ns.Queues })
             | AutomaticPlaceholder ->
                 failwith "Service Bus Namespace Name has not been set."
         ]
@@ -73,16 +62,21 @@ type ServiceBusQueueConfig =
 type ServiceBusQueueBuilder() =
     member _.Yield _ =
         { NamespaceName = AutomaticPlaceholder
-          NamespaceSku = ServiceBusSku.Basic
+          NamespaceSku = Basic
           Name = ResourceName.Empty
-          LockDurationMinutes = None
+          LockDuration = None
           DuplicateDetection = None
           Session = None
           DeadLetteringOnMessageExpiration = None
+          DefaultMessageTimeToLive = None
           MaxDeliveryCount = None
           EnablePartitioning = None
           DependsOn = List.empty }
     member _.Run (state:ServiceBusQueueConfig) =
+        match state.DuplicateDetection, state.NamespaceSku with
+        | Some _, Basic -> failwith "Duplicate Detection cannot be set when creating a queue using the Basic tier."
+        | _ -> ()
+
         { state with
             DependsOn = List.rev state.DependsOn
             NamespaceName =
@@ -101,11 +95,13 @@ type ServiceBusQueueBuilder() =
     /// The name of the queue.
     [<CustomOperation "name">] member _.Name(state:ServiceBusQueueConfig, name) = { state with Name = ResourceName name }
     /// The length of time that a lock can be held on a message.
-    [<CustomOperation "lock_duration_minutes">] member _.LockDurationMinutes(state:ServiceBusQueueConfig, duration) = { state with LockDurationMinutes = Some duration }
+    [<CustomOperation "lock_duration_minutes">] member _.LockDurationMinutes(state:ServiceBusQueueConfig, duration) = { state with LockDuration = Some (TimeSpan.FromMinutes (float duration)) }
     /// The maximum number of times a message can be delivered before dead lettering.
     [<CustomOperation "max_delivery_count">] member _.MaxDeliveryCount(state:ServiceBusQueueConfig, count) = { state with MaxDeliveryCount = Some count }
     /// Whether to enable duplicate detection, and if so, how long to check for.
-    [<CustomOperation "duplicate_detection_minutes">] member _.DuplicateDetection(state:ServiceBusQueueConfig, maxTimeWindow) = { state with DuplicateDetection = Some maxTimeWindow }
+    [<CustomOperation "duplicate_detection_minutes">] member _.DuplicateDetection(state:ServiceBusQueueConfig, maxTimeWindow) = { state with DuplicateDetection = Some (TimeSpan.FromMinutes (float maxTimeWindow)) }
+    /// The default time-to-live for messages. If not specified, the maximum TTL will be set for the SKU.
+    [<CustomOperation "message_ttl_days">] member _.MessageTtl(state:ServiceBusQueueConfig, ttl) = { state with DefaultMessageTimeToLive = Some (TimeSpan.FromDays (float ttl)) }
     /// Enables session support.
     [<CustomOperation "enable_session">] member _.Session(state:ServiceBusQueueConfig) = { state with Session = Some true }
     /// Enables dead lettering of messages that expire.

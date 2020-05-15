@@ -2,6 +2,8 @@
 module Farmer.Builders.WebApp
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.Web
 open Farmer.Arm.Web
 open Farmer.Arm.Insights
 
@@ -69,7 +71,7 @@ type WebAppConfig =
       Settings : Map<string, string>
       Dependencies : ResourceName list
 
-      Sku : WebAppSku
+      Sku : Sku
       WorkerSize : WorkerSize
       WorkerCount : int
       RunFromPackage : bool
@@ -169,7 +171,6 @@ type WebAppConfig =
                     match this.Runtime with
                     | AspNet version -> Some (sprintf "v%s" version)
                     | _ -> None
-
                   JavaVersion =
                     match this.Runtime, this.OperatingSystem with
                     | Java (Java11, Tomcat _), Windows -> Some "11"
@@ -232,6 +233,7 @@ type WebAppConfig =
                     None
                 | AutomaticallyCreated name ->
                     { Name = name
+                      Location = location
                       Sku = this.Sku
                       WorkerSize = this.WorkerSize
                       WorkerCount = this.WorkerCount
@@ -239,7 +241,7 @@ type WebAppConfig =
                     |> Some
             webApp
             match ai with Some ai -> ai | None -> ()
-            match serverFarm with Some serverFarm -> yield! (serverFarm :> IBuilder).BuildResources location existingResources | None -> ()
+            match serverFarm with Some serverFarm -> serverFarm | None -> ()
         ]
 
 type WebAppBuilder() =
@@ -247,7 +249,7 @@ type WebAppBuilder() =
         { Name = ResourceName.Empty
           ServicePlanName = AutomaticPlaceholder
           AppInsightsName = Some AutomaticPlaceholder
-          Sku = WebAppSkus.F1
+          Sku = Sku.F1
           WorkerSize = Small
           WorkerCount = 1
           RunFromPackage = false
@@ -270,7 +272,7 @@ type WebAppBuilder() =
         { state with
             ServicePlanName =
                 match state.ServicePlanName with
-                | AutomaticPlaceholder -> AutomaticallyCreated (ResourceName (sprintf "%s-plan" state.Name.Value))
+                | AutomaticPlaceholder -> AutomaticallyCreated (ResourceName (sprintf "%s-farm" state.Name.Value))
                 | AutomaticallyCreated x -> AutomaticallyCreated x
                 | External r -> External r
             OperatingSystem =

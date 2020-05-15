@@ -2,18 +2,13 @@
 module Farmer.Builders.ContainerRegistry
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.ContainerRegistry
 open Farmer.Arm.ContainerRegistry
-
-[<RequireQualifiedAccess>]
-/// Container Registry SKU
-type ContainerRegistrySku =
-    | Basic
-    | Standard
-    | Premium
 
 type ContainerRegistryConfig =
     { Name : ResourceName
-      Sku : ContainerRegistrySku
+      Sku : Sku
       AdminUserEnabled : bool }
     member this.LoginServer =
         (sprintf "reference(resourceId('Microsoft.ContainerRegistry/registries', '%s'),'2019-05-01').loginServer" this.Name.Value)
@@ -22,13 +17,13 @@ type ContainerRegistryConfig =
         member this.BuildResources location _ = [
             { Name = this.Name
               Location = location
-              Sku = this.Sku.ToString().Replace("_", ".")
+              Sku = this.Sku
               AdminUserEnabled = this.AdminUserEnabled }
         ]
 type ContainerRegistryBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
-          Sku = ContainerRegistrySku.Basic
+          Sku = Basic
           AdminUserEnabled = false }
 
     [<CustomOperation "name">]

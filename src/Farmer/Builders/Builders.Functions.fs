@@ -2,7 +2,9 @@
 module Farmer.Builders.Functions
 
 open Farmer
+open Farmer.CoreTypes
 open Farmer.Helpers
+open Farmer.Web
 open Farmer.Arm.Web
 open Farmer.Arm.Insights
 open Farmer.Arm.Storage
@@ -105,18 +107,17 @@ type FunctionsConfig =
             | AutomaticPlaceholder ->
                 ()
             | AutomaticallyCreated resourceName ->
-                let servicePlanConfig =
-                    { Name = resourceName
-                      Sku = WebAppSkus.Y1
-                      WorkerSize = Serverless
-                      WorkerCount = 0
-                      OperatingSystem = this.OperatingSystem }
-                yield! (servicePlanConfig :> IBuilder).BuildResources location existingResources
+                { Name = resourceName
+                  Location = location
+                  Sku = Sku.Y1
+                  WorkerSize = Serverless
+                  WorkerCount = 0
+                  OperatingSystem = this.OperatingSystem }
             match this.StorageAccountName with
             | AutomaticallyCreated resourceName ->
                 { StorageAccount.Name = resourceName
                   Location = location
-                  Sku = StorageSku.Standard_LRS
+                  Sku = Storage.Standard_LRS
                   Containers = [] }
             | AutomaticPlaceholder | External _ ->
                 ()
@@ -151,7 +152,7 @@ type FunctionsBuilder() =
             ServicePlanName =
                 match state.ServicePlanName with
                 | External e -> External e
-                | AutomaticPlaceholder -> AutomaticallyCreated(ResourceName(sprintf "%s-plan" state.Name.Value))
+                | AutomaticPlaceholder -> AutomaticallyCreated(ResourceName(sprintf "%s-farm" state.Name.Value))
                 | AutomaticallyCreated a -> AutomaticallyCreated a
             StorageAccountName =
                 match state.StorageAccountName with

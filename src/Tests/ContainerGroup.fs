@@ -2,6 +2,7 @@ module ContainerGroup
 
 open Expecto
 open Farmer
+open Farmer.ContainerGroup
 open Farmer.Builders
 open Microsoft.Azure.Management.ContainerInstance
 open Microsoft.Azure.Management.ContainerInstance.Models
@@ -13,7 +14,7 @@ let nginx = container {
     os_type Linux
     add_tcp_port 80us
     add_tcp_port 443us
-    restart_policy ContainerGroups.ContainerGroupRestartPolicy.Always
+    restart_policy Always
 
     name "nginx"
     image "nginx:1.17.6-alpine"
@@ -38,7 +39,6 @@ let tests = testList "Container Group" [
     test "Single container in a group is correctly created" {
         let group =
             arm {
-                location NorthEurope
                 add_resource nginx
             }
             |> findAzureResources<ContainerGroup> dummyClient.SerializationSettings
@@ -60,7 +60,6 @@ let tests = testList "Container Group" [
     test "Multiple containers correctly link to a common container group" {
         let group =
             arm {
-                location NorthEurope
                 add_resource nginx
                 add_resource fsharpApp
             }

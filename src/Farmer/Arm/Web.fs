@@ -2,39 +2,75 @@
 module Farmer.Arm.Web
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.Web
+open System
 
 type ServerFarm =
     { Name : ResourceName
       Location : Location
-      Sku: string
-      WorkerSize : string
-      IsDynamic : bool
-      Kind : string option
-      Tier : string
+      Sku: Sku
+      WorkerSize : WorkerSize
       WorkerCount : int
-      IsLinux : bool }
+      OperatingSystem : OS }
+    member this.IsDynamic =
+        match this.Sku, this.WorkerSize with
+        | Isolated "Y1", Serverless -> true
+        | _ -> false
+    member this.Reserved =
+        match this.OperatingSystem with
+        | Linux -> true
+        | Windows -> false
+    member this.Kind =
+        match this.OperatingSystem with
+        | Linux -> Some "linux"
+        | _ -> None
+    member this.Tier =
+        match this.Sku with
+        | Free -> "Free"
+        | Shared -> "Shared"
+        | Basic _ -> "Basic"
+        | Standard _ -> "Standard"
+        | Premium _ -> "Premium"
+        | PremiumV2 _ -> "PremiumV2"
+        | Dynamic -> "Dynamic"
+        | Isolated _ -> "Isolated"
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
             {| ``type`` = "Microsoft.Web/serverfarms"
                sku =
-                   {| name = this.Sku
+                   {| name =
+                        match this.Sku with
+                        | Free ->
+                            "F1"
+                        | Shared ->
+                            "D1"
+                        | Basic sku
+                        | Standard sku
+                        | Premium sku
+                        | PremiumV2 sku
+                        | Isolated sku ->
+                            sku
+                        | Dynamic ->
+                            "Y1"
                       tier = this.Tier
-                      size = this.WorkerSize
+                      size =
+                        match this.WorkerSize with
+                        | Small -> "0"
+                        | Medium -> "1"
+                        | Large -> "2"
+                        | Serverless -> "Y1"
                       family = if this.IsDynamic then "Y" else null
                       capacity = if this.IsDynamic then 0 else this.WorkerCount |}
                name = this.Name.Value
                apiVersion = "2018-02-01"
                location = this.Location.ArmValue
                properties =
-                   if this.IsDynamic then
-                       box {| name = this.Name.Value
-                              computeMode = "Dynamic"
-                              reserved = this.IsLinux |}
-                   else
-                       box {| name = this.Name.Value
-                              perSiteScaling = false
-                              reserved = this.IsLinux |}
+                    {| name = this.Name.Value
+                       computeMode = if this.IsDynamic then "Dynamic" else null
+                       perSiteScaling = if this.IsDynamic then Nullable() else Nullable false
+                       reserved = this.Reserved |}
                kind = this.Kind |> Option.toObj
             |} :> _
 

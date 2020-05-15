@@ -1,5 +1,6 @@
 module Farmer.Writer
 
+open Farmer.CoreTypes
 open Newtonsoft.Json
 open System.IO
 

@@ -25,4 +25,4 @@ let allTests =
 [<EntryPoint>]
 let main _ =
     printfn "Running tests!"
-    runTests { defaultConfig with verbosity = Logging.LogLevel.Debug } allTests
+    runTests { defaultConfig with verbosity = Logging.Verbose } allTests

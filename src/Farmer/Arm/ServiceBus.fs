@@ -2,14 +2,17 @@
 module Farmer.Arm.ServiceBus
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.ServiceBus
+open System
 
 type ServiceBusQueue =
     { Name : ResourceName
-      LockDuration : string option
-      DuplicateDetection : bool option
-      DuplicateDetectionHistoryTimeWindow : string option
+      LockDuration : IsoDateTime option
+      DuplicateDetectionHistoryTimeWindow : IsoDateTime option
       Session : bool option
       DeadLetteringOnMessageExpiration : bool option
+      DefaultMessageTimeToLive : IsoDateTime
       MaxDeliveryCount : int option
       EnablePartitioning : bool option
       DependsOn : ResourceName list }
@@ -17,10 +20,16 @@ type ServiceBusQueue =
 type Namespace =
     { Name : ResourceName
       Location : Location
-      Sku : string
-      Capacity : int option
+      Sku : Sku
       Queues :ServiceBusQueue list
       DependsOn : ResourceName list }
+    member this.Capacity =
+        match this.Sku with
+        | Basic -> None
+        | Standard -> None
+        | Premium OneUnit -> Some 1
+        | Premium TwoUnits -> Some 2
+        | Premium FourUnits -> Some 4
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
@@ -29,9 +38,9 @@ type Namespace =
                name = this.Name.Value
                location = this.Location.ArmValue
                sku =
-                 {| name = this.Sku
-                    tier = this.Sku
-                    capacity = this.Capacity |> Option.toNullable |}
+                    {| name = string this.Sku
+                       tier = string this.Sku
+                       capacity = this.Capacity |> Option.toNullable |}
                dependsOn = this.DependsOn |> List.map (fun r -> r.Value)
                resources =
                  [ for queue in this.Queues do
@@ -40,9 +49,16 @@ type Namespace =
                         ``type`` = "Queues"
                         dependsOn = queue.DependsOn |> List.map (fun r -> r.Value)
                         properties =
-                         {| lockDuration = queue.LockDuration |> Option.toObj
-                            requiresDuplicateDetection = queue.DuplicateDetection |> Option.toNullable
-                            duplicateDetectionHistoryTimeWindow = queue.DuplicateDetectionHistoryTimeWindow |> Option.toObj
+                         {| lockDuration = queue.LockDuration |> Option.map (fun iso -> iso.Value) |> Option.toObj
+                            requiresDuplicateDetection =
+                                match queue.DuplicateDetectionHistoryTimeWindow with
+                                | Some _ -> Nullable true
+                                | None -> Nullable()
+                            defaultMessageTimeToLive = queue.DefaultMessageTimeToLive.Value
+                            duplicateDetectionHistoryTimeWindow =
+                                queue.DuplicateDetectionHistoryTimeWindow
+                                |> Option.map (fun iso -> iso.Value)
+                                |> Option.toObj
                             requiresSession = queue.Session |> Option.toNullable
                             deadLetteringOnMessageExpiration = queue.DeadLetteringOnMessageExpiration |> Option.toNullable
                             maxDeliveryCount = queue.MaxDeliveryCount |> Option.toNullable

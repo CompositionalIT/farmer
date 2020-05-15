@@ -2,15 +2,14 @@
 module Farmer.Arm.ContainerRegistry
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.ContainerRegistry
 
 type Registries =
     { Name : ResourceName
       Location : Location
-      Sku : string
+      Sku : Sku
       AdminUserEnabled : bool }
-    member this.LoginServer =
-        (sprintf "reference(resourceId('Microsoft.ContainerRegistry/registries', '%s'),'2019-05-01').loginServer" this.Name.Value)
-        |> ArmExpression
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =

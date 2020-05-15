@@ -2,6 +2,8 @@
 module Farmer.Arm.Compute
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.Vm
 
 type VirtualMachine =
     { Name : ResourceName
@@ -10,8 +12,8 @@ type VirtualMachine =
       Size : VMSize
       Credentials : {| Username : string; Password : SecureParameter |}
       Image : ImageDefinition
-      OsDisk : {| Size : int; DiskType : string |}
-      DataDisks : {| Size : int; DiskType : string |} list
+      OsDisk : DiskInfo
+      DataDisks : DiskInfo list
       NetworkInterfaceName : ResourceName }
     interface IParameters with
         member this.SecureParameters = [ this.Credentials.Password ]
@@ -47,7 +49,7 @@ type VirtualMachine =
                            {| createOption = "FromImage"
                               name = sprintf "%s-osdisk" vmNameLowerCase
                               diskSizeGB = this.OsDisk.Size
-                              managedDisk = {| storageAccountType = this.OsDisk.DiskType |}
+                              managedDisk = {| storageAccountType = this.OsDisk.DiskType.ArmValue |}
                            |}
                           dataDisks =
                            this.DataDisks
@@ -56,7 +58,7 @@ type VirtualMachine =
                                   name = sprintf "%s-datadisk-%i" vmNameLowerCase lun
                                   diskSizeGB = dataDisk.Size
                                   lun = lun
-                                  managedDisk = {| storageAccountType = dataDisk.DiskType |} |})
+                                  managedDisk = {| storageAccountType = dataDisk.DiskType.ArmValue |} |})
                        |}
                    networkProfile =
                        {| networkInterfaces = [

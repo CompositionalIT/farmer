@@ -3,25 +3,20 @@ module Farmer.Builders.PostgreSQLAzure
 
 open System
 open Farmer
+open Farmer.CoreTypes
+open Farmer.PostgreSQL
 open Arm.DBforPostgreSQL
 
-[<Measure>] type Days
-[<Measure>] type GB
-[<Measure>] type VCores
-
-
-type PostgreSQLBuilderState = {
-    ServerName : ResourceRef
-    AdminUserName : string option
-    Version : ServerVersion
-    GeoRedundantBackup : bool
-    StorageAutogrow : bool
-    BackupRetention : int<Days>
-    StorageSize : int<GB>
-    Capacity : int<VCores>
-    Tier : SkuTier
-}
-
+type PostgreSQLBuilderConfig =
+    { ServerName : ResourceRef
+      AdminUserName : string option
+      Version : Version
+      GeoRedundantBackup : bool
+      StorageAutogrow : bool
+      BackupRetention : int<Days>
+      StorageSize : int<Gb>
+      Capacity : int<VCores>
+      Tier : Sku }
 
 [<AutoOpen>]
 module private Helpers =
@@ -78,9 +73,9 @@ module Validate =
             failwithf "Backup retention must be between %d and %d days, was %d"
                 minBackupRetention maxBackupRetention days
 
-    let minStorageSize = 5<GB>
-    let maxStorageSize = 1024<GB>
-    let storageSize (size : int<GB>) =
+    let minStorageSize = 5<Gb>
+    let maxStorageSize = 1024<Gb>
+    let storageSize (size : int<Gb>) =
         if size < minStorageSize || size > maxStorageSize then
             failwithf "Storage space must between %d and %d GB, was %d"
                 minStorageSize maxStorageSize size
@@ -97,119 +92,116 @@ module Validate =
 
 
 type PostgreSQLBuilder() =
-    let inMB (gb: int<GB>) = 1024 * (int gb)
+    let inMB (gb: int<Gb>) = 1024 * (int gb)
 
-    member _this.Yield _ = {
-        PostgreSQLBuilderState.ServerName = AutomaticPlaceholder
-        AdminUserName = None
-        Version = VS_11
-        GeoRedundantBackup = false
-        StorageAutogrow = true
-        BackupRetention = Validate.minBackupRetention
-        StorageSize = Validate.minStorageSize
-        Capacity = 2<VCores>
-        Tier = Basic
-    }
+    member _this.Yield _ =
+        { PostgreSQLBuilderConfig.ServerName = AutomaticPlaceholder
+          AdminUserName = None
+          Version = VS_11
+          GeoRedundantBackup = false
+          StorageAutogrow = true
+          BackupRetention = Validate.minBackupRetention
+          StorageSize = Validate.minStorageSize
+          Capacity = 2<VCores>
+          Tier = Basic }
 
-    member _this.Run (state: PostgreSQLBuilderState) =
+    member _this.Run (state: PostgreSQLBuilderConfig) =
         let adminName = state.AdminUserName |> Option.getOrFailWith "admin username not set"
 
         { new IBuilder with
-            member this.BuildResources location resources =
-                let serverResource =
-                    match state.ServerName with
-                    | External resName ->
-                        resources |> Helpers.tryMergeResource resName (fun server -> { server with Databases = [] })
-                    | AutomaticallyCreated serverName ->
-                        { ServerName = serverName
-                          Location = location
-                          Username = adminName
-                          Password = SecureParameter "administratorLoginPassword"
-                          Version = state.Version
-                          StorageSize = state.StorageSize |> inMB
-                          Capacity = int state.Capacity
-                          Tier = state.Tier
-                          Family = Gen5
-                          GeoRedundantBackup = FeatureFlag.ofBool state.GeoRedundantBackup
-                          StorageAutoGrow = FeatureFlag.ofBool state.StorageAutogrow
-                          BackupRetention = int state.BackupRetention
-                          Databases = [] }
-                    | AutomaticPlaceholder -> failwith "You must specific a server name, or link to an existing server."
-
-                [serverResource] }
+            member _.BuildResources location resources = [
+                match state.ServerName with
+                | External resName ->
+                    resources |> Helpers.mergeResource resName (fun server -> { server with Databases = [] })
+                | AutomaticallyCreated serverName ->
+                    { ServerName = serverName
+                      Location = location
+                      Username = adminName
+                      Password = SecureParameter "administratorLoginPassword"
+                      Version = state.Version
+                      StorageSize = state.StorageSize |> inMB
+                      Capacity = int state.Capacity
+                      Tier = state.Tier
+                      Family = PostgreSQLFamily.Gen5
+                      GeoRedundantBackup = FeatureFlag.ofBool state.GeoRedundantBackup
+                      StorageAutoGrow = FeatureFlag.ofBool state.StorageAutogrow
+                      BackupRetention = int state.BackupRetention
+                      Databases = [] }
+                | AutomaticPlaceholder ->
+                    failwith "You must specify a server name, or link to an existing server."
+            ] }
 
     /// Sets the name of the PostgreSQL server
     [<CustomOperation "server_name">]
-    member _this.ServerName(state:PostgreSQLBuilderState, serverName) =
+    member _this.ServerName(state:PostgreSQLBuilderConfig, serverName) =
         let (ResourceName n) = serverName
         Validate.servername n
         { state with ServerName = AutomaticallyCreated serverName }
-    member this.ServerName(state:PostgreSQLBuilderState, serverName:string) =
+    member this.ServerName(state:PostgreSQLBuilderConfig, serverName:string) =
         this.ServerName(state, ResourceName serverName)
 
     /// Sets the name of the admin user
     [<CustomOperation "admin_username">]
-    member this.AdminUsername(state:PostgreSQLBuilderState, adminUsername:string) =
+    member this.AdminUsername(state:PostgreSQLBuilderConfig, adminUsername:string) =
         Validate.username "adminUserName" adminUsername
         { state with AdminUserName = Some adminUsername }
 
     /// Sets geo-redundant backup
     [<CustomOperation "geo_redundant_backup">]
-    member this.SetGeoRedundantBackup(state:PostgreSQLBuilderState, enabled:bool) =
+    member this.SetGeoRedundantBackup(state:PostgreSQLBuilderConfig, enabled:bool) =
         { state with GeoRedundantBackup = enabled }
 
     /// Enables geo-redundant backup
     [<CustomOperation "enable_geo_redundant_backup">]
-    member this.EnableGeoRedundantBackup(state:PostgreSQLBuilderState) =
+    member this.EnableGeoRedundantBackup(state:PostgreSQLBuilderConfig) =
         this.SetGeoRedundantBackup(state, true)
 
     /// Disables geo-redundant backup
     [<CustomOperation "disable_geo_redundant_backup">]
-    member this.DisableGeoRedundantBackup(state:PostgreSQLBuilderState) =
+    member this.DisableGeoRedundantBackup(state:PostgreSQLBuilderConfig) =
         this.SetGeoRedundantBackup(state, false)
 
     /// Sets storage autogrow
     [<CustomOperation "storage_autogrow">]
-    member this.SetStorageAutogrow(state:PostgreSQLBuilderState, enabled:bool) =
+    member this.SetStorageAutogrow(state:PostgreSQLBuilderConfig, enabled:bool) =
         { state with StorageAutogrow = enabled }
 
     /// Enables storage autogrow
     [<CustomOperation "enable_storage_autogrow">]
-    member this.EnableStorageAutogrow(state:PostgreSQLBuilderState) =
+    member this.EnableStorageAutogrow(state:PostgreSQLBuilderConfig) =
         this.SetStorageAutogrow(state, true)
 
     /// Disables storage autogrow
     [<CustomOperation "disable_storage_autogrow">]
-    member this.DisableStorageAutogrow(state:PostgreSQLBuilderState) =
+    member this.DisableStorageAutogrow(state:PostgreSQLBuilderConfig) =
         this.SetStorageAutogrow(state, false)
 
     /// sets storage size in MBs
     [<CustomOperation "storage_size">]
-    member this.SetStorageSizeInMBs(state:PostgreSQLBuilderState, size:int<GB>) =
+    member this.SetStorageSizeInMBs(state:PostgreSQLBuilderConfig, size:int<Gb>) =
         Validate.storageSize size
         { state with StorageSize = size }
 
     /// sets the backup retention in days
     [<CustomOperation "backup_retention">]
-    member this.SetBackupRetention (state:PostgreSQLBuilderState, retention:int<Days>) =
+    member this.SetBackupRetention (state:PostgreSQLBuilderConfig, retention:int<Days>) =
         Validate.backupRetention retention
         { state with BackupRetention = retention }
 
     /// Sets the PostgreSQl server version
     [<CustomOperation "server_version">]
-    member this.SetServerVersion (state:PostgreSQLBuilderState, version:ServerVersion) =
+    member this.SetServerVersion (state:PostgreSQLBuilderConfig, version:Version) =
         { state with Version = version }
 
     /// Sets capacity
     [<CustomOperation "capacity">]
-    member this.SetCapacity (state:PostgreSQLBuilderState, capacity:int<VCores>) =
+    member this.SetCapacity (state:PostgreSQLBuilderConfig, capacity:int<VCores>) =
         Validate.capacity capacity
         { state with Capacity = capacity }
 
     /// Sets tier
     [<CustomOperation "tier">]
-    member this.SetTier (state:PostgreSQLBuilderState, tier:SkuTier) =
+    member this.SetTier (state:PostgreSQLBuilderConfig, tier:Sku) =
         { state with Tier = tier }
-
 
 let postgreSQL = PostgreSQLBuilder()

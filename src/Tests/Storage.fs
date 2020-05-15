@@ -3,6 +3,7 @@ module Storage
 open Expecto
 open Farmer
 open Farmer.Builders
+open Farmer.Storage
 open Microsoft.Azure.Management.Storage
 open Microsoft.Azure.Management.Storage.Models
 open Microsoft.Rest
@@ -15,7 +16,7 @@ let tests = testList "Storage" [
         let resource =
             let account = storageAccount {
                 name "myStorage123~@"
-                sku StorageSku.Premium_LRS
+                sku Premium_LRS
             }
             arm { add_resource account }
             |> findAzureResources<StorageAccount> client.SerializationSettings

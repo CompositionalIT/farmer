@@ -2,6 +2,9 @@
 module Farmer.Arm.DocumentDb
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.CosmosDb
+open System
 
 module DatabaseAccounts =
     module SqlDatabases =
@@ -11,13 +14,11 @@ module DatabaseAccounts =
               Database : ResourceName
               PartitionKey :
                 {| Paths : string list
-                   Kind : string |}
+                   Kind : IndexKind |}
               IndexingPolicy :
                 {| IncludedPaths :
                     {| Path : string
-                       Indexes :
-                        {| Kind : string
-                           DataType : string |} list
+                       Indexes : (IndexDataType * IndexKind) list
                     |} list
                    ExcludedPaths : string list
                 |}
@@ -34,7 +35,7 @@ module DatabaseAccounts =
                                {| id = this.Name.Value
                                   partitionKey =
                                    {| paths = this.PartitionKey.Paths
-                                      kind = this.PartitionKey.Kind |}
+                                      kind = string this.PartitionKey.Kind |}
                                   indexingPolicy =
                                    {| indexingMode = "consistent"
                                       includedPaths =
@@ -43,9 +44,9 @@ module DatabaseAccounts =
                                            {| path = p.Path
                                               indexes =
                                                p.Indexes
-                                               |> List.map(fun i ->
-                                                   {| kind = i.Kind
-                                                      dataType = i.DataType
+                                               |> List.map(fun (dataType, kind) ->
+                                                   {| kind = string kind
+                                                      dataType = dataType.ToString().ToLower()
                                                       precision = -1 |})
                                            |})
                                       excludedPaths =
@@ -59,7 +60,7 @@ module DatabaseAccounts =
     type SqlDatabases =
         { Name : ResourceName
           Account : ResourceName
-          Throughput : string }
+          Throughput : int }
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
@@ -69,20 +70,42 @@ module DatabaseAccounts =
                    dependsOn = [ this.Account.Value ]
                    properties =
                        {| resource = {| id = this.Name.Value |}
-                          options = {| throughput = this.Throughput |} |}
+                          options = {| throughput = string this.Throughput |} |}
                 |} :> _
 
 type DatabaseAccount =
     { Name : ResourceName
       Location : Location
-      ConsistencyPolicy : string
-      MaxStaleness : int option
-      MaxInterval : int option
-      EnableAutomaticFailure : bool option
-      EnableMultipleWriteLocations : bool option
-      FailoverLocations : {| Location :  Location; Priority : int |} list
+      ConsistencyPolicy : ConsistencyPolicy
+      FailoverPolicy : FailoverPolicy
       PublicNetworkAccess : FeatureFlag
       FreeTier : bool }
+    member this.MaxStatelessPrefix =
+        match this.ConsistencyPolicy with
+        | BoundedStaleness (staleness, _) -> Some staleness
+        | Session | Eventual | ConsistentPrefix | Strong -> None
+    member this.MaxInterval =
+        match this.ConsistencyPolicy with
+        | BoundedStaleness (_, interval) -> Some interval
+        | Session | Eventual | ConsistentPrefix | Strong -> None
+    member this.EnableAutomaticFailover =
+        match this.FailoverPolicy with
+        | AutoFailover _ -> Some true
+        | _ -> None
+    member this.EnableMultipleWriteLocations =
+        match this.FailoverPolicy with
+        | MultiMaster _ -> Some true
+        | _ -> None
+    member this.FailoverLocations = [
+        match this.FailoverPolicy with
+        | AutoFailover secondary
+        | MultiMaster secondary ->
+            {| LocationName = this.Location.ArmValue; FailoverPriority = 0 |}
+            {| LocationName = secondary.ArmValue; FailoverPriority = 1 |}
+        | NoFailover ->
+            ()
+    ]
+
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
@@ -96,23 +119,20 @@ type DatabaseAccount =
                       CosmosAccountType = "Non-Production" |}
                properties =
                    {| consistencyPolicy =
-                        {| defaultConsistencyLevel = this.ConsistencyPolicy
-                           maxStalenessPrefix = this.MaxStaleness |> Option.toNullable
+                        {| defaultConsistencyLevel =
+                            match this.ConsistencyPolicy with
+                            | BoundedStaleness _ -> "BoundedStaleness"
+                            | Session | Eventual | ConsistentPrefix | Strong as policy -> string policy
+                           maxStalenessPrefix = this.MaxStatelessPrefix |> Option.toNullable
                            maxIntervalInSeconds = this.MaxInterval |> Option.toNullable
                         |}
                       databaseAccountOfferType = "Standard"
-                      enableAutomaticFailure = this.EnableAutomaticFailure |> Option.toNullable
+                      enableAutomaticFailover = this.EnableAutomaticFailover |> Option.toNullable
                       autoenableMultipleWriteLocations = this.EnableMultipleWriteLocations |> Option.toNullable
                       locations =
-                            match this.FailoverLocations with
-                            | [] ->
-                                null
-                            | locations ->
-                                box [
-                                    for location in locations do
-                                        {| locationName = location.Location.ArmValue
-                                           failoverPriority = location.Priority |}
-                                ]
+                        match this.FailoverLocations with
+                        | [] -> null
+                        | locations -> box locations
                       publicNetworkAccess = string this.PublicNetworkAccess
                       enableFreeTier = this.FreeTier
                    |} |> box

@@ -1,6 +1,9 @@
 [<AutoOpen>]
 module Farmer.ArmBuilder
 
+open Farmer.CoreTypes
+open Farmer
+
 module Helpers =
     /// Creates a unique IArmResource from an arbitrary object.
     let toArmResource armObject =
@@ -9,8 +12,9 @@ module Helpers =
              member _.JsonModel = armObject }
 
     /// Creates a Builder that can be added to arm { } expressions.
-    let asBuilder builder : Builder =
-        fun location _ -> builder location
+    let asBuilder quickBuilder  =
+        let output : Builder = fun location _ -> quickBuilder location
+        output
 
 /// Represents all configuration information to generate an ARM template.
 type ArmConfig =
@@ -37,7 +41,7 @@ type ArmBuilder() =
         { Parameters = Set.empty
           Outputs = Map.empty
           Resources = List.empty
-          Location = WestEurope }
+          Location = Location.WestEurope }
 
     member __.Run (state:ArmConfig) =
         let template =

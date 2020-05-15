@@ -1,4 +1,6 @@
-namespace Farmer
+namespace Farmer.CoreTypes
+
+open Farmer
 
 /// Represents a name of an ARM resource
 type ResourceName =
@@ -91,7 +93,7 @@ type FeatureFlag = Enabled | Disabled member this.AsBoolean = match this with En
 
 module FeatureFlag =
     let ofBool enabled = if enabled then Enabled else Disabled
-    
+
 /// Represents a secret to be captured either via an ARM expression or a secure parameter.
 type SecretValue =
     | ParameterSecret of SecureParameter

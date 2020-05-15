@@ -33,7 +33,7 @@ So a generated ARM Template from Farmer will have the following structure.
 
 When building a new resource in Farmer you are providing the means for a user of Farmer to generate a new resource type, or configure a new property on an existing resource. These resources are added to the `resources` array you can see above.
 
-When building up a resource is will have a schema that looks something like this.
+When building up a resource it will have a schema that looks something like this.
 
 ```json
 {
@@ -52,23 +52,23 @@ When building up a resource is will have a schema that looks something like this
 }
 ```
 
-Your resource you create will have a [type of service](https://docs.microsoft.com/en-us/azure/templates/microsoft.containerregistry/allversions) that it represents. Each service has many versions, represented by a date. 
+Your resource you create will have a [type of service](https://docs.microsoft.com/en-us/azure/templates/microsoft.containerregistry/allversions) that it represents. Each service has many versions, represented by a date.
 
 Typically your builder will at first focus on adding properties to the `properties` field to configure a service to be deployed in a certain state.
 
 ## Terms that are useful
 
-- Resource: Resources are a list of services added to an ARM template that define the state of said Azure services. In Farmer these resource models are created by implementing `IArmResource`.
-- Template: Represents an ARM template with parameters, outputs and resources
-- Location: An Azure Region where a service exists
-- Deployment: Represents the deployment of an ARM template to a Location
-- Builders: In Farmer an `IBuilder` represents provides the capability of changing a smart `type` that helps model a resource well, to an ArmResouce required for constructing the Arm template.
+- **Resource**: Resources are a list of services added to an ARM template that define the state of said Azure services. In Farmer these resource models are created by implementing `IArmResource`.
+- **Template**: Represents an ARM template with parameters, outputs and resources
+- **Location**: An Azure Region where a service exists
+- **Deployment**: Represents the deployment of an ARM template to a Location
+- **Builder**: In Farmer an `IBuilder` represents provides the capability of creating a smart type that helps model a resource *or a collection of resources* into associated `IArmResource` objects required for constructing the ARM template. For example, Farmer's WebApp builder provides a logical abstraction on top of several ARM resources: Web App, Server Farm and Application Insights.
 
 ## Implementing a new resource
 
 ### Requirements
 
-- Minimum version is 2.5.0 of Azure CLI
+- Minimum version is 2.3.1 of Azure CLI
 - Azure account to test against
 
 ### Steps
@@ -90,10 +90,11 @@ let deployment = arm {
 }
 ```
 
-#### Step 1: Find a good template to see structure and glean DU for options like SKUs
+#### Step 1: Look at existing ARM templates and reference docs
+Often, you can find an existing ARM template that will give you a good starting point for a real-world template; meanwhile, the reference docs, whilst sometimes out of date, allow to see structure and glean possiblities for modelling into F# with, for example, discriminated unions or similar.
 
-Example 1: [https//docs.microsoft.com/en-us/azure/templates/microsoft.containerregistry/2017-10-01/registries](https//docs.microsoft.com/en-us/azure/templates/microsoft.containerregistry/2017-10-01/registries)  
-Example 2: https://github.com/Azure/azure-quickstart-templates/tree/master/101-container-registry-geo-replication  
+* Reference Docs: [https//docs.microsoft.com/en-us/azure/templates/microsoft.containerregistry/2017-10-01/registries](https://docs.microsoft.com/en-us/azure/templates/microsoft.containerregistry/2017-10-01/registries)
+* Sample Template: https://github.com/Azure/azure-quickstart-templates/tree/master/101-container-registry-geo-replication
 
 #### Step 2: Prototype and test using an fsx file
 
@@ -107,24 +108,15 @@ Technically this step is not necessary but it is the quickest way to get a worki
 
 open Farmer
 
-let quickContainerRegistry name sku enableAdmin =
-    { new IBuilder with
-        member _.BuildResources location _ = [
-            NewResource
-                { new IArmResource with
-                    member _.ResourceName = name
-                    member _.JsonValue() =
-                        {| name = this.Name.Value
-                           ``type`` = "Microsoft.ContainerRegistry/registries"
-                           apiVersion = "2019-05-01"
-                           sku = {| name = this.Sku |}
-                           location = this.Location.ArmValue
-                           tags = {||}
-                           properties = {| adminUserEnabled = this.AdminUserEnabled |}
-                        |} :> _
-                }
-        ]
-    }
+let quickContainerRegistry (name, sku, enableAdmin) =
+    {| name = name
+       ``type`` = "Microsoft.ContainerRegistry/registries"
+       apiVersion = "2019-05-01"
+       sku = {| name = sku |}
+       location = Location.NorthEurope
+       tags = {||}
+       properties = {| adminUserEnabled = enableAdmin |}
+    |} |> Helpers.toArmResource
 
 let deployment = arm {
     location NorthEurope
@@ -136,11 +128,12 @@ deployment
 |> printfn "%A"
 ```
 
-Test out the JSON model you created and make sure it creates the resources in Azure you would expect. You can deploy with `quickDeploy` or you can use `whatIf` to see what the expected state would be.
+Test out the JSON model you created and make sure it creates the resources in Azure you would expect. You can deploy with `execute` or you can use `whatIf` to see what the expected state would be.
 
-#### Step 3: Create ArmResource type
+#### Step 3: Create an IArmResource
+Now that you know that your resource model produces the correct Json value when passed into an Arm deployment, you should now create a formal record to capture the data. We do this by implement `IArmResource` on the record with the required values.
 
-Now that you know that your resource model produces the correct Json value when passed into an Arm deployment, create a `type` to capture the values. We do this by attaching our `IArmResource` to a record with the required primitive values.
+This record should use types as required to capture e.g. SKUs or other elements that would benefit from typing. Try to avoid going too far though - the implementation of `JsonValue` should, more or less, be a copying of fields across and adding in some extra boilerplate around the `type` field etc. Feel free to use member properties to capture values that are "derived" from other ones though.
 
 ```fsharp
 // src/Farmer/Arm/ContainerRegistry.fs
@@ -148,52 +141,68 @@ Now that you know that your resource model produces the correct Json value when 
 module Farmer.Arm.ContainerRegistry
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.ContainerRegistry
 
 type Registries =
     { Name : ResourceName
       Location : Location
-      Sku : string
+      Sku : Sku
       AdminUserEnabled : bool }
     interface IArmResource with
         member this.ResourceName = this.Name
-        member this.JsonValue =
+        member this.JsonModel =
             {| name = this.Name.Value
                ``type`` = "Microsoft.ContainerRegistry/registries"
                apiVersion = "2019-05-01"
-               sku = {| name = this.Sku |}
+               sku = {| name = this.Sku.ToString().Replace("_", ".") |}
                location = this.Location.ArmValue
                tags = {||}
                properties = {| adminUserEnabled = this.AdminUserEnabled |}
-            |} :> _ 
+            |} :> _
+```
+Notice how we perform simple "serialization" of elements such as the SKU, but otherwise most fields are copies across.
+
+Types, such as the `Sku` type above, should be added to the `Farmer.<resource>` module, in `Common.fs` e.g.
+
+```fsharp
+// src/Farmer/Common.fs
+namespace Farmer
+
+
+module ContainerRegistry =
+    type Sku =
+    | Basic
+    | Standard
+    | Premium
 ```
 
 You can test this again easily by passing an instance into an Arm deployment like we did in the previous step. Alternatively, you could now write a test to assert the Json structure. Most tests in the project though tend to test from the Farmer models, which we will get to soon.
 
-#### Step 4: Create the Farmer model
+#### Step 4: Create the builder
+You can stop right here if you want - what you've done so far allows you to create `IArmResource` objects which can be added to the Farmer pipeline. However, we will go further and make it even easier to create Container Registries by creating an **IBuilder**.
 
-Next comes the real value add. We will create a `type` that enforces the invariants needed for a valid ARM template.
+An `IBuilder` can create *multiple* `IArmResource` objects at once. This is especially useful for more complex resources that tend to come in groups of two or three together - for example, Server Farm and Web Apps, or Cosmos DB Accounts, Databases and Containers. An IBuilder encapsulates the logic needed to create all the resources together, pre-configured to work together.
+
+In this example, the Container Registry builder only creates a single resource.
 
 ```fsharp
 // src/Farmer/Builders.ContainerRegistry.fs
-[<RequireQualifiedAccess>]
-/// Container Registry SKU
-type ContainerRegistrySku =
-    | Basic
-    | Standard
-    | Premium
 
 type ContainerRegistryConfig =
     { Name : ResourceName
-      Sku : ContainerRegistrySku
+      Sku : Sku
       AdminUserEnabled : bool }
-    interface IResourceBuilder with
     interface IBuilder with
         member this.BuildResources location _ = [
             { Name = this.Name
               Location = location
-              Sku = this.Sku.ToString().Replace("_", ".")
+              Sku = this.Sku
               AdminUserEnabled = this.AdminUserEnabled }
+        ]
 ```
+
+The `BuildResources` function takes in two arguments - the location the resources should be deployed to, and the existing resources that have been created so far. Normally, you can ignore the second argument.
 
 #### Step 5: Define builder for your resources Computation Expression (CE)
 
@@ -202,7 +211,7 @@ If you need have not built your own computation expression before, here are some
 - [The "Computation Expressions" series](https://fsharpforfunandprofit.com/series/computation-expressions.html)
 - [Workshop](https://github.com/panesofglass/computation-expressions-workshop)
 
-We will not cover any details of CE here. But to get started the only member you need to implement id `Yield`, which returns a minimal implementation of your resource.
+We will not cover any details of the CE here. But to get started the only member you need to implement id `Yield`, which returns a minimal implementation of your resource.
 
 ```fsharp
 // Builder.ContainerRegistry.fs
@@ -229,7 +238,7 @@ let containerRegistry = ContainerRegistryBuilder()
 
 Now you can create members on the builder that appear as custom operators in your resource CE. In each member you build up the state of the resource configuration you created in Step 4.
 
-Don't forget to assign an instance of the builder to a value to it is available.
+Don't forget to assign an instance of the builder to a value so it is available.
 
 #### Step 6: Unit Tests + manual testing
 
@@ -237,7 +246,7 @@ Usually I would be pro writing the tests before you implement all this but it is
 
 The tests you will find in the project are black-box style tests that focus on the input of a resource and the output of the ARM template. If you want to create tests for your mapping functions that is fine but remember between the strong type system and making it difficult to have `null` values, those kind of tests seldom yield much benefit in F#.
 
-Of course, unit tests can only tell you so much when dealing with something as complex as Azure. Create a **fsx** file to run to check that your resource is deploying as expected. 
+Of course, unit tests can only tell you so much when dealing with something as complex as Azure. Create a **fsx** file to run to check that your resource is deploying as expected.
 
 ```fsharp
 // container-registry.fsx
@@ -283,3 +292,5 @@ TODO
 - validation
 - outputs
 - parameters
+- multiple resource builders
+- linking resources (one-to-many relationships)

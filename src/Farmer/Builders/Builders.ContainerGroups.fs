@@ -2,32 +2,9 @@
 module Farmer.Builders.ContainerGroups
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.ContainerGroup
 open Farmer.Arm.ContainerInstance
-
-type [<Measure>] Gb
-type ContainerGroupRestartPolicy =
-    | Never
-    | Always
-    | OnFailure
-    member this.Value = this.ToString().ToLower()
-type ContainerGroupIpAddressType =
-    | PublicAddress
-    | PrivateAddress
-type ContainerProtocol = TCP | UDP
-type ContainerPort =
-    { Protocol : ContainerProtocol
-      Port : uint16 }
-type ContainerGroupIpAddress =
-    { Type : ContainerGroupIpAddressType
-      Ports : ContainerPort list }
-type ContainerResourceRequest =
-    { Cpu : int
-      Memory : float<Gb> }
-type ContainerInstance =
-    { Name : ResourceName
-      Image : string
-      Ports : uint16 list
-      Resources : ContainerResourceRequest }
 
 /// Represents configuration for a single Container.
 type ContainerConfig =
@@ -47,7 +24,7 @@ type ContainerConfig =
       /// Container group OS.
       OsType : OS
       /// Restart policy for the container group.
-      RestartPolicy : ContainerGroupRestartPolicy
+      RestartPolicy : RestartPolicy
       /// IP address for the container group.
       IpAddress : ContainerGroupIpAddress }
 
@@ -63,28 +40,18 @@ type ContainerConfig =
                    Image = this.Image
                    Ports = this.Ports
                    Cpu = this.Cpu
-                   Memory = float this.Memory |}
+                   Memory = this.Memory |}
             match this.ContainerGroupName with
             | AutomaticallyCreated groupName ->
                 { Location = location
                   Name = groupName
                   ContainerInstances = [ container ]
                   OsType = this.OsType.ToString()
-                  RestartPolicy = this.RestartPolicy.Value
-                  IpAddress =
-                    {| Ports = [
-                        for port in this.IpAddress.Ports do
-                            {| Protocol = port.Protocol.ToString()
-                               Port = port.Port |}
-                       ]
-                       Type =
-                        match this.IpAddress.Type with
-                        | PublicAddress -> "Public"
-                        | PrivateAddress -> "Private" |}
-                }
+                  RestartPolicy = this.RestartPolicy
+                  IpAddress = this.IpAddress }
             | External containerGroupName ->
                 existingResources
-                |> Helpers.tryMergeResource containerGroupName (fun group -> { group with ContainerInstances = group.ContainerInstances @ [ container ] })
+                |> Helpers.mergeResource containerGroupName (fun group -> { group with ContainerInstances = group.ContainerInstances @ [ container ] })
             | AutomaticPlaceholder ->
                 failwith "Container Group Name has not been set."
         ]
@@ -98,8 +65,8 @@ type ContainerBuilder() =
         Memory = 1.5<Gb>
         ContainerGroupName = AutomaticPlaceholder
         OsType = Linux
-        RestartPolicy = ContainerGroupRestartPolicy.Always
-        IpAddress = { Type = ContainerGroupIpAddressType.PublicAddress; Ports = [] } }
+        RestartPolicy = Always
+        IpAddress = { Type = PublicAddress; Ports = [] } }
     member __.Run state =
         { state with
             ContainerGroupName =
@@ -137,11 +104,11 @@ type ContainerBuilder() =
     member __.RestartPolicy(state:ContainerConfig, restartPolicy) = { state with RestartPolicy = restartPolicy }
     /// Sets the IP addresss (default Public)
     [<CustomOperation "ip_address">]
-    member __.IpAddress(state:ContainerConfig, addressType, ports) = { state with IpAddress = { Type = addressType; Ports = ports |> Seq.map(fun (prot, port) -> { ContainerPort.Protocol = prot; ContainerPort.Port = port }) |> Seq.toList } }
+    member __.IpAddress(state:ContainerConfig, addressType, ports) = { state with IpAddress = { Type = addressType; Ports = ports |> Seq.map(fun (prot, port) -> {| Protocol = prot; Port = port |}) |> Seq.toList } }
     /// Adds a TCP port to be externally accessible
     [<CustomOperation "add_tcp_port">]
-    member __.AddTcpPort(state:ContainerConfig, port) = { state with IpAddress = { state.IpAddress with Ports = { Protocol= TCP; Port = port } :: state.IpAddress.Ports } }
+    member __.AddTcpPort(state:ContainerConfig, port) = { state with IpAddress = { state.IpAddress with Ports = {| Protocol= TCP; Port = port |} :: state.IpAddress.Ports } }
     /// Adds a UDP port to be externally accessible
     [<CustomOperation "add_udp_port">]
-    member __.AddUdpPort(state:ContainerConfig, port) = { state with IpAddress = { state.IpAddress with Ports = { Protocol= UDP; Port = port } :: state.IpAddress.Ports } }
+    member __.AddUdpPort(state:ContainerConfig, port) = { state with IpAddress = { state.IpAddress with Ports = {| Protocol= UDP; Port = port |} :: state.IpAddress.Ports } }
 let container = ContainerBuilder()

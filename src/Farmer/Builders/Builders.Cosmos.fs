@@ -2,28 +2,21 @@
 module Farmer.Builders.CosmosDb
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.CosmosDb
 open Farmer.Arm.DocumentDb
 open DatabaseAccounts
 open SqlDatabases
 
-/// The consistency policy of a CosmosDB database.
-type ConsistencyPolicy = Eventual | ConsistentPrefix | Session | BoundedStaleness of maxStaleness:int * maxIntervalSeconds : int | Strong
-/// The failover policy of a CosmosDB database.
-type FailoverPolicy = NoFailover | AutoFailover of secondaryLocation:Location | MultiMaster of secondaryLocation:Location
-/// The kind of index to use on a CosmoDB container.
-type CosmosDbIndexKind = Hash | Range
-/// The datatype for the key of index to use on a CosmoDB container.
-type CosmosDbIndexDataType = Number | String
-
 type CosmosDbContainerConfig =
     { Name : ResourceName
-      PartitionKey : string list * CosmosDbIndexKind
-      Indexes : (string * (CosmosDbIndexDataType * CosmosDbIndexKind) list) list
+      PartitionKey : string list * IndexKind
+      Indexes : (string * (IndexDataType * IndexKind) list) list
       ExcludedPaths : string list }
 type CosmosDbConfig =
     { ServerName : ResourceRef
-      ServerConsistencyPolicy : ConsistencyPolicy
-      ServerFailoverPolicy : FailoverPolicy
+      AccountConsistencyPolicy : ConsistencyPolicy
+      AccountFailoverPolicy : FailoverPolicy
       Name : ResourceName
       DbThroughput : int
       Containers : CosmosDbContainerConfig list
@@ -36,60 +29,39 @@ type CosmosDbConfig =
         sprintf "[reference(concat('Microsoft.DocumentDb/databaseAccounts/', '%s')).documentEndpoint]" this.ServerName.ResourceName.Value
     interface IBuilder with
         member this.BuildResources location _ = [
+            // Account
             match this.ServerName with
             | AutomaticallyCreated name ->
                 { Name = name
                   Location = location
-                  ConsistencyPolicy =
-                    match this.ServerConsistencyPolicy with
-                    | BoundedStaleness _ -> "BoundedStaleness"
-                    | Session | Eventual | ConsistentPrefix | Strong -> string this.ServerConsistencyPolicy
-                  MaxStaleness =
-                    match this.ServerConsistencyPolicy with
-                    | BoundedStaleness (staleness, _) -> Some staleness
-                    | Session | Eventual | ConsistentPrefix | Strong -> None
-                  MaxInterval =
-                    match this.ServerConsistencyPolicy with
-                    | BoundedStaleness (_, interval) -> Some interval
-                    | Session | Eventual | ConsistentPrefix | Strong -> None
-                  EnableAutomaticFailure = match this.ServerFailoverPolicy with AutoFailover _ -> Some true | _ -> None
+                  ConsistencyPolicy = this.AccountConsistencyPolicy
                   PublicNetworkAccess = this.PublicNetworkAccess
-                  FreeTier = this.FreeTier
-                  EnableMultipleWriteLocations = match this.ServerFailoverPolicy with MultiMaster _ -> Some true | _ -> None
-                  FailoverLocations = [
-                        match this.ServerFailoverPolicy with
-                        | AutoFailover secondary
-                        | MultiMaster secondary ->
-                            {| Location = location; Priority = 0 |}
-                            {| Location = secondary; Priority = 1 |}
-                        | NoFailover ->
-                            ()
-                  ] }
+                  FailoverPolicy = this.AccountFailoverPolicy
+                  FreeTier = this.FreeTier }
             | AutomaticPlaceholder ->
                 failwith "No CosmosDB server was specified."
             | External _ ->
                 ()
+
+            // Database
             { Name = this.Name
               Account = this.ServerName.ResourceName
-              Throughput = string this.DbThroughput }
+              Throughput = this.DbThroughput }
+
+            // Containers
             for container in this.Containers do
                 { Name = container.Name
                   Account = this.ServerName.ResourceName
                   Database = this.Name
                   PartitionKey =
                     {| Paths = fst container.PartitionKey
-                       Kind = snd container.PartitionKey |> string |}
+                       Kind = snd container.PartitionKey |}
                   IndexingPolicy =
                     {| ExcludedPaths = container.ExcludedPaths
                        IncludedPaths = [
                             for (path, indexes) in container.Indexes do
                                 {| Path = path
-                                   Indexes = [
-                                       for (dataType, kind) in indexes do
-                                        {| DataType = (string dataType).ToLower()
-                                           Kind = string kind |}
-                                   ]
-                                |}
+                                   Indexes = indexes |}
                        ]
                     |}
                 }
@@ -126,8 +98,8 @@ type CosmosDbBuilder() =
     member __.Yield _ =
         { Name = ResourceName.Empty
           ServerName = AutomaticPlaceholder
-          ServerConsistencyPolicy = Eventual
-          ServerFailoverPolicy = NoFailover
+          AccountConsistencyPolicy = Eventual
+          AccountFailoverPolicy = NoFailover
           DbThroughput = 400
           Containers = []
           PublicNetworkAccess = Enabled
@@ -140,22 +112,22 @@ type CosmosDbBuilder() =
         | AutomaticPlaceholder ->
             { state with ServerName = sprintf "%s-server" state.Name.Value |> ResourceName |> AutomaticallyCreated }
     /// Sets the name of the CosmosDB server.
-    [<CustomOperation "server_name">]
-    member __.ServerName(state:CosmosDbConfig, serverName) = { state with ServerName = AutomaticallyCreated serverName }
-    member this.ServerName(state:CosmosDbConfig, serverName:string) = this.ServerName(state, ResourceName serverName)
+    [<CustomOperation "account_name">]
+    member __.AccountName(state:CosmosDbConfig, serverName) = { state with ServerName = AutomaticallyCreated serverName }
+    member this.AccountName(state:CosmosDbConfig, serverName:string) = this.AccountName(state, ResourceName serverName)
     /// Links the database to an existing server
-    [<CustomOperation "link_to_server">]
-    member __.LinkToServer(state:CosmosDbConfig, server:CosmosDbConfig) = { state with ServerName = External server.ServerName.ResourceName }
+    [<CustomOperation "link_to_account">]
+    member __.LinkToAccount(state:CosmosDbConfig, server:CosmosDbConfig) = { state with ServerName = External server.ServerName.ResourceName }
     /// Sets the name of the database.
     [<CustomOperation "name">]
     member __.Name(state:CosmosDbConfig, name) = { state with Name = name }
     member this.Name(state:CosmosDbConfig, name:string) = this.Name(state, ResourceName name)
     /// Sets the consistency policy of the database.
     [<CustomOperation "consistency_policy">]
-    member __.ConsistencyPolicy(state:CosmosDbConfig, consistency:ConsistencyPolicy) = { state with ServerConsistencyPolicy = consistency }
+    member __.ConsistencyPolicy(state:CosmosDbConfig, consistency:ConsistencyPolicy) = { state with AccountConsistencyPolicy = consistency }
     /// Sets the failover policy of the database.
     [<CustomOperation "failover_policy">]
-    member __.FailoverPolicy(state:CosmosDbConfig, failoverPolicy:FailoverPolicy) = { state with ServerFailoverPolicy = failoverPolicy }
+    member __.FailoverPolicy(state:CosmosDbConfig, failoverPolicy:FailoverPolicy) = { state with AccountFailoverPolicy = failoverPolicy }
     /// Sets the throughput of the server.
     [<CustomOperation "throughput">]
     member __.Throughput(state:CosmosDbConfig, throughput) = { state with DbThroughput = throughput }

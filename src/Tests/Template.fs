@@ -1,13 +1,15 @@
 module Template
 
+open Expecto
 open Farmer
 open Farmer.Builders
-open Expecto
+open Farmer.CoreTypes
 open Newtonsoft.Json
 
+[<AutoOpen>]
 module TestHelpers =
     let createSimpleDeployment parameters =
-        { Location = NorthEurope
+        { Location = Location.NorthEurope
           PostDeployTasks = []
           Template = {
               Outputs = []
@@ -17,7 +19,6 @@ module TestHelpers =
         }
     let convertTo<'T> = JsonConvert.SerializeObject >> JsonConvert.DeserializeObject<'T>
 
-open TestHelpers
 
 let toTemplate (deployment:Deployment) =
     deployment.Template
@@ -25,7 +26,7 @@ let toTemplate (deployment:Deployment) =
 
 let tests = testList "Template" [
     test "Can create a basic template" {
-        let template = arm { location NorthEurope } |> toTemplate
+        let template = arm { location Location.NorthEurope } |> toTemplate
         Expect.equal template.``$schema`` "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#" ""
         Expect.isEmpty template.outputs ""
         Expect.isEmpty template.parameters ""
@@ -33,7 +34,7 @@ let tests = testList "Template" [
     }
     test "Correctly generates outputs" {
         let template =
-            arm { location NorthEurope; output "p1" "v1"; output "p2" "v2" }
+            arm { location Location.NorthEurope; output "p1" "v1"; output "p2" "v2" }
             |> toTemplate
         Expect.equal template.outputs.["p1"].value "v1" ""
         Expect.equal template.outputs.["p2"].value "v2" ""
@@ -90,7 +91,7 @@ let tests = testList "Template" [
 
     test "Location is cascaded to all resources" {
         let template = arm {
-            location NorthCentralUS
+            location Location.NorthCentralUS
             add_resources [
                 storageAccount { name "test" }
                 storageAccount { name "test2" }
@@ -98,7 +99,7 @@ let tests = testList "Template" [
         }
 
         let allLocations = template.Template.Resources |> List.map (fun r -> r.JsonModel |> convertTo<{| Location : string |}>)
-        Expect.sequenceEqual allLocations [ {| Location = NorthCentralUS.ArmValue |}; {| Location = NorthCentralUS.ArmValue |} ] "Incorrect Location"
+        Expect.sequenceEqual allLocations [ {| Location = Location.NorthCentralUS.ArmValue |}; {| Location = Location.NorthCentralUS.ArmValue |} ] "Incorrect Location"
     }
 
     test "Secure parameter is correctly added" {

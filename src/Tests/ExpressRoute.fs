@@ -3,6 +3,7 @@ module ExpressRoute
 open Expecto
 open Farmer
 open Farmer.Builders
+open Farmer.ExpressRoute
 open Microsoft.Azure.Management.Network
 open Microsoft.Azure.Management.Network.Models
 open Microsoft.Rest
@@ -66,8 +67,8 @@ let tests = testList "ExpressRoute" [
                 name "my-circuit"
                 service_provider "My ISP"
                 peering_location "My ISP's Location"
-                tier ExpressRouteTier.Premium
-                family ExpressRouteFamily.UnlimitedData
+                tier Premium
+                family UnlimitedData
                 add_peering (
                     peering {
                         azure_asn 65412

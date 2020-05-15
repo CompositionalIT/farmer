@@ -2,11 +2,9 @@
 module Farmer.Builders.Redis
 
 open Farmer
+open Farmer.CoreTypes
+open Farmer.Redis
 open Farmer.Arm.Cache
-
-type TlsVersion = Tls10 | Tls11 | Tls12
-[<RequireQualifiedAccess>]
-type RedisSku = Basic | Standard | Premium
 
 let internal buildRedisKey (ResourceName name) =
     sprintf
@@ -17,7 +15,7 @@ let internal buildRedisKey (ResourceName name) =
 
 type RedisConfig =
     { Name : ResourceName
-      Sku : RedisSku
+      Sku : Sku
       Capacity : int
       RedisConfiguration : Map<string, string>
       NonSslEnabled : bool option
@@ -29,28 +27,18 @@ type RedisConfig =
             { Name = this.Name
               Location = location
               Sku =
-                {| Name = string this.Sku
-                   Family =
-                    match this.Sku with
-                    | RedisSku.Basic | RedisSku.Standard -> 'C'
-                    | RedisSku.Premium -> 'P'
+                {| Sku = this.Sku
                    Capacity = this.Capacity |}
               RedisConfiguration = this.RedisConfiguration
               NonSslEnabled = this.NonSslEnabled
               ShardCount = this.ShardCount
-              MinimumTlsVersion =
-                this.MinimumTlsVersion
-                |> Option.map(function
-                | Tls10 -> "1.0"
-                | Tls11 -> "1.1"
-                | Tls12 -> "1.2")
-            }
+              MinimumTlsVersion = this.MinimumTlsVersion }
         ]
 
 type RedisBuilder() =
     member __.Yield _ =
         { Name = ResourceName.Empty
-          Sku = RedisSku.Basic
+          Sku = Basic
           Capacity = 1
           RedisConfiguration = Map.empty
           NonSslEnabled = None
@@ -60,15 +48,15 @@ type RedisBuilder() =
         { state with
             Capacity =
                 match state with
-                | { Sku = (RedisSku.Basic | RedisSku.Standard) } when state.Capacity > 6 -> 6
-                | { Sku = RedisSku.Premium } when state.Capacity > 4 -> 4
-                | { Sku = (RedisSku.Basic | RedisSku.Standard) } when state.Capacity < 0 -> 0
-                | { Sku = RedisSku.Premium } when state.Capacity < 1 -> 1
+                | { Sku = (Basic | Standard) } when state.Capacity > 6 -> 6
+                | { Sku = Premium } when state.Capacity > 4 -> 4
+                | { Sku = (Basic | Standard) } when state.Capacity < 0 -> 0
+                | { Sku = Premium } when state.Capacity < 1 -> 1
                 | _ -> state.Capacity
             ShardCount =
                 match state with
-                | { Sku = RedisSku.Premium; ShardCount = Some shards } when shards > 10 -> Some 10
-                | { Sku = RedisSku.Premium; ShardCount = shards } -> shards
+                | { Sku = Premium; ShardCount = Some shards } when shards > 10 -> Some 10
+                | { Sku = Premium; ShardCount = shards } -> shards
                 | _ -> None
         }
     /// Sets the name of the Redis instance.

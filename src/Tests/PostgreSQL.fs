@@ -1,32 +1,29 @@
 module PostgreSQL
 
-open System
 open Expecto
 open Farmer
+open Farmer.PostgreSQL
 open Farmer.Builders
 
-type PostgresSku = {
-    name : string
-    family : string
-    capacity : int
-    tier : string
-    size : int
-}
+type PostgresSku =
+    { name : string
+      family : string
+      capacity : int
+      tier : string
+      size : int }
 
 
-type StorageProfile = {
-    backupRetentionDays : int
-    geoRedundantBackup : string
-    storageAutoGrow : string
-    storageMB : int
-}
+type StorageProfile =
+    { backupRetentionDays : int
+      geoRedundantBackup : string
+      storageAutoGrow : string
+      storageMB : int }
 
-type Properties = {
-    administratorLogin : string
-    administratorLoginPassword : string
-    version : string
-    storageProfile : StorageProfile
-}
+type Properties =
+    { administratorLogin : string
+      administratorLoginPassword : string
+      version : string
+      storageProfile : StorageProfile }
 
 type PostgresTemplate =
     { name : string
@@ -37,7 +34,7 @@ type PostgresTemplate =
       geoRedundantBackup : string
       properties : Properties }
 
-let runBuilder builder = toTypedTemplate<PostgresTemplate> NorthEurope builder
+let runBuilder builder = toTypedTemplate<PostgresTemplate> Location.NorthEurope builder
 
 module Expect =
     let throwsNot f message =
@@ -52,17 +49,16 @@ module Expect =
         | Some msg ->
             failtestf "%s. Expected f to not throw, but it did. Exception message: %s" message msg
 
-
 let tests = testList "PostgreSQL Database Service" [
     test "Basic resource settings come through" {
         let actual = runBuilder <| postgreSQL {
             server_name "testdb"
             admin_username "myadminuser"
-            server_version Arm.DBforPostgreSQL.VS_10
-            storage_size 50<GB>
+            server_version VS_10
+            storage_size 50<Gb>
             backup_retention 17<Days>
             capacity 4<VCores>
-            tier Arm.DBforPostgreSQL.GeneralPurpose
+            tier GeneralPurpose
             enable_geo_redundant_backup
             disable_storage_autogrow
         }
@@ -102,7 +98,7 @@ let tests = testList "PostgreSQL Database Service" [
     }
 
     test "storage_size is validated when set" {
-        Expect.throws (fun () -> postgreSQL { storage_size 1<GB> } |> ignore) "Bad backup retention"
+        Expect.throws (fun () -> postgreSQL { storage_size 1<Gb> } |> ignore) "Bad backup retention"
     }
 
     test "capacity is validated when set" {
@@ -115,23 +111,22 @@ let tests = testList "PostgreSQL Database Service" [
                 Validate.username "u" c
         let badNames = [
             (null, "Null username"); ("", "Empty username"); ("   /t ", "Blank username")
-            (new String('a', 64), "Username too long")
+            (System.String('a', 64), "Username too long")
             ("Ædmin", "Bad chars in username")
             ("123abc", "Can not begin with number")
             ("admin_123", "More bad chars in username")
         ]
-        badNames |> List.iter (fun (candidate,label) ->
+        for (candidate,label) in badNames do
             Expect.throws (validate candidate) label
-        )
+
         Validate.reservedUsernames |> List.iter (fun candidate ->
             Expect.throws (validate candidate) (sprintf "Reserved name '%s'" candidate)
         )
         let goodNames = [
-            "a"; "abd23"; (new String('a', 63))
+            "a"; "abd23"; (System.String('a', 63))
         ]
-        goodNames |> List.iter (fun candidate ->
+        for candidate in goodNames do
             Expect.throwsNot (validate candidate) (sprintf "'%s' should work" candidate)
-        )
     }
 
     test "Servername can be validated" {
@@ -141,7 +136,7 @@ let tests = testList "PostgreSQL Database Service" [
 
         let badNames = [
             (null, "Null servername"); ("", "Empty servername"); ("   /t ", "Blank servername")
-            (new String('a', 64), "servername too long")
+            (System.String('a', 64), "servername too long")
             ("ab", "servername too short")
             ("aBcd", "uppercase char in servername")
             ("-server", "Beginning hyphen")
@@ -149,23 +144,22 @@ let tests = testList "PostgreSQL Database Service" [
             ("særver", "Bad chars in servername")
             ("123abc", "Can not begin with number")
         ]
-        badNames |> List.iter (fun (candidate,label) ->
+        for candidate,label in badNames do
             Expect.throws (validate candidate) label
-        )
+
         let goodNames = [
-            "abc"; "abd-23"; (new String('a', 63))
+            "abc"; "abd-23"; (System.String('a', 63))
         ]
-        goodNames |> List.iter (fun candidate ->
+        for candidate in goodNames do
             Expect.throwsNot (validate candidate) (sprintf "'%s' should work" candidate)
-        )
     }
 
     test "Storage size can be validated" {
-        Expect.throws (fun () -> Validate.storageSize 4<GB>) "Storage size too small"
-        Expect.throws (fun () -> Validate.storageSize 1025<GB>) "Storage size too large"
-        Expect.throwsNot (fun () -> Validate.storageSize 5<GB>) "Storage size just right, min"
-        Expect.throwsNot (fun () -> Validate.storageSize 50<GB>) "Storage size just right"
-        Expect.throwsNot (fun () -> Validate.storageSize 1024<GB>) "Storage size just right, max"
+        Expect.throws (fun () -> Validate.storageSize 4<Gb>) "Storage size too small"
+        Expect.throws (fun () -> Validate.storageSize 1025<Gb>) "Storage size too large"
+        Expect.throwsNot (fun () -> Validate.storageSize 5<Gb>) "Storage size just right, min"
+        Expect.throwsNot (fun () -> Validate.storageSize 50<Gb>) "Storage size just right"
+        Expect.throwsNot (fun () -> Validate.storageSize 1024<Gb>) "Storage size just right, max"
     }
 
     test "Backup retention can be validated" {
