@@ -51,9 +51,9 @@ let tests = testList "Service Bus Tests" [
         Expect.equal queue.DuplicateDetectionHistoryTimeWindow (Nullable(TimeSpan(0, 5, 0))) "Duplicate detection window incorrect"
         Expect.isTrue (queue.DeadLetteringOnMessageExpiration.GetValueOrDefault false) "Dead lettering should be enabled"
         Expect.isTrue (queue.EnablePartitioning.GetValueOrDefault false) "Partitioning should be enabled"
-        Expect.isTrue (queue.EnablePartitioning.GetValueOrDefault false) "Sessions should be enabled"
+        Expect.isTrue (queue.RequiresSession.GetValueOrDefault false) "Sessions should be enabled"
         Expect.equal queue.LockDuration (Nullable (TimeSpan(0, 10, 0))) "Lock duration incorrect"
-        Expect.equal queue.DefaultMessageTimeToLive.Value.TotalDays 10. "Default TTL incorrect"
+        Expect.equal (queue.DefaultMessageTimeToLive.GetValueOrDefault TimeSpan.MinValue).TotalDays 10. "Default TTL incorrect"
         Expect.equal queue.MaxDeliveryCount (Nullable 3) "Max delivery count incorrect"
     }
 
@@ -71,7 +71,7 @@ let tests = testList "Service Bus Tests" [
                 name "my-queue"
             } |> convertResourceBuilder (fun (ns:{| resources:obj list |}) -> ns.resources.[0]) dummyClient.SerializationSettings
 
-        Expect.equal queue.DefaultMessageTimeToLive.Value.TotalDays 14. "Default TTL should be 14 days"
+        Expect.equal (queue.DefaultMessageTimeToLive.GetValueOrDefault TimeSpan.MinValue).TotalDays 14. "Default TTL should be 14 days"
     }
 
     test "Default TTL set for Standard queue" {
@@ -81,7 +81,7 @@ let tests = testList "Service Bus Tests" [
                 sku ServiceBus.Standard
             } |> convertResourceBuilder (fun (ns:{| resources:obj list |}) -> ns.resources.[0]) dummyClient.SerializationSettings
 
-        Expect.equal queue.DefaultMessageTimeToLive.Value.TotalDays TimeSpan.MaxValue.TotalDays "Default TTL should be max value"
+        Expect.equal (queue.DefaultMessageTimeToLive.GetValueOrDefault TimeSpan.MinValue).TotalDays TimeSpan.MaxValue.TotalDays "Default TTL should be max value"
     }
 
     test "Correctly creates multiple queues" {
