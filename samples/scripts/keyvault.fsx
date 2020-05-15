@@ -2,7 +2,8 @@
 #r @"../../src/Farmer/bin/Debug/netstandard2.0/Farmer.dll"
 
 open Farmer
-open Farmer.Resources.KeyVault
+open Farmer.Builders
+open Farmer.KeyVault
 open System
 
 let vault =
@@ -47,7 +48,7 @@ let vault =
 
 let deployment = arm {
     add_resource vault
-    location NorthEurope
+    location Location.NorthEurope
 }
 
 deployment

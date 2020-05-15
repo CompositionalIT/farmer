@@ -2,13 +2,14 @@
 #r @"../../src/Farmer/bin/Debug/netstandard2.0/Farmer.dll"
 
 open Farmer
-open Farmer.Resources
+open Farmer.Builders
+open Farmer.EventHub
 
 let myEh = eventHub {
     name "first-hub"
     namespace_name "allmyevents"
 
-    sku EventHubSku.Standard
+    sku Standard
     disable_kafka
     enable_zone_redundant
     enable_auto_inflate 3
@@ -28,7 +29,7 @@ let secondHub = eventHub {
 }
 
 let deployment = arm {
-    location NorthEurope
+    location Location.NorthEurope
     add_resource myEh
     add_resource secondHub
 }

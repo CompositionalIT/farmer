@@ -2,23 +2,23 @@
 #r @"../../src/Farmer/bin/Debug/netstandard2.0/Farmer.dll"
 
 open Farmer
-open Farmer.Resources
+open Farmer.Builders
 
 let myStorage = storageAccount {
     name "mystorage"
-    sku StorageSku.Premium_LRS
+    sku Storage.Premium_LRS
 }
 
 let myWebApp = webApp {
     name "mysuperwebapp"
-    sku Sku.S1
+    sku Web.Sku.S1
     app_insights_off
     setting "storage_key" myStorage.Key
-    depends_on myStorage
+    depends_on myStorage.Name
 }
 
 let deployment = arm {
-    location NorthEurope
+    location Location.NorthEurope
     add_resource myStorage
     add_resource myWebApp
     output "storage_key" myStorage.Key

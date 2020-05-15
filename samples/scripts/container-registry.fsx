@@ -2,16 +2,17 @@
 #r @"../../src/Farmer/bin/Debug/netstandard2.0/Farmer.dll"
 
 open Farmer
-open Farmer.Resources.ContainerRegistry
+open Farmer.Builders
+open Farmer.ContainerRegistry
 
 let myRegistry = containerRegistry {
     name "devonRegistry"
-    sku ContainerRegistrySku.Basic
+    sku Basic
     enable_admin_user
 }
 
 let deployment = arm {
-    location NorthEurope
+    location Location.NorthEurope
     add_resource myRegistry
     output "registry" myRegistry.Name
     output "loginServer" myRegistry.LoginServer

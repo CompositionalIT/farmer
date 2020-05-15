@@ -1,11 +1,12 @@
 #r @"..\..\src\Farmer\bin\Debug\netstandard2.0\Farmer.dll"
 
 open Farmer
-open Farmer.Resources
+open Farmer.Builders
+open Farmer.ServiceBus
 
 let myQueue = serviceBus {
     namespace_name "allMyQueues"
-    sku ServiceBusNamespaceSku.Standard
+    sku Standard
 
     name "isaacssuperqueue"
 }
@@ -17,7 +18,7 @@ let mySecondQueue = serviceBus {
 
 
 let deployment = arm {
-    location NorthEurope
+    location Location.NorthEurope
     add_resource myQueue
     add_resource mySecondQueue
     output "1-NamespaceDefaultConnectionString" myQueue.NamespaceDefaultConnectionString

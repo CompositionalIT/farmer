@@ -2,16 +2,16 @@
 #r @"../../src/Farmer/bin/Debug/netstandard2.0/Farmer.dll"
 
 open Farmer
-open Farmer.Resources.WebApp
+open Farmer.Builders
 
 let template =
     let myWebApp = webApp {
         name "mysuperwebapp"
-        sku Sku.F1
+        sku Web.Sku.F1
     }
 
     arm {
-        location NorthEurope
+        location Location.NorthEurope
         add_resource myWebApp
     }
 

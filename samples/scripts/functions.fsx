@@ -2,7 +2,9 @@
 #r @"../../src/Farmer/bin/Debug/netstandard2.0/Farmer.dll"
 
 open Farmer
-open Farmer.Resources
+open Farmer.Builders
+open Farmer.Web
+open Farmer.CoreTypes
 
 let myFunctions = functions {
     name "isaacsuperfun"
@@ -10,7 +12,7 @@ let myFunctions = functions {
 
 let deployment =
     arm {
-        location NorthEurope
+        location Location.NorthEurope
         add_resource myFunctions
         output "functionsPassword" myFunctions.PublishingPassword
         output "functionsAIKey" (myFunctions.AppInsightsKey |> Option.defaultValue ArmExpression.Empty)

@@ -2,11 +2,12 @@
 #r @"../../src/Farmer/bin/Debug/netstandard2.0/Farmer.dll"
 
 open Farmer
-open Farmer.Resources
+open Farmer.Builders
+open Farmer.CosmosDb
 
 let myCosmosDb = cosmosDb {
     name "isaacsappdb"
-    server_name "isaacscosmosdb"
+    account_name "isaacscosmosdb"
     throughput 400
     failover_policy NoFailover
     consistency_policy (BoundedStaleness(500, 1000))
@@ -22,7 +23,7 @@ let myCosmosDb = cosmosDb {
 
 let deployment =
     arm {
-        location NorthEurope
+        location Location.NorthEurope
         add_resource myCosmosDb
     }
 

@@ -3,17 +3,18 @@
 
 open Farmer
 open Farmer.Builders
+open Farmer.PostgreSQL
 
 let myPostgres = postgreSQL {
     admin_username "adminallthethings"
     server_name "aserverformultitudes42"
     capacity 4<VCores>
-    storage_size 50<GB>
-    tier PostgreSQLSku.GeneralPurpose
+    storage_size 50<Gb>
+    tier GeneralPurpose
 }
 
 let template = arm {
-    location NorthEurope
+    location Location.NorthEurope
     add_resource myPostgres
 }
 

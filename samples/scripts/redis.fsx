@@ -2,11 +2,11 @@
 #r @"../../src/Farmer/bin/Debug/netstandard2.0/Farmer.dll"
 
 open Farmer
-open Farmer.Resources.Redis
+open Farmer.Builders
 
 let myCache = redis {
     name "myredis"
-    sku RedisSku.Standard
+    sku Redis.Standard
     capacity 0
     enable_non_ssl_port
     setting "maxclients" 256
@@ -16,7 +16,7 @@ let myCache = redis {
 }
 
 let template = arm {
-    location NorthEurope
+    location Location.NorthEurope
     add_resource myCache
 }
 

@@ -2,7 +2,7 @@
 #r @"../../src/Farmer/bin/Debug/netstandard2.0/Farmer.dll"
 
 open Farmer
-open Farmer.Resources
+open Farmer.Builders
 
 let myAppInsights = appInsights {
     name "isaacsAi"
@@ -14,7 +14,7 @@ let myFunctions = functions {
 }
 
 let template = arm {
-    location NorthEurope
+    location Location.NorthEurope
     add_resource myAppInsights
     add_resource myFunctions
 }
