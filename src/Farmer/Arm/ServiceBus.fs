@@ -8,10 +8,11 @@ open System
 
 type ServiceBusQueue =
     { Name : ResourceName
-      LockDurationMinutes : int option
-      DuplicateDetectionHistoryTimeWindowMinutes : int option
+      LockDuration : IsoDateTime option
+      DuplicateDetectionHistoryTimeWindow : IsoDateTime option
       Session : bool option
       DeadLetteringOnMessageExpiration : bool option
+      DefaultMessageTimeToLive : IsoDateTime
       MaxDeliveryCount : int option
       EnablePartitioning : bool option
       DependsOn : ResourceName list }
@@ -48,14 +49,15 @@ type Namespace =
                         ``type`` = "Queues"
                         dependsOn = queue.DependsOn |> List.map (fun r -> r.Value)
                         properties =
-                         {| lockDuration = queue.LockDurationMinutes |> Option.map (sprintf "PT%dM") |> Option.toObj
+                         {| lockDuration = queue.LockDuration |> Option.map (fun iso -> iso.Value) |> Option.toObj
                             requiresDuplicateDetection =
-                                match queue.DuplicateDetectionHistoryTimeWindowMinutes with
+                                match queue.DuplicateDetectionHistoryTimeWindow with
                                 | Some _ -> Nullable true
                                 | None -> Nullable()
+                            defaultMessageTimeToLive = queue.DefaultMessageTimeToLive.Value
                             duplicateDetectionHistoryTimeWindow =
-                                queue.DuplicateDetectionHistoryTimeWindowMinutes
-                                |> Option.map (sprintf "PT%dM")
+                                queue.DuplicateDetectionHistoryTimeWindow
+                                |> Option.map (fun iso -> iso.Value)
                                 |> Option.toObj
                             requiresSession = queue.Session |> Option.toNullable
                             deadLetteringOnMessageExpiration = queue.DeadLetteringOnMessageExpiration |> Option.toNullable

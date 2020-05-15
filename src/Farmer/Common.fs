@@ -30,7 +30,10 @@ type [<Measure>] Gb
 type [<Measure>] Mbps
 type [<Measure>] Days
 type [<Measure>] VCores
-
+type IsoDateTime =
+    | IsoDateTime of string
+    static member OfTimeSpan (d:TimeSpan) = d |> System.Xml.XmlConvert.ToString |> IsoDateTime
+    member this.Value = match this with IsoDateTime value -> value
 type TransmissionProtocol = TCP | UDP
 type TlsVersion = Tls10 | Tls11 | Tls12
 
