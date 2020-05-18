@@ -88,7 +88,6 @@ type ProvisioningServices =
             this.IotHubName.Value
             this.IotHubKey.Value
         |> ArmExpression
-//        HostName=isaacsuperhub.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=svRMoHvMlBgXt5aeV7L1cn7fL/Ib0NRXk+/9Qs0rYz0=
     member this.IotHubPath =
         sprintf "%s.azure-devices.net" this.IotHubName.Value
     interface IArmResource with
