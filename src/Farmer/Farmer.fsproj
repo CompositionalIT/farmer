@@ -49,6 +49,7 @@
     <Compile Include="Arm/ContainerInstance.fs"/>
     <Compile Include="Arm/ContainerRegistry.fs"/>
     <Compile Include="Arm/DBforPostgreSQL.fs"/>
+    <Compile Include="Arm/Devices.fs"/>
     <Compile Include="Arm/DocumentDb.fs"/>
     <Compile Include="Arm/EventHub.fs"/>
     <Compile Include="Arm/Insights.fs"/>
@@ -79,5 +80,6 @@
     <Compile Include="Builders/Builders.CognitiveServices.fs" />
     <Compile Include="Builders/Builders.ContainerRegistry.fs" />
     <Compile Include="Builders/Builders.ServiceBus.fs" />
+    <Compile Include="Builders/Builders.IotHub.fs" />
   </ItemGroup>
 </Project>

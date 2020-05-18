@@ -436,3 +436,15 @@ module PostgreSQL =
             | GeneralPurpose -> "GP"
             | MemoryOptimized -> "MO"
     type Version = VS_9_5 | VS_9_6 | VS_10 | VS_11
+
+module IotHub =
+    type Sku = F1 | B1 | B2 | B3 | S1 | S2 | S3
+    type Policy =
+        | IotHubOwner | Service | Device | RegistryRead | RegistryReadWrite
+        member this.Index =
+            match this with
+            | IotHubOwner -> 0
+            | Service -> 1
+            | Device -> 2
+            | RegistryRead -> 3
+            | RegistryReadWrite -> 4

@@ -9,6 +9,7 @@ let allTests =
         testList "All Tests" [
             testList "Builders" [
                 ContainerGroup.tests
+                IotHub.tests
                 Storage.tests
                 ContainerRegistry.tests
                 ExpressRoute.tests
