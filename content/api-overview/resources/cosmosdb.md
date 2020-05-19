@@ -43,7 +43,7 @@ The container builder allows you to create and configure a specific container th
 #### Example
 ```fsharp
 open Farmer
-open Farmer.Resources
+open Farmer.Builders
 
 let myCosmosDb = cosmosDb {
     name "isaacsappdb"

@@ -86,7 +86,7 @@ Also observe the application setting that has been created:
 
 ```fsharp
 open Farmer
-open Farmer.Resources
+open Farmer.Builders
 
 let myStorageAccount = storageAccount {
     name "yourfirststorageaccount"

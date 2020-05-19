@@ -21,7 +21,7 @@ This creates a new dotnet application solution and project that looks by default
 
 ```fsharp
 open Farmer
-open Farmer.Resources
+open Farmer.Builders
 
 let deployment = arm {
     location NorthEurope

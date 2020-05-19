@@ -20,7 +20,7 @@ The Container Registry builder is used to create Azure Container Registry (ACR) 
 #### Example
 ```fsharp
 open Farmer
-open Farmer.Resources
+open Farmer.Builders
 
 let myRegistry = containerRegistry {
     name "myRegistry"

@@ -28,7 +28,7 @@ The Redis builder creates managed Redis Cache accounts.
 
 ```fsharp
 open Farmer
-open Farmer.Resources.Redis
+open Farmer.Builders.Redis
 
 let myCache = redis {
     name "myredis"

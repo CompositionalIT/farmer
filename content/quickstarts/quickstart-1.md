@@ -30,7 +30,7 @@ Create a Farmer web application using the `webApp { }` builder:
 
 ```fsharp
 open Farmer
-open Farmer.Resources
+open Farmer.Builders
 
 let myWebApp = webApp {
     name "yourFirstFarmerApp"
@@ -70,7 +70,7 @@ The resources will be correctly configured with the appropriate dependencies set
 
 ```fsharp
 open Farmer
-open Farmer.Resources
+open Farmer.Builders
 
 let myWebApp = webApp {
     name "yourFirstFarmerApp"

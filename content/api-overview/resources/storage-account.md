@@ -31,7 +31,7 @@ The Storage Account builder creates storage accounts and their associated contai
 
 ```fsharp
 open Farmer
-open Farmer.Resources
+open Farmer.Builders
 
 let storage = storageAccount {
     name "isaacssuperstorage"

@@ -42,7 +42,7 @@ The Event Hub builder creates event hub namespaces, event hubs, consumer groups 
 
 ```fsharp
 open Farmer
-open Farmer.Resources.EventHub
+open Farmer.Builders.EventHub
 
 let primaryHub = eventHub {
     namespace_name "allmyevents"

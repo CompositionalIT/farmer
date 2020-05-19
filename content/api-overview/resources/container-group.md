@@ -29,7 +29,7 @@ The Container Group builder is used to create Azure Container Group instances.
 #### Example
 ```fsharp
 open Farmer
-open Farmer.Resources
+open Farmer.Builders
 
 let nginx = container {
     group_name "appWithHttpFrontend"

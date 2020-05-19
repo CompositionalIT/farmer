@@ -26,7 +26,7 @@ The App Insights builder is used to create Application Insights accounts. Use th
 
 ```fsharp
 open Farmer
-open Farmer.Resources
+open Farmer.Builders
 
 let ai = appInsights {
     name "myAI"

@@ -62,7 +62,7 @@ The Web App builder contains special commands that are executed *after* the ARM 
 
 ```fsharp
 open Farmer
-open Farmer.Resources
+open Farmer.Builders
 
 let myWebApp = webApp {
     name "myWebApp"

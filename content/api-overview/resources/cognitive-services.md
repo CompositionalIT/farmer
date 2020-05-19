@@ -20,7 +20,7 @@ The Cognitive Services builder is used to create Azure Cognitive Services instan
 #### Example
 ```fsharp
 open Farmer
-open Farmer.Resources
+open Farmer.Builders
 
 let translator = cognitiveServices {
     name "mytranslator"

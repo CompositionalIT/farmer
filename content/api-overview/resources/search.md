@@ -29,7 +29,7 @@ The Search builder creates storage accounts and their associated containers.
 
 ```fsharp
 open Farmer
-open Farmer.Resources
+open Farmer.Builders
 
 let mySearch = search {
     name "isaacsSearch"

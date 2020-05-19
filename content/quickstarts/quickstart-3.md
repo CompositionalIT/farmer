@@ -37,7 +37,7 @@ Congratulations - you've now created and deployed an ARM template entirely from 
 
 ```fsharp
 open Farmer
-open Farmer.Resources
+open Farmer.Builders
 
 let myStorageAccount = storageAccount {
     name "yourfirststorageaccount"

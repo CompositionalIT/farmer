@@ -37,7 +37,7 @@ The Service Bus builder creates service bus namespaces and their associated queu
 
 ```fsharp
 open Farmer
-open Farmer.Resources
+open Farmer.Builders
 
 let queueA = serviceBus {
     name "queueA"
