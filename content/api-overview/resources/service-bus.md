@@ -43,7 +43,7 @@ let queueA = serviceBus {
     name "queueA"
 
     namespace_name "allQueues"
-    sku ServiceBusNamespaceSku.Standard
+    sku ServiceBus.Standard
 }
 
 let queueB = serviceBus {

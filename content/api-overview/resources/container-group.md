@@ -33,15 +33,15 @@ open Farmer.Builders
 
 let nginx = container {
     group_name "appWithHttpFrontend"
-    os_type Models.ContainerGroups.ContainerGroupOsType.Linux
+    os_type Linux
     add_tcp_port 80us
     add_tcp_port 443us
-    restart_policy Models.ContainerGroups.ContainerGroupRestartPolicy.Always
+    restart_policy ContainerGroup.RestartPolicy.Always
 
     name "nginx"
     image "nginx:1.17.6-alpine"
     ports [ 80us; 443us ]
-    memory 0.5<Models.ContainerGroups.Gb>
+    memory 0.5<Gb>
     cpu_cores 1
 }
 ```

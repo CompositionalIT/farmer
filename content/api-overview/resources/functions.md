@@ -43,10 +43,12 @@ The Functions builder is used to create Azure Functions accounts. It abstracts t
 
 #### Example
 ```fsharp
+open Farmer
+open Farmer.Builders
+
 let myFunctions = functions {
     name "myWebApp"
     service_plan_name "myServicePlan"
     setting "myKey" "aValue"
     app_insights_off
-}
-```
+}```

@@ -33,6 +33,6 @@ open Farmer.Builders
 
 let mySearch = search {
     name "isaacsSearch"
-    sku Sku.SearchSku.Basic
+    sku Search.Basic
 }
 ```

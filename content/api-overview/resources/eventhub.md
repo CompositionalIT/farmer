@@ -42,15 +42,15 @@ The Event Hub builder creates event hub namespaces, event hubs, consumer groups 
 
 ```fsharp
 open Farmer
-open Farmer.Builders.EventHub
+open Farmer.Builders
 
 let primaryHub = eventHub {
     namespace_name "allmyevents"
-    sku EventHubSku.Standard
+    sku EventHub.Standard
     disable_kafka
     enable_zone_redundant
     enable_auto_inflate 3
-    add_authorization_rule "FirstRule" [ Listen; Send ]
+    add_authorization_rule "FirstRule" [ EventHub.Listen; EventHub.Send ]
     add_authorization_rule "SecondRule" AllAuthorizationRights
 
     name "first-hub"

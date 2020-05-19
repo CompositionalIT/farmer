@@ -24,7 +24,7 @@ open Farmer.Builders
 
 let myRegistry = containerRegistry {
     name "myRegistry"
-    sku ContainerRegistrySku.Basic
+    sku ContainerRegistry.Basic
     enable_admin_user
 }
 ```

@@ -69,27 +69,31 @@ The Key Vault builder contains access policies, secrets, and configuration infor
 #### Example
 
 ```fsharp
-let vault =
-    let policy =
-        accessPolicy {
-            object_id Guid.Empty
-            application_id Guid.Empty
-            certificate_permissions [ Certificate.List ]
-            secret_permissions Secret.All
-            key_permissions [ Key.List ]
-        }
+open Farmer
+open Farmer.Builders
+open System
 
-    let complexSecret = secret {
-        name "myComplexSecret"
-        content_type "application/text"
-        enable_secret
-        activation_date (DateTime.Today.AddDays -1.)
-        expiration_date (DateTime.Today.AddDays 1.)
+let policy =
+    accessPolicy {
+        object_id Guid.Empty
+        application_id Guid.Empty
+        certificate_permissions [ KeyVault.Certificate.List ]
+        secret_permissions KeyVault.Secret.All
+        key_permissions [ KeyVault.Key.List ]
     }
 
+let complexSecret = secret {
+    name "myComplexSecret"
+    content_type "application/text"
+    enable_secret
+    activation_date (DateTime.Today.AddDays -1.)
+    expiration_date (DateTime.Today.AddDays 1.)
+}
+
+let vault =
     keyVault {
         name "MyVault"
-        sku Standard
+        sku KeyVault.KeyVaultSku.Standard
         tenant_id Guid.Empty
 
         enable_disk_encryption_access

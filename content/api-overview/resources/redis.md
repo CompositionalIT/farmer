@@ -32,7 +32,7 @@ open Farmer.Builders.Redis
 
 let myCache = redis {
     name "myredis"
-    sku RedisSku.Standard
+    sku Redis.Standard
     capacity 1
     enable_non_ssl_port
     setting "maxclients" 256

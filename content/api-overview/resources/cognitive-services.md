@@ -24,7 +24,7 @@ open Farmer.Builders
 
 let translator = cognitiveServices {
     name "mytranslator"
-    sku CognitiveServicesSku.F0
-    api AnomalyDetector
+    sku CognitiveServices.F0
+    api CognitiveServices.AnomalyDetector
 }
 ```

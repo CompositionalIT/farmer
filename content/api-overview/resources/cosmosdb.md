@@ -47,15 +47,15 @@ open Farmer.Builders
 
 let myCosmosDb = cosmosDb {
     name "isaacsappdb"
-    server_name "isaacscosmosdb"
+    account_name "isaacscosmosdb"
     throughput 400
-    failover_policy NoFailover
-    consistency_policy (BoundedStaleness(500, 1000))
+    failover_policy CosmosDb.NoFailover
+    consistency_policy (CosmosDb.BoundedStaleness(500, 1000))
     add_containers [
-        container {
+        cosmosContainer {
             name "myContainer"
-            partition_key [ "/id" ] Hash
-            add_index "/path" [ Number, Hash ]
+            partition_key [ "/id" ] CosmosDb.Hash
+            add_index "/path" [ CosmosDb.Number, CosmosDb.Hash ]
             exclude_path "/excluded/*"
         }
     ]

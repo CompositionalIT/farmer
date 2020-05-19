@@ -53,9 +53,9 @@ open Farmer.Builders
 let myVm = vm {
     name "myFarmerVm"
     username "yourUsername"
-    vm_size Size.Standard_A2
-    operating_system CommonImages.WindowsServer_2012Datacenter
-    os_disk 128 StandardSSD_LRS
+    vm_size Vm.Standard_A2
+    operating_system Vm.WindowsServer_2012Datacenter
+    os_disk 128 Vm.StandardSSD_LRS
     add_ssd_disk 128
     add_slow_disk 512
 }
