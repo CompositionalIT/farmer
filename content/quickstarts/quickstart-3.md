@@ -20,7 +20,7 @@ Modify the application you created at the end of [quickstart #2](quickstart-2/#t
 
 ```fsharp
 deployment
-|> Deploy.execute "myResourceGroup"
+|> Deploy.execute "myResourceGroup" NoParameters
 ```
 
 > Note that the Web Application and Storage Account names should be *globally* unique; they must be **unique across Azure** i.e. someone else can't have another web app or storage account with the same name!
@@ -56,5 +56,5 @@ let deployment = arm {
 }
 
 deployment
-|> Deploy.execute "myResourceGroup"
+|> Deploy.execute "myResourceGroup" NoParameters
 ```
