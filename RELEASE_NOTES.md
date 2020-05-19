@@ -1,5 +1,12 @@
 Release Notes
 =============
+## 0.14.0
+* Support for extensible plugin-model
+* Express Route support
+* Service Bus queue support
+* IOT Hub support
+* PostreSQL support
+
 ## 0.13.0
 * Support for executing a deployment with fast fail
 * ARM template Validation support
