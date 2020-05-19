@@ -52,7 +52,7 @@ let queueB = serviceBus {
 }
 
 let deployment = arm {
-    location NorthEurope
+    location Location.NorthEurope
     add_resource queueA
     add_resource queueB
     output "connection-string-queue-a" queueA.NamespaceDefaultConnectionString

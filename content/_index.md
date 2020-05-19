@@ -46,7 +46,7 @@ let myWebApp = webApp {
 
 // Create an ARM template
 let deployment = arm {
-    location NorthEurope
+    location Location.NorthEurope
     add_resource myStorageAccount
     add_resource myWebApp
 }

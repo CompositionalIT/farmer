@@ -99,7 +99,7 @@ let myWebApp = webApp {
 }
 
 let deployment = arm {
-    location NorthEurope
+    location Location.NorthEurope
     add_resource myStorageAccount
     add_resource myWebApp
 }

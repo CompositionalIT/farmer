@@ -24,7 +24,7 @@ open Farmer
 open Farmer.Builders
 
 let deployment = arm {
-    location NorthEurope
+    location Location.NorthEurope
 }
 
 printf "Generating ARM template..."

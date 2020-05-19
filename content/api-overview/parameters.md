@@ -97,7 +97,7 @@ let myDatabases =
 
 // Add all five databases to the deployment
 let deployment = arm {
-    location NorthEurope
+    location Location.NorthEurope
     add_resources myDatabases
 }
 ```

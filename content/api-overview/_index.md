@@ -119,7 +119,7 @@ let app = webApp {
 
 /// An ARM deployment with both of the above resources attached
 let deployment = arm {
-    location NorthEurope
+    location Location.NorthEurope
     add_resource storage
     add_resource app
 }
