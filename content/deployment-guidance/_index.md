@@ -44,8 +44,8 @@ Watch this short video to see more!
 #### Option 2: "I already have an ARM deployment strategy"
 If you already use ARM templates, you'll probably already have a strategy for working with templates and deploying them to Azure, such as [PowerShell](https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/deploy-powershell), the [Azure CLI](https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/deploy-cli) or a build system such as [Azure DevOps](https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/deploy/azure-resource-group-deployment?view=azure-devops) or [Octopus Deploy](https://octopus.com/docs/deployment-examples/azure-deployments/resource-groups). In such a case, you may want to use Farmer to [generate](../api-overview/template-generation/#writing-to-a-file), but not *deploy*, your ARM templates.
 
-#### Option 3: "I want to hard-craft my ARM templates"
-If you want to retain fine-grained control over ARM templates, you can use Farmer to create a one-off task to rapidly generate an ARM template which you then take ownership of. In this case, Farmer itself won't be a part of your build / deploy chain, which will remain the same as today - you'll use Farmer just as an edit-time task to create the ARM template itself.
+#### Option 3: "I want to hand-craft my ARM templates"
+If you want to retain fine-grained control over ARM templates, you can use Farmer to create a one-off task to rapidly generate an ARM template which you then take ownership of. In this case, Farmer itself won't be a part of your build / deploy chain, which will remain the same as today - you'll use Farmer just as an edit-time task to create an ARM template itself which you will then manually modify.
 
 The choice is yours.
 
