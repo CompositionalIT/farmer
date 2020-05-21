@@ -19,7 +19,7 @@ type Server =
       Password : SecureParameter
       Version : Version
       Capacity : int<VCores>
-      StorageSize : int
+      StorageSize : int<Mb>
       Tier : Sku
       Family : PostgreSQLFamily
       GeoRedundantBackup : FeatureFlag

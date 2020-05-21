@@ -19,7 +19,7 @@ type PostgreSQLBuilderConfig =
       Tier : Sku }
     interface IBuilder with
         member this.BuildResources location resources = [
-            let inMB (gb: int<Gb>) = 1024 * (int gb)
+            let inMB (gb: int<Gb>) = 1024 * (int gb) * 1<Mb>
             match this.ServerName with
             | External resName ->
                 resources |> Helpers.mergeResource resName (fun server -> { server with Databases = [] })

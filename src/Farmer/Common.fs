@@ -27,6 +27,7 @@ type Location =
 type OS = Windows | Linux
 
 type [<Measure>] Gb
+type [<Measure>] Mb
 type [<Measure>] Mbps
 type [<Measure>] Days
 type [<Measure>] VCores
