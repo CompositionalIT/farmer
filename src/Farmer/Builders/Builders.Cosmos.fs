@@ -99,10 +99,10 @@ type CosmosDbContainerBuilder() =
     member __.AddIndex (state:CosmosDbContainerConfig, path, indexes) =
         { state with Indexes = (path, indexes) :: state.Indexes }
 
-    /// Adds a unique key to the container.
+    /// Adds a unique key constraint to the container (ensures uniqueness within the logical partition).
     [<CustomOperation "add_unique_key">]
-    member __.AddUniqueKey (state:CosmosDbContainerConfig, uniqueKeyPath) =
-        { state with UniqueKeys = state.UniqueKeys.Add(uniqueKeyPath) }
+    member __.AddUniqueKey (state:CosmosDbContainerConfig, uniqueKeyPaths) =
+        { state with UniqueKeys = state.UniqueKeys.Add(uniqueKeyPaths) }
 
     /// Excludes a path from the container index.
     [<CustomOperation "exclude_path">]
