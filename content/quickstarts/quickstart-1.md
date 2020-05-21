@@ -41,7 +41,7 @@ Create an ARM template deployment object, before setting the location for the ov
 
 ```fsharp
 let deployment = arm {
-    location Locations.NorthEurope
+    location Location.NorthEurope
     add_resource myWebApp
 }
 ```
@@ -77,7 +77,7 @@ let myWebApp = webApp {
 }
 
 let deployment = arm {
-    location Locations.NorthEurope
+    location Location.NorthEurope
     add_resource myWebApp
 }
 
