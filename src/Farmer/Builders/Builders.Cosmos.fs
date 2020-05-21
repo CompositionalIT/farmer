@@ -12,6 +12,7 @@ type CosmosDbContainerConfig =
     { Name : ResourceName
       PartitionKey : string list * IndexKind
       Indexes : (string * (IndexDataType * IndexKind) list) list
+      UniqueKeys : (string list) list
       ExcludedPaths : string list }
 type CosmosDbConfig =
     { ServerName : ResourceRef
@@ -56,6 +57,13 @@ type CosmosDbConfig =
                   PartitionKey =
                     {| Paths = fst container.PartitionKey
                        Kind = snd container.PartitionKey |}
+                  UniqueKeyPolicy =                     
+                    {| UniqueKeys = 
+                        container.UniqueKeys
+                        |> List.map (fun uniqueKeyPath -> 
+                            {| Paths = uniqueKeyPath |}
+                        ) 
+                    |}                    
                   IndexingPolicy =
                     {| ExcludedPaths = container.ExcludedPaths
                        IncludedPaths = [
@@ -73,6 +81,7 @@ type CosmosDbContainerBuilder() =
         { Name = ResourceName ""
           PartitionKey = [], Hash
           Indexes = []
+          UniqueKeys = []
           ExcludedPaths = [] }
 
     /// Sets the name of the container.
@@ -89,6 +98,11 @@ type CosmosDbContainerBuilder() =
     [<CustomOperation "add_index">]
     member __.AddIndex (state:CosmosDbContainerConfig, path, indexes) =
         { state with Indexes = (path, indexes) :: state.Indexes }
+
+    /// Adds a unique key to the container.
+    [<CustomOperation "add_unique_key">]
+    member __.AddUniqueKey (state:CosmosDbContainerConfig, uniqueKeyPath) =
+        { state with UniqueKeys = uniqueKeyPath :: state.UniqueKeys }
 
     /// Excludes a path from the container index.
     [<CustomOperation "exclude_path">]
