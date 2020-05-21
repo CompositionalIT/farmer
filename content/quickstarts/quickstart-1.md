@@ -77,7 +77,7 @@ let myWebApp = webApp {
 }
 
 let deployment = arm {
-    location Locations.NorthEurope
+    location Location.NorthEurope
     add_resource myWebApp
 }
 
