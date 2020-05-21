@@ -18,13 +18,13 @@ type Server =
       Username : string
       Password : SecureParameter
       Version : Version
-      Capacity : int
+      Capacity : int<VCores>
       StorageSize : int
       Tier : Sku
       Family : PostgreSQLFamily
       GeoRedundantBackup : FeatureFlag
       StorageAutoGrow : FeatureFlag
-      BackupRetention : int
+      BackupRetention : int<Days>
       Databases : Database list }
 
     member this.Sku =

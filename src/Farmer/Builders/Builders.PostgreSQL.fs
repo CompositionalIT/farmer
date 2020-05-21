@@ -17,14 +17,31 @@ type PostgreSQLBuilderConfig =
       StorageSize : int<Gb>
       Capacity : int<VCores>
       Tier : Sku }
-
+    interface IBuilder with
+        member this.BuildResources location resources = [
+            let inMB (gb: int<Gb>) = 1024 * (int gb)
+            match this.ServerName with
+            | External resName ->
+                resources |> Helpers.mergeResource resName (fun server -> { server with Databases = [] })
+            | AutomaticallyCreated serverName ->
+                { ServerName = serverName
+                  Location = location
+                  Username = this.AdminUserName |> Option.defaultWith(fun () -> "admin username not set")
+                  Password = SecureParameter "administratorLoginPassword"
+                  Version = this.Version
+                  StorageSize = this.StorageSize |> inMB
+                  Capacity = this.Capacity
+                  Tier = this.Tier
+                  Family = PostgreSQLFamily.Gen5
+                  GeoRedundantBackup = FeatureFlag.ofBool this.GeoRedundantBackup
+                  StorageAutoGrow = FeatureFlag.ofBool this.StorageAutogrow
+                  BackupRetention = this.BackupRetention
+                  Databases = [] }
+            | AutomaticPlaceholder ->
+                failwith "You must specify a server name, or link to an existing server."
+        ]
 [<AutoOpen>]
 module private Helpers =
-    module Option =
-        let getOrFailWith msg = function
-            | None -> failwith msg
-            | Some v -> v
-
     let isAsciiDigit (c : Char) = (c >= '0' && c <= '9')
     let isAsciiLowercase (c : char) = (c >= 'a' && c <= 'z')
     let isAsciiUppercase (c : char) = (c >= 'A' && c <= 'Z')
@@ -32,7 +49,6 @@ module private Helpers =
     let isAsciiLetterOrDigit (c : Char) = isAsciiLetter c || isAsciiDigit c
 
     let isLegalServernameChar c = isAsciiLowercase c || isAsciiDigit c || c = '-'
-
 
 [<RequireQualifiedAccess>]
 module Validate =
@@ -92,8 +108,6 @@ module Validate =
 
 
 type PostgreSQLBuilder() =
-    let inMB (gb: int<Gb>) = 1024 * (int gb)
-
     member _this.Yield _ =
         { PostgreSQLBuilderConfig.ServerName = AutomaticPlaceholder
           AdminUserName = None
@@ -105,31 +119,9 @@ type PostgreSQLBuilder() =
           Capacity = 2<VCores>
           Tier = Basic }
 
-    member _this.Run (state: PostgreSQLBuilderConfig) =
-        let adminName = state.AdminUserName |> Option.getOrFailWith "admin username not set"
-
-        { new IBuilder with
-            member _.BuildResources location resources = [
-                match state.ServerName with
-                | External resName ->
-                    resources |> Helpers.mergeResource resName (fun server -> { server with Databases = [] })
-                | AutomaticallyCreated serverName ->
-                    { ServerName = serverName
-                      Location = location
-                      Username = adminName
-                      Password = SecureParameter "administratorLoginPassword"
-                      Version = state.Version
-                      StorageSize = state.StorageSize |> inMB
-                      Capacity = int state.Capacity
-                      Tier = state.Tier
-                      Family = PostgreSQLFamily.Gen5
-                      GeoRedundantBackup = FeatureFlag.ofBool state.GeoRedundantBackup
-                      StorageAutoGrow = FeatureFlag.ofBool state.StorageAutogrow
-                      BackupRetention = int state.BackupRetention
-                      Databases = [] }
-                | AutomaticPlaceholder ->
-                    failwith "You must specify a server name, or link to an existing server."
-            ] }
+    member this.Run state =
+        state.AdminUserName |> Option.defaultWith(fun () -> failwith "admin username not set") |> ignore
+        state
 
     /// Sets the name of the PostgreSQL server
     [<CustomOperation "server_name">]
