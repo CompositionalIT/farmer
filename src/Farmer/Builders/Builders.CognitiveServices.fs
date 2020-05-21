@@ -10,6 +10,7 @@ type CognitiveServicesConfig =
       Sku : Sku
       Api : Kind }
     interface IBuilder with
+        member this.DependencyName = this.Name
         member this.BuildResources location _ = [
             { Name = this.Name
               Location = location

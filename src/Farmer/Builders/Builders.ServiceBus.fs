@@ -28,6 +28,7 @@ type ServiceBusQueueConfig =
     member this.NamespaceDefaultConnectionString = this.GetKeyPath this.NamespaceName.ResourceName.Value "primaryConnectionString"
     member this.DefaultSharedAccessPolicyPrimaryKey = this.GetKeyPath this.NamespaceName.ResourceName.Value "primaryKey"
     interface IBuilder with
+        member this.DependencyName = this.NamespaceName.ResourceName
         member this.BuildResources location existingResources = [
             let queue =
                   { Name = this.Name

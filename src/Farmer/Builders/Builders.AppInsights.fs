@@ -21,8 +21,8 @@ type AppInsightsConfig =
     { Name : ResourceName }
     /// Gets the ARM expression path to the instrumentation key of this App Insights instance.
     member this.InstrumentationKey = instrumentationKey this.Name
-
     interface IBuilder with
+        member this.DependencyName = this.Name
         member this.BuildResources location _ = [
             { Name = this.Name
               Location = location

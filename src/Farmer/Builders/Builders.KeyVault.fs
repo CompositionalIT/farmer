@@ -71,7 +71,8 @@ type KeyVaultConfig =
       NetworkAcl : NetworkAcl
       Uri : Uri option
       Secrets : SecretConfig list }
-    interface IBuilder with
+      interface IBuilder with
+        member this.DependencyName = this.Name
         member this.BuildResources location _ = [
             let keyVault =
                 { Name = this.Name

@@ -31,7 +31,9 @@ type VmConfig =
     member this.SubnetName = makeResourceName this.Name "subnet"
     member this.IpName = makeResourceName this.Name "ip"
     member this.Hostname = sprintf "reference('%s').dnsSettings.fqdn" this.IpName.Value |> ArmExpression
+
     interface IBuilder with
+        member this.DependencyName = this.Name
         member this.BuildResources location _ = [
             // VM itself
             { Name = this.Name

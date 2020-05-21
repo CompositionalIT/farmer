@@ -32,6 +32,7 @@ type SqlAzureConfig =
     member this.Server =
         this.ServerName.ResourceName
     interface IBuilder with
+        member this.DependencyName = this.Server
         member this.BuildResources location resources = [
             let database =
                 {| Name = this.Name

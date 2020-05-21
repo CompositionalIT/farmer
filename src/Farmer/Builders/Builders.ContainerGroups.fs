@@ -34,6 +34,7 @@ type ContainerConfig =
     /// Gets the name of the container group.
     member this.GroupName = this.ContainerGroupName.ResourceName
     interface IBuilder with
+        member this.DependencyName = this.ContainerGroupName.ResourceName
         member this.BuildResources location existingResources = [
             let container =
                 {| Name = this.Name

@@ -117,4 +117,22 @@ let tests = testList "Template" [
         }
         Expect.sequenceEqual template.Template.Outputs [ "bar", "bop"; "foo", "baz" ] "Outputs should work like a key/value store"
     }
+
+    test "Can add a list of resources types together" {
+        let resources : IBuilder list = [
+            storageAccount { name "test" }
+            storageAccount { name "test2" }
+        ]
+        let template = arm {
+            add_resources resources
+        }
+        Expect.hasLength template.Template.Resources 2 "Should be two resources added"
+    }
+
+    test "Can add dependencies through IBuilder" {
+        let a = storageAccount { name "a" }
+        let b = webApp { name "b"; depends_on a }
+
+        Expect.equal b.Dependencies [ ResourceName "a" ] "Dependency should have been set"
+    }
 ]

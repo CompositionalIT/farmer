@@ -23,6 +23,7 @@ type RedisConfig =
       MinimumTlsVersion : TlsVersion option }
     member this.Key = buildRedisKey this.Name
     interface IBuilder with
+        member this.DependencyName = this.Name
         member this.BuildResources location _ = [
             { Name = this.Name
               Location = location
