@@ -14,7 +14,7 @@ type CosmosDbContainerConfig =
       Indexes : (string * (IndexDataType * IndexKind) list) list
       ExcludedPaths : string list }
 type CosmosDbConfig =
-    { ServerName : ResourceRef
+    { AccountName : ResourceRef
       AccountConsistencyPolicy : ConsistencyPolicy
       AccountFailoverPolicy : FailoverPolicy
       Name : ResourceName
@@ -24,13 +24,14 @@ type CosmosDbConfig =
       FreeTier : bool }
     member this.PrimaryKey =
         sprintf "[listKeys(resourceId('Microsoft.DocumentDB/databaseAccounts', '%s'), providers('Microsoft.DocumentDB','databaseAccounts').apiVersions[0]).primaryMasterKey]"
-            this.ServerName.ResourceName.Value
+            this.AccountName.ResourceName.Value
     member this.Endpoint =
-        sprintf "[reference(concat('Microsoft.DocumentDb/databaseAccounts/', '%s')).documentEndpoint]" this.ServerName.ResourceName.Value
+        sprintf "[reference(concat('Microsoft.DocumentDb/databaseAccounts/', '%s')).documentEndpoint]" this.AccountName.ResourceName.Value
     interface IBuilder with
+        member this.DependencyName = this.AccountName.ResourceName
         member this.BuildResources location _ = [
             // Account
-            match this.ServerName with
+            match this.AccountName with
             | AutomaticallyCreated name ->
                 { Name = name
                   Location = location
@@ -45,13 +46,13 @@ type CosmosDbConfig =
 
             // Database
             { Name = this.Name
-              Account = this.ServerName.ResourceName
+              Account = this.AccountName.ResourceName
               Throughput = this.DbThroughput }
 
             // Containers
             for container in this.Containers do
                 { Name = container.Name
-                  Account = this.ServerName.ResourceName
+                  Account = this.AccountName.ResourceName
                   Database = this.Name
                   PartitionKey =
                     {| Paths = fst container.PartitionKey
@@ -97,7 +98,7 @@ type CosmosDbContainerBuilder() =
 type CosmosDbBuilder() =
     member __.Yield _ =
         { Name = ResourceName.Empty
-          ServerName = AutomaticPlaceholder
+          AccountName = AutomaticPlaceholder
           AccountConsistencyPolicy = Eventual
           AccountFailoverPolicy = NoFailover
           DbThroughput = 400
@@ -105,19 +106,19 @@ type CosmosDbBuilder() =
           PublicNetworkAccess = Enabled
           FreeTier = false }
     member __.Run state =
-        match state.ServerName with
+        match state.AccountName with
         | AutomaticallyCreated _
         | External _ ->
             state
         | AutomaticPlaceholder ->
-            { state with ServerName = sprintf "%s-server" state.Name.Value |> ResourceName |> AutomaticallyCreated }
+            { state with AccountName = sprintf "%s-server" state.Name.Value |> ResourceName |> AutomaticallyCreated }
     /// Sets the name of the CosmosDB server.
     [<CustomOperation "account_name">]
-    member __.AccountName(state:CosmosDbConfig, serverName) = { state with ServerName = AutomaticallyCreated serverName }
+    member __.AccountName(state:CosmosDbConfig, serverName) = { state with AccountName = AutomaticallyCreated serverName }
     member this.AccountName(state:CosmosDbConfig, serverName:string) = this.AccountName(state, ResourceName serverName)
     /// Links the database to an existing server
     [<CustomOperation "link_to_account">]
-    member __.LinkToAccount(state:CosmosDbConfig, server:CosmosDbConfig) = { state with ServerName = External server.ServerName.ResourceName }
+    member __.LinkToAccount(state:CosmosDbConfig, server:CosmosDbConfig) = { state with AccountName = External server.AccountName.ResourceName }
     /// Sets the name of the database.
     [<CustomOperation "name">]
     member __.Name(state:CosmosDbConfig, name) = { state with Name = name }

@@ -14,6 +14,7 @@ type ContainerRegistryConfig =
         (sprintf "reference(resourceId('Microsoft.ContainerRegistry/registries', '%s'),'2019-05-01').loginServer" this.Name.Value)
         |> ArmExpression
     interface IBuilder with
+        member this.DependencyName = this.Name
         member this.BuildResources location _ = [
             { Name = this.Name
               Location = location

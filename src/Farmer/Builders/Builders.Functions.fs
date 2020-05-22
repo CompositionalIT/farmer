@@ -48,7 +48,8 @@ type FunctionsConfig =
     /// Gets the Storage Account name for this functions app.
     member this.StorageAccount = this.StorageAccountName.ResourceName
     interface IBuilder with
-        member this.BuildResources location existingResources = [
+        member this.DependencyName = this.ServicePlanName.ResourceName
+        member this.BuildResources location _ = [
             { Name = this.Name
               ServicePlan = this.ServicePlanName.ResourceName
               Location = location

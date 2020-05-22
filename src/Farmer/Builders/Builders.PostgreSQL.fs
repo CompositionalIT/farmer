@@ -18,6 +18,7 @@ type PostgreSQLBuilderConfig =
       Capacity : int<VCores>
       Tier : Sku }
     interface IBuilder with
+        member this.DependencyName = this.ServerName.ResourceName
         member this.BuildResources location resources = [
             let inMB (gb: int<Gb>) = 1024 * (int gb) * 1<Mb>
             match this.ServerName with

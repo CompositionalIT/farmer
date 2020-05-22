@@ -21,6 +21,7 @@ type SearchConfig =
         sprintf "listQueryKeys('Microsoft.Search/searchServices/%s', '2015-08-19').value[0].key" this.Name.Value
         |> ArmExpression
     interface IBuilder with
+        member this.DependencyName = this.Name
         member this.BuildResources location _ = [
             { Name = this.Name
               Location = location

@@ -90,7 +90,8 @@ type WebAppConfig =
     /// Gets the App Insights name for this web app, if it exists.
     member this.AppInsights = this.AppInsightsName |> Option.map (fun ai -> ai.ResourceName)
     interface IBuilder with
-        member this.BuildResources location existingResources = [
+        member this.DependencyName = this.ServicePlanName.ResourceName
+        member this.BuildResources location _ = [
             let webApp =
                 { Name = this.Name
                   Location = location
@@ -342,6 +343,7 @@ type WebAppBuilder() =
     /// Sets a dependency for the web app.
     [<CustomOperation "depends_on">]
     member __.DependsOn(state:WebAppConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
+    member __.DependsOn(state:WebAppConfig, builder:IBuilder) = { state with Dependencies = builder.DependencyName :: state.Dependencies }
     /// Sets "Always On" flag
     [<CustomOperation "always_on">]
     member __.AlwaysOn(state:WebAppConfig) = { state with AlwaysOn = true }

@@ -95,17 +95,18 @@ type ExpressRouteConfig =
     Peerings : ExpressRouteCircuitPeeringConfig list }
 
     interface IBuilder with
-        member exr.BuildResources location _ = [
-            { Name = exr.Name
+        member this.DependencyName = this.Name
+        member this.BuildResources location _ = [
+            { Name = this.Name
               Location = location
-              Tier = exr.Tier
-              Family = exr.Family
-              ServiceProviderName = exr.ServiceProviderName
-              PeeringLocation = exr.PeeringLocation
-              Bandwidth = exr.Bandwidth
-              GlobalReachEnabled = exr.GlobalReachEnabled
+              Tier = this.Tier
+              Family = this.Family
+              ServiceProviderName = this.ServiceProviderName
+              PeeringLocation = this.PeeringLocation
+              Bandwidth = this.Bandwidth
+              GlobalReachEnabled = this.GlobalReachEnabled
               Peerings = [
-                  for peering in exr.Peerings do
+                  for peering in this.Peerings do
                       {| PeeringType = peering.PeeringType
                          AzureASN = peering.AzureASN
                          PeerASN = peering.PeerASN

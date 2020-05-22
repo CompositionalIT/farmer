@@ -23,6 +23,7 @@ type StorageAccountConfig =
     /// Gets the ARM expression path to the key of this storage account.
     member this.Key = buildKey this.Name
     interface IBuilder with
+        member this.DependencyName = this.Name
         member this.BuildResources location _ = [
             { Name = this.Name
               Location = location
