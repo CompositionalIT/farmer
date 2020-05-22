@@ -15,6 +15,7 @@
     <Compile Include="IotHub.fs" />
     <Compile Include="Template.fs" />
     <Compile Include="AzCli.fs" />
+    <Compile Include="Cosmos.fs" />
     <Compile Include="VirtualMachine.fs" />
     <Compile Include="ContainerRegistry.fs" />
     <Compile Include="PostgreSQL.fs" />

@@ -13,8 +13,9 @@ module DatabaseAccounts =
               Account : ResourceName
               Database : ResourceName
               PartitionKey :
-                {| Paths : string list
-                   Kind : IndexKind |}
+                {| Paths : string list; Kind : IndexKind |}
+              UniqueKeyPolicy :
+                {| UniqueKeys : {| Paths : string list |} Set |}
               IndexingPolicy :
                 {| IncludedPaths :
                     {| Path : string
@@ -36,6 +37,10 @@ module DatabaseAccounts =
                                   partitionKey =
                                    {| paths = this.PartitionKey.Paths
                                       kind = string this.PartitionKey.Kind |}
+                                  uniqueKeyPolicy = 
+                                   {| uniqueKeys = 
+                                      this.UniqueKeyPolicy.UniqueKeys 
+                                      |> Set.map (fun k -> {| paths = k.Paths |}) |}
                                   indexingPolicy =
                                    {| indexingMode = "consistent"
                                       includedPaths =

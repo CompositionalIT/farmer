@@ -16,6 +16,7 @@ let allTests =
                 ServiceBus.tests
                 VirtualMachine.tests
                 PostgreSQL.tests
+                Cosmos.tests
             ]
             testList "Control" [
                 Template.tests
