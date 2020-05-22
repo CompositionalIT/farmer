@@ -7,11 +7,16 @@ open Farmer.Sql
 open Farmer.Arm.Sql
 open System.Net
 
+type SkuKind =
+    | DbSku of DbSku
+    | PoolSku of PoolSku
+    | ExternalPool
+
 type SqlAzureConfig =
     { ServerName : ResourceRef
       AdministratorCredentials : {| UserName : string; Password : SecureParameter |}
       Name : ResourceName
-      DbEdition : Sku
+      Sku : SkuKind
       DbCollation : string
       Encryption : FeatureFlag
       FirewallRules : {| Name : string; Start : IPAddress; End : IPAddress |} list }
@@ -34,9 +39,16 @@ type SqlAzureConfig =
     interface IBuilder with
         member this.DependencyName = this.Server
         member this.BuildResources location resources = [
+            let elasticPoolName = this.Server.Map (sprintf "%s-pool")
             let database =
                 {| Name = this.Name
-                   Sku = this.DbEdition
+                   Sku =
+                    match this.Sku with
+                    | PoolSku _
+                    | ExternalPool _ ->
+                        Pool elasticPoolName
+                    | DbSku sku ->
+                        Standalone sku
                    Collation = this.DbCollation
                    TransparentDataEncryption = this.Encryption |}
 
@@ -48,7 +60,15 @@ type SqlAzureConfig =
                     {| Username = this.AdministratorCredentials.UserName
                        Password = this.AdministratorCredentials.Password |}
                   FirewallRules = this.FirewallRules
-                  Databases = [ database ] }
+                  ElasticPool =
+                    match this.Sku with
+                    | PoolSku sku ->
+                        Some {| Name = elasticPoolName; Sku = sku |}
+                    | DbSku _
+                    | ExternalPool ->
+                        None
+                  Databases = [ database ]
+                }
             | External serverName ->
                 resources
                 |> Helpers.mergeResource serverName (fun server -> { server with Databases = database :: server.Databases })
@@ -62,7 +82,7 @@ type SqlBuilder() =
         { ServerName = AutomaticPlaceholder
           AdministratorCredentials = {| UserName = ""; Password = SecureParameter "" |}
           Name = ResourceName ""
-          DbEdition = Free
+          Sku = DbSku Free
           DbCollation = "SQL_Latin1_General_CP1_CI_AS"
           Encryption = Disabled
           FirewallRules = [] }
@@ -70,8 +90,8 @@ type SqlBuilder() =
         { state with
             ServerName =
                 match state.ServerName with
-                | External x -> External(x |> Helpers.sanitiseDb |> ResourceName)
-                | AutomaticallyCreated x -> AutomaticallyCreated(x |> Helpers.sanitiseDb |> ResourceName)
+                | External name -> External(name |> Helpers.sanitiseDb |> ResourceName)
+                | AutomaticallyCreated name -> AutomaticallyCreated(name |> Helpers.sanitiseDb |> ResourceName)
                 | AutomaticPlaceholder -> failwith "You must specific a server name, or link to an existing server."
             Name = state.Name |> Helpers.sanitiseDb |> ResourceName
             AdministratorCredentials =
@@ -96,7 +116,8 @@ type SqlBuilder() =
     member this.Name(state:SqlAzureConfig, name:string) = this.Name(state, ResourceName name)
     /// Sets the sku of the database.
     [<CustomOperation "sku">]
-    member __.DatabaseEdition(state:SqlAzureConfig, edition:Sku) = { state with DbEdition = edition }
+    member __.Sku(state:SqlAzureConfig, sku:DbSku) = { state with Sku = DbSku sku }
+    member __.Sku(state:SqlAzureConfig, sku:PoolSku) = { state with Sku = PoolSku sku }
     /// Sets the collation of the database.
     [<CustomOperation "collation">]
     member __.Collation(state:SqlAzureConfig, collation:string) = { state with DbCollation = collation }
@@ -123,6 +144,14 @@ type SqlBuilder() =
             AdministratorCredentials =
                 {| state.AdministratorCredentials with
                     UserName = username |} }
+    [<CustomOperation "link_to_elastic_pool">]
+    member _.LinkToElasticPool(state:SqlAzureConfig) =
+        { state with
+            Sku =
+                match state.ServerName with
+                | External _ -> ExternalPool
+                | _ -> state.Sku
+        }
 
 open WebApp
 type WebAppBuilder with
