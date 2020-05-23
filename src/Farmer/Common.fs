@@ -339,7 +339,7 @@ module Search =
         | StorageOptimisedL2
 
 module Sql =
-    type Sku =
+    type DbSku =
         | Free
         | Basic
         | Standard of string
@@ -365,12 +365,61 @@ module Sql =
             | Free -> "Free"
             | Standard _ -> "Standard"
             | Premium _ -> "Premium"
-         member this.Objective =
+         member this.Name =
             match this with
             | Basic -> "Basic"
             | Free -> "Free"
             | Standard s -> s
             | Premium p -> p
+    type PoolSku =
+        | BasicPool of int
+        | StandardPool of int
+        | PremiumPool of int
+        static member Standard50 = StandardPool 50
+        static member Standard100 = StandardPool 100
+        static member Standard200 = StandardPool 200
+        static member Standard300 = StandardPool 300
+        static member Standard400 = StandardPool 400
+        static member Standard800 = StandardPool 800
+        static member Standard1200 = StandardPool 1200
+        static member Standard1600 = StandardPool 1600
+        static member Standard2000 = StandardPool 2000
+        static member Standard2500 = StandardPool 2500
+        static member Standard3000 = StandardPool 3000
+        static member Premium125 = PremiumPool 125
+        static member Premium250 = PremiumPool 250
+        static member Premium500 = PremiumPool 500
+        static member Premium1000 = PremiumPool 1000
+        static member Premium1500 = PremiumPool 1500
+        static member Premium2000 = PremiumPool 2000
+        static member Premium2500 = PremiumPool 2500
+        static member Premium3000 = PremiumPool 3000
+        static member Premium3500 = PremiumPool 3500
+        static member Premium4000 = PremiumPool 4000
+        static member Basic50 = BasicPool 50
+        static member Basic100 = BasicPool 100
+        static member Basic200 = BasicPool 200
+        static member Basic300 = BasicPool 300
+        static member Basic400 = BasicPool 400
+        static member Basic800 = BasicPool 800
+        static member Basic1200 = BasicPool 1200
+        static member Basic1600 = BasicPool 1600
+        member this.Name =
+            match this with
+            | BasicPool _ -> "BasicPool"
+            | StandardPool _ -> "StandardPool"
+            | PremiumPool _ -> "PremiumPool"
+        member this.Edition =
+            match this with
+            | BasicPool _ -> "Basic"
+            | StandardPool _ -> "Standard"
+            | PremiumPool _ -> "Premium"
+        member this.Capacity =
+            match this with
+            | BasicPool c
+            | StandardPool c
+            | PremiumPool c ->
+                c
 
 module ContainerGroup =
     type RestartPolicy = Never | Always | OnFailure
