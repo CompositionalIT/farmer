@@ -1,6 +1,7 @@
 [<AutoOpen>]
 module Farmer.Arm.DBforPostgreSQL
 
+open System.Net
 open Farmer
 open Farmer.CoreTypes
 open Farmer.PostgreSQL
@@ -11,6 +12,11 @@ type Database =
     { Name : ResourceName
       Charset : string
       Collation : string }
+
+type FirewallRule =
+    { Name : string
+      Start : IPAddress
+      End : IPAddress } 
 
 type Server =
     { ServerName : ResourceName
@@ -25,7 +31,8 @@ type Server =
       GeoRedundantBackup : FeatureFlag
       StorageAutoGrow : FeatureFlag
       BackupRetention : int<Days>
-      Databases : Database list }
+      Databases : Database list
+      FirewallRules : FirewallRule list }
 
     member this.Sku =
         {| name = sprintf "%s_%O_%d" this.Tier.Name this.Family this.Capacity
@@ -81,9 +88,15 @@ type Server =
                                 name = database.Name.Value
                                 apiVersion = "2017-12-01"
                                 dependsOn = [ this.ServerName.Value ]
-                                properties = 
-                                {|  charset = database.Charset
-                                    collation = database.Collation |} 
+                                properties = {|  charset = database.Charset; collation = database.Collation |} 
+                            |}
+                    for rule in this.FirewallRules do
+                        box {|  ``type`` = "firewallrules"
+                                name = rule.Name
+                                apiVersion = "2014-04-01"
+                                location = this.Location.ArmValue
+                                properties = {| endIpAddress = string rule.Start; startIpAddress = string rule.End |}
+                                dependsOn = [ this.ServerName.Value ]
                             |}
                 ]
             |}

@@ -12,6 +12,7 @@ let myPostgres = postgreSQL {
     storage_size 50<Gb>
     tier GeneralPurpose
     db_name "my_db"
+    enable_azure_firewall
 }
 
 let template = arm {

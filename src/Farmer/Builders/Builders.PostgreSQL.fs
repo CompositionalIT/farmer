@@ -2,6 +2,8 @@
 module Farmer.Builders.PostgreSQLAzure
 
 open System
+open System.Net
+
 open Farmer
 open Farmer.CoreTypes
 open Farmer.PostgreSQL
@@ -19,7 +21,8 @@ type PostgreSQLBuilderConfig =
       Tier : Sku
       DbName : ResourceName option
       DbCollation : string option
-      DbCharset : string option }
+      DbCharset : string option
+      FirewallRules : FirewallRule list }
         
     interface IBuilder with
         member this.DependencyName = this.ServerName.ResourceName
@@ -46,7 +49,8 @@ type PostgreSQLBuilderConfig =
                   GeoRedundantBackup = FeatureFlag.ofBool this.GeoRedundantBackup
                   StorageAutoGrow = FeatureFlag.ofBool this.StorageAutogrow
                   BackupRetention = this.BackupRetention
-                  Databases = database |> Helpers.singletonOrEmptyList  }
+                  Databases = database |> Helpers.singletonOrEmptyList 
+                  FirewallRules = this.FirewallRules }
             | AutomaticPlaceholder ->
                 failwith "You must specify a server name, or link to an existing server."
         ]
@@ -138,7 +142,8 @@ type PostgreSQLBuilder() =
           Tier = Basic 
           DbName = None
           DbCollation = None
-          DbCharset = None }
+          DbCharset = None
+          FirewallRules = [] }
 
     member _this.Run state =
         state.AdminUserName |> Option.defaultWith(fun () -> failwith "admin username not set") |> ignore
@@ -233,5 +238,21 @@ type PostgreSQLBuilder() =
     [<CustomOperation "db_collation">]
     member _this.SetDbCollation (state:PostgreSQLBuilderConfig, collation) =
         { state with DbCollation = Some collation }
+
+    /// Adds a custom firewall rule given a name, start and end IP address range.
+    [<CustomOperation "add_firewall_rule">]
+    member _this.AddFirewallWall(state:PostgreSQLBuilderConfig, name, startRange, endRange) =
+        { state with
+            FirewallRules = 
+                {   Name = name
+                    Start = IPAddress.Parse startRange
+                    End = IPAddress.Parse endRange }
+                :: state.FirewallRules }
+
+    /// Adds a firewall rule that enables access to other Azure services.
+    [<CustomOperation "enable_azure_firewall">]
+    member this.EnableAzureFirewall(state:PostgreSQLBuilderConfig) =
+        this.AddFirewallWall(state, "Allow Azure services", "0.0.0.0", "0.0.0.0")
+
 
 let postgreSQL = PostgreSQLBuilder()

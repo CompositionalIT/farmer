@@ -48,21 +48,44 @@ type DatabaseResource =
       properties : {| collation: string; charset: string |}
       dependsOn : string list }
 
-
 let databaseResourceOf (token: JToken) =
     let resType = token.Value<string>("type")
     let resName = token.Value<string>("name")
     let apiVersion = token.Value<string>("apiVersion")
-    let dependsOn = token.["dependsOn"] :?> JArray
+    let dependsOn = token.["dependsOn"] :?> JArray |> Seq.map string |> Seq.toList
     let properties = token.["properties"] :?> JObject
     let collation = properties.Value<string>("collation")
     let charset = properties.Value<string>("charset")
     {   name = resName
         ``type`` = resType
-        dependsOn = dependsOn |> Seq.map string |> Seq.toList
-        properties = {| collation = collation; charset = charset |}
         apiVersion = apiVersion
+        dependsOn = dependsOn 
+        properties = {| collation = collation; charset = charset |}
     }
+
+
+type FirewallResource = 
+    {   name: string
+        apiVersion: string
+        ``type`` : string
+        dependsOn : string list
+        properties: {| endIpAddress: string; startIpAddress: string |}
+        location: string }
+
+let firewallRuleResourceOf (token: JToken) : FirewallResource =
+    let resType = token.Value<string>("type")
+    let resName = token.Value<string>("name")
+    let apiVersion = token.Value<string>("apiVersion")
+    let dependsOn = token.["dependsOn"] :?> JArray |> Seq.map string |> Seq.toList
+    let properties = token.["properties"] :?> JObject
+    let location = token.Value<string>("location")
+    {   name = resName 
+        ``type``= resType
+        apiVersion = apiVersion
+        dependsOn = dependsOn
+        location = location
+        properties = {| startIpAddress = properties.Value<string>("startIpAddress")
+                        endIpAddress = properties.Value<string>("endIpAddress")  |}}
 
 let runBuilder builder = toTypedTemplate<PostgresTemplate> Location.NorthEurope builder
 
@@ -94,6 +117,7 @@ let tests = testList "PostgreSQL Database Service" [
             db_name "my_db"
             db_collation "de_DE"
             db_charset "ASCII"
+            enable_azure_firewall
         }
         let expectedDbRes = {
             name = "my_db"
@@ -101,6 +125,14 @@ let tests = testList "PostgreSQL Database Service" [
             ``type`` = "databases"
             properties = {| collation = "de_DE"; charset = "ASCII" |}
             dependsOn = ["testdb"]
+        }
+        let expectedFwRuleRes = {
+            name = "Allow Azure services"
+            ``type`` = "firewallrules"
+            apiVersion = "2014-04-01"
+            dependsOn = ["testdb"]
+            location = "northeurope"
+            properties = {| startIpAddress = "0.0.0.0"; endIpAddress = "0.0.0.0" |}
         }
 
         Expect.equal actual.apiVersion "2017-12-01" "apiVersion"
@@ -116,8 +148,9 @@ let tests = testList "PostgreSQL Database Service" [
         Expect.equal actual.properties.storageProfile.geoRedundantBackup "Enabled" "geo backup"
         Expect.equal actual.properties.storageProfile.storageAutoGrow "Disabled" "storage autogrow"
         Expect.equal actual.properties.storageProfile.backupRetentionDays 17 "backup retention"
-        Expect.equal (List.length actual.resources) 1 "resources list"
+        Expect.equal (List.length actual.resources) 2 "resources list"
         Expect.equal (List.head actual.resources |> databaseResourceOf) expectedDbRes "database resource"
+        Expect.equal (List.tail actual.resources |> List.head |> firewallRuleResourceOf) expectedFwRuleRes "fw rule resource"
     }
 
     test "Server name must be given" {
