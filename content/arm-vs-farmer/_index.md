@@ -8,29 +8,30 @@ draft: false
 |-|-:|:-|
 | **Core ARM features** |
 | Repeatable deployments? | **Yes**, Farmer runs on top of ARM | **Yes** |
-| ARM deployment mechanisms? | **All** | **All** |
+| ARM deployment mechanisms? | **All**, plus easy-to-use F# deployment | **All** |
 | Variables support? | **Yes**, native support in F# | **Yes** |
 | Parameters support? | **Yes**, native support in F# or secure parameters | **Yes** |
-| Supported resources? | **30+ popular resources**, with more added regularly | **All** |
+| Supported resources? | **30+ popular resources**, with more being added all the time | **All** |
 | Declarative model support? | **Yes** | **Yes** |
 | Support for all ARM tools? | **Yes**, Farmer runs on top of ARM | **Yes** |
 | **Authoring** |
 | Easy to author? | **Yes** | **No** |
 | Easy to read? | **Yes** | **No** |
-| Documented? | **Yes**, website and discoverable intellisense | **Limited** documented but often out-of-date |
+| Documented? | **Yes**, website and discoverable intellisense | **Limited**, documented but often out-of-date |
+| Editor support? | **Yes**, any F# editor including VS Code, VS and Rider | **Limited**, only VS Code has any support |
 | **Safety** |
 | Succinct syntax? | **Yes** | **No** |
-| Type-safe? | **Yes**, F# has a mature and powerful compiler | **Limited** to LSP - and only for VS Code |
-| Validation support? | **Edit-time, template generation and run-time** | **Run-time and limited edit-time** |
+| Type-safe? | **Yes**, full support from the F# compiler and type system | **Limited** through VS Code extension and LSP |
+| Validation support? | **Edit-time, run-time, deploy-time** | **Deploy-time and limited edit-time** |
 | **Flexibility** |
 | Link resources easily? | **Yes** | **Not easily** complex path expressions must be known |
 | Compose resources together? | **Yes** | **Not easily** |
-| Treat multiple resources as one? | **Yes** | **No**, each resource must be defined separately |
+| Create multiple resources simultaneously? | **Yes** | **No**, each resource must be defined separately |
 | Create resources in several ways? | **Yes**, builders, records, functions or classes | **No**, must use JSON |
-| Add your own ARM resources? | **Yes**, plug-in model allows supplying your own implementations | **N/A**
-| Create your own combinations of resources? | **Yes** | **No**, each resource must be defined separately |
 | Full programming language? | **Yes**, F# is a simple yet powerful programming language | **No**, JSON with limited functions |
 | Imperative model? | **Yes**, F# supports imperative programming | **No**, you must program in a declarative style |
-| **Interoperability** |
+| **Interop and extensibility** |
+| Add your own ARM resources? | **Yes**, plug-in model allows adding new abstractions | **N/A**
+| Create your own combinations of resources? | **Yes** | **No**, each resource must be defined separately |
 | Use external libraries? | **Yes**, use any NuGet packages during authoring and full .NET Core | **No**, fixed set of functions |
-| Use in .NET applications? | **Yes** Farmer is a .NET Core library so can be used in-proc | **No**, JSON files |
+| Use in .NET applications? | **Yes**, Farmer is a .NET Core library and can be used in-proc | **No**, JSON files |
