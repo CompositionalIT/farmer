@@ -8,7 +8,7 @@ chapter: false
 #### Overview
 The PostreSQL builder is used to create Azure Database Service for PostreSQL servers
 and databases. Every SQL PostgreSQL server you create will automatically create a SecureString parameter for the admin account password.
-If you wish to create a PostgreSQL attached to an existing server, use the `link_to_server` keyword and supply the resource name of the existing server.
+If you wish to create a PostgreSQL database attached to an existing server, use the `link_to_server` keyword and supply the resource name of the existing server.
 
 * PostgreSQL server (`Microsoft.DBforPostgreSQL/servers`)
 
@@ -28,7 +28,11 @@ If you wish to create a PostgreSQL attached to an existing server, use the `link
 | Server | server_version (Version) | Selects the PoistgreSQL version of the server  |
 | Server | capacity (int&lt;VCores>) | Sets the number of cores for the server |
 | Server | tier (Sku) | Sets the service tier of the server |
-
+| Server | db_name (string) | Sets the name of a database to create - if not set, no database will be created |
+| Server | db_charset (string) | Sets the charset of the created database, if `db_name` is set. Defaults to `UTF8` |
+| Server | db_collation (string) | Sets the collation of the created database, if `db_name` is set. Defaults to `English_United States.1252`  |
+| Server | enable_azure_firewall | Enables firewall access to all Azure services |
+| Server | add_firewall_rule (name:string, start ip:string, end ip:string) | Adds a firewall rule to the server |
 #### Example
 
 ```fsharp
@@ -42,6 +46,8 @@ let myPostgres = postgreSQL {
     capacity 4<VCores>
     storage_size 50<Gb>
     tier GeneralPurpose
+    db_name "things"
+    allow_azure_firewall
 }
 
 let template = arm {
