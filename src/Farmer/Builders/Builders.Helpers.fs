@@ -18,3 +18,7 @@ let mergeResource<'T when 'T :> IArmResource> resourceName (merge:'T -> 'T) (exi
     |> List.tryPick(function :? 'T as resource -> Some resource | _ -> None)
     |> Option.map merge
     |> Option.defaultWith (fun () -> failwithf "could not locate %O" resourceName)
+
+let singletonOrEmptyList = function
+    | None -> []
+    | Some v -> [v]

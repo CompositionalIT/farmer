@@ -1,9 +1,12 @@
 module PostgreSQL
 
+open System
+
 open Expecto
 open Farmer
 open Farmer.PostgreSQL
 open Farmer.Builders
+open Newtonsoft.Json.Linq
 
 type PostgresSku =
     { name : string
@@ -25,6 +28,7 @@ type Properties =
       version : string
       storageProfile : StorageProfile }
 
+
 type PostgresTemplate =
     { name : string
       ``type`` : string
@@ -32,7 +36,56 @@ type PostgresTemplate =
       sku : PostgresSku
       location : string
       geoRedundantBackup : string
+      resources : JToken list
       properties : Properties }
+
+type Dependencies = string array
+
+type DatabaseResource = 
+    { name : string
+      ``type`` : string 
+      apiVersion : string 
+      properties : {| collation: string; charset: string |}
+      dependsOn : string list }
+
+let databaseResourceOf (token: JToken) =
+    let resType = token.Value<string>("type")
+    let resName = token.Value<string>("name")
+    let apiVersion = token.Value<string>("apiVersion")
+    let dependsOn = token.["dependsOn"] :?> JArray |> Seq.map string |> Seq.toList
+    let properties = token.["properties"] :?> JObject
+    let collation = properties.Value<string>("collation")
+    let charset = properties.Value<string>("charset")
+    {   name = resName
+        ``type`` = resType
+        apiVersion = apiVersion
+        dependsOn = dependsOn 
+        properties = {| collation = collation; charset = charset |}
+    }
+
+
+type FirewallResource = 
+    {   name: string
+        apiVersion: string
+        ``type`` : string
+        dependsOn : string list
+        properties: {| endIpAddress: string; startIpAddress: string |}
+        location: string }
+
+let firewallRuleResourceOf (token: JToken) : FirewallResource =
+    let resType = token.Value<string>("type")
+    let resName = token.Value<string>("name")
+    let apiVersion = token.Value<string>("apiVersion")
+    let dependsOn = token.["dependsOn"] :?> JArray |> Seq.map string |> Seq.toList
+    let properties = token.["properties"] :?> JObject
+    let location = token.Value<string>("location")
+    {   name = resName 
+        ``type``= resType
+        apiVersion = apiVersion
+        dependsOn = dependsOn
+        location = location
+        properties = {| startIpAddress = properties.Value<string>("startIpAddress")
+                        endIpAddress = properties.Value<string>("endIpAddress")  |}}
 
 let runBuilder builder = toTypedTemplate<PostgresTemplate> Location.NorthEurope builder
 
@@ -61,7 +114,27 @@ let tests = testList "PostgreSQL Database Service" [
             tier GeneralPurpose
             enable_geo_redundant_backup
             disable_storage_autogrow
+            db_name "my_db"
+            db_collation "de_DE"
+            db_charset "ASCII"
+            enable_azure_firewall
         }
+        let expectedDbRes = {
+            name = "my_db"
+            apiVersion = "2017-12-01"
+            ``type`` = "databases"
+            properties = {| collation = "de_DE"; charset = "ASCII" |}
+            dependsOn = ["testdb"]
+        }
+        let expectedFwRuleRes = {
+            name = "Allow Azure services"
+            ``type`` = "firewallrules"
+            apiVersion = "2014-04-01"
+            dependsOn = ["testdb"]
+            location = "northeurope"
+            properties = {| startIpAddress = "0.0.0.0"; endIpAddress = "0.0.0.0" |}
+        }
+
         Expect.equal actual.apiVersion "2017-12-01" "apiVersion"
         Expect.equal actual.``type`` "Microsoft.DBforPostgreSQL/servers" "type"
         Expect.equal actual.sku.name "GP_Gen5_4" "sku name"
@@ -75,6 +148,9 @@ let tests = testList "PostgreSQL Database Service" [
         Expect.equal actual.properties.storageProfile.geoRedundantBackup "Enabled" "geo backup"
         Expect.equal actual.properties.storageProfile.storageAutoGrow "Disabled" "storage autogrow"
         Expect.equal actual.properties.storageProfile.backupRetentionDays 17 "backup retention"
+        Expect.equal (List.length actual.resources) 2 "resources list"
+        Expect.equal (List.head actual.resources |> databaseResourceOf) expectedDbRes "database resource"
+        Expect.equal (List.tail actual.resources |> List.head |> firewallRuleResourceOf) expectedFwRuleRes "fw rule resource"
     }
 
     test "Server name must be given" {
@@ -110,8 +186,8 @@ let tests = testList "PostgreSQL Database Service" [
             fun () ->
                 Validate.username "u" c
         let badNames = [
-            (null, "Null username"); ("", "Empty username"); ("   /t ", "Blank username")
-            (System.String('a', 64), "Username too long")
+            (null, "Null username"); ("", "Empty username"); ("   \t ", "Blank username")
+            (String('a', 64), "Username too long")
             ("Ædmin", "Bad chars in username")
             ("123abc", "Can not begin with number")
             ("admin_123", "More bad chars in username")
@@ -123,7 +199,7 @@ let tests = testList "PostgreSQL Database Service" [
             Expect.throws (validate candidate) (sprintf "Reserved name '%s'" candidate)
         )
         let goodNames = [
-            "a"; "abd23"; (System.String('a', 63))
+            "a"; "abd23"; (String('a', 63))
         ]
         for candidate in goodNames do
             Expect.throwsNot (validate candidate) (sprintf "'%s' should work" candidate)
@@ -135,8 +211,8 @@ let tests = testList "PostgreSQL Database Service" [
                 Validate.servername c
 
         let badNames = [
-            (null, "Null servername"); ("", "Empty servername"); ("   /t ", "Blank servername")
-            (System.String('a', 64), "servername too long")
+            ("  \t ", "Blank servername"); (null, "Null servername"); ("", "Empty servername")
+            (String('a', 64), "servername too long")
             ("ab", "servername too short")
             ("aBcd", "uppercase char in servername")
             ("-server", "Beginning hyphen")
@@ -148,10 +224,29 @@ let tests = testList "PostgreSQL Database Service" [
             Expect.throws (validate candidate) label
 
         let goodNames = [
-            "abc"; "abd-23"; (System.String('a', 63))
+            "abc"; "abd-23"; (String('a', 63))
         ]
         for candidate in goodNames do
             Expect.throwsNot (validate candidate) (sprintf "'%s' should work" candidate)
+    }
+
+    test "Database name can be validated" {
+        let validate c =
+            fun () ->
+                Validate.dbname c
+        let badNames = [
+            (null, "Null dbname"); ("", "Empty dbname"); ("   \t ", "Blank dbname")
+            (String('a', 64), "dbname too long")
+            ("123abc", "Can not begin with number")
+        ]
+        for candidate,label in badNames do
+            Expect.throws (validate candidate) label
+
+        let goodNames = [
+            "abc"; "abd-23"; (String('a', 63))
+        ]
+        for candidate in goodNames do
+            Expect.throwsNot (validate candidate) (sprintf "'%s' should work" candidate)        
     }
 
     test "Storage size can be validated" {
