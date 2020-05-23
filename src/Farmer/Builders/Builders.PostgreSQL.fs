@@ -16,28 +16,37 @@ type PostgreSQLBuilderConfig =
       BackupRetention : int<Days>
       StorageSize : int<Gb>
       Capacity : int<VCores>
-      Tier : Sku }
+      Tier : Sku
+      DbName : ResourceName option
+      DbCollation : string option
+      DbCharset : string option }
+        
     interface IBuilder with
         member this.DependencyName = this.ServerName.ResourceName
         member this.BuildResources location resources = [
-            let inMB (gb: int<Gb>) = 1024 * (int gb) * 1<Mb>
+            let database = this.DbName |> Option.map (fun dbName -> {
+                Name = dbName
+                Collation = this.DbCollation |> Option.defaultValue "English_United States.1252"
+                Charset = this.DbCharset |> Option.defaultValue "UTF8"
+            })
+                
             match this.ServerName with
-            | External resName ->
-                resources |> Helpers.mergeResource resName (fun server -> { server with Databases = [] })
+            | External resName -> 
+                resources |> Helpers.mergeResource resName (Server.WithDatabase database)
             | AutomaticallyCreated serverName ->
                 { ServerName = serverName
                   Location = location
                   Username = this.AdminUserName |> Option.defaultWith(fun () -> "admin username not set")
                   Password = SecureParameter "administratorLoginPassword"
                   Version = this.Version
-                  StorageSize = this.StorageSize |> inMB
+                  StorageSize = this.StorageSize * 1024<Mb> / 1<Gb>
                   Capacity = this.Capacity
                   Tier = this.Tier
                   Family = PostgreSQLFamily.Gen5
                   GeoRedundantBackup = FeatureFlag.ofBool this.GeoRedundantBackup
                   StorageAutoGrow = FeatureFlag.ofBool this.StorageAutogrow
                   BackupRetention = this.BackupRetention
-                  Databases = [] }
+                  Databases = database |> Helpers.singletonOrEmptyList  }
             | AutomaticPlaceholder ->
                 failwith "You must specify a server name, or link to an existing server."
         ]
@@ -83,6 +92,14 @@ module Validate =
         if not (Seq.forall isLegalServernameChar name) then
             failwithf "Server name can only consist of ASCII lowercase letters, digits, or hyphens. Was '%s'" name
 
+    let dbname (name : string) =
+        if String.IsNullOrWhiteSpace name then
+            failwith "Database name can not be null, empty, or blank"
+        if name.Length > 63 then
+            failwithf "Database name must have a length between 1 and 63, was %d" name.Length
+        if isAsciiDigit name.[0] then
+            failwith "Server name must not start with a digit"
+
     let minBackupRetention = 7<Days>
     let maxBackupRetention = 35<Days>
     let backupRetention (days: int<Days>) =
@@ -118,9 +135,12 @@ type PostgreSQLBuilder() =
           BackupRetention = Validate.minBackupRetention
           StorageSize = Validate.minStorageSize
           Capacity = 2<VCores>
-          Tier = Basic }
+          Tier = Basic 
+          DbName = None
+          DbCollation = None
+          DbCharset = None }
 
-    member this.Run state =
+    member _this.Run state =
         state.AdminUserName |> Option.defaultWith(fun () -> failwith "admin username not set") |> ignore
         state
 
@@ -135,13 +155,13 @@ type PostgreSQLBuilder() =
 
     /// Sets the name of the admin user
     [<CustomOperation "admin_username">]
-    member this.AdminUsername(state:PostgreSQLBuilderConfig, adminUsername:string) =
+    member _this.AdminUsername(state:PostgreSQLBuilderConfig, adminUsername:string) =
         Validate.username "adminUserName" adminUsername
         { state with AdminUserName = Some adminUsername }
 
     /// Sets geo-redundant backup
     [<CustomOperation "geo_redundant_backup">]
-    member this.SetGeoRedundantBackup(state:PostgreSQLBuilderConfig, enabled:bool) =
+    member _this.SetGeoRedundantBackup(state:PostgreSQLBuilderConfig, enabled:bool) =
         { state with GeoRedundantBackup = enabled }
 
     /// Enables geo-redundant backup
@@ -156,7 +176,7 @@ type PostgreSQLBuilder() =
 
     /// Sets storage autogrow
     [<CustomOperation "storage_autogrow">]
-    member this.SetStorageAutogrow(state:PostgreSQLBuilderConfig, enabled:bool) =
+    member _this.SetStorageAutogrow(state:PostgreSQLBuilderConfig, enabled:bool) =
         { state with StorageAutogrow = enabled }
 
     /// Enables storage autogrow
@@ -171,30 +191,47 @@ type PostgreSQLBuilder() =
 
     /// sets storage size in MBs
     [<CustomOperation "storage_size">]
-    member this.SetStorageSizeInMBs(state:PostgreSQLBuilderConfig, size:int<Gb>) =
+    member _this.SetStorageSizeInMBs(state:PostgreSQLBuilderConfig, size:int<Gb>) =
         Validate.storageSize size
         { state with StorageSize = size }
 
     /// sets the backup retention in days
     [<CustomOperation "backup_retention">]
-    member this.SetBackupRetention (state:PostgreSQLBuilderConfig, retention:int<Days>) =
+    member _this.SetBackupRetention (state:PostgreSQLBuilderConfig, retention:int<Days>) =
         Validate.backupRetention retention
         { state with BackupRetention = retention }
 
     /// Sets the PostgreSQl server version
     [<CustomOperation "server_version">]
-    member this.SetServerVersion (state:PostgreSQLBuilderConfig, version:Version) =
+    member _this.SetServerVersion (state:PostgreSQLBuilderConfig, version:Version) =
         { state with Version = version }
 
     /// Sets capacity
     [<CustomOperation "capacity">]
-    member this.SetCapacity (state:PostgreSQLBuilderConfig, capacity:int<VCores>) =
+    member _this.SetCapacity (state:PostgreSQLBuilderConfig, capacity:int<VCores>) =
         Validate.capacity capacity
         { state with Capacity = capacity }
 
     /// Sets tier
     [<CustomOperation "tier">]
-    member this.SetTier (state:PostgreSQLBuilderConfig, tier:Sku) =
+    member _this.SetTier (state:PostgreSQLBuilderConfig, tier:Sku) =
         { state with Tier = tier }
+
+    /// Sets database name
+    [<CustomOperation "db_name">]
+    member _this.SetDbName (state:PostgreSQLBuilderConfig, dbName) =
+        let (ResourceName n) = dbName
+        Validate.dbname n
+        { state with DbName = Some dbName }
+    member this.SetDbName (state:PostgreSQLBuilderConfig, dbName:string) =
+        this.SetDbName(state, ResourceName dbName)
+
+    [<CustomOperation "db_charset">]
+    member _this.SetDbCharset (state:PostgreSQLBuilderConfig, charset) =
+        { state with DbCharset = Some charset }
+
+    [<CustomOperation "db_collation">]
+    member _this.SetDbCollation (state:PostgreSQLBuilderConfig, collation) =
+        { state with DbCollation = Some collation }
 
 let postgreSQL = PostgreSQLBuilder()

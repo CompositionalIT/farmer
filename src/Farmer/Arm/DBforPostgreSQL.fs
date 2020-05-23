@@ -9,7 +9,7 @@ type [<RequireQualifiedAccess>] PostgreSQLFamily = Gen5
 
 type Database =
     { Name : ResourceName
-      Edition : string
+      Charset : string
       Collation : string }
 
 type Server =
@@ -34,6 +34,13 @@ type Server =
            family = this.Family.ToString()
            size = this.StorageSize |}
 
+    static member WithDatabase (db: Database option) (server: Server) = 
+        match db with
+        | None -> server
+        | Some database ->  {
+            server with Databases = database :: server.Databases
+        }
+
     member this.GetStorageProfile () = {|
         storageMB = this.StorageSize
         backupRetentionDays = this.BackupRetention
@@ -48,6 +55,7 @@ type Server =
             | VS_9_6 -> "9.6"
             | VS_10 -> "10"
             | VS_11 -> "11"
+
         {| administratorLogin = this.Username
            administratorLoginPassword = this.Password.AsArmRef.Eval()
            version = version
@@ -59,11 +67,23 @@ type Server =
     interface IArmResource with
         member this.ResourceName = this.ServerName
         member this.JsonModel =
-            box {| ``type`` = "Microsoft.DBforPostgreSQL/servers"
-                   apiVersion = "2017-12-01"
-                   name = this.ServerName.Value
-                   location = this.Location.ArmValue
-                   tags = {| displayName = this.ServerName.Value |}
-                   sku = this.Sku
-                   properties = this.GetProperties()
+            box {| 
+                ``type`` = "Microsoft.DBforPostgreSQL/servers"
+                apiVersion = "2017-12-01"
+                name = this.ServerName.Value
+                location = this.Location.ArmValue
+                tags = {| displayName = this.ServerName.Value |}
+                sku = this.Sku
+                properties = this.GetProperties()
+                resources = [ 
+                    for database in this.Databases do
+                        box {|  ``type`` = "databases"
+                                name = database.Name.Value
+                                apiVersion = "2017-12-01"
+                                dependsOn = [ this.ServerName.Value ]
+                                properties = 
+                                {|  charset = database.Charset
+                                    collation = database.Collation |} 
+                            |}
+                ]
             |}
