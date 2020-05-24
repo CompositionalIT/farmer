@@ -20,7 +20,6 @@ draft: false
 | Documented? | **Yes**, website and discoverable intellisense | **Limited**, documented but often out-of-date |
 | Editor support? | **Yes**, any F# editor including VS Code, VS and Rider | **Limited**, only VS Code has any support |
 | **Safety** |
-| Succinct syntax? | **Yes** | **No** |
 | Type-safe? | **Yes**, full support from the F# compiler and type system | **Limited** through VS Code extension and LSP |
 | Validation support? | **Edit-time, run-time, deploy-time** | **Deploy-time and limited edit-time** |
 | **Flexibility** |
@@ -31,7 +30,7 @@ draft: false
 | Full programming language? | **Yes**, F# is a simple yet powerful programming language | **No**, JSON with limited functions |
 | Imperative model? | **Yes**, F# supports imperative programming | **No**, you must program in a declarative style |
 | **Interop and extensibility** |
-| Add your own ARM resources? | **Yes**, plug-in model allows adding new abstractions | **N/A**
+| Add your own ARM resources? | **Yes**, plug-in model to add new ARM resources | **N/A**
 | Create your own combinations of resources? | **Yes** | **No**, each resource must be defined separately |
 | Use external libraries? | **Yes**, use any NuGet packages during authoring and full .NET Core | **No**, fixed set of functions |
 | Use in .NET applications? | **Yes**, Farmer is a .NET Core library and can be used in-proc | **No**, JSON files |
