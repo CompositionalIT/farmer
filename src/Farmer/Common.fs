@@ -498,3 +498,6 @@ module IotHub =
             | Device -> 2
             | RegistryRead -> 3
             | RegistryReadWrite -> 4
+
+module Maps =
+    type Sku = S0 | S1
