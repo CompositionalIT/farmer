@@ -56,5 +56,5 @@ let deployment = arm {
 }
 
 deployment
-|> Deploy.execute "myResourceGroup" NoParameters
+|> Deploy.execute "myResourceGroup" Deploy.NoParameters
 ```
