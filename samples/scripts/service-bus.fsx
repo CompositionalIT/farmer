@@ -4,27 +4,30 @@ open Farmer
 open Farmer.Builders
 open Farmer.ServiceBus
 
-let myQueue = serviceBus {
-    namespace_name "allMyQueues"
+let myServiceBus = serviceBus {
+    name "allMyQueues"
     sku Standard
-
-    name "isaacssuperqueue"
+    add_queues [
+        queue { name "queuenumberone" }
+        queue { name "queuenumbertwo" }
+    ]
+    add_topics [
+        topic {
+            name "thetopic"
+            add_subscriptions [
+                subscription {
+                    name "thesub"
+                }
+            ]
+        }
+    ]
 }
-
-let mySecondQueue = serviceBus {
-    name "isaacssecondsuperqueue"
-    link_to_namespace myQueue
-}
-
 
 let deployment = arm {
     location Location.NorthEurope
-    add_resource myQueue
-    add_resource mySecondQueue
-    output "1-NamespaceDefaultConnectionString" myQueue.NamespaceDefaultConnectionString
-    output "1-DefaultSharedAccessPolicyPrimaryKey" myQueue.DefaultSharedAccessPolicyPrimaryKey
-    output "2-NamespaceDefaultConnectionString" mySecondQueue.NamespaceDefaultConnectionString
-    output "2-DefaultSharedAccessPolicyPrimaryKey" mySecondQueue.DefaultSharedAccessPolicyPrimaryKey
+    add_resource myServiceBus
+    output "NamespaceDefaultConnectionString" myServiceBus.NamespaceDefaultConnectionString
+    output "DefaultSharedAccessPolicyPrimaryKey" myServiceBus.DefaultSharedAccessPolicyPrimaryKey
 }
 
 deployment
