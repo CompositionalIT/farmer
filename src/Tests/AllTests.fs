@@ -17,6 +17,7 @@ let allTests =
                 VirtualMachine.tests
                 PostgreSQL.tests
                 Cosmos.tests
+                Maps.tests
             ]
             testList "Control" [
                 Template.tests
