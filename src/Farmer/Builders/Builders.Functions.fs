@@ -90,7 +90,7 @@ type FunctionsConfig =
                 this.StorageAccountName.ResourceName
               ]
               AlwaysOn = false
-              HTTPSOnly = false
+              HTTPSOnly = this.HTTPSOnly
               LinuxFxVersion = None
               NetFrameworkVersion = None
               JavaVersion = None
