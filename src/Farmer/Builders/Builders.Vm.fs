@@ -16,18 +16,20 @@ type VmConfig =
     { Name : ResourceName
       DiagnosticsStorageAccount : ResourceRef option
 
-      Username : string
+      Username : string option
       Image : ImageDefinition
       Size : VMSize
       OsDisk : DiskInfo
       DataDisks : DiskInfo list
 
+      VNetName : ResourceRef
       DomainNamePrefix : string option
       AddressPrefix : string
-      SubnetPrefix : string }
+      SubnetPrefix : string
+
+      DependsOn : ResourceName list }
 
     member this.NicName = makeResourceName this.Name "nic"
-    member this.VnetName = makeResourceName this.Name "vnet"
     member this.SubnetName = makeResourceName this.Name "subnet"
     member this.IpName = makeResourceName this.Name "ip"
     member this.Hostname = sprintf "reference('%s').dnsSettings.fqdn" this.IpName.Value |> ArmExpression
@@ -46,10 +48,20 @@ type VmConfig =
                     | External r -> Some r)
               NetworkInterfaceName = this.NicName
               Size = this.Size
-              Credentials = {| Username = this.Username; Password = SecureParameter (sprintf "password-for-%s" this.Name.Value) |}
+              Credentials =
+                match this.Username with
+                | Some username ->
+                    {| Username = username
+                       Password = SecureParameter (sprintf "password-for-%s" this.Name.Value) |}
+                | None ->
+                    failwithf "You must specify a username for virtual machine %s" this.Name.Value
               Image = this.Image
               OsDisk = this.OsDisk
               DataDisks = this.DataDisks }
+
+            let vnetName =
+                this.VNetName.ResourceNameOpt
+                |> Option.defaultValue (makeResourceName this.Name "vnet")
 
             // NIC
             { Name = this.NicName
@@ -57,16 +69,22 @@ type VmConfig =
               IpConfigs = [
                 {| SubnetName = this.SubnetName
                    PublicIpName = this.IpName |} ]
-              VirtualNetwork = this.VnetName }
+              VirtualNetwork = vnetName }
 
             // VNET
-            { Name = this.VnetName
-              Location = location
-              AddressSpacePrefixes = [ this.AddressPrefix ]
-              Subnets = [
-                  {| Name = this.SubnetName
-                     Prefix = this.SubnetPrefix |}
-              ] }
+            match this.VNetName with
+            | AutomaticallyCreated _
+            | AutomaticPlaceholder ->
+                { Name = vnetName
+                  Location = location
+                  AddressSpacePrefixes = [ this.AddressPrefix ]
+                  Subnets = [
+                      {| Name = this.SubnetName
+                         Prefix = this.SubnetPrefix |}
+                  ]
+                }
+            | External _ ->
+                ()
 
             // IP Address
             { Name = this.IpName
@@ -91,13 +109,15 @@ type VirtualMachineBuilder() =
         { Name = ResourceName.Empty
           DiagnosticsStorageAccount = None
           Size = Basic_A0
-          Username = "admin"
+          Username = None
           Image = WindowsServer_2012Datacenter
           DataDisks = [ ]
           DomainNamePrefix = None
           OsDisk = { Size = 128; DiskType = DiskType.Standard_LRS }
           AddressPrefix = "10.0.0.0/16"
-          SubnetPrefix = "10.0.0.0/24" }
+          SubnetPrefix = "10.0.0.0/24"
+          VNetName = AutomaticPlaceholder
+          DependsOn = [] }
 
     member __.Run (state:VmConfig) =
         { state with
@@ -114,7 +134,10 @@ type VirtualMachineBuilder() =
                     | External _
                     | AutomaticallyCreated _ ->
                         account)
-            DataDisks = match state.DataDisks with [] -> [ { Size = 1024; DiskType = DiskType.Standard_LRS } ] | other -> other
+            DataDisks =
+                match state.DataDisks with
+                | [] -> [ { Size = 1024; DiskType = DiskType.Standard_LRS } ]
+                | other -> other
         }
 
     /// Sets the name of the VM.
@@ -132,7 +155,7 @@ type VirtualMachineBuilder() =
     member __.VmSize(state:VmConfig, size) = { state with Size = size }
     /// Sets the admin username of the VM (note: the password is supplied as a securestring parameter to the generated ARM template).
     [<CustomOperation "username">]
-    member __.Username(state:VmConfig, username) = { state with Username = username }
+    member __.Username(state:VmConfig, username) = { state with Username = Some username }
     /// Sets the operating system of the VM. A set of samples is provided in the `CommonImages` module.
     [<CustomOperation "operating_system">]
     member __.ConfigureOs(state:VmConfig, image) =
@@ -151,7 +174,7 @@ type VirtualMachineBuilder() =
     member this.AddSsd(state:VmConfig, size) = this.AddDisk(state, size, StandardSSD_LRS)
     /// Adds a conventional (non-SSD) data disk to the VM with a specific size.
     [<CustomOperation "add_slow_disk">]
-    member this.AddSlowDisk(state:VmConfig, size) = this.AddDisk(state, size, DiskType.Standard_LRS)
+    member this.AddSlowDisk(state:VmConfig, size) = this.AddDisk(state, size, Standard_LRS)
     /// Sets the prefix for the domain name of the VM.
     [<CustomOperation "domain_name_prefix">]
     member __.DomainNamePrefix(state:VmConfig, prefix) = { state with DomainNamePrefix = prefix }
@@ -161,5 +184,13 @@ type VirtualMachineBuilder() =
     /// Sets the subnet prefix of the VM.
     [<CustomOperation "subnet_prefix">]
     member __.SubnetPrefix(state:VmConfig, prefix) = { state with SubnetPrefix = prefix }
+    /// Uses an external VNet instead of creating a new one.
+    [<CustomOperation "link_to_vnet">]
+    member __.VNetName(state:VmConfig, name) = { state with VNetName = External (ResourceName name)  }
+    member __.VNetName(state:VmConfig, vnet:Arm.Network.VirtualNetwork) = { state with VNetName = External vnet.Name  }
+    [<CustomOperation "depends_on">]
+    member __.DependsOn(state:VmConfig, resourceName) = { state with DependsOn = resourceName :: state.DependsOn }
+    member __.DependsOn(state:VmConfig, resource:IBuilder) = { state with DependsOn = resource.DependencyName :: state.DependsOn }
+    member __.DependsOn(state:VmConfig, resource:IArmResource) = { state with DependsOn = resource.ResourceName :: state.DependsOn }
 
 let vm = VirtualMachineBuilder()
