@@ -50,24 +50,25 @@
     <Compile Include="Writer.fs" />
     <Compile Include="Deploy.fs" />
 
-    <Compile Include="Arm/Cache.fs"/>
-    <Compile Include="Arm/CognitiveServices.fs"/>
-    <Compile Include="Arm/Compute.fs"/>
-    <Compile Include="Arm/ContainerInstance.fs"/>
-    <Compile Include="Arm/ContainerRegistry.fs"/>
-    <Compile Include="Arm/DBforPostgreSQL.fs"/>
-    <Compile Include="Arm/Devices.fs"/>
-    <Compile Include="Arm/DocumentDb.fs"/>
-    <Compile Include="Arm/EventHub.fs"/>
-    <Compile Include="Arm/Insights.fs"/>
-    <Compile Include="Arm/Network.fs"/>
-    <Compile Include="Arm/KeyVault.fs"/>
-    <Compile Include="Arm/Search.fs"/>
-    <Compile Include="Arm/ServiceBus.fs"/>
-    <Compile Include="Arm/Sql.fs"/>
-    <Compile Include="Arm/Storage.fs"/>
-    <Compile Include="Arm/Web.fs"/>
-    <Compile Include="Arm/Maps.fs"/>
+    <Compile Include="Arm/Cache.fs" />
+    <Compile Include="Arm/CognitiveServices.fs" />
+    <Compile Include="Arm/Compute.fs" />
+    <Compile Include="Arm/ContainerInstance.fs" />
+    <Compile Include="Arm/ContainerRegistry.fs" />
+    <Compile Include="Arm/DBforPostgreSQL.fs" />
+    <Compile Include="Arm/Devices.fs" />
+    <Compile Include="Arm/DocumentDb.fs" />
+    <Compile Include="Arm/EventHub.fs" />
+    <Compile Include="Arm/Insights.fs" />
+    <Compile Include="Arm/Network.fs" />
+    <Compile Include="Arm/KeyVault.fs" />
+    <Compile Include="Arm/Search.fs" />
+    <Compile Include="Arm/ServiceBus.fs" />
+    <Compile Include="Arm/Sql.fs" />
+    <Compile Include="Arm/Storage.fs" />
+    <Compile Include="Arm/Web.fs" />
+    <Compile Include="Arm/Maps.fs" />
+    <Compile Include="Arm/SignalR.fs" />
 
     <Compile Include="Builders/Builders.Helpers.fs" />
     <Compile Include="Builders/Builders.PostgreSQL.fs" />
@@ -89,6 +90,7 @@
     <Compile Include="Builders/Builders.ContainerRegistry.fs" />
     <Compile Include="Builders/Builders.ServiceBus.fs" />
     <Compile Include="Builders/Builders.IotHub.fs" />
-    <Compile Include="Builders\Builders.Maps.fs" />
+    <Compile Include="Builders/Builders.Maps.fs" />
+    <Compile Include="Builders/Builders.SignalR.fs" />
   </ItemGroup>
 </Project>

@@ -501,3 +501,6 @@ module IotHub =
 
 module Maps =
     type Sku = S0 | S1
+    
+module SignalR =
+    type Sku = Free | Standard
