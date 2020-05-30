@@ -14,7 +14,8 @@ Farmer's docs use [Hugo](https://gohugo.io/) and the
   *Note*: there is currently a problem with the newest version of Hugo and the 
   theme, so use version 0.68.3 of Hugo, otherwise you'll get a compilation error 
 * The theme is in a sub-module, so you'll also want to run 
-  `git submodule update --init`
+  `git submodule update --init` and then `cd docs/themes` followed by 
+  `git clone https://github.com/compositionalit/hugo-theme-learn.git`
 * To build, run `hugo --minify` from the `docs` folder. 
   To serve a local copy, run `hugo server`.
 
