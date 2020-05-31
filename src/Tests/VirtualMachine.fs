@@ -41,10 +41,10 @@ let tests = testList "Virtual Machine" [
         let deployment =
             arm {
                 add_resource
-                    (vm { name "isaac" })
+                    (vm { name "isaac"; username "foo" })
             }
         let template = deployment.Template |> Writer.TemplateGeneration.processTemplate
-        Expect.equal (template.parameters |> Map.toList |> List.head |> fst) "password-for-isaac" "Missing parameter"
+        Expect.isTrue (template.parameters.ContainsKey "password-for-isaac") "Missing parameter"
         Expect.equal template.parameters.Count 1 "Should only be one parameter"
     }
 ]

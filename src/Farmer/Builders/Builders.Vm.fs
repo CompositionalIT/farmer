@@ -22,15 +22,16 @@ type VmConfig =
       OsDisk : DiskInfo
       DataDisks : DiskInfo list
 
-      VNetName : ResourceRef
       DomainNamePrefix : string option
+
+      VNetName : ResourceRef
       AddressPrefix : string
       SubnetPrefix : string
+      SubnetName : ResourceName option
 
       DependsOn : ResourceName list }
 
     member this.NicName = makeResourceName this.Name "nic"
-    member this.SubnetName = makeResourceName this.Name "subnet"
     member this.IpName = makeResourceName this.Name "ip"
     member this.Hostname = sprintf "reference('%s').dnsSettings.fqdn" this.IpName.Value |> ArmExpression
 
@@ -63,11 +64,15 @@ type VmConfig =
                 this.VNetName.ResourceNameOpt
                 |> Option.defaultValue (makeResourceName this.Name "vnet")
 
+            let subnetName =
+                this.SubnetName
+                |> Option.defaultValue (makeResourceName this.Name "subnet")
+
             // NIC
             { Name = this.NicName
               Location = location
               IpConfigs = [
-                {| SubnetName = this.SubnetName
+                {| SubnetName = subnetName
                    PublicIpName = this.IpName |} ]
               VirtualNetwork = vnetName }
 
@@ -79,7 +84,7 @@ type VmConfig =
                   Location = location
                   AddressSpacePrefixes = [ this.AddressPrefix ]
                   Subnets = [
-                      {| Name = this.SubnetName
+                      {| Name = subnetName
                          Prefix = this.SubnetPrefix |}
                   ]
                 }
@@ -117,6 +122,7 @@ type VirtualMachineBuilder() =
           AddressPrefix = "10.0.0.0/16"
           SubnetPrefix = "10.0.0.0/24"
           VNetName = AutomaticPlaceholder
+          SubnetName = None//makeResourceName ResourceName.Empty "subnet"
           DependsOn = [] }
 
     member __.Run (state:VmConfig) =
@@ -184,10 +190,14 @@ type VirtualMachineBuilder() =
     /// Sets the subnet prefix of the VM.
     [<CustomOperation "subnet_prefix">]
     member __.SubnetPrefix(state:VmConfig, prefix) = { state with SubnetPrefix = prefix }
+    /// Sets the subnet name of the VM.
+    [<CustomOperation "subnet_name">]
+    member __.SubnetName(state:VmConfig, name) = { state with SubnetName = Some name }
+    member this.SubnetName(state:VmConfig, name) = this.SubnetName(state, ResourceName name)
     /// Uses an external VNet instead of creating a new one.
     [<CustomOperation "link_to_vnet">]
-    member __.VNetName(state:VmConfig, name) = { state with VNetName = External (ResourceName name)  }
-    member __.VNetName(state:VmConfig, vnet:Arm.Network.VirtualNetwork) = { state with VNetName = External vnet.Name  }
+    member __.VNetName(state:VmConfig, name) = { state with VNetName = External (ResourceName name) }
+    member __.VNetName(state:VmConfig, vnet:Arm.Network.VirtualNetwork) = { state with VNetName = External vnet.Name }
     [<CustomOperation "depends_on">]
     member __.DependsOn(state:VmConfig, resourceName) = { state with DependsOn = resourceName :: state.DependsOn }
     member __.DependsOn(state:VmConfig, resource:IBuilder) = { state with DependsOn = resource.DependencyName :: state.DependsOn }
