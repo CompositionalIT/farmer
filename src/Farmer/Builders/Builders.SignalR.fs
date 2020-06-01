@@ -1,11 +1,10 @@
 [<AutoOpen>]
 module Farmer.Builders.SignalR
 
-open System.Text.RegularExpressions
-open Farmer.CoreTypes
-open Farmer.SignalR
 open Farmer.Arm.SignalR
+open Farmer.CoreTypes
 open Farmer.Helpers
+open Farmer.SignalR
 
 type SignalRConfig =
     { Name : ResourceName
@@ -21,29 +20,32 @@ type SignalRConfig =
               Capacity = this.Capacity
               AllowedOrigins = this.AllowedOrigins }
         ]
-            
+    member this.Key =
+        sprintf "[listKeys(resourceId('Microsoft.SignalRService/SignalR', variables('%s')), providers('Microsoft.SignalRService','SignalR').apiVersions[0]).primaryConnectionString]" this.Name.Value
+        |> ArmExpression
+
 type SignalRBuilder() =
-    member this.Yield _ =
+    member _.Yield _ =
         { Name = ResourceName.Empty
           Sku = Free
           Capacity = None
           AllowedOrigins = [] }
-    member this.Run(state:SignalRConfig) =
+    member _.Run(state:SignalRConfig) =
         { state with Name = state.Name |> sanitiseSignalR |> ResourceName }
-        
+
     /// Sets the name of the Azure SignalR instance.
     [<CustomOperation("name")>]
-    member this.Name(state:SignalRConfig, name) = { state with Name = name }
+    member _.Name(state:SignalRConfig, name) = { state with Name = name }
     member this.Name(state:SignalRConfig, name) = this.Name(state, ResourceName name)
     /// Sets the SKU of the Azure SignalR instance.
     [<CustomOperation("sku")>]
-    member this.Sku(state:SignalRConfig, sku) = { state with Sku = sku }
+    member _.Sku(state:SignalRConfig, sku) = { state with Sku = sku }
     /// Sets the capacity of the Azure SignalR instance.
     [<CustomOperation("capacity")>]
-    member this.Capacity(state:SignalRConfig, capacity) = { state with Capacity = Some capacity }
+    member _.Capacity(state:SignalRConfig, capacity) = { state with Capacity = Some capacity }
     /// Sets the allowed origins of the Azure SignalR instance.
     [<CustomOperation("allowed_origins")>]
-    member this.AllowedOrigins(state:SignalRConfig, allowedOrigins) = { state with AllowedOrigins = allowedOrigins}
+    member _.AllowedOrigins(state:SignalRConfig, allowedOrigins) = { state with AllowedOrigins = allowedOrigins}
 
 let signalR = SignalRBuilder()
-    
+
