@@ -1,5 +1,5 @@
 [<AutoOpen>]
-module Farmer.Arm.SignalR
+module Farmer.Arm.SignalRService
 
 open Farmer
 open Farmer.CoreTypes
