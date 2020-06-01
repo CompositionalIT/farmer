@@ -18,6 +18,12 @@ The SignalR builder creates SignalR services.
 | capacity | Sets the capacity of the SignalR service. (optional) |
 | allowed_origins | Sets the allowed origins of the SignalR service. (optional) |
 
+#### Configuration Members
+
+| Member | Purpose |
+|-|-|
+| Key | Returns an ARM expression to retrieve the primary connection string of the service. Useful for e.g. supplying the connection string to another resource e.g. KeyVault or an app setting in the App Service. |
+
 #### Example
 
 ```fsharp
