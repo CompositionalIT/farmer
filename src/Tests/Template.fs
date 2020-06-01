@@ -104,7 +104,7 @@ let tests = testList "Template" [
 
     test "Secure parameter is correctly added" {
         let template = arm {
-            add_resource (vm { name "isaacvm" })
+            add_resource (vm { name "isaacvm"; username "foo" })
         }
         Expect.sequenceEqual template.Template.Parameters [ SecureParameter "password-for-isaacvm" ] "Missing parameter for VM."
     }
