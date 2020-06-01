@@ -92,14 +92,14 @@ type SqlBuilder() =
                 match state.ServerName with
                 | External name -> External(name |> Helpers.sanitiseDb |> ResourceName)
                 | AutomaticallyCreated name -> AutomaticallyCreated(name |> Helpers.sanitiseDb |> ResourceName)
-                | AutomaticPlaceholder -> failwith "You must specific a server name, or link to an existing server."
+                | AutomaticPlaceholder -> failwith "You must specify a server name, or link to an existing server."
             Name = state.Name |> Helpers.sanitiseDb |> ResourceName
             AdministratorCredentials =
                 match state.ServerName with
                 | External _ -> state.AdministratorCredentials
                 | AutomaticallyCreated _
                 | AutomaticPlaceholder ->
-                    if System.String.IsNullOrWhiteSpace state.AdministratorCredentials.UserName then failwith "You must specific an admin_username."
+                    if System.String.IsNullOrWhiteSpace state.AdministratorCredentials.UserName then failwith "You must specify an admin_username."
                     {| state.AdministratorCredentials with
                         Password = SecureParameter (sprintf "password-for-%s" state.ServerName.ResourceName.Value) |} }
     [<CustomOperation "server_name">]
