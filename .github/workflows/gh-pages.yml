@@ -3,6 +3,7 @@ name: gh-pages
 on:
   push:
     branches: [master]
+    paths: 'docs/**'
 
 jobs:
   deploy:
