@@ -2,6 +2,7 @@ module Program
 
 open Expecto
 open System
+open Farmer
 
 [<Tests>]
 let allTests =
@@ -18,6 +19,7 @@ let allTests =
                 PostgreSQL.tests
                 Cosmos.tests
                 Maps.tests
+                SignalR.tests
             ]
             testList "Control" [
                 Template.tests
