@@ -354,3 +354,6 @@ MigrationBackup/
 
 .farmer
 **/.DS_Store
+hugo.exe
+public
+docs/public
