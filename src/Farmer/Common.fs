@@ -339,6 +339,8 @@ module Search =
         | StorageOptimisedL2
 
 module Sql =
+    [<Measure>]
+    type DTU
     type DbSku =
         | Free
         | Basic
@@ -501,6 +503,6 @@ module IotHub =
 
 module Maps =
     type Sku = S0 | S1
-    
+
 module SignalR =
     type Sku = Free | Standard

@@ -20,6 +20,8 @@ type Server =
       ElasticPool :
         {| Name : ResourceName
            Sku : PoolSku
+           MinMax : (int<DTU> * int<DTU>) option
+           MaxSizeBytes : int64 option
         |} option
       FirewallRules :
         {| Name : string
@@ -46,7 +48,13 @@ type Server =
                         box
                             {| ``type`` = "elasticPools"
                                name = pool.Name.Value
-                               properties = {| |}
+                               properties =
+                                {| maxSizeBytes = pool.MaxSizeBytes |> Option.toNullable
+                                   perDatabaseSettings =
+                                    match pool.MinMax with
+                                    | Some (min, max) -> box {| minCapacity = min; maxCapacity = max |}
+                                    | None -> null
+                                |}
                                apiVersion = "2017-10-01-preview"
                                location = this.Location.ArmValue
                                sku = {| name = pool.Sku.Name; tier = pool.Sku.Edition; size = string pool.Sku.Capacity |}

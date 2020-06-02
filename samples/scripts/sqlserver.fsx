@@ -8,6 +8,8 @@ let myDatabases = sqlServer {
     name "isaac_super_server"
     admin_username "admin_username"
     enable_azure_firewall
+    elastic_pool_database_min_max 0<Sql.DTU> 5<Sql.DTU>
+    elastic_pool_capacity 5000<Mb>
     add_databases [
         sqlDb { name "poolDb1" }
         sqlDb { name "poolDb2" }

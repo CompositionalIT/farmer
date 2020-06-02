@@ -17,7 +17,10 @@ type SqlAzureConfig =
     { Name : ResourceName
       AdministratorCredentials : {| UserName : string; Password : SecureParameter |}
       FirewallRules : {| Name : string; Start : IPAddress; End : IPAddress |} list
-      ElasticPoolSku : PoolSku
+      ElasticPoolSettings :
+        {| Sku : PoolSku
+           PerDbLimits : {| Min: int<DTU>; Max : int<DTU> |} option
+           Capacity : int<Mb> option |}
       Databases : SqlAzureDbConfig list }
     /// Gets a basic .NET connection string using the administrator username / password.
     member this.ConnectionString (database:SqlAzureDbConfig) =
@@ -34,6 +37,7 @@ type SqlAzureConfig =
         |> List.tryFind(fun db -> db.Name = databaseName)
         |> Option.map this.ConnectionString
         |> Option.defaultWith(fun _ -> failwithf "Unknown database name %s" databaseName.Value)
+    member this.ConnectionString databaseName = this.ConnectionString (ResourceName databaseName)
 
     interface IBuilder with
         member this.DependencyName = this.Name
@@ -47,7 +51,11 @@ type SqlAzureConfig =
               FirewallRules = this.FirewallRules
               ElasticPool =
                 if this.Databases |> List.forall(fun db -> db.Sku.IsSome) then None
-                else Some {| Name = elasticPoolName; Sku = this.ElasticPoolSku |}
+                else
+                    Some {| Name = elasticPoolName
+                            Sku = this.ElasticPoolSettings.Sku
+                            MaxSizeBytes = this.ElasticPoolSettings.Capacity |> Option.map(fun mb -> int64 mb * 1024L * 1024L)
+                            MinMax = this.ElasticPoolSettings.PerDbLimits |> Option.map(fun l -> l.Min, l.Max) |}
               Databases = [
                   for database in this.Databases do
                     {| Name = database.Name
@@ -85,12 +93,15 @@ type SqlDbBuilder() =
         if state.Name = ResourceName.Empty then failwith "You must set a database name."
         state
 
-type SqlBuilder() =
+type SqlServerBuilder() =
     let makeIp = IPAddress.Parse
     member __.Yield _ =
         { Name = ResourceName ""
           AdministratorCredentials = {| UserName = ""; Password = SecureParameter "" |}
-          ElasticPoolSku = PoolSku.Basic50
+          ElasticPoolSettings =
+            {| Sku = PoolSku.Basic50
+               PerDbLimits = None
+               Capacity = None |}
           Databases = []
           FirewallRules = [] }
     member __.Run(state) =
@@ -106,9 +117,17 @@ type SqlBuilder() =
     member this.ServerName(state:SqlAzureConfig, serverName:string) = this.ServerName(state, ResourceName serverName)
     /// Sets the sku of the server, to be shared on all databases that do not have an explicit sku set.
     [<CustomOperation "elastic_pool_sku">]
-    member __.Sku(state:SqlAzureConfig, sku) = { state with ElasticPoolSku = sku }
+    member __.Sku(state:SqlAzureConfig, sku) = { state with ElasticPoolSettings = {| state.ElasticPoolSettings with Sku = sku |} }
+    /// The per-database min and max DTUs to allocate.
+    [<CustomOperation "elastic_pool_database_min_max">]
+    member __.PerDbLimits(state:SqlAzureConfig, min, max) = { state with ElasticPoolSettings = {| state.ElasticPoolSettings with PerDbLimits = Some {| Min = min; Max = max |} |} }
+    /// The per-database min and max DTUs to allocate.
+    [<CustomOperation "elastic_pool_capacity">]
+    member __.PoolCapacity(state:SqlAzureConfig, capacity) = { state with ElasticPoolSettings = {| state.ElasticPoolSettings with Capacity = Some capacity |} }
+    /// The per-database min and max DTUs to allocate.
     [<CustomOperation "add_databases">]
     member _.AddDatabases(state:SqlAzureConfig, databases) = { state with Databases = state.Databases @ databases }
+    /// Adds a firewall rule that enables access to a specific IP Address range.
     [<CustomOperation "add_firewall_rule">]
     member __.AddFirewallWall(state:SqlAzureConfig, name, startRange, endRange) =
         { state with
@@ -137,5 +156,7 @@ type FunctionsBuilder with
     member this.DependsOn(state:FunctionsConfig, sqlDb:SqlAzureConfig) =
         this.DependsOn(state, sqlDb.Name)
 
-let sqlServer = SqlBuilder()
+let sqlServer = SqlServerBuilder()
 let sqlDb = SqlDbBuilder()
+
+// 5242880000L / 1024L / 1024L
