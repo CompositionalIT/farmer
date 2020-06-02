@@ -2,7 +2,7 @@
   <PropertyGroup>
     <!-- General -->
     <AssemblyName>Farmer</AssemblyName>
-    <Version>0.14.0</Version>
+    <Version>0.15.0</Version>
     <Description>A DSL for rapidly generating non-complex ARM templates.</Description>
     <Copyright>Copyright 2019, 2020 Compositional IT Ltd.</Copyright>
     <Company>Compositional IT</Company>
@@ -16,7 +16,7 @@
 
     <!-- NuGet Pack settings -->
     <PackageId>Farmer</PackageId>
-    <Icon>LogoSmall.jpg</Icon>
+    <PackageIcon>Icon.jpg</PackageIcon>
     <PackageTags>azure;resource-manager;template;dsl;fsharp;infrastructure-as-code</PackageTags>
     <PackageReleaseNotes>https://raw.githubusercontent.com/CompositionalIT/farmer/master/RELEASE_NOTES.md</PackageReleaseNotes>
     <PackageProjectUrl>https://compositionalit.github.io/farmer</PackageProjectUrl>
@@ -36,7 +36,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="../../LogoSmall.jpg">
+    <None Include="../../Icon.jpg">
       <Pack>true</Pack>
       <PackagePath>$(PackageIconUrl)</PackagePath>
     </None>

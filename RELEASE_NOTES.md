@@ -1,5 +1,17 @@
 Release Notes
 =============
+## 0.15.0
+* Improvements to PostgreSQL
+* Unique Key support in CosmosDB
+* Azure Maps support
+* Service Bus topic support
+* SignalR support
+* Elastic Pool SQL Azure support
+* More tests
+* Better VNet and Subnet support in VMs
+* Make any Builder a dependency
+* Respect HTTPSOnly flag in Functions
+
 ## 0.14.0
 * Support for extensible plugin-model
 * Express Route support
