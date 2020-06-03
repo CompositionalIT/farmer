@@ -18,7 +18,8 @@ type SqlAzureConfig =
       AdministratorCredentials : {| UserName : string; Password : SecureParameter |}
       FirewallRules : {| Name : string; Start : IPAddress; End : IPAddress |} list
       ElasticPoolSettings :
-        {| Sku : PoolSku
+        {| Name : ResourceName option
+           Sku : PoolSku
            PerDbLimits : {| Min: int<DTU>; Max : int<DTU> |} option
            Capacity : int<Mb> option |}
       Databases : SqlAzureDbConfig list }
@@ -42,7 +43,10 @@ type SqlAzureConfig =
     interface IBuilder with
         member this.DependencyName = this.Name
         member this.BuildResources location resources = [
-            let elasticPoolName = this.Name.Map (sprintf "%s-pool")
+            let elasticPoolName =
+                this.ElasticPoolSettings.Name
+                |> Option.defaultValue (this.Name.Map (sprintf "%s-pool"))
+
             { ServerName = this.Name
               Location = location
               Credentials =
@@ -99,31 +103,38 @@ type SqlServerBuilder() =
         { Name = ResourceName ""
           AdministratorCredentials = {| UserName = ""; Password = SecureParameter "" |}
           ElasticPoolSettings =
-            {| Sku = PoolSku.Basic50
+            {| Name = None
+               Sku = PoolSku.Basic50
                PerDbLimits = None
                Capacity = None |}
           Databases = []
           FirewallRules = [] }
     member __.Run(state) =
         { state with
-            Name = state.Name |> Helpers.sanitiseDb |> ResourceName
+            Name =
+                if state.Name = ResourceName.Empty then failwith "You must set a server name"
+                else state.Name |> Helpers.sanitiseDb |> ResourceName
             AdministratorCredentials =
                 if System.String.IsNullOrWhiteSpace state.AdministratorCredentials.UserName then failwith "You must specify an admin_username."
                 {| state.AdministratorCredentials with
                     Password = SecureParameter (sprintf "password-for-%s" state.Name.Value) |} }
     /// Sets the name of the SQL server.
     [<CustomOperation "name">]
-    member __.ServerName(state:SqlAzureConfig, serverName) = { state with Name = serverName }
+    member _.ServerName(state:SqlAzureConfig, serverName) = { state with Name = serverName }
     member this.ServerName(state:SqlAzureConfig, serverName:string) = this.ServerName(state, ResourceName serverName)
+    /// Sets the name of the elastic pool. If not set, the name will be generated based off the server name.
+    [<CustomOperation "elastic_pool_name">]
+    member _.Name(state:SqlAzureConfig, name) = { state with ElasticPoolSettings = {| state.ElasticPoolSettings with Name = Some name |} }
+    member this.Name(state, name) = this.Name(state, ResourceName name)
     /// Sets the sku of the server, to be shared on all databases that do not have an explicit sku set.
     [<CustomOperation "elastic_pool_sku">]
-    member __.Sku(state:SqlAzureConfig, sku) = { state with ElasticPoolSettings = {| state.ElasticPoolSettings with Sku = sku |} }
+    member _.Sku(state:SqlAzureConfig, sku) = { state with ElasticPoolSettings = {| state.ElasticPoolSettings with Sku = sku |} }
     /// The per-database min and max DTUs to allocate.
     [<CustomOperation "elastic_pool_database_min_max">]
-    member __.PerDbLimits(state:SqlAzureConfig, min, max) = { state with ElasticPoolSettings = {| state.ElasticPoolSettings with PerDbLimits = Some {| Min = min; Max = max |} |} }
+    member _.PerDbLimits(state:SqlAzureConfig, min, max) = { state with ElasticPoolSettings = {| state.ElasticPoolSettings with PerDbLimits = Some {| Min = min; Max = max |} |} }
     /// The per-database min and max DTUs to allocate.
     [<CustomOperation "elastic_pool_capacity">]
-    member __.PoolCapacity(state:SqlAzureConfig, capacity) = { state with ElasticPoolSettings = {| state.ElasticPoolSettings with Capacity = Some capacity |} }
+    member _.PoolCapacity(state:SqlAzureConfig, capacity) = { state with ElasticPoolSettings = {| state.ElasticPoolSettings with Capacity = Some capacity |} }
     /// The per-database min and max DTUs to allocate.
     [<CustomOperation "add_databases">]
     member _.AddDatabases(state:SqlAzureConfig, databases) = { state with Databases = state.Databases @ databases }
@@ -158,5 +169,3 @@ type FunctionsBuilder with
 
 let sqlServer = SqlServerBuilder()
 let sqlDb = SqlDbBuilder()
-
-// 5242880000L / 1024L / 1024L
