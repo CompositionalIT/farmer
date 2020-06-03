@@ -22,7 +22,7 @@ The SQL Azure module contains two builders - `sqlServer`, used to create SQL Azu
 | elastic_pool_database_min_max | Sets the optional minimum and maximum DTUs for the elastic pool for each database. |
 | elastic_pool_capacity | Sets the optional disk size in MB for the elastic pool for each database. |
 
-##### Configuration Members
+#### SQL Server Configuration Members
 | Member | Purpose |
 |-|-|
 | ConnectionString | Gets a literal .NET connection string using the administrator username / password, given a database or database name. The password will be evaluated based on the contents of the password parameter supplied to the template at deploy time. |
