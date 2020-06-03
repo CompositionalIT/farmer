@@ -8,7 +8,7 @@ draft: false
 
 ### Making repeatable Azure deployments easy!
 
-Farmer is a DSL for rapidly generating non-complex ARM templates in a type-safe manner.
+Farmer is an easy-to-learn DSL for rapidly generating non-complex ARM templates in a type-safe manner.
 
 ### Main Features
 * **Create ARM templates quickly and easily** through a simple, strongly-typed and pragmatic DSL.
