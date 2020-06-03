@@ -20,6 +20,8 @@ type Server =
       ElasticPool :
         {| Name : ResourceName
            Sku : PoolSku
+           MinMax : (int<DTU> * int<DTU>) option
+           MaxSizeBytes : int64 option
         |} option
       FirewallRules :
         {| Name : string
@@ -46,6 +48,13 @@ type Server =
                         box
                             {| ``type`` = "elasticPools"
                                name = pool.Name.Value
+                               properties =
+                                {| maxSizeBytes = pool.MaxSizeBytes |> Option.toNullable
+                                   perDatabaseSettings =
+                                    match pool.MinMax with
+                                    | Some (min, max) -> box {| minCapacity = min; maxCapacity = max |}
+                                    | None -> null
+                                |}
                                apiVersion = "2017-10-01-preview"
                                location = this.Location.ArmValue
                                sku = {| name = pool.Sku.Name; tier = pool.Sku.Edition; size = string pool.Sku.Capacity |}
@@ -72,9 +81,9 @@ type Server =
                                      | Pool pool -> sprintf "[resourceId('Microsoft.Sql/servers/elasticPools', '%s', '%s')]" this.ServerName.Value pool.Value |}
                                dependsOn =
                                  [ this.ServerName.Value
-                                   match this.ElasticPool with
-                                   | Some pool -> pool.Name.Value
-                                   | None -> ()
+                                   match database.Sku with
+                                   | Standalone _ -> ()
+                                   | Pool poolName -> poolName.Value
                                  ]
                                resources = [
                                    match database.TransparentDataEncryption with
