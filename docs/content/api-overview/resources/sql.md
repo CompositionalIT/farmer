@@ -6,46 +6,60 @@ chapter: false
 ---
 
 #### Overview
-The SQL Azure builder is used to called SQL Azure servers and databases. It supports features such as encryption and firewalls. Every SQL Azure server you create will automatically create a SecureString parameter for the admin account password.
-If you wish to create a SQL Database attached to an existing server, use the `link_to_server` keyword and supply the resource name of the existing server.
+The SQL Azure module contains two builders - `sqlServer`, used to create SQL Azure servers, and `sqlDb`, used to create individual databases. It supports features such as encryption, firewalls and automatic pool creation. Every SQL Azure server you create will automatically create a SecureString parameter for the admin account password.
 
 * SQL Azure server (`Microsoft.Sql/servers`)
 
-#### Builder Keywords
-| Applies To | Keyword | Purpose |
-|-|-|-|
-| Database | name | Sets the name of the database. |
-| Database | sku | Sets the sku of the database. |
-| Database | collation | Sets the collation of the database. |
-| Database | use_encryption | Enables transparent data encryption of the database. |
-| Database | link_to_server | Links this database to an existing SQL Azure server instead of creating a new one. |
-| Server | server_name | Sets the name of the SQL server. |
-| Server | add_firewall_rule | Adds a custom firewall rule given a name, start and end IP address range. |
-| Server | enable_azure_firewall | Adds a firewall rule that enables access to other Azure services. |
-| Server | admin_username | Sets the admin username of the server. |
+#### SQL Server Builder Keywords
+| Keyword | Purpose |
+|-|-|
+| server_name | Sets the name of the SQL server. |
+| add_firewall_rule | Adds a custom firewall rule given a name, start and end IP address range. |
+| enable_azure_firewall | Adds a firewall rule that enables access to other Azure services. |
+| admin_username | Sets the admin username of the server. |
+| elastic_pool_name | Sets the name of the elastic pool, if required. If not set, Farmer will generate a name for you. |
+| elastic_pool_sku | Sets the sku of the elastic pool, if required. If not set, Farmer will default to Basic 50. |
+| elastic_pool_database_min_max | Sets the optional minimum and maximum DTUs for the elastic pool for each database. |
+| elastic_pool_capacity | Sets the optional disk size in MB for the elastic pool for each database. |
 
-#### Configuration Members
+##### Configuration Members
 | Member | Purpose |
 |-|-|
-| FullyQualifiedDomainName | Gets the ARM expression path to the FQDN of this SQL instance. |
-| ConnectionString | Gets a literal .NET connection string using the administrator username / password. The password will be evaluated based on the contents of the password parameter supplied to the template at deploy time. |
+| ConnectionString | Gets a literal .NET connection string using the administrator username / password, given a database or database name. The password will be evaluated based on the contents of the password parameter supplied to the template at deploy time. |
+
+#### SQL Database Builder Keywords
+
+| Keyword | Purpose |
+|-|-|
+| name | Sets the name of the database. |
+| sku | Sets the sku of the database. If not set, the database is assumed to be part of an elastic pool which will be automatically created. |
+| collation | Sets the collation of the database. |
+| use_encryption | Enables transparent data encryption of the database. |
 
 #### Example
 ```fsharp
 open Farmer
 open Farmer.Builders
+open Sql
 
-let sqlDb = sql {
-    name "my_db"
-    server_name "my_server"
+let myDatabases = sqlServer {
+    name "my_server"
     admin_username "admin_username"
-    sku Sql.Free
     enable_azure_firewall
+
+    elastic_pool_name "mypool"
+    elastic_pool_sku PoolSku.Basic100
+
+    add_databases [
+        sqlDb { name "poolDb1" }
+        sqlDb { name "poolDb2" }
+        sqlDb { name "standaloneDb1"; sku DbSku.Basic }
+    ]
 }
 
 let template = arm {
     location Location.NorthEurope
-    add_resource sqlDb
+    add_resource myDatabases
 }
 
 template
