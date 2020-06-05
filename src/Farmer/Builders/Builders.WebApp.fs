@@ -66,6 +66,8 @@ type WebAppConfig =
     { Name : ResourceName
       ServicePlanName : ResourceRef
       HTTPSOnly : bool
+      HTTP20Enabled : bool option
+      ClientAffinityEnabled : bool option
       AppInsightsName : ResourceRef option
       OperatingSystem : OS
       Settings : Map<string, string>
@@ -97,6 +99,8 @@ type WebAppConfig =
                   Location = location
                   ServicePlan = this.ServicePlanName.ResourceName
                   HTTPSOnly = this.HTTPSOnly
+                  HTTP20Enabled = this.HTTP20Enabled
+                  ClientAffinityEnabled = this.ClientAffinityEnabled
                   AppSettings = [
                     yield! this.Settings |> Map.toList
                     if this.RunFromPackage then AppSettings.RunFromPackage
@@ -257,6 +261,8 @@ type WebAppBuilder() =
           WebsiteNodeDefaultVersion = None
           AlwaysOn = false
           HTTPSOnly = false
+          HTTP20Enabled = None
+          ClientAffinityEnabled = None
           Settings = Map.empty
           Dependencies = []
           Runtime = WebAppRuntime.DotNetCoreLts
@@ -350,6 +356,12 @@ type WebAppBuilder() =
     /// Disables http for this webapp so that only https is used.
     [<CustomOperation "https_only">]
     member __.HttpsOnly(state:WebAppConfig) = { state with HTTPSOnly = true }
+    /// Enables HTTP 2.0 for this webapp.
+    [<CustomOperation "enable_http2">]
+    member __.Http20Enabled(state:WebAppConfig) = { state with HTTP20Enabled = Some true }
+    /// Disables client affinity for this webapp.
+    [<CustomOperation "disable_client_affinity">]
+    member __.ClientAffinityEnabled(state:WebAppConfig) = { state with ClientAffinityEnabled = Some false }
     /// Sets the runtime stack
     [<CustomOperation "runtime_stack">]
     member __.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = runtime }

@@ -91,6 +91,8 @@ type FunctionsConfig =
               ]
               AlwaysOn = false
               HTTPSOnly = this.HTTPSOnly
+              HTTP20Enabled = None
+              ClientAffinityEnabled = None
               LinuxFxVersion = None
               NetFrameworkVersion = None
               JavaVersion = None
