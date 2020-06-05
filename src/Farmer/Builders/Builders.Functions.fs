@@ -93,6 +93,7 @@ type FunctionsConfig =
               HTTPSOnly = this.HTTPSOnly
               HTTP20Enabled = None
               ClientAffinityEnabled = None
+              WebSocketsEnabled = None
               LinuxFxVersion = None
               NetFrameworkVersion = None
               JavaVersion = None
