@@ -33,6 +33,10 @@ type ContainerGroup =
                apiVersion = "2018-10-01"
                name = this.Name.Value
                location = this.Location.ArmValue
+               dependsOn =
+                   match this.NetworkProfile with
+                   | None -> []
+                   | Some networkProfile -> [ networkProfile.Value ]
                properties =
                    {| containers =
                        this.ContainerInstances
@@ -61,5 +65,6 @@ type ContainerGroup =
                                    Port = port.Port |}
                            ]
                         |}
+                      networkProfile = this.NetworkProfile |> Option.map (fun networkProfile -> {| id = sprintf "[resourceId('Microsoft.Network/networkProfiles','%s')]" networkProfile.Value |})
                    |}
             |} :> _

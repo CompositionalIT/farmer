@@ -79,6 +79,40 @@ type NetworkInterface =
                             |})
                    |}
             |} :> _
+type NetworkProfile =
+    { Name : ResourceName
+      Location : Location
+      ContainerNetworkInterfaceConfigurations :
+        {| IpConfigs :
+            {| SubnetName : ResourceName |} list
+        |} list
+      VirtualNetwork : ResourceName }
+    interface IArmResource with
+        member this.ResourceName = this.Name
+        member this.JsonModel =
+            {| ``type`` = "Microsoft.Network/networkProfiles"
+               apiVersion = "2020-04-01"
+               name = this.Name.Value
+               location = this.Location.ArmValue
+               dependsOn = [ this.VirtualNetwork.Value ]
+               properties =
+                   {| containerNetworkInterfaceConfigurations =
+                       this.ContainerNetworkInterfaceConfigurations
+                       |> List.mapi (fun index containerIfConfig ->
+                           {| name = sprintf "eth%i" index
+                              properties =
+                                {| ipConfigurations =
+                                   containerIfConfig.IpConfigs
+                                   |> List.mapi (fun index ipConfig ->
+                                      {| name = sprintf "ipconfig%i" (index + 1)
+                                         properties =
+                                            {| subnet = {| id = sprintf "[resourceId('Microsoft.Network/virtualNetworks/subnets', '%s', '%s')]" this.VirtualNetwork.Value ipConfig.SubnetName.Value |} |}
+                                      |})
+                                |}
+                           |}
+                       )
+                   |}
+            |} :> _
 type ExpressRouteCircuit =
     { Name : ResourceName
       Location : Location
