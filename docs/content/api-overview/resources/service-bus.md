@@ -38,24 +38,25 @@ The Service Bus builder creates service bus namespaces and their associated queu
 ```fsharp
 open Farmer
 open Farmer.Builders
+open Farmer.ServiceBus
 
-let queueA = serviceBus {
-    name "queueA"
-
-    namespace_name "allQueues"
-    sku ServiceBus.Standard
-}
-
-let queueB = serviceBus {
-    name "queueB"
-    link_to_namespace queueA
+let myServiceBus = serviceBus {
+    name "my-namespace"
+    sku Standard
+    add_queues [
+        queue { name "queueA" }
+        queue { name "queueB" }
+    ]
+    add_topics [
+        topic { name "topicA" }
+        topic { name "topicB" }
+    ]
 }
 
 let deployment = arm {
     location Location.NorthEurope
-    add_resource queueA
-    add_resource queueB
-    output "connection-string-queue-a" queueA.NamespaceDefaultConnectionString
-    output "primary-key-queue-b" queueB.DefaultSharedAccessPolicyPrimaryKey
+    add_resource myServiceBus
+    output "connectionString" myServiceBus.NamespaceDefaultConnectionString
+    output "defaultSharedAccessPolicyPrimaryKey" myServiceBus.DefaultSharedAccessPolicyPrimaryKey
 }
 ```
