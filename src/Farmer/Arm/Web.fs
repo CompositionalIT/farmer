@@ -109,6 +109,9 @@ type Sites =
       AppSettings : List<string * string>
       AlwaysOn : bool
       HTTPSOnly : bool
+      HTTP20Enabled : bool option
+      ClientAffinityEnabled : bool option
+      WebSocketsEnabled : bool option
       Dependencies : ResourceName list
       Kind : string
       LinuxFxVersion : string option
@@ -148,6 +151,7 @@ type Sites =
                properties =
                    {| serverFarmId = this.ServicePlan.Value
                       httpsOnly = this.HTTPSOnly
+                      clientAffinityEnabled = match this.ClientAffinityEnabled with Some v -> box v | None -> null
                       siteConfig =
                            [ "alwaysOn", box this.AlwaysOn
                              "appSettings", this.AppSettings |> List.map(fun (k,v) -> {| name = k; value = v |}) |> box
@@ -159,6 +163,8 @@ type Sites =
                              match this.JavaContainerVersion with Some v -> "javaContainerVersion", box v | None -> ()
                              match this.PhpVersion with Some v -> "phpVersion", box v | None -> ()
                              match this.PythonVersion with Some v -> "pythonVersion", box v | None -> ()
+                             match this.HTTP20Enabled with Some v -> "http20Enabled", box v | None -> ()
+                             match this.WebSocketsEnabled with Some v -> "webSocketsEnabled", box v | None -> ()
                              "metadata", this.Metadata |> List.map(fun (k,v) -> {| name = k; value = v |}) |> box ]
                            |> Map.ofList
                     |}
