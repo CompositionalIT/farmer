@@ -23,7 +23,8 @@ type ContainerGroup =
            Memory : float<Gb> |} list
       OsType : string
       RestartPolicy : RestartPolicy
-      IpAddress : ContainerGroupIpAddress }
+      IpAddress : ContainerGroupIpAddress
+      NetworkProfile : ResourceName option }
 
     interface IArmResource with
         member this.ResourceName = this.Name

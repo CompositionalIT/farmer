@@ -26,7 +26,9 @@ type ContainerConfig =
       /// Restart policy for the container group.
       RestartPolicy : RestartPolicy
       /// IP address for the container group.
-      IpAddress : ContainerGroupIpAddress }
+      IpAddress : ContainerGroupIpAddress
+      /// Name of the network profile for this container's group.
+      NetworkProfile : ResourceName option }
 
     member this.Key = buildKey this.Name
     /// Gets the ARM expression path to the key of this container group.
@@ -49,7 +51,9 @@ type ContainerConfig =
                   ContainerInstances = [ container ]
                   OsType = this.OsType.ToString()
                   RestartPolicy = this.RestartPolicy
-                  IpAddress = this.IpAddress }
+                  IpAddress = this.IpAddress
+                  NetworkProfile = None
+                }
             | External containerGroupName ->
                 existingResources
                 |> Helpers.mergeResource containerGroupName (fun group -> { group with ContainerInstances = group.ContainerInstances @ [ container ] })
@@ -67,7 +71,8 @@ type ContainerBuilder() =
         ContainerGroupName = AutomaticPlaceholder
         OsType = Linux
         RestartPolicy = Always
-        IpAddress = { Type = PublicAddress; Ports = [] } }
+        IpAddress = { Type = PublicAddress; Ports = [] }
+        NetworkProfile = None }
     member __.Run state =
         { state with
             ContainerGroupName =
@@ -106,6 +111,9 @@ type ContainerBuilder() =
     /// Sets the IP addresss (default Public)
     [<CustomOperation "ip_address">]
     member __.IpAddress(state:ContainerConfig, addressType, ports) = { state with IpAddress = { Type = addressType; Ports = ports |> Seq.map(fun (prot, port) -> {| Protocol = prot; Port = port |}) |> Seq.toList } }
+    /// Sets a network profile for the container's group.
+    [<CustomOperation "network_profile">]
+    member __.NetworkPolicy(state:ContainerConfig, networkProfileName:string) = { state with NetworkProfile = Some (ResourceName networkProfileName) }
     /// Adds a TCP port to be externally accessible
     [<CustomOperation "add_tcp_port">]
     member __.AddTcpPort(state:ContainerConfig, port) = { state with IpAddress = { state.IpAddress with Ports = {| Protocol= TCP; Port = port |} :: state.IpAddress.Ports } }
@@ -113,3 +121,37 @@ type ContainerBuilder() =
     [<CustomOperation "add_udp_port">]
     member __.AddUdpPort(state:ContainerConfig, port) = { state with IpAddress = { state.IpAddress with Ports = {| Protocol= UDP; Port = port |} :: state.IpAddress.Ports } }
 let container = ContainerBuilder()
+
+type ContainerNetworkInterfaceIpConfig =
+    {
+        Subnet : string
+    }
+type ContainerNetworkInterfaceConfiguration =
+    {
+        IpConfigs : ContainerNetworkInterfaceIpConfig list
+    }
+type NetworkProfileConfig =
+    {
+        Name : ResourceName
+        ContainerNetworkInterfaceConfigurations : ContainerNetworkInterfaceConfiguration list
+        VirtualNetwork : ResourceName
+    }
+type NetworkProfileBuilder() =
+    member __.Yield _ =
+      { Name = ResourceName.Empty
+        ContainerNetworkInterfaceConfigurations = []
+        VirtualNetwork = ResourceName.Empty }
+    /// Sets the name of the network profile instance
+    [<CustomOperation "name">]
+    member __.Name(state:NetworkProfileConfig, name) = { state with Name = ResourceName name }
+    /// Sets a single target subnet for the network profile (typical case of single subnet)
+    [<CustomOperation "subnet">]
+    member __.SubnetName(state:NetworkProfileConfig, subnet) = { state with ContainerNetworkInterfaceConfigurations = [ { IpConfigs = [ { Subnet = subnet } ] } ] }
+    /// Sets a single target subnet for the network profile (typical case of single subnet)
+    [<CustomOperation "add_ip_configs">]
+    member __.AddIpConfigs(state:NetworkProfileConfig, configs) = { state with ContainerNetworkInterfaceConfigurations = configs }
+    /// Sets the virtual network for the profile
+    [<CustomOperation "vnet">]
+    member __.VirtualNetwork(state:NetworkProfileConfig, vnet) = { state with VirtualNetwork = ResourceName vnet }
+
+let networkProfile = NetworkProfileBuilder ()
