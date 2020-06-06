@@ -29,7 +29,7 @@ type VirtualNetwork =
     { Name : ResourceName
       Location : Location
       AddressSpacePrefixes : string list
-      Subnets : {| Name : ResourceName; Prefix : string |} list }
+      Subnets : {| Name : ResourceName; Prefix : string; Delegations: {| Name: ResourceName; ServiceName: string |} list |} list; }
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
@@ -43,7 +43,14 @@ type VirtualNetwork =
                         this.Subnets
                         |> List.map(fun subnet ->
                            {| name = subnet.Name.Value
-                              properties = {| addressPrefix = subnet.Prefix |}
+                              properties =
+                                  {| addressPrefix = subnet.Prefix
+                                     delegations = subnet.Delegations
+                                     |> List.map (fun delegation ->
+                                         {| name = delegation.Name.Value
+                                            properties = {| serviceName = delegation.ServiceName |}
+                                         |})
+                                  |}
                            |})
                     |}
             |} :> _
