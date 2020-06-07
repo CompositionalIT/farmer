@@ -43,6 +43,7 @@ let myContainer = container {
     name "container1"
     image "aci-hello-world"
     network_profile "vnet-aci-profile"
+    ip_address (ContainerGroup.PrivateAddressWithIp (System.Net.IPAddress.Parse "10.100.200.3")) []
 }
 
 let deployment = arm {

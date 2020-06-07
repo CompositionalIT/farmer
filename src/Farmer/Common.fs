@@ -425,7 +425,11 @@ module Sql =
 
 module ContainerGroup =
     type RestartPolicy = Never | Always | OnFailure
-    type IpAddressType = PublicAddress | PrivateAddress
+    type IpAddressType =
+        | PublicAddress
+        | PublicAddressWithDns of DnsName:string
+        | PrivateAddress
+        | PrivateAddressWithIp of System.Net.IPAddress
 
 module Redis =
     type Sku = Basic | Standard | Premium

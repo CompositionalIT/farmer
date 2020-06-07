@@ -55,15 +55,23 @@ type ContainerGroup =
                       osType = this.OsType
                       restartPolicy = this.RestartPolicy.ToString().ToLower()
                       ipAddress =
-                        {| Type =
+                        {| ``type`` =
                             match this.IpAddress.Type with
-                            | PublicAddress -> "Public"
-                            | PrivateAddress -> "Private"
-                           Ports = [
+                            | PublicAddress | PublicAddressWithDns _ -> "Public"
+                            | PrivateAddress _ | PrivateAddressWithIp _ -> "Private"
+                           ports = [
                                for port in this.IpAddress.Ports do
                                 {| Protocol = string port.Protocol
                                    Port = port.Port |}
                            ]
+                           ip = 
+                            match this.IpAddress.Type with
+                            | PrivateAddressWithIp ip -> Some ip
+                            | _ -> None
+                           dnsNameLabel =
+                            match this.IpAddress.Type with
+                            | PublicAddressWithDns dnsLabel -> Some dnsLabel
+                            | _ -> None
                         |}
                       networkProfile = this.NetworkProfile |> Option.map (fun networkProfile -> {| id = sprintf "[resourceId('Microsoft.Network/networkProfiles','%s')]" networkProfile.Value |})
                    |}
