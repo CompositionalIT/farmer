@@ -39,11 +39,18 @@ let aciProfile = networkProfile {
     ]*)
 }
 
+
+
 let myContainer = container {
     name "container1"
     image "aci-hello-world"
     network_profile "vnet-aci-profile"
-    ip_address (ContainerGroup.PrivateAddressWithIp (System.Net.IPAddress.Parse "10.100.200.3")) []
+    // the old member (marked obsolete)
+    ip_address (ContainerGroup.PrivateAddressWithIp (System.Net.IPAddress.Parse "10.100.200.3")) [TCP, 80us]
+    // prefer one of these
+    public_dns "my-container" [TCP, 80us]
+    private_ip [TCP, 80us]
+    private_static_ip "10.100.200.3" [TCP, 80us]
 }
 
 let deployment = arm {

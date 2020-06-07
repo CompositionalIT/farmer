@@ -109,8 +109,18 @@ type ContainerBuilder() =
     [<CustomOperation "restart_policy">]
     member __.RestartPolicy(state:ContainerConfig, restartPolicy) = { state with RestartPolicy = restartPolicy }
     /// Sets the IP addresss (default Public)
+    [<System.Obsolete("Prefer to use public_dns, private_ip, or private_static_ip")>]
     [<CustomOperation "ip_address">]
     member __.IpAddress(state:ContainerConfig, addressType, ports) = { state with IpAddress = { Type = addressType; Ports = ports |> Seq.map(fun (prot, port) -> {| Protocol = prot; Port = port |}) |> Seq.toList } }
+    /// Sets the IP addresss (default Public)
+    [<CustomOperation "public_dns">]
+    member __.PublicDns(state:ContainerConfig, dnsLabel:string, ports) = { state with IpAddress = { Type = PublicAddressWithDns dnsLabel; Ports = ports |> Seq.map(fun (prot, port) -> {| Protocol = prot; Port = port |}) |> Seq.toList } }
+    /// Sets the IP addresss (default Public)
+    [<CustomOperation "private_ip">]
+    member __.PrivateIp(state:ContainerConfig, ports) = { state with IpAddress = { Type = PrivateAddressWithIp (System.Net.IPAddress.Parse ip); Ports = ports |> Seq.map(fun (prot, port) -> {| Protocol = prot; Port = port |}) |> Seq.toList } }
+    /// Sets the IP addresss (default Public)
+    [<CustomOperation "private_static_ip">]
+    member __.PrivateStaticIp(state:ContainerConfig, ip:string, ports) = { state with IpAddress = { Type = PrivateAddress; Ports = ports |> Seq.map(fun (prot, port) -> {| Protocol = prot; Port = port |}) |> Seq.toList } }
     /// Sets a network profile for the container's group.
     [<CustomOperation "network_profile">]
     member __.NetworkPolicy(state:ContainerConfig, networkProfileName:string) = { state with NetworkProfile = Some (ResourceName networkProfileName) }
