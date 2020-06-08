@@ -158,14 +158,6 @@ type SqlServerBuilder() =
             AdministratorCredentials =
                 {| state.AdministratorCredentials with
                     UserName = username |} }
-
-open WebApp
-type WebAppBuilder with
-    member this.DependsOn(state:WebAppConfig, sqlDb:SqlAzureConfig) =
-        this.DependsOn(state, sqlDb.Name)
-type FunctionsBuilder with
-    member this.DependsOn(state:FunctionsConfig, sqlDb:SqlAzureConfig) =
-        this.DependsOn(state, sqlDb.Name)
-
+        
 let sqlServer = SqlServerBuilder()
 let sqlDb = SqlDbBuilder()

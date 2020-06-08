@@ -1,7 +1,21 @@
 ﻿open Farmer
 open Farmer.Builders
+open Farmer.CoreTypes
 
 //TODO: Create resources here!
+
+let s = storageAccount {
+    name "myStorage"
+}
+
+let x = ((s :> IBuilder).BuildResources Location.NorthEurope []).[0]
+
+let w = webApp {
+    name "myWebApp"
+    depends_on s.Name
+    depends_on x
+    depends_on s
+}
 
 let deployment = arm {
     location Location.NorthEurope

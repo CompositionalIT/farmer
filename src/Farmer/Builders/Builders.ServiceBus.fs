@@ -195,11 +195,16 @@ type ServiceBusBuilder() =
         if state.Name.Value.Length |> isBetween 6 50 |> not then failwith "Namespace name must be between 6 and 50 characters long"
         state
     /// The name of the namespace that holds the queue.
-    [<CustomOperation "name">] member _.NamespaceName(state:ServiceBusConfig, name) = { state with Name = ResourceName name }
+    [<CustomOperation "name">]
+    member _.NamespaceName(state:ServiceBusConfig, name) = { state with Name = ResourceName name }
     /// The SKU of the namespace.
-    [<CustomOperation "sku">] member _.Sku(state:ServiceBusConfig, sku) = { state with Sku = sku }
+    [<CustomOperation "sku">]
+    member _.Sku(state:ServiceBusConfig, sku) = { state with Sku = sku }
     /// Adds a resource that the service bus depends on.
-    [<CustomOperation "depends_on">] member _.DependsOn(state:ServiceBusConfig, resourceName) = { state with DependsOn = resourceName :: state.DependsOn }
+    [<CustomOperation "depends_on">]
+    member _.DependsOn(state:ServiceBusConfig, resourceName) = { state with DependsOn = resourceName :: state.DependsOn }
+    member _.DependsOn(state:ServiceBusConfig, builder:IBuilder) = { state with DependsOn = builder.DependencyName :: state.DependsOn }
+    member _.DependsOn(state:ServiceBusConfig, resource:IArmResource) = { state with DependsOn = resource.ResourceName :: state.DependsOn }
     [<CustomOperation "add_queues">]
     member _.AddQueues(state:ServiceBusConfig, queues) =
         { state with
