@@ -53,7 +53,13 @@ Add the storage account to the deployment using the same `add_resource` keyword 
 
 #### Analysing the ARM template
 
-Run the application; you should notice that the template now contains a storage account. Also observe the dependency that has been created:
+Run the application:
+
+```cmd
+dotnet run
+```
+
+You should notice that the template now contains a storage account. Also observe the dependency that has been created:
 
 ```json
 {
