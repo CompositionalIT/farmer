@@ -52,12 +52,4 @@ type SearchBuilder() =
     [<CustomOperation "partitions">]
     member __.PartitionCount(state:SearchConfig, partitions:int) = { state with Partitions = partitions }
 
-open WebApp
-type WebAppBuilder with
-    member this.DependsOn(state:WebAppConfig, search:SearchConfig) =
-        this.DependsOn(state, search.Name)
-type FunctionsBuilder with
-    member this.DependsOn(state:FunctionsConfig, search:SearchConfig) =
-        this.DependsOn(state, search.Name)
-
 let search = SearchBuilder()

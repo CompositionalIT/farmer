@@ -353,6 +353,7 @@ type WebAppBuilder() =
     [<CustomOperation "depends_on">]
     member __.DependsOn(state:WebAppConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
     member __.DependsOn(state:WebAppConfig, builder:IBuilder) = { state with Dependencies = builder.DependencyName :: state.Dependencies }
+    member __.DependsOn(state:WebAppConfig, resource:IArmResource) = { state with Dependencies = resource.ResourceName :: state.Dependencies }
     /// Sets "Always On" flag
     [<CustomOperation "always_on">]
     member __.AlwaysOn(state:WebAppConfig) = { state with AlwaysOn = true }

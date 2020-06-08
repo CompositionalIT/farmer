@@ -216,20 +216,10 @@ type FunctionsBuilder() =
     member __.AddSettings(state:FunctionsConfig, settings: (string*string) list) =
         settings
         |> List.fold (fun state (key,value: string) -> __.AddSetting(state, key, value)) state
-    /// Sets a dependency for the web app.
+    /// Sets a dependency for the functions app.
     [<CustomOperation "depends_on">]
-    member __.DependsOn(state:FunctionsConfig, resourceName) =
-        { state with Dependencies = resourceName :: state.Dependencies }
-
-[<AutoOpen>]
-module Extensions =
-    open Farmer.Builders
-    type FunctionsBuilder with
-        member this.DependsOn(state:FunctionsConfig, storageAccountConfig:StorageAccountConfig) =
-            this.DependsOn(state, storageAccountConfig.Name)
-        member this.DependsOn(state:FunctionsConfig, webAppConfig:WebAppConfig) =
-            this.DependsOn(state, webAppConfig.Name)
-        member this.DependsOn(state:FunctionsConfig, appInsightsConfig:AppInsightsConfig) =
-            this.DependsOn(state, appInsightsConfig.Name)
+    member __.DependsOn(state:FunctionsConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
+    member __.DependsOn(state:FunctionsConfig, resource:IBuilder) = { state with Dependencies = resource.DependencyName :: state.Dependencies }
+    member __.DependsOn(state:FunctionsConfig, resource:IArmResource) = { state with Dependencies = resource.ResourceName :: state.Dependencies }
 
 let functions = FunctionsBuilder()

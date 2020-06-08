@@ -159,13 +159,5 @@ type CosmosDbBuilder() =
     [<CustomOperation "free_tier">]
     member __.FreeTier(state:CosmosDbConfig) = { state with FreeTier = true }
 
-open WebApp
-type WebAppBuilder with
-    member this.DependsOn(state:WebAppConfig, cosmosDbConfig:CosmosDbConfig) =
-        this.DependsOn(state, cosmosDbConfig.Name)
-type FunctionsBuilder with
-    member this.DependsOn(state:FunctionsConfig, cosmosDbConfig:CosmosDbConfig) =
-        this.DependsOn(state, cosmosDbConfig.Name)
-
 let cosmosDb = CosmosDbBuilder()
 let cosmosContainer = CosmosDbContainerBuilder()
