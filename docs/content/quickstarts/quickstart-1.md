@@ -56,7 +56,13 @@ deployment
 |> Writer.quickWrite "myFirstTemplate"
 ```
 
-Run the application; you should notice that the file `myFirstTemplate.json` has been created.
+Run the application:
+
+```cmd
+dotnet run
+```
+
+You should notice that the file `myFirstTemplate.json` has been created.
 
 The generated ARM template contains the following resources:
 
