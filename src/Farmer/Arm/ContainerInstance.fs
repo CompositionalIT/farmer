@@ -36,7 +36,7 @@ type ContainerGroup =
                dependsOn =
                    match this.NetworkProfile with
                    | None -> []
-                   | Some networkProfile -> [ networkProfile.Value ]
+                   | Some networkProfile -> [ sprintf "[resourceId('Microsoft.Network/networkProfiles','%s')]" networkProfile.Value ]
                properties =
                    {| containers =
                        this.ContainerInstances
@@ -48,12 +48,12 @@ type ContainerGroup =
                                   resources =
                                    {| requests =
                                        {| cpu = container.Cpu
-                                          memoryInGb = container.Memory |}
+                                          memoryInGB = container.Memory |}
                                    |}
                                |}
                            |})
                       osType = this.OsType
-                      restartPolicy = this.RestartPolicy.ToString().ToLower()
+                      restartPolicy = this.RestartPolicy.ToString()
                       ipAddress =
                         {| ``type`` =
                             match this.IpAddress.Type with
@@ -61,18 +61,21 @@ type ContainerGroup =
                             | PrivateAddress _ | PrivateAddressWithIp _ -> "Private"
                            ports = [
                                for port in this.IpAddress.Ports do
-                                {| Protocol = string port.Protocol
-                                   Port = port.Port |}
+                                {| protocol = string port.Protocol
+                                   port = port.Port |}
                            ]
                            ip = 
                             match this.IpAddress.Type with
-                            | PrivateAddressWithIp ip -> Some ip
-                            | _ -> None
+                            | PrivateAddressWithIp ip -> string ip
+                            | _ -> null
                            dnsNameLabel =
                             match this.IpAddress.Type with
-                            | PublicAddressWithDns dnsLabel -> Some dnsLabel
-                            | _ -> None
+                            | PublicAddressWithDns dnsLabel -> dnsLabel
+                            | _ -> null
                         |}
-                      networkProfile = this.NetworkProfile |> Option.map (fun networkProfile -> {| id = sprintf "[resourceId('Microsoft.Network/networkProfiles','%s')]" networkProfile.Value |})
+                      networkProfile =
+                          match this.NetworkProfile with
+                          | Some networkProfile -> {| id = sprintf "[resourceId('Microsoft.Network/networkProfiles','%s')]" networkProfile.Value |}
+                          | None -> Unchecked.defaultof<_>
                    |}
             |} :> _

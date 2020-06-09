@@ -55,8 +55,12 @@ let myContainer = container {
 
 let deployment = arm {
     location Location.NorthEurope
-
+    
     //TODO: Assign resources here using the add_resource keyword
+    add_resources [
+        myContainer
+        aciProfile
+    ]
 }
 
 // Generate the ARM template here...

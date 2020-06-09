@@ -101,7 +101,7 @@ type NetworkProfile =
                apiVersion = "2020-04-01"
                name = this.Name.Value
                location = this.Location.ArmValue
-               dependsOn = [ this.VirtualNetwork.Value ]
+               dependsOn = [ sprintf "[resourceId('Microsoft.Network/virtualNetworks','%s')]" this.VirtualNetwork.Value ]
                properties =
                    {| containerNetworkInterfaceConfigurations =
                        this.ContainerNetworkInterfaceConfigurations

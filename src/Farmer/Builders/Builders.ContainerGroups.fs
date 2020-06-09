@@ -5,6 +5,7 @@ open Farmer
 open Farmer.CoreTypes
 open Farmer.ContainerGroup
 open Farmer.Arm.ContainerInstance
+open Farmer.Arm.Network
 
 /// Represents configuration for a single Container.
 type ContainerConfig =
@@ -52,7 +53,7 @@ type ContainerConfig =
                   OsType = this.OsType.ToString()
                   RestartPolicy = this.RestartPolicy
                   IpAddress = this.IpAddress
-                  NetworkProfile = None
+                  NetworkProfile = this.NetworkProfile
                 }
             | External containerGroupName ->
                 existingResources
@@ -123,7 +124,7 @@ type ContainerBuilder() =
     member __.PrivateIp(state:ContainerConfig, ports) = { state with IpAddress = { Type = PrivateAddress; Ports = ports |> Seq.map(fun (prot, port) -> {| Protocol = prot; Port = port |}) |> Seq.toList } }
     /// Sets a network profile for the container's group.
     [<CustomOperation "network_profile">]
-    member __.NetworkPolicy(state:ContainerConfig, networkProfileName:string) = { state with NetworkProfile = Some (ResourceName networkProfileName) }
+    member __.NetworkProfile(state:ContainerConfig, networkProfileName:string) = { state with NetworkProfile = Some (ResourceName networkProfileName) }
     /// Adds a TCP port to be externally accessible
     [<CustomOperation "add_tcp_port">]
     member __.AddTcpPort(state:ContainerConfig, port) = { state with IpAddress = { state.IpAddress with Ports = {| Protocol= TCP; Port = port |} :: state.IpAddress.Ports } }
@@ -146,6 +147,18 @@ type NetworkProfileConfig =
         ContainerNetworkInterfaceConfigurations : ContainerNetworkInterfaceConfiguration list
         VirtualNetwork : ResourceName
     }
+    interface IBuilder with
+        member this.DependencyName = this.Name
+        member this.BuildResources location _ = [
+            { Name = this.Name
+              Location = location
+              ContainerNetworkInterfaceConfigurations =
+                  this.ContainerNetworkInterfaceConfigurations
+                  |> List.map (fun ifconfig -> {| IpConfigs = (ifconfig.IpConfigs |> List.map (fun ipConfig -> {| SubnetName = ResourceName ipConfig.Subnet |})) |})
+              VirtualNetwork = this.VirtualNetwork
+            }
+        ]
+
 type NetworkProfileBuilder() =
     member __.Yield _ =
       { Name = ResourceName.Empty
