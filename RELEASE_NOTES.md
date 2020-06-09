@@ -1,5 +1,12 @@
 Release Notes
 =============
+## 0.16.0
+* Extra settings for Functions and Web Apps
+* Rationalise depends_on so any resource is dependable.
+* Redesign SQL Server builder
+* Better support for SQL Server Elastic Pools
+* Clean up documentation
+
 ## 0.15.0
 * Improvements to PostgreSQL
 * Unique Key support in CosmosDB
