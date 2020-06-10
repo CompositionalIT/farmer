@@ -1,6 +1,4 @@
-namespace Farmer.CoreTypes
-
-open Farmer
+namespace Farmer
 
 /// Represents a name of an ARM resource
 type ResourceName =
@@ -21,6 +19,17 @@ type IArmResource =
     abstract member ResourceName : ResourceName
     /// A raw object that is ready for serialization directly to JSON.
     abstract member JsonModel : obj
+
+/// Represents a high-level configuration that can create a set of ARM Resources.
+type IBuilder =
+    /// Given a location and the currently-built resources, returns a set of resource actions.
+    abstract member BuildResources : Location -> IArmResource list -> IArmResource list
+    /// Provides the resource name that other resources should use when depending upon this builder.
+    abstract member DependencyName : ResourceName
+
+namespace Farmer.CoreTypes
+
+open Farmer
 
 /// Represents an expression used within an ARM template
 type ArmExpression =
@@ -52,13 +61,6 @@ type IParameters =
 /// An action that needs to be run after the ARM template has been deployed.
 type IPostDeploy =
     abstract member Run : resourceGroupName:string -> Option<Result<string, string>>
-
-/// Represents a high-level configuration that can create a set of ARM Resources.
-type IBuilder =
-    /// Given a location and the currently-built resources, returns a set of resource actions.
-    abstract member BuildResources : Location -> IArmResource list -> IArmResource list
-    /// Provides the resource name that other resources should use when depending upon this builder.
-    abstract member DependencyName : ResourceName
 
 /// A functional equivalent of the IBuilder's BuildResources method.
 type Builder = Location -> IArmResource list -> IArmResource list

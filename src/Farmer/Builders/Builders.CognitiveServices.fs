@@ -1,7 +1,7 @@
 [<AutoOpen>]
 module Farmer.Builders.CognitiveServices
 
-open Farmer.CoreTypes
+open Farmer
 open Farmer.Arm.CognitiveServices
 open Farmer.CognitiveServices
 

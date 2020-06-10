@@ -19,7 +19,7 @@ type CosmosDbConfig =
       AccountConsistencyPolicy : ConsistencyPolicy
       AccountFailoverPolicy : FailoverPolicy
       Name : ResourceName
-      DbThroughput : int
+      DbThroughput : int<RU>
       Containers : CosmosDbContainerConfig list
       PublicNetworkAccess : FeatureFlag
       FreeTier : bool }
@@ -58,13 +58,13 @@ type CosmosDbConfig =
                   PartitionKey =
                     {| Paths = fst container.PartitionKey
                        Kind = snd container.PartitionKey |}
-                  UniqueKeyPolicy =                     
-                    {| UniqueKeys = 
+                  UniqueKeyPolicy =
+                    {| UniqueKeys =
                         container.UniqueKeys
-                        |> Set.map (fun uniqueKeyPath -> 
+                        |> Set.map (fun uniqueKeyPath ->
                             {| Paths = uniqueKeyPath |}
-                        ) 
-                    |}                    
+                        )
+                    |}
                   IndexingPolicy =
                     {| ExcludedPaths = container.ExcludedPaths
                        IncludedPaths = [
@@ -115,7 +115,7 @@ type CosmosDbBuilder() =
           AccountName = AutomaticPlaceholder
           AccountConsistencyPolicy = Eventual
           AccountFailoverPolicy = NoFailover
-          DbThroughput = 400
+          DbThroughput = 400<RU>
           Containers = []
           PublicNetworkAccess = Enabled
           FreeTier = false }

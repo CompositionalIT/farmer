@@ -1,6 +1,7 @@
 ﻿[<AutoOpen>]
 module Farmer.Builders.AppInsights
 
+open Farmer
 open Farmer.CoreTypes
 open Farmer.Arm.Insights
 

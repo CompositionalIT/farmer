@@ -207,7 +207,6 @@ module Vm =
     | Standard_NV12
     | Standard_NV24
     | CustomImage of string
-    with
         member this.ArmValue = match this with CustomImage c -> c | _ -> this.ToString()
     type Offer = Offer of string member this.ArmValue = match this with Offer o -> o
     type Publisher = Publisher of string member this.ArmValue = match this with Publisher p -> p
@@ -233,9 +232,9 @@ module Vm =
     let WindowsServer_2008R2SP1 = makeWindowsVm "2008-R2-SP1"
     /// The type of disk to use.
     type DiskType =
-        | StandardSSD_LRS
-        | Standard_LRS
-        | Premium_LRS
+    | StandardSSD_LRS
+    | Standard_LRS
+    | Premium_LRS
         member this.ArmValue = match this with x -> x.ToString()
 
     /// Represents a disk in a VM.
@@ -251,7 +250,6 @@ module Storage =
     | Standard_RAGZRS
     | Premium_LRS
     | Premium_ZRS
-    with
         member this.ArmValue = this.ToString()
 
     type StorageContainerAccess =
@@ -476,6 +474,9 @@ module CosmosDb =
     type IndexKind = Hash | Range
     /// The datatype for the key of index to use on a CosmoDB container.
     type IndexDataType = Number | String
+    /// A request unit.
+    [<Measure>]
+    type RU
 
 module PostgreSQL =
     type Sku =
