@@ -11,8 +11,11 @@ module Helpers =
              member _.ResourceName = ResourceName (System.Guid.NewGuid().ToString())
              member _.JsonModel = armObject }
 
+    /// Creates a unique IArmResource from a JSON string containing the output you want.
+    let toArmResourceRaw = Newtonsoft.Json.Linq.JObject.Parse >> toArmResource
+
     /// Creates a Builder that can be added to arm { } expressions.
-    let asBuilder quickBuilder  =
+    let asBuilder quickBuilder =
         let output : Builder = fun location _ -> quickBuilder location
         output
 

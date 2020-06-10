@@ -19,7 +19,7 @@ module Az =
     open System.Runtime.InteropServices
     open System.Text
 
-    let MinimumVersion = Version "2.3.1"
+    let MinimumVersion = Version "2.5.0"
 
     [<AutoOpen>]
     module AzHelpers =
@@ -94,7 +94,7 @@ module Az =
             match parameters with
             | [] -> ""
             | parameters -> sprintf "--parameters %s" (parameters |> List.map(fun (a,b) -> sprintf "%s=%s" a b) |> String.concat " ")
-        let cmd = sprintf """deployment group %s -g %s -n %s --template-file %s %s""" deploymentCommand.Description resourceGroup deploymentName templateFilename parametersArgument
+        let cmd = sprintf """deployment group '%s' -g %s -n %s --template-file %s %s""" deploymentCommand.Description resourceGroup deploymentName templateFilename parametersArgument
         az cmd
     /// Deploys an ARM template to an existing resource group.
     let deploy resourceGroup deploymentName templateFilename parameters = deployOrValidate Create resourceGroup deploymentName templateFilename parameters
