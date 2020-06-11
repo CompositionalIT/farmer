@@ -249,7 +249,7 @@ type KeyVaultBuilder() =
     /// Adds an access policy to the vault.
     [<CustomOperation "add_access_policy">]
     member __.AddAccessPolicy(state:KeyVaultBuilderState, accessPolicy) = { state with Policies = accessPolicy :: state.Policies }
-    /// Adds an simple policy to permit getting secrets.
+    /// Adds a simple policy to permit reading of secrets.
     [<CustomOperation "add_reader_policy">]
     member __.AddReaderPolicy(state:KeyVaultBuilderState, (PrincipalId principal)) =
         let accessPolicy = accessPolicy { object_id principal; secret_permissions [ Secret.Get ] }

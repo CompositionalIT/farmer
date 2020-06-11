@@ -96,6 +96,7 @@ type WebAppConfig =
     member this.ServicePlan = this.ServicePlanName.ResourceName
     /// Gets the App Insights name for this web app, if it exists.
     member this.AppInsights = this.AppInsightsName |> Option.map (fun ai -> ai.ResourceName)
+    /// Gets the system-created managed principal for the web app. It must have been enabled using enable_managed_identity.
     member this.SystemIdentity =
         sprintf "reference(resourceId('Microsoft.Web/sites', '%s'), '2019-08-01', 'full').identity.principalId" this.Name.Value
         |> ArmExpression
