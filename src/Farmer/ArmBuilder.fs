@@ -18,6 +18,10 @@ module Json =
     /// Creates a unique IArmResource from a JSON string containing the output you want.
     let toIArmResource = Resource.ofJson
 
+module Subscription =
+    /// Gets an ARM expression pointing to the tenant id of the current subscription.
+    let TenantId = ArmExpression "subscription().tenantid"
+
 module Builder =
     /// Quickly creates a Builder that can be added to arm { } expressions.
     let fromFunction quickBuilder =

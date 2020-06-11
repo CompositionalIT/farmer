@@ -81,7 +81,11 @@ type WebAppConfig =
       WebsiteNodeDefaultVersion : string option
       AlwaysOn : bool
       Runtime : Runtime
+
+      Identity : bool
+
       ZipDeployPath : string option
+
       DockerImage : (string * string) option
       DockerCi : bool
       DockerAcrCredentials : {| RegistryName : string; Password : SecureParameter |} option }
@@ -92,6 +96,11 @@ type WebAppConfig =
     member this.ServicePlan = this.ServicePlanName.ResourceName
     /// Gets the App Insights name for this web app, if it exists.
     member this.AppInsights = this.AppInsightsName |> Option.map (fun ai -> ai.ResourceName)
+    member this.SystemIdentity =
+        sprintf "reference(resourceId('Microsoft.Web/sites', '%s'), '2019-08-01', 'full').identity.principalId" this.Name.Value
+        |> ArmExpression
+        |> PrincipalId
+
     interface IBuilder with
         member this.DependencyName = this.ServicePlanName.ResourceName
         member this.BuildResources location _ = [
@@ -103,6 +112,7 @@ type WebAppConfig =
                   HTTP20Enabled = this.HTTP20Enabled
                   ClientAffinityEnabled = this.ClientAffinityEnabled
                   WebSocketsEnabled = this.WebSocketsEnabled
+                  Identity = this.Identity
                   AppSettings = [
                     yield! this.Settings |> Map.toList
                     if this.RunFromPackage then AppSettings.RunFromPackage
@@ -268,6 +278,7 @@ type WebAppBuilder() =
           WebSocketsEnabled = None
           Settings = Map.empty
           Dependencies = []
+          Identity = false
           Runtime = Runtime.DotNetCoreLts
           OperatingSystem = Windows
           ZipDeployPath = None
@@ -391,5 +402,8 @@ type WebAppBuilder() =
             DockerAcrCredentials =
                 Some {| RegistryName = registryName
                         Password = SecureParameter (sprintf "docker-password-for-%s" registryName) |} }
+    [<CustomOperation "use_managed_identity">]
+    member _.ManagedIdentity(state:WebAppConfig) =
+        { state with Identity = true }
 
 let webApp = WebAppBuilder()

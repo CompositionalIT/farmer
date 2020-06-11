@@ -98,6 +98,9 @@ type FeatureFlag = Enabled | Disabled member this.AsBoolean = match this with En
 module FeatureFlag =
     let ofBool enabled = if enabled then Enabled else Disabled
 
+/// Represents an ARM expression that evaluates to a principal ID.
+type PrincipalId = PrincipalId of ArmExpression
+
 /// Represents a secret to be captured either via an ARM expression or a secure parameter.
 type SecretValue =
     | ParameterSecret of SecureParameter

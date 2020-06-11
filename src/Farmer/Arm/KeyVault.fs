@@ -57,7 +57,7 @@ type Vault =
       SoftDelete : SoftDeletionMode option
       CreateMode : CreateMode option
       AccessPolicies :
-        {| ObjectId : Guid
+        {| ObjectId : ArmExpression
            ApplicationId : Guid option
            Permissions :
             {| Keys : Key Set
@@ -102,7 +102,7 @@ type Vault =
                     vaultUri = this.Uri |> Option.map string |> Option.toObj
                     accessPolicies =
                          [| for policy in this.AccessPolicies do
-                             {| objectId = string policy.ObjectId
+                             {| objectId = ArmExpression.Eval policy.ObjectId
                                 tenantId = this.TenantId
                                 applicationId = policy.ApplicationId |> Option.map string |> Option.toObj
                                 permissions =
