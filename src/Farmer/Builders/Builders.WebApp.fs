@@ -15,7 +15,7 @@ type JavaRuntime =
     | Java8 | Java11
     member this.Version = match this with Java8 -> 8 | Java11 -> 11
     member this.Jre = match this with Java8 -> "jre8" | Java11 -> "java11"
-type WebAppRuntime =
+type Runtime =
     | DotNetCore of string
     | Node of string
     | Php of string
@@ -80,7 +80,7 @@ type WebAppConfig =
       RunFromPackage : bool
       WebsiteNodeDefaultVersion : string option
       AlwaysOn : bool
-      Runtime : WebAppRuntime
+      Runtime : Runtime
       ZipDeployPath : string option
       DockerImage : (string * string) option
       DockerCi : bool
@@ -268,7 +268,7 @@ type WebAppBuilder() =
           WebSocketsEnabled = None
           Settings = Map.empty
           Dependencies = []
-          Runtime = WebAppRuntime.DotNetCoreLts
+          Runtime = Runtime.DotNetCoreLts
           OperatingSystem = Windows
           ZipDeployPath = None
           DockerImage = None
