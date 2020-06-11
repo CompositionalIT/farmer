@@ -114,7 +114,7 @@ type Sites =
       WebSocketsEnabled : bool option
       Dependencies : ResourceName list
       Kind : string
-      Identity : bool
+      Identity : FeatureFlag option
       LinuxFxVersion : string option
       AppCommandLine : string option
       NetFrameworkVersion : string option
@@ -150,8 +150,10 @@ type Sites =
                dependsOn = this.Dependencies |> List.map(fun p -> p.Value)
                kind = this.Kind
                identity =
-                 if this.Identity then box {| ``type`` = "SystemAssigned" |}
-                 else null
+                 match this.Identity with
+                 | Some Enabled -> box {| ``type`` = "SystemAssigned" |}
+                 | Some Disabled -> box {| ``type`` = "None" |}
+                 | None -> null
                properties =
                    {| serverFarmId = this.ServicePlan.Value
                       httpsOnly = this.HTTPSOnly

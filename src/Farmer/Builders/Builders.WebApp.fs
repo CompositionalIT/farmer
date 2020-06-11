@@ -82,7 +82,7 @@ type WebAppConfig =
       AlwaysOn : bool
       Runtime : Runtime
 
-      Identity : bool
+      Identity : FeatureFlag option
 
       ZipDeployPath : string option
 
@@ -278,7 +278,7 @@ type WebAppBuilder() =
           WebSocketsEnabled = None
           Settings = Map.empty
           Dependencies = []
-          Identity = false
+          Identity = None
           Runtime = Runtime.DotNetCoreLts
           OperatingSystem = Windows
           ZipDeployPath = None
@@ -402,8 +402,11 @@ type WebAppBuilder() =
             DockerAcrCredentials =
                 Some {| RegistryName = registryName
                         Password = SecureParameter (sprintf "docker-password-for-%s" registryName) |} }
-    [<CustomOperation "use_managed_identity">]
+    [<CustomOperation "enable_managed_identity">]
+    member _.EnableManagedIdentity(state:WebAppConfig) =
+        { state with Identity = Some Enabled }
+    [<CustomOperation "disable_managed_identity">]
     member _.ManagedIdentity(state:WebAppConfig) =
-        { state with Identity = true }
+        { state with Identity = Some Disabled }
 
 let webApp = WebAppBuilder()
