@@ -507,3 +507,13 @@ module Maps =
 
 module SignalR =
     type Sku = Free | Standard
+
+module DataLake =
+    type Sku =
+    | Consumption
+    | Commitment_1TB
+    | Commitment_10TB
+    | Commitment_100TB
+    | Commitment_500TB
+    | Commitment_1PB
+    | Commitment_5PB

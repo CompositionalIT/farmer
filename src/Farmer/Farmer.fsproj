@@ -55,6 +55,7 @@
     <Compile Include="Arm/Compute.fs" />
     <Compile Include="Arm/ContainerInstance.fs" />
     <Compile Include="Arm/ContainerRegistry.fs" />
+    <Compile Include="Arm/DataLakeStore.fs" />
     <Compile Include="Arm/DBforPostgreSQL.fs" />
     <Compile Include="Arm/Devices.fs" />
     <Compile Include="Arm/DocumentDb.fs" />
@@ -72,6 +73,7 @@
 
     <Compile Include="Builders/Builders.Helpers.fs" />
     <Compile Include="Builders/Builders.PostgreSQL.fs" />
+    <Compile Include="Builders/Builders.DataLake.fs" />
     <Compile Include="Builders/Builders.Storage.fs" />
     <Compile Include="Builders/Builders.Redis.fs" />
     <Compile Include="Builders/Builders.KeyVault.fs" />
