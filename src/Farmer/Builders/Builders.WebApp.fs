@@ -407,7 +407,7 @@ type WebAppBuilder() =
     member _.EnableManagedIdentity(state:WebAppConfig) =
         { state with Identity = Some Enabled }
     [<CustomOperation "disable_managed_identity">]
-    member _.ManagedIdentity(state:WebAppConfig) =
+    member _.DisableManagedIdentity(state:WebAppConfig) =
         { state with Identity = Some Disabled }
 
 let webApp = WebAppBuilder()
