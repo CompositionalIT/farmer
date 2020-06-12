@@ -114,43 +114,46 @@ type WebAppConfig =
                   ClientAffinityEnabled = this.ClientAffinityEnabled
                   WebSocketsEnabled = this.WebSocketsEnabled
                   Identity = this.Identity
-                  AppSettings = [
-                    yield! this.Settings |> Map.toList
-                    if this.RunFromPackage then Setting.AsLiteral AppSettings.RunFromPackage
+                  AppSettings =
+                    let literalSettings = [
+                        if this.RunFromPackage then AppSettings.RunFromPackage
 
-                    match this.WebsiteNodeDefaultVersion with
-                    | Some v -> AppSettings.WebsiteNodeDefaultVersion v |> Setting.AsLiteral
-                    | None -> ()
+                        match this.WebsiteNodeDefaultVersion with
+                        | Some v -> AppSettings.WebsiteNodeDefaultVersion v
+                        | None -> ()
 
-                    match this.OperatingSystem, this.AppInsightsName with
-                    | Windows, Some (External resourceName)
-                    | Windows, Some (AutomaticallyCreated resourceName) ->
-                        yield!
-                            [ "APPINSIGHTS_INSTRUMENTATIONKEY", instrumentationKey resourceName |> ArmExpression.Eval
-                              "APPINSIGHTS_PROFILERFEATURE_VERSION", "1.0.0"
-                              "APPINSIGHTS_SNAPSHOTFEATURE_VERSION", "1.0.0"
-                              "ApplicationInsightsAgent_EXTENSION_VERSION", "~2"
-                              "DiagnosticServices_EXTENSION_VERSION", "~3"
-                              "InstrumentationEngine_EXTENSION_VERSION", "~1"
-                              "SnapshotDebugger_EXTENSION_VERSION", "~1"
-                              "XDT_MicrosoftApplicationInsights_BaseExtensions", "~1"
-                              "XDT_MicrosoftApplicationInsights_Mode", "recommended" ]
-                            |> List.map Setting.AsLiteral
-                    | Windows, Some AutomaticPlaceholder
-                    | Windows, None
-                    | Linux, _ ->
-                        ()
+                        match this.OperatingSystem, this.AppInsightsName with
+                        | Windows, Some (External resourceName)
+                        | Windows, Some (AutomaticallyCreated resourceName) ->
+                            "APPINSIGHTS_INSTRUMENTATIONKEY", instrumentationKey resourceName |> ArmExpression.Eval
+                            "APPINSIGHTS_PROFILERFEATURE_VERSION", "1.0.0"
+                            "APPINSIGHTS_SNAPSHOTFEATURE_VERSION", "1.0.0"
+                            "ApplicationInsightsAgent_EXTENSION_VERSION", "~2"
+                            "DiagnosticServices_EXTENSION_VERSION", "~3"
+                            "InstrumentationEngine_EXTENSION_VERSION", "~1"
+                            "SnapshotDebugger_EXTENSION_VERSION", "~1"
+                            "XDT_MicrosoftApplicationInsights_BaseExtensions", "~1"
+                            "XDT_MicrosoftApplicationInsights_Mode", "recommended"
+                        | Windows, Some AutomaticPlaceholder
+                        | Windows, None
+                        | Linux, _ ->
+                            ()
+                        if this.DockerCi then "DOCKER_ENABLE_CI", "true"
+                    ]
 
-                    if this.DockerCi then Setting.AsLiteral ("DOCKER_ENABLE_CI", "true")
-
-                    match this.DockerAcrCredentials with
-                    | Some credentials ->
-                        "DOCKER_REGISTRY_SERVER_PASSWORD", ParameterSetting credentials.Password
-                        Setting.AsLiteral ("DOCKER_REGISTRY_SERVER_URL", sprintf "https://%s.azurecr.io" credentials.RegistryName)
-                        Setting.AsLiteral ("DOCKER_REGISTRY_SERVER_USERNAME", credentials.RegistryName)
-                    | None ->
-                      ()
-                  ]
+                    let dockerSettings = [
+                        match this.DockerAcrCredentials with
+                        | Some credentials ->
+                            "DOCKER_REGISTRY_SERVER_PASSWORD", ParameterSetting credentials.Password
+                            Setting.AsLiteral ("DOCKER_REGISTRY_SERVER_URL", sprintf "https://%s.azurecr.io" credentials.RegistryName)
+                            Setting.AsLiteral ("DOCKER_REGISTRY_SERVER_USERNAME", credentials.RegistryName)
+                        | None ->
+                            ()
+                    ]
+                    literalSettings
+                    |> List.map Setting.AsLiteral
+                    |> List.append dockerSettings
+                    |> List.append (this.Settings |> Map.toList)
                   Kind = [
                     "app"
                     match this.OperatingSystem with Linux -> "linux" | Windows -> ()
