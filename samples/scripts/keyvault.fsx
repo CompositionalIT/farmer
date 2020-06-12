@@ -10,7 +10,6 @@ let vault =
     let policy =
         accessPolicy {
             object_id Guid.Empty
-            application_id Guid.Empty
             certificate_permissions [ Certificate.List ]
             secret_permissions Secret.All
             key_permissions [ Key.List ]
@@ -24,10 +23,12 @@ let vault =
         expiration_date (DateTime.Today.AddDays 1.)
     }
 
+    let store = storageAccount { name "foo" }
+
     keyVault {
         name "MyVault"
         sku KeyVaultSku.Standard
-        tenant_id Guid.Empty
+        tenant_id Subscription.TenantId
 
         enable_disk_encryption_access
         enable_resource_manager_access
@@ -38,12 +39,11 @@ let vault =
         add_access_policy policy
         enable_azure_services_bypass
 
-        add_ip_rule "127.0.0.1"
-        add_vnet_rule "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/virtualNetworks/test-vnet/subnets/subnet1"
         allow_default_traffic
 
         add_secret complexSecret
         add_secret "simpleSecret"
+        add_secret ("thirdSecret", store, store.Key)
     }
 
 let deployment = arm {

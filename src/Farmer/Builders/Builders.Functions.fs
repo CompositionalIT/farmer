@@ -73,6 +73,7 @@ type FunctionsConfig =
                     "WEBSITE_CONTENTSHARE", this.Name.Value.ToLower()
               ]
 
+              Identity = None
               Kind =
                 match this.OperatingSystem with
                 | Windows -> "functionapp"

@@ -58,13 +58,14 @@ The Key Vault builder contains access policies, secrets, and configuration infor
 | enable_recovery_mode | Sets the Creation Mode to Recovery. |
 | disable_recovery_mode | Sets the Creation Mode to Default. |
 | add_access_policy | Adds an access policy to the vault. |
+| add_reader_policy | Adds a simple policy for a principal that allows read-only access to secrets. |
 | enable_azure_services_bypass | Allows Azure traffic can bypass network rules. |
 | disable_azure_services_bypass | Disallows Azure traffic can bypass network rules. |
 | allow_default_traffic | Allow traffic if no rule from ipRules and virtualNetworkRules match. This is only used after the bypass property has been evaluated. |
 | deny_default_traffic | Deny traffic when no rule from ipRules and virtualNetworkRules match. This is only used after the bypass property has been evaluated. |
 | add_ip_rule | Adds an IP address rule. This can be an IPv4 address range in CIDR notation, such as '124.56.78.91' (simple IP address) or '124.56.78.0/24' (all addresses that start with 124.56.78). |
 | add_vnet_rule | Adds a virtual network rule. This is the full resource id of a vnet subnet, such as '/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/virtualNetworks/test-vnet/subnets/subnet1'. |
-| add_secret | Adds a secret to the vault. This can either be a "full" secret config created using the Secret Builder or a string literal value which represents the parameter name. |
+| add_secret | Adds a secret to the vault. This can either be a "full" secret config created using the Secret Builder, a string literal value which represents the parameter name, or a string literal with a resource and an expression based on that resource e.g. a storage account and the Key member. |
 
 #### Example
 
