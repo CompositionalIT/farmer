@@ -51,7 +51,7 @@ type ArmExpression =
 type SecureParameter =
     | SecureParameter of name:string
     member this.Value = match this with SecureParameter value -> value
-    /// Gets an ARM expression reference to the password e.g. parameters('my-password')
+    /// Gets an ARM expression reference to the parameter e.g. parameters('my-password')
     member this.AsArmRef = sprintf "parameters('%s')" this.Value |> ArmExpression
 
 /// Exposes parameters which are required by a specific IArmResource.
@@ -109,6 +109,15 @@ type SecretValue =
         match this with
         | ParameterSecret secureParameter -> secureParameter.AsArmRef.Eval()
         | ExpressionSecret armExpression -> armExpression.Eval()
+
+type Setting =
+    | ParameterSetting of SecureParameter
+    | LiteralSetting of string
+    member this.Value =
+        match this with
+        | ParameterSetting secureParameter -> secureParameter.AsArmRef.Eval()
+        | LiteralSetting value -> value
+    static member AsLiteral (a,b) = a, LiteralSetting b
 
 type ArmTemplate =
     { Parameters : SecureParameter list

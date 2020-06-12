@@ -71,7 +71,7 @@ type FunctionsConfig =
                 if this.OperatingSystem = Windows then
                     "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING", Storage.buildKey this.StorageAccountName.ResourceName |> ArmExpression.Eval
                     "WEBSITE_CONTENTSHARE", this.Name.Value.ToLower()
-              ]
+              ] |> List.map Setting.AsLiteral
 
               Identity = None
               Kind =
@@ -105,7 +105,6 @@ type FunctionsConfig =
               Metadata = []
               ZipDeployPath = None
               AppCommandLine = None
-              Parameters = []
             }
             match this.ServicePlanName with
             | External _
