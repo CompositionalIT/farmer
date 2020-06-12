@@ -36,6 +36,7 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Web App | docker_use_azure_registry | Uses the supplied Azure Container Registry name as the source of the Docker image, instead of Docker Hub. You do not need to specify the full url, but just the name of the registry itself.
 | Web App | enable_managed_identity | Creates a system-assigned identity for the web app. |
 | Web App | disable_managed_identity | Deletes the system-assigned identity for the web app. |
+| Web App | enable_cors | Enables CORS support for the app. Either specify AllOrigins or a list of valid URIs. |
 | Service Plan | service_plan_name | Sets the name of the service plan. If not set, uses the name of the web app postfixed with "-plan". |
 | Service Plan | always_on | Sets "Always On" flag. |
 | Service Plan | runtime_stack | Sets the runtime stack. |

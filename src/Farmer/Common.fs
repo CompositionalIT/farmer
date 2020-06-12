@@ -279,8 +279,9 @@ module Storage =
     | Container
     | Blob
 
-module Web =
+module WebApp =
     type WorkerSize = Small | Medium | Large | Serverless
+    type Cors = AllOrigins | SpecificOrigins of Uri list
     type Sku =
         | Shared
         | Free

@@ -4,10 +4,11 @@ module Farmer.Builders.Functions
 open Farmer
 open Farmer.CoreTypes
 open Farmer.Helpers
-open Farmer.Web
+open Farmer.WebApp
 open Farmer.Arm.Web
 open Farmer.Arm.Insights
 open Farmer.Arm.Storage
+open System
 
 type FunctionsRuntime = DotNet | Node | Java | Python
 type FunctionsExtensionVersion = V1 | V2 | V3
@@ -19,6 +20,7 @@ type FunctionsConfig =
       OperatingSystem : OS
       Settings : Map<string, string>
       Dependencies : ResourceName list
+      Cors : Cors option
 
       StorageAccountName : ResourceRef
       Runtime : FunctionsRuntime
@@ -53,6 +55,7 @@ type FunctionsConfig =
             { Name = this.Name
               ServicePlan = this.ServicePlanName.ResourceName
               Location = location
+              Cors = this.Cors
               AppSettings = [
                 yield! this.Settings |> Map.toList
                 "FUNCTIONS_WORKER_RUNTIME", (string this.Runtime).ToLower()
@@ -148,6 +151,7 @@ type FunctionsBuilder() =
           StorageAccountName = AutomaticPlaceholder
           Runtime = DotNet
           ExtensionVersion = V2
+          Cors = None
           HTTPSOnly = false
           OperatingSystem = Windows
           Settings = Map.empty
@@ -222,5 +226,8 @@ type FunctionsBuilder() =
     member __.DependsOn(state:FunctionsConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
     member __.DependsOn(state:FunctionsConfig, resource:IBuilder) = { state with Dependencies = resource.DependencyName :: state.Dependencies }
     member __.DependsOn(state:FunctionsConfig, resource:IArmResource) = { state with Dependencies = resource.ResourceName :: state.Dependencies }
+    [<CustomOperation "enable_cors">]
+    member _.EnableCors (state:FunctionsConfig, origins) = { state with Cors = Some (SpecificOrigins (List.map Uri origins)) }
+    member _.EnableCors (state:FunctionsConfig, cors) = { state with Cors = Some cors }
 
 let functions = FunctionsBuilder()
