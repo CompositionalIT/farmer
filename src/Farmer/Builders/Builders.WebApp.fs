@@ -3,9 +3,10 @@ module Farmer.Builders.WebApp
 
 open Farmer
 open Farmer.CoreTypes
-open Farmer.Web
+open Farmer.WebApp
 open Farmer.Arm.Web
 open Farmer.Arm.Insights
+open System
 
 type JavaHost =
     | JavaSE | WildFly14 | Tomcat of string
@@ -74,6 +75,7 @@ type WebAppConfig =
       Settings : Map<string, Setting>
       Dependencies : ResourceName list
 
+      Cors : Cors option
       Sku : Sku
       WorkerSize : WorkerSize
       WorkerCount : int
@@ -114,6 +116,7 @@ type WebAppConfig =
                   ClientAffinityEnabled = this.ClientAffinityEnabled
                   WebSocketsEnabled = this.WebSocketsEnabled
                   Identity = this.Identity
+                  Cors = this.Cors
                   AppSettings =
                     let literalSettings = [
                         if this.RunFromPackage then AppSettings.RunFromPackage
@@ -285,6 +288,7 @@ type WebAppBuilder() =
           ZipDeployPath = None
           DockerImage = None
           DockerCi = false
+          Cors = None
           DockerAcrCredentials = None }
     member __.Run(state:WebAppConfig) =
         let operatingSystem =
@@ -415,5 +419,8 @@ type WebAppBuilder() =
     [<CustomOperation "disable_managed_identity">]
     member _.DisableManagedIdentity(state:WebAppConfig) =
         { state with Identity = Some Disabled }
+    [<CustomOperation "enable_cors">]
+    member _.EnableCors (state:WebAppConfig, origins) = { state with Cors = Some (SpecificOrigins (List.map Uri origins)) }
+    member _.EnableCors (state:WebAppConfig, cors) = { state with Cors = Some cors }
 
 let webApp = WebAppBuilder()
