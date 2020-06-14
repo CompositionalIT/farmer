@@ -164,7 +164,7 @@ type Site =
                       clientAffinityEnabled = match this.ClientAffinityEnabled with Some v -> box v | None -> null
                       siteConfig =
                         {| alwaysOn = this.AlwaysOn
-                           appSettings = this.AppSettings |> List.map(fun (k,v) -> {| name = k; value = v |})
+                           appSettings = this.AppSettings |> List.map(fun (k,v) -> {| name = k; value = v.Value |})
                            linuxFxVersion = this.LinuxFxVersion |> Option.toObj
                            appCommandLine = this.AppCommandLine |> Option.toObj
                            netFrameworkVersion = this.NetFrameworkVersion |> Option.toObj
