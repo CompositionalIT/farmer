@@ -106,7 +106,7 @@ type Site =
     { Name : ResourceName
       Location : Location
       ServicePlan : ResourceName
-      AppSettings : List<string * string>
+      AppSettings : List<string * Setting>
       AlwaysOn : bool
       HTTPSOnly : bool
       HTTP20Enabled : bool option
@@ -125,10 +125,13 @@ type Site =
       PhpVersion : string option
       PythonVersion : string option
       Metadata : List<string * string>
-      ZipDeployPath : string option
-      Parameters : SecureParameter list }
+      ZipDeployPath : string option }
     interface IParameters with
-        member this.SecureParameters = this.Parameters
+        member this.SecureParameters =
+            this.AppSettings
+            |> List.choose(snd >> function
+                | ParameterSetting s -> Some s
+                | LiteralSetting _ -> None)
     interface IPostDeploy with
         member this.Run resourceGroupName =
             match this with

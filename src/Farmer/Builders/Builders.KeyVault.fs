@@ -59,7 +59,7 @@ type SecretConfig =
             |> Seq.forall(fun r -> r key)
 
         if not (charRulesPassed && stringRulesPassed) then
-            failwith "Key Vault key names must be a 1-127 character string, starting with a letter and containing only 0-9, a-z, A-Z, and -."
+            failwithf "Key Vault key names must be a 1-127 character string, starting with a letter and containing only 0-9, a-z, A-Z, and -. '%s' is invalid." key
 
         { Key = key
           Value = ParameterSecret(SecureParameter key)
