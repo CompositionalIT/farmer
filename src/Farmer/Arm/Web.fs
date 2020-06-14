@@ -106,7 +106,7 @@ type Sites =
     { Name : ResourceName
       Location : Location
       ServicePlan : ResourceName
-      AppSettings : List<string * string>
+      AppSettings : List<string * Setting>
       AlwaysOn : bool
       HTTPSOnly : bool
       HTTP20Enabled : bool option
@@ -124,10 +124,13 @@ type Sites =
       PhpVersion : string option
       PythonVersion : string option
       Metadata : List<string * string>
-      ZipDeployPath : string option
-      Parameters : SecureParameter list }
+      ZipDeployPath : string option }
     interface IParameters with
-        member this.SecureParameters = this.Parameters
+        member this.SecureParameters =
+            this.AppSettings
+            |> List.choose(snd >> function
+                | ParameterSetting s -> Some s
+                | LiteralSetting _ -> None)
     interface IPostDeploy with
         member this.Run resourceGroupName =
             match this with
@@ -160,7 +163,7 @@ type Sites =
                       clientAffinityEnabled = match this.ClientAffinityEnabled with Some v -> box v | None -> null
                       siteConfig =
                            [ "alwaysOn", box this.AlwaysOn
-                             "appSettings", this.AppSettings |> List.map(fun (k,v) -> {| name = k; value = v |}) |> box
+                             "appSettings", this.AppSettings |> List.map(fun (k, v) -> {| name = k; value = v.Value |}) |> box
                              match this.LinuxFxVersion with Some v -> "linuxFxVersion", box v | None -> ()
                              match this.AppCommandLine with Some v -> "appCommandLine", box v | None -> ()
                              match this.NetFrameworkVersion with Some v -> "netFrameworkVersion", box v | None -> ()
