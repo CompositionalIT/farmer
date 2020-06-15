@@ -58,7 +58,9 @@ The Key Vault builder contains access policies, secrets, and configuration infor
 | enable_recovery_mode | Sets the Creation Mode to Recovery. |
 | disable_recovery_mode | Sets the Creation Mode to Default. |
 | add_access_policy | Adds an access policy to the vault. |
+| add_access_policies | Adds access policies to the vault. |
 | add_reader_policy | Adds a simple policy for a principal that allows read-only access to secrets. |
+| add_reader_policies | Adds simple policies for a principal that allows read-only access to secrets. |
 | enable_azure_services_bypass | Allows Azure traffic can bypass network rules. |
 | disable_azure_services_bypass | Disallows Azure traffic can bypass network rules. |
 | allow_default_traffic | Allow traffic if no rule from ipRules and virtualNetworkRules match. This is only used after the bypass property has been evaluated. |
