@@ -1,5 +1,8 @@
 Release Notes
 =============
+## 0.17.1
+* Enhance access policy maintenance in KeyVault.
+
 ## 0.17.0
 * Data Lake support
 * Managed Identity support for Web Apps and Functions
