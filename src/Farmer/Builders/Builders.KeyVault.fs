@@ -141,9 +141,10 @@ type AccessPolicyBuilder() =
           Permissions = {| Keys = Set.empty; Secrets = Set.empty; Certificates = Set.empty; Storage = Set.empty |} }
     /// Sets the Object ID of the permission set.
     [<CustomOperation "object_id">]
-    member __.ObjectId(state:AccessPolicy, objectId) = { state with ObjectId = objectId }
+    member __.ObjectId(state:AccessPolicy, objectId:ArmExpression) = { state with ObjectId = objectId }
     member this.ObjectId(state:AccessPolicy, objectId:Guid) = this.ObjectId(state, ArmExpression (sprintf "string('%O')" objectId))
-    member this.ObjectId(state:AccessPolicy, objectId) = this.ObjectId(state, Guid.Parse objectId)
+    member this.ObjectId(state:AccessPolicy, objectId:string) = this.ObjectId(state, Guid.Parse objectId)
+    member this.ObjectId(state:AccessPolicy, PrincipalId principalId) = this.ObjectId(state, principalId)
     /// Sets the Application ID of the permission set.
     [<CustomOperation "application_id">]
     member __.ApplicationId(state:AccessPolicy, applicationId) = { state with ApplicationId = Some applicationId }
@@ -161,6 +162,11 @@ type AccessPolicyBuilder() =
     member __.SetCertificatePermissions(state:AccessPolicy, permissions) = { state with Permissions = {| state.Permissions with Certificates = set permissions |} }
 
 let accessPolicy = AccessPolicyBuilder()
+module AccessPolicy =
+    /// Quickly creates an access policy with the supplied secret access permissions for the supplied principal .
+    let create secrets (PrincipalId principal) = accessPolicy { object_id principal; secret_permissions secrets }
+    /// Quickly creates an access policy for the supplied principal that can read secrets.
+    let createReader policy = create [ Secret.Get ] policy
 
 [<RequireQualifiedAccess>]
 type SimpleCreateMode = Recover | Default
@@ -254,21 +260,6 @@ type KeyVaultBuilder() =
     [<CustomOperation "add_access_policies">]
     member __.AddAccessPolicies(state:KeyVaultBuilderState, accessPolicies) = 
       { state with Policies = List.append accessPolicies state.Policies }
-    /// Adds a simple policy to permit reading of secrets.
-    [<CustomOperation "add_reader_policy">]
-    member __.AddReaderPolicy(state:KeyVaultBuilderState, (PrincipalId principal)) =
-        let accessPolicy = accessPolicy { object_id principal; secret_permissions [ Secret.Get ] }
-        { state with Policies = accessPolicy :: state.Policies }
-    /// Adds simple policies to permit reading of secrets.
-    [<CustomOperation "add_reader_policies">]
-    member __.AddReaderPolicies(state:KeyVaultBuilderState, principals:#seq<_>) =        
-        let accessPolicies = 
-          principals
-          |> Seq.map (fun (PrincipalId p) ->
-            accessPolicy { object_id p; secret_permissions [ Secret.Get ] }
-          )
-          |> Seq.toList
-        { state with Policies = List.append accessPolicies state.Policies }        
     // Allows Azure traffic can bypass network rules.
     [<CustomOperation "enable_azure_services_bypass">]
     member __.EnableBypass(state:KeyVaultBuilderState) = { state with NetworkAcl = { state.NetworkAcl with Bypass = Some AzureServices } }
