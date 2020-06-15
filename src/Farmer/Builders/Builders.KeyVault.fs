@@ -248,12 +248,27 @@ type KeyVaultBuilder() =
     member __.DisableRecoveryMode(state:KeyVaultBuilderState) = { state with CreateMode = Some SimpleCreateMode.Default }
     /// Adds an access policy to the vault.
     [<CustomOperation "add_access_policy">]
-    member __.AddAccessPolicy(state:KeyVaultBuilderState, accessPolicy) = { state with Policies = accessPolicy :: state.Policies }
+    member __.AddAccessPolicy(state:KeyVaultBuilderState, accessPolicy) = 
+      { state with Policies = accessPolicy :: state.Policies }
+    /// Adds access policies to the vault.
+    [<CustomOperation "add_access_policies">]
+    member __.AddAccessPolicies(state:KeyVaultBuilderState, accessPolicies) = 
+      { state with Policies = List.append accessPolicies state.Policies }
     /// Adds a simple policy to permit reading of secrets.
     [<CustomOperation "add_reader_policy">]
     member __.AddReaderPolicy(state:KeyVaultBuilderState, (PrincipalId principal)) =
         let accessPolicy = accessPolicy { object_id principal; secret_permissions [ Secret.Get ] }
         { state with Policies = accessPolicy :: state.Policies }
+    /// Adds simple policies to permit reading of secrets.
+    [<CustomOperation "add_reader_policies">]
+    member __.AddReaderPolicies(state:KeyVaultBuilderState, principals:#seq<_>) =        
+        let accessPolicies = 
+          principals
+          |> Seq.map (fun (PrincipalId p) ->
+            accessPolicy { object_id p; secret_permissions [ Secret.Get ] }
+          )
+          |> Seq.toList
+        { state with Policies = List.append accessPolicies state.Policies }        
     // Allows Azure traffic can bypass network rules.
     [<CustomOperation "enable_azure_services_bypass">]
     member __.EnableBypass(state:KeyVaultBuilderState) = { state with NetworkAcl = { state.NetworkAcl with Bypass = Some AzureServices } }
