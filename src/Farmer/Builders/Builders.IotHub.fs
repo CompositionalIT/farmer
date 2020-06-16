@@ -1,6 +1,7 @@
 [<AutoOpen>]
 module Farmer.Builders.IotHub
 
+open Farmer
 open Farmer.Arm
 open Farmer.CoreTypes
 open Farmer.IotHub

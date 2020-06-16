@@ -1,6 +1,7 @@
 [<AutoOpen>]
 module Farmer.Builders.SignalR
 
+open Farmer
 open Farmer.Arm.SignalRService
 open Farmer.CoreTypes
 open Farmer.Helpers

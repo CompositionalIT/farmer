@@ -1,5 +1,27 @@
 Release Notes
 =============
+## 0.17.1
+* Enhance access policy maintenance in KeyVault.
+
+## 0.17.0
+* Data Lake support
+* Managed Identity support for Web Apps and Functions
+* CORS support for Web Apps and Functions
+* Secret settings support for Web Apps and Functions
+* Improved typing around Cosmos DB
+* Simplified Key Vault support for adding secrets and simple policies
+* Ability to inject raw JSON ARM resources into the Farmer pipeline
+* Support for more locations
+* Minimum Azure CLI version now 2.5.0
+* Promote some types into the top-level Farmer namespace
+
+## 0.16.0
+* Extra settings for Functions and Web Apps
+* Rationalise depends_on so any resource is dependable
+* Redesign SQL Server builder
+* Better support for SQL Server Elastic Pools
+* Clean up documentation
+
 ## 0.15.0
 * Improvements to PostgreSQL
 * Unique Key support in CosmosDB
@@ -47,12 +69,12 @@ Release Notes
 * Support for providing multiple settings at once on WebApp and Functions
 
 ## 0.11.1
-* Fix a bug with deploy parameterisation.
+* Fix a bug with deploy parameterisation
 
 ## 0.11.0
-* Remove REST API support.
-* Enhance Azure CLI support.
-* Support for optional Azure CLI authentication.
+* Remove REST API support
+* Enhance Azure CLI support
+* Support for optional Azure CLI authentication
 
 ## 0.10.0
 * Allow supplying an explicit related service plan
@@ -63,7 +85,7 @@ Release Notes
 * Don't login on Azure CLI unless needed
 
 ## 0.9.1
-* Fix a bug with WebApp builder causing a stack overflow.
+* Fix a bug with WebApp builder causing a stack overflow
 
 ## 0.9.0
 * Support for Cognitive Services

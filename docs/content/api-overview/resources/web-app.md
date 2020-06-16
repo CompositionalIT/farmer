@@ -34,6 +34,9 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Web App | docker_image | Sets the docker image to be pulled down from Docker Hub, and the command to execute as a second argument. Automatically sets the OS to Linux. |
 | Web App | docker_ci | Turns on continuous integration of the web app from the Docker source repository using a webhook.
 | Web App | docker_use_azure_registry | Uses the supplied Azure Container Registry name as the source of the Docker image, instead of Docker Hub. You do not need to specify the full url, but just the name of the registry itself.
+| Web App | enable_managed_identity | Creates a system-assigned identity for the web app. |
+| Web App | disable_managed_identity | Deletes the system-assigned identity for the web app. |
+| Web App | enable_cors | Enables CORS support for the app. Either specify `WebApp.AllOrigins` or a list of valid URIs as strings. |
 | Service Plan | service_plan_name | Sets the name of the service plan. If not set, uses the name of the web app postfixed with "-plan". |
 | Service Plan | always_on | Sets "Always On" flag. |
 | Service Plan | runtime_stack | Sets the runtime stack. |
@@ -60,6 +63,7 @@ The Web App builder contains special commands that are executed *after* the ARM 
 | PublishingPassword | Gets the ARM expression path to the publishing password of this web app. |
 | ServicePlan | Gets the Resource Name of the service plan for this web app. |
 | AppInsights | Gets the Resource Name of the service plan for the AI resource linked to this web app. |
+| SystemIdentity | Gets the system-created managed principal for the web app. It must have been enabled using enable_managed_identity. |
 
 #### Example
 

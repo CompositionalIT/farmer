@@ -37,9 +37,9 @@ module DatabaseAccounts =
                                   partitionKey =
                                    {| paths = this.PartitionKey.Paths
                                       kind = string this.PartitionKey.Kind |}
-                                  uniqueKeyPolicy = 
-                                   {| uniqueKeys = 
-                                      this.UniqueKeyPolicy.UniqueKeys 
+                                  uniqueKeyPolicy =
+                                   {| uniqueKeys =
+                                      this.UniqueKeyPolicy.UniqueKeys
                                       |> Set.map (fun k -> {| paths = k.Paths |}) |}
                                   indexingPolicy =
                                    {| indexingMode = "consistent"
@@ -65,7 +65,7 @@ module DatabaseAccounts =
     type SqlDatabases =
         { Name : ResourceName
           Account : ResourceName
-          Throughput : int }
+          Throughput : int<RU> }
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =

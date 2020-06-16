@@ -19,7 +19,7 @@ type CosmosDbConfig =
       AccountConsistencyPolicy : ConsistencyPolicy
       AccountFailoverPolicy : FailoverPolicy
       Name : ResourceName
-      DbThroughput : int
+      DbThroughput : int<RU>
       Containers : CosmosDbContainerConfig list
       PublicNetworkAccess : FeatureFlag
       FreeTier : bool }
@@ -58,13 +58,13 @@ type CosmosDbConfig =
                   PartitionKey =
                     {| Paths = fst container.PartitionKey
                        Kind = snd container.PartitionKey |}
-                  UniqueKeyPolicy =                     
-                    {| UniqueKeys = 
+                  UniqueKeyPolicy =
+                    {| UniqueKeys =
                         container.UniqueKeys
-                        |> Set.map (fun uniqueKeyPath -> 
+                        |> Set.map (fun uniqueKeyPath ->
                             {| Paths = uniqueKeyPath |}
-                        ) 
-                    |}                    
+                        )
+                    |}
                   IndexingPolicy =
                     {| ExcludedPaths = container.ExcludedPaths
                        IncludedPaths = [
@@ -115,7 +115,7 @@ type CosmosDbBuilder() =
           AccountName = AutomaticPlaceholder
           AccountConsistencyPolicy = Eventual
           AccountFailoverPolicy = NoFailover
-          DbThroughput = 400
+          DbThroughput = 400<RU>
           Containers = []
           PublicNetworkAccess = Enabled
           FreeTier = false }
@@ -158,14 +158,6 @@ type CosmosDbBuilder() =
     /// Enables the use of CosmosDB free tier (one per subscription).
     [<CustomOperation "free_tier">]
     member __.FreeTier(state:CosmosDbConfig) = { state with FreeTier = true }
-
-open WebApp
-type WebAppBuilder with
-    member this.DependsOn(state:WebAppConfig, cosmosDbConfig:CosmosDbConfig) =
-        this.DependsOn(state, cosmosDbConfig.Name)
-type FunctionsBuilder with
-    member this.DependsOn(state:FunctionsConfig, cosmosDbConfig:CosmosDbConfig) =
-        this.DependsOn(state, cosmosDbConfig.Name)
 
 let cosmosDb = CosmosDbBuilder()
 let cosmosContainer = CosmosDbContainerBuilder()

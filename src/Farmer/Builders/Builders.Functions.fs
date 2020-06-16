@@ -4,10 +4,11 @@ module Farmer.Builders.Functions
 open Farmer
 open Farmer.CoreTypes
 open Farmer.Helpers
-open Farmer.Web
+open Farmer.WebApp
 open Farmer.Arm.Web
 open Farmer.Arm.Insights
 open Farmer.Arm.Storage
+open System
 
 type FunctionsRuntime = DotNet | Node | Java | Python
 type FunctionsExtensionVersion = V1 | V2 | V3
@@ -17,12 +18,19 @@ type FunctionsConfig =
       HTTPSOnly : bool
       AppInsightsName : ResourceRef option
       OperatingSystem : OS
-      Settings : Map<string, string>
+      Settings : Map<string, Setting>
       Dependencies : ResourceName list
+      Cors : Cors option
 
       StorageAccountName : ResourceRef
       Runtime : FunctionsRuntime
-      ExtensionVersion : FunctionsExtensionVersion }
+      ExtensionVersion : FunctionsExtensionVersion
+      Identity : FeatureFlag option }
+    /// Gets the system-created managed principal for the functions instance. It must have been enabled using enable_managed_identity.
+    member this.SystemIdentity =
+        sprintf "reference(resourceId('Microsoft.Web/sites', '%s'), '2019-08-01', 'full').identity.principalId" this.Name.Value
+        |> ArmExpression
+        |> PrincipalId
     /// Gets the ARM expression path to the publishing password of this functions app.
     member this.PublishingPassword = publishingPassword this.Name
     /// Gets the ARM expression path to the storage account key of this functions app.
@@ -53,8 +61,8 @@ type FunctionsConfig =
             { Name = this.Name
               ServicePlan = this.ServicePlanName.ResourceName
               Location = location
+              Cors = this.Cors
               AppSettings = [
-                yield! this.Settings |> Map.toList
                 "FUNCTIONS_WORKER_RUNTIME", (string this.Runtime).ToLower()
                 "WEBSITE_NODE_DEFAULT_VERSION", "10.14.1"
                 "FUNCTIONS_EXTENSION_VERSION", match this.ExtensionVersion with V1 -> "~1" | V2 -> "~2" | V3 -> "~3"
@@ -72,7 +80,10 @@ type FunctionsConfig =
                     "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING", Storage.buildKey this.StorageAccountName.ResourceName |> ArmExpression.Eval
                     "WEBSITE_CONTENTSHARE", this.Name.Value.ToLower()
               ]
+              |> List.map Setting.AsLiteral
+              |> List.append (this.Settings |> Map.toList)
 
+              Identity = this.Identity
               Kind =
                 match this.OperatingSystem with
                 | Windows -> "functionapp"
@@ -104,7 +115,6 @@ type FunctionsConfig =
               Metadata = []
               ZipDeployPath = None
               AppCommandLine = None
-              Parameters = []
             }
             match this.ServicePlanName with
             | External _
@@ -147,10 +157,12 @@ type FunctionsBuilder() =
           StorageAccountName = AutomaticPlaceholder
           Runtime = DotNet
           ExtensionVersion = V2
+          Cors = None
           HTTPSOnly = false
           OperatingSystem = Windows
           Settings = Map.empty
-          Dependencies = [] }
+          Dependencies = []
+          Identity = None }
     member __.Run (state:FunctionsConfig) =
         { state with
             ServicePlanName =
@@ -209,27 +221,32 @@ type FunctionsBuilder() =
     member __.OperatingSystem(state:FunctionsConfig, os) = { state with OperatingSystem = os }
     /// Sets an app setting of the web app in the form "key" "value".
     [<CustomOperation "setting">]
-    member __.AddSetting(state:FunctionsConfig, key, value) = { state with Settings = state.Settings.Add(key, value) }
-    member __.AddSetting(state:FunctionsConfig, key, value:ArmExpression) = { state with Settings = state.Settings.Add(key, value.Eval()) }
+    member __.AddSetting(state:FunctionsConfig, key, value) =
+        { state with Settings = state.Settings.Add(key, LiteralSetting value) }
+    member this.AddSetting(state:FunctionsConfig, key, value:ArmExpression) =
+        this.AddSetting(state, key, value.Eval())
     /// Sets a list of app setting of the web app in the form "key" "value".
     [<CustomOperation "settings">]
     member __.AddSettings(state:FunctionsConfig, settings: (string*string) list) =
         settings
         |> List.fold (fun state (key,value: string) -> __.AddSetting(state, key, value)) state
-    /// Sets a dependency for the web app.
+    /// Sets a dependency for the functions app.
+    /// Creates an app setting of the web app whose value will be supplied as a secret parameter.
+    [<CustomOperation "secret_setting">]
+    member __.AddSecret(state:FunctionsConfig, key) =
+        { state with Settings = state.Settings.Add(key, ParameterSetting (SecureParameter key)) }
     [<CustomOperation "depends_on">]
-    member __.DependsOn(state:FunctionsConfig, resourceName) =
-        { state with Dependencies = resourceName :: state.Dependencies }
-
-[<AutoOpen>]
-module Extensions =
-    open Farmer.Builders
-    type FunctionsBuilder with
-        member this.DependsOn(state:FunctionsConfig, storageAccountConfig:StorageAccountConfig) =
-            this.DependsOn(state, storageAccountConfig.Name)
-        member this.DependsOn(state:FunctionsConfig, webAppConfig:WebAppConfig) =
-            this.DependsOn(state, webAppConfig.Name)
-        member this.DependsOn(state:FunctionsConfig, appInsightsConfig:AppInsightsConfig) =
-            this.DependsOn(state, appInsightsConfig.Name)
+    member __.DependsOn(state:FunctionsConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
+    member __.DependsOn(state:FunctionsConfig, resource:IBuilder) = { state with Dependencies = resource.DependencyName :: state.Dependencies }
+    member __.DependsOn(state:FunctionsConfig, resource:IArmResource) = { state with Dependencies = resource.ResourceName :: state.Dependencies }
+    [<CustomOperation "enable_cors">]
+    member _.EnableCors (state:FunctionsConfig, origins) = { state with Cors = Some (SpecificOrigins (List.map Uri origins)) }
+    member _.EnableCors (state:FunctionsConfig, cors) = { state with Cors = Some cors }
+    [<CustomOperation "enable_managed_identity">]
+    member _.EnableManagedIdentity(state:FunctionsConfig) =
+        { state with Identity = Some Enabled }
+    [<CustomOperation "disable_managed_identity">]
+    member _.DisableManagedIdentity(state:FunctionsConfig) =
+        { state with Identity = Some Disabled }
 
 let functions = FunctionsBuilder()

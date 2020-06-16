@@ -3,9 +3,10 @@ module Farmer.Builders.WebApp
 
 open Farmer
 open Farmer.CoreTypes
-open Farmer.Web
+open Farmer.WebApp
 open Farmer.Arm.Web
 open Farmer.Arm.Insights
+open System
 
 type JavaHost =
     | JavaSE | WildFly14 | Tomcat of string
@@ -15,7 +16,7 @@ type JavaRuntime =
     | Java8 | Java11
     member this.Version = match this with Java8 -> 8 | Java11 -> 11
     member this.Jre = match this with Java8 -> "jre8" | Java11 -> "java11"
-type WebAppRuntime =
+type Runtime =
     | DotNetCore of string
     | Node of string
     | Php of string
@@ -71,17 +72,22 @@ type WebAppConfig =
       WebSocketsEnabled: bool option
       AppInsightsName : ResourceRef option
       OperatingSystem : OS
-      Settings : Map<string, string>
+      Settings : Map<string, Setting>
       Dependencies : ResourceName list
 
+      Cors : Cors option
       Sku : Sku
       WorkerSize : WorkerSize
       WorkerCount : int
       RunFromPackage : bool
       WebsiteNodeDefaultVersion : string option
       AlwaysOn : bool
-      Runtime : WebAppRuntime
+      Runtime : Runtime
+
+      Identity : FeatureFlag option
+
       ZipDeployPath : string option
+
       DockerImage : (string * string) option
       DockerCi : bool
       DockerAcrCredentials : {| RegistryName : string; Password : SecureParameter |} option }
@@ -92,6 +98,12 @@ type WebAppConfig =
     member this.ServicePlan = this.ServicePlanName.ResourceName
     /// Gets the App Insights name for this web app, if it exists.
     member this.AppInsights = this.AppInsightsName |> Option.map (fun ai -> ai.ResourceName)
+    /// Gets the system-created managed principal for the web app. It must have been enabled using enable_managed_identity.
+    member this.SystemIdentity =
+        sprintf "reference(resourceId('Microsoft.Web/sites', '%s'), '2019-08-01', 'full').identity.principalId" this.Name.Value
+        |> ArmExpression
+        |> PrincipalId
+
     interface IBuilder with
         member this.DependencyName = this.ServicePlanName.ResourceName
         member this.BuildResources location _ = [
@@ -103,41 +115,48 @@ type WebAppConfig =
                   HTTP20Enabled = this.HTTP20Enabled
                   ClientAffinityEnabled = this.ClientAffinityEnabled
                   WebSocketsEnabled = this.WebSocketsEnabled
-                  AppSettings = [
-                    yield! this.Settings |> Map.toList
-                    if this.RunFromPackage then AppSettings.RunFromPackage
+                  Identity = this.Identity
+                  Cors = this.Cors
+                  AppSettings =
+                    let literalSettings = [
+                        if this.RunFromPackage then AppSettings.RunFromPackage
 
-                    match this.WebsiteNodeDefaultVersion with
-                    | Some v -> AppSettings.WebsiteNodeDefaultVersion v
-                    | None -> ()
+                        match this.WebsiteNodeDefaultVersion with
+                        | Some v -> AppSettings.WebsiteNodeDefaultVersion v
+                        | None -> ()
 
-                    match this.OperatingSystem, this.AppInsightsName with
-                    | Windows, Some (External resourceName)
-                    | Windows, Some (AutomaticallyCreated resourceName) ->
-                        "APPINSIGHTS_INSTRUMENTATIONKEY", instrumentationKey resourceName |> ArmExpression.Eval
-                        "APPINSIGHTS_PROFILERFEATURE_VERSION", "1.0.0"
-                        "APPINSIGHTS_SNAPSHOTFEATURE_VERSION", "1.0.0"
-                        "ApplicationInsightsAgent_EXTENSION_VERSION", "~2"
-                        "DiagnosticServices_EXTENSION_VERSION", "~3"
-                        "InstrumentationEngine_EXTENSION_VERSION", "~1"
-                        "SnapshotDebugger_EXTENSION_VERSION", "~1"
-                        "XDT_MicrosoftApplicationInsights_BaseExtensions", "~1"
-                        "XDT_MicrosoftApplicationInsights_Mode", "recommended"
-                    | Windows, Some AutomaticPlaceholder
-                    | Windows, None
-                    | Linux, _ ->
-                        ()
+                        match this.OperatingSystem, this.AppInsightsName with
+                        | Windows, Some (External resourceName)
+                        | Windows, Some (AutomaticallyCreated resourceName) ->
+                            "APPINSIGHTS_INSTRUMENTATIONKEY", instrumentationKey resourceName |> ArmExpression.Eval
+                            "APPINSIGHTS_PROFILERFEATURE_VERSION", "1.0.0"
+                            "APPINSIGHTS_SNAPSHOTFEATURE_VERSION", "1.0.0"
+                            "ApplicationInsightsAgent_EXTENSION_VERSION", "~2"
+                            "DiagnosticServices_EXTENSION_VERSION", "~3"
+                            "InstrumentationEngine_EXTENSION_VERSION", "~1"
+                            "SnapshotDebugger_EXTENSION_VERSION", "~1"
+                            "XDT_MicrosoftApplicationInsights_BaseExtensions", "~1"
+                            "XDT_MicrosoftApplicationInsights_Mode", "recommended"
+                        | Windows, Some AutomaticPlaceholder
+                        | Windows, None
+                        | Linux, _ ->
+                            ()
+                        if this.DockerCi then "DOCKER_ENABLE_CI", "true"
+                    ]
 
-                    if this.DockerCi then "DOCKER_ENABLE_CI", "true"
-
-                    match this.DockerAcrCredentials with
-                    | Some credentials ->
-                        "DOCKER_REGISTRY_SERVER_PASSWORD", credentials.Password.AsArmRef.Eval()
-                        "DOCKER_REGISTRY_SERVER_URL", sprintf "https://%s.azurecr.io" credentials.RegistryName
-                        "DOCKER_REGISTRY_SERVER_USERNAME", credentials.RegistryName
-                    | None ->
-                      ()
-                  ]
+                    let dockerSettings = [
+                        match this.DockerAcrCredentials with
+                        | Some credentials ->
+                            "DOCKER_REGISTRY_SERVER_PASSWORD", ParameterSetting credentials.Password
+                            Setting.AsLiteral ("DOCKER_REGISTRY_SERVER_URL", sprintf "https://%s.azurecr.io" credentials.RegistryName)
+                            Setting.AsLiteral ("DOCKER_REGISTRY_SERVER_USERNAME", credentials.RegistryName)
+                        | None ->
+                            ()
+                    ]
+                    literalSettings
+                    |> List.map Setting.AsLiteral
+                    |> List.append dockerSettings
+                    |> List.append (this.Settings |> Map.toList)
                   Kind = [
                     "app"
                     match this.OperatingSystem with Linux -> "linux" | Windows -> ()
@@ -211,11 +230,6 @@ type WebAppConfig =
                     |> Option.toList
                   AppCommandLine = this.DockerImage |> Option.map snd
                   ZipDeployPath = this.ZipDeployPath
-                  Parameters = [
-                      match this.DockerAcrCredentials with
-                      | Some credentials -> credentials.Password
-                      | None -> ()
-                  ]
                 }
 
             let ai =
@@ -268,11 +282,13 @@ type WebAppBuilder() =
           WebSocketsEnabled = None
           Settings = Map.empty
           Dependencies = []
-          Runtime = WebAppRuntime.DotNetCoreLts
+          Identity = None
+          Runtime = Runtime.DotNetCoreLts
           OperatingSystem = Windows
           ZipDeployPath = None
           DockerImage = None
           DockerCi = false
+          Cors = None
           DockerAcrCredentials = None }
     member __.Run(state:WebAppConfig) =
         let operatingSystem =
@@ -342,17 +358,24 @@ type WebAppBuilder() =
     member __.NodeVersion(state:WebAppConfig, version) = { state with WebsiteNodeDefaultVersion = Some version }
     /// Sets an app setting of the web app in the form "key" "value".
     [<CustomOperation "setting">]
-    member __.AddSetting(state:WebAppConfig, key, value) = { state with Settings = state.Settings.Add(key, value) }
-    member __.AddSetting(state:WebAppConfig, key, value:ArmExpression) = { state with Settings = state.Settings.Add(key, value.Eval()) }
+    member __.AddSetting(state:WebAppConfig, key, value) =
+        { state with Settings = state.Settings.Add(key, LiteralSetting value) }
+    member this.AddSetting(state:WebAppConfig, key, value:ArmExpression) =
+        this.AddSetting(state, key, value.Eval())
     /// Sets a list of app setting of the web app in the form "key" "value".
     [<CustomOperation "settings">]
-    member __.AddSettings(state:WebAppConfig, settings: (string*string) list) =
+    member this.AddSettings(state:WebAppConfig, settings: (string*string) list) =
         settings
-        |> List.fold (fun state (key, value: string) -> __.AddSetting(state, key, value)) state
+        |> List.fold (fun state (key, value: string) -> this.AddSetting(state, key, value)) state
+    /// Creates an app setting of the web app whose value will be supplied as a secret parameter.
+    [<CustomOperation "secret_setting">]
+    member __.AddSecret(state:WebAppConfig, key) =
+        { state with Settings = state.Settings.Add(key, ParameterSetting (SecureParameter key)) }
     /// Sets a dependency for the web app.
     [<CustomOperation "depends_on">]
     member __.DependsOn(state:WebAppConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
     member __.DependsOn(state:WebAppConfig, builder:IBuilder) = { state with Dependencies = builder.DependencyName :: state.Dependencies }
+    member __.DependsOn(state:WebAppConfig, resource:IArmResource) = { state with Dependencies = resource.ResourceName :: state.Dependencies }
     /// Sets "Always On" flag
     [<CustomOperation "always_on">]
     member __.AlwaysOn(state:WebAppConfig) = { state with AlwaysOn = true }
@@ -390,5 +413,14 @@ type WebAppBuilder() =
             DockerAcrCredentials =
                 Some {| RegistryName = registryName
                         Password = SecureParameter (sprintf "docker-password-for-%s" registryName) |} }
+    [<CustomOperation "enable_managed_identity">]
+    member _.EnableManagedIdentity(state:WebAppConfig) =
+        { state with Identity = Some Enabled }
+    [<CustomOperation "disable_managed_identity">]
+    member _.DisableManagedIdentity(state:WebAppConfig) =
+        { state with Identity = Some Disabled }
+    [<CustomOperation "enable_cors">]
+    member _.EnableCors (state:WebAppConfig, origins) = { state with Cors = Some (SpecificOrigins (List.map Uri origins)) }
+    member _.EnableCors (state:WebAppConfig, cors) = { state with Cors = Some cors }
 
 let webApp = WebAppBuilder()

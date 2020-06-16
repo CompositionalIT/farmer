@@ -19,7 +19,7 @@ module Az =
     open System.Runtime.InteropServices
     open System.Text
 
-    let MinimumVersion = Version "2.3.1"
+    let MinimumVersion = Version "2.5.0"
 
     [<AutoOpen>]
     module AzHelpers =

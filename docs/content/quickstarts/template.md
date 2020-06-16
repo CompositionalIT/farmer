@@ -49,12 +49,9 @@ You can also configure the Farmer template to deploy to Azure out of the box usi
 #### Azure DevOps deployment
 This comes with a ready-made devops YAML file designed for simple CI/CD, using Farmer to generate ARM templates and Azdo to deploy using its own ARM Template deployment process. You should supply the following arguments:
 
-* **--ci devops**: Tells the template to create a Farmer app for use with Azdo.
-* **--azureSubscription**: Set the full name of the Azure Subscription that has been already configured in Azdo with permission to deploy templates to Azure.
+* **--ci**: Tells the template to create a Farmer app for use with Azure Devops.
+* **--azureSubscription**: Set the full name of the Azure Subscription that has been already configured in Azdo that has permission to deploy templates to Azure.
 * **--resourceGroup**: Set the name of the resource group that you wish to deploy to.
 
 #### Direct deployment
-If you prefer a deployment process that is not coupled to Azure Devops, you can create a [service principle](../../deployment-guidance/#how-do-i-create-a-service-principal) in Azure and use the generated credentials in Farmer. Farmer will use its own wrapper around the Azure REST API to deploy to Azure, reporting progress to the console. You should supply the following arguments:
-
-* **--ci direct**: Tells the template to create a Farmer app for use with a service principle. The generated application expects to receive credentials via environment variables, but you can of course change this as required.
-
+If you prefer a deployment process that is not coupled to Azure Devops, you can create a [service principle](../../deployment-guidance/#how-do-i-create-a-service-principal) in Azure and use the generated credentials in Farmer. Farmer will use its own wrapper around the Azure REST API to deploy to Azure, reporting progress to the console.

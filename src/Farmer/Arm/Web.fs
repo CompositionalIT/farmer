@@ -3,7 +3,7 @@ module Farmer.Arm.Web
 
 open Farmer
 open Farmer.CoreTypes
-open Farmer.Web
+open Farmer.WebApp
 open System
 
 type ServerFarm =
@@ -102,18 +102,20 @@ module ZipDeploy =
             | DeployZip zipFilePath ->
                 zipFilePath
 
-type Sites =
+type Site =
     { Name : ResourceName
       Location : Location
       ServicePlan : ResourceName
-      AppSettings : List<string * string>
+      AppSettings : List<string * Setting>
       AlwaysOn : bool
       HTTPSOnly : bool
       HTTP20Enabled : bool option
       ClientAffinityEnabled : bool option
       WebSocketsEnabled : bool option
+      Cors : Cors option
       Dependencies : ResourceName list
       Kind : string
+      Identity : FeatureFlag option
       LinuxFxVersion : string option
       AppCommandLine : string option
       NetFrameworkVersion : string option
@@ -123,10 +125,13 @@ type Sites =
       PhpVersion : string option
       PythonVersion : string option
       Metadata : List<string * string>
-      ZipDeployPath : string option
-      Parameters : SecureParameter list }
+      ZipDeployPath : string option }
     interface IParameters with
-        member this.SecureParameters = this.Parameters
+        member this.SecureParameters =
+            this.AppSettings
+            |> List.choose(snd >> function
+                | ParameterSetting s -> Some s
+                | LiteralSetting _ -> None)
     interface IPostDeploy with
         member this.Run resourceGroupName =
             match this with
@@ -148,24 +153,34 @@ type Sites =
                location = this.Location.ArmValue
                dependsOn = this.Dependencies |> List.map(fun p -> p.Value)
                kind = this.Kind
+               identity =
+                 match this.Identity with
+                 | Some Enabled -> box {| ``type`` = "SystemAssigned" |}
+                 | Some Disabled -> box {| ``type`` = "None" |}
+                 | None -> null
                properties =
                    {| serverFarmId = this.ServicePlan.Value
                       httpsOnly = this.HTTPSOnly
                       clientAffinityEnabled = match this.ClientAffinityEnabled with Some v -> box v | None -> null
                       siteConfig =
-                           [ "alwaysOn", box this.AlwaysOn
-                             "appSettings", this.AppSettings |> List.map(fun (k,v) -> {| name = k; value = v |}) |> box
-                             match this.LinuxFxVersion with Some v -> "linuxFxVersion", box v | None -> ()
-                             match this.AppCommandLine with Some v -> "appCommandLine", box v | None -> ()
-                             match this.NetFrameworkVersion with Some v -> "netFrameworkVersion", box v | None -> ()
-                             match this.JavaVersion with Some v -> "javaVersion", box v | None -> ()
-                             match this.JavaContainer with Some v -> "javaContainer", box v | None -> ()
-                             match this.JavaContainerVersion with Some v -> "javaContainerVersion", box v | None -> ()
-                             match this.PhpVersion with Some v -> "phpVersion", box v | None -> ()
-                             match this.PythonVersion with Some v -> "pythonVersion", box v | None -> ()
-                             match this.HTTP20Enabled with Some v -> "http20Enabled", box v | None -> ()
-                             match this.WebSocketsEnabled with Some v -> "webSocketsEnabled", box v | None -> ()
-                             "metadata", this.Metadata |> List.map(fun (k,v) -> {| name = k; value = v |}) |> box ]
-                           |> Map.ofList
+                        {| alwaysOn = this.AlwaysOn
+                           appSettings = this.AppSettings |> List.map(fun (k,v) -> {| name = k; value = v.Value |})
+                           linuxFxVersion = this.LinuxFxVersion |> Option.toObj
+                           appCommandLine = this.AppCommandLine |> Option.toObj
+                           netFrameworkVersion = this.NetFrameworkVersion |> Option.toObj
+                           javaVersion = this.JavaVersion |> Option.toObj
+                           javaContainer = this.JavaContainer |> Option.toObj
+                           javaContainerVersion = this.JavaContainerVersion |> Option.toObj
+                           phpVersion = this.PhpVersion |> Option.toObj
+                           pythonVersion = this.PythonVersion |> Option.toObj
+                           http20Enabled = this.HTTP20Enabled |> Option.toNullable
+                           webSocketsEnabled = this.WebSocketsEnabled |> Option.toNullable
+                           metadata = this.Metadata |> List.map(fun (k,v) -> {| name = k; value = v |})
+                           cors =
+                            match this.Cors with
+                            | None -> null
+                            | Some AllOrigins -> box {| allowedOrigins = [ "*" ] |}
+                            | Some (SpecificOrigins origins) -> box {| allowedOrigins = origins |}
+                        |}
                     |}
             |} :> _

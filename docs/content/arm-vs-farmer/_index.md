@@ -11,9 +11,10 @@ draft: false
 | ARM deployment mechanisms? | **All**, plus easy-to-use F# deployment | **All** |
 | Variables support? | **Yes**, native support in F# | **Yes** |
 | Parameters support? | **Yes**, native support in F# or secure parameters | **Yes** |
-| Supported resources? | **30+ popular resources**, with more being added all the time | **All** |
+| Supported resources? | **All**, including **custom builders for 30+ popular resources**  | **All** |
 | Declarative model support? | **Yes** | **Yes** |
 | Support for all ARM tools? | **Yes**, Farmer runs on top of ARM | **Yes** |
+| Linked Template support? | **No** - generally not required. | **Yes** |
 | **Authoring** |
 | Easy to author? | **Yes** | **No** |
 | Easy to read? | **Yes** | **No** |

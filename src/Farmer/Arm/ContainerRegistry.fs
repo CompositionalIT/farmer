@@ -2,7 +2,6 @@
 module Farmer.Arm.ContainerRegistry
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.ContainerRegistry
 
 type Registries =
@@ -16,7 +15,7 @@ type Registries =
             {| name = this.Name.Value
                ``type`` = "Microsoft.ContainerRegistry/registries"
                apiVersion = "2019-05-01"
-               sku = {| name = this.Sku.ToString().Replace("_", ".") |}
+               sku = {| name = this.Sku.ToString() |}
                location = this.Location.ArmValue
                tags = {||}
                properties = {| adminUserEnabled = this.AdminUserEnabled |}

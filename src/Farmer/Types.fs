@@ -1,6 +1,4 @@
-namespace Farmer.CoreTypes
-
-open Farmer
+namespace Farmer
 
 /// Represents a name of an ARM resource
 type ResourceName =
@@ -22,6 +20,17 @@ type IArmResource =
     /// A raw object that is ready for serialization directly to JSON.
     abstract member JsonModel : obj
 
+/// Represents a high-level configuration that can create a set of ARM Resources.
+type IBuilder =
+    /// Given a location and the currently-built resources, returns a set of resource actions.
+    abstract member BuildResources : Location -> IArmResource list -> IArmResource list
+    /// Provides the resource name that other resources should use when depending upon this builder.
+    abstract member DependencyName : ResourceName
+
+namespace Farmer.CoreTypes
+
+open Farmer
+
 /// Represents an expression used within an ARM template
 type ArmExpression =
     | ArmExpression of string
@@ -42,7 +51,7 @@ type ArmExpression =
 type SecureParameter =
     | SecureParameter of name:string
     member this.Value = match this with SecureParameter value -> value
-    /// Gets an ARM expression reference to the password e.g. parameters('my-password')
+    /// Gets an ARM expression reference to the parameter e.g. parameters('my-password')
     member this.AsArmRef = sprintf "parameters('%s')" this.Value |> ArmExpression
 
 /// Exposes parameters which are required by a specific IArmResource.
@@ -52,13 +61,6 @@ type IParameters =
 /// An action that needs to be run after the ARM template has been deployed.
 type IPostDeploy =
     abstract member Run : resourceGroupName:string -> Option<Result<string, string>>
-
-/// Represents a high-level configuration that can create a set of ARM Resources.
-type IBuilder =
-    /// Given a location and the currently-built resources, returns a set of resource actions.
-    abstract member BuildResources : Location -> IArmResource list -> IArmResource list
-    /// Provides the resource name that other resources should use when depending upon this builder.
-    abstract member DependencyName : ResourceName
 
 /// A functional equivalent of the IBuilder's BuildResources method.
 type Builder = Location -> IArmResource list -> IArmResource list
@@ -96,6 +98,9 @@ type FeatureFlag = Enabled | Disabled member this.AsBoolean = match this with En
 module FeatureFlag =
     let ofBool enabled = if enabled then Enabled else Disabled
 
+/// Represents an ARM expression that evaluates to a principal ID.
+type PrincipalId = PrincipalId of ArmExpression member this.ArmValue = match this with PrincipalId e -> e 
+
 /// Represents a secret to be captured either via an ARM expression or a secure parameter.
 type SecretValue =
     | ParameterSecret of SecureParameter
@@ -104,6 +109,15 @@ type SecretValue =
         match this with
         | ParameterSecret secureParameter -> secureParameter.AsArmRef.Eval()
         | ExpressionSecret armExpression -> armExpression.Eval()
+
+type Setting =
+    | ParameterSetting of SecureParameter
+    | LiteralSetting of string
+    member this.Value =
+        match this with
+        | ParameterSetting secureParameter -> secureParameter.AsArmRef.Eval()
+        | LiteralSetting value -> value
+    static member AsLiteral (a,b) = a, LiteralSetting b
 
 type ArmTemplate =
     { Parameters : SecureParameter list

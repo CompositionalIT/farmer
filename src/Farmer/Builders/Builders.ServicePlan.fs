@@ -3,7 +3,7 @@ module Farmer.Builders.ServicePlan
 
 open Farmer
 open Farmer.CoreTypes
-open Farmer.Web
+open Farmer.WebApp
 open Arm.Web
 
 type ServicePlanConfig =

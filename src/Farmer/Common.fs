@@ -22,6 +22,28 @@ type Location =
     static member SouthIndia = Location "SouthIndia"
     static member CentralIndia = Location "CentralIndia"
     static member WestIndia = Location "WestIndia"
+    static member CanadaCentral = Location "CanadaCentral"
+    static member CanadaEast = Location "CanadaEast"
+    static member UKSouth = Location "UKSouth"
+    static member UKWest = Location "UKWest"
+    static member WestCentralUS = Location "WestCentralUS"
+    static member WestUS2 = Location "WestUS2"
+    static member KoreaCentral = Location "KoreaCentral"
+    static member KoreaSouth = Location "KoreaSouth"
+    static member FranceCentral = Location "FranceCentral"
+    static member FranceSouth = Location "FranceSouth"
+    static member AustraliaCentral = Location "AustraliaCentral"
+    static member AustraliaCentral2 = Location "AustraliaCentral2"
+    static member UAECentral = Location "UAECentral"
+    static member UAENorth = Location "UAENorth"
+    static member SouthAfricaNorth = Location "SouthAfricaNorth"
+    static member SouthAfricaWest = Location "SouthAfricaWest"
+    static member SwitzerlandNorth = Location "SwitzerlandNorth"
+    static member SwitzerlandWest = Location "SwitzerlandWest"
+    static member GermanyNorth = Location "GermanyNorth"
+    static member GermanyWestCentral = Location "GermanyWestCentral"
+    static member NorwayWest = Location "NorwayWest"
+    static member NorwayEast = Location "NorwayEast"
     member this.ArmValue = match this with Location location -> location.ToLower()
 
 type OS = Windows | Linux
@@ -207,7 +229,6 @@ module Vm =
     | Standard_NV12
     | Standard_NV24
     | CustomImage of string
-    with
         member this.ArmValue = match this with CustomImage c -> c | _ -> this.ToString()
     type Offer = Offer of string member this.ArmValue = match this with Offer o -> o
     type Publisher = Publisher of string member this.ArmValue = match this with Publisher p -> p
@@ -233,9 +254,9 @@ module Vm =
     let WindowsServer_2008R2SP1 = makeWindowsVm "2008-R2-SP1"
     /// The type of disk to use.
     type DiskType =
-        | StandardSSD_LRS
-        | Standard_LRS
-        | Premium_LRS
+    | StandardSSD_LRS
+    | Standard_LRS
+    | Premium_LRS
         member this.ArmValue = match this with x -> x.ToString()
 
     /// Represents a disk in a VM.
@@ -251,7 +272,6 @@ module Storage =
     | Standard_RAGZRS
     | Premium_LRS
     | Premium_ZRS
-    with
         member this.ArmValue = this.ToString()
 
     type StorageContainerAccess =
@@ -259,8 +279,9 @@ module Storage =
     | Container
     | Blob
 
-module Web =
+module WebApp =
     type WorkerSize = Small | Medium | Large | Serverless
+    type Cors = AllOrigins | SpecificOrigins of Uri list
     type Sku =
         | Shared
         | Free
@@ -480,6 +501,9 @@ module CosmosDb =
     type IndexKind = Hash | Range
     /// The datatype for the key of index to use on a CosmoDB container.
     type IndexDataType = Number | String
+    /// A request unit.
+    [<Measure>]
+    type RU
 
 module PostgreSQL =
     type Sku =
@@ -511,6 +535,16 @@ module Maps =
 module SignalR =
     type Sku = Free | Standard
   
+module DataLake =
+    type Sku =
+    | Consumption
+    | Commitment_1TB
+    | Commitment_10TB
+    | Commitment_100TB
+    | Commitment_500TB
+    | Commitment_1PB
+    | Commitment_5PB
+
 type internal IPAddressCidr =
     {| Address : System.Net.IPAddress
        Prefix : int |}
