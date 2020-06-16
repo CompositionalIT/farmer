@@ -9,7 +9,7 @@ open System
 open Vaults
 
 type NonEmptyList<'T> = 'T * 'T List
-type AccessPolicy =
+type AccessPolicyConfig =
     { ObjectId : ArmExpression
       ApplicationId : Guid option
       Permissions :
@@ -19,11 +19,11 @@ type AccessPolicy =
            Storage : Storage Set |}
     }
 type CreateMode =
-    | Recover of NonEmptyList<AccessPolicy>
-    | Default of AccessPolicy list
-    | Unspecified of AccessPolicy list
+    | Recover of NonEmptyList<AccessPolicyConfig>
+    | Default of AccessPolicyConfig list
+    | Unspecified of AccessPolicyConfig list
 
-type KeyVaultSettings =
+type KeyVaultConfigSettings =
     { /// Specifies whether Azure Virtual Machines are permitted to retrieve certificates stored as secrets from the key vault.
       VirtualMachineAccess : FeatureFlag option
       /// Specifies whether Azure Resource Manager is permitted to retrieve secrets from the key vault.
@@ -74,7 +74,7 @@ type SecretConfig =
 type KeyVaultConfig =
     { Name : ResourceName
       TenantId : ArmExpression
-      Access : KeyVaultSettings
+      Access : KeyVaultConfigSettings
       Sku : Sku
       Policies : CreateMode
       NetworkAcl : NetworkAcl
@@ -138,43 +138,60 @@ type AccessPolicyBuilder() =
           Permissions = {| Keys = Set.empty; Secrets = Set.empty; Certificates = Set.empty; Storage = Set.empty |} }
     /// Sets the Object ID of the permission set.
     [<CustomOperation "object_id">]
-    member __.ObjectId(state:AccessPolicy, objectId:ArmExpression) = { state with ObjectId = objectId }
-    member this.ObjectId(state:AccessPolicy, objectId:Guid) = this.ObjectId(state, ArmExpression (sprintf "string('%O')" objectId))
-    member this.ObjectId(state:AccessPolicy, objectId:string) = this.ObjectId(state, Guid.Parse objectId)
-    member this.ObjectId(state:AccessPolicy, PrincipalId principalId) = this.ObjectId(state, principalId)
+    member __.ObjectId(state:AccessPolicyConfig, objectId:ArmExpression) = { state with ObjectId = objectId }
+    member this.ObjectId(state:AccessPolicyConfig, objectId:Guid) = this.ObjectId(state, ArmExpression (sprintf "string('%O')" objectId))
+    member this.ObjectId(state:AccessPolicyConfig, (ObjectId objectId)) = this.ObjectId(state, objectId)
+    member this.ObjectId(state:AccessPolicyConfig, objectId:string) = this.ObjectId(state, Guid.Parse objectId)
+    member this.ObjectId(state:AccessPolicyConfig, PrincipalId principalId) = this.ObjectId(state, principalId)
     /// Sets the Application ID of the permission set.
     [<CustomOperation "application_id">]
-    member __.ApplicationId(state:AccessPolicy, applicationId) = { state with ApplicationId = Some applicationId }
+    member __.ApplicationId(state:AccessPolicyConfig, applicationId) = { state with ApplicationId = Some applicationId }
     /// Sets the Key permissions of the permission set.
     [<CustomOperation "key_permissions">]
-    member __.SetKeyPermissions(state:AccessPolicy, permissions) = { state with Permissions = {| state.Permissions with Keys = set permissions |} }
+    member __.SetKeyPermissions(state:AccessPolicyConfig, permissions) = { state with Permissions = {| state.Permissions with Keys = set permissions |} }
     /// Sets the Storage permissions of the permission set.
     [<CustomOperation "storage_permissions">]
-    member __.SetStoragePermissions(state:AccessPolicy, permissions) = { state with Permissions = {| state.Permissions with Storage = set permissions |} }
+    member __.SetStoragePermissions(state:AccessPolicyConfig, permissions) = { state with Permissions = {| state.Permissions with Storage = set permissions |} }
     /// Sets the Secret permissions of the permission set.
     [<CustomOperation "secret_permissions">]
-    member __.SetSecretPermissions(state:AccessPolicy, permissions) = { state with Permissions = {| state.Permissions with Secrets = set permissions |} }
+    member __.SetSecretPermissions(state:AccessPolicyConfig, permissions) = { state with Permissions = {| state.Permissions with Secrets = set permissions |} }
     /// Sets the Certificate permissions of the permission set.
     [<CustomOperation "certificate_permissions">]
-    member __.SetCertificatePermissions(state:AccessPolicy, permissions) = { state with Permissions = {| state.Permissions with Certificates = set permissions |} }
+    member __.SetCertificatePermissions(state:AccessPolicyConfig, permissions) = { state with Permissions = {| state.Permissions with Certificates = set permissions |} }
 
 let accessPolicy = AccessPolicyBuilder()
-module AccessPolicy =
-    /// Quickly creates an access policy with the supplied secret access permissions for the supplied principal .
-    let create secrets (PrincipalId principal) = accessPolicy { object_id principal; secret_permissions secrets }
-    /// Quickly creates an access policy for the supplied principal that can read secrets.
-    let createReader policy = create [ Secret.Get ] policy
+type AccessPolicy =
+    /// Quickly creates an access policy for the supplied Principal that can GET secrets.
+    static member create (principal:PrincipalId) = accessPolicy { object_id principal; secret_permissions [ Secret.Get ] }
+    /// Quickly creates an access policy for the supplied ObjectId that can GET secrets.
+    static member create (objectId:ObjectId) = accessPolicy { object_id objectId; secret_permissions [ Secret.Get ] }
+    static member private findEntity (searchField, values, searcher) =
+        values
+        |> Seq.map (sprintf "%s eq '%s'" searchField)
+        |> String.concat " or "
+        |> sprintf "\"%s\""
+        |> searcher
+        |> Result.map (Newtonsoft.Json.JsonConvert.DeserializeObject<{| DisplayName : string; ObjectId : Guid|} array>)
+        |> Result.toOption
+        |> Option.map(Array.map(fun r -> {| r with ObjectId = ObjectId r.ObjectId |}))
+        |> Option.defaultValue Array.empty
+    /// Locates users in Azure Active Directory based on the supplied email addresses.
+    static member findUsers emailAddresses = AccessPolicy.findEntity ("mail", emailAddresses, Deploy.Az.searchUsers)
+    /// Locates groups in Azure Active Directory based on the supplied group names.
+    static member findGroups groupNames = AccessPolicy.findEntity ("displayName", groupNames, Deploy.Az.searchGroups)
+
+
 
 [<RequireQualifiedAccess>]
 type SimpleCreateMode = Recover | Default
 type KeyVaultBuilderState =
     { Name : ResourceName
-      Access : KeyVaultSettings
+      Access : KeyVaultConfigSettings
       Sku : Sku
       TenantId : ArmExpression
       NetworkAcl : NetworkAcl
       CreateMode : SimpleCreateMode option
-      Policies : AccessPolicy list
+      Policies : AccessPolicyConfig list
       Uri : Uri option
       Secrets : SecretConfig list }
 
