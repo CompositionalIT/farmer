@@ -15,7 +15,7 @@ let privateNetwork = vnet {
             name "ContainerSubnet"
             prefix "10.30.19.0/24"
             add_delegations [
-                "Microsoft.ContainerInstance/containerGroups"
+                SubnetDelegationService.ContainerGroups
             ]
         }
     ]

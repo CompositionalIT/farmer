@@ -22,7 +22,11 @@ The Container Group builder is used to create Azure Container Group instances.
 | link_to_container_group | Links this container to an already-created container group. |
 | os_type | Sets the OS type (default Linux). |
 | restart_policy | Sets the restart policy (default Always) |
-| ip_address | Sets the IP addresss (default Public). |
+| public_dns | Sets the DNS host label when using a public IP. |
+| private_ip | Indicates the container should use a system-assigned private IP address for use in a virtual network. |
+| private_static_ip | Sets a static assigned IP address for use in a virtual network |
+| ip_address | _(Deprecated)_ Sets the IP addresss (default Public). |
+| network_profile | Name of a network profile resource for the subnet in a virtual network where the container group will attach. |
 | add_tcp_port | Adds a TCP port to be externally accessible. |
 | add_udp_port | Adds a UDP port to be externally accessible. |
 
@@ -43,5 +47,47 @@ let nginx = container {
     ports [ 80us; 443us ]
     memory 0.5<Gb>
     cpu_cores 1
+}
+```
+
+#### Private Virtual Network Example
+
+Attaching a container group to a virtual network requires adding a service
+delegation on a subnet indicating it is for container groups, adding a 
+network profile to bind the container group interface to that subnet, and
+finally adding the container group itself with a private IP address.
+
+```fsharp
+open Farmer
+open Farmer.Builders
+
+let privateNetwork = vnet {
+    name "private-vnet"
+    add_address_spaces [
+        "10.30.0.0/16"
+    ]
+    add_subnets [
+        subnet {
+            name "ContainerSubnet"
+            prefix "10.30.19.0/24"
+            add_delegations [
+                SubnetDelegationService.ContainerGroups
+            ]
+        }
+    ]
+}
+
+let aciProfile = networkProfile {
+    name "vnet-aci-profile"
+    vnet "private-vnet"
+    subnet "ContainerSubnet"
+}
+
+let myContainer = container {
+    name "helloworld"
+    image "microsoft/aci-helloworld"
+    network_profile "vnet-aci-profile"
+    ports [ 80us ]
+    private_static_ip "10.30.19.4" [TCP, 80us]
 }
 ```
