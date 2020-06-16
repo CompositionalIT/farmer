@@ -172,7 +172,7 @@ type NetworkProfileBuilder() =
     member __.SubnetName(state:NetworkProfileConfig, subnet) = { state with ContainerNetworkInterfaceConfigurations = [ { IpConfigs = [ { Subnet = subnet } ] } ] }
     /// Sets a single target subnet for the network profile (typical case of single subnet)
     [<CustomOperation "add_ip_configs">]
-    member __.AddIpConfigs(state:NetworkProfileConfig, configs) = { state with ContainerNetworkInterfaceConfigurations = configs }
+    member __.AddIpConfigs(state:NetworkProfileConfig, configs) = { state with ContainerNetworkInterfaceConfigurations = state.ContainerNetworkInterfaceConfigurations @ configs }
     /// Sets the virtual network for the profile
     [<CustomOperation "vnet">]
     member __.VirtualNetwork(state:NetworkProfileConfig, vnet) = { state with VirtualNetwork = ResourceName vnet }
