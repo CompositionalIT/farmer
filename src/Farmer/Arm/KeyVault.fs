@@ -49,7 +49,7 @@ type Vault =
     { Name : ResourceName
       Location : Location
       TenantId : string
-      Sku : string
+      Sku : KeyVault.Sku
       Uri : Uri option
       Deployment : FeatureFlag option
       DiskEncryption : FeatureFlag option
@@ -86,7 +86,7 @@ type Vault =
                location = this.Location.ArmValue
                properties =
                  {| tenantId = this.TenantId
-                    sku = {| name = this.Sku; family = "A" |}
+                    sku = {| name = this.Sku.ArmValue; family = "A" |}
                     enabledForDeployment = this.Deployment |> Option.map(fun f -> f.AsBoolean) |> Option.toNullable
                     enabledForDiskEncryption = this.DiskEncryption |> Option.map(fun f -> f.AsBoolean) |> Option.toNullable
                     enabledForTemplateDeployment = this.TemplateDeployment |> Option.map(fun f -> f.AsBoolean) |> Option.toNullable

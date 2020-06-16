@@ -476,6 +476,14 @@ module KeyVault =
     type Certificate = Get | List | Delete | Create | Import | Update | ManageContacts | GetIssuers | ListIssuers | SetIssuers | DeleteIssuers | ManageIssuers | Recover | Purge | Backup | Restore static member All = makeAll<Certificate>
     type Storage = Get | List | Delete | Set | Update | RegenerateKey | Recover | Purge | Backup | Restore | SetSas | ListSas | GetSas | DeleteSas static member All = makeAll<Storage>
 
+    [<RequireQualifiedAccess>]
+    type Sku =
+    | Standard
+    | Premium
+        member this.ArmValue =
+            match this with
+            | Standard -> "standard"
+            | Premium -> "premium"
 module ExpressRoute =
     type Tier = Standard | Premium
     type Family = UnlimitedData | MeteredData

@@ -3,6 +3,7 @@
     <!-- General -->
     <AssemblyName>Farmer</AssemblyName>
     <Version>0.17.1</Version>
+    <Version>0.17.2</Version>
     <Description>Farmer makes authoring ARM templates easy!</Description>
     <Copyright>Copyright 2019, 2020 Compositional IT Ltd.</Copyright>
     <Company>Compositional IT</Company>

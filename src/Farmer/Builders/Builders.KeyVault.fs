@@ -23,22 +23,6 @@ type CreateMode =
     | Default of AccessPolicy list
     | Unspecified of AccessPolicy list
 
-[<RequireQualifiedAccess>]
-type KeyVaultSku =
-| Standard
-| Premium
-
-  override this.ToString() =
-    match this with
-    | Standard -> "Standard"
-    | Premium -> "Premium"
-
-  member this.AsArmValue =
-    match this with
-    | Standard -> "standard"
-    | Premium -> "premium"
-
-
 type KeyVaultSettings =
     { /// Specifies whether Azure Virtual Machines are permitted to retrieve certificates stored as secrets from the key vault.
       VirtualMachineAccess : FeatureFlag option
@@ -91,7 +75,7 @@ type KeyVaultConfig =
     { Name : ResourceName
       TenantId : ArmExpression
       Access : KeyVaultSettings
-      Sku : KeyVaultSku
+      Sku : Sku
       Policies : CreateMode
       NetworkAcl : NetworkAcl
       Uri : Uri option
@@ -103,8 +87,7 @@ type KeyVaultConfig =
                 { Name = this.Name
                   Location = location
                   TenantId = this.TenantId |> ArmExpression.Eval
-                  Sku = this.Sku.AsArmValue
-
+                  Sku = this.Sku
                   TemplateDeployment = this.Access.ResourceManagerAccess
                   DiskEncryption = this.Access.AzureDiskEncryptionAccess
                   Deployment = this.Access.VirtualMachineAccess
@@ -187,7 +170,7 @@ type SimpleCreateMode = Recover | Default
 type KeyVaultBuilderState =
     { Name : ResourceName
       Access : KeyVaultSettings
-      Sku : KeyVaultSku
+      Sku : Sku
       TenantId : ArmExpression
       NetworkAcl : NetworkAcl
       CreateMode : SimpleCreateMode option
@@ -200,7 +183,7 @@ type KeyVaultBuilder() =
         { Name = ResourceName.Empty
           TenantId = Subscription.TenantId
           Access = { VirtualMachineAccess = None; ResourceManagerAccess = Some Enabled; AzureDiskEncryptionAccess = None; SoftDelete = None }
-          Sku = KeyVaultSku.Standard
+          Sku = Sku.Standard
           NetworkAcl = { IpRules = []; VnetRules = []; Bypass = None; DefaultAction = None }
           Policies = []
           CreateMode = None

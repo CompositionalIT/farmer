@@ -1,5 +1,8 @@
 Release Notes
 =============
+## 0.17.2
+* Workaround for issue with FSharp.Core 4.7.2 and DU stringify.
+
 ## 0.17.1
 * Enhance access policy maintenance in KeyVault.
 
