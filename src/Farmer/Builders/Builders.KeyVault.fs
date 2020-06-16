@@ -24,7 +24,21 @@ type CreateMode =
     | Unspecified of AccessPolicy list
 
 [<RequireQualifiedAccess>]
-type KeyVaultSku = Standard | Premium
+type KeyVaultSku =
+| Standard
+| Premium
+
+  override this.ToString() =
+    match this with
+    | Standard -> "Standard"
+    | Premium -> "Premium"
+
+  member this.AsArmValue =
+    match this with
+    | Standard -> "standard"
+    | Premium -> "premium"
+
+
 type KeyVaultSettings =
     { /// Specifies whether Azure Virtual Machines are permitted to retrieve certificates stored as secrets from the key vault.
       VirtualMachineAccess : FeatureFlag option
@@ -89,7 +103,7 @@ type KeyVaultConfig =
                 { Name = this.Name
                   Location = location
                   TenantId = this.TenantId |> ArmExpression.Eval
-                  Sku = this.Sku.ToString().ToLower()
+                  Sku = this.Sku.AsArmValue
 
                   TemplateDeployment = this.Access.ResourceManagerAccess
                   DiskEncryption = this.Access.AzureDiskEncryptionAccess
@@ -254,11 +268,11 @@ type KeyVaultBuilder() =
     member __.DisableRecoveryMode(state:KeyVaultBuilderState) = { state with CreateMode = Some SimpleCreateMode.Default }
     /// Adds an access policy to the vault.
     [<CustomOperation "add_access_policy">]
-    member __.AddAccessPolicy(state:KeyVaultBuilderState, accessPolicy) = 
+    member __.AddAccessPolicy(state:KeyVaultBuilderState, accessPolicy) =
       { state with Policies = accessPolicy :: state.Policies }
     /// Adds access policies to the vault.
     [<CustomOperation "add_access_policies">]
-    member __.AddAccessPolicies(state:KeyVaultBuilderState, accessPolicies) = 
+    member __.AddAccessPolicies(state:KeyVaultBuilderState, accessPolicies) =
       { state with Policies = List.append accessPolicies state.Policies }
     // Allows Azure traffic can bypass network rules.
     [<CustomOperation "enable_azure_services_bypass">]
