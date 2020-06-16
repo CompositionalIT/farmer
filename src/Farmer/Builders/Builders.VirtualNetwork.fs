@@ -4,6 +4,7 @@ module Farmer.Builders.VirtualNetwork
 open Farmer
 open Farmer.CoreTypes
 open Farmer.Arm.Network
+open Helpers
 
 type SubnetDelegationService =
     /// Microsoft.ApiManagement/service
@@ -60,7 +61,7 @@ type VirtualNetworkConfig =
               AddressSpacePrefixes = this.AddressSpacePrefixes
               Subnets = this.Subnets |> List.map (fun subnetConfig ->
                   {| Name = subnetConfig.Name
-                     Prefix = (sprintf "%O/%d" subnetConfig.Prefix.Address subnetConfig.Prefix.Prefix)
+                     Prefix = IPAddressCidr.format subnetConfig.Prefix
                      Delegations = subnetConfig.Delegations |> List.map (fun delegation ->
                          {| Name = ResourceName delegation; ServiceName = delegation |})
                   |})

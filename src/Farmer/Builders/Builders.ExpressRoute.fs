@@ -4,25 +4,10 @@ module Farmer.Builders.ExpressRoute
 open Farmer
 open Farmer.CoreTypes
 open Farmer.ExpressRoute
-open System
 open System.Net
 open Farmer.Arm.Network
 
 /// An IP address block in CIDR notation, such as 10.100.0.0/16.
-type internal IPAddressCidr =
-    {| Address : IPAddress
-       Prefix : int |}
-
-module IPAddressCidr =
-    let parse (s:string) : IPAddressCidr =
-        match s.Split([|'/'|], StringSplitOptions.RemoveEmptyEntries) with
-        [| ip; prefix |] ->
-            {| Address = IPAddress.Parse (ip.Trim ())
-               Prefix = int prefix |}
-        | _ -> raise (ArgumentOutOfRangeException "Malformed CIDR, expecting and IP and prefix separated by '/'")
-    let safeParse (s:string) : Result<IPAddressCidr, Exception> =
-        try parse s |> Ok
-        with ex -> Error ex
 type ExpressRouteCircuitPeering =
     { PeeringType : PeeringType
       AzureASN : int

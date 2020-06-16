@@ -138,7 +138,6 @@ type ExpressRouteCircuit =
            SharedKey : string option
            VlanId : int
         |} list }
-    static member FormatCidr address prefix = sprintf "%O/%d" address prefix
 
     interface IArmResource with
         member this.ResourceName = this.Name
@@ -159,8 +158,8 @@ type ExpressRouteCircuit =
                                    {| peeringType = peer.PeeringType.Value
                                       azureASN = peer.AzureASN
                                       peerASN = peer.PeerASN
-                                      primaryPeerAddressPrefix = ExpressRouteCircuit.FormatCidr peer.PrimaryPeerAddressPrefix.Address peer.PrimaryPeerAddressPrefix.Prefix
-                                      secondaryPeerAddressPrefix = ExpressRouteCircuit.FormatCidr peer.SecondaryPeerAddressPrefix.Address peer.SecondaryPeerAddressPrefix.Prefix
+                                      primaryPeerAddressPrefix = IPAddressCidr.format peer.PrimaryPeerAddressPrefix
+                                      secondaryPeerAddressPrefix = IPAddressCidr.format peer.SecondaryPeerAddressPrefix
                                       vlanId = peer.VlanId
                                       sharedKey = peer.SharedKey |}
                             |}
