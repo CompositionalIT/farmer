@@ -68,7 +68,8 @@ The Key Vault builder contains access policies, secrets, and configuration infor
 | add_secret | Adds a secret to the vault. This can either be a "full" secret config created using the Secret Builder, a string literal value which represents the parameter name, or a string literal with a resource and an expression based on that resource e.g. a storage account and the Key member. |
 
 #### Utilities
-KeyVault comes with a set of utility functions to quickly create access policies if you do not wish to use the `AccessPolicy` builder, in the `Farmer.KeyVault.AccessPolicy` module, such as `create` and `createReader`, which enable creating an access policy for a `PrincipalId` with either a specific set of Secret access permissions, or the Get Secret permission.
+* The KeyVault module comes with a set of utility functions to quickly create access policies if you do not wish to use the `AccessPolicy` builder, in the `Farmer.KeyVault.AccessPolicy` module which enable creating an access policy for a `PrincipalId` or an `ObjectId` which will have the GET Secret permission.
+* In addition, the `AccessPolicy` module also contains helpers to search for users or groups in active directory (*requires Azure CLI installed*), as well as their Object IDs. These can be used to rapidly create Access Policies for specific users.
 
 #### Example
 
