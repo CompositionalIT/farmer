@@ -277,14 +277,17 @@ type KeyVaultBuilder() =
     member __.AddVnetRule(state:KeyVaultBuilderState, vnetRule) = { state with NetworkAcl = { state.NetworkAcl with VnetRules = vnetRule :: state.NetworkAcl.VnetRules } }
     /// Allows to add a secret to the vault.
     [<CustomOperation "add_secret">]
-    member __.AddSecret(state:KeyVaultBuilderState, (key, builder:#IBuilder, value)) = { state with Secrets = SecretConfig.Create(key, value, builder.DependencyName) :: state.Secrets }
-    member __.AddSecret(state:KeyVaultBuilderState, (key, resourceName, value)) = { state with Secrets = SecretConfig.Create(key, value, resourceName) :: state.Secrets }
-    member __.AddSecret(state:KeyVaultBuilderState, key:string) = { state with Secrets = SecretConfig.Create key :: state.Secrets }
     member __.AddSecret(state:KeyVaultBuilderState, key:SecretConfig) = { state with Secrets = key :: state.Secrets }
+    member this.AddSecret(state:KeyVaultBuilderState, key:string) = this.AddSecret(state, SecretConfig.Create key)
+    member this.AddSecret(state:KeyVaultBuilderState, (key, builder:#IBuilder, value)) = this.AddSecret(state, SecretConfig.Create(key, value, builder.DependencyName))
+    member this.AddSecret(state:KeyVaultBuilderState, (key, resourceName, value)) = this.AddSecret(state, SecretConfig.Create(key, value, resourceName))
+
     /// Allows to add multiple secrets to the vault.
     [<CustomOperation "add_secrets">]
-    member __.AddSecrets(state:KeyVaultBuilderState, keys) = { state with Secrets = List.append (keys |> List.map SecretConfig.Create) state.Secrets }
-    member __.AddSecrets(state:KeyVaultBuilderState, keys) = { state with Secrets = List.append keys state.Secrets }
+    member this.AddSecrets(state:KeyVaultBuilderState, keys) = keys |> Seq.fold(fun state (key:SecretConfig) -> this.AddSecret(state, key)) state
+    member this.AddSecrets(state:KeyVaultBuilderState, keys) = this.AddSecrets(state, keys |> Seq.map SecretConfig.Create)
+    member this.AddSecrets(state:KeyVaultBuilderState, items) = this.AddSecrets(state, items |> Seq.map(fun (key, builder:#IBuilder, value) -> SecretConfig.Create (key, value, builder.DependencyName)))
+    member this.AddSecrets(state:KeyVaultBuilderState, items) = this.AddSecrets(state, items |> Seq.map(fun (key, resourceName:ResourceName, value) -> SecretConfig.Create (key, value, resourceName)))
 
 type SecretBuilder() =
     member __.Yield (_:unit) = SecretConfig.Create ""
