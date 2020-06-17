@@ -257,29 +257,34 @@ type KeyVaultBuilder() =
     [<CustomOperation "add_access_policies">]
     member __.AddAccessPolicies(state:KeyVaultBuilderState, accessPolicies) =
       { state with Policies = List.append accessPolicies state.Policies }
-    // Allows Azure traffic can bypass network rules.
+    /// Allows Azure traffic can bypass network rules.
     [<CustomOperation "enable_azure_services_bypass">]
     member __.EnableBypass(state:KeyVaultBuilderState) = { state with NetworkAcl = { state.NetworkAcl with Bypass = Some AzureServices } }
-    // Disallows Azure traffic can bypass network rules.
+    /// Disallows Azure traffic can bypass network rules.
     [<CustomOperation "disable_azure_services_bypass">]
     member __.DisableBypass(state:KeyVaultBuilderState) = { state with NetworkAcl = { state.NetworkAcl with Bypass = Some NoTraffic } }
-    // Allow traffic if no rule from ipRules and virtualNetworkRules match. This is only used after the bypass property has been evaluated.
+    /// Allow traffic if no rule from ipRules and virtualNetworkRules match. This is only used after the bypass property has been evaluated.
     [<CustomOperation "allow_default_traffic">]
     member __.AllowDefaultTraffic(state:KeyVaultBuilderState) = { state with NetworkAcl = { state.NetworkAcl with DefaultAction = Some Allow } }
-    // Deny traffic when no rule from ipRules and virtualNetworkRules match. This is only used after the bypass property has been evaluated.
+    /// Deny traffic when no rule from ipRules and virtualNetworkRules match. This is only used after the bypass property has been evaluated.
     [<CustomOperation "deny_default_traffic">]
     member __.DenyDefaultTraffic(state:KeyVaultBuilderState) = { state with NetworkAcl = { state.NetworkAcl with DefaultAction = Some Deny } }
-    // Adds an IP address rule. This can be an IPv4 address range in CIDR notation, such as '124.56.78.91' (simple IP address) or '124.56.78.0/24' (all addresses that start with 124.56.78).
+    /// Adds an IP address rule. This can be an IPv4 address range in CIDR notation, such as '124.56.78.91' (simple IP address) or '124.56.78.0/24' (all addresses that start with 124.56.78).
     [<CustomOperation "add_ip_rule">]
     member __.AddIpRule(state:KeyVaultBuilderState, ipRule) = { state with NetworkAcl = { state.NetworkAcl with IpRules = ipRule :: state.NetworkAcl.IpRules } }
-    // Adds a virtual network rule. This is the full resource id of a vnet subnet, such as '/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/virtualNetworks/test-vnet/subnets/subnet1'.
+    /// Adds a virtual network rule. This is the full resource id of a vnet subnet, such as '/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/virtualNetworks/test-vnet/subnets/subnet1'.
     [<CustomOperation "add_vnet_rule">]
     member __.AddVnetRule(state:KeyVaultBuilderState, vnetRule) = { state with NetworkAcl = { state.NetworkAcl with VnetRules = vnetRule :: state.NetworkAcl.VnetRules } }
+    /// Allows to add a secret to the vault.
     [<CustomOperation "add_secret">]
     member __.AddSecret(state:KeyVaultBuilderState, (key, builder:#IBuilder, value)) = { state with Secrets = SecretConfig.Create(key, value, builder.DependencyName) :: state.Secrets }
     member __.AddSecret(state:KeyVaultBuilderState, (key, resourceName, value)) = { state with Secrets = SecretConfig.Create(key, value, resourceName) :: state.Secrets }
-    member __.AddSecret(state:KeyVaultBuilderState, key) = { state with Secrets = SecretConfig.Create key :: state.Secrets }
-    member __.AddSecret(state:KeyVaultBuilderState, key) = { state with Secrets = key :: state.Secrets }
+    member __.AddSecret(state:KeyVaultBuilderState, key:string) = { state with Secrets = SecretConfig.Create key :: state.Secrets }
+    member __.AddSecret(state:KeyVaultBuilderState, key:SecretConfig) = { state with Secrets = key :: state.Secrets }
+    /// Allows to add multiple secrets to the vault.
+    [<CustomOperation "add_secrets">]
+    member __.AddSecrets(state:KeyVaultBuilderState, keys) = { state with Secrets = List.append (keys |> List.map SecretConfig.Create) state.Secrets }
+    member __.AddSecrets(state:KeyVaultBuilderState, keys) = { state with Secrets = List.append keys state.Secrets }
 
 type SecretBuilder() =
     member __.Yield (_:unit) = SecretConfig.Create ""
