@@ -4,6 +4,7 @@ module Farmer.Arm.Network
 open Farmer
 open Farmer.CoreTypes
 open Farmer.ExpressRoute
+open Farmer.VirtualNetworkGateway
 open System.Net
 
 type PublicIpAddress =
@@ -45,6 +46,50 @@ type VirtualNetwork =
                            {| name = subnet.Name.Value
                               properties = {| addressPrefix = subnet.Prefix |}
                            |})
+                    |}
+            |} :> _
+type VirtualNetworkGateway =
+    { Name : ResourceName
+      Location : Location
+      IpConfigs : {| Name : ResourceName
+                     PrivateIpAllocationMethod : PrivateIpAllocationMethod
+                     PublicIpName : ResourceName |} list
+      VirtualNetwork : ResourceName
+      GatewayType : GatewayType
+      EnableBgp : bool }
+    interface IArmResource with
+        member this.ResourceName = this.Name
+        member this.JsonModel =
+            {| ``type`` = "Microsoft.Network/virtualNetworkGateways"
+               apiVersion = "2020-05-01"
+               name = this.Name.Value
+               location = this.Location.ArmValue
+               dependsOn = [
+                   sprintf "[resourceId('Microsoft.Network/virtualNetworks/subnets', '%s')]" this.VirtualNetwork.Value
+                   for config in this.IpConfigs do
+                       sprintf "[resourceId('Microsoft.Network/publicIPAddresses','%s')]" config.PublicIpName.Value 
+               ]
+               properties =
+                    {| ipConfigurations = this.IpConfigs
+                        |> List.mapi(fun index ipConfig ->
+                           {| name = sprintf "ipconfig%i" (index + 1)
+                              properties =
+                                let allocationMethod, ip =
+                                    match ipConfig.PrivateIpAllocationMethod with
+                                    | DynamicPrivateIp -> "Dynamic", null
+                                    | StaticPrivateIp ip -> "Static", string ip
+                                {| privateIpAllocationMethod = allocationMethod; privateIpAddress = ip
+                                   publicIPAddress = {| id = sprintf "[resourceId('Microsoft.Network/publicIPAddresses','%s')]" ipConfig.PublicIpName.Value |}
+                                   subnet = {| id = sprintf "[resourceId('Microsoft.Network/virtualNetworks/subnets', '%s', 'GatewaySubnet')]" this.VirtualNetwork.Value |} |}
+                           |})
+                       sku =
+                           match this.GatewayType with
+                           | GatewayType.ExpressRoute sku -> {| name = sku.ArmValue; tier = sku.ArmValue |}
+                           | GatewayType.Vpn (sku, _, _) -> {| name = sku.ArmValue; tier = sku.ArmValue |}
+                       gatewayType = this.GatewayType.ArmValue
+                       vpnType = this.GatewayType.VpnType
+                       enableBgp = this.EnableBgp
+                       activeActive = this.GatewayType.ActiveActive
                     |}
             |} :> _
 type NetworkInterface =

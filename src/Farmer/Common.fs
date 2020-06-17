@@ -489,6 +489,74 @@ module ExpressRoute =
     type Family = UnlimitedData | MeteredData
     type PeeringType = AzurePrivatePeering | MicrosoftPeering member this.Value = this.ToString()
 
+module VirtualNetworkGateway =
+    type PrivateIpAllocationMethod = DynamicPrivateIp | StaticPrivateIp of System.Net.IPAddress
+    [<RequireQualifiedAccess>]
+    type ErGatewaySku =
+        | Standard
+        | HighPerformance
+        | UltraPerformance
+        | ErGw1AZ
+        | ErGw2AZ
+        | ErGw3AZ
+        member this.ArmValue =
+            match this with
+            | Standard -> "Standard"
+            | HighPerformance -> "HighPerformance"
+            | UltraPerformance -> "UltraPerformance"
+            | ErGw1AZ -> "ErGw1AZ"
+            | ErGw2AZ -> "ErGw2AZ"
+            | ErGw3AZ -> "ErGw3AZ"
+    [<RequireQualifiedAccess>]
+    type VpnGatewaySku =
+        | Basic
+        | VpnGw1
+        | VpnGw1AZ
+        | VpnGw2
+        | VpnGw2AZ
+        | VpnGw3
+        | VpnGw3AZ
+        | VpnGw4
+        | VpnGw4AZ
+        | VpnGw5
+        | VpnGw5AZ
+        member this.ArmValue =
+            match this with
+            | Basic -> "Basic"
+            | VpnGw1 -> "VpnGw1"
+            | VpnGw1AZ -> "VpnGw1AZ"
+            | VpnGw2 -> "VpnGw2"
+            | VpnGw2AZ -> "VpnGw2AZ"
+            | VpnGw3 -> "VpnGw3"
+            | VpnGw3AZ -> "VpnGw3AZ"
+            | VpnGw4 -> "VpnGw4"
+            | VpnGw4AZ -> "VpnGw4AZ"
+            | VpnGw5 -> "VpnGw5"
+            | VpnGw5AZ -> "VpnGw5AZ"
+    [<RequireQualifiedAccess>]
+    type VpnType =
+        | PolicyBased
+        | RouteBased
+        member this.ArmValue =
+            match this with
+            | PolicyBased -> "PolicyBased"
+            | RouteBased-> "RouteBased"
+    [<RequireQualifiedAccess>]
+    type GatewayType =
+        | ExpressRoute of ErGatewaySku
+        | Vpn of VpnGatewaySku * VpnType * ActiveActive:bool
+        member this.ArmValue =
+            match this with
+            | ExpressRoute _ -> "ExpressRoute"
+            | Vpn _ -> "Vpn"
+        member this.VpnType =
+            match this with
+            | ExpressRoute _ -> "RouteBased"
+            | Vpn (_, vpnType, _) -> vpnType.ArmValue
+        member this.ActiveActive =
+            match this with
+            | ExpressRoute _ -> false
+            | Vpn (_, _, activeActive) -> activeActive
 module ServiceBus =
     type MessagingUnits = OneUnit | TwoUnits | FourUnits
     type Sku =

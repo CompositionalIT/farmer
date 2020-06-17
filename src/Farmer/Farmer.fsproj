@@ -94,5 +94,6 @@
     <Compile Include="Builders/Builders.IotHub.fs" />
     <Compile Include="Builders/Builders.Maps.fs" />
     <Compile Include="Builders/Builders.SignalR.fs" />
+    <Compile Include="Builders\Builders.VirtualNetworkGateway.fs" />
   </ItemGroup>
 </Project>
