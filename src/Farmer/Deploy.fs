@@ -76,8 +76,12 @@ module Az =
     let listSubscriptions() = az "account list"
     let setSubscription subscriptionId = az (sprintf "account set --subscription %s" subscriptionId)
     /// Creates a resource group.
-    let createResourceGroup location resourceGroup =
-        az (sprintf "group create -l %s -n %s" location resourceGroup) |> Result.ignore
+    let createResourceGroup location resourceGroup = az (sprintf "group create -l %s -n %s" location resourceGroup) |> Result.ignore
+    /// Searches for users in AD using the supplied filter.
+    let searchUsers filter = az ("ad user list --filter " + filter)
+    /// Searches for groups in AD using the supplied filter.
+    let searchGroups filter = az ("ad group list --filter " + filter)
+
 
     type DeploymentCommand =
     | Create
@@ -123,6 +127,7 @@ let listSubscriptions() = result {
     let! response = Az.listSubscriptions()
     return response |> JsonConvert.DeserializeObject<Subscription array>
 }
+
 
 /// Checks that the version of the Azure CLI meets minimum version.
 let checkVersion minimum = result {
