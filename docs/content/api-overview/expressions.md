@@ -4,11 +4,11 @@ date: 2020-02-05T09:13:36+01:00
 draft: false
 weight: 4
 ---
-[ARM template expressions](https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/template-expressions) are a way of safely storing string values which contain expressions that are evaluated at *deployment time* by the Azure. ARM expressions can also contain a set of predefined [functions](https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/template-functions) supported by the ARM runtime. 
+[ARM template expressions](https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/template-expressions) are a way of safely storing string values which contain expressions that are evaluated at *deployment time* by the Azure. ARM expressions can also contain a set of predefined [functions](https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/template-functions) supported by the ARM runtime. They can be passed back as outputs and used further downstream
 
 Farmer understands how to use ARM expressions and provides functionality to correctly wrap and unwrap them as raw strings into a JSON template.
 
-> For manipulation of literal values that are known on the client, you will not need to use ARM expressions. To manipulate such values, you can use standard F# and .NET capabilities.
+> For manipulation of literal values that are known in your Farmer applications, you will not need to use ARM expressions. To manipulate such values, you can use standard F# and .NET capabilities.
 
 #### How do I use ARM expressions?
 Many Farmer builders contain pre-defined ARM expression that can be used for common tasks, such as passing a connection string from a storage account as a KeyVault secret, or a web application setting.
@@ -36,22 +36,25 @@ This will be written to the ARM template file as follows:
             }
 ```
 
-Using ARM expressions means that you can deploy an  application which is automatically configured at deployment time. This means that you never need to store an application secret such as a storage account key in source control, or even e.g. as a secret variable in your build / deployment process.
+Using ARM expressions means that you can deploy an application which is automatically configured at deployment time. This means that you never need to store an application secret such as a storage account key in source control, or even e.g. as a secret variable in your build / deployment process.
 
-#### Creating your own ARM Expressions
-Farmer ARM expressions are in reality just wrapped strings, and are easy to create. For example, the code to create the `Key` property above is similar to this:
+#### Returning the value of ARM Expressions as outputs.
+ARM Expressions can also be passed back as *outputs* and used further downstream once your deployment is complete:
 
 ```fsharp
-let buildKey (name : string) : ArmExpression =
-    // Create the raw string of the expression
-    let rawValue : string =
-        sprintf
-            "concat('DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=', listKeys('%s', '2017-10-01').keys[0].value)"
-            name
-            name
+let template = arm {
+    location Location.WestEurope
+    add_resource storageConfig
 
-    // Wrap it in an ARM Expression and return it
-    ArmExpression rawValue
+    // Mark the storage_key as an output in the ARM template.
+    output "storage_key" storageConfig.Key
+}
+
+// Deploy the template.
+let outputs =  template |> Deploy.execute template []
+
+// Get the value of the storage_key.
+let key = outputs.["storage_key"]
 ```
 
-Notice that you do *not* wrap the expression in square brackets [ ]; Farmer will do this when writing out the ARM template.
+Be aware though, that the value of the storage_key is visible as a plain text value in the output - so anyone with access to, for example, the Azure portal will be able to see the values of the storage key if they look at the deployment history.
