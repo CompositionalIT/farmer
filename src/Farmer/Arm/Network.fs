@@ -29,7 +29,7 @@ type VirtualNetwork =
     { Name : ResourceName
       Location : Location
       AddressSpacePrefixes : string list
-      Subnets : {| Name : ResourceName; Prefix : string |} list }
+      Subnets : {| Name : ResourceName; Prefix : string; Delegations: {| Name: ResourceName; ServiceName: string |} list |} list; }
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
@@ -43,7 +43,14 @@ type VirtualNetwork =
                         this.Subnets
                         |> List.map(fun subnet ->
                            {| name = subnet.Name.Value
-                              properties = {| addressPrefix = subnet.Prefix |}
+                              properties =
+                                  {| addressPrefix = subnet.Prefix
+                                     delegations = subnet.Delegations
+                                     |> List.map (fun delegation ->
+                                         {| name = delegation.Name.Value
+                                            properties = {| serviceName = delegation.ServiceName |}
+                                         |})
+                                  |}
                            |})
                     |}
             |} :> _
@@ -79,6 +86,40 @@ type NetworkInterface =
                             |})
                    |}
             |} :> _
+type NetworkProfile =
+    { Name : ResourceName
+      Location : Location
+      ContainerNetworkInterfaceConfigurations :
+        {| IpConfigs :
+            {| SubnetName : ResourceName |} list
+        |} list
+      VirtualNetwork : ResourceName }
+    interface IArmResource with
+        member this.ResourceName = this.Name
+        member this.JsonModel =
+            {| ``type`` = "Microsoft.Network/networkProfiles"
+               apiVersion = "2020-04-01"
+               name = this.Name.Value
+               location = this.Location.ArmValue
+               dependsOn = [ sprintf "[resourceId('Microsoft.Network/virtualNetworks','%s')]" this.VirtualNetwork.Value ]
+               properties =
+                   {| containerNetworkInterfaceConfigurations =
+                       this.ContainerNetworkInterfaceConfigurations
+                       |> List.mapi (fun index containerIfConfig ->
+                           {| name = sprintf "eth%i" index
+                              properties =
+                                {| ipConfigurations =
+                                   containerIfConfig.IpConfigs
+                                   |> List.mapi (fun index ipConfig ->
+                                      {| name = sprintf "ipconfig%i" (index + 1)
+                                         properties =
+                                            {| subnet = {| id = sprintf "[resourceId('Microsoft.Network/virtualNetworks/subnets', '%s', '%s')]" this.VirtualNetwork.Value ipConfig.SubnetName.Value |} |}
+                                      |})
+                                |}
+                           |}
+                       )
+                   |}
+            |} :> _
 type ExpressRouteCircuit =
     { Name : ResourceName
       Location : Location
@@ -97,7 +138,6 @@ type ExpressRouteCircuit =
            SharedKey : string option
            VlanId : int
         |} list }
-    static member FormatCidr address prefix = sprintf "%O/%d" address prefix
 
     interface IArmResource with
         member this.ResourceName = this.Name
@@ -118,8 +158,8 @@ type ExpressRouteCircuit =
                                    {| peeringType = peer.PeeringType.Value
                                       azureASN = peer.AzureASN
                                       peerASN = peer.PeerASN
-                                      primaryPeerAddressPrefix = ExpressRouteCircuit.FormatCidr peer.PrimaryPeerAddressPrefix.Address peer.PrimaryPeerAddressPrefix.Prefix
-                                      secondaryPeerAddressPrefix = ExpressRouteCircuit.FormatCidr peer.SecondaryPeerAddressPrefix.Address peer.SecondaryPeerAddressPrefix.Prefix
+                                      primaryPeerAddressPrefix = IPAddressCidr.format peer.PrimaryPeerAddressPrefix
+                                      secondaryPeerAddressPrefix = IPAddressCidr.format peer.SecondaryPeerAddressPrefix
                                       vlanId = peer.VlanId
                                       sharedKey = peer.SharedKey |}
                             |}

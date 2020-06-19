@@ -446,7 +446,11 @@ module Sql =
 
 module ContainerGroup =
     type RestartPolicy = Never | Always | OnFailure
-    type IpAddressType = PublicAddress | PrivateAddress
+    type IpAddressType =
+        | PublicAddress
+        | PublicAddressWithDns of DnsName:string
+        | PrivateAddress
+        | PrivateAddressWithIp of System.Net.IPAddress
 
 module Redis =
     type Sku = Basic | Standard | Premium
@@ -538,7 +542,7 @@ module Maps =
 
 module SignalR =
     type Sku = Free | Standard
-
+  
 module DataLake =
     type Sku =
     | Consumption
@@ -548,3 +552,19 @@ module DataLake =
     | Commitment_500TB
     | Commitment_1PB
     | Commitment_5PB
+
+type internal IPAddressCidr =
+    {| Address : System.Net.IPAddress
+       Prefix : int |}
+
+module IPAddressCidr =
+    let parse (s:string) : IPAddressCidr =
+        match s.Split([|'/'|], System.StringSplitOptions.RemoveEmptyEntries) with
+        [| ip; prefix |] ->
+            {| Address = System.Net.IPAddress.Parse (ip.Trim ())
+               Prefix = int prefix |}
+        | _ -> raise (System.ArgumentOutOfRangeException "Malformed CIDR, expecting and IP and prefix separated by '/'")
+    let safeParse (s:string) : Result<IPAddressCidr, System.Exception> =
+        try parse s |> Ok
+        with ex -> Error ex
+    let format (cidr:IPAddressCidr) = sprintf "%O/%d" cidr.Address cidr.Prefix
