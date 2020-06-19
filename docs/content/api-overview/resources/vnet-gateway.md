@@ -1,7 +1,7 @@
 ---
 title: "Virtual Network Gateway"
-date: 2020-02-05T08:53:46+01:00
-weight: 19
+date: 2020-06-19T10:40:00-04:00
+weight: 5
 chapter: false
 ---
 
