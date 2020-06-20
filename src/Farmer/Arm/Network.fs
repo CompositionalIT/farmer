@@ -100,6 +100,50 @@ type VirtualNetworkGateway =
                        activeActive = this.IpConfigs |> List.length > 1
                     |}
             |} :> _
+type Connection =
+    { Name : ResourceName
+      Location : Location
+      ConnectionType : ConnectionType
+      VirtualNetworkGateway1 : ResourceName
+      VirtualNetworkGateway2 : ResourceName option
+      LocalNetworkGateway : ResourceName option
+      PeerId : string option
+      AuthorizationKey : string option }
+    interface IArmResource with
+        member this.ResourceName = this.Name
+        member this.JsonModel =
+            {| ``type`` = "Microsoft.Network/connections"
+               apiVersion = "2020-04-01"
+               name = this.Name.Value
+               location = this.Location.ArmValue
+               dependsOn = [
+                   sprintf "[resourceId('Microsoft.Network/virtualNetworksGateways', '%s')]" this.VirtualNetworkGateway1.Value
+                   if this.VirtualNetworkGateway2.IsSome then
+                       sprintf "[resourceId('Microsoft.Network/virtualNetworksGateways', '%s')]" this.VirtualNetworkGateway2.Value.Value
+                   if this.LocalNetworkGateway.IsSome then
+                       sprintf "[resourceId('Microsoft.Network/localNetworksGateways', '%s')]" this.LocalNetworkGateway.Value.Value
+               ]
+               properties =
+                    {| authorizationKey =
+                           match this.AuthorizationKey with
+                           | Some key -> key
+                           | None -> Unchecked.defaultof<_>
+                       connectionType = this.ConnectionType.ArmValue
+                       virtualNetworkGateway1 = {| id = sprintf "[resourceId('Microsoft.Network/virtualNetworksGateways', '%s')]" this.VirtualNetworkGateway1.Value |}
+                       virtualNetworkGateway2 =
+                           match this.VirtualNetworkGateway2 with
+                           | Some vng2 -> {| id = sprintf "[resourceId('Microsoft.Network/virtualNetworksGateways', '%s')]" vng2.Value |}
+                           | None -> Unchecked.defaultof<_>
+                       localNetworkGateway1 =
+                           match this.LocalNetworkGateway with
+                           | Some lng -> {| id = sprintf "[resourceId('Microsoft.Network/localNetworksGateways', '%s')]" lng.Value |}
+                           | None -> Unchecked.defaultof<_>
+                       peer =
+                           match this.PeerId with
+                           | Some peerId -> {| id = peerId |}
+                           | None -> Unchecked.defaultof<_>
+                    |}
+            |} :> _
 type NetworkInterface =
     { Name : ResourceName
       Location : Location

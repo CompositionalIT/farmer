@@ -553,6 +553,16 @@ module VirtualNetworkGateway =
             match this with
             | ExpressRoute _ -> "ExpressRoute"
             | Vpn _ -> "Vpn"
+    [<RequireQualifiedAccess>]
+    type ConnectionType =
+        | ExpressRoute
+        | IPsec
+        | Vnet2Vnet
+        member this.ArmValue =
+            match this with
+            | ExpressRoute _ -> "ExpressRoute"
+            | IPsec -> "IPsec"
+            | Vnet2Vnet -> "Vnet2Vnet"
 module ServiceBus =
     type MessagingUnits = OneUnit | TwoUnits | FourUnits
     type Sku =

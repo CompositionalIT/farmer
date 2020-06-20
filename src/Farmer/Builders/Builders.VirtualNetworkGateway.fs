@@ -86,3 +86,55 @@ type VnetGatewayBuilder() =
     member __.DisableBgp(state:VNetGatewayConfig) = { state with EnableBgp = false }
 
 let gateway = VnetGatewayBuilder()
+
+type ConnectionConfig =
+    { Name : ResourceName
+      ConnectionType : ConnectionType
+      VirtualNetworkGateway1 : ResourceName
+      VirtualNetworkGateway2 : ResourceName option
+      LocalNetworkGateway : ResourceName option
+      PeerId : string option
+      AuthorizationKey : string option }
+    interface IBuilder with
+        member this.DependencyName = this.Name
+        member this.BuildResources location _ = [
+            { Name = this.Name
+              Location = location
+              ConnectionType = this.ConnectionType
+              VirtualNetworkGateway1 = this.VirtualNetworkGateway1
+              VirtualNetworkGateway2 = this.VirtualNetworkGateway2
+              LocalNetworkGateway = this.LocalNetworkGateway
+              PeerId = this.PeerId
+              AuthorizationKey = this.AuthorizationKey
+            }
+        ]
+
+type ConnectionBuilder() =
+    member __.Yield _ =
+      { Name = ResourceName.Empty
+        ConnectionType = ConnectionType.ExpressRoute
+        VirtualNetworkGateway1 = ResourceName.Empty
+        VirtualNetworkGateway2 = None
+        LocalNetworkGateway = None
+        PeerId = None
+        AuthorizationKey = None }
+    /// Sets the name of the connection
+    [<CustomOperation "name">]
+    member __.Name(state:ConnectionConfig, name) = { state with Name = ResourceName name }
+    /// Sets the first vnet gateway
+    [<CustomOperation "vnet_gateway1">]
+    member __.VNetGateway1(state:ConnectionConfig, vng1) = { state with VirtualNetworkGateway1 = vng1 }
+    /// Sets the first vnet gateway
+    [<CustomOperation "vnet_gateway2">]
+    member __.VNetGateway2(state:ConnectionConfig, vng2) = { state with VirtualNetworkGateway2 = vng2 }
+    /// Sets the first vnet gateway
+    [<CustomOperation "local_gateway">]
+    member __.LocalGateway(state:ConnectionConfig, lng) = { state with LocalNetworkGateway = lng }
+    /// Sets the first vnet gateway
+    [<CustomOperation "peer_id">]
+    member __.PeerId(state:ConnectionConfig, peer) = { state with PeerId = Some peer }
+    /// Sets the first vnet gateway
+    [<CustomOperation "auth_key">]
+    member __.Authorization(state:ConnectionConfig, auth) = { state with AuthorizationKey = Some auth }
+
+let connection = ConnectionBuilder()
