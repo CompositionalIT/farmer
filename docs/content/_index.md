@@ -34,7 +34,7 @@ Farmer uses a simple DSL to declare resources and comes with helper functions to
 
 ### Farmer Templates
 
-These **23 lines of simple, readable and type-safe code** are translated into **142 lines of JSON ARM template!**
+These **22 lines of simple, readable and type-safe code** are translated into **141 lines of JSON ARM template!**
 
 ```fsharp
 // Create a storage account with a container
@@ -47,7 +47,6 @@ let myStorageAccount = storageAccount {
 let myWebApp = webApp {
     name "myTestWebApp"
     setting "storageKey" myStorageAccount.Key
-    always_on
     depends_on myStorageAccount
 }
 
