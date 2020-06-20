@@ -1,5 +1,9 @@
 Release Notes
 =============
+## 0.17.3
+* Ability to assign users and groups to KeyVault access policies.
+* Ability to add multiple KeyVault secrets.
+
 ## 0.17.2
 * Workaround for issue with FSharp.Core 4.7.2 and DU stringify.
 

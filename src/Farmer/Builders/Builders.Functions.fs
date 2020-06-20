@@ -115,6 +115,7 @@ type FunctionsConfig =
               Metadata = []
               ZipDeployPath = None
               AppCommandLine = None
+              SourceControls = None
             }
             match this.ServicePlanName with
             | External _

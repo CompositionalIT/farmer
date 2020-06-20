@@ -85,7 +85,8 @@ type VmConfig =
                   AddressSpacePrefixes = [ this.AddressPrefix ]
                   Subnets = [
                       {| Name = subnetName
-                         Prefix = this.SubnetPrefix |}
+                         Prefix = this.SubnetPrefix
+                         Delegations = [] |}
                   ]
                 }
             | External _ ->

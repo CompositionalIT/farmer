@@ -30,6 +30,7 @@ type IBuilder =
 namespace Farmer.CoreTypes
 
 open Farmer
+open System
 
 /// Represents an expression used within an ARM template
 type ArmExpression =
@@ -99,7 +100,8 @@ module FeatureFlag =
     let ofBool enabled = if enabled then Enabled else Disabled
 
 /// Represents an ARM expression that evaluates to a principal ID.
-type PrincipalId = PrincipalId of ArmExpression member this.ArmValue = match this with PrincipalId e -> e 
+type PrincipalId = PrincipalId of ArmExpression member this.ArmValue = match this with PrincipalId e -> e
+type ObjectId = ObjectId of Guid
 
 /// Represents a secret to be captured either via an ARM expression or a secure parameter.
 type SecretValue =

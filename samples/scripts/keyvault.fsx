@@ -37,7 +37,7 @@ let vault =
         enable_disk_encryption_access
         enable_resource_manager_access
         enable_soft_delete_with_purge_protection
-        
+
         add_access_policy (AccessPolicy.createReader principal)
         add_access_policies [
             AccessPolicy.createReader principal
@@ -54,6 +54,7 @@ let vault =
 
         add_secret complexSecret
         add_secret "simpleSecret"
+        add_secrets ["firstSecret"; "secondSecret"]
         add_secret ("thirdSecret", store, store.Key)
     }
 

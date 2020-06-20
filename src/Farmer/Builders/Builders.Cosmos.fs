@@ -18,7 +18,7 @@ type CosmosDbConfig =
     { AccountName : ResourceRef
       AccountConsistencyPolicy : ConsistencyPolicy
       AccountFailoverPolicy : FailoverPolicy
-      Name : ResourceName
+      DbName : ResourceName
       DbThroughput : int<RU>
       Containers : CosmosDbContainerConfig list
       PublicNetworkAccess : FeatureFlag
@@ -46,7 +46,7 @@ type CosmosDbConfig =
                 ()
 
             // Database
-            { Name = this.Name
+            { Name = this.DbName
               Account = this.AccountName.ResourceName
               Throughput = this.DbThroughput }
 
@@ -54,7 +54,7 @@ type CosmosDbConfig =
             for container in this.Containers do
                 { Name = container.Name
                   Account = this.AccountName.ResourceName
-                  Database = this.Name
+                  Database = this.DbName
                   PartitionKey =
                     {| Paths = fst container.PartitionKey
                        Kind = snd container.PartitionKey |}
@@ -76,7 +76,6 @@ type CosmosDbConfig =
                 }
         ]
 
-
 type CosmosDbContainerBuilder() =
     member __.Yield _ =
         { Name = ResourceName ""
@@ -84,6 +83,16 @@ type CosmosDbContainerBuilder() =
           Indexes = []
           UniqueKeys = Set.empty
           ExcludedPaths = [] }
+    member _.Run state =
+        match state.PartitionKey with
+        | [], _ -> failwithf "You must set a partition key on CosmosDB container '%s'." state.Name.Value
+        | partitions, indexKind ->
+            { state with
+                PartitionKey =
+                    [ for partition in partitions do
+                        if partition.StartsWith "/" then partition
+                        else "/" + partition
+                    ], indexKind }
 
     /// Sets the name of the container.
     [<CustomOperation "name">]
@@ -111,7 +120,7 @@ type CosmosDbContainerBuilder() =
         { state with ExcludedPaths = path :: state.ExcludedPaths }
 type CosmosDbBuilder() =
     member __.Yield _ =
-        { Name = ResourceName.Empty
+        { DbName = ResourceName.Empty
           AccountName = AutomaticPlaceholder
           AccountConsistencyPolicy = Eventual
           AccountFailoverPolicy = NoFailover
@@ -125,7 +134,13 @@ type CosmosDbBuilder() =
         | External _ ->
             state
         | AutomaticPlaceholder ->
-            { state with AccountName = sprintf "%s-server" state.Name.Value |> ResourceName |> AutomaticallyCreated }
+            let dbNamePart =
+                let maxLength = 36
+                let dbName = state.DbName.Value.ToLower()
+                if state.DbName.Value.Length > maxLength then dbName.Substring maxLength
+                else dbName
+            { state with AccountName = sprintf "%s-server" dbNamePart |> ResourceName |> AutomaticallyCreated }
+
     /// Sets the name of the CosmosDB server.
     [<CustomOperation "account_name">]
     member __.AccountName(state:CosmosDbConfig, serverName) = { state with AccountName = AutomaticallyCreated serverName }
@@ -135,7 +150,7 @@ type CosmosDbBuilder() =
     member __.LinkToAccount(state:CosmosDbConfig, server:CosmosDbConfig) = { state with AccountName = External server.AccountName.ResourceName }
     /// Sets the name of the database.
     [<CustomOperation "name">]
-    member __.Name(state:CosmosDbConfig, name) = { state with Name = name }
+    member __.Name(state:CosmosDbConfig, name) = { state with DbName = name }
     member this.Name(state:CosmosDbConfig, name:string) = this.Name(state, ResourceName name)
     /// Sets the consistency policy of the database.
     [<CustomOperation "consistency_policy">]

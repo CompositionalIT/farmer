@@ -9,7 +9,7 @@ home = [ "HTML", "RSS", "JSON"]
 [params]
     themeVariant="green"
     editURL = "https://github.com/CompositionalIT/farmer/tree/docs/content/"
-    description = "Documentation for Hugo Learn Theme"
+    description = "Farmer - Making repeatable Azure deployments easy!"
 
 [[Languages.en.menu.shortcuts]]
 name = "<i class='fab fa-fw fa-github'></i> GitHub repo"
