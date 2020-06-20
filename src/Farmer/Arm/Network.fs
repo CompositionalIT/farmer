@@ -73,7 +73,7 @@ type VirtualNetworkGateway =
                name = this.Name.Value
                location = this.Location.ArmValue
                dependsOn = [
-                   sprintf "[resourceId('Microsoft.Network/virtualNetworks/subnets', '%s')]" this.VirtualNetwork.Value
+                   sprintf "[resourceId('Microsoft.Network/virtualNetworks', '%s')]" this.VirtualNetwork.Value
                    for config in this.IpConfigs do
                        sprintf "[resourceId('Microsoft.Network/publicIPAddresses','%s')]" config.PublicIpName.Value 
                ]
