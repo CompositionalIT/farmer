@@ -23,7 +23,8 @@ type ContainerGroup =
            Memory : float<Gb> |} list
       OsType : string
       RestartPolicy : RestartPolicy
-      IpAddress : ContainerGroupIpAddress }
+      IpAddress : ContainerGroupIpAddress
+      NetworkProfile : ResourceName option }
 
     interface IArmResource with
         member this.ResourceName = this.Name
@@ -32,6 +33,10 @@ type ContainerGroup =
                apiVersion = "2018-10-01"
                name = this.Name.Value
                location = this.Location.ArmValue
+               dependsOn =
+                   match this.NetworkProfile with
+                   | None -> []
+                   | Some networkProfile -> [ sprintf "[resourceId('Microsoft.Network/networkProfiles','%s')]" networkProfile.Value ]
                properties =
                    {| containers =
                        this.ContainerInstances
@@ -43,22 +48,34 @@ type ContainerGroup =
                                   resources =
                                    {| requests =
                                        {| cpu = container.Cpu
-                                          memoryInGb = container.Memory |}
+                                          memoryInGB = container.Memory |}
                                    |}
                                |}
                            |})
                       osType = this.OsType
-                      restartPolicy = this.RestartPolicy.ToString().ToLower()
+                      restartPolicy = this.RestartPolicy.ToString()
                       ipAddress =
-                        {| Type =
+                        {| ``type`` =
                             match this.IpAddress.Type with
-                            | PublicAddress -> "Public"
-                            | PrivateAddress -> "Private"
-                           Ports = [
+                            | PublicAddress | PublicAddressWithDns _ -> "Public"
+                            | PrivateAddress _ | PrivateAddressWithIp _ -> "Private"
+                           ports = [
                                for port in this.IpAddress.Ports do
-                                {| Protocol = string port.Protocol
-                                   Port = port.Port |}
+                                {| protocol = string port.Protocol
+                                   port = port.Port |}
                            ]
+                           ip = 
+                            match this.IpAddress.Type with
+                            | PrivateAddressWithIp ip -> string ip
+                            | _ -> null
+                           dnsNameLabel =
+                            match this.IpAddress.Type with
+                            | PublicAddressWithDns dnsLabel -> dnsLabel
+                            | _ -> null
                         |}
+                      networkProfile =
+                          match this.NetworkProfile with
+                          | Some networkProfile -> {| id = sprintf "[resourceId('Microsoft.Network/networkProfiles','%s')]" networkProfile.Value |}
+                          | None -> Unchecked.defaultof<_>
                    |}
             |} :> _
