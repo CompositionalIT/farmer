@@ -135,4 +135,34 @@ let tests = testList "Template" [
 
         Expect.equal b.Dependencies [ ResourceName "a" ] "Dependency should have been set"
     }
+    
+    test "Generates ARM Id with name only" {
+        let rid = resourceId {
+            name "test"
+            resource_type ResourceTypes.Connection
+        }
+        let id = rid.format
+        Expect.equal id "[resourceId('Microsoft.Network/connections','test')]" "resourceId template function should match"
+    }
+    
+    test "Generates ARM Id with name and group" {
+        let rid = resourceId {
+            name "test"
+            resource_type ResourceTypes.Connection
+            group "myGroup"
+        }
+        let id = rid.format
+        Expect.equal id "[resourceId('myGroup','Microsoft.Network/connections','test')]" "resourceId template function should match"
+    }
+    
+    test "Generates ARM Id with name, group, and subscription" {
+        let rid = resourceId {
+            name "test"
+            resource_type ResourceTypes.Connection
+            group "myGroup"
+            subscription_id "5ed984d9-9e7e-4550-b73b-7af020a7620d"
+        }
+        let id = rid.format
+        Expect.equal id "[resourceId('5ed984d9-9e7e-4550-b73b-7af020a7620d','myGroup','Microsoft.Network/connections','test')]" "resourceId template function should match"
+    }
 ]

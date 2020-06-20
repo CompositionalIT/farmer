@@ -95,5 +95,6 @@
     <Compile Include="Builders/Builders.Maps.fs" />
     <Compile Include="Builders/Builders.SignalR.fs" />
     <Compile Include="Builders\Builders.VirtualNetwork.fs" />
+    <Compile Include="Builders\Builders.ResourceId.fs" />
   </ItemGroup>
 </Project>

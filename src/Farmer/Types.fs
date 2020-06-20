@@ -13,6 +13,29 @@ type ResourceName =
         | r -> r
     member this.Map mapper = match this with ResourceName r -> ResourceName (mapper r)
 
+/// ID of an ARM resource
+type ResourceId =
+    {
+        Name : ResourceName
+        Type : string
+        Group : string option
+        SubscriptionId : string option
+    }
+module ResourceId =
+    /// Writes the 'resourceId' template function with variant parameters depending on how the ResourceId
+    /// is constructed
+    let format (rid:ResourceId) =
+        match rid with
+        | { Name = name; Type = t; Group = Some group; SubscriptionId = Some sub } ->
+            sprintf "[resourceId('%s','%s','%s','%s')]" sub group t name.Value
+        | { Name = name; Type = t; Group = Some group; SubscriptionId = None } ->
+            sprintf "[resourceId('%s','%s','%s')]" group t name.Value
+        | { Name = name; Type = t; Group = None; SubscriptionId = _ } ->
+            sprintf "[resourceId('%s','%s')]" t name.Value
+type ResourceId with
+    /// Writes the 'resourceId' template function with variant parameters depending on how the ResourceId
+    /// is constructed
+    member this.format = ResourceId.format this 
 /// An Azure ARM resource value which can be mapped into an ARM template.
 type IArmResource =
     /// The name of the resource, to uniquely identify against other resources in the template.
