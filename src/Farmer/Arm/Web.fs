@@ -125,7 +125,8 @@ type Site =
       PhpVersion : string option
       PythonVersion : string option
       Metadata : List<string * string>
-      ZipDeployPath : string option }
+      ZipDeployPath : string option
+      SourceControls : {| Repository : Uri; Branch : string; ContinuousIntegration : FeatureFlag |} option }
     interface IParameters with
         member this.SecureParameters =
             this.AppSettings
@@ -159,10 +160,10 @@ type Site =
                  | Some Disabled -> box {| ``type`` = "None" |}
                  | None -> null
                properties =
-                   {| serverFarmId = this.ServicePlan.Value
-                      httpsOnly = this.HTTPSOnly
-                      clientAffinityEnabled = match this.ClientAffinityEnabled with Some v -> box v | None -> null
-                      siteConfig =
+                    {| serverFarmId = this.ServicePlan.Value
+                       httpsOnly = this.HTTPSOnly
+                       clientAffinityEnabled = match this.ClientAffinityEnabled with Some v -> box v | None -> null
+                       siteConfig =
                         {| alwaysOn = this.AlwaysOn
                            appSettings = this.AppSettings |> List.map(fun (k,v) -> {| name = k; value = v.Value |})
                            linuxFxVersion = this.LinuxFxVersion |> Option.toObj
@@ -183,4 +184,20 @@ type Site =
                             | Some (SpecificOrigins origins) -> box {| allowedOrigins = origins |}
                         |}
                     |}
+               resources = [
+                    match this.SourceControls with
+                    | Some sourceControls ->
+                        {| ``type`` = "sourcecontrols"
+                           apiVersion = "2019-08-01"
+                           name = "web"
+                           location = this.Location.ArmValue
+                           dependsOn = [ this.Name.Value ]
+                           properties =
+                            {| repoUrl = sourceControls.Repository.ToString()
+                               branch = sourceControls.Branch
+                               isManualIntegration = sourceControls.ContinuousIntegration.AsBoolean |> not
+                            |}
+                        |}
+                    | None -> ()
+               ]
             |} :> _

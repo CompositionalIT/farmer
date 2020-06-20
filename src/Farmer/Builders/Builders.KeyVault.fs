@@ -180,8 +180,6 @@ type AccessPolicy =
     /// Locates groups in Azure Active Directory based on the supplied group names.
     static member findGroups groupNames = AccessPolicy.findEntity ("displayName", groupNames, Deploy.Az.searchGroups)
 
-
-
 [<RequireQualifiedAccess>]
 type SimpleCreateMode = Recover | Default
 type KeyVaultBuilderState =

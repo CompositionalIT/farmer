@@ -87,6 +87,7 @@ type WebAppConfig =
       Identity : FeatureFlag option
 
       ZipDeployPath : string option
+      SourceControlSettings : {| Repository : Uri; Branch : string; ContinuousIntegration : FeatureFlag |} option
 
       DockerImage : (string * string) option
       DockerCi : bool
@@ -230,6 +231,7 @@ type WebAppConfig =
                     |> Option.toList
                   AppCommandLine = this.DockerImage |> Option.map snd
                   ZipDeployPath = this.ZipDeployPath
+                  SourceControls = this.SourceControlSettings
                 }
 
             let ai =
@@ -289,6 +291,7 @@ type WebAppBuilder() =
           DockerImage = None
           DockerCi = false
           Cors = None
+          SourceControlSettings = None
           DockerAcrCredentials = None }
     member __.Run(state:WebAppConfig) =
         let operatingSystem =
@@ -360,8 +363,8 @@ type WebAppBuilder() =
     [<CustomOperation "setting">]
     member __.AddSetting(state:WebAppConfig, key, value) =
         { state with Settings = state.Settings.Add(key, LiteralSetting value) }
-    member this.AddSetting(state:WebAppConfig, key, value:ArmExpression) =
-        this.AddSetting(state, key, value.Eval())
+    member this.AddSetting(state:WebAppConfig, key, value:ArmExpression) = this.AddSetting(state, key, value.Eval())
+    member this.AddSetting(state:WebAppConfig, key, resourceName:ResourceName) = this.AddSetting(state, key, resourceName.Value)
     /// Sets a list of app setting of the web app in the form "key" "value".
     [<CustomOperation "settings">]
     member this.AddSettings(state:WebAppConfig, settings: (string*string) list) =
@@ -422,5 +425,21 @@ type WebAppBuilder() =
     [<CustomOperation "enable_cors">]
     member _.EnableCors (state:WebAppConfig, origins) = { state with Cors = Some (SpecificOrigins (List.map Uri origins)) }
     member _.EnableCors (state:WebAppConfig, cors) = { state with Cors = Some cors }
+    [<CustomOperation "source_control">]
+    member _.SourceControl(state:WebAppConfig, url, branch) =
+        { state with
+            SourceControlSettings =
+                Some {| Repository = Uri url
+                        Branch = branch
+                        ContinuousIntegration = Enabled |} }
+    member _.SourceControlCi(state:WebAppConfig, featureFlag) =
+        { state with
+            SourceControlSettings =
+                state.SourceControlSettings
+                |> Option.map(fun s -> {| s with ContinuousIntegration = featureFlag |}) }
+    [<CustomOperation "enable_source_control_ci">]
+    member this.EnableCi(state:WebAppConfig) = this.SourceControlCi(state, Enabled)
+    [<CustomOperation "disable_source_control_ci">]
+    member this.DisableCi(state:WebAppConfig) = this.SourceControlCi(state, Disabled)
 
 let webApp = WebAppBuilder()
