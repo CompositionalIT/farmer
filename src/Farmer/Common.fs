@@ -548,19 +548,11 @@ module VirtualNetworkGateway =
     [<RequireQualifiedAccess>]
     type GatewayType =
         | ExpressRoute of ErGatewaySku
-        | Vpn of VpnGatewaySku * VpnType * ActiveActive:bool
+        | Vpn of VpnGatewaySku
         member this.ArmValue =
             match this with
             | ExpressRoute _ -> "ExpressRoute"
             | Vpn _ -> "Vpn"
-        member this.VpnType =
-            match this with
-            | ExpressRoute _ -> "RouteBased"
-            | Vpn (_, vpnType, _) -> vpnType.ArmValue
-        member this.ActiveActive =
-            match this with
-            | ExpressRoute _ -> false
-            | Vpn (_, _, activeActive) -> activeActive
 module ServiceBus =
     type MessagingUnits = OneUnit | TwoUnits | FourUnits
     type Sku =

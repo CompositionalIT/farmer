@@ -63,6 +63,7 @@ type VirtualNetworkGateway =
                      PublicIpName : ResourceName |} list
       VirtualNetwork : ResourceName
       GatewayType : GatewayType
+      VpnType : VpnType
       EnableBgp : bool }
     interface IArmResource with
         member this.ResourceName = this.Name
@@ -92,11 +93,11 @@ type VirtualNetworkGateway =
                        sku =
                            match this.GatewayType with
                            | GatewayType.ExpressRoute sku -> {| name = sku.ArmValue; tier = sku.ArmValue |}
-                           | GatewayType.Vpn (sku, _, _) -> {| name = sku.ArmValue; tier = sku.ArmValue |}
+                           | GatewayType.Vpn sku -> {| name = sku.ArmValue; tier = sku.ArmValue |}
                        gatewayType = this.GatewayType.ArmValue
-                       vpnType = this.GatewayType.VpnType
+                       vpnType = this.VpnType.ArmValue
                        enableBgp = this.EnableBgp
-                       activeActive = this.GatewayType.ActiveActive
+                       activeActive = this.IpConfigs |> List.length > 1
                     |}
             |} :> _
 type NetworkInterface =
