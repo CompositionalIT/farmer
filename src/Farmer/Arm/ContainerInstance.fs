@@ -9,8 +9,7 @@ type ContainerGroupIpAddress =
     { Type : IpAddressType
       Ports :
         {| Protocol : TransmissionProtocol
-           Port : uint16 |} list
-    }
+           Port : uint16 |} list }
 
 type ContainerGroup =
     { Name : ResourceName
@@ -21,10 +20,13 @@ type ContainerGroup =
            Ports : uint16 list
            Cpu : int
            Memory : float<Gb> |} list
-      OsType : string
+      OperatingSystem : OS
       RestartPolicy : RestartPolicy
       IpAddress : ContainerGroupIpAddress
       NetworkProfile : ResourceName option }
+    member this.NetworkProfilePath =
+        this.NetworkProfile
+        |> Option.map (fun networkProfile -> sprintf "[resourceId('Microsoft.Network/networkProfiles','%s')]" networkProfile.Value)
 
     interface IArmResource with
         member this.ResourceName = this.Name
@@ -33,10 +35,7 @@ type ContainerGroup =
                apiVersion = "2018-10-01"
                name = this.Name.Value
                location = this.Location.ArmValue
-               dependsOn =
-                   match this.NetworkProfile with
-                   | None -> []
-                   | Some networkProfile -> [ sprintf "[resourceId('Microsoft.Network/networkProfiles','%s')]" networkProfile.Value ]
+               dependsOn = this.NetworkProfilePath |> Option.toList
                properties =
                    {| containers =
                        this.ContainerInstances
@@ -52,8 +51,12 @@ type ContainerGroup =
                                    |}
                                |}
                            |})
-                      osType = this.OsType
-                      restartPolicy = this.RestartPolicy.ToString()
+                      osType = string this.OperatingSystem
+                      restartPolicy =
+                        match this.RestartPolicy with
+                        | AlwaysRestart -> "Always"
+                        | NeverRestart -> "Never"
+                        | RestartOnFailure -> "OnFailure"
                       ipAddress =
                         {| ``type`` =
                             match this.IpAddress.Type with
@@ -64,7 +67,7 @@ type ContainerGroup =
                                 {| protocol = string port.Protocol
                                    port = port.Port |}
                            ]
-                           ip = 
+                           ip =
                             match this.IpAddress.Type with
                             | PrivateAddressWithIp ip -> string ip
                             | _ -> null
@@ -74,8 +77,8 @@ type ContainerGroup =
                             | _ -> null
                         |}
                       networkProfile =
-                          match this.NetworkProfile with
-                          | Some networkProfile -> {| id = sprintf "[resourceId('Microsoft.Network/networkProfiles','%s')]" networkProfile.Value |}
-                          | None -> Unchecked.defaultof<_>
+                        this.NetworkProfilePath
+                        |> Option.map(fun path -> box {| id = path |})
+                        |> Option.toObj
                    |}
             |} :> _

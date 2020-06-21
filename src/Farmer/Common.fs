@@ -445,7 +445,7 @@ module Sql =
                 c
 
 module ContainerGroup =
-    type RestartPolicy = Never | Always | OnFailure
+    type RestartPolicy = NeverRestart | AlwaysRestart | RestartOnFailure
     type IpAddressType =
         | PublicAddress
         | PublicAddressWithDns of DnsName:string
@@ -542,7 +542,7 @@ module Maps =
 
 module SignalR =
     type Sku = Free | Standard
-  
+
 module DataLake =
     type Sku =
     | Consumption
