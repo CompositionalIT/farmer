@@ -316,6 +316,7 @@ module CognitiveServices =
     type Sku =
         /// Free Tier
         | F0
+        | S0
         | S1
         | S2
         | S3
@@ -543,7 +544,7 @@ module Maps =
 
 module SignalR =
     type Sku = Free | Standard
-  
+
 module DataLake =
     type Sku =
     | Consumption
