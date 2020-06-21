@@ -32,9 +32,8 @@ let tests = testList "Container Group" [
         let group = containerGroup {
             name "appWithHttpFrontend"
             operating_system Linux
-            add_tcp_port 80us
-            add_tcp_port 443us
             restart_policy AlwaysRestart
+            add_udp_port 123us
             add_instances [ nginx ]
         }
         let group =
@@ -45,14 +44,16 @@ let tests = testList "Container Group" [
         group.Validate()
 
         Expect.equal group.Name "appWithHttpFrontend" "Group name is not set correctly."
-        Expect.equal group.IpAddress.Ports.[0].PortProperty 443 "Port #1 should be 443"
-        Expect.equal group.IpAddress.Ports.[1].PortProperty 80 "Port #2 should be 80"
         Expect.equal group.OsType "Linux" "OS should be Linux"
+        Expect.equal group.IpAddress.Ports.[1].PortProperty 123 "Incorrect udp port"
 
-        Expect.equal group.Containers.[0].Image "nginx:1.17.6-alpine" "Incorrect image"
-        Expect.equal group.Containers.[0].Name "nginx" "Incorrect instance name"
-        Expect.equal group.Containers.[0].Resources.Requests.MemoryInGB 0.5 "Incorrect memory"
-        Expect.equal group.Containers.[0].Resources.Requests.Cpu 1.0 "Incorrect CPU"
+        let containerInstance = group.Containers.[0]
+        Expect.equal containerInstance.Image "nginx:1.17.6-alpine" "Incorrect image"
+        Expect.equal containerInstance.Name "nginx" "Incorrect instance name"
+        Expect.equal containerInstance.Resources.Requests.MemoryInGB 0.5 "Incorrect memory"
+        Expect.equal containerInstance.Resources.Requests.Cpu 1.0 "Incorrect CPU"
+        Expect.equal containerInstance.Ports.[0].Port 80 "Incorrect port"
+        Expect.equal containerInstance.Ports.[1].Port 443 "Incorrect port"
     }
 
     test "Multiple containers are correctly added" {
@@ -65,13 +66,29 @@ let tests = testList "Container Group" [
             arm { add_resource group }
             |> findAzureResources<ContainerGroup> dummyClient.SerializationSettings
             |> List.head
+
         group.Validate()
-        Expect.equal group.Containers.Count 2 "Should be two containers"
-        Expect.equal group.Containers.[0].Name "nginx" "Nginx should be the first container"
-        Expect.equal group.Containers.[1].Name "fsharpapp" "FSharpApp should the second container"
-        Expect.equal group.Containers.[1].Resources.Requests.MemoryInGB 1.5 "Should have 1.5gb on FSharp App"
-        Expect.equal group.Containers.[1].Resources.Requests.Cpu 2.0 "Should have 2 CPUs on FSharp App"
-        Expect.equal group.Containers.[1].Ports.[0].Port 8080 "FSharp App port #1 should be 8080"
+
+        Expect.hasLength group.Containers 2 "Should be two containers"
+        Expect.equal group.Containers.[0].Name "nginx" "Incorrect container name"
+        Expect.equal group.Containers.[1].Name "fsharpapp" "Incorrect container name "
+        Expect.equal group.Containers.[1].Resources.Requests.MemoryInGB 1.5 "Incorrect memory"
+        Expect.equal group.Containers.[1].Resources.Requests.Cpu 2.0 "Incorrect CPU count"
+        Expect.equal group.Containers.[1].Ports.[0].Port 8080 "Incorrect FSharp App port"
+    }
+
+    test "Implicitly creates ports for group based on instances" {
+        let group = containerGroup {
+            name "test"
+            add_instances [ nginx ]
+        }
+        let group =
+            arm { add_resource group }
+            |> findAzureResources<ContainerGroup> dummyClient.SerializationSettings
+            |> List.head
+
+        let ports = group.IpAddress.Ports |> Seq.map(fun p -> p.PortProperty) |> Set
+        Expect.equal ports (Set [ 443; 80 ]) "Incorrect implicitly created ports"
     }
 ]
 

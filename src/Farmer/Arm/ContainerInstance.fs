@@ -2,14 +2,13 @@
 module Farmer.Arm.ContainerInstance
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.ContainerGroup
 
 type ContainerGroupIpAddress =
     { Type : IpAddressType
       Ports :
         {| Protocol : TransmissionProtocol
-           Port : uint16 |} list }
+           Port : uint16 |} Set }
 
 type ContainerGroup =
     { Name : ResourceName
