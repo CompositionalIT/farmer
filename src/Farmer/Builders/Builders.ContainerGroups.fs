@@ -13,7 +13,7 @@ type ContainerInstanceConfig =
       /// The container instance image
       Image : string
       /// List of ports the container instance listens on
-      Ports : uint16 list
+      Ports : Map<uint16, PortAccess>
       /// Max number of CPU cores the container instance may use
       Cpu : int
       /// Max gigabytes of memory the container instance may use
@@ -34,16 +34,17 @@ type ContainerGroupConfig =
       Instances : ContainerInstanceConfig list }
     interface IBuilder with
         member this.DependencyName = this.Name
-        member this.BuildResources location existingResources = [
+        member this.BuildResources location _ = [
             { Location = location
               Name = this.Name
               ContainerInstances = [
-                  for instance in this.Instances do
+                for instance in this.Instances do
                     {| Name = instance.Name
                        Image = instance.Image
-                       Ports = instance.Ports
+                       Ports = instance.Ports |> Map.toSeq |> Seq.map fst |> Set
                        Cpu = instance.Cpu
-                       Memory = instance.Memory |} ]
+                       Memory = instance.Memory |}
+              ]
               OperatingSystem = this.OperatingSystem
               RestartPolicy = this.RestartPolicy
               IpAddress = this.IpAddress
@@ -52,17 +53,21 @@ type ContainerGroupConfig =
 
 type ContainerGroupBuilder() =
     member __.Yield _ =
-      { Name = ResourceName.Empty
-        OperatingSystem = Linux
-        RestartPolicy = AlwaysRestart
-        IpAddress = { Type = PublicAddress; Ports = Set.empty }
-        NetworkProfile = None
-        Instances = [] }
+        { Name = ResourceName.Empty
+          OperatingSystem = Linux
+          RestartPolicy = AlwaysRestart
+          IpAddress = { Type = PublicAddress; Ports = Set.empty }
+          NetworkProfile = None
+          Instances = [] }
     member this.Run (state:ContainerGroupConfig) =
+        // Automatically apply all public-facing ports to the container group itself.
         state.Instances
-        |> List.collect(fun i -> i.Ports)
-        |> List.fold (fun (state:ContainerGroupConfig) port ->
-            { state with IpAddress = { state.IpAddress with Ports = state.IpAddress.Ports.Add {| Protocol = TCP; Port = port |} } }) state
+        |> Seq.collect(fun i -> i.Ports |> Map.toSeq |> Seq.choose(function (port, PublicPort) -> Some port | _, InternalPort -> None))
+        |> Seq.fold (fun (state:ContainerGroupConfig) port ->
+            { state with
+                IpAddress =
+                    { state.IpAddress with
+                        Ports = state.IpAddress.Ports.Add {| Protocol = TCP; Port = port |} } }) state
 
     member __.AddTcpPort(state:ContainerGroupConfig, port) = { state with IpAddress = { state.IpAddress with Ports = state.IpAddress.Ports.Add {| Protocol = TCP; Port = port |} } }
 
@@ -77,10 +82,10 @@ type ContainerGroupBuilder() =
     [<CustomOperation "restart_policy">]
     member __.RestartPolicy(state:ContainerGroupConfig, restartPolicy) = { state with RestartPolicy = restartPolicy }
     member private _.SetIpAddress(state:ContainerGroupConfig, ipAddressType, ports) =
-      { state with
-          IpAddress =
-            { Type = ipAddressType
-              Ports = ports |> Seq.map(fun (prot, port) -> {| Protocol = prot; Port = port |}) |> Set } }
+        { state with
+            IpAddress =
+                { Type = ipAddressType
+                  Ports = ports |> Seq.map(fun (prot, port) -> {| Protocol = prot; Port = port |}) |> Set } }
 
     /// Sets the IP addresss to a public address with a DNS label
     [<CustomOperation "public_dns">]
@@ -103,11 +108,11 @@ type ContainerGroupBuilder() =
 
 type ContainerInstanceBuilder() =
     member __.Yield _ =
-      { Name = ResourceName.Empty
-        Image = ""
-        Ports = []
-        Cpu = 1
-        Memory = 1.5<Gb> }
+        { Name = ResourceName.Empty
+          Image = ""
+          Ports = Map.empty
+          Cpu = 1
+          Memory = 1.5<Gb> }
     /// Sets the name of the container instance.
     [<CustomOperation "name">]
     member __.Name(state:ContainerInstanceConfig, name) = { state with Name = name }
@@ -115,9 +120,20 @@ type ContainerInstanceBuilder() =
     /// Sets the image of the container instance.
     [<CustomOperation "image">]
     member __.Image (state:ContainerInstanceConfig, image) = { state with Image = image }
+    static member private AddPorts (state:ContainerInstanceConfig, accessibility, ports) =
+        { state with
+            Ports =
+                ports
+                |> Seq.fold(fun all port -> all.Add(port, accessibility) ) state.Ports }
     /// Sets the ports the container instance exposes. These will automatically be applied to the container group.
-    [<CustomOperation "ports">]
-    member __.Ports (state:ContainerInstanceConfig, ports) = { state with Ports = ports }
+    [<CustomOperation "add_public_ports">]
+    member __.PublicPorts (state:ContainerInstanceConfig, ports) = ContainerInstanceBuilder.AddPorts(state, PublicPort, ports)
+    /// Sets the ports the container instance exposes. These will automatically be applied to the container group.
+    [<CustomOperation "add_internal_ports">]
+    member __.InternalPorts (state:ContainerInstanceConfig, ports) = ContainerInstanceBuilder.AddPorts(state, InternalPort, ports)
+    /// Sets the ports the container instance exposes. These will automatically be applied to the container group.
+    [<CustomOperation "add_ports">]
+    member __.Ports (state:ContainerInstanceConfig, accessibility, ports) = ContainerInstanceBuilder.AddPorts(state, accessibility, ports)
     /// Sets the maximum CPU cores the container instance may use
     [<CustomOperationAttribute "cpu_cores">]
     member __.CpuCount (state:ContainerInstanceConfig, cpuCount) = { state with Cpu = cpuCount }
@@ -141,17 +157,16 @@ type NetworkProfileConfig =
             { Name = this.Name
               Location = location
               ContainerNetworkInterfaceConfigurations =
-                  this.ContainerNetworkInterfaceConfigurations
-                  |> List.map (fun ifconfig -> {| IpConfigs = (ifconfig.IpConfigs |> List.map (fun ipConfig -> {| SubnetName = ResourceName ipConfig.Subnet |})) |})
-              VirtualNetwork = this.VirtualNetwork
-            }
+                this.ContainerNetworkInterfaceConfigurations
+                |> List.map (fun ifconfig -> {| IpConfigs = (ifconfig.IpConfigs |> List.map (fun ipConfig -> {| SubnetName = ResourceName ipConfig.Subnet |})) |})
+              VirtualNetwork = this.VirtualNetwork }
         ]
 
 type NetworkProfileBuilder() =
     member __.Yield _ =
-      { Name = ResourceName.Empty
-        ContainerNetworkInterfaceConfigurations = []
-        VirtualNetwork = ResourceName.Empty }
+        { Name = ResourceName.Empty
+          ContainerNetworkInterfaceConfigurations = []
+          VirtualNetwork = ResourceName.Empty }
     /// Sets the name of the network profile instance
     [<CustomOperation "name">]
     member __.Name(state:NetworkProfileConfig, name) = { state with Name = ResourceName name }

@@ -16,7 +16,7 @@ type ContainerGroup =
       ContainerInstances :
         {| Name : ResourceName
            Image : string
-           Ports : uint16 list
+           Ports : uint16 Set
            Cpu : int
            Memory : float<Gb> |} list
       OperatingSystem : OS
@@ -42,7 +42,7 @@ type ContainerGroup =
                            {| name = container.Name.Value.ToLowerInvariant ()
                               properties =
                                {| image = container.Image
-                                  ports = container.Ports |> List.map (fun port -> {| port = port |})
+                                  ports = container.Ports |> Set.map (fun port -> {| port = port |})
                                   resources =
                                    {| requests =
                                        {| cpu = container.Cpu

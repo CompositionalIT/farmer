@@ -445,6 +445,7 @@ module Sql =
                 c
 
 module ContainerGroup =
+    type PortAccess = PublicPort | InternalPort
     type RestartPolicy = NeverRestart | AlwaysRestart | RestartOnFailure
     type IpAddressType =
         | PublicAddress
