@@ -36,7 +36,7 @@ type SubnetConfig =
       Delegations: string list }
 
 type SubnetBuilder() =
-    member __.Yield _ = { Name = ResourceName.Empty; Prefix = {| Address = System.Net.IPAddress.Parse("10.100.0.0"); Prefix = 16 |}; Delegations = [] }
+    member __.Yield _ = { Name = ResourceName.Empty; Prefix = { Address = System.Net.IPAddress.Parse("10.100.0.0"); Prefix = 16 }; Delegations = [] }
     /// Sets the name of the subnet
     [<CustomOperation "name">]
     member __.Name(state:SubnetConfig, name) = { state with Name = ResourceName name }

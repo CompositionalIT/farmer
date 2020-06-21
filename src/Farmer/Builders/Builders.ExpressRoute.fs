@@ -40,8 +40,8 @@ type ExpressRouteCircuitPeeringBuilder() =
       { PeeringType = AzurePrivatePeering
         AzureASN = 0
         PeerASN = 0L
-        PrimaryPeerAddressPrefix = {| Address = IPAddress.None; Prefix = 0 |}
-        SecondaryPeerAddressPrefix = {| Address = IPAddress.None; Prefix = 0 |}
+        PrimaryPeerAddressPrefix = { Address = IPAddress.None; Prefix = 0 }
+        SecondaryPeerAddressPrefix = { Address = IPAddress.None; Prefix = 0 }
         SharedKey = None
         VlanId = 0 }
     /// Sets the peering type.
