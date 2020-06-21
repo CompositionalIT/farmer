@@ -133,8 +133,8 @@ type ExpressRouteCircuit =
         {| PeeringType : PeeringType
            AzureASN : int
            PeerASN : int64
-           PrimaryPeerAddressPrefix : {| Address : IPAddress; Prefix : int |}
-           SecondaryPeerAddressPrefix : {| Address : IPAddress; Prefix : int |}
+           PrimaryPeerAddressPrefix : IPAddressCidr
+           SecondaryPeerAddressPrefix : IPAddressCidr
            SharedKey : string option
            VlanId : int
         |} list }

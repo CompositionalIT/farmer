@@ -23,6 +23,7 @@ let allTests =
             ]
             testList "Control" [
                 Template.tests
+                Common.tests
                 if Environment.GetEnvironmentVariable "TF_BUILD" = "True" then AzCli.tests
             ]
         ]

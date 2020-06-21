@@ -1,6 +1,7 @@
 ﻿namespace Farmer
 
 open System
+open System.Runtime.CompilerServices
 
 type Location =
     | Location of string
@@ -553,18 +554,70 @@ module DataLake =
     | Commitment_1PB
     | Commitment_5PB
 
-type internal IPAddressCidr =
-    {| Address : System.Net.IPAddress
-       Prefix : int |}
+type public IPAddressCidr =
+    { Address : System.Net.IPAddress
+      Prefix : int }
 
 module IPAddressCidr =
     let parse (s:string) : IPAddressCidr =
         match s.Split([|'/'|], System.StringSplitOptions.RemoveEmptyEntries) with
         [| ip; prefix |] ->
-            {| Address = System.Net.IPAddress.Parse (ip.Trim ())
-               Prefix = int prefix |}
+            { Address = System.Net.IPAddress.Parse (ip.Trim ())
+              Prefix = int prefix }
         | _ -> raise (System.ArgumentOutOfRangeException "Malformed CIDR, expecting and IP and prefix separated by '/'")
     let safeParse (s:string) : Result<IPAddressCidr, System.Exception> =
         try parse s |> Ok
         with ex -> Error ex
     let format (cidr:IPAddressCidr) = sprintf "%O/%d" cidr.Address cidr.Prefix
+    /// Gets uint32 representation of an IP address.
+    let private num (ip:System.Net.IPAddress) =
+        ip.GetAddressBytes() |> Array.rev |> fun bytes -> BitConverter.ToUInt32 (bytes, 0)
+    /// Gets IP address from uint32 representations
+    let private ofNum (num:uint32) =
+        num |> BitConverter.GetBytes |> Array.rev |> System.Net.IPAddress
+    let private ipRangeNums (cidr:IPAddressCidr) =
+        let ipNumber = cidr.Address |> num
+        let mask = 0xffffffffu <<< (32 - cidr.Prefix)
+        ipNumber &&& mask, ipNumber ||| (mask ^^^ 0xffffffffu)
+    /// Calculates a range of IP addresses from an CIDR block.
+    let ipRange (cidr:IPAddressCidr) =
+        let first, last = ipRangeNums cidr
+        first |> ofNum, last |> ofNum
+    /// Sequence of IP addresses for a CIDR block.
+    let addresses (cidr:IPAddressCidr) =
+        let first, last = ipRangeNums cidr
+        seq {
+            for i in first..last do
+                yield i |> ofNum
+        }
+    /// Carve a subnet out of an address space.
+    let carveAddressSpace (addressSpace:IPAddressCidr) (subnetSizes:int list) =
+        let addressSpaceStart, addressSpaceEnd = addressSpace |> ipRangeNums
+        let mutable startAddress = addressSpaceStart |> ofNum
+        let mutable index = 0
+        seq {
+            for size in subnetSizes do
+                index <- index + 1
+                let cidr = { Address = startAddress; Prefix = size }
+                let first, last = cidr |> ipRangeNums
+                let overlapping = first < (startAddress |> num)
+                let last, cidr =
+                    if overlapping then
+                        let cidr = { Address = ofNum (last + 1u); Prefix = size }
+                        let _, last = cidr |> ipRangeNums
+                        last, cidr
+                    else
+                        last, cidr
+                if last <= addressSpaceEnd then
+                    startAddress <- (last + 1u) |> ofNum
+                    yield cidr
+                else
+                    raise (IndexOutOfRangeException (sprintf "Unable to create subnet %d of /%d" index size))
+        }
+    /// The first two addresses are the network address and gateway address
+    /// so not assignable.
+    let assignable (cidr:IPAddressCidr) =
+        if cidr.Prefix < 31 then // only has 2 addresses
+            cidr |> addresses |> Seq.skip 2
+        else
+            Seq.empty
