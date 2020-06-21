@@ -41,7 +41,6 @@ let gw = gateway {
     name "er-gateway"
     vnet "my-vnet" // Must contain a subnet named 'GatewaySubnet'
     er_gateway_sku ErGatewaySku.Standard
-    gateway_ip_config DynamicPrivateIp "gw-pip"
 }
 
 let privateNet = vnet {

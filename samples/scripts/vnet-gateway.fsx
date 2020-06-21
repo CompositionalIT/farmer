@@ -5,6 +5,7 @@
 open Farmer
 open Farmer.Builders
 open Farmer.VirtualNetworkGateway
+open Farmer.Arm.Network
 
 let privateNet = vnet {
     name "my-vnet"
@@ -19,10 +20,12 @@ let privateNet = vnet {
     ]
 }
 
+/// In case you need to specify public IP details, create a public IP
+/// and assign it to the gateway with 'gateway_ip_config'
 let gatewayIp = {
     Name = ResourceName "gw-pip"
     Location = Location.NorthEurope
-    DomainNameLabel = None
+    DomainNameLabel = Some "mygateway"
 }
 
 let myGateway = gateway {
@@ -30,7 +33,7 @@ let myGateway = gateway {
     er_gateway_sku ErGatewaySku.Standard
     vpn_type VpnType.RouteBased
     vnet "my-vnet"
-    gateway_ip_config DynamicPrivateIp gatewayIp.Name.Value
+    gateway_ip_config DynamicPrivateIp gatewayIp
 }
 
 let deployment = arm {
