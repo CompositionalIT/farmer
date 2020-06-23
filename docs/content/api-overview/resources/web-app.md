@@ -78,7 +78,7 @@ let myWebApp = webApp {
     name "myWebApp"
     service_plan_name "myServicePlan"
     setting "myKey" "aValue"
-    sku WebApp.B1
+    sku WebApp.Sku.B1
     always_on
     app_insights_off
     worker_size Medium
