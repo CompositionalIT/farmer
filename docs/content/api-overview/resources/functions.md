@@ -52,4 +52,5 @@ let myFunctions = functions {
     service_plan_name "myServicePlan"
     setting "myKey" "aValue"
     app_insights_off
-}```
+}
+```
