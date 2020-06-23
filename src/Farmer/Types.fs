@@ -13,29 +13,6 @@ type ResourceName =
         | r -> r
     member this.Map mapper = match this with ResourceName r -> ResourceName (mapper r)
 
-/// ID of an ARM resource
-type ResourceId =
-    {
-        Name : ResourceName
-        Type : string
-        Group : string option
-        SubscriptionId : string option
-    }
-module ResourceId =
-    /// Writes the 'resourceId' template function with variant parameters depending on how the ResourceId
-    /// is constructed
-    let format (rid:ResourceId) =
-        match rid with
-        | { Name = name; Type = t; Group = Some group; SubscriptionId = Some sub } ->
-            sprintf "[resourceId('%s','%s','%s','%s')]" sub group t name.Value
-        | { Name = name; Type = t; Group = Some group; SubscriptionId = None } ->
-            sprintf "[resourceId('%s','%s','%s')]" group t name.Value
-        | { Name = name; Type = t; Group = None; SubscriptionId = _ } ->
-            sprintf "[resourceId('%s','%s')]" t name.Value
-type ResourceId with
-    /// Writes the 'resourceId' template function with variant parameters depending on how the ResourceId
-    /// is constructed
-    member this.format = ResourceId.format this 
 /// An Azure ARM resource value which can be mapped into an ARM template.
 type IArmResource =
     /// The name of the resource, to uniquely identify against other resources in the template.
@@ -55,6 +32,15 @@ namespace Farmer.CoreTypes
 open Farmer
 open System
 
+[<RequireQualifiedAccess>]
+type ResourceType =
+     | Connection
+     | VNetGateway
+     member this.ArmValue =
+         match this with
+         | Connection -> "Microsoft.Network/connections"
+         | VNetGateway -> "Microsoft.Network/virtualNetworkGateways"
+
 /// Represents an expression used within an ARM template
 type ArmExpression =
     | ArmExpression of string
@@ -70,7 +56,17 @@ type ArmExpression =
     /// Evaluates the expression for emitting into an ARM template. That is, wraps it in [].
     static member Eval (expression:ArmExpression) = expression.Eval()
     static member Empty = ArmExpression ""
-
+    /// Builds a resourceId ARM expression from the parts of a resource ID.
+    static member ResourceId (resourceType: ResourceType, name:string, ?group:string, ?subscriptionId:string) =
+        match name, group, subscriptionId with
+        | name, Some group, Some sub ->
+            sprintf "resourceId('%s','%s','%s','%s')" sub group resourceType.ArmValue name
+        | name, Some group, None ->
+            sprintf "resourceId('%s','%s','%s')" group resourceType.ArmValue name
+        | name, _, _ ->
+            sprintf "resourceId('%s','%s')" resourceType.ArmValue name
+        |> ArmExpression
+     
 /// A secure parameter to be captured in an ARM template.
 type SecureParameter =
     | SecureParameter of name:string
