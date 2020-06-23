@@ -51,6 +51,7 @@
     <Compile Include="Deploy.fs" />
 
     <Compile Include="Arm/Cache.fs" />
+    <Compile Include="Arm/Cdn.fs" />
     <Compile Include="Arm/CognitiveServices.fs" />
     <Compile Include="Arm/Compute.fs" />
     <Compile Include="Arm/ContainerInstance.fs" />
@@ -74,6 +75,7 @@
     <Compile Include="Builders/Builders.Helpers.fs" />
     <Compile Include="Builders/Builders.PostgreSQL.fs" />
     <Compile Include="Builders/Builders.DataLake.fs" />
+    <Compile Include="Builders/Builders.Cdn.fs" />
     <Compile Include="Builders/Builders.Storage.fs" />
     <Compile Include="Builders/Builders.Redis.fs" />
     <Compile Include="Builders/Builders.KeyVault.fs" />

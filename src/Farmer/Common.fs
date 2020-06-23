@@ -623,3 +623,18 @@ module IPAddressCidr =
             cidr |> addresses |> Seq.skip 2
         else
             Seq.empty
+
+module Cdn =
+    type Sku =
+    | Custom_Verizon
+    | Premium_Verizon
+    | Premium_ChinaCdn
+    | Standard_Akamai
+    | Standard_ChinaCdn
+    | Standard_Microsoft
+    | Standard_Verizon
+
+    type QueryStringCachingBehaviour =
+    | IgnoreQueryString
+    | BypassCaching
+    | UseQueryString
