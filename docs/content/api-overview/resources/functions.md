@@ -29,6 +29,7 @@ The Functions builder is used to create Azure Functions accounts. It abstracts t
 | use_extension_version | Sets the extension version of the functions host. |
 | operating_system | Sets the operating system of the Functions host. |
 | setting | Sets an app setting of the web app in the form "key" "value". |
+| settings | Sets a list of app setting of the web app as tuples in the form of ("key", "value"). |
 | depends_on | Sets a dependency for the web app. |
 | enable_cors | Enables CORS support for the app. Either specify AllOrigins or a list of valid URIs. |
 
@@ -52,4 +53,5 @@ let myFunctions = functions {
     service_plan_name "myServicePlan"
     setting "myKey" "aValue"
     app_insights_off
-}```
+}
+```
