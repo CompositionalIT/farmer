@@ -6,6 +6,14 @@ open Farmer.CoreTypes
 open Farmer.ExpressRoute
 open System.Net
 
+let connection = ResourceType "Microsoft.Network/connections"
+let expressRouteCircuit = ResourceType "Microsoft.Network/expressRouteCircuits"
+let networkInterface = ResourceType "Microsoft.Network/networkInterfaces"
+let networkProfile = ResourceType "Microsoft.Network/networkProfiles"
+let publicIPAddress = ResourceType "Microsoft.Network/publicIPAddresses"
+let virtualNetwork = ResourceType "Microsoft.Network/virtualNetworks"
+let virtualNetworkGateway = ResourceType "Microsoft.Network/virtualNetworkGateways"
+
 type PublicIpAddress =
     { Name : ResourceName
       Location : Location
@@ -13,7 +21,7 @@ type PublicIpAddress =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = "Microsoft.Network/publicIPAddresses"
+            {| ``type`` = publicIPAddress.ArmValue
                apiVersion = "2018-11-01"
                name = this.Name.Value
                location = this.Location.ArmValue
@@ -33,7 +41,7 @@ type VirtualNetwork =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = "Microsoft.Network/virtualNetworks"
+            {| ``type`` = virtualNetwork.ArmValue
                apiVersion = "2018-11-01"
                name = this.Name.Value
                location = this.Location.ArmValue
@@ -64,7 +72,7 @@ type NetworkInterface =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = "Microsoft.Network/networkInterfaces"
+            {| ``type`` = networkInterface.ArmValue
                apiVersion = "2018-11-01"
                name = this.Name.Value
                location = this.Location.ArmValue
@@ -97,11 +105,13 @@ type NetworkProfile =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = "Microsoft.Network/networkProfiles"
+            {| ``type`` = networkProfile.ArmValue
                apiVersion = "2020-04-01"
                name = this.Name.Value
                location = this.Location.ArmValue
-               dependsOn = [ sprintf "[resourceId('Microsoft.Network/virtualNetworks','%s')]" this.VirtualNetwork.Value ]
+               dependsOn = [
+                   ArmExpression.ResourceId(virtualNetwork, this.VirtualNetwork.Value).Eval()
+                ]
                properties =
                    {| containerNetworkInterfaceConfigurations =
                        this.ContainerNetworkInterfaceConfigurations
@@ -142,7 +152,7 @@ type ExpressRouteCircuit =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = "Microsoft.Network/expressRouteCircuits"
+            {| ``type`` = expressRouteCircuit.ArmValue
                apiVersion = "2019-02-01"
                name = this.Name.Value
                location = this.Location.ArmValue

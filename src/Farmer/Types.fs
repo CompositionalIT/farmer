@@ -32,14 +32,10 @@ namespace Farmer.CoreTypes
 open Farmer
 open System
 
-[<RequireQualifiedAccess>]
 type ResourceType =
-     | Connection
-     | VNetGateway
-     member this.ArmValue =
-         match this with
-         | Connection -> "Microsoft.Network/connections"
-         | VNetGateway -> "Microsoft.Network/virtualNetworkGateways"
+    | ResourceType of string
+    /// Returns the ARM resource type string value.
+    member this.ArmValue = match this with ResourceType r -> r
 
 /// Represents an expression used within an ARM template
 type ArmExpression =
@@ -57,14 +53,14 @@ type ArmExpression =
     static member Eval (expression:ArmExpression) = expression.Eval()
     static member Empty = ArmExpression ""
     /// Builds a resourceId ARM expression from the parts of a resource ID.
-    static member ResourceId (resourceType: ResourceType, name:string, ?group:string, ?subscriptionId:string) =
+    static member ResourceId (ResourceType resourceType, name:string, ?group:string, ?subscriptionId:string) =
         match name, group, subscriptionId with
         | name, Some group, Some sub ->
-            sprintf "resourceId('%s','%s','%s','%s')" sub group resourceType.ArmValue name
+            sprintf "resourceId('%s','%s','%s','%s')" sub group resourceType name
         | name, Some group, None ->
-            sprintf "resourceId('%s','%s','%s')" group resourceType.ArmValue name
+            sprintf "resourceId('%s','%s','%s')" group resourceType name
         | name, _, _ ->
-            sprintf "resourceId('%s','%s')" resourceType.ArmValue name
+            sprintf "resourceId('%s','%s')" resourceType name
         |> ArmExpression
      
 /// A secure parameter to be captured in an ARM template.
