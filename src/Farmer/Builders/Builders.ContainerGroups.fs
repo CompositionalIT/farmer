@@ -17,7 +17,9 @@ type ContainerInstanceConfig =
       /// Max number of CPU cores the container instance may use
       Cpu : int
       /// Max gigabytes of memory the container instance may use
-      Memory : float<Gb> }
+      Memory : float<Gb>
+      /// Environment variables for the container
+      EnvironmentVariables : Map<string, {|Value:string; Secure:bool|}> }
 
 type ContainerGroupConfig =
     { /// The name of the container group.
@@ -43,7 +45,8 @@ type ContainerGroupConfig =
                        Image = instance.Image
                        Ports = instance.Ports |> Map.toSeq |> Seq.map fst |> Set
                        Cpu = instance.Cpu
-                       Memory = instance.Memory |}
+                       Memory = instance.Memory
+                       EnvironmentVariables = instance.EnvironmentVariables |}
               ]
               OperatingSystem = this.OperatingSystem
               RestartPolicy = this.RestartPolicy
@@ -112,7 +115,8 @@ type ContainerInstanceBuilder() =
           Image = ""
           Ports = Map.empty
           Cpu = 1
-          Memory = 1.5<Gb> }
+          Memory = 1.5<Gb>
+          EnvironmentVariables = Map.empty }
     /// Sets the name of the container instance.
     [<CustomOperation "name">]
     member __.Name(state:ContainerInstanceConfig, name) = { state with Name = name }
@@ -140,6 +144,12 @@ type ContainerInstanceBuilder() =
     /// Sets the maximum gigabytes of memory the container instance may use
     [<CustomOperationAttribute "memory">]
     member __.Memory (state:ContainerInstanceConfig, memory) = { state with Memory = memory }
+    [<CustomOperation "env_vars">]
+    member __.EnvironmentVariables(state:ContainerInstanceConfig, envVars) =
+        { state with EnvironmentVariables=Map.ofList envVars }
+
+let env_var (name:string) (value:string) = name, {|Value=value; Secure=false|}
+let secure_env_var (name:string) (value:string) = name, {|Value=value; Secure=true|}
 
 let containerGroup = ContainerGroupBuilder()
 let containerInstance = ContainerInstanceBuilder()

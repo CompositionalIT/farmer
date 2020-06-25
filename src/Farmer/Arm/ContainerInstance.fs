@@ -18,7 +18,9 @@ type ContainerGroup =
            Image : string
            Ports : uint16 Set
            Cpu : int
-           Memory : float<Gb> |} list
+           Memory : float<Gb>
+           EnvironmentVariables: Map<string, {| Value:string; Secure:bool |}>
+        |} list
       OperatingSystem : OS
       RestartPolicy : RestartPolicy
       IpAddress : ContainerGroupIpAddress
@@ -43,6 +45,13 @@ type ContainerGroup =
                               properties =
                                {| image = container.Image
                                   ports = container.Ports |> Set.map (fun port -> {| port = port |})
+                                  environmentVariables =
+                                      container.EnvironmentVariables
+                                      |> Seq.map (fun kvp ->
+                                          if kvp.Value.Secure then
+                                              {| name = kvp.Key; value=null; secureValue=kvp.Value.Value |}
+                                          else
+                                              {| name = kvp.Key; value=kvp.Value.Value; secureValue=null |})
                                   resources =
                                    {| requests =
                                        {| cpu = container.Cpu
