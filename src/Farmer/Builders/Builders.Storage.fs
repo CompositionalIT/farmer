@@ -56,8 +56,8 @@ type StorageAccountBuilder() =
 
 /// Allow adding storage accounts directly to CDNs
 type EndpointBuilder with
-    member this.HostName(state:Arm.Cdn.Endpoint, storage:StorageAccountConfig) =
-      let state = { state with HostName = storage.Endpoint }
-      this.DependsOn(state, storage.Name)
+    member this.Origin(state:Arm.Cdn.Endpoint, storage:StorageAccountConfig) =
+        let state = this.Origin(state, storage.Endpoint)
+        this.DependsOn(state, storage.Name)
 
 let storageAccount = StorageAccountBuilder()

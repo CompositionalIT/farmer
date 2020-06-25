@@ -14,7 +14,7 @@ type Endpoint =
       Http : FeatureFlag
       Https : FeatureFlag
       Compression : FeatureFlag
-      HostName : string
+      Origin : string
       CustomDomain : Uri option
       OptimizationType : OptimizationType }
 
@@ -45,7 +45,7 @@ type Profile =
                             dependency.Value
                        ]
                        properties =
-                            {| originHostHeader = endpoint.HostName
+                            {| originHostHeader = endpoint.Origin
                                queryStringCachingBehavior = string endpoint.QueryStringCachingBehaviour
                                optimizationType = string endpoint.OptimizationType
                                isHttpAllowed = endpoint.Http.AsBoolean
@@ -54,7 +54,7 @@ type Profile =
                                contentTypesToCompress = endpoint.CompressedContentTypes
                                origins = [
                                    {| name = "origin"
-                                      properties = {| hostName = endpoint.HostName |}
+                                      properties = {| hostName = endpoint.Origin |}
                                    |}
                                ]
                             |}

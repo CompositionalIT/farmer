@@ -448,6 +448,6 @@ let webApp = WebAppBuilder()
 
 /// Allow adding storage accounts directly to CDNs
 type EndpointBuilder with
-    member this.HostName(state:Arm.Cdn.Endpoint, webApp:WebAppConfig) =
-      let state = { state with HostName = webApp.Endpoint }
-      this.DependsOn(state, webApp.Name)
+    member this.Origin(state:Arm.Cdn.Endpoint, webApp:WebAppConfig) =
+        let state = this.Origin(state, webApp.Endpoint)
+        this.DependsOn(state, webApp.Name)
