@@ -64,6 +64,7 @@ let isaacCdn = cdn {
             disable_http
         }
         endpoint {
+            name "custom-endpoint-name"
             origin "mysite.com"
             add_compressed_content [ "text/plain"; "text/html"; "text/css" ]
             query_string_caching_behaviour Cdn.BypassCaching
