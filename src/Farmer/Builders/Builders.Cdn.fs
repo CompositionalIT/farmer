@@ -22,7 +22,7 @@ type CdnConfig =
 type CdnBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
-          Sku = Sku.Standard_Microsoft
+          Sku = Sku.Standard_Akamai
           Endpoints = [] }
     [<CustomOperation "name">]
     member _.Name(state:CdnConfig, name) = { state with Name = ResourceName name }
@@ -31,18 +31,18 @@ type CdnBuilder() =
     [<CustomOperation "add_endpoints">]
     member _.AddEndpoints(state:CdnConfig, endpoints) = { state with Endpoints = state.Endpoints @ endpoints }
 
-
 type EndpointBuilder() =
     member _.Yield _ : Endpoint =
         { Name = ResourceName.Empty
           DependsOn = []
           CompressedContentTypes = Set.empty
-          QueryStringCachingBehaviour = None
+          QueryStringCachingBehaviour = UseQueryString
           Http = Enabled
           Https = Enabled
-          Compression = Enabled
+          Compression = Disabled
           HostName = ""
-          CustomDomain = None }
+          CustomDomain = None
+          OptimizationType = GeneralWebDelivery }
 
     [<CustomOperation "name">]
     member _.Name(state:Endpoint, name) = { state with Name = name }
@@ -54,10 +54,10 @@ type EndpointBuilder() =
     member _.DependsOn(state:Endpoint, resource:IArmResource) = { state with DependsOn = resource.ResourceName :: state.DependsOn }
 
     [<CustomOperation "add_compressed_content">]
-    member _.AddCompressedContentTypes(state:Endpoint, types) = { state with CompressedContentTypes = state.CompressedContentTypes + Set types }
+    member _.AddCompressedContentTypes(state:Endpoint, types) = { state with CompressedContentTypes = state.CompressedContentTypes + Set types; Compression = Enabled }
 
     [<CustomOperation "query_string_caching_behaviour">]
-    member _.QueryStringCachingBehaviour(state:Endpoint, behaviour) = {state with QueryStringCachingBehaviour = Some behaviour }
+    member _.QueryStringCachingBehaviour(state:Endpoint, behaviour) = { state with QueryStringCachingBehaviour = behaviour }
 
     [<CustomOperation "enable_http">]
     member _.EnableHttp(state:Endpoint) = { state with Http = Enabled }
@@ -67,14 +67,12 @@ type EndpointBuilder() =
     member _.EnableHttps(state:Endpoint) = { state with Https = Enabled }
     [<CustomOperation "disable_https">]
     member _.DisableHttps(state:Endpoint) = { state with Https = Disabled }
-    [<CustomOperation "enable_compression">]
-    member _.EnableCompression(state:Endpoint) = { state with Compression = Enabled }
-    [<CustomOperation "disable_compression">]
-    member _.DisableCompression(state:Endpoint) = { state with Compression = Disabled }
-    [<CustomOperation "hostname">]
-    member _.HostName(state:Endpoint, name) = { state with HostName = name }
-    [<CustomOperation "custom_domain_hostname">]
+    [<CustomOperation "custom_domain">]
     member _.CustomDomain(state:Endpoint, hostname) = { state with CustomDomain = Some (System.Uri hostname) }
+    [<CustomOperation "optimise_for">]
+    member _.OptimiseFor(state:Endpoint, optimizationType) = { state with OptimizationType = optimizationType }
+    [<CustomOperation "hostname">]
+    member _.HostName(state:Arm.Cdn.Endpoint, name) = { state with HostName = name }
 
 let cdn = CdnBuilder()
 let endpoint = EndpointBuilder()

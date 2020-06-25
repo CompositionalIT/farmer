@@ -10,12 +10,13 @@ type Endpoint =
     { Name : ResourceName
       DependsOn : ResourceName list
       CompressedContentTypes : string Set
-      QueryStringCachingBehaviour : QueryStringCachingBehaviour option
+      QueryStringCachingBehaviour : QueryStringCachingBehaviour
       Http : FeatureFlag
       Https : FeatureFlag
       Compression : FeatureFlag
       HostName : string
-      CustomDomain : Uri option }
+      CustomDomain : Uri option
+      OptimizationType : OptimizationType }
 
 type Profile =
     { Name : ResourceName
@@ -29,7 +30,7 @@ type Profile =
             {| ``type`` = "Microsoft.Cdn/profiles"
                name = this.Name.Value
                apiVersion = "2019-04-15"
-               location = this.Location.ArmValue
+               location = "global"
                sku = {| name = string this.Sku |}
                properties = {||}
                resources = [
@@ -37,7 +38,7 @@ type Profile =
                     {| ``type`` = "endpoints"
                        name = endpoint.Name.Value
                        apiVersion = "2019-04-15"
-                       location = this.Location.ArmValue
+                       location = "global"
                        dependsOn = [
                            this.Name.Value
                            for dependency in endpoint.DependsOn do
@@ -45,16 +46,14 @@ type Profile =
                        ]
                        properties =
                             {| originHostHeader = endpoint.HostName
-                               queryStringCachingBehavior =
-                                match endpoint.QueryStringCachingBehaviour with
-                                | Some behaviour -> string behaviour
-                                | None -> "NotSet"
+                               queryStringCachingBehavior = string endpoint.QueryStringCachingBehaviour
+                               optimizationType = string endpoint.OptimizationType
                                isHttpAllowed = endpoint.Http.AsBoolean
                                isHttpsAllowed = endpoint.Https.AsBoolean
                                isCompressionEnabled = endpoint.Compression.AsBoolean
                                contentTypesToCompress = endpoint.CompressedContentTypes
                                origins = [
-                                   {| name = "origin1"
+                                   {| name = "origin"
                                       properties = {| hostName = endpoint.HostName |}
                                    |}
                                ]

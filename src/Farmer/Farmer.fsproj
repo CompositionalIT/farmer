@@ -74,8 +74,8 @@
 
     <Compile Include="Builders/Builders.Helpers.fs" />
     <Compile Include="Builders/Builders.PostgreSQL.fs" />
-    <Compile Include="Builders/Builders.DataLake.fs" />
     <Compile Include="Builders/Builders.Cdn.fs" />
+    <Compile Include="Builders/Builders.DataLake.fs" />
     <Compile Include="Builders/Builders.Storage.fs" />
     <Compile Include="Builders/Builders.Redis.fs" />
     <Compile Include="Builders/Builders.KeyVault.fs" />
