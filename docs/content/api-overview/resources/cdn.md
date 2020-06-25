@@ -61,11 +61,10 @@ let isaacCdn = cdn {
         }
         endpoint {
             origin isaacWebApp
-            add_compressed_content [ "text/plain"; "text/html"; "text/css" ]
             disable_http
         }
         endpoint {
-            origin "compositional-it.com"
+            origin "mysite.com"
             add_compressed_content [ "text/plain"; "text/html"; "text/css" ]
             query_string_caching_behaviour Cdn.BypassCaching
         }
