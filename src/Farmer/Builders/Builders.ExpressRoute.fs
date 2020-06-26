@@ -81,7 +81,7 @@ type ExpressRouteConfig =
 
     interface IBuilder with
         member this.DependencyName = this.Name
-        member this.BuildResources location _ = [
+        member this.BuildResources location = [
             { Name = this.Name
               Location = location
               Tier = this.Tier

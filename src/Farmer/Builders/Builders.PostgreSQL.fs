@@ -8,6 +8,7 @@ open Farmer
 open Farmer.CoreTypes
 open Farmer.PostgreSQL
 open Arm.DBforPostgreSQL
+open Servers
 
 type PostgreSQLBuilderConfig =
     { ServerName : ResourceRef
@@ -22,22 +23,14 @@ type PostgreSQLBuilderConfig =
       DbName : ResourceName option
       DbCollation : string option
       DbCharset : string option
-      FirewallRules : FirewallRule list }
-        
+      FirewallRules : {| Name : ResourceName; Start : IPAddress; End : IPAddress |} list }
+
     interface IBuilder with
         member this.DependencyName = this.ServerName.ResourceName
-        member this.BuildResources location resources = [
-            let database = this.DbName |> Option.map (fun dbName -> {
-                Name = dbName
-                Collation = this.DbCollation |> Option.defaultValue "English_United States.1252"
-                Charset = this.DbCharset |> Option.defaultValue "UTF8"
-            })
-                
+        member this.BuildResources location = [
             match this.ServerName with
-            | External resName -> 
-                resources |> Helpers.mergeResource resName (Server.WithDatabase database)
             | AutomaticallyCreated serverName ->
-                { ServerName = serverName
+                { Name = serverName
                   Location = location
                   Username = this.AdminUserName |> Option.defaultWith(fun () -> "admin username not set")
                   Password = SecureParameter "administratorLoginPassword"
@@ -48,11 +41,27 @@ type PostgreSQLBuilderConfig =
                   Family = PostgreSQLFamily.Gen5
                   GeoRedundantBackup = FeatureFlag.ofBool this.GeoRedundantBackup
                   StorageAutoGrow = FeatureFlag.ofBool this.StorageAutogrow
-                  BackupRetention = this.BackupRetention
-                  Databases = database |> Helpers.singletonOrEmptyList 
-                  FirewallRules = this.FirewallRules }
+                  BackupRetention = this.BackupRetention }
+            | External _ ->
+                ()
             | AutomaticPlaceholder ->
                 failwith "You must specify a server name, or link to an existing server."
+
+            match this.DbName with
+            | Some dbName ->
+                { Name = dbName
+                  Server = this.ServerName.ResourceName
+                  Collation = this.DbCollation |> Option.defaultValue "English_United States.1252"
+                  Charset = this.DbCharset |> Option.defaultValue "UTF8" }
+            | None ->
+                ()
+
+            for rule in this.FirewallRules do
+                { Name = rule.Name
+                  Start = rule.Start
+                  End = rule.End
+                  Server = this.ServerName.ResourceName
+                  Location = location }
         ]
 [<AutoOpen>]
 module private Helpers =
@@ -139,7 +148,7 @@ type PostgreSQLBuilder() =
           BackupRetention = Validate.minBackupRetention
           StorageSize = Validate.minStorageSize
           Capacity = 2<VCores>
-          Tier = Basic 
+          Tier = Basic
           DbName = None
           DbCollation = None
           DbCharset = None
@@ -243,16 +252,15 @@ type PostgreSQLBuilder() =
     [<CustomOperation "add_firewall_rule">]
     member _this.AddFirewallWall(state:PostgreSQLBuilderConfig, name, startRange, endRange) =
         { state with
-            FirewallRules = 
-                {   Name = name
-                    Start = IPAddress.Parse startRange
-                    End = IPAddress.Parse endRange }
+            FirewallRules =
+                {| Name = ResourceName name
+                   Start = IPAddress.Parse startRange
+                   End = IPAddress.Parse endRange |}
                 :: state.FirewallRules }
 
     /// Adds a firewall rule that enables access to other Azure services.
     [<CustomOperation "enable_azure_firewall">]
     member this.EnableAzureFirewall(state:PostgreSQLBuilderConfig) =
         this.AddFirewallWall(state, "Allow Azure services", "0.0.0.0", "0.0.0.0")
-
 
 let postgreSQL = PostgreSQLBuilder()

@@ -109,7 +109,7 @@ type WebAppConfig =
 
     interface IBuilder with
         member this.DependencyName = this.ServicePlanName.ResourceName
-        member this.BuildResources location _ = [
+        member this.BuildResources location = [
             let webApp =
                 { Name = this.Name
                   Location = location

@@ -37,7 +37,7 @@ type VmConfig =
 
     interface IBuilder with
         member this.DependencyName = this.Name
-        member this.BuildResources location _ = [
+        member this.BuildResources location = [
             // VM itself
             { Name = this.Name
               Location = location

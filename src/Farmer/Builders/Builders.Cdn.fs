@@ -27,7 +27,7 @@ type CdnConfig =
       Endpoints : EndpointConfig list }
     interface IBuilder with
         member this.DependencyName = this.Name
-        member this.BuildResources location _ = [
+        member this.BuildResources _ = [
             { Name = this.Name
               Sku = this.Sku }
             for endpoint in this.Endpoints do

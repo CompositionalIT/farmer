@@ -42,7 +42,7 @@ type SqlAzureConfig =
 
     interface IBuilder with
         member this.DependencyName = this.Name
-        member this.BuildResources location resources = [
+        member this.BuildResources location = [
             let elasticPoolName =
                 this.ElasticPoolSettings.Name
                 |> Option.defaultValue (this.Name.Map (sprintf "%s-pool"))
@@ -158,6 +158,6 @@ type SqlServerBuilder() =
             AdministratorCredentials =
                 {| state.AdministratorCredentials with
                     UserName = username |} }
-        
+
 let sqlServer = SqlServerBuilder()
 let sqlDb = SqlDbBuilder()

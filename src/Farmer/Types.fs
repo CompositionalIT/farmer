@@ -23,7 +23,7 @@ type IArmResource =
 /// Represents a high-level configuration that can create a set of ARM Resources.
 type IBuilder =
     /// Given a location and the currently-built resources, returns a set of resource actions.
-    abstract member BuildResources : Location -> IArmResource list -> IArmResource list
+    abstract member BuildResources : Location -> IArmResource list
     /// Provides the resource name that other resources should use when depending upon this builder.
     abstract member DependencyName : ResourceName
 
@@ -64,7 +64,7 @@ type IPostDeploy =
     abstract member Run : resourceGroupName:string -> Option<Result<string, string>>
 
 /// A functional equivalent of the IBuilder's BuildResources method.
-type Builder = Location -> IArmResource list -> IArmResource list
+type Builder = Location -> IArmResource list
 
 [<AutoOpen>]
 module ArmExpression =

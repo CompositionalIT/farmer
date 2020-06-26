@@ -57,7 +57,7 @@ type FunctionsConfig =
     member this.StorageAccount = this.StorageAccountName.ResourceName
     interface IBuilder with
         member this.DependencyName = this.ServicePlanName.ResourceName
-        member this.BuildResources location _ = [
+        member this.BuildResources location = [
             { Name = this.Name
               ServicePlan = this.ServicePlanName.ResourceName
               Location = location

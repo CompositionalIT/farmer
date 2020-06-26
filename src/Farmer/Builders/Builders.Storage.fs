@@ -25,7 +25,7 @@ type StorageAccountConfig =
     member this.Endpoint = sprintf "%s.blob.core.windows.net" this.Name.Value
     interface IBuilder with
         member this.DependencyName = this.Name
-        member this.BuildResources location _ = [
+        member this.BuildResources location = [
             { Name = this.Name
               Location = location
               Sku = this.Sku
