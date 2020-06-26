@@ -1,9 +1,18 @@
 Release Notes
 =============
+## 0.19.0
+* CDN support added
+* Split Container Instance builder back to two
+* Environment variable support for Container Instances
+* Support for public and internal ports on Container Instances
+* Improved subnet and address space support for virtual networks
+* Add S0 SKU for Cognitive Services
+* Automatically create the path if it does not exist when writing ARM templates
+
 ## 0.18.0
 * Improved Subnet and VNet support
 * Validation checks on CosmosDB
-* Source Control support in Web Apps.
+* Source Control support in Web Apps
 
 ## 0.17.3
 * Ability to assign users and groups to KeyVault access policies
