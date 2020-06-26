@@ -1,0 +1,51 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <GenerateProgramFile>false</GenerateProgramFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Helpers.fs" />
+    <Compile Include="Common.fs" />
+    <Compile Include="Cdn.fs" />
+    <Compile Include="ContainerGroup.fs" />
+    <Compile Include="ExpressRoute.fs" />
+    <Compile Include="Storage.fs" />
+    <Compile Include="ServiceBus.fs" />
+    <Compile Include="IotHub.fs" />
+    <Compile Include="Template.fs" />
+    <Compile Include="AzCli.fs" />
+    <Compile Include="Cosmos.fs" />
+    <Compile Include="VirtualMachine.fs" />
+    <Compile Include="ContainerRegistry.fs" />
+    <Compile Include="PostgreSQL.fs" />
+    <Compile Include="Maps.fs" />
+    <Compile Include="SignalR.fs" />
+    <Compile Include="AllTests.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="expecto" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Azure.Management.Cdn" Version="2.1.0" />
+    <PackageReference Include="Microsoft.Azure.Management.Compute" Version="35.2.0" />
+    <PackageReference Include="Microsoft.Azure.Management.ContainerInstance" Version="2.0.0" />
+    <PackageReference Include="Microsoft.Azure.Management.DeviceProvisioningServices" Version="1.0.0" />
+    <PackageReference Include="Microsoft.Azure.Management.IotHub" Version="2.10.0-preview" />
+    <PackageReference Include="Microsoft.Azure.Management.Maps" Version="1.0.2" />
+    <PackageReference Include="Microsoft.Azure.Management.Network" Version="19.20.0-preview" />
+    <PackageReference Include="Microsoft.Azure.Management.ServiceBus" Version="2.1.0" />
+    <PackageReference Include="Microsoft.Azure.Management.SignalR" Version="1.0.1" />
+    <PackageReference Include="Microsoft.Azure.Management.Storage" Version="16.0.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.2.0" />
+    <PackageReference Include="coverlet.collector" Version="1.2.0" />
+    <PackageReference Include="YoloDev.Expecto.TestSdk" Version="0.9.1" />
+    <PackageReference Update="FSharp.Core" Version="4.7.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Farmer\Farmer.fsproj" />
+  </ItemGroup>
+
+</Project>
