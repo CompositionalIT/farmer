@@ -31,6 +31,11 @@ let toJson = TemplateGeneration.processTemplate >> TemplateGeneration.serialize
 let toFile folder templateName json =
     let filename = sprintf "%s.json" templateName
     let filename = Path.Combine(folder, filename)
+    let directoryExists f = Path.GetDirectoryName f |> Directory.Exists
+    let createDirectory f = Path.GetDirectoryName f |> Directory.CreateDirectory 
+    if not <| directoryExists filename then
+        createDirectory filename |> ignore
+
     File.WriteAllText(filename, json)
     filename
 
