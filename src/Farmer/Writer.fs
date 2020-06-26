@@ -29,13 +29,12 @@ let toJson = TemplateGeneration.processTemplate >> TemplateGeneration.serialize
 
 /// Writes the provided JSON to a file based on the supplied template name. The postfix ".json" will automatically be added to the filename.
 let toFile folder templateName json =
-    let filename = sprintf "%s.json" templateName
-    let filename = Path.Combine(folder, filename)
-    let directoryExists f = Path.GetDirectoryName f |> Directory.Exists
-    let createDirectory f = Path.GetDirectoryName f |> Directory.CreateDirectory 
-    if not <| directoryExists filename then
-        createDirectory filename |> ignore
-
+    let filename =
+        let filename = sprintf "%s.json" templateName
+        Path.Combine(folder, filename)
+    let directory = Path.GetDirectoryName filename
+    if not (Directory.Exists directory) then
+        Directory.CreateDirectory directory |> ignore
     File.WriteAllText(filename, json)
     filename
 
