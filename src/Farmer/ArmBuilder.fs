@@ -117,4 +117,3 @@ type ArmBuilder() =
         |> Seq.fold(fun state builder -> this.AddResource(state, builder)) state
 
 let arm = ArmBuilder()
-let createTemplate resourceGroupLocation resources = arm { location resourceGroupLocation; add_resources resources }
