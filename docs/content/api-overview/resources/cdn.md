@@ -25,8 +25,8 @@ There are two builders available:
 #### Endpoint Builder Keywords
 | Keyword | Purpose |
 |-|-|
-| name | Sets the name of the endpoint instance. |
-| origin | The address of the origin. |
+| name | Sets the name of the endpoint instance. If you do not set this, a name is generated based on the origin. |
+| origin | Sets the address of the origin and is used to auto-generate the endpoint name if none if supplied. |
 | depends_on | Sets a dependency on this endpoint. |
 | add_compressed_content | Adds a set of content types to compress. |
 | query_string_caching_behaviour | Specifies the Query String Caching Behaviour. |
@@ -38,8 +38,7 @@ There are two builders available:
 | optimise_for | Optimises delivery for a specific type of content. |
 
 > Storage Accounts and Web Apps have special support for CDN endpoints. You can supply a storage
-> account or web app builders directly as the origin; this will automatically set the name of the
-> endpoint based on the origin's name e.g. `mystorage-endpoint` or `mywebapp-endpoint`.
+> account or web app builders directly as the origin.
 
 #### Example
 ```fsharp
