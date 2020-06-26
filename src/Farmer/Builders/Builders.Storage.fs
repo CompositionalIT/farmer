@@ -22,6 +22,7 @@ type StorageAccountConfig =
       Containers : (string * StorageContainerAccess) list}
     /// Gets the ARM expression path to the key of this storage account.
     member this.Key = buildKey this.Name
+    member this.Endpoint = sprintf "%s.blob.core.windows.net" this.Name.Value
     interface IBuilder with
         member this.DependencyName = this.Name
         member this.BuildResources location _ = [
@@ -52,5 +53,11 @@ type StorageAccountBuilder() =
     /// Adds container with anonymous read access for blobs only.
     [<CustomOperation "add_blob_container">]
     member __.AddBlobContainer(state:StorageAccountConfig, name) = { state with Containers = (name, StorageContainerAccess.Blob) :: state.Containers }
+
+/// Allow adding storage accounts directly to CDNs
+type EndpointBuilder with
+    member this.Origin(state:Arm.Cdn.Endpoint, storage:StorageAccountConfig) =
+        let state = this.Origin(state, storage.Endpoint)
+        this.DependsOn(state, storage.Name)
 
 let storageAccount = StorageAccountBuilder()

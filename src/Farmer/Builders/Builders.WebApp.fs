@@ -104,6 +104,8 @@ type WebAppConfig =
         sprintf "reference(resourceId('Microsoft.Web/sites', '%s'), '2019-08-01', 'full').identity.principalId" this.Name.Value
         |> ArmExpression
         |> PrincipalId
+    member this.Endpoint =
+        sprintf "%s.azurewebsites.net" this.Name.Value
 
     interface IBuilder with
         member this.DependencyName = this.ServicePlanName.ResourceName
@@ -443,3 +445,9 @@ type WebAppBuilder() =
     member this.DisableCi(state:WebAppConfig) = this.SourceControlCi(state, Disabled)
 
 let webApp = WebAppBuilder()
+
+/// Allow adding storage accounts directly to CDNs
+type EndpointBuilder with
+    member this.Origin(state:Arm.Cdn.Endpoint, webApp:WebAppConfig) =
+        let state = this.Origin(state, webApp.Endpoint)
+        this.DependsOn(state, webApp.Name)

@@ -483,7 +483,6 @@ module KeyVault =
     type Certificate = Get | List | Delete | Create | Import | Update | ManageContacts | GetIssuers | ListIssuers | SetIssuers | DeleteIssuers | ManageIssuers | Recover | Purge | Backup | Restore static member All = makeAll<Certificate>
     type Storage = Get | List | Delete | Set | Update | RegenerateKey | Recover | Purge | Backup | Restore | SetSas | ListSas | GetSas | DeleteSas static member All = makeAll<Storage>
 
-    [<RequireQualifiedAccess>]
     type Sku =
     | Standard
     | Premium
@@ -623,3 +622,26 @@ module IPAddressCidr =
             cidr |> addresses |> Seq.skip 2
         else
             Seq.empty
+
+module Cdn =
+    type Sku =
+    | Custom_Verizon
+    | Premium_Verizon
+    | Premium_ChinaCdn
+    | Standard_Akamai
+    | Standard_ChinaCdn
+    | Standard_Microsoft
+    | Standard_Verizon
+
+    type QueryStringCachingBehaviour =
+    | IgnoreQueryString
+    | BypassCaching
+    | UseQueryString
+    | NotSet
+
+    type OptimizationType =
+    | GeneralWebDelivery
+    | GeneralMediaStreaming
+    | VideoOnDemandMediaStreaming
+    | LargeFileDownload
+    | DynamicSiteAcceleration
