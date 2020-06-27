@@ -27,17 +27,17 @@ module Servers =
     type FirewallRule =
         { Name : ResourceName
           Server : ResourceName
-          Location : Location
           Start : IPAddress
-          End : IPAddress }
+          End : IPAddress
+          Location : Location }
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
                 {|  ``type`` = "Microsoft.DBforPostgreSQL/servers/firewallrules"
                     name = this.Server.Value + "/" + this.Name.Value
-                    apiVersion = "2014-04-01"
+                    apiVersion = "2017-12-01"
                     location = this.Location.ArmValue
-                    properties = {| endIpAddress = string this.Start; startIpAddress = string this.End |}
+                    properties = {| startIpAddress = string this.Start; endIpAddress = string this.End; |}
                     dependsOn = [ this.Server.Value ]
                 |} :> _
 
@@ -57,16 +57,16 @@ type Server =
 
     member this.Sku =
         {| name = sprintf "%s_%O_%d" this.Tier.Name this.Family this.Capacity
-           tier = this.Tier.ToString()
+           tier = string this.Tier
            capacity = this.Capacity
-           family = this.Family.ToString()
-           size = this.StorageSize |}
+           family = string this.Family
+           size = string this.StorageSize |}
 
     member this.GetStorageProfile () = {|
         storageMB = this.StorageSize
         backupRetentionDays = this.BackupRetention
-        geoRedundantBackup = this.GeoRedundantBackup.ToString()
-        storageAutoGrow = this.StorageAutoGrow.ToString()
+        geoRedundantBackup = string this.GeoRedundantBackup
+        storageAutoGrow = string this.StorageAutoGrow
     |}
 
     member this.GetProperties () =
@@ -88,7 +88,7 @@ type Server =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            box {|
+            {|
                 ``type`` = "Microsoft.DBforPostgreSQL/servers"
                 apiVersion = "2017-12-01"
                 name = this.Name.Value
@@ -96,4 +96,4 @@ type Server =
                 tags = {| displayName = this.Name.Value |}
                 sku = this.Sku
                 properties = this.GetProperties()
-            |}
+            |} :> _

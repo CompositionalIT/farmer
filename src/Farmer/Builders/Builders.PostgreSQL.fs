@@ -33,7 +33,7 @@ type PostgreSQLBuilderConfig =
                 { Name = serverName
                   Location = location
                   Username = this.AdminUserName |> Option.defaultWith(fun () -> "admin username not set")
-                  Password = SecureParameter "administratorLoginPassword"
+                  Password = SecureParameter (sprintf "password-for-%s" serverName.Value)
                   Version = this.Version
                   StorageSize = this.StorageSize * 1024<Mb> / 1<Gb>
                   Capacity = this.Capacity
@@ -261,6 +261,6 @@ type PostgreSQLBuilder() =
     /// Adds a firewall rule that enables access to other Azure services.
     [<CustomOperation "enable_azure_firewall">]
     member this.EnableAzureFirewall(state:PostgreSQLBuilderConfig) =
-        this.AddFirewallWall(state, "Allow Azure services", "0.0.0.0", "0.0.0.0")
+        this.AddFirewallWall(state, "allow-azure-services", "0.0.0.0", "0.0.0.0")
 
 let postgreSQL = PostgreSQLBuilder()
