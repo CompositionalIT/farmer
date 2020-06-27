@@ -5,6 +5,11 @@ open Farmer
 open Farmer.CoreTypes
 open Microsoft.Rest.Serialization
 
+let farmerToMs<'T when 'T : null> (serializationSettings:Newtonsoft.Json.JsonSerializerSettings) data =
+    data
+    |> SafeJsonConvert.SerializeObject
+    |> fun json -> SafeJsonConvert.DeserializeObject<'T>(json, serializationSettings)
+
 let findAzureResources<'T when 'T : null> (serializationSettings:Newtonsoft.Json.JsonSerializerSettings) (deployment:Deployment) =
     let template = deployment.Template |> Writer.TemplateGeneration.processTemplate
 

@@ -13,9 +13,11 @@ open System
 
 /// Client instance needed to get the serializer settings.
 let dummyClient = new ServiceBusManagementClient (Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
+let getResourceAtIndex index (builder:#IBuilder) =
+    builder.BuildResources Location.WestEurope
+    |> fun r -> r.[index].JsonModel |> farmerToMs dummyClient.SerializationSettings
 
-let tests = ftestList "Service Bus Tests" [
-    let getUnsafe data = data |> convertResourceBuilder (fun (ns:{| resources:obj list |}) -> ns.resources.[0]) dummyClient.SerializationSettings
+let tests = testList "Service Bus Tests" [
     test "Namespace is correctly created" {
         let sbNs =
             arm {
@@ -41,9 +43,9 @@ let tests = ftestList "Service Bus Tests" [
 
     testList "Queue Tests" [
         test "Queue is correctly created" {
-            let queue:SBQueue =
+            let queue =
                 serviceBus {
-                    name "serviceBus"
+                    name "my-bus"
                     sku ServiceBus.Standard
                     add_queues [
                         queue {
@@ -57,9 +59,10 @@ let tests = ftestList "Service Bus Tests" [
                             message_ttl_days 10
                         }
                     ]
-                } |> convertResourceBuilder (fun (ns:{| resources:obj list |}) -> ns.resources.[0]) dummyClient.SerializationSettings
+                }
+            let queue : SBQueue = queue |> getResourceAtIndex 1
 
-            Expect.equal queue.Name "my-queue" "Invalid queue name"
+            Expect.equal queue.Name "my-bus/my-queue" "Invalid queue name"
             Expect.isTrue (queue.RequiresDuplicateDetection.GetValueOrDefault false) "Duplicate detection should be enabled"
             Expect.equal queue.DuplicateDetectionHistoryTimeWindow (Nullable(TimeSpan(0, 5, 0))) "Duplicate detection window incorrect"
             Expect.isTrue (queue.DeadLetteringOnMessageExpiration.GetValueOrDefault false) "Dead lettering should be enabled"
@@ -101,7 +104,7 @@ let tests = ftestList "Service Bus Tests" [
                 serviceBus {
                     name "serviceBus"
                     add_queues [ queue { name "my-queue" } ]
-                } |> getUnsafe
+                } |> getResourceAtIndex 1
 
             Expect.equal (queue.DefaultMessageTimeToLive.GetValueOrDefault TimeSpan.MinValue).TotalDays 14. "Default TTL should be 14 days"
         }
@@ -112,7 +115,7 @@ let tests = ftestList "Service Bus Tests" [
                     name "serviceBus"
                     sku ServiceBus.Standard
                     add_queues [ queue { name "my-queue" } ]
-                } |> getUnsafe
+                } |> getResourceAtIndex 1
 
             Expect.equal (queue.DefaultMessageTimeToLive.GetValueOrDefault TimeSpan.MinValue).TotalDays TimeSpan.MaxValue.TotalDays "Default TTL should be max value"
         }
@@ -135,17 +138,17 @@ let tests = ftestList "Service Bus Tests" [
         test "Create create a basic topic" {
             let topic:SBTopic =
                 serviceBus {
-                    name "servicebus"
+                    name "my-bus"
                     add_topics [
                         topic {
-                            name "topic"
+                            name "my-topic"
                             duplicate_detection_minutes 3
                             message_ttl_days 2
                             enable_partition
                         }
                     ]
-                } |> getUnsafe
-            Expect.equal topic.Name "topic" "Name not set"
+                } |> getResourceAtIndex 1
+            Expect.equal topic.Name "my-bus/my-topic" "Name not set"
             Expect.equal topic.RequiresDuplicateDetection (Nullable true) "Duplicate detection not set"
             Expect.equal topic.DuplicateDetectionHistoryTimeWindow (Nullable (TimeSpan.FromMinutes 3.)) "Duplicate detection time not set"
             Expect.equal topic.DefaultMessageTimeToLive (Nullable (TimeSpan.FromDays 2.)) "Time to live not set"
