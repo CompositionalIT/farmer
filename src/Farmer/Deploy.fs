@@ -216,7 +216,10 @@ let tryExecute resourceGroupName parameters deployment = result {
         |> Result.ignore
 
     printfn "All done, now parsing ARM response to get any outputs..."
-    let response = response |> JsonConvert.DeserializeObject<{| properties : {| outputs : Map<string, {| value : string |}> |} |}>
+    let! response =
+        response
+        |> Result.ofExn JsonConvert.DeserializeObject<{| properties : {| outputs : Map<string, {| value : string |}> |} |}>
+        |> Result.mapError(fun _ -> response)
     return response.properties.outputs |> Map.map (fun _ value -> value.value)
 }
 
@@ -231,4 +234,3 @@ let whatIf resourceGroupName parameters deployment =
     match tryWhatIf resourceGroupName parameters deployment with
     | Ok output -> output
     | Error message -> failwith message
-
