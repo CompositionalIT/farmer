@@ -134,45 +134,44 @@ type ServiceBusConfig =
             { Name = this.Name
               Location = location
               Sku = this.Sku
-              DependsOn = this.DependsOn
-              Queues = [
-                  for queue in this.Queues do
-                    let queue = queue.Value
-                    { Name = queue.Name
-                      LockDuration = queue.LockDuration |> Option.map IsoDateTime.OfTimeSpan
-                      DuplicateDetectionHistoryTimeWindow = queue.DuplicateDetection |> Option.map IsoDateTime.OfTimeSpan
-                      Session = queue.Session
-                      DeadLetteringOnMessageExpiration = queue.DeadLetteringOnMessageExpiration
-                      DefaultMessageTimeToLive =
-                          match queue.DefaultMessageTimeToLive, this.Sku with
-                          | None, Sku.Basic -> TimeSpan.FromDays 14.
-                          | None, (Sku.Standard | Sku.Premium _) -> TimeSpan.MaxValue
-                          | Some ttl, _ -> ttl
-                          |> IsoDateTime.OfTimeSpan
-                      MaxDeliveryCount = queue.MaxDeliveryCount
-                      EnablePartitioning = queue.EnablePartitioning }
-              ]
-              Topics = [
-                  for topic in this.Topics do
-                    let topic = topic.Value
-                    { Namespaces.Topic.Name = topic.Name
-                      DuplicateDetectionHistoryTimeWindow = topic.DuplicateDetection |> Option.map IsoDateTime.OfTimeSpan
-                      DefaultMessageTimeToLive = topic.DefaultMessageTimeToLive |> Option.map IsoDateTime.OfTimeSpan
-                      EnablePartitioning = topic.EnablePartitioning
-                      Subscriptions = [
-                          for subscription in topic.Subscriptions do
-                            let subscription = subscription.Value
-                            { Name = subscription.Name
-                              LockDuration = subscription.LockDuration |> Option.map IsoDateTime.OfTimeSpan
-                              DuplicateDetectionHistoryTimeWindow = subscription.DuplicateDetection |> Option.map IsoDateTime.OfTimeSpan
-                              DefaultMessageTimeToLive = subscription.DefaultMessageTimeToLive |> Option.map IsoDateTime.OfTimeSpan
-                              MaxDeliveryCount = subscription.MaxDeliveryCount
-                              Session = subscription.Session
-                              DeadLetteringOnMessageExpiration = subscription.DeadLetteringOnMessageExpiration }
-                      ]
-                    }
-              ]
-            }
+              DependsOn = this.DependsOn }
+
+            for queue in this.Queues do
+              let queue = queue.Value
+              { Name = queue.Name
+                Namespace = this.Name
+                LockDuration = queue.LockDuration |> Option.map IsoDateTime.OfTimeSpan
+                DuplicateDetectionHistoryTimeWindow = queue.DuplicateDetection |> Option.map IsoDateTime.OfTimeSpan
+                Session = queue.Session
+                DeadLetteringOnMessageExpiration = queue.DeadLetteringOnMessageExpiration
+                DefaultMessageTimeToLive =
+                    match queue.DefaultMessageTimeToLive, this.Sku with
+                    | None, Basic -> TimeSpan.FromDays 14.
+                    | None, (Standard | Premium _) -> TimeSpan.MaxValue
+                    | Some ttl, _ -> ttl
+                    |> IsoDateTime.OfTimeSpan
+                MaxDeliveryCount = queue.MaxDeliveryCount
+                EnablePartitioning = queue.EnablePartitioning }
+
+            for topic in this.Topics do
+                let topic = topic.Value
+                { Name = topic.Name
+                  Namespace = this.Name
+                  DuplicateDetectionHistoryTimeWindow = topic.DuplicateDetection |> Option.map IsoDateTime.OfTimeSpan
+                  DefaultMessageTimeToLive = topic.DefaultMessageTimeToLive |> Option.map IsoDateTime.OfTimeSpan
+                  EnablePartitioning = topic.EnablePartitioning }
+
+                for subscription in topic.Subscriptions do
+                    let subscription = subscription.Value
+                    { Name = subscription.Name
+                      Topic = topic.Name
+                      LockDuration = subscription.LockDuration |> Option.map IsoDateTime.OfTimeSpan
+                      DuplicateDetectionHistoryTimeWindow = subscription.DuplicateDetection |> Option.map IsoDateTime.OfTimeSpan
+                      DefaultMessageTimeToLive = subscription.DefaultMessageTimeToLive |> Option.map IsoDateTime.OfTimeSpan
+                      MaxDeliveryCount = subscription.MaxDeliveryCount
+                      Session = subscription.Session
+                      DeadLetteringOnMessageExpiration = subscription.DeadLetteringOnMessageExpiration }
+
         ]
 
 type ServiceBusBuilder() =
