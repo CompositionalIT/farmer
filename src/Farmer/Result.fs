@@ -16,6 +16,9 @@ module Result =
             | Error result -> failures.Add result
         if failures.Count > 0 then Error failures.[0]
         else Ok (successes.ToArray())
+    let ofExn thunk arg =
+        try Ok(thunk arg)
+        with ex -> Error (string ex)
 
     type ResultBuilder() =
         member __.Return(x) = Ok x
