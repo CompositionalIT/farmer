@@ -158,9 +158,13 @@ let setSubscription (subscriptionId:Guid) =
 /// Validates that the parameters supplied meet the deployment requirements.
 let validateParameters suppliedParameters deployment =
     let expected = deployment.Template.Parameters |> List.map(fun (SecureParameter p) -> p) |> Set
-    match (expected - (suppliedParameters |> List.map fst |> Set)) |> Seq.toList with
-    | [] -> Ok ()
-    | missingParameters -> Error (sprintf "The following parameters are missing: %s." (missingParameters |> String.concat ", "))
+    let supplied = suppliedParameters |> List.map fst |> Set
+    let missing = Set.toList (expected - supplied)
+    let extra = Set.toList (supplied - expected)
+    match missing, extra with
+    | [], [] -> Ok ()
+    | (_ :: _), _ -> Error (sprintf "The following parameters are missing: %s. Please add them." (missing |> String.concat ", "))
+    | [], (_ :: _) -> Error (sprintf "The following parameters are not required: %s. Please remove them." (extra |> String.concat ", "))
 
 let NoParameters : (string * string) list = []
 
