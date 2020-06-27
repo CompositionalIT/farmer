@@ -93,7 +93,7 @@ let tests = testList "PostgreSQL Database Service" [
         Expect.equal actual.sku.tier "GeneralPurpose" "sku tier"
         Expect.equal actual.sku.size 51200 "sku size"
         Expect.equal actual.properties.administratorLogin "myadminuser" "Admin user prop"
-        Expect.equal actual.properties.administratorLoginPassword "[parameters('administratorLoginPassword')]" "Admin password prop"
+        Expect.equal actual.properties.administratorLoginPassword "[parameters('password-for-testdb')]" "Admin password prop"
         Expect.equal actual.properties.version "10" "server version"
         Expect.equal actual.properties.storageProfile.geoRedundantBackup "Enabled" "geo backup"
         Expect.equal actual.properties.storageProfile.storageAutoGrow "Disabled" "storage autogrow"
@@ -139,16 +139,15 @@ let tests = testList "PostgreSQL Database Service" [
             |> Writer.toJson
             |> Microsoft.Rest.Serialization.SafeJsonConvert.DeserializeObject<TypedArmTemplate<FirewallResource>>
             |> fun r -> r.Resources
-            |> Seq.find(fun r -> r.name = "testdb/Allow Azure services")
-        let expectedFwRuleRes = {
-            name = "testdb/Allow Azure services"
-            ``type`` = "Microsoft.DBforPostgreSQL/servers/firewallrules"
-            apiVersion = "2014-04-01"
-            dependsOn = ["testdb"]
-            location = "northeurope"
-            properties = {| startIpAddress = "0.0.0.0"; endIpAddress = "0.0.0.0" |}
-        }
-        Expect.equal actual expectedFwRuleRes "fw rule resource"
+            |> Seq.find(fun r -> r.name = "testdb/allow-azure-services")
+        let expectedFwRuleRes =
+            { name = "testdb/allow-azure-services"
+              ``type`` = "Microsoft.DBforPostgreSQL/servers/firewallrules"
+              apiVersion = "2017-12-01"
+              dependsOn = ["testdb"]
+              location = "northeurope"
+              properties = {| startIpAddress = "0.0.0.0"; endIpAddress = "0.0.0.0" |} }
+        Expect.equal actual expectedFwRuleRes "Firewall is incorrect"
     }
 
     test "Server name must be given" {
