@@ -2,6 +2,7 @@
 title: "Farmer and ARM"
 date: 2020-05-23T18:11:25+02:00
 draft: false
+weight: 4
 ---
 
 | | Farmer | ARM Template |
