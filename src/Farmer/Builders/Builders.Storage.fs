@@ -49,7 +49,7 @@ type StorageAccountBuilder() =
     [<CustomOperation "sku">]
     member __.Sku(state:StorageAccountConfig, sku) = { state with Sku = sku }
     static member private AddContainer(state, access, name) =
-        { state with Containers = (ResourceName name, access) :: state.Containers }
+        { state with Containers = state.Containers @ [ (ResourceName name, access) ] }
     /// Adds private container.
     [<CustomOperation "add_private_container">]
     member __.AddPrivateContainer(state:StorageAccountConfig, name) = StorageAccountBuilder.AddContainer(state, Private, name)
