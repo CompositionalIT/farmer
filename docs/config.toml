@@ -8,7 +8,7 @@ relativeUrls = true
 home = [ "HTML", "RSS", "JSON"]
 [params]
     themeVariant="green"
-    editURL = "https://github.com/CompositionalIT/farmer/tree/docs/content/"
+    editURL = "https://github.com/CompositionalIT/farmer/tree/master/docs/content/"
     description = "Farmer - Making repeatable Azure deployments easy!"
 
 [[Languages.en.menu.shortcuts]]

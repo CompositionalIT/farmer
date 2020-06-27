@@ -1,7 +1,7 @@
 ---
 title: "Deployment Guidance"
 date: 2020-02-05T08:45:15+01:00
-weight: 4
+weight: 6
 ---
 
 You can deploy Farmer templates in a number of ways, depending on how you would prefer to work with ARM templates and tooling.
