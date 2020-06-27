@@ -13,10 +13,7 @@ open System
 
 /// Client instance needed to get the serializer settings.
 let dummyClient = new ServiceBusManagementClient (Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
-let getResourceAtIndex index (builder:#IBuilder) =
-    builder.BuildResources Location.WestEurope
-    |> fun r -> r.[index].JsonModel |> farmerToMs dummyClient.SerializationSettings
-
+let getResourceAtIndex o = o |> getResourceAtIndex dummyClient.SerializationSettings
 let tests = testList "Service Bus Tests" [
     test "Namespace is correctly created" {
         let sbNs =

@@ -10,6 +10,10 @@ let farmerToMs<'T when 'T : null> (serializationSettings:Newtonsoft.Json.JsonSer
     |> SafeJsonConvert.SerializeObject
     |> fun json -> SafeJsonConvert.DeserializeObject<'T>(json, serializationSettings)
 
+let getResourceAtIndex serializationSettings index (builder:#IBuilder) =
+    builder.BuildResources Location.WestEurope
+    |> fun r -> r.[index].JsonModel |> farmerToMs serializationSettings
+
 let findAzureResources<'T when 'T : null> (serializationSettings:Newtonsoft.Json.JsonSerializerSettings) (deployment:Deployment) =
     let template = deployment.Template |> Writer.TemplateGeneration.processTemplate
 
