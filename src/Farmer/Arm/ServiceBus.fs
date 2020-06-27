@@ -11,6 +11,7 @@ module Namespaces =
     module Topics =
         type Subscription =
             { Name : ResourceName
+              Namespace : ResourceName
               Topic : ResourceName
               LockDuration : IsoDateTime option
               DuplicateDetectionHistoryTimeWindow : IsoDateTime option
@@ -22,7 +23,7 @@ module Namespaces =
                 member this.ResourceName = this.Name
                 member this.JsonModel =
                     {| apiVersion = "2017-04-01"
-                       name = this.Topic.Value + "/" + this.Name.Value
+                       name = this.Namespace.Value + "/" + this.Topic.Value + "/" + this.Name.Value
                        ``type`` = "Microsoft.ServiceBus/namespaces/topics/subscriptions"
                        dependsOn = [ this.Topic.Value ]
                        properties =

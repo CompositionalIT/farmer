@@ -132,7 +132,7 @@ let tests = testList "Service Bus Tests" [
     ]
 
     testList "Topic Tests" [
-        test "Create create a basic topic" {
+        test "Can create a basic topic" {
             let topic:SBTopic =
                 serviceBus {
                     name "my-bus"
@@ -151,5 +151,20 @@ let tests = testList "Service Bus Tests" [
             Expect.equal topic.DefaultMessageTimeToLive (Nullable (TimeSpan.FromDays 2.)) "Time to live not set"
             Expect.equal topic.EnablePartitioning (Nullable true) "Paritition not set"
         }
+        test "Can create a basic subscription" {
+             let sub:SBSubscription =
+                serviceBus {
+                    name "my-bus"
+                    add_topics [
+                        topic {
+                            name "my-topic"
+                            add_subscriptions [
+                                subscription { name "my-sub" }
+                            ]
+                        }
+                    ]
+                } |> getResourceAtIndex 2
+            Expect.equal sub.Name "my-bus/my-topic/my-sub" "Name not set"
+       }
     ]
 ]

@@ -164,6 +164,7 @@ type ServiceBusConfig =
                 for subscription in topic.Subscriptions do
                     let subscription = subscription.Value
                     { Name = subscription.Name
+                      Namespace = this.Name
                       Topic = topic.Name
                       LockDuration = subscription.LockDuration |> Option.map IsoDateTime.OfTimeSpan
                       DuplicateDetectionHistoryTimeWindow = subscription.DuplicateDetection |> Option.map IsoDateTime.OfTimeSpan
