@@ -5,6 +5,7 @@ open Farmer
 open Farmer.CoreTypes
 open Farmer.Storage
 open Farmer.Arm.Storage
+open BlobServices
 
 let internal buildKey (ResourceName name) =
     sprintf
@@ -19,7 +20,7 @@ type StorageAccountConfig =
       /// The sku of the storage account.
       Sku : Sku
       /// Containers for the storage account.
-      Containers : (string * StorageContainerAccess) list}
+      Containers : (ResourceName * StorageContainerAccess) list}
     /// Gets the ARM expression path to the key of this storage account.
     member this.Key = buildKey this.Name
     member this.Endpoint = sprintf "%s.blob.core.windows.net" this.Name.Value
@@ -28,8 +29,11 @@ type StorageAccountConfig =
         member this.BuildResources location = [
             { Name = this.Name
               Location = location
-              Sku = this.Sku
-              Containers = this.Containers }
+              Sku = this.Sku }
+            for name, access in this.Containers do
+                { Name = name
+                  StorageAccount = this.Name
+                  Accessibility = access }
         ]
 
 type StorageAccountBuilder() =
@@ -44,15 +48,17 @@ type StorageAccountBuilder() =
     /// Sets the sku of the storage account.
     [<CustomOperation "sku">]
     member __.Sku(state:StorageAccountConfig, sku) = { state with Sku = sku }
+    static member private AddContainer(state, access, name) =
+        { state with Containers = (ResourceName name, access) :: state.Containers }
     /// Adds private container.
     [<CustomOperation "add_private_container">]
-    member __.AddPrivateContainer(state:StorageAccountConfig, name) = { state with Containers = (name, StorageContainerAccess.Private) :: state.Containers }
+    member __.AddPrivateContainer(state:StorageAccountConfig, name) = StorageAccountBuilder.AddContainer(state, Private, name)
     /// Adds container with anonymous read access for blobs and containers.
     [<CustomOperation "add_public_container">]
-    member __.AddPublicContainer(state:StorageAccountConfig, name) = { state with Containers = (name, StorageContainerAccess.Container) :: state.Containers }
+    member __.AddPublicContainer(state:StorageAccountConfig, name) =  StorageAccountBuilder.AddContainer(state, Container, name)
     /// Adds container with anonymous read access for blobs only.
     [<CustomOperation "add_blob_container">]
-    member __.AddBlobContainer(state:StorageAccountConfig, name) = { state with Containers = (name, StorageContainerAccess.Blob) :: state.Containers }
+    member __.AddBlobContainer(state:StorageAccountConfig, name) = StorageAccountBuilder.AddContainer(state, Blob, name)
 
 /// Allow adding storage accounts directly to CDNs
 type EndpointBuilder with

@@ -3,6 +3,7 @@ module ServiceBus
 open Expecto
 open Farmer
 open Farmer.Arm.ServiceBus
+open Namespaces
 open Farmer.Builders
 open Farmer.ServiceBus
 open Microsoft.Azure.Management.ServiceBus
@@ -13,7 +14,7 @@ open System
 /// Client instance needed to get the serializer settings.
 let dummyClient = new ServiceBusManagementClient (Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
 
-let tests = testList "Service Bus Tests" [
+let tests = ftestList "Service Bus Tests" [
     let getUnsafe data = data |> convertResourceBuilder (fun (ns:{| resources:obj list |}) -> ns.resources.[0]) dummyClient.SerializationSettings
     test "Namespace is correctly created" {
         let sbNs =
@@ -56,7 +57,7 @@ let tests = testList "Service Bus Tests" [
                             message_ttl_days 10
                         }
                     ]
-                } |> getUnsafe
+                } |> convertResourceBuilder (fun (ns:{| resources:obj list |}) -> ns.resources.[0]) dummyClient.SerializationSettings
 
             Expect.equal queue.Name "my-queue" "Invalid queue name"
             Expect.isTrue (queue.RequiresDuplicateDetection.GetValueOrDefault false) "Duplicate detection should be enabled"
@@ -125,9 +126,8 @@ let tests = testList "Service Bus Tests" [
                 ]
             }
             let deployment = arm { add_resource theBus }
-            match deployment.Template.Resources with
-            | [ :? Namespace as ns ] when ns.Queues.Length = 2 -> ()
-            | _ -> failwith "Should have two queues in a single namespace."
+            let queues = deployment.Template.Resources |> List.choose(function :? Queue as q -> Some q | _ -> None)
+            Expect.hasLength queues 2 "Should have two queues in a single namespace."
         }
     ]
 

@@ -27,14 +27,15 @@ type SqlAzureConfig =
       Databases : SqlAzureDbConfig list }
     /// Gets a basic .NET connection string using the administrator username / password.
     member this.ConnectionString (database:SqlAzureDbConfig) =
-        concat
-            [ literal
+        concat [
+            literal
                 (sprintf "Server=tcp:%s.database.windows.net,1433;Initial Catalog=%s;Persist Security Info=False;User ID=%s;Password="
                     this.Name.Value
                     database.Name.Value
                     this.AdministratorCredentials.UserName)
-              this.AdministratorCredentials.Password.AsArmRef
-              literal ";MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;" ]
+            this.AdministratorCredentials.Password.AsArmRef
+            literal ";MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+        ]
     member this.ConnectionString databaseName =
         this.Databases
         |> List.tryFind(fun db -> db.Name = databaseName)
@@ -57,27 +58,27 @@ type SqlAzureConfig =
             }
 
             for database in this.Databases do
-              { Name = database.Name
-                Server = this.Name
-                Location = location
-                Sku =
-                 match database.Sku with
-                 | Some dbSku -> Standalone dbSku
-                 | None -> Pool elasticPoolName
-                Collation = database.Collation }
+                { Name = database.Name
+                  Server = this.Name
+                  Location = location
+                  Sku =
+                   match database.Sku with
+                   | Some dbSku -> Standalone dbSku
+                   | None -> Pool elasticPoolName
+                  Collation = database.Collation }
 
-              match database.Encryption with
-              | Enabled ->
-                { Database = database.Name }
-              | Disabled ->
-                ()
+                match database.Encryption with
+                | Enabled ->
+                  { Database = database.Name }
+                | Disabled ->
+                  ()
 
             for rule in this.FirewallRules do
-              { Name = rule.Name
-                Start = rule.Start
-                End = rule.End
-                Location = location
-                Server = this.Name }
+                { Name = rule.Name
+                  Start = rule.Start
+                  End = rule.End
+                  Location = location
+                  Server = this.Name }
 
             if this.Databases |> List.exists(fun db -> db.Sku.IsNone) then
                 { Name = elasticPoolName

@@ -102,8 +102,7 @@ type VmConfig =
             | Some (AutomaticallyCreated account) ->
                 { Name = account
                   Location = location
-                  Sku = Storage.Standard_LRS
-                  Containers = [] }
+                  Sku = Storage.Standard_LRS }
             | Some AutomaticPlaceholder
             | Some (External _)
             | None ->
