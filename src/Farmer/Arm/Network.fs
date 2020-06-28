@@ -89,8 +89,8 @@ type NetworkInterface =
                             {| name = sprintf "ipconfig%i" (index + 1)
                                properties =
                                 {| privateIPAllocationMethod = "Dynamic"
-                                   publicIPAddress = {| id = sprintf "[resourceId('Microsoft.Network/publicIPAddresses','%s')]" ipConfig.PublicIpName.Value |}
-                                   subnet = {| id = sprintf "[resourceId('Microsoft.Network/virtualNetworks/subnets', '%s', '%s')]" this.VirtualNetwork.Value ipConfig.SubnetName.Value |}
+                                   publicIPAddress = {| id = ArmExpression.resourceId(publicIPAddresses, ipConfig.PublicIpName).Eval() |}
+                                   subnet = {| id = ArmExpression.resourceId(subnets, this.VirtualNetwork, ipConfig.SubnetName).Eval() |}
                                 |}
                             |})
                    |}
@@ -124,7 +124,9 @@ type NetworkProfile =
                                    |> List.mapi (fun index ipConfig ->
                                       {| name = sprintf "ipconfig%i" (index + 1)
                                          properties =
-                                            {| subnet = {| id = sprintf "[resourceId('Microsoft.Network/virtualNetworks/subnets', '%s', '%s')]" this.VirtualNetwork.Value ipConfig.SubnetName.Value |} |}
+                                            {| subnet =
+                                                {| id = ArmExpression.resourceId(subnets, this.VirtualNetwork, ipConfig.SubnetName).Eval() |}
+                                            |}
                                       |})
                                 |}
                            |}

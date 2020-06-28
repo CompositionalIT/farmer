@@ -68,7 +68,7 @@ type EventHubConfig =
                       Location = location
                       Dependencies = [
                           eventHubNamespaceName
-                          this.Name.Map(sprintf "[resourceId('Microsoft.EventHub/namespaces/eventhubs', '%s', '%s')]" eventHubNamespaceName.Value)
+                          ArmExpression.resourceId(eventHubs, eventHubNamespaceName, this.Name).Eval() |> ResourceName
                       ]
                     }
                 ]
@@ -77,8 +77,8 @@ type EventHubConfig =
                     { Name = rule.Key.Map(sprintf "%s/%s/%s" eventHubNamespaceName.Value this.Name.Value)
                       Location = location
                       Dependencies = [
-                          eventHubNamespaceName.Map(sprintf "[resourceId('Microsoft.EventHub/namespaces', '%s')]")
-                          this.Name.Map(sprintf "[resourceId('Microsoft.EventHub/namespaces/eventhubs', '%s', '%s')]" eventHubNamespaceName.Value)
+                          ArmExpression.resourceId(namespaces, eventHubNamespaceName).Eval() |> ResourceName
+                          ArmExpression.resourceId(eventHubs, eventHubNamespaceName, this.Name).Eval() |> ResourceName
                       ]
                       Rights = rule.Value }
                 ]

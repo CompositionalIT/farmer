@@ -153,4 +153,14 @@ let tests = testList "Template" [
         let id = rid.Eval()
         Expect.equal id "[resourceId('5ed984d9-9e7e-4550-b73b-7af020a7620d','myGroup','Microsoft.Network/connections','test')]" "resourceId template function should match"
     }
+
+    test "ResourceId works with segments" {
+        let id =
+            let a = ResourceName "a"
+            let b = ResourceName "b"
+            let c = ResourceName "c"
+            let rt = ResourceType "test"
+            ArmExpression.resourceId(rt, a, b, c).Eval()
+        Expect.equal id "[resourceId('test', 'a', 'b', 'c')]" "resource id segments should be created correctly"
+    }
 ]

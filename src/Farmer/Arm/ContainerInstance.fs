@@ -30,7 +30,8 @@ type ContainerGroup =
       NetworkProfile : ResourceName option }
     member this.NetworkProfilePath =
         this.NetworkProfile
-        |> Option.map (fun networkProfile -> sprintf "[resourceId('Microsoft.Network/networkProfiles','%s')]" networkProfile.Value)
+        |> Option.map (fun networkProfile ->
+            ArmExpression.resourceId(Network.networkProfiles, networkProfile))
 
     interface IArmResource with
         member this.ResourceName = this.Name
@@ -39,7 +40,7 @@ type ContainerGroup =
                apiVersion = "2018-10-01"
                name = this.Name.Value
                location = this.Location.ArmValue
-               dependsOn = this.NetworkProfilePath |> Option.toList
+               dependsOn = this.NetworkProfilePath |> Option.map(fun r -> r.Eval()) |> Option.toList
                properties =
                    {| containers =
                        this.ContainerInstances
@@ -89,7 +90,7 @@ type ContainerGroup =
                         |}
                       networkProfile =
                         this.NetworkProfilePath
-                        |> Option.map(fun path -> box {| id = path |})
+                        |> Option.map(fun path -> box {| id = path.Eval() |})
                         |> Option.toObj
                    |}
             |} :> _

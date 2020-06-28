@@ -102,7 +102,7 @@ module Servers =
                         elasticPoolId =
                          match this.Sku with
                          | Standalone _ -> null
-                         | Pool pool -> sprintf "[resourceId('Microsoft.Sql/servers/elasticPools', '%s', '%s')]" this.Server.Value pool.Value |}
+                         | Pool pool -> ArmExpression.resourceId(elasticPools, this.Server, pool).Eval() |}
                    dependsOn =
                      [ this.Server.Value
                        match this.Sku with

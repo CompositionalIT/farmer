@@ -64,7 +64,7 @@ type VirtualMachine =
                        |}
                    networkProfile =
                        {| networkInterfaces = [
-                           {| id = sprintf "[resourceId('Microsoft.Network/networkInterfaces','%s')]" this.NetworkInterfaceName.Value |}
+                           {| id = ArmExpression.resourceId(Network.networkInterfaces, this.NetworkInterfaceName).Eval() |}
                           ]
                        |}
                    diagnosticsProfile =
