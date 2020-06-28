@@ -53,16 +53,19 @@ type ArmExpression =
     static member Eval (expression:ArmExpression) = expression.Eval()
     static member Empty = ArmExpression ""
     /// Builds a resourceId ARM expression from the parts of a resource ID.
-    static member ResourceId (ResourceType resourceType, name:string, ?group:string, ?subscriptionId:string) =
+    static member resourceId (ResourceType resourceType, name:ResourceName, ?group:string, ?subscriptionId:string) =
         match name, group, subscriptionId with
-        | name, Some group, Some sub ->
-            sprintf "resourceId('%s','%s','%s','%s')" sub group resourceType name
-        | name, Some group, None ->
-            sprintf "resourceId('%s','%s','%s')" group resourceType name
-        | name, _, _ ->
-            sprintf "resourceId('%s','%s')" resourceType name
+        | name, Some group, Some sub -> sprintf "resourceId('%s','%s','%s','%s')" sub group resourceType name.Value
+        | name, Some group, None -> sprintf "resourceId('%s','%s','%s')" group resourceType name.Value
+        | name, _, _ -> sprintf "resourceId('%s','%s')" resourceType name.Value
         |> ArmExpression
-     
+    static member resourceId (ResourceType resourceType, [<ParamArray>] resourceSegments:ResourceName []) =
+        sprintf
+            "resourceId('%s', %s)"
+            resourceType
+            (resourceSegments |> Array.map (fun r -> sprintf "'%s'" r.Value) |> String.concat ", ")
+        |> ArmExpression
+
 /// A secure parameter to be captured in an ARM template.
 type SecureParameter =
     | SecureParameter of name:string
