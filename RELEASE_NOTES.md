@@ -1,5 +1,10 @@
 Release Notes
 =============
+## 0.20.0
+* Support for safely building resourceId expressions
+* Simplify construction of ARM resources
+* Better error handling on JSON deserialization
+
 ## 0.19.0
 * CDN support added
 * Split Container Instance builder back to two
