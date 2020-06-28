@@ -13,7 +13,7 @@ let tests = testList "Azure CLI" [
     test "If parameters are missing, deployment is immediately rejected" {
         let deployment = Template.TestHelpers.createSimpleDeployment [ "p1" ]
         let result = deployment |> Deploy.tryExecute "sample-rg" []
-        Expect.equal result (Error "The following parameters are missing: p1.") ""
+        Expect.equal result (Error "The following parameters are missing: p1. Please add them.") ""
     }
 
     test "Deploys and deletes a resource group" {
