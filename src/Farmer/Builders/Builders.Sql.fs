@@ -6,6 +6,8 @@ open Farmer.CoreTypes
 open Farmer.Sql
 open Farmer.Arm.Sql
 open System.Net
+open Servers
+open Databases
 
 type SqlAzureDbConfig =
     { Name : ResourceName
@@ -16,7 +18,7 @@ type SqlAzureDbConfig =
 type SqlAzureConfig =
     { Name : ResourceName
       AdministratorCredentials : {| UserName : string; Password : SecureParameter |}
-      FirewallRules : {| Name : string; Start : IPAddress; End : IPAddress |} list
+      FirewallRules : {| Name : ResourceName; Start : IPAddress; End : IPAddress |} list
       ElasticPoolSettings :
         {| Name : ResourceName option
            Sku : PoolSku
@@ -25,14 +27,15 @@ type SqlAzureConfig =
       Databases : SqlAzureDbConfig list }
     /// Gets a basic .NET connection string using the administrator username / password.
     member this.ConnectionString (database:SqlAzureDbConfig) =
-        concat
-            [ literal
+        concat [
+            literal
                 (sprintf "Server=tcp:%s.database.windows.net,1433;Initial Catalog=%s;Persist Security Info=False;User ID=%s;Password="
                     this.Name.Value
                     database.Name.Value
                     this.AdministratorCredentials.UserName)
-              this.AdministratorCredentials.Password.AsArmRef
-              literal ";MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;" ]
+            this.AdministratorCredentials.Password.AsArmRef
+            literal ";MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+        ]
     member this.ConnectionString databaseName =
         this.Databases
         |> List.tryFind(fun db -> db.Name = databaseName)
@@ -42,7 +45,7 @@ type SqlAzureConfig =
 
     interface IBuilder with
         member this.DependencyName = this.Name
-        member this.BuildResources location resources = [
+        member this.BuildResources location = [
             let elasticPoolName =
                 this.ElasticPoolSettings.Name
                 |> Option.defaultValue (this.Name.Map (sprintf "%s-pool"))
@@ -52,25 +55,38 @@ type SqlAzureConfig =
               Credentials =
                 {| Username = this.AdministratorCredentials.UserName
                    Password = this.AdministratorCredentials.Password |}
-              FirewallRules = this.FirewallRules
-              ElasticPool =
-                if this.Databases |> List.forall(fun db -> db.Sku.IsSome) then None
-                else
-                    Some {| Name = elasticPoolName
-                            Sku = this.ElasticPoolSettings.Sku
-                            MaxSizeBytes = this.ElasticPoolSettings.Capacity |> Option.map(fun mb -> int64 mb * 1024L * 1024L)
-                            MinMax = this.ElasticPoolSettings.PerDbLimits |> Option.map(fun l -> l.Min, l.Max) |}
-              Databases = [
-                  for database in this.Databases do
-                    {| Name = database.Name
-                       Sku =
-                        match database.Sku with
-                        | Some dbSku -> Standalone dbSku
-                        | None -> Pool elasticPoolName
-                       Collation = database.Collation
-                       TransparentDataEncryption = database.Encryption |}
-              ]
             }
+
+            for database in this.Databases do
+                { Name = database.Name
+                  Server = this.Name
+                  Location = location
+                  Sku =
+                   match database.Sku with
+                   | Some dbSku -> Standalone dbSku
+                   | None -> Pool elasticPoolName
+                  Collation = database.Collation }
+
+                match database.Encryption with
+                | Enabled ->
+                  { Database = database.Name }
+                | Disabled ->
+                  ()
+
+            for rule in this.FirewallRules do
+                { Name = rule.Name
+                  Start = rule.Start
+                  End = rule.End
+                  Location = location
+                  Server = this.Name }
+
+            if this.Databases |> List.exists(fun db -> db.Sku.IsNone) then
+                { Name = elasticPoolName
+                  Server = this.Name
+                  Location = location
+                  Sku = this.ElasticPoolSettings.Sku
+                  MaxSizeBytes = this.ElasticPoolSettings.Capacity |> Option.map(fun mb -> int64 mb * 1024L * 1024L)
+                  MinMax = this.ElasticPoolSettings.PerDbLimits |> Option.map(fun l -> l.Min, l.Max) }
         ]
 
 type SqlDbBuilder() =
@@ -150,7 +166,7 @@ type SqlServerBuilder() =
     /// Adds a firewall rule that enables access to other Azure services.
     [<CustomOperation "enable_azure_firewall">]
     member this.UseAzureFirewall(state:SqlAzureConfig) =
-        this.AddFirewallWall(state, "Allow Azure services", "0.0.0.0", "0.0.0.0")
+        this.AddFirewallWall(state, ResourceName "allow-azure-services", "0.0.0.0", "0.0.0.0")
     /// Sets the admin username of the server (note: the password is supplied as a securestring parameter to the generated ARM template).
     [<CustomOperation "admin_username">]
     member __.AdminUsername(state:SqlAzureConfig, username) =
@@ -158,6 +174,6 @@ type SqlServerBuilder() =
             AdministratorCredentials =
                 {| state.AdministratorCredentials with
                     UserName = username |} }
-        
+
 let sqlServer = SqlServerBuilder()
 let sqlDb = SqlDbBuilder()

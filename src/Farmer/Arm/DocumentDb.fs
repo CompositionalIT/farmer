@@ -8,7 +8,7 @@ open System
 
 module DatabaseAccounts =
     module SqlDatabases =
-        type Containers =
+        type Container =
             { Name : ResourceName
               Account : ResourceName
               Database : ResourceName
@@ -62,7 +62,7 @@ module DatabaseAccounts =
                            |}
                     |} :> _
 
-    type SqlDatabases =
+    type SqlDatabase =
         { Name : ResourceName
           Account : ResourceName
           Throughput : int<RU> }

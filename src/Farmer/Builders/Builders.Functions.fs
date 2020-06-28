@@ -57,7 +57,7 @@ type FunctionsConfig =
     member this.StorageAccount = this.StorageAccountName.ResourceName
     interface IBuilder with
         member this.DependencyName = this.ServicePlanName.ResourceName
-        member this.BuildResources location _ = [
+        member this.BuildResources location = [
             { Name = this.Name
               ServicePlan = this.ServicePlanName.ResourceName
               Location = location
@@ -115,7 +115,6 @@ type FunctionsConfig =
               Metadata = []
               ZipDeployPath = None
               AppCommandLine = None
-              SourceControls = None
             }
             match this.ServicePlanName with
             | External _
@@ -132,8 +131,7 @@ type FunctionsConfig =
             | AutomaticallyCreated resourceName ->
                 { StorageAccount.Name = resourceName
                   Location = location
-                  Sku = Storage.Standard_LRS
-                  Containers = [] }
+                  Sku = Storage.Standard_LRS }
             | AutomaticPlaceholder | External _ ->
                 ()
             match this.AppInsightsName with

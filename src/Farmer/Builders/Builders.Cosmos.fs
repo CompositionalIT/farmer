@@ -30,7 +30,7 @@ type CosmosDbConfig =
         sprintf "[reference(concat('Microsoft.DocumentDb/databaseAccounts/', '%s')).documentEndpoint]" this.AccountName.ResourceName.Value
     interface IBuilder with
         member this.DependencyName = this.AccountName.ResourceName
-        member this.BuildResources location _ = [
+        member this.BuildResources location = [
             // Account
             match this.AccountName with
             | AutomaticallyCreated name ->

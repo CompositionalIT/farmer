@@ -24,7 +24,7 @@ type AppInsightsConfig =
     member this.InstrumentationKey = instrumentationKey this.Name
     interface IBuilder with
         member this.DependencyName = this.Name
-        member this.BuildResources location _ = [
+        member this.BuildResources location = [
             { Name = this.Name
               Location = location
               LinkedWebsite = None }

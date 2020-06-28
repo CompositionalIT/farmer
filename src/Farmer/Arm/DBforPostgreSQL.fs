@@ -8,18 +8,41 @@ open Farmer.PostgreSQL
 
 type [<RequireQualifiedAccess>] PostgreSQLFamily = Gen5
 
-type Database =
-    { Name : ResourceName
-      Charset : string
-      Collation : string }
+module Servers =
+    type Database =
+        { Name : ResourceName
+          Server : ResourceName
+          Charset : string
+          Collation : string }
+        interface IArmResource with
+            member this.ResourceName = this.Name
+            member this.JsonModel =
+                {|  ``type`` = "Microsoft.DBforPostgreSQL/servers/databases"
+                    name = this.Server.Value + "/" + this.Name.Value
+                    apiVersion = "2017-12-01"
+                    dependsOn = [ this.Server.Value ]
+                    properties = {|  charset = this.Charset; collation = this.Collation |}
+                |} :> _
 
-type FirewallRule =
-    { Name : string
-      Start : IPAddress
-      End : IPAddress } 
+    type FirewallRule =
+        { Name : ResourceName
+          Server : ResourceName
+          Start : IPAddress
+          End : IPAddress
+          Location : Location }
+        interface IArmResource with
+            member this.ResourceName = this.Name
+            member this.JsonModel =
+                {|  ``type`` = "Microsoft.DBforPostgreSQL/servers/firewallrules"
+                    name = this.Server.Value + "/" + this.Name.Value
+                    apiVersion = "2017-12-01"
+                    location = this.Location.ArmValue
+                    properties = {| startIpAddress = string this.Start; endIpAddress = string this.End; |}
+                    dependsOn = [ this.Server.Value ]
+                |} :> _
 
 type Server =
-    { ServerName : ResourceName
+    { Name : ResourceName
       Location : Location
       Username : string
       Password : SecureParameter
@@ -30,29 +53,20 @@ type Server =
       Family : PostgreSQLFamily
       GeoRedundantBackup : FeatureFlag
       StorageAutoGrow : FeatureFlag
-      BackupRetention : int<Days>
-      Databases : Database list
-      FirewallRules : FirewallRule list }
+      BackupRetention : int<Days> }
 
     member this.Sku =
         {| name = sprintf "%s_%O_%d" this.Tier.Name this.Family this.Capacity
-           tier = this.Tier.ToString()
+           tier = string this.Tier
            capacity = this.Capacity
-           family = this.Family.ToString()
-           size = this.StorageSize |}
-
-    static member WithDatabase (db: Database option) (server: Server) = 
-        match db with
-        | None -> server
-        | Some database ->  {
-            server with Databases = database :: server.Databases
-        }
+           family = string this.Family
+           size = string this.StorageSize |}
 
     member this.GetStorageProfile () = {|
         storageMB = this.StorageSize
         backupRetentionDays = this.BackupRetention
-        geoRedundantBackup = this.GeoRedundantBackup.ToString()
-        storageAutoGrow = this.StorageAutoGrow.ToString()
+        geoRedundantBackup = string this.GeoRedundantBackup
+        storageAutoGrow = string this.StorageAutoGrow
     |}
 
     member this.GetProperties () =
@@ -72,31 +86,14 @@ type Server =
         member this.SecureParameters = [ this.Password ]
 
     interface IArmResource with
-        member this.ResourceName = this.ServerName
+        member this.ResourceName = this.Name
         member this.JsonModel =
-            box {| 
+            {|
                 ``type`` = "Microsoft.DBforPostgreSQL/servers"
                 apiVersion = "2017-12-01"
-                name = this.ServerName.Value
+                name = this.Name.Value
                 location = this.Location.ArmValue
-                tags = {| displayName = this.ServerName.Value |}
+                tags = {| displayName = this.Name.Value |}
                 sku = this.Sku
                 properties = this.GetProperties()
-                resources = [ 
-                    for database in this.Databases do
-                        box {|  ``type`` = "databases"
-                                name = database.Name.Value
-                                apiVersion = "2017-12-01"
-                                dependsOn = [ this.ServerName.Value ]
-                                properties = {|  charset = database.Charset; collation = database.Collation |} 
-                            |}
-                    for rule in this.FirewallRules do
-                        box {|  ``type`` = "firewallrules"
-                                name = rule.Name
-                                apiVersion = "2014-04-01"
-                                location = this.Location.ArmValue
-                                properties = {| endIpAddress = string rule.Start; startIpAddress = string rule.End |}
-                                dependsOn = [ this.ServerName.Value ]
-                            |}
-                ]
-            |}
+            |} :> _

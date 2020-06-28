@@ -3,6 +3,7 @@ module ServiceBus
 open Expecto
 open Farmer
 open Farmer.Arm.ServiceBus
+open Namespaces
 open Farmer.Builders
 open Farmer.ServiceBus
 open Microsoft.Azure.Management.ServiceBus
@@ -12,9 +13,8 @@ open System
 
 /// Client instance needed to get the serializer settings.
 let dummyClient = new ServiceBusManagementClient (Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
-
+let getResourceAtIndex o = o |> getResourceAtIndex dummyClient.SerializationSettings
 let tests = testList "Service Bus Tests" [
-    let getUnsafe data = data |> convertResourceBuilder (fun (ns:{| resources:obj list |}) -> ns.resources.[0]) dummyClient.SerializationSettings
     test "Namespace is correctly created" {
         let sbNs =
             arm {
@@ -40,9 +40,9 @@ let tests = testList "Service Bus Tests" [
 
     testList "Queue Tests" [
         test "Queue is correctly created" {
-            let queue:SBQueue =
+            let queue =
                 serviceBus {
-                    name "serviceBus"
+                    name "my-bus"
                     sku ServiceBus.Standard
                     add_queues [
                         queue {
@@ -56,9 +56,10 @@ let tests = testList "Service Bus Tests" [
                             message_ttl_days 10
                         }
                     ]
-                } |> getUnsafe
+                }
+            let queue : SBQueue = queue |> getResourceAtIndex 1
 
-            Expect.equal queue.Name "my-queue" "Invalid queue name"
+            Expect.equal queue.Name "my-bus/my-queue" "Invalid queue name"
             Expect.isTrue (queue.RequiresDuplicateDetection.GetValueOrDefault false) "Duplicate detection should be enabled"
             Expect.equal queue.DuplicateDetectionHistoryTimeWindow (Nullable(TimeSpan(0, 5, 0))) "Duplicate detection window incorrect"
             Expect.isTrue (queue.DeadLetteringOnMessageExpiration.GetValueOrDefault false) "Dead lettering should be enabled"
@@ -100,7 +101,7 @@ let tests = testList "Service Bus Tests" [
                 serviceBus {
                     name "serviceBus"
                     add_queues [ queue { name "my-queue" } ]
-                } |> getUnsafe
+                } |> getResourceAtIndex 1
 
             Expect.equal (queue.DefaultMessageTimeToLive.GetValueOrDefault TimeSpan.MinValue).TotalDays 14. "Default TTL should be 14 days"
         }
@@ -111,7 +112,7 @@ let tests = testList "Service Bus Tests" [
                     name "serviceBus"
                     sku ServiceBus.Standard
                     add_queues [ queue { name "my-queue" } ]
-                } |> getUnsafe
+                } |> getResourceAtIndex 1
 
             Expect.equal (queue.DefaultMessageTimeToLive.GetValueOrDefault TimeSpan.MinValue).TotalDays TimeSpan.MaxValue.TotalDays "Default TTL should be max value"
         }
@@ -125,31 +126,45 @@ let tests = testList "Service Bus Tests" [
                 ]
             }
             let deployment = arm { add_resource theBus }
-            match deployment.Template.Resources with
-            | [ :? Namespace as ns ] when ns.Queues.Length = 2 -> ()
-            | _ -> failwith "Should have two queues in a single namespace."
+            let queues = deployment.Template.Resources |> List.choose(function :? Queue as q -> Some q | _ -> None)
+            Expect.hasLength queues 2 "Should have two queues in a single namespace."
         }
     ]
 
     testList "Topic Tests" [
-        test "Create create a basic topic" {
+        test "Can create a basic topic" {
             let topic:SBTopic =
                 serviceBus {
-                    name "servicebus"
+                    name "my-bus"
                     add_topics [
                         topic {
-                            name "topic"
+                            name "my-topic"
                             duplicate_detection_minutes 3
                             message_ttl_days 2
                             enable_partition
                         }
                     ]
-                } |> getUnsafe
-            Expect.equal topic.Name "topic" "Name not set"
+                } |> getResourceAtIndex 1
+            Expect.equal topic.Name "my-bus/my-topic" "Name not set"
             Expect.equal topic.RequiresDuplicateDetection (Nullable true) "Duplicate detection not set"
             Expect.equal topic.DuplicateDetectionHistoryTimeWindow (Nullable (TimeSpan.FromMinutes 3.)) "Duplicate detection time not set"
             Expect.equal topic.DefaultMessageTimeToLive (Nullable (TimeSpan.FromDays 2.)) "Time to live not set"
             Expect.equal topic.EnablePartitioning (Nullable true) "Paritition not set"
         }
+        test "Can create a basic subscription" {
+             let sub:SBSubscription =
+                serviceBus {
+                    name "my-bus"
+                    add_topics [
+                        topic {
+                            name "my-topic"
+                            add_subscriptions [
+                                subscription { name "my-sub" }
+                            ]
+                        }
+                    ]
+                } |> getResourceAtIndex 2
+            Expect.equal sub.Name "my-bus/my-topic/my-sub" "Name not set"
+       }
     ]
 ]

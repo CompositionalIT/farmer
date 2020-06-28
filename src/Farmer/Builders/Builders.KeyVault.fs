@@ -82,7 +82,7 @@ type KeyVaultConfig =
       Secrets : SecretConfig list }
       interface IBuilder with
         member this.DependencyName = this.Name
-        member this.BuildResources location _ = [
+        member this.BuildResources location = [
             let keyVault =
                 { Name = this.Name
                   Location = location

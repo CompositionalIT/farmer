@@ -46,7 +46,7 @@ type SubnetBuilder() =
     /// Sets the network prefix in CIDR notation
     [<CustomOperation "add_delegations">]
     member __.AddDelegations(state:SubnetConfig, delegations) = { state with Delegations = state.Delegations @ delegations }
-    
+
 let subnet = SubnetBuilder ()
 /// Specification for a subnet to build from an address space.
 type SubnetBuildSpec =
@@ -73,14 +73,14 @@ type AddressSpaceBuilder() =
     member __.Subnets(state:AddressSpaceSpec, subnets) = { state with Subnets = subnets }
 
 let address_space = AddressSpaceBuilder ()
-    
+
 type VirtualNetworkConfig =
     { Name : ResourceName
       AddressSpacePrefixes : string list
       Subnets : SubnetConfig list; }
     interface IBuilder with
         member this.DependencyName = this.Name
-        member this.BuildResources location _ = [
+        member this.BuildResources location = [
             { Name = this.Name
               Location = location
               AddressSpacePrefixes = this.AddressSpacePrefixes

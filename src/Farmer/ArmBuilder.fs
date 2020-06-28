@@ -22,12 +22,6 @@ module Subscription =
     /// Gets an ARM expression pointing to the tenant id of the current subscription.
     let TenantId = ArmExpression "subscription().tenantid"
 
-module Builder =
-    /// Quickly creates a Builder that can be added to arm { } expressions.
-    let fromFunction quickBuilder =
-        let output : Builder = fun location _ -> quickBuilder location
-        output
-
 /// Represents all configuration information to generate an ARM template.
 type ArmConfig =
     { Parameters : string Set
@@ -36,19 +30,6 @@ type ArmConfig =
       Resources : IArmResource list }
 
 type ArmBuilder() =
-    let mergeResources resources (newResource:IArmResource) =
-        let resourceType = newResource.GetType()
-        let existing =
-            resources
-            |> List.filter(fun (r:IArmResource) ->
-                r.ResourceName = newResource.ResourceName &&
-                r.GetType() = resourceType)
-
-        match existing with
-        | _ :: _ -> printfn "'%s/%s' has been replaced or updated." resourceType.Name newResource.ResourceName.Value
-        | [] -> ()
-        (resources |> List.except existing) @ [ newResource ]
-
     member __.Yield _ =
         { Parameters = Set.empty
           Outputs = Map.empty
@@ -95,25 +76,22 @@ type ArmBuilder() =
     [<CustomOperation "location">]
     member __.Location (state, location) : ArmConfig = { state with Location = location }
 
+    static member private AddResources(state:ArmConfig, resources:IArmResource list) =
+        { state with
+            Resources =
+                state.Resources
+                @ resources
+                |> List.distinctBy(fun r -> r.ResourceName, r.GetType().Name) }
+
     /// Adds a builder's ARM resources to the ARM template.
     [<CustomOperation "add_resource">]
-    member this.AddResource(state:ArmConfig, input:IBuilder) =
-        { state with
-            Resources =
-                input.BuildResources state.Location state.Resources
-                |> List.fold mergeResources state.Resources }
-    member _.AddResource (state:ArmConfig, input:Builder) =
-        { state with
-            Resources =
-                input state.Location state.Resources
-                |> List.fold mergeResources state.Resources }
-    member _.AddResource (state:ArmConfig, input:IArmResource) =
-        let updatedResources = mergeResources state.Resources input
-        { state with Resources = updatedResources }
+    member _.AddResource (state:ArmConfig, input:IBuilder) = ArmBuilder.AddResources(state, input.BuildResources state.Location)
+    member _.AddResource (state:ArmConfig, input:Builder) = ArmBuilder.AddResources(state, input state.Location)
+    member _.AddResource (state:ArmConfig, input:IArmResource) = ArmBuilder.AddResources(state, [ input ])
 
     [<CustomOperation "add_resources">]
     member this.AddResources(state:ArmConfig, input:IBuilder list) =
-        input
-        |> Seq.fold(fun state builder -> this.AddResource(state, builder)) state
+        let resources = input |> List.collect(fun i -> i.BuildResources state.Location)
+        ArmBuilder.AddResources(state, resources)
 
 let arm = ArmBuilder()

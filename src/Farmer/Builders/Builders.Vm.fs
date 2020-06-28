@@ -37,7 +37,7 @@ type VmConfig =
 
     interface IBuilder with
         member this.DependencyName = this.Name
-        member this.BuildResources location _ = [
+        member this.BuildResources location = [
             // VM itself
             { Name = this.Name
               Location = location
@@ -102,8 +102,7 @@ type VmConfig =
             | Some (AutomaticallyCreated account) ->
                 { Name = account
                   Location = location
-                  Sku = Storage.Standard_LRS
-                  Containers = [] }
+                  Sku = Storage.Standard_LRS }
             | Some AutomaticPlaceholder
             | Some (External _)
             | None ->

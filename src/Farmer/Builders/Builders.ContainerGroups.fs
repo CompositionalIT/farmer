@@ -36,7 +36,7 @@ type ContainerGroupConfig =
       Instances : ContainerInstanceConfig list }
     interface IBuilder with
         member this.DependencyName = this.Name
-        member this.BuildResources location _ = [
+        member this.BuildResources location = [
             { Location = location
               Name = this.Name
               ContainerInstances = [
@@ -163,7 +163,7 @@ type NetworkProfileConfig =
       VirtualNetwork : ResourceName }
     interface IBuilder with
         member this.DependencyName = this.Name
-        member this.BuildResources location _ = [
+        member this.BuildResources location = [
             { Name = this.Name
               Location = location
               ContainerNetworkInterfaceConfigurations =

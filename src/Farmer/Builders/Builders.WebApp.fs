@@ -5,6 +5,7 @@ open Farmer
 open Farmer.CoreTypes
 open Farmer.WebApp
 open Farmer.Arm.Web
+open Sites
 open Farmer.Arm.Insights
 open System
 
@@ -109,164 +110,165 @@ type WebAppConfig =
 
     interface IBuilder with
         member this.DependencyName = this.ServicePlanName.ResourceName
-        member this.BuildResources location _ = [
-            let webApp =
-                { Name = this.Name
-                  Location = location
-                  ServicePlan = this.ServicePlanName.ResourceName
-                  HTTPSOnly = this.HTTPSOnly
-                  HTTP20Enabled = this.HTTP20Enabled
-                  ClientAffinityEnabled = this.ClientAffinityEnabled
-                  WebSocketsEnabled = this.WebSocketsEnabled
-                  Identity = this.Identity
-                  Cors = this.Cors
-                  AppSettings =
-                    let literalSettings = [
-                        if this.RunFromPackage then AppSettings.RunFromPackage
+        member this.BuildResources location = [
+            { Name = this.Name
+              Location = location
+              ServicePlan = this.ServicePlanName.ResourceName
+              HTTPSOnly = this.HTTPSOnly
+              HTTP20Enabled = this.HTTP20Enabled
+              ClientAffinityEnabled = this.ClientAffinityEnabled
+              WebSocketsEnabled = this.WebSocketsEnabled
+              Identity = this.Identity
+              Cors = this.Cors
+              AppSettings =
+                let literalSettings = [
+                    if this.RunFromPackage then AppSettings.RunFromPackage
 
-                        match this.WebsiteNodeDefaultVersion with
-                        | Some v -> AppSettings.WebsiteNodeDefaultVersion v
-                        | None -> ()
+                    match this.WebsiteNodeDefaultVersion with
+                    | Some v -> AppSettings.WebsiteNodeDefaultVersion v
+                    | None -> ()
 
-                        match this.OperatingSystem, this.AppInsightsName with
-                        | Windows, Some (External resourceName)
-                        | Windows, Some (AutomaticallyCreated resourceName) ->
-                            "APPINSIGHTS_INSTRUMENTATIONKEY", instrumentationKey resourceName |> ArmExpression.Eval
-                            "APPINSIGHTS_PROFILERFEATURE_VERSION", "1.0.0"
-                            "APPINSIGHTS_SNAPSHOTFEATURE_VERSION", "1.0.0"
-                            "ApplicationInsightsAgent_EXTENSION_VERSION", "~2"
-                            "DiagnosticServices_EXTENSION_VERSION", "~3"
-                            "InstrumentationEngine_EXTENSION_VERSION", "~1"
-                            "SnapshotDebugger_EXTENSION_VERSION", "~1"
-                            "XDT_MicrosoftApplicationInsights_BaseExtensions", "~1"
-                            "XDT_MicrosoftApplicationInsights_Mode", "recommended"
-                        | Windows, Some AutomaticPlaceholder
-                        | Windows, None
-                        | Linux, _ ->
-                            ()
-                        if this.DockerCi then "DOCKER_ENABLE_CI", "true"
-                    ]
+                    match this.OperatingSystem, this.AppInsightsName with
+                    | Windows, Some (External resourceName)
+                    | Windows, Some (AutomaticallyCreated resourceName) ->
+                        "APPINSIGHTS_INSTRUMENTATIONKEY", instrumentationKey resourceName |> ArmExpression.Eval
+                        "APPINSIGHTS_PROFILERFEATURE_VERSION", "1.0.0"
+                        "APPINSIGHTS_SNAPSHOTFEATURE_VERSION", "1.0.0"
+                        "ApplicationInsightsAgent_EXTENSION_VERSION", "~2"
+                        "DiagnosticServices_EXTENSION_VERSION", "~3"
+                        "InstrumentationEngine_EXTENSION_VERSION", "~1"
+                        "SnapshotDebugger_EXTENSION_VERSION", "~1"
+                        "XDT_MicrosoftApplicationInsights_BaseExtensions", "~1"
+                        "XDT_MicrosoftApplicationInsights_Mode", "recommended"
+                    | Windows, Some AutomaticPlaceholder
+                    | Windows, None
+                    | Linux, _ ->
+                        ()
+                    if this.DockerCi then "DOCKER_ENABLE_CI", "true"
+                ]
 
-                    let dockerSettings = [
-                        match this.DockerAcrCredentials with
-                        | Some credentials ->
-                            "DOCKER_REGISTRY_SERVER_PASSWORD", ParameterSetting credentials.Password
-                            Setting.AsLiteral ("DOCKER_REGISTRY_SERVER_URL", sprintf "https://%s.azurecr.io" credentials.RegistryName)
-                            Setting.AsLiteral ("DOCKER_REGISTRY_SERVER_USERNAME", credentials.RegistryName)
-                        | None ->
-                            ()
-                    ]
-                    literalSettings
-                    |> List.map Setting.AsLiteral
-                    |> List.append dockerSettings
-                    |> List.append (this.Settings |> Map.toList)
-                  Kind = [
-                    "app"
-                    match this.OperatingSystem with Linux -> "linux" | Windows -> ()
-                    match this.DockerImage with Some _ -> "container" | _ -> ()
-                  ] |> String.concat ","
-                  Dependencies = [
-                    this.ServicePlanName.ResourceName
-                    yield! this.Dependencies
-                    match this.AppInsightsName with
-                    | Some (AutomaticallyCreated appInsightsName)
-                    | Some (External appInsightsName) ->
-                        appInsightsName
-                    | Some AutomaticPlaceholder
+                let dockerSettings = [
+                    match this.DockerAcrCredentials with
+                    | Some credentials ->
+                        "DOCKER_REGISTRY_SERVER_PASSWORD", ParameterSetting credentials.Password
+                        Setting.AsLiteral ("DOCKER_REGISTRY_SERVER_URL", sprintf "https://%s.azurecr.io" credentials.RegistryName)
+                        Setting.AsLiteral ("DOCKER_REGISTRY_SERVER_USERNAME", credentials.RegistryName)
                     | None ->
                         ()
-                  ]
-                  AlwaysOn = this.AlwaysOn
-                  LinuxFxVersion =
-                    match this.OperatingSystem with
-                    | Windows ->
-                        None
-                    | Linux ->
-                        match this.DockerImage with
-                        | Some (image, _) ->
-                            Some ("DOCKER|" + image)
-                        | None ->
-                            match this.Runtime with
-                            | DotNetCore version -> Some ("DOTNETCORE|" + version)
-                            | Node version -> Some ("NODE|" + version)
-                            | Php version -> Some ("PHP|" + version)
-                            | Ruby version -> Some ("RUBY|" + version)
-                            | Java (runtime, JavaSE) -> Some (sprintf "JAVA|%d-%s" runtime.Version runtime.Jre)
-                            | Java (runtime, (Tomcat version)) -> Some (sprintf "TOMCAT|%s-%s" version runtime.Jre)
-                            | Java (Java8, WildFly14) -> Some (sprintf "WILDFLY|14-%s" Java8.Jre)
-                            | Python (linuxVersion, _) -> Some (sprintf "PYTHON|%s" linuxVersion)
-                            | _ -> None
-                  NetFrameworkVersion =
-                    match this.Runtime with
-                    | AspNet version -> Some (sprintf "v%s" version)
-                    | _ -> None
-                  JavaVersion =
-                    match this.Runtime, this.OperatingSystem with
-                    | Java (Java11, Tomcat _), Windows -> Some "11"
-                    | Java (Java8, Tomcat _), Windows -> Some "1.8"
-                    | _ -> None
-                  JavaContainer =
-                    match this.Runtime, this.OperatingSystem with
-                    | Java (_, Tomcat _), Windows -> Some "Tomcat"
-                    | _ -> None
-                  JavaContainerVersion =
-                    match this.Runtime, this.OperatingSystem with
-                    | Java (_, Tomcat version), Windows -> Some version
-                    | _ -> None
-                  PhpVersion =
-                    match this.Runtime, this.OperatingSystem with
-                    | Php version, Windows -> Some version
-                    | _ -> None
-                  PythonVersion =
-                    match this.Runtime, this.OperatingSystem with
-                    | Python (_, windowsVersion), Windows -> Some windowsVersion
-                    | _ -> None
-                  Metadata =
-                    match this.Runtime, this.OperatingSystem with
-                    | Java (_, Tomcat _), Windows -> Some "java"
-                    | Php _, _ -> Some "php"
-                    | Python _, Windows -> Some "python"
-                    | DotNetCore _, Windows -> Some "dotnetcore"
-                    | AspNet _, _ -> Some "dotnet"
-                    | _ -> None
-                    |> Option.map(fun stack -> "CURRENT_STACK", stack)
-                    |> Option.toList
-                  AppCommandLine = this.DockerImage |> Option.map snd
-                  ZipDeployPath = this.ZipDeployPath
-                  SourceControls = this.SourceControlSettings
-                }
-
-            let ai =
+                ]
+                literalSettings
+                |> List.map Setting.AsLiteral
+                |> List.append dockerSettings
+                |> List.append (this.Settings |> Map.toList)
+              Kind = [
+                "app"
+                match this.OperatingSystem with Linux -> "linux" | Windows -> ()
+                match this.DockerImage with Some _ -> "container" | _ -> ()
+              ] |> String.concat ","
+              Dependencies = [
+                this.ServicePlanName.ResourceName
+                yield! this.Dependencies
                 match this.AppInsightsName with
-                | Some (AutomaticallyCreated resourceName) ->
-                    { Name = resourceName
-                      Location = location
-                      LinkedWebsite =
-                        match this.OperatingSystem with
-                        | Windows -> Some this.Name
-                        | Linux -> None }
-                    |> Some
+                | Some (AutomaticallyCreated appInsightsName)
+                | Some (External appInsightsName) ->
+                    appInsightsName
                 | Some AutomaticPlaceholder
-                | Some (External _)
                 | None ->
+                    ()
+              ]
+              AlwaysOn = this.AlwaysOn
+              LinuxFxVersion =
+                match this.OperatingSystem with
+                | Windows ->
                     None
+                | Linux ->
+                    match this.DockerImage with
+                    | Some (image, _) ->
+                        Some ("DOCKER|" + image)
+                    | None ->
+                        match this.Runtime with
+                        | DotNetCore version -> Some ("DOTNETCORE|" + version)
+                        | Node version -> Some ("NODE|" + version)
+                        | Php version -> Some ("PHP|" + version)
+                        | Ruby version -> Some ("RUBY|" + version)
+                        | Java (runtime, JavaSE) -> Some (sprintf "JAVA|%d-%s" runtime.Version runtime.Jre)
+                        | Java (runtime, (Tomcat version)) -> Some (sprintf "TOMCAT|%s-%s" version runtime.Jre)
+                        | Java (Java8, WildFly14) -> Some (sprintf "WILDFLY|14-%s" Java8.Jre)
+                        | Python (linuxVersion, _) -> Some (sprintf "PYTHON|%s" linuxVersion)
+                        | _ -> None
+              NetFrameworkVersion =
+                match this.Runtime with
+                | AspNet version -> Some (sprintf "v%s" version)
+                | _ -> None
+              JavaVersion =
+                match this.Runtime, this.OperatingSystem with
+                | Java (Java11, Tomcat _), Windows -> Some "11"
+                | Java (Java8, Tomcat _), Windows -> Some "1.8"
+                | _ -> None
+              JavaContainer =
+                match this.Runtime, this.OperatingSystem with
+                | Java (_, Tomcat _), Windows -> Some "Tomcat"
+                | _ -> None
+              JavaContainerVersion =
+                match this.Runtime, this.OperatingSystem with
+                | Java (_, Tomcat version), Windows -> Some version
+                | _ -> None
+              PhpVersion =
+                match this.Runtime, this.OperatingSystem with
+                | Php version, Windows -> Some version
+                | _ -> None
+              PythonVersion =
+                match this.Runtime, this.OperatingSystem with
+                | Python (_, windowsVersion), Windows -> Some windowsVersion
+                | _ -> None
+              Metadata =
+                match this.Runtime, this.OperatingSystem with
+                | Java (_, Tomcat _), Windows -> Some "java"
+                | Php _, _ -> Some "php"
+                | Python _, Windows -> Some "python"
+                | DotNetCore _, Windows -> Some "dotnetcore"
+                | AspNet _, _ -> Some "dotnet"
+                | _ -> None
+                |> Option.map(fun stack -> "CURRENT_STACK", stack)
+                |> Option.toList
+              AppCommandLine = this.DockerImage |> Option.map snd
+              ZipDeployPath = this.ZipDeployPath
+            }
 
-            let serverFarm =
-                match this.ServicePlanName with
-                | External _
-                | AutomaticPlaceholder ->
-                    None
-                | AutomaticallyCreated name ->
-                    { Name = name
-                      Location = location
-                      Sku = this.Sku
-                      WorkerSize = this.WorkerSize
-                      WorkerCount = this.WorkerCount
-                      OperatingSystem = this.OperatingSystem }
-                    |> Some
-            webApp
-            match ai with Some ai -> ai | None -> ()
-            match serverFarm with Some serverFarm -> serverFarm | None -> ()
+            match this.SourceControlSettings with
+            | Some settings ->
+                { Website = this.Name
+                  Location = location
+                  Repository = settings.Repository
+                  Branch = settings.Branch
+                  ContinuousIntegration = settings.ContinuousIntegration }
+            | None ->
+                ()
+
+            match this.AppInsightsName with
+            | Some (AutomaticallyCreated resourceName) ->
+                { Name = resourceName
+                  Location = location
+                  LinkedWebsite =
+                    match this.OperatingSystem with
+                    | Windows -> Some this.Name
+                    | Linux -> None }
+            | Some AutomaticPlaceholder
+            | Some (External _)
+            | None ->
+                ()
+
+            match this.ServicePlanName with
+            | AutomaticallyCreated name ->
+                { Name = name
+                  Location = location
+                  Sku = this.Sku
+                  WorkerSize = this.WorkerSize
+                  WorkerCount = this.WorkerCount
+                  OperatingSystem = this.OperatingSystem }
+            | External _
+            | AutomaticPlaceholder ->
+                ()
         ]
 
 type WebAppBuilder() =
@@ -448,6 +450,6 @@ let webApp = WebAppBuilder()
 
 /// Allow adding storage accounts directly to CDNs
 type EndpointBuilder with
-    member this.Origin(state:Arm.Cdn.Endpoint, webApp:WebAppConfig) =
+    member this.Origin(state:EndpointConfig, webApp:WebAppConfig) =
         let state = this.Origin(state, webApp.Endpoint)
         this.DependsOn(state, webApp.Name)

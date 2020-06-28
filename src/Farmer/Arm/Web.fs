@@ -125,8 +125,7 @@ type Site =
       PhpVersion : string option
       PythonVersion : string option
       Metadata : List<string * string>
-      ZipDeployPath : string option
-      SourceControls : {| Repository : Uri; Branch : string; ContinuousIntegration : FeatureFlag |} option }
+      ZipDeployPath : string option }
     interface IParameters with
         member this.SecureParameters =
             this.AppSettings
@@ -184,20 +183,27 @@ type Site =
                             | Some (SpecificOrigins origins) -> box {| allowedOrigins = origins |}
                         |}
                     |}
-               resources = [
-                    match this.SourceControls with
-                    | Some sourceControls ->
-                        {| ``type`` = "sourcecontrols"
-                           apiVersion = "2019-08-01"
-                           name = "web"
-                           location = this.Location.ArmValue
-                           dependsOn = [ this.Name.Value ]
-                           properties =
-                            {| repoUrl = sourceControls.Repository.ToString()
-                               branch = sourceControls.Branch
-                               isManualIntegration = sourceControls.ContinuousIntegration.AsBoolean |> not
-                            |}
-                        |}
-                    | None -> ()
-               ]
             |} :> _
+
+module Sites =
+    type SourceControl =
+        { Website : ResourceName
+          Location : Location
+          Repository : Uri
+          Branch : string
+          ContinuousIntegration : FeatureFlag }
+        member this.Name = this.Website.Map(sprintf "%s/web")
+        interface IArmResource with
+            member this.ResourceName = this.Name
+            member this.JsonModel =
+                {| ``type`` = "Microsoft.Web/sites/sourcecontrols"
+                   apiVersion = "2019-08-01"
+                   name = this.Name.Value
+                   location = this.Location.ArmValue
+                   dependsOn = [ this.Website.Value ]
+                   properties =
+                    {| repoUrl = this.Repository.ToString()
+                       branch = this.Branch
+                       isManualIntegration = this.ContinuousIntegration.AsBoolean |> not
+                    |}
+                |} :> _
