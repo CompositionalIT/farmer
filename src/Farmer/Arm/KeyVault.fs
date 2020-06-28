@@ -6,6 +6,9 @@ open Farmer.CoreTypes
 open Farmer.KeyVault
 open System
 
+let secrets = ResourceType "Microsoft.KeyVault/vaults/secrets"
+let vaults = ResourceType "Microsoft.KeyVault/vaults"
+
 module Vaults =
     type Secret =
         { Name : ResourceName
@@ -26,7 +29,7 @@ module Vaults =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| ``type`` = "Microsoft.KeyVault/vaults/secrets"
+                {| ``type`` = secrets.ArmValue
                    name = this.Name.Value
                    apiVersion = "2018-02-14"
                    location = this.Location.ArmValue
@@ -80,7 +83,7 @@ type Vault =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type``= "Microsoft.KeyVault/vaults"
+            {| ``type`` = vaults.ArmValue
                name = this.Name.Value
                apiVersion = "2018-02-14"
                location = this.Location.ArmValue

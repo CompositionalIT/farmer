@@ -3,6 +3,9 @@ module Farmer.Arm.ContainerInstance
 
 open Farmer
 open Farmer.ContainerGroup
+open Farmer.CoreTypes
+
+let containerGroups = ResourceType "Microsoft.ContainerInstance/containerGroups"
 
 type ContainerGroupIpAddress =
     { Type : IpAddressType
@@ -32,7 +35,7 @@ type ContainerGroup =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = "Microsoft.ContainerInstance/containerGroups"
+            {| ``type`` = containerGroups.ArmValue
                apiVersion = "2018-10-01"
                name = this.Name.Value
                location = this.Location.ArmValue

@@ -6,6 +6,10 @@ open Farmer
 open Farmer.CoreTypes
 open Farmer.PostgreSQL
 
+let databases = ResourceType "Microsoft.DBforPostgreSQL/servers/databases"
+let firewallRules = ResourceType "Microsoft.DBforPostgreSQL/servers/firewallrules"
+let servers = ResourceType "Microsoft.DBforPostgreSQL/servers"
+
 type [<RequireQualifiedAccess>] PostgreSQLFamily = Gen5
 
 module Servers =
@@ -17,7 +21,7 @@ module Servers =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {|  ``type`` = "Microsoft.DBforPostgreSQL/servers/databases"
+                {|  ``type`` = databases.ArmValue
                     name = this.Server.Value + "/" + this.Name.Value
                     apiVersion = "2017-12-01"
                     dependsOn = [ this.Server.Value ]
@@ -33,7 +37,7 @@ module Servers =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {|  ``type`` = "Microsoft.DBforPostgreSQL/servers/firewallrules"
+                {|  ``type`` = firewallRules.ArmValue
                     name = this.Server.Value + "/" + this.Name.Value
                     apiVersion = "2017-12-01"
                     location = this.Location.ArmValue
@@ -89,7 +93,7 @@ type Server =
         member this.ResourceName = this.Name
         member this.JsonModel =
             {|
-                ``type`` = "Microsoft.DBforPostgreSQL/servers"
+                ``type`` = servers.ArmValue
                 apiVersion = "2017-12-01"
                 name = this.Name.Value
                 location = this.Location.ArmValue

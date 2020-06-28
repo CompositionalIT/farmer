@@ -5,6 +5,8 @@ open Farmer
 open Farmer.CoreTypes
 open Farmer.Vm
 
+let virtualMachines = ResourceType "Microsoft.Compute/virtualMachines"
+
 type VirtualMachine =
     { Name : ResourceName
       Location : Location
@@ -20,7 +22,7 @@ type VirtualMachine =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = "Microsoft.Compute/virtualMachines"
+            {| ``type`` = virtualMachines.ArmValue
                apiVersion = "2018-10-01"
                name = this.Name.Value
                location = this.Location.ArmValue

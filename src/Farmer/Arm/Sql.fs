@@ -6,6 +6,12 @@ open Farmer.CoreTypes
 open Farmer.Sql
 open System.Net
 
+let servers = ResourceType "Microsoft.Sql/servers"
+let elasticPools = ResourceType "Microsoft.Sql/servers/elasticPools"
+let firewallRules = ResourceType "Microsoft.Sql/servers/firewallrules"
+let databases = ResourceType "Microsoft.Sql/servers/databases"
+let transparentDataEncryption = ResourceType "Microsoft.Sql/servers/databases/transparentDataEncryption"
+
 type DbKind = Standalone of DbSku | Pool of ResourceName
 
 type Server =
@@ -18,7 +24,7 @@ type Server =
     interface IArmResource with
         member this.ResourceName = this.ServerName
         member this.JsonModel =
-            {| ``type`` = "Microsoft.Sql/servers"
+            {| ``type`` = servers.ArmValue
                name = this.ServerName.Value
                apiVersion = "2019-06-01-preview"
                location = this.Location.ArmValue
@@ -40,7 +46,7 @@ module Servers =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| ``type`` = "Microsoft.Sql/servers/elasticPools"
+                {| ``type`` = elasticPools.ArmValue
                    name = this.Server.Value + "/" + this.Name.Value
                    properties =
                     {| maxSizeBytes = this.MaxSizeBytes |> Option.toNullable
@@ -63,7 +69,7 @@ module Servers =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| ``type`` = "Microsoft.Sql/servers/firewallrules"
+                {| ``type`` = firewallRules.ArmValue
                    name = this.Server.Value + "/" + this.Name.Value
                    apiVersion = "2014-04-01"
                    location = this.Location.ArmValue
@@ -82,7 +88,7 @@ module Servers =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| ``type`` = "Microsoft.Sql/servers/databases"
+                {| ``type`` = databases.ArmValue
                    name = this.Server.Value + "/" + this.Name.Value
                    apiVersion = "2019-06-01-preview"
                    location = this.Location.ArmValue
@@ -112,7 +118,7 @@ module Servers =
             interface IArmResource with
                 member this.ResourceName = this.Name
                 member this.JsonModel =
-                   {| ``type`` = "Microsoft.Sql/servers/databases/transparentDataEncryption"
+                   {| ``type`` = transparentDataEncryption.ArmValue
                       comments = "Transparent Data Encryption"
                       name = this.Name.Value
                       apiVersion = "2014-04-01-preview"

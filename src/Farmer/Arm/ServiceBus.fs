@@ -2,10 +2,16 @@
 module Farmer.Arm.ServiceBus
 
 open Farmer
+open Farmer.CoreTypes
 open Farmer.ServiceBus
 open System
 
 let private tryGetIso (v:IsoDateTime option) = v |> Option.map(fun v -> v.Value) |> Option.toObj
+
+let subscriptions = ResourceType "Microsoft.ServiceBus/namespaces/topics/subscriptions"
+let queues = ResourceType "Microsoft.ServiceBus/namespaces/queues"
+let topics = ResourceType "Microsoft.ServiceBus/namespaces/topics"
+let namespaces = ResourceType "Microsoft.ServiceBus/namespaces"
 
 module Namespaces =
     module Topics =
@@ -24,7 +30,7 @@ module Namespaces =
                 member this.JsonModel =
                     {| apiVersion = "2017-04-01"
                        name = this.Namespace.Value + "/" + this.Topic.Value + "/" + this.Name.Value
-                       ``type`` = "Microsoft.ServiceBus/namespaces/topics/subscriptions"
+                       ``type`` = subscriptions.ArmValue
                        dependsOn = [ this.Topic.Value ]
                        properties =
                         {| defaultMessageTimeToLive = tryGetIso this.DefaultMessageTimeToLive
@@ -55,7 +61,7 @@ module Namespaces =
             member this.JsonModel =
                 {| apiVersion = "2017-04-01"
                    name = this.Namespace.Value + "/" + this.Name.Value
-                   ``type`` = "Microsoft.ServiceBus/namespaces/queues"
+                   ``type`` = queues.ArmValue
                    dependsOn = [ this.Namespace.Value ]
                    properties =
                     {| lockDuration = tryGetIso this.LockDuration
@@ -82,7 +88,7 @@ module Namespaces =
             member this.JsonModel =
                 {| apiVersion = "2017-04-01"
                    name = this.Namespace.Value + "/" + this.Name.Value
-                   ``type`` = "Microsoft.ServiceBus/namespaces/topics"
+                   ``type`` = topics.ArmValue
                    dependsOn = [ this.Namespace.Value ]
                    properties =
                        {| defaultMessageTimeToLive = tryGetIso this.DefaultMessageTimeToLive
@@ -109,8 +115,8 @@ type Namespace =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = "Microsoft.ServiceBus/namespaces"
-               apiVersion = "2017-04-01"
+            {| apiVersion = "2017-04-01"
+               ``type`` = namespaces.ArmValue
                name = this.Name.Value
                location = this.Location.ArmValue
                sku =

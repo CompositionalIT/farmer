@@ -6,6 +6,10 @@ open Farmer.CoreTypes
 open Farmer.WebApp
 open System
 
+let serverFarms = ResourceType "Microsoft.Web/serverfarms"
+let sites = ResourceType "Microsoft.Web/sites"
+let sourceControls = ResourceType "Microsoft.Web/sites/sourcecontrols"
+
 type ServerFarm =
     { Name : ResourceName
       Location : Location
@@ -38,7 +42,7 @@ type ServerFarm =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = "Microsoft.Web/serverfarms"
+            {| ``type`` = serverFarms.ArmValue
                sku =
                    {| name =
                         match this.Sku with
@@ -147,7 +151,7 @@ type Site =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = "Microsoft.Web/sites"
+            {| ``type`` = sites.ArmValue
                name = this.Name.Value
                apiVersion = "2016-08-01"
                location = this.Location.ArmValue
@@ -196,7 +200,7 @@ module Sites =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| ``type`` = "Microsoft.Web/sites/sourcecontrols"
+                {| ``type`` = sourceControls.ArmValue
                    apiVersion = "2019-08-01"
                    name = this.Name.Value
                    location = this.Location.ArmValue

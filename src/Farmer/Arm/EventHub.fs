@@ -5,6 +5,11 @@ open Farmer
 open Farmer.CoreTypes
 open Farmer.EventHub
 
+let namespaces = ResourceType "Microsoft.EventHub/namespaces"
+let eventHubs = ResourceType "Microsoft.EventHub/namespaces/eventhubs"
+let consumerGroups = ResourceType "Microsoft.EventHub/namespaces/eventhubs/consumergroups"
+let authorizationRules = ResourceType "Microsoft.EventHub/namespaces/eventhubs/AuthorizationRules"
+
 type Namespace =
     { Name : ResourceName
       Location : Location
@@ -20,7 +25,7 @@ type Namespace =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = "Microsoft.EventHub/namespaces"
+            {| ``type`` = namespaces.ArmValue
                apiVersion = "2017-04-01"
                name = this.Name.Value
                location = this.Location.ArmValue
@@ -49,7 +54,7 @@ module Namespaces =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-               {| ``type`` = "Microsoft.EventHub/namespaces/eventhubs"
+               {| ``type`` = eventHubs.ArmValue
                   apiVersion = "2017-04-01"
                   name = this.Name.Value
                   location = this.Location.ArmValue
@@ -67,7 +72,7 @@ module Namespaces =
             interface IArmResource with
                 member this.ResourceName = this.Name
                 member this.JsonModel =
-                    {| ``type`` = "Microsoft.EventHub/namespaces/eventhubs/consumergroups"
+                    {| ``type`` = consumerGroups.ArmValue
                        apiVersion = "2017-04-01"
                        name = this.Name.Value
                        location = this.Location.ArmValue
@@ -82,7 +87,7 @@ module Namespaces =
             interface IArmResource with
                 member this.ResourceName = this.Name
                 member this.JsonModel =
-                    {| ``type`` = "Microsoft.EventHub/namespaces/eventhubs/AuthorizationRules"
+                    {| ``type`` = authorizationRules.ArmValue
                        apiVersion = "2017-04-01"
                        name = this.Name.Value
                        location = this.Location.ArmValue

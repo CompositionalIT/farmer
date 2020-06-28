@@ -4,6 +4,9 @@ module Farmer.Arm.Devices
 open Farmer
 open Farmer.CoreTypes
 
+let iotHubs = ResourceType "Microsoft.Devices/IotHubs"
+let provisioningServices = ResourceType "Microsoft.Devices/provisioningServices"
+
 type Sku =
 | Free
 | Paid of name:string * units:int
@@ -31,7 +34,7 @@ let serialize (d:DeliveryDetails) =
        lockDurationAsIso8601 = d.LockDuration |> Option.map(fun f -> f.Value) |> Option.toObj
        maxDeliveryCount = d.MaxDeliveryCount |> Option.toNullable |}
 
-type IotHubs =
+type iotHubs =
     { Name : ResourceName
       Location : Location
       Sku : Sku
@@ -44,7 +47,7 @@ type IotHubs =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = "Microsoft.Devices/IotHubs"
+            {| ``type`` = iotHubs.ArmValue
                apiVersion = "2019-03-22"
                name = this.Name.Value
                location = this.Location.ArmValue
@@ -93,7 +96,7 @@ type ProvisioningServices =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = "Microsoft.Devices/provisioningServices"
+            {| ``type`` = provisioningServices.ArmValue
                sku =
                  {| name = "S1"
                     capacity = 1 |}

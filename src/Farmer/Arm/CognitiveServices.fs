@@ -4,6 +4,8 @@ module Farmer.Arm.CognitiveServices
 open Farmer
 open Farmer.CoreTypes
 
+let accounts = ResourceType "Microsoft.CognitiveServices/accounts"
+
 type Accounts =
     { Name : ResourceName
       Location : Location
@@ -13,7 +15,7 @@ type Accounts =
         member this.ResourceName = this.Name
         member this.JsonModel =
             {| name = this.Name.Value
-               ``type`` = "Microsoft.CognitiveServices/accounts"
+               ``type`` = accounts.ArmValue
                apiVersion = "2017-04-18"
                sku = {| name = string this.Sku |}
                kind = this.Kind.ToString().Replace("_", ".")

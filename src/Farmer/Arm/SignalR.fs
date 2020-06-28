@@ -5,6 +5,8 @@ open Farmer
 open Farmer.CoreTypes
 open Farmer.SignalR
 
+let signalR = ResourceType "Microsoft.SignalRService/signalR"
+
 type SignalR =
     { Name : ResourceName
       Location : Location
@@ -14,7 +16,7 @@ type SignalR =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = "Microsoft.SignalRService/signalR"
+            {| ``type`` = signalR.ArmValue
                apiVersion = "2018-10-01"
                name = this.Name.Value
                location = this.Location.ArmValue

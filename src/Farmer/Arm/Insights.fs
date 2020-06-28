@@ -4,6 +4,8 @@ module Farmer.Arm.Insights
 open Farmer
 open Farmer.CoreTypes
 
+let components = ResourceType "Microsoft.Insights/components"
+
 type Components =
     { Name : ResourceName
       Location : Location
@@ -11,7 +13,7 @@ type Components =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = "Microsoft.Insights/components"
+            {| ``type`` = components.ArmValue
                kind = "web"
                name = this.Name.Value
                location = this.Location.ArmValue

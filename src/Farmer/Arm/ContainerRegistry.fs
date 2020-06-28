@@ -3,6 +3,9 @@ module Farmer.Arm.ContainerRegistry
 
 open Farmer
 open Farmer.ContainerRegistry
+open Farmer.CoreTypes
+
+let registries = ResourceType "Microsoft.ContainerRegistry/registries"
 
 type Registries =
     { Name : ResourceName
@@ -13,7 +16,7 @@ type Registries =
         member this.ResourceName = this.Name
         member this.JsonModel =
             {| name = this.Name.Value
-               ``type`` = "Microsoft.ContainerRegistry/registries"
+               ``type`` = registries.ArmValue
                apiVersion = "2019-05-01"
                sku = {| name = this.Sku.ToString() |}
                location = this.Location.ArmValue

@@ -5,6 +5,8 @@ open Farmer
 open Farmer.CoreTypes
 open Farmer.Maps
 
+let accounts = ResourceType "Microsoft.Maps/accounts"
+
 type Maps =
     { Name : ResourceName
       Location : Location
@@ -12,7 +14,7 @@ type Maps =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = "Microsoft.Maps/accounts"
+            {| ``type`` = accounts.ArmValue
                apiVersion = "2018-05-01"
                name = this.Name.Value
                location = this.Location.ArmValue
@@ -23,4 +25,3 @@ type Maps =
                          | S0 -> "S0"
                          | S1 -> "S1" |}
             |} :> _
-    

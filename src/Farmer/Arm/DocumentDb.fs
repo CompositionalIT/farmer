@@ -4,7 +4,10 @@ module Farmer.Arm.DocumentDb
 open Farmer
 open Farmer.CoreTypes
 open Farmer.CosmosDb
-open System
+
+let containers = ResourceType "Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers"
+let sqlDatabases = ResourceType "Microsoft.DocumentDB/databaseAccounts/sqlDatabases"
+let databaseAccounts = ResourceType "Microsoft.DocumentDB/databaseAccounts"
 
 module DatabaseAccounts =
     module SqlDatabases =
@@ -27,7 +30,7 @@ module DatabaseAccounts =
             interface IArmResource with
                 member this.ResourceName = this.Name
                 member this.JsonModel =
-                    {| ``type`` = "Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers"
+                    {| ``type`` = containers.ArmValue
                        name = sprintf "%s/%s/%s" this.Account.Value this.Database.Value this.Name.Value
                        apiVersion = "2020-03-01"
                        dependsOn = [ this.Database.Value ]
@@ -69,7 +72,7 @@ module DatabaseAccounts =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| ``type`` = "Microsoft.DocumentDB/databaseAccounts/sqlDatabases"
+                {| ``type`` = sqlDatabases.ArmValue
                    name = sprintf "%s/%s" this.Account.Value this.Name.Value
                    apiVersion = "2020-03-01"
                    dependsOn = [ this.Account.Value ]
@@ -114,7 +117,7 @@ type DatabaseAccount =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = "Microsoft.DocumentDB/databaseAccounts"
+            {| ``type`` = databaseAccounts.ArmValue
                name = this.Name.Value
                apiVersion = "2020-03-01"
                location = this.Location.ArmValue
