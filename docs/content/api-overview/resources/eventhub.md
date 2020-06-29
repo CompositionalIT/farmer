@@ -65,5 +65,6 @@ let secondHub = eventHub {
     link_to_namespace "allmyevents"
     partitions 1
     message_retention_days 1
+    capture_to_storage myStorageAccount "mycontainer"
 }
 ```
