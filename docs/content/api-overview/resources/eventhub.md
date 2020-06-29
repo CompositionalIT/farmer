@@ -31,6 +31,7 @@ The Event Hub builder creates event hub namespaces, event hubs, consumer groups 
 | Event Hub | add_consumer_group | Creates a consumer group for the event hub. |
 | Event Hub | add_authorization_rule | Adds a named authorization rule on the event hub. |
 | Event Hub | link_to_namespace | Sets the name of an existing or already-defined event hub namespace that this event hub should link to. |
+| Event Hub | capture_to_storage | Activates [Event Hub data capture](https://docs.microsoft.com/en-us/azure/event-hubs/event-hubs-capture-overview) to a Storage Account. Takes in a storage account or resource name, and the container to write events to.
 
 #### Configuration Members
 | Member | Purpose |
