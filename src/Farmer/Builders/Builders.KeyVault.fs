@@ -47,6 +47,15 @@ type SecretConfig =
       ActivationDate : DateTime option
       ExpirationDate : DateTime option
       Dependencies : ResourceName list }
+    static member internal CreateUnsafe key =
+        { Key = key
+          Value = ParameterSecret(SecureParameter key)
+          ContentType = None
+          Enabled = None
+          ActivationDate = None
+          ExpirationDate = None
+          Dependencies = [] }
+
     static member Create (key:string) =
         let charRulesPassed =
             let charRules = [ Char.IsLetterOrDigit; (=) '-' ]
@@ -59,13 +68,7 @@ type SecretConfig =
         if not (charRulesPassed && stringRulesPassed) then
             failwithf "Key Vault key names must be a 1-127 character string, starting with a letter and containing only 0-9, a-z, A-Z, and -. '%s' is invalid." key
 
-        { Key = key
-          Value = ParameterSecret(SecureParameter key)
-          ContentType = None
-          Enabled = None
-          ActivationDate = None
-          ExpirationDate = None
-          Dependencies = [] }
+        SecretConfig.CreateUnsafe key
     static member Create (key, expression, resourceOwner) =
         { SecretConfig.Create key with
             Value = ExpressionSecret expression
@@ -305,7 +308,7 @@ type KeyVaultBuilder() =
     member this.AddSecrets(state:KeyVaultBuilderState, items) = this.AddSecrets(state, items |> Seq.map(fun (key, resourceName:ResourceName, value) -> SecretConfig.Create (key, value, resourceName)))
 
 type SecretBuilder() =
-    member __.Yield (_:unit) = SecretConfig.Create ""
+    member __.Yield (_:unit) = SecretConfig.CreateUnsafe ""
     [<CustomOperation "name">]
     member __.Name(state:SecretConfig, name) = { state with Key = name; Value = ParameterSecret(SecureParameter name) }
     [<CustomOperation "value">]

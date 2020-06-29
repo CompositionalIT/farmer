@@ -18,6 +18,7 @@
     <Compile Include="Template.fs" />
     <Compile Include="AzCli.fs" />
     <Compile Include="Cosmos.fs" />
+    <Compile Include="KeyVault.fs" />
     <Compile Include="VirtualMachine.fs" />
     <Compile Include="ContainerRegistry.fs" />
     <Compile Include="PostgreSQL.fs" />

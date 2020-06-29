@@ -15,6 +15,7 @@ let allTests =
                 Storage.tests
                 ContainerRegistry.tests
                 ExpressRoute.tests
+                KeyVault.tests
                 ServiceBus.tests
                 VirtualMachine.tests
                 PostgreSQL.tests
