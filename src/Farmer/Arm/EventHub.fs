@@ -11,7 +11,7 @@ let consumerGroups = ResourceType "Microsoft.EventHub/namespaces/eventhubs/consu
 let authorizationRules = ResourceType "Microsoft.EventHub/namespaces/eventhubs/AuthorizationRules"
 
 type CaptureDestination =
-  | StorageAccount of ResourceName * containerName:string
+    | StorageAccount of ResourceName * containerName:string
 
 type Namespace =
     { Name : ResourceName
