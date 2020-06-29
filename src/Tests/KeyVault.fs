@@ -1,13 +1,7 @@
 module KeyVault
 
 open Expecto
-open Farmer
 open Farmer.Builders
-open Farmer.ExpressRoute
-open Microsoft.Azure.Management.Network
-open Microsoft.Azure.Management.Network.Models
-open Microsoft.Rest
-open System
 
 let tests = testList "KeyVault" [
     test "Can create secrets without popping" {
