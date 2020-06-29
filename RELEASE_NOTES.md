@@ -2,6 +2,8 @@ Release Notes
 =============
 ## 0.20.1
 * Fix a bug in KeyVault where key validation was applied incorrectly.
+* Allow optionally setting AccessPolicy permissions using the create helper.
+* Set LIST and GET as the default AccessPolicy permission set using the create helper.
 
 ## 0.20.0
 * Support for safely building resourceId expressions

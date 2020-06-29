@@ -47,7 +47,7 @@ type SecretConfig =
       ActivationDate : DateTime option
       ExpirationDate : DateTime option
       Dependencies : ResourceName list }
-    static member internal CreateUnsafe key =
+    static member internal createUnsafe key =
         { Key = key
           Value = ParameterSecret(SecureParameter key)
           ContentType = None
@@ -56,7 +56,7 @@ type SecretConfig =
           ExpirationDate = None
           Dependencies = [] }
 
-    static member Create (key:string) =
+    static member internal isValid key =
         let charRulesPassed =
             let charRules = [ Char.IsLetterOrDigit; (=) '-' ]
             key |> Seq.forall(fun c -> charRules |> Seq.exists(fun r -> r c))
@@ -67,10 +67,15 @@ type SecretConfig =
 
         if not (charRulesPassed && stringRulesPassed) then
             failwithf "Key Vault key names must be a 1-127 character string, starting with a letter and containing only 0-9, a-z, A-Z, and -. '%s' is invalid." key
+        else
+            ()
 
-        SecretConfig.CreateUnsafe key
-    static member Create (key, expression, resourceOwner) =
-        { SecretConfig.Create key with
+    static member create (key:string) =
+        SecretConfig.isValid key
+        SecretConfig.createUnsafe key
+
+    static member create (key, expression, resourceOwner) =
+        { SecretConfig.create key with
             Value = ExpressionSecret expression
             Dependencies = [ resourceOwner ] }
 
@@ -164,10 +169,10 @@ type AccessPolicyBuilder() =
 
 let accessPolicy = AccessPolicyBuilder()
 type AccessPolicy =
-    /// Quickly creates an access policy for the supplied Principal that can GET secrets.
-    static member create (principal:PrincipalId) = accessPolicy { object_id principal; secret_permissions [ Secret.Get ] }
-    /// Quickly creates an access policy for the supplied ObjectId that can GET secrets.
-    static member create (objectId:ObjectId) = accessPolicy { object_id objectId; secret_permissions [ Secret.Get ] }
+    /// Quickly creates an access policy for the supplied Principal. If no permissions are supplied, defaults to GET and LIST.
+    static member create (principal:PrincipalId, ?permissions) = accessPolicy { object_id principal; secret_permissions (permissions |> Option.defaultValue Secret.ReadSecrets) }
+    /// Quickly creates an access policy for the supplied ObjectId. If no permissions are supplied, defaults to GET and LIST.
+    static member create (objectId:ObjectId, ?permissions) = accessPolicy { object_id objectId; secret_permissions (permissions |> Option.defaultValue Secret.ReadSecrets) }
     static member private findEntity (searchField, values, searcher) =
         values
         |> Seq.map (sprintf "%s eq '%s'" searchField)
@@ -296,19 +301,22 @@ type KeyVaultBuilder() =
     /// Allows to add a secret to the vault.
     [<CustomOperation "add_secret">]
     member __.AddSecret(state:KeyVaultBuilderState, key:SecretConfig) = { state with Secrets = key :: state.Secrets }
-    member this.AddSecret(state:KeyVaultBuilderState, key:string) = this.AddSecret(state, SecretConfig.Create key)
-    member this.AddSecret(state:KeyVaultBuilderState, (key, builder:#IBuilder, value)) = this.AddSecret(state, SecretConfig.Create(key, value, builder.DependencyName))
-    member this.AddSecret(state:KeyVaultBuilderState, (key, resourceName, value)) = this.AddSecret(state, SecretConfig.Create(key, value, resourceName))
+    member this.AddSecret(state:KeyVaultBuilderState, key:string) = this.AddSecret(state, SecretConfig.create key)
+    member this.AddSecret(state:KeyVaultBuilderState, (key, builder:#IBuilder, value)) = this.AddSecret(state, SecretConfig.create(key, value, builder.DependencyName))
+    member this.AddSecret(state:KeyVaultBuilderState, (key, resourceName, value)) = this.AddSecret(state, SecretConfig.create(key, value, resourceName))
 
     /// Allows to add multiple secrets to the vault.
     [<CustomOperation "add_secrets">]
     member this.AddSecrets(state:KeyVaultBuilderState, keys) = keys |> Seq.fold(fun state (key:SecretConfig) -> this.AddSecret(state, key)) state
-    member this.AddSecrets(state:KeyVaultBuilderState, keys) = this.AddSecrets(state, keys |> Seq.map SecretConfig.Create)
-    member this.AddSecrets(state:KeyVaultBuilderState, items) = this.AddSecrets(state, items |> Seq.map(fun (key, builder:#IBuilder, value) -> SecretConfig.Create (key, value, builder.DependencyName)))
-    member this.AddSecrets(state:KeyVaultBuilderState, items) = this.AddSecrets(state, items |> Seq.map(fun (key, resourceName:ResourceName, value) -> SecretConfig.Create (key, value, resourceName)))
+    member this.AddSecrets(state:KeyVaultBuilderState, keys) = this.AddSecrets(state, keys |> Seq.map SecretConfig.create)
+    member this.AddSecrets(state:KeyVaultBuilderState, items) = this.AddSecrets(state, items |> Seq.map(fun (key, builder:#IBuilder, value) -> SecretConfig.create (key, value, builder.DependencyName)))
+    member this.AddSecrets(state:KeyVaultBuilderState, items) = this.AddSecrets(state, items |> Seq.map(fun (key, resourceName:ResourceName, value) -> SecretConfig.create (key, value, resourceName)))
 
 type SecretBuilder() =
-    member __.Yield (_:unit) = SecretConfig.CreateUnsafe ""
+    member __.Run(state:SecretConfig) =
+        SecretConfig.isValid state.Key
+        state
+    member __.Yield (_:unit) = SecretConfig.createUnsafe ""
     [<CustomOperation "name">]
     member __.Name(state:SecretConfig, name) = { state with Key = name; Value = ParameterSecret(SecureParameter name) }
     [<CustomOperation "value">]
