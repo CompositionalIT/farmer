@@ -22,22 +22,21 @@ type EventHubConfig =
       MessageRetentionInDays : int option
       Partitions : int
       ConsumerGroups : string Set
+      CaptureDestination : CaptureDestination option
       AuthorizationRules : Map<ResourceName, AuthorizationRuleRight Set> }
-    member private this.ToKeyExpression = sprintf "listkeys(%s, '2017-04-01').primaryConnectionString" >> ArmExpression
+    member private this.ToKeyExpression = sprintf "listkeys(%s, '2017-04-01').primaryConnectionString"
 
     /// Gets an ARM expression for the path to the key of a specific authorization rule for this event hub.
     member this.GetKey (ruleName:string) =
-        sprintf "resourceId('Microsoft.EventHub/namespaces/eventhubs/authorizationRules', '%s', '%s', '%s')"
-            this.EventHubNamespace.ResourceName.Value
-            this.Name.Value
-            ruleName
-        |> this.ToKeyExpression
+        ArmExpression
+            .resourceId(authorizationRules, this.EventHubNamespace.ResourceName, this.Name, ResourceName ruleName)
+            .Map this.ToKeyExpression
 
     /// Gets an ARM expression for the path to the key of the default RootManageSharedAccessKey for the entire namespace.
     member this.DefaultKey =
-        sprintf "resourceId('Microsoft.EventHub/namespaces/authorizationRules', '%s', 'RootManageSharedAccessKey')"
-            this.EventHubNamespace.ResourceName.Value
-        |> this.ToKeyExpression
+        ArmExpression
+            .resourceId(authorizationRules, this.EventHubNamespace.ResourceName, ResourceName "RootManageSharedAccessKey")
+            .Map this.ToKeyExpression
     interface IBuilder with
         member this.DependencyName = this.EventHubNamespace.ResourceName
         member this.BuildResources location = [
@@ -46,7 +45,8 @@ type EventHubConfig =
                 match this.EventHubNamespace with
                 | External _ ->
                     None
-                | AutomaticPlaceholder | AutomaticallyCreated _ ->
+                | AutomaticPlaceholder
+                | AutomaticallyCreated _ ->
                     { Name = eventHubNamespaceName
                       Location = location
                       Sku =
@@ -61,14 +61,20 @@ type EventHubConfig =
                   Location = location
                   MessageRetentionDays = this.MessageRetentionInDays
                   Partitions = this.Partitions
-                  Dependencies = [ eventHubNamespaceName ] }
+                  CaptureDestination = this.CaptureDestination
+                  Dependencies = [
+                      eventHubNamespaceName
+                      match this.CaptureDestination with
+                      | Some (StorageAccount(name, _)) -> name
+                      | None -> ()
+                  ] }
             let consumerGroups =
                 [ for consumerGroup in this.ConsumerGroups ->
                     { Name = eventHub.Name.Map(fun name -> sprintf "%s/%s" eventHub.Name.Value consumerGroup)
                       Location = location
                       Dependencies = [
                           eventHubNamespaceName
-                          this.Name.Map(sprintf "[resourceId('Microsoft.EventHub/namespaces/eventhubs', '%s', '%s')]" eventHubNamespaceName.Value)
+                          ArmExpression.resourceId(eventHubs, eventHubNamespaceName, this.Name).Eval() |> ResourceName
                       ]
                     }
                 ]
@@ -77,8 +83,8 @@ type EventHubConfig =
                     { Name = rule.Key.Map(sprintf "%s/%s/%s" eventHubNamespaceName.Value this.Name.Value)
                       Location = location
                       Dependencies = [
-                          eventHubNamespaceName.Map(sprintf "[resourceId('Microsoft.EventHub/namespaces', '%s')]")
-                          this.Name.Map(sprintf "[resourceId('Microsoft.EventHub/namespaces/eventhubs', '%s', '%s')]" eventHubNamespaceName.Value)
+                          ArmExpression.resourceId(namespaces, eventHubNamespaceName).Eval() |> ResourceName
+                          ArmExpression.resourceId(eventHubs, eventHubNamespaceName, this.Name).Eval() |> ResourceName
                       ]
                       Rights = rule.Value }
                 ]
@@ -100,6 +106,7 @@ type EventHubBuilder() =
           KafkaEnabled = None
           MessageRetentionInDays = None
           Partitions = 1
+          CaptureDestination = None
           ConsumerGroups = Set [ "$Default" ]
           AuthorizationRules = Map.empty }
     member __.Run state =
@@ -142,5 +149,11 @@ type EventHubBuilder() =
     member __.AddConsumerGroup(state:EventHubConfig, name) = { state with ConsumerGroups = state.ConsumerGroups.Add name }
     [<CustomOperation "add_authorization_rule">]
     member __.AddAuthorizationRule(state:EventHubConfig, name, rights) = { state with AuthorizationRules = state.AuthorizationRules.Add(ResourceName name, Set rights) }
+    [<CustomOperation "capture_to_storage">]
+    member _.CaptureToStorage(state:EventHubConfig, storageName:ResourceName, container) =
+        { state with
+            CaptureDestination = Some (StorageAccount(storageName, container)) }
+    member this.CaptureToStorage(state:EventHubConfig, storageAccount:StorageAccountConfig, container) =
+        this.CaptureToStorage(state, storageAccount.Name, container)
 
 let eventHub = EventHubBuilder()
