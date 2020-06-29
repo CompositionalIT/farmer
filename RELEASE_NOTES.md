@@ -1,5 +1,8 @@
 Release Notes
 =============
+## 0.20.1
+* Fix a bug in KeyVault where key validation was applied incorrectly.
+
 ## 0.20.0
 * Support for safely building resourceId expressions
 * Simplify construction of ARM resources
