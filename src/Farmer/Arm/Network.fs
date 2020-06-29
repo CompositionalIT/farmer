@@ -4,6 +4,7 @@ module Farmer.Arm.Network
 open Farmer
 open Farmer.CoreTypes
 open Farmer.ExpressRoute
+open Farmer.VirtualNetworkGateway
 open System.Net
 
 let connections = ResourceType "Microsoft.Network/connections"
@@ -61,6 +62,95 @@ type VirtualNetwork =
                                          |})
                                   |}
                            |})
+                    |}
+            |} :> _
+type VirtualNetworkGateway =
+    { Name : ResourceName
+      Location : Location
+      IpConfigs : {| Name : ResourceName
+                     PrivateIpAllocationMethod : PrivateIpAllocationMethod
+                     PublicIpName : ResourceName |} list
+      VirtualNetwork : ResourceName
+      GatewayType : GatewayType
+      VpnType : VpnType
+      EnableBgp : bool }
+    interface IArmResource with
+        member this.ResourceName = this.Name
+        member this.JsonModel =
+            {| ``type`` = "Microsoft.Network/virtualNetworkGateways"
+               apiVersion = "2020-05-01"
+               name = this.Name.Value
+               location = this.Location.ArmValue
+               dependsOn = [
+                   sprintf "[resourceId('Microsoft.Network/virtualNetworks', '%s')]" this.VirtualNetwork.Value
+                   for config in this.IpConfigs do
+                       sprintf "[resourceId('Microsoft.Network/publicIPAddresses','%s')]" config.PublicIpName.Value 
+               ]
+               properties =
+                    {| ipConfigurations = this.IpConfigs
+                        |> List.mapi(fun index ipConfig ->
+                           {| name = sprintf "ipconfig%i" (index + 1)
+                              properties =
+                                let allocationMethod, ip =
+                                    match ipConfig.PrivateIpAllocationMethod with
+                                    | DynamicPrivateIp -> "Dynamic", null
+                                    | StaticPrivateIp ip -> "Static", string ip
+                                {| privateIpAllocationMethod = allocationMethod; privateIpAddress = ip
+                                   publicIPAddress = {| id = sprintf "[resourceId('Microsoft.Network/publicIPAddresses','%s')]" ipConfig.PublicIpName.Value |}
+                                   subnet = {| id = sprintf "[resourceId('Microsoft.Network/virtualNetworks/subnets', '%s', 'GatewaySubnet')]" this.VirtualNetwork.Value |} |}
+                           |})
+                       sku =
+                           match this.GatewayType with
+                           | GatewayType.ExpressRoute sku -> {| name = sku.ArmValue; tier = sku.ArmValue |}
+                           | GatewayType.Vpn sku -> {| name = sku.ArmValue; tier = sku.ArmValue |}
+                       gatewayType = this.GatewayType.ArmValue
+                       vpnType = this.VpnType.ArmValue
+                       enableBgp = this.EnableBgp
+                       activeActive = this.IpConfigs |> List.length > 1
+                    |}
+            |} :> _
+type Connection =
+    { Name : ResourceName
+      Location : Location
+      ConnectionType : ConnectionType
+      VirtualNetworkGateway1 : ResourceName
+      VirtualNetworkGateway2 : ResourceName option
+      LocalNetworkGateway : ResourceName option
+      PeerId : string option
+      AuthorizationKey : string option }
+    interface IArmResource with
+        member this.ResourceName = this.Name
+        member this.JsonModel =
+            {| ``type`` = "Microsoft.Network/connections"
+               apiVersion = "2020-04-01"
+               name = this.Name.Value
+               location = this.Location.ArmValue
+               dependsOn = [
+                   sprintf "[resourceId('Microsoft.Network/virtualNetworksGateways', '%s')]" this.VirtualNetworkGateway1.Value
+                   if this.VirtualNetworkGateway2.IsSome then
+                       sprintf "[resourceId('Microsoft.Network/virtualNetworksGateways', '%s')]" this.VirtualNetworkGateway2.Value.Value
+                   if this.LocalNetworkGateway.IsSome then
+                       sprintf "[resourceId('Microsoft.Network/localNetworksGateways', '%s')]" this.LocalNetworkGateway.Value.Value
+               ]
+               properties =
+                    {| authorizationKey =
+                           match this.AuthorizationKey with
+                           | Some key -> key
+                           | None -> Unchecked.defaultof<_>
+                       connectionType = this.ConnectionType.ArmValue
+                       virtualNetworkGateway1 = {| id = sprintf "[resourceId('Microsoft.Network/virtualNetworksGateways', '%s')]" this.VirtualNetworkGateway1.Value |}
+                       virtualNetworkGateway2 =
+                           match this.VirtualNetworkGateway2 with
+                           | Some vng2 -> {| id = sprintf "[resourceId('Microsoft.Network/virtualNetworksGateways', '%s')]" vng2.Value |}
+                           | None -> Unchecked.defaultof<_>
+                       localNetworkGateway1 =
+                           match this.LocalNetworkGateway with
+                           | Some lng -> {| id = sprintf "[resourceId('Microsoft.Network/localNetworksGateways', '%s')]" lng.Value |}
+                           | None -> Unchecked.defaultof<_>
+                       peer =
+                           match this.PeerId with
+                           | Some peerId -> {| id = peerId |}
+                           | None -> Unchecked.defaultof<_>
                     |}
             |} :> _
 type NetworkInterface =
