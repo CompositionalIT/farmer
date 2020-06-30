@@ -1,34 +1,12 @@
-﻿open Farmer
+open Farmer
 open Farmer.Builders
-open Farmer.CoreTypes
 
-let myApp = functions {
-    name "isaacswebapp"
-    secret_setting "thesecret"
-    setting "thepublic" "value"
-    app_insights_off
-    enable_managed_identity
-}
-
-let users = [
-    "isaac@compositional-it.com"
-    "prashant@compositional-it.com"
-    "alican@compositional-it.com" ]
-
-let kv = keyVault {
-    name "isaacskeyvault"
-    add_access_policies [
-        for user in AccessPolicy.findUsers users do
-            AccessPolicy.create user.ObjectId
-        for group in AccessPolicy.findGroups [ "Developers" ] do
-            AccessPolicy.create group.ObjectId
-    ]
-}
+//TODO: Create resources here!
 
 let deployment = arm {
     location Location.NorthEurope
-    add_resource myApp
-    add_resource kv
+
+    //TODO: Assign resources here using the add_resource keyword
 }
 
 // Generate the ARM template here...
@@ -36,6 +14,5 @@ deployment
 |> Writer.quickWrite @"generated-template"
 
 // Or deploy it directly to Azure here... (required Azure CLI installed!)
-deployment
-|> Deploy.execute "my-resource-group" [ "thesecret", "thevalue" ]
-|> printfn "%A"
+// deployment
+// |> Deploy.execute "my-resource-group" Deploy.NoParameters
