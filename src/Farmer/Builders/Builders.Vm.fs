@@ -8,6 +8,7 @@ open Farmer.Helpers
 open Farmer.Arm.Compute
 open Farmer.Arm.Network
 open Farmer.Arm.Storage
+open System
 
 let makeName (vmName:ResourceName) elementType = sprintf "%s-%s" vmName.Value elementType
 let makeResourceName vmName = makeName vmName >> ResourceName
@@ -23,6 +24,7 @@ type VmConfig =
       DataDisks : DiskInfo list
 
       CustomScript : string option
+      CustomScriptFiles : Uri list
 
       DomainNamePrefix : string option
 
@@ -69,7 +71,8 @@ type VmConfig =
                   Location = location
                   VirtualMachine = this.Name
                   OS = this.Image.OS
-                  ScriptContents = script }
+                  ScriptContents = script
+                  FileUris = this.CustomScriptFiles }
             | None ->
                 ()
 
@@ -129,8 +132,9 @@ type VirtualMachineBuilder() =
           Size = Basic_A0
           Username = None
           Image = WindowsServer_2012Datacenter
-          DataDisks = [ ]
+          DataDisks = []
           CustomScript = None
+          CustomScriptFiles = []
           DomainNamePrefix = None
           OsDisk = { Size = 128; DiskType = DiskType.Standard_LRS }
           AddressPrefix = "10.0.0.0/16"
@@ -218,5 +222,7 @@ type VirtualMachineBuilder() =
     member __.DependsOn(state:VmConfig, resource:IArmResource) = { state with DependsOn = resource.ResourceName :: state.DependsOn }
     [<CustomOperation "custom_script">]
     member _.CustomScript(state:VmConfig, script:string) = { state with CustomScript = Some script }
+    [<CustomOperation "custom_script_files">]
+    member _.CustomScriptFiles(state:VmConfig, uris:string list) = { state with CustomScriptFiles = uris |> List.map Uri }
 
 let vm = VirtualMachineBuilder()

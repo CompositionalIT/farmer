@@ -14,6 +14,7 @@ type CustomScriptExtension =
     { Name : ResourceName
       Location : Location
       VirtualMachine : ResourceName
+      FileUris : Uri list
       ScriptContents : string
       OS : OS }
     interface IArmResource with
@@ -33,10 +34,8 @@ type CustomScriptExtension =
                        ``type`` = "CustomScriptExtension"
                        typeHandlerVersion = "1.10"
                        autoUpgradeMinorVersion = true
-                       settings =
-                        {| fileUris = []
-                           commandToExecute = this.ScriptContents
-                        |}
+                       settings = {| fileUris = this.FileUris |> List.map string |}
+                       protectedSettings = {| commandToExecute = this.ScriptContents |}
                     |} |> box
                 | Linux ->
                     {| publisher = "Microsoft.Azure.Extensions"
@@ -44,7 +43,10 @@ type CustomScriptExtension =
                        typeHandlerVersion = "2.1"
                        autoUpgradeMinorVersion = true
                        protectedSettings =
-                        {| script =
+                        {| fileUris =
+                            this.FileUris
+                            |> List.map string
+                           script =
                             this.ScriptContents
                             |> Encoding.UTF8.GetBytes
                             |> Convert.ToBase64String |}
