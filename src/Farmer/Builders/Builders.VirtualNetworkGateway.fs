@@ -26,11 +26,11 @@ type VNetGatewayConfig =
       EnableBgp : bool }
     interface IBuilder with
         member this.DependencyName = this.Name
-        member this.BuildResources location _ = [
+        member this.BuildResources location = [
             if this.GatewayPublicIpName = ResourceName.Empty then
                 yield { // No public IP set, so generate one named after the gateway
                     Name = ResourceName (sprintf "%s-ip" this.Name.Value)
-                    Location = Location.NorthEurope
+                    Location = location
                     DomainNameLabel = None
                 }
             yield {
@@ -106,7 +106,7 @@ type ConnectionConfig =
       AuthorizationKey : string option }
     interface IBuilder with
         member this.DependencyName = this.Name
-        member this.BuildResources location _ = [
+        member this.BuildResources location = [
             { Name = this.Name
               Location = location
               ConnectionType = this.ConnectionType
