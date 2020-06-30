@@ -10,6 +10,9 @@ let eventHubs = ResourceType "Microsoft.EventHub/namespaces/eventhubs"
 let consumerGroups = ResourceType "Microsoft.EventHub/namespaces/eventhubs/consumergroups"
 let authorizationRules = ResourceType "Microsoft.EventHub/namespaces/eventhubs/AuthorizationRules"
 
+type CaptureDestination =
+    | StorageAccount of ResourceName * containerName:string
+
 type Namespace =
     { Name : ResourceName
       Location : Location
@@ -30,19 +33,19 @@ type Namespace =
                name = this.Name.Value
                location = this.Location.ArmValue
                sku =
-                   {| name = string this.Sku.Name
-                      tier = string this.Sku.Name
-                      capacity = this.Sku.Capacity |}
+                    {| name = string this.Sku.Name
+                       tier = string this.Sku.Name
+                       capacity = this.Sku.Capacity |}
                properties =
-                   {| zoneRedundant = this.ZoneRedundant |> Option.toNullable
-                      isAutoInflateEnabled =
+                    {| zoneRedundant = this.ZoneRedundant |> Option.toNullable
+                       isAutoInflateEnabled =
                         this.AutoInflateSettings
                         |> Option.map (function
                             | AutoInflate _ -> true
                             | ManualInflate -> false)
                         |> Option.toNullable
-                      maximumThroughputUnits = this.MaxThroughputUnits |> Option.toNullable
-                      kafkaEnabled = this.KafkaEnabled |> Option.toNullable |}
+                       maximumThroughputUnits = this.MaxThroughputUnits |> Option.toNullable
+                       kafkaEnabled = this.KafkaEnabled |> Option.toNullable |}
             |} :> _
 module Namespaces =
     type EventHub =
@@ -50,7 +53,8 @@ module Namespaces =
           Location : Location
           MessageRetentionDays : int option
           Partitions : int
-          Dependencies : ResourceName list }
+          Dependencies : ResourceName list
+          CaptureDestination : CaptureDestination option }
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
@@ -60,9 +64,25 @@ module Namespaces =
                   location = this.Location.ArmValue
                   dependsOn = this.Dependencies |> List.map(fun d -> d.Value)
                   properties =
-                      {| messageRetentionInDays = this.MessageRetentionDays |> Option.toNullable
-                         partitionCount = this.Partitions
-                         status = "Active" |}
+                    {| messageRetentionInDays = this.MessageRetentionDays |> Option.toNullable
+                       partitionCount = this.Partitions
+                       status = "Active"
+                       captureDescription =
+                        match this.CaptureDestination with
+                        | Some (StorageAccount(name, container)) ->
+                            {| enabled = true
+                               encoding = "Avro"
+                               destination =
+                                {| name = "EventHubArchive.AzureBlockBlob"
+                                   properties =
+                                    {| storageAccountResourceId = ArmExpression.resourceId(storageAccounts, name).Eval()
+                                       blobContainer = container
+                                    |}
+                                |}
+                            |} |> box
+                        | None ->
+                            null
+                    |}
                |} :> _
     module EventHubs =
         type ConsumerGroup =
@@ -94,4 +114,3 @@ module Namespaces =
                        dependsOn = this.Dependencies |> List.map(fun d -> d.Value)
                        properties = {| rights = this.Rights |> Set.map string |> Set.toList |}
                     |} :> _
-

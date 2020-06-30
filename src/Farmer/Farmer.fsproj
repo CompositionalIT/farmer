@@ -50,6 +50,7 @@
     <Compile Include="Writer.fs" />
     <Compile Include="Deploy.fs" />
 
+    <Compile Include="Arm/Storage.fs" />
     <Compile Include="Arm/Cache.fs" />
     <Compile Include="Arm/Cdn.fs" />
     <Compile Include="Arm/CognitiveServices.fs" />
@@ -67,7 +68,6 @@
     <Compile Include="Arm/Search.fs" />
     <Compile Include="Arm/ServiceBus.fs" />
     <Compile Include="Arm/Sql.fs" />
-    <Compile Include="Arm/Storage.fs" />
     <Compile Include="Arm/Web.fs" />
     <Compile Include="Arm/Maps.fs" />
     <Compile Include="Arm/SignalR.fs" />
