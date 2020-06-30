@@ -22,6 +22,8 @@ type VmConfig =
       OsDisk : DiskInfo
       DataDisks : DiskInfo list
 
+      CustomScript : string option
+
       DomainNamePrefix : string option
 
       VNetName : ResourceRef
@@ -59,6 +61,17 @@ type VmConfig =
               Image = this.Image
               OsDisk = this.OsDisk
               DataDisks = this.DataDisks }
+
+            // Custom Script
+            match this.CustomScript with
+            | Some script ->
+                { Name = this.Name.Map(sprintf "%s-custom-script")
+                  Location = location
+                  VirtualMachine = this.Name
+                  OS = this.Image.OS
+                  ScriptContents = script }
+            | None ->
+                ()
 
             let vnetName =
                 this.VNetName.ResourceNameOpt
@@ -117,6 +130,7 @@ type VirtualMachineBuilder() =
           Username = None
           Image = WindowsServer_2012Datacenter
           DataDisks = [ ]
+          CustomScript = None
           DomainNamePrefix = None
           OsDisk = { Size = 128; DiskType = DiskType.Standard_LRS }
           AddressPrefix = "10.0.0.0/16"
@@ -166,8 +180,8 @@ type VirtualMachineBuilder() =
     [<CustomOperation "operating_system">]
     member __.ConfigureOs(state:VmConfig, image) =
         { state with Image = image }
-    member __.ConfigureOs(state:VmConfig, (offer, publisher, sku)) =
-        { state with Image = { Offer = offer; Publisher = publisher; Sku = sku } }
+    member __.ConfigureOs(state:VmConfig, (os, offer, publisher, sku)) =
+        { state with Image = { OS = os; Offer = Offer offer; Publisher = Publisher publisher; Sku = ImageSku sku } }
     /// Sets the size and type of the OS disk for the VM.
     [<CustomOperation "os_disk">]
     member __.OsDisk(state:VmConfig, size, diskType) =
@@ -202,5 +216,7 @@ type VirtualMachineBuilder() =
     member __.DependsOn(state:VmConfig, resourceName) = { state with DependsOn = resourceName :: state.DependsOn }
     member __.DependsOn(state:VmConfig, resource:IBuilder) = { state with DependsOn = resource.DependencyName :: state.DependsOn }
     member __.DependsOn(state:VmConfig, resource:IArmResource) = { state with DependsOn = resource.ResourceName :: state.DependsOn }
+    [<CustomOperation "custom_script">]
+    member _.CustomScript(state:VmConfig, script:string) = { state with CustomScript = Some script }
 
 let vm = VirtualMachineBuilder()

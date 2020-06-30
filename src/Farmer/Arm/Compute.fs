@@ -4,8 +4,52 @@ module Farmer.Arm.Compute
 open Farmer
 open Farmer.CoreTypes
 open Farmer.Vm
+open System
+open System.Text
 
 let virtualMachines = ResourceType "Microsoft.Compute/virtualMachines"
+let extensions = ResourceType "Microsoft.Compute/virtualMachines/extensions"
+
+type CustomScriptExtension =
+    { Name : ResourceName
+      Location : Location
+      VirtualMachine : ResourceName
+      ScriptContents : string
+      OS : OS }
+    interface IArmResource with
+        member this.ResourceName = this.Name
+        member this.JsonModel =
+            {| ``type`` = extensions.ArmValue
+               apiVersion = "2019-12-01"
+               name = this.VirtualMachine.Value + "/" + this.Name.Value
+               location = this.Location.ArmValue
+               dependsOn = [
+                   this.VirtualMachine.Value
+               ]
+               properties =
+                match this.OS with
+                | Windows ->
+                    {| publisher = "Microsoft.Compute"
+                       ``type`` = "CustomScriptExtension"
+                       typeHandlerVersion = "1.10"
+                       autoUpgradeMinorVersion = true
+                       settings =
+                        {| fileUris = []
+                           commandToExecute = this.ScriptContents
+                        |}
+                    |} |> box
+                | Linux ->
+                    {| publisher = "Microsoft.Azure.Extensions"
+                       ``type`` = "CustomScript"
+                       typeHandlerVersion = "2.1"
+                       autoUpgradeMinorVersion = true
+                       protectedSettings =
+                        {| script =
+                            this.ScriptContents
+                            |> Encoding.UTF8.GetBytes
+                            |> Convert.ToBase64String |}
+                    |} :> _
+            |} :> _
 
 type VirtualMachine =
     { Name : ResourceName

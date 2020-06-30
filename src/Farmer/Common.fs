@@ -237,17 +237,20 @@ module Vm =
     type ImageDefinition =
         { Offer : Offer
           Publisher : Publisher
-          Sku : VmImageSku }
-    let makeVm offer publisher sku = { Offer = Offer offer; Publisher = Publisher publisher; Sku = ImageSku sku }
-    let makeWindowsVm = makeVm "WindowsServer" "MicrosoftWindowsServer"
+          Sku : VmImageSku
+          OS : OS }
+    let makeVm os offer publisher sku = { Offer = Offer offer; Publisher = Publisher publisher; OS = os; Sku = ImageSku sku }
+    let makeWindowsVm = makeVm Windows "WindowsServer" "MicrosoftWindowsServer"
+    let makeLinuxVm = makeVm Linux
 
-    let CentOS_75 = makeVm "CentOS" "OpenLogic" "7.5"
-    let CoreOS_Stable = makeVm "CoreOS" "CoreOS" "Stable"
-    let debian_10 = makeVm "debian-10" "Debian" "10"
-    let openSUSE_423 = makeVm "openSUSE-Leap" "SUSE" "42.3"
-    let RHEL_7RAW = makeVm "RHEL" "RedHat" "7-RAW"
-    let SLES_15 = makeVm "SLES" "SUSE" "15"
-    let UbuntuServer_1804LTS = makeVm "UbuntuServer" "Canonical" "18.04-LTS"
+    let CentOS_75 = makeLinuxVm "CentOS" "OpenLogic" "7.5"
+    let CoreOS_Stable = makeLinuxVm "CoreOS" "CoreOS" "Stable"
+    let debian_10 = makeLinuxVm "debian-10" "Debian" "10"
+    let openSUSE_423 = makeLinuxVm "openSUSE-Leap" "SUSE" "42.3"
+    let RHEL_7RAW = makeLinuxVm "RHEL" "RedHat" "7-RAW"
+    let SLES_15 = makeLinuxVm "SLES" "SUSE" "15"
+    let UbuntuServer_1804LTS = makeLinuxVm "UbuntuServer" "Canonical" "18.04-LTS"
+
     let WindowsServer_2019Datacenter = makeWindowsVm "2019-Datacenter"
     let WindowsServer_2016Datacenter = makeWindowsVm "2016-Datacenter"
     let WindowsServer_2012R2Datacenter = makeWindowsVm "2012-R2-Datacenter"
