@@ -33,6 +33,7 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 |domain_name_prefix | Sets the prefix for the domain name of the VM. |
 |address_prefix | Sets the IP address prefix of the VM. |
 |subnet_prefix | Sets the subnet prefix of the VM. |
+|custom_script | Executes the supplied inline custom script on the VM. |
 
 #### Configuration Members
 

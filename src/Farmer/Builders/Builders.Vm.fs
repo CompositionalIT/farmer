@@ -8,6 +8,7 @@ open Farmer.Helpers
 open Farmer.Arm.Compute
 open Farmer.Arm.Network
 open Farmer.Arm.Storage
+open System
 
 let makeName (vmName:ResourceName) elementType = sprintf "%s-%s" vmName.Value elementType
 let makeResourceName vmName = makeName vmName >> ResourceName
@@ -21,6 +22,9 @@ type VmConfig =
       Size : VMSize
       OsDisk : DiskInfo
       DataDisks : DiskInfo list
+
+      CustomScript : string option
+      CustomScriptFiles : Uri list
 
       DomainNamePrefix : string option
 
@@ -59,6 +63,18 @@ type VmConfig =
               Image = this.Image
               OsDisk = this.OsDisk
               DataDisks = this.DataDisks }
+
+            // Custom Script
+            match this.CustomScript with
+            | Some script ->
+                { Name = this.Name.Map(sprintf "%s-custom-script")
+                  Location = location
+                  VirtualMachine = this.Name
+                  OS = this.Image.OS
+                  ScriptContents = script
+                  FileUris = this.CustomScriptFiles }
+            | None ->
+                ()
 
             let vnetName =
                 this.VNetName.ResourceNameOpt
@@ -116,7 +132,9 @@ type VirtualMachineBuilder() =
           Size = Basic_A0
           Username = None
           Image = WindowsServer_2012Datacenter
-          DataDisks = [ ]
+          DataDisks = []
+          CustomScript = None
+          CustomScriptFiles = []
           DomainNamePrefix = None
           OsDisk = { Size = 128; DiskType = DiskType.Standard_LRS }
           AddressPrefix = "10.0.0.0/16"
@@ -166,8 +184,8 @@ type VirtualMachineBuilder() =
     [<CustomOperation "operating_system">]
     member __.ConfigureOs(state:VmConfig, image) =
         { state with Image = image }
-    member __.ConfigureOs(state:VmConfig, (offer, publisher, sku)) =
-        { state with Image = { Offer = offer; Publisher = publisher; Sku = sku } }
+    member __.ConfigureOs(state:VmConfig, (os, offer, publisher, sku)) =
+        { state with Image = { OS = os; Offer = Offer offer; Publisher = Publisher publisher; Sku = ImageSku sku } }
     /// Sets the size and type of the OS disk for the VM.
     [<CustomOperation "os_disk">]
     member __.OsDisk(state:VmConfig, size, diskType) =
@@ -202,5 +220,9 @@ type VirtualMachineBuilder() =
     member __.DependsOn(state:VmConfig, resourceName) = { state with DependsOn = resourceName :: state.DependsOn }
     member __.DependsOn(state:VmConfig, resource:IBuilder) = { state with DependsOn = resource.DependencyName :: state.DependsOn }
     member __.DependsOn(state:VmConfig, resource:IArmResource) = { state with DependsOn = resource.ResourceName :: state.DependsOn }
+    [<CustomOperation "custom_script">]
+    member _.CustomScript(state:VmConfig, script:string) = { state with CustomScript = Some script }
+    [<CustomOperation "custom_script_files">]
+    member _.CustomScriptFiles(state:VmConfig, uris:string list) = { state with CustomScriptFiles = uris |> List.map Uri }
 
 let vm = VirtualMachineBuilder()
