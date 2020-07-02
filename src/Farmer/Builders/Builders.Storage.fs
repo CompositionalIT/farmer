@@ -6,6 +6,7 @@ open Farmer.CoreTypes
 open Farmer.Storage
 open Farmer.Arm.Storage
 open BlobServices
+open FileShares
 
 let internal buildKey (ResourceName name) =
     sprintf
@@ -20,7 +21,9 @@ type StorageAccountConfig =
       /// The sku of the storage account.
       Sku : Sku
       /// Containers for the storage account.
-      Containers : (ResourceName * StorageContainerAccess) list}
+      Containers : (ResourceName * StorageContainerAccess) list
+      /// File shares
+      FileShares: ResourceName list }
     /// Gets the ARM expression path to the key of this storage account.
     member this.Key = buildKey this.Name
     member this.Endpoint = sprintf "%s.blob.core.windows.net" this.Name.Value
@@ -34,10 +37,13 @@ type StorageAccountConfig =
                 { Name = name
                   StorageAccount = this.Name
                   Accessibility = access }
+            for name in this.FileShares do
+                { Name = name
+                  StorageAccount = this.Name }
         ]
 
 type StorageAccountBuilder() =
-    member __.Yield _ = { Name = ResourceName.Empty; Sku = Standard_LRS; Containers = [] }
+    member __.Yield _ = { Name = ResourceName.Empty; Sku = Standard_LRS; Containers = []; FileShares = [] }
     member _.Run(state:StorageAccountConfig) =
         { state with
             Name = state.Name |> Helpers.sanitiseStorage |> ResourceName }
@@ -59,6 +65,8 @@ type StorageAccountBuilder() =
     /// Adds container with anonymous read access for blobs only.
     [<CustomOperation "add_blob_container">]
     member __.AddBlobContainer(state:StorageAccountConfig, name) = StorageAccountBuilder.AddContainer(state, Blob, name)
+    [<CustomOperation "add_file_share">]
+    member __.AddFileShare(state:StorageAccountConfig, name) = { state with FileShares = state.FileShares @ [ ResourceName name ]}
 
 /// Allow adding storage accounts directly to CDNs
 type EndpointBuilder with

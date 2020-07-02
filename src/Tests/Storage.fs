@@ -43,4 +43,16 @@ let tests = testList "Storage Tests" [
         Expect.equal resources.[2].Name "storage/default/public" "public name is wrong"
         Expect.equal resources.[2].PublicAccess.Value PublicAccess.Container "container access is wrong"
     }
+    test "Creates file shares correctly" {
+        let resources : FileShare list =
+            let account = storageAccount {
+                name "storage"
+                add_file_share "share1"
+                add_file_share "share2"
+            }
+            [ for i in 1 .. 2 do account |> getResourceAtIndex client.SerializationSettings i ]
+
+        Expect.equal resources.[0].Name "storage/default/share1" "file share name for 'share1' is wrong"
+        Expect.equal resources.[1].Name "storage/default/share2" "file share name for 'share2' is wrong"
+    }
 ]
