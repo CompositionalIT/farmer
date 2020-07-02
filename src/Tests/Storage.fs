@@ -48,11 +48,12 @@ let tests = testList "Storage Tests" [
             let account = storageAccount {
                 name "storage"
                 add_file_share "share1"
-                add_file_share "share2"
+                add_file_share_with_quota "share2" 1024
             }
             [ for i in 1 .. 2 do account |> getResourceAtIndex client.SerializationSettings i ]
 
         Expect.equal resources.[0].Name "storage/default/share1" "file share name for 'share1' is wrong"
         Expect.equal resources.[1].Name "storage/default/share2" "file share name for 'share2' is wrong"
+        Expect.equal resources.[1].ShareQuota (Nullable 1024) "file share quota for 'share2' is wrong"
     }
 ]

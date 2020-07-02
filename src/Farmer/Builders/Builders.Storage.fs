@@ -70,8 +70,8 @@ type StorageAccountBuilder() =
     member __.AddBlobContainer(state:StorageAccountConfig, name) = StorageAccountBuilder.AddContainer(state, Blob, name)
     [<CustomOperation "add_file_share">]
     member __.AddFileShare(state:StorageAccountConfig, name) = { state with FileShares = state.FileShares @ [ ResourceName name, None ]}
-    [<CustomOperation "add_file_share">]
-    member __.AddFileShare(state:StorageAccountConfig, name, quota) = { state with FileShares = state.FileShares @ [ ResourceName name, Some quota ]}
+    [<CustomOperation "add_file_share_with_quota">]
+    member __.AddFileShareWithQuota(state:StorageAccountConfig, name, quota) = { state with FileShares = state.FileShares @ [ ResourceName name, Some quota ]}
 
 /// Allow adding storage accounts directly to CDNs
 type EndpointBuilder with
