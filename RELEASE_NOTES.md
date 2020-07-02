@@ -1,9 +1,15 @@
 Release Notes
 =============
+## 0.21.0
+* VNet Gateway support
+* Event Hub Capture support
+* Virtual Machine script support
+* Fix a bug where some ARM Expressions were sometimes incorrectly formed
+
 ## 0.20.1
-* Fix a bug in KeyVault where key validation was applied incorrectly.
-* Allow optionally setting AccessPolicy permissions using the create helper.
-* Set LIST and GET as the default AccessPolicy permission set using the create helper.
+* Fix a bug in KeyVault where key validation was applied incorrectly
+* Allow optionally setting AccessPolicy permissions using the create helper
+* Set LIST and GET as the default AccessPolicy permission set using the create helper
 
 ## 0.20.0
 * Support for safely building resourceId expressions
