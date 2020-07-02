@@ -29,7 +29,7 @@ type FunctionsConfig =
     /// Gets the system-created managed principal for the functions instance. It must have been enabled using enable_managed_identity.
     member this.SystemIdentity =
         sprintf "reference(resourceId('Microsoft.Web/sites', '%s'), '2019-08-01', 'full').identity.principalId" this.Name.Value
-        |> ArmExpression
+        |> ArmExpression.create
         |> PrincipalId
     /// Gets the ARM expression path to the publishing password of this functions app.
     member this.PublishingPassword = publishingPassword this.Name
@@ -44,11 +44,11 @@ type FunctionsConfig =
     /// Gets the default key for the functions site
     member this.DefaultKey =
         sprintf "listkeys(concat(resourceId('Microsoft.Web/sites', '%s'), '/host/default/'),'2016-08-01').functionKeys.default" this.Name.Value
-        |> ArmExpression
+        |> ArmExpression.create
     /// Gets the master key for the functions site
     member this.MasterKey =
         sprintf "listkeys(concat(resourceId('Microsoft.Web/sites', '%s'), '/host/default/'),'2016-08-01').masterKey" this.Name.Value
-        |> ArmExpression
+        |> ArmExpression.create
     /// Gets the Service Plan name for this functions app.
     member this.ServicePlan = this.ServicePlanName.ResourceName
     /// Gets the App Insights name for this functions app, if it exists.

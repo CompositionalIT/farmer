@@ -15,11 +15,11 @@ type SearchConfig =
     /// Gets an ARM expression for the admin key of the search instance.
     member this.AdminKey =
         sprintf "listAdminKeys('Microsoft.Search/searchServices/%s', '2015-08-19').primaryKey" this.Name.Value
-        |> ArmExpression
+        |> ArmExpression.create
     /// Gets an ARM expression for the query key of the search instance.
     member this.QueryKey =
         sprintf "listQueryKeys('Microsoft.Search/searchServices/%s', '2015-08-19').value[0].key" this.Name.Value
-        |> ArmExpression
+        |> ArmExpression.create
     interface IBuilder with
         member this.DependencyName = this.Name
         member this.BuildResources location = [

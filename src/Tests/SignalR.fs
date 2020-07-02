@@ -23,12 +23,12 @@ let tests = testList "SignalR" [
             arm { add_resource mySignalR }
             |> findAzureResources<SignalRResource> client.SerializationSettings
             |> List.head
-  
+
         resource.Validate()
         Expect.equal resource.Name "my-signalr" "Name does not match"
         Expect.equal resource.Sku.Name "Free_F1" "SKU does not match"
     }
-  
+
     test "Can create a SignalR account with specific allowed origins" {
         let resource =
             let mySignalR =
@@ -40,7 +40,7 @@ let tests = testList "SignalR" [
             arm { add_resource mySignalR }
             |> findAzureResources<SignalRResource> client.SerializationSettings
             |> List.head
-  
+
         resource.Validate()
         Expect.equal resource.Name "my-signalr" "Name does not match"
         Expect.equal resource.Sku.Name "Free_F1" "SKU does not match"
@@ -49,7 +49,7 @@ let tests = testList "SignalR" [
             [ "https://github.com"; "https://duckduckgo.com" ]
             "Missing some or all allowed origins"
     }
-    
+
     test "Can create a SignalR account with specific capacity" {
         let resource =
             let mySignalR =
@@ -61,10 +61,15 @@ let tests = testList "SignalR" [
             arm { add_resource mySignalR }
             |> findAzureResources<SignalRResource> client.SerializationSettings
             |> List.head
-  
+
         resource.Validate()
         Expect.equal resource.Name "my-signalr" "Name does not match"
         Expect.equal resource.Sku.Name "Standard_S1" "SKU does not match"
         Expect.equal resource.Sku.Capacity (Nullable 10) "Capacity does not match"
+    }
+
+    test "Key is correctly emitted" {
+        let mySignalR = signalR { name "my-signalr" }
+        Expect.equal "[listKeys(resourceId('Microsoft.SignalRService/SignalR', 'my-signalr'), providers('Microsoft.SignalRService', 'SignalR').apiVersions[0]).primaryConnectionString]" (mySignalR.Key.Eval()) "Key is incorrect"
     }
 ]

@@ -90,7 +90,7 @@ type ProvisioningServices =
         sprintf "concat('HostName=%s.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=',%s)"
             this.IotHubName.Value
             this.IotHubKey.Value
-        |> ArmExpression
+        |> ArmExpression.create
     member this.IotHubPath =
         sprintf "%s.azure-devices.net" this.IotHubName.Value
     interface IArmResource with

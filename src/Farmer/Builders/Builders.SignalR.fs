@@ -22,8 +22,8 @@ type SignalRConfig =
               AllowedOrigins = this.AllowedOrigins }
         ]
     member this.Key =
-        sprintf "[listKeys(resourceId('Microsoft.SignalRService/SignalR', variables('%s')), providers('Microsoft.SignalRService','SignalR').apiVersions[0]).primaryConnectionString]" this.Name.Value
-        |> ArmExpression
+        sprintf "listKeys(resourceId('Microsoft.SignalRService/SignalR', '%s'), providers('Microsoft.SignalRService', 'SignalR').apiVersions[0]).primaryConnectionString" this.Name.Value
+        |> ArmExpression.create
 
 type SignalRBuilder() =
     member _.Yield _ =
