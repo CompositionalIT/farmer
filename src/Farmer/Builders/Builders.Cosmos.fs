@@ -24,10 +24,12 @@ type CosmosDbConfig =
       PublicNetworkAccess : FeatureFlag
       FreeTier : bool }
     member this.PrimaryKey =
-        sprintf "[listKeys(resourceId('Microsoft.DocumentDB/databaseAccounts', '%s'), providers('Microsoft.DocumentDB','databaseAccounts').apiVersions[0]).primaryMasterKey]"
+        sprintf "listKeys(resourceId('Microsoft.DocumentDB/databaseAccounts', '%s'), providers('Microsoft.DocumentDB','databaseAccounts').apiVersions[0]).primaryMasterKey"
             this.AccountName.ResourceName.Value
+            |> ArmExpression
     member this.Endpoint =
-        sprintf "[reference(concat('Microsoft.DocumentDb/databaseAccounts/', '%s')).documentEndpoint]" this.AccountName.ResourceName.Value
+        sprintf "reference(concat('Microsoft.DocumentDb/databaseAccounts/', '%s')).documentEndpoint" this.AccountName.ResourceName.Value
+        |> ArmExpression
     interface IBuilder with
         member this.DependencyName = this.AccountName.ResourceName
         member this.BuildResources location = [
