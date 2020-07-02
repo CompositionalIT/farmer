@@ -6,10 +6,12 @@ chapter: false
 ---
 
 #### Overview
+
 The Storage Account builder creates storage accounts and their associated containers.
 
 * Storage Accounts (`Microsoft.Storage/storageAccounts`)
 * Storage Containers (`blobServices/containers`)
+* File Shares (`fileServices/shares`)
 
 #### Builder Keywords
 
@@ -20,6 +22,7 @@ The Storage Account builder creates storage accounts and their associated contai
 | add_public_container | Adds a general-purpose public storage container |
 | add_private_container | Adds a general-purpose private storage container |
 | add_blob_container | Adds a general-purpose private blob container |
+| add_file_share | Adds a file share to storage account (optional add the share quota in Gb) |
 
 #### Configuration Members
 
@@ -39,5 +42,7 @@ let storage = storageAccount {
     add_public_container "myPublicContainer"
     add_private_container "myPrivateContainer"
     add_blob_container "myBlobContainer"
+    add_file_share "share1"
+    add_file_share "share2" 1024
 }
 ```
