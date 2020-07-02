@@ -52,7 +52,7 @@ module FileShares =
         member this.ResourceName = this.Name
         member this.JsonModel =
             {| ``type`` = fileShares.ArmValue
-               apiVersion = "2019-04-01"
+               apiVersion = "2019-06-01"
                name = this.StorageAccount.Value + "/default/" + this.Name.Value
                dependsOn = [ this.StorageAccount.Value ]
             |} :> _
