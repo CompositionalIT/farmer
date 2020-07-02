@@ -15,6 +15,8 @@ let internal buildKey (ResourceName name) =
             name
     |> ArmExpression.create
 
+type ShareQuotaInGb = int
+
 type StorageAccountConfig =
     { /// The name of the storage account.
       Name : ResourceName
@@ -23,7 +25,7 @@ type StorageAccountConfig =
       /// Containers for the storage account.
       Containers : (ResourceName * StorageContainerAccess) list
       /// File shares
-      FileShares: ResourceName list }
+      FileShares: (ResourceName * ShareQuotaInGb option) list }
     /// Gets the ARM expression path to the key of this storage account.
     member this.Key = buildKey this.Name
     member this.Endpoint = sprintf "%s.blob.core.windows.net" this.Name.Value
@@ -37,8 +39,9 @@ type StorageAccountConfig =
                 { Name = name
                   StorageAccount = this.Name
                   Accessibility = access }
-            for name in this.FileShares do
+            for (name, shareQuota) in this.FileShares do
                 { Name = name
+                  ShareQuota = shareQuota
                   StorageAccount = this.Name }
         ]
 
@@ -66,7 +69,9 @@ type StorageAccountBuilder() =
     [<CustomOperation "add_blob_container">]
     member __.AddBlobContainer(state:StorageAccountConfig, name) = StorageAccountBuilder.AddContainer(state, Blob, name)
     [<CustomOperation "add_file_share">]
-    member __.AddFileShare(state:StorageAccountConfig, name) = { state with FileShares = state.FileShares @ [ ResourceName name ]}
+    member __.AddFileShare(state:StorageAccountConfig, name) = { state with FileShares = state.FileShares @ [ ResourceName name, None ]}
+    [<CustomOperation "add_file_share">]
+    member __.AddFileShare(state:StorageAccountConfig, name, quota) = { state with FileShares = state.FileShares @ [ ResourceName name, Some quota ]}
 
 /// Allow adding storage accounts directly to CDNs
 type EndpointBuilder with

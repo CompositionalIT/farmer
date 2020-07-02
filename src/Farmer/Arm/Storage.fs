@@ -47,6 +47,7 @@ module BlobServices =
 module FileShares =
   type FileShare = 
       { Name: ResourceName
+        ShareQuota: int option
         StorageAccount: ResourceName }
       interface IArmResource with
         member this.ResourceName = this.Name
@@ -54,5 +55,6 @@ module FileShares =
             {| ``type`` = fileShares.ArmValue
                apiVersion = "2019-06-01"
                name = this.StorageAccount.Value + "/default/" + this.Name.Value
+               properties = {| shareQuota = this.ShareQuota |> Option.defaultValue 5120 |}
                dependsOn = [ this.StorageAccount.Value ]
             |} :> _
