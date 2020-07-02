@@ -16,7 +16,7 @@ let tryCreateAppInsightsName aiName rootName =
 
 let instrumentationKey (ResourceName accountName) =
     sprintf "reference('Microsoft.Insights/components/%s').InstrumentationKey" accountName
-    |> ArmExpression
+    |> ArmExpression.create
 
 type AppInsightsConfig =
     { Name : ResourceName }

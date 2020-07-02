@@ -20,7 +20,7 @@ module Json =
 
 module Subscription =
     /// Gets an ARM expression pointing to the tenant id of the current subscription.
-    let TenantId = ArmExpression "subscription().tenantid"
+    let TenantId = ArmExpression.create "subscription().tenantid"
 
 /// Represents all configuration information to generate an ARM template.
 type ArmConfig =

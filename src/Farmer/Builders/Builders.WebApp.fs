@@ -62,7 +62,7 @@ module AppSettings =
 
 let publishingPassword (ResourceName name) =
     sprintf "list(resourceId('Microsoft.Web/sites/config', '%s', 'publishingcredentials'), '2014-06-01').properties.publishingPassword" name
-    |> ArmExpression
+    |> ArmExpression.create
 
 type WebAppConfig =
     { Name : ResourceName
@@ -103,7 +103,7 @@ type WebAppConfig =
     /// Gets the system-created managed principal for the web app. It must have been enabled using enable_managed_identity.
     member this.SystemIdentity =
         sprintf "reference(resourceId('Microsoft.Web/sites', '%s'), '2019-08-01', 'full').identity.principalId" this.Name.Value
-        |> ArmExpression
+        |> ArmExpression.create
         |> PrincipalId
     member this.Endpoint =
         sprintf "%s.azurewebsites.net" this.Name.Value

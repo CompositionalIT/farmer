@@ -37,7 +37,7 @@ type VmConfig =
 
     member this.NicName = makeResourceName this.Name "nic"
     member this.IpName = makeResourceName this.Name "ip"
-    member this.Hostname = sprintf "reference('%s').dnsSettings.fqdn" this.IpName.Value |> ArmExpression
+    member this.Hostname = sprintf "reference('%s').dnsSettings.fqdn" this.IpName.Value |> ArmExpression.create
 
     interface IBuilder with
         member this.DependencyName = this.Name

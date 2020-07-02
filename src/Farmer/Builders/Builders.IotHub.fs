@@ -15,14 +15,14 @@ type IotHubConfig =
       DeviceProvisioning : FeatureFlag }
     member private this.BuildKey (policy:Policy) =
         sprintf "listKeys('%s','2019-03-22').value[%d].primaryKey" this.Name.Value policy.Index
-    member this.GetKey policy = policy |> this.BuildKey |> ArmExpression
+    member this.GetKey policy = policy |> this.BuildKey |> ArmExpression.create
     member this.GetConnectionString policy =
         let endpoint = sprintf "reference('%s').eventHubEndpoints.events.endpoint" this.Name.Value
         sprintf "concat('Endpoint=',%s,';SharedAccessKeyName=%s;SharedAccessKey=',%s)"
             endpoint
             (policy.ToString().ToLower())
             (this.BuildKey policy)
-        |> ArmExpression
+        |> ArmExpression.create
     interface IBuilder with
         member this.DependencyName = this.Name
         member this.BuildResources location = [

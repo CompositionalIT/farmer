@@ -141,13 +141,13 @@ type KeyVaultConfig =
 
 type AccessPolicyBuilder() =
     member __.Yield _ =
-        { ObjectId = ArmExpression (string Guid.Empty)
+        { ObjectId = ArmExpression.create (string Guid.Empty)
           ApplicationId = None
           Permissions = {| Keys = Set.empty; Secrets = Set.empty; Certificates = Set.empty; Storage = Set.empty |} }
     /// Sets the Object ID of the permission set.
     [<CustomOperation "object_id">]
     member __.ObjectId(state:AccessPolicyConfig, objectId:ArmExpression) = { state with ObjectId = objectId }
-    member this.ObjectId(state:AccessPolicyConfig, objectId:Guid) = this.ObjectId(state, ArmExpression (sprintf "string('%O')" objectId))
+    member this.ObjectId(state:AccessPolicyConfig, objectId:Guid) = this.ObjectId(state, ArmExpression.create (sprintf "string('%O')" objectId))
     member this.ObjectId(state:AccessPolicyConfig, (ObjectId objectId)) = this.ObjectId(state, objectId)
     member this.ObjectId(state:AccessPolicyConfig, objectId:string) = this.ObjectId(state, Guid.Parse objectId)
     member this.ObjectId(state:AccessPolicyConfig, PrincipalId principalId) = this.ObjectId(state, principalId)
@@ -237,7 +237,7 @@ type KeyVaultBuilder() =
     /// Sets the Tenant ID of the vault.
     [<CustomOperation "tenant_id">]
     member __.SetTenantId(state:KeyVaultBuilderState, tenantId) = { state with TenantId = tenantId }
-    member this.SetTenantId(state:KeyVaultBuilderState, tenantId) = this.SetTenantId(state, ArmExpression (sprintf "string('%O')" tenantId))
+    member this.SetTenantId(state:KeyVaultBuilderState, tenantId) = this.SetTenantId(state, ArmExpression.create (sprintf "string('%O')" tenantId))
     member this.SetTenantId(state:KeyVaultBuilderState, tenantId) = this.SetTenantId(state, Guid.Parse tenantId)
     /// Allows VM access to the vault.
     [<CustomOperation "enable_vm_access">]

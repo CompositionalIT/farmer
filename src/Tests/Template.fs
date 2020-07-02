@@ -153,4 +153,12 @@ let tests = testList "Template" [
         let id = rid.Eval()
         Expect.equal id "[resourceId('5ed984d9-9e7e-4550-b73b-7af020a7620d','myGroup','Microsoft.Network/connections','test')]" "resourceId template function should match"
     }
+
+    test "Fails if ARM expression is already quoted" {
+        Expect.throws(fun () -> ArmExpression.create "[test]" |> ignore ) "Should fail on quoted ARM expression"
+    }
+
+    test "Does not fail if ARM expression contains an inner quote" {
+        Expect.equal "[foo[test]]" ((ArmExpression.create "foo[test]").Eval()) "Failed on quoted ARM expression"
+    }
 ]

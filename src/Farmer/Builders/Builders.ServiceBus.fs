@@ -125,7 +125,7 @@ type ServiceBusConfig =
             "listkeys(resourceId('Microsoft.ServiceBus/namespaces/authorizationRules', '%s', 'RootManageSharedAccessKey'), '2017-04-01').%s"
             sbNsName
             property
-        |> ArmExpression
+        |> ArmExpression.create
     member this.NamespaceDefaultConnectionString = this.GetKeyPath this.Name.Value "primaryConnectionString"
     member this.DefaultSharedAccessPolicyPrimaryKey = this.GetKeyPath this.Name.Value "primaryKey"
     interface IBuilder with

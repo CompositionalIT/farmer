@@ -11,7 +11,7 @@ let internal buildRedisKey (ResourceName name) =
         "concat('%s.redis.cache.windows.net,abortConnect=false,ssl=true,password=', listKeys('%s', '2015-08-01').primaryKey)"
             name
             name
-    |> ArmExpression
+    |> ArmExpression.create
 
 type RedisConfig =
     { Name : ResourceName

@@ -26,10 +26,10 @@ type CosmosDbConfig =
     member this.PrimaryKey =
         sprintf "listKeys(resourceId('Microsoft.DocumentDB/databaseAccounts', '%s'), providers('Microsoft.DocumentDB','databaseAccounts').apiVersions[0]).primaryMasterKey"
             this.AccountName.ResourceName.Value
-            |> ArmExpression
+            |> ArmExpression.create
     member this.Endpoint =
         sprintf "reference(concat('Microsoft.DocumentDb/databaseAccounts/', '%s')).documentEndpoint" this.AccountName.ResourceName.Value
-        |> ArmExpression
+        |> ArmExpression.create
     interface IBuilder with
         member this.DependencyName = this.AccountName.ResourceName
         member this.BuildResources location = [

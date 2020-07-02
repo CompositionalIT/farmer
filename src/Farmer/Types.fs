@@ -39,7 +39,12 @@ type ResourceType =
 
 /// Represents an expression used within an ARM template
 type ArmExpression =
-    | ArmExpression of string
+    private | ArmExpression of string
+    static member create (rawText:string) =
+        if System.Text.RegularExpressions.Regex.IsMatch(rawText, @"^\[.*\]$") then
+            failwithf "ARM Expressions should not be wrapped in [ ]; these will automatically be added when the expression is evaluated. Please remove them from '%s'." rawText
+        else
+            ArmExpression rawText
     /// Gets the raw value of this expression.
     member this.Value = match this with ArmExpression e -> e
     /// Applies a mapping function that itself returns an expression, to this expression.
@@ -58,13 +63,13 @@ type ArmExpression =
         | name, Some group, Some sub -> sprintf "resourceId('%s','%s','%s','%s')" sub group resourceType name.Value
         | name, Some group, None -> sprintf "resourceId('%s','%s','%s')" group resourceType name.Value
         | name, _, _ -> sprintf "resourceId('%s','%s')" resourceType name.Value
-        |> ArmExpression
+        |> ArmExpression.create
     static member resourceId (ResourceType resourceType, [<ParamArray>] resourceSegments:ResourceName []) =
         sprintf
             "resourceId('%s', %s)"
             resourceType
             (resourceSegments |> Array.map (fun r -> sprintf "'%s'" r.Value) |> String.concat ", ")
-        |> ArmExpression
+        |> ArmExpression.create
 
 /// A secure parameter to be captured in an ARM template.
 type SecureParameter =
@@ -96,7 +101,7 @@ module ArmExpression =
         |> Seq.map(fun (r:ArmExpression) -> r.Value)
         |> String.concat ", "
         |> sprintf "concat(%s)"
-        |> ArmExpression
+        |> ArmExpression.create
 
 /// A ResourceRef represents a linked resource; typically this will be for two resources that have a relationship
 /// such as AppInsights on WebApp. WebApps can automatically create and configure an AI instance for the webapp,
