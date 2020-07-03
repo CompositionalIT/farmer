@@ -81,7 +81,11 @@ type ServerFarm =
 module ZipDeploy =
     open System.IO
     open System.IO.Compression
-
+    
+    type ZipDeployTarget =
+        | WebApp
+        | FunctionApp
+    
     type ZipDeployKind =
         | DeployFolder of string
         | DeployZip of string
@@ -129,7 +133,7 @@ type Site =
       PhpVersion : string option
       PythonVersion : string option
       Metadata : List<string * string>
-      ZipDeployPath : string option }
+      ZipDeployPath : (string * ZipDeploy.ZipDeployTarget) option }
     interface IParameters with
         member this.SecureParameters =
             this.AppSettings
@@ -139,13 +143,15 @@ type Site =
     interface IPostDeploy with
         member this.Run resourceGroupName =
             match this with
-            | { ZipDeployPath = Some path; Name = name } ->
+            | { ZipDeployPath = Some (path, target); Name = name } ->
                 let path =
                     ZipDeploy.ZipDeployKind.TryParse path
                     |> Option.defaultWith (fun () ->
                         failwithf "Path '%s' must either be a folder to be zipped, or an existing zip." path)
                 printfn "Running ZIP deploy for %s" path.Value
-                Some(Deploy.Az.zipDeploy name.Value path.GetZipPath resourceGroupName)
+                Some (match target with
+                        | ZipDeploy.ZipDeployTarget.WebApp -> Deploy.Az.zipDeployWebApp name.Value path.GetZipPath resourceGroupName
+                        | ZipDeploy.ZipDeployTarget.FunctionApp -> Deploy.Az.zipDeployFunctionApp name.Value path.GetZipPath resourceGroupName)
             | _ ->
                 None
     interface IArmResource with

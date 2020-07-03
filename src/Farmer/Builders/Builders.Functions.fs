@@ -21,11 +21,11 @@ type FunctionsConfig =
       Settings : Map<string, Setting>
       Dependencies : ResourceName list
       Cors : Cors option
-
       StorageAccountName : ResourceRef
       Runtime : FunctionsRuntime
       ExtensionVersion : FunctionsExtensionVersion
-      Identity : FeatureFlag option }
+      Identity : FeatureFlag option 
+      ZipDeployPath : string option }
     /// Gets the system-created managed principal for the functions instance. It must have been enabled using enable_managed_identity.
     member this.SystemIdentity =
         sprintf "reference(resourceId('Microsoft.Web/sites', '%s'), '2019-08-01', 'full').identity.principalId" this.Name.Value
@@ -113,7 +113,7 @@ type FunctionsConfig =
               PhpVersion = None
               PythonVersion = None
               Metadata = []
-              ZipDeployPath = None
+              ZipDeployPath = this.ZipDeployPath |> Option.map (fun x -> x, ZipDeploy.ZipDeployTarget.FunctionApp)
               AppCommandLine = None
             }
             match this.ServicePlanName with
@@ -161,7 +161,8 @@ type FunctionsBuilder() =
           OperatingSystem = Windows
           Settings = Map.empty
           Dependencies = []
-          Identity = None }
+          Identity = None
+          ZipDeployPath = None }
     member __.Run (state:FunctionsConfig) =
         { state with
             ServicePlanName =
@@ -247,5 +248,9 @@ type FunctionsBuilder() =
     [<CustomOperation "disable_managed_identity">]
     member _.DisableManagedIdentity(state:FunctionsConfig) =
         { state with Identity = Some Disabled }
+    [<CustomOperation "zip_deploy">]
+    /// Specifies a folder path or a zip file containing the function app to install as a post-deployment task.
+    member __.ZipDeploy(state:FunctionsConfig, path) = { state with ZipDeployPath = Some path }
+
 
 let functions = FunctionsBuilder()
