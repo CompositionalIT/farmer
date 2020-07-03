@@ -232,7 +232,7 @@ type WebAppConfig =
                 |> Option.map(fun stack -> "CURRENT_STACK", stack)
                 |> Option.toList
               AppCommandLine = this.DockerImage |> Option.map snd
-              ZipDeployPath = this.ZipDeployPath
+              ZipDeployPath = this.ZipDeployPath |> Option.map (fun x -> x, ZipDeploy.ZipDeployTarget.WebApp)
             }
 
             match this.SourceControlSettings with
