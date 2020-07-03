@@ -33,6 +33,14 @@ The Functions builder is used to create Azure Functions accounts. It abstracts t
 | depends_on | Sets a dependency for the web app. |
 | enable_cors | Enables CORS support for the app. Either specify AllOrigins or a list of valid URIs. |
 
+#### Post-deployment Builder Keywords
+The Functions builder contains special commands that are executed *after* the ARM deployment is completed.
+
+| Keyword | Purpose |
+|-|-|
+| zip_deploy | Supplying a folder or zip file will instruct Farmer to upload the contents directly to the Azure Functions once the ARM deployment is complete. |
+
+
 #### Configuration Members
 
 | Member | Purpose |
