@@ -45,16 +45,29 @@ module BlobServices =
                 |} :> _
 
 module FileShares =
-  type FileShare = 
-      { Name: ResourceName
-        ShareQuota: int option
-        StorageAccount: ResourceName }
-      interface IArmResource with
-        member this.ResourceName = this.Name
-        member this.JsonModel =
-            {| ``type`` = fileShares.ArmValue
-               apiVersion = "2019-06-01"
-               name = this.StorageAccount.Value + "/default/" + this.Name.Value
-               properties = {| shareQuota = this.ShareQuota |> Option.defaultValue 5120 |}
-               dependsOn = [ this.StorageAccount.Value ]
-            |} :> _
+    type FileShare =
+        { Name: ResourceName
+          ShareQuota: int option
+          StorageAccount: ResourceName }
+        interface IArmResource with
+            member this.ResourceName = this.Name
+            member this.JsonModel =
+                {| ``type`` = fileShares.ArmValue
+                   apiVersion = "2019-06-01"
+                   name = this.StorageAccount.Value + "/default/" + this.Name.Value
+                   properties = {| shareQuota = this.ShareQuota |> Option.defaultValue 5120 |}
+                   dependsOn = [ this.StorageAccount.Value ]
+                |} :> _
+
+module Queues =
+    type Queue =
+        { Name : ResourceName
+          StorageAccount : ResourceName }
+        interface IArmResource with
+            member this.ResourceName = this.Name
+            member this.JsonModel =
+                {| name = this.StorageAccount.Value + "/default/" + this.Name.Value
+                   ``type`` = "Microsoft.Storage/storageAccounts/queueServices/queues"
+                   dependsOn = [ this.StorageAccount.Value ]
+                   apiVersion = "2019-06-01"
+                |} :> _
