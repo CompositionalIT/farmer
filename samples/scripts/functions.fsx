@@ -3,7 +3,6 @@
 
 open Farmer
 open Farmer.Builders
-open Farmer.Web
 open Farmer.CoreTypes
 
 let myFunctions = functions {

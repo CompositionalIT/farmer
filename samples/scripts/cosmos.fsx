@@ -8,7 +8,7 @@ open Farmer.CosmosDb
 let myCosmosDb = cosmosDb {
     name "isaacsappdb"
     account_name "isaacscosmosdb"
-    throughput 400
+    throughput 400<CosmosDb.RU>
     failover_policy NoFailover
     consistency_policy (BoundedStaleness(500, 1000))
     add_containers [
