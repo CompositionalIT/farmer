@@ -30,7 +30,7 @@ type ContainerGroup =
       NetworkProfile : ResourceName option }
     member this.NetworkProfilePath =
         this.NetworkProfile
-        |> Option.map (fun networkProfile -> sprintf "[resourceId('Microsoft.Network/networkProfiles','%s')]" networkProfile.Value)
+        |> Option.map (fun networkProfile -> ArmExpression.resourceId(Network.networkProfiles, networkProfile).Eval())
 
     interface IArmResource with
         member this.ResourceName = this.Name

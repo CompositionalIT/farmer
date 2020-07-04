@@ -23,6 +23,7 @@
     <Compile Include="ContainerRegistry.fs" />
     <Compile Include="PostgreSQL.fs" />
     <Compile Include="Maps.fs" />
+    <Compile Include="Sql.fs" />
     <Compile Include="SignalR.fs" />
     <Compile Include="AllTests.fs" />
   </ItemGroup>
@@ -38,6 +39,7 @@
     <PackageReference Include="Microsoft.Azure.Management.Network" Version="19.20.0-preview" />
     <PackageReference Include="Microsoft.Azure.Management.ServiceBus" Version="2.1.0" />
     <PackageReference Include="Microsoft.Azure.Management.SignalR" Version="1.0.1" />
+    <PackageReference Include="Microsoft.Azure.Management.Sql" Version="1.43.0-preview" />
     <PackageReference Include="Microsoft.Azure.Management.Storage" Version="16.0.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.2.0" />
     <PackageReference Include="coverlet.collector" Version="1.2.0" />

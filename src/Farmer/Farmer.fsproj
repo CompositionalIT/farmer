@@ -54,6 +54,7 @@
     <Compile Include="Arm/Cache.fs" />
     <Compile Include="Arm/Cdn.fs" />
     <Compile Include="Arm/CognitiveServices.fs" />
+    <Compile Include="Arm/Network.fs" />
     <Compile Include="Arm/Compute.fs" />
     <Compile Include="Arm/ContainerInstance.fs" />
     <Compile Include="Arm/ContainerRegistry.fs" />
@@ -63,7 +64,6 @@
     <Compile Include="Arm/DocumentDb.fs" />
     <Compile Include="Arm/EventHub.fs" />
     <Compile Include="Arm/Insights.fs" />
-    <Compile Include="Arm/Network.fs" />
     <Compile Include="Arm/KeyVault.fs" />
     <Compile Include="Arm/Search.fs" />
     <Compile Include="Arm/ServiceBus.fs" />
