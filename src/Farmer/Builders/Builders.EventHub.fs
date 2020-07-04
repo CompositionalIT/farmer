@@ -23,9 +23,9 @@ type EventHubConfig =
       Partitions : int
       ConsumerGroups : string Set
       CaptureDestination : CaptureDestination option
-      AuthorizationRules : Map<ResourceName, AuthorizationRuleRight Set> }
-    member private this.ToKeyExpression = sprintf "listkeys(%s, '2017-04-01').primaryConnectionString"
-
+      AuthorizationRules : Map<ResourceName, AuthorizationRuleRight Set>
+      Dependencies : ResourceName list }
+    member private _.ToKeyExpression = sprintf "listkeys(%s, '2017-04-01').primaryConnectionString"
     /// Gets an ARM expression for the path to the key of a specific authorization rule for this event hub.
     member this.GetKey (ruleName:string) =
         ArmExpression
@@ -67,6 +67,7 @@ type EventHubConfig =
                       match this.CaptureDestination with
                       | Some (StorageAccount(name, _)) -> name
                       | None -> ()
+                      yield! this.Dependencies
                   ] }
             let consumerGroups =
                 [ for consumerGroup in this.ConsumerGroups ->
@@ -108,7 +109,8 @@ type EventHubBuilder() =
           Partitions = 1
           CaptureDestination = None
           ConsumerGroups = Set [ "$Default" ]
-          AuthorizationRules = Map.empty }
+          AuthorizationRules = Map.empty
+          Dependencies = [] }
     member __.Run state =
         { state with
             EventHubNamespace =
@@ -155,5 +157,10 @@ type EventHubBuilder() =
             CaptureDestination = Some (StorageAccount(storageName, container)) }
     member this.CaptureToStorage(state:EventHubConfig, storageAccount:StorageAccountConfig, container) =
         this.CaptureToStorage(state, storageAccount.Name, container)
+    /// Sets a dependency for the event hub.
+    [<CustomOperation "depends_on">]
+    member __.DependsOn(state:EventHubConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
+    member __.DependsOn(state:EventHubConfig, builder:IBuilder) = { state with Dependencies = builder.DependencyName :: state.Dependencies }
+    member __.DependsOn(state:EventHubConfig, resource:IArmResource) = { state with Dependencies = resource.ResourceName :: state.Dependencies }
 
 let eventHub = EventHubBuilder()

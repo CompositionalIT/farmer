@@ -2,8 +2,83 @@
 module Farmer.Builders.EventGrid
 
 open Farmer
-open Farmer.CoreTypes
+open EventGrid
 open Farmer.Arm.EventGrid
+open System
+
+type IEventGridEvent = abstract member ToEvent : EventGridEvent
+type SubscriptionEvent = SubscriptionEvent of string interface IEventGridEvent with member this.ToEvent = match this with SubscriptionEvent e -> EventGridEvent e
+type ResourceGroupEvent = ResourceGroupEvent of string interface IEventGridEvent with member this.ToEvent = match this with ResourceGroupEvent e -> EventGridEvent e
+type StorageEvent = StorageEvent of string interface IEventGridEvent with member this.ToEvent = match this with StorageEvent e -> EventGridEvent e
+type AppServiceConfigurationEvent = AppServiceConfigurationEvent of string interface IEventGridEvent with member this.ToEvent = match this with AppServiceConfigurationEvent e -> EventGridEvent e
+type EventHubEvent = EventHubEvent of string interface IEventGridEvent with member this.ToEvent = match this with EventHubEvent e -> EventGridEvent e
+type IoTHubEvent = IoTHubEvent of string interface IEventGridEvent with member this.ToEvent = match this with IoTHubEvent e -> EventGridEvent e
+type ServiceBusEvent = ServiceBusEvent of string interface IEventGridEvent with member this.ToEvent = match this with ServiceBusEvent e -> EventGridEvent e
+type ContainerRegistryEvent = ContainerRegistryEvent of string interface IEventGridEvent with member this.ToEvent = match this with ContainerRegistryEvent e -> EventGridEvent e
+type MediaServicesEvent = MediaServicesEvent of string interface IEventGridEvent with member this.ToEvent = match this with MediaServicesEvent e -> EventGridEvent e
+type MapsEvent = MapsEvent of string interface IEventGridEvent with member this.ToEvent = match this with MapsEvent e -> EventGridEvent e
+type EventGridTopicEvent = EventGridTopicEvent of string interface IEventGridEvent with member this.ToEvent = match this with EventGridTopicEvent e -> EventGridEvent e
+type EventGridDomainEvent = EventGridDomainEvent of string interface IEventGridEvent with member this.ToEvent = match this with EventGridDomainEvent e -> EventGridEvent e
+type KeyVaultEvent = KeyVaultEvent of string interface IEventGridEvent with member this.ToEvent = match this with KeyVaultEvent e -> EventGridEvent e
+type AppServiceEvent = AppServiceEvent of string interface IEventGridEvent with member this.ToEvent = match this with AppServiceEvent e -> EventGridEvent e
+type AppServicePlanEvent = AppServicePlanEvent of string interface IEventGridEvent with member this.ToEvent = match this with AppServicePlanEvent e -> EventGridEvent e
+type SignalRServiceEvent = SignalRServiceEvent of string interface IEventGridEvent with member this.ToEvent = match this with SignalRServiceEvent e -> EventGridEvent e
+type MachineLearningEvent = MachineLearningEvent of string interface IEventGridEvent with member this.ToEvent = match this with MachineLearningEvent e -> EventGridEvent e
+
+module SystemEvents =
+    module EventHub =
+        let CaptureFileCreated = EventHubEvent "Microsoft.EventHub.CaptureFileCreated"
+    module Storage =
+        let BlobCreated = StorageEvent "Microsoft.Storage.BlobCreated"
+        let BlobDeleted = StorageEvent "Microsoft.Storage.BlobDeleted"
+        let DirectoryCreated = StorageEvent "Microsoft.Storage.DirectoryCreated"
+        let DirectoryDeleted = StorageEvent "Microsoft.Storage.DirectoryDeleted"
+        let BlobRenamed = StorageEvent "Microsoft.Storage.BlobRenamed"
+        let DirectoryRenamed = StorageEvent "Microsoft.Storage.DirectoryRenamed"
+    module IoTHub =
+        let DeviceCreated = IoTHubEvent "Microsoft.Devices.DeviceCreated"
+        let DeviceDeleted = IoTHubEvent "Microsoft.Devices.DeviceDeleted"
+        let DeviceConnected = IoTHubEvent "Microsoft.Devices.DeviceConnected"
+        let DeviceDisconnected = IoTHubEvent "Microsoft.Devices.DeviceDisconnected"
+        let DeviceTelemetry = IoTHubEvent "Microsoft.Devices.DeviceTelemetry"
+    module ServiceBus =
+        let ActiveMessagesAvailableWithNoListeners = ServiceBusEvent "Microsoft.ServiceBus.ActiveMessagesAvailableWithNoListeners"
+        let DeadLetterMessagesAvailableWithNoListeners = ServiceBusEvent "Microsoft.ServiceBus.DeadLetterMessagesAvailableWithNoListeners"
+    module ContainerRegistry =
+        let ImagePushed = ContainerRegistryEvent "Microsoft.ContainerRegistry.ImagePushed"
+        let ImageDeleted = ContainerRegistryEvent "Microsoft.ContainerRegistry.ImageDeleted"
+        let ChartPushed = ContainerRegistryEvent "Microsoft.ContainerRegistry.ChartPushed"
+        let ChartDeleted = ContainerRegistryEvent "Microsoft.ContainerRegistry.ChartDeleted"
+    module Maps =
+        let GeofenceEntered = MapsEvent "Microsoft.Maps.GeofenceEntered"
+        let GeofenceExited = MapsEvent "Microsoft.Maps.GeofenceExited"
+        let GeofenceResult = MapsEvent "Microsoft.Maps.GeofenceResult"
+    module KeyVault =
+        let CertificateNewVersionCreated = KeyVaultEvent "Microsoft.KeyVault.CertificateNewVersionCreated"
+        let CertificateNearExpiry = KeyVaultEvent "Microsoft.KeyVault.CertificateNearExpiry"
+        let CertificateExpired = KeyVaultEvent "Microsoft.KeyVault.CertificateExpired"
+        let SecretNewVersionCreated = KeyVaultEvent "Microsoft.KeyVault.SecretNewVersionCreated"
+        let SecretNearExpiry = KeyVaultEvent "Microsoft.KeyVault.SecretNearExpiry"
+        let SecretExpired = KeyVaultEvent "Microsoft.KeyVault.SecretExpired"
+        let KeyNewVersionCreated = KeyVaultEvent "Microsoft.KeyVault.KeyNewVersionCreated"
+        let KeyNearExpiry = KeyVaultEvent "Microsoft.KeyVault.KeyNearExpiry"
+        let KeyExpired = KeyVaultEvent "Microsoft.KeyVault.KeyExpired"
+    module AppService =
+        let AppUpdated = AppServiceEvent "Microsoft.Web.AppUpdated"
+        let BackupOperationStarted = AppServiceEvent "Microsoft.Web.BackupOperationStarted"
+        let BackupOperationCompleted = AppServiceEvent "Microsoft.Web.BackupOperationCompleted"
+        let BackupOperationFailed = AppServiceEvent "Microsoft.Web.BackupOperationFailed"
+        let RestoreOperationStarted = AppServiceEvent "Microsoft.Web.RestoreOperationStarted"
+        let RestoreOperationCompleted = AppServiceEvent "Microsoft.Web.RestoreOperationCompleted"
+        let RestoreOperationFailed = AppServiceEvent "Microsoft.Web.RestoreOperationFailed"
+        let SlotSwapStarted = AppServiceEvent "Microsoft.Web.SlotSwapStarted"
+        let SlotSwapCompleted = AppServiceEvent "Microsoft.Web.SlotSwapCompleted"
+        let SlotSwapFailed = AppServiceEvent "Microsoft.Web.SlotSwapFailed"
+        let SlotSwapWithPreviewStarted = AppServiceEvent "Microsoft.Web.SlotSwapWithPreviewStarted"
+        let SlotSwapWithPreviewCancelled = AppServiceEvent "Microsoft.Web.SlotSwapWithPreviewCancelled"
+    module SignalR =
+        let ClientConnectionConnected = SignalRServiceEvent "Microsoft.SignalRService.ClientConnectionConnected"
+        let ClientConnectionDisconnected = SignalRServiceEvent "Microsoft.SignalRService.ClientConnectionDisconnected"
 
 type EventGridConfig<'T> =
     { TopicName : ResourceName
@@ -12,7 +87,7 @@ type EventGridConfig<'T> =
         {| Name : ResourceName
            Destination : ResourceName
            Endpoint : EndpointType
-           Events : EventGridEvent list |} list
+           SystemEvents : EventGridEvent list |} list
     }
     interface IBuilder with
         member this.DependencyName = this.TopicName
@@ -27,7 +102,7 @@ type EventGridConfig<'T> =
                   Topic = this.TopicName
                   Destination = sub.Destination
                   DestinationEndpoint = sub.Endpoint
-                  Events = sub.Events }
+                  Events = sub.SystemEvents }
         ]
 
 type EventGridBuilder() =
@@ -41,7 +116,7 @@ type EventGridBuilder() =
                 {| Name = ResourceName name
                    Destination = destination
                    Endpoint = endpoint
-                   Events = events |} :: state.Subscriptions
+                   SystemEvents = events |} :: state.Subscriptions
         }
     member _.Yield _ =
         { TopicName = ResourceName.Empty
@@ -52,8 +127,24 @@ type EventGridBuilder() =
     [<CustomOperation "source">]
     member _.Source(state:EventGridConfig<_>, source:StorageAccountConfig) = EventGridBuilder.ChangeTopic<StorageEvent>(state, source.Name, Topics.StorageAccount)
     member _.Source(state:EventGridConfig<_>, source:WebAppConfig) = EventGridBuilder.ChangeTopic<AppServiceEvent>(state, source.Name, Topics.AppService)
+    member _.Source(state:EventGridConfig<_>, source:KeyVaultConfig) = EventGridBuilder.ChangeTopic<KeyVaultEvent>(state, source.Name, Topics.KeyVault)
+    member _.Source(state:EventGridConfig<_>, source:SignalRConfig) = EventGridBuilder.ChangeTopic<SignalRServiceEvent>(state, source.Name, Topics.SignalR)
+    member _.Source(state:EventGridConfig<_>, source:MapsConfig) = EventGridBuilder.ChangeTopic<MapsEvent>(state, source.Name, Topics.MapsAccount)
+    member _.Source(state:EventGridConfig<_>, source:ContainerRegistryConfig) = EventGridBuilder.ChangeTopic<ContainerRegistryEvent>(state, source.Name, Topics.ContainerRegistry)
+    member _.Source(state:EventGridConfig<_>, source:ServiceBusConfig) = EventGridBuilder.ChangeTopic<ServiceBusEvent>(state, source.Name, Topics.ServiceBusNamespace)
+    member _.Source(state:EventGridConfig<_>, source:IotHubConfig) = EventGridBuilder.ChangeTopic<IoTHubEvent>(state, source.Name, Topics.IoTHubAccount)
+    member _.Source(state:EventGridConfig<_>, source:EventHubConfig) = EventGridBuilder.ChangeTopic<EventHubEvent>(state, source.EventHubNamespace.ResourceName, Topics.EventHubsNamespace)
+
     [<CustomOperation "add_queue_subscriber">]
-    member _.AddSubscription(state:EventGridConfig<'T> when 'T :> IEventGridEvent, name, destination:StorageAccountConfig, queue, events:'T list) =
+    member _.AddQueueSubscription(state:EventGridConfig<'T> when 'T :> IEventGridEvent, name, destination:StorageAccountConfig, queue, events:'T list) =
         EventGridBuilder.AddSub(state, name, destination.Name, StorageQueue queue, events |> List.map (fun x -> x.ToEvent))
+    [<CustomOperation "add_webhook_subscriber">]
+    member _.AddWebSubscription(state:EventGridConfig<'T> when 'T :> IEventGridEvent, name, webAppName, webHookEndpoint, events:'T list) =
+        EventGridBuilder.AddSub(state, name, webAppName, WebHook webHookEndpoint, events |> List.map (fun x -> x.ToEvent))
+    member this.AddWebSubscription(state:EventGridConfig<_>, name, destination:WebAppConfig, route, events) =
+        this.AddWebSubscription(state, name, destination.Name, Uri (sprintf "https://%s/%s" destination.Endpoint route), events)
+    [<CustomOperation "add_eventhub_subscriber">]
+    member _.AddEventHubSubscription(state:EventGridConfig<'T> when 'T :> IEventGridEvent, name, destination:EventHubConfig, events:'T list) =
+        EventGridBuilder.AddSub(state, name, destination.EventHubNamespace.ResourceName, EventHub destination.Name, events |> List.map (fun x -> x.ToEvent))
 
 let eventGrid = EventGridBuilder()
