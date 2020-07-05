@@ -8,19 +8,23 @@ open Farmer.Arm.DocumentDb
 open DatabaseAccounts
 open SqlDatabases
 
-let internal buildKey (ResourceName name) key =
-    sprintf
-        "listKeys(resourceId('Microsoft.DocumentDB/databaseAccounts', '%s'), providers('Microsoft.DocumentDB','databaseAccounts').apiVersions[0]).%s"
-            name
-            key
-    |> ArmExpression.create
+let internal buildKey (name:ResourceName) key =
+    ArmExpression
+        .resourceId(databaseAccounts, name)
+        .Map(fun db ->
+            sprintf
+                "listKeys(%s, providers('Microsoft.DocumentDB','databaseAccounts').apiVersions[0]).%s"
+                db
+                key)
 
-let internal buildConnectionString (ResourceName name) keyIndex =
-    sprintf
-        "listConnectionStrings(resourceId('Microsoft.DocumentDB/databaseAccounts', '%s'), providers('Microsoft.DocumentDB','databaseAccounts').apiVersions[0]).connectionStrings[%i].connectionString"
-            name
-            keyIndex
-    |> ArmExpression.create
+let internal buildConnectionString (name:ResourceName) keyIndex =
+    ArmExpression
+        .resourceId(databaseAccounts, name)
+        .Map(fun db ->
+            sprintf
+                "listConnectionStrings(%s, providers('Microsoft.DocumentDB','databaseAccounts').apiVersions[0]).connectionStrings[%i].connectionString"
+                db
+                keyIndex)
 
 type CosmosDbContainerConfig =
     { Name : ResourceName
@@ -41,8 +45,8 @@ type CosmosDbConfig =
     member this.SecondaryKey = buildKey this.AccountName.ResourceName "secondaryMasterKey"
     member this.PrimaryReadonlyKey = buildKey this.AccountName.ResourceName "primaryReadonlyMasterKey"
     member this.SecondaryReadonlyKey = buildKey this.AccountName.ResourceName "secondaryReadonlyMasterKey"
-    member this.PrimaryConnectionString  = buildConnectionString this.AccountName.ResourceName 0
-    member this.SecondaryConnectionString  = buildConnectionString this.AccountName.ResourceName 1
+    member this.PrimaryConnectionString = buildConnectionString this.AccountName.ResourceName 0
+    member this.SecondaryConnectionString = buildConnectionString this.AccountName.ResourceName 1
     member this.Endpoint =
         sprintf "reference(concat('Microsoft.DocumentDb/databaseAccounts/', '%s')).documentEndpoint" this.AccountName.ResourceName.Value
         |> ArmExpression.create
