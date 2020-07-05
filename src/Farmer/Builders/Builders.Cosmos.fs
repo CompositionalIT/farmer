@@ -8,6 +8,20 @@ open Farmer.Arm.DocumentDb
 open DatabaseAccounts
 open SqlDatabases
 
+let internal buildKey (ResourceName name) key =
+    sprintf
+        "listKeys(resourceId('Microsoft.DocumentDB/databaseAccounts', '%s'), providers('Microsoft.DocumentDB','databaseAccounts').apiVersions[0]).%s"
+            name
+            key
+    |> ArmExpression.create
+
+let internal buildConnectionString (ResourceName name) keyIndex =
+    sprintf
+        "listConnectionStrings(resourceId('Microsoft.DocumentDB/databaseAccounts', '%s'), providers('Microsoft.DocumentDB','databaseAccounts').apiVersions[0]).connectionStrings[%i].connectionString"
+            name
+            keyIndex
+    |> ArmExpression.create
+
 type CosmosDbContainerConfig =
     { Name : ResourceName
       PartitionKey : string list * IndexKind
@@ -23,10 +37,12 @@ type CosmosDbConfig =
       Containers : CosmosDbContainerConfig list
       PublicNetworkAccess : FeatureFlag
       FreeTier : bool }
-    member this.PrimaryKey =
-        sprintf "listKeys(resourceId('Microsoft.DocumentDB/databaseAccounts', '%s'), providers('Microsoft.DocumentDB','databaseAccounts').apiVersions[0]).primaryMasterKey"
-            this.AccountName.ResourceName.Value
-            |> ArmExpression.create
+    member this.PrimaryKey = buildKey this.AccountName.ResourceName "primaryMasterKey"
+    member this.SecondaryKey = buildKey this.AccountName.ResourceName "secondaryMasterKey"
+    member this.PrimaryReadonlyKey = buildKey this.AccountName.ResourceName "primaryReadonlyMasterKey"
+    member this.SecondaryReadonlyKey = buildKey this.AccountName.ResourceName "secondaryReadonlyMasterKey"
+    member this.PrimaryConnectionString  = buildConnectionString this.AccountName.ResourceName 0
+    member this.SecondaryConnectionString  = buildConnectionString this.AccountName.ResourceName 1
     member this.Endpoint =
         sprintf "reference(concat('Microsoft.DocumentDb/databaseAccounts/', '%s')).documentEndpoint" this.AccountName.ResourceName.Value
         |> ArmExpression.create
