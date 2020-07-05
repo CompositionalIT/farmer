@@ -22,6 +22,7 @@ let allTests =
                 Cosmos.tests
                 Maps.tests
                 SignalR.tests
+                EventGrid.tests
             ]
             testList "Control" [
                 Template.tests

@@ -24,6 +24,7 @@
     <Compile Include="PostgreSQL.fs" />
     <Compile Include="Maps.fs" />
     <Compile Include="SignalR.fs" />
+    <Compile Include="EventGrid.fs" />
     <Compile Include="AllTests.fs" />
   </ItemGroup>
 
