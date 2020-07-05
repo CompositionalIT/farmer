@@ -60,9 +60,9 @@ type ArmExpression =
     /// Builds a resourceId ARM expression from the parts of a resource ID.
     static member resourceId (ResourceType resourceType, name:ResourceName, ?group:string, ?subscriptionId:string) =
         match name, group, subscriptionId with
-        | name, Some group, Some sub -> sprintf "resourceId('%s','%s','%s','%s')" sub group resourceType name.Value
-        | name, Some group, None -> sprintf "resourceId('%s','%s','%s')" group resourceType name.Value
-        | name, _, _ -> sprintf "resourceId('%s','%s')" resourceType name.Value
+        | name, Some group, Some sub -> sprintf "resourceId('%s', '%s', '%s', '%s')" sub group resourceType name.Value
+        | name, Some group, None -> sprintf "resourceId('%s', '%s', '%s')" group resourceType name.Value
+        | name, _, _ -> sprintf "resourceId('%s', '%s')" resourceType name.Value
         |> ArmExpression.create
     static member resourceId (ResourceType resourceType, [<ParamArray>] resourceSegments:ResourceName []) =
         sprintf
