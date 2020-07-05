@@ -8,6 +8,24 @@ open Farmer.Arm.DocumentDb
 open DatabaseAccounts
 open SqlDatabases
 
+let internal buildKey (name:ResourceName) key =
+    ArmExpression
+        .resourceId(databaseAccounts, name)
+        .Map(fun db ->
+            sprintf
+                "listKeys(%s, providers('Microsoft.DocumentDB','databaseAccounts').apiVersions[0]).%s"
+                db
+                key)
+
+let internal buildConnectionString (name:ResourceName) keyIndex =
+    ArmExpression
+        .resourceId(databaseAccounts, name)
+        .Map(fun db ->
+            sprintf
+                "listConnectionStrings(%s, providers('Microsoft.DocumentDB','databaseAccounts').apiVersions[0]).connectionStrings[%i].connectionString"
+                db
+                keyIndex)
+
 type CosmosDbContainerConfig =
     { Name : ResourceName
       PartitionKey : string list * IndexKind
@@ -23,10 +41,12 @@ type CosmosDbConfig =
       Containers : CosmosDbContainerConfig list
       PublicNetworkAccess : FeatureFlag
       FreeTier : bool }
-    member this.PrimaryKey =
-        sprintf "listKeys(resourceId('Microsoft.DocumentDB/databaseAccounts', '%s'), providers('Microsoft.DocumentDB','databaseAccounts').apiVersions[0]).primaryMasterKey"
-            this.AccountName.ResourceName.Value
-            |> ArmExpression.create
+    member this.PrimaryKey = buildKey this.AccountName.ResourceName "primaryMasterKey"
+    member this.SecondaryKey = buildKey this.AccountName.ResourceName "secondaryMasterKey"
+    member this.PrimaryReadonlyKey = buildKey this.AccountName.ResourceName "primaryReadonlyMasterKey"
+    member this.SecondaryReadonlyKey = buildKey this.AccountName.ResourceName "secondaryReadonlyMasterKey"
+    member this.PrimaryConnectionString = buildConnectionString this.AccountName.ResourceName 0
+    member this.SecondaryConnectionString = buildConnectionString this.AccountName.ResourceName 1
     member this.Endpoint =
         sprintf "reference(concat('Microsoft.DocumentDb/databaseAccounts/', '%s')).documentEndpoint" this.AccountName.ResourceName.Value
         |> ArmExpression.create

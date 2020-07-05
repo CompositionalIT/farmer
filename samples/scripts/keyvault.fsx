@@ -24,7 +24,7 @@ let complexSecret = secret {
 }
 
 let store = storageAccount { name "foo" }
-let principal = PrincipalId (ArmExpression "GETS BACK OBJECT ID OF ACCOUNT")
+let principal = PrincipalId (ArmExpression.create "GETS BACK OBJECT ID OF ACCOUNT")
 
 let vault =
     keyVault {

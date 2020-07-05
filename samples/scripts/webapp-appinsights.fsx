@@ -7,7 +7,7 @@ open Farmer.Builders
 let template =
     let myWebApp = webApp {
         name "mysuperwebapp"
-        sku Web.Sku.F1
+        sku WebApp.Sku.F1
     }
 
     arm {

@@ -11,7 +11,7 @@ let myStorage = storageAccount {
 
 let myWebApp = webApp {
     name "mysuperwebapp"
-    sku Web.Sku.S1
+    sku WebApp.Sku.S1
     app_insights_off
     setting "storage_key" myStorage.Key
     depends_on myStorage.Name
