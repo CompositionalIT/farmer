@@ -8,6 +8,7 @@ open Farmer.CoreTypes
 let storageAccounts = ResourceType "Microsoft.Storage/storageAccounts"
 let containers = ResourceType "Microsoft.Storage/storageAccounts/blobServices/containers"
 let fileShares = ResourceType "Microsoft.Storage/storageAccounts/fileServices/shares"
+let queues = ResourceType "Microsoft.Storage/storageAccounts/queueServices/queues"
 
 type StorageAccount =
     { Name : ResourceName
@@ -67,7 +68,7 @@ module Queues =
             member this.ResourceName = this.Name
             member this.JsonModel =
                 {| name = this.StorageAccount.Value + "/default/" + this.Name.Value
-                   ``type`` = "Microsoft.Storage/storageAccounts/queueServices/queues"
+                   ``type`` = queues.ArmValue
                    dependsOn = [ this.StorageAccount.Value ]
                    apiVersion = "2019-06-01"
                 |} :> _

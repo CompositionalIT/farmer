@@ -9,9 +9,9 @@ chapter: false
 The Web App builder is used to create Azure App Service accounts. It abstracts the Service Plan into the same component, and will also create and configure a linked App Insights resource. If you wish to create a website that connects to an existing service plan, use the `link_to_service_plan` keyword and provide the resource name of the service plan to connect to.
 
 * Web Site (`Microsoft.Web/sites`)
-* Web Host (`Microsoft.Web/serverfarms`)
+* Server Farms (`Microsoft.Web/serverfarms`)
+* Source Controls (`Microsoft.Web/sites/sourcecontrols`)
 * Application Insights (`Microsoft.Insights/components`)
-* Site Extension (`siteextensions`)
 
 #### Web App Builder Keywords
 
