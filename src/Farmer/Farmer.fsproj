@@ -71,6 +71,7 @@
     <Compile Include="Arm/Web.fs" />
     <Compile Include="Arm/Maps.fs" />
     <Compile Include="Arm/SignalR.fs" />
+    <Compile Include="Arm/EventGrid.fs" />
 
     <Compile Include="Builders/Builders.Helpers.fs" />
     <Compile Include="Builders/Builders.PostgreSQL.fs" />
@@ -96,7 +97,8 @@
     <Compile Include="Builders/Builders.IotHub.fs" />
     <Compile Include="Builders/Builders.Maps.fs" />
     <Compile Include="Builders/Builders.SignalR.fs" />
-    <Compile Include="Builders\Builders.VirtualNetworkGateway.fs" />
-    <Compile Include="Builders\Builders.VirtualNetwork.fs" />
+    <Compile Include="Builders/Builders.VirtualNetworkGateway.fs" />
+    <Compile Include="Builders/Builders.VirtualNetwork.fs" />
+    <Compile Include="Builders/Builders.EventGrid.fs" />
   </ItemGroup>
 </Project>

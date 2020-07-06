@@ -12,6 +12,7 @@ The Storage Account builder creates storage accounts and their associated contai
 * Storage Accounts (`Microsoft.Storage/storageAccounts`)
 * Storage Containers (`blobServices/containers`)
 * File Shares (`fileServices/shares`)
+* Queues (`Microsoft.Storage/storageAccounts/queueServices/queues`)
 
 #### Builder Keywords
 
@@ -24,6 +25,8 @@ The Storage Account builder creates storage accounts and their associated contai
 | add_blob_container | Adds a general-purpose private blob container |
 | add_file_share | Adds a file share to storage account |
 | add_file_share_with_quota | Adds a file share to storage account with a share quota in Gb |
+| add_queue | Adds a queue to the storage account. |
+| add_queues | Adds a list of queues to the storage account |
 
 #### Configuration Members
 

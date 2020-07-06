@@ -718,3 +718,6 @@ module Cdn =
     | VideoOnDemandMediaStreaming
     | LargeFileDownload
     | DynamicSiteAcceleration
+
+module EventGrid =
+    type EventGridEvent = EventGridEvent of string member this.Value = match this with EventGridEvent s -> s
