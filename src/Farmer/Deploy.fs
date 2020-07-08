@@ -66,7 +66,7 @@ module Az =
     /// Executes a generic AZ CLI command.
     let az = AzHelpers.executeAz >> processToResult
     /// Tests if the Az CLI has logged in credentials.
-    let isLoggedIn() = az "account show" |> function Ok _ -> true | Error _ -> false
+    let showAccount() = az "account show"
     /// Logs you into Az CLI interactively.
     let login() = az "login" |> Result.ignore
     /// Logs you into the Az CLI using the supplied service principal credentials.
@@ -180,10 +180,19 @@ let private prepareForDeployment parameters resourceGroupName deployment = resul
 
     prepareDeploymentFolder()
 
-    do!
+    let! subscriptionDetails =
         printf "Checking Azure CLI logged in status... "
-        if Az.isLoggedIn() then printfn "you are already logged in, nothing to do."; Ok()
-        else printfn "logging you in."; Az.login()
+        match Az.showAccount() with
+        | Ok response ->
+            printfn "you are already logged in, nothing to do."
+            Ok response
+        | Error _ ->
+            printfn "logging you in."
+            Az.login()
+            |> Result.bind(fun _ -> Az.showAccount())
+
+    let subscriptionDetails = subscriptionDetails |> JsonConvert.DeserializeObject<{| id : Guid; name : string |}>
+    printfn "Using subscription '%s' (%O)." subscriptionDetails.name subscriptionDetails.id
 
     printfn "Creating resource group %s..." resourceGroupName
     do! Az.createResourceGroup deployment.Location.ArmValue resourceGroupName

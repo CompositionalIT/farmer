@@ -19,6 +19,7 @@ module Result =
     let ofExn thunk arg =
         try Ok(thunk arg)
         with ex -> Error (string ex)
+    let bindError onError = function Error s -> onError s | s -> s
 
     type ResultBuilder() =
         member __.Return(x) = Ok x
