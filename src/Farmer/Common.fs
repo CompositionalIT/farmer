@@ -628,17 +628,19 @@ module DataLake =
     | Commitment_1PB
     | Commitment_5PB
 
+/// A network represented by an IP address and CIDR prefix.
 type public IPAddressCidr =
     { Address : System.Net.IPAddress
       Prefix : int }
 
+/// Functions for IP networks and CIDR notation.
 module IPAddressCidr =
     let parse (s:string) : IPAddressCidr =
         match s.Split([|'/'|], System.StringSplitOptions.RemoveEmptyEntries) with
         [| ip; prefix |] ->
             { Address = System.Net.IPAddress.Parse (ip.Trim ())
               Prefix = int prefix }
-        | _ -> raise (System.ArgumentOutOfRangeException "Malformed CIDR, expecting and IP and prefix separated by '/'")
+        | _ -> raise (System.ArgumentOutOfRangeException "Malformed CIDR, expecting an IP and prefix separated by '/'")
     let safeParse (s:string) : Result<IPAddressCidr, System.Exception> =
         try parse s |> Ok
         with ex -> Error ex
