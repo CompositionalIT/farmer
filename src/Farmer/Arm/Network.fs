@@ -5,7 +5,6 @@ open Farmer
 open Farmer.CoreTypes
 open Farmer.ExpressRoute
 open Farmer.VirtualNetworkGateway
-open System.Net
 
 let connections = ResourceType "Microsoft.Network/connections"
 let expressRouteCircuits = ResourceType "Microsoft.Network/expressRouteCircuits"
@@ -15,6 +14,7 @@ let publicIPAddresses = ResourceType "Microsoft.Network/publicIPAddresses"
 let subnets = ResourceType "Microsoft.Network/virtualNetworks/subnets"
 let virtualNetworks = ResourceType "Microsoft.Network/virtualNetworks"
 let virtualNetworkGateways = ResourceType "Microsoft.Network/virtualNetworkGateways"
+let localNetworkGateways = ResourceType "Microsoft.Network/localNetworkGateways"
 
 type PublicIpAddress =
     { Name : ResourceName
@@ -82,9 +82,9 @@ type VirtualNetworkGateway =
                name = this.Name.Value
                location = this.Location.ArmValue
                dependsOn = [
-                   sprintf "[resourceId('Microsoft.Network/virtualNetworks', '%s')]" this.VirtualNetwork.Value
+                   ArmExpression.resourceId(virtualNetworks, this.VirtualNetwork).Eval()
                    for config in this.IpConfigs do
-                       sprintf "[resourceId('Microsoft.Network/publicIPAddresses','%s')]" config.PublicIpName.Value 
+                        ArmExpression.resourceId(publicIPAddresses, config.PublicIpName).Eval()
                ]
                properties =
                     {| ipConfigurations = this.IpConfigs
@@ -96,8 +96,9 @@ type VirtualNetworkGateway =
                                     | DynamicPrivateIp -> "Dynamic", null
                                     | StaticPrivateIp ip -> "Static", string ip
                                 {| privateIpAllocationMethod = allocationMethod; privateIpAddress = ip
-                                   publicIPAddress = {| id = sprintf "[resourceId('Microsoft.Network/publicIPAddresses','%s')]" ipConfig.PublicIpName.Value |}
-                                   subnet = {| id = sprintf "[resourceId('Microsoft.Network/virtualNetworks/subnets', '%s', 'GatewaySubnet')]" this.VirtualNetwork.Value |} |}
+                                   publicIPAddress = {| id = ArmExpression.resourceId(publicIPAddresses, ipConfig.PublicIpName).Eval() |}
+                                   subnet = {| id = ArmExpression.resourceId(subnets, this.VirtualNetwork, ResourceName "GatewaySubnet").Eval() |}
+                                |}
                            |})
                        sku =
                            match this.GatewayType with
@@ -118,6 +119,10 @@ type Connection =
       LocalNetworkGateway : ResourceName option
       PeerId : string option
       AuthorizationKey : string option }
+    member private this.VNetGateway1ResourceId = ArmExpression.resourceId(virtualNetworkGateways, this.VirtualNetworkGateway1)
+    member private this.VNetGateway2ResourceId = this.VirtualNetworkGateway2 |> Option.map(fun gw -> ArmExpression.resourceId(virtualNetworkGateways, gw))
+    member private this.LocalNetworkGatewayResourceId = this.LocalNetworkGateway |> Option.map(fun lng -> ArmExpression.resourceId(localNetworkGateways, lng))
+
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
@@ -125,32 +130,30 @@ type Connection =
                apiVersion = "2020-04-01"
                name = this.Name.Value
                location = this.Location.ArmValue
-               dependsOn = [
-                   sprintf "[resourceId('Microsoft.Network/virtualNetworksGateways', '%s')]" this.VirtualNetworkGateway1.Value
-                   if this.VirtualNetworkGateway2.IsSome then
-                       sprintf "[resourceId('Microsoft.Network/virtualNetworksGateways', '%s')]" this.VirtualNetworkGateway2.Value.Value
-                   if this.LocalNetworkGateway.IsSome then
-                       sprintf "[resourceId('Microsoft.Network/localNetworksGateways', '%s')]" this.LocalNetworkGateway.Value.Value
-               ]
+               dependsOn =
+                    [ Some this.VNetGateway1ResourceId; this.VNetGateway2ResourceId; this.LocalNetworkGatewayResourceId ]
+                    |> List.choose id
+                    |> List.map(fun r -> r.Eval())
                properties =
                     {| authorizationKey =
-                           match this.AuthorizationKey with
-                           | Some key -> key
-                           | None -> Unchecked.defaultof<_>
+                            match this.AuthorizationKey with
+                            | Some key -> key
+                            | None -> null
                        connectionType = this.ConnectionType.ArmValue
-                       virtualNetworkGateway1 = {| id = sprintf "[resourceId('Microsoft.Network/virtualNetworksGateways', '%s')]" this.VirtualNetworkGateway1.Value |}
+                       virtualNetworkGateway1 =
+                            {| id = this.VNetGateway1ResourceId.Eval() |}
                        virtualNetworkGateway2 =
-                           match this.VirtualNetworkGateway2 with
-                           | Some vng2 -> {| id = sprintf "[resourceId('Microsoft.Network/virtualNetworksGateways', '%s')]" vng2.Value |}
-                           | None -> Unchecked.defaultof<_>
+                            match this.VNetGateway2ResourceId with
+                            | Some vng2 -> box {| id = vng2.Eval() |}
+                            | None -> null
                        localNetworkGateway1 =
-                           match this.LocalNetworkGateway with
-                           | Some lng -> {| id = sprintf "[resourceId('Microsoft.Network/localNetworksGateways', '%s')]" lng.Value |}
-                           | None -> Unchecked.defaultof<_>
+                            match this.LocalNetworkGatewayResourceId with
+                            | Some lng -> box {| id = lng.Eval() |}
+                            | None -> null
                        peer =
-                           match this.PeerId with
-                           | Some peerId -> {| id = peerId |}
-                           | None -> Unchecked.defaultof<_>
+                            match this.PeerId with
+                            | Some peerId -> box {| id = peerId |}
+                            | None -> null
                     |}
             |} :> _
 type NetworkInterface =
@@ -179,8 +182,8 @@ type NetworkInterface =
                             {| name = sprintf "ipconfig%i" (index + 1)
                                properties =
                                 {| privateIPAllocationMethod = "Dynamic"
-                                   publicIPAddress = {| id = sprintf "[resourceId('Microsoft.Network/publicIPAddresses','%s')]" ipConfig.PublicIpName.Value |}
-                                   subnet = {| id = sprintf "[resourceId('Microsoft.Network/virtualNetworks/subnets', '%s', '%s')]" this.VirtualNetwork.Value ipConfig.SubnetName.Value |}
+                                   publicIPAddress = {| id = ArmExpression.resourceId(publicIPAddresses, ipConfig.PublicIpName).Eval() |}
+                                   subnet = {| id = ArmExpression.resourceId(subnets, this.VirtualNetwork, ipConfig.SubnetName).Eval() |}
                                 |}
                             |})
                    |}
@@ -214,7 +217,9 @@ type NetworkProfile =
                                    |> List.mapi (fun index ipConfig ->
                                       {| name = sprintf "ipconfig%i" (index + 1)
                                          properties =
-                                            {| subnet = {| id = sprintf "[resourceId('Microsoft.Network/virtualNetworks/subnets', '%s', '%s')]" this.VirtualNetwork.Value ipConfig.SubnetName.Value |} |}
+                                            {| subnet =
+                                                {| id = ArmExpression.resourceId(subnets, this.VirtualNetwork, ipConfig.SubnetName).Eval() |}
+                                            |}
                                       |})
                                 |}
                            |}

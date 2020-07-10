@@ -94,15 +94,18 @@ module Servers =
                    location = this.Location.ArmValue
                    tags = {| displayName = this.Name.Value |}
                    sku =
-                     match this.Sku with
-                     | Standalone sku -> box {| name = sku.Name; tier = sku.Edition |}
-                     | Pool _ -> null
+                        match this.Sku with
+                        | Standalone sku -> box {| name = sku.Name; tier = sku.Edition |}
+                        | Pool _ -> null
                    properties =
-                     {| collation = this.Collation
-                        elasticPoolId =
-                         match this.Sku with
-                         | Standalone _ -> null
-                         | Pool pool -> sprintf "[resourceId('Microsoft.Sql/servers/elasticPools', '%s', '%s')]" this.Server.Value pool.Value |}
+                        {| collation = this.Collation
+                           elasticPoolId =
+                                match this.Sku with
+                                | Standalone _ ->
+                                    null
+                                | Pool pool ->
+                                    ArmExpression.resourceId(elasticPools, this.Server, pool).Eval()
+                        |}
                    dependsOn =
                      [ this.Server.Value
                        match this.Sku with

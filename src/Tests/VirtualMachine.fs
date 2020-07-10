@@ -35,6 +35,7 @@ let tests = testList "Virtual Machine" [
         Expect.equal resource.StorageProfile.ImageReference.Offer WindowsServer_2012Datacenter.Offer.ArmValue "Incorrect Offer"
         Expect.equal resource.StorageProfile.DataDisks.Count 2 "Incorrect number of data disks"
         Expect.equal resource.OsProfile.AdminUsername "isaac" "Incorrect username"
+        Expect.equal resource.NetworkProfile.NetworkInterfaces.[0].Id "[resourceId('Microsoft.Network/networkInterfaces', 'isaacsVM-nic')]" "Incorrect NIC reference"
         Expect.isTrue (resource.DiagnosticsProfile.BootDiagnostics.Enabled.GetValueOrDefault false) "Boot Diagnostics should be enabled"
     }
     test "Creates a parameter for the password" {

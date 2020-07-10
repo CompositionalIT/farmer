@@ -45,11 +45,13 @@ let tests = testList "Container Group" [
                 restart_policy AlwaysRestart
                 add_udp_port 123us
                 add_instances [ nginx ]
+                network_profile "test"
             } |> asAzureResource
 
         Expect.equal group.Name "appWithHttpFrontend" "Group name is not set correctly."
         Expect.equal group.OsType "Linux" "OS should be Linux"
         Expect.equal group.IpAddress.Ports.[1].PortProperty 123 "Incorrect udp port"
+        Expect.equal group.NetworkProfile.Id "[resourceId('Microsoft.Network/networkProfiles', 'test')]" "Incorrect network profile reference"
 
         let containerInstance = group.Containers.[0]
         Expect.equal containerInstance.Image "nginx:1.17.6-alpine" "Incorrect image"
