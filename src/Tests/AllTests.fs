@@ -23,6 +23,7 @@ let allTests =
                 Maps.tests
                 SignalR.tests
                 Sql.tests
+                EventGrid.tests
             ]
             testList "Control" [
                 Template.tests

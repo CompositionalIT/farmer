@@ -25,6 +25,7 @@
     <Compile Include="Maps.fs" />
     <Compile Include="Sql.fs" />
     <Compile Include="SignalR.fs" />
+    <Compile Include="EventGrid.fs" />
     <Compile Include="AllTests.fs" />
   </ItemGroup>
 
