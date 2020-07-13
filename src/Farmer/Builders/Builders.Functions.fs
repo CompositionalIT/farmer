@@ -131,7 +131,8 @@ type FunctionsConfig =
             | AutomaticallyCreated resourceName ->
                 { StorageAccount.Name = resourceName
                   Location = location
-                  Sku = Storage.Standard_LRS }
+                  Sku = Storage.Standard_LRS
+                  StaticWebsite = None }
             | AutomaticPlaceholder | External _ ->
                 ()
             match this.AppInsightsName with

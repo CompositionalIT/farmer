@@ -116,6 +116,8 @@ module Az =
     let zipDeployFunctionApp = zipDeploy "functionapp"
     let delete resourceGroup =
         az (sprintf "group delete --name %s --yes --no-wait" resourceGroup)
+    let enableStaticWebsite name indexDoc errorDoc =
+        az (sprintf "storage blob service-properties update --account-name %s --static-website  --index-document %s --404-document %s" name indexDoc errorDoc)
 
 /// Represents an Azure subscription
 type Subscription = { ID : Guid; Name : string; IsDefault : bool }

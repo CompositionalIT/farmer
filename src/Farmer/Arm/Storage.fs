@@ -13,7 +13,8 @@ let queues = ResourceType "Microsoft.Storage/storageAccounts/queueServices/queue
 type StorageAccount =
     { Name : ResourceName
       Location : Location
-      Sku : Sku }
+      Sku : Sku
+      StaticWebsite : (string * string) option }
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
@@ -24,7 +25,13 @@ type StorageAccount =
                apiVersion = "2018-07-01"
                location = this.Location.ArmValue
             |} :> _
-
+    interface IPostDeploy with
+        member this.Run resourceGroupName =
+            match this with
+            | { StaticWebsite = Some (indexDoc, errorDoc); Name = name } ->
+                printfn "Enabling static web site for storage account %s with Index document as %s, Error document as %s" name.Value indexDoc errorDoc 
+                Some (Deploy.Az.enableStaticWebsite name.Value indexDoc errorDoc)
+            | _ -> None
 module BlobServices =
     type Container =
         { Name : ResourceName
