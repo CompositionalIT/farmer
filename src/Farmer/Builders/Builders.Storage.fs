@@ -85,21 +85,25 @@ type StorageAccountBuilder() =
     /// Adds container with anonymous read access for blobs only.
     [<CustomOperation "add_blob_container">]
     member _.AddBlobContainer(state:StorageAccountConfig, name) = StorageAccountBuilder.AddContainer(state, Blob, name)
+    /// Adds a file share with no quota.
     [<CustomOperation "add_file_share">]
     member _.AddFileShare(state:StorageAccountConfig, name) = { state with FileShares = state.FileShares @ [ ResourceName name, None ]}
+    /// Adds a file share with specified quota.
     [<CustomOperation "add_file_share_with_quota">]
     member _.AddFileShareWithQuota(state:StorageAccountConfig, name, quota) = { state with FileShares = state.FileShares @ [ ResourceName name, Some quota ]}
+    /// Adds a single queue to the storage account.
     [<CustomOperation "add_queue">]
     member _.AddQueue(state:StorageAccountConfig, name) = { state with Queues = state.Queues.Add (ResourceName name) }
+    /// Adds a set of queues to the storage account.
     [<CustomOperation "add_queues">]
     member this.AddQueues(state:StorageAccountConfig, names) =
         (state, names) ||> Seq.fold(fun state name -> this.AddQueue(state, name))
     /// Enable static website and set index & error document as a post-deployment task.
     [<CustomOperation "static_website">]
     member _.StaticWebsite(state:StorageAccountConfig, indexDoc, errorDoc) = { state with StaticWebsite = Some (indexDoc, errorDoc, None) }
-    /// Enable static website, set index & error document and set local folder to be deployed to $web container as a post-deployment task.
-    [<CustomOperation "static_website_with_content">]
-    member _.StaticWebsiteWithContent(state:StorageAccountConfig, indexDoc, errorDoc, folder) = { state with StaticWebsite = Some (indexDoc, errorDoc, Some folder) }
+    /// Sets the supplied folder path to be deployed to the storage account's $web folder as a post-deployment task, if static_website has already been set.
+    [<CustomOperation "static_website_content">]
+    member _.StaticWebsiteWithContent(state:StorageAccountConfig, path) = { state with StaticWebsite = state.StaticWebsite |> Option.map(fun (indexDoc, errorDoc, _) -> indexDoc, errorDoc, Some path) }
 
 /// Allow adding storage accounts directly to CDNs
 type EndpointBuilder with
