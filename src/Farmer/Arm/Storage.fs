@@ -14,7 +14,7 @@ type StorageAccount =
     { Name : ResourceName
       Location : Location
       Sku : Sku
-      StaticWebsite : (string * string) option }
+      StaticWebsite : (string * string * string option) option }
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
@@ -28,10 +28,21 @@ type StorageAccount =
     interface IPostDeploy with
         member this.Run resourceGroupName =
             match this with
-            | { StaticWebsite = Some (indexDoc, errorDoc); Name = name } ->
+            | { StaticWebsite = Some (indexDoc, errorDoc, folder); Name = name } ->
                 printfn "Enabling static web site for storage account %s with Index document as %s, Error document as %s" name.Value indexDoc errorDoc 
-                Some (Deploy.Az.enableStaticWebsite name.Value indexDoc errorDoc)
+                Deploy.Az.enableStaticWebsite name.Value indexDoc errorDoc
+                |> Some
+                |> Option.bind (fun r1 ->
+                    folder
+                    |> Option.map (fun f ->
+                        printfn "Deploying content of %s folder to $web container for storage account %s" f name.Value
+                        Deploy.Az.batchUploadStaticWebsite name.Value f
+                    )
+                    |> Option.map (fun r2 -> [r1;r2] |> Result.sequence |> Result.map (String.concat ", "))
+                )
             | _ -> None
+                    
+                            
 module BlobServices =
     type Container =
         { Name : ResourceName

@@ -29,8 +29,7 @@ type StorageAccountConfig =
       /// Queues
       Queues : ResourceName Set
       /// Static Website Settings
-      StaticWebsite : (string * string) option
-      }
+      StaticWebsite : (string * string * string option) option }
     /// Gets the ARM expression path to the key of this storage account.
     member this.Key = buildKey this.Name
     /// Gets the Primary endpoint for static website (if enabled)
@@ -57,7 +56,14 @@ type StorageAccountConfig =
         ]
 
 type StorageAccountBuilder() =
-    member _.Yield _ = { Name = ResourceName.Empty; Sku = Standard_LRS; Containers = []; FileShares = []; Queues = Set.empty; StaticWebsite = None }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Sku = Standard_LRS
+        Containers = []
+        FileShares = []
+        Queues = Set.empty
+        StaticWebsite = None
+    }
     member _.Run(state:StorageAccountConfig) =
         { state with
             Name = state.Name |> Helpers.sanitiseStorage |> ResourceName }
@@ -90,8 +96,11 @@ type StorageAccountBuilder() =
         (state, names) ||> Seq.fold(fun state name -> this.AddQueue(state, name))
     /// Enable static website and set index & error document as a post-deployment task.
     [<CustomOperation "static_website">]
-    member _.StaticWebsite(state:StorageAccountConfig, indexDoc, errorDoc) = { state with StaticWebsite = Some (indexDoc, errorDoc) }
-    
+    member _.StaticWebsite(state:StorageAccountConfig, indexDoc, errorDoc) = { state with StaticWebsite = Some (indexDoc, errorDoc, None) }
+    /// Enable static website, set index & error document and set local folder to be deployed to $web container as a post-deployment task.
+    [<CustomOperation "static_website_with_content">]
+    member _.StaticWebsiteWithContent(state:StorageAccountConfig, indexDoc, errorDoc, folder) = { state with StaticWebsite = Some (indexDoc, errorDoc, Some folder) }
+
 /// Allow adding storage accounts directly to CDNs
 type EndpointBuilder with
     member this.Origin(state:EndpointConfig, storage:StorageAccountConfig) =

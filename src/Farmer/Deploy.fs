@@ -118,6 +118,8 @@ module Az =
         az (sprintf "group delete --name %s --yes --no-wait" resourceGroup)
     let enableStaticWebsite name indexDoc errorDoc =
         az (sprintf "storage blob service-properties update --account-name %s --static-website  --index-document %s --404-document %s" name indexDoc errorDoc)
+    let batchUploadStaticWebsite name path =
+        az (sprintf "storage blob upload-batch --account-name %s --destination $web --source %s" name path)
 
 /// Represents an Azure subscription
 type Subscription = { ID : Guid; Name : string; IsDefault : bool }

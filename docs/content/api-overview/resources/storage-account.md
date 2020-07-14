@@ -33,7 +33,8 @@ The StorageAccount builder contains special commands that are executed *after* t
 
 | Keyword | Purpose |
 |-|-|
-| static_website | Supplying a index and error document path will instruct Farmer to enable static website feature and setup document paths once the ARM deployment is complete. |
+| static_website | Supplying an index and error document will instruct Farmer to enable static website feature and setup document paths once the ARM deployment is complete. |
+| static_website_with_content | Supplying an index, error document and path to content folder will instruct Farmer to enable static website feature, setup document paths and deploy content to $web container once the ARM deployment is complete. |
 
 #### Configuration Members
 
@@ -57,5 +58,6 @@ let storage = storageAccount {
     add_file_share "share1"
     add_file_share_with_quota "share2" 1024
     static_website "index.html" "error.html"
+    static_website_with_content "index.html" "error.html" "local/path/to/folder/content"
 }
 ```
