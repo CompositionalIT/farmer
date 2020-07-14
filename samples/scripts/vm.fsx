@@ -3,23 +3,33 @@
 
 open Farmer
 open Farmer.Builders
-open Farmer.Vm
 
-let myVm = vm {
-    name "isaacsVM"
-    username "isaac"
-    vm_size Standard_A2
-    operating_system WindowsServer_2012Datacenter
-    os_disk 128 StandardSSD_LRS
-    add_ssd_disk 128
-    add_slow_disk 512
-    diagnostics_support
+let queueName = "events"
+
+let storageSource = storageAccount { name "isaacstorageacc"; add_private_container "data" }
+let destionationHub = eventHub { name "isaachub"; namespace_name "isaacns" }
+let destinationStorage = storageAccount { name "destinationstorage"; add_queue queueName; add_private_container "events" }
+
+let eventHubGrid = eventGrid {
+    topic_name "isaacHubTopic"
+    source storageSource
+    add_eventhub_subscriber destionationHub [ SystemEvents.Storage.BlobCreated; SystemEvents.Storage.BlobDeleted ]
+    add_queue_subscriber destinationStorage queueName [ SystemEvents.Storage.BlobCreated ]
 }
 
-let deployment = arm {
-    location Location.NorthEurope
-    add_resource myVm
-}
+let template =
+    arm {
+        add_resources [
+            storageSource
+            eventHubGrid
+            destinationStorage
+            destionationHub
+        ]
+    }
 
-deployment
-|> Deploy.execute "my-resource-group-name" Deploy.NoParameters
+template
+|> Writer.quickWrite "generated-template"
+
+template
+|> Deploy.execute "my-resource-group" []
+|> ignore

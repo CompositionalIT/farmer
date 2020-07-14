@@ -78,7 +78,7 @@ type VirtualNetworkGateway =
         member this.ResourceName = this.Name
         member this.JsonModel =
             {| ``type`` = "Microsoft.Network/virtualNetworkGateways"
-               apiVersion = "2020-05-01"
+               apiVersion = "2020-04-01"
                name = this.Name.Value
                location = this.Location.ArmValue
                dependsOn = [
@@ -161,7 +161,7 @@ type NetworkInterface =
       Location : Location
       IpConfigs :
         {| SubnetName : ResourceName
-           PublicIpName : ResourceName |} list
+           PublicIpName : ResourceName option |} list
       VirtualNetwork : ResourceName }
     interface IArmResource with
         member this.ResourceName = this.Name
@@ -173,7 +173,9 @@ type NetworkInterface =
                dependsOn = [
                    this.VirtualNetwork.Value
                    for config in this.IpConfigs do
-                       config.PublicIpName.Value
+                    match config.PublicIpName with
+                    | Some publicIpName -> publicIpName.Value
+                    | None -> ()
                ]
                properties =
                    {| ipConfigurations =
@@ -181,9 +183,11 @@ type NetworkInterface =
                         |> List.mapi(fun index ipConfig ->
                             {| name = sprintf "ipconfig%i" (index + 1)
                                properties =
-                                {| privateIPAllocationMethod = "Dynamic"
-                                   publicIPAddress = {| id = ArmExpression.resourceId(publicIPAddresses, ipConfig.PublicIpName).Eval() |}
+                                {| privateIPAllocationMethod = "Dynamic"                                  
                                    subnet = {| id = ArmExpression.resourceId(subnets, this.VirtualNetwork, ipConfig.SubnetName).Eval() |}
+                                   publicIPAddress =
+                                    | Some publicIpName -> box {| id = ArmExpression.resourceId(publicIPAddresses, ipConfig.PublicIpName).Eval() |}
+                                    | None -> null
                                 |}
                             |})
                    |}

@@ -1,18 +1,39 @@
 open Farmer
 open Farmer.Builders
+open Farmer.VirtualNetworkGateway
 
-//TODO: Create resources here!
-
-let deployment = arm {
-    location Location.NorthEurope
-
-    //TODO: Assign resources here using the add_resource keyword
+let devVn = vnet {
+    name "dev-isaac-vnet"
+    add_address_spaces [ "10.0.0.0/16" ]
+    add_subnets [
+        subnet { name "GatewaySubnet"; prefix "10.0.0.0/24" }
+        subnet { name "Frontend"; prefix "10.0.2.0/24" }
+    ]
 }
 
-// Generate the ARM template here...
-deployment
-|> Writer.quickWrite @"generated-template"
+let developmentEnvironment = vm {
+    name "test-isaac"
+    username "isaac"
+    no_public_ip
+    // link_to_vnet devVn
+    // vnet_subnet_name "Frontend"
+}
 
-// Or deploy it directly to Azure here... (required Azure CLI installed!)
-// deployment
-// |> Deploy.execute "my-resource-group" Deploy.NoParameters
+// let gw = gateway {
+//     name "dev-isaac-gateway"
+//     vnet devVn
+//     vpn_gateway_sku VpnGatewaySku.Basic
+// }
+
+let deployment = arm {
+    add_resource developmentEnvironment
+    // add_resource gw
+    // add_resource devVn
+}
+
+deployment
+|> Writer.quickWrite "generated-template"
+
+deployment
+|> Deploy.execute "my-resource-group-test" [ "password-for-test-isaac", "PQow01**"]
+|> printfn "%A"

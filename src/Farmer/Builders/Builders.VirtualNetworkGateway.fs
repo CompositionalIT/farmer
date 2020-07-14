@@ -11,7 +11,7 @@ type VNetGatewayConfig =
       /// Private IP allocation method for the gateway's primary interface
       GatewayPrivateIpAllocationMethod : PrivateIpAllocationMethod
       /// Public IP for the gateway's interface
-      GatewayPublicIpName: ResourceName
+      GatewayPublicIpName: ResourceName option
       /// Private IP allocation method for the gateway's secondary interface if Active-Active
       ActiveActivePrivateIpAllocationMethod : PrivateIpAllocationMethod
       /// Public IP for the gateway's secondary interface if Active-Active
@@ -27,34 +27,39 @@ type VNetGatewayConfig =
     interface IBuilder with
         member this.DependencyName = this.Name
         member this.BuildResources location = [
-            if this.GatewayPublicIpName = ResourceName.Empty then
-                yield { // No public IP set, so generate one named after the gateway
-                    Name = ResourceName (sprintf "%s-ip" this.Name.Value)
-                    Location = location
-                    DomainNameLabel = None
-                }
-            yield {
-                Name = this.Name
-                Location = location
-                IpConfigs = [
-                    yield {| Name = ResourceName "default"
-                             PrivateIpAllocationMethod = this.GatewayPrivateIpAllocationMethod
-                             PublicIpName = this.GatewayPublicIpName.IfEmpty (sprintf "%s-ip" this.Name.Value) |}
-                    if this.ActiveActivePublicIpName.IsSome then
-                        yield {| Name = ResourceName "redundant"; PrivateIpAllocationMethod = this.ActiveActivePrivateIpAllocationMethod; PublicIpName = this.ActiveActivePublicIpName.Value |}
-                ]
-                VirtualNetwork = this.VirtualNetwork
-                GatewayType = this.GatewayType
-                VpnType = this.VpnType
-                EnableBgp = this.EnableBgp
-            }
+            let defaultIpSetName = ResourceName (sprintf "%s-ip" this.Name.Value)
+
+            // If no public IP is set, generate one named after the gateway
+            if this.GatewayPublicIpName.IsNone then
+                { Name = defaultIpSetName
+                  Location = location
+                  DomainNameLabel = None }
+
+            { Name = this.Name
+              Location = location
+              IpConfigs = [
+                  {| Name = ResourceName "default"
+                     PrivateIpAllocationMethod = this.GatewayPrivateIpAllocationMethod
+                     PublicIpName = this.GatewayPublicIpName |> Option.defaultValue defaultIpSetName |}
+                  match this.ActiveActivePublicIpName with
+                  | Some activeActivePublicIpName ->
+                    {| Name = ResourceName "redundant"
+                       PrivateIpAllocationMethod = this.ActiveActivePrivateIpAllocationMethod
+                       PublicIpName = activeActivePublicIpName |}
+                  | None ->
+                    ()
+              ]
+              VirtualNetwork = this.VirtualNetwork
+              GatewayType = this.GatewayType
+              VpnType = this.VpnType
+              EnableBgp = this.EnableBgp }
         ]
 
 type VnetGatewayBuilder() =
     member __.Yield _ =
       { Name = ResourceName.Empty
         GatewayPrivateIpAllocationMethod = DynamicPrivateIp
-        GatewayPublicIpName = ResourceName.Empty
+        GatewayPublicIpName = None
         ActiveActivePrivateIpAllocationMethod = DynamicPrivateIp
         ActiveActivePublicIpName = None
         VirtualNetwork = ResourceName.Empty
@@ -63,28 +68,34 @@ type VnetGatewayBuilder() =
         EnableBgp = true }
     /// Sets the name of the gateway
     [<CustomOperation "name">]
-    member __.Name(state:VNetGatewayConfig, name) = { state with Name = ResourceName name }
+    member _.Name(state:VNetGatewayConfig, name) = { state with Name = name }
+    member this.Name(state:VNetGatewayConfig, name) = this.Name(state, ResourceName name)
     /// Sets the virtual network where this gateway is attached.
     [<CustomOperation "vnet">]
-    member __.VNet(state:VNetGatewayConfig, vnet) = { state with VirtualNetwork = ResourceName vnet }
+    member _.VNet(state:VNetGatewayConfig, vnet) = { state with VirtualNetwork = vnet }
+    member this.VNet(state:VNetGatewayConfig, vnet) = this.VNet(state, ResourceName vnet)
+    member this.VNet(state:VNetGatewayConfig, vnet:VirtualNetworkConfig) = this.VNet(state, vnet.Name)
     /// Sets the ExpressRoute gateway type with an ExpressRoute SKU.
     [<CustomOperation "er_gateway_sku">]
-    member __.ErGatewaySku(state:VNetGatewayConfig, sku ) = { state with GatewayType = GatewayType.ExpressRoute sku }
+    member _.ErGatewaySku(state:VNetGatewayConfig, sku) = { state with GatewayType = GatewayType.ExpressRoute sku }
     /// Sets the VPN gateway type with a VPN SKU.
     [<CustomOperation "vpn_gateway_sku">]
-    member __.VpnType(state:VNetGatewayConfig, sku) = { state with GatewayType = GatewayType.Vpn sku }
+    member _.VpnType(state:VNetGatewayConfig, sku) = { state with GatewayType = GatewayType.Vpn sku }
     /// Sets the VPN type with - RouteBased or PolicyBased.
     [<CustomOperation "vpn_type">]
-    member __.VpnGatewaySku(state:VNetGatewayConfig, vpnType) = { state with VpnType = vpnType }
+    member _.VpnGatewaySku(state:VNetGatewayConfig, vpnType) = { state with VpnType = vpnType }
     /// Sets the default gateway IP config.
     [<CustomOperation "gateway_ip_config">]
-    member __.GatewayIpConfig(state:VNetGatewayConfig, allocationMethod, publicIp:PublicIpAddress) =
-        { state with GatewayPrivateIpAllocationMethod = allocationMethod; GatewayPublicIpName = publicIp.Name  }
+    member _.GatewayIpConfig(state:VNetGatewayConfig, allocationMethod, publicIp) =
+        { state with GatewayPrivateIpAllocationMethod = allocationMethod; GatewayPublicIpName = Some publicIp }
+    member this.GatewayIpConfig(state:VNetGatewayConfig, allocationMethod, publicIp:PublicIpAddress) =
+        this.GatewayIpConfig(state, allocationMethod, publicIp.Name)
     /// Sets the default gateway IP config and enables active-active if not already.
     [<CustomOperation "active_active_ip_config">]
-    member __.ActiveActiveIpConfig(state:VNetGatewayConfig, allocationMethod, publicIpName) =
+    member _.ActiveActiveIpConfig(state:VNetGatewayConfig, allocationMethod, publicIpName) =
         match state.GatewayType with
-        | GatewayType.ExpressRoute _ -> state // No active-active config on ER gateways
+        | GatewayType.ExpressRoute _ ->
+            state // No active-active config on ER gateways
         | GatewayType.Vpn _ ->
             { state with
                 ActiveActivePrivateIpAllocationMethod = allocationMethod
@@ -92,7 +103,7 @@ type VnetGatewayBuilder() =
             }
     /// Disable BGP (enabled by default).
     [<CustomOperation "disable_bgp">]
-    member __.DisableBgp(state:VNetGatewayConfig) = { state with EnableBgp = false }
+    member _.DisableBgp(state:VNetGatewayConfig) = { state with EnableBgp = false }
 
 let gateway = VnetGatewayBuilder()
 
