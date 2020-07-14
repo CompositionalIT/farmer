@@ -28,11 +28,20 @@ The Storage Account builder creates storage accounts and their associated contai
 | add_queue | Adds a queue to the storage account. |
 | add_queues | Adds a list of queues to the storage account |
 
+#### Post-deployment Builder Keywords
+The StorageAccount builder contains special commands that are executed *after* the ARM deployment is completed.
+
+| Keyword | Purpose |
+|-|-|
+| static_website | Supplying an index and error document will instruct Farmer to enable static website feature and setup document paths once the ARM deployment is complete. |
+| static_website_with_content | Supplying an index, error document and path to content folder will instruct Farmer to enable static website feature, setup document paths and deploy content to $web container once the ARM deployment is complete. |
+
 #### Configuration Members
 
 | Member | Purpose |
 |-|-|
 | Key | Returns an ARM expression to retrieve the storage account's primary connection string. Useful for e.g. supplying the connection string to another resource e.g. KeyVault or an app setting in the App Service. |
+| WebsitePrimaryEndpoint | Returns the Primary endpoint for static website (if enabled). |
 
 #### Example
 
@@ -48,5 +57,7 @@ let storage = storageAccount {
     add_blob_container "myBlobContainer"
     add_file_share "share1"
     add_file_share_with_quota "share2" 1024
+    static_website "index.html" "error.html"
+    static_website_with_content "index.html" "error.html" "local/path/to/folder/content"
 }
 ```

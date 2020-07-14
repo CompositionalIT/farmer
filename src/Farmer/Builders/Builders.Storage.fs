@@ -27,16 +27,21 @@ type StorageAccountConfig =
       /// File shares
       FileShares: (ResourceName * ShareQuotaInGb option) list
       /// Queues
-      Queues : ResourceName Set }
+      Queues : ResourceName Set
+      /// Static Website Settings
+      StaticWebsite : (string * string * string option) option }
     /// Gets the ARM expression path to the key of this storage account.
     member this.Key = buildKey this.Name
+    /// Gets the Primary endpoint for static website (if enabled)
+    member this.WebsitePrimaryEndpoint = sprintf "https://%s.z6.web.core.windows.net" this.Name.Value
     member this.Endpoint = sprintf "%s.blob.core.windows.net" this.Name.Value
     interface IBuilder with
         member this.DependencyName = this.Name
         member this.BuildResources location = [
             { Name = this.Name
               Location = location
-              Sku = this.Sku }
+              Sku = this.Sku
+              StaticWebsite = this.StaticWebsite }
             for name, access in this.Containers do
                 { Name = name
                   StorageAccount = this.Name
@@ -51,7 +56,14 @@ type StorageAccountConfig =
         ]
 
 type StorageAccountBuilder() =
-    member _.Yield _ = { Name = ResourceName.Empty; Sku = Standard_LRS; Containers = []; FileShares = []; Queues = Set.empty }
+    member _.Yield _ = {
+        Name = ResourceName.Empty
+        Sku = Standard_LRS
+        Containers = []
+        FileShares = []
+        Queues = Set.empty
+        StaticWebsite = None
+    }
     member _.Run(state:StorageAccountConfig) =
         { state with
             Name = state.Name |> Helpers.sanitiseStorage |> ResourceName }
@@ -82,6 +94,12 @@ type StorageAccountBuilder() =
     [<CustomOperation "add_queues">]
     member this.AddQueues(state:StorageAccountConfig, names) =
         (state, names) ||> Seq.fold(fun state name -> this.AddQueue(state, name))
+    /// Enable static website and set index & error document as a post-deployment task.
+    [<CustomOperation "static_website">]
+    member _.StaticWebsite(state:StorageAccountConfig, indexDoc, errorDoc) = { state with StaticWebsite = Some (indexDoc, errorDoc, None) }
+    /// Enable static website, set index & error document and set local folder to be deployed to $web container as a post-deployment task.
+    [<CustomOperation "static_website_with_content">]
+    member _.StaticWebsiteWithContent(state:StorageAccountConfig, indexDoc, errorDoc, folder) = { state with StaticWebsite = Some (indexDoc, errorDoc, Some folder) }
 
 /// Allow adding storage accounts directly to CDNs
 type EndpointBuilder with

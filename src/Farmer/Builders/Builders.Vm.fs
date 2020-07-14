@@ -118,7 +118,8 @@ type VmConfig =
             | Some (AutomaticallyCreated account) ->
                 { Name = account
                   Location = location
-                  Sku = Storage.Standard_LRS }
+                  Sku = Storage.Standard_LRS
+                  StaticWebsite = None }
             | Some AutomaticPlaceholder
             | Some (External _)
             | None ->
