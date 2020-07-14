@@ -1,5 +1,17 @@
 Release Notes
 =============
+## 0.22.0
+* Cosmos DB: More keys exposed as properties
+* Deployment: Display currently selected subscription id when deploying
+* Event Hub: Dependency support
+* Event Grid: Initial support
+* Functions: Zip deploy support
+* Storage Account: Static website support
+* Storage Account: File Share support
+* Storage Account: Queue support
+* Internal: More automated test coverage
+* Internal: Refactoring of ARM resources to use strongly-typed resource path generation
+
 ## 0.21.0
 * VNet Gateway support
 * Event Hub Capture support
