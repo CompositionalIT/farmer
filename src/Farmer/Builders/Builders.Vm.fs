@@ -119,7 +119,8 @@ type VmConfig =
                 { Name = account
                   Location = location
                   Sku = Storage.Standard_LRS
-                  StaticWebsite = None }
+                  StaticWebsite = None
+                  HierarchicalNamespace = false}
             | Some AutomaticPlaceholder
             | Some (External _)
             | None ->
