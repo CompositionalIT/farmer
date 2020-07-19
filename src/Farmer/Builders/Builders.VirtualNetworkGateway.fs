@@ -70,20 +70,18 @@ type VnetGatewayBuilder() =
     [<CustomOperation "name">]
     member _.Name(state:VNetGatewayConfig, name) = { state with Name = name }
     member this.Name(state:VNetGatewayConfig, name) = this.Name(state, ResourceName name)
-    /// Sets the virtual network where this gateway is attached.
+    /// Sets the virtual network to which this gateway is attached.
     [<CustomOperation "vnet">]
     member _.VNet(state:VNetGatewayConfig, vnet) = { state with VirtualNetwork = vnet }
     member this.VNet(state:VNetGatewayConfig, vnet) = this.VNet(state, ResourceName vnet)
     member this.VNet(state:VNetGatewayConfig, vnet:VirtualNetworkConfig) = this.VNet(state, vnet.Name)
     /// Sets the ExpressRoute gateway type with an ExpressRoute SKU.
-    [<CustomOperation "er_gateway_sku">]
-    member _.ErGatewaySku(state:VNetGatewayConfig, sku) = { state with GatewayType = GatewayType.ExpressRoute sku }
-    /// Sets the VPN gateway type with a VPN SKU.
-    [<CustomOperation "vpn_gateway_sku">]
-    member _.VpnType(state:VNetGatewayConfig, sku) = { state with GatewayType = GatewayType.Vpn sku }
+    [<CustomOperation "sku">]
+    member _.Sku(state:VNetGatewayConfig, sku) = { state with GatewayType = GatewayType.ExpressRoute sku }
+    member _.Sku(state:VNetGatewayConfig, sku) = { state with GatewayType = GatewayType.Vpn sku }
     /// Sets the VPN type with - RouteBased or PolicyBased.
     [<CustomOperation "vpn_type">]
-    member _.VpnGatewaySku(state:VNetGatewayConfig, vpnType) = { state with VpnType = vpnType }
+    member _.VpnType(state:VNetGatewayConfig, vpnType) = { state with VpnType = vpnType }
     /// Sets the default gateway IP config.
     [<CustomOperation "gateway_ip_config">]
     member _.GatewayIpConfig(state:VNetGatewayConfig, allocationMethod, publicIp) =
@@ -95,12 +93,12 @@ type VnetGatewayBuilder() =
     member _.ActiveActiveIpConfig(state:VNetGatewayConfig, allocationMethod, publicIpName) =
         match state.GatewayType with
         | GatewayType.ExpressRoute _ ->
-            state // No active-active config on ER gateways
+            // No active-active config on ER gateways
+            state
         | GatewayType.Vpn _ ->
             { state with
                 ActiveActivePrivateIpAllocationMethod = allocationMethod
-                ActiveActivePublicIpName = Some (ResourceName publicIpName)
-            }
+                ActiveActivePublicIpName = Some (ResourceName publicIpName) }
     /// Disable BGP (enabled by default).
     [<CustomOperation "disable_bgp">]
     member _.DisableBgp(state:VNetGatewayConfig) = { state with EnableBgp = false }

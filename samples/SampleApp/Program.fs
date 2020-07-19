@@ -15,20 +15,20 @@ let developmentEnvironment = vm {
     name "test-isaac"
     username "isaac"
     no_public_ip
-    // link_to_vnet devVn
-    // vnet_subnet_name "Frontend"
+    link_to_vnet devVn
+    vnet_subnet_name "Frontend"
 }
 
-// let gw = gateway {
-//     name "dev-isaac-gateway"
-//     vnet devVn
-//     vpn_gateway_sku VpnGatewaySku.Basic
-// }
+let gw = gateway {
+    name "dev-isaac-gateway"
+    vnet devVn
+    sku VpnGatewaySku.Basic
+}
 
 let deployment = arm {
     add_resource developmentEnvironment
-    // add_resource gw
-    // add_resource devVn
+    add_resource gw
+    add_resource devVn
 }
 
 deployment

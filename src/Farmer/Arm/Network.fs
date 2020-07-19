@@ -178,18 +178,19 @@ type NetworkInterface =
                     | None -> ()
                ]
                properties =
-                   {| ipConfigurations =
-                        this.IpConfigs
-                        |> List.mapi(fun index ipConfig ->
+                   {| ipConfigurations = [
+                        for index, ipConfig in Seq.indexed this.IpConfigs do
                             {| name = sprintf "ipconfig%i" (index + 1)
                                properties =
-                                {| privateIPAllocationMethod = "Dynamic"                                  
+                                {| privateIPAllocationMethod = "Dynamic"
                                    subnet = {| id = ArmExpression.resourceId(subnets, this.VirtualNetwork, ipConfig.SubnetName).Eval() |}
                                    publicIPAddress =
-                                    | Some publicIpName -> box {| id = ArmExpression.resourceId(publicIPAddresses, ipConfig.PublicIpName).Eval() |}
+                                    match ipConfig.PublicIpName with
+                                    | Some publicIpName -> box {| id = ArmExpression.resourceId(publicIPAddresses, publicIpName).Eval() |}
                                     | None -> null
                                 |}
-                            |})
+                            |}
+                      ]
                    |}
             |} :> _
 type NetworkProfile =
