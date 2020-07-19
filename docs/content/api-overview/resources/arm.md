@@ -21,7 +21,7 @@ The ARM deployment builder is always the top-level element of your deployment. I
 let deployment =
     arm {
         // All resources will share this location
-        location Locations.NorthEurope
+        location Location.NorthEurope
 
         // Assume myStorageAccount and myWebApp have been defined...
         add_resource myStorageAccount

@@ -29,7 +29,7 @@ type StorageAccountConfig =
       /// Queues
       Queues : ResourceName Set
       /// Static Website Settings
-      StaticWebsite : (string * string * string option) option }
+      StaticWebsite : {| IndexPage : string; ContentPath : string; ErrorPage : string option |} option }
     /// Gets the ARM expression path to the key of this storage account.
     member this.Key = buildKey this.Name
     /// Gets the Primary endpoint for static website (if enabled)
@@ -98,12 +98,14 @@ type StorageAccountBuilder() =
     [<CustomOperation "add_queues">]
     member this.AddQueues(state:StorageAccountConfig, names) =
         (state, names) ||> Seq.fold(fun state name -> this.AddQueue(state, name))
-    /// Enable static website and set index & error document as a post-deployment task.
-    [<CustomOperation "static_website">]
-    member _.StaticWebsite(state:StorageAccountConfig, indexDoc, errorDoc) = { state with StaticWebsite = Some (indexDoc, errorDoc, None) }
-    /// Sets the supplied folder path to be deployed to the storage account's $web folder as a post-deployment task, if static_website has already been set.
-    [<CustomOperation "static_website_content">]
-    member _.StaticWebsiteWithContent(state:StorageAccountConfig, path) = { state with StaticWebsite = state.StaticWebsite |> Option.map(fun (indexDoc, errorDoc, _) -> indexDoc, errorDoc, Some path) }
+    /// Enable static website support, using the supplied local content path to the storage account's $web folder as a post-deployment task, and setting the index page as supplied.
+    [<CustomOperation "use_static_website">]
+    member _.StaticWebsite(state:StorageAccountConfig, contentPath, indexPage) =
+        { state with StaticWebsite = Some {| IndexPage = indexPage; ErrorPage = None; ContentPath = contentPath |} }
+    /// Sets the error page for the static website.
+    [<CustomOperation "static_website_error_page">]
+    member _.StaticWebsiteErrorPage(state:StorageAccountConfig, errorPage) =
+        { state with StaticWebsite = state.StaticWebsite |> Option.map(fun staticWebsite -> {| staticWebsite with ErrorPage = Some errorPage |}) }
 
 /// Allow adding storage accounts directly to CDNs
 type EndpointBuilder with

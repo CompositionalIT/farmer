@@ -117,7 +117,12 @@ module Az =
     let delete resourceGroup =
         az (sprintf "group delete --name %s --yes --no-wait" resourceGroup)
     let enableStaticWebsite name indexDoc errorDoc =
-        az (sprintf "storage blob service-properties update --account-name %s --static-website  --index-document %s --404-document %s" name indexDoc errorDoc)
+        [ sprintf "storage blob service-properties update --account-name %s --static-website --index-document %s" name indexDoc
+          match errorDoc with
+          | Some errorDoc -> sprintf "--404-document %s" errorDoc
+          | None -> () ]
+        |> String.concat " "
+        |> az
     let batchUploadStaticWebsite name path =
         az (sprintf "storage blob upload-batch --account-name %s --destination $web --source %s" name path)
 
