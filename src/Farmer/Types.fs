@@ -121,9 +121,8 @@ type ResourceRef<'T> =
         match this with
         | External (Managed r | Unmanaged r) -> r
         | AutoCreate r -> r.CreateResourceName config
-    member this.withDefault name = match this with AutoCreate (Derived _) -> AutoCreate (Named (ResourceName name)) | x -> x
 [<AutoOpen>]
-module PostResourceRef =
+module ResourceRef =
     let derived derivation = derivation |> Derived |> AutoCreate
     let (|DependencyResourceName|_|) config = function
         | External (Managed r) -> Some (DependencyResourceName r)
