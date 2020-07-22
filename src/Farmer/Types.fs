@@ -106,7 +106,13 @@ module ArmExpression =
 /// A ResourceRef represents a linked resource; typically this will be for two resources that have a relationship
 /// such as AppInsights on WebApp. WebApps can automatically create and configure an AI instance for the webapp,
 /// or configure the web app to an existing AI instance, or do nothing.
-type AutoCreationKind<'T> = Named of ResourceName | Derived of ('T -> ResourceName) member this.CreateResourceName config = match this with Named r -> r | Derived f -> f config
+type AutoCreationKind<'T> =
+    | Named of ResourceName
+    | Derived of ('T -> ResourceName)
+    member this.CreateResourceName config =
+        match this with
+        | Named r -> r
+        | Derived f -> f config
 type ExternalKind = Managed of ResourceName | Unmanaged of ResourceName
 type ResourceRef<'T> =
     | AutoCreate of AutoCreationKind<'T>

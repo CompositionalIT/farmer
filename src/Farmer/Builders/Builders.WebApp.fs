@@ -329,7 +329,7 @@ type WebAppBuilder() =
     /// Instead of creating a new service plan instance, configure this webapp to point to another unmanaged service plan instance.
     /// A dependency will automatically be set for this instance.
     [<CustomOperation "link_to_unmanaged_service_plan">]
-    member __.LinkToUnmanagedServicePlan(state:WebAppConfig, name) = { state with ServicePlanName = External (Unmanaged name) }
+    member __.LinkToUnmanagedServicePlan(state:WebAppConfig, name) = { state with ServicePlanName = External (Unmanaged (ResourceName name)) }
     [<CustomOperation "sku">]
     member __.Sku(state:WebAppConfig, sku) = { state with Sku = sku }
     /// Sets the size of the service plan worker.
@@ -355,7 +355,7 @@ type WebAppBuilder() =
     /// Instead of creating a new AI instance, configure this webapp to point to an unmanaged AI instance.
     /// A dependency will not be set for this instance.
     [<CustomOperation "link_to_unmanaged_app_insights">]
-    member __.LinkUnmanagedAppInsights(state:WebAppConfig, name) = { state with AppInsightsName = Some(External (Unmanaged name)) }
+    member __.LinkUnmanagedAppInsights(state:WebAppConfig, name) = { state with AppInsightsName = Some(External (Unmanaged (ResourceName name))) }
     /// Sets the web app to use "run from package" deployment capabilities.
     [<CustomOperation "run_from_package">]
     member __.RunFromPackage(state:WebAppConfig) = { state with RunFromPackage = true }
