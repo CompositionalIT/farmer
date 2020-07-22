@@ -106,15 +106,23 @@ module ArmExpression =
 /// A ResourceRef represents a linked resource; typically this will be for two resources that have a relationship
 /// such as AppInsights on WebApp. WebApps can automatically create and configure an AI instance for the webapp,
 /// or configure the web app to an existing AI instance, or do nothing.
-type ResourceRef =
-      /// The resource has been created externally.
-    | External of ResourceName
-      /// The resource will be automatically created and its name be automatically generated.
-    | AutomaticPlaceholder
-      /// The resource will be automatically created using the supplied name.
-    | AutomaticallyCreated of ResourceName
-    member this.ResourceNameOpt = match this with External r | AutomaticallyCreated r -> Some r | AutomaticPlaceholder -> None
-    member this.ResourceName = this.ResourceNameOpt |> Option.defaultValue ResourceName.Empty
+type AutoCreationKind<'T> = Named of ResourceName | Derived of ('T -> ResourceName) member this.CreateResourceName config = match this with Named r -> r | Derived f -> f config
+type ExternalKind = Managed of ResourceName | Unmanaged of ResourceName
+type ResourceRef<'T> =
+    | AutoCreate of AutoCreationKind<'T>
+    | External of ExternalKind
+    member this.CreateResourceName config =
+        match this with
+        | External (Managed r | Unmanaged r) -> r
+        | AutoCreate r -> r.CreateResourceName config
+    member this.withDefault name = match this with AutoCreate (Derived _) -> AutoCreate (Named (ResourceName name)) | x -> x
+[<AutoOpen>]
+module PostResourceRef =
+    let derived derivation = derivation |> Derived |> AutoCreate
+    let (|DependencyResourceName|_|) config = function
+        | External (Managed r) -> Some (DependencyResourceName r)
+        | AutoCreate r -> Some(DependencyResourceName(r.CreateResourceName config))
+        | External (Unmanaged _) -> None
 
 /// Whether a specific feature is active or not.
 type FeatureFlag = Enabled | Disabled member this.AsBoolean = match this with Enabled -> true | Disabled -> false

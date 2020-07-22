@@ -12,7 +12,7 @@ open EventHubs
 let AllAuthorizationRights = [ Manage; Send; Listen ]
 
 type EventHubConfig =
-    { EventHubNamespace : ResourceRef
+    { EventHubNamespace : ResourceRef<EventHubConfig>
       Name : ResourceName
       Sku : EventHubSku
       Capacity : int
@@ -29,24 +29,23 @@ type EventHubConfig =
     /// Gets an ARM expression for the path to the key of a specific authorization rule for this event hub.
     member this.GetKey (ruleName:string) =
         ArmExpression
-            .resourceId(authorizationRules, this.EventHubNamespace.ResourceName, this.Name, ResourceName ruleName)
+            .resourceId(authorizationRules, this.EventHubNamespace.CreateResourceName this, this.Name, ResourceName ruleName)
             .Map this.ToKeyExpression
 
     /// Gets an ARM expression for the path to the key of the default RootManageSharedAccessKey for the entire namespace.
     member this.DefaultKey =
         ArmExpression
-            .resourceId(authorizationRules, this.EventHubNamespace.ResourceName, ResourceName "RootManageSharedAccessKey")
+            .resourceId(authorizationRules, this.EventHubNamespace.CreateResourceName this, ResourceName "RootManageSharedAccessKey")
             .Map this.ToKeyExpression
     interface IBuilder with
-        member this.DependencyName = this.EventHubNamespace.ResourceName
+        member this.DependencyName = this.EventHubNamespace.CreateResourceName this
         member this.BuildResources location = [
-            let eventHubNamespaceName = this.EventHubNamespace.ResourceName
+            let eventHubNamespaceName = this.EventHubNamespace.CreateResourceName this
             let eventHubNamespace =
                 match this.EventHubNamespace with
                 | External _ ->
                     None
-                | AutomaticPlaceholder
-                | AutomaticallyCreated _ ->
+                | AutoCreate _ ->
                     { Name = eventHubNamespaceName
                       Location = location
                       Sku =
@@ -99,7 +98,7 @@ type EventHubConfig =
 type EventHubBuilder() =
     member __.Yield _ =
         { Name = ResourceName "hub"
-          EventHubNamespace = AutomaticPlaceholder
+          EventHubNamespace = derived (fun config -> config.Name.Map(sprintf "%s-ns"))
           Sku = Standard
           Capacity = 1
           ZoneRedundant = None
@@ -111,20 +110,13 @@ type EventHubBuilder() =
           ConsumerGroups = Set [ "$Default" ]
           AuthorizationRules = Map.empty
           Dependencies = [] }
-    member __.Run state =
-        { state with
-            EventHubNamespace =
-                match state.EventHubNamespace with
-                | External name -> External name
-                | AutomaticPlaceholder -> AutomaticallyCreated (state.Name.Map(sprintf "%s-ns"))
-                | AutomaticallyCreated resourceName -> AutomaticallyCreated resourceName }
     /// Sets the name of the Event Hub instance.
     [<CustomOperation "name">]
     member __.Name(state:EventHubConfig, name) = { state with Name = name }
     member this.Name(state:EventHubConfig, name) = this.Name(state, ResourceName name)
     /// Sets the name of the Event Hub namespace.
     [<CustomOperation "namespace_name">]
-    member __.NamespaceName(state:EventHubConfig, name) = { state with EventHubNamespace = AutomaticallyCreated name }
+    member __.NamespaceName(state:EventHubConfig, name) = { state with EventHubNamespace = AutoCreate(Named name) }
     member this.NamespaceName(state:EventHubConfig, name) = this.NamespaceName(state, ResourceName name)
     /// Sets the name of the Event Hub namespace.
     [<CustomOperation "link_to_namespace">]

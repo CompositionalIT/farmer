@@ -5,15 +5,6 @@ open Farmer
 open Farmer.CoreTypes
 open Farmer.Arm.Insights
 
-let tryCreateAppInsightsName aiName rootName =
-    aiName
-    |> Option.map(function
-    | AutomaticPlaceholder ->
-        AutomaticallyCreated(ResourceName(sprintf "%s-ai" rootName))
-    | (External _ as resourceRef)
-    | (AutomaticallyCreated _ as resourceRef) ->
-        resourceRef)
-
 let instrumentationKey (ResourceName accountName) =
     sprintf "reference('Microsoft.Insights/components/%s').InstrumentationKey" accountName
     |> ArmExpression.create

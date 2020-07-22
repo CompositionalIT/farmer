@@ -33,7 +33,7 @@ type CosmosDbContainerConfig =
       UniqueKeys : Set<string list>
       ExcludedPaths : string list }
 type CosmosDbConfig =
-    { AccountName : ResourceRef
+    { AccountName : ResourceRef<CosmosDbConfig>
       AccountConsistencyPolicy : ConsistencyPolicy
       AccountFailoverPolicy : FailoverPolicy
       DbName : ResourceName
@@ -41,41 +41,41 @@ type CosmosDbConfig =
       Containers : CosmosDbContainerConfig list
       PublicNetworkAccess : FeatureFlag
       FreeTier : bool }
-    member this.PrimaryKey = buildKey this.AccountName.ResourceName "primaryMasterKey"
-    member this.SecondaryKey = buildKey this.AccountName.ResourceName "secondaryMasterKey"
-    member this.PrimaryReadonlyKey = buildKey this.AccountName.ResourceName "primaryReadonlyMasterKey"
-    member this.SecondaryReadonlyKey = buildKey this.AccountName.ResourceName "secondaryReadonlyMasterKey"
-    member this.PrimaryConnectionString = buildConnectionString this.AccountName.ResourceName 0
-    member this.SecondaryConnectionString = buildConnectionString this.AccountName.ResourceName 1
+    member this.PrimaryKey = buildKey (this.AccountName.CreateResourceName this) "primaryMasterKey"
+    member this.SecondaryKey = buildKey (this.AccountName.CreateResourceName this) "secondaryMasterKey"
+    member this.PrimaryReadonlyKey = buildKey (this.AccountName.CreateResourceName this) "primaryReadonlyMasterKey"
+    member this.SecondaryReadonlyKey = buildKey (this.AccountName.CreateResourceName this) "secondaryReadonlyMasterKey"
+    member this.PrimaryConnectionString = buildConnectionString (this.AccountName.CreateResourceName this) 0
+    member this.SecondaryConnectionString = buildConnectionString (this.AccountName.CreateResourceName this) 1
     member this.Endpoint =
-        sprintf "reference(concat('Microsoft.DocumentDb/databaseAccounts/', '%s')).documentEndpoint" this.AccountName.ResourceName.Value
+        sprintf "reference(concat('Microsoft.DocumentDb/databaseAccounts/', '%s')).documentEndpoint" (this.AccountName.CreateResourceName this).Value
         |> ArmExpression.create
     interface IBuilder with
-        member this.DependencyName = this.AccountName.ResourceName
+        member this.DependencyName = this.AccountName.CreateResourceName this
         member this.BuildResources location = [
+            let accountName = this.AccountName.CreateResourceName this
+
             // Account
             match this.AccountName with
-            | AutomaticallyCreated name ->
-                { Name = name
+            | AutoCreate _ ->
+                { Name = accountName
                   Location = location
                   ConsistencyPolicy = this.AccountConsistencyPolicy
                   PublicNetworkAccess = this.PublicNetworkAccess
                   FailoverPolicy = this.AccountFailoverPolicy
                   FreeTier = this.FreeTier }
-            | AutomaticPlaceholder ->
-                failwith "No CosmosDB server was specified."
             | External _ ->
                 ()
 
             // Database
             { Name = this.DbName
-              Account = this.AccountName.ResourceName
+              Account = accountName
               Throughput = this.DbThroughput }
 
             // Containers
             for container in this.Containers do
                 { Name = container.Name
-                  Account = this.AccountName.ResourceName
+                  Account = accountName
                   Database = this.DbName
                   PartitionKey =
                     {| Paths = fst container.PartitionKey
@@ -143,33 +143,27 @@ type CosmosDbContainerBuilder() =
 type CosmosDbBuilder() =
     member __.Yield _ =
         { DbName = ResourceName.Empty
-          AccountName = AutomaticPlaceholder
+          AccountName = derived (fun config ->
+            let dbNamePart =
+                let maxLength = 36
+                let dbName = config.DbName.Value.ToLower()
+                if config.DbName.Value.Length > maxLength then dbName.Substring maxLength
+                else dbName
+            ResourceName (sprintf "%s-account" dbNamePart))
           AccountConsistencyPolicy = Eventual
           AccountFailoverPolicy = NoFailover
           DbThroughput = 400<RU>
           Containers = []
           PublicNetworkAccess = Enabled
           FreeTier = false }
-    member __.Run state =
-        match state.AccountName with
-        | AutomaticallyCreated _
-        | External _ ->
-            state
-        | AutomaticPlaceholder ->
-            let dbNamePart =
-                let maxLength = 36
-                let dbName = state.DbName.Value.ToLower()
-                if state.DbName.Value.Length > maxLength then dbName.Substring maxLength
-                else dbName
-            { state with AccountName = sprintf "%s-server" dbNamePart |> ResourceName |> AutomaticallyCreated }
 
     /// Sets the name of the CosmosDB server.
     [<CustomOperation "account_name">]
-    member __.AccountName(state:CosmosDbConfig, serverName) = { state with AccountName = AutomaticallyCreated serverName }
-    member this.AccountName(state:CosmosDbConfig, serverName:string) = this.AccountName(state, ResourceName serverName)
+    member __.AccountName(state:CosmosDbConfig, serverName) = { state with AccountName = AutoCreate (Named serverName) }
+    member this.AccountName(state:CosmosDbConfig, serverName) = this.AccountName(state, ResourceName serverName)
     /// Links the database to an existing server
     [<CustomOperation "link_to_account">]
-    member __.LinkToAccount(state:CosmosDbConfig, server:CosmosDbConfig) = { state with AccountName = External server.AccountName.ResourceName }
+    member __.LinkToAccount(state:CosmosDbConfig, server:CosmosDbConfig) = { state with AccountName = External(Managed(server.AccountName.CreateResourceName server)) }
     /// Sets the name of the database.
     [<CustomOperation "name">]
     member __.Name(state:CosmosDbConfig, name) = { state with DbName = name }
