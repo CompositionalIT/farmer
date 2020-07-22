@@ -22,8 +22,8 @@ type StorageAccountConfig =
       Name : ResourceName
       /// The sku of the storage account.
       Sku : Sku
-      /// Hierarchical namespace support, also known as Data Lake Storage Gen2
-      HierarchicalNamespace : bool
+      /// Whether to enable Data Lake Storage Gen2.
+      EnableDataLake : bool
       /// Containers for the storage account.
       Containers : (ResourceName * StorageContainerAccess) list
       /// File shares
@@ -43,7 +43,7 @@ type StorageAccountConfig =
             { Name = this.Name
               Location = location
               Sku = this.Sku
-              HierarchicalNamespace = this.HierarchicalNamespace
+              EnableHierarchicalNamespace = this.EnableDataLake
               StaticWebsite = this.StaticWebsite }
             for name, access in this.Containers do
                 { Name = name
@@ -62,7 +62,7 @@ type StorageAccountBuilder() =
     member _.Yield _ = {
         Name = ResourceName.Empty
         Sku = Standard_LRS
-        HierarchicalNamespace = false
+        EnableDataLake = false
         Containers = []
         FileShares = []
         Queues = Set.empty
@@ -111,8 +111,8 @@ type StorageAccountBuilder() =
     member _.StaticWebsiteErrorPage(state:StorageAccountConfig, errorPage) =
         { state with StaticWebsite = state.StaticWebsite |> Option.map(fun staticWebsite -> {| staticWebsite with ErrorPage = Some errorPage |}) }
     /// Enables support for hierarchical namespace, also known as Data Lake Storage Gen2.
-    [<CustomOperation "use_hns">]
-    member _.UseHns(state:StorageAccountConfig) = { state with HierarchicalNamespace = true }
+    [<CustomOperation "enable_data_lake">]
+    member _.UseHns(state:StorageAccountConfig) = { state with EnableDataLake = true }
 
 /// Allow adding storage accounts directly to CDNs
 type EndpointBuilder with

@@ -29,6 +29,7 @@ The Storage Account builder creates storage accounts and their associated contai
 | add_queues | Adds a list of queues to the storage account |
 | use_static_website | Activates static website host, and uploads the provided local content as a post-deployment task to the storage with the specified index page |
 | static_website_error_page | Specifies the 404 page to display for static website hosting |
+| enable_data_lake | Enables Azure Data Lake Gen2 support on the storage account |
 
 #### Configuration Members
 
@@ -53,5 +54,6 @@ let storage = storageAccount {
     add_file_share_with_quota "share2" 1024
     use_static_website "local/path/to/folder/content" "index.html"
     static_website_error_page "error.html"
+    enable_data_lake
 }
 ```

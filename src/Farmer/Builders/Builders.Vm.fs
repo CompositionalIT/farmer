@@ -115,12 +115,12 @@ type VmConfig =
 
             // Storage account - optional
             match this.DiagnosticsStorageAccount with
-            | Some (AutomaticallyCreated account) ->
-                { Name = account
+            | Some (AutomaticallyCreated name) ->
+                { Name = name
                   Location = location
                   Sku = Storage.Standard_LRS
                   StaticWebsite = None
-                  HierarchicalNamespace = false}
+                  EnableHierarchicalNamespace = false}
             | Some AutomaticPlaceholder
             | Some (External _)
             | None ->

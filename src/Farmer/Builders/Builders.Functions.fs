@@ -24,7 +24,7 @@ type FunctionsConfig =
       StorageAccountName : ResourceRef
       Runtime : FunctionsRuntime
       ExtensionVersion : FunctionsExtensionVersion
-      Identity : FeatureFlag option 
+      Identity : FeatureFlag option
       ZipDeployPath : string option }
     /// Gets the system-created managed principal for the functions instance. It must have been enabled using enable_managed_identity.
     member this.SystemIdentity =
@@ -133,7 +133,7 @@ type FunctionsConfig =
                   Location = location
                   Sku = Storage.Standard_LRS
                   StaticWebsite = None
-                  HierarchicalNamespace = false}
+                  EnableHierarchicalNamespace = false}
             | AutomaticPlaceholder | External _ ->
                 ()
             match this.AppInsightsName with
