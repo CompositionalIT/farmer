@@ -653,6 +653,12 @@ module IPAddressCidr =
         let ipNumber = cidr.Address |> num
         let mask = 0xffffffffu <<< (32 - cidr.Prefix)
         ipNumber &&& mask, ipNumber ||| (mask ^^^ 0xffffffffu)
+    /// Indicates if one CIDR block can fit entirely within another CIDR block
+    let contains (inner:IPAddressCidr) (outer:IPAddressCidr) =
+        // outer |> IPAddressCidr.contains inner
+        let innerStart, innerFinish = ipRangeNums inner
+        let outerStart, outerFinish = ipRangeNums outer
+        outerStart <= innerStart && outerFinish >= innerFinish
     /// Calculates a range of IP addresses from an CIDR block.
     let ipRange (cidr:IPAddressCidr) =
         let first, last = ipRangeNums cidr
