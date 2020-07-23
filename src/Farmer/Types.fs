@@ -124,10 +124,17 @@ type ResourceRef<'T> =
 [<AutoOpen>]
 module ResourceRef =
     let derived derivation = derivation |> Derived |> AutoCreate
-    let (|DependencyResourceName|_|) config = function
-        | External (Managed r) -> Some (DependencyResourceName r)
-        | AutoCreate r -> Some(DependencyResourceName(r.CreateResourceName config))
+    /// An active pattern that returns the resource name if the resource should be set as a dependency.
+    /// In other words, all cases except External Unmanaged.
+    let (|DependableResource|_|) config = function
+        | External (Managed r) -> Some (DependableResource r)
+        | AutoCreate r -> Some(DependableResource(r.CreateResourceName config))
         | External (Unmanaged _) -> None
+    /// An active pattern that returns the resource name if the resource should be deployed. In other
+    /// words, AutoCreate only.
+    let (|DeployableResource|_|) config = function
+        | AutoCreate c -> Some (DeployableResource(c.CreateResourceName config))
+        | External _ -> None
 
 /// Whether a specific feature is active or not.
 type FeatureFlag = Enabled | Disabled member this.AsBoolean = match this with Enabled -> true | Disabled -> false

@@ -21,11 +21,12 @@ type FunctionsConfig =
       Settings : Map<string, Setting>
       Dependencies : ResourceName list
       Cors : Cors option
-      StorageAccountName : ResourceRef<FunctionsConfig>
+      StorageAccount : ResourceRef<FunctionsConfig>
       Runtime : FunctionsRuntime
       ExtensionVersion : FunctionsExtensionVersion
       Identity : FeatureFlag option
       ZipDeployPath : string option }
+
     /// Gets the system-created managed principal for the functions instance. It must have been enabled using enable_managed_identity.
     member this.SystemIdentity =
         sprintf "reference(resourceId('Microsoft.Web/sites', '%s'), '2019-08-01', 'full').identity.principalId" this.Name.Value
@@ -34,8 +35,7 @@ type FunctionsConfig =
     /// Gets the ARM expression path to the publishing password of this functions app.
     member this.PublishingPassword = publishingPassword this.Name
     /// Gets the ARM expression path to the storage account key of this functions app.
-    member this.StorageAccountKey =
-        Storage.buildKey (this.StorageAccountName.CreateResourceName this)
+    member this.StorageAccountKey = Storage.buildKey this.StorageAccountName
     /// Gets the ARM expression path to the app insights key of this functions app, if it exists.
     member this.AppInsightsKey =
         this.AppInsightsName
@@ -53,7 +53,7 @@ type FunctionsConfig =
     /// Gets the App Insights name for this functions app, if it exists.
     member this.AppInsights = this.AppInsightsName |> Option.map (fun ai -> ai.CreateResourceName this)
     /// Gets the Storage Account name for this functions app.
-    member this.StorageAccount = this.StorageAccountName.CreateResourceName this
+    member this.StorageAccountName = this.StorageAccount.CreateResourceName this
     interface IBuilder with
         member this.DependencyName = this.ServicePlanName.CreateResourceName this
         member this.BuildResources location = [
@@ -65,15 +65,15 @@ type FunctionsConfig =
                 "FUNCTIONS_WORKER_RUNTIME", (string this.Runtime).ToLower()
                 "WEBSITE_NODE_DEFAULT_VERSION", "10.14.1"
                 "FUNCTIONS_EXTENSION_VERSION", match this.ExtensionVersion with V1 -> "~1" | V2 -> "~2" | V3 -> "~3"
-                "AzureWebJobsStorage", Storage.buildKey (this.StorageAccountName.CreateResourceName this) |> ArmExpression.Eval
-                "AzureWebJobsDashboard", Storage.buildKey (this.StorageAccountName.CreateResourceName this) |> ArmExpression.Eval
+                "AzureWebJobsStorage", Storage.buildKey this.StorageAccountName |> ArmExpression.Eval
+                "AzureWebJobsDashboard", Storage.buildKey this.StorageAccountName |> ArmExpression.Eval
 
                 match this.AppInsightsName with
                 | Some r -> "APPINSIGHTS_INSTRUMENTATIONKEY", instrumentationKey (r.CreateResourceName this) |> ArmExpression.Eval
                 | None -> ()
 
                 if this.OperatingSystem = Windows then
-                    "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING", Storage.buildKey (this.StorageAccountName.CreateResourceName this) |> ArmExpression.Eval
+                    "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING", Storage.buildKey this.StorageAccountName |> ArmExpression.Eval
                     "WEBSITE_CONTENTSHARE", this.Name.Value.ToLower()
               ]
               |> List.map Setting.AsLiteral
@@ -87,13 +87,13 @@ type FunctionsConfig =
               Dependencies = [
                 yield! this.Dependencies
                 match this.AppInsightsName with
-                | Some (DependencyResourceName this resourceName) -> resourceName
+                | Some (DependableResource this resourceName) -> resourceName
                 | _ -> ()
                 match this.ServicePlanName with
-                | DependencyResourceName this resourceName -> resourceName
+                | DependableResource this resourceName -> resourceName
                 | _ -> ()
 
-                this.StorageAccountName.CreateResourceName this
+                this.StorageAccountName
               ]
               AlwaysOn = false
               HTTPSOnly = this.HTTPSOnly
@@ -112,33 +112,33 @@ type FunctionsConfig =
               AppCommandLine = None
             }
             match this.ServicePlanName with
-            | AutoCreate creator ->
-                { Name = creator.CreateResourceName this
+            | DeployableResource this resourceName ->
+                { Name = resourceName
                   Location = location
                   Sku = Sku.Y1
                   WorkerSize = Serverless
                   WorkerCount = 0
                   OperatingSystem = this.OperatingSystem }
-            | External ->
+            | _ ->
                 ()
-            match this.StorageAccountName with
-            | AutoCreate creator ->
-                { StorageAccount.Name = creator.CreateResourceName this
+            match this.StorageAccount with
+            | DeployableResource this resourceName ->
+                { StorageAccount.Name = resourceName
                   Location = location
                   Sku = Storage.Standard_LRS
                   StaticWebsite = None
                   EnableHierarchicalNamespace = false}
-            | External _ ->
+            | _ ->
                 ()
             match this.AppInsightsName with
-            | Some (AutoCreate creator) ->
-                { Name = creator.CreateResourceName this
+            | Some (DeployableResource this resourceName) ->
+                { Name = resourceName
                   Location = location
                   LinkedWebsite =
                     match this.OperatingSystem with
                     | Windows -> Some this.Name
                     | Linux -> None }
-            | Some (External _)
+            | Some _
             | None ->
                 ()
         ]
@@ -148,7 +148,7 @@ type FunctionsBuilder() =
         { Name = ResourceName.Empty
           ServicePlanName = derived (fun config -> config.Name.Map(sprintf "%s-farm"))
           AppInsightsName = Some (derived (fun config -> config.Name.Map(sprintf "%s-ai")))
-          StorageAccountName = derived (fun config ->
+          StorageAccount = derived (fun config ->
             config.Name.Map (sprintf "%sstorage")
             |> sanitiseStorage
             |> ResourceName)
@@ -171,7 +171,7 @@ type FunctionsBuilder() =
     [<CustomOperation "link_to_service_plan">]
     member __.LinkToServicePlan(state:FunctionsConfig, name) = { state with ServicePlanName = External name }
     [<CustomOperation "link_to_storage_account">]
-    member __.LinkToStorageAccount(state:FunctionsConfig, name) = { state with StorageAccountName = External (Managed name) }
+    member __.LinkToStorageAccount(state:FunctionsConfig, name) = { state with StorageAccount = External (Managed name) }
     member this.LinkToStorageAccount(state:FunctionsConfig, name) = this.LinkToStorageAccount(state, ResourceName name)
     /// Sets the name of the automatically-created app insights instance.
     [<CustomOperation "app_insights_name">]

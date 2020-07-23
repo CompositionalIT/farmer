@@ -164,18 +164,14 @@ type WebAppConfig =
               ] |> String.concat ","
               Dependencies = [
                   match this.ServicePlanName with
-                  | AutoCreate e -> e.CreateResourceName this
-                  | External (Managed name) -> name
-                  | External (Unmanaged _) -> ()
+                  | DependencyResourceName this resourceName -> resourceName
+                  | _ -> ()
+
                   yield! this.Dependencies
+
                   match this.AppInsightsName with
-                  | Some (AutoCreate e) ->
-                    e.CreateResourceName this
-                  | Some (External (Managed name)) ->
-                    name
-                  | Some (External (Unmanaged _))
-                  | None ->
-                    ()
+                  | Some (DependencyResourceName this resourceName) -> resourceName
+                  | Some _ | None -> ()
               ]
               AlwaysOn = this.AlwaysOn
               LinuxFxVersion =
@@ -247,26 +243,26 @@ type WebAppConfig =
                 ()
 
             match this.AppInsightsName with
-            | Some (AutoCreate c) ->
-                { Name = c.CreateResourceName this
+            | Some (DeployableResource this resourceName) ->
+                { Name = resourceName
                   Location = location
                   LinkedWebsite =
                     match this.OperatingSystem with
                     | Windows -> Some this.Name
                     | Linux -> None }
-            | Some (External _)
+            | Some _
             | None ->
                 ()
 
             match this.ServicePlanName with
-            | AutoCreate c ->
-                { Name = c.CreateResourceName this
+            | DeployableResource this resourceName ->
+                { Name = resourceName
                   Location = location
                   Sku = this.Sku
                   WorkerSize = this.WorkerSize
                   WorkerCount = this.WorkerCount
                   OperatingSystem = this.OperatingSystem }
-            | External _ ->
+            | _ ->
                 ()
         ]
 
