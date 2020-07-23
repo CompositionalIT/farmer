@@ -26,22 +26,22 @@ type EventHubConfig =
       AuthorizationRules : Map<ResourceName, AuthorizationRuleRight Set>
       Dependencies : ResourceName list }
     member private _.ToKeyExpression = sprintf "listkeys(%s, '2017-04-01').primaryConnectionString"
-    member private this.NamespaceResourceName = this.EventHubNamespace.CreateResourceName this
+    member this.EventHubNamespaceName = this.EventHubNamespace.CreateResourceName this
     /// Gets an ARM expression for the path to the key of a specific authorization rule for this event hub.
     member this.GetKey (ruleName:string) =
         ArmExpression
-            .resourceId(authorizationRules, this.NamespaceResourceName, this.Name, ResourceName ruleName)
+            .resourceId(authorizationRules, this.EventHubNamespaceName, this.Name, ResourceName ruleName)
             .Map this.ToKeyExpression
 
     /// Gets an ARM expression for the path to the key of the default RootManageSharedAccessKey for the entire namespace.
     member this.DefaultKey =
         ArmExpression
-            .resourceId(authorizationRules, this.NamespaceResourceName, ResourceName "RootManageSharedAccessKey")
+            .resourceId(authorizationRules, this.EventHubNamespaceName, ResourceName "RootManageSharedAccessKey")
             .Map this.ToKeyExpression
     interface IBuilder with
-        member this.DependencyName = this.NamespaceResourceName
+        member this.DependencyName = this.EventHubNamespaceName
         member this.BuildResources location = [
-            let eventHubNamespaceName = this.NamespaceResourceName
+            let eventHubNamespaceName = this.EventHubNamespaceName
             let eventHubName = this.Name.Map(fun hubName -> sprintf "%s/%s" eventHubNamespaceName.Value hubName)
 
             // Namespace
