@@ -41,24 +41,23 @@ type CosmosDbConfig =
       Containers : CosmosDbContainerConfig list
       PublicNetworkAccess : FeatureFlag
       FreeTier : bool }
-    member this.PrimaryKey = buildKey (this.AccountName.CreateResourceName this) "primaryMasterKey"
-    member this.SecondaryKey = buildKey (this.AccountName.CreateResourceName this) "secondaryMasterKey"
-    member this.PrimaryReadonlyKey = buildKey (this.AccountName.CreateResourceName this) "primaryReadonlyMasterKey"
-    member this.SecondaryReadonlyKey = buildKey (this.AccountName.CreateResourceName this) "secondaryReadonlyMasterKey"
-    member this.PrimaryConnectionString = buildConnectionString (this.AccountName.CreateResourceName this) 0
-    member this.SecondaryConnectionString = buildConnectionString (this.AccountName.CreateResourceName this) 1
+    member private this.AccountResourceName = this.AccountName.CreateResourceName this
+    member this.PrimaryKey = buildKey this.AccountResourceName "primaryMasterKey"
+    member this.SecondaryKey = buildKey this.AccountResourceName "secondaryMasterKey"
+    member this.PrimaryReadonlyKey = buildKey this.AccountResourceName "primaryReadonlyMasterKey"
+    member this.SecondaryReadonlyKey = buildKey this.AccountResourceName "secondaryReadonlyMasterKey"
+    member this.PrimaryConnectionString = buildConnectionString this.AccountResourceName 0
+    member this.SecondaryConnectionString = buildConnectionString this.AccountResourceName 1
     member this.Endpoint =
-        sprintf "reference(concat('Microsoft.DocumentDb/databaseAccounts/', '%s')).documentEndpoint" (this.AccountName.CreateResourceName this).Value
+        sprintf "reference(concat('Microsoft.DocumentDb/databaseAccounts/', '%s')).documentEndpoint" this.AccountResourceName.Value
         |> ArmExpression.create
     interface IBuilder with
-        member this.DependencyName = this.AccountName.CreateResourceName this
+        member this.DependencyName = this.AccountResourceName
         member this.BuildResources location = [
-            let accountName = this.AccountName.CreateResourceName this
-
             // Account
             match this.AccountName with
             | AutoCreate _ ->
-                { Name = accountName
+                { Name = this.AccountResourceName
                   Location = location
                   ConsistencyPolicy = this.AccountConsistencyPolicy
                   PublicNetworkAccess = this.PublicNetworkAccess
@@ -69,13 +68,13 @@ type CosmosDbConfig =
 
             // Database
             { Name = this.DbName
-              Account = accountName
+              Account = this.AccountResourceName
               Throughput = this.DbThroughput }
 
             // Containers
             for container in this.Containers do
                 { Name = container.Name
-                  Account = accountName
+                  Account = this.AccountResourceName
                   Database = this.DbName
                   PartitionKey =
                     {| Paths = fst container.PartitionKey
