@@ -43,6 +43,6 @@ let tests = testList "Event Grid" [
         let sub = grid.Subscriptions.[0]
         Expect.equal sub.Name (ResourceName "ns-hub-eventhub") "Incorrect subscription name"
         Expect.equal sub.Endpoint (EndpointType.EventHub hub.Name) "Incorrect endpoint type"
-        Expect.equal sub.Destination (hub.EventHubNamespace.CreateResourceName hub) "Incorrect destination"
+        Expect.equal sub.Destination hub.EventHubNamespaceName "Incorrect destination"
     }
 ]

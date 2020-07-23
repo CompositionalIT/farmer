@@ -108,11 +108,11 @@ type WebAppConfig =
         sprintf "%s.azurewebsites.net" this.Name.Value
 
     interface IBuilder with
-        member this.DependencyName = this.ServicePlan.CreateResourceName this
+        member this.DependencyName = this.ServicePlanName
         member this.BuildResources location = [
             { Name = this.Name
               Location = location
-              ServicePlan = this.ServicePlan.CreateResourceName this
+              ServicePlan = this.ServicePlanName
               HTTPSOnly = this.HTTPSOnly
               HTTP20Enabled = this.HTTP20Enabled
               ClientAffinityEnabled = this.ClientAffinityEnabled
