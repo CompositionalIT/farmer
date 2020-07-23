@@ -123,6 +123,7 @@ type ResourceRef<'T> =
         | AutoCreate r -> r.CreateResourceName config
 [<AutoOpen>]
 module ResourceRef =
+    /// Creates a ResourceRef which is automatically created and derived from the supplied config.
     let derived derivation = derivation |> Derived |> AutoCreate
     /// An active pattern that returns the resource name if the resource should be set as a dependency.
     /// In other words, all cases except External Unmanaged.

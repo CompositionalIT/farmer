@@ -11,7 +11,7 @@ open Arm.DBforPostgreSQL
 open Servers
 
 type PostgreSQLBuilderConfig =
-    { ServerName : ResourceRef<PostgreSQLBuilderConfig>
+    { Server : ResourceRef<PostgreSQLBuilderConfig>
       AdminUserName : string option
       Version : Version
       GeoRedundantBackup : bool
@@ -25,12 +25,14 @@ type PostgreSQLBuilderConfig =
       DbCharset : string option
       FirewallRules : {| Name : ResourceName; Start : IPAddress; End : IPAddress |} list }
 
+    member this.ServerName = this.Server.CreateResourceName this
+
     interface IBuilder with
-        member this.DependencyName = this.ServerName.CreateResourceName this
+        member this.DependencyName = this.Server.CreateResourceName this
         member this.BuildResources location = [
-            match this.ServerName with
-            | AutoCreate creator ->
-                let serverName = creator.CreateResourceName this
+            match this.Server with
+            | DeployableResource this resourceName ->
+                let serverName = resourceName
                 { Name = serverName
                   Location = location
                   Username = this.AdminUserName |> Option.defaultWith(fun () -> "admin username not set")
@@ -43,13 +45,13 @@ type PostgreSQLBuilderConfig =
                   GeoRedundantBackup = FeatureFlag.ofBool this.GeoRedundantBackup
                   StorageAutoGrow = FeatureFlag.ofBool this.StorageAutogrow
                   BackupRetention = this.BackupRetention }
-            | External _ ->
+            | _ ->
                 ()
 
             match this.DbName with
             | Some dbName ->
                 { Name = dbName
-                  Server = this.ServerName.CreateResourceName this
+                  Server = this.ServerName
                   Collation = this.DbCollation |> Option.defaultValue "English_United States.1252"
                   Charset = this.DbCharset |> Option.defaultValue "UTF8" }
             | None ->
@@ -59,7 +61,7 @@ type PostgreSQLBuilderConfig =
                 { Name = rule.Name
                   Start = rule.Start
                   End = rule.End
-                  Server = this.ServerName.CreateResourceName this
+                  Server = this.ServerName
                   Location = location }
         ]
 [<AutoOpen>]
@@ -139,7 +141,7 @@ module Validate =
 
 type PostgreSQLBuilder() =
     member _this.Yield _ =
-        { PostgreSQLBuilderConfig.ServerName = derived (fun config ->
+        { PostgreSQLBuilderConfig.Server = derived (fun config ->
             config.DbName
             |> Option.map(fun m -> m.Map(sprintf "%s-server"))
             |> Option.defaultWith (fun _ -> failwith "You must set a DB name if you do not set a server name"))
@@ -165,7 +167,7 @@ type PostgreSQLBuilder() =
     member _this.ServerName(state:PostgreSQLBuilderConfig, serverName) =
         let (ResourceName n) = serverName
         Validate.servername n
-        { state with ServerName = AutoCreate (Named serverName) }
+        { state with Server = AutoCreate (Named serverName) }
     member this.ServerName(state:PostgreSQLBuilderConfig, serverName) =
         this.ServerName(state, ResourceName serverName)
 
