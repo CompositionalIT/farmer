@@ -14,9 +14,9 @@ type FunctionsRuntime = DotNet | Node | Java | Python
 type FunctionsExtensionVersion = V1 | V2 | V3
 type FunctionsConfig =
     { Name : ResourceName
-      ServicePlanName : ResourceRef<FunctionsConfig>
+      ServicePlan : ResourceRef<FunctionsConfig>
       HTTPSOnly : bool
-      AppInsightsName : ResourceRef<FunctionsConfig> option
+      AppInsights : ResourceRef<FunctionsConfig> option
       OperatingSystem : OS
       Settings : Map<string, Setting>
       Dependencies : ResourceName list
@@ -37,9 +37,7 @@ type FunctionsConfig =
     /// Gets the ARM expression path to the storage account key of this functions app.
     member this.StorageAccountKey = Storage.buildKey this.StorageAccountName
     /// Gets the ARM expression path to the app insights key of this functions app, if it exists.
-    member this.AppInsightsKey =
-        this.AppInsightsName
-        |> Option.map (fun r -> r.CreateResourceName this |> instrumentationKey)
+    member this.AppInsightsKey = this.AppInsightsName |> Option.map instrumentationKey
     /// Gets the default key for the functions site
     member this.DefaultKey =
         sprintf "listkeys(concat(resourceId('Microsoft.Web/sites', '%s'), '/host/default/'),'2016-08-01').functionKeys.default" this.Name.Value
@@ -49,16 +47,16 @@ type FunctionsConfig =
         sprintf "listkeys(concat(resourceId('Microsoft.Web/sites', '%s'), '/host/default/'),'2016-08-01').masterKey" this.Name.Value
         |> ArmExpression.create
     /// Gets the Service Plan name for this functions app.
-    member this.ServicePlan = this.ServicePlanName.CreateResourceName this
+    member this.ServicePlanName = this.ServicePlan.CreateResourceName this
     /// Gets the App Insights name for this functions app, if it exists.
-    member this.AppInsights = this.AppInsightsName |> Option.map (fun ai -> ai.CreateResourceName this)
+    member this.AppInsightsName = this.AppInsights |> Option.map (fun ai -> ai.CreateResourceName this)
     /// Gets the Storage Account name for this functions app.
     member this.StorageAccountName = this.StorageAccount.CreateResourceName this
     interface IBuilder with
-        member this.DependencyName = this.ServicePlanName.CreateResourceName this
+        member this.DependencyName = this.ServicePlanName
         member this.BuildResources location = [
             { Name = this.Name
-              ServicePlan = this.ServicePlanName.CreateResourceName this
+              ServicePlan = this.ServicePlanName
               Location = location
               Cors = this.Cors
               AppSettings = [
@@ -68,8 +66,8 @@ type FunctionsConfig =
                 "AzureWebJobsStorage", Storage.buildKey this.StorageAccountName |> ArmExpression.Eval
                 "AzureWebJobsDashboard", Storage.buildKey this.StorageAccountName |> ArmExpression.Eval
 
-                match this.AppInsightsName with
-                | Some r -> "APPINSIGHTS_INSTRUMENTATIONKEY", instrumentationKey (r.CreateResourceName this) |> ArmExpression.Eval
+                match this.AppInsightsKey with
+                | Some key -> "APPINSIGHTS_INSTRUMENTATIONKEY", key |> ArmExpression.Eval
                 | None -> ()
 
                 if this.OperatingSystem = Windows then
@@ -86,10 +84,10 @@ type FunctionsConfig =
                 | Linux -> "functionapp,linux"
               Dependencies = [
                 yield! this.Dependencies
-                match this.AppInsightsName with
+                match this.AppInsights with
                 | Some (DependableResource this resourceName) -> resourceName
                 | _ -> ()
-                match this.ServicePlanName with
+                match this.ServicePlan with
                 | DependableResource this resourceName -> resourceName
                 | _ -> ()
 
@@ -111,7 +109,7 @@ type FunctionsConfig =
               ZipDeployPath = this.ZipDeployPath |> Option.map (fun x -> x, ZipDeploy.ZipDeployTarget.FunctionApp)
               AppCommandLine = None
             }
-            match this.ServicePlanName with
+            match this.ServicePlan with
             | DeployableResource this resourceName ->
                 { Name = resourceName
                   Location = location
@@ -130,7 +128,7 @@ type FunctionsConfig =
                   EnableHierarchicalNamespace = false}
             | _ ->
                 ()
-            match this.AppInsightsName with
+            match this.AppInsights with
             | Some (DeployableResource this resourceName) ->
                 { Name = resourceName
                   Location = location
@@ -146,8 +144,8 @@ type FunctionsConfig =
 type FunctionsBuilder() =
     member __.Yield _ =
         { Name = ResourceName.Empty
-          ServicePlanName = derived (fun config -> config.Name.Map(sprintf "%s-farm"))
-          AppInsightsName = Some (derived (fun config -> config.Name.Map(sprintf "%s-ai")))
+          ServicePlan = derived (fun config -> config.Name.Map(sprintf "%s-farm"))
+          AppInsights = Some (derived (fun config -> config.Name.Map(sprintf "%s-ai")))
           StorageAccount = derived (fun config ->
             config.Name.Map (sprintf "%sstorage")
             |> sanitiseStorage
@@ -166,28 +164,28 @@ type FunctionsBuilder() =
     member __.Name(state:FunctionsConfig, name) = { state with Name = ResourceName name }
     /// Sets the name of the service plan hosting the function instance.
     [<CustomOperation "service_plan_name">]
-    member __.ServicePlanName(state:FunctionsConfig, name) = { state with ServicePlanName = AutoCreate(Named(ResourceName name)) }
+    member __.ServicePlanName(state:FunctionsConfig, name) = { state with ServicePlan = AutoCreate(Named(ResourceName name)) }
     /// Do not create an automatic storage account; instead, link to a storage account that is created outside of this Functions instance.
     [<CustomOperation "link_to_service_plan">]
-    member __.LinkToServicePlan(state:FunctionsConfig, name) = { state with ServicePlanName = External name }
+    member __.LinkToServicePlan(state:FunctionsConfig, name) = { state with ServicePlan = External name }
     [<CustomOperation "link_to_storage_account">]
     member __.LinkToStorageAccount(state:FunctionsConfig, name) = { state with StorageAccount = External (Managed name) }
     member this.LinkToStorageAccount(state:FunctionsConfig, name) = this.LinkToStorageAccount(state, ResourceName name)
     /// Sets the name of the automatically-created app insights instance.
     [<CustomOperation "app_insights_name">]
-    member __.AppInsightsName(state:FunctionsConfig, name) = { state with AppInsightsName = Some (AutoCreate (Named name)) }
+    member __.AppInsightsName(state:FunctionsConfig, name) = { state with AppInsights = Some (AutoCreate (Named name)) }
     member this.AppInsightsName(state:FunctionsConfig, name:string) = this.AppInsightsName(state, ResourceName name)
     /// Removes any automatic app insights creation, configuration and settings for this webapp.
     [<CustomOperation "app_insights_off">]
-    member __.DeactivateAppInsights(state:FunctionsConfig) = { state with AppInsightsName = None }
+    member __.DeactivateAppInsights(state:FunctionsConfig) = { state with AppInsights = None }
     /// Disables http for this webapp so that only https is used.
     [<CustomOperation "https_only">]
     member __.HttpsOnly(state:FunctionsConfig) = { state with HTTPSOnly = true }
     /// Instead of creating a new AI instance, configure this webapp to point to another AI instance that you are managing
     /// yourself.
     [<CustomOperation "link_to_app_insights">]
-    member __.LinkToAppInsights(state:FunctionsConfig, name) = { state with AppInsightsName = Some(External (Managed name)) }
-    member __.LinkToAppInsights(state:FunctionsConfig, name) = { state with AppInsightsName = name |> Option.map (Managed >> External)  }
+    member __.LinkToAppInsights(state:FunctionsConfig, name) = { state with AppInsights = Some(External (Managed name)) }
+    member __.LinkToAppInsights(state:FunctionsConfig, name) = { state with AppInsights = name |> Option.map (Managed >> External)  }
     /// Sets the runtime of the Functions host.
     [<CustomOperation "use_runtime">]
     member __.Runtime(state:FunctionsConfig, runtime) = { state with Runtime = runtime }

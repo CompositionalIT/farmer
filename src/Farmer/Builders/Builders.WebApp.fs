@@ -66,12 +66,12 @@ let publishingPassword (ResourceName name) =
 
 type WebAppConfig =
     { Name : ResourceName
-      ServicePlanName : ResourceRef<WebAppConfig>
+      ServicePlan : ResourceRef<WebAppConfig>
       HTTPSOnly : bool
       HTTP20Enabled : bool option
       ClientAffinityEnabled : bool option
       WebSocketsEnabled: bool option
-      AppInsightsName : ResourceRef<WebAppConfig> option
+      AppInsights : ResourceRef<WebAppConfig> option
       OperatingSystem : OS
       Settings : Map<string, Setting>
       Dependencies : ResourceName list
@@ -96,9 +96,9 @@ type WebAppConfig =
     /// Gets the ARM expression path to the publishing password of this web app.
     member this.PublishingPassword = publishingPassword this.Name
     /// Gets the Service Plan name for this web app.
-    member this.ServicePlan = this.ServicePlanName.CreateResourceName this
+    member this.ServicePlanName = this.ServicePlan.CreateResourceName this
     /// Gets the App Insights name for this web app, if it exists.
-    member this.AppInsights = this.AppInsightsName |> Option.map (fun ai -> ai.CreateResourceName this)
+    member this.AppInsightsName = this.AppInsights |> Option.map (fun ai -> ai.CreateResourceName this)
     /// Gets the system-created managed principal for the web app. It must have been enabled using enable_managed_identity.
     member this.SystemIdentity =
         sprintf "reference(resourceId('Microsoft.Web/sites', '%s'), '2019-08-01', 'full').identity.principalId" this.Name.Value
@@ -108,11 +108,11 @@ type WebAppConfig =
         sprintf "%s.azurewebsites.net" this.Name.Value
 
     interface IBuilder with
-        member this.DependencyName = this.ServicePlanName.CreateResourceName this
+        member this.DependencyName = this.ServicePlan.CreateResourceName this
         member this.BuildResources location = [
             { Name = this.Name
               Location = location
-              ServicePlan = this.ServicePlanName.CreateResourceName this
+              ServicePlan = this.ServicePlan.CreateResourceName this
               HTTPSOnly = this.HTTPSOnly
               HTTP20Enabled = this.HTTP20Enabled
               ClientAffinityEnabled = this.ClientAffinityEnabled
@@ -127,7 +127,7 @@ type WebAppConfig =
                     | Some v -> AppSettings.WebsiteNodeDefaultVersion v
                     | None -> ()
 
-                    match this.OperatingSystem, this.AppInsightsName with
+                    match this.OperatingSystem, this.AppInsights with
                     | Windows, Some resource ->
                         "APPINSIGHTS_INSTRUMENTATIONKEY", instrumentationKey (resource.CreateResourceName this) |> ArmExpression.Eval
                         "APPINSIGHTS_PROFILERFEATURE_VERSION", "1.0.0"
@@ -163,14 +163,14 @@ type WebAppConfig =
                 match this.DockerImage with Some _ -> "container" | _ -> ()
               ] |> String.concat ","
               Dependencies = [
-                  match this.ServicePlanName with
-                  | DependencyResourceName this resourceName -> resourceName
+                  match this.ServicePlan with
+                  | DependableResource this resourceName -> resourceName
                   | _ -> ()
 
                   yield! this.Dependencies
 
-                  match this.AppInsightsName with
-                  | Some (DependencyResourceName this resourceName) -> resourceName
+                  match this.AppInsights with
+                  | Some (DependableResource this resourceName) -> resourceName
                   | Some _ | None -> ()
               ]
               AlwaysOn = this.AlwaysOn
@@ -242,7 +242,7 @@ type WebAppConfig =
             | None ->
                 ()
 
-            match this.AppInsightsName with
+            match this.AppInsights with
             | Some (DeployableResource this resourceName) ->
                 { Name = resourceName
                   Location = location
@@ -254,7 +254,7 @@ type WebAppConfig =
             | None ->
                 ()
 
-            match this.ServicePlanName with
+            match this.ServicePlan with
             | DeployableResource this resourceName ->
                 { Name = resourceName
                   Location = location
@@ -269,8 +269,8 @@ type WebAppConfig =
 type WebAppBuilder() =
     member __.Yield _ =
         { Name = ResourceName.Empty
-          ServicePlanName = derived (fun t -> t.Name.Map(sprintf "%s-farm"))
-          AppInsightsName = Some (derived (fun t -> t.Name.Map(sprintf "%s-ai")))
+          ServicePlan = derived (fun t -> t.Name.Map(sprintf "%s-farm"))
+          AppInsights = Some (derived (fun t -> t.Name.Map(sprintf "%s-ai")))
           Sku = Sku.F1
           WorkerSize = Small
           WorkerCount = 1
@@ -314,18 +314,18 @@ type WebAppBuilder() =
     member this.Name(state:WebAppConfig, name:string) = this.Name(state, ResourceName name)
     /// Sets the name of the service plan.
     [<CustomOperation "service_plan_name">]
-    member _.ServicePlanName(state:WebAppConfig, name) = { state with ServicePlanName = AutoCreate(Named name) }
+    member _.ServicePlanName(state:WebAppConfig, name) = { state with ServicePlan = AutoCreate(Named name) }
     member this.ServicePlanName(state:WebAppConfig, name:string) = this.ServicePlanName(state, ResourceName name)
     /// Instead of creating a new service plan instance, configure this webapp to point to another Farmer-managed service plan instance.
     /// A dependency will automatically be set for this instance.
     [<CustomOperation "link_to_service_plan">]
-    member __.LinkToServicePlan(state:WebAppConfig, name) = { state with ServicePlanName = External (Managed name) }
+    member __.LinkToServicePlan(state:WebAppConfig, name) = { state with ServicePlan = External (Managed name) }
     member this.LinkToServicePlan(state:WebAppConfig, name:string) = this.LinkToServicePlan (state, ResourceName name)
     member this.LinkToServicePlan(state:WebAppConfig, config:ServicePlanConfig) = this.LinkToServicePlan (state, config.Name)
     /// Instead of creating a new service plan instance, configure this webapp to point to another unmanaged service plan instance.
     /// A dependency will automatically be set for this instance.
     [<CustomOperation "link_to_unmanaged_service_plan">]
-    member __.LinkToUnmanagedServicePlan(state:WebAppConfig, name) = { state with ServicePlanName = External (Unmanaged (ResourceName name)) }
+    member __.LinkToUnmanagedServicePlan(state:WebAppConfig, name) = { state with ServicePlan = External (Unmanaged (ResourceName name)) }
     [<CustomOperation "sku">]
     member __.Sku(state:WebAppConfig, sku) = { state with Sku = sku }
     /// Sets the size of the service plan worker.
@@ -336,22 +336,22 @@ type WebAppBuilder() =
     member __.NumberOfWorkers(state:WebAppConfig, workerCount) = { state with WorkerCount = workerCount }
     /// Sets the name of the automatically-created app insights instance.
     [<CustomOperation "app_insights_name">]
-    member __.UseAppInsights(state:WebAppConfig, name) = { state with AppInsightsName = Some (AutoCreate (Named name)) }
+    member __.UseAppInsights(state:WebAppConfig, name) = { state with AppInsights = Some (AutoCreate (Named name)) }
     member this.UseAppInsights(state:WebAppConfig, name:string) = this.UseAppInsights(state, ResourceName name)
     /// Removes any automatic app insights creation, configuration and settings for this webapp.
     [<CustomOperation "app_insights_off">]
-    member __.DeactivateAppInsights(state:WebAppConfig) = { state with AppInsightsName = None }
+    member __.DeactivateAppInsights(state:WebAppConfig) = { state with AppInsights = None }
     /// Instead of creating a new AI instance, configure this webapp to point to another Farmer-managed AI instance.
     /// A dependency will automatically be set for this instance.
     [<CustomOperation "link_to_app_insights">]
-    member __.LinkToAi(state:WebAppConfig, name) = { state with AppInsightsName = Some(External (Managed name)) }
+    member __.LinkToAi(state:WebAppConfig, name) = { state with AppInsights = Some(External (Managed name)) }
     member this.LinkToAi(state:WebAppConfig, name) = this.LinkToAi (state, ResourceName name)
     member this.LinkToAi(state:WebAppConfig, name:ResourceName option) = match name with Some name -> this.LinkToAi (state, name) | None -> state
     member this.LinkToAi(state:WebAppConfig, config:AppInsightsConfig) = this.LinkToAi (state, config.Name)
     /// Instead of creating a new AI instance, configure this webapp to point to an unmanaged AI instance.
     /// A dependency will not be set for this instance.
     [<CustomOperation "link_to_unmanaged_app_insights">]
-    member __.LinkUnmanagedAppInsights(state:WebAppConfig, name) = { state with AppInsightsName = Some(External (Unmanaged (ResourceName name))) }
+    member __.LinkUnmanagedAppInsights(state:WebAppConfig, name) = { state with AppInsights = Some(External (Unmanaged (ResourceName name))) }
     /// Sets the web app to use "run from package" deployment capabilities.
     [<CustomOperation "run_from_package">]
     member __.RunFromPackage(state:WebAppConfig) = { state with RunFromPackage = true }

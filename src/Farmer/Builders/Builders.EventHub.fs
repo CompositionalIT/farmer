@@ -46,7 +46,7 @@ type EventHubConfig =
 
             // Namespace
             match this.EventHubNamespace with
-            | AutoCreate _ ->
+            | DeployableResource this _ ->
                 { Name = eventHubNamespaceName
                   Location = location
                   Sku =
@@ -55,7 +55,7 @@ type EventHubConfig =
                   ZoneRedundant = this.ZoneRedundant
                   AutoInflateSettings = this.ThroughputSettings
                   KafkaEnabled = this.KafkaEnabled }
-            | External _ ->
+            | _ ->
                 ()
 
             // Event hub

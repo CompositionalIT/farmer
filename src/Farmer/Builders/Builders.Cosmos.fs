@@ -56,14 +56,14 @@ type CosmosDbConfig =
         member this.BuildResources location = [
             // Account
             match this.AccountName with
-            | AutoCreate _ ->
+            | DeployableResource this _ ->
                 { Name = this.AccountResourceName
                   Location = location
                   ConsistencyPolicy = this.AccountConsistencyPolicy
                   PublicNetworkAccess = this.PublicNetworkAccess
                   FailoverPolicy = this.AccountFailoverPolicy
                   FreeTier = this.FreeTier }
-            | External _ ->
+            | _ ->
                 ()
 
             // Database
