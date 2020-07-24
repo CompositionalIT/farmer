@@ -49,6 +49,7 @@
     <Compile Include="ArmBuilder.fs" />
     <Compile Include="Writer.fs" />
     <Compile Include="Deploy.fs" />
+    <Compile Include="Arm\Aks.fs" />
 
     <Compile Include="Arm/Storage.fs" />
     <Compile Include="Arm/Cache.fs" />
@@ -100,5 +101,6 @@
     <Compile Include="Builders/Builders.VirtualNetworkGateway.fs" />
     <Compile Include="Builders/Builders.VirtualNetwork.fs" />
     <Compile Include="Builders/Builders.EventGrid.fs" />
+    <Compile Include="Builders\Builders.Aks.fs" />
   </ItemGroup>
 </Project>
