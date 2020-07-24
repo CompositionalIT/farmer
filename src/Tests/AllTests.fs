@@ -24,6 +24,7 @@ let allTests =
                 SignalR.tests
                 Sql.tests
                 EventGrid.tests
+                WebApp.tests
             ]
             testList "Control" [
                 Template.tests

@@ -12,7 +12,7 @@ open EventHubs
 let AllAuthorizationRights = [ Manage; Send; Listen ]
 
 type EventHubConfig =
-    { EventHubNamespace : ResourceRef
+    { EventHubNamespace : ResourceRef<EventHubConfig>
       Name : ResourceName
       Sku : EventHubSku
       Capacity : int
@@ -26,80 +26,76 @@ type EventHubConfig =
       AuthorizationRules : Map<ResourceName, AuthorizationRuleRight Set>
       Dependencies : ResourceName list }
     member private _.ToKeyExpression = sprintf "listkeys(%s, '2017-04-01').primaryConnectionString"
+    member this.EventHubNamespaceName = this.EventHubNamespace.CreateResourceName this
     /// Gets an ARM expression for the path to the key of a specific authorization rule for this event hub.
     member this.GetKey (ruleName:string) =
         ArmExpression
-            .resourceId(authorizationRules, this.EventHubNamespace.ResourceName, this.Name, ResourceName ruleName)
+            .resourceId(authorizationRules, this.EventHubNamespaceName, this.Name, ResourceName ruleName)
             .Map this.ToKeyExpression
 
     /// Gets an ARM expression for the path to the key of the default RootManageSharedAccessKey for the entire namespace.
     member this.DefaultKey =
         ArmExpression
-            .resourceId(authorizationRules, this.EventHubNamespace.ResourceName, ResourceName "RootManageSharedAccessKey")
+            .resourceId(authorizationRules, this.EventHubNamespaceName, ResourceName "RootManageSharedAccessKey")
             .Map this.ToKeyExpression
     interface IBuilder with
-        member this.DependencyName = this.EventHubNamespace.ResourceName
+        member this.DependencyName = this.EventHubNamespaceName
         member this.BuildResources location = [
-            let eventHubNamespaceName = this.EventHubNamespace.ResourceName
-            let eventHubNamespace =
-                match this.EventHubNamespace with
-                | External _ ->
-                    None
-                | AutomaticPlaceholder
-                | AutomaticallyCreated _ ->
-                    { Name = eventHubNamespaceName
-                      Location = location
-                      Sku =
-                        {| Name = this.Sku
-                           Capacity = this.Capacity |}
-                      ZoneRedundant = this.ZoneRedundant
-                      AutoInflateSettings = this.ThroughputSettings
-                      KafkaEnabled = this.KafkaEnabled }
-                    |> Some
-            let eventHub =
-                { Name = this.Name.Map(sprintf "%s/%s" eventHubNamespaceName.Value)
-                  Location = location
-                  MessageRetentionDays = this.MessageRetentionInDays
-                  Partitions = this.Partitions
-                  CaptureDestination = this.CaptureDestination
-                  Dependencies = [
-                      eventHubNamespaceName
-                      match this.CaptureDestination with
-                      | Some (StorageAccount(name, _)) -> name
-                      | None -> ()
-                      yield! this.Dependencies
-                  ] }
-            let consumerGroups =
-                [ for consumerGroup in this.ConsumerGroups ->
-                    { Name = eventHub.Name.Map(fun name -> sprintf "%s/%s" eventHub.Name.Value consumerGroup)
-                      Location = location
-                      Dependencies = [
-                          eventHubNamespaceName
-                          ArmExpression.resourceId(eventHubs, eventHubNamespaceName, this.Name).Eval() |> ResourceName
-                      ]
-                    }
-                ]
-            let authRules =
-                [ for rule in this.AuthorizationRules ->
-                    { Name = rule.Key.Map(sprintf "%s/%s/%s" eventHubNamespaceName.Value this.Name.Value)
-                      Location = location
-                      Dependencies = [
-                          ArmExpression.resourceId(namespaces, eventHubNamespaceName).Eval() |> ResourceName
-                          ArmExpression.resourceId(eventHubs, eventHubNamespaceName, this.Name).Eval() |> ResourceName
-                      ]
-                      Rights = rule.Value }
-                ]
+            let eventHubNamespaceName = this.EventHubNamespaceName
+            let eventHubName = this.Name.Map(fun hubName -> sprintf "%s/%s" eventHubNamespaceName.Value hubName)
 
-            match eventHubNamespace with Some ns -> ns | None -> ()
-            eventHub
-            for consumerGroup in consumerGroups do consumerGroup
-            for authRule in authRules do authRule
+            // Namespace
+            match this.EventHubNamespace with
+            | DeployableResource this _ ->
+                { Name = eventHubNamespaceName
+                  Location = location
+                  Sku =
+                    {| Name = this.Sku
+                       Capacity = this.Capacity |}
+                  ZoneRedundant = this.ZoneRedundant
+                  AutoInflateSettings = this.ThroughputSettings
+                  KafkaEnabled = this.KafkaEnabled }
+            | _ ->
+                ()
+
+            // Event hub
+            { Name = eventHubName
+              Location = location
+              MessageRetentionDays = this.MessageRetentionInDays
+              Partitions = this.Partitions
+              CaptureDestination = this.CaptureDestination
+              Dependencies = [
+                  eventHubNamespaceName
+                  match this.CaptureDestination with
+                  | Some (StorageAccount(name, _)) -> name
+                  | None -> ()
+                  yield! this.Dependencies
+              ] }
+
+            // Consumer groups
+            for consumerGroup in this.ConsumerGroups do
+              { Name = eventHubName.Map(fun hubName -> sprintf "%s/%s" hubName consumerGroup)
+                Location = location
+                Dependencies = [
+                    eventHubNamespaceName
+                    ArmExpression.resourceId(eventHubs, eventHubNamespaceName, this.Name).Eval() |> ResourceName
+                ] }
+
+            // Auth rules
+            for rule in this.AuthorizationRules do
+                { Name = rule.Key.Map(fun rule -> sprintf "%s/%s/%s" eventHubNamespaceName.Value this.Name.Value rule)
+                  Location = location
+                  Dependencies = [
+                      ArmExpression.resourceId(namespaces, eventHubNamespaceName).Eval() |> ResourceName
+                      ArmExpression.resourceId(eventHubs, eventHubNamespaceName, this.Name).Eval() |> ResourceName
+                  ]
+                  Rights = rule.Value }
         ]
 
 type EventHubBuilder() =
     member __.Yield _ =
         { Name = ResourceName "hub"
-          EventHubNamespace = AutomaticPlaceholder
+          EventHubNamespace = derived (fun config -> config.Name.Map(sprintf "%s-ns"))
           Sku = Standard
           Capacity = 1
           ZoneRedundant = None
@@ -111,25 +107,18 @@ type EventHubBuilder() =
           ConsumerGroups = Set [ "$Default" ]
           AuthorizationRules = Map.empty
           Dependencies = [] }
-    member __.Run state =
-        { state with
-            EventHubNamespace =
-                match state.EventHubNamespace with
-                | External name -> External name
-                | AutomaticPlaceholder -> AutomaticallyCreated (state.Name.Map(sprintf "%s-ns"))
-                | AutomaticallyCreated resourceName -> AutomaticallyCreated resourceName }
     /// Sets the name of the Event Hub instance.
     [<CustomOperation "name">]
     member __.Name(state:EventHubConfig, name) = { state with Name = name }
     member this.Name(state:EventHubConfig, name) = this.Name(state, ResourceName name)
     /// Sets the name of the Event Hub namespace.
     [<CustomOperation "namespace_name">]
-    member __.NamespaceName(state:EventHubConfig, name) = { state with EventHubNamespace = AutomaticallyCreated name }
+    member __.NamespaceName(state:EventHubConfig, name) = { state with EventHubNamespace = AutoCreate(Named name) }
     member this.NamespaceName(state:EventHubConfig, name) = this.NamespaceName(state, ResourceName name)
     /// Sets the name of the Event Hub namespace.
     [<CustomOperation "link_to_namespace">]
-    member __.LinkToNamespaceName(state:EventHubConfig, name) = { state with EventHubNamespace = External name }
-    member this.LinkToNamespaceName(state:EventHubConfig, name) = this.NamespaceName(state, ResourceName name)
+    member __.LinkToNamespaceName(state:EventHubConfig, name) = { state with EventHubNamespace = External (Managed name) }
+    member this.LinkToNamespaceName(state:EventHubConfig, name) = this.LinkToNamespaceName(state, ResourceName name)
     /// Sets the sku of the Event Hub instance.
     [<CustomOperation "sku">]
     member __.Sku(state:EventHubConfig, sku) = { state with Sku = sku }

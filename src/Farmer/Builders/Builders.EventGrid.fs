@@ -134,7 +134,7 @@ type EventGridBuilder() =
     member _.Source(state:EventGridConfig<_>, source:ContainerRegistryConfig) = EventGridBuilder.ChangeTopic<ContainerRegistryEvent>(state, source.Name, Topics.ContainerRegistry)
     member _.Source(state:EventGridConfig<_>, source:ServiceBusConfig) = EventGridBuilder.ChangeTopic<ServiceBusEvent>(state, source.Name, Topics.ServiceBusNamespace)
     member _.Source(state:EventGridConfig<_>, source:IotHubConfig) = EventGridBuilder.ChangeTopic<IoTHubEvent>(state, source.Name, Topics.IoTHubAccount)
-    member _.Source(state:EventGridConfig<_>, source:EventHubConfig) = EventGridBuilder.ChangeTopic<EventHubEvent>(state, source.EventHubNamespace.ResourceName, Topics.EventHubsNamespace)
+    member _.Source(state:EventGridConfig<_>, source:EventHubConfig) = EventGridBuilder.ChangeTopic<EventHubEvent>(state, source.EventHubNamespaceName, Topics.EventHubsNamespace)
 
     [<CustomOperation "add_queue_subscriber">]
     member _.AddQueueSubscription(state:EventGridConfig<'T> when 'T :> IEventGridEvent, storageAccount:StorageAccountConfig, queueName, events:'T list) =
@@ -146,6 +146,6 @@ type EventGridBuilder() =
         this.AddWebSubscription(state, webApp.Name, Uri (sprintf "https://%s/%s" webApp.Endpoint route), events)
     [<CustomOperation "add_eventhub_subscriber">]
     member _.AddEventHubSubscription(state:EventGridConfig<'T> when 'T :> IEventGridEvent, eventHub:EventHubConfig, events:'T list) =
-        EventGridBuilder.AddSub(state, eventHub.Name.Value + "-eventhub", eventHub.EventHubNamespace.ResourceName, EventHub eventHub.Name, events |> List.map (fun x -> x.ToEvent))
+        EventGridBuilder.AddSub(state, eventHub.Name.Value + "-eventhub", eventHub.EventHubNamespaceName, EventHub eventHub.Name, events |> List.map (fun x -> x.ToEvent))
 
 let eventGrid = EventGridBuilder()
