@@ -19,43 +19,57 @@ type SecurityRuleBuilder () =
     member __.Yield _ =
         { Name = ResourceName.Empty
           Description = None
-          Service = Service("", AnyPort)
+          Service = Service("any", AnyPort)
           Source = [ ]
           Destination = [ ]
           Operation = Allow
         }
     /// Sets the name of the security rule
     [<CustomOperation "name">]
-    member __.Name(state:SecurityRule, name) = { state with Name = ResourceName name }
+    member _.Name(state:SecurityRule, name) = { state with Name = ResourceName name }
     /// Sets the description of the security rule
     [<CustomOperation "description">]
-    member __.Description(state:SecurityRule, description) = { state with Description = Some description }
+    member _.Description(state:SecurityRule, description) = { state with Description = Some description }
+    /// Sets the service or services protected by this rule.
     [<CustomOperation("service")>]
-    member __.Service(state:SecurityRule, service) = { state with Service = service }
+    member _.Service(state:SecurityRule, service) = { state with Service = service }
+    member _.Service(state:SecurityRule, nameAndPort) = { state with Service = Service (nameAndPort |> fst, nameAndPort |> snd |> uint16 |> Port) }
+    /// Sets the source endpoint that is matched in this rule
     [<CustomOperation("add_source")>]
-    member __.AddSource(state:SecurityRule, source) = { state with Source = source :: state.Source }
+    member _.AddSource(state:SecurityRule, source) = { state with Source = source :: state.Source }
+    /// Sets the rule to match on any source endpoint.
     [<CustomOperation("add_source_any")>]
-    member __.AddSourceAny(state:SecurityRule, protocol) = { state with Source = (protocol, AnyEndpoint, AnyPort) :: state.Source }
+    member _.AddSourceAny(state:SecurityRule, protocol) = { state with Source = (protocol, AnyEndpoint, AnyPort) :: state.Source }
+    /// Sets the rule to match on a tagged source endpoint, such as 'Internet'.
     [<CustomOperation("add_source_tag")>]
-    member __.AddSourceTag(state:SecurityRule, protocol, tag) = { state with Source = (protocol, Tag tag, AnyPort) :: state.Source }
+    member _.AddSourceTag(state:SecurityRule, protocol, tag) = { state with Source = (protocol, Tag tag, AnyPort) :: state.Source }
+    /// Sets the rule to match on a source address.
     [<CustomOperation("add_source_address")>]
-    member __.AddSourceAddress(state:SecurityRule, protocol, sourceAddress) = { state with Source = (protocol, Host (System.Net.IPAddress.Parse sourceAddress), AnyPort) :: state.Source }
+    member _.AddSourceAddress(state:SecurityRule, protocol, sourceAddress) = { state with Source = (protocol, Host (System.Net.IPAddress.Parse sourceAddress), AnyPort) :: state.Source }
+    /// Sets the rule to match on a source network.
     [<CustomOperation("add_source_network")>]
-    member __.AddSourceNetwork(state:SecurityRule, protocol, sourceNetwork) = { state with Source = (protocol, Network (IPAddressCidr.parse sourceNetwork), AnyPort) :: state.Source }
+    member _.AddSourceNetwork(state:SecurityRule, protocol, sourceNetwork) = { state with Source = (protocol, Network (IPAddressCidr.parse sourceNetwork), AnyPort) :: state.Source }
+    /// Sets the destination endpoint that is matched in this rule
     [<CustomOperation("add_destination")>]
-    member __.AddDestination(state:SecurityRule, dest) = { state with Destination = dest :: state.Destination }
+    member _.AddDestination(state:SecurityRule, dest) = { state with Destination = dest :: state.Destination }
+    /// Sets the rule to match on any destination endpoint.
     [<CustomOperation("add_destination_any")>]
-    member __.AddDestinationAny(state:SecurityRule) = { state with Destination = AnyEndpoint :: state.Destination }
+    member _.AddDestinationAny(state:SecurityRule) = { state with Destination = AnyEndpoint :: state.Destination }
+    /// Sets the rule to match on a tagged destination endpoint, such as 'Internet'.
     [<CustomOperation("add_destination_tag")>]
-    member __.AddDestinationTag(state:SecurityRule, tag) = { state with Destination = Tag tag :: state.Destination }
+    member _.AddDestinationTag(state:SecurityRule, tag) = { state with Destination = Tag tag :: state.Destination }
+    /// Sets the rule to match on a destination address.
     [<CustomOperation("add_destination_address")>]
-    member __.AddDestinationAddress(state:SecurityRule, destAddress) = { state with Destination = Host (System.Net.IPAddress.Parse destAddress) :: state.Destination }
+    member _.AddDestinationAddress(state:SecurityRule, destAddress) = { state with Destination = Host (System.Net.IPAddress.Parse destAddress) :: state.Destination }
+    /// Sets the rule to match on a destination network.
     [<CustomOperation("add_destination_network")>]
-    member __.AddDestinationNetwork(state:SecurityRule, destNetwork) = { state with Destination = Network (IPAddressCidr.parse destNetwork):: state.Destination }
+    member _.AddDestinationNetwork(state:SecurityRule, destNetwork) = { state with Destination = Network (IPAddressCidr.parse destNetwork):: state.Destination }
+    /// Sets the rule to allow this traffic (default value).
     [<CustomOperation("allow")>]
-    member __.Allow(state:SecurityRule) = { state with Operation = Allow }
+    member _.Allow(state:SecurityRule) = { state with Operation = Allow }
+    /// Sets the rule to deny this traffic.
     [<CustomOperation("deny")>]
-    member __.Deny(state:SecurityRule) = { state with Operation = Deny }
+    member _.Deny(state:SecurityRule) = { state with Operation = Deny }
 
 let securityRule = SecurityRuleBuilder()
 
@@ -68,13 +82,12 @@ module SecurityRule =
         let destAddresses = rule.Destination
         let wildcardOrTag (addresses:Endpoint seq) =
             // Use a wildcard if there is one
-            if addresses |> Seq.contains AnyEndpoint then "*", []
+            if addresses |> Seq.contains AnyEndpoint then Some AnyEndpoint, []
             else // Use the first tag that is set (only one supported), otherwise use addresses
                 addresses
-                |> Seq.choose (function | Tag tag -> Some tag | _ -> None)
-                |> Seq.tryHead |> function
-                | Some tag -> tag, []
-                | None -> null, addresses |> List.ofSeq
+                |> Seq.tryFind (function | Tag _ -> true | _ -> false) |> function
+                | Some (Tag tag) -> Some (Tag tag), []
+                | _ -> None, addresses |> List.ofSeq
 
         let rec collateRules (service:Service) =
             match service with
@@ -94,11 +107,11 @@ module SecurityRule =
           Description = None
           SecurityGroup = nsg
           Protocol = if protocols.Count > 1 then AnyProtocol else protocols |> Seq.head
-          SourcePort = if sourcePorts.Contains AnyPort then "*" else null
+          SourcePort = if sourcePorts.Contains AnyPort then Some AnyPort else None
           SourcePorts = if sourcePorts.Contains AnyPort then [] else sourcePorts |> List.ofSeq
           SourceAddress = sourceAddress
           SourceAddresses = sourceAddresses
-          DestinationPort = if destPorts.Contains AnyPort then "*" else null
+          DestinationPort = if destPorts.Contains AnyPort then Some AnyPort else None
           DestinationPorts = if destPorts.Contains AnyPort then [] else destPorts |> List.ofSeq
           DestinationAddress = destAddress
           DestinationAddresses = destAddresses
@@ -130,8 +143,9 @@ type NsgBuilder() =
         { Name = ResourceName.Empty; SecurityRules = [] }
     /// Sets the name of the network security group
     [<CustomOperation "name">]
-    member __.Name(state:NsgConfig, name) = { state with Name = ResourceName name }
+    member _.Name(state:NsgConfig, name) = { state with Name = ResourceName name }
+    /// Adds rules to this NSG.
     [<CustomOperation "add_rules">]
-    member __.AddSecurityRules (state:NsgConfig, rules) = { state with SecurityRules = state.SecurityRules @ rules }
+    member _.AddSecurityRules (state:NsgConfig, rules) = { state with SecurityRules = state.SecurityRules @ rules }
 
 let nsg = NsgBuilder()

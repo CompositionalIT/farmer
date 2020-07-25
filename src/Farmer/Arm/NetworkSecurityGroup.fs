@@ -26,13 +26,13 @@ type SecurityRule =
       Description : string option
       SecurityGroup : NetworkSecurityGroup
       Protocol : NetworkProtocol
-      SourcePort : string // Supports a string, like '*'
+      SourcePort : Port option
       SourcePorts : Port list
-      DestinationPort : string // Supports a string, like '*'
+      DestinationPort : Port option
       DestinationPorts : Port list
-      SourceAddress : string // Supports a string like '*' or tag like 'Internet'
+      SourceAddress : Endpoint option
       SourceAddresses : Endpoint list
-      DestinationAddress : string // Supports a string like '*' or tag like 'Internet'
+      DestinationAddress : Endpoint option
       DestinationAddresses : Endpoint list
       Access : Operation
       Direction : TrafficDirection
@@ -46,15 +46,15 @@ type SecurityRule =
                name = sprintf "%s/%s" this.SecurityGroup.Name.Value this.Name.Value
                dependsOn = [ ArmExpression.resourceId(networkSecurityGroups, this.SecurityGroup.Name).Eval() ]
                properties =
-                    {| description = this.Description |> Option.defaultValue null
+                    {| description = this.Description |> Option.toObj
                        protocol = this.Protocol.ArmValue
                        sourcePortRanges = this.SourcePorts |> List.map Port.ArmValue
-                       sourcePortRange = this.SourcePort
+                       sourcePortRange = this.SourcePort |> Option.map Port.ArmValue |> Option.toObj
                        destinationPortRanges = this.DestinationPorts |> List.map Port.ArmValue
-                       destinationPortRange = this.DestinationPort
-                       sourceAddressPrefix = this.SourceAddress
+                       destinationPortRange = this.DestinationPort |> Option.map Port.ArmValue |> Option.toObj
+                       sourceAddressPrefix = this.SourceAddress |> Option.map Endpoint.ArmValue |> Option.toObj
                        sourceAddressPrefixes = this.SourceAddresses |> List.map Endpoint.ArmValue
-                       destinationAddressPrefix = this.DestinationAddress
+                       destinationAddressPrefix = this.DestinationAddress |> Option.map Endpoint.ArmValue |> Option.toObj
                        destinationAddressPrefixes = this.DestinationAddresses |> List.map Endpoint.ArmValue
                        access = this.Access.ArmValue 
                        priority = this.Priority

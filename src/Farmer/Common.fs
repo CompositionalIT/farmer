@@ -768,16 +768,6 @@ module NetworkSecurity =
     type TrafficDirection with
         member this.ArmValue = this |> TrafficDirection.ArmValue
 
-    /// Network access policy
-    type Policy = {
-        Name: string
-        Description : string option
-        Service: Service
-        Source: (NetworkProtocol * Endpoint * Port) list
-        Destination : Endpoint list
-        Operation : Operation
-    }
-
 module Cdn =
     type Sku =
     | Custom_Verizon

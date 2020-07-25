@@ -34,13 +34,13 @@ let tests = testList "NetworkSecurityGroup" [
                   Description = Some (sprintf "Rule created on %s" (DateTimeOffset.Now.Date.ToShortDateString()))
                   SecurityGroup = nsg
                   Protocol = TCP
-                  SourcePort = "*"
+                  SourcePort = Some AnyPort
                   SourcePorts = [ ]
-                  DestinationPort = "*"
+                  DestinationPort = None
                   DestinationPorts = [ Port 80us; Port 443us ]
-                  SourceAddress = "*"
+                  SourceAddress = Some AnyEndpoint
                   SourceAddresses = [ ]
-                  DestinationAddress = null
+                  DestinationAddress = None
                   DestinationAddresses = [ Network (IPAddressCidr.parse "10.100.30.0/24") ]
                   Access = Allow
                   Direction = Inbound
@@ -138,7 +138,7 @@ let tests = testList "NetworkSecurityGroup" [
         let dbPolicy = securityRule { // DB servers - not accessible by web, only by app servers
             name "db-servers"
             description "Internal database server access"
-            service database
+            service ("postgres", 5432)
             add_source_network TCP appNet
             add_destination_network dbNet
             allow
@@ -156,10 +156,6 @@ let tests = testList "NetworkSecurityGroup" [
                 add_resource myNsg
             }
             |> findAzureResources<SecurityRule> client.SerializationSettings
-        arm {
-            add_resource myNsg
-        }
-        |> Writer.quickWrite "example-nsg"
         match rules with
         | [ _; rule1; rule2; rule3 ] ->
             // Web server access
