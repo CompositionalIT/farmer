@@ -49,7 +49,6 @@
     <Compile Include="ArmBuilder.fs" />
     <Compile Include="Writer.fs" />
     <Compile Include="Deploy.fs" />
-    <Compile Include="Arm\Aks.fs" />
 
     <Compile Include="Arm/Storage.fs" />
     <Compile Include="Arm/Cache.fs" />
@@ -59,6 +58,7 @@
     <Compile Include="Arm/Compute.fs" />
     <Compile Include="Arm/ContainerInstance.fs" />
     <Compile Include="Arm/ContainerRegistry.fs" />
+    <Compile Include="Arm\ContainerService.fs" />
     <Compile Include="Arm/DataLakeStore.fs" />
     <Compile Include="Arm/DBforPostgreSQL.fs" />
     <Compile Include="Arm/Devices.fs" />
@@ -77,6 +77,8 @@
     <Compile Include="Builders/Builders.Helpers.fs" />
     <Compile Include="Builders/Builders.PostgreSQL.fs" />
     <Compile Include="Builders/Builders.Cdn.fs" />
+    <Compile Include="Builders\Builders.ContainerGroups.fs" />
+    <Compile Include="Builders\Builders.ContainerService.fs" />
     <Compile Include="Builders/Builders.DataLake.fs" />
     <Compile Include="Builders/Builders.Storage.fs" />
     <Compile Include="Builders/Builders.Redis.fs" />
@@ -91,7 +93,6 @@
     <Compile Include="Builders/Builders.Cosmos.fs" />
     <Compile Include="Builders/Builders.EventHub.fs" />
     <Compile Include="Builders/Builders.ExpressRoute.fs" />
-    <Compile Include="Builders/Builders.ContainerGroups.fs" />
     <Compile Include="Builders/Builders.CognitiveServices.fs" />
     <Compile Include="Builders/Builders.ContainerRegistry.fs" />
     <Compile Include="Builders/Builders.ServiceBus.fs" />
@@ -101,6 +102,5 @@
     <Compile Include="Builders/Builders.VirtualNetworkGateway.fs" />
     <Compile Include="Builders/Builders.VirtualNetwork.fs" />
     <Compile Include="Builders/Builders.EventGrid.fs" />
-    <Compile Include="Builders\Builders.Aks.fs" />
   </ItemGroup>
 </Project>

@@ -1,5 +1,5 @@
 [<AutoOpen>]
-module Farmer.Arm.Aks
+module Farmer.Arm.ContainerService
 
 open Farmer
 open Farmer.CoreTypes
@@ -15,12 +15,13 @@ type ManagedCluster =
       AgentPoolProfiles :
         {| Name : ResourceName
            Count : int
+           Mode : AgentPoolMode
            OsDiskSize : int<Gb>
            OsType : OS
            VmSize : VMSize
-           Mode : AgentPoolMode
         |} list
       DnsPrefix : string
+      EnableRBAC : bool
       LinuxProfile :
        {| AdminUserName : string
           PublicKeys : string list |} option
@@ -52,6 +53,7 @@ type ManagedCluster =
                               mode = agent.Mode |> string
                            |})
                       dnsPrefix = this.DnsPrefix
+                      enableRBAC = this.EnableRBAC
                       linuxProfile =
                             match this.LinuxProfile with
                             | Some linuxProfile ->

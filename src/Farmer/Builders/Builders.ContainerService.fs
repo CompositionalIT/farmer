@@ -1,8 +1,8 @@
 [<AutoOpen>]
-module Farmer.Builders.Aks
+module Farmer.Builders.ContainerService
 
 open Farmer
-open Farmer.Arm.Aks
+open Farmer.Arm.ContainerService
 open Farmer.CoreTypes
 open Farmer.Vm
 
@@ -17,8 +17,9 @@ type AgentPoolConfig =
 
 type AksConfig =
     { Name : ResourceName
-      DnsPrefix : string
       AgentPools : AgentPoolConfig list
+      DnsPrefix : string
+      EnableRBAC : bool
       LinuxProfile : (string * string list) option
       ServicePrincipalClientID : string option
       WindowsProfileAdminUserName : string option
@@ -30,6 +31,7 @@ type AksConfig =
             { Name = this.Name
               Location = location
               DnsPrefix = this.DnsPrefix
+              EnableRBAC = this.EnableRBAC
               AgentPoolProfiles = this.AgentPools |> List.map (fun agentPool ->
                   {| Name = agentPool.Name
                      Count = agentPool.Count
@@ -83,11 +85,12 @@ let agentPool = AgentPoolBuilder()
 /// Builds a Linux Profile from a username and list of ssh public keys
 let make_linux_profile user sshKeys = user, sshKeys
 
-type AksBuilder() =
+type ContainerServiceBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
-          DnsPrefix = ""
           AgentPools = []
+          DnsPrefix = ""
+          EnableRBAC = false
           LinuxProfile = None
           ServicePrincipalClientID = None
           WindowsProfileAdminUserName = None
@@ -98,6 +101,9 @@ type AksBuilder() =
     /// Sets the DNS prefix of the AKS cluster.
     [<CustomOperation "dns_prefix">]
     member _.DnsPrefix(state:AksConfig, dns) = { state with DnsPrefix = dns }
+    /// Enable Kubernetes Role-Based Access Control.
+    [<CustomOperation "enable_rbac">]
+    member _.EnableRBAC(state:AksConfig) = { state with EnableRBAC = true }
     /// Adds agent pools to the AKS cluster.
     [<CustomOperation "add_agent_pools">]
     member _.AddAgentPools(state:AksConfig, pools) = { state with AgentPools = state.AgentPools @ pools }
@@ -106,13 +112,16 @@ type AksBuilder() =
     member _.AddAgentPool(state:AksConfig, pool) = { state with AgentPools = state.AgentPools @ [ pool ] }
     /// Sets the linux profile for the AKS cluster.
     [<CustomOperation "linux_profile">]
+    member _.LinuxProfile(state:AksConfig, username:string, sshKey:string) = { state with LinuxProfile = Some (username, [ sshKey ]) }
     member _.LinuxProfile(state:AksConfig, username:string, sshKeys:string list) = { state with LinuxProfile = Some (username, sshKeys) }
     /// Sets the client id of the service principal for the AKS cluster.
-    [<CustomOperation "sp_client_id">]
-    member _.SpProfile(state:AksConfig, clientId) = { state with ServicePrincipalClientID = Some clientId }
+    [<CustomOperation "service_principal_client_id">]
+    member _.ServicePrincipalClientID(state:AksConfig, clientId) = { state with ServicePrincipalClientID = Some clientId }
     /// Sets the windows admin username for the AKS cluster.
     [<CustomOperation "windows_username">]
     member _.WindowsUsername(state:AksConfig, username) = { state with WindowsProfileAdminUserName = Some username }
 
 /// Builds an AKS cluster ARM resource definition
-let aks = AksBuilder()
+let containerService = ContainerServiceBuilder()
+/// Container service is widely known as aks, so supporting that, too.
+let aks = containerService
