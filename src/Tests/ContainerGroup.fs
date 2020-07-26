@@ -96,5 +96,46 @@ let tests = testList "Container Group" [
         Expect.equal group.Containers.[0].Ports.[0].Port 123 "Incorrect private port"
         Expect.hasLength group.Containers.[0].Ports 1 "Should only be one port"
     }
+
+    test "Adds container group with volumes mounted on each container." {
+        let helloShared1 = containerInstance {
+            name "hello-shared-dir1"
+            image "mcr.microsoft.com/azuredocs/aci-helloworld:latest"
+            add_ports PublicPort [ 80us ]
+            add_volume_mount "shared-socket" "/var/lib/shared/hello"
+            add_volume_mount "source-code" "/src/farmer"
+            add_volume_mount "secret-files" "/config/secrets"
+        }
+        let helloShared2 = containerInstance {
+            name "hello-shared-dir2"
+            add_ports PublicPort [ 81us ]
+            env_vars [
+                env_var "testing" "environment variables"
+            ]
+            image "mcr.microsoft.com/azuredocs/aci-helloworld:latest"
+            add_volume_mount "shared-socket" "/var/lib/shared/hello"
+            add_volume_mount "azure-file" "/var/lib/files"
+        }
+        let group =
+            containerGroup {
+                name "containersWithFiles"
+                add_instances [ helloShared1; helloShared2 ]
+                add_volumes [
+                    volume_mount.azureFile "azure-file" "fileShare1" "storageAccount1"
+                    volume_mount.secret_string "secret-files" "secret1" "abcdefg"
+                    volume_mount.empty_dir "shared-socket"
+                    volume_mount.git_repo "source-code" (Uri "https://github.com/CompositionalIT/farmer")
+                ]
+            } |> asAzureResource
+        Expect.equal group.Name "containersWithFiles" "Incorrect name on container group"
+        Expect.equal group.Containers.[0].VolumeMounts.Count 3 "Incorrect number of volume mounts on container 1"
+        Expect.equal group.Containers.[1].VolumeMounts.Count 2 "Incorrect number of volume mounts on container 1"
+        Expect.hasLength group.Volumes 4 "Incorrect number of volumes in group"
+        Expect.isNotNull group.Volumes.[0].AzureFile "Azure file volume should not be null"
+        Expect.isNotNull group.Volumes.[1].Secret "Secret volume should not be null"
+        Expect.isNotNull group.Volumes.[2].EmptyDir "Empty directory volume should not be null"
+        Expect.isNotNull group.Volumes.[3].GitRepo "Git repo volume should not be null"
+    }
+
 ]
 

@@ -19,6 +19,7 @@ The Container Group builder is used to create Azure Container Group instances.
 | containerInstance | cpu_cores | Sets the maximum CPU cores the container may use. |
 | containerInstance | memory | Sets the maximum gigabytes of memory the container may use. |
 | containerInstance | env_vars | Sets a list of environment variables for the container. |
+| containerInstance | add_volume_mount | Adds a volume mount on a container from a volume in the container group. |
 | containerGroup | add_instances | Adds container instances to the group. |
 | containerGroup | os_type | Sets the OS type (default Linux). |
 | containerGroup | restart_policy | Sets the restart policy (default Always) |
@@ -28,6 +29,7 @@ The Container Group builder is used to create Azure Container Group instances.
 | containerGroup | network_profile | Name of a network profile resource for the subnet in a virtual network where the container group will attach. |
 | containerGroup | add_tcp_port | Adds a TCP port to be externally accessible. |
 | containerGroup | add_udp_port | Adds a UDP port to be externally accessible. |
+| containerGroup | add_volumes | Adds volumes to a container group so they are accessible to containers. |
 
 #### Example
 ```fsharp
@@ -46,6 +48,8 @@ let nginx = containerInstance {
         env_var "CONTENT_PATH" "/www"
         secure_env_var "SECRET_PASSWORD" "shhhhhh!"
     ]
+    add_volume_mount "secret-files" "/config/secrets"
+    add_volume_mount "source-code" "/src/farmer"
 }
 
 let group = containerGroup {
@@ -54,6 +58,10 @@ let group = containerGroup {
     restart_policy AlwaysRestart
     add_udp_port 123us
     add_instances [ nginx ]
+    add_volumes [
+        volume_mount.secret_string "secret-files" "secret1" "abcdefg"
+        volume_mount.git_repo "source-code" (Uri "https://github.com/CompositionalIT/farmer")
+    ]
 }
 ```
 

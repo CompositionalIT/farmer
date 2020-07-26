@@ -6,6 +6,24 @@ open Farmer.ContainerGroup
 open Farmer.Arm.ContainerInstance
 open Farmer.Arm.Network
 
+type volume_mount =
+    static member empty_dir volumeName =
+        volumeName, {| Volume = Volume.EmptyDirectory |}
+    static member azureFile volumeName  shareName storageAccountName =
+        volumeName, {| Volume = Volume.AzureFileShare (shareName, storageAccountName) |}
+    static member git_repo volumeName repository =
+        volumeName, {| Volume = Volume.GitRepo (repository, None, None) |}
+    static member git_repo_directory volumeName  repository directory =
+        volumeName, {| Volume = Volume.GitRepo (repository, Some directory, None) |}
+    static member git_repo_directory_revision volumeName  repository directory revision =
+        volumeName, {| Volume = Volume.GitRepo (repository, Some directory, Some revision) |}
+    static member secret volumeName  (file:string) (secret:byte array) =
+        volumeName, {| Volume = Volume.Secret [ SecretFile (file, secret) ] |}
+    static member secrets volumeName  (secrets:(string * byte array) list) =
+        volumeName, {| Volume = secrets |> List.map SecretFile |> Volume.Secret |}
+    static member secret_string volumeName  (file:string) (secret:string) =
+        volumeName, {| Volume = Volume.Secret [ SecretFile (file, secret |> System.Text.Encoding.UTF8.GetBytes) ] |}
+
 /// Represents configuration for a single Container.
 type ContainerInstanceConfig =
     { /// The name of the container instance
@@ -19,7 +37,9 @@ type ContainerInstanceConfig =
       /// Max gigabytes of memory the container instance may use
       Memory : float<Gb>
       /// Environment variables for the container
-      EnvironmentVariables : Map<string, {|Value:string; Secure:bool|}> }
+      EnvironmentVariables : Map<string, {|Value:string; Secure:bool|}>
+      /// Volume mounts for the container
+      VolumeMounts : Map<string, string> }
 
 type ContainerGroupConfig =
     { /// The name of the container group.
@@ -33,7 +53,9 @@ type ContainerGroupConfig =
       /// Name of the network profile for this container's group.
       NetworkProfile : ResourceName option
       /// The instances in this container group.
-      Instances : ContainerInstanceConfig list }
+      Instances : ContainerInstanceConfig list
+      /// Volumes to mount on the container group.
+      Volumes : Map<string, {| Volume:Volume |}> }
     interface IBuilder with
         member this.DependencyName = this.Name
         member this.BuildResources location = [
@@ -46,12 +68,14 @@ type ContainerGroupConfig =
                        Ports = instance.Ports |> Map.toSeq |> Seq.map fst |> Set
                        Cpu = instance.Cpu
                        Memory = instance.Memory
-                       EnvironmentVariables = instance.EnvironmentVariables |}
+                       EnvironmentVariables = instance.EnvironmentVariables
+                       VolumeMounts = instance.VolumeMounts |}
               ]
               OperatingSystem = this.OperatingSystem
               RestartPolicy = this.RestartPolicy
               IpAddress = this.IpAddress
-              NetworkProfile = this.NetworkProfile }
+              NetworkProfile = this.NetworkProfile
+              Volumes = this.Volumes }
         ]
 
 type ContainerGroupBuilder() =
@@ -61,7 +85,8 @@ type ContainerGroupBuilder() =
           RestartPolicy = AlwaysRestart
           IpAddress = { Type = PublicAddress; Ports = Set.empty }
           NetworkProfile = None
-          Instances = [] }
+          Instances = []
+          Volumes = Map.empty }
     member this.Run (state:ContainerGroupConfig) =
         // Automatically apply all public-facing ports to the container group itself.
         state.Instances
@@ -108,6 +133,12 @@ type ContainerGroupBuilder() =
     /// Adds a collection of container instances to this group
     [<CustomOperation "add_instances">]
     member __.AddInstances(state:ContainerGroupConfig, instances) = { state with Instances = state.Instances @ (Seq.toList instances) }
+    [<CustomOperation "add_volumes">]
+    /// Adds volumes to the container group so they can be mounted on containers.
+    member __.AddVolumes(state:ContainerGroupConfig, volumes) =
+        let newVolumes = volumes |> Map.ofSeq
+        let updatedVolumes = state.Volumes |> Map.fold (fun current key vol -> Map.add key vol current) newVolumes
+        { state with Volumes = updatedVolumes }
 
 type ContainerInstanceBuilder() =
     member __.Yield _ =
@@ -116,7 +147,8 @@ type ContainerInstanceBuilder() =
           Ports = Map.empty
           Cpu = 1
           Memory = 1.5<Gb>
-          EnvironmentVariables = Map.empty }
+          EnvironmentVariables = Map.empty
+          VolumeMounts = Map.empty }
     /// Sets the name of the container instance.
     [<CustomOperation "name">]
     member __.Name(state:ContainerInstanceConfig, name) = { state with Name = name }
@@ -147,6 +179,10 @@ type ContainerInstanceBuilder() =
     [<CustomOperation "env_vars">]
     member __.EnvironmentVariables(state:ContainerInstanceConfig, envVars) =
         { state with EnvironmentVariables=Map.ofList envVars }
+    /// Adds a volume mount to the container
+    [<CustomOperation "add_volume_mount">]
+    member __.AddVolumeMount (state:ContainerInstanceConfig, volumeName, mountPath) =
+        { state with VolumeMounts = state.VolumeMounts |> Map.add volumeName mountPath }
 
 let env_var (name:string) (value:string) = name, {|Value=value; Secure=false|}
 let secure_env_var (name:string) (value:string) = name, {|Value=value; Secure=true|}
