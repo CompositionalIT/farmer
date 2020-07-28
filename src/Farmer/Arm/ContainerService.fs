@@ -32,7 +32,19 @@ type ManagedCluster =
        {| ClientId : string
           ClientSecret : SecureParameter |} option
     }
-
+    
+    interface IParameters with
+        member this.SecureParameters =
+            [
+                match this.ServicePrincipalProfile with
+                | Some servicePrincipalProfile ->
+                    yield servicePrincipalProfile.ClientSecret
+                | None -> ()
+                match this.WindowsProfile with
+                | Some windowsProfile ->
+                    yield windowsProfile.AdminPassword
+                | None -> ()
+            ]
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
