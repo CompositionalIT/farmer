@@ -55,7 +55,8 @@ type ServiceBusSubscriptionConfig =
       DefaultMessageTimeToLive : TimeSpan option
       MaxDeliveryCount : int option
       Session : bool option
-      DeadLetteringOnMessageExpiration : bool option }
+      DeadLetteringOnMessageExpiration : bool option
+      Rules : Rule list }
 
 type ServiceBusSubscriptionBuilder() =
     member _.Yield _ =
@@ -66,7 +67,8 @@ type ServiceBusSubscriptionBuilder() =
           DefaultMessageTimeToLive = None
           MaxDeliveryCount = None
           Session = None
-          DeadLetteringOnMessageExpiration = None }
+          DeadLetteringOnMessageExpiration = None
+          Rules = List.empty }
 
     /// The name of the queue.
     [<CustomOperation "name">] member _.Name(state:ServiceBusSubscriptionConfig, name) = { state with Name = ResourceName name }
@@ -77,11 +79,13 @@ type ServiceBusSubscriptionBuilder() =
     /// The default time-to-live for messages. If not specified, the maximum TTL will be set for the SKU.
     [<CustomOperation "message_ttl_days">] member _.MessageTtl(state:ServiceBusSubscriptionConfig, ttl) = { state with DefaultMessageTimeToLive = Some (TimeSpan.FromDays (float ttl)) }
     /// Enables session support.
-    [<CustomOperation "max_delivery_count">] member _.MaxDeliveryCount(state:ServiceBusQueueConfig, count) = { state with MaxDeliveryCount = Some count }
+    [<CustomOperation "max_delivery_count">] member _.MaxDeliveryCount(state:ServiceBusSubscriptionConfig, count) = { state with MaxDeliveryCount = Some count }
     /// Whether to enable duplicate detection, and if so, how long to check for.ServiceBusQueueConfig
-    [<CustomOperation "enable_session">] member _.Session(state:ServiceBusQueueConfig) = { state with Session = Some true }
+    [<CustomOperation "enable_session">] member _.Session(state:ServiceBusSubscriptionConfig) = { state with Session = Some true }
     /// Enables dead lettering of messages that expire.
-    [<CustomOperation "enable_dead_letter_on_message_expiration">] member _.DeadLetteringOnMessageExpiration(state:ServiceBusQueueConfig) = { state with DeadLetteringOnMessageExpiration = Some true }
+    [<CustomOperation "enable_dead_letter_on_message_expiration">] member _.DeadLetteringOnMessageExpiration(state:ServiceBusSubscriptionConfig) = { state with DeadLetteringOnMessageExpiration = Some true }
+    /// Adds filtering rules for a subscription
+    [<CustomOperation "add_rules">] member _.AddRules(state:ServiceBusSubscriptionConfig, rules) = { state with Rules = state.Rules @ rules }
 
 type ServiceBusTopicConfig =
     { Name : ResourceName
@@ -171,7 +175,8 @@ type ServiceBusConfig =
                       DefaultMessageTimeToLive = subscription.DefaultMessageTimeToLive |> Option.map IsoDateTime.OfTimeSpan
                       MaxDeliveryCount = subscription.MaxDeliveryCount
                       Session = subscription.Session
-                      DeadLetteringOnMessageExpiration = subscription.DeadLetteringOnMessageExpiration }
+                      DeadLetteringOnMessageExpiration = subscription.DeadLetteringOnMessageExpiration
+                      Rules = subscription.Rules }
 
         ]
 

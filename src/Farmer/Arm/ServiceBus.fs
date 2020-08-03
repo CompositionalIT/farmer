@@ -15,6 +15,23 @@ let namespaces = ResourceType "Microsoft.ServiceBus/namespaces"
 
 module Namespaces =
     module Topics =
+        type CorrelationFilter =
+            { CorrelationId : string option
+              Properties : Map<string, obj> option }
+        type Rule =
+            | SqlFilter of Name:ResourceName * SqlExpression:string
+            | CorrelationFilter of Name:ResourceName * CorrelationFilter
+            member this.Name =
+                match this with
+                | SqlFilter (name, _) -> name
+                | CorrelationFilter (name, _) -> name
+        let correlation_property_filter (name:string) (properties:(string * string) seq) =
+            let downcastProperties =
+                properties
+                |> Seq.map (fun (k,v) -> k, v :> obj)
+                |> Map.ofSeq
+                |> Some
+            Rule.CorrelationFilter (ResourceName name, { CorrelationId = None; Properties = downcastProperties })
         type Subscription =
             { Name : ResourceName
               Namespace : ResourceName
@@ -24,7 +41,8 @@ module Namespaces =
               DefaultMessageTimeToLive : IsoDateTime option
               MaxDeliveryCount : int option
               Session : bool option
-              DeadLetteringOnMessageExpiration : bool option }
+              DeadLetteringOnMessageExpiration : bool option
+              Rules : Rule list }
             interface IArmResource with
                 member this.ResourceName = this.Name
                 member this.JsonModel =
@@ -44,6 +62,28 @@ module Namespaces =
                            requiresSession = this.Session |> Option.toNullable
                            lockDuration = tryGetIso this.LockDuration
                         |}
+                       resources = this.Rules |> List.map ( fun rule ->
+                           {| apiVersion = "2017-04-01"
+                              name = rule.Name.Value
+                              ``type`` = "rules"
+                              dependsOn = [ this.Name.Value ]
+                              properties =
+                               match rule with
+                               | SqlFilter (_, sqlExpression) -> 
+                                   {| filterType = "SqlFilter"
+                                      sqlFilter = {| sqlExpression = sqlExpression |}
+                                      correlationFilter = Unchecked.defaultof<_>
+                                    |}
+                               | CorrelationFilter (_, correlationFilter) -> 
+                                   {| filterType = "CorrelationFilter"
+                                      correlationFilter =
+                                          {| correlationId = correlationFilter.CorrelationId |> Option.toObj
+                                             properties =
+                                                 correlationFilter.Properties
+                                                 |> Option.map (fun m -> m |> Map.toSeq |> dict)
+                                                 |> Option.toObj |}
+                                      sqlFilter = Unchecked.defaultof<_> |}
+                           |})
                     |} :> _
 
     type Queue =
