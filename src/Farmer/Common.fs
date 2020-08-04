@@ -457,6 +457,19 @@ module ContainerGroup =
         | PublicAddressWithDns of DnsName:string
         | PrivateAddress
         | PrivateAddressWithIp of System.Net.IPAddress
+    /// A secret file which will be encoded as base64 and attached to a container group.
+    type SecretFile = SecretFile of Name:string * Secret:byte array
+    /// A container group volume.
+    [<RequireQualifiedAccess>]
+    type Volume =
+        /// Mounts an empty directory on the container group.
+        | EmptyDirectory
+        /// Mounts an Azure File Share in the same resource group, performing a key lookup.
+        | AzureFileShare of ShareName:string * StorageAccountName:string
+        /// A git repo volume, clonable by public HTTPS access.
+        | GitRepo of Repository:Uri * Directory:string option * Revision:string option
+        /// Mounts a volume containing secret files.
+        | Secret of SecretFile list
 
 module Redis =
     type Sku = Basic | Standard | Premium
