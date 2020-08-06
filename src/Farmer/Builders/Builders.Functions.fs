@@ -59,6 +59,7 @@ type FunctionsConfig =
               ServicePlan = this.ServicePlanName
               Location = location
               Cors = this.Cors
+              Tags = Map.empty
               AppSettings = [
                 "FUNCTIONS_WORKER_RUNTIME", (string this.Runtime).ToLower()
                 "WEBSITE_NODE_DEFAULT_VERSION", "10.14.1"

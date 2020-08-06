@@ -132,6 +132,7 @@ type Site =
       JavaContainerVersion : string option
       PhpVersion : string option
       PythonVersion : string option
+      Tags : Map<string, string>
       Metadata : List<string * string>
       ZipDeployPath : (string * ZipDeploy.ZipDeployTarget) option }
     interface IParameters with

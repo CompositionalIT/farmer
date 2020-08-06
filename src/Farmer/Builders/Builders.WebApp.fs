@@ -75,6 +75,7 @@ type WebAppConfig =
       OperatingSystem : OS
       Settings : Map<string, Setting>
       Dependencies : ResourceName list
+      Tags : Map<string,string>
 
       Cors : Cors option
       Sku : Sku
@@ -119,6 +120,7 @@ type WebAppConfig =
               WebSocketsEnabled = this.WebSocketsEnabled
               Identity = this.Identity
               Cors = this.Cors
+              Tags = this.Tags
               AppSettings =
                 let literalSettings = [
                     if this.RunFromPackage then AppSettings.RunFromPackage
@@ -282,6 +284,7 @@ type WebAppBuilder() =
           ClientAffinityEnabled = None
           WebSocketsEnabled = None
           Settings = Map.empty
+          Tags = Map.empty
           Dependencies = []
           Identity = None
           Runtime = Runtime.DotNetCoreLts
@@ -440,6 +443,12 @@ type WebAppBuilder() =
     member this.EnableCi(state:WebAppConfig) = this.SourceControlCi(state, Enabled)
     [<CustomOperation "disable_source_control_ci">]
     member this.DisableCi(state:WebAppConfig) = this.SourceControlCi(state, Disabled)
+    [<CustomOperation "tags">]
+    member _.Tags(state:WebAppConfig, pairs) = 
+        { state with 
+            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
+    [<CustomOperation "tag">]
+    member this.Tag(state:WebAppConfig, key, value) = this.Tags(state, [ (key,value) ])
 
 let webApp = WebAppBuilder()
 
