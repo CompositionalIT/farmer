@@ -169,6 +169,7 @@ type Site =
                  | Some Enabled -> box {| ``type`` = "SystemAssigned" |}
                  | Some Disabled -> box {| ``type`` = "None" |}
                  | None -> null
+               tags = this.Tags |> Map.toList
                properties =
                     {| serverFarmId = this.ServicePlan.Value
                        httpsOnly = this.HTTPSOnly
