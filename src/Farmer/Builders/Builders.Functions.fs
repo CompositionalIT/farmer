@@ -19,6 +19,7 @@ type FunctionsConfig =
       AppInsights : ResourceRef<FunctionsConfig> option
       OperatingSystem : OS
       Settings : Map<string, Setting>
+      Tags : Map<string, string>
       Dependencies : ResourceName list
       Cors : Cors option
       StorageAccount : ResourceRef<FunctionsConfig>
@@ -59,7 +60,7 @@ type FunctionsConfig =
               ServicePlan = this.ServicePlanName
               Location = location
               Cors = this.Cors
-              Tags = Map.empty
+              Tags = this.Tags
               AppSettings = [
                 "FUNCTIONS_WORKER_RUNTIME", (string this.Runtime).ToLower()
                 "WEBSITE_NODE_DEFAULT_VERSION", "10.14.1"
@@ -159,6 +160,7 @@ type FunctionsBuilder() =
           Settings = Map.empty
           Dependencies = []
           Identity = None
+          Tags = Map.empty
           ZipDeployPath = None }
     /// Sets the name of the functions instance.
     [<CustomOperation "name">]
@@ -224,6 +226,12 @@ type FunctionsBuilder() =
     [<CustomOperation "disable_managed_identity">]
     member _.DisableManagedIdentity(state:FunctionsConfig) =
         { state with Identity = Some Disabled }
+    [<CustomOperation "tags">]
+    member _.Tags(state:WebAppConfig, pairs) = 
+        { state with 
+            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
+    [<CustomOperation "tag">]
+    member this.Tag(state:WebAppConfig, key, value) = this.Tags(state, [ (key,value) ])
     [<CustomOperation "zip_deploy">]
     /// Specifies a folder path or a zip file containing the function app to install as a post-deployment task.
     member __.ZipDeploy(state:FunctionsConfig, path) = { state with ZipDeployPath = Some path }
