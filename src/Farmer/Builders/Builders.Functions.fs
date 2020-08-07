@@ -227,11 +227,11 @@ type FunctionsBuilder() =
     member _.DisableManagedIdentity(state:FunctionsConfig) =
         { state with Identity = Some Disabled }
     [<CustomOperation "tags">]
-    member _.Tags(state:WebAppConfig, pairs) = 
+    member _.Tags(state:FunctionsConfig, pairs) = 
         { state with 
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "tag">]
-    member this.Tag(state:WebAppConfig, key, value) = this.Tags(state, [ (key,value) ])
+    member this.Tag(state:FunctionsConfig, key, value) = this.Tags(state, [ (key,value) ])
     [<CustomOperation "zip_deploy">]
     /// Specifies a folder path or a zip file containing the function app to install as a post-deployment task.
     member __.ZipDeploy(state:FunctionsConfig, path) = { state with ZipDeployPath = Some path }
