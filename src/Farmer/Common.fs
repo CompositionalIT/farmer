@@ -641,17 +641,19 @@ module DataLake =
     | Commitment_1PB
     | Commitment_5PB
 
+/// A network represented by an IP address and CIDR prefix.
 type public IPAddressCidr =
     { Address : System.Net.IPAddress
       Prefix : int }
 
+/// Functions for IP networks and CIDR notation.
 module IPAddressCidr =
     let parse (s:string) : IPAddressCidr =
         match s.Split([|'/'|], System.StringSplitOptions.RemoveEmptyEntries) with
         [| ip; prefix |] ->
             { Address = System.Net.IPAddress.Parse (ip.Trim ())
               Prefix = int prefix }
-        | _ -> raise (System.ArgumentOutOfRangeException "Malformed CIDR, expecting and IP and prefix separated by '/'")
+        | _ -> raise (System.ArgumentOutOfRangeException "Malformed CIDR, expecting an IP and prefix separated by '/'")
     let safeParse (s:string) : Result<IPAddressCidr, System.Exception> =
         try parse s |> Ok
         with ex -> Error ex
@@ -714,6 +716,76 @@ module IPAddressCidr =
             cidr |> addresses |> Seq.skip 2
         else
             Seq.empty
+
+module NetworkSecurity =
+    type Operation =
+    | Allow
+    | Deny
+    module Operation =
+        let ArmValue = function
+        | Allow -> "Allow"
+        | Deny -> "Deny"
+    type Operation with
+        member this.ArmValue = this |> Operation.ArmValue
+
+    /// Network protocol supported in network security group rules.
+    type NetworkProtocol =
+    /// Any protocol
+    | AnyProtocol
+    /// Transmission Control Protocol
+    | TCP
+    /// User Datagram Protocol
+    | UDP
+    /// Internet Control Message Protocol
+    | ICMP
+    /// Authentication Header (IPSec)
+    | AH
+    /// Encapsulating Security Payload (IPSec)
+    | ESP
+    module NetworkProtocol =
+        let ArmValue = function
+            | AnyProtocol -> "*"
+            | TCP -> "Tcp"
+            | UDP -> "Udp"
+            | ICMP -> "Icmp"
+            | AH -> "Ah"
+            | ESP -> "Esp"
+    type NetworkProtocol with
+        member this.ArmValue = this |> NetworkProtocol.ArmValue
+
+    type Port =
+    | Port of uint16
+    | Range of First:uint16 * Last:uint16
+    | AnyPort
+    module Port =
+        let ArmValue = function
+        | Port num -> num |> string
+        | Range (first,last) -> sprintf "%d-%d" first last
+        | AnyPort -> "*"
+    type Port with
+        member this.ArmValue = this |> Port.ArmValue
+
+    type Endpoint =
+    | Host of System.Net.IPAddress
+    | Network of IPAddressCidr
+    | Tag of string
+    | AnyEndpoint
+    module Endpoint =
+        let ArmValue = function
+        | Host ip -> string ip
+        | Network cidr -> cidr |> IPAddressCidr.format
+        | Tag tag -> tag
+        | AnyEndpoint -> "*"
+
+    type Service =
+    | Service of Name:string * Port
+    | Services of Name:string * Service list
+    
+    type TrafficDirection = Inbound | Outbound
+    module TrafficDirection =
+        let ArmValue = function | Inbound -> "Inbound" | Outbound -> "Outbound"
+    type TrafficDirection with
+        member this.ArmValue = this |> TrafficDirection.ArmValue
 
 module Cdn =
     type Sku =
