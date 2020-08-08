@@ -3,6 +3,7 @@ module ServiceBus
 open Expecto
 open Farmer
 open Farmer.Arm.ServiceBus
+open Farmer.Arm.ServiceBus.Namespaces.Topics
 open Namespaces
 open Farmer.Builders
 open Farmer.ServiceBus
@@ -152,7 +153,7 @@ let tests = testList "Service Bus Tests" [
             Expect.equal topic.EnablePartitioning (Nullable true) "Paritition not set"
         }
         test "Can create a basic subscription" {
-             let sub:SBSubscription =
+            let sub:SBSubscription =
                 serviceBus {
                     name "my-bus"
                     add_topics [
@@ -165,6 +166,51 @@ let tests = testList "Service Bus Tests" [
                     ]
                 } |> getResourceAtIndex 2
             Expect.equal sub.Name "my-bus/my-topic/my-sub" "Name not set"
-       }
+        }
+        test "Creates a correlation filter rule" {
+            let correlationRule =
+                Namespaces.Topics.Rule.CorrelationFilter
+                    (ResourceName
+                        "CompletedStatus",
+                        { CorrelationId = None
+                          Properties = [
+                              "Status", "Completed" :> obj
+                              "Operation", "DoStuff" :> obj
+                          ] |> Map.ofList |> Some
+                        }
+                    )
+            let builtCorrelationRule = Namespaces.Topics.correlation_property_filter "CompletedStatus" [ "Status", "Completed"; "Operation", "DoStuff" ]
+            Expect.equal correlationRule builtCorrelationRule "Built incorrect correlation filter"
+        }
+        test "Can create a subscription with correlation filter" {
+            let sb =
+                serviceBus {
+                    name "my-bus"
+                    sku Standard
+                    add_topics [
+                        topic {
+                            name "my-topic"
+                            add_subscriptions [
+                                subscription {
+                                    name "my-sub"
+                                    add_rules [
+                                        Namespaces.Topics.correlation_property_filter "SuccessfulStatus" ["Status", "Success"]
+                                        Namespaces.Topics.correlation_property_filter "FailedStatus" ["Status", "Fail"]
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            let template = 
+                arm {
+                    location Location.EastUS
+                    add_resource sb
+                }
+            let generatedTemplate = template.Template
+            let genSubscription = generatedTemplate.Resources.Item 2 :?> Subscription
+            Expect.hasLength genSubscription.Rules 2 "Expected subscription should have 2 rules"
+            Expect.equal genSubscription.Rules.Head.Name.Value "SuccessfulStatus" "Rule doesn't have the expected name 'SuccessfulStatus'."
+        }
     ]
 ]
