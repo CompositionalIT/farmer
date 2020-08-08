@@ -109,6 +109,8 @@ let internal buildNsgRule (nsg:NetworkSecurityGroup) (rule:SecurityRuleConfig) (
       Description = None
       SecurityGroup = nsg
       Protocol = if protocols.Count > 1 then AnyProtocol else protocols |> Seq.head
+
+      // TODO: What is the semantic meaning here? Is there a relationship between source port and ports?
       SourcePort = if sourcePorts.Contains AnyPort then Some AnyPort else None
       SourcePorts = if sourcePorts.Contains AnyPort then [] else sourcePorts |> List.ofSeq
       SourceAddress = sourceAddress
