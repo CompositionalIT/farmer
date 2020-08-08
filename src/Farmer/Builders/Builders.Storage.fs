@@ -40,7 +40,7 @@ type StorageAccountConfig =
     interface IBuilder with
         member this.DependencyName = this.Name
         member this.BuildResources location = [
-            { Name = this.Name
+            { Name = StorageAccountName.Create this.Name |> Result.get
               Location = location
               Sku = this.Sku
               EnableHierarchicalNamespace = this.EnableDataLake
@@ -68,9 +68,6 @@ type StorageAccountBuilder() =
         Queues = Set.empty
         StaticWebsite = None
     }
-    member _.Run(state:StorageAccountConfig) =
-        { state with
-            Name = state.Name |> Helpers.sanitiseStorage |> ResourceName }
     /// Sets the name of the storage account.
     [<CustomOperation "name">]
     member _.Name(state:StorageAccountConfig, name) = { state with Name = name }
