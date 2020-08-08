@@ -587,16 +587,16 @@ module ServiceBus =
         | Standard
         | Premium of MessagingUnits
     type Rule =
-        | SqlFilter of {| Name : ResourceName; SqlExpression : string |}
-        | CorrelationFilter of {| Name : ResourceName; CorrelationId : string option; Properties : Map<string, string> |}
+        | SqlFilter of ResourceName * SqlExpression : string
+        | CorrelationFilter of Name : ResourceName * CorrelationId : string option * Properties : Map<string, string>
         member this.Name =
             match this with
-            | SqlFilter f -> f.Name
-            | CorrelationFilter f -> f.Name
+            | SqlFilter (name, _)
+            | CorrelationFilter(name, _, _) -> name
         static member CreateCorrelationFilter (name, properties, ?correlationId) =
-            CorrelationFilter {| Name = ResourceName name; CorrelationId = correlationId; Properties = Map properties |}
+            CorrelationFilter (ResourceName name, correlationId, Map properties)
         static member CreateSqlFilter (name, expression) =
-            SqlFilter {| Name = ResourceName name; SqlExpression = expression |}
+            SqlFilter (ResourceName name, expression)
 
 module CosmosDb =
     /// The consistency policy of a CosmosDB account.

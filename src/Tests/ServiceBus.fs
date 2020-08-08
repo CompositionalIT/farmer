@@ -169,13 +169,13 @@ let tests = testList "Service Bus Tests" [
         }
         test "Creates a correlation filter rule" {
             let correlationRule =
-                ServiceBus.CorrelationFilter
-                    {| Name = ResourceName "CompletedStatus"
-                       CorrelationId = Some "xyz"
-                       Properties = [
-                           "Status", "Completed"
-                           "Operation", "DoStuff"
-                       ] |> Map |}
+                ServiceBus.CorrelationFilter(
+                    ResourceName "CompletedStatus",
+                    Some "xyz",
+                    Map [
+                        "Status", "Completed"
+                        "Operation", "DoStuff"
+                    ])
             let builtCorrelationRule = Rule.CreateCorrelationFilter("CompletedStatus", [ "Status", "Completed"; "Operation", "DoStuff" ], "xyz")
             Expect.equal correlationRule builtCorrelationRule "Built incorrect correlation filter"
         }

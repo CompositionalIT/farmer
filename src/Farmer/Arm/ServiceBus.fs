@@ -53,15 +53,15 @@ module Namespaces =
                               dependsOn = [ this.Name.Value ]
                               properties =
                                match rule with
-                               | SqlFilter filter ->
+                               | SqlFilter (_, expression) ->
                                    {| filterType = "SqlFilter"
-                                      sqlFilter = box {| sqlExpression = filter.SqlExpression |}
+                                      sqlFilter = box {| sqlExpression = expression |}
                                       correlationFilter = null |}
-                               | CorrelationFilter filter ->
+                               | CorrelationFilter (_, correlationId, properties) ->
                                    {| filterType = "CorrelationFilter"
                                       correlationFilter =
-                                          box {| correlationId = filter.CorrelationId |> Option.toObj
-                                                 properties = filter.Properties |}
+                                          box {| correlationId = correlationId |> Option.toObj
+                                                 properties = properties |}
                                       sqlFilter = null |}
                            |}
                        ]
