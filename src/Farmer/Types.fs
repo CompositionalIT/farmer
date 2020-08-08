@@ -13,6 +13,10 @@ type ResourceName =
         | r -> r
     member this.Map mapper = match this with ResourceName r -> ResourceName (mapper r)
 
+type Location =
+    | Location of string
+    member this.ArmValue = match this with Location location -> location.ToLower()
+
 /// An Azure ARM resource value which can be mapped into an ARM template.
 type IArmResource =
     /// The name of the resource, to uniquely identify against other resources in the template.
