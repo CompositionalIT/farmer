@@ -780,7 +780,7 @@ module NetworkSecurity =
     type Service =
     | Service of Name:string * Port
     | Services of Name:string * Service list
-    
+
     type TrafficDirection = Inbound | Outbound
     module TrafficDirection =
         let ArmValue = function | Inbound -> "Inbound" | Outbound -> "Outbound"

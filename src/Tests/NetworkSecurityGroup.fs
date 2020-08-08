@@ -51,7 +51,7 @@ let tests = testList "NetworkSecurityGroup" [
                 add_resource acceptRule
             }
             |> findAzureResources<SecurityRule> client.SerializationSettings
-        
+
         match rules with
         | [ _; rule1 ] ->
             rule1.Validate()
@@ -84,15 +84,9 @@ let tests = testList "NetworkSecurityGroup" [
         }
         let myNsg = nsg {
             name "my-nsg"
-            add_rules [
-                webPolicy
-            ]
+            add_rules [ webPolicy ]
         }
-        let rules =
-            arm {
-                add_resource myNsg
-            }
-            |> findAzureResources<SecurityRule> client.SerializationSettings
+        let rules = arm { add_resource myNsg } |> findAzureResources<SecurityRule> client.SerializationSettings
         match rules with
         | [ _; rule1 ] ->
             rule1.Validate()
@@ -138,7 +132,7 @@ let tests = testList "NetworkSecurityGroup" [
         let dbPolicy = securityRule { // DB servers - not accessible by web, only by app servers
             name "db-servers"
             description "Internal database server access"
-            service ("postgres", 5432)
+            service database
             add_source_network TCP appNet
             add_destination_network dbNet
             allow
@@ -151,11 +145,7 @@ let tests = testList "NetworkSecurityGroup" [
                 dbPolicy
             ]
         }
-        let rules =
-            arm {
-                add_resource myNsg
-            }
-            |> findAzureResources<SecurityRule> client.SerializationSettings
+        let rules = arm { add_resource myNsg } |> findAzureResources<SecurityRule> client.SerializationSettings
         match rules with
         | [ _; rule1; rule2; rule3 ] ->
             // Web server access
