@@ -15,7 +15,7 @@ let tests = testList "Storage Tests" [
     test "Can create a basic storage account" {
         let resource =
             let account = storageAccount {
-                name "myStorage123~@"
+                name "mystorage123"
                 sku Premium_LRS
                 enable_data_lake
             }
@@ -57,5 +57,11 @@ let tests = testList "Storage Tests" [
         Expect.equal resources.[0].Name "storage/default/share1" "file share name for 'share1' is wrong"
         Expect.equal resources.[1].Name "storage/default/share2" "file share name for 'share2' is wrong"
         Expect.equal resources.[1].ShareQuota (Nullable 1024) "file share quota for 'share2' is wrong"
+    }
+    test "Rejects invalid storage accounts" {
+        Expect.equal (Arm.Storage.StorageAccountName.Create "1234567890123456789012345") (Error "Max length is 24") "Name too long"
+        Expect.equal (Arm.Storage.StorageAccountName.Create "") (Error "Min length is 1") "Name too short"
+        Expect.equal (Arm.Storage.StorageAccountName.Create "U") (Error "Upper case letters are not allowed") "Upper case character allowed"
+        Expect.equal (Arm.Storage.StorageAccountName.Create "!") (Error "Only alphanumeric characters are allowed") "Non alpha numeric character allowed"
     }
 ]
