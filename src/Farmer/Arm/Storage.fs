@@ -14,10 +14,10 @@ let queues = ResourceType "Microsoft.Storage/storageAccounts/queueServices/queue
 type StorageAccountName =
     private | StorageAccountName of ResourceName
     static member Create name =
-        if String.IsNullOrWhiteSpace name then Error "Min length is 1"
-        elif name.Length > 24 then Error "Max length is 24"
-        elif name |> Seq.exists Char.IsUpper then Error "Upper case letters are not allowed"
-        elif name |> Seq.exists (Char.IsLetterOrDigit >> not) then Error "Only alphanumeric characters are allowed"
+        if String.IsNullOrWhiteSpace name then Error "Storage account name cannot be empty"
+        elif name.Length > 24 then Error (sprintf "Storage account name max length is 24, but here is %d ('%s')" name.Length name)
+        elif name |> Seq.exists Char.IsUpper then Error (sprintf "Storage account name does not allow upper case letters ('%s')" name)
+        elif name |> Seq.exists (Char.IsLetterOrDigit >> not) then Error (sprintf "Only alphanumeric characters are allowed ('%s')" name)
         else Ok (StorageAccountName (ResourceName name))
     static member Create (ResourceName name) = StorageAccountName.Create name
     member this.ResourceName = match this with StorageAccountName name -> name
