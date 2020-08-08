@@ -34,8 +34,7 @@ type SecurityRule =
       DestinationAddresses : Endpoint list
       Access : Operation
       Direction : TrafficDirection
-      Priority : int
-    }
+      Priority : int }
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =

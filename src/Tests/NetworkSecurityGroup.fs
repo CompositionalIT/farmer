@@ -16,8 +16,7 @@ let tests = testList "NetworkSecurityGroup" [
         let resource =
             let nsg =
                 { Name = ResourceName "my-nsg"
-                  Location = Location.WestEurope
-                }
+                  Location = Location.WestEurope }
             arm { add_resource nsg }
             |> findAzureResources<NetworkSecurityGroup> client.SerializationSettings
             |> List.head
@@ -27,8 +26,7 @@ let tests = testList "NetworkSecurityGroup" [
         let rules =
             let nsg =
                 { Name = ResourceName "my-nsg"
-                  Location = Location.WestEurope
-                }
+                  Location = Location.WestEurope }
             let acceptRule =
                 { Name = ResourceName "accept-web"
                   Description = Some (sprintf "Rule created on %s" (DateTimeOffset.Now.Date.ToShortDateString()))
@@ -44,8 +42,7 @@ let tests = testList "NetworkSecurityGroup" [
                   DestinationAddresses = [ Network (IPAddressCidr.parse "10.100.30.0/24") ]
                   Access = Allow
                   Direction = Inbound
-                  Priority = 100
-                } :> IArmResource
+                  Priority = 100 }
             arm {
                 add_resource nsg
                 add_resource acceptRule
@@ -70,17 +67,13 @@ let tests = testList "NetworkSecurityGroup" [
         | _ -> failwithf "Unexpected number of resources in template."
     }
     test "Policy converted to security rules" {
-        let web = Services ("web", [
-            Service ("http", Port 80us)
-            Service ("https", Port 443us)
-        ])
         let webPolicy = securityRule {
             name "web-servers"
             description "Public web server access"
-            service web
+            service "web" [ "http", 80
+                            "https", 443 ]
             add_source_tag TCP "Internet"
             add_destination_network "10.100.30.0/24"
-            allow
         }
         let myNsg = nsg {
             name "my-nsg"
@@ -104,38 +97,28 @@ let tests = testList "NetworkSecurityGroup" [
         | _ -> failwithf "Unexpected number of resources in template."
     }
     test "Multitier Policy converted to security rules" {
-        let web = Services ("web", [
-            Service ("http", Port 80us)
-            Service ("https", Port 443us)
-        ])
-        let webNet = "10.100.30.0/24"
-        let app = Service ("http", Port 8080us)
         let appNet = "10.100.31.0/24"
-        let database = Service ("postgres", Port 5432us)
-        let dbNet = "10.100.32.0/24"
         let webPolicy = securityRule { // Web servers - accessible from anything
             name "web-servers"
             description "Public web server access"
-            service web
+            service "web" [ "http", 80
+                            "https", 443 ]
             add_source_tag TCP "Internet"
             add_destination_network "10.100.30.0/24"
-            allow
         }
         let appPolicy = securityRule { // Only accessible by web servers
             name "app-servers"
             description "Internal app server access"
-            service app
-            add_source_network TCP webNet
+            service "http" 8080
+            add_source_network TCP "10.100.30.0/24"
             add_destination_network appNet
-            allow
         }
         let dbPolicy = securityRule { // DB servers - not accessible by web, only by app servers
             name "db-servers"
             description "Internal database server access"
-            service database
+            service "postgres" 5432
             add_source_network TCP appNet
-            add_destination_network dbNet
-            allow
+            add_destination_network "10.100.32.0/24"
         }
         let myNsg = nsg {
             name "my-nsg"
