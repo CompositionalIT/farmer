@@ -3,8 +3,10 @@
 module Farmer.Builders.NetworkSecurityGroup
 
 open Farmer
-open Farmer.NetworkSecurity
 open Farmer.Arm.NetworkSecurityGroup
+open Farmer.NetworkSecurity
+open System.Collections.Generic
+open System.Net
 
 /// Network access policy
 type SecurityRule =
@@ -22,8 +24,7 @@ type SecurityRuleBuilder () =
           Service = Service("any", AnyPort)
           Source = [ ]
           Destination = [ ]
-          Operation = Allow
-        }
+          Operation = Allow }
     /// Sets the name of the security rule
     [<CustomOperation "name">]
     member _.Name(state:SecurityRule, name) = { state with Name = ResourceName name }
@@ -45,7 +46,7 @@ type SecurityRuleBuilder () =
     member _.AddSourceTag(state:SecurityRule, protocol, tag) = { state with Source = (protocol, Tag tag, AnyPort) :: state.Source }
     /// Sets the rule to match on a source address.
     [<CustomOperation("add_source_address")>]
-    member _.AddSourceAddress(state:SecurityRule, protocol, sourceAddress) = { state with Source = (protocol, Host (System.Net.IPAddress.Parse sourceAddress), AnyPort) :: state.Source }
+    member _.AddSourceAddress(state:SecurityRule, protocol, sourceAddress) = { state with Source = (protocol, Host (IPAddress.Parse sourceAddress), AnyPort) :: state.Source }
     /// Sets the rule to match on a source network.
     [<CustomOperation("add_source_network")>]
     member _.AddSourceNetwork(state:SecurityRule, protocol, sourceNetwork) = { state with Source = (protocol, Network (IPAddressCidr.parse sourceNetwork), AnyPort) :: state.Source }
@@ -60,7 +61,7 @@ type SecurityRuleBuilder () =
     member _.AddDestinationTag(state:SecurityRule, tag) = { state with Destination = Tag tag :: state.Destination }
     /// Sets the rule to match on a destination address.
     [<CustomOperation("add_destination_address")>]
-    member _.AddDestinationAddress(state:SecurityRule, destAddress) = { state with Destination = Host (System.Net.IPAddress.Parse destAddress) :: state.Destination }
+    member _.AddDestinationAddress(state:SecurityRule, destAddress) = { state with Destination = Host (IPAddress.Parse destAddress) :: state.Destination }
     /// Sets the rule to match on a destination network.
     [<CustomOperation("add_destination_network")>]
     member _.AddDestinationNetwork(state:SecurityRule, destNetwork) = { state with Destination = Network (IPAddressCidr.parse destNetwork):: state.Destination }
@@ -74,20 +75,25 @@ type SecurityRuleBuilder () =
 let securityRule = SecurityRuleBuilder()
 
 module SecurityRule =
-    let internal buildNsgRule (nsg:NetworkSecurityGroup) (rule:SecurityRule) (priority:int) : IArmResource =
-        let sourcePorts = System.Collections.Generic.HashSet<Port> ()
-        let sourceAddresses = System.Collections.Generic.HashSet<Endpoint> ()
-        let protocols = System.Collections.Generic.HashSet<NetworkProtocol> ()
-        let destPorts = System.Collections.Generic.HashSet<Port> ()
+    let internal buildNsgRule (nsg:NetworkSecurityGroup) (rule:SecurityRule) (priority:int) =
+        let sourcePorts = HashSet()
+        let sourceAddresses = HashSet()
+        let protocols = HashSet()
+        let destPorts = HashSet()
         let destAddresses = rule.Destination
+
         let wildcardOrTag (addresses:Endpoint seq) =
             // Use a wildcard if there is one
             if addresses |> Seq.contains AnyEndpoint then Some AnyEndpoint, []
-            else // Use the first tag that is set (only one supported), otherwise use addresses
+            // Use the first tag that is set (only one supported), otherwise use addresses
+            else
                 addresses
-                |> Seq.tryFind (function | Tag _ -> true | _ -> false) |> function
-                | Some (Tag tag) -> Some (Tag tag), []
-                | _ -> None, addresses |> List.ofSeq
+                |> Seq.tryFind (function Tag _ -> true | _ -> false)
+                |> function
+                | Some (Tag tag) ->
+                    Some (Tag tag), []
+                | None | Some (AnyEndpoint | Network _ | Host _) ->
+                    None, List.ofSeq addresses
 
         let rec collateRules (service:Service) =
             match service with
@@ -100,9 +106,12 @@ module SecurityRule =
             | Services (_, services) ->
                 for service in services do
                     collateRules service
+
         collateRules rule.Service
+
         let sourceAddress, sourceAddresses = wildcardOrTag sourceAddresses
         let destAddress, destAddresses = wildcardOrTag destAddresses
+
         { Name = rule.Name
           Description = None
           SecurityGroup = nsg
@@ -117,27 +126,24 @@ module SecurityRule =
           DestinationAddresses = destAddresses
           Access = rule.Operation
           Direction = Inbound
-          Priority = priority
-        } :> IArmResource
+          Priority = priority }
 
 type NsgConfig =
     { Name : ResourceName
       SecurityRules : SecurityRule list }
     interface IBuilder with
         member this.DependencyName = this.Name
-        member this.BuildResources location =
-            let nsg = 
+        member this.BuildResources location = [
+            let securityGroup =
                 { Name = this.Name
-                  Location = location
-                }
-            let policyRules =
-                seq {
-                    for rule in this.SecurityRules do
-                        yield SecurityRule.buildNsgRule nsg rule
-                }
-                |> Seq.mapi (fun priority rule -> rule ((priority + 1) * 100))
-                |> List.ofSeq
-            (nsg :> IArmResource) :: policyRules
+                  Location = location }
+
+            // NSG
+            securityGroup
+            // Policy Rules
+            for priority, rule in List.indexed this.SecurityRules do
+                SecurityRule.buildNsgRule securityGroup rule ((priority + 1) * 100)
+        ]
 type NsgBuilder() =
     member __.Yield _ =
         { Name = ResourceName.Empty; SecurityRules = [] }

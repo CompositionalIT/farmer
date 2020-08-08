@@ -10,16 +10,14 @@ let securityRules = ResourceType "Microsoft.Network/networkSecurityGroups/securi
 
 type NetworkSecurityGroup =
     { Name : ResourceName
-      Location : Location
-    }
+      Location : Location }
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
             {| ``type`` = networkSecurityGroups.ArmValue
                apiVersion = "2020-04-01"
                name = this.Name.Value
-               location = this.Location.ArmValue
-            |} :> _
+               location = this.Location.ArmValue |} :> _
 
 type SecurityRule =
     { Name : ResourceName
@@ -46,18 +44,17 @@ type SecurityRule =
                name = sprintf "%s/%s" this.SecurityGroup.Name.Value this.Name.Value
                dependsOn = [ ArmExpression.resourceId(networkSecurityGroups, this.SecurityGroup.Name).Eval() ]
                properties =
-                    {| description = this.Description |> Option.toObj
-                       protocol = this.Protocol.ArmValue
-                       sourcePortRanges = this.SourcePorts |> List.map Port.ArmValue
-                       sourcePortRange = this.SourcePort |> Option.map Port.ArmValue |> Option.toObj
-                       destinationPortRanges = this.DestinationPorts |> List.map Port.ArmValue
-                       destinationPortRange = this.DestinationPort |> Option.map Port.ArmValue |> Option.toObj
-                       sourceAddressPrefix = this.SourceAddress |> Option.map Endpoint.ArmValue |> Option.toObj
-                       sourceAddressPrefixes = this.SourceAddresses |> List.map Endpoint.ArmValue
-                       destinationAddressPrefix = this.DestinationAddress |> Option.map Endpoint.ArmValue |> Option.toObj
-                       destinationAddressPrefixes = this.DestinationAddresses |> List.map Endpoint.ArmValue
-                       access = this.Access.ArmValue 
-                       priority = this.Priority
-                       direction = this.Direction.ArmValue
-                    |}
+                {| description = this.Description |> Option.toObj
+                   protocol = this.Protocol.ArmValue
+                   sourcePortRanges = this.SourcePorts |> List.map Port.ArmValue
+                   sourcePortRange = this.SourcePort |> Option.map Port.ArmValue |> Option.toObj
+                   destinationPortRanges = this.DestinationPorts |> List.map Port.ArmValue
+                   destinationPortRange = this.DestinationPort |> Option.map Port.ArmValue |> Option.toObj
+                   sourceAddressPrefix = this.SourceAddress |> Option.map Endpoint.ArmValue |> Option.toObj
+                   sourceAddressPrefixes = this.SourceAddresses |> List.map Endpoint.ArmValue
+                   destinationAddressPrefix = this.DestinationAddress |> Option.map Endpoint.ArmValue |> Option.toObj
+                   destinationAddressPrefixes = this.DestinationAddresses |> List.map Endpoint.ArmValue
+                   access = this.Access.ArmValue
+                   priority = this.Priority
+                   direction = this.Direction.ArmValue |}
             |} :> _
