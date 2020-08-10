@@ -132,6 +132,7 @@ type Site =
       JavaContainerVersion : string option
       PhpVersion : string option
       PythonVersion : string option
+      Tags : Map<string, string>
       Metadata : List<string * string>
       ZipDeployPath : (string * ZipDeploy.ZipDeployTarget) option }
     interface IParameters with
@@ -168,6 +169,7 @@ type Site =
                  | Some Enabled -> box {| ``type`` = "SystemAssigned" |}
                  | Some Disabled -> box {| ``type`` = "None" |}
                  | None -> null
+               tags = this.Tags
                properties =
                     {| serverFarmId = this.ServicePlan.Value
                        httpsOnly = this.HTTPSOnly

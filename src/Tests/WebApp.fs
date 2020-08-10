@@ -42,4 +42,14 @@ let tests = testList "Web App Tests" [
         Expect.isEmpty (resources |> getResource<Insights.Components>) "Should be no AI component"
         Expect.isEmpty (resources |> getResource<Web.ServerFarm>) "Should be no server farm"
     }
+    test "Web app supports adding tags to resource" {
+        let resources = webApp { name "test"; tag "key" "value"; tags ["alpha","a"; "beta","b"]} |> getResources
+        let wa = resources |> getResource<Web.Site> |> List.head
+        Expect.containsAll (wa.Tags|> Map.toSeq) 
+            [ "key","value"
+              "alpha","a"
+              "beta","b"]
+            "Should contain the given tags"
+        Expect.equal 3 (wa.Tags|> Map.count) "Should not contain additional tags"
+    }
 ]
