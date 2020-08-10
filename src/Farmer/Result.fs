@@ -19,6 +19,8 @@ module Result =
     let ofExn thunk arg =
         try Ok(thunk arg)
         with ex -> Error (string ex)
+    // Unsafely unwraps a Result. If the Result is an Error, the Error is cascaded as an exception.
+    let get = function Ok value -> value | Error err -> failwith (err.ToString())
     let bindError onError = function Error s -> onError s | s -> s
 
     type ResultBuilder() =

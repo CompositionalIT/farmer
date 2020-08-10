@@ -121,7 +121,7 @@ type FunctionsConfig =
                 ()
             match this.StorageAccount with
             | DeployableResource this resourceName ->
-                { StorageAccount.Name = resourceName
+                { Name = StorageAccountName.Create resourceName |> Result.get
                   Location = location
                   Sku = Storage.Standard_LRS
                   StaticWebsite = None
