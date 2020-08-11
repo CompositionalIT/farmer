@@ -16,7 +16,8 @@ type ServerFarm =
       Sku: Sku
       WorkerSize : WorkerSize
       WorkerCount : int
-      OperatingSystem : OS }
+      OperatingSystem : OS 
+      Tags: Map<string,string> }
     member this.IsDynamic =
         match this.Sku, this.WorkerSize with
         | Isolated "Y1", Serverless -> true
@@ -76,6 +77,7 @@ type ServerFarm =
                        perSiteScaling = if this.IsDynamic then Nullable() else Nullable false
                        reserved = this.Reserved |}
                kind = this.Kind |> Option.toObj
+               tags = this.Tags
             |} :> _
 
 module ZipDeploy =

@@ -10,7 +10,8 @@ type Accounts =
     { Name : ResourceName
       Location : Location
       Sku : CognitiveServices.Sku
-      Kind : CognitiveServices.Kind }
+      Kind : CognitiveServices.Kind
+      Tags: Map<string,string>  }
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
@@ -21,4 +22,5 @@ type Accounts =
                kind = this.Kind.ToString().Replace("_", ".")
                location = this.Location.ArmValue
                tags = {||}
-               properties = {||} |} :> _
+               properties = {||}
+               tags = this.Tags |} :> _

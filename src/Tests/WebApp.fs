@@ -43,7 +43,7 @@ let tests = testList "Web App Tests" [
         Expect.isEmpty (resources |> getResource<Web.ServerFarm>) "Should be no server farm"
     }
     test "Web app supports adding tags to resource" {
-        let resources = webApp { name "test"; tag "key" "value"; tags ["alpha","a"; "beta","b"]} |> getResources
+        let resources = webApp { name "test"; add_tag "key" "value"; add_tags ["alpha","a"; "beta","b"]} |> getResources
         let wa = resources |> getResource<Web.Site> |> List.head
         Expect.containsAll (wa.Tags|> Map.toSeq) 
             [ "key","value"

@@ -30,7 +30,8 @@ type ContainerGroup =
       RestartPolicy : RestartPolicy
       IpAddress : ContainerGroupIpAddress
       NetworkProfile : ResourceName option
-      Volumes : Map<string, {| Volume:Volume |}> }
+      Volumes : Map<string, {| Volume:Volume |}>
+      Tags: Map<string,string>  }
     member this.NetworkProfilePath =
         this.NetworkProfile
         |> Option.map (fun networkProfile -> ArmExpression.resourceId(Network.networkProfiles, networkProfile).Eval())
@@ -146,4 +147,5 @@ type ContainerGroup =
                                  |}
                       )
                    |}
+               tags = this.Tags
             |} :> _

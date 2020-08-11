@@ -11,7 +11,8 @@ type ServicePlanConfig =
       Sku : Sku
       WorkerSize : WorkerSize
       WorkerCount : int
-      OperatingSystem : OS }
+      OperatingSystem : OS
+      Tags : Map<string,string> }
     interface IBuilder with
         member this.DependencyName = this.Name
         member this.BuildResources location = [
@@ -20,7 +21,8 @@ type ServicePlanConfig =
             Sku = this.Sku
             WorkerSize = this.WorkerSize
             OperatingSystem = this.OperatingSystem
-            WorkerCount = this.WorkerCount }
+            WorkerCount = this.WorkerCount
+            Tags = this.Tags }
         ]
 
 type ServicePlanBuilder() =
@@ -29,7 +31,8 @@ type ServicePlanBuilder() =
           Sku = Free
           WorkerSize = Small
           WorkerCount = 1
-          OperatingSystem = Windows }
+          OperatingSystem = Windows 
+          Tags = Map.empty }
     [<CustomOperation "name">]
     /// Sets the name of the Server Farm.
     member __.Name(state:ServicePlanConfig, name) = { state with Name = ResourceName name }

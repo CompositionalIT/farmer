@@ -118,7 +118,8 @@ type FunctionsConfig =
                   Sku = Sku.Y1
                   WorkerSize = Serverless
                   WorkerCount = 0
-                  OperatingSystem = this.OperatingSystem }
+                  OperatingSystem = this.OperatingSystem
+                  Tags = this.Tags }
             | _ ->
                 ()
             match this.StorageAccount with
@@ -127,7 +128,8 @@ type FunctionsConfig =
                   Location = location
                   Sku = Storage.Standard_LRS
                   StaticWebsite = None
-                  EnableHierarchicalNamespace = false}
+                  EnableHierarchicalNamespace = false
+                  Tags = this.Tags }
             | _ ->
                 ()
             match this.AppInsights with
@@ -137,7 +139,8 @@ type FunctionsConfig =
                   LinkedWebsite =
                     match this.OperatingSystem with
                     | Windows -> Some this.Name
-                    | Linux -> None }
+                    | Linux -> None 
+                  Tags = this.Tags }
             | Some _
             | None ->
                 ()
@@ -226,11 +229,11 @@ type FunctionsBuilder() =
     [<CustomOperation "disable_managed_identity">]
     member _.DisableManagedIdentity(state:FunctionsConfig) =
         { state with Identity = Some Disabled }
-    [<CustomOperation "tags">]
+    [<CustomOperation "add_tags">]
     member _.Tags(state:FunctionsConfig, pairs) = 
         { state with 
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "tag">]
+    [<CustomOperation "add_tag">]
     member this.Tag(state:FunctionsConfig, key, value) = this.Tags(state, [ (key,value) ])
     [<CustomOperation "zip_deploy">]
     /// Specifies a folder path or a zip file containing the function app to install as a post-deployment task.

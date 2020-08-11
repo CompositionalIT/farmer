@@ -9,7 +9,8 @@ let components = ResourceType "Microsoft.Insights/components"
 type Components =
     { Name : ResourceName
       Location : Location
-      LinkedWebsite : ResourceName option }
+      LinkedWebsite : ResourceName option
+      Tags: Map<string,string> }
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
@@ -23,7 +24,7 @@ type Components =
                      | Some linkedWebsite -> sprintf "[concat('hidden-link:', resourceGroup().id, '/providers/Microsoft.Web/sites/', '%s')]" linkedWebsite.Value, "Resource"
                      | None -> ()
                      "displayName", "AppInsightsComponent" ]
-                   |> Map.ofList
+                   |> List.fold (fun map (key,value) -> Map.add key value map ) this.Tags
                properties =
                 {| name = this.Name.Value
                    Application_Type = "web"
