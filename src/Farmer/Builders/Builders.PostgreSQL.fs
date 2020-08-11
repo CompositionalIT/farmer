@@ -23,7 +23,8 @@ type PostgreSQLBuilderConfig =
       DbName : ResourceName option
       DbCollation : string option
       DbCharset : string option
-      FirewallRules : {| Name : ResourceName; Start : IPAddress; End : IPAddress |} list }
+      FirewallRules : {| Name : ResourceName; Start : IPAddress; End : IPAddress |} list
+      Tags: Map<string,string>  }
 
     member this.ServerName = this.Server.CreateResourceName this
 
@@ -44,7 +45,8 @@ type PostgreSQLBuilderConfig =
                   Family = PostgreSQLFamily.Gen5
                   GeoRedundantBackup = FeatureFlag.ofBool this.GeoRedundantBackup
                   StorageAutoGrow = FeatureFlag.ofBool this.StorageAutogrow
-                  BackupRetention = this.BackupRetention }
+                  BackupRetention = this.BackupRetention
+                  Tags = this.Tags  }
             | _ ->
                 ()
 
@@ -156,7 +158,8 @@ type PostgreSQLBuilder() =
           DbName = None
           DbCollation = None
           DbCharset = None
-          FirewallRules = [] }
+          FirewallRules = []
+          Tags = Map.empty  }
 
     member _this.Run state =
         state.AdminUserName |> Option.defaultWith(fun () -> failwith "admin username not set") |> ignore
@@ -266,5 +269,12 @@ type PostgreSQLBuilder() =
     [<CustomOperation "enable_azure_firewall">]
     member this.EnableAzureFirewall(state:PostgreSQLBuilderConfig) =
         this.AddFirewallWall(state, "allow-azure-services", "0.0.0.0", "0.0.0.0")
+
+    [<CustomOperation "add_tags">]
+    member _.Tags(state:PostgreSQLBuilderConfig, pairs) = 
+        { state with 
+            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
+    [<CustomOperation "add_tag">]
+    member this.Tag(state:PostgreSQLBuilderConfig, key, value) = this.Tags(state, [ (key,value) ])
 
 let postgreSQL = PostgreSQLBuilder()

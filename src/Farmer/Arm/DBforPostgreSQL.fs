@@ -57,7 +57,8 @@ type Server =
       Family : PostgreSQLFamily
       GeoRedundantBackup : FeatureFlag
       StorageAutoGrow : FeatureFlag
-      BackupRetention : int<Days> }
+      BackupRetention : int<Days>
+      Tags: Map<string,string>  }
 
     member this.Sku =
         {| name = sprintf "%s_%O_%d" this.Tier.Name this.Family this.Capacity
@@ -97,7 +98,7 @@ type Server =
                 apiVersion = "2017-12-01"
                 name = this.Name.Value
                 location = this.Location.ArmValue
-                tags = {| displayName = this.Name.Value |}
+                tags = this.Tags |> Map.add "displayName" this.Name.Value
                 sku = this.Sku
                 properties = this.GetProperties()
             |} :> _

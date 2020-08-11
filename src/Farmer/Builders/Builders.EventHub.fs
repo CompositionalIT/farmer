@@ -24,7 +24,8 @@ type EventHubConfig =
       ConsumerGroups : string Set
       CaptureDestination : CaptureDestination option
       AuthorizationRules : Map<ResourceName, AuthorizationRuleRight Set>
-      Dependencies : ResourceName list }
+      Dependencies : ResourceName list
+      Tags: Map<string,string>  }
     member private _.ToKeyExpression = sprintf "listkeys(%s, '2017-04-01').primaryConnectionString"
     member this.EventHubNamespaceName = this.EventHubNamespace.CreateResourceName this
     /// Gets an ARM expression for the path to the key of a specific authorization rule for this event hub.
@@ -54,7 +55,8 @@ type EventHubConfig =
                        Capacity = this.Capacity |}
                   ZoneRedundant = this.ZoneRedundant
                   AutoInflateSettings = this.ThroughputSettings
-                  KafkaEnabled = this.KafkaEnabled }
+                  KafkaEnabled = this.KafkaEnabled
+                  Tags = this.Tags  }
             | _ ->
                 ()
 
@@ -70,7 +72,8 @@ type EventHubConfig =
                   | Some (StorageAccount(name, _)) -> name
                   | None -> ()
                   yield! this.Dependencies
-              ] }
+              ]
+              Tags = this.Tags  }
 
             // Consumer groups
             for consumerGroup in this.ConsumerGroups do
@@ -106,7 +109,8 @@ type EventHubBuilder() =
           CaptureDestination = None
           ConsumerGroups = Set [ "$Default" ]
           AuthorizationRules = Map.empty
-          Dependencies = [] }
+          Dependencies = []
+          Tags = Map.empty }
     /// Sets the name of the Event Hub instance.
     [<CustomOperation "name">]
     member __.Name(state:EventHubConfig, name) = { state with Name = name }
@@ -151,5 +155,11 @@ type EventHubBuilder() =
     member __.DependsOn(state:EventHubConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
     member __.DependsOn(state:EventHubConfig, builder:IBuilder) = { state with Dependencies = builder.DependencyName :: state.Dependencies }
     member __.DependsOn(state:EventHubConfig, resource:IArmResource) = { state with Dependencies = resource.ResourceName :: state.Dependencies }
+    [<CustomOperation "add_tags">]
+    member _.Tags(state:EventHubConfig, pairs) = 
+        { state with 
+            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
+    [<CustomOperation "add_tag">]
+    member this.Tag(state:EventHubConfig, key, value) = this.Tags(state, [ (key,value) ])
 
 let eventHub = EventHubBuilder()
