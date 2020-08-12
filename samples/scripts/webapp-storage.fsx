@@ -9,6 +9,16 @@ let myStorage = storageAccount {
     sku Storage.Premium_LRS
 }
 
+let s =
+    { Name = ResourceName "mystorage"
+      Sku = Storage.Premium_LRS
+      EnableDataLake = false
+      Containers = []
+      FileShares = []
+      Queues = Set.empty
+      StaticWebsite = None }
+
+
 let myWebApp = webApp {
     name "mysuperwebapp"
     sku WebApp.Sku.S1
@@ -25,5 +35,5 @@ let deployment = arm {
     output "web_password" myWebApp.PublishingPassword
 }
 
-deployment
-|> Deploy.execute "my-resource-group-name" Deploy.NoParameters
+// deployment
+// |> Deploy.execute "my-resource-group-name" Deploy.NoParameters

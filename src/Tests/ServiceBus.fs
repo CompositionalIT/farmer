@@ -4,9 +4,9 @@ open Expecto
 open Farmer
 open Farmer.Arm.ServiceBus
 open Farmer.Arm.ServiceBus.Namespaces.Topics
-open Namespaces
 open Farmer.Builders
 open Farmer.ServiceBus
+open Namespaces
 open Microsoft.Azure.Management.ServiceBus
 open Microsoft.Azure.Management.ServiceBus.Models
 open Microsoft.Rest
@@ -169,20 +169,17 @@ let tests = testList "Service Bus Tests" [
         }
         test "Creates a correlation filter rule" {
             let correlationRule =
-                Namespaces.Topics.Rule.CorrelationFilter
-                    (ResourceName
-                        "CompletedStatus",
-                        { CorrelationId = None
-                          Properties = [
-                              "Status", "Completed" :> obj
-                              "Operation", "DoStuff" :> obj
-                          ] |> Map.ofList |> Some
-                        }
-                    )
-            let builtCorrelationRule = Namespaces.Topics.correlation_property_filter "CompletedStatus" [ "Status", "Completed"; "Operation", "DoStuff" ]
+                ServiceBus.CorrelationFilter(
+                    ResourceName "CompletedStatus",
+                    Some "xyz",
+                    Map [
+                        "Status", "Completed"
+                        "Operation", "DoStuff"
+                    ])
+            let builtCorrelationRule = Rule.CreateCorrelationFilter("CompletedStatus", [ "Status", "Completed"; "Operation", "DoStuff" ], "xyz")
             Expect.equal correlationRule builtCorrelationRule "Built incorrect correlation filter"
         }
-        test "Can create a subscription with correlation filter" {
+        test "Can create a subscription with different filters" {
             let sb =
                 serviceBus {
                     name "my-bus"
@@ -193,24 +190,29 @@ let tests = testList "Service Bus Tests" [
                             add_subscriptions [
                                 subscription {
                                     name "my-sub"
-                                    add_rules [
-                                        Namespaces.Topics.correlation_property_filter "SuccessfulStatus" ["Status", "Success"]
-                                        Namespaces.Topics.correlation_property_filter "FailedStatus" ["Status", "Fail"]
+                                    add_filters [
+                                        Rule.CreateCorrelationFilter("SuccessfulStatus", ["Status", "Success"])
+                                        Rule.CreateSqlFilter("Thing", "Status = Success")
                                     ]
+                                    add_correlation_filter "FailedStatus" [ "Status", "Fail" ]
+                                    add_sql_filter "OtherSqlThing" "Status = Failed"
                                 }
                             ]
                         }
                     ]
                 }
-            let template = 
+            let template =
                 arm {
                     location Location.EastUS
                     add_resource sb
                 }
             let generatedTemplate = template.Template
             let genSubscription = generatedTemplate.Resources.Item 2 :?> Subscription
-            Expect.hasLength genSubscription.Rules 2 "Expected subscription should have 2 rules"
-            Expect.equal genSubscription.Rules.Head.Name.Value "SuccessfulStatus" "Rule doesn't have the expected name 'SuccessfulStatus'."
+            Expect.hasLength genSubscription.Rules 4 "Expected subscription should have 4 rules"
+            Expect.equal genSubscription.Rules.[0] (Rule.CreateCorrelationFilter("SuccessfulStatus", ["Status", "Success"])) "Rule 0 is incorrect"
+            Expect.equal genSubscription.Rules.[1] (Rule.CreateSqlFilter("Thing", "Status = Success")) "Rule 1 is incorrect"
+            Expect.equal genSubscription.Rules.[2] (Rule.CreateCorrelationFilter("FailedStatus", ["Status", "Fail"])) "Rule 2 is incorrect"
+            Expect.equal genSubscription.Rules.[3] (Rule.CreateSqlFilter("OtherSqlThing", "Status = Failed")) "Rule 3 is incorrect"
         }
     ]
 ]
