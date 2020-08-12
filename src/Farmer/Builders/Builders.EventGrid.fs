@@ -88,6 +88,7 @@ type EventGridConfig<'T> =
            Destination : ResourceName
            Endpoint : EndpointType
            SystemEvents : EventGridEvent list |} list
+      Tags: Map<string,string> 
     }
     interface IBuilder with
         member this.DependencyName = this.TopicName
@@ -95,7 +96,8 @@ type EventGridConfig<'T> =
             { Name = this.TopicName
               Location = location
               Source = fst this.Source
-              TopicType = snd this.Source }
+              TopicType = snd this.Source
+              Tags = this.Tags }
 
             for sub in this.Subscriptions do
                 { Name = sub.Name
@@ -109,7 +111,8 @@ type EventGridBuilder() =
     static member private ChangeTopic<'TNew>(state:EventGridConfig<_>, source, topic) : EventGridConfig<'TNew> =
       { TopicName = state.TopicName
         Source = source, topic
-        Subscriptions = [] }
+        Subscriptions = []
+        Tags = Map.empty }
     static member private AddSub(state:EventGridConfig<'T>, name, destination:ResourceName, endpoint, events) =
         let name = destination.Value + "-" + name
         { state with
@@ -122,7 +125,8 @@ type EventGridBuilder() =
     member _.Yield _ =
         { TopicName = ResourceName.Empty
           Source = (ResourceName.Empty, TopicType(Farmer.CoreTypes.ResourceType "", ""))
-          Subscriptions = [] }
+          Subscriptions = []
+          Tags = Map.empty  }
     [<CustomOperation "topic_name">]
     member _.Name (state:EventGridConfig<'T>, name) = { state with TopicName = ResourceName name }
     [<CustomOperation "source">]
@@ -147,5 +151,11 @@ type EventGridBuilder() =
     [<CustomOperation "add_eventhub_subscriber">]
     member _.AddEventHubSubscription(state:EventGridConfig<'T> when 'T :> IEventGridEvent, eventHub:EventHubConfig, events:'T list) =
         EventGridBuilder.AddSub(state, eventHub.Name.Value + "-eventhub", eventHub.EventHubNamespaceName, EventHub eventHub.Name, events |> List.map (fun x -> x.ToEvent))
+    [<CustomOperation "add_tags">]
+    member _.Tags(state:EventGridConfig<'T>, pairs) = 
+        { state with 
+            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
+    [<CustomOperation "add_tag">]
+    member this.Tag(state:EventGridConfig<'T>, key, value) = this.Tags(state, [ (key,value) ])
 
 let eventGrid = EventGridBuilder()

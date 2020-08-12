@@ -144,7 +144,8 @@ type Namespace =
     { Name : ResourceName
       Location : Location
       Sku : Sku
-      DependsOn : ResourceName list }
+      DependsOn : ResourceName list
+      Tags: Map<string,string>  }
     member this.Capacity =
         match this.Sku with
         | Basic -> None
@@ -164,4 +165,5 @@ type Namespace =
                        tier = string this.Sku
                        capacity = this.Capacity |> Option.toNullable |}
                dependsOn = this.DependsOn |> List.map (fun r -> r.Value)
+               tags = this.Tags
             |} :> _
