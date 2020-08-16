@@ -147,23 +147,30 @@ module FeatureFlag =
 type PrincipalId = PrincipalId of ArmExpression member this.ArmValue = match this with PrincipalId e -> e
 type ObjectId = ObjectId of Guid
 
+type ArmValue =
+    | ParameterValue of SecureParameter
+    | ExpressionValue of ArmExpression
+    | LiteralValue of string
+    member this.Value =
+        match this with
+        | ParameterValue value -> value.AsArmRef.Eval()
+        | ExpressionValue value -> value.Eval()
+        | LiteralValue value -> value
+
 /// Represents a secret to be captured either via an ARM expression or a secure parameter.
 type SecretValue =
-    | ParameterSecret of SecureParameter
-    | ExpressionSecret of ArmExpression
-    member this.Value =
-        match this with
-        | ParameterSecret secureParameter -> secureParameter.AsArmRef.Eval()
-        | ExpressionSecret armExpression -> armExpression.Eval()
+    | SecretValue of ArmValue
+    member this.Value = match this with SecretValue v -> v.Value
+    static member Literal = LiteralValue >> SecretValue
+    static member Parameter = ParameterValue >> SecretValue
+    static member Expression = ExpressionValue >> SecretValue
 
 type Setting =
-    | ParameterSetting of SecureParameter
-    | LiteralSetting of string
-    member this.Value =
-        match this with
-        | ParameterSetting secureParameter -> secureParameter.AsArmRef.Eval()
-        | LiteralSetting value -> value
-    static member AsLiteral (a,b) = a, LiteralSetting b
+    | Setting of ArmValue
+    member this.Value = match this with Setting v -> v.Value
+    static member Literal = LiteralValue >> Setting
+    static member Parameter = ParameterValue >> Setting
+    static member Expression = ExpressionValue >> Setting
 
 type ArmTemplate =
     { Parameters : SecureParameter list

@@ -49,7 +49,7 @@ type SecretConfig =
       Dependencies : ResourceName list }
     static member internal createUnsafe key =
         { Key = key
-          Value = ParameterSecret(SecureParameter key)
+          Value = SecretValue.Parameter (SecureParameter key)
           ContentType = None
           Enabled = None
           ActivationDate = None
@@ -76,7 +76,7 @@ type SecretConfig =
 
     static member create (key, expression, resourceOwner) =
         { SecretConfig.create key with
-            Value = ExpressionSecret expression
+            Value = SecretValue.Expression expression
             Dependencies = [ resourceOwner ] }
 
 type KeyVaultConfig =
@@ -318,9 +318,9 @@ type SecretBuilder() =
         state
     member __.Yield (_:unit) = SecretConfig.createUnsafe ""
     [<CustomOperation "name">]
-    member __.Name(state:SecretConfig, name) = { state with Key = name; Value = ParameterSecret(SecureParameter name) }
+    member __.Name(state:SecretConfig, name) = { state with Key = name; Value = SecretValue.Parameter (SecureParameter name) }
     [<CustomOperation "value">]
-    member __.Value(state:SecretConfig, value) = { state with Value = ExpressionSecret value }
+    member __.Value(state:SecretConfig, value) = { state with Value = SecretValue.Expression value }
     [<CustomOperation "content_type">]
     member __.ContentType(state:SecretConfig, contentType) = { state with ContentType = Some contentType }
     [<CustomOperation "enable_secret">]

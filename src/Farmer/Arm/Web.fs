@@ -81,11 +81,11 @@ type ServerFarm =
 module ZipDeploy =
     open System.IO
     open System.IO.Compression
-    
+
     type ZipDeployTarget =
         | WebApp
         | FunctionApp
-    
+
     type ZipDeployKind =
         | DeployFolder of string
         | DeployZip of string
@@ -138,8 +138,11 @@ type Site =
         member this.SecureParameters =
             this.AppSettings
             |> List.choose(snd >> function
-                | ParameterSetting s -> Some s
-                | LiteralSetting _ -> None)
+                | Setting (ParameterValue s) ->
+                    Some s
+                | Setting (ExpressionValue _)
+                | Setting (LiteralValue _) ->
+                    None)
     interface IPostDeploy with
         member this.Run resourceGroupName =
             match this with

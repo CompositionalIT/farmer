@@ -60,21 +60,20 @@ type FunctionsConfig =
               Location = location
               Cors = this.Cors
               AppSettings = [
-                "FUNCTIONS_WORKER_RUNTIME", (string this.Runtime).ToLower()
-                "WEBSITE_NODE_DEFAULT_VERSION", "10.14.1"
-                "FUNCTIONS_EXTENSION_VERSION", match this.ExtensionVersion with V1 -> "~1" | V2 -> "~2" | V3 -> "~3"
-                "AzureWebJobsStorage", Storage.buildKey this.StorageAccountName |> ArmExpression.Eval
-                "AzureWebJobsDashboard", Storage.buildKey this.StorageAccountName |> ArmExpression.Eval
+                "FUNCTIONS_WORKER_RUNTIME", (string this.Runtime).ToLower() |> Setting.Literal
+                "WEBSITE_NODE_DEFAULT_VERSION", Setting.Literal "10.14.1"
+                "FUNCTIONS_EXTENSION_VERSION", (match this.ExtensionVersion with V1 -> "~1" | V2 -> "~2" | V3 -> "~3") |> Setting.Literal
+                "AzureWebJobsStorage", Storage.buildKey this.StorageAccountName |> Setting.Expression
+                "AzureWebJobsDashboard", Storage.buildKey this.StorageAccountName |> Setting.Expression
 
                 match this.AppInsightsKey with
-                | Some key -> "APPINSIGHTS_INSTRUMENTATIONKEY", key |> ArmExpression.Eval
+                | Some key -> "APPINSIGHTS_INSTRUMENTATIONKEY", Setting.Expression key
                 | None -> ()
 
                 if this.OperatingSystem = Windows then
-                    "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING", Storage.buildKey this.StorageAccountName |> ArmExpression.Eval
-                    "WEBSITE_CONTENTSHARE", this.Name.Value.ToLower()
+                    "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING", Storage.buildKey this.StorageAccountName |> Setting.Expression
+                    "WEBSITE_CONTENTSHARE", this.Name.Value.ToLower() |> Setting.Literal
               ]
-              |> List.map Setting.AsLiteral
               |> List.append (this.Settings |> Map.toList)
 
               Identity = this.Identity
@@ -197,7 +196,7 @@ type FunctionsBuilder() =
     /// Sets an app setting of the web app in the form "key" "value".
     [<CustomOperation "setting">]
     member __.AddSetting(state:FunctionsConfig, key, value) =
-        { state with Settings = state.Settings.Add(key, LiteralSetting value) }
+        { state with Settings = state.Settings.Add(key, Setting.Literal value) }
     member this.AddSetting(state:FunctionsConfig, key, value:ArmExpression) =
         this.AddSetting(state, key, value.Eval())
     /// Sets a list of app setting of the web app in the form "key" "value".
@@ -209,7 +208,7 @@ type FunctionsBuilder() =
     /// Creates an app setting of the web app whose value will be supplied as a secret parameter.
     [<CustomOperation "secret_setting">]
     member __.AddSecret(state:FunctionsConfig, key) =
-        { state with Settings = state.Settings.Add(key, ParameterSetting (SecureParameter key)) }
+        { state with Settings = state.Settings.Add(key, Setting.Parameter (SecureParameter key)) }
     [<CustomOperation "depends_on">]
     member __.DependsOn(state:FunctionsConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
     member __.DependsOn(state:FunctionsConfig, resource:IBuilder) = { state with Dependencies = resource.DependencyName :: state.Dependencies }

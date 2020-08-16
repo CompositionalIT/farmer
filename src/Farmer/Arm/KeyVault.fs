@@ -24,7 +24,7 @@ module Vaults =
         interface IParameters with
             member this.SecureParameters =
                 match this with
-                | { Value = ParameterSecret secureParameter } -> [ secureParameter ]
+                | { Value = SecretValue(ParameterValue secureParameter) } -> [ secureParameter ]
                 | _ -> []
         interface IArmResource with
             member this.ResourceName = this.Name

@@ -147,14 +147,14 @@ type WebAppConfig =
                 let dockerSettings = [
                     match this.DockerAcrCredentials with
                     | Some credentials ->
-                        "DOCKER_REGISTRY_SERVER_PASSWORD", ParameterSetting credentials.Password
-                        Setting.AsLiteral ("DOCKER_REGISTRY_SERVER_URL", sprintf "https://%s.azurecr.io" credentials.RegistryName)
-                        Setting.AsLiteral ("DOCKER_REGISTRY_SERVER_USERNAME", credentials.RegistryName)
+                        "DOCKER_REGISTRY_SERVER_PASSWORD", Setting.Parameter credentials.Password
+                        "DOCKER_REGISTRY_SERVER_URL", Setting.Literal (sprintf "https://%s.azurecr.io" credentials.RegistryName)
+                        "DOCKER_REGISTRY_SERVER_USERNAME", Setting.Literal (credentials.RegistryName)
                     | None ->
                         ()
                 ]
                 literalSettings
-                |> List.map Setting.AsLiteral
+                |> List.map(fun (k,v) -> k, Setting.Literal v)
                 |> List.append dockerSettings
                 |> List.append (this.Settings |> Map.toList)
               Kind = [
@@ -361,7 +361,7 @@ type WebAppBuilder() =
     /// Sets an app setting of the web app in the form "key" "value".
     [<CustomOperation "setting">]
     member __.AddSetting(state:WebAppConfig, key, value) =
-        { state with Settings = state.Settings.Add(key, LiteralSetting value) }
+        { state with Settings = state.Settings.Add(key, Setting.Literal value) }
     member this.AddSetting(state:WebAppConfig, key, value:ArmExpression) = this.AddSetting(state, key, value.Eval())
     member this.AddSetting(state:WebAppConfig, key, resourceName:ResourceName) = this.AddSetting(state, key, resourceName.Value)
     /// Sets a list of app setting of the web app in the form "key" "value".
@@ -372,7 +372,9 @@ type WebAppBuilder() =
     /// Creates an app setting of the web app whose value will be supplied as a secret parameter.
     [<CustomOperation "secret_setting">]
     member __.AddSecret(state:WebAppConfig, key) =
-        { state with Settings = state.Settings.Add(key, ParameterSetting (SecureParameter key)) }
+        { state with Settings = state.Settings.Add(key, Setting.Parameter (SecureParameter key)) }
+    member __.AddSecret(state:WebAppConfig, (key, value)) =
+        { state with Settings = state.Settings.Add(key, Setting.Expression value) }
     /// Sets a dependency for the web app.
     [<CustomOperation "depends_on">]
     member __.DependsOn(state:WebAppConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
