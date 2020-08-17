@@ -24,12 +24,14 @@ type EndpointConfig =
 type CdnConfig =
     { Name : ResourceName
       Sku : Sku
-      Endpoints : EndpointConfig list }
+      Endpoints : EndpointConfig list
+      Tags: Map<string,string>  }
     interface IBuilder with
         member this.DependencyName = this.Name
         member this.BuildResources _ = [
             { Name = this.Name
-              Sku = this.Sku }
+              Sku = this.Sku
+              Tags = this.Tags}
             for endpoint in this.Endpoints do
                 { Profile = this.Name
                   Name = endpoint.Name
@@ -40,7 +42,8 @@ type CdnConfig =
                   Https = endpoint.Https
                   Compression = endpoint.Compression
                   Origin = endpoint.Origin
-                  OptimizationType = endpoint.OptimizationType }
+                  OptimizationType = endpoint.OptimizationType
+                  Tags = this.Tags }
                 match endpoint.CustomDomain with
                 | Some customDomain ->
                     { Name = endpoint.Name.Map(sprintf "%sdomain")
@@ -54,13 +57,20 @@ type CdnBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
           Sku = Standard_Akamai
-          Endpoints = [] }
+          Endpoints = []
+          Tags = Map.empty}
     [<CustomOperation "name">]
     member _.Name(state:CdnConfig, name) = { state with Name = ResourceName name }
     [<CustomOperation "sku">]
     member _.Sku(state:CdnConfig, sku) = { state with Sku = sku }
     [<CustomOperation "add_endpoints">]
     member _.AddEndpoints(state:CdnConfig, endpoints) = { state with Endpoints = state.Endpoints @ endpoints }
+    [<CustomOperation "add_tags">]
+    member _.Tags(state:CdnConfig, pairs) = 
+        { state with 
+            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
+    [<CustomOperation "add_tag">]
+    member this.Tag(state:CdnConfig, key, value) = this.Tags(state, [ (key,value) ])
 
 type EndpointBuilder() =
     member _.Yield _ : EndpointConfig =

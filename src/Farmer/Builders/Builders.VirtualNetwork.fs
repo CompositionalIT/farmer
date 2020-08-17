@@ -77,7 +77,8 @@ let address_space = AddressSpaceBuilder ()
 type VirtualNetworkConfig =
     { Name : ResourceName
       AddressSpacePrefixes : string list
-      Subnets : SubnetConfig list; }
+      Subnets : SubnetConfig list
+      Tags: Map<string,string>  }
     interface IBuilder with
         member this.DependencyName = this.Name
         member this.BuildResources location = [
@@ -90,11 +91,16 @@ type VirtualNetworkConfig =
                      Delegations = subnetConfig.Delegations |> List.map (fun delegation ->
                          {| Name = ResourceName delegation; ServiceName = delegation |})
                   |})
+              Tags = this.Tags
             }
         ]
 
 type VirtualNetworkBuilder() =
-    member __.Yield _ = { Name = ResourceName.Empty; AddressSpacePrefixes = []; Subnets = [] }
+    member __.Yield _ =
+      { Name = ResourceName.Empty
+        AddressSpacePrefixes = []
+        Subnets = []
+        Tags = Map.empty }
     /// Sets the name of the virtual network
     [<CustomOperation "name">]
     member __.Name(state:VirtualNetworkConfig, name) = { state with Name = ResourceName name }
@@ -131,5 +137,11 @@ type VirtualNetworkBuilder() =
         { state
           with Subnets = state.Subnets |> Seq.append newSubnets |> List.ofSeq
                AddressSpacePrefixes = state.AddressSpacePrefixes |> Seq.append newAddressSpaces |> List.ofSeq }
+      [<CustomOperation "add_tags">]
+      member _.Tags(state:VirtualNetworkConfig, pairs) = 
+          { state with 
+              Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
+      [<CustomOperation "add_tag">]
+      member this.Tag(state:VirtualNetworkConfig, key, value) = this.Tags(state, [ (key,value) ])
 
 let vnet = VirtualNetworkBuilder ()

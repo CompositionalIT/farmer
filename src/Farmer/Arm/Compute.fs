@@ -16,7 +16,8 @@ type CustomScriptExtension =
       VirtualMachine : ResourceName
       FileUris : Uri list
       ScriptContents : string
-      OS : OS }
+      OS : OS
+      Tags: Map<string,string>  }
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
@@ -51,6 +52,7 @@ type CustomScriptExtension =
                             |> Encoding.UTF8.GetBytes
                             |> Convert.ToBase64String |}
                     |} :> _
+               tags = this.Tags
             |} :> _
 
 type VirtualMachine =
@@ -62,7 +64,8 @@ type VirtualMachine =
       Image : ImageDefinition
       OsDisk : DiskInfo
       DataDisks : DiskInfo list
-      NetworkInterfaceName : ResourceName }
+      NetworkInterfaceName : ResourceName
+      Tags: Map<string,string>  }
     interface IParameters with
         member this.SecureParameters = [ this.Credentials.Password ]
     interface IArmResource with
@@ -125,4 +128,5 @@ type VirtualMachine =
                        | None ->
                            box {| bootDiagnostics = {| enabled = false |} |}
                |}
+               tags = this.Tags
             |} :> _

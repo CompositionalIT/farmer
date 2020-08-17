@@ -130,13 +130,15 @@ module SecurityRule =
 
 type NsgConfig =
     { Name : ResourceName
-      SecurityRules : SecurityRuleConfig list }
+      SecurityRules : SecurityRuleConfig list
+      Tags: Map<string,string>  }
     interface IBuilder with
         member this.DependencyName = this.Name
         member this.BuildResources location = [
             let securityGroup =
                 { Name = this.Name
-                  Location = location }
+                  Location = location
+                  Tags = this.Tags  }
 
             // NSG
             securityGroup
@@ -146,12 +148,19 @@ type NsgConfig =
         ]
 type NsgBuilder() =
     member __.Yield _ =
-        { Name = ResourceName.Empty; SecurityRules = [] }
+        { Name = ResourceName.Empty
+          SecurityRules = []
+          Tags = Map.empty  }
     /// Sets the name of the network security group
     [<CustomOperation "name">]
     member _.Name(state:NsgConfig, name) = { state with Name = ResourceName name }
     /// Adds rules to this NSG.
     [<CustomOperation "add_rules">]
     member _.AddSecurityRules (state:NsgConfig, rules) = { state with SecurityRules = state.SecurityRules @ rules }
-
+    [<CustomOperation "add_tags">]
+    member _.Tags(state:NsgConfig, pairs) = 
+        { state with 
+            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
+    [<CustomOperation "add_tag">]
+    member this.Tag(state:NsgConfig, key, value) = this.Tags(state, [ (key,value) ])
 let nsg = NsgBuilder()

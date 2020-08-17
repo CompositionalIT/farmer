@@ -20,7 +20,8 @@ type RedisConfig =
       RedisConfiguration : Map<string, string>
       NonSslEnabled : bool option
       ShardCount : int option
-      MinimumTlsVersion : TlsVersion option }
+      MinimumTlsVersion : TlsVersion option
+      Tags: Map<string,string> }
     member this.Key = buildRedisKey this.Name
     interface IBuilder with
         member this.DependencyName = this.Name
@@ -33,7 +34,8 @@ type RedisConfig =
               RedisConfiguration = this.RedisConfiguration
               NonSslEnabled = this.NonSslEnabled
               ShardCount = this.ShardCount
-              MinimumTlsVersion = this.MinimumTlsVersion }
+              MinimumTlsVersion = this.MinimumTlsVersion
+              Tags = this.Tags }
         ]
 
 type RedisBuilder() =
@@ -44,7 +46,8 @@ type RedisBuilder() =
           RedisConfiguration = Map.empty
           NonSslEnabled = None
           ShardCount = None
-          MinimumTlsVersion = None }
+          MinimumTlsVersion = None
+          Tags = Map.empty }
     member __.Run (state:RedisConfig) =
         { state with
             Capacity =
@@ -87,5 +90,11 @@ type RedisBuilder() =
     member __.ShardCount(state:RedisConfig, shardCount) = { state with ShardCount = Some shardCount }
     [<CustomOperation "minimum_tls_version">]
     member __.MinimumTlsVersion(state:RedisConfig, tlsVersion) = { state with MinimumTlsVersion = Some tlsVersion }
+    [<CustomOperation "add_tags">]
+    member _.Tags(state:RedisConfig, pairs) = 
+        { state with 
+            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
+    [<CustomOperation "add_tag">]
+    member this.Tag(state:RedisConfig, key, value) = this.Tags(state, [ (key,value) ])
 
 let redis = RedisBuilder()

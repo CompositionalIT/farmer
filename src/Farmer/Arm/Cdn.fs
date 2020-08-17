@@ -12,7 +12,8 @@ let customDomains = ResourceType "Microsoft.Cdn/profiles/endpoints/customDomains
 
 type Profile =
     { Name : ResourceName
-      Sku : Sku }
+      Sku : Sku
+      Tags: Map<string,string> }
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
@@ -22,6 +23,7 @@ type Profile =
                location = "global"
                sku = {| name = string this.Sku |}
                properties = {||}
+               tags = this.Tags
             |} |> box
 
 module Profiles =
@@ -35,7 +37,8 @@ module Profiles =
           Https : FeatureFlag
           Compression : FeatureFlag
           Origin : string
-          OptimizationType : OptimizationType }
+          OptimizationType : OptimizationType
+          Tags: Map<string,string>  }
         interface IArmResource with
             member this.ResourceName: ResourceName = this.Name
             member this.JsonModel =
@@ -62,6 +65,7 @@ module Profiles =
                                |}
                            ]
                         |}
+                   tags = this.Tags
                 |} :> _
 
     module Endpoints =

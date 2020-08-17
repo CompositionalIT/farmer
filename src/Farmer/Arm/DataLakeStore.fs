@@ -11,7 +11,8 @@ type Account =
     { Name : ResourceName
       Location : Location
       EncryptionState : FeatureFlag
-      Sku : Sku }
+      Sku : Sku
+      Tags: Map<string,string>  }
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
@@ -22,4 +23,5 @@ type Account =
                properties =
                 {| newTier = this.Sku.ToString()
                    encryptionState = this.EncryptionState.ToString() |}
+               tags = this.Tags
             |} :> _

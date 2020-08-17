@@ -24,7 +24,8 @@ type SqlAzureConfig =
            Sku : PoolSku
            PerDbLimits : {| Min: int<DTU>; Max : int<DTU> |} option
            Capacity : int<Mb> option |}
-      Databases : SqlAzureDbConfig list }
+      Databases : SqlAzureDbConfig list
+      Tags: Map<string,string>  }
     /// Gets a basic .NET connection string using the administrator username / password.
     member this.ConnectionString (database:SqlAzureDbConfig) =
         concat [
@@ -55,6 +56,7 @@ type SqlAzureConfig =
               Credentials =
                 {| Username = this.AdministratorCredentials.UserName
                    Password = this.AdministratorCredentials.Password |}
+              Tags = this.Tags 
             }
 
             for database in this.Databases do
@@ -124,7 +126,8 @@ type SqlServerBuilder() =
                PerDbLimits = None
                Capacity = None |}
           Databases = []
-          FirewallRules = [] }
+          FirewallRules = []
+          Tags = Map.empty  }
     member __.Run(state) =
         { state with
             Name =
@@ -174,6 +177,11 @@ type SqlServerBuilder() =
             AdministratorCredentials =
                 {| state.AdministratorCredentials with
                     UserName = username |} }
-
+    [<CustomOperation "add_tags">]
+    member _.Tags(state:SqlAzureConfig, pairs) = 
+        { state with 
+            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
+    [<CustomOperation "add_tag">]
+    member this.Tag(state:SqlAzureConfig, key, value) = this.Tags(state, [ (key,value) ])
 let sqlServer = SqlServerBuilder()
 let sqlDb = SqlDbBuilder()

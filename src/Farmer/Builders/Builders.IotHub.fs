@@ -12,7 +12,8 @@ type IotHubConfig =
       Capacity : int
       RetentionDays : int option
       PartitionCount : int option
-      DeviceProvisioning : FeatureFlag }
+      DeviceProvisioning : FeatureFlag
+      Tags: Map<string,string>  }
     member private this.BuildKey (policy:Policy) =
         sprintf "listKeys('%s','2019-03-22').value[%d].primaryKey" this.Name.Value policy.Index
     member this.GetKey policy = policy |> this.BuildKey |> ArmExpression.create
@@ -42,13 +43,15 @@ type IotHubConfig =
               DefaultTtl = None
               MaxDeliveryCount = None
               Feedback = None
-              FileNotifications = None }
+              FileNotifications = None
+              Tags = this.Tags  }
 
             if this.DeviceProvisioning = Enabled then
                 { Name = this.Name.Map(sprintf "%s-dps")
                   Location = location
                   IotHubKey = this.GetKey IotHubOwner
-                  IotHubName = this.Name }
+                  IotHubName = this.Name
+                  Tags = this.Tags  }
         ]
 
 type IotHubBuilder() =
@@ -58,7 +61,8 @@ type IotHubBuilder() =
           Capacity = 1
           RetentionDays = None
           PartitionCount = None
-          DeviceProvisioning = Disabled }
+          DeviceProvisioning = Disabled
+          Tags = Map.empty  }
     member _.Run state =
         match state.PartitionCount with
         | Some partitionCount when partitionCount < 2 || partitionCount > 128 ->
@@ -90,5 +94,13 @@ type IotHubBuilder() =
     [<CustomOperation "enable_device_provisioning">]
     /// Sets the name of the SKU/Tier for the IOT Hub instance.
     member _.DeviceProvisioning (state:IotHubConfig) = { state with DeviceProvisioning = Enabled }
+
+    [<CustomOperation "add_tags">]
+    member _.Tags(state:IotHubConfig, pairs) = 
+        { state with 
+            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
+
+    [<CustomOperation "add_tag">]
+    member this.Tag(state:IotHubConfig, key, value) = this.Tags(state, [ (key,value) ])
 
 let iotHub = IotHubBuilder()

@@ -16,7 +16,8 @@ type ServerFarm =
       Sku: Sku
       WorkerSize : WorkerSize
       WorkerCount : int
-      OperatingSystem : OS }
+      OperatingSystem : OS 
+      Tags: Map<string,string> }
     member this.IsDynamic =
         match this.Sku, this.WorkerSize with
         | Isolated "Y1", Serverless -> true
@@ -76,6 +77,7 @@ type ServerFarm =
                        perSiteScaling = if this.IsDynamic then Nullable() else Nullable false
                        reserved = this.Reserved |}
                kind = this.Kind |> Option.toObj
+               tags = this.Tags
             |} :> _
 
 module ZipDeploy =
@@ -132,6 +134,7 @@ type Site =
       JavaContainerVersion : string option
       PhpVersion : string option
       PythonVersion : string option
+      Tags : Map<string, string>
       Metadata : List<string * string>
       ZipDeployPath : (string * ZipDeploy.ZipDeployTarget) option }
     interface IParameters with
@@ -168,6 +171,7 @@ type Site =
                  | Some Enabled -> box {| ``type`` = "SystemAssigned" |}
                  | Some Disabled -> box {| ``type`` = "None" |}
                  | None -> null
+               tags = this.Tags
                properties =
                     {| serverFarmId = this.ServicePlan.Value
                        httpsOnly = this.HTTPSOnly
