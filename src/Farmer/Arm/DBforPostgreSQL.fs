@@ -10,7 +10,16 @@ let databases = ResourceType "Microsoft.DBforPostgreSQL/servers/databases"
 let firewallRules = ResourceType "Microsoft.DBforPostgreSQL/servers/firewallrules"
 let servers = ResourceType "Microsoft.DBforPostgreSQL/servers"
 
-type [<RequireQualifiedAccess>] PostgreSQLFamily = Gen5
+type [<RequireQualifiedAccess>] PostgreSQLFamily = 
+| Gen5
+
+    override this.ToString() =
+        match this with
+        | Gen5 -> "Gen5"
+
+    member this.AsArmValue =
+        match this with
+        | Gen5 -> "Gen5"
 
 module Servers =
     type Database =
@@ -60,7 +69,7 @@ type Server =
       BackupRetention : int<Days> }
 
     member this.Sku =
-        {| name = sprintf "%s_%O_%d" this.Tier.Name this.Family this.Capacity
+        {| name = sprintf "%s_%s_%d" this.Tier.Name this.Family.AsArmValue this.Capacity
            tier = string this.Tier
            capacity = this.Capacity
            family = string this.Family
