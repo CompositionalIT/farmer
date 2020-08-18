@@ -71,21 +71,36 @@ type ServiceBusSubscriptionBuilder() =
           Rules = List.empty }
 
     /// The name of the queue.
-    [<CustomOperation "name">] member _.Name(state:ServiceBusSubscriptionConfig, name) = { state with Name = ResourceName name }
+    [<CustomOperation "name">]
+     member _.Name(state:ServiceBusSubscriptionConfig, name) = { state with Name = ResourceName name }
     /// The length of time that a lock can be held on a message.
-    [<CustomOperation "lock_duration_minutes">] member _.LockDurationMinutes(state:ServiceBusSubscriptionConfig, duration) = { state with LockDuration = Some (TimeSpan.FromMinutes (float duration)) }
+    [<CustomOperation "lock_duration_minutes">]
+     member _.LockDurationMinutes(state:ServiceBusSubscriptionConfig, duration) = { state with LockDuration = Some (TimeSpan.FromMinutes (float duration)) }
     /// Whether to enable duplicate detection, and if so, how long to check for.ServiceBusQueueConfig
-    [<CustomOperation "duplicate_detection_minutes">] member _.DuplicateDetection(state:ServiceBusSubscriptionConfig, maxTimeWindow) = { state with DuplicateDetection = Some (TimeSpan.FromMinutes (float maxTimeWindow)) }
+    [<CustomOperation "duplicate_detection_minutes">]
+     member _.DuplicateDetection(state:ServiceBusSubscriptionConfig, maxTimeWindow) = { state with DuplicateDetection = Some (TimeSpan.FromMinutes (float maxTimeWindow)) }
     /// The default time-to-live for messages. If not specified, the maximum TTL will be set for the SKU.
-    [<CustomOperation "message_ttl_days">] member _.MessageTtl(state:ServiceBusSubscriptionConfig, ttl) = { state with DefaultMessageTimeToLive = Some (TimeSpan.FromDays (float ttl)) }
+    [<CustomOperation "message_ttl_days">]
+     member _.MessageTtl(state:ServiceBusSubscriptionConfig, ttl) = { state with DefaultMessageTimeToLive = Some (TimeSpan.FromDays (float ttl)) }
     /// Enables session support.
-    [<CustomOperation "max_delivery_count">] member _.MaxDeliveryCount(state:ServiceBusSubscriptionConfig, count) = { state with MaxDeliveryCount = Some count }
+    [<CustomOperation "max_delivery_count">]
+     member _.MaxDeliveryCount(state:ServiceBusSubscriptionConfig, count) = { state with MaxDeliveryCount = Some count }
     /// Whether to enable duplicate detection, and if so, how long to check for.ServiceBusQueueConfig
-    [<CustomOperation "enable_session">] member _.Session(state:ServiceBusSubscriptionConfig) = { state with Session = Some true }
+    [<CustomOperation "enable_session">]
+     member _.Session(state:ServiceBusSubscriptionConfig) = { state with Session = Some true }
     /// Enables dead lettering of messages that expire.
-    [<CustomOperation "enable_dead_letter_on_message_expiration">] member _.DeadLetteringOnMessageExpiration(state:ServiceBusSubscriptionConfig) = { state with DeadLetteringOnMessageExpiration = Some true }
+    [<CustomOperation "enable_dead_letter_on_message_expiration">]
+    member _.DeadLetteringOnMessageExpiration(state:ServiceBusSubscriptionConfig) = { state with DeadLetteringOnMessageExpiration = Some true }
     /// Adds filtering rules for a subscription
-    [<CustomOperation "add_rules">] member _.AddRules(state:ServiceBusSubscriptionConfig, rules) = { state with Rules = state.Rules @ rules }
+    [<CustomOperation "add_filters">]
+    member _.AddFilters(state:ServiceBusSubscriptionConfig, filters) = { state with Rules = state.Rules @ filters }
+    /// Adds a sql filtering rule for a subscription
+    [<CustomOperation "add_sql_filter">]
+    member this.AddFilter(state:ServiceBusSubscriptionConfig, name, expression) = this.AddFilters(state, [ Rule.CreateSqlFilter(name, expression) ])
+    /// Adds a correlation filtering rule for a subscription
+    [<CustomOperation "add_correlation_filter">]
+    member this.AddCorrelationFilter(state:ServiceBusSubscriptionConfig, name, properties) = this.AddFilters(state, [ Rule.CreateCorrelationFilter(name, properties) ])
+
 
 type ServiceBusTopicConfig =
     { Name : ResourceName
