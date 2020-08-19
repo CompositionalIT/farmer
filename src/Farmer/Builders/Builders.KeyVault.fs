@@ -88,7 +88,8 @@ type KeyVaultConfig =
       NetworkAcl : NetworkAcl
       Uri : Uri option
       Secrets : SecretConfig list
-      Dependencies : ResourceName list }
+      Dependencies : ResourceName list
+      Tags: Map<string,string>  }
       interface IBuilder with
         member this.DependencyName = this.Name
         member this.BuildResources location = [
@@ -127,7 +128,8 @@ type KeyVaultConfig =
                   Bypass = this.NetworkAcl.Bypass
                   IpRules = this.NetworkAcl.IpRules
                   VnetRules = this.NetworkAcl.VnetRules
-                  Dependencies = this.Dependencies }
+                  Dependencies = this.Dependencies
+                  Tags = this.Tags }
 
             keyVault
             for secret in this.Secrets do
@@ -202,7 +204,8 @@ type KeyVaultBuilderState =
       Policies : AccessPolicyConfig list
       Uri : Uri option
       Secrets : SecretConfig list
-      Dependencies : ResourceName list }
+      Dependencies : ResourceName list
+      Tags: Map<string,string> }
 
 type KeyVaultBuilder() =
     member __.Yield (_:unit) =
@@ -215,7 +218,8 @@ type KeyVaultBuilder() =
           CreateMode = None
           Uri = None
           Secrets = []
-          Dependencies = [] }
+          Dependencies = []
+          Tags = Map.empty  }
 
     member __.Run(state:KeyVaultBuilderState) : KeyVaultConfig =
         { Name = state.Name
@@ -231,7 +235,8 @@ type KeyVaultBuilder() =
             | Some SimpleCreateMode.Recover, [] -> failwith "Setting the creation mode to Recover requires at least one access policy. Use the accessPolicy builder to create a policy, and add it to the vault configuration using add_access_policy."
           Secrets = state.Secrets
           Uri = state.Uri
-          Dependencies = state.Dependencies }
+          Dependencies = state.Dependencies
+          Tags = state.Tags  }
     /// Sets the name of the vault.
     [<CustomOperation "name">]
     member __.Name(state:KeyVaultBuilderState, name) = { state with Name = name }
@@ -316,12 +321,12 @@ type KeyVaultBuilder() =
     member this.AddSecrets(state:KeyVaultBuilderState, keys) = this.AddSecrets(state, keys |> Seq.map SecretConfig.create)
     member this.AddSecrets(state:KeyVaultBuilderState, items) = this.AddSecrets(state, items |> Seq.map(fun (key, builder:#IBuilder, value) -> SecretConfig.create (key, value, builder.DependencyName)))
     member this.AddSecrets(state:KeyVaultBuilderState, items) = this.AddSecrets(state, items |> Seq.map(fun (key, resourceName:ResourceName, value) -> SecretConfig.create (key, value, resourceName)))
-
-    /// Sets a dependency for the web app.
-    [<CustomOperation "depends_on">]
-    member __.DependsOn(state:KeyVaultBuilderState, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
-    member __.DependsOn(state:KeyVaultBuilderState, builder:IBuilder) = { state with Dependencies = builder.DependencyName :: state.Dependencies }
-    member __.DependsOn(state:KeyVaultBuilderState, resource:IArmResource) = { state with Dependencies = resource.ResourceName :: state.Dependencies }
+    [<CustomOperation "add_tags">]
+    member _.Tags(state:KeyVaultBuilderState, pairs) = 
+        { state with 
+            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
+    [<CustomOperation "add_tag">]
+    member this.Tag(state:KeyVaultBuilderState, key, value) = this.Tags(state, [ (key,value) ])
 
 type SecretBuilder() =
     member __.Run(state:SecretConfig) =

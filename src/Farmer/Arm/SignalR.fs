@@ -12,7 +12,8 @@ type SignalR =
       Location : Location
       Sku : Sku
       Capacity : int option
-      AllowedOrigins : string list }
+      AllowedOrigins : string list
+      Tags: Map<string,string>  }
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
@@ -34,4 +35,5 @@ type SignalR =
                           match this.AllowedOrigins with
                           | [] -> null
                           | aos -> box {| allowedOrigins = aos |} |}
+               tags = this.Tags
             |} :> _

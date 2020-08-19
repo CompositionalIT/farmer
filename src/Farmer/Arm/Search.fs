@@ -12,7 +12,8 @@ type SearchService =
       Location : Location
       Sku :Sku
       ReplicaCount : int
-      PartitionCount : int }
+      PartitionCount : int
+      Tags: Map<string,string>  }
     member this.HostingMode =
         match this.Sku with
         | Standard3 HighDensity -> "highDensity"
@@ -38,4 +39,5 @@ type SearchService =
                 {| replicaCount = this.ReplicaCount
                    partitionCount = this.PartitionCount
                    hostingMode = this.HostingMode |}
+               tags = this.Tags
             |} :> _

@@ -19,7 +19,8 @@ let localNetworkGateways = ResourceType "Microsoft.Network/localNetworkGateways"
 type PublicIpAddress =
     { Name : ResourceName
       Location : Location
-      DomainNameLabel : string option }
+      DomainNameLabel : string option
+      Tags: Map<string,string>  }
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
@@ -33,13 +34,15 @@ type PublicIpAddress =
                         match this.DomainNameLabel with
                         | Some label -> box {| domainNameLabel = label.ToLower() |}
                         | None -> null |}
+               tags = this.Tags
             |} :> _
 
 type VirtualNetwork =
     { Name : ResourceName
       Location : Location
       AddressSpacePrefixes : string list
-      Subnets : {| Name : ResourceName; Prefix : string; Delegations: {| Name: ResourceName; ServiceName: string |} list |} list; }
+      Subnets : {| Name : ResourceName; Prefix : string; Delegations: {| Name: ResourceName; ServiceName: string |} list |} list;
+      Tags: Map<string,string>  }
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
@@ -63,6 +66,7 @@ type VirtualNetwork =
                                   |}
                            |})
                     |}
+               tags = this.Tags
             |} :> _
 type VirtualNetworkGateway =
     { Name : ResourceName
@@ -73,7 +77,8 @@ type VirtualNetworkGateway =
       VirtualNetwork : ResourceName
       GatewayType : GatewayType
       VpnType : VpnType
-      EnableBgp : bool }
+      EnableBgp : bool
+      Tags: Map<string,string>  }
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
@@ -109,6 +114,7 @@ type VirtualNetworkGateway =
                        enableBgp = this.EnableBgp
                        activeActive = this.IpConfigs |> List.length > 1
                     |}
+               tags = this.Tags
             |} :> _
 type Connection =
     { Name : ResourceName
@@ -118,7 +124,8 @@ type Connection =
       VirtualNetworkGateway2 : ResourceName option
       LocalNetworkGateway : ResourceName option
       PeerId : string option
-      AuthorizationKey : string option }
+      AuthorizationKey : string option
+      Tags: Map<string,string>  }
     member private this.VNetGateway1ResourceId = ArmExpression.resourceId(virtualNetworkGateways, this.VirtualNetworkGateway1)
     member private this.VNetGateway2ResourceId = this.VirtualNetworkGateway2 |> Option.map(fun gw -> ArmExpression.resourceId(virtualNetworkGateways, gw))
     member private this.LocalNetworkGatewayResourceId = this.LocalNetworkGateway |> Option.map(fun lng -> ArmExpression.resourceId(localNetworkGateways, lng))
@@ -155,6 +162,7 @@ type Connection =
                             | Some peerId -> box {| id = peerId |}
                             | None -> null
                     |}
+               tags = this.Tags
             |} :> _
 type NetworkInterface =
     { Name : ResourceName
@@ -162,7 +170,8 @@ type NetworkInterface =
       IpConfigs :
         {| SubnetName : ResourceName
            PublicIpName : ResourceName |} list
-      VirtualNetwork : ResourceName }
+      VirtualNetwork : ResourceName
+      Tags: Map<string,string>  }
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
@@ -187,6 +196,7 @@ type NetworkInterface =
                                 |}
                             |})
                    |}
+               tags = this.Tags
             |} :> _
 type NetworkProfile =
     { Name : ResourceName
@@ -195,7 +205,8 @@ type NetworkProfile =
         {| IpConfigs :
             {| SubnetName : ResourceName |} list
         |} list
-      VirtualNetwork : ResourceName }
+      VirtualNetwork : ResourceName
+      Tags: Map<string,string>  }
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
@@ -225,6 +236,7 @@ type NetworkProfile =
                            |}
                        )
                    |}
+               tags = this.Tags
             |} :> _
 type ExpressRouteCircuit =
     { Name : ResourceName
@@ -243,7 +255,8 @@ type ExpressRouteCircuit =
            SecondaryPeerAddressPrefix : IPAddressCidr
            SharedKey : string option
            VlanId : int
-        |} list }
+        |} list
+      Tags: Map<string,string>  }
 
     interface IArmResource with
         member this.ResourceName = this.Name
@@ -275,4 +288,5 @@ type ExpressRouteCircuit =
                            peeringLocation = this.PeeringLocation
                            bandwidthInMbps = this.Bandwidth |}
                       globalReachEnabled = this.GlobalReachEnabled |}
+               tags = this.Tags
             |} :> _

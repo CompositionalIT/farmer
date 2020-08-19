@@ -27,7 +27,8 @@ type StorageAccount =
       Location : Location
       Sku : Sku
       EnableHierarchicalNamespace : bool
-      StaticWebsite : {| IndexPage : string; ErrorPage : string option; ContentPath : string |} option }
+      StaticWebsite : {| IndexPage : string; ErrorPage : string option; ContentPath : string |} option
+      Tags: Map<string,string>}
     interface IArmResource with
         member this.ResourceName = this.Name.ResourceName
         member this.JsonModel =
@@ -38,6 +39,7 @@ type StorageAccount =
                apiVersion = "2018-07-01"
                location = this.Location.ArmValue
                properties = {| isHnsEnabled = this.EnableHierarchicalNamespace |}
+               tags = this.Tags
             |} :> _
     interface IPostDeploy with
         member this.Run _ =

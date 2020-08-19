@@ -138,7 +138,8 @@ type ServiceBusConfig =
       Sku : Sku
       DependsOn : ResourceName list
       Queues : Map<ResourceName, ServiceBusQueueConfig>
-      Topics : Map<ResourceName, ServiceBusTopicConfig> }
+      Topics : Map<ResourceName, ServiceBusTopicConfig>
+      Tags: Map<string,string>  }
     member private _.GetKeyPath sbNsName property =
         sprintf
             "listkeys(resourceId('Microsoft.ServiceBus/namespaces/authorizationRules', '%s', 'RootManageSharedAccessKey'), '2017-04-01').%s"
@@ -153,7 +154,8 @@ type ServiceBusConfig =
             { Name = this.Name
               Location = location
               Sku = this.Sku
-              DependsOn = this.DependsOn }
+              DependsOn = this.DependsOn
+              Tags = this.Tags  }
 
             for queue in this.Queues do
               let queue = queue.Value
@@ -201,7 +203,8 @@ type ServiceBusBuilder() =
           Sku = Basic
           Queues = Map.empty
           Topics = Map.empty
-          DependsOn = List.empty }
+          DependsOn = List.empty
+          Tags = Map.empty  }
     member _.Run (state:ServiceBusConfig) =
         let isBetween min max v = v >= min && v <= max
         for queue in state.Queues do
@@ -239,6 +242,12 @@ type ServiceBusBuilder() =
                 (state.Topics, topics)
                 ||> List.fold(fun state (topic:ServiceBusTopicConfig) -> state.Add(topic.Name, topic))
         }
+    [<CustomOperation "add_tags">]
+    member _.Tags(state:ServiceBusConfig, pairs) = 
+        { state with 
+            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
+    [<CustomOperation "add_tag">]
+    member this.Tag(state:ServiceBusConfig, key, value) = this.Tags(state, [ (key,value) ])
 
 let serviceBus = ServiceBusBuilder()
 let topic = ServiceBusTopicBuilder()

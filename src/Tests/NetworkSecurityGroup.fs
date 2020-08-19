@@ -17,6 +17,7 @@ let tests = testList "NetworkSecurityGroup" [
             let nsg =
                 { Name = ResourceName "my-nsg"
                   Location = Location.WestEurope
+                  Tags = Map.empty
                 }
             arm { add_resource nsg }
             |> findAzureResources<NetworkSecurityGroup> client.SerializationSettings
@@ -28,6 +29,7 @@ let tests = testList "NetworkSecurityGroup" [
             let nsg =
                 { Name = ResourceName "my-nsg"
                   Location = Location.WestEurope
+                  Tags = Map.empty
                 }
             let acceptRule =
                 { Name = ResourceName "accept-web"

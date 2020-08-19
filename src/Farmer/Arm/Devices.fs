@@ -43,7 +43,8 @@ type iotHubs =
       DefaultTtl : IsoDateTime option
       MaxDeliveryCount : int option
       Feedback : DeliveryDetails option
-      FileNotifications : DeliveryDetails option }
+      FileNotifications : DeliveryDetails option
+      Tags: Map<string,string>  }
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
@@ -79,13 +80,15 @@ type iotHubs =
                sku =
                 {| name = this.Sku.Name
                    capacity = this.Sku.Capacity |}
+               tags = this.Tags
             |} :> _
 
 type ProvisioningServices =
     { Name : ResourceName
       Location : Location
       IotHubName : ResourceName
-      IotHubKey : ArmExpression }
+      IotHubKey : ArmExpression
+      Tags: Map<string,string>  }
     member this.IotHubConnection =
         sprintf "concat('HostName=%s.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=',%s)"
             this.IotHubName.Value
@@ -111,4 +114,5 @@ type ProvisioningServices =
                    ]
                  |}
                dependsOn = [ this.IotHubName.Value ]
+               tags = this.Tags
             |} :> _

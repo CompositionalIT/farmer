@@ -71,8 +71,9 @@ type Vault =
       DefaultAction : DefaultAction option
       Bypass: Bypass option
       IpRules : string list
-      VnetRules : string list 
-      Dependencies : ResourceName list }
+      VnetRules : string list
+      Dependencies : ResourceName list
+      Tags: Map<string,string>  }
       member this.PurgeProtection =
         match this.SoftDelete with
         | None
@@ -123,5 +124,6 @@ type Vault =
                         ipRules = this.IpRules
                         virtualNetworkRules = this.VnetRules |}
                  |}
+               tags = this.Tags
              |} :> _
 

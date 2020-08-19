@@ -87,7 +87,8 @@ type DatabaseAccount =
       ConsistencyPolicy : ConsistencyPolicy
       FailoverPolicy : FailoverPolicy
       PublicNetworkAccess : FeatureFlag
-      FreeTier : bool }
+      FreeTier : bool
+      Tags: Map<string,string>  }
     member this.MaxStatelessPrefix =
         match this.ConsistencyPolicy with
         | BoundedStaleness (staleness, _) -> Some staleness
@@ -144,4 +145,5 @@ type DatabaseAccount =
                       publicNetworkAccess = string this.PublicNetworkAccess
                       enableFreeTier = this.FreeTier
                    |} |> box
+               tags = this.Tags
             |} :> _
