@@ -7,6 +7,7 @@ open Farmer
 open Farmer.PostgreSQL
 open Farmer.Builders
 open Newtonsoft.Json.Linq
+open Farmer.Arm
 
 type PostgresSku =
     { name : string
@@ -265,5 +266,10 @@ let tests = testList "PostgreSQL Database Service" [
         Expect.throws (fun () -> Validate.capacity 128<VCores>) "Capacity too large"
         Expect.throws (fun () -> Validate.capacity 13<VCores>) "Capacity not a power of two"
         Expect.throwsNot (fun () -> Validate.capacity 16<VCores>) "Capacity just right"
+    }
+
+    test "Family name should not include type name" {
+        Expect.equal PostgreSQLFamily.Gen5.AsArmValue "Gen5" "Wrong value for Gen5 family"
+        Expect.equal (PostgreSQLFamily.Gen5.ToString()) "Gen5" "Wrong value for Gen5 family"
     }
 ]
