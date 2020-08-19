@@ -32,7 +32,7 @@ type Redis =
                location = this.Location.ArmValue
                properties =
                     {| sku =
-                        {| name = string this.Sku
+                        {| name = string this.Sku.Sku
                            family = this.Family
                            capacity = this.Sku.Capacity
                         |}
