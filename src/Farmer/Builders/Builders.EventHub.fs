@@ -145,7 +145,7 @@ type EventHubBuilder() =
         { state with
             CaptureDestination = Some (StorageAccount(storageName, container)) }
     member this.CaptureToStorage(state:EventHubConfig, storageAccount:StorageAccountConfig, container) =
-        this.CaptureToStorage(state, storageAccount.Name, container)
+        this.CaptureToStorage(state, storageAccount.Name.ResourceName, container)
     /// Sets a dependency for the event hub.
     [<CustomOperation "depends_on">]
     member __.DependsOn(state:EventHubConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }

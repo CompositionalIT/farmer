@@ -19,7 +19,7 @@ type ShareQuotaInGb = int
 
 type StorageAccountConfig =
     { /// The name of the storage account.
-      Name : ResourceName
+      Name : StorageAccountName
       /// The sku of the storage account.
       Sku : Sku
       /// Whether to enable Data Lake Storage Gen2.
@@ -33,34 +33,34 @@ type StorageAccountConfig =
       /// Static Website Settings
       StaticWebsite : {| IndexPage : string; ContentPath : string; ErrorPage : string option |} option }
     /// Gets the ARM expression path to the key of this storage account.
-    member this.Key = buildKey this.Name
+    member this.Key = buildKey this.Name.ResourceName
     /// Gets the Primary endpoint for static website (if enabled)
-    member this.WebsitePrimaryEndpoint = sprintf "https://%s.z6.web.core.windows.net" this.Name.Value
-    member this.Endpoint = sprintf "%s.blob.core.windows.net" this.Name.Value
+    member this.WebsitePrimaryEndpoint = sprintf "https://%s.z6.web.core.windows.net" this.Name.ResourceName.Value
+    member this.Endpoint = sprintf "%s.blob.core.windows.net" this.Name.ResourceName.Value
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.DependencyName = this.Name.ResourceName
         member this.BuildResources location = [
-            { Name = StorageAccountName.Create this.Name |> Result.get
+            { Name = this.Name
               Location = location
               Sku = this.Sku
               EnableHierarchicalNamespace = this.EnableDataLake
               StaticWebsite = this.StaticWebsite }
             for name, access in this.Containers do
                 { Name = name
-                  StorageAccount = this.Name
+                  StorageAccount = this.Name.ResourceName
                   Accessibility = access }
             for (name, shareQuota) in this.FileShares do
                 { Name = name
                   ShareQuota = shareQuota
-                  StorageAccount = this.Name }
+                  StorageAccount = this.Name.ResourceName }
             for queue in this.Queues do
                 { Queues.Queue.Name = queue
-                  Queues.Queue.StorageAccount = this.Name }
+                  Queues.Queue.StorageAccount = this.Name.ResourceName }
         ]
 
 type StorageAccountBuilder() =
     member _.Yield _ = {
-        Name = ResourceName.Empty
+        Name = StorageAccountName.Create "default" |> Result.get
         Sku = Standard_LRS
         EnableDataLake = false
         Containers = []
@@ -70,7 +70,7 @@ type StorageAccountBuilder() =
     }
     /// Sets the name of the storage account.
     [<CustomOperation "name">]
-    member _.Name(state:StorageAccountConfig, name) = { state with Name = name }
+    member _.Name(state:StorageAccountConfig, name:ResourceName) = { state with Name = StorageAccountName.Create name |> Result.get }
     member this.Name(state:StorageAccountConfig, name) = this.Name(state, ResourceName name)
     /// Sets the sku of the storage account.
     [<CustomOperation "sku">]
@@ -115,6 +115,6 @@ type StorageAccountBuilder() =
 type EndpointBuilder with
     member this.Origin(state:EndpointConfig, storage:StorageAccountConfig) =
         let state = this.Origin(state, storage.Endpoint)
-        this.DependsOn(state, storage.Name)
+        this.DependsOn(state, storage.Name.ResourceName)
 
 let storageAccount = StorageAccountBuilder()
