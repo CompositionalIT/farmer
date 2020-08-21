@@ -31,7 +31,9 @@ type StorageAccountConfig =
       /// Queues
       Queues : ResourceName Set
       /// Static Website Settings
-      StaticWebsite : {| IndexPage : string; ContentPath : string; ErrorPage : string option |} option }
+      StaticWebsite : {| IndexPage : string; ContentPath : string; ErrorPage : string option |} option
+      /// Tags to apply to the storage account
+      Tags: Map<string,string> }
     /// Gets the ARM expression path to the key of this storage account.
     member this.Key = buildKey this.Name.ResourceName
     /// Gets the Primary endpoint for static website (if enabled)
@@ -44,7 +46,8 @@ type StorageAccountConfig =
               Location = location
               Sku = this.Sku
               EnableHierarchicalNamespace = this.EnableDataLake
-              StaticWebsite = this.StaticWebsite }
+              StaticWebsite = this.StaticWebsite
+              Tags = this.Tags }
             for name, access in this.Containers do
                 { Name = name
                   StorageAccount = this.Name.ResourceName
@@ -67,6 +70,7 @@ type StorageAccountBuilder() =
         FileShares = []
         Queues = Set.empty
         StaticWebsite = None
+        Tags = Map.empty
     }
     /// Sets the name of the storage account.
     [<CustomOperation "name">]
@@ -110,6 +114,14 @@ type StorageAccountBuilder() =
     /// Enables support for hierarchical namespace, also known as Data Lake Storage Gen2.
     [<CustomOperation "enable_data_lake">]
     member _.UseHns(state:StorageAccountConfig) = { state with EnableDataLake = true }
+    /// Adds tags to the storage account
+    [<CustomOperation "add_tags">]
+    member _.Tags(state:StorageAccountConfig, pairs) = 
+        { state with 
+            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
+    /// Adds a tag to the storage account
+    [<CustomOperation "add_tag">]
+    member this.Tag(state:StorageAccountConfig, key, value) = this.Tags(state, [ (key,value) ])
 
 /// Allow adding storage accounts directly to CDNs
 type EndpointBuilder with

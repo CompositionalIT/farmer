@@ -71,7 +71,9 @@ type Vault =
       DefaultAction : DefaultAction option
       Bypass: Bypass option
       IpRules : string list
-      VnetRules : string list }
+      VnetRules : string list
+      Dependencies : ResourceName list
+      Tags: Map<string,string>  }
       member this.PurgeProtection =
         match this.SoftDelete with
         | None
@@ -87,6 +89,7 @@ type Vault =
                name = this.Name.Value
                apiVersion = "2018-02-14"
                location = this.Location.ArmValue
+               dependsOn = this.Dependencies |> List.map (fun p -> p.Value)
                properties =
                  {| tenantId = this.TenantId
                     sku = {| name = this.Sku.ArmValue; family = "A" |}
@@ -121,5 +124,6 @@ type Vault =
                         ipRules = this.IpRules
                         virtualNetworkRules = this.VnetRules |}
                  |}
+               tags = this.Tags
              |} :> _
 

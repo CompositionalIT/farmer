@@ -40,7 +40,8 @@ type CosmosDbConfig =
       DbThroughput : int<RU>
       Containers : CosmosDbContainerConfig list
       PublicNetworkAccess : FeatureFlag
-      FreeTier : bool }
+      FreeTier : bool
+      Tags: Map<string,string>  }
     member private this.AccountResourceName = this.AccountName.CreateResourceName this
     member this.PrimaryKey = buildKey this.AccountResourceName "primaryMasterKey"
     member this.SecondaryKey = buildKey this.AccountResourceName "secondaryMasterKey"
@@ -62,7 +63,8 @@ type CosmosDbConfig =
                   ConsistencyPolicy = this.AccountConsistencyPolicy
                   PublicNetworkAccess = this.PublicNetworkAccess
                   FailoverPolicy = this.AccountFailoverPolicy
-                  FreeTier = this.FreeTier }
+                  FreeTier = this.FreeTier
+                  Tags = this.Tags }
             | _ ->
                 ()
 
@@ -154,7 +156,8 @@ type CosmosDbBuilder() =
           DbThroughput = 400<RU>
           Containers = []
           PublicNetworkAccess = Enabled
-          FreeTier = false }
+          FreeTier = false
+          Tags = Map.empty }
 
     /// Sets the name of the CosmosDB server.
     [<CustomOperation "account_name">]
@@ -188,6 +191,12 @@ type CosmosDbBuilder() =
     /// Enables the use of CosmosDB free tier (one per subscription).
     [<CustomOperation "free_tier">]
     member __.FreeTier(state:CosmosDbConfig) = { state with FreeTier = true }
+    [<CustomOperation "add_tags">]
+    member _.Tags(state:CosmosDbConfig, pairs) = 
+        { state with 
+            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
+    [<CustomOperation "add_tag">]
+    member this.Tag(state:CosmosDbConfig, key, value) = this.Tags(state, [ (key,value) ])
 
 let cosmosDb = CosmosDbBuilder()
 let cosmosContainer = CosmosDbContainerBuilder()

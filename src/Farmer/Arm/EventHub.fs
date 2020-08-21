@@ -19,7 +19,8 @@ type Namespace =
       Sku : {| Name : EventHubSku; Capacity : int |}
       ZoneRedundant : bool option
       AutoInflateSettings : InflateSetting option
-      KafkaEnabled : bool option }
+      KafkaEnabled : bool option
+      Tags: Map<string,string>  }
     member this.MaxThroughputUnits =
         this.AutoInflateSettings
         |> Option.bind (function
@@ -46,6 +47,7 @@ type Namespace =
                         |> Option.toNullable
                        maximumThroughputUnits = this.MaxThroughputUnits |> Option.toNullable
                        kafkaEnabled = this.KafkaEnabled |> Option.toNullable |}
+               tags = this.Tags
             |} :> _
 module Namespaces =
     type EventHub =
@@ -54,7 +56,8 @@ module Namespaces =
           MessageRetentionDays : int option
           Partitions : int
           Dependencies : ResourceName list
-          CaptureDestination : CaptureDestination option }
+          CaptureDestination : CaptureDestination option
+          Tags: Map<string,string>  }
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
@@ -83,6 +86,7 @@ module Namespaces =
                         | None ->
                             null
                     |}
+                  tags = this.Tags
                |} :> _
     module EventHubs =
         type ConsumerGroup =

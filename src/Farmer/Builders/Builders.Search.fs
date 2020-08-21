@@ -11,7 +11,8 @@ type SearchConfig =
     { Name : ResourceName
       Sku : Sku
       Replicas : int
-      Partitions : int }
+      Partitions : int
+      Tags: Map<string,string>  }
     /// Gets an ARM expression for the admin key of the search instance.
     member this.AdminKey =
         sprintf "listAdminKeys('Microsoft.Search/searchServices/%s', '2015-08-19').primaryKey" this.Name.Value
@@ -27,7 +28,8 @@ type SearchConfig =
               Location = location
               Sku = this.Sku
               ReplicaCount = this.Replicas
-              PartitionCount = this.Partitions }
+              PartitionCount = this.Partitions
+              Tags = this.Tags  }
         ]
 
 type SearchBuilder() =
@@ -35,7 +37,8 @@ type SearchBuilder() =
         { Name = ResourceName.Empty
           Sku = Standard
           Replicas = 1
-          Partitions = 1 }
+          Partitions = 1
+          Tags = Map.empty  }
     member __.Run(state:SearchConfig) =
         { state with Name = state.Name |> sanitiseSearch |> ResourceName }
     /// Sets the name of the Azure Search instance.
@@ -51,5 +54,11 @@ type SearchBuilder() =
     /// Sets the number of partitions of the Azure Search instance.
     [<CustomOperation "partitions">]
     member __.PartitionCount(state:SearchConfig, partitions:int) = { state with Partitions = partitions }
+    [<CustomOperation "add_tags">]
+    member _.Tags(state:SearchConfig, pairs) = 
+        { state with 
+            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
+    [<CustomOperation "add_tag">]
+    member this.Tag(state:SearchConfig, key, value) = this.Tags(state, [ (key,value) ])
 
 let search = SearchBuilder()

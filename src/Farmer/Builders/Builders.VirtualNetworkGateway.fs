@@ -23,7 +23,8 @@ type VNetGatewayConfig =
       /// VPN type - RouteBased or PolicyBased
       VpnType : VpnType
       /// Enable Border Gateway Protocol on this gateway
-      EnableBgp : bool }
+      EnableBgp : bool
+      Tags: Map<string,string>  }
     interface IBuilder with
         member this.DependencyName = this.Name
         member this.BuildResources location = [
@@ -32,6 +33,7 @@ type VNetGatewayConfig =
                     Name = ResourceName (sprintf "%s-ip" this.Name.Value)
                     Location = location
                     DomainNameLabel = None
+                    Tags = this.Tags
                 }
             yield {
                 Name = this.Name
@@ -47,6 +49,7 @@ type VNetGatewayConfig =
                 GatewayType = this.GatewayType
                 VpnType = this.VpnType
                 EnableBgp = this.EnableBgp
+                Tags = this.Tags
             }
         ]
 
@@ -60,7 +63,8 @@ type VnetGatewayBuilder() =
         VirtualNetwork = ResourceName.Empty
         GatewayType = GatewayType.Vpn VpnGatewaySku.VpnGw1
         VpnType = VpnType.RouteBased
-        EnableBgp = true }
+        EnableBgp = true
+        Tags = Map.empty }
     /// Sets the name of the gateway
     [<CustomOperation "name">]
     member __.Name(state:VNetGatewayConfig, name) = { state with Name = ResourceName name }
@@ -93,6 +97,12 @@ type VnetGatewayBuilder() =
     /// Disable BGP (enabled by default).
     [<CustomOperation "disable_bgp">]
     member __.DisableBgp(state:VNetGatewayConfig) = { state with EnableBgp = false }
+    [<CustomOperation "add_tags">]
+    member _.Tags(state:VNetGatewayConfig, pairs) = 
+        { state with 
+            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
+    [<CustomOperation "add_tag">]
+    member this.Tag(state:VNetGatewayConfig, key, value) = this.Tags(state, [ (key,value) ])
 
 let gateway = VnetGatewayBuilder()
 
@@ -103,7 +113,8 @@ type ConnectionConfig =
       VirtualNetworkGateway2 : ResourceName option
       LocalNetworkGateway : ResourceName option
       PeerId : string option
-      AuthorizationKey : string option }
+      AuthorizationKey : string option 
+      Tags: Map<string,string> }
     interface IBuilder with
         member this.DependencyName = this.Name
         member this.BuildResources location = [
@@ -115,6 +126,7 @@ type ConnectionConfig =
               LocalNetworkGateway = this.LocalNetworkGateway
               PeerId = this.PeerId
               AuthorizationKey = this.AuthorizationKey
+              Tags = this.Tags
             }
         ]
 
@@ -126,7 +138,8 @@ type ConnectionBuilder() =
         VirtualNetworkGateway2 = None
         LocalNetworkGateway = None
         PeerId = None
-        AuthorizationKey = None }
+        AuthorizationKey = None
+        Tags = Map.empty }
     /// Sets the name of the connection
     [<CustomOperation "name">]
     member __.Name(state:ConnectionConfig, name) = { state with Name = ResourceName name }
@@ -145,5 +158,11 @@ type ConnectionBuilder() =
     /// Sets the first vnet gateway
     [<CustomOperation "auth_key">]
     member __.Authorization(state:ConnectionConfig, auth) = { state with AuthorizationKey = Some auth }
+    [<CustomOperation "add_tags">]
+    member _.Tags(state:ConnectionConfig, pairs) = 
+        { state with 
+            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
+    [<CustomOperation "add_tag">]
+    member this.Tag(state:ConnectionConfig, key, value) = this.Tags(state, [ (key,value) ])
 
 let connection = ConnectionBuilder()
