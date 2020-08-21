@@ -10,7 +10,8 @@ let accounts = ResourceType "Microsoft.Maps/accounts"
 type Maps =
     { Name : ResourceName
       Location : Location
-      Sku : Sku }
+      Sku : Sku
+      Tags: Map<string,string>  }
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
@@ -24,4 +25,5 @@ type Maps =
                          match this.Sku with
                          | S0 -> "S0"
                          | S1 -> "S1" |}
+               tags = this.Tags
             |} :> _

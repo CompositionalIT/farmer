@@ -10,7 +10,8 @@ let instrumentationKey (ResourceName accountName) =
     |> ArmExpression.create
 
 type AppInsightsConfig =
-    { Name : ResourceName }
+    { Name : ResourceName 
+      Tags : Map<string,string> }
     /// Gets the ARM expression path to the instrumentation key of this App Insights instance.
     member this.InstrumentationKey = instrumentationKey this.Name
     interface IBuilder with
@@ -18,12 +19,14 @@ type AppInsightsConfig =
         member this.BuildResources location = [
             { Name = this.Name
               Location = location
-              LinkedWebsite = None }
+              LinkedWebsite = None
+              Tags = this.Tags }
         ]
 
 type AppInsightsBuilder() =
     member __.Yield _ =
-        { Name = ResourceName.Empty }
+        { Name = ResourceName.Empty
+          Tags = Map.empty }
     [<CustomOperation "name">]
     /// Sets the name of the App Insights instance.
     member __.Name(state:AppInsightsConfig, name) = { state with Name = ResourceName name }

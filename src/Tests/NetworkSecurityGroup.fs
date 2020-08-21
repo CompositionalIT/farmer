@@ -17,6 +17,7 @@ let tests = testList "NetworkSecurityGroup" [
             let nsg =
                 { Name = ResourceName "my-nsg"
                   Location = Location.WestEurope }
+                  Tags = Map.empty
             arm { add_resource nsg }
             |> findAzureResources<NetworkSecurityGroup> client.SerializationSettings
             |> List.head
@@ -27,6 +28,7 @@ let tests = testList "NetworkSecurityGroup" [
             let nsg =
                 { Name = ResourceName "my-nsg"
                   Location = Location.WestEurope }
+                  Tags = Map.empty
             let acceptRule =
                 { Name = ResourceName "accept-web"
                   Description = Some (sprintf "Rule created on %s" (DateTimeOffset.Now.Date.ToShortDateString()))

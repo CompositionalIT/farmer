@@ -1,51 +1,50 @@
 ﻿namespace Farmer
 
 open System
-open System.Runtime.CompilerServices
 
-type Location =
-    | Location of string
-    static member EastAsia = Location "EastAsia"
-    static member SoutheastAsia = Location "SoutheastAsia"
-    static member CentralUS = Location "CentralUS"
-    static member EastUS = Location "EastUS"
-    static member EastUS2 = Location "EastUS2"
-    static member WestUS = Location "WestUS"
-    static member NorthCentralUS = Location "NorthCentralUS"
-    static member SouthCentralUS = Location "SouthCentralUS"
-    static member NorthEurope = Location "NorthEurope"
-    static member WestEurope = Location "WestEurope"
-    static member JapanWest = Location "JapanWest"
-    static member JapanEast = Location "JapanEast"
-    static member BrazilSouth = Location "BrazilSouth"
-    static member AustraliaEast = Location "AustraliaEast"
-    static member AustraliaSoutheast = Location "AustraliaSoutheast"
-    static member SouthIndia = Location "SouthIndia"
-    static member CentralIndia = Location "CentralIndia"
-    static member WestIndia = Location "WestIndia"
-    static member CanadaCentral = Location "CanadaCentral"
-    static member CanadaEast = Location "CanadaEast"
-    static member UKSouth = Location "UKSouth"
-    static member UKWest = Location "UKWest"
-    static member WestCentralUS = Location "WestCentralUS"
-    static member WestUS2 = Location "WestUS2"
-    static member KoreaCentral = Location "KoreaCentral"
-    static member KoreaSouth = Location "KoreaSouth"
-    static member FranceCentral = Location "FranceCentral"
-    static member FranceSouth = Location "FranceSouth"
-    static member AustraliaCentral = Location "AustraliaCentral"
-    static member AustraliaCentral2 = Location "AustraliaCentral2"
-    static member UAECentral = Location "UAECentral"
-    static member UAENorth = Location "UAENorth"
-    static member SouthAfricaNorth = Location "SouthAfricaNorth"
-    static member SouthAfricaWest = Location "SouthAfricaWest"
-    static member SwitzerlandNorth = Location "SwitzerlandNorth"
-    static member SwitzerlandWest = Location "SwitzerlandWest"
-    static member GermanyNorth = Location "GermanyNorth"
-    static member GermanyWestCentral = Location "GermanyWestCentral"
-    static member NorwayWest = Location "NorwayWest"
-    static member NorwayEast = Location "NorwayEast"
-    member this.ArmValue = match this with Location location -> location.ToLower()
+[<AutoOpen>]
+module LocationExtensions =
+    type Location with
+        static member EastAsia = Location "EastAsia"
+        static member SoutheastAsia = Location "SoutheastAsia"
+        static member CentralUS = Location "CentralUS"
+        static member EastUS = Location "EastUS"
+        static member EastUS2 = Location "EastUS2"
+        static member WestUS = Location "WestUS"
+        static member NorthCentralUS = Location "NorthCentralUS"
+        static member SouthCentralUS = Location "SouthCentralUS"
+        static member NorthEurope = Location "NorthEurope"
+        static member WestEurope = Location "WestEurope"
+        static member JapanWest = Location "JapanWest"
+        static member JapanEast = Location "JapanEast"
+        static member BrazilSouth = Location "BrazilSouth"
+        static member AustraliaEast = Location "AustraliaEast"
+        static member AustraliaSoutheast = Location "AustraliaSoutheast"
+        static member SouthIndia = Location "SouthIndia"
+        static member CentralIndia = Location "CentralIndia"
+        static member WestIndia = Location "WestIndia"
+        static member CanadaCentral = Location "CanadaCentral"
+        static member CanadaEast = Location "CanadaEast"
+        static member UKSouth = Location "UKSouth"
+        static member UKWest = Location "UKWest"
+        static member WestCentralUS = Location "WestCentralUS"
+        static member WestUS2 = Location "WestUS2"
+        static member KoreaCentral = Location "KoreaCentral"
+        static member KoreaSouth = Location "KoreaSouth"
+        static member FranceCentral = Location "FranceCentral"
+        static member FranceSouth = Location "FranceSouth"
+        static member AustraliaCentral = Location "AustraliaCentral"
+        static member AustraliaCentral2 = Location "AustraliaCentral2"
+        static member UAECentral = Location "UAECentral"
+        static member UAENorth = Location "UAENorth"
+        static member SouthAfricaNorth = Location "SouthAfricaNorth"
+        static member SouthAfricaWest = Location "SouthAfricaWest"
+        static member SwitzerlandNorth = Location "SwitzerlandNorth"
+        static member SwitzerlandWest = Location "SwitzerlandWest"
+        static member GermanyNorth = Location "GermanyNorth"
+        static member GermanyWestCentral = Location "GermanyWestCentral"
+        static member NorwayWest = Location "NorwayWest"
+        static member NorwayEast = Location "NorwayEast"
 
 type OS = Windows | Linux
 
@@ -587,6 +586,17 @@ module ServiceBus =
         | Basic
         | Standard
         | Premium of MessagingUnits
+    type Rule =
+        | SqlFilter of ResourceName * SqlExpression : string
+        | CorrelationFilter of Name : ResourceName * CorrelationId : string option * Properties : Map<string, string>
+        member this.Name =
+            match this with
+            | SqlFilter (name, _)
+            | CorrelationFilter(name, _, _) -> name
+        static member CreateCorrelationFilter (name, properties, ?correlationId) =
+            CorrelationFilter (ResourceName name, correlationId, Map properties)
+        static member CreateSqlFilter (name, expression) =
+            SqlFilter (ResourceName name, expression)
 
 module CosmosDb =
     /// The consistency policy of a CosmosDB account.

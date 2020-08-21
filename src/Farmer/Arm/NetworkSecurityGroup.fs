@@ -10,14 +10,16 @@ let securityRules = ResourceType "Microsoft.Network/networkSecurityGroups/securi
 
 type NetworkSecurityGroup =
     { Name : ResourceName
-      Location : Location }
+      Location : Location
+      Tags: Map<string,string>  }
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
             {| ``type`` = networkSecurityGroups.ArmValue
                apiVersion = "2020-04-01"
                name = this.Name.Value
-               location = this.Location.ArmValue |} :> _
+               location = this.Location.ArmValue
+               tags = this.Tags |} :> _
 
 type SecurityRule =
     { Name : ResourceName

@@ -3,9 +3,10 @@ module ServiceBus
 open Expecto
 open Farmer
 open Farmer.Arm.ServiceBus
-open Namespaces
+open Farmer.Arm.ServiceBus.Namespaces.Topics
 open Farmer.Builders
 open Farmer.ServiceBus
+open Namespaces
 open Microsoft.Azure.Management.ServiceBus
 open Microsoft.Azure.Management.ServiceBus.Models
 open Microsoft.Rest
@@ -152,7 +153,7 @@ let tests = testList "Service Bus Tests" [
             Expect.equal topic.EnablePartitioning (Nullable true) "Paritition not set"
         }
         test "Can create a basic subscription" {
-             let sub:SBSubscription =
+            let sub:SBSubscription =
                 serviceBus {
                     name "my-bus"
                     add_topics [
@@ -165,6 +166,53 @@ let tests = testList "Service Bus Tests" [
                     ]
                 } |> getResourceAtIndex 2
             Expect.equal sub.Name "my-bus/my-topic/my-sub" "Name not set"
-       }
+        }
+        test "Creates a correlation filter rule" {
+            let correlationRule =
+                ServiceBus.CorrelationFilter(
+                    ResourceName "CompletedStatus",
+                    Some "xyz",
+                    Map [
+                        "Status", "Completed"
+                        "Operation", "DoStuff"
+                    ])
+            let builtCorrelationRule = Rule.CreateCorrelationFilter("CompletedStatus", [ "Status", "Completed"; "Operation", "DoStuff" ], "xyz")
+            Expect.equal correlationRule builtCorrelationRule "Built incorrect correlation filter"
+        }
+        test "Can create a subscription with different filters" {
+            let sb =
+                serviceBus {
+                    name "my-bus"
+                    sku Standard
+                    add_topics [
+                        topic {
+                            name "my-topic"
+                            add_subscriptions [
+                                subscription {
+                                    name "my-sub"
+                                    add_filters [
+                                        Rule.CreateCorrelationFilter("SuccessfulStatus", ["Status", "Success"])
+                                        Rule.CreateSqlFilter("Thing", "Status = Success")
+                                    ]
+                                    add_correlation_filter "FailedStatus" [ "Status", "Fail" ]
+                                    add_sql_filter "OtherSqlThing" "Status = Failed"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            let template =
+                arm {
+                    location Location.EastUS
+                    add_resource sb
+                }
+            let generatedTemplate = template.Template
+            let genSubscription = generatedTemplate.Resources.Item 2 :?> Subscription
+            Expect.hasLength genSubscription.Rules 4 "Expected subscription should have 4 rules"
+            Expect.equal genSubscription.Rules.[0] (Rule.CreateCorrelationFilter("SuccessfulStatus", ["Status", "Success"])) "Rule 0 is incorrect"
+            Expect.equal genSubscription.Rules.[1] (Rule.CreateSqlFilter("Thing", "Status = Success")) "Rule 1 is incorrect"
+            Expect.equal genSubscription.Rules.[2] (Rule.CreateCorrelationFilter("FailedStatus", ["Status", "Fail"])) "Rule 2 is incorrect"
+            Expect.equal genSubscription.Rules.[3] (Rule.CreateSqlFilter("OtherSqlThing", "Status = Failed")) "Rule 3 is incorrect"
+        }
     ]
 ]

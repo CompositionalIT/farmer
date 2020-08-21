@@ -33,7 +33,11 @@ No, we're not. Farmer has (at least currently) a specific goal in mind, which is
 Farmer intentionally has limited support for ARM parameters and variables. Read [here](../api-overview/parameters) to find out the alternatives.
 
 #### Can I add resources that are not supported by Farmer?
-Yes. You can use some adapters that Farmer provides to generate resources using basic .NET objects, or even paste ARM template JSON directly into Farmer and have that embedded inside!
+Yes. You can use some adapters that Farmer provides to generate resources using basic .NET objects, or even paste ARM template JSON directly into Farmer and have that embedded inside. See the following links from the [Contributing](../contributing/) section:
+
+* Using **[raw JSON](../contributing/adding-resources/1-the-farmer-pipline/#step-11-prototype-and-test-using-an-fsx-file)** with `Resource.ofJSON`
+* Using **[anonymous records or objects](../contributing/adding-resources/1-the-farmer-pipline/#step-12-convert-from-json-to-an-f-anonymous-record)** with `Resource.ofObj`
+* Using the **[IArmResource](../contributing/adding-resources/2-iarm-resource/#step-21-migrating-to-iarmresource)** interface.
 
 #### The resource I need isn't included!
 Create an issue on our [github repository](https://github.com/CompositionalIT/farmer/issues), ideally with a sample ARM template and a link to the official Microsoft documentation on the resource. We can't promise we'll look at it immediately, but raising the issue is an important first step to getting more resources supported.

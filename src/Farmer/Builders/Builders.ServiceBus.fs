@@ -55,7 +55,8 @@ type ServiceBusSubscriptionConfig =
       DefaultMessageTimeToLive : TimeSpan option
       MaxDeliveryCount : int option
       Session : bool option
-      DeadLetteringOnMessageExpiration : bool option }
+      DeadLetteringOnMessageExpiration : bool option
+      Rules : Rule list }
 
 type ServiceBusSubscriptionBuilder() =
     member _.Yield _ =
@@ -66,22 +67,40 @@ type ServiceBusSubscriptionBuilder() =
           DefaultMessageTimeToLive = None
           MaxDeliveryCount = None
           Session = None
-          DeadLetteringOnMessageExpiration = None }
+          DeadLetteringOnMessageExpiration = None
+          Rules = List.empty }
 
     /// The name of the queue.
-    [<CustomOperation "name">] member _.Name(state:ServiceBusSubscriptionConfig, name) = { state with Name = ResourceName name }
+    [<CustomOperation "name">]
+     member _.Name(state:ServiceBusSubscriptionConfig, name) = { state with Name = ResourceName name }
     /// The length of time that a lock can be held on a message.
-    [<CustomOperation "lock_duration_minutes">] member _.LockDurationMinutes(state:ServiceBusSubscriptionConfig, duration) = { state with LockDuration = Some (TimeSpan.FromMinutes (float duration)) }
+    [<CustomOperation "lock_duration_minutes">]
+     member _.LockDurationMinutes(state:ServiceBusSubscriptionConfig, duration) = { state with LockDuration = Some (TimeSpan.FromMinutes (float duration)) }
     /// Whether to enable duplicate detection, and if so, how long to check for.ServiceBusQueueConfig
-    [<CustomOperation "duplicate_detection_minutes">] member _.DuplicateDetection(state:ServiceBusSubscriptionConfig, maxTimeWindow) = { state with DuplicateDetection = Some (TimeSpan.FromMinutes (float maxTimeWindow)) }
+    [<CustomOperation "duplicate_detection_minutes">]
+     member _.DuplicateDetection(state:ServiceBusSubscriptionConfig, maxTimeWindow) = { state with DuplicateDetection = Some (TimeSpan.FromMinutes (float maxTimeWindow)) }
     /// The default time-to-live for messages. If not specified, the maximum TTL will be set for the SKU.
-    [<CustomOperation "message_ttl_days">] member _.MessageTtl(state:ServiceBusSubscriptionConfig, ttl) = { state with DefaultMessageTimeToLive = Some (TimeSpan.FromDays (float ttl)) }
+    [<CustomOperation "message_ttl_days">]
+     member _.MessageTtl(state:ServiceBusSubscriptionConfig, ttl) = { state with DefaultMessageTimeToLive = Some (TimeSpan.FromDays (float ttl)) }
     /// Enables session support.
-    [<CustomOperation "max_delivery_count">] member _.MaxDeliveryCount(state:ServiceBusQueueConfig, count) = { state with MaxDeliveryCount = Some count }
+    [<CustomOperation "max_delivery_count">]
+     member _.MaxDeliveryCount(state:ServiceBusSubscriptionConfig, count) = { state with MaxDeliveryCount = Some count }
     /// Whether to enable duplicate detection, and if so, how long to check for.ServiceBusQueueConfig
-    [<CustomOperation "enable_session">] member _.Session(state:ServiceBusQueueConfig) = { state with Session = Some true }
+    [<CustomOperation "enable_session">]
+     member _.Session(state:ServiceBusSubscriptionConfig) = { state with Session = Some true }
     /// Enables dead lettering of messages that expire.
-    [<CustomOperation "enable_dead_letter_on_message_expiration">] member _.DeadLetteringOnMessageExpiration(state:ServiceBusQueueConfig) = { state with DeadLetteringOnMessageExpiration = Some true }
+    [<CustomOperation "enable_dead_letter_on_message_expiration">]
+    member _.DeadLetteringOnMessageExpiration(state:ServiceBusSubscriptionConfig) = { state with DeadLetteringOnMessageExpiration = Some true }
+    /// Adds filtering rules for a subscription
+    [<CustomOperation "add_filters">]
+    member _.AddFilters(state:ServiceBusSubscriptionConfig, filters) = { state with Rules = state.Rules @ filters }
+    /// Adds a sql filtering rule for a subscription
+    [<CustomOperation "add_sql_filter">]
+    member this.AddFilter(state:ServiceBusSubscriptionConfig, name, expression) = this.AddFilters(state, [ Rule.CreateSqlFilter(name, expression) ])
+    /// Adds a correlation filtering rule for a subscription
+    [<CustomOperation "add_correlation_filter">]
+    member this.AddCorrelationFilter(state:ServiceBusSubscriptionConfig, name, properties) = this.AddFilters(state, [ Rule.CreateCorrelationFilter(name, properties) ])
+
 
 type ServiceBusTopicConfig =
     { Name : ResourceName
@@ -119,7 +138,8 @@ type ServiceBusConfig =
       Sku : Sku
       DependsOn : ResourceName list
       Queues : Map<ResourceName, ServiceBusQueueConfig>
-      Topics : Map<ResourceName, ServiceBusTopicConfig> }
+      Topics : Map<ResourceName, ServiceBusTopicConfig>
+      Tags: Map<string,string>  }
     member private _.GetKeyPath sbNsName property =
         sprintf
             "listkeys(resourceId('Microsoft.ServiceBus/namespaces/authorizationRules', '%s', 'RootManageSharedAccessKey'), '2017-04-01').%s"
@@ -134,7 +154,8 @@ type ServiceBusConfig =
             { Name = this.Name
               Location = location
               Sku = this.Sku
-              DependsOn = this.DependsOn }
+              DependsOn = this.DependsOn
+              Tags = this.Tags  }
 
             for queue in this.Queues do
               let queue = queue.Value
@@ -171,7 +192,8 @@ type ServiceBusConfig =
                       DefaultMessageTimeToLive = subscription.DefaultMessageTimeToLive |> Option.map IsoDateTime.OfTimeSpan
                       MaxDeliveryCount = subscription.MaxDeliveryCount
                       Session = subscription.Session
-                      DeadLetteringOnMessageExpiration = subscription.DeadLetteringOnMessageExpiration }
+                      DeadLetteringOnMessageExpiration = subscription.DeadLetteringOnMessageExpiration
+                      Rules = subscription.Rules }
 
         ]
 
@@ -181,7 +203,8 @@ type ServiceBusBuilder() =
           Sku = Basic
           Queues = Map.empty
           Topics = Map.empty
-          DependsOn = List.empty }
+          DependsOn = List.empty
+          Tags = Map.empty  }
     member _.Run (state:ServiceBusConfig) =
         let isBetween min max v = v >= min && v <= max
         for queue in state.Queues do
@@ -219,6 +242,12 @@ type ServiceBusBuilder() =
                 (state.Topics, topics)
                 ||> List.fold(fun state (topic:ServiceBusTopicConfig) -> state.Add(topic.Name, topic))
         }
+    [<CustomOperation "add_tags">]
+    member _.Tags(state:ServiceBusConfig, pairs) = 
+        { state with 
+            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
+    [<CustomOperation "add_tag">]
+    member this.Tag(state:ServiceBusConfig, key, value) = this.Tags(state, [ (key,value) ])
 
 let serviceBus = ServiceBusBuilder()
 let topic = ServiceBusTopicBuilder()

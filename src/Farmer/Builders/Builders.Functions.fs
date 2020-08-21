@@ -19,6 +19,7 @@ type FunctionsConfig =
       AppInsights : ResourceRef<FunctionsConfig> option
       OperatingSystem : OS
       Settings : Map<string, Setting>
+      Tags : Map<string, string>
       Dependencies : ResourceName list
       Cors : Cors option
       StorageAccount : ResourceRef<FunctionsConfig>
@@ -59,6 +60,7 @@ type FunctionsConfig =
               ServicePlan = this.ServicePlanName
               Location = location
               Cors = this.Cors
+              Tags = this.Tags
               AppSettings = [
                 "FUNCTIONS_WORKER_RUNTIME", (string this.Runtime).ToLower()
                 "WEBSITE_NODE_DEFAULT_VERSION", "10.14.1"
@@ -116,16 +118,18 @@ type FunctionsConfig =
                   Sku = Sku.Y1
                   WorkerSize = Serverless
                   WorkerCount = 0
-                  OperatingSystem = this.OperatingSystem }
+                  OperatingSystem = this.OperatingSystem
+                  Tags = this.Tags }
             | _ ->
                 ()
             match this.StorageAccount with
             | DeployableResource this resourceName ->
-                { StorageAccount.Name = resourceName
+                { Name = StorageAccountName.Create resourceName |> Result.get
                   Location = location
                   Sku = Storage.Standard_LRS
                   StaticWebsite = None
-                  EnableHierarchicalNamespace = false}
+                  EnableHierarchicalNamespace = false
+                  Tags = this.Tags }
             | _ ->
                 ()
             match this.AppInsights with
@@ -135,7 +139,8 @@ type FunctionsConfig =
                   LinkedWebsite =
                     match this.OperatingSystem with
                     | Windows -> Some this.Name
-                    | Linux -> None }
+                    | Linux -> None 
+                  Tags = this.Tags }
             | Some _
             | None ->
                 ()
@@ -158,6 +163,7 @@ type FunctionsBuilder() =
           Settings = Map.empty
           Dependencies = []
           Identity = None
+          Tags = Map.empty
           ZipDeployPath = None }
     /// Sets the name of the functions instance.
     [<CustomOperation "name">]
@@ -223,6 +229,12 @@ type FunctionsBuilder() =
     [<CustomOperation "disable_managed_identity">]
     member _.DisableManagedIdentity(state:FunctionsConfig) =
         { state with Identity = Some Disabled }
+    [<CustomOperation "add_tags">]
+    member _.Tags(state:FunctionsConfig, pairs) = 
+        { state with 
+            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
+    [<CustomOperation "add_tag">]
+    member this.Tag(state:FunctionsConfig, key, value) = this.Tags(state, [ (key,value) ])
     [<CustomOperation "zip_deploy">]
     /// Specifies a folder path or a zip file containing the function app to install as a post-deployment task.
     member __.ZipDeploy(state:FunctionsConfig, path) = { state with ZipDeployPath = Some path }

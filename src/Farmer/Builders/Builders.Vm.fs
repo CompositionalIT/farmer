@@ -32,7 +32,8 @@ type VmConfig =
       SubnetPrefix : string
       Subnet : AutoCreationKind<VmConfig>
 
-      DependsOn : ResourceName list }
+      DependsOn : ResourceName list
+      Tags: Map<string,string> }
 
     member internal this.deriveResourceName = makeName this.Name >> ResourceName
     member this.NicName = this.deriveResourceName "nic"
@@ -59,7 +60,8 @@ type VmConfig =
                     failwithf "You must specify a username for virtual machine %s" this.Name.Value
               Image = this.Image
               OsDisk = this.OsDisk
-              DataDisks = this.DataDisks }
+              DataDisks = this.DataDisks
+              Tags = this.Tags }
 
             // Custom Script
             match this.CustomScript with
@@ -69,7 +71,8 @@ type VmConfig =
                   VirtualMachine = this.Name
                   OS = this.Image.OS
                   ScriptContents = script
-                  FileUris = this.CustomScriptFiles }
+                  FileUris = this.CustomScriptFiles
+                  Tags = this.Tags }
             | None ->
                 ()
 
@@ -82,7 +85,8 @@ type VmConfig =
               IpConfigs = [
                 {| SubnetName = subnetName
                    PublicIpName = this.IpName |} ]
-              VirtualNetwork = vnetName }
+              VirtualNetwork = vnetName
+              Tags = this.Tags }
 
             // VNET
             match this.VNet with
@@ -95,6 +99,7 @@ type VmConfig =
                          Prefix = this.SubnetPrefix
                          Delegations = [] |}
                   ]
+                  Tags = this.Tags
                 }
             | _ ->
                 ()
@@ -102,16 +107,18 @@ type VmConfig =
             // IP Address
             { Name = this.IpName
               Location = location
-              DomainNameLabel = this.DomainNamePrefix }
+              DomainNameLabel = this.DomainNamePrefix
+              Tags = this.Tags }
 
             // Storage account - optional
             match this.DiagnosticsStorageAccount with
             | Some (DeployableResource this resourceName) ->
-                { Name = resourceName
+                { Name = StorageAccountName.Create resourceName |> Result.get
                   Location = location
                   Sku = Storage.Standard_LRS
                   StaticWebsite = None
-                  EnableHierarchicalNamespace = false }
+                  EnableHierarchicalNamespace = false
+                  Tags = this.Tags }
             | Some _
             | None ->
                 ()
@@ -133,7 +140,8 @@ type VirtualMachineBuilder() =
           SubnetPrefix = "10.0.0.0/24"
           VNet = derived (fun config -> config.deriveResourceName "vnet")
           Subnet = Derived(fun config -> config.deriveResourceName "subnet")
-          DependsOn = [] }
+          DependsOn = []
+          Tags = Map.empty }
 
     member __.Run (state:VmConfig) =
         { state with
@@ -210,5 +218,11 @@ type VirtualMachineBuilder() =
     member _.CustomScript(state:VmConfig, script:string) = { state with CustomScript = Some script }
     [<CustomOperation "custom_script_files">]
     member _.CustomScriptFiles(state:VmConfig, uris:string list) = { state with CustomScriptFiles = uris |> List.map Uri }
+    [<CustomOperation "add_tags">]
+    member _.Tags(state:VmConfig, pairs) = 
+        { state with 
+            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
+    [<CustomOperation "add_tag">]
+    member this.Tag(state:VmConfig, key, value) = this.Tags(state, [ (key,value) ])
 
 let vm = VirtualMachineBuilder()

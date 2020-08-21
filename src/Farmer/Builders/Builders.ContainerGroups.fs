@@ -55,7 +55,8 @@ type ContainerGroupConfig =
       /// The instances in this container group.
       Instances : ContainerInstanceConfig list
       /// Volumes to mount on the container group.
-      Volumes : Map<string, {| Volume:Volume |}> }
+      Volumes : Map<string, {| Volume:Volume |}>
+      Tags: Map<string,string>  }
     interface IBuilder with
         member this.DependencyName = this.Name
         member this.BuildResources location = [
@@ -75,7 +76,8 @@ type ContainerGroupConfig =
               RestartPolicy = this.RestartPolicy
               IpAddress = this.IpAddress
               NetworkProfile = this.NetworkProfile
-              Volumes = this.Volumes }
+              Volumes = this.Volumes
+              Tags = this.Tags }
         ]
 
 type ContainerGroupBuilder() =
@@ -86,7 +88,8 @@ type ContainerGroupBuilder() =
           IpAddress = { Type = PublicAddress; Ports = Set.empty }
           NetworkProfile = None
           Instances = []
-          Volumes = Map.empty }
+          Volumes = Map.empty
+          Tags = Map.empty }
     member this.Run (state:ContainerGroupConfig) =
         // Automatically apply all public-facing ports to the container group itself.
         state.Instances
@@ -139,6 +142,12 @@ type ContainerGroupBuilder() =
         let newVolumes = volumes |> Map.ofSeq
         let updatedVolumes = state.Volumes |> Map.fold (fun current key vol -> Map.add key vol current) newVolumes
         { state with Volumes = updatedVolumes }
+    [<CustomOperation "add_tags">]
+    member _.Tags(state:ContainerGroupConfig, pairs) = 
+        { state with 
+            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
+    [<CustomOperation "add_tag">]
+    member this.Tag(state:ContainerGroupConfig, key, value) = this.Tags(state, [ (key,value) ])
 
 type ContainerInstanceBuilder() =
     member __.Yield _ =
@@ -196,7 +205,8 @@ type ContainerNetworkInterfaceConfiguration = { IpConfigs : ContainerNetworkInte
 type NetworkProfileConfig =
     { Name : ResourceName
       ContainerNetworkInterfaceConfigurations : ContainerNetworkInterfaceConfiguration list
-      VirtualNetwork : ResourceName }
+      VirtualNetwork : ResourceName
+      Tags: Map<string,string>  }
     interface IBuilder with
         member this.DependencyName = this.Name
         member this.BuildResources location = [
@@ -205,14 +215,16 @@ type NetworkProfileConfig =
               ContainerNetworkInterfaceConfigurations =
                 this.ContainerNetworkInterfaceConfigurations
                 |> List.map (fun ifconfig -> {| IpConfigs = (ifconfig.IpConfigs |> List.map (fun ipConfig -> {| SubnetName = ResourceName ipConfig.Subnet |})) |})
-              VirtualNetwork = this.VirtualNetwork }
+              VirtualNetwork = this.VirtualNetwork
+              Tags = this.Tags }
         ]
 
 type NetworkProfileBuilder() =
     member __.Yield _ =
         { Name = ResourceName.Empty
           ContainerNetworkInterfaceConfigurations = []
-          VirtualNetwork = ResourceName.Empty }
+          VirtualNetwork = ResourceName.Empty
+          Tags = Map.empty }
     /// Sets the name of the network profile instance
     [<CustomOperation "name">]
     member __.Name(state:NetworkProfileConfig, name) = { state with Name = ResourceName name }
@@ -225,5 +237,11 @@ type NetworkProfileBuilder() =
     /// Sets the virtual network for the profile
     [<CustomOperation "vnet">]
     member __.VirtualNetwork(state:NetworkProfileConfig, vnet) = { state with VirtualNetwork = ResourceName vnet }
+    [<CustomOperation "add_tags">]
+    member _.Tags(state:NetworkProfileConfig, pairs) = 
+        { state with 
+            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
+    [<CustomOperation "add_tag">]
+    member this.Tag(state:NetworkProfileConfig, key, value) = this.Tags(state, [ (key,value) ])
 
 let networkProfile = NetworkProfileBuilder ()
