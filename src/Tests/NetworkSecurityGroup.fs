@@ -72,8 +72,8 @@ let tests = testList "NetworkSecurityGroup" [
         let webPolicy = securityRule {
             name "web-servers"
             description "Public web server access"
-            service "web" [ "http", 80
-                            "https", 443 ]
+            services [ "http", 80
+                       "https", 443 ]
             add_source_tag TCP "Internet"
             add_destination_network "10.100.30.0/24"
         }
@@ -103,22 +103,22 @@ let tests = testList "NetworkSecurityGroup" [
         let webPolicy = securityRule { // Web servers - accessible from anything
             name "web-servers"
             description "Public web server access"
-            service "web" [ "http", 80
-                            "https", 443 ]
+            services [ "http", 80
+                       "https", 443 ]
             add_source_tag TCP "Internet"
             add_destination_network "10.100.30.0/24"
         }
         let appPolicy = securityRule { // Only accessible by web servers
             name "app-servers"
             description "Internal app server access"
-            service "http" 8080
+            services [ "http", 8080 ]
             add_source_network TCP "10.100.30.0/24"
             add_destination_network appNet
         }
         let dbPolicy = securityRule { // DB servers - not accessible by web, only by app servers
             name "db-servers"
             description "Internal database server access"
-            service "postgres" 5432
+            services [ "postgres", 5432 ]
             add_source_network TCP appNet
             add_destination_network "10.100.32.0/24"
         }

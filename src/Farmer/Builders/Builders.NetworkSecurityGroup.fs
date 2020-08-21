@@ -5,14 +5,13 @@ module Farmer.Builders.NetworkSecurityGroup
 open Farmer
 open Farmer.Arm.NetworkSecurityGroup
 open Farmer.NetworkSecurity
-open System.Collections.Generic
 open System.Net
 
 /// Network access policy
 type SecurityRuleConfig =
     { Name: ResourceName
       Description : string option
-      Services: {| Name : string; Services : Service list |}
+      Services: NetworkService list
       Sources: (NetworkProtocol * Endpoint * Port) list
       Destinations : Endpoint list
       Operation : Operation }
@@ -21,9 +20,9 @@ type SecurityRuleBuilder () =
     member __.Yield _ =
         { Name = ResourceName.Empty
           Description = None
-          Services = {| Name = ""; Services = [] |}
-          Sources = [ ]
-          Destinations = [ ]
+          Services = []
+          Sources = []
+          Destinations = []
           Operation = Allow }
     /// Sets the name of the security rule
     [<CustomOperation "name">]
@@ -32,18 +31,12 @@ type SecurityRuleBuilder () =
     [<CustomOperation "description">]
     member _.Description(state:SecurityRuleConfig, description) = { state with Description = Some description }
     /// Sets the service or services protected by this rule.
-    [<CustomOperation("service")>]
-    member _.Service(state:SecurityRuleConfig, name, services) =
-        { state with
-            Services =
-                {| Name = name
-                   Services = [
-                    for (name, port) in services do
-                        Service (name, Port(uint16 port))
-                   ]
-                |}
-        }
-    member this.Service(state:SecurityRuleConfig, name, port) = this.Service(state, "", [ name, port ])
+    [<CustomOperation("services")>]
+    member _.Services(state:SecurityRuleConfig, services) =
+        { state with Services = services }
+    member this.Services(state:SecurityRuleConfig, services) =
+        let services = [ for (name, port) in services do NetworkService (name, Port(uint16 port)) ]
+        this.Services(state, services)
     /// Sets the source endpoint that is matched in this rule
     [<CustomOperation("add_source")>]
     member _.AddSource(state:SecurityRuleConfig, source) = { state with Sources = source :: state.Sources }
@@ -97,7 +90,7 @@ let internal buildNsgRule (nsg:NetworkSecurityGroup) (rule:SecurityRuleConfig) (
             | None | Some (AnyEndpoint | Network _ | Host _) ->
                 None, List.ofSeq addresses
 
-    let destPorts = rule.Services.Services |> List.map(fun (Service(_, port)) -> port) |> Set
+    let destPorts = rule.Services |> List.map(fun (NetworkService(_, port)) -> port) |> Set
     let protocols = rule.Sources |> List.map(fun (protocol, _, _) -> protocol) |> Set
     let sourceAddresses = rule.Sources |> List.map(fun (_, sourceAddress, _) -> sourceAddress) |> List.distinct
     let sourcePorts = rule.Sources |> List.map(fun (_, _, sourcePort) -> sourcePort) |> Set
@@ -153,8 +146,8 @@ type NsgBuilder() =
     [<CustomOperation "add_rules">]
     member _.AddSecurityRules (state:NsgConfig, rules) = { state with SecurityRules = state.SecurityRules @ rules }
     [<CustomOperation "add_tags">]
-    member _.Tags(state:NsgConfig, pairs) = 
-        { state with 
+    member _.Tags(state:NsgConfig, pairs) =
+        { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
     member this.Tag(state:NsgConfig, key, value) = this.Tags(state, [ (key,value) ])

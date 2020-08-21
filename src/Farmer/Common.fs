@@ -787,7 +787,7 @@ module NetworkSecurity =
         | Tag tag -> tag
         | AnyEndpoint -> "*"
 
-    type Service = Service of Name:string * Port
+    type NetworkService = NetworkService of name:string * Port
 
     type TrafficDirection = Inbound | Outbound
     module TrafficDirection =
