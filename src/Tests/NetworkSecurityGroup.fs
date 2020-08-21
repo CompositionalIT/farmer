@@ -34,13 +34,9 @@ let tests = testList "NetworkSecurityGroup" [
                   Description = Some (sprintf "Rule created on %s" (DateTimeOffset.Now.Date.ToShortDateString()))
                   SecurityGroup = nsg
                   Protocol = TCP
-                  SourcePort = Some AnyPort
-                  SourcePorts = [ ]
-                  DestinationPort = None
-                  DestinationPorts = [ Port 80us; Port 443us ]
-                  SourceAddress = Some AnyEndpoint
-                  SourceAddresses = [ ]
-                  DestinationAddress = None
+                  SourcePorts = Set [ AnyPort ]
+                  DestinationPorts = Set [ Port 80us; Port 443us ]
+                  SourceAddresses = [ AnyEndpoint ]
                   DestinationAddresses = [ Network (IPAddressCidr.parse "10.100.30.0/24") ]
                   Access = Allow
                   Direction = Inbound
@@ -54,6 +50,7 @@ let tests = testList "NetworkSecurityGroup" [
         match rules with
         | [ _; rule1 ] ->
             rule1.Validate()
+
             Expect.equal rule1.Name "my-nsg/accept-web" ""
             Expect.equal rule1.Access "Allow" ""
             Expect.equal rule1.DestinationAddressPrefixes.[0] "10.100.30.0/24" ""

@@ -764,28 +764,30 @@ module NetworkSecurity =
         member this.ArmValue = this |> NetworkProtocol.ArmValue
 
     type Port =
-    | Port of uint16
-    | Range of First:uint16 * Last:uint16
-    | AnyPort
+        | Port of uint16
+        | Range of First:uint16 * Last:uint16
+        | AnyPort
+        member this.ArmValue =
+            match this with
+            | Port num -> num |> string
+            | Range (first,last) -> sprintf "%d-%d" first last
+            | AnyPort -> "*"
     module Port =
-        let ArmValue = function
-        | Port num -> num |> string
-        | Range (first,last) -> sprintf "%d-%d" first last
-        | AnyPort -> "*"
-    type Port with
-        member this.ArmValue = this |> Port.ArmValue
+        let ArmValue (port:Port) = port.ArmValue
 
     type Endpoint =
-    | Host of System.Net.IPAddress
-    | Network of IPAddressCidr
-    | Tag of string
-    | AnyEndpoint
+        | Host of Net.IPAddress
+        | Network of IPAddressCidr
+        | Tag of string
+        | AnyEndpoint
+        member this.ArmValue =
+            match this with
+            | Host ip -> string ip
+            | Network cidr -> cidr |> IPAddressCidr.format
+            | Tag tag -> tag
+            | AnyEndpoint -> "*"
     module Endpoint =
-        let ArmValue = function
-        | Host ip -> string ip
-        | Network cidr -> cidr |> IPAddressCidr.format
-        | Tag tag -> tag
-        | AnyEndpoint -> "*"
+        let ArmValue (endpoint:Endpoint) = endpoint.ArmValue
 
     type NetworkService = NetworkService of name:string * Port
 

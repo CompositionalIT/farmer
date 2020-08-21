@@ -21,18 +21,32 @@ type NetworkSecurityGroup =
                location = this.Location.ArmValue
                tags = this.Tags |} :> _
 
+let (|SingleEndpoint|ManyEndpoints|) endpoints =
+    // Use a wildcard if there is one
+    if endpoints |> Seq.contains AnyEndpoint then SingleEndpoint AnyEndpoint
+    // Use the first tag that is set (only one supported), otherwise use addresses
+    else
+        endpoints
+        |> Seq.tryFind (function Tag _ -> true | _ -> false)
+        |> function
+        | Some (Tag tag) ->
+            SingleEndpoint (Tag tag)
+        | None | Some (AnyEndpoint | Network _ | Host _) ->
+            ManyEndpoints (List.ofSeq endpoints)
+
+let (|SinglePort|ManyPorts|) (ports:_ Set) =
+    if ports.Contains AnyPort
+    then SinglePort AnyPort
+    else ManyPorts (ports |> List.ofSeq)
+
 type SecurityRule =
     { Name : ResourceName
       Description : string option
       SecurityGroup : NetworkSecurityGroup
       Protocol : NetworkProtocol
-      SourcePort : Port option
-      SourcePorts : Port list
-      DestinationPort : Port option
-      DestinationPorts : Port list
-      SourceAddress : Endpoint option
+      SourcePorts : Port Set
+      DestinationPorts : Port Set
       SourceAddresses : Endpoint list
-      DestinationAddress : Endpoint option
       DestinationAddresses : Endpoint list
       Access : Operation
       Direction : TrafficDirection
@@ -45,17 +59,39 @@ type SecurityRule =
                name = sprintf "%s/%s" this.SecurityGroup.Name.Value this.Name.Value
                dependsOn = [ ArmExpression.resourceId(networkSecurityGroups, this.SecurityGroup.Name).Eval() ]
                properties =
-                {| description = this.Description |> Option.toObj
-                   protocol = this.Protocol.ArmValue
-                   sourcePortRanges = this.SourcePorts |> List.map Port.ArmValue
-                   sourcePortRange = this.SourcePort |> Option.map Port.ArmValue |> Option.toObj
-                   destinationPortRanges = this.DestinationPorts |> List.map Port.ArmValue
-                   destinationPortRange = this.DestinationPort |> Option.map Port.ArmValue |> Option.toObj
-                   sourceAddressPrefix = this.SourceAddress |> Option.map Endpoint.ArmValue |> Option.toObj
-                   sourceAddressPrefixes = this.SourceAddresses |> List.map Endpoint.ArmValue
-                   destinationAddressPrefix = this.DestinationAddress |> Option.map Endpoint.ArmValue |> Option.toObj
-                   destinationAddressPrefixes = this.DestinationAddresses |> List.map Endpoint.ArmValue
-                   access = this.Access.ArmValue
-                   priority = this.Priority
-                   direction = this.Direction.ArmValue |}
+                [ "description", this.Description |> Option.toObj |> box
+                  "protocol", box this.Protocol.ArmValue
+
+                  match this.SourcePorts with
+                  | SinglePort port ->
+                    "sourcePortRange", box port.ArmValue
+                    "sourcePortRanges", box []
+                  | ManyPorts ports ->
+                    "sourcePortRanges", box [ for port in ports -> port.ArmValue ]
+
+                  match this.DestinationPorts with
+                  | SinglePort port ->
+                    "destinationPortRange", box port.ArmValue
+                    "destinationPortRanges", box []
+                  | ManyPorts ports ->
+                    "destinationPortRanges", box [ for port in ports -> port.ArmValue ]
+
+                  match this.SourceAddresses with
+                  | SingleEndpoint endpoint ->
+                    "sourceAddressPrefix", box endpoint.ArmValue
+                    "sourceAddressPrefixes", box []
+                  | ManyEndpoints endpoints ->
+                    "sourceAddressPrefixes", box [ for endpoint in endpoints -> endpoint.ArmValue ]
+
+                  match this.DestinationAddresses with
+                  | SingleEndpoint endpoint ->
+                    "destinationAddressPrefix", endpoint.ArmValue |> box
+                    "destinationAddressPrefixes", box []
+                  | ManyEndpoints endpoints ->
+                    "destinationAddressPrefixes", box [ for endpoint in endpoints -> endpoint.ArmValue ]
+
+                  "access", box this.Access.ArmValue
+                  "priority", box this.Priority
+                  "direction", box this.Direction.ArmValue
+                ] |> Map
             |} :> _

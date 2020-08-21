@@ -77,41 +77,16 @@ type SecurityRuleBuilder () =
 let securityRule = SecurityRuleBuilder()
 
 let internal buildNsgRule (nsg:NetworkSecurityGroup) (rule:SecurityRuleConfig) (priority:int) =
-    let wildcardOrTag (addresses:Endpoint seq) =
-        // Use a wildcard if there is one
-        if addresses |> Seq.contains AnyEndpoint then Some AnyEndpoint, []
-        // Use the first tag that is set (only one supported), otherwise use addresses
-        else
-            addresses
-            |> Seq.tryFind (function Tag _ -> true | _ -> false)
-            |> function
-            | Some (Tag tag) ->
-                Some (Tag tag), []
-            | None | Some (AnyEndpoint | Network _ | Host _) ->
-                None, List.ofSeq addresses
-
-    let destPorts = rule.Services |> List.map(fun (NetworkService(_, port)) -> port) |> Set
-    let protocols = rule.Sources |> List.map(fun (protocol, _, _) -> protocol) |> Set
-    let sourceAddresses = rule.Sources |> List.map(fun (_, sourceAddress, _) -> sourceAddress) |> List.distinct
-    let sourcePorts = rule.Sources |> List.map(fun (_, _, sourcePort) -> sourcePort) |> Set
-
-    let sourceAddress, sourceAddresses = wildcardOrTag sourceAddresses
-    let destAddress, destAddresses = wildcardOrTag rule.Destinations
-
     { Name = rule.Name
       Description = None
       SecurityGroup = nsg
-      Protocol = if protocols.Count > 1 then AnyProtocol else protocols |> Seq.head
-
-      // TODO: What is the semantic meaning here? Is there a relationship between source port and ports?
-      SourcePort = if sourcePorts.Contains AnyPort then Some AnyPort else None
-      SourcePorts = if sourcePorts.Contains AnyPort then [] else sourcePorts |> List.ofSeq
-      SourceAddress = sourceAddress
-      SourceAddresses = sourceAddresses
-      DestinationPort = if destPorts.Contains AnyPort then Some AnyPort else None
-      DestinationPorts = if destPorts.Contains AnyPort then [] else destPorts |> List.ofSeq
-      DestinationAddress = destAddress
-      DestinationAddresses = destAddresses
+      Protocol =
+        let protocols = rule.Sources |> List.map(fun (protocol, _, _) -> protocol) |> Set
+        if protocols.Count > 1 then AnyProtocol else protocols |> Seq.head
+      SourcePorts = rule.Sources |> List.map(fun (_, _, sourcePort) -> sourcePort) |> Set
+      SourceAddresses = rule.Sources |> List.map(fun (_, sourceAddress, _) -> sourceAddress) |> List.distinct
+      DestinationPorts = rule.Services |> List.map(fun (NetworkService(_, port)) -> port) |> Set
+      DestinationAddresses = rule.Destinations
       Access = rule.Operation
       Direction = Inbound
       Priority = priority }
