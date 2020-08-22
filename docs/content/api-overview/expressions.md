@@ -2,7 +2,7 @@
 title: "ARM Expressions"
 date: 2020-02-05T09:13:36+01:00
 draft: false
-weight: 4
+weight: 2
 ---
 [ARM template expressions](https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/template-expressions) are a way of safely storing string values which contain expressions that are evaluated at *deployment time* by the Azure. ARM expressions can also contain a set of predefined [functions](https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/template-functions) supported by the ARM runtime. They can be passed back as outputs and used further downstream
 

@@ -19,10 +19,7 @@ Thanks for thinking about contributing! Azure is a giant beast and help supporti
 ### TODO
 There's still more to document!
 
-* Validation
-* Outputs
-* Dependencies
-* Secure parameters
+* Validation best practices
 * Multiple resource builders
 * Linking resources (one-to-many relationships)
 * Post-deploy tasks
