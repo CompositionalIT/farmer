@@ -1,7 +1,7 @@
 ---
 title: "FAQs"
 date: 2020-02-04T22:38:23+01:00
-weight: 5
+weight: 8
 ---
 
 #### How can I help?
