@@ -1,8 +1,8 @@
 ---
 title: "Container Group"
 date: 2020-04-30T19:30:59+02:00
-weight: 3
 chapter: false
+weight: 5
 ---
 
 #### Overview
@@ -68,7 +68,7 @@ let group = containerGroup {
 #### Private Virtual Network Example
 
 Attaching a container group to a virtual network requires adding a service
-delegation on a subnet indicating it is for container groups, adding a 
+delegation on a subnet indicating it is for container groups, adding a
 network profile to bind the container group interface to that subnet, and
 finally adding the container group itself with a private IP address.
 

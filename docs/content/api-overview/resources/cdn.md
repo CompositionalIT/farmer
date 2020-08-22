@@ -1,7 +1,7 @@
 ---
 title: "CDN"
-weight: 2
 chapter: false
+weight: 3
 ---
 
 #### Overview

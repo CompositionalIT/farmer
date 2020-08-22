@@ -1,8 +1,8 @@
 ---
 title: "SignalR"
 date: 2020-06-01T11:13:00+01:00
-weight: 19
 chapter: false
+weight: 21
 ---
 
 #### Overview

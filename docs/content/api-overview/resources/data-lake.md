@@ -1,8 +1,8 @@
 ---
 title: "Data Lake"
 date: 2020-06-11T00:55:30+02:00
-weight: 4
 chapter: false
+weight: 8
 ---
 
 #### Overview
