@@ -1,5 +1,14 @@
 Release Notes
 =============
+## 0.24.0
+* More documentation
+* Simplified Service Bus filtering
+* Tagging support for most ARM resources
+* Fix incorrect PostgresSQL template generation caused by a breaking change in F#
+* Fix a bug in Redis SKU generation
+* KeyVault now supports dependencies
+* Eager Storage Account Name validation
+
 ## 0.23.0
 * Fix documentation
 * Volume Mount support for Container Groups
