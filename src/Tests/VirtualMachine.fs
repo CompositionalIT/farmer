@@ -48,4 +48,12 @@ let tests = testList "Virtual Machine" [
         Expect.isTrue (template.parameters.ContainsKey "password-for-isaac") "Missing parameter"
         Expect.equal template.parameters.Count 1 "Should only be one parameter"
     }
+    test "Throws an error if you upload script files but no script" {
+        let createVm () = arm { add_resource (vm { name "foo"; username "foo"; custom_script_files [ "http://test.fsx" ] }) } |> ignore
+        Expect.throws createVm "No script was supplied"
+    }
+    test "Does not throws an error if you provide a script" {
+        arm { add_resource (vm { name "foo"; username "foo"; custom_script "foo"; custom_script_files [ "http://test.fsx" ] }) } |> ignore
+        arm { add_resource (vm { name "foo"; username "foo"; custom_script "foo" }) } |> ignore
+    }
 ]

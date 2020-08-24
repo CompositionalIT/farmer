@@ -63,19 +63,6 @@ type VmConfig =
               DataDisks = this.DataDisks
               Tags = this.Tags }
 
-            // Custom Script
-            match this.CustomScript with
-            | Some script ->
-                { Name = this.Name.Map(sprintf "%s-custom-script")
-                  Location = location
-                  VirtualMachine = this.Name
-                  OS = this.Image.OS
-                  ScriptContents = script
-                  FileUris = this.CustomScriptFiles
-                  Tags = this.Tags }
-            | None ->
-                ()
-
             let vnetName = this.VNet.CreateResourceName this
             let subnetName = this.Subnet.CreateResourceName this
 
@@ -122,6 +109,21 @@ type VmConfig =
             | Some _
             | None ->
                 ()
+
+            // Custom Script - optional
+            match this.CustomScript, this.CustomScriptFiles with
+            | Some script, files ->
+                { Name = this.Name.Map(sprintf "%s-custom-script")
+                  Location = location
+                  VirtualMachine = this.Name
+                  OS = this.Image.OS
+                  ScriptContents = script
+                  FileUris = files
+                  Tags = this.Tags }
+            | None, [] ->
+                ()
+            | None, _ ->
+                failwithf "You have supplied custom script files %A but no script. Custom script files are not automatically executed; you must provide an inline script which acts as a bootstrapper using the custom_script keyword." this.CustomScriptFiles
         ]
 
 type VirtualMachineBuilder() =
@@ -219,8 +221,8 @@ type VirtualMachineBuilder() =
     [<CustomOperation "custom_script_files">]
     member _.CustomScriptFiles(state:VmConfig, uris:string list) = { state with CustomScriptFiles = uris |> List.map Uri }
     [<CustomOperation "add_tags">]
-    member _.Tags(state:VmConfig, pairs) = 
-        { state with 
+    member _.Tags(state:VmConfig, pairs) =
+        { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
     member this.Tag(state:VmConfig, key, value) = this.Tags(state, [ (key,value) ])
