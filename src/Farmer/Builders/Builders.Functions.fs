@@ -124,7 +124,7 @@ type FunctionsConfig =
                 ()
             match this.StorageAccount with
             | DeployableResource this resourceName ->
-                { Name = StorageAccountName.Create resourceName |> Result.get
+                { Name = Storage.StorageAccountName.Create resourceName |> Result.get
                   Location = location
                   Sku = Storage.Standard_LRS
                   StaticWebsite = None
@@ -139,7 +139,7 @@ type FunctionsConfig =
                   LinkedWebsite =
                     match this.OperatingSystem with
                     | Windows -> Some this.Name
-                    | Linux -> None 
+                    | Linux -> None
                   Tags = this.Tags }
             | Some _
             | None ->
@@ -230,8 +230,8 @@ type FunctionsBuilder() =
     member _.DisableManagedIdentity(state:FunctionsConfig) =
         { state with Identity = Some Disabled }
     [<CustomOperation "add_tags">]
-    member _.Tags(state:FunctionsConfig, pairs) = 
-        { state with 
+    member _.Tags(state:FunctionsConfig, pairs) =
+        { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
     member this.Tag(state:FunctionsConfig, key, value) = this.Tags(state, [ (key,value) ])

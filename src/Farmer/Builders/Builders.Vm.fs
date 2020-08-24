@@ -113,7 +113,7 @@ type VmConfig =
             // Storage account - optional
             match this.DiagnosticsStorageAccount with
             | Some (DeployableResource this resourceName) ->
-                { Name = StorageAccountName.Create resourceName |> Result.get
+                { Name = Storage.StorageAccountName.Create resourceName |> Result.get
                   Location = location
                   Sku = Storage.Standard_LRS
                   StaticWebsite = None
@@ -219,8 +219,8 @@ type VirtualMachineBuilder() =
     [<CustomOperation "custom_script_files">]
     member _.CustomScriptFiles(state:VmConfig, uris:string list) = { state with CustomScriptFiles = uris |> List.map Uri }
     [<CustomOperation "add_tags">]
-    member _.Tags(state:VmConfig, pairs) = 
-        { state with 
+    member _.Tags(state:VmConfig, pairs) =
+        { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
     member this.Tag(state:VmConfig, key, value) = this.Tags(state, [ (key,value) ])
