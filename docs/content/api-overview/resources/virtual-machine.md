@@ -60,5 +60,7 @@ let myVm = vm {
     os_disk 128 Vm.StandardSSD_LRS
     add_ssd_disk 128
     add_slow_disk 512
+    custom_script "powershell setup-vm.ps1" // you have to actually *call* the script
+    custom_script_files [ "https://foo.bar/foo/setup-vm.ps1" ] 
 }
 ```
