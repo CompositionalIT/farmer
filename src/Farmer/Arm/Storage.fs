@@ -11,17 +11,6 @@ let containers = ResourceType "Microsoft.Storage/storageAccounts/blobServices/co
 let fileShares = ResourceType "Microsoft.Storage/storageAccounts/fileServices/shares"
 let queues = ResourceType "Microsoft.Storage/storageAccounts/queueServices/queues"
 
-type StorageAccountName =
-    private | StorageAccountName of ResourceName
-    static member Create name =
-        if String.IsNullOrWhiteSpace name then Error "Storage account name cannot be empty"
-        elif name.Length > 24 then Error (sprintf "Storage account name max length is 24, but here is %d ('%s')" name.Length name)
-        elif name |> Seq.exists Char.IsUpper then Error (sprintf "Storage account name does not allow upper case letters ('%s')" name)
-        elif name |> Seq.exists (Char.IsLetterOrDigit >> not) then Error (sprintf "Only alphanumeric characters are allowed ('%s')" name)
-        else Ok (StorageAccountName (ResourceName name))
-    static member Create (ResourceName name) = StorageAccountName.Create name
-    member this.ResourceName = match this with StorageAccountName name -> name
-
 type StorageAccount =
     { Name : StorageAccountName
       Location : Location
@@ -53,15 +42,15 @@ type StorageAccount =
 
 module BlobServices =
     type Container =
-        { Name : ResourceName
+        { Name : StorageResourceName
           StorageAccount : ResourceName
           Accessibility : StorageContainerAccess }
         interface IArmResource with
-            member this.ResourceName = this.Name
+            member this.ResourceName = this.Name.ResourceName
             member this.JsonModel =
                 {| ``type`` = containers.ArmValue
                    apiVersion = "2018-03-01-preview"
-                   name = this.StorageAccount.Value + "/default/" + this.Name.Value
+                   name = this.StorageAccount.Value + "/default/" + this.Name.ResourceName.Value
                    dependsOn = [ this.StorageAccount.Value ]
                    properties =
                     {| publicAccess =
@@ -73,27 +62,27 @@ module BlobServices =
 
 module FileShares =
     type FileShare =
-        { Name: ResourceName
-          ShareQuota: int option
+        { Name: StorageResourceName
+          ShareQuota: int<Gb> option
           StorageAccount: ResourceName }
         interface IArmResource with
-            member this.ResourceName = this.Name
+            member this.ResourceName = this.Name.ResourceName
             member this.JsonModel =
                 {| ``type`` = fileShares.ArmValue
                    apiVersion = "2019-06-01"
-                   name = this.StorageAccount.Value + "/default/" + this.Name.Value
-                   properties = {| shareQuota = this.ShareQuota |> Option.defaultValue 5120 |}
+                   name = this.StorageAccount.Value + "/default/" + this.Name.ResourceName.Value
+                   properties = {| shareQuota = this.ShareQuota |> Option.defaultValue 5120<Gb> |}
                    dependsOn = [ this.StorageAccount.Value ]
                 |} :> _
 
 module Queues =
     type Queue =
-        { Name : ResourceName
+        { Name : StorageResourceName
           StorageAccount : ResourceName }
         interface IArmResource with
-            member this.ResourceName = this.Name
+            member this.ResourceName = this.Name.ResourceName
             member this.JsonModel =
-                {| name = this.StorageAccount.Value + "/default/" + this.Name.Value
+                {| name = this.StorageAccount.Value + "/default/" + this.Name.ResourceName.Value
                    ``type`` = queues.ArmValue
                    dependsOn = [ this.StorageAccount.Value ]
                    apiVersion = "2019-06-01"

@@ -265,16 +265,71 @@ module Vm =
     /// Represents a disk in a VM.
     type DiskInfo = { Size : int; DiskType : DiskType }
 
+module internal Validation =
+    let isNonEmpty entity s = if String.IsNullOrWhiteSpace s then Error (sprintf "%s cannot be empty" entity) else Ok()
+    let notLongerThan max entity (s:string) = if s.Length > max then Error (sprintf "%s max length is %d, but here is %d ('%s')" entity max s.Length s) else Ok()
+    let notShorterThan min entity (s:string) = if s.Length < min then Error (sprintf "%s min length is %d, but here is %d ('%s')" entity min s.Length s) else Ok()
+    let lengthBetween min max entity (s:string) = s |> notLongerThan max entity |> Result.bind (fun _ -> s |> notShorterThan min entity)
+    let containsOnly message predicate entity (s:string) = if s |> Seq.exists (predicate >> not) then Error (sprintf "%s can only contain %s ('%s')" entity message s) else Ok()
+    let cannotContain message predicate entity (s:string) = if s |> Seq.exists predicate then Error (sprintf "%s do not allow %s ('%s')" entity message s) else Ok()
+    let startsWith message predicate entity (s:string) = if not (predicate s.[0]) then Error (sprintf "%s must start with %s ('%s')" entity message s) else Ok()
+    let endsWith message predicate entity (s:string) = if not (predicate s.[s.Length - 1]) then Error (sprintf "%s must end with %s ('%s')" entity message s) else Ok()
+    let cannotStartWith message predicate entity (s:string) = if predicate s.[0] then Error (sprintf "%s cannot start with %s ('%s')" entity message s) else Ok()
+    let cannotEndWith message predicate entity (s:string) = if predicate s.[s.Length - 1] then Error (sprintf "%s cannot end with %s ('%s')" entity message s) else Ok()
+    let arb message predicate entity (s:string) = if predicate s then Error (sprintf "%s %s ('%s')" entity message s) else Ok()
+    let (<+>) a b v = a v && b v
+    let (<|>) a b v = a v || b v
+    let lowercaseOnly = Char.IsLetter >> not <|> Char.IsLower
+
+    let validate entity text rules =
+        rules
+        |> Seq.choose (fun v ->
+            match v entity text with
+            | Error m -> Some (Error m)
+            | Ok _ -> None)
+        |> Seq.tryHead
+        |> Option.defaultValue (Ok text)
+
 module Storage =
+    open Validation
+    type StorageAccountName =
+        private | StorageAccountName of ResourceName
+        static member Create name =
+            [ isNonEmpty
+              lengthBetween 3 24
+              containsOnly "lowercase letters" lowercaseOnly
+              containsOnly "alphanumeric characters" Char.IsLetterOrDigit ]
+            |> validate "Storage account names" name
+            |> Result.map (ResourceName >> StorageAccountName)
+
+        static member Create (ResourceName name) = StorageAccountName.Create name
+        member this.ResourceName = match this with StorageAccountName name -> name
+
+    type StorageResourceName =
+        private | StorageResourceName of ResourceName
+        static member Create name =
+            [ isNonEmpty
+              lengthBetween 3 63
+              startsWith "an alphanumeric character" Char.IsLetterOrDigit
+              endsWith "an alphanumeric character" Char.IsLetterOrDigit
+              containsOnly "letters, numbers, and the dash (-) character" (fun c -> Char.IsLetterOrDigit c || c = '-')
+              containsOnly "lowercase letters" lowercaseOnly
+              arb "do not allow consecutive dashes" (fun s -> s.Contains "--") ]
+            |> validate "Storage resource names" name
+            |> Result.map (ResourceName >> StorageResourceName)
+
+        static member Create (ResourceName name) = StorageResourceName.Create name
+        member this.ResourceName = match this with StorageResourceName name -> name
+
     type Sku =
-    | Standard_LRS
-    | Standard_GRS
-    | Standard_RAGRS
-    | Standard_ZRS
-    | Standard_GZRS
-    | Standard_RAGZRS
-    | Premium_LRS
-    | Premium_ZRS
+        | Standard_LRS
+        | Standard_GRS
+        | Standard_RAGRS
+        | Standard_ZRS
+        | Standard_GZRS
+        | Standard_RAGZRS
+        | Premium_LRS
+        | Premium_ZRS
         member this.ArmValue = this.ToString()
 
     type StorageContainerAccess =

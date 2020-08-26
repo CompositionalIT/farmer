@@ -15,8 +15,6 @@ let internal buildKey (ResourceName name) =
             name
     |> ArmExpression.create
 
-type ShareQuotaInGb = int
-
 type StorageAccountConfig =
     { /// The name of the storage account.
       Name : StorageAccountName
@@ -25,11 +23,11 @@ type StorageAccountConfig =
       /// Whether to enable Data Lake Storage Gen2.
       EnableDataLake : bool
       /// Containers for the storage account.
-      Containers : (ResourceName * StorageContainerAccess) list
+      Containers : (StorageResourceName * StorageContainerAccess) list
       /// File shares
-      FileShares: (ResourceName * ShareQuotaInGb option) list
+      FileShares: (StorageResourceName * int<Gb> option) list
       /// Queues
-      Queues : ResourceName Set
+      Queues : StorageResourceName Set
       /// Static Website Settings
       StaticWebsite : {| IndexPage : string; ContentPath : string; ErrorPage : string option |} option
       /// Tags to apply to the storage account
@@ -72,6 +70,9 @@ type StorageAccountBuilder() =
         StaticWebsite = None
         Tags = Map.empty
     }
+    static member private AddContainer(state, access, name:string) = { state with Containers = state.Containers @ [ (StorageResourceName.Create name |> Result.get, access) ] }
+    static member private AddFileShare(state:StorageAccountConfig, name:string, quota) = { state with FileShares = state.FileShares @ [ (StorageResourceName.Create name |> Result.get, quota) ] }
+
     /// Sets the name of the storage account.
     [<CustomOperation "name">]
     member _.Name(state:StorageAccountConfig, name:ResourceName) = { state with Name = StorageAccountName.Create name |> Result.get }
@@ -79,8 +80,6 @@ type StorageAccountBuilder() =
     /// Sets the sku of the storage account.
     [<CustomOperation "sku">]
     member _.Sku(state:StorageAccountConfig, sku) = { state with Sku = sku }
-    static member private AddContainer(state, access, name) =
-        { state with Containers = state.Containers @ [ (ResourceName name, access) ] }
     /// Adds private container.
     [<CustomOperation "add_private_container">]
     member _.AddPrivateContainer(state:StorageAccountConfig, name) = StorageAccountBuilder.AddContainer(state, Private, name)
@@ -92,13 +91,13 @@ type StorageAccountBuilder() =
     member _.AddBlobContainer(state:StorageAccountConfig, name) = StorageAccountBuilder.AddContainer(state, Blob, name)
     /// Adds a file share with no quota.
     [<CustomOperation "add_file_share">]
-    member _.AddFileShare(state:StorageAccountConfig, name) = { state with FileShares = state.FileShares @ [ ResourceName name, None ]}
+    member _.AddFileShare(state:StorageAccountConfig, name) = StorageAccountBuilder.AddFileShare(state, name, None)
     /// Adds a file share with specified quota.
     [<CustomOperation "add_file_share_with_quota">]
-    member _.AddFileShareWithQuota(state:StorageAccountConfig, name, quota) = { state with FileShares = state.FileShares @ [ ResourceName name, Some quota ]}
+    member _.AddFileShareWithQuota(state:StorageAccountConfig, name:string, quota) = StorageAccountBuilder.AddFileShare(state, name, Some quota)
     /// Adds a single queue to the storage account.
     [<CustomOperation "add_queue">]
-    member _.AddQueue(state:StorageAccountConfig, name) = { state with Queues = state.Queues.Add (ResourceName name) }
+    member _.AddQueue(state:StorageAccountConfig, name:string) = { state with Queues = state.Queues.Add (StorageResourceName.Create name |> Result.get) }
     /// Adds a set of queues to the storage account.
     [<CustomOperation "add_queues">]
     member this.AddQueues(state:StorageAccountConfig, names) =
@@ -116,8 +115,8 @@ type StorageAccountBuilder() =
     member _.UseHns(state:StorageAccountConfig) = { state with EnableDataLake = true }
     /// Adds tags to the storage account
     [<CustomOperation "add_tags">]
-    member _.Tags(state:StorageAccountConfig, pairs) = 
-        { state with 
+    member _.Tags(state:StorageAccountConfig, pairs) =
+        { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     /// Adds a tag to the storage account
     [<CustomOperation "add_tag">]
