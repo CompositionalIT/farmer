@@ -34,10 +34,24 @@ let (|SingleEndpoint|ManyEndpoints|) endpoints =
         | None | Some (AnyEndpoint | Network _ | Host _) ->
             ManyEndpoints (List.ofSeq endpoints)
 
-let (|SinglePort|ManyPorts|) (ports:_ Set) =
+let private (|SinglePort|ManyPorts|) (ports:_ Set) =
     if ports.Contains AnyPort
     then SinglePort AnyPort
     else ManyPorts (ports |> List.ofSeq)
+
+module private EndpointWriter =
+    let toPrefixes = function
+        | SingleEndpoint _ -> []
+        | ManyEndpoints endpoints -> [ for endpoint in endpoints -> endpoint.ArmValue ]
+    let toPrefix = function
+        | SingleEndpoint endpoint -> endpoint.ArmValue
+        | ManyEndpoints _ -> null
+    let toRange = function
+        | SinglePort p -> box p.ArmValue
+        | ManyPorts _ -> null
+    let toRanges = function
+        | SinglePort _ -> []
+        | ManyPorts ports -> [ for port in ports -> port.ArmValue ]
 
 type SecurityRule =
     { Name : ResourceName
@@ -59,39 +73,18 @@ type SecurityRule =
                name = sprintf "%s/%s" this.SecurityGroup.Name.Value this.Name.Value
                dependsOn = [ ArmExpression.resourceId(networkSecurityGroups, this.SecurityGroup.Name).Eval() ]
                properties =
-                [ "description", this.Description |> Option.toObj |> box
-                  "protocol", box this.Protocol.ArmValue
-
-                  match this.SourcePorts with
-                  | SinglePort port ->
-                    "sourcePortRange", box port.ArmValue
-                    "sourcePortRanges", box []
-                  | ManyPorts ports ->
-                    "sourcePortRanges", box [ for port in ports -> port.ArmValue ]
-
-                  match this.DestinationPorts with
-                  | SinglePort port ->
-                    "destinationPortRange", box port.ArmValue
-                    "destinationPortRanges", box []
-                  | ManyPorts ports ->
-                    "destinationPortRanges", box [ for port in ports -> port.ArmValue ]
-
-                  match this.SourceAddresses with
-                  | SingleEndpoint endpoint ->
-                    "sourceAddressPrefix", box endpoint.ArmValue
-                    "sourceAddressPrefixes", box []
-                  | ManyEndpoints endpoints ->
-                    "sourceAddressPrefixes", box [ for endpoint in endpoints -> endpoint.ArmValue ]
-
-                  match this.DestinationAddresses with
-                  | SingleEndpoint endpoint ->
-                    "destinationAddressPrefix", endpoint.ArmValue |> box
-                    "destinationAddressPrefixes", box []
-                  | ManyEndpoints endpoints ->
-                    "destinationAddressPrefixes", box [ for endpoint in endpoints -> endpoint.ArmValue ]
-
-                  "access", box this.Access.ArmValue
-                  "priority", box this.Priority
-                  "direction", box this.Direction.ArmValue
-                ] |> Map
+                {| description = this.Description |> Option.toObj
+                   protocol = this.Protocol.ArmValue
+                   sourcePortRange = this.SourcePorts |> EndpointWriter.toRange
+                   sourcePortRanges = this.SourcePorts |> EndpointWriter.toRanges
+                   destinationPortRange = this.DestinationPorts |> EndpointWriter.toRange
+                   destinationPortRanges = this.DestinationPorts |> EndpointWriter.toRanges
+                   sourceAddressPrefix = this.SourceAddresses |> EndpointWriter.toPrefix
+                   sourceAddressPrefixes = this.SourceAddresses |> EndpointWriter.toPrefixes
+                   destinationAddressPrefix = this.DestinationAddresses |> EndpointWriter.toPrefix
+                   destinationAddressPrefixes = this.DestinationAddresses |> EndpointWriter.toPrefixes
+                   access = this.Access.ArmValue
+                   priority = this.Priority
+                   direction = this.Direction.ArmValue
+                |}
             |} :> _
