@@ -88,7 +88,7 @@ type EventGridConfig<'T> =
            Destination : ResourceName
            Endpoint : EndpointType
            SystemEvents : EventGridEvent list |} list
-      Tags: Map<string,string> 
+      Tags: Map<string,string>
     }
     interface IBuilder with
         member this.DependencyName = this.TopicName
@@ -152,8 +152,8 @@ type EventGridBuilder() =
     member _.AddEventHubSubscription(state:EventGridConfig<'T> when 'T :> IEventGridEvent, eventHub:EventHubConfig, events:'T list) =
         EventGridBuilder.AddSub(state, eventHub.Name.Value + "-eventhub", eventHub.EventHubNamespaceName, EventHub eventHub.Name, events |> List.map (fun x -> x.ToEvent))
     [<CustomOperation "add_tags">]
-    member _.Tags(state:EventGridConfig<'T>, pairs) = 
-        { state with 
+    member _.Tags(state:EventGridConfig<'T>, pairs) =
+        { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
     member this.Tag(state:EventGridConfig<'T>, key, value) = this.Tags(state, [ (key,value) ])
