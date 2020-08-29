@@ -75,7 +75,7 @@ module Expect =
 let tests = testList "PostgreSQL Database Service" [
     test "Server settings are correct" {
         let actual = runBuilder<PostgresTemplate> <| postgreSQL {
-            server_name "testdb"
+            name "testdb"
             admin_username "myadminuser"
             server_version VS_10
             storage_size 50<Gb>
@@ -102,12 +102,15 @@ let tests = testList "PostgreSQL Database Service" [
     }
 
     test "Database settings are correct" {
+        let db = postgreSQLDb {
+            name "my_db"
+            collation "de_DE"
+            charset "ASCII"
+        }
         let actual = postgreSQL {
-            server_name "testdb"
+            name "testdb"
             admin_username "myadminuser"
-            db_name "my_db"
-            db_collation "de_DE"
-            db_charset "ASCII"
+            add_database db
         }
         let actual =
             actual
@@ -130,7 +133,7 @@ let tests = testList "PostgreSQL Database Service" [
 
     test "Firewall rules are correctly set" {
         let actual = postgreSQL {
-            server_name "testdb"
+            name "testdb"
             admin_username "myadminuser"
             enable_azure_firewall
         }
@@ -156,11 +159,11 @@ let tests = testList "PostgreSQL Database Service" [
     }
 
     test "Admin username must be given" {
-        Expect.throws (fun () -> runBuilder <| postgreSQL { server_name "servername" } |> ignore) "Missing admin username"
+        Expect.throws (fun () -> runBuilder <| postgreSQL { name "servername" } |> ignore) "Missing admin username"
     }
 
     test "server_name is validated when set" {
-        Expect.throws (fun () -> postgreSQL { server_name "123bad" } |> ignore) "Bad server name"
+        Expect.throws (fun () -> postgreSQL { name "123bad" } |> ignore) "Bad server name"
     }
 
     test "admin_username is validated when set" {

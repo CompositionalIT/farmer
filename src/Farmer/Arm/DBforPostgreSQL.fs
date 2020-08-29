@@ -21,6 +21,7 @@ type [<RequireQualifiedAccess>] PostgreSQLFamily =
         match this with
         | Gen5 -> "Gen5"
 
+
 module Servers =
     type Database =
         { Name : ResourceName
@@ -57,8 +58,7 @@ module Servers =
 type Server =
     { Name : ResourceName
       Location : Location
-      Username : string
-      Password : SecureParameter
+      Credentials : {| Username : string; Password : SecureParameter |}
       Version : Version
       Capacity : int<VCores>
       StorageSize : int<Mb>
@@ -68,7 +68,7 @@ type Server =
       StorageAutoGrow : FeatureFlag
       BackupRetention : int<Days>
       Tags: Map<string,string>  }
-
+       
     member this.Sku =
         {| name = sprintf "%s_%s_%d" this.Tier.Name this.Family.AsArmValue this.Capacity
            tier = string this.Tier
@@ -91,13 +91,13 @@ type Server =
             | VS_10 -> "10"
             | VS_11 -> "11"
 
-        {| administratorLogin = this.Username
-           administratorLoginPassword = this.Password.AsArmRef.Eval()
+        {| administratorLogin = this.Credentials.Username
+           administratorLoginPassword = this.Credentials.Password.AsArmRef.Eval()
            version = version
            storageProfile = this.GetStorageProfile() |}
 
     interface IParameters with
-        member this.SecureParameters = [ this.Password ]
+        member this.SecureParameters = [ this.Credentials.Password ]
 
     interface IArmResource with
         member this.ResourceName = this.Name

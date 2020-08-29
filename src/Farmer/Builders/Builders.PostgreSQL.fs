@@ -10,9 +10,16 @@ open Farmer.PostgreSQL
 open Arm.DBforPostgreSQL
 open Servers
 
-type PostgreSQLBuilderConfig =
-    { Server : ResourceRef<PostgreSQLBuilderConfig>
-      AdminUserName : string option
+
+type PostgreSQLDbBuilderConfig =
+    { Name : ResourceName 
+      DbCollation : string option
+      DbCharset : string option }
+
+
+type PostgreSQLServerBuilderConfig =
+    { Name : ResourceName
+      AdministratorCredentials : {| UserName : string; Password : SecureParameter |}
       Version : Version
       GeoRedundantBackup : bool
       StorageAutogrow : bool
@@ -20,52 +27,42 @@ type PostgreSQLBuilderConfig =
       StorageSize : int<Gb>
       Capacity : int<VCores>
       Tier : Sku
-      DbName : ResourceName option
-      DbCollation : string option
-      DbCharset : string option
+      Databases : PostgreSQLDbBuilderConfig list
       FirewallRules : {| Name : ResourceName; Start : IPAddress; End : IPAddress |} list
       Tags: Map<string,string>  }
 
-    member this.ServerName = this.Server.CreateResourceName this
-
     interface IBuilder with
-        member this.DependencyName = this.Server.CreateResourceName this
+        member this.DependencyName = this.Name
         member this.BuildResources location = [
-            match this.Server with
-            | DeployableResource this resourceName ->
-                let serverName = resourceName
-                { Name = serverName
-                  Location = location
-                  Username = this.AdminUserName |> Option.defaultWith(fun () -> "admin username not set")
-                  Password = SecureParameter (sprintf "password-for-%s" serverName.Value)
-                  Version = this.Version
-                  StorageSize = this.StorageSize * 1024<Mb> / 1<Gb>
-                  Capacity = this.Capacity
-                  Tier = this.Tier
-                  Family = PostgreSQLFamily.Gen5
-                  GeoRedundantBackup = FeatureFlag.ofBool this.GeoRedundantBackup
-                  StorageAutoGrow = FeatureFlag.ofBool this.StorageAutogrow
-                  BackupRetention = this.BackupRetention
-                  Tags = this.Tags  }
-            | _ ->
-                ()
+            { Name = this.Name
+              Location = location
+              Credentials = {| Username = this.AdministratorCredentials.UserName
+                               Password = this.AdministratorCredentials.Password |}
+              Version = this.Version
+              StorageSize = this.StorageSize * 1024<Mb> / 1<Gb>
+              Capacity = this.Capacity
+              Tier = this.Tier
+              Family = PostgreSQLFamily.Gen5
+              GeoRedundantBackup = FeatureFlag.ofBool this.GeoRedundantBackup
+              StorageAutoGrow = FeatureFlag.ofBool this.StorageAutogrow
+              BackupRetention = this.BackupRetention
+              Tags = this.Tags  }
 
-            match this.DbName with
-            | Some dbName ->
-                { Name = dbName
-                  Server = this.ServerName
-                  Collation = this.DbCollation |> Option.defaultValue "English_United States.1252"
-                  Charset = this.DbCharset |> Option.defaultValue "UTF8" }
-            | None ->
-                ()
+            for database in this.Databases do            
+                { Name = database.Name
+                  Server = this.Name
+                  Collation = database.DbCollation |> Option.defaultValue "English_United States.1252"
+                  Charset = database.DbCharset |> Option.defaultValue "UTF8" }
 
             for rule in this.FirewallRules do
                 { Name = rule.Name
                   Start = rule.Start
                   End = rule.End
-                  Server = this.ServerName
+                  Server = this.Name
                   Location = location }
         ]
+
+
 [<AutoOpen>]
 module private Helpers =
     let isAsciiDigit (c : Char) = (c >= '0' && c <= '9')
@@ -141,13 +138,39 @@ module Validate =
             failwithf "Capacity must be a power of two, was %d" capacity
 
 
+type PostgreSQLDbBuilder() =
+    member _this.Yield _ : PostgreSQLDbBuilderConfig =
+        { Name = ResourceName ""
+          DbCharset = None
+          DbCollation = None }
+
+    member _this.Run (state:PostgreSQLDbBuilderConfig) =
+        if state.Name = ResourceName.Empty then failwith "You must set a database name"
+        state
+
+    [<CustomOperation("name")>]
+    member _this.SetName(state: PostgreSQLDbBuilderConfig, name:ResourceName) =
+        Validate.dbname name.Value
+        { state with Name = name }
+    member this.SetName(state: PostgreSQLDbBuilderConfig, name: string) =
+        this.SetName(state, ResourceName name)
+
+    [<CustomOperation("collation")>]
+    member _this.SetCollation(state: PostgreSQLDbBuilderConfig, collation:string) =
+        if String.IsNullOrWhiteSpace collation then failwith "collation must have a value"
+        { state with DbCollation = Some collation }
+
+    [<CustomOperation("charset")>]
+    member _this.SetCharset(state: PostgreSQLDbBuilderConfig, charSet:string) =
+        if String.IsNullOrWhiteSpace charSet then failwith "charSet must have a value"
+        { state with DbCharset = Some charSet }
+
+let postgreSQLDb = PostgreSQLDbBuilder()
+
 type PostgreSQLBuilder() =
-    member _this.Yield _ =
-        { PostgreSQLBuilderConfig.Server = derived (fun config ->
-            config.DbName
-            |> Option.map(fun m -> m.Map(sprintf "%s-server"))
-            |> Option.defaultWith (fun _ -> failwith "You must set a DB name if you do not set a server name"))
-          AdminUserName = None
+    member _this.Yield _ : PostgreSQLServerBuilderConfig =
+        { Name = ResourceName ""
+          AdministratorCredentials = {| UserName = ""; Password = SecureParameter "" |}
           Version = VS_11
           GeoRedundantBackup = false
           StorageAutogrow = true
@@ -155,109 +178,105 @@ type PostgreSQLBuilder() =
           StorageSize = Validate.minStorageSize
           Capacity = 2<VCores>
           Tier = Basic
-          DbName = None
-          DbCollation = None
-          DbCharset = None
+          Databases = []
           FirewallRules = []
           Tags = Map.empty  }
 
-    member _this.Run state =
-        state.AdminUserName |> Option.defaultWith(fun () -> failwith "admin username not set") |> ignore
-        state
+    member _this.Run state : PostgreSQLServerBuilderConfig =
+        state.Name.Value |> Validate.servername 
+        state.AdministratorCredentials.UserName |> Validate.username "AdministratorCredentials.UserName"
+        { state with 
+            AdministratorCredentials = 
+                {| state.AdministratorCredentials with 
+                    Password = sprintf "password-for-%s" state.Name.Value |> SecureParameter |}  }
 
     /// Sets the name of the PostgreSQL server
-    [<CustomOperation "server_name">]
-    member _this.ServerName(state:PostgreSQLBuilderConfig, serverName) =
+    [<CustomOperation "name">]
+    member _this.ServerName(state:PostgreSQLServerBuilderConfig, serverName) =
         let (ResourceName n) = serverName
         Validate.servername n
-        { state with Server = AutoCreate (Named serverName) }
-    member this.ServerName(state:PostgreSQLBuilderConfig, serverName) =
+        { state with Name = serverName }
+    member this.ServerName(state:PostgreSQLServerBuilderConfig, serverName) =
         this.ServerName(state, ResourceName serverName)
 
     /// Sets the name of the admin user
     [<CustomOperation "admin_username">]
-    member _this.AdminUsername(state:PostgreSQLBuilderConfig, adminUsername:string) =
+    member _this.AdminUsername(state:PostgreSQLServerBuilderConfig, adminUsername:string) =
         Validate.username "adminUserName" adminUsername
-        { state with AdminUserName = Some adminUsername }
+        { state with 
+            Databases = List.rev state.Databases
+            AdministratorCredentials = 
+                {| state.AdministratorCredentials with UserName = adminUsername  |} }
 
     /// Sets geo-redundant backup
     [<CustomOperation "geo_redundant_backup">]
-    member _this.SetGeoRedundantBackup(state:PostgreSQLBuilderConfig, enabled:bool) =
+    member _this.SetGeoRedundantBackup(state:PostgreSQLServerBuilderConfig, enabled:bool) =
         { state with GeoRedundantBackup = enabled }
 
     /// Enables geo-redundant backup
     [<CustomOperation "enable_geo_redundant_backup">]
-    member this.EnableGeoRedundantBackup(state:PostgreSQLBuilderConfig) =
+    member this.EnableGeoRedundantBackup(state:PostgreSQLServerBuilderConfig) =
         this.SetGeoRedundantBackup(state, true)
 
     /// Disables geo-redundant backup
     [<CustomOperation "disable_geo_redundant_backup">]
-    member this.DisableGeoRedundantBackup(state:PostgreSQLBuilderConfig) =
+    member this.DisableGeoRedundantBackup(state:PostgreSQLServerBuilderConfig) =
         this.SetGeoRedundantBackup(state, false)
 
     /// Sets storage autogrow
     [<CustomOperation "storage_autogrow">]
-    member _this.SetStorageAutogrow(state:PostgreSQLBuilderConfig, enabled:bool) =
+    member _this.SetStorageAutogrow(state:PostgreSQLServerBuilderConfig, enabled:bool) =
         { state with StorageAutogrow = enabled }
 
     /// Enables storage autogrow
     [<CustomOperation "enable_storage_autogrow">]
-    member this.EnableStorageAutogrow(state:PostgreSQLBuilderConfig) =
+    member this.EnableStorageAutogrow(state:PostgreSQLServerBuilderConfig) =
         this.SetStorageAutogrow(state, true)
 
     /// Disables storage autogrow
     [<CustomOperation "disable_storage_autogrow">]
-    member this.DisableStorageAutogrow(state:PostgreSQLBuilderConfig) =
+    member this.DisableStorageAutogrow(state:PostgreSQLServerBuilderConfig) =
         this.SetStorageAutogrow(state, false)
 
     /// sets storage size in MBs
     [<CustomOperation "storage_size">]
-    member _this.SetStorageSizeInMBs(state:PostgreSQLBuilderConfig, size:int<Gb>) =
+    member _this.SetStorageSizeInMBs(state:PostgreSQLServerBuilderConfig, size:int<Gb>) =
         Validate.storageSize size
         { state with StorageSize = size }
 
     /// sets the backup retention in days
     [<CustomOperation "backup_retention">]
-    member _this.SetBackupRetention (state:PostgreSQLBuilderConfig, retention:int<Days>) =
+    member _this.SetBackupRetention (state:PostgreSQLServerBuilderConfig, retention:int<Days>) =
         Validate.backupRetention retention
         { state with BackupRetention = retention }
 
     /// Sets the PostgreSQl server version
     [<CustomOperation "server_version">]
-    member _this.SetServerVersion (state:PostgreSQLBuilderConfig, version:Version) =
+    member _this.SetServerVersion (state:PostgreSQLServerBuilderConfig, version:Version) =
         { state with Version = version }
 
     /// Sets capacity
     [<CustomOperation "capacity">]
-    member _this.SetCapacity (state:PostgreSQLBuilderConfig, capacity:int<VCores>) =
+    member _this.SetCapacity (state:PostgreSQLServerBuilderConfig, capacity:int<VCores>) =
         Validate.capacity capacity
         { state with Capacity = capacity }
 
     /// Sets tier
     [<CustomOperation "tier">]
-    member _this.SetTier (state:PostgreSQLBuilderConfig, tier:Sku) =
+    member _this.SetTier (state:PostgreSQLServerBuilderConfig, tier:Sku) =
         { state with Tier = tier }
 
     /// Sets database name
-    [<CustomOperation "db_name">]
-    member _this.SetDbName (state:PostgreSQLBuilderConfig, dbName) =
-        let (ResourceName n) = dbName
-        Validate.dbname n
-        { state with DbName = Some dbName }
-    member this.SetDbName (state:PostgreSQLBuilderConfig, dbName:string) =
-        this.SetDbName(state, ResourceName dbName)
-
-    [<CustomOperation "db_charset">]
-    member _this.SetDbCharset (state:PostgreSQLBuilderConfig, charset) =
-        { state with DbCharset = Some charset }
-
-    [<CustomOperation "db_collation">]
-    member _this.SetDbCollation (state:PostgreSQLBuilderConfig, collation) =
-        { state with DbCollation = Some collation }
+    [<CustomOperation "add_database">]
+    member _this.AddDatabase (state:PostgreSQLServerBuilderConfig, database) =
+        { state with Databases = database :: state.Databases }
+    member this.AddDatabase (state:PostgreSQLServerBuilderConfig, dbName:string) =
+        let db = postgreSQLDb { name dbName }
+        this.AddDatabase(state, db)
 
     /// Adds a custom firewall rule given a name, start and end IP address range.
     [<CustomOperation "add_firewall_rule">]
-    member _this.AddFirewallWall(state:PostgreSQLBuilderConfig, name, startRange, endRange) =
+    member _this.AddFirewallWall(state:PostgreSQLServerBuilderConfig, name, startRange, endRange) =
         { state with
             FirewallRules =
                 {| Name = ResourceName name
@@ -267,14 +286,14 @@ type PostgreSQLBuilder() =
 
     /// Adds a firewall rule that enables access to other Azure services.
     [<CustomOperation "enable_azure_firewall">]
-    member this.EnableAzureFirewall(state:PostgreSQLBuilderConfig) =
+    member this.EnableAzureFirewall(state:PostgreSQLServerBuilderConfig) =
         this.AddFirewallWall(state, "allow-azure-services", "0.0.0.0", "0.0.0.0")
 
     [<CustomOperation "add_tags">]
-    member _.Tags(state:PostgreSQLBuilderConfig, pairs) = 
+    member _.Tags(state:PostgreSQLServerBuilderConfig, pairs) = 
         { state with 
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
-    member this.Tag(state:PostgreSQLBuilderConfig, key, value) = this.Tags(state, [ (key,value) ])
+    member this.Tag(state:PostgreSQLServerBuilderConfig, key, value) = this.Tags(state, [ (key,value) ])
 
 let postgreSQL = PostgreSQLBuilder()
