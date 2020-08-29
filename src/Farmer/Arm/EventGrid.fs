@@ -33,7 +33,8 @@ type Topic =
     { Name : ResourceName
       Location : Location
       Source : ResourceName
-      TopicType : TopicType }
+      TopicType : TopicType
+      Tags: Map<string,string>  }
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
@@ -43,8 +44,9 @@ type Topic =
                location = this.Location.ArmValue
                dependsOn = [ this.Source.Value ]
                properties =
-               {| source = ArmExpression.resourceId(this.TopicType.ResourceType, this.Source).Eval()
-                  topicType = this.TopicType.Value |}
+                  {| source = ArmExpression.resourceId(this.TopicType.ResourceType, this.Source).Eval()
+                     topicType = this.TopicType.Value |}
+               tags = this.Tags
              |} :> _
 
 type Subscription =

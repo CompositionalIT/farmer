@@ -24,7 +24,8 @@ module Namespaces =
               DefaultMessageTimeToLive : IsoDateTime option
               MaxDeliveryCount : int option
               Session : bool option
-              DeadLetteringOnMessageExpiration : bool option }
+              DeadLetteringOnMessageExpiration : bool option
+              Rules : Rule list }
             interface IArmResource with
                 member this.ResourceName = this.Name
                 member this.JsonModel =
@@ -44,6 +45,26 @@ module Namespaces =
                            requiresSession = this.Session |> Option.toNullable
                            lockDuration = tryGetIso this.LockDuration
                         |}
+                       resources = [
+                        for rule in this.Rules do
+                           {| apiVersion = "2017-04-01"
+                              name = rule.Name.Value
+                              ``type`` = "Rules"
+                              dependsOn = [ this.Name.Value ]
+                              properties =
+                               match rule with
+                               | SqlFilter (_, expression) ->
+                                   {| filterType = "SqlFilter"
+                                      sqlFilter = box {| sqlExpression = expression |}
+                                      correlationFilter = null |}
+                               | CorrelationFilter (_, correlationId, properties) ->
+                                   {| filterType = "CorrelationFilter"
+                                      correlationFilter =
+                                          box {| correlationId = correlationId |> Option.toObj
+                                                 properties = properties |}
+                                      sqlFilter = null |}
+                           |}
+                       ]
                     |} :> _
 
     type Queue =
@@ -104,7 +125,8 @@ type Namespace =
     { Name : ResourceName
       Location : Location
       Sku : Sku
-      DependsOn : ResourceName list }
+      DependsOn : ResourceName list
+      Tags: Map<string,string>  }
     member this.Capacity =
         match this.Sku with
         | Basic -> None
@@ -124,4 +146,5 @@ type Namespace =
                        tier = string this.Sku
                        capacity = this.Capacity |> Option.toNullable |}
                dependsOn = this.DependsOn |> List.map (fun r -> r.Value)
+               tags = this.Tags
             |} :> _

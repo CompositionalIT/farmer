@@ -13,6 +13,10 @@ type ResourceName =
         | r -> r
     member this.Map mapper = match this with ResourceName r -> ResourceName (mapper r)
 
+type Location =
+    | Location of string
+    member this.ArmValue = match this with Location location -> location.ToLower()
+
 /// An Azure ARM resource value which can be mapped into an ARM template.
 type IArmResource =
     /// The name of the resource, to uniquely identify against other resources in the template.
@@ -106,15 +110,36 @@ module ArmExpression =
 /// A ResourceRef represents a linked resource; typically this will be for two resources that have a relationship
 /// such as AppInsights on WebApp. WebApps can automatically create and configure an AI instance for the webapp,
 /// or configure the web app to an existing AI instance, or do nothing.
-type ResourceRef =
-      /// The resource has been created externally.
-    | External of ResourceName
-      /// The resource will be automatically created and its name be automatically generated.
-    | AutomaticPlaceholder
-      /// The resource will be automatically created using the supplied name.
-    | AutomaticallyCreated of ResourceName
-    member this.ResourceNameOpt = match this with External r | AutomaticallyCreated r -> Some r | AutomaticPlaceholder -> None
-    member this.ResourceName = this.ResourceNameOpt |> Option.defaultValue ResourceName.Empty
+type AutoCreationKind<'T> =
+    | Named of ResourceName
+    | Derived of ('T -> ResourceName)
+    member this.CreateResourceName config =
+        match this with
+        | Named r -> r
+        | Derived f -> f config
+type ExternalKind = Managed of ResourceName | Unmanaged of ResourceName
+type ResourceRef<'T> =
+    | AutoCreate of AutoCreationKind<'T>
+    | External of ExternalKind
+    member this.CreateResourceName config =
+        match this with
+        | External (Managed r | Unmanaged r) -> r
+        | AutoCreate r -> r.CreateResourceName config
+[<AutoOpen>]
+module ResourceRef =
+    /// Creates a ResourceRef which is automatically created and derived from the supplied config.
+    let derived derivation = derivation |> Derived |> AutoCreate
+    /// An active pattern that returns the resource name if the resource should be set as a dependency.
+    /// In other words, all cases except External Unmanaged.
+    let (|DependableResource|_|) config = function
+        | External (Managed r) -> Some (DependableResource r)
+        | AutoCreate r -> Some(DependableResource(r.CreateResourceName config))
+        | External (Unmanaged _) -> None
+    /// An active pattern that returns the resource name if the resource should be deployed. In other
+    /// words, AutoCreate only.
+    let (|DeployableResource|_|) config = function
+        | AutoCreate c -> Some (DeployableResource(c.CreateResourceName config))
+        | External _ -> None
 
 /// Whether a specific feature is active or not.
 type FeatureFlag = Enabled | Disabled member this.AsBoolean = match this with Enabled -> true | Disabled -> false

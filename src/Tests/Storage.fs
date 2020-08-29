@@ -15,7 +15,7 @@ let tests = testList "Storage Tests" [
     test "Can create a basic storage account" {
         let resource =
             let account = storageAccount {
-                name "myStorage123~@"
+                name "mystorage123"
                 sku Premium_LRS
                 enable_data_lake
             }
@@ -50,12 +50,37 @@ let tests = testList "Storage Tests" [
             let account = storageAccount {
                 name "storage"
                 add_file_share "share1"
-                add_file_share_with_quota "share2" 1024
+                add_file_share_with_quota "share2" 1024<Gb>
             }
             [ for i in 1 .. 2 do account |> getResourceAtIndex client.SerializationSettings i ]
 
         Expect.equal resources.[0].Name "storage/default/share1" "file share name for 'share1' is wrong"
         Expect.equal resources.[1].Name "storage/default/share2" "file share name for 'share2' is wrong"
         Expect.equal resources.[1].ShareQuota (Nullable 1024) "file share quota for 'share2' is wrong"
+    }
+    test "Rejects invalid storage accounts" {
+        let check (v:string) m = Expect.equal (StorageAccountName.Create v) (Error ("Storage account names " + m))
+
+        check "" "cannot be empty" "Name too short"
+        check "zz" "min length is 3, but here is 2 ('zz')" "Name too short"
+        check "abcdefghij1234567890abcde" "max length is 24, but here is 25 ('abcdefghij1234567890abcde')" "Name too long"
+        check "zzzT" "can only contain lowercase letters ('zzzT')" "Upper case character allowed"
+        check "zzz!" "can only contain alphanumeric characters ('zzz!')" "Non alpha numeric character allowed"
+        Expect.equal (StorageResourceName.Create "abcdefghij1234567890abcd" |> Result.get |> fun name -> name.ResourceName) (ResourceName "abcdefghij1234567890abcd") "Should have created a valid storage account name"
+    }
+    test "Rejects invalid storage resource names" {
+        let check (v:string) m = Expect.equal (StorageResourceName.Create v) (Error ("Storage resource names " + m))
+
+        check "" "cannot be empty" "Name too short"
+        check "zz" "min length is 3, but here is 2 ('zz')" "Name too short"
+        let longName = Array.init 64 (fun _ -> 'a') |> String
+        check longName ("max length is 63, but here is 64 ('" + longName + "')") "Name too long"
+        check "zzzT" "can only contain lowercase letters ('zzzT')" "Upper case character allowed"
+        check "zz!z" "can only contain letters, numbers, and the dash (-) character ('zz!z')" "Bad character allowed"
+        check "zzz--z" "do not allow consecutive dashes ('zzz--z')" "Double dash allowed"
+        check "-zz" "must start with an alphanumeric character ('-zz')" "Start with dash"
+        check "zz-" "must end with an alphanumeric character ('zz-')" "End with dash"
+
+        Expect.equal (StorageResourceName.Create "abcdefghij1234567890abcd" |> Result.get |> fun name -> name.ResourceName) (ResourceName "abcdefghij1234567890abcd") "Should have created a valid storage resource name"
     }
 ]

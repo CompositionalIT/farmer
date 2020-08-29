@@ -18,6 +18,7 @@ type Server =
     { ServerName : ResourceName
       Location : Location
       Credentials : {| Username : string; Password : SecureParameter |}
+      Tags: Map<string,string> 
     }
     interface IParameters with
         member this.SecureParameters = [ this.Credentials.Password ]
@@ -28,7 +29,8 @@ type Server =
                name = this.ServerName.Value
                apiVersion = "2019-06-01-preview"
                location = this.Location.ArmValue
-               tags = {| displayName = this.ServerName.Value |}
+               tags = this.Tags
+                   |> Map.add "displayName" this.ServerName.Value 
                properties =
                    {| administratorLogin = this.Credentials.Username
                       administratorLoginPassword = this.Credentials.Password.AsArmRef.Eval()

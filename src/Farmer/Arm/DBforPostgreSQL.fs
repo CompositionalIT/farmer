@@ -10,7 +10,16 @@ let databases = ResourceType "Microsoft.DBforPostgreSQL/servers/databases"
 let firewallRules = ResourceType "Microsoft.DBforPostgreSQL/servers/firewallrules"
 let servers = ResourceType "Microsoft.DBforPostgreSQL/servers"
 
-type [<RequireQualifiedAccess>] PostgreSQLFamily = Gen5
+type [<RequireQualifiedAccess>] PostgreSQLFamily = 
+| Gen5
+
+    override this.ToString() =
+        match this with
+        | Gen5 -> "Gen5"
+
+    member this.AsArmValue =
+        match this with
+        | Gen5 -> "Gen5"
 
 module Servers =
     type Database =
@@ -57,10 +66,11 @@ type Server =
       Family : PostgreSQLFamily
       GeoRedundantBackup : FeatureFlag
       StorageAutoGrow : FeatureFlag
-      BackupRetention : int<Days> }
+      BackupRetention : int<Days>
+      Tags: Map<string,string>  }
 
     member this.Sku =
-        {| name = sprintf "%s_%O_%d" this.Tier.Name this.Family this.Capacity
+        {| name = sprintf "%s_%s_%d" this.Tier.Name this.Family.AsArmValue this.Capacity
            tier = string this.Tier
            capacity = this.Capacity
            family = string this.Family
@@ -97,7 +107,7 @@ type Server =
                 apiVersion = "2017-12-01"
                 name = this.Name.Value
                 location = this.Location.ArmValue
-                tags = {| displayName = this.Name.Value |}
+                tags = this.Tags |> Map.add "displayName" this.Name.Value
                 sku = this.Sku
                 properties = this.GetProperties()
             |} :> _

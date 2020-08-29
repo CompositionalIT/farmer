@@ -1,6 +1,5 @@
 module Farmer.Helpers
 
-open Farmer.CoreTypes
 open System
 
 let sanitise filters maxLength (resourceName:ResourceName) =
@@ -8,8 +7,8 @@ let sanitise filters maxLength (resourceName:ResourceName) =
     |> Seq.filter(fun c -> Seq.exists(fun filter -> filter c) filters)
     |> Seq.truncate maxLength
     |> Seq.toArray
-    |> System.String
-let sanitiseStorage = sanitise [ Char.IsLetterOrDigit ] 16
+    |> String
+let sanitiseStorage = sanitise [ Char.IsLetterOrDigit ] 24
 let sanitiseSearch = sanitise [ Char.IsLetterOrDigit; (=) '-' ] 60
 let sanitiseDb = sanitise [ Char.IsLetterOrDigit ] 100 >> fun r -> r.ToLower()
 let sanitiseMaps = sanitise [ Char.IsLetterOrDigit; (=) '-'; (=) '.'; (=) '_' ] 98

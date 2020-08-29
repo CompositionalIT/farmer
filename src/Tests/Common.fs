@@ -32,12 +32,23 @@ let tests = testList "Common" [
         Expect.equal subnets.[5] "192.168.3.16/28" "Sixth subnet incorrect"
         Expect.equal subnets.[6] "192.168.3.64/26" "Seventh subnet incorrect"
     }
-    
     test "Fails to carve /22 into 3 /24 and 1 /23 subnets" {
         Expect.throws (
             fun _ ->
                 let cidr = IPAddressCidr.parse "192.168.0.0/22"
                 [24; 24; 24; 23] |> IPAddressCidr.carveAddressSpace cidr |> List.ofSeq |> ignore
         ) "Should have failed to carve /22 into subnets"
+    }
+    
+    test "10.0.5.0/24 is contained within 10.0.0.0/16" {
+        let innerCidr = IPAddressCidr.parse "10.0.5.0/24"
+        let outerCidr = IPAddressCidr.parse "10.0.0.0/16"
+        Expect.isTrue (outerCidr |> IPAddressCidr.contains innerCidr) ""
+    }
+
+    test "192.168.1.0/24 is not contained within 10.0.0.0/16" {
+        let innerCidr = IPAddressCidr.parse "192.168.1.0/24"
+        let outerCidr = IPAddressCidr.parse "10.0.0.0/16"
+        Expect.isFalse (outerCidr |> IPAddressCidr.contains innerCidr) ""
     }
 ]

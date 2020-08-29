@@ -1,8 +1,8 @@
 ---
 title: "Virtual Machine"
 date: 2020-02-05T08:53:46+01:00
-weight: 22
 chapter: false
+weight: 24
 ---
 
 #### Overview
@@ -60,5 +60,7 @@ let myVm = vm {
     os_disk 128 Vm.StandardSSD_LRS
     add_ssd_disk 128
     add_slow_disk 512
+    custom_script "powershell setup-vm.ps1" // you have to actually *call* the script
+    custom_script_files [ "https://foo.bar/foo/setup-vm.ps1" ] 
 }
 ```

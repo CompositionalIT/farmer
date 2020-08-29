@@ -5,21 +5,13 @@ open Farmer
 open Farmer.CoreTypes
 open Farmer.Arm.Insights
 
-let tryCreateAppInsightsName aiName rootName =
-    aiName
-    |> Option.map(function
-    | AutomaticPlaceholder ->
-        AutomaticallyCreated(ResourceName(sprintf "%s-ai" rootName))
-    | (External _ as resourceRef)
-    | (AutomaticallyCreated _ as resourceRef) ->
-        resourceRef)
-
 let instrumentationKey (ResourceName accountName) =
     sprintf "reference('Microsoft.Insights/components/%s').InstrumentationKey" accountName
     |> ArmExpression.create
 
 type AppInsightsConfig =
-    { Name : ResourceName }
+    { Name : ResourceName 
+      Tags : Map<string,string> }
     /// Gets the ARM expression path to the instrumentation key of this App Insights instance.
     member this.InstrumentationKey = instrumentationKey this.Name
     interface IBuilder with
@@ -27,12 +19,14 @@ type AppInsightsConfig =
         member this.BuildResources location = [
             { Name = this.Name
               Location = location
-              LinkedWebsite = None }
+              LinkedWebsite = None
+              Tags = this.Tags }
         ]
 
 type AppInsightsBuilder() =
     member __.Yield _ =
-        { Name = ResourceName.Empty }
+        { Name = ResourceName.Empty
+          Tags = Map.empty }
     [<CustomOperation "name">]
     /// Sets the name of the App Insights instance.
     member __.Name(state:AppInsightsConfig, name) = { state with Name = ResourceName name }

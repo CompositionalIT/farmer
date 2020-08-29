@@ -130,10 +130,10 @@ let tests = testList "Template" [
     }
 
     test "Can add dependencies through IBuilder" {
-        let a = storageAccount { name "a" }
+        let a = storageAccount { name "aaa" }
         let b = webApp { name "b"; depends_on a }
 
-        Expect.equal b.Dependencies [ ResourceName "a" ] "Dependency should have been set"
+        Expect.equal b.Dependencies [ ResourceName "aaa" ] "Dependency should have been set"
     }
 
     test "Generates ARM Id with name only" {

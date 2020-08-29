@@ -17,6 +17,7 @@ let allTests =
                 ContainerRegistry.tests
                 ExpressRoute.tests
                 KeyVault.tests
+                NetworkSecurityGroup.tests
                 ServiceBus.tests
                 VirtualMachine.tests
                 PostgreSQL.tests
@@ -25,6 +26,7 @@ let allTests =
                 SignalR.tests
                 Sql.tests
                 EventGrid.tests
+                WebApp.tests
             ]
             testList "Control" [
                 Template.tests

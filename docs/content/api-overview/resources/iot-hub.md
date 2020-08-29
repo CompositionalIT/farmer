@@ -1,7 +1,8 @@
 ---
 title: "IOT Hub"
 date: 2020-05-19T23:14:14+02:00
-weight: 10
+chapter: false
+weight: 13
 ---
 
 #### Overview

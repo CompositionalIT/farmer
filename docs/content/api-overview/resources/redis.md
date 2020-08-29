@@ -1,8 +1,8 @@
 ---
 title: "Redis Cache"
 date: 2020-02-23T20:00:00+01:00
-weight: 18
 chapter: false
+weight: 18
 ---
 
 #### Overview

@@ -13,7 +13,7 @@ Farmer is an easy-to-learn library for rapidly authoring and deploying entire Az
 * **Idempotent deployments**. Safely provision a template repeatedly and know that only changes will be applied.
 * **Cross-platform**. Runs on .NET Core on Windows, Mac or Linux.
 * **Built on trusted technologies**. Farmer uses Microsoft's Azure Resource Manager (ARM) technology for deployments to Azure.
-* **Commercial support available**. [Contact us](https://www.compositional-it.com) for support on how to start creating repeatable deployments.
+* **Commercial supported**. [Professional support plans](support/) for teams that wish to benefit from peace of mind and further improve the product.
 * **Easy to learn, easy to understand** code through a simple, strongly-typed and pragmatic DSL.
 
 #### Already using ARM templates?

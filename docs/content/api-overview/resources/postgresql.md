@@ -1,8 +1,8 @@
 ---
 title: "PostgreSQL"
 date: 2020-05-22T07:14:00+02:00
-weight: 19
 chapter: false
+weight: 17
 ---
 
 #### Overview
@@ -47,7 +47,7 @@ let myPostgres = postgreSQL {
     storage_size 50<Gb>
     tier GeneralPurpose
     db_name "things"
-    allow_azure_firewall
+    enable_azure_firewall
 }
 
 let template = arm {

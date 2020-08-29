@@ -11,7 +11,8 @@ type Registries =
     { Name : ResourceName
       Location : Location
       Sku : Sku
-      AdminUserEnabled : bool }
+      AdminUserEnabled : bool
+      Tags: Map<string,string> }
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
@@ -20,6 +21,6 @@ type Registries =
                apiVersion = "2019-05-01"
                sku = {| name = this.Sku.ToString() |}
                location = this.Location.ArmValue
-               tags = {||}
+               tags = this.Tags
                properties = {| adminUserEnabled = this.AdminUserEnabled |}
             |} :> _

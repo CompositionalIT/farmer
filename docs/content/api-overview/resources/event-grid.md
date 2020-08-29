@@ -1,8 +1,8 @@
 ---
 title: "Event Grid"
 date: 2020-07-06T20:00:00+01:00
-weight: 5
 chapter: false
+weight: 9
 ---
 
 ## Overview

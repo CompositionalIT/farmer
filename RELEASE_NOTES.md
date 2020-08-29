@@ -1,5 +1,26 @@
 Release Notes
 =============
+## 0.24.0
+* More documentation
+* Simplified Service Bus filtering
+* Tagging support for most ARM resources
+* Fix incorrect PostgresSQL template generation caused by a breaking change in F#
+* Fix a bug in Redis SKU generation
+* KeyVault now supports dependencies
+* Eager Storage Account Name validation
+
+## 0.23.0
+* Fix documentation
+* Volume Mount support for Container Groups
+* Network Security Group (NSG) support
+* Data Lake on Storage Account support
+* Static Website on Storage Account enhancements
+* Filter support on Service Bus Subscriptions
+* Storage Account validation on account name enhancements
+* Web Apps can now connect to externally-managed Server Farms
+* Simplified Resource References and better distinguish resource relationships
+* Improved test coverage
+
 ## 0.22.0
 * Cosmos DB: More keys exposed as properties
 * Deployment: Display currently selected subscription id when deploying

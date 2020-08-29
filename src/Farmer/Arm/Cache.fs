@@ -16,7 +16,8 @@ type Redis =
       RedisConfiguration : Map<string, string>
       NonSslEnabled : bool option
       ShardCount : int option
-      MinimumTlsVersion : TlsVersion option }
+      MinimumTlsVersion : TlsVersion option
+      Tags: Map<string,string> }
       member this.Family =
         match this.Sku.Sku with
         | Basic | Standard -> 'C'
@@ -31,7 +32,7 @@ type Redis =
                location = this.Location.ArmValue
                properties =
                     {| sku =
-                        {| name = string this.Sku
+                        {| name = string this.Sku.Sku
                            family = this.Family
                            capacity = this.Sku.Capacity
                         |}
@@ -46,4 +47,5 @@ type Redis =
                          |> Option.toObj
                        redisConfiguration = this.RedisConfiguration
                    |}
+               tags = this.Tags
             |} :> _

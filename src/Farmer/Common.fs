@@ -1,51 +1,50 @@
 ﻿namespace Farmer
 
 open System
-open System.Runtime.CompilerServices
 
-type Location =
-    | Location of string
-    static member EastAsia = Location "EastAsia"
-    static member SoutheastAsia = Location "SoutheastAsia"
-    static member CentralUS = Location "CentralUS"
-    static member EastUS = Location "EastUS"
-    static member EastUS2 = Location "EastUS2"
-    static member WestUS = Location "WestUS"
-    static member NorthCentralUS = Location "NorthCentralUS"
-    static member SouthCentralUS = Location "SouthCentralUS"
-    static member NorthEurope = Location "NorthEurope"
-    static member WestEurope = Location "WestEurope"
-    static member JapanWest = Location "JapanWest"
-    static member JapanEast = Location "JapanEast"
-    static member BrazilSouth = Location "BrazilSouth"
-    static member AustraliaEast = Location "AustraliaEast"
-    static member AustraliaSoutheast = Location "AustraliaSoutheast"
-    static member SouthIndia = Location "SouthIndia"
-    static member CentralIndia = Location "CentralIndia"
-    static member WestIndia = Location "WestIndia"
-    static member CanadaCentral = Location "CanadaCentral"
-    static member CanadaEast = Location "CanadaEast"
-    static member UKSouth = Location "UKSouth"
-    static member UKWest = Location "UKWest"
-    static member WestCentralUS = Location "WestCentralUS"
-    static member WestUS2 = Location "WestUS2"
-    static member KoreaCentral = Location "KoreaCentral"
-    static member KoreaSouth = Location "KoreaSouth"
-    static member FranceCentral = Location "FranceCentral"
-    static member FranceSouth = Location "FranceSouth"
-    static member AustraliaCentral = Location "AustraliaCentral"
-    static member AustraliaCentral2 = Location "AustraliaCentral2"
-    static member UAECentral = Location "UAECentral"
-    static member UAENorth = Location "UAENorth"
-    static member SouthAfricaNorth = Location "SouthAfricaNorth"
-    static member SouthAfricaWest = Location "SouthAfricaWest"
-    static member SwitzerlandNorth = Location "SwitzerlandNorth"
-    static member SwitzerlandWest = Location "SwitzerlandWest"
-    static member GermanyNorth = Location "GermanyNorth"
-    static member GermanyWestCentral = Location "GermanyWestCentral"
-    static member NorwayWest = Location "NorwayWest"
-    static member NorwayEast = Location "NorwayEast"
-    member this.ArmValue = match this with Location location -> location.ToLower()
+[<AutoOpen>]
+module LocationExtensions =
+    type Location with
+        static member EastAsia = Location "EastAsia"
+        static member SoutheastAsia = Location "SoutheastAsia"
+        static member CentralUS = Location "CentralUS"
+        static member EastUS = Location "EastUS"
+        static member EastUS2 = Location "EastUS2"
+        static member WestUS = Location "WestUS"
+        static member NorthCentralUS = Location "NorthCentralUS"
+        static member SouthCentralUS = Location "SouthCentralUS"
+        static member NorthEurope = Location "NorthEurope"
+        static member WestEurope = Location "WestEurope"
+        static member JapanWest = Location "JapanWest"
+        static member JapanEast = Location "JapanEast"
+        static member BrazilSouth = Location "BrazilSouth"
+        static member AustraliaEast = Location "AustraliaEast"
+        static member AustraliaSoutheast = Location "AustraliaSoutheast"
+        static member SouthIndia = Location "SouthIndia"
+        static member CentralIndia = Location "CentralIndia"
+        static member WestIndia = Location "WestIndia"
+        static member CanadaCentral = Location "CanadaCentral"
+        static member CanadaEast = Location "CanadaEast"
+        static member UKSouth = Location "UKSouth"
+        static member UKWest = Location "UKWest"
+        static member WestCentralUS = Location "WestCentralUS"
+        static member WestUS2 = Location "WestUS2"
+        static member KoreaCentral = Location "KoreaCentral"
+        static member KoreaSouth = Location "KoreaSouth"
+        static member FranceCentral = Location "FranceCentral"
+        static member FranceSouth = Location "FranceSouth"
+        static member AustraliaCentral = Location "AustraliaCentral"
+        static member AustraliaCentral2 = Location "AustraliaCentral2"
+        static member UAECentral = Location "UAECentral"
+        static member UAENorth = Location "UAENorth"
+        static member SouthAfricaNorth = Location "SouthAfricaNorth"
+        static member SouthAfricaWest = Location "SouthAfricaWest"
+        static member SwitzerlandNorth = Location "SwitzerlandNorth"
+        static member SwitzerlandWest = Location "SwitzerlandWest"
+        static member GermanyNorth = Location "GermanyNorth"
+        static member GermanyWestCentral = Location "GermanyWestCentral"
+        static member NorwayWest = Location "NorwayWest"
+        static member NorwayEast = Location "NorwayEast"
 
 type OS = Windows | Linux
 
@@ -266,16 +265,71 @@ module Vm =
     /// Represents a disk in a VM.
     type DiskInfo = { Size : int; DiskType : DiskType }
 
+module internal Validation =
+    let isNonEmpty entity s = if String.IsNullOrWhiteSpace s then Error (sprintf "%s cannot be empty" entity) else Ok()
+    let notLongerThan max entity (s:string) = if s.Length > max then Error (sprintf "%s max length is %d, but here is %d ('%s')" entity max s.Length s) else Ok()
+    let notShorterThan min entity (s:string) = if s.Length < min then Error (sprintf "%s min length is %d, but here is %d ('%s')" entity min s.Length s) else Ok()
+    let lengthBetween min max entity (s:string) = s |> notLongerThan max entity |> Result.bind (fun _ -> s |> notShorterThan min entity)
+    let containsOnly message predicate entity (s:string) = if s |> Seq.exists (predicate >> not) then Error (sprintf "%s can only contain %s ('%s')" entity message s) else Ok()
+    let cannotContain message predicate entity (s:string) = if s |> Seq.exists predicate then Error (sprintf "%s do not allow %s ('%s')" entity message s) else Ok()
+    let startsWith message predicate entity (s:string) = if not (predicate s.[0]) then Error (sprintf "%s must start with %s ('%s')" entity message s) else Ok()
+    let endsWith message predicate entity (s:string) = if not (predicate s.[s.Length - 1]) then Error (sprintf "%s must end with %s ('%s')" entity message s) else Ok()
+    let cannotStartWith message predicate entity (s:string) = if predicate s.[0] then Error (sprintf "%s cannot start with %s ('%s')" entity message s) else Ok()
+    let cannotEndWith message predicate entity (s:string) = if predicate s.[s.Length - 1] then Error (sprintf "%s cannot end with %s ('%s')" entity message s) else Ok()
+    let arb message predicate entity (s:string) = if predicate s then Error (sprintf "%s %s ('%s')" entity message s) else Ok()
+    let (<+>) a b v = a v && b v
+    let (<|>) a b v = a v || b v
+    let lowercaseOnly = Char.IsLetter >> not <|> Char.IsLower
+
+    let validate entity text rules =
+        rules
+        |> Seq.choose (fun v ->
+            match v entity text with
+            | Error m -> Some (Error m)
+            | Ok _ -> None)
+        |> Seq.tryHead
+        |> Option.defaultValue (Ok text)
+
 module Storage =
+    open Validation
+    type StorageAccountName =
+        private | StorageAccountName of ResourceName
+        static member Create name =
+            [ isNonEmpty
+              lengthBetween 3 24
+              containsOnly "lowercase letters" lowercaseOnly
+              containsOnly "alphanumeric characters" Char.IsLetterOrDigit ]
+            |> validate "Storage account names" name
+            |> Result.map (ResourceName >> StorageAccountName)
+
+        static member Create (ResourceName name) = StorageAccountName.Create name
+        member this.ResourceName = match this with StorageAccountName name -> name
+
+    type StorageResourceName =
+        private | StorageResourceName of ResourceName
+        static member Create name =
+            [ isNonEmpty
+              lengthBetween 3 63
+              startsWith "an alphanumeric character" Char.IsLetterOrDigit
+              endsWith "an alphanumeric character" Char.IsLetterOrDigit
+              containsOnly "letters, numbers, and the dash (-) character" (fun c -> Char.IsLetterOrDigit c || c = '-')
+              containsOnly "lowercase letters" lowercaseOnly
+              arb "do not allow consecutive dashes" (fun s -> s.Contains "--") ]
+            |> validate "Storage resource names" name
+            |> Result.map (ResourceName >> StorageResourceName)
+
+        static member Create (ResourceName name) = StorageResourceName.Create name
+        member this.ResourceName = match this with StorageResourceName name -> name
+
     type Sku =
-    | Standard_LRS
-    | Standard_GRS
-    | Standard_RAGRS
-    | Standard_ZRS
-    | Standard_GZRS
-    | Standard_RAGZRS
-    | Premium_LRS
-    | Premium_ZRS
+        | Standard_LRS
+        | Standard_GRS
+        | Standard_RAGRS
+        | Standard_ZRS
+        | Standard_GZRS
+        | Standard_RAGZRS
+        | Premium_LRS
+        | Premium_ZRS
         member this.ArmValue = this.ToString()
 
     type StorageContainerAccess =
@@ -457,6 +511,19 @@ module ContainerGroup =
         | PublicAddressWithDns of DnsName:string
         | PrivateAddress
         | PrivateAddressWithIp of System.Net.IPAddress
+    /// A secret file which will be encoded as base64 and attached to a container group.
+    type SecretFile = SecretFile of Name:string * Secret:byte array
+    /// A container group volume.
+    [<RequireQualifiedAccess>]
+    type Volume =
+        /// Mounts an empty directory on the container group.
+        | EmptyDirectory
+        /// Mounts an Azure File Share in the same resource group, performing a key lookup.
+        | AzureFileShare of ShareName:string * StorageAccountName:string
+        /// A git repo volume, clonable by public HTTPS access.
+        | GitRepo of Repository:Uri * Directory:string option * Revision:string option
+        /// Mounts a volume containing secret files.
+        | Secret of SecretFile list
 
 module Redis =
     type Sku = Basic | Standard | Premium
@@ -574,6 +641,17 @@ module ServiceBus =
         | Basic
         | Standard
         | Premium of MessagingUnits
+    type Rule =
+        | SqlFilter of ResourceName * SqlExpression : string
+        | CorrelationFilter of Name : ResourceName * CorrelationId : string option * Properties : Map<string, string>
+        member this.Name =
+            match this with
+            | SqlFilter (name, _)
+            | CorrelationFilter(name, _, _) -> name
+        static member CreateCorrelationFilter (name, properties, ?correlationId) =
+            CorrelationFilter (ResourceName name, correlationId, Map properties)
+        static member CreateSqlFilter (name, expression) =
+            SqlFilter (ResourceName name, expression)
 
 module CosmosDb =
     /// The consistency policy of a CosmosDB account.
@@ -628,17 +706,19 @@ module DataLake =
     | Commitment_1PB
     | Commitment_5PB
 
+/// A network represented by an IP address and CIDR prefix.
 type public IPAddressCidr =
     { Address : System.Net.IPAddress
       Prefix : int }
 
+/// Functions for IP networks and CIDR notation.
 module IPAddressCidr =
     let parse (s:string) : IPAddressCidr =
         match s.Split([|'/'|], System.StringSplitOptions.RemoveEmptyEntries) with
         [| ip; prefix |] ->
             { Address = System.Net.IPAddress.Parse (ip.Trim ())
               Prefix = int prefix }
-        | _ -> raise (System.ArgumentOutOfRangeException "Malformed CIDR, expecting and IP and prefix separated by '/'")
+        | _ -> raise (System.ArgumentOutOfRangeException "Malformed CIDR, expecting an IP and prefix separated by '/'")
     let safeParse (s:string) : Result<IPAddressCidr, System.Exception> =
         try parse s |> Ok
         with ex -> Error ex
@@ -653,6 +733,12 @@ module IPAddressCidr =
         let ipNumber = cidr.Address |> num
         let mask = 0xffffffffu <<< (32 - cidr.Prefix)
         ipNumber &&& mask, ipNumber ||| (mask ^^^ 0xffffffffu)
+    /// Indicates if one CIDR block can fit entirely within another CIDR block
+    let contains (inner:IPAddressCidr) (outer:IPAddressCidr) =
+        // outer |> IPAddressCidr.contains inner
+        let innerStart, innerFinish = ipRangeNums inner
+        let outerStart, outerFinish = ipRangeNums outer
+        outerStart <= innerStart && outerFinish >= innerFinish
     /// Calculates a range of IP addresses from an CIDR block.
     let ipRange (cidr:IPAddressCidr) =
         let first, last = ipRangeNums cidr
@@ -695,6 +781,76 @@ module IPAddressCidr =
             cidr |> addresses |> Seq.skip 2
         else
             Seq.empty
+
+module NetworkSecurity =
+    type Operation =
+    | Allow
+    | Deny
+    module Operation =
+        let ArmValue = function
+        | Allow -> "Allow"
+        | Deny -> "Deny"
+    type Operation with
+        member this.ArmValue = this |> Operation.ArmValue
+
+    /// Network protocol supported in network security group rules.
+    type NetworkProtocol =
+    /// Any protocol
+    | AnyProtocol
+    /// Transmission Control Protocol
+    | TCP
+    /// User Datagram Protocol
+    | UDP
+    /// Internet Control Message Protocol
+    | ICMP
+    /// Authentication Header (IPSec)
+    | AH
+    /// Encapsulating Security Payload (IPSec)
+    | ESP
+    module NetworkProtocol =
+        let ArmValue = function
+            | AnyProtocol -> "*"
+            | TCP -> "Tcp"
+            | UDP -> "Udp"
+            | ICMP -> "Icmp"
+            | AH -> "Ah"
+            | ESP -> "Esp"
+    type NetworkProtocol with
+        member this.ArmValue = this |> NetworkProtocol.ArmValue
+
+    type Port =
+        | Port of uint16
+        | Range of First:uint16 * Last:uint16
+        | AnyPort
+        member this.ArmValue =
+            match this with
+            | Port num -> num |> string
+            | Range (first,last) -> sprintf "%d-%d" first last
+            | AnyPort -> "*"
+    module Port =
+        let ArmValue (port:Port) = port.ArmValue
+
+    type Endpoint =
+        | Host of Net.IPAddress
+        | Network of IPAddressCidr
+        | Tag of string
+        | AnyEndpoint
+        member this.ArmValue =
+            match this with
+            | Host ip -> string ip
+            | Network cidr -> cidr |> IPAddressCidr.format
+            | Tag tag -> tag
+            | AnyEndpoint -> "*"
+    module Endpoint =
+        let ArmValue (endpoint:Endpoint) = endpoint.ArmValue
+
+    type NetworkService = NetworkService of name:string * Port
+
+    type TrafficDirection = Inbound | Outbound
+    module TrafficDirection =
+        let ArmValue = function | Inbound -> "Inbound" | Outbound -> "Outbound"
+    type TrafficDirection with
+        member this.ArmValue = this |> TrafficDirection.ArmValue
 
 module Cdn =
     type Sku =

@@ -16,3 +16,15 @@ name = "<i class='fab fa-fw fa-github'></i> GitHub repo"
 identifier = "ds"
 url = "https://github.com/compositionalit/farmer"
 weight = 10
+
+[[Languages.en.menu.shortcuts]]
+name = "<i class='fab fa-fw fa-microsoft'></i> Nuget"
+identifier = "nuget"
+url = "https://www.nuget.org/packages/Farmer/"
+weight = 10
+
+[[Languages.en.menu.shortcuts]]
+name = "<img src='/farmer/images/cit.png'></img> Compositional IT"
+identifier = "cit"
+url = "https://compositional-it.com"
+weight = 11

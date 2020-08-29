@@ -3,6 +3,7 @@ title: "Contributing"
 date: 2020-06-15T03:57:42+02:00
 draft: false
 chapter: false
+weight: 7
 ---
 
 Thanks for thinking about contributing! Azure is a giant beast and help supporting more use-cases is always appreciated. To make it easier to contribute, we put together this little guide. Please take a few minutes to read through before starting work on a pull request (PR) to Farmer.
@@ -19,10 +20,7 @@ Thanks for thinking about contributing! Azure is a giant beast and help supporti
 ### TODO
 There's still more to document!
 
-* Validation
-* Outputs
-* Dependencies
-* Secure parameters
+* Validation best practices
 * Multiple resource builders
 * Linking resources (one-to-many relationships)
 * Post-deploy tasks

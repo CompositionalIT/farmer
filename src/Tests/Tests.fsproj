@@ -13,6 +13,7 @@
     <Compile Include="ContainerGroup.fs" />
     <Compile Include="ContainerService.fs" />
     <Compile Include="ExpressRoute.fs" />
+    <Compile Include="NetworkSecurityGroup.fs" />
     <Compile Include="Storage.fs" />
     <Compile Include="ServiceBus.fs" />
     <Compile Include="IotHub.fs" />
@@ -27,6 +28,7 @@
     <Compile Include="Sql.fs" />
     <Compile Include="SignalR.fs" />
     <Compile Include="EventGrid.fs" />
+    <Compile Include="WebApp.fs" />
     <Compile Include="AllTests.fs" />
   </ItemGroup>
 
