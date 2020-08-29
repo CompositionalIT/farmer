@@ -15,22 +15,30 @@ type ManagedCluster =
       AgentPoolProfiles :
         {| Name : ResourceName
            Count : int
+           MaxPods : int option
            Mode : AgentPoolMode
            OsDiskSize : int<Gb>
            OsType : OS
            VmSize : VMSize
+           VirtualNetworkName : ResourceName option
+           SubnetName : ResourceName option
         |} list
       DnsPrefix : string
       EnableRBAC : bool
       LinuxProfile :
        {| AdminUserName : string
           PublicKeys : string list |} option
+      NetworkProfile :
+       {| NetworkPlugin : ContainerService.NetworkPlugin
+          DnsServiceIP : System.Net.IPAddress
+          DockerBridgeCidr : IPAddressCidr
+          ServiceCidr : IPAddressCidr |} option
       WindowsProfile :
-       {| AdminUserName : string
-          AdminPassword : SecureParameter |} option
+        {| AdminUserName : string
+           AdminPassword : SecureParameter |} option
       ServicePrincipalProfile :
-       {| ClientId : string
-          ClientSecret : SecureParameter |} option
+        {| ClientId : string
+           ClientSecret : SecureParameter |} option
     }
     
     interface IParameters with
@@ -59,10 +67,16 @@ type ManagedCluster =
                            {| name = if agent.Name = ResourceName.Empty then (sprintf "%s-agent-pool%i" this.Name.Value idx) 
                                      else agent.Name.Value.ToLowerInvariant ()
                               count = agent.Count
+                              maxPods = agent.MaxPods |> Option.toNullable
+                              mode = agent.Mode |> string
                               osDiskSizeGB = agent.OsDiskSize
                               osType = string agent.OsType
                               vmSize = agent.VmSize.ArmValue
-                              mode = agent.Mode |> string
+                              vnetSubnetID =
+                                  match agent.VirtualNetworkName, agent.SubnetName with
+                                  | Some vnet, Some subnet ->
+                                      box (ArmExpression.resourceId(Arm.Network.subnets, vnet, subnet).Eval())
+                                  | _ -> null
                            |})
                       dnsPrefix = this.DnsPrefix
                       enableRBAC = this.EnableRBAC
@@ -72,6 +86,14 @@ type ManagedCluster =
                                 {| adminUsername = linuxProfile.AdminUserName
                                    ssh = {| publicKeys = linuxProfile.PublicKeys |> List.map (fun k -> {| keyData = k |}) |} |}
                             | None -> Unchecked.defaultof<_>
+                      networkProfile =
+                          match this.NetworkProfile with
+                          | Some networkProfile ->
+                                {| dnsServiceIP = networkProfile.DnsServiceIP |> string
+                                   dockerBridgeCidr = networkProfile.DockerBridgeCidr |> IPAddressCidr.format
+                                   networkPlugin = networkProfile.NetworkPlugin.ArmValue
+                                   serviceCidr = networkProfile.ServiceCidr |> IPAddressCidr.format |}
+                          | None -> Unchecked.defaultof<_>
                       servicePrincipalProfile =
                             match this.ServicePrincipalProfile with
                             | Some spProfile ->
