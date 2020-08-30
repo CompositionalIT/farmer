@@ -37,6 +37,7 @@ jobs:
       testResultsFormat: VSTest
   - task: DotNetCoreCLI@2
     displayName: 'Package'
+    condition: and(succeeded(), eq(variables.vmImage, 'ubuntu-latest'))
     inputs:
       command: 'pack'
       packagesToPack: 'src/Farmer'
@@ -52,7 +53,7 @@ jobs:
 - deployment: "NugetPublish"
   dependsOn: ["Build"]
   condition:  and(succeeded(), eq(variables['build.sourceBranch'], 'refs/heads/master')) #optional, only trigger for master
-  displayName: "Publish to Nuget"
+  displayName: "Publish to NuGet"
   environment: "NuGet" #needs to be configured in ADoS - put a manual gate here
   pool:
     vmImage: 'windows-latest' #task doesn't run on other OS's
