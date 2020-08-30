@@ -11,13 +11,13 @@ open Arm.DBforPostgreSQL
 open Servers
 
 
-type PostgreSQLDbBuilderConfig =
-    { Name : ResourceName 
+type PostgreSQLDbConfig =
+    { Name : ResourceName
       DbCollation : string option
       DbCharset : string option }
 
 
-type PostgreSQLServerBuilderConfig =
+type PostgreSQLConfig =
     { Name : ResourceName
       AdministratorCredentials : {| UserName : string; Password : SecureParameter |}
       Version : Version
@@ -27,7 +27,7 @@ type PostgreSQLServerBuilderConfig =
       StorageSize : int<Gb>
       Capacity : int<VCores>
       Tier : Sku
-      Databases : PostgreSQLDbBuilderConfig list
+      Databases : PostgreSQLDbConfig list
       FirewallRules : {| Name : ResourceName; Start : IPAddress; End : IPAddress |} list
       Tags: Map<string,string>  }
 
@@ -48,7 +48,7 @@ type PostgreSQLServerBuilderConfig =
               BackupRetention = this.BackupRetention
               Tags = this.Tags  }
 
-            for database in this.Databases do            
+            for database in this.Databases do
                 { Name = database.Name
                   Server = this.Name
                   Collation = database.DbCollation |> Option.defaultValue "English_United States.1252"
@@ -139,36 +139,36 @@ module Validate =
 
 
 type PostgreSQLDbBuilder() =
-    member _this.Yield _ : PostgreSQLDbBuilderConfig =
+    member _.Yield _ : PostgreSQLDbConfig =
         { Name = ResourceName ""
           DbCharset = None
           DbCollation = None }
 
-    member _this.Run (state:PostgreSQLDbBuilderConfig) =
+    member _.Run (state:PostgreSQLDbConfig) =
         if state.Name = ResourceName.Empty then failwith "You must set a database name"
         state
 
-    [<CustomOperation("name")>]
-    member _this.SetName(state: PostgreSQLDbBuilderConfig, name:ResourceName) =
+    [<CustomOperation "name">]
+    member _.SetName(state: PostgreSQLDbConfig, name:ResourceName) =
         Validate.dbname name.Value
         { state with Name = name }
-    member this.SetName(state: PostgreSQLDbBuilderConfig, name: string) =
+    member this.SetName(state: PostgreSQLDbConfig, name: string) =
         this.SetName(state, ResourceName name)
 
-    [<CustomOperation("collation")>]
-    member _this.SetCollation(state: PostgreSQLDbBuilderConfig, collation:string) =
+    [<CustomOperation "collation">]
+    member _.SetCollation(state: PostgreSQLDbConfig, collation:string) =
         if String.IsNullOrWhiteSpace collation then failwith "collation must have a value"
         { state with DbCollation = Some collation }
 
-    [<CustomOperation("charset")>]
-    member _this.SetCharset(state: PostgreSQLDbBuilderConfig, charSet:string) =
+    [<CustomOperation "charset">]
+    member _.SetCharset(state: PostgreSQLDbConfig, charSet:string) =
         if String.IsNullOrWhiteSpace charSet then failwith "charSet must have a value"
         { state with DbCharset = Some charSet }
 
 let postgreSQLDb = PostgreSQLDbBuilder()
 
 type PostgreSQLBuilder() =
-    member _this.Yield _ : PostgreSQLServerBuilderConfig =
+    member _.Yield _ : PostgreSQLConfig =
         { Name = ResourceName ""
           AdministratorCredentials = {| UserName = ""; Password = SecureParameter "" |}
           Version = VS_11
@@ -182,101 +182,101 @@ type PostgreSQLBuilder() =
           FirewallRules = []
           Tags = Map.empty  }
 
-    member _this.Run state : PostgreSQLServerBuilderConfig =
-        state.Name.Value |> Validate.servername 
+    member _.Run state : PostgreSQLConfig =
+        state.Name.Value |> Validate.servername
         state.AdministratorCredentials.UserName |> Validate.username "AdministratorCredentials.UserName"
-        { state with 
-            AdministratorCredentials = 
-                {| state.AdministratorCredentials with 
+        { state with
+            AdministratorCredentials =
+                {| state.AdministratorCredentials with
                     Password = sprintf "password-for-%s" state.Name.Value |> SecureParameter |}  }
 
     /// Sets the name of the PostgreSQL server
     [<CustomOperation "name">]
-    member _this.ServerName(state:PostgreSQLServerBuilderConfig, serverName) =
+    member _.ServerName(state:PostgreSQLConfig, serverName) =
         let (ResourceName n) = serverName
         Validate.servername n
         { state with Name = serverName }
-    member this.ServerName(state:PostgreSQLServerBuilderConfig, serverName) =
+    member this.ServerName(state:PostgreSQLConfig, serverName) =
         this.ServerName(state, ResourceName serverName)
 
     /// Sets the name of the admin user
     [<CustomOperation "admin_username">]
-    member _this.AdminUsername(state:PostgreSQLServerBuilderConfig, adminUsername:string) =
+    member _.AdminUsername(state:PostgreSQLConfig, adminUsername:string) =
         Validate.username "adminUserName" adminUsername
-        { state with 
+        { state with
             Databases = List.rev state.Databases
-            AdministratorCredentials = 
+            AdministratorCredentials =
                 {| state.AdministratorCredentials with UserName = adminUsername  |} }
 
     /// Sets geo-redundant backup
     [<CustomOperation "geo_redundant_backup">]
-    member _this.SetGeoRedundantBackup(state:PostgreSQLServerBuilderConfig, enabled:bool) =
+    member _.SetGeoRedundantBackup(state:PostgreSQLConfig, enabled:bool) =
         { state with GeoRedundantBackup = enabled }
 
     /// Enables geo-redundant backup
     [<CustomOperation "enable_geo_redundant_backup">]
-    member this.EnableGeoRedundantBackup(state:PostgreSQLServerBuilderConfig) =
+    member this.EnableGeoRedundantBackup(state:PostgreSQLConfig) =
         this.SetGeoRedundantBackup(state, true)
 
     /// Disables geo-redundant backup
     [<CustomOperation "disable_geo_redundant_backup">]
-    member this.DisableGeoRedundantBackup(state:PostgreSQLServerBuilderConfig) =
+    member this.DisableGeoRedundantBackup(state:PostgreSQLConfig) =
         this.SetGeoRedundantBackup(state, false)
 
     /// Sets storage autogrow
     [<CustomOperation "storage_autogrow">]
-    member _this.SetStorageAutogrow(state:PostgreSQLServerBuilderConfig, enabled:bool) =
+    member _.SetStorageAutogrow(state:PostgreSQLConfig, enabled:bool) =
         { state with StorageAutogrow = enabled }
 
     /// Enables storage autogrow
     [<CustomOperation "enable_storage_autogrow">]
-    member this.EnableStorageAutogrow(state:PostgreSQLServerBuilderConfig) =
+    member this.EnableStorageAutogrow(state:PostgreSQLConfig) =
         this.SetStorageAutogrow(state, true)
 
     /// Disables storage autogrow
     [<CustomOperation "disable_storage_autogrow">]
-    member this.DisableStorageAutogrow(state:PostgreSQLServerBuilderConfig) =
+    member this.DisableStorageAutogrow(state:PostgreSQLConfig) =
         this.SetStorageAutogrow(state, false)
 
     /// sets storage size in MBs
     [<CustomOperation "storage_size">]
-    member _this.SetStorageSizeInMBs(state:PostgreSQLServerBuilderConfig, size:int<Gb>) =
+    member _.SetStorageSizeInMBs(state:PostgreSQLConfig, size:int<Gb>) =
         Validate.storageSize size
         { state with StorageSize = size }
 
     /// sets the backup retention in days
     [<CustomOperation "backup_retention">]
-    member _this.SetBackupRetention (state:PostgreSQLServerBuilderConfig, retention:int<Days>) =
+    member _.SetBackupRetention (state:PostgreSQLConfig, retention:int<Days>) =
         Validate.backupRetention retention
         { state with BackupRetention = retention }
 
     /// Sets the PostgreSQl server version
     [<CustomOperation "server_version">]
-    member _this.SetServerVersion (state:PostgreSQLServerBuilderConfig, version:Version) =
+    member _.SetServerVersion (state:PostgreSQLConfig, version:Version) =
         { state with Version = version }
 
     /// Sets capacity
     [<CustomOperation "capacity">]
-    member _this.SetCapacity (state:PostgreSQLServerBuilderConfig, capacity:int<VCores>) =
+    member _.SetCapacity (state:PostgreSQLConfig, capacity:int<VCores>) =
         Validate.capacity capacity
         { state with Capacity = capacity }
 
     /// Sets tier
     [<CustomOperation "tier">]
-    member _this.SetTier (state:PostgreSQLServerBuilderConfig, tier:Sku) =
+    member _.SetTier (state:PostgreSQLConfig, tier:Sku) =
         { state with Tier = tier }
 
-    /// Sets database name
+    /// Adds a new database to the server, either by specifying the name of the database or providing a PostgreSQLDbConfig
     [<CustomOperation "add_database">]
-    member _this.AddDatabase (state:PostgreSQLServerBuilderConfig, database) =
+    member _.AddDatabase (state:PostgreSQLConfig, database) =
         { state with Databases = database :: state.Databases }
-    member this.AddDatabase (state:PostgreSQLServerBuilderConfig, dbName:string) =
+    member this.AddDatabase (state:PostgreSQLConfig, dbName:string) =
         let db = postgreSQLDb { name dbName }
         this.AddDatabase(state, db)
 
     /// Adds a custom firewall rule given a name, start and end IP address range.
     [<CustomOperation "add_firewall_rule">]
-    member _this.AddFirewallWall(state:PostgreSQLServerBuilderConfig, name, startRange, endRange) =
+    member _.AddFirewallWall(state:PostgreSQLConfig, name, startRange, endRange) =
         { state with
             FirewallRules =
                 {| Name = ResourceName name
@@ -286,14 +286,14 @@ type PostgreSQLBuilder() =
 
     /// Adds a firewall rule that enables access to other Azure services.
     [<CustomOperation "enable_azure_firewall">]
-    member this.EnableAzureFirewall(state:PostgreSQLServerBuilderConfig) =
+    member this.EnableAzureFirewall(state:PostgreSQLConfig) =
         this.AddFirewallWall(state, "allow-azure-services", "0.0.0.0", "0.0.0.0")
 
     [<CustomOperation "add_tags">]
-    member _.Tags(state:PostgreSQLServerBuilderConfig, pairs) = 
-        { state with 
+    member _.Tags(state:PostgreSQLConfig, pairs) =
+        { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
-    member this.Tag(state:PostgreSQLServerBuilderConfig, key, value) = this.Tags(state, [ (key,value) ])
+    member this.Tag(state:PostgreSQLConfig, key, value) = this.Tags(state, [ (key,value) ])
 
 let postgreSQL = PostgreSQLBuilder()
