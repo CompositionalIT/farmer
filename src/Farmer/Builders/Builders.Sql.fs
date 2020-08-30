@@ -128,7 +128,7 @@ type SqlServerBuilder() =
           Databases = []
           FirewallRules = []
           Tags = Map.empty  }
-    member __.Run(state) =
+    member __.Run(state) : SqlAzureConfig =
         { state with
             Name =
                 if state.Name = ResourceName.Empty then failwith "You must set a server name"
