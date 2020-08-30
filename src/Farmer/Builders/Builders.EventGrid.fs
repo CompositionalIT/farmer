@@ -130,8 +130,8 @@ type EventGridBuilder() =
     [<CustomOperation "topic_name">]
     member _.Name (state:EventGridConfig<'T>, name) = { state with TopicName = ResourceName name }
     [<CustomOperation "source">]
-    member _.Source(state:EventGridConfig<_>, source:StorageAccountConfig) = EventGridBuilder.ChangeTopic<StorageEvent>(state, source.Name.ResourceName, Topics.StorageAccount)
-    member _.Source(state:EventGridConfig<_>, source:WebAppConfig) = EventGridBuilder.ChangeTopic<AppServiceEvent>(state, source.Name, Topics.AppService)
+    member _.Source(state:EventGridConfig<_>, source:StorageAccountConfig) = EventGridBuilder.ChangeTopic<StorageEvent>(state, source.Name.Untyped, Topics.StorageAccount)
+    member _.Source(state:EventGridConfig<_>, source:WebAppConfig) = EventGridBuilder.ChangeTopic<AppServiceEvent>(state, source.Name.Untyped, Topics.AppService)
     member _.Source(state:EventGridConfig<_>, source:KeyVaultConfig) = EventGridBuilder.ChangeTopic<KeyVaultEvent>(state, source.Name, Topics.KeyVault)
     member _.Source(state:EventGridConfig<_>, source:SignalRConfig) = EventGridBuilder.ChangeTopic<SignalRServiceEvent>(state, source.Name, Topics.SignalR)
     member _.Source(state:EventGridConfig<_>, source:MapsConfig) = EventGridBuilder.ChangeTopic<MapsEvent>(state, source.Name, Topics.MapsAccount)
@@ -142,12 +142,12 @@ type EventGridBuilder() =
 
     [<CustomOperation "add_queue_subscriber">]
     member _.AddQueueSubscription(state:EventGridConfig<'T> when 'T :> IEventGridEvent, storageAccount:StorageAccountConfig, queueName, events:'T list) =
-        EventGridBuilder.AddSub(state, queueName + "-queue", storageAccount.Name.ResourceName, StorageQueue queueName, events |> List.map (fun x -> x.ToEvent))
+        EventGridBuilder.AddSub(state, queueName + "-queue", storageAccount.Name.Untyped, StorageQueue queueName, events |> List.map (fun x -> x.ToEvent))
     [<CustomOperation "add_webhook_subscriber">]
     member _.AddWebSubscription(state:EventGridConfig<'T> when 'T :> IEventGridEvent, webAppName:ResourceName, webHookEndpoint:Uri, events:'T list) =
         EventGridBuilder.AddSub(state, webHookEndpoint.LocalPath + "-webhook", webAppName, WebHook webHookEndpoint, events |> List.map (fun x -> x.ToEvent))
     member this.AddWebSubscription(state:EventGridConfig<_>, webApp:WebAppConfig, route, events) =
-        this.AddWebSubscription(state, webApp.Name, Uri (sprintf "https://%s/%s" webApp.Endpoint route), events)
+        this.AddWebSubscription(state, webApp.Name.Untyped, Uri (sprintf "https://%s/%s" webApp.Endpoint route), events)
     [<CustomOperation "add_eventhub_subscriber">]
     member _.AddEventHubSubscription(state:EventGridConfig<'T> when 'T :> IEventGridEvent, eventHub:EventHubConfig, events:'T list) =
         EventGridBuilder.AddSub(state, eventHub.Name.Value + "-eventhub", eventHub.EventHubNamespaceName, EventHub eventHub.Name, events |> List.map (fun x -> x.ToEvent))

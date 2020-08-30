@@ -13,7 +13,7 @@ open System
 type FunctionsRuntime = DotNet | Node | Java | Python
 type FunctionsExtensionVersion = V1 | V2 | V3
 type FunctionsConfig =
-    { Name : ResourceName
+    { Name : ResourceName<WebAppName>
       ServicePlan : ResourceRef<FunctionsConfig>
       HTTPSOnly : bool
       AppInsights : ResourceRef<FunctionsConfig> option
@@ -123,8 +123,8 @@ type FunctionsConfig =
             | _ ->
                 ()
             match this.StorageAccount with
-            | DeployableResource this resourceName ->
-                { Name = Storage.StorageAccountName.Create resourceName |> Result.get
+            | DeployableResource this (ResourceName resourceName) ->
+                { Name = Storage.createStorageAccountName resourceName |> Result.get
                   Location = location
                   Sku = Storage.Standard_LRS
                   StaticWebsite = None
@@ -148,7 +148,7 @@ type FunctionsConfig =
 
 type FunctionsBuilder() =
     member __.Yield _ =
-        { Name = ResourceName.Empty
+        { Name = WebApp.tryCreateResourceName "default" |> Result.get
           ServicePlan = derived (fun config -> config.Name.Map(sprintf "%s-farm"))
           AppInsights = Some (derived (fun config -> config.Name.Map(sprintf "%s-ai")))
           StorageAccount = derived (fun config ->
@@ -167,7 +167,7 @@ type FunctionsBuilder() =
           ZipDeployPath = None }
     /// Sets the name of the functions instance.
     [<CustomOperation "name">]
-    member __.Name(state:FunctionsConfig, name) = { state with Name = ResourceName name }
+    member __.Name(state:FunctionsConfig, name) = { state with Name = WebApp.tryCreateResourceName name |> Result.get }
     /// Sets the name of the service plan hosting the function instance.
     [<CustomOperation "service_plan_name">]
     member __.ServicePlanName(state:FunctionsConfig, name) = { state with ServicePlan = AutoCreate(Named(ResourceName name)) }

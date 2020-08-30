@@ -16,7 +16,7 @@ type ServerFarm =
       Sku: Sku
       WorkerSize : WorkerSize
       WorkerCount : int
-      OperatingSystem : OS 
+      OperatingSystem : OS
       Tags: Map<string,string> }
     member this.IsDynamic =
         match this.Sku, this.WorkerSize with
@@ -83,11 +83,11 @@ type ServerFarm =
 module ZipDeploy =
     open System.IO
     open System.IO.Compression
-    
+
     type ZipDeployTarget =
         | WebApp
         | FunctionApp
-    
+
     type ZipDeployKind =
         | DeployFolder of string
         | DeployZip of string
@@ -113,7 +113,7 @@ module ZipDeploy =
                 zipFilePath
 
 type Site =
-    { Name : ResourceName
+    { Name : ResourceName<WebAppName>
       Location : Location
       ServicePlan : ResourceName
       AppSettings : List<string * Setting>
@@ -158,7 +158,7 @@ type Site =
             | _ ->
                 None
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceName = this.Name.Untyped
         member this.JsonModel =
             {| ``type`` = sites.ArmValue
                name = this.Name.Value
@@ -201,7 +201,7 @@ type Site =
 
 module Sites =
     type SourceControl =
-        { Website : ResourceName
+        { Website : ResourceName<WebAppName>
           Location : Location
           Repository : Uri
           Branch : string

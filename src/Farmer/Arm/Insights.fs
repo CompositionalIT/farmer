@@ -3,13 +3,14 @@ module Farmer.Arm.Insights
 
 open Farmer
 open Farmer.CoreTypes
+open Farmer.WebApp
 
 let components = ResourceType "Microsoft.Insights/components"
 
 type Components =
     { Name : ResourceName
       Location : Location
-      LinkedWebsite : ResourceName option
+      LinkedWebsite : ResourceName<WebAppName> option
       Tags: Map<string,string> }
     interface IArmResource with
         member this.ResourceName = this.Name

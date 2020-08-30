@@ -1,17 +1,20 @@
 namespace Farmer
 
 /// Represents a name of an ARM resource
-type ResourceName =
+type ResourceName<'T> =
     | ResourceName of string
-    static member Empty = ResourceName ""
     member this.Value =
         let (ResourceName path) = this
         path
     member this.IfEmpty fallbackValue =
         match this with
-        | r when r = ResourceName.Empty -> ResourceName fallbackValue
+        | r when r = ResourceName "" -> ResourceName fallbackValue
         | r -> r
     member this.Map mapper = match this with ResourceName r -> ResourceName (mapper r)
+    member this.Untyped : ResourceName<unit> = ResourceName this.Value
+type ResourceName = ResourceName<unit>
+module ResourceName =
+    let Empty : ResourceName<unit> = ResourceName ""
 
 type Location =
     | Location of string

@@ -149,15 +149,15 @@ type EventHubBuilder() =
         { state with
             CaptureDestination = Some (StorageAccount(storageName, container)) }
     member this.CaptureToStorage(state:EventHubConfig, storageAccount:StorageAccountConfig, container) =
-        this.CaptureToStorage(state, storageAccount.Name.ResourceName, container)
+        this.CaptureToStorage(state, storageAccount.Name.Untyped, container)
     /// Sets a dependency for the event hub.
     [<CustomOperation "depends_on">]
     member __.DependsOn(state:EventHubConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
     member __.DependsOn(state:EventHubConfig, builder:IBuilder) = { state with Dependencies = builder.DependencyName :: state.Dependencies }
     member __.DependsOn(state:EventHubConfig, resource:IArmResource) = { state with Dependencies = resource.ResourceName :: state.Dependencies }
     [<CustomOperation "add_tags">]
-    member _.Tags(state:EventHubConfig, pairs) = 
-        { state with 
+    member _.Tags(state:EventHubConfig, pairs) =
+        { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
     member this.Tag(state:EventHubConfig, key, value) = this.Tags(state, [ (key,value) ])

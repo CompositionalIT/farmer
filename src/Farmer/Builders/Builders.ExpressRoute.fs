@@ -114,7 +114,7 @@ type ExpressRouteBuilder() =
         PeeringLocation = ""
         Bandwidth = 50<Mbps>
         GlobalReachEnabled = false
-        Peerings = [] 
+        Peerings = []
         Tags = Map.empty}
     /// Sets the name of the circuit
     [<CustomOperation "name">]
@@ -141,8 +141,8 @@ type ExpressRouteBuilder() =
     [<CustomOperation "enable_global_reach">]
     member __.EnableGlobalReach(state:ExpressRouteConfig) = { state with GlobalReachEnabled = true }
     [<CustomOperation "add_tags">]
-    member _.Tags(state:ExpressRouteConfig, pairs) = 
-        { state with 
+    member _.Tags(state:ExpressRouteConfig, pairs) =
+        { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
     member this.Tag(state:ExpressRouteConfig, key, value) = this.Tags(state, [ (key,value) ])

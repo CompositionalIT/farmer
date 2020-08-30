@@ -65,7 +65,7 @@ let publishingPassword (ResourceName name) =
     |> ArmExpression.create
 
 type WebAppConfig =
-    { Name : ResourceName
+    { Name : ResourceName<WebAppName>
       ServicePlan : ResourceRef<WebAppConfig>
       HTTPSOnly : bool
       HTTP20Enabled : bool option
@@ -264,7 +264,7 @@ type WebAppConfig =
                   Sku = this.Sku
                   WorkerSize = this.WorkerSize
                   WorkerCount = this.WorkerCount
-                  OperatingSystem = this.OperatingSystem 
+                  OperatingSystem = this.OperatingSystem
                   Tags = this.Tags}
             | _ ->
                 ()
@@ -272,7 +272,7 @@ type WebAppConfig =
 
 type WebAppBuilder() =
     member __.Yield _ =
-        { Name = ResourceName.Empty
+        { Name = WebApp.tryCreateResourceName "default" |> Result.get
           ServicePlan = derived (fun t -> t.Name.Map(sprintf "%s-farm"))
           AppInsights = Some (derived (fun t -> t.Name.Map(sprintf "%s-ai")))
           Sku = Sku.F1
@@ -315,8 +315,8 @@ type WebAppBuilder() =
         }
     /// Sets the name of the web app.
     [<CustomOperation "name">]
-    member __.Name(state:WebAppConfig, name) = { state with Name = name }
-    member this.Name(state:WebAppConfig, name:string) = this.Name(state, ResourceName name)
+    member __.Name(state:WebAppConfig, name:string) = { state with Name = WebApp.tryCreateResourceName name |> Result.get }
+    member this.Name(state:WebAppConfig, (ResourceName name)) = this.Name(state, ResourceName name)
     /// Sets the name of the service plan.
     [<CustomOperation "service_plan_name">]
     member _.ServicePlanName(state:WebAppConfig, name) = { state with ServicePlan = AutoCreate(Named name) }
@@ -446,8 +446,8 @@ type WebAppBuilder() =
     [<CustomOperation "disable_source_control_ci">]
     member this.DisableCi(state:WebAppConfig) = this.SourceControlCi(state, Disabled)
     [<CustomOperation "add_tags">]
-    member _.Tags(state:WebAppConfig, pairs) = 
-        { state with 
+    member _.Tags(state:WebAppConfig, pairs) =
+        { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
     member this.Tag(state:WebAppConfig, key, value) = this.Tags(state, [ (key,value) ])
@@ -458,4 +458,4 @@ let webApp = WebAppBuilder()
 type EndpointBuilder with
     member this.Origin(state:EndpointConfig, webApp:WebAppConfig) =
         let state = this.Origin(state, webApp.Endpoint)
-        this.DependsOn(state, webApp.Name)
+        this.DependsOn(state, webApp.Name.Untyped)

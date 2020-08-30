@@ -265,6 +265,8 @@ module Vm =
     /// Represents a disk in a VM.
     type DiskInfo = { Size : int; DiskType : DiskType }
 
+type ValidationResult<'T> = Result<ResourceName<'T>, string>
+
 module internal Validation =
     let isNonEmpty entity s = if String.IsNullOrWhiteSpace s then Error (sprintf "%s cannot be empty" entity) else Ok()
     let notLongerThan max entity (s:string) = if s.Length > max then Error (sprintf "%s max length is %d, but here is %d ('%s')" entity max s.Length s) else Ok()
@@ -279,9 +281,12 @@ module internal Validation =
     let arb message predicate entity (s:string) = if predicate s then Error (sprintf "%s %s ('%s')" entity message s) else Ok()
     let (<+>) a b v = a v && b v
     let (<|>) a b v = a v || b v
-    let lowercaseOnly = Char.IsLetter >> not <|> Char.IsLower
 
-    let validate entity text rules =
+    let isAlphanumeric = containsOnly "alphanumeric characters" Char.IsLetterOrDigit
+    let isAlphanumericOrDash = containsOnly "letters, numbers, and the dash (-) character" (fun c -> Char.IsLetterOrDigit c || c = '-')
+    let lowercaseOnly = containsOnly "lowercase letters" (Char.IsLetter >> not <|> Char.IsLower)
+
+    let validate<'T> entity text rules : 'T ValidationResult =
         rules
         |> Seq.choose (fun v ->
             match v entity text with
@@ -289,37 +294,35 @@ module internal Validation =
             | Ok _ -> None)
         |> Seq.tryHead
         |> Option.defaultValue (Ok text)
+        |> Result.map ResourceName
 
 module Storage =
     open Validation
-    type StorageAccountName =
-        private | StorageAccountName of ResourceName
-        static member Create name =
-            [ isNonEmpty
-              lengthBetween 3 24
-              containsOnly "lowercase letters" lowercaseOnly
-              containsOnly "alphanumeric characters" Char.IsLetterOrDigit ]
-            |> validate "Storage account names" name
-            |> Result.map (ResourceName >> StorageAccountName)
+    type StorageAccountName = interface end
+    type QueueName = interface end
+    type ContainerName = interface end
+    type FileShareName = interface end
 
-        static member Create (ResourceName name) = StorageAccountName.Create name
-        member this.ResourceName = match this with StorageAccountName name -> name
+    let createStorageAccountName name =
+        [ isNonEmpty
+          lengthBetween 3 24
+          lowercaseOnly
+          isAlphanumeric ]
+        |> validate<StorageAccountName> "Storage account names" name
 
-    type StorageResourceName =
-        private | StorageResourceName of ResourceName
-        static member Create name =
-            [ isNonEmpty
-              lengthBetween 3 63
-              startsWith "an alphanumeric character" Char.IsLetterOrDigit
-              endsWith "an alphanumeric character" Char.IsLetterOrDigit
-              containsOnly "letters, numbers, and the dash (-) character" (fun c -> Char.IsLetterOrDigit c || c = '-')
-              containsOnly "lowercase letters" lowercaseOnly
-              arb "do not allow consecutive dashes" (fun s -> s.Contains "--") ]
-            |> validate "Storage resource names" name
-            |> Result.map (ResourceName >> StorageResourceName)
+    let private createStorageResourceName<'T> resource name =
+        [ isNonEmpty
+          lengthBetween 3 63
+          startsWith "an alphanumeric character" Char.IsLetterOrDigit
+          endsWith "an alphanumeric character" Char.IsLetterOrDigit
+          isAlphanumericOrDash
+          lowercaseOnly
+          arb "do not allow consecutive dashes" (fun s -> s.Contains "--") ]
+        |> validate<'T> (sprintf "%s names" resource) name
 
-        static member Create (ResourceName name) = StorageResourceName.Create name
-        member this.ResourceName = match this with StorageResourceName name -> name
+    let createQueueName = createStorageResourceName<QueueName> "Queue"
+    let createContainerName = createStorageResourceName<ContainerName> "Container"
+    let createFileShareName = createStorageResourceName<FileShareName> "Fileshare"
 
     type Sku =
         | Standard_LRS
@@ -338,6 +341,18 @@ module Storage =
     | Blob
 
 module WebApp =
+    open Validation
+    type WebAppName = interface end
+
+    let tryCreateResourceName name =
+        [ isNonEmpty
+          lengthBetween 2 60
+          lowercaseOnly
+          startsWith "an alphanumeric character" Char.IsLetterOrDigit
+          endsWith "an alphanumeric character" Char.IsLetterOrDigit
+          isAlphanumericOrDash ]
+        |> validate<WebAppName> "Web App names" name
+
     type WorkerSize = Small | Medium | Large | Serverless
     type Cors = AllOrigins | SpecificOrigins of Uri list
     type Sku =
