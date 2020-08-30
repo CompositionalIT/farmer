@@ -2,6 +2,7 @@
 title: "Outputs and ARM Expressions"
 date: 2020-06-19T23:50:54+02:00
 draft: false
+weight: 2
 ---
 
 Outputs can be created in Farmer for any [ARM Expression](../../api-overview/expressions), Resource Name or any optional string. ARM Expressions are most useful in this case for referring to values that only exist at *deployment time*, such as connection strings.

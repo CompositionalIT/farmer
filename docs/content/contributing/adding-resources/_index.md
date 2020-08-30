@@ -3,6 +3,7 @@ title: "Adding A Resource"
 date: 2020-06-15T03:57:42+02:00
 draft: false
 chapter: false
+weight: 10
 ---
 
 This set of guided exercises shows the different steps required to create new ARM resources in Farmer. We'll create a basic resource that can hook into the Farmer pipeline, by adding support to Farmer for the `ContainerRegistry` Azure resource. This will involve:
