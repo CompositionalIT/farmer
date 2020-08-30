@@ -1,5 +1,12 @@
 Release Notes
 =============
+## 1.0.0 RC
+* Postgres API redesign
+* Network Security Group API design
+* Validation for all Storage Account resources
+* Prevent supplying VM custom script files without a custom script
+* Basic Validation helper functions
+
 ## 0.24.0
 * More documentation
 * Simplified Service Bus filtering
