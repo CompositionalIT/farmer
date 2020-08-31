@@ -60,6 +60,11 @@ type ManagedCluster =
                apiVersion = "2020-04-01"
                name = this.Name.Value
                location = this.Location.ArmValue
+               dependsOn =
+                   this.AgentPoolProfiles
+                   |> List.map (fun pool -> pool.VirtualNetworkName)
+                   |> List.choose id
+                   |> List.map(fun vnet -> ArmExpression.resourceId(virtualNetworks, vnet).Eval())
                properties =
                    {| agentPoolProfiles =
                        this.AgentPoolProfiles
