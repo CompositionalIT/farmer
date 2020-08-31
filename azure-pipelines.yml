@@ -46,6 +46,7 @@ jobs:
       verbosityPack: 'Minimal'
   - task: PublishBuildArtifacts@1
     displayName: Store NuGet Package
+    condition: and(succeeded(), eq(variables.vmImage, 'ubuntu-latest'))    
     inputs:
       PathtoPublish: '$(Build.ArtifactStagingDirectory)'
       ArtifactName: 'FarmerPackage-$(imageName)'
