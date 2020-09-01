@@ -25,7 +25,6 @@ The Container Group builder is used to create Azure Container Group instances.
 | containerGroup | restart_policy | Sets the restart policy (default Always) |
 | containerGroup | public_dns | Sets the DNS host label when using a public IP. |
 | containerGroup | private_ip | Indicates the container should use a system-assigned private IP address for use in a virtual network. |
-| containerGroup | private_static_ip | Sets a static assigned IP address for use in a virtual network |
 | containerGroup | network_profile | Name of a network profile resource for the subnet in a virtual network where the container group will attach. |
 | containerGroup | add_tcp_port | Adds a TCP port to be externally accessible. |
 | containerGroup | add_udp_port | Adds a UDP port to be externally accessible. |
@@ -110,6 +109,6 @@ let group = containerGroup {
     restart_policy AlwaysRestart
     add_instances [ myContainer ]
     network_profile "vnet-aci-profile"
-    private_static_ip "10.30.19.4" [TCP, 80us]
+    private_ip [TCP, 80us]
 }
 ```

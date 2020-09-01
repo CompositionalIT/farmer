@@ -90,16 +90,12 @@ type ContainerGroup =
                         {| ``type`` =
                             match this.IpAddress.Type with
                             | PublicAddress | PublicAddressWithDns _ -> "Public"
-                            | PrivateAddress _ | PrivateAddressWithIp _ -> "Private"
+                            | PrivateAddress _ -> "Private"
                            ports = [
                                for port in this.IpAddress.Ports do
                                 {| protocol = string port.Protocol
                                    port = port.Port |}
                            ]
-                           ip =
-                            match this.IpAddress.Type with
-                            | PrivateAddressWithIp ip -> string ip
-                            | _ -> null
                            dnsNameLabel =
                             match this.IpAddress.Type with
                             | PublicAddressWithDns dnsLabel -> dnsLabel
