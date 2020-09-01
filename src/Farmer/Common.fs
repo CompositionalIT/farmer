@@ -510,7 +510,6 @@ module ContainerGroup =
         | PublicAddress
         | PublicAddressWithDns of DnsName:string
         | PrivateAddress
-        | PrivateAddressWithIp of System.Net.IPAddress
     /// A secret file which will be encoded as base64 and attached to a container group.
     type SecretFile = SecretFile of Name:string * Secret:byte array
     /// A container group volume.
