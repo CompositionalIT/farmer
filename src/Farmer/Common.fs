@@ -337,6 +337,12 @@ module Storage =
     | Container
     | Blob
 
+    type PolicyAction =
+    | CoolAfter of int<Days>
+    | ArchiveAfter of int<Days>
+    | DeleteAfter of int<Days>
+    | DeleteSnapshotAfter of int<Days>
+
 module WebApp =
     type WorkerSize = Small | Medium | Large | Serverless
     type Cors = AllOrigins | SpecificOrigins of Uri list
