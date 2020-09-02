@@ -1,5 +1,9 @@
 Release Notes
 =============
+## 1.0.0 RC2
+* Fix an issue with CosmosDB tags being set twice
+* ACI dropped support for assigning static private IP
+
 ## 1.0.0 RC
 * Postgres API redesign
 * Network Security Group API design
