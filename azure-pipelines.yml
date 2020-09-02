@@ -2,48 +2,70 @@ trigger:
   paths:
     exclude:
     - 'docs/'
-strategy:
-  matrix:
-    Linux:
-      imageName: 'ubuntu-latest'
-    Windows:
-      imageName: 'windows-latest'
-pool:
-  vmImage: $(imageName)
-steps:
-- task: DotNetCoreCLI@2
-  displayName: 'Restore'
-  inputs:
-    command: 'restore'
-    verbosityRestore: 'Minimal'
-- task: DotNetCoreCLI@2
-  displayName: 'Build'
-  inputs:
-    command: 'build'
-    arguments: '-c release'
-- task: AzureCLI@2
-  displayName: 'Test'
-  inputs:
-    azureSubscription: 'Microsoft Azure Sponsorship(6c9e2629-3964-4b24-bc32-97dafc8c90f3)'
-    scriptType: 'bash'
-    scriptLocation: 'inlineScript'
-    inlineScript: 'dotnet test -v n -c release -l trx'
-- task: PublishTestResults@2
-  displayName: 'Publish Test Results'
-  inputs:
-    testResultsFiles: '**/*.trx'
-    testResultsFormat: VSTest
-- task: DotNetCoreCLI@2
-  displayName: 'Package'
-  inputs:
-    command: 'pack'
-    packagesToPack: 'src/Farmer'
-    configuration: Release
-    versioningScheme: 'off'
-    verbosityPack: 'Minimal'
-- task: PublishBuildArtifacts@1
-  displayName: Store NuGet Package
-  inputs:
-    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-    ArtifactName: 'FarmerPackage-$(imageName)'
-    publishLocation: 'Container'
+jobs:    
+- job: "Build"
+  strategy:
+    matrix:
+      Linux:
+        imageName: 'ubuntu-latest'
+      Windows:
+        imageName: 'windows-latest'
+  pool:
+    vmImage: $(imageName)
+  steps:
+  - task: DotNetCoreCLI@2
+    displayName: 'Restore'
+    inputs:
+      command: 'restore'
+      verbosityRestore: 'Minimal'
+  - task: DotNetCoreCLI@2
+    displayName: 'Build'
+    inputs:
+      command: 'build'
+      arguments: '-c release'
+  - task: AzureCLI@2
+    displayName: 'Test'
+    inputs:
+      azureSubscription: 'Microsoft Azure Sponsorship(6c9e2629-3964-4b24-bc32-97dafc8c90f3)'
+      scriptType: 'bash'
+      scriptLocation: 'inlineScript'
+      inlineScript: 'dotnet test -v n -c release -l trx'
+  - task: PublishTestResults@2
+    displayName: 'Publish Test Results'
+    inputs:
+      testResultsFiles: '**/*.trx'
+      testResultsFormat: VSTest
+  - task: DotNetCoreCLI@2
+    displayName: 'Package'
+    condition: and(succeeded(), eq(variables.vmImage, 'ubuntu-latest'))
+    inputs:
+      command: 'pack'
+      packagesToPack: 'src/Farmer'
+      configuration: Release
+      versioningScheme: 'off'
+      verbosityPack: 'Minimal'
+  - task: PublishBuildArtifacts@1
+    displayName: Store NuGet Package
+    condition: and(succeeded(), eq(variables.vmImage, 'ubuntu-latest'))    
+    inputs:
+      PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+      ArtifactName: 'FarmerPackage-$(imageName)'
+      publishLocation: 'Container'
+- deployment: "NugetPublish"
+  dependsOn: ["Build"]
+  condition:  and(succeeded(), eq(variables['build.sourceBranch'], 'refs/heads/master')) #optional, only trigger for master
+  displayName: "Publish to NuGet"
+  environment: "NuGet" #needs to be configured in ADoS - put a manual gate here
+  pool:
+    vmImage: 'windows-latest' #task doesn't run on other OS's
+  strategy:
+    runOnce:
+      deploy:
+        steps:
+        - task: NuGetCommand@2
+          displayName: "Push to NuGet"
+          inputs:
+            command: 'push'
+            packagesToPush: '$(Pipeline.Workspace)/**/*.nupkg;' #Path here must match
+            nuGetFeedType: 'external'
+            publishFeedCredentials: 'NuGet' #this needs to be established in ADos Servie Connections       
