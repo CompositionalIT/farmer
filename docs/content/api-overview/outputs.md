@@ -4,7 +4,7 @@ date: 2020-08-22T09:13:36+01:00
 draft: false
 weight: 3
 ---
-ARM templates also support the notion of *[outputs](https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/template-outputs)*. Outputs can be used to provide the your Farmer applications with values which were generated during the deployment process, to be used further downstream.
+ARM templates also support the notion of *[outputs](https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/template-outputs)*. Outputs can be used to provide your Farmer applications with values which were generated during the deployment process, to be used further downstream.
 
 For example, you may wish to prime an Azure storage account with data post-creation. In this case, one way is to return back out the connection string of the storage account and use that to connect and upload your data.
 
