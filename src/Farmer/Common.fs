@@ -524,6 +524,15 @@ module ContainerGroup =
         /// Mounts a volume containing secret files.
         | Secret of SecretFile list
 
+module ContainerService =
+    type NetworkPlugin =
+        | Kubenet
+        | AzureCni
+        member this.ArmValue =
+            match this with
+            | Kubenet -> "kubenet"
+            | AzureCni -> "azure"
+
 module Redis =
     type Sku = Basic | Standard | Premium
 
@@ -876,3 +885,17 @@ module Cdn =
 
 module EventGrid =
     type EventGridEvent = EventGridEvent of string member this.Value = match this with EventGridEvent s -> s
+
+/// Built in Azure roles (https://docs.microsoft.com/en-us/azure/role-based-access-control/built-in-roles)
+module Roles =
+    type RoleID = RoleID of string
+    module General =
+        let Contributor = RoleID "b24988ac-6180-42a0-ab88-20f7382dd24c"
+        let Owner = RoleID "8e3af657-a8ff-443c-a75c-2fe8c4bcb635"
+        let Reader = RoleID "acdd72a7-3385-48ef-bd42-f606fba81ae7"
+        let UserAccessAdministrator = RoleID "18d7d88d-d35e-4fb5-a5c3-7773c20a72d9"
+    module Networking =
+        let DnsZoneContributor = RoleID "befefa01-2a29-4197-83a8-272ff33ce314"
+        let NetworkContributor = RoleID "4d97b98b-1d4f-4787-a291-c67834d212e7"
+        let PrivateDnsZoneContributor = RoleID "b12aa53e-6015-4669-85d0-8515ebb3ae7f"
+        let TrafficManagerContributor = RoleID "a4b10055-b0c7-44c2-b00f-c7b5b3550cf7"

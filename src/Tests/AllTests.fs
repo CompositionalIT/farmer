@@ -11,6 +11,7 @@ let allTests =
             testList "Builders" [
                 Cdn.tests
                 ContainerGroup.tests
+                ContainerService.tests
                 IotHub.tests
                 Storage.tests
                 ContainerRegistry.tests
