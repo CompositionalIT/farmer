@@ -4,7 +4,6 @@ module Farmer.Arm.Storage
 open Farmer
 open Farmer.Storage
 open Farmer.CoreTypes
-open System
 
 let storageAccounts = ResourceType "Microsoft.Storage/storageAccounts"
 let containers = ResourceType "Microsoft.Storage/storageAccounts/blobServices/containers"
@@ -12,10 +11,16 @@ let fileShares = ResourceType "Microsoft.Storage/storageAccounts/fileServices/sh
 let queues = ResourceType "Microsoft.Storage/storageAccounts/queueServices/queues"
 let managementPolicies = ResourceType "Microsoft.Storage/storageAccounts/managementPolicies"
 
+[<RequireQualifiedAccess>]
+type StorageAccountKind =
+    V1 | V2 | BlobOnly | FilesOnly | BlockBlobOnly
+    member this.ArmValue = match this with | V1 -> "Storage" | V2 -> "StorageV2" | BlobOnly -> "BlobStorage" | FilesOnly -> "FileStorage" | BlockBlobOnly -> "BlockBlobStorage"
+
 type StorageAccount =
     { Name : StorageAccountName
       Location : Location
       Sku : Sku
+      Kind : StorageAccountKind
       EnableHierarchicalNamespace : bool
       StaticWebsite : {| IndexPage : string; ErrorPage : string option; ContentPath : string |} option
       Tags: Map<string,string>}
@@ -24,7 +29,7 @@ type StorageAccount =
         member this.JsonModel =
             {| ``type`` = storageAccounts.ArmValue
                sku = {| name = this.Sku.ArmValue |}
-               kind = "StorageV2"
+               kind = this.Kind.ArmValue
                name = this.Name.ResourceName.Value
                apiVersion = "2018-07-01"
                location = this.Location.ArmValue

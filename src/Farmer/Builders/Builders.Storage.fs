@@ -52,6 +52,7 @@ type StorageAccountConfig =
             { Name = this.Name
               Location = location
               Sku = this.Sku
+              Kind = StorageAccountKind.V2
               EnableHierarchicalNamespace = this.EnableDataLake
               StaticWebsite = this.StaticWebsite
               Tags = this.Tags }

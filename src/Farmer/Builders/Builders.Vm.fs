@@ -103,6 +103,7 @@ type VmConfig =
                 { Name = Storage.StorageAccountName.Create resourceName |> Result.get
                   Location = location
                   Sku = Storage.Standard_LRS
+                  Kind = StorageAccountKind.V1
                   StaticWebsite = None
                   EnableHierarchicalNamespace = false
                   Tags = this.Tags }
