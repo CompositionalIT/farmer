@@ -11,6 +11,7 @@
     <Compile Include="Common.fs" />
     <Compile Include="Cdn.fs" />
     <Compile Include="ContainerGroup.fs" />
+    <Compile Include="ContainerService.fs" />
     <Compile Include="ExpressRoute.fs" />
     <Compile Include="NetworkSecurityGroup.fs" />
     <Compile Include="Storage.fs" />
@@ -36,6 +37,7 @@
     <PackageReference Include="Microsoft.Azure.Management.Cdn" Version="2.1.0" />
     <PackageReference Include="Microsoft.Azure.Management.Compute" Version="35.2.0" />
     <PackageReference Include="Microsoft.Azure.Management.ContainerInstance" Version="2.0.0" />
+    <PackageReference Include="Microsoft.Azure.Management.ContainerService" Version="1.0.0" />
     <PackageReference Include="Microsoft.Azure.Management.DeviceProvisioningServices" Version="1.0.0" />
     <PackageReference Include="Microsoft.Azure.Management.IotHub" Version="2.10.0-preview" />
     <PackageReference Include="Microsoft.Azure.Management.Maps" Version="1.0.2" />
