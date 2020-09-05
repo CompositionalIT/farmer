@@ -83,4 +83,26 @@ let tests = testList "Storage Tests" [
 
         Expect.equal (StorageResourceName.Create "abcdefghij1234567890abcd" |> Result.get |> fun name -> name.ResourceName) (ResourceName "abcdefghij1234567890abcd") "Should have created a valid storage resource name"
     }
+    test "Adds lifecycle policies correctly" {
+        let resource : ManagementPolicy =
+            let account = storageAccount {
+                name "storage"
+                add_lifecycle_rule "cleanup" [ Storage.DeleteAfter 7<Days> ] Storage.NoRuleFilters
+                add_lifecycle_rule "test" [ Storage.DeleteAfter 1<Days>; Storage.DeleteAfter 2<Days>; Storage.ArchiveAfter 2<Days>; ] [ "foo/bar" ]
+            }
+            account |> getResourceAtIndex client.SerializationSettings 1
+
+        Expect.equal resource.Name "storage/default" "policy name for is wrong"
+        Expect.hasLength resource.Policy.Rules 2 "Should be two rules"
+
+        let rule = resource.Policy.Rules.[0]
+        Expect.equal rule.Name "cleanup" "rule name is wrong"
+        Expect.equal rule.Definition.Actions.BaseBlob.Delete.DaysAfterModificationGreaterThan 7. "Incorrect policy action"
+        Expect.isEmpty rule.Definition.Filters.PrefixMatch "should be no filters"
+
+        let rule = resource.Policy.Rules.[1]
+        Expect.equal rule.Definition.Actions.BaseBlob.Delete.DaysAfterModificationGreaterThan 1. "should ignore duplicate actions"
+        Expect.equal rule.Definition.Actions.BaseBlob.TierToArchive.DaysAfterModificationGreaterThan 2. "should add multiple actions to a rule"
+        Expect.equal (rule.Definition.Filters.PrefixMatch |> Seq.toList) [ "foo/bar" ] "incorrect filter"
+   }
 ]
