@@ -10,6 +10,7 @@ let storageAccounts = ResourceType "Microsoft.Storage/storageAccounts"
 let containers = ResourceType "Microsoft.Storage/storageAccounts/blobServices/containers"
 let fileShares = ResourceType "Microsoft.Storage/storageAccounts/fileServices/shares"
 let queues = ResourceType "Microsoft.Storage/storageAccounts/queueServices/queues"
+let managementPolicies = ResourceType "Microsoft.Storage/storageAccounts/managementPolicies"
 
 type StorageAccount =
     { Name : StorageAccountName
@@ -86,4 +87,50 @@ module Queues =
                    ``type`` = queues.ArmValue
                    dependsOn = [ this.StorageAccount.Value ]
                    apiVersion = "2019-06-01"
+                |} :> _
+
+module ManagementPolicies =
+    type ManagementPolicy =
+        { Rules :
+            {| Name : ResourceName
+               CoolBlobAfter : int<Days> option
+               ArchiveBlobAfter : int<Days> option
+               DeleteBlobAfter : int<Days> option
+               DeleteSnapshotAfter : int<Days> option
+               Filters : string list |} list
+          StorageAccount : ResourceName }
+        member this.ResourceName = this.StorageAccount.Value + "/default" |> ResourceName
+        interface IArmResource with
+            member this.ResourceName = this.ResourceName
+            member this.JsonModel =
+                {| name = this.ResourceName.Value
+                   ``type`` = managementPolicies.ArmValue
+                   apiVersion = "2019-06-01"
+                   dependsOn = [ this.StorageAccount.Value ]
+                   properties =
+                    {| policy =
+                        {| rules = [
+                            for rule in this.Rules do
+                                {| enabled = true
+                                   name = rule.Name.Value
+                                   ``type`` = "Lifecycle"
+                                   definition =
+                                    {| actions =
+                                        {| baseBlob =
+                                            {| tierToCool = rule.CoolBlobAfter |> Option.map (fun days -> {| daysAfterModificationGreaterThan = days |} |> box) |> Option.toObj
+                                               tierToArchive = rule.ArchiveBlobAfter |> Option.map (fun days -> {| daysAfterModificationGreaterThan = days |} |> box) |> Option.toObj
+                                               delete = rule.DeleteBlobAfter |> Option.map (fun days -> {| daysAfterModificationGreaterThan = days |} |> box) |> Option.toObj |}
+                                           snapshot =
+                                            rule.DeleteSnapshotAfter
+                                            |> Option.map (fun days -> {| delete = {| daysAfterCreationGreaterThan = days |} |} |> box)
+                                            |> Option.toObj
+                                        |}
+                                       filters =
+                                        {| blobTypes = [ "blockBlob" ]
+                                           prefixMatch = rule.Filters |}
+                                    |}
+                                |}
+                            ]
+                        |}
+                    |}
                 |} :> _

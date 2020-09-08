@@ -30,6 +30,7 @@ The Storage Account builder creates storage accounts and their associated contai
 | use_static_website | Activates static website host, and uploads the provided local content as a post-deployment task to the storage with the specified index page |
 | static_website_error_page | Specifies the 404 page to display for static website hosting |
 | enable_data_lake | Enables Azure Data Lake Gen2 support on the storage account |
+| add_lifecycle_policy | Given a rule name, a list of PolicyActions and a list of string filters, creates a lifecycle policy for the storage account |
 
 #### Configuration Members
 
@@ -55,5 +56,7 @@ let storage = storageAccount {
     use_static_website "local/path/to/folder/content" "index.html"
     static_website_error_page "error.html"
     enable_data_lake
+    add_lifecycle_rule "moveToCool" [ Storage.CoolAfter 30<Days>; Storage.ArchiveAfter 90<Days> ] Storage.NoRuleFilters
+    add_lifecycle_rule "cleanup" [ Storage.DeleteAfter 7<Days> ] [ "data/recyclebin" ]
 }
 ```
