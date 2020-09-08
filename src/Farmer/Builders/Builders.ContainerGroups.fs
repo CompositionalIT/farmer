@@ -121,9 +121,6 @@ type ContainerGroupBuilder() =
     /// Sets the IP addresss to a public address with a DNS label
     [<CustomOperation "public_dns">]
     member this.PublicDns(state, dnsLabel, ports) = this.SetIpAddress(state, PublicAddressWithDns dnsLabel, ports)
-    /// Sets the IP addresss to a private address that is statically assigned
-    [<CustomOperation "private_static_ip">]
-    member this.PrivateStaticIp(state, ip, ports) = this.SetIpAddress(state, PrivateAddressWithIp (System.Net.IPAddress.Parse ip), ports)
     /// Sets the IP addresss to a private address assigned by the vnet
     [<CustomOperation "private_ip">]
     member this.PrivateIp(state:ContainerGroupConfig, ports) = this.SetIpAddress(state, PrivateAddress, ports)

@@ -171,9 +171,12 @@ type FunctionsBuilder() =
     /// Sets the name of the service plan hosting the function instance.
     [<CustomOperation "service_plan_name">]
     member __.ServicePlanName(state:FunctionsConfig, name) = { state with ServicePlan = AutoCreate(Named(ResourceName name)) }
-    /// Do not create an automatic storage account; instead, link to a storage account that is created outside of this Functions instance.
+    /// Do not create an automatic service plan; instead, link to a service plan that is created outside of this Functions instance.
     [<CustomOperation "link_to_service_plan">]
-    member __.LinkToServicePlan(state:FunctionsConfig, name) = { state with ServicePlan = External name }
+    member __.LinkToServicePlan(state:FunctionsConfig, name) = { state with ServicePlan = External (Managed name) }
+    member this.LinkToServicePlan(state:FunctionsConfig, name:string) = this.LinkToServicePlan (state, ResourceName name)
+    member this.LinkToServicePlan(state:FunctionsConfig, config:ServicePlanConfig) = this.LinkToServicePlan (state, config.Name)
+    /// Do not create an automatic storage account; instead, link to a storage account that is created outside of this Functions instance.
     [<CustomOperation "link_to_storage_account">]
     member __.LinkToStorageAccount(state:FunctionsConfig, name) = { state with StorageAccount = External (Managed name) }
     member this.LinkToStorageAccount(state:FunctionsConfig, name) = this.LinkToStorageAccount(state, ResourceName name)
