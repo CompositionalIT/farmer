@@ -7,6 +7,8 @@ open Farmer.Storage
 open Farmer.Arm.Storage
 open BlobServices
 open FileShares
+open Queues
+open ManagementPolicies
 
 let internal buildKey (ResourceName name) =
     sprintf
@@ -14,6 +16,13 @@ let internal buildKey (ResourceName name) =
             name
             name
     |> ArmExpression.create
+
+type StoragePolicy =
+    { CoolBlobAfter : int<Days> option
+      ArchiveBlobAfter : int<Days> option
+      DeleteBlobAfter : int<Days> option
+      DeleteSnapshotAfter : int<Days> option
+      Filters : string list }
 
 type StorageAccountConfig =
     { /// The name of the storage account.
@@ -28,6 +37,8 @@ type StorageAccountConfig =
       FileShares: (ResourceName<FileShareName> * int<Gb> option) list
       /// Queues
       Queues : ResourceName<QueueName> Set
+      /// Rules
+      Rules : Map<ResourceName, StoragePolicy>
       /// Static Website Settings
       StaticWebsite : {| IndexPage : string; ContentPath : string; ErrorPage : string option |} option
       /// Tags to apply to the storage account
@@ -55,8 +66,18 @@ type StorageAccountConfig =
                   ShareQuota = shareQuota
                   StorageAccount = this.Name }
             for queue in this.Queues do
-                { Queues.Queue.Name = queue
-                  Queues.Queue.StorageAccount = this.Name }
+                { Name = queue
+                  StorageAccount = this.Name }
+            match this.Rules |> Map.toList with
+            | [] ->
+                ()
+            | rules ->
+                { StorageAccount = this.Name
+                  Rules = [
+                      for name, rule in rules do
+                        {| rule with Name = name |}
+                  ]
+                }
         ]
 
 type StorageAccountBuilder() =
@@ -66,6 +87,7 @@ type StorageAccountBuilder() =
         EnableDataLake = false
         Containers = []
         FileShares = []
+        Rules = Map.empty
         Queues = Set.empty
         StaticWebsite = None
         Tags = Map.empty
@@ -121,6 +143,16 @@ type StorageAccountBuilder() =
     /// Adds a tag to the storage account
     [<CustomOperation "add_tag">]
     member this.Tag(state:StorageAccountConfig, key, value) = this.Tags(state, [ (key,value) ])
+    /// Adds a lifecycle rule
+    [<CustomOperation "add_lifecycle_rule">]
+    member _.AddLifecycleRule(state:StorageAccountConfig, ruleName, actions, filters) =
+        let rule =
+            { Filters = filters
+              CoolBlobAfter = actions |> List.tryPick(function CoolAfter days -> Some days | _ -> None)
+              ArchiveBlobAfter = actions |> List.tryPick(function ArchiveAfter days -> Some days | _ -> None)
+              DeleteBlobAfter = actions |> List.tryPick(function DeleteAfter days -> Some days | _ -> None)
+              DeleteSnapshotAfter = actions |> List.tryPick(function DeleteSnapshotAfter days -> Some days | _ -> None) }
+        { state with Rules = state.Rules.Add (ResourceName ruleName, rule) }
 
 /// Allow adding storage accounts directly to CDNs
 type EndpointBuilder with

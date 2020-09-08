@@ -343,6 +343,16 @@ module Storage =
     | Container
     | Blob
 
+    /// The type of action to take when defining a lifecycle policy.
+    type LifecyclePolicyAction =
+    | CoolAfter of int<Days>
+    | ArchiveAfter of int<Days>
+    | DeleteAfter of int<Days>
+    | DeleteSnapshotAfter of int<Days>
+
+    /// Represents no filters for a lifecycle rule
+    let NoRuleFilters : string list = []
+
 module WebApp =
     open Validation
     type WebAppName = interface end
