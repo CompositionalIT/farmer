@@ -34,7 +34,7 @@ let tests = testList "Event Grid" [
         let grid = eventGrid { add_webhook_subscriber app "api/events" [] }
         let sub = grid.Subscriptions.[0]
         Expect.equal sub.Name (ResourceName "test-/api/events-webhook") "Incorrect subscription name"
-        Expect.equal sub.Endpoint (EndpointType.WebHook (Uri "https://test.azurewebsites.net/api/events")) "Incorrect endpoint type"
+        Expect.equal sub.Endpoint (WebHook (Uri "https://test.azurewebsites.net/api/events")) "Incorrect endpoint type"
         Expect.equal sub.Destination (ResourceName "test") "Incorrect destination"
     }
     test "Creates a eventhub subscriber correctly" {
@@ -42,7 +42,7 @@ let tests = testList "Event Grid" [
         let grid = eventGrid { add_eventhub_subscriber hub [] }
         let sub = grid.Subscriptions.[0]
         Expect.equal sub.Name (ResourceName "ns-hub-eventhub") "Incorrect subscription name"
-        Expect.equal sub.Endpoint (EndpointType.EventHub hub.Name) "Incorrect endpoint type"
-        Expect.equal sub.Destination hub.EventHubNamespaceName "Incorrect destination"
+        Expect.equal sub.Endpoint (EventHub hub.Name) "Incorrect endpoint type"
+        Expect.equal sub.Destination hub.EventHubNamespaceName.Untyped "Incorrect destination"
     }
 ]
