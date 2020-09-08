@@ -11,7 +11,7 @@ let sites = ResourceType "Microsoft.Web/sites"
 let sourceControls = ResourceType "Microsoft.Web/sites/sourcecontrols"
 
 type ServerFarm =
-    { Name : ResourceName
+    { Name : ResourceName<ServicePlanName>
       Location : Location
       Sku: Sku
       WorkerSize : WorkerSize
@@ -41,7 +41,7 @@ type ServerFarm =
         | Dynamic -> "Dynamic"
         | Isolated _ -> "Isolated"
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceName = this.Name.Untyped
         member this.JsonModel =
             {| ``type`` = serverFarms.ArmValue
                sku =
@@ -115,7 +115,7 @@ module ZipDeploy =
 type Site =
     { Name : ResourceName<WebAppName>
       Location : Location
-      ServicePlan : ResourceName
+      ServicePlan : ResourceName<ServicePlanName>
       AppSettings : List<string * Setting>
       AlwaysOn : bool
       HTTPSOnly : bool

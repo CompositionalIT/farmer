@@ -265,6 +265,9 @@ module Vm =
     /// Represents a disk in a VM.
     type DiskInfo = { Size : int; DiskType : DiskType }
 
+    type CustomScriptName = interface end
+    type VmName = interface end
+
 type ValidationResult<'T> = Result<ResourceName<'T>, string>
 
 module internal Validation =
@@ -343,6 +346,8 @@ module Storage =
 module WebApp =
     open Validation
     type WebAppName = interface end
+    type ServicePlanName = interface end
+    type AppInsightsName = interface end
 
     let tryCreateResourceName name =
         [ isNonEmpty
@@ -413,6 +418,8 @@ module CognitiveServices =
         | SpeechServices
         | TextAnalytics
         | TextTranslation
+
+    type CognitiveServiceName = interface end
 
 module ContainerRegistry =
     /// Container Registry SKU
@@ -549,6 +556,7 @@ module ContainerService =
             | AzureCni -> "azure"
 
 module Redis =
+    type RedisName = interface end
     type Sku = Basic | Standard | Premium
 
 module EventHub =
@@ -559,6 +567,7 @@ module EventHub =
         | Premium
     type InflateSetting = ManualInflate | AutoInflate of maxThroughput:int
     type AuthorizationRuleRight = Manage | Send | Listen
+    type EventHubNsName = interface end
 
 [<AutoOpen>]
 module internal DuHelpers =
@@ -688,6 +697,7 @@ module CosmosDb =
     /// A request unit.
     [<Measure>]
     type RU
+    type CosmosAccountName = interface end
 
 module PostgreSQL =
     type Sku =
@@ -897,6 +907,8 @@ module Cdn =
     | VideoOnDemandMediaStreaming
     | LargeFileDownload
     | DynamicSiteAcceleration
+
+    type ProfileName = interface end
 
 module EventGrid =
     type EventGridEvent = EventGridEvent of string member this.Value = match this with EventGridEvent s -> s

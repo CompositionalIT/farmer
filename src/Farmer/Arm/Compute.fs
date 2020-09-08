@@ -11,15 +11,15 @@ let virtualMachines = ResourceType "Microsoft.Compute/virtualMachines"
 let extensions = ResourceType "Microsoft.Compute/virtualMachines/extensions"
 
 type CustomScriptExtension =
-    { Name : ResourceName
+    { Name : ResourceName<CustomScriptName>
       Location : Location
-      VirtualMachine : ResourceName
+      VirtualMachine : ResourceName<VmName>
       FileUris : Uri list
       ScriptContents : string
       OS : OS
       Tags: Map<string,string>  }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceName = this.Name.Untyped
         member this.JsonModel =
             {| ``type`` = extensions.ArmValue
                apiVersion = "2019-12-01"
@@ -56,9 +56,9 @@ type CustomScriptExtension =
             |} :> _
 
 type VirtualMachine =
-    { Name : ResourceName
+    { Name : ResourceName<VmName>
       Location : Location
-      StorageAccount : ResourceName option
+      StorageAccount : ResourceName<Storage.StorageAccountName> option
       Size : VMSize
       Credentials : {| Username : string; Password : SecureParameter |}
       Image : ImageDefinition
@@ -69,7 +69,7 @@ type VirtualMachine =
     interface IParameters with
         member this.SecureParameters = [ this.Credentials.Password ]
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceName = this.Name.Untyped
         member this.JsonModel =
             {| ``type`` = virtualMachines.ArmValue
                apiVersion = "2018-10-01"

@@ -6,12 +6,12 @@ open Farmer.Arm.CognitiveServices
 open Farmer.CognitiveServices
 
 type CognitiveServicesConfig =
-    { Name : ResourceName
+    { Name : ResourceName<CognitiveServiceName>
       Sku : Sku
       Api : Kind
       Tags: Map<string,string>  }
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.DependencyName = this.Name.Untyped
         member this.BuildResources location = [
             { Name = this.Name
               Location = location
@@ -33,8 +33,8 @@ type CognitiveServicesBuilder() =
     [<CustomOperation "api">]
     member _.Api (state:CognitiveServicesConfig, api) = { state with Api = api }
     [<CustomOperation "add_tags">]
-    member _.Tags(state:CognitiveServicesConfig, pairs) = 
-        { state with 
+    member _.Tags(state:CognitiveServicesConfig, pairs) =
+        { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
     member this.Tag(state:CognitiveServicesConfig, key, value) = this.Tags(state, [ (key,value) ])

@@ -12,9 +12,11 @@ type ResourceName<'T> =
         | r -> r
     member this.Map mapper = match this with ResourceName r -> ResourceName (mapper r)
     member this.Untyped : ResourceName<unit> = ResourceName this.Value
+/// An untyped ResourceName.
 type ResourceName = ResourceName<unit>
 module ResourceName =
-    let Empty : ResourceName<unit> = ResourceName ""
+    /// An empty ResourceName with no specific type
+    let Empty : ResourceName<_> = ResourceName ""
 
 type Location =
     | Location of string
@@ -65,13 +67,13 @@ type ArmExpression =
     static member Eval (expression:ArmExpression) = expression.Eval()
     static member Empty = ArmExpression ""
     /// Builds a resourceId ARM expression from the parts of a resource ID.
-    static member resourceId (ResourceType resourceType, name:ResourceName, ?group:string, ?subscriptionId:string) =
+    static member resourceId (ResourceType resourceType, name:ResourceName<_>, ?group:string, ?subscriptionId:string) =
         match name, group, subscriptionId with
         | name, Some group, Some sub -> sprintf "resourceId('%s', '%s', '%s', '%s')" sub group resourceType name.Value
         | name, Some group, None -> sprintf "resourceId('%s', '%s', '%s')" group resourceType name.Value
         | name, _, _ -> sprintf "resourceId('%s', '%s')" resourceType name.Value
         |> ArmExpression.create
-    static member resourceId (ResourceType resourceType, [<ParamArray>] resourceSegments:ResourceName []) =
+    static member resourceId (ResourceType resourceType, [<ParamArray>] resourceSegments:ResourceName<_> []) =
         sprintf
             "resourceId('%s', %s)"
             resourceType
@@ -113,17 +115,17 @@ module ArmExpression =
 /// A ResourceRef represents a linked resource; typically this will be for two resources that have a relationship
 /// such as AppInsights on WebApp. WebApps can automatically create and configure an AI instance for the webapp,
 /// or configure the web app to an existing AI instance, or do nothing.
-type AutoCreationKind<'T> =
-    | Named of ResourceName
-    | Derived of ('T -> ResourceName)
+type AutoCreationKind<'TConfig, 'TResourceType> =
+    | Named of ResourceName<'TResourceType>
+    | Derived of ('TConfig -> ResourceName<'TResourceType>)
     member this.CreateResourceName config =
         match this with
         | Named r -> r
         | Derived f -> f config
-type ExternalKind = Managed of ResourceName | Unmanaged of ResourceName
-type ResourceRef<'T> =
-    | AutoCreate of AutoCreationKind<'T>
-    | External of ExternalKind
+type ExternalKind<'TResourceType> = Managed of ResourceName<'TResourceType> | Unmanaged of ResourceName<'TResourceType>
+type ResourceRef<'TConfig, 'TResourceType> =
+    | AutoCreate of AutoCreationKind<'TConfig, 'TResourceType>
+    | External of ExternalKind<'TResourceType>
     member this.CreateResourceName config =
         match this with
         | External (Managed r | Unmanaged r) -> r

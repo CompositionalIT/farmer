@@ -8,7 +8,7 @@ open Farmer.Arm.DocumentDb
 open DatabaseAccounts
 open SqlDatabases
 
-let internal buildKey (name:ResourceName) key =
+let internal buildKey (name:ResourceName<CosmosAccountName>) key =
     ArmExpression
         .resourceId(databaseAccounts, name)
         .Map(fun db ->
@@ -17,7 +17,7 @@ let internal buildKey (name:ResourceName) key =
                 db
                 key)
 
-let internal buildConnectionString (name:ResourceName) keyIndex =
+let internal buildConnectionString (name:ResourceName<CosmosAccountName>) keyIndex =
     ArmExpression
         .resourceId(databaseAccounts, name)
         .Map(fun db ->
@@ -33,7 +33,7 @@ type CosmosDbContainerConfig =
       UniqueKeys : Set<string list>
       ExcludedPaths : string list }
 type CosmosDbConfig =
-    { AccountName : ResourceRef<CosmosDbConfig>
+    { AccountName : ResourceRef<CosmosDbConfig, CosmosAccountName>
       AccountConsistencyPolicy : ConsistencyPolicy
       AccountFailoverPolicy : FailoverPolicy
       DbName : ResourceName
@@ -53,7 +53,7 @@ type CosmosDbConfig =
         sprintf "reference(concat('Microsoft.DocumentDb/databaseAccounts/', '%s')).documentEndpoint" this.AccountResourceName.Value
         |> ArmExpression.create
     interface IBuilder with
-        member this.DependencyName = this.AccountResourceName
+        member this.DependencyName = this.AccountResourceName.Untyped
         member this.BuildResources location = [
             // Account
             match this.AccountName with
@@ -192,8 +192,8 @@ type CosmosDbBuilder() =
     [<CustomOperation "free_tier">]
     member __.FreeTier(state:CosmosDbConfig) = { state with FreeTier = true }
     [<CustomOperation "add_tags">]
-    member _.Tags(state:CosmosDbConfig, pairs) = 
-        { state with 
+    member _.Tags(state:CosmosDbConfig, pairs) =
+        { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
     member this.Tag(state:CosmosDbConfig, key, value) = this.Tags(state, [ (key,value) ])

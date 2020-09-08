@@ -140,8 +140,8 @@ type ContainerGroupBuilder() =
         let updatedVolumes = state.Volumes |> Map.fold (fun current key vol -> Map.add key vol current) newVolumes
         { state with Volumes = updatedVolumes }
     [<CustomOperation "add_tags">]
-    member _.Tags(state:ContainerGroupConfig, pairs) = 
-        { state with 
+    member _.Tags(state:ContainerGroupConfig, pairs) =
+        { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
     member this.Tag(state:ContainerGroupConfig, key, value) = this.Tags(state, [ (key,value) ])
@@ -235,8 +235,8 @@ type NetworkProfileBuilder() =
     [<CustomOperation "vnet">]
     member __.VirtualNetwork(state:NetworkProfileConfig, vnet) = { state with VirtualNetwork = ResourceName vnet }
     [<CustomOperation "add_tags">]
-    member _.Tags(state:NetworkProfileConfig, pairs) = 
-        { state with 
+    member _.Tags(state:NetworkProfileConfig, pairs) =
+        { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
     member this.Tag(state:NetworkProfileConfig, key, value) = this.Tags(state, [ (key,value) ])

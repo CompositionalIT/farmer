@@ -11,10 +11,10 @@ let consumerGroups = ResourceType "Microsoft.EventHub/namespaces/eventhubs/consu
 let authorizationRules = ResourceType "Microsoft.EventHub/namespaces/eventhubs/AuthorizationRules"
 
 type CaptureDestination =
-    | StorageAccount of ResourceName * containerName:string
+    | StorageAccount of ResourceName<Storage.StorageAccountName> * containerName:string
 
 type Namespace =
-    { Name : ResourceName
+    { Name : ResourceName<EventHubNsName>
       Location : Location
       Sku : {| Name : EventHubSku; Capacity : int |}
       ZoneRedundant : bool option
@@ -27,7 +27,7 @@ type Namespace =
             | AutoInflate throughput -> Some throughput
             | ManualInflate -> None)
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceName = this.Name.Untyped
         member this.JsonModel =
             {| ``type`` = namespaces.ArmValue
                apiVersion = "2017-04-01"

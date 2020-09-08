@@ -14,15 +14,15 @@ type FunctionsRuntime = DotNet | Node | Java | Python
 type FunctionsExtensionVersion = V1 | V2 | V3
 type FunctionsConfig =
     { Name : ResourceName<WebAppName>
-      ServicePlan : ResourceRef<FunctionsConfig>
+      ServicePlan : ResourceRef<FunctionsConfig, ServicePlanName>
       HTTPSOnly : bool
-      AppInsights : ResourceRef<FunctionsConfig> option
+      AppInsights : ResourceRef<FunctionsConfig, AppInsightsName> option
       OperatingSystem : OS
       Settings : Map<string, Setting>
       Tags : Map<string, string>
       Dependencies : ResourceName list
       Cors : Cors option
-      StorageAccount : ResourceRef<FunctionsConfig>
+      StorageAccount : ResourceRef<FunctionsConfig, Storage.StorageAccountName>
       Runtime : FunctionsRuntime
       ExtensionVersion : FunctionsExtensionVersion
       Identity : FeatureFlag option
@@ -54,7 +54,7 @@ type FunctionsConfig =
     /// Gets the Storage Account name for this functions app.
     member this.StorageAccountName = this.StorageAccount.CreateResourceName this
     interface IBuilder with
-        member this.DependencyName = this.ServicePlanName
+        member this.DependencyName = this.ServicePlanName.Untyped
         member this.BuildResources location = [
             { Name = this.Name
               ServicePlan = this.ServicePlanName
@@ -87,13 +87,13 @@ type FunctionsConfig =
               Dependencies = [
                 yield! this.Dependencies
                 match this.AppInsights with
-                | Some (DependableResource this resourceName) -> resourceName
+                | Some (DependableResource this resourceName) -> resourceName.Untyped
                 | _ -> ()
                 match this.ServicePlan with
-                | DependableResource this resourceName -> resourceName
+                | DependableResource this resourceName -> resourceName.Untyped
                 | _ -> ()
 
-                this.StorageAccountName
+                this.StorageAccountName.Untyped
               ]
               AlwaysOn = false
               HTTPSOnly = this.HTTPSOnly

@@ -10,12 +10,12 @@ let instrumentationKey (ResourceName accountName) =
     |> ArmExpression.create
 
 type AppInsightsConfig =
-    { Name : ResourceName 
+    { Name : ResourceName<WebApp.AppInsightsName>
       Tags : Map<string,string> }
     /// Gets the ARM expression path to the instrumentation key of this App Insights instance.
     member this.InstrumentationKey = instrumentationKey this.Name
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.DependencyName = this.Name.Untyped
         member this.BuildResources location = [
             { Name = this.Name
               Location = location

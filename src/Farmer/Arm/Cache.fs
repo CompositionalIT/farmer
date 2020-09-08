@@ -8,7 +8,7 @@ open Farmer.Redis
 let redis = ResourceType "Microsoft.Cache/Redis"
 
 type Redis =
-    { Name : ResourceName
+    { Name : ResourceName<RedisName>
       Location : Location
       Sku :
         {| Sku : Sku
@@ -24,7 +24,7 @@ type Redis =
         | Premium -> 'P'
 
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceName = this.Name.Untyped
         member this.JsonModel =
             {| ``type`` = redis.ArmValue
                apiVersion = "2018-03-01"

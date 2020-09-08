@@ -3,17 +3,18 @@ module Farmer.Arm.CognitiveServices
 
 open Farmer
 open Farmer.CoreTypes
+open Farmer.CognitiveServices
 
 let accounts = ResourceType "Microsoft.CognitiveServices/accounts"
 
 type Accounts =
-    { Name : ResourceName
+    { Name : ResourceName<CognitiveServiceName>
       Location : Location
-      Sku : CognitiveServices.Sku
-      Kind : CognitiveServices.Kind
+      Sku : Sku
+      Kind : Kind
       Tags: Map<string,string>  }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceName = this.Name.Untyped
         member this.JsonModel =
             {| name = this.Name.Value
                ``type`` = accounts.ArmValue

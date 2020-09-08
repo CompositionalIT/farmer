@@ -10,11 +10,11 @@ open Farmer.Arm.Network
 open Farmer.Arm.Storage
 open System
 
-let makeName (vmName:ResourceName) elementType = sprintf "%s-%s" vmName.Value elementType
+let makeName (vmName:ResourceName<VmName>) elementType = sprintf "%s-%s" vmName.Value elementType
 
 type VmConfig =
-    { Name : ResourceName
-      DiagnosticsStorageAccount : ResourceRef<VmConfig> option
+    { Name : ResourceName<VmName>
+      DiagnosticsStorageAccount : ResourceRef<VmConfig, Storage.StorageAccountName> option
 
       Username : string option
       Image : ImageDefinition
@@ -27,10 +27,10 @@ type VmConfig =
 
       DomainNamePrefix : string option
 
-      VNet : ResourceRef<VmConfig>
+      VNet : ResourceRef<VmConfig, unit>
       AddressPrefix : string
       SubnetPrefix : string
-      Subnet : AutoCreationKind<VmConfig>
+      Subnet : AutoCreationKind<VmConfig, unit>
 
       DependsOn : ResourceName list
       Tags: Map<string,string> }
@@ -41,7 +41,7 @@ type VmConfig =
     member this.Hostname = sprintf "reference('%s').dnsSettings.fqdn" this.IpName.Value |> ArmExpression.create
 
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.DependencyName = this.Name.Untyped
         member this.BuildResources location = [
             // VM itself
             { Name = this.Name

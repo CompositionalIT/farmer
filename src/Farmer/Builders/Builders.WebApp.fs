@@ -66,12 +66,12 @@ let publishingPassword (ResourceName name) =
 
 type WebAppConfig =
     { Name : ResourceName<WebAppName>
-      ServicePlan : ResourceRef<WebAppConfig>
+      ServicePlan : ResourceRef<WebAppConfig, ServicePlanName>
       HTTPSOnly : bool
       HTTP20Enabled : bool option
       ClientAffinityEnabled : bool option
       WebSocketsEnabled: bool option
-      AppInsights : ResourceRef<WebAppConfig> option
+      AppInsights : ResourceRef<WebAppConfig, AppInsightsName> option
       OperatingSystem : OS
       Settings : Map<string, Setting>
       Dependencies : ResourceName list
@@ -109,7 +109,7 @@ type WebAppConfig =
         sprintf "%s.azurewebsites.net" this.Name.Value
 
     interface IBuilder with
-        member this.DependencyName = this.ServicePlanName
+        member this.DependencyName = this.ServicePlanName.Untyped
         member this.BuildResources location = [
             { Name = this.Name
               Location = location
@@ -166,13 +166,13 @@ type WebAppConfig =
               ] |> String.concat ","
               Dependencies = [
                   match this.ServicePlan with
-                  | DependableResource this resourceName -> resourceName
+                  | DependableResource this resourceName -> resourceName.Untyped
                   | _ -> ()
 
                   yield! this.Dependencies
 
                   match this.AppInsights with
-                  | Some (DependableResource this resourceName) -> resourceName
+                  | Some (DependableResource this resourceName) -> resourceName.Untyped
                   | Some _ | None -> ()
               ]
               AlwaysOn = this.AlwaysOn
@@ -351,7 +351,7 @@ type WebAppBuilder() =
     [<CustomOperation "link_to_app_insights">]
     member __.LinkToAi(state:WebAppConfig, name) = { state with AppInsights = Some(External (Managed name)) }
     member this.LinkToAi(state:WebAppConfig, name) = this.LinkToAi (state, ResourceName name)
-    member this.LinkToAi(state:WebAppConfig, name:ResourceName option) = match name with Some name -> this.LinkToAi (state, name) | None -> state
+    member this.LinkToAi(state:WebAppConfig, name:ResourceName<AppInsightsName> option) = match name with Some name -> this.LinkToAi (state, name) | None -> state
     member this.LinkToAi(state:WebAppConfig, config:AppInsightsConfig) = this.LinkToAi (state, config.Name)
     /// Instead of creating a new AI instance, configure this webapp to point to an unmanaged AI instance.
     /// A dependency will not be set for this instance.

@@ -13,7 +13,7 @@ module DatabaseAccounts =
     module SqlDatabases =
         type Container =
             { Name : ResourceName
-              Account : ResourceName
+              Account : ResourceName<CosmosAccountName>
               Database : ResourceName
               PartitionKey :
                 {| Paths : string list; Kind : IndexKind |}
@@ -67,7 +67,7 @@ module DatabaseAccounts =
 
     type SqlDatabase =
         { Name : ResourceName
-          Account : ResourceName
+          Account : ResourceName<CosmosAccountName>
           Throughput : int<RU> }
         interface IArmResource with
             member this.ResourceName = this.Name
@@ -82,7 +82,7 @@ module DatabaseAccounts =
                 |} :> _
 
 type DatabaseAccount =
-    { Name : ResourceName
+    { Name : ResourceName<CosmosAccountName>
       Location : Location
       ConsistencyPolicy : ConsistencyPolicy
       FailoverPolicy : FailoverPolicy
@@ -116,7 +116,7 @@ type DatabaseAccount =
     ]
 
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceName = this.Name.Untyped
         member this.JsonModel =
             {| ``type`` = databaseAccounts.ArmValue
                name = this.Name.Value

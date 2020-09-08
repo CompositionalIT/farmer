@@ -108,17 +108,17 @@ type EventGridConfig<'T> =
         ]
 
 type EventGridBuilder() =
-    static member private ChangeTopic<'TNew>(state:EventGridConfig<_>, source, topic) : EventGridConfig<'TNew> =
+    static member private ChangeTopic<'TNew, 'TResourceName>(state:EventGridConfig<_>, source:ResourceName<'TResourceName>, topic) : EventGridConfig<'TNew> =
       { TopicName = state.TopicName
-        Source = source, topic
+        Source = source.Untyped, topic
         Subscriptions = []
         Tags = Map.empty }
-    static member private AddSub(state:EventGridConfig<'T>, name, destination:ResourceName, endpoint, events) =
+    static member private AddSub(state:EventGridConfig<'T>, name, destination:ResourceName<_>, endpoint, events) =
         let name = destination.Value + "-" + name
         { state with
             Subscriptions =
                 {| Name = ResourceName name
-                   Destination = destination
+                   Destination = destination.Untyped
                    Endpoint = endpoint
                    SystemEvents = events |} :: state.Subscriptions
         }
@@ -130,24 +130,24 @@ type EventGridBuilder() =
     [<CustomOperation "topic_name">]
     member _.Name (state:EventGridConfig<'T>, name) = { state with TopicName = ResourceName name }
     [<CustomOperation "source">]
-    member _.Source(state:EventGridConfig<_>, source:StorageAccountConfig) = EventGridBuilder.ChangeTopic<StorageEvent>(state, source.Name.Untyped, Topics.StorageAccount)
-    member _.Source(state:EventGridConfig<_>, source:WebAppConfig) = EventGridBuilder.ChangeTopic<AppServiceEvent>(state, source.Name.Untyped, Topics.AppService)
-    member _.Source(state:EventGridConfig<_>, source:KeyVaultConfig) = EventGridBuilder.ChangeTopic<KeyVaultEvent>(state, source.Name, Topics.KeyVault)
-    member _.Source(state:EventGridConfig<_>, source:SignalRConfig) = EventGridBuilder.ChangeTopic<SignalRServiceEvent>(state, source.Name, Topics.SignalR)
-    member _.Source(state:EventGridConfig<_>, source:MapsConfig) = EventGridBuilder.ChangeTopic<MapsEvent>(state, source.Name, Topics.MapsAccount)
-    member _.Source(state:EventGridConfig<_>, source:ContainerRegistryConfig) = EventGridBuilder.ChangeTopic<ContainerRegistryEvent>(state, source.Name, Topics.ContainerRegistry)
-    member _.Source(state:EventGridConfig<_>, source:ServiceBusConfig) = EventGridBuilder.ChangeTopic<ServiceBusEvent>(state, source.Name, Topics.ServiceBusNamespace)
-    member _.Source(state:EventGridConfig<_>, source:IotHubConfig) = EventGridBuilder.ChangeTopic<IoTHubEvent>(state, source.Name, Topics.IoTHubAccount)
-    member _.Source(state:EventGridConfig<_>, source:EventHubConfig) = EventGridBuilder.ChangeTopic<EventHubEvent>(state, source.EventHubNamespaceName, Topics.EventHubsNamespace)
+    member _.Source(state:EventGridConfig<_>, source:StorageAccountConfig) = EventGridBuilder.ChangeTopic<StorageEvent, _>(state, source.Name, Topics.StorageAccount)
+    member _.Source(state:EventGridConfig<_>, source:WebAppConfig) = EventGridBuilder.ChangeTopic<AppServiceEvent, _>(state, source.Name, Topics.AppService)
+    member _.Source(state:EventGridConfig<_>, source:KeyVaultConfig) = EventGridBuilder.ChangeTopic<KeyVaultEvent, _>(state, source.Name, Topics.KeyVault)
+    member _.Source(state:EventGridConfig<_>, source:SignalRConfig) = EventGridBuilder.ChangeTopic<SignalRServiceEvent, _>(state, source.Name, Topics.SignalR)
+    member _.Source(state:EventGridConfig<_>, source:MapsConfig) = EventGridBuilder.ChangeTopic<MapsEvent, _>(state, source.Name, Topics.MapsAccount)
+    member _.Source(state:EventGridConfig<_>, source:ContainerRegistryConfig) = EventGridBuilder.ChangeTopic<ContainerRegistryEvent, _>(state, source.Name, Topics.ContainerRegistry)
+    member _.Source(state:EventGridConfig<_>, source:ServiceBusConfig) = EventGridBuilder.ChangeTopic<ServiceBusEvent, _>(state, source.Name, Topics.ServiceBusNamespace)
+    member _.Source(state:EventGridConfig<_>, source:IotHubConfig) = EventGridBuilder.ChangeTopic<IoTHubEvent, _>(state, source.Name, Topics.IoTHubAccount)
+    member _.Source(state:EventGridConfig<_>, source:EventHubConfig) = EventGridBuilder.ChangeTopic<EventHubEvent, _>(state, source.EventHubNamespaceName, Topics.EventHubsNamespace)
 
     [<CustomOperation "add_queue_subscriber">]
     member _.AddQueueSubscription(state:EventGridConfig<'T> when 'T :> IEventGridEvent, storageAccount:StorageAccountConfig, queueName, events:'T list) =
-        EventGridBuilder.AddSub(state, queueName + "-queue", storageAccount.Name.Untyped, StorageQueue queueName, events |> List.map (fun x -> x.ToEvent))
+        EventGridBuilder.AddSub(state, queueName + "-queue", storageAccount.Name, StorageQueue queueName, events |> List.map (fun x -> x.ToEvent))
     [<CustomOperation "add_webhook_subscriber">]
-    member _.AddWebSubscription(state:EventGridConfig<'T> when 'T :> IEventGridEvent, webAppName:ResourceName, webHookEndpoint:Uri, events:'T list) =
+    member _.AddWebSubscription(state:EventGridConfig<'T> when 'T :> IEventGridEvent, webAppName:ResourceName<_>, webHookEndpoint:Uri, events:'T list) =
         EventGridBuilder.AddSub(state, webHookEndpoint.LocalPath + "-webhook", webAppName, WebHook webHookEndpoint, events |> List.map (fun x -> x.ToEvent))
     member this.AddWebSubscription(state:EventGridConfig<_>, webApp:WebAppConfig, route, events) =
-        this.AddWebSubscription(state, webApp.Name.Untyped, Uri (sprintf "https://%s/%s" webApp.Endpoint route), events)
+        this.AddWebSubscription(state, webApp.Name, Uri (sprintf "https://%s/%s" webApp.Endpoint route), events)
     [<CustomOperation "add_eventhub_subscriber">]
     member _.AddEventHubSubscription(state:EventGridConfig<'T> when 'T :> IEventGridEvent, eventHub:EventHubConfig, events:'T list) =
         EventGridBuilder.AddSub(state, eventHub.Name.Value + "-eventhub", eventHub.EventHubNamespaceName, EventHub eventHub.Name, events |> List.map (fun x -> x.ToEvent))

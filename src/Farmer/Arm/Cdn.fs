@@ -11,11 +11,11 @@ let endpoints = ResourceType "Microsoft.Cdn/profiles/endpoints"
 let customDomains = ResourceType "Microsoft.Cdn/profiles/endpoints/customDomains"
 
 type Profile =
-    { Name : ResourceName
+    { Name : ResourceName<ProfileName>
       Sku : Sku
       Tags: Map<string,string> }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceName = this.Name.Untyped
         member this.JsonModel =
             {| ``type`` = profiles.ArmValue
                name = this.Name.Value
@@ -28,7 +28,7 @@ type Profile =
 
 module Profiles =
     type Endpoint =
-        { Profile : ResourceName
+        { Profile : ResourceName<ProfileName>
           Name : ResourceName
           DependsOn : ResourceName list
           CompressedContentTypes : string Set

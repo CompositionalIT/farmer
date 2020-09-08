@@ -8,12 +8,12 @@ open Farmer.WebApp
 let components = ResourceType "Microsoft.Insights/components"
 
 type Components =
-    { Name : ResourceName
+    { Name : ResourceName<AppInsightsName>
       Location : Location
       LinkedWebsite : ResourceName<WebAppName> option
       Tags: Map<string,string> }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceName = this.Name.Untyped
         member this.JsonModel =
             {| ``type`` = components.ArmValue
                kind = "web"

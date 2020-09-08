@@ -22,16 +22,16 @@ type EndpointConfig =
       OptimizationType : OptimizationType }
 
 type CdnConfig =
-    { Name : ResourceName
+    { Name : ResourceName<ProfileName>
       Sku : Sku
       Endpoints : EndpointConfig list
       Tags: Map<string,string>  }
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.DependencyName = this.Name.Untyped
         member this.BuildResources _ = [
             { Name = this.Name
               Sku = this.Sku
-              Tags = this.Tags}
+              Tags = this.Tags }
             for endpoint in this.Endpoints do
                 { Profile = this.Name
                   Name = endpoint.Name
