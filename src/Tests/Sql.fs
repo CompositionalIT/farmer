@@ -32,6 +32,24 @@ let tests = testList "SQL Server" [
         Expect.equal model.Name "server/db" "Incorrect database name"
         Expect.equal model.Sku.Name "S0" "Incorrect SKU"
     }
+
+    test "Transparent data encryption name" {
+        let sql = sqlServer {
+            name "server"
+            admin_username "isaac"
+            add_databases [
+                sqlDb {
+                    name "db"
+                    use_encryption
+                    sku DbSku.S0
+                }
+            ]
+        }
+
+        let encryptionModel : Models.TransparentDataEncryption = sql |> getResourceAtIndex client.SerializationSettings 2
+        Expect.equal encryptionModel.Name "current" "Should always equal to current"
+    }
+
     test "Creates an elastic pool where needed" {
         let sql = sqlServer {
             name "server"
