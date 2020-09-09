@@ -118,8 +118,9 @@ module Servers =
 
     module Databases =
         type TransparentDataEncryption =
-            { Database : ResourceName }
-            member this.Name = ResourceName "current"
+            { Server : ResourceName
+              Database : ResourceName }
+            member this.Name = ResourceName (sprintf "%s/%s/current" this.Server.Value this.Database.Value)
             interface IArmResource with
                 member this.ResourceName = this.Name
                 member this.JsonModel =

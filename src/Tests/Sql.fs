@@ -47,7 +47,7 @@ let tests = testList "SQL Server" [
         }
 
         let encryptionModel : Models.TransparentDataEncryption = sql |> getResourceAtIndex client.SerializationSettings 2
-        Expect.equal encryptionModel.Name "current" "Should always equal to current"
+        Expect.equal encryptionModel.Name "server/db/current" "Should always equal to current"
     }
 
     test "Creates an elastic pool where needed" {
