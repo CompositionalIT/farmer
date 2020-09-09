@@ -135,7 +135,7 @@ type SqlServerBuilder() =
                 if state.Name = ResourceName.Empty then failwith "You must set a server name"
                 else state.Name |> Helpers.sanitiseDb |> ResourceName
             AdministratorCredentials =
-                if System.String.IsNullOrWhiteSpace state.AdministratorCredentials.UserName then failwith "You must specify an admin_username."
+                if System.String.IsNullOrWhiteSpace state.AdministratorCredentials.UserName then failwithf "You must specify the admin_username for SQL Server instance %s" state.Name.Value
                 {| state.AdministratorCredentials with
                     Password = SecureParameter (sprintf "password-for-%s" state.Name.Value) |} }
     /// Sets the name of the SQL server.
