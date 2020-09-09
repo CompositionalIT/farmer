@@ -10,7 +10,7 @@ open Farmer.Cdn
 open System
 
 type EndpointConfig =
-    { Name : ResourceName
+    { Name : ResourceName<EndpointName>
       DependsOn : ResourceName list
       CompressedContentTypes : string Set
       QueryStringCachingBehaviour : QueryStringCachingBehaviour
@@ -46,7 +46,7 @@ type CdnConfig =
                   Tags = this.Tags }
                 match endpoint.CustomDomain with
                 | Some customDomain ->
-                    { Name = endpoint.Name.Map(sprintf "%sdomain")
+                    { Name = endpoint.Name.Map(sprintf "%sdomain").TryConvert ResourceName.unsafeWrap |> Result.get
                       Endpoint = endpoint.Name
                       Hostname = customDomain }
                 | None ->

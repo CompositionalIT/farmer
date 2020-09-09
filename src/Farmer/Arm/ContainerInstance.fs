@@ -15,10 +15,10 @@ type ContainerGroupIpAddress =
            Port : uint16 |} Set }
 
 type ContainerGroup =
-    { Name : ResourceName
+    { Name : ResourceName<ContainerGroupName>
       Location : Location
       ContainerInstances :
-        {| Name : ResourceName
+        {| Name : ResourceName<ContainerInstanceName>
            Image : string
            Ports : uint16 Set
            Cpu : int
@@ -29,7 +29,7 @@ type ContainerGroup =
       OperatingSystem : OS
       RestartPolicy : RestartPolicy
       IpAddress : ContainerGroupIpAddress
-      NetworkProfile : ResourceName option
+      NetworkProfile : ResourceName<NetworkProfileName> option
       Volumes : Map<string, {| Volume:Volume |}>
       Tags: Map<string,string>  }
     member this.NetworkProfilePath =
@@ -50,7 +50,7 @@ type ContainerGroup =
         }
 
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceName = this.Name.Untyped
         member this.JsonModel =
             {| ``type`` = containerGroups.ArmValue
                apiVersion = "2018-10-01"

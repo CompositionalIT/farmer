@@ -268,8 +268,6 @@ module Vm =
     type CustomScriptName = interface end
     type VmName = interface end
 
-type ValidationResult<'T> = Result<ResourceName<'T>, string>
-
 module internal Validation =
     let isNonEmpty entity s = if String.IsNullOrWhiteSpace s then Error (sprintf "%s cannot be empty" entity) else Ok()
     let notLongerThan max entity (s:string) = if s.Length > max then Error (sprintf "%s max length is %d, but here is %d ('%s')" entity max s.Length s) else Ok()
@@ -307,15 +305,13 @@ module Storage =
     type FileShareName = interface end
 
     let createStorageAccountName name =
-        [ isNonEmpty
-          lengthBetween 3 24
+        [ lengthBetween 3 24
           lowercaseOnly
           isAlphanumeric ]
         |> validate<StorageAccountName> "Storage account names" name
 
     let private createStorageResourceName<'T> resource name =
-        [ isNonEmpty
-          lengthBetween 3 63
+        [ lengthBetween 3 63
           startsWith "an alphanumeric character" Char.IsLetterOrDigit
           endsWith "an alphanumeric character" Char.IsLetterOrDigit
           isAlphanumericOrDash
@@ -360,8 +356,7 @@ module WebApp =
     type AppInsightsName = interface end
 
     let tryCreateResourceName name =
-        [ isNonEmpty
-          lengthBetween 2 60
+        [ lengthBetween 2 60
           lowercaseOnly
           startsWith "an alphanumeric character" Char.IsLetterOrDigit
           endsWith "an alphanumeric character" Char.IsLetterOrDigit
@@ -555,6 +550,9 @@ module ContainerGroup =
         | GitRepo of Repository:Uri * Directory:string option * Revision:string option
         /// Mounts a volume containing secret files.
         | Secret of SecretFile list
+    type ContainerGroupName = interface end
+    type ContainerInstanceName = interface end
+    type NetworkProfileName = interface end
 
 module ContainerService =
     type NetworkPlugin =
@@ -919,6 +917,8 @@ module Cdn =
     | DynamicSiteAcceleration
 
     type ProfileName = interface end
+    type EndpointName = interface end
+    type CustomDomainName = interface end
 
 module EventGrid =
     type EventGridEvent = EventGridEvent of string member this.Value = match this with EventGridEvent s -> s

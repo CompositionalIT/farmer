@@ -27,7 +27,7 @@ type volume_mount =
 /// Represents configuration for a single Container.
 type ContainerInstanceConfig =
     { /// The name of the container instance
-      Name : ResourceName
+      Name : ResourceName<ContainerInstanceName>
       /// The container instance image
       Image : string
       /// List of ports the container instance listens on
@@ -43,7 +43,7 @@ type ContainerInstanceConfig =
 
 type ContainerGroupConfig =
     { /// The name of the container group.
-      Name : ResourceName
+      Name : ResourceName<ContainerGroupName>
       /// Container group OS.
       OperatingSystem : OS
       /// Restart policy for the container group.
@@ -51,14 +51,14 @@ type ContainerGroupConfig =
       /// IP address for the container group.
       IpAddress : ContainerGroupIpAddress
       /// Name of the network profile for this container's group.
-      NetworkProfile : ResourceName option
+      NetworkProfile : ResourceName<NetworkProfileName> option
       /// The instances in this container group.
       Instances : ContainerInstanceConfig list
       /// Volumes to mount on the container group.
       Volumes : Map<string, {| Volume:Volume |}>
       Tags: Map<string,string>  }
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.DependencyName = this.Name.Untyped
         member this.BuildResources location = [
             { Location = location
               Name = this.Name

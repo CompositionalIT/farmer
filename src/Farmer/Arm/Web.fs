@@ -208,7 +208,7 @@ module Sites =
           ContinuousIntegration : FeatureFlag }
         member this.Name = this.Website.Map(sprintf "%s/web")
         interface IArmResource with
-            member this.ResourceName = this.Name
+            member this.ResourceName = this.Name.Untyped
             member this.JsonModel =
                 {| ``type`` = sourceControls.ArmValue
                    apiVersion = "2019-08-01"

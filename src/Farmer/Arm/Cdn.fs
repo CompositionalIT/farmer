@@ -28,8 +28,8 @@ type Profile =
 
 module Profiles =
     type Endpoint =
-        { Profile : ResourceName<ProfileName>
-          Name : ResourceName
+        { Name : ResourceName<EndpointName>
+          Profile : ResourceName<ProfileName>
           DependsOn : ResourceName list
           CompressedContentTypes : string Set
           QueryStringCachingBehaviour : QueryStringCachingBehaviour
@@ -40,7 +40,7 @@ module Profiles =
           OptimizationType : OptimizationType
           Tags: Map<string,string>  }
         interface IArmResource with
-            member this.ResourceName: ResourceName = this.Name
+            member this.ResourceName: ResourceName = this.Name.Untyped
             member this.JsonModel =
                 {| ``type`` = endpoints.ArmValue
                    name = this.Profile.Value + "/" + this.Name.Value
@@ -70,11 +70,11 @@ module Profiles =
 
     module Endpoints =
         type CustomDomain =
-            { Name : ResourceName
-              Endpoint : ResourceName
+            { Name : ResourceName<CustomDomainName>
+              Endpoint : ResourceName<EndpointName>
               Hostname : Uri }
             interface IArmResource with
-                member this.ResourceName = this.Name
+                member this.ResourceName = this.Name.Untyped
                 member this.JsonModel =
                     {| Name = this.Endpoint.Value + "/" + this.Name.Value
                        ``type`` = customDomains.ArmValue

@@ -149,12 +149,11 @@ type FunctionsConfig =
 type FunctionsBuilder() =
     member __.Yield _ =
         { Name = WebApp.tryCreateResourceName "default" |> Result.get
-          ServicePlan = derived (fun config -> config.Name.Map(sprintf "%s-farm"))
-          AppInsights = Some (derived (fun config -> config.Name.Map(sprintf "%s-ai")))
+          ServicePlan = derived (fun config -> config.Name.Map(sprintf "%s-farm").TryConvert ResourceName.unsafeWrap |> Result.get)
+          AppInsights = Some (derived (fun config -> config.Name.Map(sprintf "%s-ai").TryConvert ResourceName.unsafeWrap |> Result.get))
           StorageAccount = derived (fun config ->
             config.Name.Map (sprintf "%sstorage")
-            |> sanitiseStorage
-            |> ResourceName)
+            |> sanitiseStorage)
           Runtime = DotNet
           ExtensionVersion = V3
           Cors = None

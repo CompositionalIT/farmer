@@ -113,7 +113,7 @@ type VmConfig =
             // Custom Script - optional
             match this.CustomScript, this.CustomScriptFiles with
             | Some script, files ->
-                { Name = this.Name.Map(sprintf "%s-custom-script")
+                { Name = this.Name.Map(sprintf "%s-custom-script").TryConvert ResourceName.unsafeWrap |> Result.get
                   Location = location
                   VirtualMachine = this.Name
                   OS = this.Image.OS
@@ -162,8 +162,7 @@ type VirtualMachineBuilder() =
     member __.StorageAccountName(state:VmConfig) =
         let storageResourceRef = derived (fun config ->
             config.Name.Map (sprintf "%sstorage")
-            |> sanitiseStorage
-            |> ResourceName)
+            |> sanitiseStorage)
 
         { state with DiagnosticsStorageAccount = Some storageResourceRef }
     /// Turns on diagnostics support using an externally managed storage account.
