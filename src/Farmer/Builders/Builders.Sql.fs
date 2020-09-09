@@ -56,7 +56,7 @@ type SqlAzureConfig =
               Credentials =
                 {| Username = this.AdministratorCredentials.UserName
                    Password = this.AdministratorCredentials.Password |}
-              Tags = this.Tags 
+              Tags = this.Tags
             }
 
             for database in this.Databases do
@@ -71,7 +71,8 @@ type SqlAzureConfig =
 
                 match database.Encryption with
                 | Enabled ->
-                  { Database = database.Name }
+                  { Server = this.Name
+                    Database = database.Name }
                 | Disabled ->
                   ()
 
@@ -178,8 +179,8 @@ type SqlServerBuilder() =
                 {| state.AdministratorCredentials with
                     UserName = username |} }
     [<CustomOperation "add_tags">]
-    member _.Tags(state:SqlAzureConfig, pairs) = 
-        { state with 
+    member _.Tags(state:SqlAzureConfig, pairs) =
+        { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
     member this.Tag(state:SqlAzureConfig, key, value) = this.Tags(state, [ (key,value) ])
