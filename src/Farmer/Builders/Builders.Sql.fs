@@ -56,7 +56,7 @@ type SqlAzureConfig =
               Credentials =
                 {| Username = this.AdministratorCredentials.UserName
                    Password = this.AdministratorCredentials.Password |}
-              Tags = this.Tags 
+              Tags = this.Tags
             }
 
             for database in this.Databases do
@@ -134,7 +134,7 @@ type SqlServerBuilder() =
                 if state.Name = ResourceName.Empty then failwith "You must set a server name"
                 else state.Name |> Helpers.sanitiseDb |> ResourceName
             AdministratorCredentials =
-                if System.String.IsNullOrWhiteSpace state.AdministratorCredentials.UserName then failwith "You must specify an admin_username."
+                if System.String.IsNullOrWhiteSpace state.AdministratorCredentials.UserName then failwithf "You must specify the admin_username for SQL Server instance %s" state.Name.Value
                 {| state.AdministratorCredentials with
                     Password = SecureParameter (sprintf "password-for-%s" state.Name.Value) |} }
     /// Sets the name of the SQL server.
@@ -178,8 +178,8 @@ type SqlServerBuilder() =
                 {| state.AdministratorCredentials with
                     UserName = username |} }
     [<CustomOperation "add_tags">]
-    member _.Tags(state:SqlAzureConfig, pairs) = 
-        { state with 
+    member _.Tags(state:SqlAzureConfig, pairs) =
+        { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
     member this.Tag(state:SqlAzureConfig, key, value) = this.Tags(state, [ (key,value) ])
