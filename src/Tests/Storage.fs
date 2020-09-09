@@ -17,7 +17,7 @@ let tests = testList "Storage Tests" [
             let account = storageAccount {
                 name "mystorage123"
                 sku Premium_LRS
-                enable_data_lake
+                enable_data_lake true
             }
             arm { add_resource account }
             |> findAzureResources<StorageAccount> client.SerializationSettings
@@ -27,6 +27,33 @@ let tests = testList "Storage Tests" [
         Expect.equal resource.Name "mystorage123" "Account name is wrong"
         Expect.equal resource.Sku.Name "Premium_LRS" "SKU is wrong"
         Expect.isTrue resource.IsHnsEnabled.Value "Hierarchical namespace not enabled"
+    }
+    test "When data lake is not enabled" {
+        let resource =
+            let account = storageAccount {
+                name "mystorage123"
+                sku Premium_LRS
+                enable_data_lake false
+            }
+            arm { add_resource account }
+            |> findAzureResources<StorageAccount> client.SerializationSettings
+            |> List.head
+
+        resource.Validate()
+        Expect.isFalse resource.IsHnsEnabled.Value "Hierarchical namespace shouldn't be included"
+    }
+    test "When data lake is not enabled by default" {
+        let resource =
+            let account = storageAccount {
+                name "mystorage123"
+                sku Premium_LRS
+            }
+            arm { add_resource account }
+            |> findAzureResources<StorageAccount> client.SerializationSettings
+            |> List.head
+
+        resource.Validate()
+        Expect.equal resource.IsHnsEnabled (Nullable<bool>()) "Hierarchical namespace shouldn't be included"
     }
     test "Creates containers correctly" {
         let resources : BlobContainer list =

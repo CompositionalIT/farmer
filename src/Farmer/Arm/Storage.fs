@@ -16,7 +16,7 @@ type StorageAccount =
     { Name : StorageAccountName
       Location : Location
       Sku : Sku
-      EnableHierarchicalNamespace : bool
+      EnableHierarchicalNamespace : bool option
       StaticWebsite : {| IndexPage : string; ErrorPage : string option; ContentPath : string |} option
       Tags: Map<string,string>}
     interface IArmResource with
@@ -28,7 +28,10 @@ type StorageAccount =
                name = this.Name.ResourceName.Value
                apiVersion = "2018-07-01"
                location = this.Location.ArmValue
-               properties = {| isHnsEnabled = this.EnableHierarchicalNamespace |}
+               properties =
+                match this.EnableHierarchicalNamespace with
+                | Some hnsEnabled -> {| isHnsEnabled = hnsEnabled |} :> obj
+                | _ -> {||} :> obj
                tags = this.Tags
             |} :> _
     interface IPostDeploy with
