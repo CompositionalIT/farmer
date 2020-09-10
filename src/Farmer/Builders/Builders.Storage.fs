@@ -10,11 +10,11 @@ open FileShares
 open Queues
 open ManagementPolicies
 
-let internal buildKey (ResourceName name) =
+let internal buildKey (name:ResourceName<StorageAccountName>) =
     sprintf
         "concat('DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=', listKeys('%s', '2017-10-01').keys[0].value)"
-            name
-            name
+            name.Value
+            name.Value
     |> ArmExpression.create
 
 type StoragePolicy =
@@ -82,7 +82,7 @@ type StorageAccountConfig =
 
 type StorageAccountBuilder() =
     member _.Yield _ = {
-        Name = Storage.createStorageAccountName "default" |> Result.get
+        Name = "123123123dask9(*()ASDJ" |> ResourceName
         Sku = Standard_LRS
         EnableDataLake = false
         Containers = []

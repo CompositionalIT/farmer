@@ -11,14 +11,14 @@ type ResourceName<'T> =
         | r when r = ResourceName "" -> ResourceName fallbackValue
         | r -> r
     member this.Map mapper : ResourceName<'T> = match this with ResourceName r -> ResourceName (mapper r)
-    member this.TryConvert converter : _ ValidationResult = match this with ResourceName r -> r |> converter
+    member this.TryConvert converter : _ CheckedResourceName = match this with ResourceName r -> r |> converter
     member this.Untyped : ResourceName<unit> = ResourceName this.Value
-and ValidationResult<'T> = Result<ResourceName<'T>, string>
+and CheckedResourceName<'T> = Result<ResourceName<'T>, string>
 
 /// An untyped ResourceName.
 type ResourceName = ResourceName<unit>
 module ResourceName =
-    /// An empty ResourceName with no specific type
+    /// An empty, non-validated ResourceName
     let Empty : ResourceName<_> = ResourceName ""
     let unsafeWrap name = name |> ResourceName |> Ok
 

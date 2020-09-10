@@ -59,5 +59,7 @@ module Result =
             __.Using(sequence.GetEnumerator(), fun enum -> __.While(enum.MoveNext, __.Delay(fun () -> body enum.Current)))
 
 [<AutoOpen>]
-module Builders =
+module ResultExtensions =
     let result = Result.ResultBuilder()
+    type Result<'T, 'Q> with
+        member this.Get = this |> Result.get

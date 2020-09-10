@@ -35,19 +35,20 @@ type ContainerGroup =
     member this.NetworkProfilePath =
         this.NetworkProfile
         |> Option.map (fun networkProfile -> ArmExpression.resourceId(Network.networkProfiles, networkProfile).Eval())
-    member private this.dependencies =
-        seq {
-            if this.NetworkProfilePath.IsSome then
-                yield this.NetworkProfilePath.Value
-            let fileShares =
-                this.Volumes |> Seq.choose (fun v ->
-                    match v.Value.Volume with
-                    | Volume.AzureFileShare (shareName, storageAccountName) -> Some (shareName, storageAccountName)
-                    | _ -> None)
-            for shareName, storageAccountName in fileShares do
-                let fullShareName = [ storageAccountName; "default"; shareName ] |> Seq.map ResourceName |> Array.ofSeq
-                yield ArmExpression.resourceId(Storage.fileShares, fullShareName).Eval()
-        }
+    member private this.Dependencies = seq {
+        match this.NetworkProfilePath with
+        | Some networkProfilePath -> networkProfilePath
+        | None -> ()
+
+        let fileShares = [
+            for _, v in Map.toSeq this.Volumes do
+                match v.Volume with
+                | Volume.AzureFileShare (shareName, storageAccountName) -> shareName, storageAccountName
+                | _ -> () ]
+        for shareName, storageAccountName in fileShares do
+            let fullShareName = [| storageAccountName.Untyped; ResourceName "default"; shareName.Untyped |]
+            ArmExpression.resourceId(Storage.fileShares, fullShareName).Eval()
+    }
 
     interface IArmResource with
         member this.ResourceName = this.Name.Untyped
@@ -56,7 +57,7 @@ type ContainerGroup =
                apiVersion = "2018-10-01"
                name = this.Name.Value
                location = this.Location.ArmValue
-               dependsOn = this.dependencies
+               dependsOn = this.Dependencies
                properties =
                    {| containers =
                        this.ContainerInstances
@@ -110,9 +111,9 @@ type ContainerGroup =
                           |  volumeName, Volume.AzureFileShare (shareName, accountName) ->
                               {| name = volumeName
                                  azureFile =
-                                     {| shareName = shareName
-                                        storageAccountName = accountName
-                                        storageAccountKey = sprintf "[listKeys('Microsoft.Storage/storageAccounts/%s', '2018-07-01').keys[0].value]" accountName |}
+                                     {| shareName = shareName.Value
+                                        storageAccountName = accountName.Value
+                                        storageAccountKey = sprintf "[listKeys('Microsoft.Storage/storageAccounts/%s', '2018-07-01').keys[0].value]" accountName.Value |}
                                  emptyDir = null
                                  gitRepo = Unchecked.defaultof<_>
                                  secret = Unchecked.defaultof<_> |}

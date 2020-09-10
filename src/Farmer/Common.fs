@@ -287,7 +287,7 @@ module internal Validation =
     let isAlphanumericOrDash = containsOnly "letters, numbers, and the dash (-) character" (fun c -> Char.IsLetterOrDigit c || c = '-')
     let lowercaseOnly = containsOnly "lowercase letters" (Char.IsLetter >> not <|> Char.IsLower)
 
-    let validate<'T> entity text rules : 'T ValidationResult =
+    let validate<'T> entity text rules : 'T CheckedResourceName =
         rules
         |> Seq.choose (fun v ->
             match v entity text with
@@ -545,7 +545,7 @@ module ContainerGroup =
         /// Mounts an empty directory on the container group.
         | EmptyDirectory
         /// Mounts an Azure File Share in the same resource group, performing a key lookup.
-        | AzureFileShare of ShareName:string * StorageAccountName:string
+        | AzureFileShare of ShareName:ResourceName<Storage.FileShareName> * StorageAccountName:ResourceName<Storage.StorageAccountName>
         /// A git repo volume, clonable by public HTTPS access.
         | GitRepo of Repository:Uri * Directory:string option * Revision:string option
         /// Mounts a volume containing secret files.
