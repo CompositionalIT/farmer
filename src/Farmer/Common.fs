@@ -911,4 +911,5 @@ module Roles =
         let TrafficManagerContributor = RoleID "a4b10055-b0c7-44c2-b00f-c7b5b3550cf7"
 
 module Dns =
-    type DnsRecordType = Unknown | A | CName | Mx | Ns | Soa | Srv | Txt
+    type DnsRecordType = Unknown | A | AAAA | CName | NS | PTR
+    //| Mx | Soa | Srv | Txt | CAA

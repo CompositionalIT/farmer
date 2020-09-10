@@ -7,12 +7,14 @@ open Farmer.Dns
 
 let zones = ResourceType "Microsoft.Network/dnszones"
 let aRecord = ResourceType "Microsoft.Network/dnszones/A"
+let aaaaRecord = ResourceType "Microsoft.Network/dnszones/AAAA"
 let cnameRecord = ResourceType "Microsoft.Network/dnszones/CNAME"
 let txtRecord = ResourceType "Microsoft.Network/dnszones/TXT"
 let mxRecord = ResourceType "Microsoft.Network/dnszones/MX"
 let nsRecord = ResourceType "Microsoft.Network/dnszones/NS"
 let soaRecord = ResourceType "Microsoft.Network/dnszones/SOA"
 let srvRecord = ResourceType "Microsoft.Network/dnszones/SRV"
+let ptrRecord = ResourceType "Microsoft.Network/dnszones/PTR"
 
 type DnsZone =
     { Name : ResourceName
@@ -35,11 +37,13 @@ module DnsRecords =
         | Unknown -> failwith "Not Implemented"
         | CName -> cnameRecord
         | A -> aRecord
-        | Txt -> txtRecord
-        | Mx -> mxRecord
-        | Ns -> nsRecord
-        | Soa -> soaRecord
-        | Srv -> srvRecord
+        | AAAA -> aaaaRecord
+        | NS -> nsRecord
+        | PTR -> ptrRecord
+        // | Txt -> txtRecord
+        // | Mx -> mxRecord
+        // | Soa -> soaRecord
+        // | Srv -> srvRecord
 
     type DnsRecord =
         { Name : ResourceName
@@ -47,7 +51,11 @@ module DnsRecords =
           Type : DnsRecordType
           TTL : int 
           TargetResource : ResourceName option 
-          CNameRecord : string option }
+          CNameRecord : string option
+          ARecord : string option
+          AaaaRecord : string option
+          NsRecord : string option
+          PtrRecord : string option }
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
@@ -57,7 +65,11 @@ module DnsRecords =
                    properties =
                         {| TTL = this.TTL; 
                            targetResource = {| id = this.TargetResource |};
-                           CNAMERecord = {| cname = this.CNameRecord |> Option.toObj |}   |}
+                           CNAMERecords = {| cname = this.CNameRecord |> Option.toObj |}   
+                           ARecords = {| ipv4Address = this.ARecord |> Option.toObj |}   
+                           AAAARecords = {| ipv6Address = this.AaaaRecord |> Option.toObj |}
+                           NSRecords = {| nsdname = this.NsRecord |> Option.toObj |}
+                           PTRRecords = {| ptrdname = this.PtrRecord |> Option.toObj |}   |}
                    dependsOn =
                      [ this.Zone.Value ]
                 |} :> _
