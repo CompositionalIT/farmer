@@ -104,7 +104,7 @@ type VmConfig =
                   Location = location
                   Sku = Storage.Standard_LRS
                   StaticWebsite = None
-                  EnableHierarchicalNamespace = false
+                  EnableHierarchicalNamespace = None
                   Tags = this.Tags }
             | Some _
             | None ->
