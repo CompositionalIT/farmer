@@ -40,7 +40,7 @@ module DnsRecords =
         | AAAA -> aaaaRecord
         | NS -> nsRecord
         | PTR -> ptrRecord
-        // | Txt -> txtRecord
+        | TXT -> txtRecord
         // | Mx -> mxRecord
         // | Soa -> soaRecord
         // | Srv -> srvRecord
@@ -55,7 +55,8 @@ module DnsRecords =
           ARecords : string list
           AaaaRecords : string list
           NsRecords : string list
-          PtrRecords : string list }
+          PtrRecords : string list
+          TxtRecords : string list }
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
@@ -69,7 +70,8 @@ module DnsRecords =
                            ARecords = this.ARecords |> List.map (fun x -> {| ipv4Address = x |})
                            AAAARecords = this.AaaaRecords |> List.map (fun x -> {| ipv6Address = x |})
                            NSRecords = this.NsRecords |> List.map (fun x -> {| nsdname = x |})
-                           PTRRecords = this.PtrRecords |> List.map (fun x -> {| ptrdname = x |}) |}
+                           PTRRecords = this.PtrRecords |> List.map (fun x -> {| ptrdname = x |})
+                           TXTRecords = this.TxtRecords |> List.map (fun x -> {| value = x |}) |}
                    dependsOn =
                      [ this.Zone.Value ]
                 |} :> _
