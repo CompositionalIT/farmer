@@ -44,7 +44,7 @@ In ARM templates, you need to explicitly set up **dependencies** between resourc
 ```fsharp
 let myWebApp = webApp {
     ...
-    depends_on myStorage
+    depends_on [ myStorage ]
 }
 ```
 
@@ -101,7 +101,7 @@ let myStorageAccount = storageAccount {
 let myWebApp = webApp {
     name "yourFirstFarmerApp"
     setting "storageKey" myStorageAccount.Key
-    depends_on myStorageAccount.Name
+    depends_on [ myStorageAccount.Name ]
 }
 
 let deployment = arm {

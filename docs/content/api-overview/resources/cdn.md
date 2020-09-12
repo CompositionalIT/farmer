@@ -27,7 +27,7 @@ There are two builders available:
 |-|-|
 | name | Sets the name of the endpoint instance. If you do not set this, a name is generated based on the origin. |
 | origin | Sets the address of the origin and is used to auto-generate the endpoint name if none if supplied. |
-| depends_on | Sets a dependency on this endpoint. |
+| depends_on | Sets a dependency on endpoints. |
 | add_compressed_content | Adds a set of content types to compress. |
 | query_string_caching_behaviour | Specifies the Query String Caching Behaviour. |
 | enable_http | Enables HTTP delivery on the endpoint. |

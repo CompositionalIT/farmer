@@ -16,7 +16,7 @@ let myWebApp = webApp {
     sku WebApp.Sku.S1
     app_insights_off
     setting "storage_key" myStorage.Key
-    depends_on myStorage
+    depends_on [ myStorage ]
 }
 
 let deployment = arm {

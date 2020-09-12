@@ -264,7 +264,7 @@ type WebAppConfig =
                   Sku = this.Sku
                   WorkerSize = this.WorkerSize
                   WorkerCount = this.WorkerCount
-                  OperatingSystem = this.OperatingSystem 
+                  OperatingSystem = this.OperatingSystem
                   Tags = this.Tags}
             | _ ->
                 ()
@@ -380,9 +380,10 @@ type WebAppBuilder() =
         { state with Settings = state.Settings.Add(key, ParameterSetting (SecureParameter key)) }
     /// Sets a dependency for the web app.
     [<CustomOperation "depends_on">]
-    member __.DependsOn(state:WebAppConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
-    member __.DependsOn(state:WebAppConfig, builder:IBuilder) = { state with Dependencies = builder.DependencyName :: state.Dependencies }
-    member __.DependsOn(state:WebAppConfig, resource:IArmResource) = { state with Dependencies = resource.ResourceName :: state.Dependencies }
+    member __.DependsOn(state:WebAppConfig, resources) = { state with Dependencies = List.concat [ resources; state.Dependencies ] }
+    member __.DependsOn(state:WebAppConfig, builders:IBuilder list) = { state with Dependencies = List.concat [ builders |> List.map (fun x -> x.DependencyName); state.Dependencies ] }
+    member __.DependsOn(state:WebAppConfig, resources:IArmResource list) = { state with Dependencies = List.concat [ resources |> List.map (fun x -> x.ResourceName); state.Dependencies ] }
+
     /// Sets "Always On" flag
     [<CustomOperation "always_on">]
     member __.AlwaysOn(state:WebAppConfig) = { state with AlwaysOn = true }
@@ -446,8 +447,8 @@ type WebAppBuilder() =
     [<CustomOperation "disable_source_control_ci">]
     member this.DisableCi(state:WebAppConfig) = this.SourceControlCi(state, Disabled)
     [<CustomOperation "add_tags">]
-    member _.Tags(state:WebAppConfig, pairs) = 
-        { state with 
+    member _.Tags(state:WebAppConfig, pairs) =
+        { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
     member this.Tag(state:WebAppConfig, key, value) = this.Tags(state, [ (key,value) ])
@@ -458,4 +459,4 @@ let webApp = WebAppBuilder()
 type EndpointBuilder with
     member this.Origin(state:EndpointConfig, webApp:WebAppConfig) =
         let state = this.Origin(state, webApp.Endpoint)
-        this.DependsOn(state, webApp.Name)
+        this.DependsOn(state, [ webApp.Name ])

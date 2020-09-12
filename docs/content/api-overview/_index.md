@@ -114,7 +114,7 @@ let storage = storageAccount {
 let app = webApp {
     name "awebapp"
     setting "storageKey" storage.Key // pull in the storage key to an app setting
-    depends_on storage // state that this web app depends on the storage account
+    depends_on [ storage ] // state that this web app depends on the storage account
 }
 
 /// An ARM deployment with both of the above resources attached

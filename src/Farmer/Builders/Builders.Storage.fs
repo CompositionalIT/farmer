@@ -156,6 +156,6 @@ type StorageAccountBuilder() =
 type EndpointBuilder with
     member this.Origin(state:EndpointConfig, storage:StorageAccountConfig) =
         let state = this.Origin(state, storage.Endpoint)
-        this.DependsOn(state, storage.Name.ResourceName)
+        this.DependsOn(state, [ storage.Name.ResourceName ])
 
 let storageAccount = StorageAccountBuilder()
