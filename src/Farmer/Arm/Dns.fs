@@ -49,13 +49,13 @@ module DnsRecords =
         { Name : ResourceName
           Zone : ResourceName
           Type : DnsRecordType
-          TTL : int 
-          TargetResource : ResourceName option 
+          TTL : int
+          TargetResource : ResourceName option
           CNameRecord : string option
-          ARecord : string option
-          AaaaRecord : string option
-          NsRecord : string option
-          PtrRecord : string option }
+          ARecords : string list
+          AaaaRecords : string list
+          NsRecords : string list
+          PtrRecords : string list }
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
@@ -63,13 +63,13 @@ module DnsRecords =
                    name = this.Zone.Value + "/" + this.Name.Value
                    apiVersion = "2018-05-01"
                    properties =
-                        {| TTL = this.TTL; 
+                        {| TTL = this.TTL;
                            targetResource = {| id = this.TargetResource |};
-                           CNAMERecords = {| cname = this.CNameRecord |> Option.toObj |}   
-                           ARecords = {| ipv4Address = this.ARecord |> Option.toObj |}   
-                           AAAARecords = {| ipv6Address = this.AaaaRecord |> Option.toObj |}
-                           NSRecords = {| nsdname = this.NsRecord |> Option.toObj |}
-                           PTRRecords = {| ptrdname = this.PtrRecord |> Option.toObj |}   |}
+                           CNAMERecords = {| cname = this.CNameRecord |> Option.toObj |}
+                           ARecords = this.ARecords |> List.map (fun x -> {| ipv4Address = x |})
+                           AAAARecords = this.AaaaRecords |> List.map (fun x -> {| ipv6Address = x |})
+                           NSRecords = this.NsRecords |> List.map (fun x -> {| nsdname = x |})
+                           PTRRecords = this.PtrRecords |> List.map (fun x -> {| ptrdname = x |}) |}
                    dependsOn =
                      [ this.Zone.Value ]
                 |} :> _
