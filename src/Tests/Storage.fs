@@ -61,7 +61,7 @@ let tests = testList "Storage Tests" [
     test "Rejects invalid storage accounts" {
         let check (v:string) m = Expect.equal (Storage.createStorageAccountName v) (Error ("Storage account names " + m))
 
-        check "" "cannot be empty" "Name too short"
+        check "" "min length is 3, but here is 0 ('')" "Name too short"
         check "zz" "min length is 3, but here is 2 ('zz')" "Name too short"
         check "abcdefghij1234567890abcde" "max length is 24, but here is 25 ('abcdefghij1234567890abcde')" "Name too long"
         check "zzzT" "can only contain lowercase letters ('zzzT')" "Upper case character allowed"
@@ -71,7 +71,7 @@ let tests = testList "Storage Tests" [
     test "Rejects invalid storage resource names" {
         let check (v:string) m = Expect.equal (Storage.createQueueName v) (Error ("Queue names " + m))
 
-        check "" "cannot be empty" "Name too short"
+        check "" "min length is 3, but here is 0 ('')" "Name too short"
         check "zz" "min length is 3, but here is 2 ('zz')" "Name too short"
         let longName = Array.init 64 (fun _ -> 'a') |> String
         check longName ("max length is 63, but here is 64 ('" + longName + "')") "Name too long"
