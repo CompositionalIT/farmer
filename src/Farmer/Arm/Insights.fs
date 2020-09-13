@@ -22,8 +22,7 @@ type Components =
                tags =
                    [ match this.LinkedWebsite with
                      | Some linkedWebsite -> sprintf "[concat('hidden-link:', resourceGroup().id, '/providers/Microsoft.Web/sites/', '%s')]" linkedWebsite.Value, "Resource"
-                     | None -> ()
-                     "displayName", "AppInsightsComponent" ]
+                     | None -> () ]
                    |> List.fold (fun map (key,value) -> Map.add key value map ) this.Tags
                properties =
                 {| name = this.Name.Value
