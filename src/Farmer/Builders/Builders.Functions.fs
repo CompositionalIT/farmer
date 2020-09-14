@@ -61,6 +61,7 @@ type FunctionsConfig =
               Location = location
               Cors = this.Cors
               Tags = this.Tags
+              ConnectionStrings = Map.empty
               AppSettings = [
                 "FUNCTIONS_WORKER_RUNTIME", (string this.Runtime).ToLower()
                 "WEBSITE_NODE_DEFAULT_VERSION", "10.14.1"
@@ -78,6 +79,7 @@ type FunctionsConfig =
               ]
               |> List.map Setting.AsLiteral
               |> List.append (this.Settings |> Map.toList)
+              |> Map
 
               Identity = this.Identity
               Kind =
