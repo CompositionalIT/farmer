@@ -136,6 +136,8 @@ type FunctionsConfig =
             | Some (DeployableResource this resourceName) ->
                 { Name = resourceName
                   Location = location
+                  DisableIpMasking = false
+                  SamplingPercentage = 100
                   LinkedWebsite =
                     match this.OperatingSystem with
                     | Windows -> Some this.Name
