@@ -160,17 +160,17 @@ type SqlServerBuilder() =
     member _.AddDatabases(state:SqlAzureConfig, databases) = { state with Databases = state.Databases @ databases }
     /// Adds a firewall rule that enables access to a specific IP Address range.
     [<CustomOperation "add_firewall_rule">]
-    member __.AddFirewallWall(state:SqlAzureConfig, name, startRange, endRange) =
+    member __.AddFirewallRule(state:SqlAzureConfig, name, startRange, endRange) =
         { state with
             FirewallRules =
-                {| Name = name
+                {| Name = ResourceName name
                    Start = makeIp startRange
                    End = makeIp endRange |}
                 :: state.FirewallRules }
     /// Adds a firewall rule that enables access to other Azure services.
     [<CustomOperation "enable_azure_firewall">]
     member this.UseAzureFirewall(state:SqlAzureConfig) =
-        this.AddFirewallWall(state, ResourceName "allow-azure-services", "0.0.0.0", "0.0.0.0")
+        this.AddFirewallRule(state, "allow-azure-services", "0.0.0.0", "0.0.0.0")
     /// Sets the admin username of the server (note: the password is supplied as a securestring parameter to the generated ARM template).
     [<CustomOperation "admin_username">]
     member __.AdminUsername(state:SqlAzureConfig, username) =
