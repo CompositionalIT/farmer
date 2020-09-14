@@ -74,6 +74,7 @@ type WebAppConfig =
       AppInsights : ResourceRef<WebAppConfig> option
       OperatingSystem : OS
       Settings : Map<string, Setting>
+      ConnectionStrings : Map<string, (Setting * ConnectionStringKind)>
       Dependencies : ResourceName list
       Tags : Map<string,string>
 
@@ -121,6 +122,7 @@ type WebAppConfig =
               Identity = this.Identity
               Cors = this.Cors
               Tags = this.Tags
+              ConnectionStrings = this.ConnectionStrings
               AppSettings =
                 let literalSettings = [
                     if this.RunFromPackage then AppSettings.RunFromPackage
@@ -158,7 +160,8 @@ type WebAppConfig =
                 literalSettings
                 |> List.map Setting.AsLiteral
                 |> List.append dockerSettings
-                |> List.append (this.Settings |> Map.toList)
+                |> List.append (Map.toList this.Settings)
+                |> Map
               Kind = [
                 "app"
                 match this.OperatingSystem with Linux -> "linux" | Windows -> ()
@@ -264,7 +267,7 @@ type WebAppConfig =
                   Sku = this.Sku
                   WorkerSize = this.WorkerSize
                   WorkerCount = this.WorkerCount
-                  OperatingSystem = this.OperatingSystem 
+                  OperatingSystem = this.OperatingSystem
                   Tags = this.Tags}
             | _ ->
                 ()
@@ -286,6 +289,7 @@ type WebAppBuilder() =
           ClientAffinityEnabled = None
           WebSocketsEnabled = None
           Settings = Map.empty
+          ConnectionStrings = Map.empty
           Tags = Map.empty
           Dependencies = []
           Identity = None
@@ -378,6 +382,17 @@ type WebAppBuilder() =
     [<CustomOperation "secret_setting">]
     member __.AddSecret(state:WebAppConfig, key) =
         { state with Settings = state.Settings.Add(key, ParameterSetting (SecureParameter key)) }
+    /// Creates a set of connection strings of the web app whose values will be supplied as secret parameters.
+    [<CustomOperation "connection_string">]
+    member _.AddConnectionString(state:WebAppConfig, key) =
+        { state with ConnectionStrings = state.ConnectionStrings.Add(key, (ParameterSetting (SecureParameter key), Custom)) }
+    member _.AddConnectionString(state:WebAppConfig, (key, value:ArmExpression)) =
+        { state with ConnectionStrings = state.ConnectionStrings.Add(key, (LiteralSetting (value.Eval()), Custom)) }
+    /// Creates a set of connection strings of the web app whose values will be supplied as secret parameters.
+    [<CustomOperation "connection_strings">]
+    member this.AddConnectionStrings(state:WebAppConfig, connectionStrings) =
+        connectionStrings
+        |> List.fold (fun (state:WebAppConfig) (key:string) -> this.AddConnectionString(state, key)) state
     /// Sets a dependency for the web app.
     [<CustomOperation "depends_on">]
     member __.DependsOn(state:WebAppConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
@@ -446,8 +461,8 @@ type WebAppBuilder() =
     [<CustomOperation "disable_source_control_ci">]
     member this.DisableCi(state:WebAppConfig) = this.SourceControlCi(state, Disabled)
     [<CustomOperation "add_tags">]
-    member _.Tags(state:WebAppConfig, pairs) = 
-        { state with 
+    member _.Tags(state:WebAppConfig, pairs) =
+        { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
     member this.Tag(state:WebAppConfig, key, value) = this.Tags(state, [ (key,value) ])
