@@ -10,6 +10,8 @@ type Components =
     { Name : ResourceName
       Location : Location
       LinkedWebsite : ResourceName option
+      DisableIpMasking : bool
+      SamplingPercentage : int
       Tags: Map<string,string> }
     interface IArmResource with
         member this.ResourceName = this.Name
@@ -31,5 +33,7 @@ type Components =
                    ApplicationId =
                      match this.LinkedWebsite with
                      | Some linkedWebsite -> linkedWebsite.Value
-                     | None -> null |}
+                     | None -> null
+                   DisableIpMasking = this.DisableIpMasking
+                   SamplingPercentage = this.SamplingPercentage |}
             |} :> _
