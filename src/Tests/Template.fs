@@ -129,11 +129,34 @@ let tests = testList "Template" [
         Expect.hasLength template.Template.Resources 2 "Should be two resources added"
     }
 
-    test "Can add dependencies through IBuilder" {
+    test "Can add dependency through Resource Name" {
         let a = storageAccount { name "aaa" }
-        let b = webApp { name "b"; depends_on [ a :> IBuilder ] }
+        let b = webApp { name "b"; depends_on a.Name.ResourceName }
 
         Expect.equal b.Dependencies [ ResourceName "aaa" ] "Dependency should have been set"
+    }
+
+    test "Can add dependency through IBuilder" {
+        let a = storageAccount { name "aaa" }
+        let b = webApp { name "b"; depends_on a }
+
+        Expect.equal b.Dependencies [ ResourceName "aaa" ] "Dependency should have been set"
+    }
+
+    test "Can add dependencies through Resource Name" {
+        let a = storageAccount { name "aaa" }
+        let b = storageAccount { name "bbb" }
+        let b = webApp { name "b"; depends_on [ a.Name.ResourceName; b.Name.ResourceName ] }
+
+        Expect.equal b.Dependencies [ ResourceName "aaa"; ResourceName "bbb" ] "Dependencies should have been set"
+    }
+
+    test "Can add dependencies through IBuilder" {
+        let a = storageAccount { name "aaa" }
+        let b = storageAccount { name "bbb" }
+        let b = webApp { name "b"; depends_on [ a :> IBuilder; b :> IBuilder ] }
+
+        Expect.equal b.Dependencies [ ResourceName "aaa"; ResourceName "bbb" ] "Dependencies should have been set"
     }
 
     test "Generates ARM Id with name only" {

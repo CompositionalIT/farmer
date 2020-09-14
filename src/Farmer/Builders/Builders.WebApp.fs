@@ -380,8 +380,11 @@ type WebAppBuilder() =
         { state with Settings = state.Settings.Add(key, ParameterSetting (SecureParameter key)) }
     /// Sets a dependency for the web app.
     [<CustomOperation "depends_on">]
+    member __.DependsOn(state:WebAppConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
     member __.DependsOn(state:WebAppConfig, resources) = { state with Dependencies = List.concat [ resources; state.Dependencies ] }
+    member __.DependsOn(state:WebAppConfig, builder:IBuilder) = { state with Dependencies = builder.DependencyName :: state.Dependencies }
     member __.DependsOn(state:WebAppConfig, builders:IBuilder list) = { state with Dependencies = List.concat [ builders |> List.map (fun x -> x.DependencyName); state.Dependencies ] }
+    member __.DependsOn(state:WebAppConfig, resource:IArmResource) = { state with Dependencies = resource.ResourceName :: state.Dependencies }
     member __.DependsOn(state:WebAppConfig, resources:IArmResource list) = { state with Dependencies = List.concat [ resources |> List.map (fun x -> x.ResourceName); state.Dependencies ] }
 
     /// Sets "Always On" flag

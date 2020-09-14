@@ -23,4 +23,22 @@ let myApp = webApp {
 }
 ```
 
+or resources if we have many of them.
+
+```fsharp
+let myStorage1 = storageAccount {
+    name "sampleaccountFirst"
+}
+
+let myStorage2 = storageAccount {
+    name "sampleaccountSecond"
+}
+
+let myApp = webApp {
+    name "myapp"
+    setting "storage_key" myStorage.Key
+    depends_on [ myStorage1.Name.ResourceName; myStorage2.Name.ResourceName ]
+}
+```
+
 Here, we set up a dependency on `myApp` for `myStorage`. This guarantees that the storage account is created *before* Azure tries to grab the storage account key / connection string.

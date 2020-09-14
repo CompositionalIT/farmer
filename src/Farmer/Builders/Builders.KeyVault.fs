@@ -348,8 +348,11 @@ type SecretBuilder() =
     [<CustomOperation "expiration_date">]
     member __.ExpirationDate(state:SecretConfig, expirationDate) = { state with ExpirationDate = Some expirationDate }
     [<CustomOperation "depends_on">]
+    member __.DependsOn(state:SecretConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
     member __.DependsOn(state:SecretConfig, resources) = { state with Dependencies = List.concat [ resources; state.Dependencies ] }
+    member __.DependsOn(state:SecretConfig, builder:IBuilder) = { state with Dependencies = builder.DependencyName :: state.Dependencies }
     member __.DependsOn(state:SecretConfig, builders:IBuilder list) = { state with Dependencies = List.concat [ builders |> List.map (fun x -> x.DependencyName); state.Dependencies ] }
+    member __.DependsOn(state:SecretConfig, resource:IArmResource) = { state with Dependencies = resource.ResourceName :: state.Dependencies }
     member __.DependsOn(state:SecretConfig, resources:IArmResource list) = { state with Dependencies = List.concat [ resources |> List.map (fun x -> x.ResourceName); state.Dependencies ] }
 
 let secret = SecretBuilder()

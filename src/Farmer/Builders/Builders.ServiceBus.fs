@@ -225,8 +225,11 @@ type ServiceBusBuilder() =
     member _.Sku(state:ServiceBusConfig, sku) = { state with Sku = sku }
     /// Adds a resource that the service bus depends on.
     [<CustomOperation "depends_on">]
+    member _.DependsOn(state:ServiceBusConfig, resourceName) = { state with DependsOn = resourceName :: state.DependsOn }
     member _.DependsOn(state:ServiceBusConfig, resources) = { state with DependsOn = List.concat [ resources; state.DependsOn ] }
+    member _.DependsOn(state:ServiceBusConfig, builder:IBuilder) = { state with DependsOn = builder.DependencyName :: state.DependsOn }
     member _.DependsOn(state:ServiceBusConfig, builders:IBuilder list) = { state with DependsOn = List.concat [ builders |> List.map (fun x -> x.DependencyName); state.DependsOn ] }
+    member _.DependsOn(state:ServiceBusConfig, resource:IArmResource) = { state with DependsOn = resource.ResourceName :: state.DependsOn }
     member _.DependsOn(state:ServiceBusConfig, resources:IArmResource list) = { state with DependsOn = List.concat [ resources |> List.map (fun x -> x.ResourceName); state.DependsOn ] }
 
     [<CustomOperation "add_queues">]

@@ -47,7 +47,7 @@ let myStorageAccount = storageAccount {
 let myWebApp = webApp {
     name "myTestWebApp"
     setting "storageKey" myStorageAccount.Key
-    depends_on [ myStorageAccount ]
+    depends_on myStorageAccount
 }
 
 // Create an ARM template
