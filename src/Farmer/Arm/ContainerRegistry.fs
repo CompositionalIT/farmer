@@ -8,13 +8,13 @@ open Farmer.CoreTypes
 let registries = ResourceType "Microsoft.ContainerRegistry/registries"
 
 type Registries =
-    { Name : ResourceName
+    { Name : ResourceName<RegistryName>
       Location : Location
       Sku : Sku
       AdminUserEnabled : bool
       Tags: Map<string,string> }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceName = this.Name.Untyped
         member this.JsonModel =
             {| name = this.Name.Value
                ``type`` = registries.ArmValue

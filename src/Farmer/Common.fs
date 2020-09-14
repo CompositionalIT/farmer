@@ -432,6 +432,7 @@ module ContainerRegistry =
         | Basic
         | Standard
         | Premium
+    type RegistryName = interface end
 
 module Search =
     type HostingMode = Default | HighDensity
