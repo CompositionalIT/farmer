@@ -61,7 +61,7 @@ type DnsCNameRecordBuilder() =
     member _.RecordName(state:CNameRecordProperties, name) = { state with Name = name }
     member this.RecordName(state:CNameRecordProperties, name:string) = this.RecordName(state, ResourceName name)
 
-    /// Sets the name of the SQL server.
+    /// Sets the CNAME value.
     [<CustomOperation "cname">]
     member _.RecordCName(state:CNameRecordProperties, cName) = { state with CName = Some cName }
 
@@ -85,9 +85,9 @@ type DnsARecordBuilder() =
             TargetResource = state.TargetResource
             Type = A }
 
-    /// Sets the name of the SQL server.
+    /// Sets the ipv4 address.
     [<CustomOperation "add_ipv4_addresses">]
-    member _.RecordCName(state:ARecordProperties, ipv4Addresses) = { state with Ipv4Addresses = state.Ipv4Addresses @ ipv4Addresses }
+    member _.RecordAddress(state:ARecordProperties, ipv4Addresses) = { state with Ipv4Addresses = state.Ipv4Addresses @ ipv4Addresses }
 
     /// Sets the TTL of the record.
     [<CustomOperation "ttl">]
@@ -109,9 +109,9 @@ type DnsAaaaRecordBuilder() =
             TargetResource = state.TargetResource
             Type = AAAA }
 
-    /// Sets the name of the SQL server.
+    /// Sets the ipv6 address.
     [<CustomOperation "add_ipv6_addresses">]
-    member _.RecordCName(state:AaaaRecordProperties, ipv6Addresses) = { state with Ipv6Addresses = state.Ipv6Addresses @ ipv6Addresses }
+    member _.RecordAddress(state:AaaaRecordProperties, ipv6Addresses) = { state with Ipv6Addresses = state.Ipv6Addresses @ ipv6Addresses }
 
     /// Sets the TTL of the record.
     [<CustomOperation "ttl">]
@@ -132,9 +132,9 @@ type DnsNsRecordBuilder() =
             NsRecords = state.NsdNames
             Type = NS }
 
-    /// Sets the name of the SQL server.
+    /// Add NSD names
     [<CustomOperation "add_nsd_names">]
-    member _.RecordCName(state:NsRecordProperties, nsdNames) = { state with NsdNames = state.NsdNames @ nsdNames }
+    member _.RecordNsdNames(state:NsRecordProperties, nsdNames) = { state with NsdNames = state.NsdNames @ nsdNames }
 
     /// Sets the TTL of the record.
     [<CustomOperation "ttl">]
@@ -151,9 +151,9 @@ type DnsPtrRecordBuilder() =
             PtrRecords = state.PtrdNames
             Type = PTR }
 
-    /// Sets the name of the SQL server.
+    /// Add PTR names
     [<CustomOperation "add_ptrd_names">]
-    member _.RecordCName(state:PtrRecordProperties, ptrdNames) = { state with PtrdNames = state.PtrdNames @ ptrdNames }
+    member _.RecordPtrdNames(state:PtrRecordProperties, ptrdNames) = { state with PtrdNames = state.PtrdNames @ ptrdNames }
 
     /// Sets the TTL of the record.
     [<CustomOperation "ttl">]
@@ -170,9 +170,9 @@ type DnsTxtRecordBuilder() =
             TxtRecords = state.TxtValues
             Type = TXT }
 
-    /// Sets the name of the SQL server.
+    /// Add TXT values
     [<CustomOperation "add_values">]
-    member _.RecordCName(state:TxtRecordProperties, txtValues) = { state with TxtValues = state.TxtValues @ txtValues }
+    member _.RecordValues(state:TxtRecordProperties, txtValues) = { state with TxtValues = state.TxtValues @ txtValues }
 
     /// Sets the TTL of the record.
     [<CustomOperation "ttl">]
@@ -189,7 +189,7 @@ type DnsMxRecordBuilder() =
             MxRecords = state.MxValues
             Type = MX }
 
-    /// Sets the name of the SQL server.
+    /// Add MX records.
     [<CustomOperation "add_values">]
     member _.RecordCName(state:MxRecordProperties, mxValues) = { state with MxValues = state.MxValues @ mxValues }
 
@@ -213,11 +213,11 @@ type DnsMxRecordValueBuilder() =
                 | Some x -> x
                 | _ -> failwith "You must set a Exchange" |}
 
-    /// Sets the name of the SQL server.
+    /// Sets the preference of the MX record.
     [<CustomOperation "preference">]
     member _.RecordCName(state:MxRecordConfig, preference) = { state with Preference = Some preference }
 
-    /// Sets the TTL of the record.
+    /// Sets the exchange of the MX record.
     [<CustomOperation "exchange">]
     member _.RecordTTL(state:MxRecordConfig, exchange) = { state with Exchange = Some exchange }
 
