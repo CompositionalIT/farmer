@@ -6,7 +6,7 @@ weight: 1
 ---
 
 #### Overview
-The Container Service builder is used to create AKS clusters.
+The AKS Cluster builder is used to create AKS clusters.
 
 * Container Group (`Microsoft.ContainerService/managedClusters`)
 
