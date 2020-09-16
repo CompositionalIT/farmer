@@ -65,4 +65,45 @@ let tests = testList "SQL Server" [
         Expect.equal model.Sku.Name "BasicPool" "Incorrect Elastic Pool SKU"
         Expect.equal model.Sku.Size "200" "Incorrect Elastic Pool SKU size"
     }
+
+    test "Works with VCore databases" {
+        let sql = sqlServer {
+            name "server"
+            admin_username "isaac"
+            add_databases [ sqlDb { name "db"; sku MSeries.M_18 } ]
+        }
+
+        let model : Models.Database = sql |> getResourceAtIndex client.SerializationSettings 1
+        Expect.equal model.Sku.Name "BC_M_18" "Incorrect SKU"
+        Expect.equal model.LicenseType "LicenseIncluded" "Incorrect License"
+    }
+
+    test "Cannot set hybrid if not VCore" {
+        Expect.throws(fun () ->
+            sqlServer {
+                name "server"
+                admin_username "isaac"
+                add_databases [ sqlDb { name "db"; hybrid_benefit } ]
+            } |> ignore) "Shouldn't set hybrid on non-VCore"
+    }
+
+    test "Sets license and size correctly" {
+        let sql =
+            sqlServer {
+                name "server"
+                admin_username "isaac"
+                add_databases [
+                    sqlDb {
+                        name "db"
+                        sku (SqlVCore.GeneralPurpose Gen5Series.Gen5_12)
+                        hybrid_benefit
+                        db_size 2048<Mb>
+                     } ]
+            }
+
+        let model : Models.Database = sql |> getResourceAtIndex client.SerializationSettings 1
+        Expect.equal model.Sku.Name "GP_Gen5_12" "Incorrect SKU"
+        Expect.equal model.MaxSizeBytes (Nullable 2147483648L) "Incorrect Size"
+        Expect.equal model.LicenseType "BasePrice" "Incorrect SKU"
+    }
 ]

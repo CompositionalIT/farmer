@@ -488,6 +488,7 @@ module Sql =
         | M_128
         member this.Name = Reflection.FSharpValue.GetUnionFields(this, typeof<MSeries>) |> fun (v,_) -> v.Name
 
+    [<RequireQualifiedAccess>]
     type SqlVCore =
         | MemoryIntensive of MSeries
         | CpuIntensive of FSeries
@@ -507,6 +508,7 @@ module Sql =
             | MemoryIntensive m -> "BC_" + m.Name
             | CpuIntensive c -> "GP_" + c.Name
 
+    [<RequireQualifiedAccess>]
     type SqlDtu =
         | Free
         | Basic
