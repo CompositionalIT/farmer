@@ -6,6 +6,7 @@ open Farmer.Builders
 open Farmer.WebApp
 open Farmer.Arm
 open System
+open Farmer.CoreTypes
 
 let getResource<'T when 'T :> IArmResource> (data:IArmResource list) = data |> List.choose(function :? 'T as x -> Some x | _ -> None)
 let tests = testList "Web App Tests" [
@@ -45,11 +46,25 @@ let tests = testList "Web App Tests" [
     test "Web app supports adding tags to resource" {
         let resources = webApp { name "test"; add_tag "key" "value"; add_tags ["alpha","a"; "beta","b"]} |> getResources
         let wa = resources |> getResource<Web.Site> |> List.head
-        Expect.containsAll (wa.Tags|> Map.toSeq) 
+        Expect.containsAll (wa.Tags|> Map.toSeq)
             [ "key","value"
               "alpha","a"
               "beta","b"]
             "Should contain the given tags"
         Expect.equal 3 (wa.Tags|> Map.count) "Should not contain additional tags"
+    }
+    test "Web App correctly adds connection strings" {
+        let wa =
+            let resources = webApp { name "test"; connection_string "a"; connection_string ("b", literal "value") } |> getResources
+            resources |> getResource<Web.Site> |> List.head
+
+        let expected = [
+            "a", ((ParameterSetting(SecureParameter "a")), Custom)
+            "b", ((LiteralSetting "['value']"), Custom)
+        ]
+        let parameters = wa :> IParameters
+
+        Expect.equal wa.ConnectionStrings (Map expected) "Missing connections"
+        Expect.equal parameters.SecureParameters [ SecureParameter "a" ] "Missing parameter"
     }
 ]

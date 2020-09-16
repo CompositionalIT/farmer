@@ -7,7 +7,7 @@ open Farmer.ContainerRegistry
 open Farmer.Arm.ContainerRegistry
 
 type ContainerRegistryConfig =
-    { Name : ResourceName
+    { Name : ResourceName<RegistryName>
       Sku : Sku
       AdminUserEnabled : bool
       Tags: Map<string,string>  }
@@ -15,7 +15,7 @@ type ContainerRegistryConfig =
         (sprintf "reference(resourceId('Microsoft.ContainerRegistry/registries', '%s'),'2019-05-01').loginServer" this.Name.Value)
         |> ArmExpression.create
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.DependencyName = this.Name.Untyped
         member this.BuildResources location = [
             { Name = this.Name
               Location = location
@@ -42,8 +42,8 @@ type ContainerRegistryBuilder() =
     /// Enables the admin user on the Azure Container Registry.
     member _.EnableAdminUser (state:ContainerRegistryConfig) = { state with AdminUserEnabled = true }
     [<CustomOperation "add_tags">]
-    member _.Tags(state:ContainerRegistryConfig, pairs) = 
-        { state with 
+    member _.Tags(state:ContainerRegistryConfig, pairs) =
+        { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
     member this.Tag(state:ContainerRegistryConfig, key, value) = this.Tags(state, [ (key,value) ])

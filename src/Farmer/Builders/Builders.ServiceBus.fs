@@ -226,8 +226,12 @@ type ServiceBusBuilder() =
     /// Adds a resource that the service bus depends on.
     [<CustomOperation "depends_on">]
     member _.DependsOn(state:ServiceBusConfig, resourceName) = { state with DependsOn = resourceName :: state.DependsOn }
+    member _.DependsOn(state:ServiceBusConfig, resources) = { state with DependsOn = List.concat [ resources; state.DependsOn ] }
     member _.DependsOn(state:ServiceBusConfig, builder:IBuilder) = { state with DependsOn = builder.DependencyName :: state.DependsOn }
+    member _.DependsOn(state:ServiceBusConfig, builders:IBuilder list) = { state with DependsOn = List.concat [ builders |> List.map (fun x -> x.DependencyName); state.DependsOn ] }
     member _.DependsOn(state:ServiceBusConfig, resource:IArmResource) = { state with DependsOn = resource.ResourceName :: state.DependsOn }
+    member _.DependsOn(state:ServiceBusConfig, resources:IArmResource list) = { state with DependsOn = List.concat [ resources |> List.map (fun x -> x.ResourceName); state.DependsOn ] }
+
     [<CustomOperation "add_queues">]
     member _.AddQueues(state:ServiceBusConfig, queues) =
         { state with
@@ -243,8 +247,8 @@ type ServiceBusBuilder() =
                 ||> List.fold(fun state (topic:ServiceBusTopicConfig) -> state.Add(topic.Name, topic))
         }
     [<CustomOperation "add_tags">]
-    member _.Tags(state:ServiceBusConfig, pairs) = 
-        { state with 
+    member _.Tags(state:ServiceBusConfig, pairs) =
+        { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
     member this.Tag(state:ServiceBusConfig, key, value) = this.Tags(state, [ (key,value) ])

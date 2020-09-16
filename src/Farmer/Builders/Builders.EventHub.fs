@@ -153,8 +153,12 @@ type EventHubBuilder() =
     /// Sets a dependency for the event hub.
     [<CustomOperation "depends_on">]
     member __.DependsOn(state:EventHubConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
+    member __.DependsOn(state:EventHubConfig, resources) = { state with Dependencies = List.concat [ resources; state.Dependencies ] }
     member __.DependsOn(state:EventHubConfig, builder:IBuilder) = { state with Dependencies = builder.DependencyName :: state.Dependencies }
+    member __.DependsOn(state:EventHubConfig, builders:IBuilder list) = { state with Dependencies = List.concat [ builders |> List.map (fun x -> x.DependencyName); state.Dependencies ] }
     member __.DependsOn(state:EventHubConfig, resource:IArmResource) = { state with Dependencies = resource.ResourceName :: state.Dependencies }
+    member __.DependsOn(state:EventHubConfig, resources:IArmResource list) = { state with Dependencies = List.concat [ resources |> List.map (fun x -> x.ResourceName); state.Dependencies ] }
+
     [<CustomOperation "add_tags">]
     member _.Tags(state:EventHubConfig, pairs) =
         { state with

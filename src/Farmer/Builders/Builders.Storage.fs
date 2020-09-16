@@ -30,7 +30,7 @@ type StorageAccountConfig =
       /// The sku of the storage account.
       Sku : Sku
       /// Whether to enable Data Lake Storage Gen2.
-      EnableDataLake : bool
+      EnableDataLake : bool option
       /// Containers for the storage account.
       Containers : (ResourceName<ContainerName> * StorageContainerAccess) list
       /// File shares
@@ -84,7 +84,7 @@ type StorageAccountBuilder() =
     member _.Yield _ = {
         Name = "123123123dask9(*()ASDJ" |> ResourceName
         Sku = Standard_LRS
-        EnableDataLake = false
+        EnableDataLake = None
         Containers = []
         FileShares = []
         Rules = Map.empty
@@ -134,7 +134,7 @@ type StorageAccountBuilder() =
         { state with StaticWebsite = state.StaticWebsite |> Option.map(fun staticWebsite -> {| staticWebsite with ErrorPage = Some errorPage |}) }
     /// Enables support for hierarchical namespace, also known as Data Lake Storage Gen2.
     [<CustomOperation "enable_data_lake">]
-    member _.UseHns(state:StorageAccountConfig) = { state with EnableDataLake = true }
+    member _.UseHns(state:StorageAccountConfig, value) = { state with EnableDataLake = Some value }
     /// Adds tags to the storage account
     [<CustomOperation "add_tags">]
     member _.Tags(state:StorageAccountConfig, pairs) =

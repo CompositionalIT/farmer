@@ -3,6 +3,13 @@
 open System
 
 [<AutoOpen>]
+module internal DuHelpers =
+    let makeAll<'TUnion> =
+        Reflection.FSharpType.GetUnionCases(typeof<'TUnion>)
+        |> Array.map(fun t -> Reflection.FSharpValue.MakeUnion(t, null) :?> 'TUnion)
+        |> Array.toList
+
+[<AutoOpen>]
 module LocationExtensions =
     type Location with
         static member EastAsia = Location "EastAsia"
@@ -59,7 +66,8 @@ type IsoDateTime =
     member this.Value = match this with IsoDateTime value -> value
 type TransmissionProtocol = TCP | UDP
 type TlsVersion = Tls10 | Tls11 | Tls12
-
+module Mb =
+    let toBytes (mb:int<Mb>) = int64 mb * 1024L * 1024L
 module Vm =
     type VMSize =
     | Basic_A0
@@ -392,6 +400,7 @@ module WebApp =
         static member I2 = Isolated "I2"
         static member I3 = Isolated "I3"
         static member Y1 = Dynamic
+    type ConnectionStringKind = MySql | SQLServer | SQLAzure | Custom | NotificationHub | ServiceBus | EventHub | ApiHub | DocDb | RedisCache | PostgreSQL
 
 module CognitiveServices =
     /// Type of SKU. See https://github.com/Azure/azure-quickstart-templates/tree/master/101-cognitive-services-translate
@@ -447,9 +456,78 @@ module Search =
         | StorageOptimisedL2
 
 module Sql =
-    [<Measure>]
-    type DTU
-    type DbSku =
+    [<Measure>] type DTU
+
+    [<RequireQualifiedAccess>]
+    type Gen5Series =
+        | Gen5_2
+        | Gen5_4
+        | Gen5_6
+        | Gen5_8
+        | Gen5_10
+        | Gen5_12
+        | Gen5_14
+        | Gen5_16
+        | Gen5_18
+        | Gen5_20
+        | Gen5_24
+        | Gen5_32
+        | Gen5_40
+        | Gen5_80
+        member this.Name = Reflection.FSharpValue.GetUnionFields(this, typeof<Gen5Series>) |> fun (v,_) -> v.Name
+
+    [<RequireQualifiedAccess>]
+    type FSeries =
+        | Fsv2_8
+        | Fsv2_10
+        | Fsv2_12
+        | Fsv2_14
+        | Fsv2_16
+        | Fsv2_18
+        | Fsv2_20
+        | Fsv2_24
+        | Fsv2_32
+        | Fsv2_36
+        | Fsv2_72
+        member this.Name = Reflection.FSharpValue.GetUnionFields(this, typeof<FSeries>) |> fun (v,_) -> v.Name
+
+    [<RequireQualifiedAccess>]
+    type MSeries =
+        | M_8
+        | M_10
+        | M_12
+        | M_14
+        | M_16
+        | M_18
+        | M_20
+        | M_24
+        | M_32
+        | M_64
+        | M_128
+        member this.Name = Reflection.FSharpValue.GetUnionFields(this, typeof<MSeries>) |> fun (v,_) -> v.Name
+
+    [<RequireQualifiedAccess>]
+    type SqlVCore =
+        | MemoryIntensive of MSeries
+        | CpuIntensive of FSeries
+        | GeneralPurpose of Gen5Series
+        | BusinessCritical of Gen5Series
+        | Hyperscale of Gen5Series
+        member this.Edition =
+            match this with
+            | GeneralPurpose _ | CpuIntensive _ -> "GeneralPurpose"
+            | BusinessCritical _ | MemoryIntensive _ -> "BusinessCritical"
+            | Hyperscale _ -> "Hyperscale"
+         member this.Name =
+            match this with
+            | GeneralPurpose g -> "GP_" + g.Name
+            | BusinessCritical b -> "BC_" + b.Name
+            | Hyperscale h -> "HS_" + h.Name
+            | MemoryIntensive m -> "BC_" + m.Name
+            | CpuIntensive c -> "GP_" + c.Name
+
+    [<RequireQualifiedAccess>]
+    type SqlDtu =
         | Free
         | Basic
         | Standard of string
@@ -462,7 +540,7 @@ module Sql =
         static member S6 = Standard "S6"
         static member S7 = Standard "S7"
         static member S9 = Standard "S9"
-        static member S12 =Standard "S12"
+        static member S12 = Standard "S12"
         static member P1 = Premium "P1"
         static member P2 = Premium "P2"
         static member P4 = Premium "P4"
@@ -471,16 +549,27 @@ module Sql =
         static member P15 = Premium "P15"
         member this.Edition =
             match this with
-            | Basic -> "Basic"
             | Free -> "Free"
+            | Basic -> "Basic"
             | Standard _ -> "Standard"
             | Premium _ -> "Premium"
          member this.Name =
             match this with
-            | Basic -> "Basic"
             | Free -> "Free"
+            | Basic -> "Basic"
             | Standard s -> s
             | Premium p -> p
+
+    type SqlLicense =
+        | AzureHybridBenefit
+        | LicenseRequired
+        member this.ArmValue = match this with AzureHybridBenefit -> "BasePrice" | LicenseRequired -> "LicenseIncluded"
+    type DbPurchaseModel =
+        | DTU of SqlDtu
+        | VCore of SqlVCore * SqlLicense
+        member this.Edition = match this with DTU d -> d.Edition | VCore (v, _) -> v.Edition
+        member this.Name = match this with DTU d -> d.Name | VCore (v, _) -> v.Name
+
     type PoolSku =
         | BasicPool of int
         | StandardPool of int
@@ -577,13 +666,6 @@ module EventHub =
     type InflateSetting = ManualInflate | AutoInflate of maxThroughput:int
     type AuthorizationRuleRight = Manage | Send | Listen
     type EventHubNsName = interface end
-
-[<AutoOpen>]
-module internal DuHelpers =
-    let makeAll<'TUnion> =
-        Reflection.FSharpType.GetUnionCases(typeof<'TUnion>)
-        |> Array.map(fun t -> Reflection.FSharpValue.MakeUnion(t, null) :?> 'TUnion)
-        |> Array.toList
 
 module KeyVault =
     type Bypass = AzureServices | NoTraffic

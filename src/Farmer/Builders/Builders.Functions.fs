@@ -61,6 +61,7 @@ type FunctionsConfig =
               Location = location
               Cors = this.Cors
               Tags = this.Tags
+              ConnectionStrings = Map.empty
               AppSettings = [
                 "FUNCTIONS_WORKER_RUNTIME", (string this.Runtime).ToLower()
                 "WEBSITE_NODE_DEFAULT_VERSION", "10.14.1"
@@ -78,6 +79,7 @@ type FunctionsConfig =
               ]
               |> List.map Setting.AsLiteral
               |> List.append (this.Settings |> Map.toList)
+              |> Map
 
               Identity = this.Identity
               Kind =
@@ -128,7 +130,7 @@ type FunctionsConfig =
                   Location = location
                   Sku = Storage.Standard_LRS
                   StaticWebsite = None
-                  EnableHierarchicalNamespace = false
+                  EnableHierarchicalNamespace = None
                   Tags = this.Tags }
             | _ ->
                 ()
@@ -136,6 +138,8 @@ type FunctionsConfig =
             | Some (DeployableResource this resourceName) ->
                 { Name = resourceName
                   Location = location
+                  DisableIpMasking = false
+                  SamplingPercentage = 100
                   LinkedWebsite =
                     match this.OperatingSystem with
                     | Windows -> Some this.Name
@@ -220,8 +224,12 @@ type FunctionsBuilder() =
         { state with Settings = state.Settings.Add(key, ParameterSetting (SecureParameter key)) }
     [<CustomOperation "depends_on">]
     member __.DependsOn(state:FunctionsConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
+    member __.DependsOn(state:FunctionsConfig, resources) = { state with Dependencies = List.concat [ resources; state.Dependencies ] }
     member __.DependsOn(state:FunctionsConfig, resource:IBuilder) = { state with Dependencies = resource.DependencyName :: state.Dependencies }
+    member __.DependsOn(state:FunctionsConfig, builders:IBuilder list) = { state with Dependencies = List.concat [ builders |> List.map (fun x -> x.DependencyName); state.Dependencies ] }
     member __.DependsOn(state:FunctionsConfig, resource:IArmResource) = { state with Dependencies = resource.ResourceName :: state.Dependencies }
+    member __.DependsOn(state:FunctionsConfig, resources:IArmResource list) = { state with Dependencies = List.concat [ resources |> List.map (fun x -> x.ResourceName); state.Dependencies ] }
+
     [<CustomOperation "enable_cors">]
     member _.EnableCors (state:FunctionsConfig, origins) = { state with Cors = Some (SpecificOrigins (List.map Uri origins)) }
     member _.EnableCors (state:FunctionsConfig, cors) = { state with Cors = Some cors }

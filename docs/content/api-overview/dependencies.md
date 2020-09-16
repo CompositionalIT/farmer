@@ -9,7 +9,7 @@ ARM resources can depend on one another, and Farmer caters for this as well. How
 However, you will still need to set dependencies when you have a relationship between builders, such as setting the key of a storage account on a web app.
 
 #### Setting dependencies
-Setting a dependency requires you to call the `depends_on` keyword on the target resource, providing a handle to the dependent resource.
+Setting a dependency requires you to call the `depends_on` keyword on the target resource, providing a handle to the dependent resources.
 
 ```fsharp
 let myStorage = storageAccount {
@@ -19,7 +19,25 @@ let myStorage = storageAccount {
 let myApp = webApp {
     name "myapp"
     setting "storage_key" myStorage.Key
-    depends_on myStorage
+    depends_on [ myStorage ]
+}
+```
+
+or resources if we have many of them.
+
+```fsharp
+let myStorage1 = storageAccount {
+    name "sampleaccountFirst"
+}
+
+let myStorage2 = storageAccount {
+    name "sampleaccountSecond"
+}
+
+let myApp = webApp {
+    name "myapp"
+    setting "storage_key" myStorage.Key
+    depends_on [ myStorage1.Name.ResourceName; myStorage2.Name.ResourceName ]
 }
 ```
 

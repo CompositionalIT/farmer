@@ -11,6 +11,8 @@ type Components =
     { Name : ResourceName<AppInsightsName>
       Location : Location
       LinkedWebsite : ResourceName<WebAppName> option
+      DisableIpMasking : bool
+      SamplingPercentage : int
       Tags: Map<string,string> }
     interface IArmResource with
         member this.ResourceName = this.Name.Untyped
@@ -23,8 +25,7 @@ type Components =
                tags =
                    [ match this.LinkedWebsite with
                      | Some linkedWebsite -> sprintf "[concat('hidden-link:', resourceGroup().id, '/providers/Microsoft.Web/sites/', '%s')]" linkedWebsite.Value, "Resource"
-                     | None -> ()
-                     "displayName", "AppInsightsComponent" ]
+                     | None -> () ]
                    |> List.fold (fun map (key,value) -> Map.add key value map ) this.Tags
                properties =
                 {| name = this.Name.Value
@@ -32,5 +33,7 @@ type Components =
                    ApplicationId =
                      match this.LinkedWebsite with
                      | Some linkedWebsite -> linkedWebsite.Value
-                     | None -> null |}
+                     | None -> null
+                   DisableIpMasking = this.DisableIpMasking
+                   SamplingPercentage = this.SamplingPercentage |}
             |} :> _

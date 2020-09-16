@@ -10,13 +10,20 @@ let myDatabases = sqlServer {
     admin_username "admin_username"
     enable_azure_firewall
 
-    elastic_pool_name "mypool"
-    elastic_pool_sku PoolSku.Basic100
-
     add_databases [
         sqlDb { name "poolDb1" }
         sqlDb { name "poolDb2" }
-        sqlDb { name "standaloneDb1"; sku DbSku.Basic }
+        sqlDb { name "dtuDb"; sku SqlDtu.Basic }
+        sqlDb { name "memoryDb"; sku MSeries.M_8 }
+        sqlDb { name "cpuDb"; sku FSeries.Fsv2_8 }
+        sqlDb { name "businessCriticalDb"; sku (SqlVCore.BusinessCritical Gen5Series.Gen5_2) }
+        sqlDb { name "hyperscaleDb"; sku (SqlVCore.Hyperscale Gen5Series.Gen5_2) }
+        sqlDb {
+            name "generalPurposeDb"
+            sku (SqlVCore.GeneralPurpose Gen5Series.Gen5_8)
+            db_size (1024<Mb> * 128)
+            hybrid_benefit
+        }
     ]
 }
 
@@ -25,5 +32,4 @@ let template = arm {
     add_resource myDatabases
 }
 
-template
-|> Writer.quickWrite "sql-example"
+template |> Writer.quickWrite "sql-example"

@@ -129,27 +129,50 @@ let tests = testList "Template" [
         Expect.hasLength template.Template.Resources 2 "Should be two resources added"
     }
 
-    test "Can add dependencies through IBuilder" {
+    test "Can add dependency through Resource Name" {
+        let a = storageAccount { name "aaa" }
+        let b = webApp { name "bb"; depends_on a.Name }
+
+        Expect.equal b.Dependencies [ ResourceName "aaa" ] "Dependency should have been set"
+    }
+
+    test "Can add dependency through IBuilder" {
         let a = storageAccount { name "aaa" }
         let b = webApp { name "bb"; depends_on a }
 
         Expect.equal b.Dependencies [ ResourceName "aaa" ] "Dependency should have been set"
     }
 
+    test "Can add dependencies through Resource Name" {
+        let a = storageAccount { name "aaa" }
+        let b = storageAccount { name "bbb" }
+        let b = webApp { name "bb"; depends_on [ a.Name; b.Name ] }
+
+        Expect.equal b.Dependencies [ ResourceName "aaa"; ResourceName "bbb" ] "Dependencies should have been set"
+    }
+
+    test "Can add dependencies through IBuilder" {
+        let a = storageAccount { name "aaa" } :> IBuilder
+        let b = storageAccount { name "bbb" } :> IBuilder
+        let b = webApp { name "bb"; depends_on [ a; b ] }
+
+        Expect.equal b.Dependencies [ ResourceName "aaa"; ResourceName "bbb" ] "Dependencies should have been set"
+    }
+
     test "Generates ARM Id with name only" {
-        let rid = ArmExpression.resourceId (Farmer.Arm.Network.connections, ResourceName "test")
+        let rid = ArmExpression.resourceId (Arm.Network.connections, ResourceName "test")
         let id = rid.Eval()
         Expect.equal id "[resourceId('Microsoft.Network/connections', 'test')]" "resourceId template function should match"
     }
 
     test "Generates ARM Id with name and group" {
-        let rid = ArmExpression.resourceId (Farmer.Arm.Network.connections, ResourceName "test", "myGroup")
+        let rid = ArmExpression.resourceId (Arm.Network.connections, ResourceName "test", "myGroup")
         let id = rid.Eval()
         Expect.equal id "[resourceId('myGroup', 'Microsoft.Network/connections', 'test')]" "resourceId template function should match"
     }
 
     test "Generates ARM Id with name, group, and subscription" {
-        let rid = ArmExpression.resourceId (Farmer.Arm.Network.connections, ResourceName "test", "myGroup", "5ed984d9-9e7e-4550-b73b-7af020a7620d")
+        let rid = ArmExpression.resourceId (Arm.Network.connections, ResourceName "test", "myGroup", "5ed984d9-9e7e-4550-b73b-7af020a7620d")
         let id = rid.Eval()
         Expect.equal id "[resourceId('5ed984d9-9e7e-4550-b73b-7af020a7620d', 'myGroup', 'Microsoft.Network/connections', 'test')]" "resourceId template function should match"
     }

@@ -98,8 +98,11 @@ type EndpointBuilder() =
 
     [<CustomOperation "depends_on">]
     member _.DependsOn(state:EndpointConfig, resourceName) = { state with DependsOn = resourceName :: state.DependsOn }
+    member _.DependsOn(state:EndpointConfig, resources: ResourceName list) = { state with DependsOn = List.concat [ resources; state.DependsOn ] }
     member _.DependsOn(state:EndpointConfig, resource:IBuilder) = { state with DependsOn = resource.DependencyName :: state.DependsOn }
+    member _.DependsOn(state:EndpointConfig, builders:IBuilder list) = { state with DependsOn = List.concat [ builders |> List.map (fun x -> x.DependencyName); state.DependsOn ] }
     member _.DependsOn(state:EndpointConfig, resource:IArmResource) = { state with DependsOn = resource.ResourceName :: state.DependsOn }
+    member _.DependsOn(state:EndpointConfig, resources:IArmResource list) = { state with DependsOn = List.concat [ resources |> List.map (fun x -> x.ResourceName); state.DependsOn ] }
 
     /// Adds a list of MIME content types on which compression applies.
     [<CustomOperation "add_compressed_content">]

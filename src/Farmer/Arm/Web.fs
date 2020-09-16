@@ -116,7 +116,8 @@ type Site =
     { Name : ResourceName<WebAppName>
       Location : Location
       ServicePlan : ResourceName<ServicePlanName>
-      AppSettings : List<string * Setting>
+      AppSettings : Map<string, Setting>
+      ConnectionStrings : Map<string, (Setting * ConnectionStringKind)>
       AlwaysOn : bool
       HTTPSOnly : bool
       HTTP20Enabled : bool option
@@ -139,10 +140,12 @@ type Site =
       ZipDeployPath : (string * ZipDeploy.ZipDeployTarget) option }
     interface IParameters with
         member this.SecureParameters =
-            this.AppSettings
+            Map.toList this.AppSettings
+            @ (Map.toList this.ConnectionStrings |> List.map(fun (k, (v,_)) -> k, v))
             |> List.choose(snd >> function
                 | ParameterSetting s -> Some s
                 | LiteralSetting _ -> None)
+
     interface IPostDeploy with
         member this.Run resourceGroupName =
             match this with
@@ -178,7 +181,8 @@ type Site =
                        clientAffinityEnabled = match this.ClientAffinityEnabled with Some v -> box v | None -> null
                        siteConfig =
                         {| alwaysOn = this.AlwaysOn
-                           appSettings = this.AppSettings |> List.map(fun (k,v) -> {| name = k; value = v.Value |})
+                           appSettings = this.AppSettings |> Map.toList |> List.map(fun (k,v) -> {| name = k; value = v.Value |})
+                           connectionStrings = this.ConnectionStrings |> Map.toList |> List.map(fun (k,(v, t)) -> {| name = k; connectionString = v.Value; ``type`` = t.ToString() |})
                            linuxFxVersion = this.LinuxFxVersion |> Option.toObj
                            appCommandLine = this.AppCommandLine |> Option.toObj
                            netFrameworkVersion = this.NetFrameworkVersion |> Option.toObj

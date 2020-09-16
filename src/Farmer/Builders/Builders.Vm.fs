@@ -104,7 +104,7 @@ type VmConfig =
                   Location = location
                   Sku = Storage.Standard_LRS
                   StaticWebsite = None
-                  EnableHierarchicalNamespace = false
+                  EnableHierarchicalNamespace = None
                   Tags = this.Tags }
             | Some _
             | None ->
@@ -213,8 +213,12 @@ type VirtualMachineBuilder() =
     member this.LinkToVNet(state:VmConfig, vnet:Arm.Network.VirtualNetwork) = this.LinkToVNet(state, vnet.Name)
     [<CustomOperation "depends_on">]
     member __.DependsOn(state:VmConfig, resourceName) = { state with DependsOn = resourceName :: state.DependsOn }
+    member __.DependsOn(state:VmConfig, resources) = { state with DependsOn = List.concat [ resources; state.DependsOn ] }
     member __.DependsOn(state:VmConfig, resource:IBuilder) = { state with DependsOn = resource.DependencyName :: state.DependsOn }
+    member __.DependsOn(state:VmConfig, builders:IBuilder list) = { state with DependsOn = List.concat [ builders |> List.map (fun x -> x.DependencyName); state.DependsOn ] }
     member __.DependsOn(state:VmConfig, resource:IArmResource) = { state with DependsOn = resource.ResourceName :: state.DependsOn }
+    member __.DependsOn(state:VmConfig, resources:IArmResource list) = { state with DependsOn = List.concat [ resources |> List.map (fun x -> x.ResourceName); state.DependsOn ] }
+
     [<CustomOperation "custom_script">]
     member _.CustomScript(state:VmConfig, script:string) = { state with CustomScript = Some script }
     [<CustomOperation "custom_script_files">]
