@@ -3,6 +3,13 @@
 open System
 
 [<AutoOpen>]
+module internal DuHelpers =
+    let makeAll<'TUnion> =
+        Reflection.FSharpType.GetUnionCases(typeof<'TUnion>)
+        |> Array.map(fun t -> Reflection.FSharpValue.MakeUnion(t, null) :?> 'TUnion)
+        |> Array.toList
+
+[<AutoOpen>]
 module LocationExtensions =
     type Location with
         static member EastAsia = Location "EastAsia"
@@ -430,9 +437,86 @@ module Search =
         | StorageOptimisedL2
 
 module Sql =
-    [<Measure>]
-    type DTU
-    type DbSku =
+    [<Measure>] type DTU
+
+    type Gen5 =
+        | Gen5_2
+        | Gen5_4
+        | Gen5_6
+        | Gen5_8
+        | Gen5_10
+        | Gen5_12
+        | Gen5_14
+        | Gen5_16
+        | Gen5_18
+        | Gen5_20
+        | Gen5_24
+        | Gen5_32
+        | Gen5_40
+        | Gen5_80
+        member this.Name = this.ToString().[5..]
+    type Fsv2 =
+        | Fsv2_8
+        | Fsv2_10
+        | Fsv2_12
+        | Fsv2_14
+        | Fsv2_16
+        | Fsv2_18
+        | Fsv2_20
+        | Fsv2_24
+        | Fsv2_32
+        | Fsv2_36
+        | Fsv2_72
+        member this.Name = this.ToString().[5..]
+
+    type MSeries =
+        | MSeries_8
+        | MSeries_10
+        | MSeries_12
+        | MSeries_14
+        | MSeries_16
+        | MSeries_18
+        | MSeries_20
+        | MSeries_24
+        | MSeries_32
+        | MSeries_64
+        | MSeries_128
+        member this.Name = this.ToString().[8..]
+
+    type BusinessCritical =
+        | Gen5 of Gen5
+        | MSeries of MSeries
+        member this.Name =
+            match this with
+            | Gen5 g -> "Gen5_" + g.Name
+            | MSeries m -> "M_" + m.Name
+    type Provisioned =
+        | Gen5 of Gen5
+        | Fsv2 of Fsv2
+        member this.Name =
+            match this with
+            | Gen5 g -> "Gen5_" + g.Name
+            | Fsv2 f -> "Fsv2_" + f.Name
+    [<RequireQualifiedAccess>]
+    type GeneralPurpose =
+        | Provisioned of Provisioned
+        //| Serverless
+    type SqlVCore =
+        | GeneralPurpose of GeneralPurpose
+        | BusinessCritical of BusinessCritical
+        | Hyperscale of Gen5 * Replicas:int * ZoneRedundant:bool * ReadScaleOut:CoreTypes.FeatureFlag
+        member this.Edition =
+            match this with
+            | GeneralPurpose _ -> "GeneralPurpose"
+            | BusinessCritical _ -> "BusinessCritical"
+            | Hyperscale _ -> "Hyperscale"
+         member this.Name =
+            match this with
+            | GeneralPurpose (GeneralPurpose.Provisioned p) -> "GP_" + p.Name
+            | BusinessCritical b -> "BC_" + b.Name
+            | Hyperscale (h, _, _, _) -> "HS_" + h.Name
+
+    type SqlDtu =
         | Free
         | Basic
         | Standard of string
@@ -445,7 +529,7 @@ module Sql =
         static member S6 = Standard "S6"
         static member S7 = Standard "S7"
         static member S9 = Standard "S9"
-        static member S12 =Standard "S12"
+        static member S12 = Standard "S12"
         static member P1 = Premium "P1"
         static member P2 = Premium "P2"
         static member P4 = Premium "P4"
@@ -454,16 +538,23 @@ module Sql =
         static member P15 = Premium "P15"
         member this.Edition =
             match this with
-            | Basic -> "Basic"
             | Free -> "Free"
+            | Basic -> "Basic"
             | Standard _ -> "Standard"
             | Premium _ -> "Premium"
          member this.Name =
             match this with
-            | Basic -> "Basic"
             | Free -> "Free"
+            | Basic -> "Basic"
             | Standard s -> s
             | Premium p -> p
+
+    type DbPurchaseModel =
+        | DTU of SqlDtu
+        | VCore of SqlVCore
+        member this.Edition = match this with DTU d -> d.Edition | VCore v -> v.Edition
+        member this.Name = match this with DTU d -> d.Name | VCore v -> v.Name
+
     type PoolSku =
         | BasicPool of int
         | StandardPool of int
@@ -555,13 +646,6 @@ module EventHub =
         | Premium
     type InflateSetting = ManualInflate | AutoInflate of maxThroughput:int
     type AuthorizationRuleRight = Manage | Send | Listen
-
-[<AutoOpen>]
-module internal DuHelpers =
-    let makeAll<'TUnion> =
-        Reflection.FSharpType.GetUnionCases(typeof<'TUnion>)
-        |> Array.map(fun t -> Reflection.FSharpValue.MakeUnion(t, null) :?> 'TUnion)
-        |> Array.toList
 
 module KeyVault =
     type Bypass = AzureServices | NoTraffic

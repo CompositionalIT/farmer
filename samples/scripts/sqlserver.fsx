@@ -10,13 +10,11 @@ let myDatabases = sqlServer {
     admin_username "admin_username"
     enable_azure_firewall
 
-    elastic_pool_name "mypool"
-    elastic_pool_sku PoolSku.Basic100
-
     add_databases [
-        sqlDb { name "poolDb1" }
-        sqlDb { name "poolDb2" }
-        sqlDb { name "standaloneDb1"; sku DbSku.Basic }
+        sqlDb { name "standaloneDb1"; sku MSeries_12 }
+        sqlDb { name "standaloneDb1"; sku Fsv2_12 }
+        sqlDb { name "standaloneDb1"; sku (GeneralPurpose.Provisioned (Gen5 Gen5_10)) }
+        sqlDb { name "standaloneDb1"; sku (BusinessCritical.Gen5 Gen5_10) }
     ]
 }
 
@@ -25,5 +23,7 @@ let template = arm {
     add_resource myDatabases
 }
 
-template
-|> Writer.quickWrite "sql-example"
+template |> Writer.quickWrite "sql-example"
+
+// template |> Deploy.execute "delete-me-too" [ "password-for-isaac_super_server", "qweasdQWEASD123***" ]
+

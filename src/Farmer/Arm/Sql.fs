@@ -12,7 +12,7 @@ let firewallRules = ResourceType "Microsoft.Sql/servers/firewallrules"
 let databases = ResourceType "Microsoft.Sql/servers/databases"
 let transparentDataEncryption = ResourceType "Microsoft.Sql/servers/databases/transparentDataEncryption"
 
-type DbKind = Standalone of DbSku | Pool of ResourceName
+type DbKind = Standalone of DbPurchaseModel | Pool of ResourceName
 
 type Server =
     { ServerName : ResourceName

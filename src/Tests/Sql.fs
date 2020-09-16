@@ -20,7 +20,7 @@ let tests = testList "SQL Server" [
             add_databases [
                 sqlDb {
                     name "db"
-                    sku DbSku.S0
+                    sku SqlDtu.S0
                 }
             ]
         }
@@ -41,7 +41,7 @@ let tests = testList "SQL Server" [
                 sqlDb {
                     name "db"
                     use_encryption
-                    sku DbSku.S0
+                    sku SqlDtu.S0
                 }
             ]
         }

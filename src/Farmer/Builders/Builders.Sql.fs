@@ -11,7 +11,7 @@ open Databases
 
 type SqlAzureDbConfig =
     { Name : ResourceName
-      Sku : DbSku option
+      Sku : DbPurchaseModel option
       Collation : string
       Encryption : FeatureFlag }
 
@@ -104,7 +104,11 @@ type SqlDbBuilder() =
     member this.DbName(state:SqlAzureDbConfig, name:string) = this.DbName(state, ResourceName name)
     // Sets the sku of the database
     [<CustomOperation "sku">]
-    member _.DbSku(state:SqlAzureDbConfig, sku:DbSku) = { state with Sku = Some sku }
+    member _.DbSku(state:SqlAzureDbConfig, sku:SqlDtu) = { state with Sku = Some (DTU sku) }
+    member _.DbSku(state:SqlAzureDbConfig, sku:MSeries) = { state with Sku = Some (VCore(BusinessCritical (MSeries sku))) }
+    member _.DbSku(state:SqlAzureDbConfig, sku:Fsv2) = { state with Sku = Some (VCore(GeneralPurpose (GeneralPurpose.Provisioned(Fsv2 sku)))) }
+    member _.DbSku(state:SqlAzureDbConfig, sku:BusinessCritical) = { state with Sku = Some (VCore(BusinessCritical sku)) }
+    member _.DbSku(state:SqlAzureDbConfig, sku:GeneralPurpose) = { state with Sku = Some (VCore(GeneralPurpose sku)) }
     // Sets the collation of the database.
     [<CustomOperation "collation">]
     member _.DbCollation(state:SqlAzureDbConfig, collation:string) = { state with Collation = collation }
