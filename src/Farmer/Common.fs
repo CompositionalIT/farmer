@@ -66,7 +66,8 @@ type IsoDateTime =
     member this.Value = match this with IsoDateTime value -> value
 type TransmissionProtocol = TCP | UDP
 type TlsVersion = Tls10 | Tls11 | Tls12
-
+module Mb =
+    let toBytes (mb:int<Mb>) = int64 mb * 1024L * 1024L
 module Vm =
     type VMSize =
     | Basic_A0
@@ -439,7 +440,8 @@ module Search =
 module Sql =
     [<Measure>] type DTU
 
-    type Gen5 =
+    [<RequireQualifiedAccess>]
+    type Gen5Series =
         | Gen5_2
         | Gen5_4
         | Gen5_6
@@ -454,7 +456,10 @@ module Sql =
         | Gen5_32
         | Gen5_40
         | Gen5_80
-    type Fsv2 =
+        member this.Name = Reflection.FSharpValue.GetUnionFields(this, typeof<Gen5Series>) |> fun (v,_) -> v.Name
+
+    [<RequireQualifiedAccess>]
+    type FSeries =
         | Fsv2_8
         | Fsv2_10
         | Fsv2_12
@@ -466,8 +471,10 @@ module Sql =
         | Fsv2_32
         | Fsv2_36
         | Fsv2_72
+        member this.Name = Reflection.FSharpValue.GetUnionFields(this, typeof<FSeries>) |> fun (v,_) -> v.Name
 
-    type M =
+    [<RequireQualifiedAccess>]
+    type MSeries =
         | M_8
         | M_10
         | M_12
@@ -479,13 +486,14 @@ module Sql =
         | M_32
         | M_64
         | M_128
+        member this.Name = Reflection.FSharpValue.GetUnionFields(this, typeof<MSeries>) |> fun (v,_) -> v.Name
 
     type SqlVCore =
-        | MemoryIntensive of M
-        | CpuIntensive of Fsv2
-        | GeneralPurpose of Gen5
-        | BusinessCritical of Gen5
-        | Hyperscale of Gen5 * Replicas:int * ZoneRedundant:bool * ReadScaleOut:CoreTypes.FeatureFlag
+        | MemoryIntensive of MSeries
+        | CpuIntensive of FSeries
+        | GeneralPurpose of Gen5Series
+        | BusinessCritical of Gen5Series
+        | Hyperscale of Gen5Series
         member this.Edition =
             match this with
             | GeneralPurpose _ | CpuIntensive _ -> "GeneralPurpose"
@@ -493,19 +501,11 @@ module Sql =
             | Hyperscale _ -> "Hyperscale"
          member this.Name =
             match this with
-            | GeneralPurpose g -> "GP_" + (string g)
-            | BusinessCritical b -> "BC_" + (string b)
-            | Hyperscale (h, _, _, _) -> "HS_" + (string h)
-            | MemoryIntensive m -> "BC_" + (string m)
-            | CpuIntensive c -> "GP_" + (string c)
-
-    type Hyperscale =
-        static member Create(gen5, ?replicas, ?zoneRedundant, ?readScaleOut) =
-            SqlVCore.Hyperscale(
-                gen5,
-                replicas |> Option.defaultValue 1,
-                zoneRedundant |> Option.defaultValue false,
-                readScaleOut |> Option.defaultValue false |> CoreTypes.FeatureFlag.ofBool)
+            | GeneralPurpose g -> "GP_" + g.Name
+            | BusinessCritical b -> "BC_" + b.Name
+            | Hyperscale h -> "HS_" + h.Name
+            | MemoryIntensive m -> "BC_" + m.Name
+            | CpuIntensive c -> "GP_" + c.Name
 
     type SqlDtu =
         | Free
@@ -540,11 +540,15 @@ module Sql =
             | Standard s -> s
             | Premium p -> p
 
+    type SqlLicense =
+        | AzureHybridBenefit
+        | LicenseRequired
+        member this.ArmValue = match this with AzureHybridBenefit -> "BasePrice" | LicenseRequired -> "LicenseIncluded"
     type DbPurchaseModel =
         | DTU of SqlDtu
-        | VCore of SqlVCore
-        member this.Edition = match this with DTU d -> d.Edition | VCore v -> v.Edition
-        member this.Name = match this with DTU d -> d.Name | VCore v -> v.Name
+        | VCore of SqlVCore * SqlLicense
+        member this.Edition = match this with DTU d -> d.Edition | VCore (v, _) -> v.Edition
+        member this.Name = match this with DTU d -> d.Name | VCore (v, _) -> v.Name
 
     type PoolSku =
         | BasicPool of int
