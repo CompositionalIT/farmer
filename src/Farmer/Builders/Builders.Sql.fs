@@ -11,7 +11,8 @@ open Databases
 
 type SqlAzureDbConfig =
     { Name : ResourceName
-      Sku : DbSku option
+      Sku : DbPurchaseModel option
+      MaxSize : int<Mb> option
       Collation : string
       Encryption : FeatureFlag }
 
@@ -63,6 +64,10 @@ type SqlAzureConfig =
                 { Name = database.Name
                   Server = this.Name
                   Location = location
+                  MaxSizeBytes =
+                    match database.Sku, database.MaxSize with
+                    | Some _, Some maxSize -> Some (Mb.toBytes maxSize)
+                    | _ -> None
                   Sku =
                    match database.Sku with
                    | Some dbSku -> Standalone dbSku
@@ -88,7 +93,7 @@ type SqlAzureConfig =
                   Server = this.Name
                   Location = location
                   Sku = this.ElasticPoolSettings.Sku
-                  MaxSizeBytes = this.ElasticPoolSettings.Capacity |> Option.map(fun mb -> int64 mb * 1024L * 1024L)
+                  MaxSizeBytes = this.ElasticPoolSettings.Capacity |> Option.map Mb.toBytes
                   MinMax = this.ElasticPoolSettings.PerDbLimits |> Option.map(fun l -> l.Min, l.Max) }
         ]
 
@@ -97,21 +102,40 @@ type SqlDbBuilder() =
         { Name = ResourceName ""
           Collation = "SQL_Latin1_General_CP1_CI_AS"
           Sku = None
+          MaxSize = None
           Encryption = Disabled }
     /// Sets the name of the database.
     [<CustomOperation "name">]
     member _.DbName(state:SqlAzureDbConfig, name) = { state with Name = name }
     member this.DbName(state:SqlAzureDbConfig, name:string) = this.DbName(state, ResourceName name)
-    // Sets the sku of the database
+    /// Sets the sku of the database
     [<CustomOperation "sku">]
-    member _.DbSku(state:SqlAzureDbConfig, sku:DbSku) = { state with Sku = Some sku }
-    // Sets the collation of the database.
+    member _.DbSku(state:SqlAzureDbConfig, sku:SqlDtu) = { state with Sku = Some (DTU sku) }
+    member _.DbSku(state:SqlAzureDbConfig, sku:MSeries) = { state with Sku = Some (VCore(SqlVCore.MemoryIntensive sku, LicenseRequired)) }
+    member _.DbSku(state:SqlAzureDbConfig, sku:FSeries) = { state with Sku = Some (VCore(SqlVCore.CpuIntensive sku, LicenseRequired)) }
+    member _.DbSku(state:SqlAzureDbConfig, sku:SqlVCore) = { state with Sku = Some (VCore (sku, LicenseRequired)) }
+    /// Sets the collation of the database.
     [<CustomOperation "collation">]
     member _.DbCollation(state:SqlAzureDbConfig, collation:string) = { state with Collation = collation }
-    // Enables encryption of the database.
+    /// States that you already have a SQL license and qualify for Azure Hybrid Benefit discount.
+    [<CustomOperation "hybrid_benefit">]
+    member _.ZoneRedundant(state:SqlAzureDbConfig) =
+        { state with
+            Sku =
+                match state.Sku with
+                | Some (VCore (v, _)) ->
+                    Some (VCore (v, AzureHybridBenefit))
+                | Some (DTU _)
+                | None ->
+                    failwith "You can only set licensing on VCore databases. Ensure that you have already set the SKU to a VCore model."
+        }
+    /// Sets the maximum size of the database, if this database is not part of an elastic pool.
+    [<CustomOperation "db_size">]
+    member _.MaxSize(state:SqlAzureDbConfig, size:int<Mb>) = { state with MaxSize = Some size }
+    /// Enables encryption of the database.
     [<CustomOperation "use_encryption">]
     member _.UseEncryption(state:SqlAzureDbConfig) = { state with Encryption = Enabled }
-    // Adds a custom firewall rule given a name, start and end IP address range.
+    /// Adds a custom firewall rule given a name, start and end IP address range.
     member _.Run (state:SqlAzureDbConfig) =
         if state.Name = ResourceName.Empty then failwith "You must set a database name."
         state

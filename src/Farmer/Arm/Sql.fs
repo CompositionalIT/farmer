@@ -12,14 +12,13 @@ let firewallRules = ResourceType "Microsoft.Sql/servers/firewallrules"
 let databases = ResourceType "Microsoft.Sql/servers/databases"
 let transparentDataEncryption = ResourceType "Microsoft.Sql/servers/databases/transparentDataEncryption"
 
-type DbKind = Standalone of DbSku | Pool of ResourceName
+type DbKind = Standalone of DbPurchaseModel | Pool of ResourceName
 
 type Server =
     { ServerName : ResourceName
       Location : Location
       Credentials : {| Username : string; Password : SecureParameter |}
-      Tags: Map<string,string>
-    }
+      Tags: Map<string,string> }
     interface IParameters with
         member this.SecureParameters = [ this.Credentials.Password ]
     interface IArmResource with
@@ -29,12 +28,13 @@ type Server =
                name = this.ServerName.Value
                apiVersion = "2019-06-01-preview"
                location = this.Location.ArmValue
-               tags = this.Tags
-                   |> Map.add "displayName" this.ServerName.Value
+               tags =
+                this.Tags
+                |> Map.add "displayName" this.ServerName.Value
                properties =
-                   {| administratorLogin = this.Credentials.Username
-                      administratorLoginPassword = this.Credentials.Password.AsArmRef.Eval()
-                      version = "12.0" |}
+                {| administratorLogin = this.Credentials.Username
+                   administratorLoginPassword = this.Credentials.Password.AsArmRef.Eval()
+                   version = "12.0" |}
             |} :> _
 
 module Servers =
@@ -76,8 +76,8 @@ module Servers =
                    apiVersion = "2014-04-01"
                    location = this.Location.ArmValue
                    properties =
-                     {| endIpAddress = string this.Start
-                        startIpAddress = string this.End |}
+                    {| endIpAddress = string this.Start
+                       startIpAddress = string this.End |}
                    dependsOn = [ this.Server.Value ]
                 |} :> _
 
@@ -85,6 +85,7 @@ module Servers =
         { Name : ResourceName
           Server : ResourceName
           Location : Location
+          MaxSizeBytes : int64 option
           Sku : DbKind
           Collation : string }
         interface IArmResource with
@@ -96,11 +97,19 @@ module Servers =
                    location = this.Location.ArmValue
                    tags = {| displayName = this.Name.Value |}
                    sku =
-                        match this.Sku with
-                        | Standalone sku -> box {| name = sku.Name; tier = sku.Edition |}
-                        | Pool _ -> null
+                    match this.Sku with
+                    | Standalone sku -> box {| name = sku.Name; tier = sku.Edition |}
+                    | Pool _ -> null
                    properties =
                         {| collation = this.Collation
+                           maxSizeBytes = this.MaxSizeBytes |> Option.toNullable
+                           licenseType =
+                            match this.Sku with
+                            | Standalone (VCore (_, license)) ->
+                                license.ArmValue
+                            | Standalone (DTU _)
+                            | Pool _ ->
+                                null
                            elasticPoolId =
                                 match this.Sku with
                                 | Standalone _ ->
@@ -109,11 +118,11 @@ module Servers =
                                     ArmExpression.resourceId(elasticPools, this.Server, pool).Eval()
                         |}
                    dependsOn =
-                     [ this.Server.Value
-                       match this.Sku with
-                       | Standalone _ -> ()
-                       | Pool poolName -> poolName.Value
-                     ]
+                    [ this.Server.Value
+                      match this.Sku with
+                      | Standalone _ -> ()
+                      | Pool poolName -> poolName.Value
+                    ]
                 |} :> _
 
     module Databases =
