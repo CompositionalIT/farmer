@@ -1,6 +1,7 @@
 Release Notes
 =============
 ## 1.1.0-beta2
+* Small updates to SQL naming
 
 ## 1.1.0-beta1
 * AppInsights: Support for IP Masking and Sampling
