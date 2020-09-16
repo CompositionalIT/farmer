@@ -440,7 +440,6 @@ module Search =
 module Sql =
     [<Measure>] type DTU
 
-    [<RequireQualifiedAccess>]
     type Gen5Series =
         | Gen5_2
         | Gen5_4
@@ -458,7 +457,6 @@ module Sql =
         | Gen5_80
         member this.Name = Reflection.FSharpValue.GetUnionFields(this, typeof<Gen5Series>) |> fun (v,_) -> v.Name
 
-    [<RequireQualifiedAccess>]
     type FSeries =
         | Fsv2_8
         | Fsv2_10
@@ -473,7 +471,6 @@ module Sql =
         | Fsv2_72
         member this.Name = Reflection.FSharpValue.GetUnionFields(this, typeof<FSeries>) |> fun (v,_) -> v.Name
 
-    [<RequireQualifiedAccess>]
     type MSeries =
         | M_8
         | M_10
@@ -488,8 +485,7 @@ module Sql =
         | M_128
         member this.Name = Reflection.FSharpValue.GetUnionFields(this, typeof<MSeries>) |> fun (v,_) -> v.Name
 
-    [<RequireQualifiedAccess>]
-    type SqlVCore =
+    type VCoreSku =
         | MemoryIntensive of MSeries
         | CpuIntensive of FSeries
         | GeneralPurpose of Gen5Series
@@ -508,8 +504,7 @@ module Sql =
             | MemoryIntensive m -> "BC_" + m.Name
             | CpuIntensive c -> "GP_" + c.Name
 
-    [<RequireQualifiedAccess>]
-    type SqlDtu =
+    type DtuSku =
         | Free
         | Basic
         | Standard of string
@@ -547,8 +542,8 @@ module Sql =
         | LicenseRequired
         member this.ArmValue = match this with AzureHybridBenefit -> "BasePrice" | LicenseRequired -> "LicenseIncluded"
     type DbPurchaseModel =
-        | DTU of SqlDtu
-        | VCore of SqlVCore * SqlLicense
+        | DTU of DtuSku
+        | VCore of VCoreSku * SqlLicense
         member this.Edition = match this with DTU d -> d.Edition | VCore (v, _) -> v.Edition
         member this.Name = match this with DTU d -> d.Name | VCore (v, _) -> v.Name
 

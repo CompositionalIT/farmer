@@ -13,14 +13,14 @@ let myDatabases = sqlServer {
     add_databases [
         sqlDb { name "poolDb1" }
         sqlDb { name "poolDb2" }
-        sqlDb { name "dtuDb"; sku SqlDtu.Basic }
-        sqlDb { name "memoryDb"; sku MSeries.M_8 }
-        sqlDb { name "cpuDb"; sku FSeries.Fsv2_8 }
-        sqlDb { name "businessCriticalDb"; sku (SqlVCore.BusinessCritical Gen5Series.Gen5_2) }
-        sqlDb { name "hyperscaleDb"; sku (SqlVCore.Hyperscale Gen5Series.Gen5_2) }
+        sqlDb { name "dtuDb"; sku Basic }
+        sqlDb { name "memoryDb"; sku M_8 }
+        sqlDb { name "cpuDb"; sku Fsv2_8 }
+        sqlDb { name "businessCriticalDb"; sku (BusinessCritical Gen5_2) }
+        sqlDb { name "hyperscaleDb"; sku (Hyperscale Gen5_2) }
         sqlDb {
             name "generalPurposeDb"
-            sku (SqlVCore.GeneralPurpose Gen5Series.Gen5_8)
+            sku (GeneralPurpose Gen5_8)
             db_size (1024<Mb> * 128)
             hybrid_benefit
         }

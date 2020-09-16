@@ -20,7 +20,7 @@ let tests = testList "SQL Server" [
             add_databases [
                 sqlDb {
                     name "db"
-                    sku SqlDtu.S0
+                    sku DtuSku.S0
                 }
             ]
         }
@@ -41,7 +41,7 @@ let tests = testList "SQL Server" [
                 sqlDb {
                     name "db"
                     use_encryption
-                    sku SqlDtu.S0
+                    sku DtuSku.S0
                 }
             ]
         }
@@ -70,7 +70,7 @@ let tests = testList "SQL Server" [
         let sql = sqlServer {
             name "server"
             admin_username "isaac"
-            add_databases [ sqlDb { name "db"; sku MSeries.M_18 } ]
+            add_databases [ sqlDb { name "db"; sku M_18 } ]
         }
 
         let model : Models.Database = sql |> getResourceAtIndex client.SerializationSettings 1
@@ -95,7 +95,7 @@ let tests = testList "SQL Server" [
                 add_databases [
                     sqlDb {
                         name "db"
-                        sku (SqlVCore.GeneralPurpose Gen5Series.Gen5_12)
+                        sku (GeneralPurpose Gen5_12)
                         hybrid_benefit
                         db_size 2048<Mb>
                      } ]
