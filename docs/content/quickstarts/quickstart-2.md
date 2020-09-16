@@ -44,7 +44,7 @@ In ARM templates, you need to explicitly set up **dependencies** between resourc
 ```fsharp
 let myWebApp = webApp {
     ...
-    depends_on myStorage1
+    depends_on myStorage
 }
 ```
 

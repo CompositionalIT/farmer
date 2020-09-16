@@ -24,7 +24,7 @@ The Service Bus builder creates service bus namespaces and their associated queu
 | Queue | link_to_namespace | Link this queue to an existing namespace instead of creating a new one. |
 | Namespace | sku | The ServiceBusNamespaceSku e.g. Standard |
 | Namespace | namespace_name | The name of the namespace that holds the queue. |
-| Namespace | depends_on | Adds a resources that the service bus depends on. |
+| Namespace | depends_on | Sets dependencies on the service bus namespace. |
 
 #### Configuration Members
 

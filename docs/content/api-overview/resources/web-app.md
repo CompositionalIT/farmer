@@ -30,7 +30,7 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Web App | enable_http2 | Configures the webapp to allow clients to connect over http2.0. |
 | Web App | disable_client_affinity | Stops the webapp from sending client affinity cookies. |
 | Web App | enable_websockets | Configures the webapp to allow clients to connect via websockets. |
-| Web App | depends_on | Sets a dependencies for the web app. |
+| Web App | depends_on | Sets dependencies for the web app. |
 | Web App | docker_image | Sets the docker image to be pulled down from Docker Hub, and the command to execute as a second argument. Automatically sets the OS to Linux. |
 | Web App | docker_ci | Turns on continuous integration of the web app from the Docker source repository using a webhook.
 | Web App | docker_use_azure_registry | Uses the supplied Azure Container Registry name as the source of the Docker image, instead of Docker Hub. You do not need to specify the full url, but just the name of the registry itself.
