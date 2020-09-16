@@ -479,4 +479,4 @@ let webApp = WebAppBuilder()
 type EndpointBuilder with
     member this.Origin(state:EndpointConfig, webApp:WebAppConfig) =
         let state = this.Origin(state, webApp.Endpoint)
-        this.DependsOn(state, [ webApp.Name ])
+        this.DependsOn(state, webApp.Name)

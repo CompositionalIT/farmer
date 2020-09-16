@@ -1,5 +1,16 @@
 Release Notes
 =============
+## 1.1.0-beta1
+* AppInsights: Support for IP Masking and Sampling
+* AKS: Basic AKS support
+* Functions: Fix an issue with incorrect Service Plan linking
+* Storage: Data Lake support is now optional and off by default
+* Storage: Support for lifecycle policies
+* SQL Azure: Support for VCore model
+* SQL Azure: Support for specifying disk size
+* Support for adding a list of dependencies to resources
+* Web App: Support for Connection Strings
+
 ## 1.0.0
 * Formal release
 
