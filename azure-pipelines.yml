@@ -5,7 +5,7 @@ trigger:
 stages:
 - stage: "Prepare"
   displayName: "Build, test and pack"
-  jobs:    
+  jobs:
   - job: "Build"
     strategy:
       matrix:
@@ -40,7 +40,7 @@ stages:
         testResultsFormat: VSTest
     - task: DotNetCoreCLI@2
       displayName: 'Package'
-      condition: and(succeeded(), eq(variables.vmImage, 'ubuntu-latest'))
+      condition: and(succeeded(), eq(variables.imageName, 'ubuntu-latest'))
       inputs:
         command: 'pack'
         packagesToPack: 'src/Farmer'
@@ -49,7 +49,7 @@ stages:
         verbosityPack: 'Minimal'
     - task: PublishBuildArtifacts@1
       displayName: Store NuGet Package
-      condition: and(succeeded(), eq(variables.vmImage, 'ubuntu-latest'))    
+      condition: and(succeeded(), eq(variables.imageName, 'ubuntu-latest'))
       inputs:
         PathtoPublish: '$(Build.ArtifactStagingDirectory)'
         ArtifactName: 'FarmerPackage-$(imageName)'
@@ -74,4 +74,4 @@ stages:
               command: 'push'
               packagesToPush: '$(Pipeline.Workspace)/**/*.nupkg;' #Path here must match
               nuGetFeedType: 'external'
-              publishFeedCredentials: 'NuGet' #this needs to be established in ADos Servie Connections       
+              publishFeedCredentials: 'NuGet' #this needs to be established in ADos Servie Connections
