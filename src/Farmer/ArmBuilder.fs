@@ -3,6 +3,18 @@ module Farmer.ArmBuilder
 
 open Farmer.CoreTypes
 open Farmer
+open System.Text.Encodings.Web
+open System.Text.Json
+
+module Serialization =
+    let jsonSerializerOptions =
+        JsonSerializerOptions(
+            WriteIndented = true,
+            IgnoreNullValues = true,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+            PropertyNameCaseInsensitive = true)
+    let toJson x = JsonSerializer.Serialize(x, jsonSerializerOptions)
+    let ofJson<'T> (x:string) = JsonSerializer.Deserialize<'T>(x, jsonSerializerOptions)
 
 module Resource =
     /// Creates a unique IArmResource from an arbitrary object.
@@ -12,7 +24,7 @@ module Resource =
              member _.JsonModel = armObject }
 
     /// Creates a unique IArmResource from a JSON string containing the output you want.
-    let ofJson json = json |> Newtonsoft.Json.Linq.JObject.Parse |> ofObj
+    let ofJson = Serialization.ofJson >> ofObj
 
 module Json =
     /// Creates a unique IArmResource from a JSON string containing the output you want.

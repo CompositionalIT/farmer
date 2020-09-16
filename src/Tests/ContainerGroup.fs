@@ -128,13 +128,14 @@ let tests = testList "Container Group" [
                 ]
             } |> asAzureResource
         Expect.equal group.Name "containersWithFiles" "Incorrect name on container group"
-        Expect.equal group.Containers.[0].VolumeMounts.Count 3 "Incorrect number of volume mounts on container 1"
+        Expect.equal group.Containers.[0].VolumeMounts.Count 3 "Incorrect number of volume mounts on container 0"
         Expect.equal group.Containers.[1].VolumeMounts.Count 2 "Incorrect number of volume mounts on container 1"
         Expect.hasLength group.Volumes 4 "Incorrect number of volumes in group"
-        Expect.isNotNull group.Volumes.[0].AzureFile "Azure file volume should not be null"
-        Expect.isNotNull group.Volumes.[1].Secret "Secret volume should not be null"
-        Expect.isNotNull group.Volumes.[2].EmptyDir "Empty directory volume should not be null"
-        Expect.isNotNull group.Volumes.[3].GitRepo "Git repo volume should not be null"
+        Expect.equal group.Volumes.[0].AzureFile.ShareName "fileShare1" "Azure file volume"
+        Expect.equal group.Volumes.[1].Secret.["secret1"] "YWJjZGVmZw==" "Secret volume"
+        Expect.equal group.Volumes.[2].Name "shared-socket" "Empty directory volume"
+        Expect.equal group.Volumes.[3].Name "source-code" "Git repo volume"
+        Expect.equal group.Volumes.[3].GitRepo.Repository "https://github.com/CompositionalIT/farmer" "Git repo uri"
     }
 
 ]

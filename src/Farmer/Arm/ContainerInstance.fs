@@ -4,7 +4,6 @@ module Farmer.Arm.ContainerInstance
 open Farmer
 open Farmer.ContainerGroup
 open Farmer.CoreTypes
-open Newtonsoft.Json.Linq
 
 let containerGroups = ResourceType "Microsoft.ContainerInstance/containerGroups"
 
@@ -130,17 +129,16 @@ type ContainerGroup =
                                               directory = directory |> Option.toObj
                                               revision = revision |> Option.toObj |}
                                  secret = Unchecked.defaultof<_> |}
-                          |  volumeName, Volume.Secret secrets->
+                          |  volumeName, Volume.Secret secrets ->
                               {| name = volumeName
                                  azureFile = Unchecked.defaultof<_>
                                  emptyDir = null
                                  gitRepo = Unchecked.defaultof<_>
-                                 secret =
-                                     let jobj = JObject()
-                                     for (SecretFile (name, secret)) in secrets do
-                                         jobj.Add (name, secret |> System.Convert.ToBase64String |> JValue)
-                                     jobj
-                                 |}
+                                 secret = [
+                                    for (SecretFile (name, secret)) in secrets do
+                                        name, secret |> System.Convert.ToBase64String
+                                 ] |> Map
+                            |}
                       )
                    |}
                tags = this.Tags

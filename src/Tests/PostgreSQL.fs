@@ -6,7 +6,6 @@ open Expecto
 open Farmer
 open Farmer.PostgreSQL
 open Farmer.Builders
-open Newtonsoft.Json.Linq
 open Farmer.Arm
 
 type PostgresSku =
@@ -15,7 +14,6 @@ type PostgresSku =
       capacity : int
       tier : string
       size : int }
-
 
 type StorageProfile =
     { backupRetentionDays : int
@@ -29,7 +27,6 @@ type Properties =
       version : string
       storageProfile : StorageProfile }
 
-
 type PostgresTemplate =
     { name : string
       ``type`` : string
@@ -37,7 +34,6 @@ type PostgresTemplate =
       sku : PostgresSku
       location : string
       geoRedundantBackup : string
-      resources : JToken list
       properties : Properties }
 
 type Dependencies = string array

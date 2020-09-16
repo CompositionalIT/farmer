@@ -5,7 +5,6 @@ open Farmer
 open Farmer.ContainerRegistry
 open Farmer.Builders
 open Microsoft.Rest.Serialization
-open Newtonsoft.Json.Linq
 
 type RegistryJson =
     { resources :
@@ -14,7 +13,7 @@ type RegistryJson =
            apiVersion : string
            sku : {| name : string |}
            location : string
-           properties : JObject
+           properties : {| adminUserEnabled : bool |}
         |} array
     }
 
@@ -36,11 +35,11 @@ let shouldHaveALocation (r : RegistryJson) = Expect.isNotEmpty (resource(r).loca
 // property assertions
 // admin user
 let shouldHaveAdminUserEnabled (r : RegistryJson) =
-    let b = resource(r).properties.Value<bool> "adminUserEnabled"
+    let b = resource(r).properties.adminUserEnabled
     Expect.isTrue b "adminUserEnabled was expected to be enabled"
     r
 let shouldHaveAdminUserDisabled (r : RegistryJson) =
-    let b = resource(r).properties.Value<bool> "adminUserEnabled"
+    let b = resource(r).properties.adminUserEnabled
     Expect.isFalse b "adminUserEnabled was expected to be disabled"
     r
 

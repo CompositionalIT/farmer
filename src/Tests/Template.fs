@@ -4,7 +4,6 @@ open Expecto
 open Farmer
 open Farmer.Builders
 open Farmer.CoreTypes
-open Newtonsoft.Json
 
 [<AutoOpen>]
 module TestHelpers =
@@ -17,8 +16,7 @@ module TestHelpers =
               Resources = []
           }
         }
-    let convertTo<'T> = JsonConvert.SerializeObject >> JsonConvert.DeserializeObject<'T>
-
+    let convertTo<'T> = Serialization.toJson >> Serialization.ofJson<'T>
 
 let toTemplate (deployment:Deployment) =
     deployment.Template

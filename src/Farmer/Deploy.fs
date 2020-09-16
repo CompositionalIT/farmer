@@ -1,7 +1,6 @@
 ﻿module Farmer.Deploy
 
 open Farmer.CoreTypes
-open Newtonsoft.Json
 open System
 open System.Diagnostics
 open System.IO
@@ -133,14 +132,13 @@ type Subscription = { ID : Guid; Name : string; IsDefault : bool }
 /// Returns the list of subscriptions, including which one the default is.
 let authenticate appId secret tenantId =
     Az.loginWithCredentials appId secret tenantId
-    |> Result.map (JsonConvert.DeserializeObject<Subscription []>)
+    |> Result.map (Serialization.ofJson<Subscription []>)
 
 /// Lists all subscriptions that the logged in identity has access to.
 let listSubscriptions() = result {
     let! response = Az.listSubscriptions()
-    return response |> JsonConvert.DeserializeObject<Subscription array>
+    return response |> Serialization.ofJson<Subscription array>
 }
-
 
 /// Checks that the version of the Azure CLI meets minimum version.
 let checkVersion minimum = result {
@@ -200,7 +198,7 @@ let private prepareForDeployment parameters resourceGroupName deployment = resul
             Az.login()
             |> Result.bind(fun _ -> Az.showAccount())
 
-    let subscriptionDetails = subscriptionDetails |> JsonConvert.DeserializeObject<{| id : Guid; name : string |}>
+    let subscriptionDetails = subscriptionDetails |> Serialization.ofJson<{| id : Guid; name : string |}>
     printfn "Using subscription '%s' (%O)." subscriptionDetails.name subscriptionDetails.id
 
     printfn "Creating resource group %s..." resourceGroupName
@@ -240,7 +238,7 @@ let tryExecute resourceGroupName parameters deployment = result {
     printfn "All done, now parsing ARM response to get any outputs..."
     let! response =
         response
-        |> Result.ofExn JsonConvert.DeserializeObject<{| properties : {| outputs : Map<string, {| value : string |}> |} |}>
+        |> Result.ofExn Serialization.ofJson<{| properties : {| outputs : Map<string, {| value : string |}> |} |}>
         |> Result.mapError(fun _ -> response)
     return response.properties.outputs |> Map.map (fun _ value -> value.value)
 }

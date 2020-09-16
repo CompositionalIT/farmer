@@ -1,7 +1,6 @@
 module Farmer.Writer
 
 open Farmer.CoreTypes
-open Newtonsoft.Json
 open System.IO
 
 module TemplateGeneration =
@@ -21,11 +20,8 @@ module TemplateGeneration =
             |> Map.ofList
     |}
 
-    let serialize data =
-        JsonConvert.SerializeObject(data, Formatting.Indented, JsonSerializerSettings(NullValueHandling = NullValueHandling.Ignore))
-
 /// Returns a JSON string representing the supplied ARMTemplate.
-let toJson = TemplateGeneration.processTemplate >> TemplateGeneration.serialize
+let toJson = TemplateGeneration.processTemplate >> Serialization.toJson
 
 /// Writes the provided JSON to a file based on the supplied template name. The postfix ".json" will automatically be added to the filename.
 let toFile folder templateName json =
