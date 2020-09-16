@@ -1,5 +1,7 @@
 Release Notes
 =============
+## 1.1.0-beta2
+
 ## 1.1.0-beta1
 * AppInsights: Support for IP Masking and Sampling
 * AKS: Basic AKS support
