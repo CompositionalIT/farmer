@@ -236,11 +236,12 @@ let tryExecute resourceGroupName parameters deployment = result {
         |> Result.ignore
 
     printfn "All done, now parsing ARM response to get any outputs..."
+
     let! response =
         response
-        |> Result.ofExn Serialization.ofJson<{| properties : {| outputs : Map<string, {| value : string |}> |} |}>
+        |> Result.ofExn Serialization.ofJson<{| properties : {| outputs : System.Collections.Generic.IDictionary<string, {| value : string |}> |} |}>
         |> Result.mapError(fun _ -> response)
-    return response.properties.outputs |> Map.map (fun _ value -> value.value)
+    return response.properties.outputs |> Seq.map(fun r -> r.Key, r.Value.value) |> Map
 }
 
 /// Executes the supplied Deployment against a resource group using the Azure CLI.
