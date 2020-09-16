@@ -454,7 +454,6 @@ module Sql =
         | Gen5_32
         | Gen5_40
         | Gen5_80
-        member this.Name = this.ToString().[5..]
     type Fsv2 =
         | Fsv2_8
         | Fsv2_10
@@ -467,54 +466,46 @@ module Sql =
         | Fsv2_32
         | Fsv2_36
         | Fsv2_72
-        member this.Name = this.ToString().[5..]
 
-    type MSeries =
-        | MSeries_8
-        | MSeries_10
-        | MSeries_12
-        | MSeries_14
-        | MSeries_16
-        | MSeries_18
-        | MSeries_20
-        | MSeries_24
-        | MSeries_32
-        | MSeries_64
-        | MSeries_128
-        member this.Name = this.ToString().[8..]
+    type M =
+        | M_8
+        | M_10
+        | M_12
+        | M_14
+        | M_16
+        | M_18
+        | M_20
+        | M_24
+        | M_32
+        | M_64
+        | M_128
 
-    type BusinessCritical =
-        | Gen5 of Gen5
-        | MSeries of MSeries
-        member this.Name =
-            match this with
-            | Gen5 g -> "Gen5_" + g.Name
-            | MSeries m -> "M_" + m.Name
-    type Provisioned =
-        | Gen5 of Gen5
-        | Fsv2 of Fsv2
-        member this.Name =
-            match this with
-            | Gen5 g -> "Gen5_" + g.Name
-            | Fsv2 f -> "Fsv2_" + f.Name
-    [<RequireQualifiedAccess>]
-    type GeneralPurpose =
-        | Provisioned of Provisioned
-        //| Serverless
     type SqlVCore =
-        | GeneralPurpose of GeneralPurpose
-        | BusinessCritical of BusinessCritical
+        | MemoryIntensive of M
+        | CpuIntensive of Fsv2
+        | GeneralPurpose of Gen5
+        | BusinessCritical of Gen5
         | Hyperscale of Gen5 * Replicas:int * ZoneRedundant:bool * ReadScaleOut:CoreTypes.FeatureFlag
         member this.Edition =
             match this with
-            | GeneralPurpose _ -> "GeneralPurpose"
-            | BusinessCritical _ -> "BusinessCritical"
+            | GeneralPurpose _ | CpuIntensive _ -> "GeneralPurpose"
+            | BusinessCritical _ | MemoryIntensive _ -> "BusinessCritical"
             | Hyperscale _ -> "Hyperscale"
          member this.Name =
             match this with
-            | GeneralPurpose (GeneralPurpose.Provisioned p) -> "GP_" + p.Name
-            | BusinessCritical b -> "BC_" + b.Name
-            | Hyperscale (h, _, _, _) -> "HS_" + h.Name
+            | GeneralPurpose g -> "GP_" + (string g)
+            | BusinessCritical b -> "BC_" + (string b)
+            | Hyperscale (h, _, _, _) -> "HS_" + (string h)
+            | MemoryIntensive m -> "BC_" + (string m)
+            | CpuIntensive c -> "GP_" + (string c)
+
+    type Hyperscale =
+        static member Create(gen5, ?replicas, ?zoneRedundant, ?readScaleOut) =
+            SqlVCore.Hyperscale(
+                gen5,
+                replicas |> Option.defaultValue 1,
+                zoneRedundant |> Option.defaultValue false,
+                readScaleOut |> Option.defaultValue false |> CoreTypes.FeatureFlag.ofBool)
 
     type SqlDtu =
         | Free

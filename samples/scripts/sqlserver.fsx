@@ -11,10 +11,11 @@ let myDatabases = sqlServer {
     enable_azure_firewall
 
     add_databases [
-        sqlDb { name "standaloneDb1"; sku MSeries_12 }
-        sqlDb { name "standaloneDb1"; sku Fsv2_12 }
-        sqlDb { name "standaloneDb1"; sku (GeneralPurpose.Provisioned (Gen5 Gen5_10)) }
-        sqlDb { name "standaloneDb1"; sku (BusinessCritical.Gen5 Gen5_10) }
+        // sqlDb { name "memoryDb"; sku M_8 }
+        // sqlDb { name "cpuDb"; sku Fsv2_8 }
+        sqlDb { name "generalPurposeDb"; sku (GeneralPurpose Gen5_2) }
+        // sqlDb { name "businessCriticalDb"; sku (BusinessCritical Gen5_2) }
+        // sqlDb { name "hyperscaleDb"; sku (Hyperscale.Create Gen5_2) }
     ]
 }
 
@@ -25,5 +26,5 @@ let template = arm {
 
 template |> Writer.quickWrite "sql-example"
 
-// template |> Deploy.execute "delete-me-too" [ "password-for-isaac_super_server", "qweasdQWEASD123***" ]
+template |> Deploy.execute "delete-me-too" [ "password-for-isaac_super_server", "qweasdQWEASD123***" ]
 

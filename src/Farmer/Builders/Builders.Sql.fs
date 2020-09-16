@@ -105,10 +105,9 @@ type SqlDbBuilder() =
     // Sets the sku of the database
     [<CustomOperation "sku">]
     member _.DbSku(state:SqlAzureDbConfig, sku:SqlDtu) = { state with Sku = Some (DTU sku) }
-    member _.DbSku(state:SqlAzureDbConfig, sku:MSeries) = { state with Sku = Some (VCore(BusinessCritical (MSeries sku))) }
-    member _.DbSku(state:SqlAzureDbConfig, sku:Fsv2) = { state with Sku = Some (VCore(GeneralPurpose (GeneralPurpose.Provisioned(Fsv2 sku)))) }
-    member _.DbSku(state:SqlAzureDbConfig, sku:BusinessCritical) = { state with Sku = Some (VCore(BusinessCritical sku)) }
-    member _.DbSku(state:SqlAzureDbConfig, sku:GeneralPurpose) = { state with Sku = Some (VCore(GeneralPurpose sku)) }
+    member _.DbSku(state:SqlAzureDbConfig, sku:M) = { state with Sku = Some (VCore(MemoryIntensive sku)) }
+    member _.DbSku(state:SqlAzureDbConfig, sku:Fsv2) = { state with Sku = Some (VCore(CpuIntensive sku)) }
+    member _.DbSku(state:SqlAzureDbConfig, sku:SqlVCore) = { state with Sku = Some (VCore sku) }
     // Sets the collation of the database.
     [<CustomOperation "collation">]
     member _.DbCollation(state:SqlAzureDbConfig, collation:string) = { state with Collation = collation }
