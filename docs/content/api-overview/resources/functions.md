@@ -30,7 +30,7 @@ The Functions builder is used to create Azure Functions accounts. It abstracts t
 | operating_system | Sets the operating system of the Functions host. |
 | setting | Sets an app setting of the web app in the form "key" "value". |
 | settings | Sets a list of app setting of the web app as tuples in the form of ("key", "value"). |
-| depends_on | Sets a dependency for the web app. |
+| depends_on | Sets dependencies for the web app. |
 | enable_cors | Enables CORS support for the app. Either specify AllOrigins or a list of valid URIs. |
 
 #### Post-deployment Builder Keywords
