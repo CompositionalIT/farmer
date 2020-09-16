@@ -223,8 +223,8 @@ type FunctionsBuilder() =
     member __.AddSecret(state:FunctionsConfig, key) =
         { state with Settings = state.Settings.Add(key, ParameterSetting (SecureParameter key)) }
     [<CustomOperation "depends_on">]
-    member __.DependsOn(state:FunctionsConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
-    member __.DependsOn(state:FunctionsConfig, resources) = { state with Dependencies = List.concat [ resources; state.Dependencies ] }
+    member __.DependsOn(state:FunctionsConfig, resourceName:_ ResourceName) = { state with Dependencies = resourceName.Untyped :: state.Dependencies }
+    member __.DependsOn(state:FunctionsConfig, resources:_ ResourceName list) = { state with Dependencies = List.concat [ resources |> List.map(fun r -> r.Untyped); state.Dependencies ] }
     member __.DependsOn(state:FunctionsConfig, resource:IBuilder) = { state with Dependencies = resource.DependencyName :: state.Dependencies }
     member __.DependsOn(state:FunctionsConfig, builders:IBuilder list) = { state with Dependencies = List.concat [ builders |> List.map (fun x -> x.DependencyName); state.Dependencies ] }
     member __.DependsOn(state:FunctionsConfig, resource:IArmResource) = { state with Dependencies = resource.ResourceName :: state.Dependencies }

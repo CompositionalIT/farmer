@@ -97,8 +97,8 @@ type EndpointBuilder() =
           Origin = name }
 
     [<CustomOperation "depends_on">]
-    member _.DependsOn(state:EndpointConfig, resourceName) = { state with DependsOn = resourceName :: state.DependsOn }
-    member _.DependsOn(state:EndpointConfig, resources: ResourceName list) = { state with DependsOn = List.concat [ resources; state.DependsOn ] }
+    member _.DependsOn(state:EndpointConfig, resourceName:_ ResourceName) = { state with DependsOn = resourceName.Untyped :: state.DependsOn }
+    member _.DependsOn(state:EndpointConfig, resources:_ ResourceName list) = { state with DependsOn = List.concat [ resources |> List.map (fun r -> r.Untyped); state.DependsOn ] }
     member _.DependsOn(state:EndpointConfig, resource:IBuilder) = { state with DependsOn = resource.DependencyName :: state.DependsOn }
     member _.DependsOn(state:EndpointConfig, builders:IBuilder list) = { state with DependsOn = List.concat [ builders |> List.map (fun x -> x.DependencyName); state.DependsOn ] }
     member _.DependsOn(state:EndpointConfig, resource:IArmResource) = { state with DependsOn = resource.ResourceName :: state.DependsOn }
