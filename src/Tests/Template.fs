@@ -131,7 +131,7 @@ let tests = testList "Template" [
 
     test "Can add dependency through Resource Name" {
         let a = storageAccount { name "aaa" }
-        let b = webApp { name "b"; depends_on a.Name }
+        let b = webApp { name "bb"; depends_on a.Name }
 
         Expect.equal b.Dependencies [ ResourceName "aaa" ] "Dependency should have been set"
     }
