@@ -8,12 +8,24 @@ open Farmer.Arm.Storage
 open BlobServices
 open FileShares
 
-let internal buildKey (ResourceName name) =
-    sprintf
-        "concat('DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=', listKeys('%s', '2017-10-01').keys[0].value)"
-            name
-            name
-    |> ArmExpression.create
+type StorageAccount =
+    /// Gets an ARM Expression connection string for any Storage Account.
+    static member GetConnectionString (name:StorageAccountName, ?resourceGroup:string) =
+        let fullyQualified =
+            match resourceGroup with
+            | Some resourceGroup -> ArmExpression.resourceId(storageAccounts, name.ResourceName, resourceGroup).Value
+            | None -> sprintf "'%s'" name.ResourceName.Value
+        sprintf
+            "concat('DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=', listKeys(%s, '2017-10-01').keys[0].value)"
+                name.ResourceName.Value
+                fullyQualified
+        |> ArmExpression.create
+    /// Gets an ARM Expression connection string for any Storage Account.
+    static member GetConnectionString (name:string, ?resourceGroup:string) =
+        let name = StorageAccountName.Create(name).OkValue
+        match resourceGroup with
+        | Some resourceGroup -> StorageAccount.GetConnectionString(name, resourceGroup)
+        | None -> StorageAccount.GetConnectionString(name)
 
 type StoragePolicy =
     { CoolBlobAfter : int<Days> option
@@ -42,7 +54,7 @@ type StorageAccountConfig =
       /// Tags to apply to the storage account
       Tags: Map<string,string> }
     /// Gets the ARM expression path to the key of this storage account.
-    member this.Key = buildKey this.Name.ResourceName
+    member this.Key = StorageAccount.GetConnectionString this.Name
     /// Gets the Primary endpoint for static website (if enabled)
     member this.WebsitePrimaryEndpoint = sprintf "https://%s.z6.web.core.windows.net" this.Name.ResourceName.Value
     member this.Endpoint = sprintf "%s.blob.core.windows.net" this.Name.ResourceName.Value
@@ -80,7 +92,7 @@ type StorageAccountConfig =
 
 type StorageAccountBuilder() =
     member _.Yield _ = {
-        Name = StorageAccountName.Create "default" |> Result.get
+        Name = StorageAccountName.Create("default").OkValue
         Sku = Standard_LRS
         EnableDataLake = None
         Containers = []
@@ -90,12 +102,12 @@ type StorageAccountBuilder() =
         StaticWebsite = None
         Tags = Map.empty
     }
-    static member private AddContainer(state, access, name:string) = { state with Containers = state.Containers @ [ (StorageResourceName.Create name |> Result.get, access) ] }
-    static member private AddFileShare(state:StorageAccountConfig, name:string, quota) = { state with FileShares = state.FileShares @ [ (StorageResourceName.Create name |> Result.get, quota) ] }
+    static member private AddContainer(state, access, name:string) = { state with Containers = state.Containers @ [ ((StorageResourceName.Create name).OkValue, access) ] }
+    static member private AddFileShare(state:StorageAccountConfig, name:string, quota) = { state with FileShares = state.FileShares @ [ (StorageResourceName.Create(name).OkValue, quota) ] }
 
     /// Sets the name of the storage account.
     [<CustomOperation "name">]
-    member _.Name(state:StorageAccountConfig, name:ResourceName) = { state with Name = StorageAccountName.Create name |> Result.get }
+    member _.Name(state:StorageAccountConfig, name:ResourceName) = { state with Name = StorageAccountName.Create(name).OkValue }
     member this.Name(state:StorageAccountConfig, name) = this.Name(state, ResourceName name)
     /// Sets the sku of the storage account.
     [<CustomOperation "sku">]
@@ -117,7 +129,7 @@ type StorageAccountBuilder() =
     member _.AddFileShareWithQuota(state:StorageAccountConfig, name:string, quota) = StorageAccountBuilder.AddFileShare(state, name, Some quota)
     /// Adds a single queue to the storage account.
     [<CustomOperation "add_queue">]
-    member _.AddQueue(state:StorageAccountConfig, name:string) = { state with Queues = state.Queues.Add (StorageResourceName.Create name |> Result.get) }
+    member _.AddQueue(state:StorageAccountConfig, name:string) = { state with Queues = state.Queues.Add (StorageResourceName.Create(name).OkValue) }
     /// Adds a set of queues to the storage account.
     [<CustomOperation "add_queues">]
     member this.AddQueues(state:StorageAccountConfig, names) =
