@@ -16,12 +16,8 @@ type Account =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| name = this.Name.Value
-               ``type`` = accounts.Path
-               apiVersion = accounts.Version
-               location = this.Location.ArmValue
-               properties =
-                {| newTier = this.Sku.ToString()
-                   encryptionState = this.EncryptionState.ToString() |}
-               tags = this.Tags
+            {| accounts.Create(this.Name, this.Location, tags = this.Tags) with
+                 properties =
+                  {| newTier = this.Sku.ToString()
+                     encryptionState = this.EncryptionState.ToString() |}
             |} :> _

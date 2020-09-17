@@ -38,15 +38,10 @@ type Topic =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| name = this.Name.Value
-               ``type`` = systemTopics.Path
-               apiVersion = systemTopics.Version
-               location = this.Location.ArmValue
-               dependsOn = [ this.Source.Value ]
-               properties =
-                  {| source = ArmExpression.resourceId(this.TopicType.ResourceType, this.Source).Eval()
-                     topicType = this.TopicType.Value |}
-               tags = this.Tags
+            {| systemTopics.Create(this.Name, this.Location, [ this.Source ], this.Tags) with
+                 properties =
+                    {| source = ArmExpression.resourceId(this.TopicType.ResourceType, this.Source).Eval()
+                       topicType = this.TopicType.Value |}
              |} :> _
 
 type Subscription =
@@ -58,27 +53,24 @@ type Subscription =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = eventSubscriptions.Path
-               apiVersion = eventSubscriptions.Version
-               name = this.Topic.Value + "/" + this.Name.Value
-               dependsOn = [ this.Topic.Value; this.Destination.Value ]
-               properties =
-                 {| destination =
-                        match this.DestinationEndpoint with
-                        | WebHook uri ->
-                          {| endpointType = "WebHook"
-                             properties = {| endpointUrl = uri.ToString() |}
-                          |} |> box
-                        | EventHub hubName ->
-                          {| endpointType = "EventHub"
-                             properties = {| resourceId = ArmExpression.resourceId(eventHubs, this.Destination, hubName).Eval() |}
-                          |} :> _
-                        | StorageQueue queueName ->
-                          {| endpointType = "StorageQueue"
-                             properties =
-                              {| resourceId = ArmExpression.resourceId(Storage.storageAccounts, this.Destination).Eval()
-                                 queueName = queueName |}
-                          |} :> _
-                    filter = {| includedEventTypes = [ for event in this.Events do event.Value ] |}
-                 |}
+            {| eventSubscriptions.Create(this.Topic + this.Name, dependsOn = [ this.Topic; this.Destination ]) with
+                 properties =
+                   {| destination =
+                          match this.DestinationEndpoint with
+                          | WebHook uri ->
+                            {| endpointType = "WebHook"
+                               properties = {| endpointUrl = uri.ToString() |}
+                            |} |> box
+                          | EventHub hubName ->
+                            {| endpointType = "EventHub"
+                               properties = {| resourceId = ArmExpression.resourceId(eventHubs, this.Destination, hubName).Eval() |}
+                            |} :> _
+                          | StorageQueue queueName ->
+                            {| endpointType = "StorageQueue"
+                               properties =
+                                {| resourceId = ArmExpression.resourceId(Storage.storageAccounts, this.Destination).Eval()
+                                   queueName = queueName |}
+                            |} :> _
+                      filter = {| includedEventTypes = [ for event in this.Events do event.Value ] |}
+                   |}
             |} :> _

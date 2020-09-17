@@ -105,34 +105,31 @@ module ManagementPolicies =
         interface IArmResource with
             member this.ResourceName = this.ResourceName
             member this.JsonModel =
-                {| name = this.ResourceName.Value
-                   ``type`` = managementPolicies.Path
-                   apiVersion = managementPolicies.Version
-                   dependsOn = [ this.StorageAccount.Value ]
-                   properties =
-                    {| policy =
-                        {| rules = [
-                            for rule in this.Rules do
-                                {| enabled = true
-                                   name = rule.Name.Value
-                                   ``type`` = "Lifecycle"
-                                   definition =
-                                    {| actions =
-                                        {| baseBlob =
-                                            {| tierToCool = rule.CoolBlobAfter |> Option.map (fun days -> {| daysAfterModificationGreaterThan = days |} |> box) |> Option.toObj
-                                               tierToArchive = rule.ArchiveBlobAfter |> Option.map (fun days -> {| daysAfterModificationGreaterThan = days |} |> box) |> Option.toObj
-                                               delete = rule.DeleteBlobAfter |> Option.map (fun days -> {| daysAfterModificationGreaterThan = days |} |> box) |> Option.toObj |}
-                                           snapshot =
-                                            rule.DeleteSnapshotAfter
-                                            |> Option.map (fun days -> {| delete = {| daysAfterCreationGreaterThan = days |} |} |> box)
-                                            |> Option.toObj
-                                        |}
-                                       filters =
-                                        {| blobTypes = [ "blockBlob" ]
-                                           prefixMatch = rule.Filters |}
-                                    |}
-                                |}
-                            ]
-                        |}
-                    |}
+                {| managementPolicies.Create(this.ResourceName, dependsOn = [ this.StorageAccount ]) with
+                    properties =
+                     {| policy =
+                         {| rules = [
+                             for rule in this.Rules do
+                                 {| enabled = true
+                                    name = rule.Name.Value
+                                    ``type`` = "Lifecycle"
+                                    definition =
+                                     {| actions =
+                                         {| baseBlob =
+                                             {| tierToCool = rule.CoolBlobAfter |> Option.map (fun days -> {| daysAfterModificationGreaterThan = days |} |> box) |> Option.toObj
+                                                tierToArchive = rule.ArchiveBlobAfter |> Option.map (fun days -> {| daysAfterModificationGreaterThan = days |} |> box) |> Option.toObj
+                                                delete = rule.DeleteBlobAfter |> Option.map (fun days -> {| daysAfterModificationGreaterThan = days |} |> box) |> Option.toObj |}
+                                            snapshot =
+                                             rule.DeleteSnapshotAfter
+                                             |> Option.map (fun days -> {| delete = {| daysAfterCreationGreaterThan = days |} |} |> box)
+                                             |> Option.toObj
+                                         |}
+                                        filters =
+                                         {| blobTypes = [ "blockBlob" ]
+                                            prefixMatch = rule.Filters |}
+                                     |}
+                                 |}
+                             ]
+                         |}
+                     |}
                 |} :> _

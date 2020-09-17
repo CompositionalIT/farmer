@@ -17,13 +17,9 @@ type Profile =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = profiles.Path
-               apiVersion = profiles.Version
-               name = this.Name.Value
-               location = "global"
-               sku = {| name = string this.Sku |}
-               properties = {||}
-               tags = this.Tags
+            {| profiles.Create (this.Name, Location.Global, tags = this.Tags) with
+                   sku = {| name = string this.Sku |}
+                   properties = {||}
             |} |> box
 
 module Profiles =
@@ -42,30 +38,21 @@ module Profiles =
         interface IArmResource with
             member this.ResourceName: ResourceName = this.Name
             member this.JsonModel =
-                {| ``type`` = endpoints.Path
-                   apiVersion = endpoints.Version
-                   name = this.Profile.Value + "/" + this.Name.Value
-                   location = "global"
-                   dependsOn = [
-                       this.Profile.Value
-                       for dependency in this.DependsOn do
-                        dependency.Value
-                   ]
-                   properties =
-                        {| originHostHeader = this.Origin
-                           queryStringCachingBehavior = string this.QueryStringCachingBehaviour
-                           optimizationType = string this.OptimizationType
-                           isHttpAllowed = this.Http.AsBoolean
-                           isHttpsAllowed = this.Https.AsBoolean
-                           isCompressionEnabled = this.Compression.AsBoolean
-                           contentTypesToCompress = this.CompressedContentTypes
-                           origins = [
-                               {| name = "origin"
-                                  properties = {| hostName = this.Origin |}
-                               |}
-                           ]
-                        |}
-                   tags = this.Tags
+                {| endpoints.Create(this.Profile + this.Name, Location.Global, this.Profile :: this.DependsOn, this.Tags) with
+                       properties =
+                            {| originHostHeader = this.Origin
+                               queryStringCachingBehavior = string this.QueryStringCachingBehaviour
+                               optimizationType = string this.OptimizationType
+                               isHttpAllowed = this.Http.AsBoolean
+                               isHttpsAllowed = this.Https.AsBoolean
+                               isCompressionEnabled = this.Compression.AsBoolean
+                               contentTypesToCompress = this.CompressedContentTypes
+                               origins = [
+                                   {| name = "origin"
+                                      properties = {| hostName = this.Origin |}
+                                   |}
+                               ]
+                            |}
                 |} :> _
 
     module Endpoints =
@@ -76,9 +63,6 @@ module Profiles =
             interface IArmResource with
                 member this.ResourceName = this.Name
                 member this.JsonModel =
-                    {| Name = this.Endpoint.Value + "/" + this.Name.Value
-                       ``type`` = customDomains.Path
-                       apiVersion = customDomains.Version
-                       dependsOn = [ this.Endpoint.Value ]
-                       properties = {| hostName = string this.Hostname |}
+                    {| customDomains.Create (this.Endpoint + this.Name, dependsOn = [ this.Endpoint ]) with
+                        properties = {| hostName = string this.Hostname |}
                     |} :> _

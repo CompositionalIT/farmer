@@ -52,6 +52,7 @@ module LocationExtensions =
         static member GermanyWestCentral = Location "GermanyWestCentral"
         static member NorwayWest = Location "NorwayWest"
         static member NorwayEast = Location "NorwayEast"
+        static member Global = Location "global"
 
 type OS = Windows | Linux
 

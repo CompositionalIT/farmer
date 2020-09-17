@@ -48,39 +48,35 @@ type iotHubs =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = iotHubs.Path
-               apiVersion = iotHubs.Version
-               name = this.Name.Value
-               location = this.Location.ArmValue
-               properties =
-                {| eventHubEndpoints =
-                    match this.RetentionDays, this.PartitionCount with
-                    | None, None ->
-                        null
-                    | _ ->
-                        box
-                            {| events =
-                                {| retentionTimeInDays = this.RetentionDays |> Option.toNullable
-                                   partitionCount = this.PartitionCount |> Option.toNullable |}
-                            |}
-                   cloudToDevice =
-                    match this with
-                    | { DefaultTtl = None; MaxDeliveryCount = None; Feedback = None } ->
-                        null
-                    | _ ->
-                        box
-                            {| defaultTtlAsIso8601 = this.DefaultTtl |> Option.map(fun v -> v.Value) |> Option.toObj
-                               maxDeliveryCount = this.MaxDeliveryCount |> Option.toNullable
-                               feedback = this.Feedback |> Option.map (serialize >> box) |> Option.toObj |}
-                   messagingEndpoints =
-                    this.FileNotifications
-                    |> Option.map(fun fileNotifications -> box {| fileNotifications = fileNotifications |> serialize |})
-                    |> Option.toObj
-                |}
-               sku =
-                {| name = this.Sku.Name
-                   capacity = this.Sku.Capacity |}
-               tags = this.Tags
+            {| iotHubs.Create(this.Name, this.Location, tags = this.Tags) with
+                   properties =
+                    {| eventHubEndpoints =
+                        match this.RetentionDays, this.PartitionCount with
+                        | None, None ->
+                            null
+                        | _ ->
+                            box
+                                {| events =
+                                    {| retentionTimeInDays = this.RetentionDays |> Option.toNullable
+                                       partitionCount = this.PartitionCount |> Option.toNullable |}
+                                |}
+                       cloudToDevice =
+                        match this with
+                        | { DefaultTtl = None; MaxDeliveryCount = None; Feedback = None } ->
+                            null
+                        | _ ->
+                            box
+                                {| defaultTtlAsIso8601 = this.DefaultTtl |> Option.map(fun v -> v.Value) |> Option.toObj
+                                   maxDeliveryCount = this.MaxDeliveryCount |> Option.toNullable
+                                   feedback = this.Feedback |> Option.map (serialize >> box) |> Option.toObj |}
+                       messagingEndpoints =
+                        this.FileNotifications
+                        |> Option.map(fun fileNotifications -> box {| fileNotifications = fileNotifications |> serialize |})
+                        |> Option.toObj
+                    |}
+                   sku =
+                    {| name = this.Sku.Name
+                       capacity = this.Sku.Capacity |}
             |} :> _
 
 type ProvisioningServices =
@@ -99,20 +95,15 @@ type ProvisioningServices =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = provisioningServices.Path
-               apiVersion = provisioningServices.Version
-               sku =
-                 {| name = "S1"
-                    capacity = 1 |}
-               name = this.Name.Value
-               location = this.Location.ArmValue
-               properties =
-                 {| iotHubs = [
-                       {| connectionString = this.IotHubConnection.Eval()
-                          location = this.Location.ArmValue
-                          name = this.IotHubPath |}
-                   ]
-                 |}
-               dependsOn = [ this.IotHubName.Value ]
-               tags = this.Tags
+            {| provisioningServices.Create(this.Name, this.Location, [ this.IotHubName ], this.Tags) with
+                   sku =
+                     {| name = "S1"
+                        capacity = 1 |}
+                   properties =
+                     {| iotHubs = [
+                           {| connectionString = this.IotHubConnection.Eval()
+                              location = this.Location.ArmValue
+                              name = this.IotHubPath |}
+                       ]
+                     |}
             |} :> _

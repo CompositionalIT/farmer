@@ -12,6 +12,8 @@ type ResourceName =
         | r when r = ResourceName.Empty -> ResourceName fallbackValue
         | r -> r
     member this.Map mapper = match this with ResourceName r -> ResourceName (mapper r)
+    static member (+) (a:ResourceName, b) = ResourceName(a.Value + b)
+    static member (+) (a:ResourceName, b:ResourceName) = ResourceName(a.Value + "/" + b.Value)
 
 type Location =
     | Location of string
@@ -41,6 +43,15 @@ type ResourceType =
     /// Returns the ARM resource type string value.
     member this.Path = match this with ResourceType (p, _) -> p
     member this.Version = match this with ResourceType (_, v) -> v
+    member this.Create(name:ResourceName, ?location:Location, ?dependsOn:ResourceName list, ?tags:Map<string,string>) =
+        match this with
+        ResourceType (path, version) ->
+            {| ``type`` = path
+               apiVersion = version
+               name = name.Value
+               location = location |> Option.map(fun r -> r.ArmValue) |> Option.toObj
+               dependsOn = dependsOn |> Option.defaultValue [] |> List.map(fun r -> r.Value)
+               tags = tags |> Option.defaultValue Map.empty |}
 
 /// Represents an expression used within an ARM template
 type ArmExpression =

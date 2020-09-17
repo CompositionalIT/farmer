@@ -16,11 +16,7 @@ type Registries =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| name = this.Name.Value
-               ``type`` = registries.Path
-               apiVersion = registries.Version
-               sku = {| name = this.Sku.ToString() |}
-               location = this.Location.ArmValue
-               tags = this.Tags
-               properties = {| adminUserEnabled = this.AdminUserEnabled |}
+            {| registries.Create(this.Name, this.Location, tags = this.Tags) with
+                 sku = {| name = this.Sku.ToString() |}
+                 properties = {| adminUserEnabled = this.AdminUserEnabled |}
             |} :> _

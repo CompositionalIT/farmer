@@ -15,12 +15,8 @@ type Accounts =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| name = this.Name.Value
-               ``type`` = accounts.Path
-               apiVersion = accounts.Version
-               sku = {| name = string this.Sku |}
-               kind = this.Kind.ToString().Replace("_", ".")
-               location = this.Location.ArmValue
-               tags = {||}
-               properties = {||}
-               tags = this.Tags |} :> _
+            {| accounts.Create(this.Name, this.Location, tags = this.Tags) with
+                sku = {| name = string this.Sku |}
+                kind = this.Kind.ToString().Replace("_", ".")
+                properties = {||}
+            |} :> _

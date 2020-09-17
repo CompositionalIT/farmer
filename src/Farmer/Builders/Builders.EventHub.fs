@@ -21,7 +21,7 @@ type EventHubConfig =
       KafkaEnabled : bool option
       MessageRetentionInDays : int option
       Partitions : int
-      ConsumerGroups : string Set
+      ConsumerGroups : ResourceName Set
       CaptureDestination : CaptureDestination option
       AuthorizationRules : Map<ResourceName, AuthorizationRuleRight Set>
       Dependencies : ResourceName list
@@ -77,7 +77,8 @@ type EventHubConfig =
 
             // Consumer groups
             for consumerGroup in this.ConsumerGroups do
-              { Name = eventHubName.Map(fun hubName -> sprintf "%s/%s" hubName consumerGroup)
+              { ConsumerGroupName = consumerGroup
+                EventHub = eventHubName
                 Location = location
                 Dependencies = [
                     eventHubNamespaceName
@@ -107,7 +108,7 @@ type EventHubBuilder() =
           MessageRetentionInDays = None
           Partitions = 1
           CaptureDestination = None
-          ConsumerGroups = Set [ "$Default" ]
+          ConsumerGroups = Set [ ResourceName "$Default" ]
           AuthorizationRules = Map.empty
           Dependencies = []
           Tags = Map.empty }
@@ -141,7 +142,7 @@ type EventHubBuilder() =
     [<CustomOperation "partitions">]
     member __.Partitions(state:EventHubConfig, partitions) = { state with Partitions = partitions }
     [<CustomOperation "add_consumer_group">]
-    member __.AddConsumerGroup(state:EventHubConfig, name) = { state with ConsumerGroups = state.ConsumerGroups.Add name }
+    member __.AddConsumerGroup(state:EventHubConfig, name) = { state with ConsumerGroups = state.ConsumerGroups.Add (ResourceName name) }
     [<CustomOperation "add_authorization_rule">]
     member __.AddAuthorizationRule(state:EventHubConfig, name, rights) = { state with AuthorizationRules = state.AuthorizationRules.Add(ResourceName name, Set rights) }
     [<CustomOperation "capture_to_storage">]

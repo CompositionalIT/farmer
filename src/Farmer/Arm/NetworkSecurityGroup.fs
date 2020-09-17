@@ -15,11 +15,7 @@ type NetworkSecurityGroup =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = networkSecurityGroups.Path
-               apiVersion = networkSecurityGroups.Version
-               name = this.Name.Value
-               location = this.Location.ArmValue
-               tags = this.Tags |} :> _
+            networkSecurityGroups.Create(this.Name, this.Location, tags = this.Tags) :> _
 
 let (|SingleEndpoint|ManyEndpoints|) endpoints =
     // Use a wildcard if there is one
@@ -68,23 +64,21 @@ type SecurityRule =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = securityRules.Path
-               apiVersion = securityRules.Version
-               name = sprintf "%s/%s" this.SecurityGroup.Name.Value this.Name.Value
-               dependsOn = [ ArmExpression.resourceId(networkSecurityGroups, this.SecurityGroup.Name).Eval() ]
-               properties =
-                {| description = this.Description |> Option.toObj
-                   protocol = this.Protocol.ArmValue
-                   sourcePortRange = this.SourcePorts |> EndpointWriter.toRange
-                   sourcePortRanges = this.SourcePorts |> EndpointWriter.toRanges
-                   destinationPortRange = this.DestinationPorts |> EndpointWriter.toRange
-                   destinationPortRanges = this.DestinationPorts |> EndpointWriter.toRanges
-                   sourceAddressPrefix = this.SourceAddresses |> EndpointWriter.toPrefix
-                   sourceAddressPrefixes = this.SourceAddresses |> EndpointWriter.toPrefixes
-                   destinationAddressPrefix = this.DestinationAddresses |> EndpointWriter.toPrefix
-                   destinationAddressPrefixes = this.DestinationAddresses |> EndpointWriter.toPrefixes
-                   access = this.Access.ArmValue
-                   priority = this.Priority
-                   direction = this.Direction.ArmValue
-                |}
+            let dependsOn = [ ArmExpression.resourceId(networkSecurityGroups, this.SecurityGroup.Name).Eval() |> ResourceName ]
+            {| securityRules.Create(this.SecurityGroup.Name + this.Name, dependsOn = dependsOn) with
+                properties =
+                 {| description = this.Description |> Option.toObj
+                    protocol = this.Protocol.ArmValue
+                    sourcePortRange = this.SourcePorts |> EndpointWriter.toRange
+                    sourcePortRanges = this.SourcePorts |> EndpointWriter.toRanges
+                    destinationPortRange = this.DestinationPorts |> EndpointWriter.toRange
+                    destinationPortRanges = this.DestinationPorts |> EndpointWriter.toRanges
+                    sourceAddressPrefix = this.SourceAddresses |> EndpointWriter.toPrefix
+                    sourceAddressPrefixes = this.SourceAddresses |> EndpointWriter.toPrefixes
+                    destinationAddressPrefix = this.DestinationAddresses |> EndpointWriter.toPrefix
+                    destinationAddressPrefixes = this.DestinationAddresses |> EndpointWriter.toPrefixes
+                    access = this.Access.ArmValue
+                    priority = this.Priority
+                    direction = this.Direction.ArmValue
+                 |}
             |} :> _

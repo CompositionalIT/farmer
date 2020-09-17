@@ -214,14 +214,9 @@ module Sites =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| ``type`` = sourceControls.Path
-                   apiVersion = sourceControls.Version
-                   name = this.Name.Value
-                   location = this.Location.ArmValue
-                   dependsOn = [ this.Website.Value ]
-                   properties =
-                    {| repoUrl = this.Repository.ToString()
-                       branch = this.Branch
-                       isManualIntegration = this.ContinuousIntegration.AsBoolean |> not
-                    |}
+                {| sourceControls.Create(this.Name, this.Location, [ this.Website ]) with
+                    properties =
+                        {| repoUrl = this.Repository.ToString()
+                           branch = this.Branch
+                           isManualIntegration = this.ContinuousIntegration.AsBoolean |> not |}
                 |} :> _

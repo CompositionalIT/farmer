@@ -29,25 +29,21 @@ type Namespace =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = namespaces.Path
-               apiVersion = namespaces.Version
-               name = this.Name.Value
-               location = this.Location.ArmValue
-               sku =
-                    {| name = string this.Sku.Name
-                       tier = string this.Sku.Name
-                       capacity = this.Sku.Capacity |}
-               properties =
-                    {| zoneRedundant = this.ZoneRedundant |> Option.toNullable
-                       isAutoInflateEnabled =
-                        this.AutoInflateSettings
-                        |> Option.map (function
-                            | AutoInflate _ -> true
-                            | ManualInflate -> false)
-                        |> Option.toNullable
-                       maximumThroughputUnits = this.MaxThroughputUnits |> Option.toNullable
-                       kafkaEnabled = this.KafkaEnabled |> Option.toNullable |}
-               tags = this.Tags
+            {| namespaces.Create(this.Name, this.Location, tags = this.Tags) with
+                   sku =
+                        {| name = string this.Sku.Name
+                           tier = string this.Sku.Name
+                           capacity = this.Sku.Capacity |}
+                   properties =
+                        {| zoneRedundant = this.ZoneRedundant |> Option.toNullable
+                           isAutoInflateEnabled =
+                            this.AutoInflateSettings
+                            |> Option.map (function
+                                | AutoInflate _ -> true
+                                | ManualInflate -> false)
+                            |> Option.toNullable
+                           maximumThroughputUnits = this.MaxThroughputUnits |> Option.toNullable
+                           kafkaEnabled = this.KafkaEnabled |> Option.toNullable |}
             |} :> _
 module Namespaces =
     type EventHub =
@@ -61,47 +57,37 @@ module Namespaces =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-               {| ``type`` = eventHubs.Path
-                  apiVersion = eventHubs.Version
-                  name = this.Name.Value
-                  location = this.Location.ArmValue
-                  dependsOn = this.Dependencies |> List.map(fun d -> d.Value)
-                  properties =
-                    {| messageRetentionInDays = this.MessageRetentionDays |> Option.toNullable
-                       partitionCount = this.Partitions
-                       status = "Active"
-                       captureDescription =
-                        match this.CaptureDestination with
-                        | Some (StorageAccount(name, container)) ->
-                            {| enabled = true
-                               encoding = "Avro"
-                               destination =
-                                {| name = "EventHubArchive.AzureBlockBlob"
-                                   properties =
-                                    {| storageAccountResourceId = ArmExpression.resourceId(storageAccounts, name).Eval()
-                                       blobContainer = container
+               {| eventHubs.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
+                      properties =
+                        {| messageRetentionInDays = this.MessageRetentionDays |> Option.toNullable
+                           partitionCount = this.Partitions
+                           status = "Active"
+                           captureDescription =
+                            match this.CaptureDestination with
+                            | Some (StorageAccount(name, container)) ->
+                                {| enabled = true
+                                   encoding = "Avro"
+                                   destination =
+                                    {| name = "EventHubArchive.AzureBlockBlob"
+                                       properties =
+                                        {| storageAccountResourceId = ArmExpression.resourceId(storageAccounts, name).Eval()
+                                           blobContainer = container
+                                        |}
                                     |}
-                                |}
-                            |} |> box
-                        | None ->
-                            null
-                    |}
-                  tags = this.Tags
+                                |} |> box
+                            | None ->
+                                null
+                        |}
                |} :> _
     module EventHubs =
         type ConsumerGroup =
-            { Name : ResourceName
+            { ConsumerGroupName : ResourceName
+              EventHub : ResourceName
               Location : Location
               Dependencies : ResourceName list }
             interface IArmResource with
-                member this.ResourceName = this.Name
-                member this.JsonModel =
-                    {| ``type`` = consumerGroups.Path
-                       apiVersion = consumerGroups.Version
-                       name = this.Name.Value
-                       location = this.Location.ArmValue
-                       dependsOn = this.Dependencies |> List.map(fun d -> d.Value)
-                    |} :> _
+                member this.ResourceName = this.ConsumerGroupName
+                member this.JsonModel = consumerGroups.Create(this.EventHub + this.ConsumerGroupName, this.Location, this.Dependencies) :> _
 
         type AuthorizationRule =
             { Name : ResourceName
@@ -111,10 +97,6 @@ module Namespaces =
             interface IArmResource with
                 member this.ResourceName = this.Name
                 member this.JsonModel =
-                    {| ``type`` = authorizationRules.Path
-                       apiVersion = authorizationRules.Version
-                       name = this.Name.Value
-                       location = this.Location.ArmValue
-                       dependsOn = this.Dependencies |> List.map(fun d -> d.Value)
-                       properties = {| rights = this.Rights |> Set.map string |> Set.toList |}
+                    {| authorizationRules.Create(this.Name, this.Location, this.Dependencies) with
+                        properties = {| rights = this.Rights |> Set.map string |> Set.toList |}
                     |} :> _

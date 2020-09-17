@@ -24,17 +24,11 @@ type Server =
     interface IArmResource with
         member this.ResourceName = this.ServerName
         member this.JsonModel =
-            {| ``type`` = servers.Path
-               apiVersion = servers.Version
-               name = this.ServerName.Value
-               location = this.Location.ArmValue
-               tags =
-                this.Tags
-                |> Map.add "displayName" this.ServerName.Value
-               properties =
-                {| administratorLogin = this.Credentials.Username
-                   administratorLoginPassword = this.Credentials.Password.AsArmRef.Eval()
-                   version = "12.0" |}
+            {| servers.Create(this.ServerName,this.Location, tags = (this.Tags |> Map.add "displayName" this.ServerName.Value)) with
+                properties =
+                 {| administratorLogin = this.Credentials.Username
+                    administratorLoginPassword = this.Credentials.Password.AsArmRef.Eval()
+                    version = "12.0" |}
             |} :> _
 
 module Servers =
@@ -48,19 +42,15 @@ module Servers =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| ``type`` = elasticPools.Path
-                   apiVersion = elasticPools.Version
-                   name = this.Server.Value + "/" + this.Name.Value
-                   properties =
-                    {| maxSizeBytes = this.MaxSizeBytes |> Option.toNullable
-                       perDatabaseSettings =
-                        match this.MinMax with
-                        | Some (min, max) -> box {| minCapacity = min; maxCapacity = max |}
-                        | None -> null
-                    |}
-                   location = this.Location.ArmValue
-                   sku = {| name = this.Sku.Name; tier = this.Sku.Edition; size = string this.Sku.Capacity |}
-                   dependsOn = [ this.Server.Value ] |} :> _
+                {| elasticPools.Create(this.Server + this.Name, this.Location, [ this.Server ]) with
+                    properties =
+                     {| maxSizeBytes = this.MaxSizeBytes |> Option.toNullable
+                        perDatabaseSettings =
+                         match this.MinMax with
+                         | Some (min, max) -> box {| minCapacity = min; maxCapacity = max |}
+                         | None -> null
+                     |}
+                    sku = {| name = this.Sku.Name; tier = this.Sku.Edition; size = string this.Sku.Capacity |} |} :> _
 
     type FirewallRule =
         { Name : ResourceName
@@ -71,14 +61,10 @@ module Servers =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| ``type`` = firewallRules.Path
-                   apiVersion = firewallRules.Version
-                   name = this.Server.Value + "/" + this.Name.Value
-                   location = this.Location.ArmValue
-                   properties =
-                    {| endIpAddress = string this.Start
-                       startIpAddress = string this.End |}
-                   dependsOn = [ this.Server.Value ]
+                {| firewallRules.Create(this.Server + this.Name, this.Location, [ this.Server ]) with
+                    properties =
+                     {| endIpAddress = string this.Start
+                        startIpAddress = string this.End |}
                 |} :> _
 
     type Database =
@@ -91,16 +77,18 @@ module Servers =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| ``type`` = databases.Path
-                   apiVersion = databases.Version
-                   name = this.Server.Value + "/" + this.Name.Value
-                   location = this.Location.ArmValue
-                   tags = {| displayName = this.Name.Value |}
-                   sku =
-                    match this.Sku with
-                    | Standalone sku -> box {| name = sku.Name; tier = sku.Edition |}
-                    | Pool _ -> null
-                   properties =
+                let dependsOn = [
+                        this.Server
+                        match this.Sku with
+                        | Standalone _ -> ()
+                        | Pool poolName -> poolName
+                ]
+                {| databases.Create(this.Server + this.Name, this.Location, dependsOn, tags = Map [ "displayName", this.Name.Value ]) with
+                    sku =
+                        match this.Sku with
+                        | Standalone sku -> box {| name = sku.Name; tier = sku.Edition |}
+                        | Pool _ -> null
+                    properties =
                         {| collation = this.Collation
                            maxSizeBytes = this.MaxSizeBytes |> Option.toNullable
                            licenseType =
@@ -111,18 +99,12 @@ module Servers =
                             | Pool _ ->
                                 null
                            elasticPoolId =
-                                match this.Sku with
-                                | Standalone _ ->
-                                    null
-                                | Pool pool ->
-                                    ArmExpression.resourceId(elasticPools, this.Server, pool).Eval()
+                            match this.Sku with
+                            | Standalone _ ->
+                                null
+                            | Pool pool ->
+                                ArmExpression.resourceId(elasticPools, this.Server, pool).Eval()
                         |}
-                   dependsOn =
-                    [ this.Server.Value
-                      match this.Sku with
-                      | Standalone _ -> ()
-                      | Pool poolName -> poolName.Value
-                    ]
                 |} :> _
 
     module Databases =
