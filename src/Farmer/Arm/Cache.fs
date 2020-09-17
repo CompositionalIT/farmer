@@ -5,7 +5,7 @@ open Farmer
 open Farmer.CoreTypes
 open Farmer.Redis
 
-let redis = ResourceType "Microsoft.Cache/Redis"
+let redis = ResourceType ("Microsoft.Cache/Redis", "2018-03-01")
 
 type Redis =
     { Name : ResourceName
@@ -26,8 +26,8 @@ type Redis =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = redis.ArmValue
-               apiVersion = "2018-03-01"
+            {| ``type`` = redis.Path
+               apiVersion = redis.Version
                name = this.Name.Value
                location = this.Location.ArmValue
                properties =

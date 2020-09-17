@@ -5,10 +5,10 @@ open Farmer
 open Farmer.CoreTypes
 open Farmer.EventHub
 
-let namespaces = ResourceType "Microsoft.EventHub/namespaces"
-let eventHubs = ResourceType "Microsoft.EventHub/namespaces/eventhubs"
-let consumerGroups = ResourceType "Microsoft.EventHub/namespaces/eventhubs/consumergroups"
-let authorizationRules = ResourceType "Microsoft.EventHub/namespaces/eventhubs/AuthorizationRules"
+let namespaces = ResourceType ("Microsoft.EventHub/namespaces", "2017-04-01")
+let eventHubs = ResourceType ("Microsoft.EventHub/namespaces/eventhubs", "2017-04-01")
+let consumerGroups = ResourceType ("Microsoft.EventHub/namespaces/eventhubs/consumergroups", "2017-04-01")
+let authorizationRules = ResourceType ("Microsoft.EventHub/namespaces/eventhubs/AuthorizationRules", "2017-04-01")
 
 type CaptureDestination =
     | StorageAccount of ResourceName * containerName:string
@@ -29,8 +29,8 @@ type Namespace =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = namespaces.ArmValue
-               apiVersion = "2017-04-01"
+            {| ``type`` = namespaces.Path
+               apiVersion = namespaces.Version
                name = this.Name.Value
                location = this.Location.ArmValue
                sku =
@@ -61,8 +61,8 @@ module Namespaces =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-               {| ``type`` = eventHubs.ArmValue
-                  apiVersion = "2017-04-01"
+               {| ``type`` = eventHubs.Path
+                  apiVersion = eventHubs.Version
                   name = this.Name.Value
                   location = this.Location.ArmValue
                   dependsOn = this.Dependencies |> List.map(fun d -> d.Value)
@@ -96,8 +96,8 @@ module Namespaces =
             interface IArmResource with
                 member this.ResourceName = this.Name
                 member this.JsonModel =
-                    {| ``type`` = consumerGroups.ArmValue
-                       apiVersion = "2017-04-01"
+                    {| ``type`` = consumerGroups.Path
+                       apiVersion = consumerGroups.Version
                        name = this.Name.Value
                        location = this.Location.ArmValue
                        dependsOn = this.Dependencies |> List.map(fun d -> d.Value)
@@ -111,8 +111,8 @@ module Namespaces =
             interface IArmResource with
                 member this.ResourceName = this.Name
                 member this.JsonModel =
-                    {| ``type`` = authorizationRules.ArmValue
-                       apiVersion = "2017-04-01"
+                    {| ``type`` = authorizationRules.Path
+                       apiVersion = authorizationRules.Version
                        name = this.Name.Value
                        location = this.Location.ArmValue
                        dependsOn = this.Dependencies |> List.map(fun d -> d.Value)

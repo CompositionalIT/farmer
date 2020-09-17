@@ -7,8 +7,8 @@ open Farmer.Vm
 open System
 open System.Text
 
-let virtualMachines = ResourceType "Microsoft.Compute/virtualMachines"
-let extensions = ResourceType "Microsoft.Compute/virtualMachines/extensions"
+let virtualMachines = ResourceType ("Microsoft.Compute/virtualMachines", "2018-10-01")
+let extensions = ResourceType ("Microsoft.Compute/virtualMachines/extensions", "2019-12-01")
 
 type CustomScriptExtension =
     { Name : ResourceName
@@ -21,8 +21,8 @@ type CustomScriptExtension =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = extensions.ArmValue
-               apiVersion = "2019-12-01"
+            {| ``type`` = extensions.Path
+               apiVersion = extensions.Version
                name = this.VirtualMachine.Value + "/" + this.Name.Value
                location = this.Location.ArmValue
                dependsOn = [
@@ -71,8 +71,8 @@ type VirtualMachine =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = virtualMachines.ArmValue
-               apiVersion = "2018-10-01"
+            {| ``type`` = virtualMachines.Path
+               apiVersion = virtualMachines.Version
                name = this.Name.Value
                location = this.Location.ArmValue
                dependsOn = [

@@ -5,9 +5,9 @@ open Farmer
 open Farmer.CoreTypes
 open Farmer.CosmosDb
 
-let containers = ResourceType "Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers"
-let sqlDatabases = ResourceType "Microsoft.DocumentDB/databaseAccounts/sqlDatabases"
-let databaseAccounts = ResourceType "Microsoft.DocumentDB/databaseAccounts"
+let containers = ResourceType ("Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers", "2020-03-01")
+let sqlDatabases = ResourceType ("Microsoft.DocumentDb/databaseAccounts/sqlDatabases", "2020-03-01")
+let databaseAccounts = ResourceType ("Microsoft.DocumentDb/databaseAccounts", "2020-03-01")
 
 module DatabaseAccounts =
     module SqlDatabases =
@@ -30,9 +30,9 @@ module DatabaseAccounts =
             interface IArmResource with
                 member this.ResourceName = this.Name
                 member this.JsonModel =
-                    {| ``type`` = containers.ArmValue
+                    {| ``type`` = containers.Path
+                       apiVersion = containers.Version
                        name = sprintf "%s/%s/%s" this.Account.Value this.Database.Value this.Name.Value
-                       apiVersion = "2020-03-01"
                        dependsOn = [ this.Database.Value ]
                        properties =
                            {| resource =
@@ -72,9 +72,9 @@ module DatabaseAccounts =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| ``type`` = sqlDatabases.ArmValue
+                {| ``type`` = sqlDatabases.Path
+                   apiVersion = sqlDatabases.Version
                    name = sprintf "%s/%s" this.Account.Value this.Name.Value
-                   apiVersion = "2020-03-01"
                    dependsOn = [ this.Account.Value ]
                    properties =
                        {| resource = {| id = this.Name.Value |}
@@ -118,9 +118,9 @@ type DatabaseAccount =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = databaseAccounts.ArmValue
+            {| ``type`` = databaseAccounts.Path
+               apiVersion = databaseAccounts.Version
                name = this.Name.Value
-               apiVersion = "2020-03-01"
                location = this.Location.ArmValue
                kind = "GlobalDocumentDB"
                properties =

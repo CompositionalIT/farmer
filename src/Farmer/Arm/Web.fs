@@ -6,9 +6,9 @@ open Farmer.CoreTypes
 open Farmer.WebApp
 open System
 
-let serverFarms = ResourceType "Microsoft.Web/serverfarms"
-let sites = ResourceType "Microsoft.Web/sites"
-let sourceControls = ResourceType "Microsoft.Web/sites/sourcecontrols"
+let serverFarms = ResourceType ("Microsoft.Web/serverfarms", "2018-02-01")
+let sites = ResourceType ("Microsoft.Web/sites", "2016-08-01")
+let sourceControls = ResourceType ("Microsoft.Web/sites/sourcecontrols", "2019-08-01")
 
 type ServerFarm =
     { Name : ResourceName
@@ -43,7 +43,8 @@ type ServerFarm =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = serverFarms.ArmValue
+            {| ``type`` = serverFarms.Path
+               apiVersion = serverFarms.Version
                sku =
                    {| name =
                         match this.Sku with
@@ -69,7 +70,6 @@ type ServerFarm =
                       family = if this.IsDynamic then "Y" else null
                       capacity = if this.IsDynamic then 0 else this.WorkerCount |}
                name = this.Name.Value
-               apiVersion = "2018-02-01"
                location = this.Location.ArmValue
                properties =
                     {| name = this.Name.Value
@@ -163,9 +163,9 @@ type Site =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = sites.ArmValue
+            {| ``type`` = sites.Path
+               apiVersion = sites.Version
                name = this.Name.Value
-               apiVersion = "2016-08-01"
                location = this.Location.ArmValue
                dependsOn = this.Dependencies |> List.map(fun p -> p.Value)
                kind = this.Kind
@@ -214,8 +214,8 @@ module Sites =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| ``type`` = sourceControls.ArmValue
-                   apiVersion = "2019-08-01"
+                {| ``type`` = sourceControls.Path
+                   apiVersion = sourceControls.Version
                    name = this.Name.Value
                    location = this.Location.ArmValue
                    dependsOn = [ this.Website.Value ]

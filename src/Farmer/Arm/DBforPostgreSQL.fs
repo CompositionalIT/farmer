@@ -6,17 +6,16 @@ open Farmer
 open Farmer.CoreTypes
 open Farmer.PostgreSQL
 
-let databases = ResourceType "Microsoft.DBforPostgreSQL/servers/databases"
-let firewallRules = ResourceType "Microsoft.DBforPostgreSQL/servers/firewallrules"
-let servers = ResourceType "Microsoft.DBforPostgreSQL/servers"
+let databases = ResourceType ("Microsoft.DBforPostgreSQL/servers/databases", "2017-12-01")
+let firewallRules = ResourceType ("Microsoft.DBforPostgreSQL/servers/firewallrules",  "2017-12-01")
+let servers = ResourceType ("Microsoft.DBforPostgreSQL/servers", "2017-12-01")
 
-type [<RequireQualifiedAccess>] PostgreSQLFamily = 
-| Gen5
-
+[<RequireQualifiedAccess>]
+type PostgreSQLFamily =
+    | Gen5
     override this.ToString() =
         match this with
         | Gen5 -> "Gen5"
-
     member this.AsArmValue =
         match this with
         | Gen5 -> "Gen5"
@@ -31,9 +30,9 @@ module Servers =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {|  ``type`` = databases.ArmValue
+                {|  ``type`` = databases.Path
+                    apiVersion = databases.Version
                     name = this.Server.Value + "/" + this.Name.Value
-                    apiVersion = "2017-12-01"
                     dependsOn = [ this.Server.Value ]
                     properties = {|  charset = this.Charset; collation = this.Collation |}
                 |} :> _
@@ -47,9 +46,9 @@ module Servers =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {|  ``type`` = firewallRules.ArmValue
+                {|  ``type`` = firewallRules.Path
+                    apiVersion = firewallRules.Version
                     name = this.Server.Value + "/" + this.Name.Value
-                    apiVersion = "2017-12-01"
                     location = this.Location.ArmValue
                     properties = {| startIpAddress = string this.Start; endIpAddress = string this.End; |}
                     dependsOn = [ this.Server.Value ]
@@ -68,7 +67,7 @@ type Server =
       StorageAutoGrow : FeatureFlag
       BackupRetention : int<Days>
       Tags: Map<string,string>  }
-       
+
     member this.Sku =
         {| name = sprintf "%s_%s_%d" this.Tier.Name this.Family.AsArmValue this.Capacity
            tier = string this.Tier
@@ -103,8 +102,8 @@ type Server =
         member this.ResourceName = this.Name
         member this.JsonModel =
             {|
-                ``type`` = servers.ArmValue
-                apiVersion = "2017-12-01"
+                ``type`` = servers.Path
+                apiVersion = servers.Version
                 name = this.Name.Value
                 location = this.Location.ArmValue
                 tags = this.Tags |> Map.add "displayName" this.Name.Value

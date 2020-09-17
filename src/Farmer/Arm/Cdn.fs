@@ -6,9 +6,9 @@ open Farmer.CoreTypes
 open Farmer.Cdn
 open System
 
-let profiles = ResourceType "Microsoft.Cdn/profiles"
-let endpoints = ResourceType "Microsoft.Cdn/profiles/endpoints"
-let customDomains = ResourceType "Microsoft.Cdn/profiles/endpoints/customDomains"
+let profiles = ResourceType ("Microsoft.Cdn/profiles", "2019-04-15")
+let endpoints = ResourceType ("Microsoft.Cdn/profiles/endpoints", "2019-04-15")
+let customDomains = ResourceType ("Microsoft.Cdn/profiles/endpoints/customDomains", "2019-04-15")
 
 type Profile =
     { Name : ResourceName
@@ -17,9 +17,9 @@ type Profile =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = profiles.ArmValue
+            {| ``type`` = profiles.Path
+               apiVersion = profiles.Version
                name = this.Name.Value
-               apiVersion = "2019-04-15"
                location = "global"
                sku = {| name = string this.Sku |}
                properties = {||}
@@ -42,9 +42,9 @@ module Profiles =
         interface IArmResource with
             member this.ResourceName: ResourceName = this.Name
             member this.JsonModel =
-                {| ``type`` = endpoints.ArmValue
+                {| ``type`` = endpoints.Path
+                   apiVersion = endpoints.Version
                    name = this.Profile.Value + "/" + this.Name.Value
-                   apiVersion = "2019-04-15"
                    location = "global"
                    dependsOn = [
                        this.Profile.Value
@@ -77,8 +77,8 @@ module Profiles =
                 member this.ResourceName = this.Name
                 member this.JsonModel =
                     {| Name = this.Endpoint.Value + "/" + this.Name.Value
-                       ``type`` = customDomains.ArmValue
-                       apiVersion = "2019-04-15"
+                       ``type`` = customDomains.Path
+                       apiVersion = customDomains.Version
                        dependsOn = [ this.Endpoint.Value ]
                        properties = {| hostName = string this.Hostname |}
                     |} :> _

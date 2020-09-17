@@ -6,7 +6,7 @@ open Farmer.ContainerGroup
 open Farmer.CoreTypes
 open Newtonsoft.Json.Linq
 
-let containerGroups = ResourceType "Microsoft.ContainerInstance/containerGroups"
+let containerGroups = ResourceType ("Microsoft.ContainerInstance/containerGroups", "2018-10-01")
 
 type ContainerGroupIpAddress =
     { Type : IpAddressType
@@ -52,8 +52,8 @@ type ContainerGroup =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = containerGroups.ArmValue
-               apiVersion = "2018-10-01"
+            {| ``type`` = containerGroups.Path
+               apiVersion = containerGroups.Version
                name = this.Name.Value
                location = this.Location.ArmValue
                dependsOn = this.dependencies

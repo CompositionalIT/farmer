@@ -8,10 +8,10 @@ open System
 
 let private tryGetIso (v:IsoDateTime option) = v |> Option.map(fun v -> v.Value) |> Option.toObj
 
-let subscriptions = ResourceType "Microsoft.ServiceBus/namespaces/topics/subscriptions"
-let queues = ResourceType "Microsoft.ServiceBus/namespaces/queues"
-let topics = ResourceType "Microsoft.ServiceBus/namespaces/topics"
-let namespaces = ResourceType "Microsoft.ServiceBus/namespaces"
+let subscriptions = ResourceType ("Microsoft.ServiceBus/namespaces/topics/subscriptions", "2017-04-01")
+let queues = ResourceType ("Microsoft.ServiceBus/namespaces/queues", "2017-04-01")
+let topics = ResourceType ("Microsoft.ServiceBus/namespaces/topics", "2017-04-01")
+let namespaces = ResourceType ("Microsoft.ServiceBus/namespaces", "2017-04-01")
 
 module Namespaces =
     module Topics =
@@ -29,9 +29,9 @@ module Namespaces =
             interface IArmResource with
                 member this.ResourceName = this.Name
                 member this.JsonModel =
-                    {| apiVersion = "2017-04-01"
+                    {| ``type`` = subscriptions.Path
+                       apiVersion = subscriptions.Version
                        name = this.Namespace.Value + "/" + this.Topic.Value + "/" + this.Name.Value
-                       ``type`` = subscriptions.ArmValue
                        dependsOn = [ this.Topic.Value ]
                        properties =
                         {| defaultMessageTimeToLive = tryGetIso this.DefaultMessageTimeToLive
@@ -80,9 +80,9 @@ module Namespaces =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| apiVersion = "2017-04-01"
+                {| ``type`` = queues.Path
+                   apiVersion = queues.Version
                    name = this.Namespace.Value + "/" + this.Name.Value
-                   ``type`` = queues.ArmValue
                    dependsOn = [ this.Namespace.Value ]
                    properties =
                     {| lockDuration = tryGetIso this.LockDuration
@@ -107,9 +107,9 @@ module Namespaces =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| apiVersion = "2017-04-01"
+                {| ``type`` = topics.Path
+                   apiVersion = topics.Version
                    name = this.Namespace.Value + "/" + this.Name.Value
-                   ``type`` = topics.ArmValue
                    dependsOn = [ this.Namespace.Value ]
                    properties =
                        {| defaultMessageTimeToLive = tryGetIso this.DefaultMessageTimeToLive
@@ -137,8 +137,8 @@ type Namespace =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| apiVersion = "2017-04-01"
-               ``type`` = namespaces.ArmValue
+            {| ``type`` = namespaces.Path
+               apiVersion = namespaces.Version
                name = this.Name.Value
                location = this.Location.ArmValue
                sku =

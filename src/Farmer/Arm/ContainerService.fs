@@ -5,7 +5,7 @@ open Farmer
 open Farmer.CoreTypes
 open Farmer.Vm
 
-let managedClusters = ResourceType "Microsoft.ContainerService/managedClusters"
+let managedClusters = ResourceType ("Microsoft.ContainerService/managedClusters", "2020-04-01")
 
 type AgentPoolMode = System | User
 
@@ -40,7 +40,7 @@ type ManagedCluster =
         {| ClientId : string
            ClientSecret : SecureParameter |} option
     }
-    
+
     interface IParameters with
         member this.SecureParameters =
             [
@@ -56,8 +56,8 @@ type ManagedCluster =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = managedClusters.ArmValue
-               apiVersion = "2020-04-01"
+            {| ``type`` = managedClusters.Path
+               apiVersion = managedClusters.Version
                name = this.Name.Value
                location = this.Location.ArmValue
                dependsOn =
@@ -69,7 +69,7 @@ type ManagedCluster =
                    {| agentPoolProfiles =
                        this.AgentPoolProfiles
                        |> List.mapi (fun idx agent ->
-                           {| name = if agent.Name = ResourceName.Empty then (sprintf "%s-agent-pool%i" this.Name.Value idx) 
+                           {| name = if agent.Name = ResourceName.Empty then (sprintf "%s-agent-pool%i" this.Name.Value idx)
                                      else agent.Name.Value.ToLowerInvariant ()
                               count = agent.Count
                               maxPods = agent.MaxPods |> Option.toNullable

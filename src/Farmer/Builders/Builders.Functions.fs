@@ -38,7 +38,7 @@ type FunctionsConfig =
     /// Gets the ARM expression path to the storage account key of this functions app.
     member this.StorageAccountKey = Storage.buildKey this.StorageAccountName
     /// Gets the ARM expression path to the app insights key of this functions app, if it exists.
-    member this.AppInsightsKey = this.AppInsightsName |> Option.map instrumentationKey
+    member this.AppInsightsKey = this.AppInsightsName |> Option.map AppInsights.GetInstrumentationKey
     /// Gets the default key for the functions site
     member this.DefaultKey =
         sprintf "listkeys(concat(resourceId('Microsoft.Web/sites', '%s'), '/host/default/'),'2016-08-01').functionKeys.default" this.Name.Value

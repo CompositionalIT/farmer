@@ -5,7 +5,7 @@ open Farmer
 open Farmer.CoreTypes
 open Farmer.Search
 
-let searchServices = ResourceType "Microsoft.Search/searchServices"
+let searchServices = ResourceType ("Microsoft.Search/searchServices", "2015-08-19")
 
 type SearchService =
     { Name : ResourceName
@@ -21,8 +21,8 @@ type SearchService =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = searchServices.ArmValue
-               apiVersion = "2015-08-19"
+            {| ``type`` = searchServices.Path
+               apiVersion = searchServices.Version
                name = this.Name.Value
                location = this.Location.ArmValue
                sku =

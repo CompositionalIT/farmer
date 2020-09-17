@@ -6,11 +6,11 @@ open Farmer.CoreTypes
 open Farmer.Sql
 open System.Net
 
-let servers = ResourceType "Microsoft.Sql/servers"
-let elasticPools = ResourceType "Microsoft.Sql/servers/elasticPools"
-let firewallRules = ResourceType "Microsoft.Sql/servers/firewallrules"
-let databases = ResourceType "Microsoft.Sql/servers/databases"
-let transparentDataEncryption = ResourceType "Microsoft.Sql/servers/databases/transparentDataEncryption"
+let servers = ResourceType ("Microsoft.Sql/servers", "2019-06-01-preview")
+let elasticPools = ResourceType ("Microsoft.Sql/servers/elasticPools", "2017-10-01-preview")
+let firewallRules = ResourceType ("Microsoft.Sql/servers/firewallrules", "2014-04-01")
+let databases = ResourceType ("Microsoft.Sql/servers/databases", "2019-06-01-preview")
+let transparentDataEncryption = ResourceType ("Microsoft.Sql/servers/databases/transparentDataEncryption", "2014-04-01-preview")
 
 type DbKind = Standalone of DbPurchaseModel | Pool of ResourceName
 
@@ -24,9 +24,9 @@ type Server =
     interface IArmResource with
         member this.ResourceName = this.ServerName
         member this.JsonModel =
-            {| ``type`` = servers.ArmValue
+            {| ``type`` = servers.Path
+               apiVersion = servers.Version
                name = this.ServerName.Value
-               apiVersion = "2019-06-01-preview"
                location = this.Location.ArmValue
                tags =
                 this.Tags
@@ -48,7 +48,8 @@ module Servers =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| ``type`` = elasticPools.ArmValue
+                {| ``type`` = elasticPools.Path
+                   apiVersion = elasticPools.Version
                    name = this.Server.Value + "/" + this.Name.Value
                    properties =
                     {| maxSizeBytes = this.MaxSizeBytes |> Option.toNullable
@@ -57,7 +58,6 @@ module Servers =
                         | Some (min, max) -> box {| minCapacity = min; maxCapacity = max |}
                         | None -> null
                     |}
-                   apiVersion = "2017-10-01-preview"
                    location = this.Location.ArmValue
                    sku = {| name = this.Sku.Name; tier = this.Sku.Edition; size = string this.Sku.Capacity |}
                    dependsOn = [ this.Server.Value ] |} :> _
@@ -71,9 +71,9 @@ module Servers =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| ``type`` = firewallRules.ArmValue
+                {| ``type`` = firewallRules.Path
+                   apiVersion = firewallRules.Version
                    name = this.Server.Value + "/" + this.Name.Value
-                   apiVersion = "2014-04-01"
                    location = this.Location.ArmValue
                    properties =
                     {| endIpAddress = string this.Start
@@ -91,9 +91,9 @@ module Servers =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| ``type`` = databases.ArmValue
+                {| ``type`` = databases.Path
+                   apiVersion = databases.Version
                    name = this.Server.Value + "/" + this.Name.Value
-                   apiVersion = "2019-06-01-preview"
                    location = this.Location.ArmValue
                    tags = {| displayName = this.Name.Value |}
                    sku =
@@ -133,9 +133,9 @@ module Servers =
             interface IArmResource with
                 member this.ResourceName = this.Name
                 member this.JsonModel =
-                   {| ``type`` = transparentDataEncryption.ArmValue
+                   {| ``type`` = transparentDataEncryption.Path
+                      apiVersion = transparentDataEncryption.Version
                       comments = "Transparent Data Encryption"
                       name = this.Name.Value
-                      apiVersion = "2014-04-01-preview"
                       properties = {| status = string Enabled |}
                       dependsOn = [ this.Database.Value ] |} :> _

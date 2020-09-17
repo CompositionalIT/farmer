@@ -4,13 +4,12 @@ module Farmer.Arm.Storage
 open Farmer
 open Farmer.Storage
 open Farmer.CoreTypes
-open System
 
-let storageAccounts = ResourceType "Microsoft.Storage/storageAccounts"
-let containers = ResourceType "Microsoft.Storage/storageAccounts/blobServices/containers"
-let fileShares = ResourceType "Microsoft.Storage/storageAccounts/fileServices/shares"
-let queues = ResourceType "Microsoft.Storage/storageAccounts/queueServices/queues"
-let managementPolicies = ResourceType "Microsoft.Storage/storageAccounts/managementPolicies"
+let storageAccounts = ResourceType ("Microsoft.Storage/storageAccounts", "2018-07-01")
+let containers = ResourceType ("Microsoft.Storage/storageAccounts/blobServices/containers", "2018-03-01-preview")
+let fileShares = ResourceType ("Microsoft.Storage/storageAccounts/fileServices/shares", "2019-06-01")
+let queues = ResourceType ("Microsoft.Storage/storageAccounts/queueServices/queues", "2019-06-01")
+let managementPolicies = ResourceType ("Microsoft.Storage/storageAccounts/managementPolicies", "2019-06-01")
 
 type StorageAccount =
     { Name : StorageAccountName
@@ -22,11 +21,11 @@ type StorageAccount =
     interface IArmResource with
         member this.ResourceName = this.Name.ResourceName
         member this.JsonModel =
-            {| ``type`` = storageAccounts.ArmValue
+            {| ``type`` = storageAccounts.Path
+               apiVersion = storageAccounts.Version
                sku = {| name = this.Sku.ArmValue |}
                kind = "StorageV2"
                name = this.Name.ResourceName.Value
-               apiVersion = "2018-07-01"
                location = this.Location.ArmValue
                properties =
                 match this.EnableHierarchicalNamespace with
@@ -52,8 +51,8 @@ module BlobServices =
         interface IArmResource with
             member this.ResourceName = this.Name.ResourceName
             member this.JsonModel =
-                {| ``type`` = containers.ArmValue
-                   apiVersion = "2018-03-01-preview"
+                {| ``type`` = containers.Path
+                   apiVersion = containers.Version
                    name = this.StorageAccount.Value + "/default/" + this.Name.ResourceName.Value
                    dependsOn = [ this.StorageAccount.Value ]
                    properties =
@@ -72,8 +71,8 @@ module FileShares =
         interface IArmResource with
             member this.ResourceName = this.Name.ResourceName
             member this.JsonModel =
-                {| ``type`` = fileShares.ArmValue
-                   apiVersion = "2019-06-01"
+                {| ``type`` = fileShares.Path
+                   apiVersion = fileShares.Version
                    name = this.StorageAccount.Value + "/default/" + this.Name.ResourceName.Value
                    properties = {| shareQuota = this.ShareQuota |> Option.defaultValue 5120<Gb> |}
                    dependsOn = [ this.StorageAccount.Value ]
@@ -87,9 +86,9 @@ module Queues =
             member this.ResourceName = this.Name.ResourceName
             member this.JsonModel =
                 {| name = this.StorageAccount.Value + "/default/" + this.Name.ResourceName.Value
-                   ``type`` = queues.ArmValue
+                   ``type`` = queues.Path
+                   apiVersion = queues.Version
                    dependsOn = [ this.StorageAccount.Value ]
-                   apiVersion = "2019-06-01"
                 |} :> _
 
 module ManagementPolicies =
@@ -107,8 +106,8 @@ module ManagementPolicies =
             member this.ResourceName = this.ResourceName
             member this.JsonModel =
                 {| name = this.ResourceName.Value
-                   ``type`` = managementPolicies.ArmValue
-                   apiVersion = "2019-06-01"
+                   ``type`` = managementPolicies.Path
+                   apiVersion = managementPolicies.Version
                    dependsOn = [ this.StorageAccount.Value ]
                    properties =
                     {| policy =

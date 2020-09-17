@@ -4,8 +4,8 @@ module Farmer.Arm.Devices
 open Farmer
 open Farmer.CoreTypes
 
-let iotHubs = ResourceType "Microsoft.Devices/IotHubs"
-let provisioningServices = ResourceType "Microsoft.Devices/provisioningServices"
+let iotHubs = ResourceType ("Microsoft.Devices/IotHubs", "2019-03-22")
+let provisioningServices = ResourceType ("Microsoft.Devices/provisioningServices",  "2018-01-22")
 
 type Sku =
 | Free
@@ -48,8 +48,8 @@ type iotHubs =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = iotHubs.ArmValue
-               apiVersion = "2019-03-22"
+            {| ``type`` = iotHubs.Path
+               apiVersion = iotHubs.Version
                name = this.Name.Value
                location = this.Location.ArmValue
                properties =
@@ -99,12 +99,12 @@ type ProvisioningServices =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = provisioningServices.ArmValue
+            {| ``type`` = provisioningServices.Path
+               apiVersion = provisioningServices.Version
                sku =
                  {| name = "S1"
                     capacity = 1 |}
                name = this.Name.Value
-               apiVersion = "2018-01-22"
                location = this.Location.ArmValue
                properties =
                  {| iotHubs = [

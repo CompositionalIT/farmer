@@ -6,8 +6,8 @@ open Farmer.CoreTypes
 open Farmer.KeyVault
 open System
 
-let secrets = ResourceType "Microsoft.KeyVault/vaults/secrets"
-let vaults = ResourceType "Microsoft.KeyVault/vaults"
+let secrets = ResourceType ("Microsoft.KeyVault/vaults/secrets", "2018-02-14")
+let vaults = ResourceType ("Microsoft.KeyVault/vaults", "2018-02-14")
 
 module Vaults =
     type Secret =
@@ -29,9 +29,9 @@ module Vaults =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| ``type`` = secrets.ArmValue
+                {| ``type`` = secrets.Path
+                   apiVersion = secrets.Version
                    name = this.Name.Value
-                   apiVersion = "2018-02-14"
                    location = this.Location.ArmValue
                    dependsOn = [
                        for dependency in this.Dependencies do
@@ -85,9 +85,9 @@ type Vault =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = vaults.ArmValue
+            {| ``type`` = vaults.Path
+               apiVersion = vaults.Version
                name = this.Name.Value
-               apiVersion = "2018-02-14"
                location = this.Location.ArmValue
                dependsOn = this.Dependencies |> List.map (fun p -> p.Value)
                properties =

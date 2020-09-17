@@ -5,8 +5,8 @@ open Farmer
 open Farmer.EventGrid
 open Farmer.CoreTypes
 
-let systemTopics = ResourceType "Microsoft.EventGrid/systemTopics"
-let eventSubscriptions = ResourceType "Microsoft.EventGrid/systemTopics/eventSubscriptions"
+let systemTopics = ResourceType ("Microsoft.EventGrid/systemTopics", "2020-04-01-preview")
+let eventSubscriptions = ResourceType ("Microsoft.EventGrid/systemTopics/eventSubscriptions", "2020-04-01-preview")
 
 type TopicType =
     | TopicType of ResourceType * topic:string
@@ -39,8 +39,8 @@ type Topic =
         member this.ResourceName = this.Name
         member this.JsonModel =
             {| name = this.Name.Value
-               ``type`` = systemTopics.ArmValue
-               apiVersion = "2020-04-01-preview"
+               ``type`` = systemTopics.Path
+               apiVersion = systemTopics.Version
                location = this.Location.ArmValue
                dependsOn = [ this.Source.Value ]
                properties =
@@ -58,8 +58,8 @@ type Subscription =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = eventSubscriptions.ArmValue
-               apiVersion = "2020-04-01-preview"
+            {| ``type`` = eventSubscriptions.Path
+               apiVersion = eventSubscriptions.Version
                name = this.Topic.Value + "/" + this.Name.Value
                dependsOn = [ this.Topic.Value; this.Destination.Value ]
                properties =

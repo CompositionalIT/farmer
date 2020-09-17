@@ -5,8 +5,8 @@ open Farmer
 open Farmer.CoreTypes
 open Farmer.NetworkSecurity
 
-let networkSecurityGroups = ResourceType "Microsoft.Network/networkSecurityGroups"
-let securityRules = ResourceType "Microsoft.Network/networkSecurityGroups/securityRules"
+let networkSecurityGroups = ResourceType ("Microsoft.Network/networkSecurityGroups", "2020-04-01")
+let securityRules = ResourceType ("Microsoft.Network/networkSecurityGroups/securityRules", "2020-04-01")
 
 type NetworkSecurityGroup =
     { Name : ResourceName
@@ -15,8 +15,8 @@ type NetworkSecurityGroup =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = networkSecurityGroups.ArmValue
-               apiVersion = "2020-04-01"
+            {| ``type`` = networkSecurityGroups.Path
+               apiVersion = networkSecurityGroups.Version
                name = this.Name.Value
                location = this.Location.ArmValue
                tags = this.Tags |} :> _
@@ -68,8 +68,8 @@ type SecurityRule =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = securityRules.ArmValue
-               apiVersion = "2020-04-01"
+            {| ``type`` = securityRules.Path
+               apiVersion = securityRules.Version
                name = sprintf "%s/%s" this.SecurityGroup.Name.Value this.Name.Value
                dependsOn = [ ArmExpression.resourceId(networkSecurityGroups, this.SecurityGroup.Name).Eval() ]
                properties =

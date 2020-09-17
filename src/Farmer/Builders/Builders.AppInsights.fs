@@ -5,9 +5,16 @@ open Farmer
 open Farmer.CoreTypes
 open Farmer.Arm.Insights
 
-let instrumentationKey (ResourceName accountName) =
-    sprintf "reference('Microsoft.Insights/components/%s').InstrumentationKey" accountName
-    |> ArmExpression.create
+type AppInsights =
+    static member GetInstrumentationKey (name:ResourceName, ?resourceGroup:string) =
+        let aiResourceId =
+            match resourceGroup with
+            | Some resourceGroup -> ArmExpression.resourceId(components, name, resourceGroup)
+            | None -> ArmExpression.resourceId(components, name)
+
+        ArmExpression
+            .reference(components, aiResourceId)
+            .Map(fun r -> r + ".InstrumentationKey")
 
 type AppInsightsConfig =
     { Name : ResourceName
@@ -15,7 +22,7 @@ type AppInsightsConfig =
       SamplingPercentage : int
       Tags : Map<string,string> }
     /// Gets the ARM expression path to the instrumentation key of this App Insights instance.
-    member this.InstrumentationKey = instrumentationKey this.Name
+    member this.InstrumentationKey = AppInsights.GetInstrumentationKey this.Name
     interface IBuilder with
         member this.DependencyName = this.Name
         member this.BuildResources location = [

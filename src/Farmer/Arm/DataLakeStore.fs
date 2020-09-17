@@ -5,7 +5,7 @@ open Farmer
 open Farmer.CoreTypes
 open Farmer.DataLake
 
-let accounts = ResourceType "Microsoft.DataLakeStore/accounts"
+let accounts = ResourceType ("Microsoft.DataLakeStore/accounts", "2016-11-01")
 
 type Account =
     { Name : ResourceName
@@ -17,8 +17,8 @@ type Account =
         member this.ResourceName = this.Name
         member this.JsonModel =
             {| name = this.Name.Value
-               ``type`` = accounts.ArmValue
-               apiVersion = "2016-11-01"
+               ``type`` = accounts.Path
+               apiVersion = accounts.Version
                location = this.Location.ArmValue
                properties =
                 {| newTier = this.Sku.ToString()

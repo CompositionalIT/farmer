@@ -133,7 +133,7 @@ type WebAppConfig =
 
                     match this.OperatingSystem, this.AppInsights with
                     | Windows, Some resource ->
-                        "APPINSIGHTS_INSTRUMENTATIONKEY", instrumentationKey (resource.CreateResourceName this) |> ArmExpression.Eval
+                        "APPINSIGHTS_INSTRUMENTATIONKEY", AppInsights.GetInstrumentationKey (resource.CreateResourceName this) |> ArmExpression.Eval
                         "APPINSIGHTS_PROFILERFEATURE_VERSION", "1.0.0"
                         "APPINSIGHTS_SNAPSHOTFEATURE_VERSION", "1.0.0"
                         "ApplicationInsightsAgent_EXTENSION_VERSION", "~2"
