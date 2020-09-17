@@ -100,7 +100,7 @@ type VmConfig =
             // Storage account - optional
             match this.DiagnosticsStorageAccount with
             | Some (DeployableResource this resourceName) ->
-                { Name = Storage.StorageAccountName.Create resourceName |> Result.get
+                { Name = Storage.StorageAccountName.Create(resourceName).OkValue
                   Location = location
                   Sku = Storage.Standard_LRS
                   StaticWebsite = None

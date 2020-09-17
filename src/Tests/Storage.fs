@@ -93,7 +93,7 @@ let tests = testList "Storage Tests" [
         check "abcdefghij1234567890abcde" "max length is 24, but here is 25 ('abcdefghij1234567890abcde')" "Name too long"
         check "zzzT" "can only contain lowercase letters ('zzzT')" "Upper case character allowed"
         check "zzz!" "can only contain alphanumeric characters ('zzz!')" "Non alpha numeric character allowed"
-        Expect.equal (StorageResourceName.Create "abcdefghij1234567890abcd" |> Result.get |> fun name -> name.ResourceName) (ResourceName "abcdefghij1234567890abcd") "Should have created a valid storage account name"
+        Expect.equal (StorageResourceName.Create("abcdefghij1234567890abcd").OkValue.ResourceName) (ResourceName "abcdefghij1234567890abcd") "Should have created a valid storage account name"
     }
     test "Rejects invalid storage resource names" {
         let check (v:string) m = Expect.equal (StorageResourceName.Create v) (Error ("Storage resource names " + m))
@@ -108,7 +108,7 @@ let tests = testList "Storage Tests" [
         check "-zz" "must start with an alphanumeric character ('-zz')" "Start with dash"
         check "zz-" "must end with an alphanumeric character ('zz-')" "End with dash"
 
-        Expect.equal (StorageResourceName.Create "abcdefghij1234567890abcd" |> Result.get |> fun name -> name.ResourceName) (ResourceName "abcdefghij1234567890abcd") "Should have created a valid storage resource name"
+        Expect.equal (StorageResourceName.Create("abcdefghij1234567890abcd").OkValue.ResourceName) (ResourceName "abcdefghij1234567890abcd") "Should have created a valid storage resource name"
     }
     test "Adds lifecycle policies correctly" {
         let resource : ManagementPolicy =
