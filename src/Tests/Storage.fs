@@ -131,5 +131,15 @@ let tests = testList "Storage Tests" [
         Expect.equal rule.Definition.Actions.BaseBlob.Delete.DaysAfterModificationGreaterThan 1. "should ignore duplicate actions"
         Expect.equal rule.Definition.Actions.BaseBlob.TierToArchive.DaysAfterModificationGreaterThan 2. "should add multiple actions to a rule"
         Expect.equal (rule.Definition.Filters.PrefixMatch |> Seq.toList) [ "foo/bar" ] "incorrect filter"
-   }
+    }
+    test "Creates connection strings correctly" {
+        let simpleConn = StorageAccount.GetConnectionString "account"
+        let rgConn = StorageAccount.GetConnectionString("account", "rg")
+
+        Expect.equal "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys('account', '2017-10-01').keys[0].value)" simpleConn.Value "Simple connection string"
+        Expect.equal "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('rg', 'Microsoft.Storage/storageAccounts', 'account'), '2017-10-01').keys[0].value)" rgConn.Value "Complex connection string"
+    }
+    test "Ensures Storage Account Names are valid" {
+        Expect.throws (fun _ -> StorageAccount.GetConnectionString "IFDJI$*(£" |> ignore) "Did not validate"
+    }
 ]
