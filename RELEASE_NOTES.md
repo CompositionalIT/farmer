@@ -1,6 +1,7 @@
 Release Notes
 =============
 ## 1.1.0-beta2
+* Create Storage Account connection string expressions.
 * Small updates to SQL naming
 * Internal updates to ARM resource construction
 

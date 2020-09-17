@@ -36,7 +36,7 @@ type FunctionsConfig =
     /// Gets the ARM expression path to the publishing password of this functions app.
     member this.PublishingPassword = publishingPassword this.Name
     /// Gets the ARM expression path to the storage account key of this functions app.
-    member this.StorageAccountKey = Storage.buildKey this.StorageAccountName
+    member this.StorageAccountKey = StorageAccount.GetConnectionString this.StorageAccountName
     /// Gets the ARM expression path to the app insights key of this functions app, if it exists.
     member this.AppInsightsKey = this.AppInsightsName |> Option.map AppInsights.GetInstrumentationKey
     /// Gets the default key for the functions site
@@ -52,7 +52,7 @@ type FunctionsConfig =
     /// Gets the App Insights name for this functions app, if it exists.
     member this.AppInsightsName = this.AppInsights |> Option.map (fun ai -> ai.CreateResourceName this)
     /// Gets the Storage Account name for this functions app.
-    member this.StorageAccountName = this.StorageAccount.CreateResourceName this
+    member this.StorageAccountName : Storage.StorageAccountName = this.StorageAccount.CreateResourceName this |> Storage.StorageAccountName.Create |> Result.get
     interface IBuilder with
         member this.DependencyName = this.ServicePlanName
         member this.BuildResources location = [
@@ -66,15 +66,15 @@ type FunctionsConfig =
                 "FUNCTIONS_WORKER_RUNTIME", (string this.Runtime).ToLower()
                 "WEBSITE_NODE_DEFAULT_VERSION", "10.14.1"
                 "FUNCTIONS_EXTENSION_VERSION", match this.ExtensionVersion with V1 -> "~1" | V2 -> "~2" | V3 -> "~3"
-                "AzureWebJobsStorage", Storage.buildKey this.StorageAccountName |> ArmExpression.Eval
-                "AzureWebJobsDashboard", Storage.buildKey this.StorageAccountName |> ArmExpression.Eval
+                "AzureWebJobsStorage", StorageAccount.GetConnectionString this.StorageAccountName |> ArmExpression.Eval
+                "AzureWebJobsDashboard", StorageAccount.GetConnectionString this.StorageAccountName |> ArmExpression.Eval
 
                 match this.AppInsightsKey with
                 | Some key -> "APPINSIGHTS_INSTRUMENTATIONKEY", key |> ArmExpression.Eval
                 | None -> ()
 
                 if this.OperatingSystem = Windows then
-                    "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING", Storage.buildKey this.StorageAccountName |> ArmExpression.Eval
+                    "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING", StorageAccount.GetConnectionString this.StorageAccountName |> ArmExpression.Eval
                     "WEBSITE_CONTENTSHARE", this.Name.Value.ToLower()
               ]
               |> List.map Setting.AsLiteral
@@ -95,7 +95,7 @@ type FunctionsConfig =
                 | DependableResource this resourceName -> resourceName
                 | _ -> ()
 
-                this.StorageAccountName
+                this.StorageAccountName.ResourceName
               ]
               AlwaysOn = false
               HTTPSOnly = this.HTTPSOnly
@@ -126,7 +126,7 @@ type FunctionsConfig =
                 ()
             match this.StorageAccount with
             | DeployableResource this resourceName ->
-                { Name = Storage.StorageAccountName.Create resourceName |> Result.get
+                { Name = Storage.StorageAccountName.Create(resourceName).OkValue
                   Location = location
                   Sku = Storage.Standard_LRS
                   StaticWebsite = None
