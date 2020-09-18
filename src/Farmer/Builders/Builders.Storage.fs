@@ -21,11 +21,8 @@ type StorageAccount =
                 fullyQualified
         |> ArmExpression.create
     /// Gets an ARM Expression connection string for any Storage Account.
-    static member GetConnectionString (name:string, ?resourceGroup:string) =
-        let name = StorageAccountName.Create(name).OkValue
-        match resourceGroup with
-        | Some resourceGroup -> StorageAccount.GetConnectionString(name, resourceGroup)
-        | None -> StorageAccount.GetConnectionString(name)
+    static member GetConnectionString (name:string, resourceGroup:string) =
+        StorageAccount.GetConnectionString(StorageAccountName.Create(name).OkValue, resourceGroup)
 
 type StoragePolicy =
     { CoolBlobAfter : int<Days> option

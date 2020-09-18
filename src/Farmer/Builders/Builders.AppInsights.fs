@@ -15,6 +15,7 @@ type AppInsights =
         ArmExpression
             .reference(components, aiResourceId)
             .Map(fun r -> r + ".InstrumentationKey")
+    static member GetInstrumentationKey (name, resourceGroup) = AppInsights.GetInstrumentationKey(ResourceName name, resourceGroup)
 
 type AppInsightsConfig =
     { Name : ResourceName
