@@ -30,20 +30,20 @@ type Namespace =
         member this.ResourceName = this.Name
         member this.JsonModel =
             {| namespaces.Create(this.Name, this.Location, tags = this.Tags) with
-                   sku =
-                        {| name = string this.Sku.Name
-                           tier = string this.Sku.Name
-                           capacity = this.Sku.Capacity |}
-                   properties =
-                        {| zoneRedundant = this.ZoneRedundant |> Option.toNullable
-                           isAutoInflateEnabled =
-                            this.AutoInflateSettings
-                            |> Option.map (function
-                                | AutoInflate _ -> true
-                                | ManualInflate -> false)
-                            |> Option.toNullable
-                           maximumThroughputUnits = this.MaxThroughputUnits |> Option.toNullable
-                           kafkaEnabled = this.KafkaEnabled |> Option.toNullable |}
+                sku =
+                     {| name = string this.Sku.Name
+                        tier = string this.Sku.Name
+                        capacity = this.Sku.Capacity |}
+                properties =
+                     {| zoneRedundant = this.ZoneRedundant |> Option.toNullable
+                        isAutoInflateEnabled =
+                         this.AutoInflateSettings
+                         |> Option.map (function
+                             | AutoInflate _ -> true
+                             | ManualInflate -> false)
+                         |> Option.toNullable
+                        maximumThroughputUnits = this.MaxThroughputUnits |> Option.toNullable
+                        kafkaEnabled = this.KafkaEnabled |> Option.toNullable |}
             |} :> _
 module Namespaces =
     type EventHub =

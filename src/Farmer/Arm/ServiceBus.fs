@@ -15,6 +15,7 @@ let namespaces = ResourceType ("Microsoft.ServiceBus/namespaces", "2017-04-01")
 
 module Namespaces =
     module Topics =
+        let rules = ResourceType ("Rules", "2017-04-01")
         type Subscription =
             { Name : ResourceName
               Namespace : ResourceName
@@ -44,22 +45,19 @@ module Namespaces =
                          |}
                         resources = [
                          for rule in this.Rules do
-                            {| apiVersion = "2017-04-01"
-                               name = rule.Name.Value
-                               ``type`` = "Rules"
-                               dependsOn = [ this.Name.Value ]
-                               properties =
-                                match rule with
-                                | SqlFilter (_, expression) ->
-                                    {| filterType = "SqlFilter"
-                                       sqlFilter = box {| sqlExpression = expression |}
-                                       correlationFilter = null |}
-                                | CorrelationFilter (_, correlationId, properties) ->
-                                    {| filterType = "CorrelationFilter"
-                                       correlationFilter =
-                                           box {| correlationId = correlationId |> Option.toObj
-                                                  properties = properties |}
-                                       sqlFilter = null |}
+                            {| rules.Create(rule.Name, dependsOn = [ this.Name ]) with
+                                properties =
+                                 match rule with
+                                 | SqlFilter (_, expression) ->
+                                     {| filterType = "SqlFilter"
+                                        sqlFilter = box {| sqlExpression = expression |}
+                                        correlationFilter = null |}
+                                 | CorrelationFilter (_, correlationId, properties) ->
+                                     {| filterType = "CorrelationFilter"
+                                        correlationFilter =
+                                            box {| correlationId = correlationId |> Option.toObj
+                                                   properties = properties |}
+                                        sqlFilter = null |}
                             |}
                         ]
                     |} :> _

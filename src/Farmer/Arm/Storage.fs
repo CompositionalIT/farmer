@@ -21,17 +21,13 @@ type StorageAccount =
     interface IArmResource with
         member this.ResourceName = this.Name.ResourceName
         member this.JsonModel =
-            {| ``type`` = storageAccounts.Path
-               apiVersion = storageAccounts.Version
-               sku = {| name = this.Sku.ArmValue |}
-               kind = "StorageV2"
-               name = this.Name.ResourceName.Value
-               location = this.Location.ArmValue
-               properties =
-                match this.EnableHierarchicalNamespace with
-                | Some hnsEnabled -> {| isHnsEnabled = hnsEnabled |} :> obj
-                | _ -> {||} :> obj
-               tags = this.Tags
+            {| storageAccounts.Create(this.Name.ResourceName, this.Location, tags = this.Tags) with
+                sku = {| name = this.Sku.ArmValue |}
+                kind = "StorageV2"
+                properties =
+                 match this.EnableHierarchicalNamespace with
+                 | Some hnsEnabled -> {| isHnsEnabled = hnsEnabled |} :> obj
+                 | _ -> {||} :> obj
             |} :> _
     interface IPostDeploy with
         member this.Run _ =
@@ -51,16 +47,13 @@ module BlobServices =
         interface IArmResource with
             member this.ResourceName = this.Name.ResourceName
             member this.JsonModel =
-                {| ``type`` = containers.Path
-                   apiVersion = containers.Version
-                   name = this.StorageAccount.Value + "/default/" + this.Name.ResourceName.Value
-                   dependsOn = [ this.StorageAccount.Value ]
-                   properties =
-                    {| publicAccess =
-                        match this.Accessibility with
-                        | Private -> "None"
-                        | Container -> "Container"
-                        | Blob -> "Blob" |}
+                {| containers.Create(this.StorageAccount + "default" + this.Name.ResourceName, dependsOn = [ this.StorageAccount ]) with
+                    properties =
+                     {| publicAccess =
+                         match this.Accessibility with
+                         | Private -> "None"
+                         | Container -> "Container"
+                         | Blob -> "Blob" |}
                 |} :> _
 
 module FileShares =
@@ -71,11 +64,8 @@ module FileShares =
         interface IArmResource with
             member this.ResourceName = this.Name.ResourceName
             member this.JsonModel =
-                {| ``type`` = fileShares.Path
-                   apiVersion = fileShares.Version
-                   name = this.StorageAccount.Value + "/default/" + this.Name.ResourceName.Value
-                   properties = {| shareQuota = this.ShareQuota |> Option.defaultValue 5120<Gb> |}
-                   dependsOn = [ this.StorageAccount.Value ]
+                {| fileShares.Create(this.StorageAccount + "default" + this.Name.ResourceName, dependsOn = [ this.StorageAccount ]) with
+                    properties = {| shareQuota = this.ShareQuota |> Option.defaultValue 5120<Gb> |}
                 |} :> _
 
 module Queues =
@@ -85,11 +75,7 @@ module Queues =
         interface IArmResource with
             member this.ResourceName = this.Name.ResourceName
             member this.JsonModel =
-                {| name = this.StorageAccount.Value + "/default/" + this.Name.ResourceName.Value
-                   ``type`` = queues.Path
-                   apiVersion = queues.Version
-                   dependsOn = [ this.StorageAccount.Value ]
-                |} :> _
+                queues.Create(this.StorageAccount + "default" + this.Name.ResourceName, dependsOn = [ this.StorageAccount ]) :> _
 
 module ManagementPolicies =
     type ManagementPolicy =
