@@ -39,6 +39,9 @@ The Storage Account builder creates storage accounts and their associated contai
 | Key | Returns an ARM expression to retrieve the storage account's primary connection string. Useful for e.g. supplying the connection string to another resource e.g. KeyVault or an app setting in the App Service. |
 | WebsitePrimaryEndpoint | Returns the Primary endpoint for static website (if enabled). |
 
+#### Helpers
+The `StorageAccount` type contains helper methods to quickly create ARM expressions for Storage Account connection strings.
+
 #### Example
 
 ```fsharp
