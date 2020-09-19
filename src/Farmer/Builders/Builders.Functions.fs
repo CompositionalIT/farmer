@@ -36,9 +36,9 @@ type FunctionsConfig =
     /// Gets the ARM expression path to the publishing password of this functions app.
     member this.PublishingPassword = publishingPassword this.Name
     /// Gets the ARM expression path to the storage account key of this functions app.
-    member this.StorageAccountKey = StorageAccount.GetConnectionString this.StorageAccountName
+    member this.StorageAccountKey = StorageAccount.getConnectionString this.StorageAccountName
     /// Gets the ARM expression path to the app insights key of this functions app, if it exists.
-    member this.AppInsightsKey = this.AppInsightsName |> Option.map instrumentationKey
+    member this.AppInsightsKey = this.AppInsightsName |> Option.map AppInsights.getInstrumentationKey
     /// Gets the default key for the functions site
     member this.DefaultKey =
         sprintf "listkeys(concat(resourceId('Microsoft.Web/sites', '%s'), '/host/default/'),'2016-08-01').functionKeys.default" this.Name.Value
@@ -50,7 +50,7 @@ type FunctionsConfig =
     /// Gets the Service Plan name for this functions app.
     member this.ServicePlanName = this.ServicePlan.CreateResourceName this
     /// Gets the App Insights name for this functions app, if it exists.
-    member this.AppInsightsName = this.AppInsights |> Option.map (fun ai -> ai.CreateResourceName this)
+    member this.AppInsightsName : ResourceName option = this.AppInsights |> Option.map (fun ai -> ai.CreateResourceName this)
     /// Gets the Storage Account name for this functions app.
     member this.StorageAccountName : Storage.StorageAccountName = this.StorageAccount.CreateResourceName this |> Storage.StorageAccountName.Create |> Result.get
     interface IBuilder with
@@ -66,15 +66,15 @@ type FunctionsConfig =
                 "FUNCTIONS_WORKER_RUNTIME", (string this.Runtime).ToLower()
                 "WEBSITE_NODE_DEFAULT_VERSION", "10.14.1"
                 "FUNCTIONS_EXTENSION_VERSION", match this.ExtensionVersion with V1 -> "~1" | V2 -> "~2" | V3 -> "~3"
-                "AzureWebJobsStorage", StorageAccount.GetConnectionString this.StorageAccountName |> ArmExpression.Eval
-                "AzureWebJobsDashboard", StorageAccount.GetConnectionString this.StorageAccountName |> ArmExpression.Eval
+                "AzureWebJobsStorage", StorageAccount.getConnectionString this.StorageAccountName |> ArmExpression.Eval
+                "AzureWebJobsDashboard", StorageAccount.getConnectionString this.StorageAccountName |> ArmExpression.Eval
 
                 match this.AppInsightsKey with
                 | Some key -> "APPINSIGHTS_INSTRUMENTATIONKEY", key |> ArmExpression.Eval
                 | None -> ()
 
                 if this.OperatingSystem = Windows then
-                    "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING", StorageAccount.GetConnectionString this.StorageAccountName |> ArmExpression.Eval
+                    "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING", StorageAccount.getConnectionString this.StorageAccountName |> ArmExpression.Eval
                     "WEBSITE_CONTENTSHARE", this.Name.Value.ToLower()
               ]
               |> List.map Setting.AsLiteral

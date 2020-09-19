@@ -12,6 +12,8 @@ type ResourceName =
         | r when r = ResourceName.Empty -> ResourceName fallbackValue
         | r -> r
     member this.Map mapper = match this with ResourceName r -> ResourceName (mapper r)
+    static member (+) (a:ResourceName, b) = ResourceName(a.Value + "/" + b)
+    static member (+) (a:ResourceName, b:ResourceName) = a + b.Value
 
 type Location =
     | Location of string
@@ -37,9 +39,19 @@ open Farmer
 open System
 
 type ResourceType =
-    | ResourceType of string
+    | ResourceType of path:string * version:string
     /// Returns the ARM resource type string value.
-    member this.ArmValue = match this with ResourceType r -> r
+    member this.Type = match this with ResourceType (p, _) -> p
+    member this.ApiVersion = match this with ResourceType (_, v) -> v
+    member this.Create(name:ResourceName, ?location:Location, ?dependsOn:ResourceName list, ?tags:Map<string,string>) =
+        match this with
+        ResourceType (path, version) ->
+            {| ``type`` = path
+               apiVersion = version
+               name = name.Value
+               location = location |> Option.map(fun r -> r.ArmValue) |> Option.toObj
+               dependsOn = dependsOn |> Option.defaultValue [] |> List.map(fun r -> r.Value)
+               tags = tags |> Option.defaultValue Map.empty |}
 
 /// Represents an expression used within an ARM template
 type ArmExpression =
@@ -62,17 +74,20 @@ type ArmExpression =
     static member Eval (expression:ArmExpression) = expression.Eval()
     static member Empty = ArmExpression ""
     /// Builds a resourceId ARM expression from the parts of a resource ID.
-    static member resourceId (ResourceType resourceType, name:ResourceName, ?group:string, ?subscriptionId:string) =
+    static member resourceId (resourceType:ResourceType, name:ResourceName, ?group:string, ?subscriptionId:string) =
         match name, group, subscriptionId with
-        | name, Some group, Some sub -> sprintf "resourceId('%s', '%s', '%s', '%s')" sub group resourceType name.Value
-        | name, Some group, None -> sprintf "resourceId('%s', '%s', '%s')" group resourceType name.Value
-        | name, _, _ -> sprintf "resourceId('%s', '%s')" resourceType name.Value
+        | name, Some group, Some sub -> sprintf "resourceId('%s', '%s', '%s', '%s')" sub group resourceType.Type name.Value
+        | name, Some group, None -> sprintf "resourceId('%s', '%s', '%s')" group resourceType.Type name.Value
+        | name, _, _ -> sprintf "resourceId('%s', '%s')" resourceType.Type name.Value
         |> ArmExpression.create
-    static member resourceId (ResourceType resourceType, [<ParamArray>] resourceSegments:ResourceName []) =
+    static member resourceId (resourceType:ResourceType, [<ParamArray>] resourceSegments:ResourceName []) =
         sprintf
             "resourceId('%s', %s)"
-            resourceType
+            resourceType.Type
             (resourceSegments |> Array.map (fun r -> sprintf "'%s'" r.Value) |> String.concat ", ")
+        |> ArmExpression.create
+    static member reference (resourceType:ResourceType, resourceId:ArmExpression) =
+        sprintf "reference(%s, '%s')" resourceId.Value resourceType.ApiVersion
         |> ArmExpression.create
 
 /// A secure parameter to be captured in an ARM template.

@@ -4,13 +4,12 @@ module Farmer.Arm.Storage
 open Farmer
 open Farmer.Storage
 open Farmer.CoreTypes
-open System
 
-let storageAccounts = ResourceType "Microsoft.Storage/storageAccounts"
-let containers = ResourceType "Microsoft.Storage/storageAccounts/blobServices/containers"
-let fileShares = ResourceType "Microsoft.Storage/storageAccounts/fileServices/shares"
-let queues = ResourceType "Microsoft.Storage/storageAccounts/queueServices/queues"
-let managementPolicies = ResourceType "Microsoft.Storage/storageAccounts/managementPolicies"
+let storageAccounts = ResourceType ("Microsoft.Storage/storageAccounts", "2018-07-01")
+let containers = ResourceType ("Microsoft.Storage/storageAccounts/blobServices/containers", "2018-03-01-preview")
+let fileShares = ResourceType ("Microsoft.Storage/storageAccounts/fileServices/shares", "2019-06-01")
+let queues = ResourceType ("Microsoft.Storage/storageAccounts/queueServices/queues", "2019-06-01")
+let managementPolicies = ResourceType ("Microsoft.Storage/storageAccounts/managementPolicies", "2019-06-01")
 
 type StorageAccount =
     { Name : StorageAccountName
@@ -22,17 +21,13 @@ type StorageAccount =
     interface IArmResource with
         member this.ResourceName = this.Name.ResourceName
         member this.JsonModel =
-            {| ``type`` = storageAccounts.ArmValue
-               sku = {| name = this.Sku.ArmValue |}
-               kind = "StorageV2"
-               name = this.Name.ResourceName.Value
-               apiVersion = "2018-07-01"
-               location = this.Location.ArmValue
-               properties =
-                match this.EnableHierarchicalNamespace with
-                | Some hnsEnabled -> {| isHnsEnabled = hnsEnabled |} :> obj
-                | _ -> {||} :> obj
-               tags = this.Tags
+            {| storageAccounts.Create(this.Name.ResourceName, this.Location, tags = this.Tags) with
+                sku = {| name = this.Sku.ArmValue |}
+                kind = "StorageV2"
+                properties =
+                 match this.EnableHierarchicalNamespace with
+                 | Some hnsEnabled -> {| isHnsEnabled = hnsEnabled |} :> obj
+                 | _ -> {||} :> obj
             |} :> _
     interface IPostDeploy with
         member this.Run _ =
@@ -52,16 +47,13 @@ module BlobServices =
         interface IArmResource with
             member this.ResourceName = this.Name.ResourceName
             member this.JsonModel =
-                {| ``type`` = containers.ArmValue
-                   apiVersion = "2018-03-01-preview"
-                   name = this.StorageAccount.Value + "/default/" + this.Name.ResourceName.Value
-                   dependsOn = [ this.StorageAccount.Value ]
-                   properties =
-                    {| publicAccess =
-                        match this.Accessibility with
-                        | Private -> "None"
-                        | Container -> "Container"
-                        | Blob -> "Blob" |}
+                {| containers.Create(this.StorageAccount + "default" + this.Name.ResourceName, dependsOn = [ this.StorageAccount ]) with
+                    properties =
+                     {| publicAccess =
+                         match this.Accessibility with
+                         | Private -> "None"
+                         | Container -> "Container"
+                         | Blob -> "Blob" |}
                 |} :> _
 
 module FileShares =
@@ -72,11 +64,8 @@ module FileShares =
         interface IArmResource with
             member this.ResourceName = this.Name.ResourceName
             member this.JsonModel =
-                {| ``type`` = fileShares.ArmValue
-                   apiVersion = "2019-06-01"
-                   name = this.StorageAccount.Value + "/default/" + this.Name.ResourceName.Value
-                   properties = {| shareQuota = this.ShareQuota |> Option.defaultValue 5120<Gb> |}
-                   dependsOn = [ this.StorageAccount.Value ]
+                {| fileShares.Create(this.StorageAccount + "default" + this.Name.ResourceName, dependsOn = [ this.StorageAccount ]) with
+                    properties = {| shareQuota = this.ShareQuota |> Option.defaultValue 5120<Gb> |}
                 |} :> _
 
 module Queues =
@@ -86,11 +75,7 @@ module Queues =
         interface IArmResource with
             member this.ResourceName = this.Name.ResourceName
             member this.JsonModel =
-                {| name = this.StorageAccount.Value + "/default/" + this.Name.ResourceName.Value
-                   ``type`` = queues.ArmValue
-                   dependsOn = [ this.StorageAccount.Value ]
-                   apiVersion = "2019-06-01"
-                |} :> _
+                queues.Create(this.StorageAccount + "default" + this.Name.ResourceName, dependsOn = [ this.StorageAccount ]) :> _
 
 module ManagementPolicies =
     type ManagementPolicy =
@@ -106,34 +91,31 @@ module ManagementPolicies =
         interface IArmResource with
             member this.ResourceName = this.ResourceName
             member this.JsonModel =
-                {| name = this.ResourceName.Value
-                   ``type`` = managementPolicies.ArmValue
-                   apiVersion = "2019-06-01"
-                   dependsOn = [ this.StorageAccount.Value ]
-                   properties =
-                    {| policy =
-                        {| rules = [
-                            for rule in this.Rules do
-                                {| enabled = true
-                                   name = rule.Name.Value
-                                   ``type`` = "Lifecycle"
-                                   definition =
-                                    {| actions =
-                                        {| baseBlob =
-                                            {| tierToCool = rule.CoolBlobAfter |> Option.map (fun days -> {| daysAfterModificationGreaterThan = days |} |> box) |> Option.toObj
-                                               tierToArchive = rule.ArchiveBlobAfter |> Option.map (fun days -> {| daysAfterModificationGreaterThan = days |} |> box) |> Option.toObj
-                                               delete = rule.DeleteBlobAfter |> Option.map (fun days -> {| daysAfterModificationGreaterThan = days |} |> box) |> Option.toObj |}
-                                           snapshot =
-                                            rule.DeleteSnapshotAfter
-                                            |> Option.map (fun days -> {| delete = {| daysAfterCreationGreaterThan = days |} |} |> box)
-                                            |> Option.toObj
-                                        |}
-                                       filters =
-                                        {| blobTypes = [ "blockBlob" ]
-                                           prefixMatch = rule.Filters |}
-                                    |}
-                                |}
-                            ]
-                        |}
-                    |}
+                {| managementPolicies.Create(this.ResourceName, dependsOn = [ this.StorageAccount ]) with
+                    properties =
+                     {| policy =
+                         {| rules = [
+                             for rule in this.Rules do
+                                 {| enabled = true
+                                    name = rule.Name.Value
+                                    ``type`` = "Lifecycle"
+                                    definition =
+                                     {| actions =
+                                         {| baseBlob =
+                                             {| tierToCool = rule.CoolBlobAfter |> Option.map (fun days -> {| daysAfterModificationGreaterThan = days |} |> box) |> Option.toObj
+                                                tierToArchive = rule.ArchiveBlobAfter |> Option.map (fun days -> {| daysAfterModificationGreaterThan = days |} |> box) |> Option.toObj
+                                                delete = rule.DeleteBlobAfter |> Option.map (fun days -> {| daysAfterModificationGreaterThan = days |} |> box) |> Option.toObj |}
+                                            snapshot =
+                                             rule.DeleteSnapshotAfter
+                                             |> Option.map (fun days -> {| delete = {| daysAfterCreationGreaterThan = days |} |} |> box)
+                                             |> Option.toObj
+                                         |}
+                                        filters =
+                                         {| blobTypes = [ "blockBlob" ]
+                                            prefixMatch = rule.Filters |}
+                                     |}
+                                 |}
+                             ]
+                         |}
+                     |}
                 |} :> _

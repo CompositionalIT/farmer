@@ -10,22 +10,16 @@ open FileShares
 
 type StorageAccount =
     /// Gets an ARM Expression connection string for any Storage Account.
-    static member GetConnectionString (name:StorageAccountName, ?resourceGroup:string) =
-        let fullyQualified =
-            match resourceGroup with
-            | Some resourceGroup -> ArmExpression.resourceId(storageAccounts, name.ResourceName, resourceGroup).Value
-            | None -> sprintf "'%s'" name.ResourceName.Value
+    static member getConnectionString (name:StorageAccountName, ?resourceGroup:string) =
+        let resourcePath = ArmExpression.resourceId(storageAccounts, name.ResourceName, ?group = resourceGroup).Value
         sprintf
             "concat('DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=', listKeys(%s, '2017-10-01').keys[0].value)"
-                name.ResourceName.Value
-                fullyQualified
+            name.ResourceName.Value
+            resourcePath
         |> ArmExpression.create
     /// Gets an ARM Expression connection string for any Storage Account.
-    static member GetConnectionString (name:string, ?resourceGroup:string) =
-        let name = StorageAccountName.Create(name).OkValue
-        match resourceGroup with
-        | Some resourceGroup -> StorageAccount.GetConnectionString(name, resourceGroup)
-        | None -> StorageAccount.GetConnectionString(name)
+    static member getConnectionString (name, ?resourceGroup) =
+        StorageAccount.getConnectionString(StorageAccountName.Create(ResourceName name).OkValue, ?resourceGroup = resourceGroup)
 
 type StoragePolicy =
     { CoolBlobAfter : int<Days> option
@@ -54,7 +48,7 @@ type StorageAccountConfig =
       /// Tags to apply to the storage account
       Tags: Map<string,string> }
     /// Gets the ARM expression path to the key of this storage account.
-    member this.Key = StorageAccount.GetConnectionString this.Name
+    member this.Key = StorageAccount.getConnectionString this.Name
     /// Gets the Primary endpoint for static website (if enabled)
     member this.WebsitePrimaryEndpoint = sprintf "https://%s.z6.web.core.windows.net" this.Name.ResourceName.Value
     member this.Endpoint = sprintf "%s.blob.core.windows.net" this.Name.ResourceName.Value

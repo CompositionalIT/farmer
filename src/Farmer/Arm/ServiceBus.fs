@@ -8,13 +8,14 @@ open System
 
 let private tryGetIso (v:IsoDateTime option) = v |> Option.map(fun v -> v.Value) |> Option.toObj
 
-let subscriptions = ResourceType "Microsoft.ServiceBus/namespaces/topics/subscriptions"
-let queues = ResourceType "Microsoft.ServiceBus/namespaces/queues"
-let topics = ResourceType "Microsoft.ServiceBus/namespaces/topics"
-let namespaces = ResourceType "Microsoft.ServiceBus/namespaces"
+let subscriptions = ResourceType ("Microsoft.ServiceBus/namespaces/topics/subscriptions", "2017-04-01")
+let queues = ResourceType ("Microsoft.ServiceBus/namespaces/queues", "2017-04-01")
+let topics = ResourceType ("Microsoft.ServiceBus/namespaces/topics", "2017-04-01")
+let namespaces = ResourceType ("Microsoft.ServiceBus/namespaces", "2017-04-01")
 
 module Namespaces =
     module Topics =
+        let rules = ResourceType ("Rules", "2017-04-01")
         type Subscription =
             { Name : ResourceName
               Namespace : ResourceName
@@ -29,42 +30,36 @@ module Namespaces =
             interface IArmResource with
                 member this.ResourceName = this.Name
                 member this.JsonModel =
-                    {| apiVersion = "2017-04-01"
-                       name = this.Namespace.Value + "/" + this.Topic.Value + "/" + this.Name.Value
-                       ``type`` = subscriptions.ArmValue
-                       dependsOn = [ this.Topic.Value ]
-                       properties =
-                        {| defaultMessageTimeToLive = tryGetIso this.DefaultMessageTimeToLive
-                           requiresDuplicateDetection =
-                               match this.DuplicateDetectionHistoryTimeWindow with
-                               | Some _ -> Nullable true
-                               | None -> Nullable()
-                           duplicateDetectionHistoryTimeWindow = tryGetIso this.DuplicateDetectionHistoryTimeWindow
-                           deadLetteringOnMessageExpiration = this.DeadLetteringOnMessageExpiration |> Option.toNullable
-                           maxDeliveryCount = this.MaxDeliveryCount |> Option.toNullable
-                           requiresSession = this.Session |> Option.toNullable
-                           lockDuration = tryGetIso this.LockDuration
-                        |}
-                       resources = [
-                        for rule in this.Rules do
-                           {| apiVersion = "2017-04-01"
-                              name = rule.Name.Value
-                              ``type`` = "Rules"
-                              dependsOn = [ this.Name.Value ]
-                              properties =
-                               match rule with
-                               | SqlFilter (_, expression) ->
-                                   {| filterType = "SqlFilter"
-                                      sqlFilter = box {| sqlExpression = expression |}
-                                      correlationFilter = null |}
-                               | CorrelationFilter (_, correlationId, properties) ->
-                                   {| filterType = "CorrelationFilter"
-                                      correlationFilter =
-                                          box {| correlationId = correlationId |> Option.toObj
-                                                 properties = properties |}
-                                      sqlFilter = null |}
-                           |}
-                       ]
+                    {| subscriptions.Create(this.Namespace + this.Topic + this.Name, dependsOn = [ this.Topic ]) with
+                        properties =
+                         {| defaultMessageTimeToLive = tryGetIso this.DefaultMessageTimeToLive
+                            requiresDuplicateDetection =
+                                match this.DuplicateDetectionHistoryTimeWindow with
+                                | Some _ -> Nullable true
+                                | None -> Nullable()
+                            duplicateDetectionHistoryTimeWindow = tryGetIso this.DuplicateDetectionHistoryTimeWindow
+                            deadLetteringOnMessageExpiration = this.DeadLetteringOnMessageExpiration |> Option.toNullable
+                            maxDeliveryCount = this.MaxDeliveryCount |> Option.toNullable
+                            requiresSession = this.Session |> Option.toNullable
+                            lockDuration = tryGetIso this.LockDuration
+                         |}
+                        resources = [
+                         for rule in this.Rules do
+                            {| rules.Create(rule.Name, dependsOn = [ this.Name ]) with
+                                properties =
+                                 match rule with
+                                 | SqlFilter (_, expression) ->
+                                     {| filterType = "SqlFilter"
+                                        sqlFilter = box {| sqlExpression = expression |}
+                                        correlationFilter = null |}
+                                 | CorrelationFilter (_, correlationId, properties) ->
+                                     {| filterType = "CorrelationFilter"
+                                        correlationFilter =
+                                            box {| correlationId = correlationId |> Option.toObj
+                                                   properties = properties |}
+                                        sqlFilter = null |}
+                            |}
+                        ]
                     |} :> _
 
     type Queue =
@@ -80,22 +75,19 @@ module Namespaces =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| apiVersion = "2017-04-01"
-                   name = this.Namespace.Value + "/" + this.Name.Value
-                   ``type`` = queues.ArmValue
-                   dependsOn = [ this.Namespace.Value ]
-                   properties =
-                    {| lockDuration = tryGetIso this.LockDuration
-                       requiresDuplicateDetection =
-                           match this.DuplicateDetectionHistoryTimeWindow with
-                           | Some _ -> Nullable true
-                           | None -> Nullable()
-                       duplicateDetectionHistoryTimeWindow = tryGetIso this.DuplicateDetectionHistoryTimeWindow
-                       defaultMessageTimeToLive = this.DefaultMessageTimeToLive.Value
-                       requiresSession = this.Session |> Option.toNullable
-                       deadLetteringOnMessageExpiration = this.DeadLetteringOnMessageExpiration |> Option.toNullable
-                       maxDeliveryCount = this.MaxDeliveryCount |> Option.toNullable
-                       enablePartitioning = this.EnablePartitioning |> Option.toNullable |}
+                {| queues.Create(this.Namespace + this.Name, dependsOn = [ this.Namespace ]) with
+                    properties =
+                     {| lockDuration = tryGetIso this.LockDuration
+                        requiresDuplicateDetection =
+                            match this.DuplicateDetectionHistoryTimeWindow with
+                            | Some _ -> Nullable true
+                            | None -> Nullable()
+                        duplicateDetectionHistoryTimeWindow = tryGetIso this.DuplicateDetectionHistoryTimeWindow
+                        defaultMessageTimeToLive = this.DefaultMessageTimeToLive.Value
+                        requiresSession = this.Session |> Option.toNullable
+                        deadLetteringOnMessageExpiration = this.DeadLetteringOnMessageExpiration |> Option.toNullable
+                        maxDeliveryCount = this.MaxDeliveryCount |> Option.toNullable
+                        enablePartitioning = this.EnablePartitioning |> Option.toNullable |}
                 |} :> _
 
     type Topic =
@@ -107,18 +99,15 @@ module Namespaces =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| apiVersion = "2017-04-01"
-                   name = this.Namespace.Value + "/" + this.Name.Value
-                   ``type`` = topics.ArmValue
-                   dependsOn = [ this.Namespace.Value ]
-                   properties =
-                       {| defaultMessageTimeToLive = tryGetIso this.DefaultMessageTimeToLive
-                          requiresDuplicateDetection =
-                              match this.DuplicateDetectionHistoryTimeWindow with
-                              | Some _ -> Nullable true
-                              | None -> Nullable()
-                          duplicateDetectionHistoryTimeWindow = tryGetIso this.DuplicateDetectionHistoryTimeWindow
-                          enablePartitioning = this.EnablePartitioning |> Option.toNullable |}
+                {| topics.Create(this.Namespace + this.Name, dependsOn = [ this.Namespace ]) with
+                    properties =
+                        {| defaultMessageTimeToLive = tryGetIso this.DefaultMessageTimeToLive
+                           requiresDuplicateDetection =
+                               match this.DuplicateDetectionHistoryTimeWindow with
+                               | Some _ -> Nullable true
+                               | None -> Nullable()
+                           duplicateDetectionHistoryTimeWindow = tryGetIso this.DuplicateDetectionHistoryTimeWindow
+                           enablePartitioning = this.EnablePartitioning |> Option.toNullable |}
                 |} :> _
 
 type Namespace =
@@ -137,14 +126,9 @@ type Namespace =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| apiVersion = "2017-04-01"
-               ``type`` = namespaces.ArmValue
-               name = this.Name.Value
-               location = this.Location.ArmValue
-               sku =
-                    {| name = string this.Sku
-                       tier = string this.Sku
-                       capacity = this.Capacity |> Option.toNullable |}
-               dependsOn = this.DependsOn |> List.map (fun r -> r.Value)
-               tags = this.Tags
+            {| namespaces.Create(this.Name, this.Location, this.DependsOn, this.Tags) with
+                sku =
+                     {| name = string this.Sku
+                        tier = string this.Sku
+                        capacity = this.Capacity |> Option.toNullable |}
             |} :> _

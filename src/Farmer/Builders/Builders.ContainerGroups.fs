@@ -8,21 +8,21 @@ open Farmer.Arm.Network
 
 type volume_mount =
     static member empty_dir volumeName =
-        volumeName, {| Volume = Volume.EmptyDirectory |}
-    static member azureFile volumeName  shareName storageAccountName =
-        volumeName, {| Volume = Volume.AzureFileShare (shareName, storageAccountName) |}
+        volumeName, Volume.EmptyDirectory
+    static member azureFile volumeName shareName storageAccountName =
+        volumeName, Volume.AzureFileShare (shareName, storageAccountName)
     static member git_repo volumeName repository =
-        volumeName, {| Volume = Volume.GitRepo (repository, None, None) |}
+        volumeName, Volume.GitRepo (repository, None, None)
     static member git_repo_directory volumeName  repository directory =
-        volumeName, {| Volume = Volume.GitRepo (repository, Some directory, None) |}
+        volumeName, Volume.GitRepo (repository, Some directory, None)
     static member git_repo_directory_revision volumeName  repository directory revision =
-        volumeName, {| Volume = Volume.GitRepo (repository, Some directory, Some revision) |}
+        volumeName, Volume.GitRepo (repository, Some directory, Some revision)
     static member secret volumeName  (file:string) (secret:byte array) =
-        volumeName, {| Volume = Volume.Secret [ SecretFile (file, secret) ] |}
+        volumeName, Volume.Secret [ SecretFile (file, secret) ]
     static member secrets volumeName  (secrets:(string * byte array) list) =
-        volumeName, {| Volume = secrets |> List.map SecretFile |> Volume.Secret |}
+        volumeName, secrets |> List.map SecretFile |> Volume.Secret
     static member secret_string volumeName  (file:string) (secret:string) =
-        volumeName, {| Volume = Volume.Secret [ SecretFile (file, secret |> System.Text.Encoding.UTF8.GetBytes) ] |}
+        volumeName, Volume.Secret [ SecretFile (file, secret |> System.Text.Encoding.UTF8.GetBytes) ]
 
 /// Represents configuration for a single Container.
 type ContainerInstanceConfig =
@@ -55,7 +55,7 @@ type ContainerGroupConfig =
       /// The instances in this container group.
       Instances : ContainerInstanceConfig list
       /// Volumes to mount on the container group.
-      Volumes : Map<string, {| Volume:Volume |}>
+      Volumes : Map<string, Volume>
       Tags: Map<string,string>  }
     interface IBuilder with
         member this.DependencyName = this.Name
@@ -140,8 +140,8 @@ type ContainerGroupBuilder() =
         let updatedVolumes = state.Volumes |> Map.fold (fun current key vol -> Map.add key vol current) newVolumes
         { state with Volumes = updatedVolumes }
     [<CustomOperation "add_tags">]
-    member _.Tags(state:ContainerGroupConfig, pairs) = 
-        { state with 
+    member _.Tags(state:ContainerGroupConfig, pairs) =
+        { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
     member this.Tag(state:ContainerGroupConfig, key, value) = this.Tags(state, [ (key,value) ])
@@ -235,8 +235,8 @@ type NetworkProfileBuilder() =
     [<CustomOperation "vnet">]
     member __.VirtualNetwork(state:NetworkProfileConfig, vnet) = { state with VirtualNetwork = ResourceName vnet }
     [<CustomOperation "add_tags">]
-    member _.Tags(state:NetworkProfileConfig, pairs) = 
-        { state with 
+    member _.Tags(state:NetworkProfileConfig, pairs) =
+        { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
     member this.Tag(state:NetworkProfileConfig, key, value) = this.Tags(state, [ (key,value) ])
