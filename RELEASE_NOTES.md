@@ -3,6 +3,7 @@ Release Notes
 ## 1.1.0-beta2
 * Create Storage Account connection string expressions.
 * Small updates to SQL naming
+* Better error message when Azure CLI tooling cannot be found (https://github.com/CompositionalIT/farmer/pull/369)
 
 ## 1.1.0-beta1
 * AppInsights: Support for IP Masking and Sampling
