@@ -10,7 +10,7 @@ open FileShares
 
 type StorageAccount =
     /// Gets an ARM Expression connection string for any Storage Account.
-    static member GetConnectionString (name:string, ?resourceGroup:string) =
+    static member getConnectionString (name:string, ?resourceGroup:string) =
         let resourcePath =
             match resourceGroup with
             | Some resourceGroup -> ArmExpression.resourceId(storageAccounts, ResourceName name, resourceGroup).Value
@@ -21,8 +21,8 @@ type StorageAccount =
                 resourcePath
         |> ArmExpression.create
     /// Gets an ARM Expression connection string for any Storage Account.
-    static member GetConnectionString (name:StorageAccountName) =
-        StorageAccount.GetConnectionString(name.ResourceName.Value)
+    static member getConnectionString (name:StorageAccountName) =
+        StorageAccount.getConnectionString(name.ResourceName.Value)
 
 type StoragePolicy =
     { CoolBlobAfter : int<Days> option
@@ -51,7 +51,7 @@ type StorageAccountConfig =
       /// Tags to apply to the storage account
       Tags: Map<string,string> }
     /// Gets the ARM expression path to the key of this storage account.
-    member this.Key = StorageAccount.GetConnectionString this.Name
+    member this.Key = StorageAccount.getConnectionString this.Name
     /// Gets the Primary endpoint for static website (if enabled)
     member this.WebsitePrimaryEndpoint = sprintf "https://%s.z6.web.core.windows.net" this.Name.ResourceName.Value
     member this.Endpoint = sprintf "%s.blob.core.windows.net" this.Name.ResourceName.Value

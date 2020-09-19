@@ -6,16 +6,12 @@ open Farmer.CoreTypes
 open Farmer.Arm.Insights
 
 type AppInsights =
-    static member GetInstrumentationKey (name:ResourceName, ?resourceGroup:string) =
-        let aiResourceId =
-            match resourceGroup with
-            | Some resourceGroup -> ArmExpression.resourceId(components, name, resourceGroup)
-            | None -> ArmExpression.resourceId(components, name)
-
+    static member getInstrumentationKey (resourceId:ArmExpression) =
         ArmExpression
-            .reference(components, aiResourceId)
+            .reference(components, resourceId)
             .Map(fun r -> r + ".InstrumentationKey")
-    static member GetInstrumentationKey (name, resourceGroup) = AppInsights.GetInstrumentationKey(ResourceName name, resourceGroup)
+    static member resourceId (name:ResourceName) = ArmExpression.resourceId(components, name)
+    static member resourceId (name, group) = ArmExpression.resourceId(components, name, group)
 
 type AppInsightsConfig =
     { Name : ResourceName
@@ -23,7 +19,7 @@ type AppInsightsConfig =
       SamplingPercentage : int
       Tags : Map<string,string> }
     /// Gets the ARM expression path to the instrumentation key of this App Insights instance.
-    member this.InstrumentationKey = AppInsights.GetInstrumentationKey this.Name
+    member this.InstrumentationKey = AppInsights.getInstrumentationKey(ArmExpression.resourceId(components, this.Name))
     interface IBuilder with
         member this.DependencyName = this.Name
         member this.BuildResources location = [

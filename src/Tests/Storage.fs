@@ -133,9 +133,9 @@ let tests = testList "Storage Tests" [
         Expect.equal (rule.Definition.Filters.PrefixMatch |> Seq.toList) [ "foo/bar" ] "incorrect filter"
     }
     test "Creates connection strings correctly" {
-        let strongConn = StorageAccount.GetConnectionString (StorageAccountName.Create("account").OkValue)
-        let simpleConn = StorageAccount.GetConnectionString("account")
-        let rgConn = StorageAccount.GetConnectionString("account", "rg")
+        let strongConn = StorageAccount.getConnectionString (StorageAccountName.Create("account").OkValue)
+        let simpleConn = StorageAccount.getConnectionString("account")
+        let rgConn = StorageAccount.getConnectionString("account", "rg")
 
         Expect.equal "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'account'), '2017-10-01').keys[0].value)" strongConn.Value "Strong connection string"
         Expect.equal "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'account'), '2017-10-01').keys[0].value)" simpleConn.Value "Simple connection string"

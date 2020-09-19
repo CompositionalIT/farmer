@@ -8,23 +8,19 @@ open Farmer.Arm.DocumentDb
 open DatabaseAccounts
 open SqlDatabases
 
-type KeyType = Primary | Secondary member this.ArmValue = this.ToString().ToLower()
+type KeyType = PrimaryKey | SecondaryKey member this.ArmValue = match this with PrimaryKey -> "primary" | SecondaryKey -> "secondary"
 type KeyAccess = ReadWrite | ReadOnly member this.ArmValue = match this with ReadWrite -> "" | ReadOnly -> "readonly"
+type ConnectionStringKind = PrimaryConnectionString | SecondaryConnectionString member this.KeyIndex = match this with PrimaryConnectionString -> 0 | SecondaryConnectionString -> 1
 
 type CosmosDb =
     static member private providerPath = "providers('Microsoft.DocumentDb','databaseAccounts').apiVersions[0]"
-    static member GetKey (name:ResourceName, keyType:KeyType, keyAccess:KeyAccess) =
+    static member resourceId (name:ResourceName) = ArmExpression.resourceId(databaseAccounts, name)
+    static member resourceId (name, resourceGroup) = ArmExpression.resourceId(databaseAccounts, name, resourceGroup)
+    static member getKey (resourceId:ArmExpression, keyType:KeyType, keyAccess:KeyAccess) =
         let keyPath = sprintf "%s%sMasterKey" keyType.ArmValue keyAccess.ArmValue
-        ArmExpression
-            .resourceId(databaseAccounts, name)
-            .Map(fun db ->
-                sprintf
-                    "listKeys(%s, %s).%s" db CosmosDb.providerPath keyPath)
-
-    static member GetConnectionString (name:ResourceName, keyIndex) =
-        ArmExpression
-            .resourceId(databaseAccounts, name)
-            .Map(fun db -> sprintf "listConnectionStrings(%s, %s).connectionStrings[%i].connectionString" db CosmosDb.providerPath keyIndex)
+        resourceId.Map(fun db -> sprintf "listKeys(%s, %s).%s" db CosmosDb.providerPath keyPath)
+    static member getConnectionString (resourceId:ArmExpression, connectionStringKind:ConnectionStringKind) =
+        resourceId.Map(fun db -> sprintf "listConnectionStrings(%s, %s).connectionStrings[%i].connectionString" db CosmosDb.providerPath connectionStringKind.KeyIndex)
 
 type CosmosDbContainerConfig =
     { Name : ResourceName
@@ -41,14 +37,14 @@ type CosmosDbConfig =
       Containers : CosmosDbContainerConfig list
       PublicNetworkAccess : FeatureFlag
       FreeTier : bool
-      Tags: Map<string,string>  }
-    member private this.AccountResourceName = this.AccountName.CreateResourceName this
-    member this.PrimaryKey = CosmosDb.GetKey(this.AccountResourceName, Primary, ReadWrite)
-    member this.SecondaryKey = CosmosDb.GetKey(this.AccountResourceName, Secondary, ReadWrite)
-    member this.PrimaryReadonlyKey = CosmosDb.GetKey(this.AccountResourceName, Primary, ReadOnly)
-    member this.SecondaryReadonlyKey = CosmosDb.GetKey(this.AccountResourceName, Secondary, ReadOnly)
-    member this.PrimaryConnectionString = CosmosDb.GetConnectionString(this.AccountResourceName, 0)
-    member this.SecondaryConnectionString = CosmosDb.GetConnectionString(this.AccountResourceName, 1)
+      Tags: Map<string,string> }
+    member this.AccountResourceName = this.AccountName.CreateResourceName this
+    member this.PrimaryKey = CosmosDb.getKey(CosmosDb.resourceId this.AccountResourceName, PrimaryKey, ReadWrite)
+    member this.SecondaryKey = CosmosDb.getKey(CosmosDb.resourceId this.AccountResourceName, SecondaryKey, ReadWrite)
+    member this.PrimaryReadonlyKey = CosmosDb.getKey(CosmosDb.resourceId this.AccountResourceName, PrimaryKey, ReadOnly)
+    member this.SecondaryReadonlyKey = CosmosDb.getKey(CosmosDb.resourceId this.AccountResourceName, SecondaryKey, ReadOnly)
+    member this.PrimaryConnectionString = CosmosDb.getConnectionString(CosmosDb.resourceId this.AccountResourceName, PrimaryConnectionString)
+    member this.SecondaryConnectionString = CosmosDb.getConnectionString(CosmosDb.resourceId this.AccountResourceName, SecondaryConnectionString)
     member this.Endpoint =
         ArmExpression
             .reference(databaseAccounts, ArmExpression.resourceId(databaseAccounts, this.AccountResourceName))
@@ -85,9 +81,7 @@ type CosmosDbConfig =
                   UniqueKeyPolicy =
                     {| UniqueKeys =
                         container.UniqueKeys
-                        |> Set.map (fun uniqueKeyPath ->
-                            {| Paths = uniqueKeyPath |}
-                        )
+                        |> Set.map (fun uniqueKeyPath -> {| Paths = uniqueKeyPath |})
                     |}
                   IndexingPolicy =
                     {| ExcludedPaths = container.ExcludedPaths
