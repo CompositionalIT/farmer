@@ -36,12 +36,17 @@ let tests = testList "Cosmos" [
         Expect.equal "[listConnectionStrings(resourceId('Microsoft.DocumentDb/databaseAccounts', 'test-account'), providers('Microsoft.DocumentDb','databaseAccounts').apiVersions[0]).connectionStrings[1].connectionString]" (db.SecondaryConnectionString.Eval()) "Secondary Connection String is incorrect"
     }
     test "Correctly serializes to JSON" {
-        let t = arm {
-            add_resource (cosmosDb { name "test" })
-        }
+        let t = arm { add_resource (cosmosDb { name "test" }) }
 
         t.Template
         |> Writer.toJson
         |> ignore
+    }
+    test "Creates connection string and keys with resource groups" {
+        let conn = CosmosDb.getConnectionString("db", PrimaryConnectionString, "group").Eval()
+        let key = CosmosDb.getKey("db", PrimaryKey, ReadWrite, "group").Eval()
+
+        Expect.equal "[listKeys(resourceId('group', 'Microsoft.DocumentDb/databaseAccounts', 'db'), providers('Microsoft.DocumentDb','databaseAccounts').apiVersions[0]).primaryMasterKey]" key "Primary Key is incorrect"
+        Expect.equal "[listConnectionStrings(resourceId('group', 'Microsoft.DocumentDb/databaseAccounts', 'db'), providers('Microsoft.DocumentDb','databaseAccounts').apiVersions[0]).connectionStrings[0].connectionString]" conn "Primary Connection String is incorrect"
     }
 ]

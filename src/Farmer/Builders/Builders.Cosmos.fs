@@ -14,13 +14,15 @@ type ConnectionStringKind = PrimaryConnectionString | SecondaryConnectionString 
 
 type CosmosDb =
     static member private providerPath = "providers('Microsoft.DocumentDb','databaseAccounts').apiVersions[0]"
-    static member resourceId (name:ResourceName) = ArmExpression.resourceId(databaseAccounts, name)
-    static member resourceId (name, resourceGroup) = ArmExpression.resourceId(databaseAccounts, name, resourceGroup)
-    static member getKey (resourceId:ArmExpression, keyType:KeyType, keyAccess:KeyAccess) =
+    static member getKey (name, keyType:KeyType, keyAccess:KeyAccess, ?resourceGroup) =
+        let resourceId = ArmExpression.resourceId(databaseAccounts, name, ?group = resourceGroup)
         let keyPath = sprintf "%s%sMasterKey" keyType.ArmValue keyAccess.ArmValue
         resourceId.Map(fun db -> sprintf "listKeys(%s, %s).%s" db CosmosDb.providerPath keyPath)
-    static member getConnectionString (resourceId:ArmExpression, connectionStringKind:ConnectionStringKind) =
+    static member getKey (name, keyType, keyAccess, ?resourceGroup) = CosmosDb.getKey(ResourceName name, keyType, keyAccess, ?resourceGroup = resourceGroup)
+    static member getConnectionString (name, connectionStringKind:ConnectionStringKind, ?resourceGroup) =
+        let resourceId = ArmExpression.resourceId(databaseAccounts, name, ?group = resourceGroup)
         resourceId.Map(fun db -> sprintf "listConnectionStrings(%s, %s).connectionStrings[%i].connectionString" db CosmosDb.providerPath connectionStringKind.KeyIndex)
+    static member getConnectionString (name, connectionStringKind, ?resourceGroup) = CosmosDb.getConnectionString (ResourceName name, connectionStringKind, ?resourceGroup = resourceGroup)
 
 type CosmosDbContainerConfig =
     { Name : ResourceName
@@ -38,13 +40,13 @@ type CosmosDbConfig =
       PublicNetworkAccess : FeatureFlag
       FreeTier : bool
       Tags: Map<string,string> }
-    member this.AccountResourceName = this.AccountName.CreateResourceName this
-    member this.PrimaryKey = CosmosDb.getKey(CosmosDb.resourceId this.AccountResourceName, PrimaryKey, ReadWrite)
-    member this.SecondaryKey = CosmosDb.getKey(CosmosDb.resourceId this.AccountResourceName, SecondaryKey, ReadWrite)
-    member this.PrimaryReadonlyKey = CosmosDb.getKey(CosmosDb.resourceId this.AccountResourceName, PrimaryKey, ReadOnly)
-    member this.SecondaryReadonlyKey = CosmosDb.getKey(CosmosDb.resourceId this.AccountResourceName, SecondaryKey, ReadOnly)
-    member this.PrimaryConnectionString = CosmosDb.getConnectionString(CosmosDb.resourceId this.AccountResourceName, PrimaryConnectionString)
-    member this.SecondaryConnectionString = CosmosDb.getConnectionString(CosmosDb.resourceId this.AccountResourceName, SecondaryConnectionString)
+    member private this.AccountResourceName = this.AccountName.CreateResourceName this
+    member this.PrimaryKey = CosmosDb.getKey(this.AccountResourceName, PrimaryKey, ReadWrite)
+    member this.SecondaryKey = CosmosDb.getKey(this.AccountResourceName, SecondaryKey, ReadWrite)
+    member this.PrimaryReadonlyKey = CosmosDb.getKey(this.AccountResourceName, PrimaryKey, ReadOnly)
+    member this.SecondaryReadonlyKey = CosmosDb.getKey(this.AccountResourceName, SecondaryKey, ReadOnly)
+    member this.PrimaryConnectionString = CosmosDb.getConnectionString(this.AccountResourceName, PrimaryConnectionString)
+    member this.SecondaryConnectionString = CosmosDb.getConnectionString(this.AccountResourceName, SecondaryConnectionString)
     member this.Endpoint =
         ArmExpression
             .reference(databaseAccounts, ArmExpression.resourceId(databaseAccounts, this.AccountResourceName))

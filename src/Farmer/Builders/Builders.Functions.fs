@@ -38,7 +38,7 @@ type FunctionsConfig =
     /// Gets the ARM expression path to the storage account key of this functions app.
     member this.StorageAccountKey = StorageAccount.getConnectionString this.StorageAccountName
     /// Gets the ARM expression path to the app insights key of this functions app, if it exists.
-    member this.AppInsightsKey = this.AppInsightsName |> Option.map (AppInsights.resourceId >> AppInsights.getInstrumentationKey)
+    member this.AppInsightsKey = this.AppInsightsName |> Option.map AppInsights.getInstrumentationKey
     /// Gets the default key for the functions site
     member this.DefaultKey =
         sprintf "listkeys(concat(resourceId('Microsoft.Web/sites', '%s'), '/host/default/'),'2016-08-01').functionKeys.default" this.Name.Value
@@ -50,7 +50,7 @@ type FunctionsConfig =
     /// Gets the Service Plan name for this functions app.
     member this.ServicePlanName = this.ServicePlan.CreateResourceName this
     /// Gets the App Insights name for this functions app, if it exists.
-    member this.AppInsightsName = this.AppInsights |> Option.map (fun ai -> ai.CreateResourceName this)
+    member this.AppInsightsName : ResourceName option = this.AppInsights |> Option.map (fun ai -> ai.CreateResourceName this)
     /// Gets the Storage Account name for this functions app.
     member this.StorageAccountName : Storage.StorageAccountName = this.StorageAccount.CreateResourceName this |> Storage.StorageAccountName.Create |> Result.get
     interface IBuilder with
