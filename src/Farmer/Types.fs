@@ -41,8 +41,8 @@ open System
 type ResourceType =
     | ResourceType of path:string * version:string
     /// Returns the ARM resource type string value.
-    member this.Path = match this with ResourceType (p, _) -> p
-    member this.Version = match this with ResourceType (_, v) -> v
+    member this.Type = match this with ResourceType (p, _) -> p
+    member this.ApiVersion = match this with ResourceType (_, v) -> v
     member this.Create(name:ResourceName, ?location:Location, ?dependsOn:ResourceName list, ?tags:Map<string,string>) =
         match this with
         ResourceType (path, version) ->
@@ -76,18 +76,18 @@ type ArmExpression =
     /// Builds a resourceId ARM expression from the parts of a resource ID.
     static member resourceId (resourceType:ResourceType, name:ResourceName, ?group:string, ?subscriptionId:string) =
         match name, group, subscriptionId with
-        | name, Some group, Some sub -> sprintf "resourceId('%s', '%s', '%s', '%s')" sub group resourceType.Path name.Value
-        | name, Some group, None -> sprintf "resourceId('%s', '%s', '%s')" group resourceType.Path name.Value
-        | name, _, _ -> sprintf "resourceId('%s', '%s')" resourceType.Path name.Value
+        | name, Some group, Some sub -> sprintf "resourceId('%s', '%s', '%s', '%s')" sub group resourceType.Type name.Value
+        | name, Some group, None -> sprintf "resourceId('%s', '%s', '%s')" group resourceType.Type name.Value
+        | name, _, _ -> sprintf "resourceId('%s', '%s')" resourceType.Type name.Value
         |> ArmExpression.create
     static member resourceId (resourceType:ResourceType, [<ParamArray>] resourceSegments:ResourceName []) =
         sprintf
             "resourceId('%s', %s)"
-            resourceType.Path
+            resourceType.Type
             (resourceSegments |> Array.map (fun r -> sprintf "'%s'" r.Value) |> String.concat ", ")
         |> ArmExpression.create
     static member reference (resourceType:ResourceType, resourceId:ArmExpression) =
-        sprintf "reference(%s, '%s')" resourceId.Value resourceType.Version
+        sprintf "reference(%s, '%s')" resourceId.Value resourceType.ApiVersion
         |> ArmExpression.create
 
 /// A secure parameter to be captured in an ARM template.

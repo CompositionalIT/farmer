@@ -43,9 +43,8 @@ type ServerFarm =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = serverFarms.Path
-               apiVersion = serverFarms.Version
-               sku =
+            {| serverFarms.Create(this.Name, this.Location, tags = this.Tags) with
+                 sku =
                    {| name =
                         match this.Sku with
                         | Free ->
@@ -69,15 +68,12 @@ type ServerFarm =
                         | Serverless -> "Y1"
                       family = if this.IsDynamic then "Y" else null
                       capacity = if this.IsDynamic then 0 else this.WorkerCount |}
-               name = this.Name.Value
-               location = this.Location.ArmValue
-               properties =
-                    {| name = this.Name.Value
-                       computeMode = if this.IsDynamic then "Dynamic" else null
-                       perSiteScaling = if this.IsDynamic then Nullable() else Nullable false
-                       reserved = this.Reserved |}
-               kind = this.Kind |> Option.toObj
-               tags = this.Tags
+                 properties =
+                      {| name = this.Name.Value
+                         computeMode = if this.IsDynamic then "Dynamic" else null
+                         perSiteScaling = if this.IsDynamic then Nullable() else Nullable false
+                         reserved = this.Reserved |}
+                 kind = this.Kind |> Option.toObj
             |} :> _
 
 module ZipDeploy =
@@ -163,44 +159,39 @@ type Site =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = sites.Path
-               apiVersion = sites.Version
-               name = this.Name.Value
-               location = this.Location.ArmValue
-               dependsOn = this.Dependencies |> List.map(fun p -> p.Value)
-               kind = this.Kind
-               identity =
-                 match this.Identity with
-                 | Some Enabled -> box {| ``type`` = "SystemAssigned" |}
-                 | Some Disabled -> box {| ``type`` = "None" |}
-                 | None -> null
-               tags = this.Tags
-               properties =
-                    {| serverFarmId = this.ServicePlan.Value
-                       httpsOnly = this.HTTPSOnly
-                       clientAffinityEnabled = match this.ClientAffinityEnabled with Some v -> box v | None -> null
-                       siteConfig =
-                        {| alwaysOn = this.AlwaysOn
-                           appSettings = this.AppSettings |> Map.toList |> List.map(fun (k,v) -> {| name = k; value = v.Value |})
-                           connectionStrings = this.ConnectionStrings |> Map.toList |> List.map(fun (k,(v, t)) -> {| name = k; connectionString = v.Value; ``type`` = t.ToString() |})
-                           linuxFxVersion = this.LinuxFxVersion |> Option.toObj
-                           appCommandLine = this.AppCommandLine |> Option.toObj
-                           netFrameworkVersion = this.NetFrameworkVersion |> Option.toObj
-                           javaVersion = this.JavaVersion |> Option.toObj
-                           javaContainer = this.JavaContainer |> Option.toObj
-                           javaContainerVersion = this.JavaContainerVersion |> Option.toObj
-                           phpVersion = this.PhpVersion |> Option.toObj
-                           pythonVersion = this.PythonVersion |> Option.toObj
-                           http20Enabled = this.HTTP20Enabled |> Option.toNullable
-                           webSocketsEnabled = this.WebSocketsEnabled |> Option.toNullable
-                           metadata = this.Metadata |> List.map(fun (k,v) -> {| name = k; value = v |})
-                           cors =
-                            match this.Cors with
-                            | None -> null
-                            | Some AllOrigins -> box {| allowedOrigins = [ "*" ] |}
-                            | Some (SpecificOrigins origins) -> box {| allowedOrigins = origins |}
-                        |}
-                    |}
+            {| sites.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
+                 kind = this.Kind
+                 identity =
+                   match this.Identity with
+                   | Some Enabled -> box {| ``type`` = "SystemAssigned" |}
+                   | Some Disabled -> box {| ``type`` = "None" |}
+                   | None -> null
+                 properties =
+                      {| serverFarmId = this.ServicePlan.Value
+                         httpsOnly = this.HTTPSOnly
+                         clientAffinityEnabled = match this.ClientAffinityEnabled with Some v -> box v | None -> null
+                         siteConfig =
+                          {| alwaysOn = this.AlwaysOn
+                             appSettings = this.AppSettings |> Map.toList |> List.map(fun (k,v) -> {| name = k; value = v.Value |})
+                             connectionStrings = this.ConnectionStrings |> Map.toList |> List.map(fun (k,(v, t)) -> {| name = k; connectionString = v.Value; ``type`` = t.ToString() |})
+                             linuxFxVersion = this.LinuxFxVersion |> Option.toObj
+                             appCommandLine = this.AppCommandLine |> Option.toObj
+                             netFrameworkVersion = this.NetFrameworkVersion |> Option.toObj
+                             javaVersion = this.JavaVersion |> Option.toObj
+                             javaContainer = this.JavaContainer |> Option.toObj
+                             javaContainerVersion = this.JavaContainerVersion |> Option.toObj
+                             phpVersion = this.PhpVersion |> Option.toObj
+                             pythonVersion = this.PythonVersion |> Option.toObj
+                             http20Enabled = this.HTTP20Enabled |> Option.toNullable
+                             webSocketsEnabled = this.WebSocketsEnabled |> Option.toNullable
+                             metadata = this.Metadata |> List.map(fun (k,v) -> {| name = k; value = v |})
+                             cors =
+                              match this.Cors with
+                              | None -> null
+                              | Some AllOrigins -> box {| allowedOrigins = [ "*" ] |}
+                              | Some (SpecificOrigins origins) -> box {| allowedOrigins = origins |}
+                          |}
+                      |}
             |} :> _
 
 module Sites =

@@ -115,9 +115,7 @@ module Servers =
             interface IArmResource with
                 member this.ResourceName = this.Name
                 member this.JsonModel =
-                   {| ``type`` = transparentDataEncryption.Path
-                      apiVersion = transparentDataEncryption.Version
-                      comments = "Transparent Data Encryption"
-                      name = this.Name.Value
-                      properties = {| status = string Enabled |}
-                      dependsOn = [ this.Database.Value ] |} :> _
+                   {| transparentDataEncryption.Create(this.Name, dependsOn = [ this.Database ]) with
+                        comments = "Transparent Data Encryption"
+                        properties = {| status = string Enabled |}
+                   |} :> _
