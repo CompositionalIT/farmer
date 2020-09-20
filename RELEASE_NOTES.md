@@ -1,21 +1,23 @@
 Release Notes
 =============
 ## 1.1.0-beta2
-* Create Storage Account connection string expressions.
-* Small updates to SQL naming
+* Storage: Create connection string expressions.
+* CosmosDB: Create connection string and key expressions.
+* App Insights: Create key expressions.
+* SQL Azure: Small updates to type naming
+* Azure CLI: Better error message when Azure CLI be found (https://github.com/CompositionalIT/farmer/pull/369)
 * Internal updates to ARM resource construction
-* Better error message when Azure CLI tooling cannot be found (https://github.com/CompositionalIT/farmer/pull/369)
 
 ## 1.1.0-beta1
-* AppInsights: Support for IP Masking and Sampling
+* App Insights: Support for IP Masking and Sampling
 * AKS: Basic AKS support
 * Functions: Fix an issue with incorrect Service Plan linking
 * Storage: Data Lake support is now optional and off by default
 * Storage: Support for lifecycle policies
 * SQL Azure: Support for VCore model
 * SQL Azure: Support for specifying disk size
-* Support for adding a list of dependencies to resources
 * Web App: Support for Connection Strings
+* Support for adding a list of dependencies to resources
 
 ## 1.0.0
 * Formal release
