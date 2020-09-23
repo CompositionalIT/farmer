@@ -5,6 +5,20 @@ open Farmer
 open Farmer.VirtualNetworkGateway
 open Farmer.Arm.Network
 
+type VpnClientConfig =
+    { ClientAddressPools: IPAddressCidr list
+      ClientRootCertificates:
+          {| Name: string
+             PublicCertData: string
+          |} list
+      ClientRevokedCertificates: 
+          {|
+            Name: string
+            Thumbprint: string
+          |} list
+      ClientProtocols: VPNClientProtocol list
+    }
+
 type VNetGatewayConfig =
     { /// The name of the gateway
       Name : ResourceName
@@ -22,6 +36,8 @@ type VNetGatewayConfig =
       GatewayType : GatewayType
       /// VPN type - RouteBased or PolicyBased
       VpnType : VpnType
+      /// VPN client configuration for Point to Site connexion
+      VpnClientConfiguration: VpnClientConfig option
       /// Enable Border Gateway Protocol on this gateway
       EnableBgp : bool
       Tags: Map<string,string>  }
@@ -49,9 +65,56 @@ type VNetGatewayConfig =
                 GatewayType = this.GatewayType
                 VpnType = this.VpnType
                 EnableBgp = this.EnableBgp
+                VpnClientConfiguration = 
+                    this.VpnClientConfiguration
+                    |> Option.map (fun config -> 
+                        { VpnClientConfiguration.ClientAddressPools = config.ClientAddressPools
+                          ClientRootCertificates = config.ClientRootCertificates 
+                          ClientRevokedCertificates = config.ClientRevokedCertificates
+                          ClientProtocols = config.ClientProtocols } )
                 Tags = this.Tags
             }
         ]
+
+type VpnClientConfigurationBuilder() =
+    member __.Yield _ =
+        { ClientAddressPools = []
+          ClientRootCertificates = []
+          ClientRevokedCertificates = []
+          ClientProtocols = []
+        }
+
+    member __.Run(state: VpnClientConfig) =
+        match state.ClientProtocols with
+        | [] ->
+            { state with ClientProtocols = [ SSTP ]}
+        | _ -> state
+        
+
+    /// Adds an address pool which represents Address space for P2S VpnClient
+    [<CustomOperation "add_address_pool">]
+    member __.AddAddressPool(state: VpnClientConfig, prefix: IPAddressCidr) =
+        { state  with ClientAddressPools = state.ClientAddressPools @ [ prefix ] }
+    member this.AddAddressPool(state: VpnClientConfig, prefix: string) =
+        this.AddAddressPool(state, IPAddressCidr.parse prefix )
+
+    /// Adds the public root certificate to authenticate client VPN connexions
+    [<CustomOperation "add_root_certificate">]
+    member __.AddRootCertificate(state: VpnClientConfig, name: string, publicCertificate: string) =
+        { state  with ClientRootCertificates = state.ClientRootCertificates @ [ {| Name = name; PublicCertData = publicCertificate |} ] }
+
+    /// Adds the thumbprint of a revoked client certificate.
+    [<CustomOperation "add_revoked_certificate">]
+    member __.AddRevokedCertificate(state: VpnClientConfig, name: string, thumbprint: string) =
+        { state  with ClientRevokedCertificates = state.ClientRevokedCertificates @ [ {| Name = name; Thumbprint = thumbprint |} ] }
+
+    /// Sets the protocols for the client VPN connexion. Default is SSTP
+    [<CustomOperation "protocols">]
+    member __.SetProtocols(state: VpnClientConfig, protocols: VPNClientProtocol list) =
+        { state  with ClientProtocols = protocols  }
+ 
+
+let vpnclient = VpnClientConfigurationBuilder()
 
 type VnetGatewayBuilder() =
     member __.Yield _ =
@@ -64,6 +127,7 @@ type VnetGatewayBuilder() =
         GatewayType = GatewayType.Vpn VpnGatewaySku.VpnGw1
         VpnType = VpnType.RouteBased
         EnableBgp = true
+        VpnClientConfiguration = None
         Tags = Map.empty }
     /// Sets the name of the gateway
     [<CustomOperation "name">]
@@ -97,6 +161,10 @@ type VnetGatewayBuilder() =
     /// Disable BGP (enabled by default).
     [<CustomOperation "disable_bgp">]
     member __.DisableBgp(state:VNetGatewayConfig) = { state with EnableBgp = false }
+    [<CustomOperation "vpn_client">]
+    /// Sets the VPN Client configuration.
+    member __.SetVpnClient(state:VNetGatewayConfig, vpnClientConfig) = 
+        { state with VpnClientConfiguration = Some vpnClientConfig }
     [<CustomOperation "add_tags">]
     member _.Tags(state:VNetGatewayConfig, pairs) = 
         { state with 

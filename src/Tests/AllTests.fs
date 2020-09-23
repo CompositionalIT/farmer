@@ -27,6 +27,7 @@ let allTests =
                 Sql.tests
                 EventGrid.tests
                 WebApp.tests
+                VirtualNetworkGateway.tests
             ]
             testList "Control" [
                 Template.tests

@@ -60,6 +60,28 @@ type VirtualNetwork =
                             |})
                     |}
             |} :> _
+
+type VPNClientProtocol =
+    | IkeV2
+    | SSTP
+    | OpenVPN
+
+type VpnClientConfiguration =
+    {
+      ClientAddressPools: IPAddressCidr list
+      ClientRootCertificates:
+        {| Name: string
+           PublicCertData: string
+        |} list
+      ClientRevokedCertificates:
+        {|
+          Name: string
+          Thumbprint: string
+        |} list
+      ClientProtocols: VPNClientProtocol list
+    }
+
+
 type VirtualNetworkGateway =
     { Name : ResourceName
       Location : Location
@@ -70,6 +92,9 @@ type VirtualNetworkGateway =
       GatewayType : GatewayType
       VpnType : VpnType
       EnableBgp : bool
+
+      VpnClientConfiguration: VpnClientConfiguration option
+
       Tags: Map<string,string>  }
     interface IArmResource with
         member this.ResourceName = this.Name
@@ -103,9 +128,38 @@ type VirtualNetworkGateway =
                         gatewayType = this.GatewayType.ArmValue
                         vpnType = this.VpnType.ArmValue
                         enableBgp = this.EnableBgp
+                        vpnClientConfiguration =
+                            match this.VpnClientConfiguration with
+                            | Some vpnClientConfig ->
+                                box {|
+                                    vpnClientAddressPool =
+                                        {|
+                                            addressPrefixes = [ for prefix in vpnClientConfig.ClientAddressPools -> IPAddressCidr.format prefix  ]
+                                        |}
+                                    vpnClientProtocols = [ for protocol in vpnClientConfig.ClientProtocols do
+                                                            match protocol with
+                                                            | SSTP -> "SSTP"
+                                                            | IkeV2 -> "IkeV2"
+                                                            | OpenVPN -> "OpenVPN" ]
+                                    vpnClientRootCertificates =
+                                        [ for cert in vpnClientConfig.ClientRootCertificates ->
+                                            {| name = cert.Name
+                                               properties = {| publicCertData= cert.PublicCertData  |}
+                                            |}
+                                    ]
+                                    vpnClientRevokedCertificates =
+                                        [ for cert in vpnClientConfig.ClientRevokedCertificates ->
+                                            {| name = cert.Name
+                                               properties = {| thumbprint = cert.Thumbprint |} |}
+                                        ]
+                                    radiusServers = []
+                                    vpnClientIpsecPolicies = []
+                                |}
+                            | None -> null
                         activeActive = this.IpConfigs |> List.length > 1
                      |}
             |} :> _
+
 type Connection =
     { Name : ResourceName
       Location : Location
