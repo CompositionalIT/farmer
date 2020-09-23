@@ -1,5 +1,8 @@
 Release Notes
 =============
+## 1.1.0-beta3
+* Gateway: Add VPN Client configuration
+
 ## 1.1.0-beta2
 * Storage: Create connection string expressions.
 * CosmosDB: Create connection string and key expressions.
