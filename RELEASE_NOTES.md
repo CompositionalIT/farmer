@@ -1,5 +1,8 @@
 Release Notes
 =============
+## 1.1.0-beta3
+* Fix a bug whereby optional Location, Tags and DependsOn were set to empty lists instead of null when not required.
+
 ## 1.1.0-beta2
 * Storage: Create connection string expressions.
 * CosmosDB: Create connection string and key expressions.

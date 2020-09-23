@@ -184,4 +184,11 @@ let tests = testList "Template" [
     test "Does not fail if ARM expression contains an inner quote" {
         Expect.equal "[foo[test]]" ((ArmExpression.create "foo[test]").Eval()) "Failed on quoted ARM expression"
     }
+    test "Does not create empty nodes for core resource fields when nothing is supplied" {
+        let createdResource = ResourceType("Test", "2017-01-01").Create(ResourceName "Name")
+        Expect.equal
+            createdResource
+            {| name = "Name"; ``type`` = "Test"; apiVersion = "2017-01-01"; dependsOn = null; location = null; tags = null |}
+            "Default values don't match"
+    }
 ]
