@@ -186,10 +186,14 @@ type Site =
                              webSocketsEnabled = this.WebSocketsEnabled |> Option.toNullable
                              metadata = this.Metadata |> List.map(fun (k,v) -> {| name = k; value = v |})
                              cors =
-                              match this.Cors with
-                              | None -> null
-                              | Some AllOrigins -> box {| allowedOrigins = [ "*" ] |}
-                              | Some (SpecificOrigins origins) -> box {| allowedOrigins = origins |}
+                                this.Cors
+                                |> Option.map (function
+                                    | AllOrigins ->
+                                        box {| allowedOrigins = [ "*" ] |}
+                                    | SpecificOrigins (origins, credentials) ->
+                                        box {| allowedOrigins = origins
+                                               supportCredentials = credentials |> Option.toNullable |})
+                                |> Option.toObj
                           |}
                       |}
             |} :> _

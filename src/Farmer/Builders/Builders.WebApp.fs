@@ -447,9 +447,26 @@ type WebAppBuilder() =
     [<CustomOperation "disable_managed_identity">]
     member _.DisableManagedIdentity(state:WebAppConfig) =
         { state with Identity = Some Disabled }
+    /// sets the list of origins that should be allowed to make cross-origin calls. Use AllOrigins to allow all.
     [<CustomOperation "enable_cors">]
-    member _.EnableCors (state:WebAppConfig, origins) = { state with Cors = Some (SpecificOrigins (List.map Uri origins)) }
-    member _.EnableCors (state:WebAppConfig, cors) = { state with Cors = Some cors }
+    member _.EnableCors (state:WebAppConfig, origins) =
+        { state with
+            Cors =
+                match origins with
+                | [ "*" ] -> Some AllOrigins
+                | origins -> Some (SpecificOrigins (List.map Uri origins, None))
+        }
+    member _.EnableCors (state:WebAppConfig, origins) = { state with Cors = Some origins }
+    /// Allows CORS requests with credentials.
+    [<CustomOperation "enable_cors_credentials">]
+    member _.EnableCorsCredentials (state:WebAppConfig) =
+        { state with
+            Cors =
+                state.Cors
+                |> Option.map (function
+                | SpecificOrigins (origins, _) -> SpecificOrigins (origins, Some true)
+                | AllOrigins -> failwith "You cannot enable CORS Credentials if you have already set CORS to AllOrigins.")
+        }
     [<CustomOperation "source_control">]
     member _.SourceControl(state:WebAppConfig, url, branch) =
         { state with

@@ -231,9 +231,20 @@ type FunctionsBuilder() =
     member __.DependsOn(state:FunctionsConfig, resource:IArmResource) = { state with Dependencies = resource.ResourceName :: state.Dependencies }
     member __.DependsOn(state:FunctionsConfig, resources:IArmResource list) = { state with Dependencies = List.concat [ resources |> List.map (fun x -> x.ResourceName); state.Dependencies ] }
 
+    /// sets the list of origins that should be allowed to make cross-origin calls. Use AllOrigins to allow all.
     [<CustomOperation "enable_cors">]
-    member _.EnableCors (state:FunctionsConfig, origins) = { state with Cors = Some (SpecificOrigins (List.map Uri origins)) }
-    member _.EnableCors (state:FunctionsConfig, cors) = { state with Cors = Some cors }
+    member _.EnableCors (state:FunctionsConfig, origins) = { state with Cors = Some (SpecificOrigins (List.map Uri origins, None)) }
+    member _.EnableCors (state:FunctionsConfig, origins) = { state with Cors = Some origins }
+    /// Allows CORS requests with credentials.
+    [<CustomOperation "enable_cors_credentials">]
+    member _.EnableCorsCredentials (state:FunctionsConfig) =
+        { state with
+            Cors =
+                state.Cors
+                |> Option.map (function
+                | SpecificOrigins (origins, _) -> SpecificOrigins (origins, Some true)
+                | AllOrigins -> failwith "You cannot enable CORS Credentials if you have already set CORS to AllOrigins.")
+        }
     [<CustomOperation "enable_managed_identity">]
     member _.EnableManagedIdentity(state:FunctionsConfig) =
         { state with Identity = Some Enabled }

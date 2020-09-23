@@ -32,6 +32,7 @@ The Functions builder is used to create Azure Functions accounts. It abstracts t
 | settings | Sets a list of app setting of the web app as tuples in the form of ("key", "value"). |
 | depends_on | Sets dependencies for the web app. |
 | enable_cors | Enables CORS support for the app. Either specify AllOrigins or a list of valid URIs. |
+| enable_cors_credentials | Allows CORS requests with credentials. |
 
 #### Post-deployment Builder Keywords
 The Functions builder contains special commands that are executed *after* the ARM deployment is completed.

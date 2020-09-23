@@ -1,6 +1,7 @@
 Release Notes
 =============
 ## 1.1.0-beta3
+* Web App / Functions: Allow CORS enable credentials (https://github.com/CompositionalIT/farmer/issues/265)
 * Fix a bug whereby optional Location, Tags and DependsOn were set to empty lists instead of null when not required.
 
 ## 1.1.0-beta2

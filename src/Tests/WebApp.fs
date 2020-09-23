@@ -7,8 +7,15 @@ open Farmer.WebApp
 open Farmer.Arm
 open System
 open Farmer.CoreTypes
+open Microsoft.Azure.Management.WebSites
+open Microsoft.Azure.Management.WebSites.Models
+open Microsoft.Rest
 
 let getResource<'T when 'T :> IArmResource> (data:IArmResource list) = data |> List.choose(function :? 'T as x -> Some x | _ -> None)
+/// Client instance needed to get the serializer settings.
+let dummyClient = new WebSiteManagementClient (Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
+let getResourceAtIndex o = o |> getResourceAtIndex dummyClient.SerializationSettings
+
 let tests = testList "Web App Tests" [
     let getResources (wa:WebAppConfig) = (wa :> IBuilder).BuildResources Location.WestEurope
     test "Basic Web App has service plan and AI dependencies set" {
@@ -66,5 +73,44 @@ let tests = testList "Web App Tests" [
 
         Expect.equal wa.ConnectionStrings (Map expected) "Missing connections"
         Expect.equal parameters.SecureParameters [ SecureParameter "a" ] "Missing parameter"
+    }
+    test "CORS works correctly" {
+        let wa : Site =
+            webApp {
+                name "test"
+                enable_cors [ "https://bbc.co.uk" ]
+                enable_cors_credentials
+            }
+            |> getResourceAtIndex 0
+        Expect.sequenceEqual wa.SiteConfig.Cors.AllowedOrigins [ "https://bbc.co.uk" ] "Allowed Origins should be *"
+        Expect.equal wa.SiteConfig.Cors.SupportCredentials (Nullable true) "Support Credentials"
+    }
+
+    test "If CORS is AllOrigins, cannot enable credentials" {
+        Expect.throws (fun () ->
+            webApp {
+                name "test"
+                enable_cors AllOrigins
+                enable_cors_credentials
+            } |> ignore) "Invalid CORS combination"
+    }
+
+    test "Automatically converts from * to AllOrigins" {
+        let wa : Site =
+            webApp { name "test"; enable_cors [ "*" ] } |> getResourceAtIndex 0
+        Expect.sequenceEqual wa.SiteConfig.Cors.AllowedOrigins [ "*" ] "Allowed Origins should be *"
+    }
+
+    test "CORS without credentials does not crash" {
+        let _ = webApp { name "test"; enable_cors AllOrigins }
+        let _ = webApp { name "test"; enable_cors [ "https://bbc.co.uk" ] }
+        ()
+    }
+
+
+    test "If CORS is not enabled, ignores enable credentials" {
+        let wa : Site =
+            webApp { name "test"; enable_cors_credentials } |> getResourceAtIndex 0
+        Expect.isNull wa.SiteConfig.Cors "Should be no CORS settings"
     }
 ]
