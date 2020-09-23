@@ -78,7 +78,7 @@ type ArmExpression =
         match name, group, subscriptionId with
         | name, Some group, Some sub -> sprintf "resourceId('%s', '%s', '%s', '%s')" sub group resourceType.Type name.Value
         | name, Some group, None -> sprintf "resourceId('%s', '%s', '%s')" group resourceType.Type name.Value
-        | name, _, _ -> sprintf "resourceId('%s', '%s')" resourceType.Type name.Value
+        | name, None, _ -> sprintf "resourceId('%s', '%s')" resourceType.Type name.Value
         |> ArmExpression.create
     static member resourceId (resourceType:ResourceType, [<ParamArray>] resourceSegments:ResourceName []) =
         sprintf

@@ -19,6 +19,8 @@ type CognitiveServicesConfig =
       Sku : Sku
       Api : Kind
       Tags: Map<string,string>  }
+    /// Gets an ARM expression to the key of this Cognitive Services instance.
+    member this.Key = CognitiveServices.getKey this.Name
     interface IBuilder with
         member this.DependencyName = this.Name
         member this.BuildResources location = [
@@ -28,8 +30,6 @@ type CognitiveServicesConfig =
               Kind = this.Api
               Tags = this.Tags }
         ]
-    /// Gets an ARM expression to the key of this Cognitive Services instance.
-    member this.Key = CognitiveServices.getKey this.Name
 
 type CognitiveServicesBuilder() =
     member _.Yield _ =
