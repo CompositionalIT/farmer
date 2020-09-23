@@ -15,7 +15,13 @@ The Cognitive Services builder is used to create Azure Cognitive Services instan
 |-|-|
 | name | Sets the name of the Cognitive Services instance. |
 | sku | Sets the SKU of the instance. Defaults to F0 (free). |
-| api | Specifies the API to use for the service instance. Defaults to `AllInOne`. |
+| api | Specifies the Kind of api to use for the service instance. Defaults to `AllInOne`. |
+
+#### Configuration Members
+
+| Member | Purpose |
+|-|-|
+| Key | Gets the ARM expression path to the Key of this Cognitive Services instance. |
 
 #### Example
 ```fsharp
@@ -27,4 +33,6 @@ let translator = cognitiveServices {
     sku CognitiveServices.F0
     api CognitiveServices.AnomalyDetector
 }
+
+let key : ArmExpression = translator.Key
 ```
