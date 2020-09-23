@@ -50,8 +50,8 @@ type ResourceType =
                apiVersion = version
                name = name.Value
                location = location |> Option.map(fun r -> r.ArmValue) |> Option.toObj
-               dependsOn = dependsOn |> Option.defaultValue [] |> List.map(fun r -> r.Value)
-               tags = tags |> Option.defaultValue Map.empty |}
+               dependsOn = dependsOn |> Option.map (List.map(fun r -> r.Value) >> box) |> Option.toObj
+               tags = tags |> Option.map box |> Option.toObj |}
 
 /// Represents an expression used within an ARM template
 type ArmExpression =

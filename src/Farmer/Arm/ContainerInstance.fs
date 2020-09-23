@@ -14,6 +14,8 @@ type ContainerGroupIpAddress =
         {| Protocol : TransmissionProtocol
            Port : uint16 |} Set }
 
+type EnvVarValue = EnvValue of string | EnvSecureValue of string
+
 type ContainerGroup =
     { Name : ResourceName
       Location : Location
@@ -23,7 +25,7 @@ type ContainerGroup =
            Ports : uint16 Set
            Cpu : int
            Memory : float<Gb>
-           EnvironmentVariables: Map<string, {| Value:string; Secure:bool |}>
+           EnvironmentVariables: Map<string, EnvVarValue>
            VolumeMounts : Map<string,string>
         |} list
       OperatingSystem : OS
@@ -63,8 +65,9 @@ type ContainerGroup =
                                       ports = container.Ports |> Set.map (fun port -> {| port = port |})
                                       environmentVariables = [
                                           for (key, value) in Map.toSeq container.EnvironmentVariables do
-                                              if value.Secure then {| name = key; value = null; secureValue = value.Value |}
-                                              else {| name = key; value = value.Value; secureValue = null |}
+                                              match value with
+                                              | EnvValue v -> {| name = key; value = v; secureValue = null |}
+                                              | EnvSecureValue v -> {| name = key; value = null; secureValue = v |}
                                       ]
                                       resources =
                                        {| requests =
