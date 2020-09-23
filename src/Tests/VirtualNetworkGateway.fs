@@ -47,7 +47,11 @@ let tests = testList "VirtualNetworkGateway" [
                     name "gateway" 
                     vpn_client (vpnclient 
                         {   add_root_certificate "root" "certdata"
-                            add_root_certificate "root2" "certdata2"
+                            add_root_certificate "root2" """
+-----BEGIN CERTIFICATE-----
+IQfNUTod7Jl7ZOacFlV3fvJTANBgkqh
+TER7A0qo591ewpAPMpugHh9eQ3ucR5o
+-----END CERTIFICATE-----"""
                         })
                 } :> IBuilder
         let resources = b.BuildResources Location.WestEurope
@@ -55,7 +59,7 @@ let tests = testList "VirtualNetworkGateway" [
         Expect.isSome gw.VpnClientConfiguration  "Incorrect VpnClientConfiguration"
         Expect.equal gw.VpnClientConfiguration.Value.ClientRootCertificates 
                     [ {| Name = "root"; PublicCertData = "certdata" |}
-                      {| Name = "root2"; PublicCertData = "certdata2" |}] "Incorect Root Certificates"
+                      {| Name = "root2"; PublicCertData = "IQfNUTod7Jl7ZOacFlV3fvJTANBgkqhTER7A0qo591ewpAPMpugHh9eQ3ucR5o" |}] "Incorect Root Certificates"
     }
 
     test "Can create a VirtualNetworkGateway with revoked client certs" {

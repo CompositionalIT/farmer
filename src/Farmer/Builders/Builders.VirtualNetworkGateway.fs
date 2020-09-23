@@ -101,7 +101,15 @@ type VpnClientConfigurationBuilder() =
     /// Adds the public root certificate to authenticate client VPN connexions
     [<CustomOperation "add_root_certificate">]
     member __.AddRootCertificate(state: VpnClientConfig, name: string, publicCertificate: string) =
-        { state  with ClientRootCertificates = state.ClientRootCertificates @ [ {| Name = name; PublicCertData = publicCertificate |} ] }
+        let certData =
+            if System.Text.RegularExpressions.Regex.IsMatch(publicCertificate,"\s*-----BEGIN CERTIFICATE-----", System.Text.RegularExpressions.RegexOptions.Multiline) then
+                publicCertificate.Split('\r','\n')
+                |> Seq.filter(fun l -> not (l.StartsWith "-----" && l.EndsWith "-----"))
+                |> String.concat ""
+            else
+                publicCertificate
+        
+        { state  with ClientRootCertificates = state.ClientRootCertificates @ [ {| Name = name; PublicCertData = certData |} ] }
 
     /// Adds the thumbprint of a revoked client certificate.
     [<CustomOperation "add_revoked_certificate">]
