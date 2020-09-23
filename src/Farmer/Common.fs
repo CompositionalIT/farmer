@@ -358,7 +358,7 @@ module Storage =
 
 module WebApp =
     type WorkerSize = Small | Medium | Large | Serverless
-    type Cors = AllOrigins | SpecificOrigins of Uri list
+    type Cors = AllOrigins | SpecificOrigins of origins : Uri list * allowCredentials : bool option
     type Sku =
         | Shared
         | Free
