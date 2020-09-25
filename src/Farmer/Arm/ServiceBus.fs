@@ -114,7 +114,7 @@ type Namespace =
     { Name : ResourceName
       Location : Location
       Sku : Sku
-      DependsOn : ResourceName list
+      DependsOn : ResourceId list
       Tags: Map<string,string>  }
     member this.Capacity =
         match this.Sku with
@@ -126,7 +126,7 @@ type Namespace =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| namespaces.Create(this.Name, this.Location, this.DependsOn, this.Tags) with
+            {| namespaces.Create(this.Name, this.DependsOn, this.Location, this.Tags) with
                 sku =
                      {| name = string this.Sku
                         tier = string this.Sku

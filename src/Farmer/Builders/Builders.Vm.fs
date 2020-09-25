@@ -32,7 +32,6 @@ type VmConfig =
       SubnetPrefix : string
       Subnet : AutoCreationKind<VmConfig>
 
-      DependsOn : ResourceName list
       Tags: Map<string,string> }
 
     member internal this.deriveResourceName = makeName this.Name >> ResourceName
@@ -137,12 +136,11 @@ type VirtualMachineBuilder() =
           CustomScript = None
           CustomScriptFiles = []
           DomainNamePrefix = None
-          OsDisk = { Size = 128; DiskType = DiskType.Standard_LRS }
+          OsDisk = { Size = 128; DiskType = Standard_LRS }
           AddressPrefix = "10.0.0.0/16"
           SubnetPrefix = "10.0.0.0/24"
           VNet = derived (fun config -> config.deriveResourceName "vnet")
           Subnet = Derived(fun config -> config.deriveResourceName "subnet")
-          DependsOn = []
           Tags = Map.empty }
 
     member __.Run (state:VmConfig) =
@@ -212,13 +210,6 @@ type VirtualMachineBuilder() =
     member __.LinkToVNet(state:VmConfig, name) = { state with VNet = External (Managed name) }
     member this.LinkToVNet(state:VmConfig, name) = this.LinkToVNet(state, ResourceName name)
     member this.LinkToVNet(state:VmConfig, vnet:Arm.Network.VirtualNetwork) = this.LinkToVNet(state, vnet.Name)
-    [<CustomOperation "depends_on">]
-    member __.DependsOn(state:VmConfig, resourceName) = { state with DependsOn = resourceName :: state.DependsOn }
-    member __.DependsOn(state:VmConfig, resources) = { state with DependsOn = List.concat [ resources; state.DependsOn ] }
-    member __.DependsOn(state:VmConfig, resource:IBuilder) = { state with DependsOn = resource.DependencyName :: state.DependsOn }
-    member __.DependsOn(state:VmConfig, builders:IBuilder list) = { state with DependsOn = List.concat [ builders |> List.map (fun x -> x.DependencyName); state.DependsOn ] }
-    member __.DependsOn(state:VmConfig, resource:IArmResource) = { state with DependsOn = resource.ResourceName :: state.DependsOn }
-    member __.DependsOn(state:VmConfig, resources:IArmResource list) = { state with DependsOn = List.concat [ resources |> List.map (fun x -> x.ResourceName); state.DependsOn ] }
 
     [<CustomOperation "custom_script">]
     member _.CustomScript(state:VmConfig, script:string) = { state with CustomScript = Some script }

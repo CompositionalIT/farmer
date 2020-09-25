@@ -350,13 +350,17 @@ type SecretBuilder() =
     member __.ActivationDate(state:SecretConfig, activationDate) = { state with ActivationDate = Some activationDate }
     [<CustomOperation "expiration_date">]
     member __.ExpirationDate(state:SecretConfig, expirationDate) = { state with ExpirationDate = Some expirationDate }
+
+    member private _.AddDependency (state:SecretConfig, resourceName:ResourceName) = { state with Dependencies = ResourceId.create resourceName :: state.Dependencies }
+    member private _.AddDependencies (state:SecretConfig, resourceNames:ResourceName list) = { state with Dependencies = (resourceNames |> List.map ResourceId.create) @ state.Dependencies }
+    /// Sets a dependency for the web app.
     [<CustomOperation "depends_on">]
-    member __.DependsOn(state:SecretConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
-    member __.DependsOn(state:SecretConfig, resources) = { state with Dependencies = List.concat [ resources; state.Dependencies ] }
-    member __.DependsOn(state:SecretConfig, builder:IBuilder) = { state with Dependencies = ResourceId.create builder.DependencyName :: state.Dependencies }
-    member __.DependsOn(state:SecretConfig, builders:IBuilder list) = { state with Dependencies = List.concat [ builders |> List.map (fun x -> ResourceId.create x.DependencyName); state.Dependencies ] }
-    member __.DependsOn(state:SecretConfig, resource:IArmResource) = { state with Dependencies = ResourceId.create resource.ResourceName :: state.Dependencies }
-    member __.DependsOn(state:SecretConfig, resources:IArmResource list) = { state with Dependencies = List.concat [ resources |> List.map (fun x -> ResourceId.create x.ResourceName); state.Dependencies ] }
+    member this.DependsOn(state:SecretConfig, resourceName) = this.AddDependency(state, resourceName)
+    member this.DependsOn(state:SecretConfig, resources) = this.AddDependencies(state, resources)
+    member this.DependsOn(state:SecretConfig, builder:IBuilder) = this.AddDependency(state, builder.DependencyName)
+    member this.DependsOn(state:SecretConfig, builders:IBuilder list) = this.AddDependencies(state, builders |> List.map (fun x -> x.DependencyName))
+    member this.DependsOn(state:SecretConfig, resource:IArmResource) = this.AddDependency(state, resource.ResourceName)
+    member this.DependsOn(state:SecretConfig, resources:IArmResource list) = this.AddDependencies(state, resources |> List.map (fun x -> x.ResourceName))
 
 let secret = SecretBuilder()
 let keyVault = KeyVaultBuilder()

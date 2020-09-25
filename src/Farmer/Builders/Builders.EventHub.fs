@@ -151,14 +151,17 @@ type EventHubBuilder() =
             CaptureDestination = Some (StorageAccount(storageName, container)) }
     member this.CaptureToStorage(state:EventHubConfig, storageAccount:StorageAccountConfig, container) =
         this.CaptureToStorage(state, storageAccount.Name.ResourceName, container)
-    /// Sets a dependency for the event hub.
+
+    member private _.AddDependency (state:EventHubConfig, resourceName:ResourceName) = { state with Dependencies = ResourceId.create resourceName :: state.Dependencies }
+    member private _.AddDependencies (state:EventHubConfig, resourceNames:ResourceName list) = { state with Dependencies = (resourceNames |> List.map ResourceId.create) @ state.Dependencies }
+    /// Sets a dependency for the web app.
     [<CustomOperation "depends_on">]
-    member __.DependsOn(state:EventHubConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
-    member __.DependsOn(state:EventHubConfig, resources) = { state with Dependencies = List.concat [ resources; state.Dependencies ] }
-    member __.DependsOn(state:EventHubConfig, builder:IBuilder) = { state with Dependencies = ResourceId.create builder.DependencyName :: state.Dependencies }
-    member __.DependsOn(state:EventHubConfig, builders:IBuilder list) = { state with Dependencies = List.concat [ builders |> List.map (fun x -> ResourceId.create x.DependencyName); state.Dependencies ] }
-    member __.DependsOn(state:EventHubConfig, resource:IArmResource) = { state with Dependencies = ResourceId.create resource.ResourceName :: state.Dependencies }
-    member __.DependsOn(state:EventHubConfig, resources:IArmResource list) = { state with Dependencies = List.concat [ resources |> List.map (fun x -> ResourceId.create x.ResourceName); state.Dependencies ] }
+    member this.DependsOn(state:EventHubConfig, resourceName) = this.AddDependency(state, resourceName)
+    member this.DependsOn(state:EventHubConfig, resources) = this.AddDependencies(state, resources)
+    member this.DependsOn(state:EventHubConfig, builder:IBuilder) = this.AddDependency(state, builder.DependencyName)
+    member this.DependsOn(state:EventHubConfig, builders:IBuilder list) = this.AddDependencies(state, builders |> List.map (fun x -> x.DependencyName))
+    member this.DependsOn(state:EventHubConfig, resource:IArmResource) = this.AddDependency(state, resource.ResourceName)
+    member this.DependsOn(state:EventHubConfig, resources:IArmResource list) = this.AddDependencies(state, resources |> List.map (fun x -> x.ResourceName))
 
     [<CustomOperation "add_tags">]
     member _.Tags(state:EventHubConfig, pairs) =

@@ -24,9 +24,9 @@ type Profile =
 
 module Profiles =
     type Endpoint =
-        { Profile : ResourceName
-          Name : ResourceName
-          DependsOn : ResourceName list
+        { Name : ResourceName
+          Profile : ResourceId
+          DependsOn : ResourceId list
           CompressedContentTypes : string Set
           QueryStringCachingBehaviour : QueryStringCachingBehaviour
           Http : FeatureFlag
@@ -38,7 +38,7 @@ module Profiles =
         interface IArmResource with
             member this.ResourceName: ResourceName = this.Name
             member this.JsonModel =
-                {| endpoints.Create(this.Profile + this.Name, Location.Global, this.Profile :: this.DependsOn, this.Tags) with
+                {| endpoints.Create(this.Profile.Name + this.Name, this.Profile :: this.DependsOn, Location.Global, this.Tags) with
                        properties =
                             {| originHostHeader = this.Origin
                                queryStringCachingBehavior = string this.QueryStringCachingBehaviour

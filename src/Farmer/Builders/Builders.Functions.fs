@@ -231,13 +231,17 @@ type FunctionsBuilder() =
     [<CustomOperation "secret_setting">]
     member __.AddSecret(state:FunctionsConfig, key) =
         { state with Settings = state.Settings.Add(key, ParameterSetting (SecureParameter key)) }
+
+    member private _.AddDependency (state:FunctionsConfig, resourceName:ResourceName) = { state with Dependencies = ResourceId.create resourceName :: state.Dependencies }
+    member private _.AddDependencies (state:FunctionsConfig, resourceNames:ResourceName list) = { state with Dependencies = (resourceNames |> List.map ResourceId.create) @ state.Dependencies }
+    /// Sets a dependency for the web app.
     [<CustomOperation "depends_on">]
-    member __.DependsOn(state:FunctionsConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
-    member __.DependsOn(state:FunctionsConfig, resources) = { state with Dependencies = List.concat [ resources; state.Dependencies ] }
-    member __.DependsOn(state:FunctionsConfig, resource:IBuilder) = { state with Dependencies = ResourceId.create resource.DependencyName :: state.Dependencies }
-    member __.DependsOn(state:FunctionsConfig, builders:IBuilder list) = { state with Dependencies = List.concat [ builders |> List.map (fun x -> ResourceId.create x.DependencyName); state.Dependencies ] }
-    member __.DependsOn(state:FunctionsConfig, resource:IArmResource) = { state with Dependencies = ResourceId.create resource.ResourceName :: state.Dependencies }
-    member __.DependsOn(state:FunctionsConfig, resources:IArmResource list) = { state with Dependencies = List.concat [ resources |> List.map (fun x -> ResourceId.create x.ResourceName); state.Dependencies ] }
+    member this.DependsOn(state:FunctionsConfig, resourceName) = this.AddDependency(state, resourceName)
+    member this.DependsOn(state:FunctionsConfig, resources) = this.AddDependencies(state, resources)
+    member this.DependsOn(state:FunctionsConfig, builder:IBuilder) = this.AddDependency(state, builder.DependencyName)
+    member this.DependsOn(state:FunctionsConfig, builders:IBuilder list) = this.AddDependencies(state, builders |> List.map (fun x -> x.DependencyName))
+    member this.DependsOn(state:FunctionsConfig, resource:IArmResource) = this.AddDependency(state, resource.ResourceName)
+    member this.DependsOn(state:FunctionsConfig, resources:IArmResource list) = this.AddDependencies(state, resources |> List.map (fun x -> x.ResourceName))
 
     /// sets the list of origins that should be allowed to make cross-origin calls. Use AllOrigins to allow all.
     [<CustomOperation "enable_cors">]
