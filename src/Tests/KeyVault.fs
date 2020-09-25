@@ -44,7 +44,7 @@ let tests = testList "KeyVault" [
         let sa = storageAccount { name "storage" }
         let expressionSecret = SecretConfig.create("test", sa.Key)
         Expect.equal expressionSecret.Value (ExpressionSecret sa.Key) "Invalid value of expression secret"
-        Expect.sequenceEqual expressionSecret.Dependencies [ sa.Name.ResourceName ] "Missing storage account dependency"
+        Expect.sequenceEqual expressionSecret.Dependencies [ ResourceId.create(Farmer.Arm.Storage.storageAccounts, sa.Name.ResourceName) ] "Missing storage account dependency"
 
         Expect.throws (fun _ -> SecretConfig.create("bad", (ArmExpression.literal "foo")) |> ignore) "Should throw exception on expression with no owner"
     }

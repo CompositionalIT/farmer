@@ -46,7 +46,7 @@ type SecretConfig =
       Enabled : bool option
       ActivationDate : DateTime option
       ExpirationDate : DateTime option
-      Dependencies : ResourceName list }
+      Dependencies : ResourceId list }
     static member internal createUnsafe key =
         { Key = key
           Value = ParameterSecret(SecureParameter key)
@@ -79,7 +79,7 @@ type SecretConfig =
             Value = ExpressionSecret expression
             Dependencies =
                 match expression.Owner with
-                | Some owner -> [ owner.Name ]
+                | Some owner -> [ owner ]
                 | None -> failwithf "The supplied ARM expression ('%s') has no resource owner. You should explicitly set this using WithOwner(), supplying the Resource Name of the owner." expression.Value
         }
 
@@ -92,7 +92,7 @@ type KeyVaultConfig =
       NetworkAcl : NetworkAcl
       Uri : Uri option
       Secrets : SecretConfig list
-      Dependencies : ResourceName list
+      Dependencies : ResourceId list
       Tags: Map<string,string>  }
       interface IBuilder with
         member this.DependencyName = this.Name
@@ -145,7 +145,7 @@ type KeyVaultConfig =
                   ActivationDate = secret.ActivationDate
                   ExpirationDate = secret.ExpirationDate
                   Location = location
-                  Dependencies = this.Name :: secret.Dependencies }
+                  Dependencies = ResourceId.create this.Name :: secret.Dependencies }
         ]
 
 type AccessPolicyBuilder() =
@@ -209,7 +209,7 @@ type KeyVaultBuilderState =
       Policies : AccessPolicyConfig list
       Uri : Uri option
       Secrets : SecretConfig list
-      Dependencies : ResourceName list
+      Dependencies : ResourceId list
       Tags: Map<string,string> }
 
 type KeyVaultBuilder() =
@@ -353,10 +353,10 @@ type SecretBuilder() =
     [<CustomOperation "depends_on">]
     member __.DependsOn(state:SecretConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
     member __.DependsOn(state:SecretConfig, resources) = { state with Dependencies = List.concat [ resources; state.Dependencies ] }
-    member __.DependsOn(state:SecretConfig, builder:IBuilder) = { state with Dependencies = builder.DependencyName :: state.Dependencies }
-    member __.DependsOn(state:SecretConfig, builders:IBuilder list) = { state with Dependencies = List.concat [ builders |> List.map (fun x -> x.DependencyName); state.Dependencies ] }
-    member __.DependsOn(state:SecretConfig, resource:IArmResource) = { state with Dependencies = resource.ResourceName :: state.Dependencies }
-    member __.DependsOn(state:SecretConfig, resources:IArmResource list) = { state with Dependencies = List.concat [ resources |> List.map (fun x -> x.ResourceName); state.Dependencies ] }
+    member __.DependsOn(state:SecretConfig, builder:IBuilder) = { state with Dependencies = ResourceId.create builder.DependencyName :: state.Dependencies }
+    member __.DependsOn(state:SecretConfig, builders:IBuilder list) = { state with Dependencies = List.concat [ builders |> List.map (fun x -> ResourceId.create x.DependencyName); state.Dependencies ] }
+    member __.DependsOn(state:SecretConfig, resource:IArmResource) = { state with Dependencies = ResourceId.create resource.ResourceName :: state.Dependencies }
+    member __.DependsOn(state:SecretConfig, resources:IArmResource list) = { state with Dependencies = List.concat [ resources |> List.map (fun x -> ResourceId.create x.ResourceName); state.Dependencies ] }
 
 let secret = SecretBuilder()
 let keyVault = KeyVaultBuilder()

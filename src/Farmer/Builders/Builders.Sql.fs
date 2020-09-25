@@ -39,7 +39,7 @@ type SqlAzureConfig =
                 this.AdministratorCredentials.Password.AsArmRef
                 ArmExpression.literal ";MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
             ]
-        expr.WithOwner (ResourceId.create database.Name)
+        expr.WithOwner (ResourceId.create(databases, database.Name))
     member this.ConnectionString databaseName =
         this.Databases
         |> List.tryFind(fun db -> db.Name = databaseName)

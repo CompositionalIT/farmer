@@ -121,7 +121,7 @@ type Site =
       ClientAffinityEnabled : bool option
       WebSocketsEnabled : bool option
       Cors : Cors option
-      Dependencies : ResourceName list
+      Dependencies : ResourceId list
       Kind : string
       Identity : FeatureFlag option
       LinuxFxVersion : string option
@@ -160,7 +160,7 @@ type Site =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| sites.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
+            {| sites.Create(this.Name, this.Dependencies, this.Location, this.Tags) with
                  kind = this.Kind
                  identity =
                    match this.Identity with

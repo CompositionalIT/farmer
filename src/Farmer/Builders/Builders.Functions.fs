@@ -20,7 +20,7 @@ type FunctionsConfig =
       OperatingSystem : OS
       Settings : Map<string, Setting>
       Tags : Map<string, string>
-      Dependencies : ResourceName list
+      Dependencies : ResourceId list
       Cors : Cors option
       StorageAccount : ResourceRef<FunctionsConfig>
       Runtime : FunctionsRuntime
@@ -89,21 +89,21 @@ type FunctionsConfig =
               Dependencies = [
                 yield! this.Dependencies
                 match this.AppInsights with
-                | Some (DependableResource this resourceName) -> resourceName
+                | Some (DependableResource this resourceName) -> ResourceId.create resourceName
                 | _ -> ()
                 for setting in this.Settings do
                     match setting.Value with
                     | ExpressionSetting e ->
                         match e.Owner with
-                        | Some owner -> owner.Name
+                        | Some owner -> owner
                         | None -> ()
                     | ParameterSetting _ | LiteralSetting _ ->
                         ()
                 match this.ServicePlan with
-                | DependableResource this resourceName -> resourceName
+                | DependableResource this resourceName -> ResourceId.create resourceName
                 | _ -> ()
 
-                this.StorageAccountName.ResourceName
+                ResourceId.create this.StorageAccountName.ResourceName
               ]
               AlwaysOn = false
               HTTPSOnly = this.HTTPSOnly
@@ -234,10 +234,10 @@ type FunctionsBuilder() =
     [<CustomOperation "depends_on">]
     member __.DependsOn(state:FunctionsConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
     member __.DependsOn(state:FunctionsConfig, resources) = { state with Dependencies = List.concat [ resources; state.Dependencies ] }
-    member __.DependsOn(state:FunctionsConfig, resource:IBuilder) = { state with Dependencies = resource.DependencyName :: state.Dependencies }
-    member __.DependsOn(state:FunctionsConfig, builders:IBuilder list) = { state with Dependencies = List.concat [ builders |> List.map (fun x -> x.DependencyName); state.Dependencies ] }
-    member __.DependsOn(state:FunctionsConfig, resource:IArmResource) = { state with Dependencies = resource.ResourceName :: state.Dependencies }
-    member __.DependsOn(state:FunctionsConfig, resources:IArmResource list) = { state with Dependencies = List.concat [ resources |> List.map (fun x -> x.ResourceName); state.Dependencies ] }
+    member __.DependsOn(state:FunctionsConfig, resource:IBuilder) = { state with Dependencies = ResourceId.create resource.DependencyName :: state.Dependencies }
+    member __.DependsOn(state:FunctionsConfig, builders:IBuilder list) = { state with Dependencies = List.concat [ builders |> List.map (fun x -> ResourceId.create x.DependencyName); state.Dependencies ] }
+    member __.DependsOn(state:FunctionsConfig, resource:IArmResource) = { state with Dependencies = ResourceId.create resource.ResourceName :: state.Dependencies }
+    member __.DependsOn(state:FunctionsConfig, resources:IArmResource list) = { state with Dependencies = List.concat [ resources |> List.map (fun x -> ResourceId.create x.ResourceName); state.Dependencies ] }
 
     /// sets the list of origins that should be allowed to make cross-origin calls. Use AllOrigins to allow all.
     [<CustomOperation "enable_cors">]

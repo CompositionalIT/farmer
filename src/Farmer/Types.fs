@@ -53,6 +53,8 @@ type ResourceId =
     member this.WithType resourceType = { this with Type = Some resourceType }
     static member create (name:ResourceName, ?group) =
         { ResourceId.Empty with Name = name; ResourceGroup = group }
+    static member create (name:string, ?group) =
+        ResourceId.create (ResourceName name, ?group = group)
     static member create (resourceType:ResourceType, name:ResourceName, ?group:string) =
         { ResourceId.Empty with Type = Some resourceType; ResourceGroup = group; Name = name }
     static member create (resourceType:ResourceType, name:ResourceName, [<ParamArray>] resourceSegments:ResourceName []) =
@@ -159,13 +161,14 @@ type AutoCreationKind<'T> =
         match this with
         | Named r -> r
         | Derived f -> f config
-type ExternalKind = Managed of ResourceName | Unmanaged of ResourceName
+type ExternalKind = Managed of ResourceName | Unmanaged of ResourceId
 type ResourceRef<'T> =
     | AutoCreate of AutoCreationKind<'T>
     | External of ExternalKind
     member this.CreateResourceName config =
         match this with
-        | External (Managed r | Unmanaged r) -> r
+        | External (Managed r) -> r
+        | External (Unmanaged r) -> r.Name
         | AutoCreate r -> r.CreateResourceName config
 
 [<AutoOpen>]

@@ -12,7 +12,7 @@ type AppInsights =
             .reference(components, resourceId)
             .Map(fun r -> r + ".InstrumentationKey")
             .WithOwner(resourceId)
-    static member getInstrumentationKey (name, ?resourceGroup) =
+    static member getInstrumentationKey (name:ResourceName, ?resourceGroup) =
         AppInsights.getInstrumentationKey(ResourceId.create (name, ?group = resourceGroup))
 
 type AppInsightsConfig =

@@ -76,7 +76,7 @@ type WebAppConfig =
       OperatingSystem : OS
       Settings : Map<string, Setting>
       ConnectionStrings : Map<string, (Setting * ConnectionStringKind)>
-      Dependencies : ResourceName list
+      Dependencies : ResourceId list
       Tags : Map<string,string>
 
       Cors : Cors option
@@ -170,7 +170,7 @@ type WebAppConfig =
               ] |> String.concat ","
               Dependencies = [
                 match this.ServicePlan with
-                | DependableResource this resourceName -> resourceName
+                | DependableResource this resourceName -> ResourceId.create resourceName
                 | _ -> ()
 
                 yield! this.Dependencies
@@ -179,12 +179,13 @@ type WebAppConfig =
                     match setting.Value with
                     | ExpressionSetting expr ->
                         match expr.Owner with
-                        | Some owner -> owner.Name
+                        | Some owner -> owner
                         | None -> ()
-                    | ParameterSetting _ | LiteralSetting _ -> ()
+                    | ParameterSetting _ | LiteralSetting _ ->
+                        ()
 
                 match this.AppInsights with
-                | Some (DependableResource this resourceName) -> resourceName
+                | Some (DependableResource this resourceName) -> ResourceId.create resourceName
                 | Some _ | None -> ()
               ]
               AlwaysOn = this.AlwaysOn
@@ -345,7 +346,7 @@ type WebAppBuilder() =
     /// Instead of creating a new service plan instance, configure this webapp to point to another unmanaged service plan instance.
     /// A dependency will automatically be set for this instance.
     [<CustomOperation "link_to_unmanaged_service_plan">]
-    member __.LinkToUnmanagedServicePlan(state:WebAppConfig, name) = { state with ServicePlan = External (Unmanaged (ResourceName name)) }
+    member __.LinkToUnmanagedServicePlan(state:WebAppConfig, resourceId) = { state with ServicePlan = External (Unmanaged resourceId) }
     [<CustomOperation "sku">]
     member __.Sku(state:WebAppConfig, sku) = { state with Sku = sku }
     /// Sets the size of the service plan worker.
@@ -371,7 +372,7 @@ type WebAppBuilder() =
     /// Instead of creating a new AI instance, configure this webapp to point to an unmanaged AI instance.
     /// A dependency will not be set for this instance.
     [<CustomOperation "link_to_unmanaged_app_insights">]
-    member __.LinkUnmanagedAppInsights(state:WebAppConfig, name) = { state with AppInsights = Some(External (Unmanaged (ResourceName name))) }
+    member __.LinkUnmanagedAppInsights(state:WebAppConfig, resourceId) = { state with AppInsights = Some(External(Unmanaged resourceId)) }
     /// Sets the web app to use "run from package" deployment capabilities.
     [<CustomOperation "run_from_package">]
     member __.RunFromPackage(state:WebAppConfig) = { state with RunFromPackage = true }
@@ -405,14 +406,16 @@ type WebAppBuilder() =
     member this.AddConnectionStrings(state:WebAppConfig, connectionStrings) =
         connectionStrings
         |> List.fold (fun (state:WebAppConfig) (key:string) -> this.AddConnectionString(state, key)) state
+    member private _.AddDependency (state:WebAppConfig, resourceName:ResourceName) = { state with Dependencies = ResourceId.create resourceName :: state.Dependencies }
+    member private _.AddDependencies (state:WebAppConfig, resourceNames:ResourceName list) = { state with Dependencies = (resourceNames |> List.map ResourceId.create) @ state.Dependencies }
     /// Sets a dependency for the web app.
     [<CustomOperation "depends_on">]
-    member __.DependsOn(state:WebAppConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
-    member __.DependsOn(state:WebAppConfig, resources) = { state with Dependencies = List.concat [ resources; state.Dependencies ] }
-    member __.DependsOn(state:WebAppConfig, builder:IBuilder) = { state with Dependencies = builder.DependencyName :: state.Dependencies }
-    member __.DependsOn(state:WebAppConfig, builders:IBuilder list) = { state with Dependencies = List.concat [ builders |> List.map (fun x -> x.DependencyName); state.Dependencies ] }
-    member __.DependsOn(state:WebAppConfig, resource:IArmResource) = { state with Dependencies = resource.ResourceName :: state.Dependencies }
-    member __.DependsOn(state:WebAppConfig, resources:IArmResource list) = { state with Dependencies = List.concat [ resources |> List.map (fun x -> x.ResourceName); state.Dependencies ] }
+    member this.DependsOn(state:WebAppConfig, resourceName) = this.AddDependency(state, resourceName)
+    member this.DependsOn(state:WebAppConfig, resources) = this.AddDependencies(state, resources)
+    member this.DependsOn(state:WebAppConfig, builder:IBuilder) = this.AddDependency(state, builder.DependencyName)
+    member this.DependsOn(state:WebAppConfig, builders:IBuilder list) = this.AddDependencies(state, builders |> List.map (fun x -> x.DependencyName))
+    member this.DependsOn(state:WebAppConfig, resource:IArmResource) = this.AddDependency(state, resource.ResourceName)
+    member this.DependsOn(state:WebAppConfig, resources:IArmResource list) = this.AddDependencies(state, resources |> List.map (fun x -> x.ResourceName))
 
     /// Sets "Always On" flag
     [<CustomOperation "always_on">]
