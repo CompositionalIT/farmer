@@ -10,17 +10,17 @@ open FileShares
 
 type StorageAccount =
     /// Gets an ARM Expression connection string for any Storage Account.
-    static member getConnectionString (name:StorageAccountName, ?resourceGroup:string) =
-        let resourcePath = ResourceId.create(storageAccounts, name.ResourceName, ?group = resourceGroup).ArmExpression.Value
+    static member getConnectionString (storageAccount:ResourceId) =
+        let storageAccount = storageAccount.WithType storageAccounts
         let expr =
             sprintf
                 "concat('DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=', listKeys(%s, '2017-10-01').keys[0].value)"
-                name.ResourceName.Value
-                resourcePath
-        ArmExpression.create(expr, name.ResourceName)
+                storageAccount.Name.Value
+                storageAccount.ArmExpression.Value
+        ArmExpression.create(expr, storageAccount)
     /// Gets an ARM Expression connection string for any Storage Account.
-    static member getConnectionString (name, ?resourceGroup) =
-        StorageAccount.getConnectionString(StorageAccountName.Create(ResourceName name).OkValue, ?resourceGroup = resourceGroup)
+    static member getConnectionString (storageAccountName:StorageAccountName, ?group) =
+        StorageAccount.getConnectionString(ResourceId.create(storageAccountName.ResourceName, ?group = group))
 
 type StoragePolicy =
     { CoolBlobAfter : int<Days> option

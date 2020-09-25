@@ -61,8 +61,9 @@ module AppSettings =
     let RunFromPackage = "WEBSITE_RUN_FROM_PACKAGE", "1"
 
 let publishingPassword (name:ResourceName) =
-    let expr = sprintf "list(resourceId('Microsoft.Web/sites/config', '%s', 'publishingcredentials'), '2014-06-01').properties.publishingPassword" name.Value
-    ArmExpression.create(expr, name)
+    let resourceId = ResourceId.create(config, name, ResourceName "publishingCredentials")
+    let expr = sprintf "list(%s, '2014-06-01').properties.publishingPassword" resourceId.ArmExpression.Value
+    ArmExpression.create(expr, resourceId)
 
 type WebAppConfig =
     { Name : ResourceName
@@ -96,7 +97,7 @@ type WebAppConfig =
       DockerCi : bool
       DockerAcrCredentials : {| RegistryName : string; Password : SecureParameter |} option }
     /// Gets the ARM expression path to the publishing password of this web app.
-    member this.PublishingPassword = publishingPassword this.Name
+    member this.PublishingPassword = publishingPassword (this.Name)
     /// Gets the Service Plan name for this web app.
     member this.ServicePlanName = this.ServicePlan.CreateResourceName this
     /// Gets the App Insights name for this web app, if it exists.
@@ -178,7 +179,7 @@ type WebAppConfig =
                     match setting.Value with
                     | ExpressionSetting expr ->
                         match expr.Owner with
-                        | Some owner -> owner
+                        | Some owner -> owner.Name
                         | None -> ()
                     | ParameterSetting _ | LiteralSetting _ -> ()
 

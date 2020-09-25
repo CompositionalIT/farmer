@@ -139,8 +139,4 @@ let tests = testList "Storage Tests" [
         Expect.equal "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'account'), '2017-10-01').keys[0].value)" strongConn.Value "Strong connection string"
         Expect.equal "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('rg', 'Microsoft.Storage/storageAccounts', 'account'), '2017-10-01').keys[0].value)" rgConn.Value "Complex connection string"
     }
-
-    test "Validates Storage Connection from string" {
-        Expect.throws (fun _ -> StorageAccount.getConnectionString "Ac3294*()FS" |> ignore) "Should throw."
-    }
 ]

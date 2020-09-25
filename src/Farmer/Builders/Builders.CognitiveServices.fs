@@ -8,10 +8,9 @@ open Farmer.CoreTypes
 
 type CognitiveServices =
     /// Gets an ARM Expression key for any Cognitives Services instance.
-    static member getKey (name:ResourceName, ?resourceGroup:string) =
-        let resourceId = ResourceId.create(accounts, name, ?group = resourceGroup)
-        let expr = sprintf "listKeys(%s, '%s').key1" resourceId.ArmExpression.Value accounts.ApiVersion
-        ArmExpression.create(expr, name)
+    static member getKey (resourceId:ResourceId) =
+        let resourceId = resourceId.WithType accounts
+        ArmExpression.create(sprintf "listKeys(%s, '%s').key1" resourceId.ArmExpression.Value accounts.ApiVersion, resourceId)
 
 type CognitiveServicesConfig =
     { Name : ResourceName
@@ -19,7 +18,7 @@ type CognitiveServicesConfig =
       Api : Kind
       Tags: Map<string,string>  }
     /// Gets an ARM expression to the key of this Cognitive Services instance.
-    member this.Key = CognitiveServices.getKey this.Name
+    member this.Key = CognitiveServices.getKey (ResourceId.create this.Name)
     interface IBuilder with
         member this.DependencyName = this.Name
         member this.BuildResources location = [

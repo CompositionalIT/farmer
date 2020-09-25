@@ -18,7 +18,7 @@ type IotHubConfig =
         sprintf "listKeys('%s','2019-03-22').value[%d].primaryKey" this.Name.Value policy.Index
     member this.GetKey policy =
         let key = this.BuildKey policy
-        ArmExpression.create(key, this.Name)
+        ArmExpression.create(key, ResourceId.create this.Name)
     member this.GetConnectionString policy =
         let endpoint = sprintf "reference('%s').eventHubEndpoints.events.endpoint" this.Name.Value
         let expr =
@@ -26,7 +26,7 @@ type IotHubConfig =
                 endpoint
                 (policy.ToString().ToLower())
                 (this.BuildKey policy)
-        ArmExpression.create(expr, this.Name)
+        ArmExpression.create(expr, ResourceId.create this.Name)
     interface IBuilder with
         member this.DependencyName = this.Name
         member this.BuildResources location = [

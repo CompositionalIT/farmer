@@ -79,7 +79,7 @@ type SecretConfig =
             Value = ExpressionSecret expression
             Dependencies =
                 match expression.Owner with
-                | Some owner -> [ owner ]
+                | Some owner -> [ owner.Name ]
                 | None -> failwithf "The supplied ARM expression ('%s') has no resource owner. You should explicitly set this using WithOwner(), supplying the Resource Name of the owner." expression.Value
         }
 

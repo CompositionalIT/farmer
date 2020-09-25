@@ -8,6 +8,7 @@ open System
 
 let serverFarms = ResourceType ("Microsoft.Web/serverfarms", "2018-02-01")
 let sites = ResourceType ("Microsoft.Web/sites", "2016-08-01")
+let config = ResourceType ("Microsoft.Web/sites/config", "2016-08-01")
 let sourceControls = ResourceType ("Microsoft.Web/sites/sourcecontrols", "2019-08-01")
 
 type ServerFarm =

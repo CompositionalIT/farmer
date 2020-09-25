@@ -6,13 +6,13 @@ open Farmer.CoreTypes
 open Farmer.Redis
 open Farmer.Arm.Cache
 
-let internal buildRedisKey (name:ResourceName) =
+let internal buildRedisKey (resourceId:ResourceId) =
     let expr =
         sprintf
             "concat('%s.redis.cache.windows.net,abortConnect=false,ssl=true,password=', listKeys('%s', '2015-08-01').primaryKey)"
-                name.Value
-                name.Value
-    ArmExpression.create(expr, name)
+                resourceId.Name.Value
+                resourceId.Name.Value
+    ArmExpression.create(expr, resourceId)
 
 type RedisConfig =
     { Name : ResourceName
@@ -23,7 +23,7 @@ type RedisConfig =
       ShardCount : int option
       MinimumTlsVersion : TlsVersion option
       Tags: Map<string,string> }
-    member this.Key = buildRedisKey this.Name
+    member this.Key = buildRedisKey (ResourceId.create this.Name)
     interface IBuilder with
         member this.DependencyName = this.Name
         member this.BuildResources location = [

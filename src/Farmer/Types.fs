@@ -43,24 +43,29 @@ type ResourceType =
     /// Returns the ARM resource type string value.
     member this.Type = match this with ResourceType (p, _) -> p
     member this.ApiVersion = match this with ResourceType (_, v) -> v
-    member this.Create(name:ResourceName, ?location:Location, ?dependsOn:ResourceName list, ?tags:Map<string,string>) =
-        match this with
-        ResourceType (path, version) ->
-            {| ``type`` = path
-               apiVersion = version
-               name = name.Value
-               location = location |> Option.map(fun r -> r.ArmValue) |> Option.toObj
-               dependsOn = dependsOn |> Option.map (List.map(fun r -> r.Value) >> box) |> Option.toObj
-               tags = tags |> Option.map box |> Option.toObj |}
+
+type ResourceId =
+    { Type : ResourceType option
+      ResourceGroup : string option
+      Name : ResourceName
+      Segments : ResourceName list }
+    static member Empty = { Type = None; ResourceGroup = None; Name = ResourceName.Empty; Segments = [] }
+    member this.WithType resourceType = { this with Type = Some resourceType }
+    static member create (name:ResourceName, ?group) =
+        { ResourceId.Empty with Name = name; ResourceGroup = group }
+    static member create (resourceType:ResourceType, name:ResourceName, ?group:string) =
+        { ResourceId.Empty with Type = Some resourceType; ResourceGroup = group; Name = name }
+    static member create (resourceType:ResourceType, name:ResourceName, [<ParamArray>] resourceSegments:ResourceName []) =
+        { ResourceId.Empty with Type = Some resourceType; Name = name; Segments = List.ofArray resourceSegments }
 
 /// Represents an expression used within an ARM template
 type ArmExpression =
-    private | ArmExpression of string * ResourceName option
-    static member create (rawText:string, ?resourceName) =
+    private | ArmExpression of expression:string * owner:ResourceId option
+    static member create (rawText:string, ?owner) =
         if System.Text.RegularExpressions.Regex.IsMatch(rawText, @"^\[.*\]$") then
             failwithf "ARM Expressions should not be wrapped in [ ]; these will automatically be added when the expression is evaluated. Please remove them from '%s'." rawText
         else
-            ArmExpression(rawText, resourceName)
+            ArmExpression(rawText, owner)
     /// Gets the raw value of this expression.
     member this.Value = match this with ArmExpression (e, _) -> e
     /// Tries to get the owning resource of this expression.
@@ -69,7 +74,8 @@ type ArmExpression =
     member this.Map mapper = match this with ArmExpression (e, r) -> ArmExpression(mapper e, r)
     /// Evaluates the expression for emitting into an ARM template. That is, wraps it in [].
     member this.Eval() = sprintf "[%s]" this.Value
-    member this.WithOwner(owner:ResourceName) = match this with ArmExpression (e, _) -> ArmExpression(e, Some owner)
+    member this.WithOwner(owner:ResourceId) = match this with ArmExpression (e, _) -> ArmExpression(e, Some owner)
+    member this.WithOwner(owner:ResourceName) = this.WithOwner(ResourceId.create owner)
 
     /// Evaluates the expression for emitting into an ARM template. That is, wraps it in [].
     static member Eval (expression:ArmExpression) = expression.Eval()
@@ -106,11 +112,7 @@ type ArmExpression with
         |> sprintf "concat(%s)"
         |> ArmExpression.create
 
-type ResourceId =
-    { Type : ResourceType option
-      ResourceGroup : string option
-      Name : ResourceName
-      Segments : ResourceName list }
+type ResourceId with
     member this.ArmExpression =
         match this with
         | { Type = None } ->
@@ -125,12 +127,17 @@ type ResourceId =
             |> sprintf "resourceId(%s)"
             |> ArmExpression.create
     member this.Eval() = this.ArmExpression.Eval()
-    static member create (name:ResourceName) =
-        { Type = None; ResourceGroup = None; Name = name; Segments = [] }
-    static member create (resourceType:ResourceType, name:ResourceName, ?group:string) =
-        { Type = Some resourceType; ResourceGroup = group; Name = name; Segments = [] }
-    static member create (resourceType:ResourceType, name:ResourceName, [<ParamArray>] resourceSegments:ResourceName []) =
-        { Type = Some resourceType; ResourceGroup = None; Name = name; Segments = List.ofArray resourceSegments }
+
+type ResourceType with
+    member this.Create(name:ResourceName, ?location:Location, ?dependsOn:ResourceName list, ?tags:Map<string,string>) =
+        match this with
+        | ResourceType (path, version) ->
+            {| ``type`` = path
+               apiVersion = version
+               name = name.Value
+               location = location |> Option.map(fun r -> r.ArmValue) |> Option.toObj
+               dependsOn = dependsOn |> Option.map (List.map(fun r -> r.Value) >> box) |> Option.toObj
+               tags = tags |> Option.map box |> Option.toObj |}
 
 type ArmExpression with
     static member reference (resourceType:ResourceType, resourceId:ResourceId) =
@@ -155,6 +162,7 @@ type ResourceRef<'T> =
         match this with
         | External (Managed r | Unmanaged r) -> r
         | AutoCreate r -> r.CreateResourceName config
+
 [<AutoOpen>]
 module ResourceRef =
     /// Creates a ResourceRef which is automatically created and derived from the supplied config.

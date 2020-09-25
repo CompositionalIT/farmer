@@ -95,7 +95,7 @@ type FunctionsConfig =
                     match setting.Value with
                     | ExpressionSetting e ->
                         match e.Owner with
-                        | Some owner -> owner
+                        | Some owner -> owner.Name
                         | None -> ()
                     | ParameterSetting _ | LiteralSetting _ ->
                         ()
