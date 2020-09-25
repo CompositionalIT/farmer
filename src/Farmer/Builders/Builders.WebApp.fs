@@ -60,9 +60,9 @@ module AppSettings =
     let WebsiteNodeDefaultVersion version = "WEBSITE_NODE_DEFAULT_VERSION", version
     let RunFromPackage = "WEBSITE_RUN_FROM_PACKAGE", "1"
 
-let publishingPassword (ResourceName name) =
-    sprintf "list(resourceId('Microsoft.Web/sites/config', '%s', 'publishingcredentials'), '2014-06-01').properties.publishingPassword" name
-    |> ArmExpression.create
+let publishingPassword (name:ResourceName) =
+    let expr = sprintf "list(resourceId('Microsoft.Web/sites/config', '%s', 'publishingcredentials'), '2014-06-01').properties.publishingPassword" name.Value
+    ArmExpression.create(expr, name)
 
 type WebAppConfig =
     { Name : ResourceName
@@ -168,15 +168,23 @@ type WebAppConfig =
                 match this.DockerImage with Some _ -> "container" | _ -> ()
               ] |> String.concat ","
               Dependencies = [
-                  match this.ServicePlan with
-                  | DependableResource this resourceName -> resourceName
-                  | _ -> ()
+                match this.ServicePlan with
+                | DependableResource this resourceName -> resourceName
+                | _ -> ()
 
-                  yield! this.Dependencies
+                yield! this.Dependencies
 
-                  match this.AppInsights with
-                  | Some (DependableResource this resourceName) -> resourceName
-                  | Some _ | None -> ()
+                for setting in this.Settings do
+                    match setting.Value with
+                    | ExpressionSetting expr ->
+                        match expr.Owner with
+                        | Some owner -> owner
+                        | None -> ()
+                    | ParameterSetting _ | LiteralSetting _ -> ()
+
+                match this.AppInsights with
+                | Some (DependableResource this resourceName) -> resourceName
+                | Some _ | None -> ()
               ]
               AlwaysOn = this.AlwaysOn
               LinuxFxVersion =
@@ -373,8 +381,9 @@ type WebAppBuilder() =
     [<CustomOperation "setting">]
     member __.AddSetting(state:WebAppConfig, key, value) =
         { state with Settings = state.Settings.Add(key, LiteralSetting value) }
-    member this.AddSetting(state:WebAppConfig, key, value:ArmExpression) = this.AddSetting(state, key, value.Eval())
     member this.AddSetting(state:WebAppConfig, key, resourceName:ResourceName) = this.AddSetting(state, key, resourceName.Value)
+    member _.AddSetting(state:WebAppConfig, key, value:ArmExpression) =
+        { state with Settings = state.Settings.Add(key, ExpressionSetting value) }
     /// Sets a list of app setting of the web app in the form "key" "value".
     [<CustomOperation "settings">]
     member this.AddSettings(state:WebAppConfig, settings: (string*string) list) =

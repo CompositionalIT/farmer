@@ -16,14 +16,17 @@ type IotHubConfig =
       Tags: Map<string,string>  }
     member private this.BuildKey (policy:Policy) =
         sprintf "listKeys('%s','2019-03-22').value[%d].primaryKey" this.Name.Value policy.Index
-    member this.GetKey policy = policy |> this.BuildKey |> ArmExpression.create
+    member this.GetKey policy =
+        let key = this.BuildKey policy
+        ArmExpression.create(key, this.Name)
     member this.GetConnectionString policy =
         let endpoint = sprintf "reference('%s').eventHubEndpoints.events.endpoint" this.Name.Value
-        sprintf "concat('Endpoint=',%s,';SharedAccessKeyName=%s;SharedAccessKey=',%s)"
-            endpoint
-            (policy.ToString().ToLower())
-            (this.BuildKey policy)
-        |> ArmExpression.create
+        let expr =
+            sprintf "concat('Endpoint=',%s,';SharedAccessKeyName=%s;SharedAccessKey=',%s)"
+                endpoint
+                (policy.ToString().ToLower())
+                (this.BuildKey policy)
+        ArmExpression.create(expr, this.Name)
     interface IBuilder with
         member this.DependencyName = this.Name
         member this.BuildResources location = [
@@ -96,8 +99,8 @@ type IotHubBuilder() =
     member _.DeviceProvisioning (state:IotHubConfig) = { state with DeviceProvisioning = Enabled }
 
     [<CustomOperation "add_tags">]
-    member _.Tags(state:IotHubConfig, pairs) = 
-        { state with 
+    member _.Tags(state:IotHubConfig, pairs) =
+        { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
 
     [<CustomOperation "add_tag">]

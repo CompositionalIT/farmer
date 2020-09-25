@@ -107,10 +107,24 @@ let tests = testList "Web App Tests" [
         ()
     }
 
-
     test "If CORS is not enabled, ignores enable credentials" {
         let wa : Site =
             webApp { name "test"; enable_cors_credentials } |> getResourceAtIndex 0
         Expect.isNull wa.SiteConfig.Cors "Should be no CORS settings"
+    }
+
+    test "Implicitly adds a dependency when adding a setting" {
+        let sa = storageAccount { name "teststorage" }
+        let sql = sqlServer { name "test"; admin_username "user"; add_databases [ sqlDb { name "thedb" } ] }
+        let wa = webApp {
+            name "testweb"
+            setting "storage" sa.Key
+            setting "conn" (sql.ConnectionString "thedb")
+            setting "bad" (literal "ignore_me")
+        }
+        let wa = wa |> getResources |> getResource<Web.Site> |> List.head
+
+        Expect.contains wa.Dependencies sa.Name.ResourceName "Storage Account is missing"
+        Expect.contains wa.Dependencies (ResourceName "thedb") "Database is missing"
     }
 ]

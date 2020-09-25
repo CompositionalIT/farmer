@@ -91,6 +91,14 @@ type FunctionsConfig =
                 match this.AppInsights with
                 | Some (DependableResource this resourceName) -> resourceName
                 | _ -> ()
+                for setting in this.Settings do
+                    match setting.Value with
+                    | ExpressionSetting e ->
+                        match e.Owner with
+                        | Some owner -> owner
+                        | None -> ()
+                    | ParameterSetting _ | LiteralSetting _ ->
+                        ()
                 match this.ServicePlan with
                 | DependableResource this resourceName -> resourceName
                 | _ -> ()
@@ -211,11 +219,11 @@ type FunctionsBuilder() =
     [<CustomOperation "setting">]
     member __.AddSetting(state:FunctionsConfig, key, value) =
         { state with Settings = state.Settings.Add(key, LiteralSetting value) }
-    member this.AddSetting(state:FunctionsConfig, key, value:ArmExpression) =
-        this.AddSetting(state, key, value.Eval())
+    member _.AddSetting(state:FunctionsConfig, key, value:ArmExpression) =
+        { state with Settings = state.Settings.Add(key, ExpressionSetting value) }
     /// Sets a list of app setting of the web app in the form "key" "value".
     [<CustomOperation "settings">]
-    member __.AddSettings(state:FunctionsConfig, settings: (string*string) list) =
+    member __.AddSettings(state:FunctionsConfig, settings: (string * string) list) =
         settings
         |> List.fold (fun state (key,value: string) -> __.AddSetting(state, key, value)) state
     /// Sets a dependency for the functions app.
