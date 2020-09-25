@@ -24,7 +24,7 @@ type EventHubConfig =
       ConsumerGroups : ResourceName Set
       CaptureDestination : CaptureDestination option
       AuthorizationRules : Map<ResourceName, AuthorizationRuleRight Set>
-      Dependencies : ResourceName list
+      Dependencies : ResourceId list
       Tags: Map<string,string>  }
     member private this.CreateKeyExpression (resourceId:ResourceId) =
         ArmExpression
@@ -43,13 +43,12 @@ type EventHubConfig =
     interface IBuilder with
         member this.DependencyName = this.EventHubNamespaceName
         member this.BuildResources location = [
-            let eventHubNamespaceName = this.EventHubNamespaceName
-            let eventHubName = this.Name.Map(fun hubName -> sprintf "%s/%s" eventHubNamespaceName.Value hubName)
+            let eventHubName = this.Name.Map(fun hubName -> sprintf "%s/%s" this.EventHubNamespaceName.Value hubName)
 
             // Namespace
             match this.EventHubNamespace with
             | DeployableResource this _ ->
-                { Name = eventHubNamespaceName
+                { Name = this.EventHubNamespaceName
                   Location = location
                   Sku =
                     {| Name = this.Sku
@@ -68,9 +67,9 @@ type EventHubConfig =
               Partitions = this.Partitions
               CaptureDestination = this.CaptureDestination
               Dependencies = [
-                  eventHubNamespaceName
+                  ResourceId.create this.EventHubNamespaceName
                   match this.CaptureDestination with
-                  | Some (StorageAccount(name, _)) -> name
+                  | Some (StorageAccount(name, _)) -> ResourceId.create name
                   | None -> ()
                   yield! this.Dependencies
               ]
@@ -82,17 +81,17 @@ type EventHubConfig =
                 EventHub = eventHubName
                 Location = location
                 Dependencies = [
-                    eventHubNamespaceName
-                    ResourceId.create(eventHubs, eventHubNamespaceName, this.Name).Eval() |> ResourceName
+                    ResourceId.create(namespaces, this.EventHubNamespaceName)
+                    ResourceId.create(eventHubs, this.EventHubNamespaceName, this.Name)
                 ] }
 
             // Auth rules
             for rule in this.AuthorizationRules do
-                { Name = rule.Key.Map(fun rule -> sprintf "%s/%s/%s" eventHubNamespaceName.Value this.Name.Value rule)
+                { Name = rule.Key.Map(fun rule -> sprintf "%s/%s/%s" this.EventHubNamespaceName.Value this.Name.Value rule)
                   Location = location
                   Dependencies = [
-                      ResourceId.create(namespaces, eventHubNamespaceName).Eval() |> ResourceName
-                      ResourceId.create(eventHubs, eventHubNamespaceName, this.Name).Eval() |> ResourceName
+                      ResourceId.create(namespaces, this.EventHubNamespaceName)
+                      ResourceId.create(eventHubs, this.EventHubNamespaceName, this.Name)
                   ]
                   Rights = rule.Value }
         ]
@@ -156,10 +155,10 @@ type EventHubBuilder() =
     [<CustomOperation "depends_on">]
     member __.DependsOn(state:EventHubConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
     member __.DependsOn(state:EventHubConfig, resources) = { state with Dependencies = List.concat [ resources; state.Dependencies ] }
-    member __.DependsOn(state:EventHubConfig, builder:IBuilder) = { state with Dependencies = builder.DependencyName :: state.Dependencies }
-    member __.DependsOn(state:EventHubConfig, builders:IBuilder list) = { state with Dependencies = List.concat [ builders |> List.map (fun x -> x.DependencyName); state.Dependencies ] }
-    member __.DependsOn(state:EventHubConfig, resource:IArmResource) = { state with Dependencies = resource.ResourceName :: state.Dependencies }
-    member __.DependsOn(state:EventHubConfig, resources:IArmResource list) = { state with Dependencies = List.concat [ resources |> List.map (fun x -> x.ResourceName); state.Dependencies ] }
+    member __.DependsOn(state:EventHubConfig, builder:IBuilder) = { state with Dependencies = ResourceId.create builder.DependencyName :: state.Dependencies }
+    member __.DependsOn(state:EventHubConfig, builders:IBuilder list) = { state with Dependencies = List.concat [ builders |> List.map (fun x -> ResourceId.create x.DependencyName); state.Dependencies ] }
+    member __.DependsOn(state:EventHubConfig, resource:IArmResource) = { state with Dependencies = ResourceId.create resource.ResourceName :: state.Dependencies }
+    member __.DependsOn(state:EventHubConfig, resources:IArmResource list) = { state with Dependencies = List.concat [ resources |> List.map (fun x -> ResourceId.create x.ResourceName); state.Dependencies ] }
 
     [<CustomOperation "add_tags">]
     member _.Tags(state:EventHubConfig, pairs) =

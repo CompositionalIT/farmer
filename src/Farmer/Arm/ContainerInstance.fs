@@ -36,16 +36,16 @@ type ContainerGroup =
       Tags: Map<string,string>  }
     member this.NetworkProfilePath =
         this.NetworkProfile
-        |> Option.map (fun networkProfile -> ResourceId.create(networkProfiles, networkProfile).Eval())
+        |> Option.map (fun networkProfile -> ResourceId.create(networkProfiles, networkProfile))
     member private this.Dependencies = [
         match this.NetworkProfilePath with
-        | Some path -> ResourceName path
+        | Some path -> path
         | None -> ()
 
         for _, volume in this.Volumes |> Map.toSeq do
             match volume with
             | Volume.AzureFileShare (shareName, storageAccountName) ->
-                ResourceId.create(fileShares, storageAccountName.ResourceName, ResourceName "default", shareName).Eval() |> ResourceName
+                ResourceId.create(fileShares, storageAccountName.ResourceName, ResourceName "default", shareName)
             | _ ->
                 ()
     ]
@@ -53,7 +53,7 @@ type ContainerGroup =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| containerGroups.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
+            {| containerGroups.Create(this.Name, this.Dependencies, this.Location, this.Tags) with
                    properties =
                        {| containers =
                            this.ContainerInstances
@@ -99,7 +99,7 @@ type ContainerGroup =
                             |}
                           networkProfile =
                             this.NetworkProfilePath
-                            |> Option.map(fun path -> box {| id = path |})
+                            |> Option.map(fun path -> box {| id = path.ArmExpression.Eval() |})
                             |> Option.toObj
                           volumes = [
                             for (key, value) in Map.toSeq this.Volumes do

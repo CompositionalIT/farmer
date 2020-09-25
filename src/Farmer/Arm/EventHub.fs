@@ -51,13 +51,13 @@ module Namespaces =
           Location : Location
           MessageRetentionDays : int option
           Partitions : int
-          Dependencies : ResourceName list
+          Dependencies : ResourceId list
           CaptureDestination : CaptureDestination option
           Tags: Map<string,string>  }
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-               {| eventHubs.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
+               {| eventHubs.Create(this.Name, this.Dependencies, this.Location, this.Tags) with
                       properties =
                         {| messageRetentionInDays = this.MessageRetentionDays |> Option.toNullable
                            partitionCount = this.Partitions
@@ -84,19 +84,19 @@ module Namespaces =
             { ConsumerGroupName : ResourceName
               EventHub : ResourceName
               Location : Location
-              Dependencies : ResourceName list }
+              Dependencies : ResourceId list }
             interface IArmResource with
                 member this.ResourceName = this.ConsumerGroupName
-                member this.JsonModel = consumerGroups.Create(this.EventHub + this.ConsumerGroupName, this.Location, this.Dependencies) :> _
+                member this.JsonModel = consumerGroups.Create(this.EventHub + this.ConsumerGroupName, this.Dependencies, this.Location) :> _
 
         type AuthorizationRule =
             { Name : ResourceName
               Location : Location
-              Dependencies : ResourceName list
+              Dependencies : ResourceId list
               Rights : AuthorizationRuleRight Set }
             interface IArmResource with
                 member this.ResourceName = this.Name
                 member this.JsonModel =
-                    {| authorizationRules.Create(this.Name, this.Location, this.Dependencies) with
+                    {| authorizationRules.Create(this.Name, this.Dependencies, this.Location) with
                         properties = {| rights = this.Rights |> Set.map string |> Set.toList |}
                     |} :> _

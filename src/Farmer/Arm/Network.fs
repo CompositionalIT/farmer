@@ -75,12 +75,12 @@ type VirtualNetworkGateway =
         member this.ResourceName = this.Name
         member this.JsonModel =
             let dependsOn = [
-                ResourceId.create(virtualNetworks, this.VirtualNetwork).ArmExpression.Eval() |> ResourceName
+                ResourceId.create(virtualNetworks, this.VirtualNetwork)
                 for config in this.IpConfigs do
-                    ResourceId.create(publicIPAddresses, config.PublicIpName).ArmExpression.Eval() |> ResourceName
+                    ResourceId.create(publicIPAddresses, config.PublicIpName)
             ]
 
-            {| virtualNetworkGateways.Create(this.Name, this.Location, dependsOn, this.Tags) with
+            {| virtualNetworkGateways.Create(this.Name, dependsOn, this.Location, this.Tags) with
                 properties =
                      {| ipConfigurations =
                             this.IpConfigs
@@ -126,8 +126,7 @@ type Connection =
             let dependsOn =
                 [ Some this.VNetGateway1ResourceId; this.VNetGateway2ResourceId; this.LocalNetworkGatewayResourceId ]
                 |> List.choose id
-                |> List.map(fun r -> r.Eval() |> ResourceName)
-            {| connections.Create(this.Name, this.Location, dependsOn, this.Tags) with
+            {| connections.Create(this.Name,  dependsOn, this.Location, this.Tags) with
                 properties =
                      {| authorizationKey = this.AuthorizationKey |> Option.toObj
                         connectionType = this.ConnectionType.ArmValue
@@ -187,8 +186,8 @@ type NetworkProfile =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            let dependsOn = [ ResourceId.create(virtualNetworks, this.VirtualNetwork).Eval() |> ResourceName ]
-            {| networkProfiles.Create(this.Name, this.Location, dependsOn, this.Tags) with
+            let dependsOn = [ ResourceId.create(virtualNetworks, this.VirtualNetwork) ]
+            {| networkProfiles.Create(this.Name, dependsOn, this.Location, this.Tags) with
                 properties =
                     {| containerNetworkInterfaceConfigurations =
                         this.ContainerNetworkInterfaceConfigurations
