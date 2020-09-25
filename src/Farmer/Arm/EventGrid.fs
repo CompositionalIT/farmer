@@ -40,7 +40,7 @@ type Topic =
         member this.JsonModel =
             {| systemTopics.Create(this.Name, this.Location, [ this.Source ], this.Tags) with
                  properties =
-                    {| source = ArmExpression.resourceId(this.TopicType.ResourceType, this.Source).Eval()
+                    {| source = ResourceId.create(this.TopicType.ResourceType, this.Source).Eval()
                        topicType = this.TopicType.Value |}
              |} :> _
 
@@ -63,12 +63,12 @@ type Subscription =
                             |} |> box
                           | EventHub hubName ->
                             {| endpointType = "EventHub"
-                               properties = {| resourceId = ArmExpression.resourceId(eventHubs, this.Destination, hubName).Eval() |}
+                               properties = {| resourceId = ResourceId.create(eventHubs, this.Destination, hubName).Eval() |}
                             |} :> _
                           | StorageQueue queueName ->
                             {| endpointType = "StorageQueue"
                                properties =
-                                {| resourceId = ArmExpression.resourceId(Storage.storageAccounts, this.Destination).Eval()
+                                {| resourceId = ResourceId.create(Storage.storageAccounts, this.Destination).Eval()
                                    queueName = queueName |}
                             |} :> _
                       filter = {| includedEventTypes = [ for event in this.Events do event.Value ] |}

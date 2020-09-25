@@ -60,7 +60,7 @@ type ManagedCluster =
                this.AgentPoolProfiles
                |> List.map (fun pool -> pool.VirtualNetworkName)
                |> List.choose id
-               |> List.map(fun vnet -> ArmExpression.resourceId(virtualNetworks, vnet).Eval() |> ResourceName)
+               |> List.map(fun vnet -> ResourceId.create(virtualNetworks, vnet).Eval() |> ResourceName)
             {| managedClusters.Create(this.Name, this.Location, dependencies) with
                    properties =
                        {| agentPoolProfiles =
@@ -77,7 +77,7 @@ type ManagedCluster =
                                   vnetSubnetID =
                                       match agent.VirtualNetworkName, agent.SubnetName with
                                       | Some vnet, Some subnet ->
-                                          box (ArmExpression.resourceId(Arm.Network.subnets, vnet, subnet).Eval())
+                                          box (ResourceId.create(Arm.Network.subnets, vnet, subnet).Eval())
                                       | _ -> null
                                |})
                           dnsPrefix = this.DnsPrefix

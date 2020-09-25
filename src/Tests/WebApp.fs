@@ -62,7 +62,7 @@ let tests = testList "Web App Tests" [
     }
     test "Web App correctly adds connection strings" {
         let wa =
-            let resources = webApp { name "test"; connection_string "a"; connection_string ("b", literal "value") } |> getResources
+            let resources = webApp { name "test"; connection_string "a"; connection_string ("b", ArmExpression.literal "value") } |> getResources
             resources |> getResource<Web.Site> |> List.head
 
         let expected = [
@@ -120,7 +120,7 @@ let tests = testList "Web App Tests" [
             name "testweb"
             setting "storage" sa.Key
             setting "conn" (sql.ConnectionString "thedb")
-            setting "bad" (literal "ignore_me")
+            setting "bad" (ArmExpression.literal "ignore_me")
         }
         let wa = wa |> getResources |> getResource<Web.Site> |> List.head
 

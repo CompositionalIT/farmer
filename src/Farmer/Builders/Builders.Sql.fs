@@ -30,14 +30,14 @@ type SqlAzureConfig =
     /// Gets a basic .NET connection string using the administrator username / password.
     member this.ConnectionString (database:SqlAzureDbConfig) =
         let expr =
-            concat [
-                literal
+            ArmExpression.concat [
+                ArmExpression.literal
                     (sprintf "Server=tcp:%s.database.windows.net,1433;Initial Catalog=%s;Persist Security Info=False;User ID=%s;Password="
                         this.Name.Value
                         database.Name.Value
                         this.AdministratorCredentials.UserName)
                 this.AdministratorCredentials.Password.AsArmRef
-                literal ";MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+                ArmExpression.literal ";MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
             ]
         expr.WithOwner database.Name
     member this.ConnectionString databaseName =

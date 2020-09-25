@@ -64,7 +64,7 @@ type SecurityRule =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            let dependsOn = [ ArmExpression.resourceId(networkSecurityGroups, this.SecurityGroup.Name).Eval() |> ResourceName ]
+            let dependsOn = [ ResourceId.create(networkSecurityGroups, this.SecurityGroup.Name).Eval() |> ResourceName ]
             {| securityRules.Create(this.SecurityGroup.Name + this.Name, dependsOn = dependsOn) with
                 properties =
                  {| description = this.Description |> Option.toObj

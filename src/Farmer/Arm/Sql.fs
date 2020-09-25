@@ -103,7 +103,7 @@ module Servers =
                             | Standalone _ ->
                                 null
                             | Pool pool ->
-                                ArmExpression.resourceId(elasticPools, this.Server, pool).Eval()
+                                ResourceId.create(elasticPools, this.Server, pool).Eval()
                         |}
                 |} :> _
 

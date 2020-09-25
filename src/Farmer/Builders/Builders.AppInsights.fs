@@ -7,7 +7,7 @@ open Farmer.Arm.Insights
 
 type AppInsights =
     static member getInstrumentationKey (name, ?resourceGroup) =
-        let resourceId = ArmExpression.resourceId(components, name, ?group = resourceGroup)
+        let resourceId = ResourceId.create(components, name, ?group = resourceGroup)
         ArmExpression
             .reference(components, resourceId)
             .Map(fun r -> r + ".InstrumentationKey")

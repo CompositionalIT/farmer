@@ -75,9 +75,9 @@ type VirtualNetworkGateway =
         member this.ResourceName = this.Name
         member this.JsonModel =
             let dependsOn = [
-                ArmExpression.resourceId(virtualNetworks, this.VirtualNetwork).Eval() |> ResourceName
+                ResourceId.create(virtualNetworks, this.VirtualNetwork).ArmExpression.Eval() |> ResourceName
                 for config in this.IpConfigs do
-                    ArmExpression.resourceId(publicIPAddresses, config.PublicIpName).Eval() |> ResourceName
+                    ResourceId.create(publicIPAddresses, config.PublicIpName).ArmExpression.Eval() |> ResourceName
             ]
 
             {| virtualNetworkGateways.Create(this.Name, this.Location, dependsOn, this.Tags) with
@@ -92,8 +92,8 @@ type VirtualNetworkGateway =
                                         | DynamicPrivateIp -> "Dynamic", null
                                         | StaticPrivateIp ip -> "Static", string ip
                                     {| privateIpAllocationMethod = allocationMethod; privateIpAddress = ip
-                                       publicIPAddress = {| id = ArmExpression.resourceId(publicIPAddresses, ipConfig.PublicIpName).Eval() |}
-                                       subnet = {| id = ArmExpression.resourceId(subnets, this.VirtualNetwork, ResourceName "GatewaySubnet").Eval() |}
+                                       publicIPAddress = {| id = ResourceId.create(publicIPAddresses, ipConfig.PublicIpName).Eval() |}
+                                       subnet = {| id = ResourceId.create(subnets, this.VirtualNetwork, ResourceName "GatewaySubnet").Eval() |}
                                     |}
                                 |})
                         sku =
@@ -116,9 +116,9 @@ type Connection =
       PeerId : string option
       AuthorizationKey : string option
       Tags: Map<string,string>  }
-    member private this.VNetGateway1ResourceId = ArmExpression.resourceId(virtualNetworkGateways, this.VirtualNetworkGateway1)
-    member private this.VNetGateway2ResourceId = this.VirtualNetworkGateway2 |> Option.map(fun gw -> ArmExpression.resourceId(virtualNetworkGateways, gw))
-    member private this.LocalNetworkGatewayResourceId = this.LocalNetworkGateway |> Option.map(fun lng -> ArmExpression.resourceId(localNetworkGateways, lng))
+    member private this.VNetGateway1ResourceId = ResourceId.create(virtualNetworkGateways, this.VirtualNetworkGateway1)
+    member private this.VNetGateway2ResourceId = this.VirtualNetworkGateway2 |> Option.map(fun gw -> ResourceId.create(virtualNetworkGateways, gw))
+    member private this.LocalNetworkGatewayResourceId = this.LocalNetworkGateway |> Option.map(fun lng -> ResourceId.create(localNetworkGateways, lng))
 
     interface IArmResource with
         member this.ResourceName = this.Name
@@ -170,8 +170,8 @@ type NetworkInterface =
                             {| name = sprintf "ipconfig%i" (index + 1)
                                properties =
                                 {| privateIPAllocationMethod = "Dynamic"
-                                   publicIPAddress = {| id = ArmExpression.resourceId(publicIPAddresses, ipConfig.PublicIpName).Eval() |}
-                                   subnet = {| id = ArmExpression.resourceId(subnets, this.VirtualNetwork, ipConfig.SubnetName).Eval() |}
+                                   publicIPAddress = {| id = ResourceId.create(publicIPAddresses, ipConfig.PublicIpName).Eval() |}
+                                   subnet = {| id = ResourceId.create(subnets, this.VirtualNetwork, ipConfig.SubnetName).Eval() |}
                                 |}
                             |})
                     |}
@@ -187,7 +187,7 @@ type NetworkProfile =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            let dependsOn = [ ArmExpression.resourceId(virtualNetworks, this.VirtualNetwork).Eval() |> ResourceName ]
+            let dependsOn = [ ResourceId.create(virtualNetworks, this.VirtualNetwork).Eval() |> ResourceName ]
             {| networkProfiles.Create(this.Name, this.Location, dependsOn, this.Tags) with
                 properties =
                     {| containerNetworkInterfaceConfigurations =
@@ -201,7 +201,7 @@ type NetworkProfile =
                                     {| name = sprintf "ipconfig%i" (index + 1)
                                        properties =
                                         {| subnet =
-                                            {| id = ArmExpression.resourceId(subnets, this.VirtualNetwork, ipConfig.SubnetName).Eval() |}
+                                            {| id = ResourceId.create(subnets, this.VirtualNetwork, ipConfig.SubnetName).Eval() |}
                                         |}
                                     |})
                                 |}

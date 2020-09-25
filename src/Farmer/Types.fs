@@ -74,22 +74,6 @@ type ArmExpression =
     /// Evaluates the expression for emitting into an ARM template. That is, wraps it in [].
     static member Eval (expression:ArmExpression) = expression.Eval()
     static member Empty = ArmExpression ("", None)
-    /// Builds a resourceId ARM expression from the parts of a resource ID.
-    static member resourceId (resourceType:ResourceType, name:ResourceName, ?group:string, ?subscriptionId:string) =
-        match name, group, subscriptionId with
-        | name, Some group, Some sub -> sprintf "resourceId('%s', '%s', '%s', '%s')" sub group resourceType.Type name.Value
-        | name, Some group, None -> sprintf "resourceId('%s', '%s', '%s')" group resourceType.Type name.Value
-        | name, None, _ -> sprintf "resourceId('%s', '%s')" resourceType.Type name.Value
-        |> ArmExpression.create
-    static member resourceId (resourceType:ResourceType, [<ParamArray>] resourceSegments:ResourceName []) =
-        sprintf
-            "resourceId('%s', %s)"
-            resourceType.Type
-            (resourceSegments |> Array.map (fun r -> sprintf "'%s'" r.Value) |> String.concat ", ")
-        |> ArmExpression.create
-    static member reference (resourceType:ResourceType, resourceId:ArmExpression) =
-        sprintf "reference(%s, '%s')" resourceId.Value resourceType.ApiVersion
-        |> ArmExpression.create
 
 /// A secure parameter to be captured in an ARM template.
 type SecureParameter =
@@ -109,18 +93,48 @@ type IPostDeploy =
 /// A functional equivalent of the IBuilder's BuildResources method.
 type Builder = Location -> IArmResource list
 
-[<AutoOpen>]
-module ArmExpression =
+type ArmExpression with
     /// A helper function used when building complex ARM expressions; lifts a literal string into a
     /// quoted ARM expression e.g. text becomes 'text'. This is useful for working with functions
     /// that can mix literal values and parameters.
-    let literal = sprintf "'%s'" >> ArmExpression.create
+    static member literal = sprintf "'%s'" >> ArmExpression.create
     /// Generates an ARM expression for concatination.
-    let concat values =
+    static member concat values =
         values
         |> Seq.map(fun (r:ArmExpression) -> r.Value)
         |> String.concat ", "
         |> sprintf "concat(%s)"
+        |> ArmExpression.create
+
+type ResourceId =
+    { Type : ResourceType option
+      ResourceGroup : string option
+      Name : ResourceName
+      Segments : ResourceName list }
+    member this.ArmExpression =
+        match this with
+        | { Type = None } ->
+            ArmExpression.literal this.Name.Value
+        | { Type = Some resourceType } ->
+            [ match this.ResourceGroup with Some rg -> rg | None -> ()
+              resourceType.Type
+              this.Name.Value
+              for segment in this.Segments do segment.Value ]
+            |> List.map (sprintf "'%s'")
+            |> String.concat ", "
+            |> sprintf "resourceId(%s)"
+            |> ArmExpression.create
+    member this.Eval() = this.ArmExpression.Eval()
+    static member create (name:ResourceName) =
+        { Type = None; ResourceGroup = None; Name = name; Segments = [] }
+    static member create (resourceType:ResourceType, name:ResourceName, ?group:string) =
+        { Type = Some resourceType; ResourceGroup = group; Name = name; Segments = [] }
+    static member create (resourceType:ResourceType, name:ResourceName, [<ParamArray>] resourceSegments:ResourceName []) =
+        { Type = Some resourceType; ResourceGroup = None; Name = name; Segments = List.ofArray resourceSegments }
+
+type ArmExpression with
+    static member reference (resourceType:ResourceType, resourceId:ResourceId) =
+        sprintf "reference(%s, '%s')" resourceId.ArmExpression.Value resourceType.ApiVersion
         |> ArmExpression.create
 
 /// A ResourceRef represents a linked resource; typically this will be for two resources that have a relationship

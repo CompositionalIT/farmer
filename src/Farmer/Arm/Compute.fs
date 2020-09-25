@@ -103,7 +103,7 @@ type VirtualMachine =
                         |}
                     networkProfile =
                         {| networkInterfaces = [
-                            {| id = ArmExpression.resourceId(networkInterfaces, this.NetworkInterfaceName).Eval() |}
+                            {| id = ResourceId.create(networkInterfaces, this.NetworkInterfaceName).Eval() |}
                            ]
                         |}
                     diagnosticsProfile =

@@ -30,15 +30,17 @@ type EventHubConfig =
     member this.EventHubNamespaceName = this.EventHubNamespace.CreateResourceName this
     /// Gets an ARM expression for the path to the key of a specific authorization rule for this event hub.
     member this.GetKey (ruleName:string) =
-        ArmExpression
-            .resourceId(authorizationRules, this.EventHubNamespaceName, this.Name, ResourceName ruleName)
+        ResourceId
+            .create(authorizationRules, this.EventHubNamespaceName, this.Name, ResourceName ruleName)
+            .ArmExpression
             .Map(this.ToKeyExpression)
             .WithOwner(this.Name)
 
     /// Gets an ARM expression for the path to the key of the default RootManageSharedAccessKey for the entire namespace.
     member this.DefaultKey =
-        ArmExpression
-            .resourceId(authorizationRules, this.EventHubNamespaceName, ResourceName "RootManageSharedAccessKey")
+        ResourceId
+            .create(authorizationRules, this.EventHubNamespaceName, ResourceName "RootManageSharedAccessKey")
+            .ArmExpression
             .Map(this.ToKeyExpression)
             .WithOwner(this.Name)
     interface IBuilder with
@@ -84,7 +86,7 @@ type EventHubConfig =
                 Location = location
                 Dependencies = [
                     eventHubNamespaceName
-                    ArmExpression.resourceId(eventHubs, eventHubNamespaceName, this.Name).Eval() |> ResourceName
+                    ResourceId.create(eventHubs, eventHubNamespaceName, this.Name).Eval() |> ResourceName
                 ] }
 
             // Auth rules
@@ -92,8 +94,8 @@ type EventHubConfig =
                 { Name = rule.Key.Map(fun rule -> sprintf "%s/%s/%s" eventHubNamespaceName.Value this.Name.Value rule)
                   Location = location
                   Dependencies = [
-                      ArmExpression.resourceId(namespaces, eventHubNamespaceName).Eval() |> ResourceName
-                      ArmExpression.resourceId(eventHubs, eventHubNamespaceName, this.Name).Eval() |> ResourceName
+                      ResourceId.create(namespaces, eventHubNamespaceName).Eval() |> ResourceName
+                      ResourceId.create(eventHubs, eventHubNamespaceName, this.Name).Eval() |> ResourceName
                   ]
                   Rights = rule.Value }
         ]

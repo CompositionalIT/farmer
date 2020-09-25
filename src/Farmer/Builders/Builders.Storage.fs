@@ -11,7 +11,7 @@ open FileShares
 type StorageAccount =
     /// Gets an ARM Expression connection string for any Storage Account.
     static member getConnectionString (name:StorageAccountName, ?resourceGroup:string) =
-        let resourcePath = ArmExpression.resourceId(storageAccounts, name.ResourceName, ?group = resourceGroup).Value
+        let resourcePath = ResourceId.create(storageAccounts, name.ResourceName, ?group = resourceGroup).ArmExpression.Value
         let expr =
             sprintf
                 "concat('DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=', listKeys(%s, '2017-10-01').keys[0].value)"

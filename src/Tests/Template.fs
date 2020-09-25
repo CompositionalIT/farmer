@@ -160,21 +160,15 @@ let tests = testList "Template" [
     }
 
     test "Generates ARM Id with name only" {
-        let rid = ArmExpression.resourceId (Farmer.Arm.Network.connections, ResourceName "test")
+        let rid = ResourceId.create (Farmer.Arm.Network.connections, ResourceName "test")
         let id = rid.Eval()
         Expect.equal id "[resourceId('Microsoft.Network/connections', 'test')]" "resourceId template function should match"
     }
 
     test "Generates ARM Id with name and group" {
-        let rid = ArmExpression.resourceId (Farmer.Arm.Network.connections, ResourceName "test", "myGroup")
+        let rid = ResourceId.create (Farmer.Arm.Network.connections, ResourceName "test", "myGroup")
         let id = rid.Eval()
         Expect.equal id "[resourceId('myGroup', 'Microsoft.Network/connections', 'test')]" "resourceId template function should match"
-    }
-
-    test "Generates ARM Id with name, group, and subscription" {
-        let rid = ArmExpression.resourceId (Farmer.Arm.Network.connections, ResourceName "test", "myGroup", "5ed984d9-9e7e-4550-b73b-7af020a7620d")
-        let id = rid.Eval()
-        Expect.equal id "[resourceId('5ed984d9-9e7e-4550-b73b-7af020a7620d', 'myGroup', 'Microsoft.Network/connections', 'test')]" "resourceId template function should match"
     }
 
     test "Fails if ARM expression is already quoted" {
