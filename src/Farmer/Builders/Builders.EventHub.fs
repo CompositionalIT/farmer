@@ -29,17 +29,17 @@ type EventHubConfig =
     member private this.CreateKeyExpression (resourceId:ResourceId) =
         ArmExpression
             .create(sprintf "listkeys(%s, '2017-04-01').primaryConnectionString" resourceId.ArmExpression.Value)
-            .WithOwner(this.Name)
+            .WithOwner(ResourceId.create(eventHubs, this.Name))
     member this.EventHubNamespaceName = this.EventHubNamespace.CreateResourceName this
     /// Gets an ARM expression for the path to the key of a specific authorization rule for this event hub.
     member this.GetKey (ruleName:string) =
         let ruleResource = ResourceId.create(authorizationRules, this.EventHubNamespaceName, this.Name, ResourceName ruleName)
-        this.CreateKeyExpression(ruleResource)
+        this.CreateKeyExpression ruleResource
 
     /// Gets an ARM expression for the path to the key of the default RootManageSharedAccessKey for the entire namespace.
     member this.DefaultKey =
         let ruleResource = ResourceId.create(authorizationRules, this.EventHubNamespaceName, ResourceName "RootManageSharedAccessKey")
-        this.CreateKeyExpression(ruleResource)
+        this.CreateKeyExpression ruleResource
     interface IBuilder with
         member this.DependencyName = this.EventHubNamespaceName
         member this.BuildResources location = [
