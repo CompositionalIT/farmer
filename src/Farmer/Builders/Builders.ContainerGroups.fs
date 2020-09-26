@@ -37,7 +37,7 @@ type ContainerInstanceConfig =
       /// Max gigabytes of memory the container instance may use
       Memory : float<Gb>
       /// Environment variables for the container
-      EnvironmentVariables : Map<string, {|Value:string; Secure:bool|}>
+      EnvironmentVariables : Map<string, EnvVarValue>
       /// Volume mounts for the container
       VolumeMounts : Map<string, string> }
 
@@ -190,8 +190,8 @@ type ContainerInstanceBuilder() =
     member __.AddVolumeMount (state:ContainerInstanceConfig, volumeName, mountPath) =
         { state with VolumeMounts = state.VolumeMounts |> Map.add volumeName mountPath }
 
-let env_var (name:string) (value:string) = name, {|Value=value; Secure=false|}
-let secure_env_var (name:string) (value:string) = name, {|Value=value; Secure=true|}
+let env_var (name:string) (value:string) = name, EnvValue value
+let secure_env_var (name:string) (value:string) = name, EnvSecureValue value
 
 let containerGroup = ContainerGroupBuilder()
 let containerInstance = ContainerInstanceBuilder()

@@ -50,8 +50,8 @@ type ResourceType =
                apiVersion = version
                name = name.Value
                location = location |> Option.map(fun r -> r.ArmValue) |> Option.toObj
-               dependsOn = dependsOn |> Option.defaultValue [] |> List.map(fun r -> r.Value)
-               tags = tags |> Option.defaultValue Map.empty |}
+               dependsOn = dependsOn |> Option.map (List.map(fun r -> r.Value) >> box) |> Option.toObj
+               tags = tags |> Option.map box |> Option.toObj |}
 
 /// Represents an expression used within an ARM template
 type ArmExpression =
@@ -78,7 +78,7 @@ type ArmExpression =
         match name, group, subscriptionId with
         | name, Some group, Some sub -> sprintf "resourceId('%s', '%s', '%s', '%s')" sub group resourceType.Type name.Value
         | name, Some group, None -> sprintf "resourceId('%s', '%s', '%s')" group resourceType.Type name.Value
-        | name, _, _ -> sprintf "resourceId('%s', '%s')" resourceType.Type name.Value
+        | name, None, _ -> sprintf "resourceId('%s', '%s')" resourceType.Type name.Value
         |> ArmExpression.create
     static member resourceId (resourceType:ResourceType, [<ParamArray>] resourceSegments:ResourceName []) =
         sprintf
