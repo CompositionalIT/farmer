@@ -9,6 +9,7 @@
   <ItemGroup>
     <Compile Include="Helpers.fs" />
     <Compile Include="Common.fs" />
+    <Compile Include="Bastion.fs" />
     <Compile Include="Cdn.fs" />
     <Compile Include="ContainerGroup.fs" />
     <Compile Include="ContainerService.fs" />

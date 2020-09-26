@@ -9,6 +9,7 @@ let allTests =
     testSequencedGroup "" <|
         testList "All Tests" [
             testList "Builders" [
+                Bastion.tests
                 Cdn.tests
                 CognitiveServices.tests
                 ContainerGroup.tests

@@ -2,6 +2,7 @@
 module Farmer.Builders.VirtualNetworkGateway
 
 open Farmer
+open Farmer.PublicIpAddress
 open Farmer.VirtualNetworkGateway
 open Farmer.Arm.Network
 
@@ -31,7 +32,9 @@ type VNetGatewayConfig =
             if this.GatewayPublicIpName = ResourceName.Empty then
                 yield { // No public IP set, so generate one named after the gateway
                     Name = ResourceName (sprintf "%s-ip" this.Name.Value)
+                    AllocationMethod = AllocationMethod.Dynamic
                     Location = location
+                    Sku = PublicIpAddress.Sku.Basic
                     DomainNameLabel = None
                     Tags = this.Tags
                 }
