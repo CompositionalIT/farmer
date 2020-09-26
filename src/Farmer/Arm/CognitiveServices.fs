@@ -4,7 +4,7 @@ module Farmer.Arm.CognitiveServices
 open Farmer
 open Farmer.CoreTypes
 
-let accounts = ResourceType "Microsoft.CognitiveServices/accounts"
+let accounts = ResourceType ("Microsoft.CognitiveServices/accounts", "2017-04-18")
 
 type Accounts =
     { Name : ResourceName
@@ -15,12 +15,8 @@ type Accounts =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| name = this.Name.Value
-               ``type`` = accounts.ArmValue
-               apiVersion = "2017-04-18"
-               sku = {| name = string this.Sku |}
-               kind = this.Kind.ToString().Replace("_", ".")
-               location = this.Location.ArmValue
-               tags = {||}
-               properties = {||}
-               tags = this.Tags |} :> _
+            {| accounts.Create(this.Name, this.Location, tags = this.Tags) with
+                sku = {| name = string this.Sku |}
+                kind = this.Kind.ToString().Replace("_", ".")
+                properties = {||}
+            |} :> _

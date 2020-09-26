@@ -36,9 +36,9 @@ type FunctionsConfig =
     /// Gets the ARM expression path to the publishing password of this functions app.
     member this.PublishingPassword = publishingPassword this.Name
     /// Gets the ARM expression path to the storage account key of this functions app.
-    member this.StorageAccountKey = Storage.buildKey this.StorageAccountName
+    member this.StorageAccountKey = StorageAccount.getConnectionString this.StorageAccountName
     /// Gets the ARM expression path to the app insights key of this functions app, if it exists.
-    member this.AppInsightsKey = this.AppInsightsName |> Option.map instrumentationKey
+    member this.AppInsightsKey = this.AppInsightsName |> Option.map AppInsights.getInstrumentationKey
     /// Gets the default key for the functions site
     member this.DefaultKey =
         sprintf "listkeys(concat(resourceId('Microsoft.Web/sites', '%s'), '/host/default/'),'2016-08-01').functionKeys.default" this.Name.Value
@@ -50,9 +50,9 @@ type FunctionsConfig =
     /// Gets the Service Plan name for this functions app.
     member this.ServicePlanName = this.ServicePlan.CreateResourceName this
     /// Gets the App Insights name for this functions app, if it exists.
-    member this.AppInsightsName = this.AppInsights |> Option.map (fun ai -> ai.CreateResourceName this)
+    member this.AppInsightsName : ResourceName option = this.AppInsights |> Option.map (fun ai -> ai.CreateResourceName this)
     /// Gets the Storage Account name for this functions app.
-    member this.StorageAccountName = this.StorageAccount.CreateResourceName this
+    member this.StorageAccountName : Storage.StorageAccountName = this.StorageAccount.CreateResourceName this |> Storage.StorageAccountName.Create |> Result.get
     interface IBuilder with
         member this.DependencyName = this.ServicePlanName
         member this.BuildResources location = [
@@ -61,23 +61,25 @@ type FunctionsConfig =
               Location = location
               Cors = this.Cors
               Tags = this.Tags
+              ConnectionStrings = Map.empty
               AppSettings = [
                 "FUNCTIONS_WORKER_RUNTIME", (string this.Runtime).ToLower()
                 "WEBSITE_NODE_DEFAULT_VERSION", "10.14.1"
                 "FUNCTIONS_EXTENSION_VERSION", match this.ExtensionVersion with V1 -> "~1" | V2 -> "~2" | V3 -> "~3"
-                "AzureWebJobsStorage", Storage.buildKey this.StorageAccountName |> ArmExpression.Eval
-                "AzureWebJobsDashboard", Storage.buildKey this.StorageAccountName |> ArmExpression.Eval
+                "AzureWebJobsStorage", StorageAccount.getConnectionString this.StorageAccountName |> ArmExpression.Eval
+                "AzureWebJobsDashboard", StorageAccount.getConnectionString this.StorageAccountName |> ArmExpression.Eval
 
                 match this.AppInsightsKey with
                 | Some key -> "APPINSIGHTS_INSTRUMENTATIONKEY", key |> ArmExpression.Eval
                 | None -> ()
 
                 if this.OperatingSystem = Windows then
-                    "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING", Storage.buildKey this.StorageAccountName |> ArmExpression.Eval
+                    "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING", StorageAccount.getConnectionString this.StorageAccountName |> ArmExpression.Eval
                     "WEBSITE_CONTENTSHARE", this.Name.Value.ToLower()
               ]
               |> List.map Setting.AsLiteral
               |> List.append (this.Settings |> Map.toList)
+              |> Map
 
               Identity = this.Identity
               Kind =
@@ -93,7 +95,7 @@ type FunctionsConfig =
                 | DependableResource this resourceName -> resourceName
                 | _ -> ()
 
-                this.StorageAccountName
+                this.StorageAccountName.ResourceName
               ]
               AlwaysOn = false
               HTTPSOnly = this.HTTPSOnly
@@ -124,11 +126,11 @@ type FunctionsConfig =
                 ()
             match this.StorageAccount with
             | DeployableResource this resourceName ->
-                { Name = Storage.StorageAccountName.Create resourceName |> Result.get
+                { Name = Storage.StorageAccountName.Create(resourceName).OkValue
                   Location = location
                   Sku = Storage.Standard_LRS
                   StaticWebsite = None
-                  EnableHierarchicalNamespace = false
+                  EnableHierarchicalNamespace = None
                   Tags = this.Tags }
             | _ ->
                 ()
@@ -136,6 +138,8 @@ type FunctionsConfig =
             | Some (DeployableResource this resourceName) ->
                 { Name = resourceName
                   Location = location
+                  DisableIpMasking = false
+                  SamplingPercentage = 100
                   LinkedWebsite =
                     match this.OperatingSystem with
                     | Windows -> Some this.Name
@@ -221,11 +225,26 @@ type FunctionsBuilder() =
         { state with Settings = state.Settings.Add(key, ParameterSetting (SecureParameter key)) }
     [<CustomOperation "depends_on">]
     member __.DependsOn(state:FunctionsConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
+    member __.DependsOn(state:FunctionsConfig, resources) = { state with Dependencies = List.concat [ resources; state.Dependencies ] }
     member __.DependsOn(state:FunctionsConfig, resource:IBuilder) = { state with Dependencies = resource.DependencyName :: state.Dependencies }
+    member __.DependsOn(state:FunctionsConfig, builders:IBuilder list) = { state with Dependencies = List.concat [ builders |> List.map (fun x -> x.DependencyName); state.Dependencies ] }
     member __.DependsOn(state:FunctionsConfig, resource:IArmResource) = { state with Dependencies = resource.ResourceName :: state.Dependencies }
+    member __.DependsOn(state:FunctionsConfig, resources:IArmResource list) = { state with Dependencies = List.concat [ resources |> List.map (fun x -> x.ResourceName); state.Dependencies ] }
+
+    /// sets the list of origins that should be allowed to make cross-origin calls. Use AllOrigins to allow all.
     [<CustomOperation "enable_cors">]
-    member _.EnableCors (state:FunctionsConfig, origins) = { state with Cors = Some (SpecificOrigins (List.map Uri origins)) }
-    member _.EnableCors (state:FunctionsConfig, cors) = { state with Cors = Some cors }
+    member _.EnableCors (state:FunctionsConfig, origins) = { state with Cors = Some (SpecificOrigins (List.map Uri origins, None)) }
+    member _.EnableCors (state:FunctionsConfig, origins) = { state with Cors = Some origins }
+    /// Allows CORS requests with credentials.
+    [<CustomOperation "enable_cors_credentials">]
+    member _.EnableCorsCredentials (state:FunctionsConfig) =
+        { state with
+            Cors =
+                state.Cors
+                |> Option.map (function
+                | SpecificOrigins (origins, _) -> SpecificOrigins (origins, Some true)
+                | AllOrigins -> failwith "You cannot enable CORS Credentials if you have already set CORS to AllOrigins.")
+        }
     [<CustomOperation "enable_managed_identity">]
     member _.EnableManagedIdentity(state:FunctionsConfig) =
         { state with Identity = Some Enabled }

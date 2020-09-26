@@ -6,35 +6,29 @@ open Farmer.CoreTypes
 open Farmer.Sql
 open System.Net
 
-let servers = ResourceType "Microsoft.Sql/servers"
-let elasticPools = ResourceType "Microsoft.Sql/servers/elasticPools"
-let firewallRules = ResourceType "Microsoft.Sql/servers/firewallrules"
-let databases = ResourceType "Microsoft.Sql/servers/databases"
-let transparentDataEncryption = ResourceType "Microsoft.Sql/servers/databases/transparentDataEncryption"
+let servers = ResourceType ("Microsoft.Sql/servers", "2019-06-01-preview")
+let elasticPools = ResourceType ("Microsoft.Sql/servers/elasticPools", "2017-10-01-preview")
+let firewallRules = ResourceType ("Microsoft.Sql/servers/firewallrules", "2014-04-01")
+let databases = ResourceType ("Microsoft.Sql/servers/databases", "2019-06-01-preview")
+let transparentDataEncryption = ResourceType ("Microsoft.Sql/servers/databases/transparentDataEncryption", "2014-04-01-preview")
 
-type DbKind = Standalone of DbSku | Pool of ResourceName
+type DbKind = Standalone of DbPurchaseModel | Pool of ResourceName
 
 type Server =
     { ServerName : ResourceName
       Location : Location
       Credentials : {| Username : string; Password : SecureParameter |}
-      Tags: Map<string,string>
-    }
+      Tags: Map<string,string> }
     interface IParameters with
         member this.SecureParameters = [ this.Credentials.Password ]
     interface IArmResource with
         member this.ResourceName = this.ServerName
         member this.JsonModel =
-            {| ``type`` = servers.ArmValue
-               name = this.ServerName.Value
-               apiVersion = "2019-06-01-preview"
-               location = this.Location.ArmValue
-               tags = this.Tags
-                   |> Map.add "displayName" this.ServerName.Value
-               properties =
-                   {| administratorLogin = this.Credentials.Username
-                      administratorLoginPassword = this.Credentials.Password.AsArmRef.Eval()
-                      version = "12.0" |}
+            {| servers.Create(this.ServerName,this.Location, tags = (this.Tags |> Map.add "displayName" this.ServerName.Value)) with
+                properties =
+                 {| administratorLogin = this.Credentials.Username
+                    administratorLoginPassword = this.Credentials.Password.AsArmRef.Eval()
+                    version = "12.0" |}
             |} :> _
 
 module Servers =
@@ -48,19 +42,15 @@ module Servers =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| ``type`` = elasticPools.ArmValue
-                   name = this.Server.Value + "/" + this.Name.Value
-                   properties =
-                    {| maxSizeBytes = this.MaxSizeBytes |> Option.toNullable
-                       perDatabaseSettings =
-                        match this.MinMax with
-                        | Some (min, max) -> box {| minCapacity = min; maxCapacity = max |}
-                        | None -> null
-                    |}
-                   apiVersion = "2017-10-01-preview"
-                   location = this.Location.ArmValue
-                   sku = {| name = this.Sku.Name; tier = this.Sku.Edition; size = string this.Sku.Capacity |}
-                   dependsOn = [ this.Server.Value ] |} :> _
+                {| elasticPools.Create(this.Server + this.Name, this.Location, [ this.Server ]) with
+                    properties =
+                     {| maxSizeBytes = this.MaxSizeBytes |> Option.toNullable
+                        perDatabaseSettings =
+                         match this.MinMax with
+                         | Some (min, max) -> box {| minCapacity = min; maxCapacity = max |}
+                         | None -> null
+                     |}
+                    sku = {| name = this.Sku.Name; tier = this.Sku.Edition; size = string this.Sku.Capacity |} |} :> _
 
     type FirewallRule =
         { Name : ResourceName
@@ -71,49 +61,50 @@ module Servers =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| ``type`` = firewallRules.ArmValue
-                   name = this.Server.Value + "/" + this.Name.Value
-                   apiVersion = "2014-04-01"
-                   location = this.Location.ArmValue
-                   properties =
+                {| firewallRules.Create(this.Server + this.Name, this.Location, [ this.Server ]) with
+                    properties =
                      {| endIpAddress = string this.Start
                         startIpAddress = string this.End |}
-                   dependsOn = [ this.Server.Value ]
                 |} :> _
 
     type Database =
         { Name : ResourceName
           Server : ResourceName
           Location : Location
+          MaxSizeBytes : int64 option
           Sku : DbKind
           Collation : string }
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| ``type`` = databases.ArmValue
-                   name = this.Server.Value + "/" + this.Name.Value
-                   apiVersion = "2019-06-01-preview"
-                   location = this.Location.ArmValue
-                   tags = {| displayName = this.Name.Value |}
-                   sku =
+                let dependsOn = [
+                        this.Server
+                        match this.Sku with
+                        | Standalone _ -> ()
+                        | Pool poolName -> poolName
+                ]
+                {| databases.Create(this.Server + this.Name, this.Location, dependsOn, tags = Map [ "displayName", this.Name.Value ]) with
+                    sku =
                         match this.Sku with
                         | Standalone sku -> box {| name = sku.Name; tier = sku.Edition |}
                         | Pool _ -> null
-                   properties =
+                    properties =
                         {| collation = this.Collation
+                           maxSizeBytes = this.MaxSizeBytes |> Option.toNullable
+                           licenseType =
+                            match this.Sku with
+                            | Standalone (VCore (_, license)) ->
+                                license.ArmValue
+                            | Standalone (DTU _)
+                            | Pool _ ->
+                                null
                            elasticPoolId =
-                                match this.Sku with
-                                | Standalone _ ->
-                                    null
-                                | Pool pool ->
-                                    ArmExpression.resourceId(elasticPools, this.Server, pool).Eval()
+                            match this.Sku with
+                            | Standalone _ ->
+                                null
+                            | Pool pool ->
+                                ArmExpression.resourceId(elasticPools, this.Server, pool).Eval()
                         |}
-                   dependsOn =
-                     [ this.Server.Value
-                       match this.Sku with
-                       | Standalone _ -> ()
-                       | Pool poolName -> poolName.Value
-                     ]
                 |} :> _
 
     module Databases =
@@ -124,9 +115,7 @@ module Servers =
             interface IArmResource with
                 member this.ResourceName = this.Name
                 member this.JsonModel =
-                   {| ``type`` = transparentDataEncryption.ArmValue
-                      comments = "Transparent Data Encryption"
-                      name = this.Name.Value
-                      apiVersion = "2014-04-01-preview"
-                      properties = {| status = string Enabled |}
-                      dependsOn = [ this.Database.Value ] |} :> _
+                   {| transparentDataEncryption.Create(this.Name, dependsOn = [ this.Database ]) with
+                        comments = "Transparent Data Encryption"
+                        properties = {| status = string Enabled |}
+                   |} :> _

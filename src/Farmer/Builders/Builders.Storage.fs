@@ -8,12 +8,18 @@ open Farmer.Arm.Storage
 open BlobServices
 open FileShares
 
-let internal buildKey (ResourceName name) =
-    sprintf
-        "concat('DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=', listKeys('%s', '2017-10-01').keys[0].value)"
-            name
-            name
-    |> ArmExpression.create
+type StorageAccount =
+    /// Gets an ARM Expression connection string for any Storage Account.
+    static member getConnectionString (name:StorageAccountName, ?resourceGroup:string) =
+        let resourcePath = ArmExpression.resourceId(storageAccounts, name.ResourceName, ?group = resourceGroup).Value
+        sprintf
+            "concat('DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=', listKeys(%s, '2017-10-01').keys[0].value)"
+            name.ResourceName.Value
+            resourcePath
+        |> ArmExpression.create
+    /// Gets an ARM Expression connection string for any Storage Account.
+    static member getConnectionString (name, ?resourceGroup) =
+        StorageAccount.getConnectionString(StorageAccountName.Create(ResourceName name).OkValue, ?resourceGroup = resourceGroup)
 
 type StoragePolicy =
     { CoolBlobAfter : int<Days> option
@@ -28,7 +34,7 @@ type StorageAccountConfig =
       /// The sku of the storage account.
       Sku : Sku
       /// Whether to enable Data Lake Storage Gen2.
-      EnableDataLake : bool
+      EnableDataLake : bool option
       /// Containers for the storage account.
       Containers : (StorageResourceName * StorageContainerAccess) list
       /// File shares
@@ -42,7 +48,7 @@ type StorageAccountConfig =
       /// Tags to apply to the storage account
       Tags: Map<string,string> }
     /// Gets the ARM expression path to the key of this storage account.
-    member this.Key = buildKey this.Name.ResourceName
+    member this.Key = StorageAccount.getConnectionString this.Name
     /// Gets the Primary endpoint for static website (if enabled)
     member this.WebsitePrimaryEndpoint = sprintf "https://%s.z6.web.core.windows.net" this.Name.ResourceName.Value
     member this.Endpoint = sprintf "%s.blob.core.windows.net" this.Name.ResourceName.Value
@@ -80,9 +86,9 @@ type StorageAccountConfig =
 
 type StorageAccountBuilder() =
     member _.Yield _ = {
-        Name = StorageAccountName.Create "default" |> Result.get
+        Name = StorageAccountName.Create("default").OkValue
         Sku = Standard_LRS
-        EnableDataLake = false
+        EnableDataLake = None
         Containers = []
         FileShares = []
         Rules = Map.empty
@@ -90,12 +96,12 @@ type StorageAccountBuilder() =
         StaticWebsite = None
         Tags = Map.empty
     }
-    static member private AddContainer(state, access, name:string) = { state with Containers = state.Containers @ [ (StorageResourceName.Create name |> Result.get, access) ] }
-    static member private AddFileShare(state:StorageAccountConfig, name:string, quota) = { state with FileShares = state.FileShares @ [ (StorageResourceName.Create name |> Result.get, quota) ] }
+    static member private AddContainer(state, access, name:string) = { state with Containers = state.Containers @ [ ((StorageResourceName.Create name).OkValue, access) ] }
+    static member private AddFileShare(state:StorageAccountConfig, name:string, quota) = { state with FileShares = state.FileShares @ [ (StorageResourceName.Create(name).OkValue, quota) ] }
 
     /// Sets the name of the storage account.
     [<CustomOperation "name">]
-    member _.Name(state:StorageAccountConfig, name:ResourceName) = { state with Name = StorageAccountName.Create name |> Result.get }
+    member _.Name(state:StorageAccountConfig, name:ResourceName) = { state with Name = StorageAccountName.Create(name).OkValue }
     member this.Name(state:StorageAccountConfig, name) = this.Name(state, ResourceName name)
     /// Sets the sku of the storage account.
     [<CustomOperation "sku">]
@@ -117,7 +123,7 @@ type StorageAccountBuilder() =
     member _.AddFileShareWithQuota(state:StorageAccountConfig, name:string, quota) = StorageAccountBuilder.AddFileShare(state, name, Some quota)
     /// Adds a single queue to the storage account.
     [<CustomOperation "add_queue">]
-    member _.AddQueue(state:StorageAccountConfig, name:string) = { state with Queues = state.Queues.Add (StorageResourceName.Create name |> Result.get) }
+    member _.AddQueue(state:StorageAccountConfig, name:string) = { state with Queues = state.Queues.Add (StorageResourceName.Create(name).OkValue) }
     /// Adds a set of queues to the storage account.
     [<CustomOperation "add_queues">]
     member this.AddQueues(state:StorageAccountConfig, names) =
@@ -132,7 +138,7 @@ type StorageAccountBuilder() =
         { state with StaticWebsite = state.StaticWebsite |> Option.map(fun staticWebsite -> {| staticWebsite with ErrorPage = Some errorPage |}) }
     /// Enables support for hierarchical namespace, also known as Data Lake Storage Gen2.
     [<CustomOperation "enable_data_lake">]
-    member _.UseHns(state:StorageAccountConfig) = { state with EnableDataLake = true }
+    member _.UseHns(state:StorageAccountConfig, value) = { state with EnableDataLake = Some value }
     /// Adds tags to the storage account
     [<CustomOperation "add_tags">]
     member _.Tags(state:StorageAccountConfig, pairs) =

@@ -61,3 +61,6 @@ module Result =
 [<AutoOpen>]
 module Builders =
     let result = Result.ResultBuilder()
+    type Result<'TS, 'TE> with
+        /// Unsafely unwraps the Success value out of the Result.
+        member this.OkValue = Result.get this

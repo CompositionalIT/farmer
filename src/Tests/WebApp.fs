@@ -6,8 +6,16 @@ open Farmer.Builders
 open Farmer.WebApp
 open Farmer.Arm
 open System
+open Farmer.CoreTypes
+open Microsoft.Azure.Management.WebSites
+open Microsoft.Azure.Management.WebSites.Models
+open Microsoft.Rest
 
 let getResource<'T when 'T :> IArmResource> (data:IArmResource list) = data |> List.choose(function :? 'T as x -> Some x | _ -> None)
+/// Client instance needed to get the serializer settings.
+let dummyClient = new WebSiteManagementClient (Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
+let getResourceAtIndex o = o |> getResourceAtIndex dummyClient.SerializationSettings
+
 let tests = testList "Web App Tests" [
     let getResources (wa:WebAppConfig) = (wa :> IBuilder).BuildResources Location.WestEurope
     test "Basic Web App has service plan and AI dependencies set" {
@@ -45,11 +53,64 @@ let tests = testList "Web App Tests" [
     test "Web app supports adding tags to resource" {
         let resources = webApp { name "test"; add_tag "key" "value"; add_tags ["alpha","a"; "beta","b"]} |> getResources
         let wa = resources |> getResource<Web.Site> |> List.head
-        Expect.containsAll (wa.Tags|> Map.toSeq) 
+        Expect.containsAll (wa.Tags|> Map.toSeq)
             [ "key","value"
               "alpha","a"
               "beta","b"]
             "Should contain the given tags"
         Expect.equal 3 (wa.Tags|> Map.count) "Should not contain additional tags"
+    }
+    test "Web App correctly adds connection strings" {
+        let wa =
+            let resources = webApp { name "test"; connection_string "a"; connection_string ("b", literal "value") } |> getResources
+            resources |> getResource<Web.Site> |> List.head
+
+        let expected = [
+            "a", ((ParameterSetting(SecureParameter "a")), Custom)
+            "b", ((LiteralSetting "['value']"), Custom)
+        ]
+        let parameters = wa :> IParameters
+
+        Expect.equal wa.ConnectionStrings (Map expected) "Missing connections"
+        Expect.equal parameters.SecureParameters [ SecureParameter "a" ] "Missing parameter"
+    }
+    test "CORS works correctly" {
+        let wa : Site =
+            webApp {
+                name "test"
+                enable_cors [ "https://bbc.co.uk" ]
+                enable_cors_credentials
+            }
+            |> getResourceAtIndex 0
+        Expect.sequenceEqual wa.SiteConfig.Cors.AllowedOrigins [ "https://bbc.co.uk" ] "Allowed Origins should be *"
+        Expect.equal wa.SiteConfig.Cors.SupportCredentials (Nullable true) "Support Credentials"
+    }
+
+    test "If CORS is AllOrigins, cannot enable credentials" {
+        Expect.throws (fun () ->
+            webApp {
+                name "test"
+                enable_cors AllOrigins
+                enable_cors_credentials
+            } |> ignore) "Invalid CORS combination"
+    }
+
+    test "Automatically converts from * to AllOrigins" {
+        let wa : Site =
+            webApp { name "test"; enable_cors [ "*" ] } |> getResourceAtIndex 0
+        Expect.sequenceEqual wa.SiteConfig.Cors.AllowedOrigins [ "*" ] "Allowed Origins should be *"
+    }
+
+    test "CORS without credentials does not crash" {
+        let _ = webApp { name "test"; enable_cors AllOrigins }
+        let _ = webApp { name "test"; enable_cors [ "https://bbc.co.uk" ] }
+        ()
+    }
+
+
+    test "If CORS is not enabled, ignores enable credentials" {
+        let wa : Site =
+            webApp { name "test"; enable_cors_credentials } |> getResourceAtIndex 0
+        Expect.isNull wa.SiteConfig.Cors "Should be no CORS settings"
     }
 ]

@@ -11,7 +11,8 @@ open Databases
 
 type SqlAzureDbConfig =
     { Name : ResourceName
-      Sku : DbSku option
+      Sku : DbPurchaseModel option
+      MaxSize : int<Mb> option
       Collation : string
       Encryption : FeatureFlag }
 
@@ -63,6 +64,10 @@ type SqlAzureConfig =
                 { Name = database.Name
                   Server = this.Name
                   Location = location
+                  MaxSizeBytes =
+                    match database.Sku, database.MaxSize with
+                    | Some _, Some maxSize -> Some (Mb.toBytes maxSize)
+                    | _ -> None
                   Sku =
                    match database.Sku with
                    | Some dbSku -> Standalone dbSku
@@ -88,7 +93,7 @@ type SqlAzureConfig =
                   Server = this.Name
                   Location = location
                   Sku = this.ElasticPoolSettings.Sku
-                  MaxSizeBytes = this.ElasticPoolSettings.Capacity |> Option.map(fun mb -> int64 mb * 1024L * 1024L)
+                  MaxSizeBytes = this.ElasticPoolSettings.Capacity |> Option.map Mb.toBytes
                   MinMax = this.ElasticPoolSettings.PerDbLimits |> Option.map(fun l -> l.Min, l.Max) }
         ]
 
@@ -97,21 +102,40 @@ type SqlDbBuilder() =
         { Name = ResourceName ""
           Collation = "SQL_Latin1_General_CP1_CI_AS"
           Sku = None
+          MaxSize = None
           Encryption = Disabled }
     /// Sets the name of the database.
     [<CustomOperation "name">]
     member _.DbName(state:SqlAzureDbConfig, name) = { state with Name = name }
     member this.DbName(state:SqlAzureDbConfig, name:string) = this.DbName(state, ResourceName name)
-    // Sets the sku of the database
+    /// Sets the sku of the database
     [<CustomOperation "sku">]
-    member _.DbSku(state:SqlAzureDbConfig, sku:DbSku) = { state with Sku = Some sku }
-    // Sets the collation of the database.
+    member _.DbSku(state:SqlAzureDbConfig, sku:DtuSku) = { state with Sku = Some (DTU sku) }
+    member _.DbSku(state:SqlAzureDbConfig, sku:MSeries) = { state with Sku = Some (VCore(MemoryIntensive sku, LicenseRequired)) }
+    member _.DbSku(state:SqlAzureDbConfig, sku:FSeries) = { state with Sku = Some (VCore(CpuIntensive sku, LicenseRequired)) }
+    member _.DbSku(state:SqlAzureDbConfig, sku:VCoreSku) = { state with Sku = Some (VCore (sku, LicenseRequired)) }
+    /// Sets the collation of the database.
     [<CustomOperation "collation">]
     member _.DbCollation(state:SqlAzureDbConfig, collation:string) = { state with Collation = collation }
-    // Enables encryption of the database.
+    /// States that you already have a SQL license and qualify for Azure Hybrid Benefit discount.
+    [<CustomOperation "hybrid_benefit">]
+    member _.ZoneRedundant(state:SqlAzureDbConfig) =
+        { state with
+            Sku =
+                match state.Sku with
+                | Some (VCore (v, _)) ->
+                    Some (VCore (v, AzureHybridBenefit))
+                | Some (DTU _)
+                | None ->
+                    failwith "You can only set licensing on VCore databases. Ensure that you have already set the SKU to a VCore model."
+        }
+    /// Sets the maximum size of the database, if this database is not part of an elastic pool.
+    [<CustomOperation "db_size">]
+    member _.MaxSize(state:SqlAzureDbConfig, size:int<Mb>) = { state with MaxSize = Some size }
+    /// Enables encryption of the database.
     [<CustomOperation "use_encryption">]
     member _.UseEncryption(state:SqlAzureDbConfig) = { state with Encryption = Enabled }
-    // Adds a custom firewall rule given a name, start and end IP address range.
+    /// Adds a custom firewall rule given a name, start and end IP address range.
     member _.Run (state:SqlAzureDbConfig) =
         if state.Name = ResourceName.Empty then failwith "You must set a database name."
         state
@@ -135,7 +159,7 @@ type SqlServerBuilder() =
                 if state.Name = ResourceName.Empty then failwith "You must set a server name"
                 else state.Name |> Helpers.sanitiseDb |> ResourceName
             AdministratorCredentials =
-                if System.String.IsNullOrWhiteSpace state.AdministratorCredentials.UserName then failwith "You must specify an admin_username."
+                if System.String.IsNullOrWhiteSpace state.AdministratorCredentials.UserName then failwithf "You must specify the admin_username for SQL Server instance %s" state.Name.Value
                 {| state.AdministratorCredentials with
                     Password = SecureParameter (sprintf "password-for-%s" state.Name.Value) |} }
     /// Sets the name of the SQL server.
@@ -160,17 +184,17 @@ type SqlServerBuilder() =
     member _.AddDatabases(state:SqlAzureConfig, databases) = { state with Databases = state.Databases @ databases }
     /// Adds a firewall rule that enables access to a specific IP Address range.
     [<CustomOperation "add_firewall_rule">]
-    member __.AddFirewallWall(state:SqlAzureConfig, name, startRange, endRange) =
+    member __.AddFirewallRule(state:SqlAzureConfig, name, startRange, endRange) =
         { state with
             FirewallRules =
-                {| Name = name
+                {| Name = ResourceName name
                    Start = makeIp startRange
                    End = makeIp endRange |}
                 :: state.FirewallRules }
     /// Adds a firewall rule that enables access to other Azure services.
     [<CustomOperation "enable_azure_firewall">]
     member this.UseAzureFirewall(state:SqlAzureConfig) =
-        this.AddFirewallWall(state, ResourceName "allow-azure-services", "0.0.0.0", "0.0.0.0")
+        this.AddFirewallRule(state, "allow-azure-services", "0.0.0.0", "0.0.0.0")
     /// Sets the admin username of the server (note: the password is supplied as a securestring parameter to the generated ARM template).
     [<CustomOperation "admin_username">]
     member __.AdminUsername(state:SqlAzureConfig, username) =

@@ -21,7 +21,7 @@ type EventHubConfig =
       KafkaEnabled : bool option
       MessageRetentionInDays : int option
       Partitions : int
-      ConsumerGroups : string Set
+      ConsumerGroups : ResourceName Set
       CaptureDestination : CaptureDestination option
       AuthorizationRules : Map<ResourceName, AuthorizationRuleRight Set>
       Dependencies : ResourceName list
@@ -77,7 +77,8 @@ type EventHubConfig =
 
             // Consumer groups
             for consumerGroup in this.ConsumerGroups do
-              { Name = eventHubName.Map(fun hubName -> sprintf "%s/%s" hubName consumerGroup)
+              { ConsumerGroupName = consumerGroup
+                EventHub = eventHubName
                 Location = location
                 Dependencies = [
                     eventHubNamespaceName
@@ -107,7 +108,7 @@ type EventHubBuilder() =
           MessageRetentionInDays = None
           Partitions = 1
           CaptureDestination = None
-          ConsumerGroups = Set [ "$Default" ]
+          ConsumerGroups = Set [ ResourceName "$Default" ]
           AuthorizationRules = Map.empty
           Dependencies = []
           Tags = Map.empty }
@@ -141,7 +142,7 @@ type EventHubBuilder() =
     [<CustomOperation "partitions">]
     member __.Partitions(state:EventHubConfig, partitions) = { state with Partitions = partitions }
     [<CustomOperation "add_consumer_group">]
-    member __.AddConsumerGroup(state:EventHubConfig, name) = { state with ConsumerGroups = state.ConsumerGroups.Add name }
+    member __.AddConsumerGroup(state:EventHubConfig, name) = { state with ConsumerGroups = state.ConsumerGroups.Add (ResourceName name) }
     [<CustomOperation "add_authorization_rule">]
     member __.AddAuthorizationRule(state:EventHubConfig, name, rights) = { state with AuthorizationRules = state.AuthorizationRules.Add(ResourceName name, Set rights) }
     [<CustomOperation "capture_to_storage">]
@@ -153,11 +154,15 @@ type EventHubBuilder() =
     /// Sets a dependency for the event hub.
     [<CustomOperation "depends_on">]
     member __.DependsOn(state:EventHubConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
+    member __.DependsOn(state:EventHubConfig, resources) = { state with Dependencies = List.concat [ resources; state.Dependencies ] }
     member __.DependsOn(state:EventHubConfig, builder:IBuilder) = { state with Dependencies = builder.DependencyName :: state.Dependencies }
+    member __.DependsOn(state:EventHubConfig, builders:IBuilder list) = { state with Dependencies = List.concat [ builders |> List.map (fun x -> x.DependencyName); state.Dependencies ] }
     member __.DependsOn(state:EventHubConfig, resource:IArmResource) = { state with Dependencies = resource.ResourceName :: state.Dependencies }
+    member __.DependsOn(state:EventHubConfig, resources:IArmResource list) = { state with Dependencies = List.concat [ resources |> List.map (fun x -> x.ResourceName); state.Dependencies ] }
+
     [<CustomOperation "add_tags">]
-    member _.Tags(state:EventHubConfig, pairs) = 
-        { state with 
+    member _.Tags(state:EventHubConfig, pairs) =
+        { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
     member this.Tag(state:EventHubConfig, key, value) = this.Tags(state, [ (key,value) ])

@@ -33,6 +33,8 @@ The SQL Azure module contains two builders - `sqlServer`, used to create SQL Azu
 |-|-|
 | name | Sets the name of the database. |
 | sku | Sets the sku of the database. If not set, the database is assumed to be part of an elastic pool which will be automatically created. |
+| hybrid_benefit | If a VCore-style SKU is selected, this allows you to use Azure Hybrid Benefit licensing. |
+| db_size | Sets the maximum database size. |
 | collation | Sets the collation of the database. |
 | use_encryption | Enables transparent data encryption of the database. |
 
@@ -53,7 +55,17 @@ let myDatabases = sqlServer {
     add_databases [
         sqlDb { name "poolDb1" }
         sqlDb { name "poolDb2" }
-        sqlDb { name "standaloneDb1"; sku DbSku.Basic }
+        sqlDb { name "dtuDb"; sku Basic }
+        sqlDb { name "memoryDb"; sku M_8 }
+        sqlDb { name "cpuDb"; sku Fsv2_8 }
+        sqlDb { name "businessCriticalDb"; sku (BusinessCritical Gen5_2) }
+        sqlDb { name "hyperscaleDb"; sku (Hyperscale Gen5_2) }
+        sqlDb {
+            name "generalPurposeDb"
+            sku (GeneralPurpose Gen5_8)
+            db_size (1024<Mb> * 128)
+            hybrid_benefit
+        }
     ]
 }
 

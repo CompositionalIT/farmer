@@ -124,7 +124,7 @@ type EventGridBuilder() =
         }
     member _.Yield _ =
         { TopicName = ResourceName.Empty
-          Source = (ResourceName.Empty, TopicType(Farmer.CoreTypes.ResourceType "", ""))
+          Source = ResourceName.Empty, TopicType(CoreTypes.ResourceType("", ""), "")
           Subscriptions = []
           Tags = Map.empty  }
     [<CustomOperation "topic_name">]

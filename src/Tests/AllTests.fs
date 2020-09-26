@@ -10,6 +10,7 @@ let allTests =
         testList "All Tests" [
             testList "Builders" [
                 Cdn.tests
+                CognitiveServices.tests
                 ContainerGroup.tests
                 ContainerService.tests
                 IotHub.tests

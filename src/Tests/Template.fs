@@ -129,11 +129,34 @@ let tests = testList "Template" [
         Expect.hasLength template.Template.Resources 2 "Should be two resources added"
     }
 
-    test "Can add dependencies through IBuilder" {
+    test "Can add dependency through Resource Name" {
+        let a = storageAccount { name "aaa" }
+        let b = webApp { name "b"; depends_on a.Name.ResourceName }
+
+        Expect.equal b.Dependencies [ ResourceName "aaa" ] "Dependency should have been set"
+    }
+
+    test "Can add dependency through IBuilder" {
         let a = storageAccount { name "aaa" }
         let b = webApp { name "b"; depends_on a }
 
         Expect.equal b.Dependencies [ ResourceName "aaa" ] "Dependency should have been set"
+    }
+
+    test "Can add dependencies through Resource Name" {
+        let a = storageAccount { name "aaa" }
+        let b = storageAccount { name "bbb" }
+        let b = webApp { name "b"; depends_on [ a.Name.ResourceName; b.Name.ResourceName ] }
+
+        Expect.equal b.Dependencies [ ResourceName "aaa"; ResourceName "bbb" ] "Dependencies should have been set"
+    }
+
+    test "Can add dependencies through IBuilder" {
+        let a = storageAccount { name "aaa" }
+        let b = storageAccount { name "bbb" }
+        let b = webApp { name "b"; depends_on [ a :> IBuilder; b :> IBuilder ] }
+
+        Expect.equal b.Dependencies [ ResourceName "aaa"; ResourceName "bbb" ] "Dependencies should have been set"
     }
 
     test "Generates ARM Id with name only" {
@@ -160,5 +183,12 @@ let tests = testList "Template" [
 
     test "Does not fail if ARM expression contains an inner quote" {
         Expect.equal "[foo[test]]" ((ArmExpression.create "foo[test]").Eval()) "Failed on quoted ARM expression"
+    }
+    test "Does not create empty nodes for core resource fields when nothing is supplied" {
+        let createdResource = ResourceType("Test", "2017-01-01").Create(ResourceName "Name")
+        Expect.equal
+            createdResource
+            {| name = "Name"; ``type`` = "Test"; apiVersion = "2017-01-01"; dependsOn = null; location = null; tags = null |}
+            "Default values don't match"
     }
 ]

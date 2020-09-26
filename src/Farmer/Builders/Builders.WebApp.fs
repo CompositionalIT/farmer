@@ -74,6 +74,7 @@ type WebAppConfig =
       AppInsights : ResourceRef<WebAppConfig> option
       OperatingSystem : OS
       Settings : Map<string, Setting>
+      ConnectionStrings : Map<string, (Setting * ConnectionStringKind)>
       Dependencies : ResourceName list
       Tags : Map<string,string>
 
@@ -121,6 +122,7 @@ type WebAppConfig =
               Identity = this.Identity
               Cors = this.Cors
               Tags = this.Tags
+              ConnectionStrings = this.ConnectionStrings
               AppSettings =
                 let literalSettings = [
                     if this.RunFromPackage then AppSettings.RunFromPackage
@@ -131,7 +133,7 @@ type WebAppConfig =
 
                     match this.OperatingSystem, this.AppInsights with
                     | Windows, Some resource ->
-                        "APPINSIGHTS_INSTRUMENTATIONKEY", instrumentationKey (resource.CreateResourceName this) |> ArmExpression.Eval
+                        "APPINSIGHTS_INSTRUMENTATIONKEY", AppInsights.getInstrumentationKey(resource.CreateResourceName this).Eval()
                         "APPINSIGHTS_PROFILERFEATURE_VERSION", "1.0.0"
                         "APPINSIGHTS_SNAPSHOTFEATURE_VERSION", "1.0.0"
                         "ApplicationInsightsAgent_EXTENSION_VERSION", "~2"
@@ -158,7 +160,8 @@ type WebAppConfig =
                 literalSettings
                 |> List.map Setting.AsLiteral
                 |> List.append dockerSettings
-                |> List.append (this.Settings |> Map.toList)
+                |> List.append (Map.toList this.Settings)
+                |> Map
               Kind = [
                 "app"
                 match this.OperatingSystem with Linux -> "linux" | Windows -> ()
@@ -248,6 +251,8 @@ type WebAppConfig =
             | Some (DeployableResource this resourceName) ->
                 { Name = resourceName
                   Location = location
+                  DisableIpMasking = false
+                  SamplingPercentage = 100
                   LinkedWebsite =
                     match this.OperatingSystem with
                     | Windows -> Some this.Name
@@ -264,7 +269,7 @@ type WebAppConfig =
                   Sku = this.Sku
                   WorkerSize = this.WorkerSize
                   WorkerCount = this.WorkerCount
-                  OperatingSystem = this.OperatingSystem 
+                  OperatingSystem = this.OperatingSystem
                   Tags = this.Tags}
             | _ ->
                 ()
@@ -286,6 +291,7 @@ type WebAppBuilder() =
           ClientAffinityEnabled = None
           WebSocketsEnabled = None
           Settings = Map.empty
+          ConnectionStrings = Map.empty
           Tags = Map.empty
           Dependencies = []
           Identity = None
@@ -378,11 +384,26 @@ type WebAppBuilder() =
     [<CustomOperation "secret_setting">]
     member __.AddSecret(state:WebAppConfig, key) =
         { state with Settings = state.Settings.Add(key, ParameterSetting (SecureParameter key)) }
+    /// Creates a set of connection strings of the web app whose values will be supplied as secret parameters.
+    [<CustomOperation "connection_string">]
+    member _.AddConnectionString(state:WebAppConfig, key) =
+        { state with ConnectionStrings = state.ConnectionStrings.Add(key, (ParameterSetting (SecureParameter key), Custom)) }
+    member _.AddConnectionString(state:WebAppConfig, (key, value:ArmExpression)) =
+        { state with ConnectionStrings = state.ConnectionStrings.Add(key, (LiteralSetting (value.Eval()), Custom)) }
+    /// Creates a set of connection strings of the web app whose values will be supplied as secret parameters.
+    [<CustomOperation "connection_strings">]
+    member this.AddConnectionStrings(state:WebAppConfig, connectionStrings) =
+        connectionStrings
+        |> List.fold (fun (state:WebAppConfig) (key:string) -> this.AddConnectionString(state, key)) state
     /// Sets a dependency for the web app.
     [<CustomOperation "depends_on">]
     member __.DependsOn(state:WebAppConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
+    member __.DependsOn(state:WebAppConfig, resources) = { state with Dependencies = List.concat [ resources; state.Dependencies ] }
     member __.DependsOn(state:WebAppConfig, builder:IBuilder) = { state with Dependencies = builder.DependencyName :: state.Dependencies }
+    member __.DependsOn(state:WebAppConfig, builders:IBuilder list) = { state with Dependencies = List.concat [ builders |> List.map (fun x -> x.DependencyName); state.Dependencies ] }
     member __.DependsOn(state:WebAppConfig, resource:IArmResource) = { state with Dependencies = resource.ResourceName :: state.Dependencies }
+    member __.DependsOn(state:WebAppConfig, resources:IArmResource list) = { state with Dependencies = List.concat [ resources |> List.map (fun x -> x.ResourceName); state.Dependencies ] }
+
     /// Sets "Always On" flag
     [<CustomOperation "always_on">]
     member __.AlwaysOn(state:WebAppConfig) = { state with AlwaysOn = true }
@@ -426,9 +447,26 @@ type WebAppBuilder() =
     [<CustomOperation "disable_managed_identity">]
     member _.DisableManagedIdentity(state:WebAppConfig) =
         { state with Identity = Some Disabled }
+    /// sets the list of origins that should be allowed to make cross-origin calls. Use AllOrigins to allow all.
     [<CustomOperation "enable_cors">]
-    member _.EnableCors (state:WebAppConfig, origins) = { state with Cors = Some (SpecificOrigins (List.map Uri origins)) }
-    member _.EnableCors (state:WebAppConfig, cors) = { state with Cors = Some cors }
+    member _.EnableCors (state:WebAppConfig, origins) =
+        { state with
+            Cors =
+                match origins with
+                | [ "*" ] -> Some AllOrigins
+                | origins -> Some (SpecificOrigins (List.map Uri origins, None))
+        }
+    member _.EnableCors (state:WebAppConfig, origins) = { state with Cors = Some origins }
+    /// Allows CORS requests with credentials.
+    [<CustomOperation "enable_cors_credentials">]
+    member _.EnableCorsCredentials (state:WebAppConfig) =
+        { state with
+            Cors =
+                state.Cors
+                |> Option.map (function
+                | SpecificOrigins (origins, _) -> SpecificOrigins (origins, Some true)
+                | AllOrigins -> failwith "You cannot enable CORS Credentials if you have already set CORS to AllOrigins.")
+        }
     [<CustomOperation "source_control">]
     member _.SourceControl(state:WebAppConfig, url, branch) =
         { state with
@@ -446,8 +484,8 @@ type WebAppBuilder() =
     [<CustomOperation "disable_source_control_ci">]
     member this.DisableCi(state:WebAppConfig) = this.SourceControlCi(state, Disabled)
     [<CustomOperation "add_tags">]
-    member _.Tags(state:WebAppConfig, pairs) = 
-        { state with 
+    member _.Tags(state:WebAppConfig, pairs) =
+        { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
     member this.Tag(state:WebAppConfig, key, value) = this.Tags(state, [ (key,value) ])

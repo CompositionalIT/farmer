@@ -21,6 +21,9 @@ module Az =
 
     let MinimumVersion = Version "2.5.0"
 
+    type AzureCLIToolsNotFound (message:string, innerException : exn) =
+        inherit System.Exception (message, innerException)  
+
     [<AutoOpen>]
     module AzHelpers =
         let (|OperatingSystem|_|) platform () =
@@ -39,25 +42,33 @@ module Az =
                 | _ ->
                     failwithf "OSPlatform: %s not supported" RuntimeInformation.OSDescription
         let executeAz arguments =
-            let azProcess =
-                ProcessStartInfo(
-                    FileName = azCliPath.Value,
-                    Arguments = arguments,
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true)
-                |> Process.Start
-            let sb = StringBuilder()
-            let flushContents() =
-                let flushStream (stream:StreamReader) =
-                    while not stream.EndOfStream do sb.AppendLine(stream.ReadLine()) |> ignore
-                [ azProcess.StandardOutput; azProcess.StandardError ] |> List.iter flushStream
+            try
+                let azProcess =
+                    ProcessStartInfo(
+                        FileName = azCliPath.Value,
+                        Arguments = arguments,
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true)
+                    |> Process.Start
+                let sb = StringBuilder()
+                let flushContents() =
+                    let flushStream (stream:StreamReader) =
+                        while not stream.EndOfStream do sb.AppendLine(stream.ReadLine()) |> ignore
+                    [ azProcess.StandardOutput; azProcess.StandardError ] |> List.iter flushStream
 
-            flushContents() // For some reason if we don't try flushing before waiting for exit, sometimes stdout crashes.
-            azProcess.WaitForExit()
-            flushContents()
+                flushContents() // For some reason if we don't try flushing before waiting for exit, sometimes stdout crashes.
+                azProcess.WaitForExit()
+                flushContents()
+                azProcess, sb.ToString()
+            with 
+            | :? System.ComponentModel.Win32Exception as e when e.Message.Contains("No such file or directory") ->
+                let message = sprintf "Could not find Azure CLI tools on %s. Make sure you've setup the Azure CLI tools.  Go to https://compositionalit.github.io/farmer/quickstarts/quickstart-3/#install-the-azure-cli for more information." azCliPath.Value
+                AzureCLIToolsNotFound(message, e) |> raise
+            | _ -> 
+                reraise()
 
-            azProcess, sb.ToString()
+            
         let processToResult (p:Process, response) =
             match p.ExitCode with
             | 0 -> Ok response

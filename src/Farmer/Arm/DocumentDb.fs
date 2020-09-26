@@ -5,9 +5,9 @@ open Farmer
 open Farmer.CoreTypes
 open Farmer.CosmosDb
 
-let containers = ResourceType "Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers"
-let sqlDatabases = ResourceType "Microsoft.DocumentDB/databaseAccounts/sqlDatabases"
-let databaseAccounts = ResourceType "Microsoft.DocumentDB/databaseAccounts"
+let containers = ResourceType ("Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers", "2020-03-01")
+let sqlDatabases = ResourceType ("Microsoft.DocumentDb/databaseAccounts/sqlDatabases", "2020-03-01")
+let databaseAccounts = ResourceType ("Microsoft.DocumentDb/databaseAccounts", "2020-03-01")
 
 module DatabaseAccounts =
     module SqlDatabases =
@@ -30,39 +30,37 @@ module DatabaseAccounts =
             interface IArmResource with
                 member this.ResourceName = this.Name
                 member this.JsonModel =
-                    {| ``type`` = containers.ArmValue
-                       name = sprintf "%s/%s/%s" this.Account.Value this.Database.Value this.Name.Value
-                       apiVersion = "2020-03-01"
-                       dependsOn = [ this.Database.Value ]
-                       properties =
-                           {| resource =
-                               {| id = this.Name.Value
-                                  partitionKey =
-                                   {| paths = this.PartitionKey.Paths
-                                      kind = string this.PartitionKey.Kind |}
-                                  uniqueKeyPolicy =
-                                   {| uniqueKeys =
-                                      this.UniqueKeyPolicy.UniqueKeys
-                                      |> Set.map (fun k -> {| paths = k.Paths |}) |}
-                                  indexingPolicy =
-                                   {| indexingMode = "consistent"
-                                      includedPaths =
-                                          this.IndexingPolicy.IncludedPaths
-                                          |> List.map(fun p ->
-                                           {| path = p.Path
-                                              indexes =
-                                               p.Indexes
-                                               |> List.map(fun (dataType, kind) ->
-                                                   {| kind = string kind
-                                                      dataType = dataType.ToString().ToLower()
-                                                      precision = -1 |})
-                                           |})
-                                      excludedPaths =
-                                       this.IndexingPolicy.ExcludedPaths
-                                       |> List.map(fun p -> {| path = p |})
+                    {| containers.Create(this.Account + this.Database + this.Name, dependsOn = [ this.Database ])
+                        with
+                           properties =
+                               {| resource =
+                                   {| id = this.Name.Value
+                                      partitionKey =
+                                       {| paths = this.PartitionKey.Paths
+                                          kind = string this.PartitionKey.Kind |}
+                                      uniqueKeyPolicy =
+                                       {| uniqueKeys =
+                                          this.UniqueKeyPolicy.UniqueKeys
+                                          |> Set.map (fun k -> {| paths = k.Paths |}) |}
+                                      indexingPolicy =
+                                       {| indexingMode = "consistent"
+                                          includedPaths =
+                                              this.IndexingPolicy.IncludedPaths
+                                              |> List.map(fun p ->
+                                               {| path = p.Path
+                                                  indexes =
+                                                   p.Indexes
+                                                   |> List.map(fun (dataType, kind) ->
+                                                       {| kind = string kind
+                                                          dataType = dataType.ToString().ToLower()
+                                                          precision = -1 |})
+                                               |})
+                                          excludedPaths =
+                                           this.IndexingPolicy.ExcludedPaths
+                                           |> List.map(fun p -> {| path = p |})
+                                       |}
                                    |}
                                |}
-                           |}
                     |} :> _
 
     type SqlDatabase =
@@ -72,13 +70,10 @@ module DatabaseAccounts =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| ``type`` = sqlDatabases.ArmValue
-                   name = sprintf "%s/%s" this.Account.Value this.Name.Value
-                   apiVersion = "2020-03-01"
-                   dependsOn = [ this.Account.Value ]
-                   properties =
-                       {| resource = {| id = this.Name.Value |}
-                          options = {| throughput = string this.Throughput |} |}
+                {| sqlDatabases.Create(this.Account + this.Name, dependsOn = [ this.Account ]) with
+                       properties =
+                           {| resource = {| id = this.Name.Value |}
+                              options = {| throughput = string this.Throughput |} |}
                 |} :> _
 
 type DatabaseAccount =
@@ -118,29 +113,25 @@ type DatabaseAccount =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = databaseAccounts.ArmValue
-               name = this.Name.Value
-               apiVersion = "2020-03-01"
-               location = this.Location.ArmValue
-               kind = "GlobalDocumentDB"
-               properties =
-                   {| consistencyPolicy =
-                        {| defaultConsistencyLevel =
-                            match this.ConsistencyPolicy with
-                            | BoundedStaleness _ -> "BoundedStaleness"
-                            | Session | Eventual | ConsistentPrefix | Strong as policy -> string policy
-                           maxStalenessPrefix = this.MaxStatelessPrefix |> Option.toNullable
-                           maxIntervalInSeconds = this.MaxInterval |> Option.toNullable
-                        |}
-                      databaseAccountOfferType = "Standard"
-                      enableAutomaticFailover = this.EnableAutomaticFailover |> Option.toNullable
-                      autoenableMultipleWriteLocations = this.EnableMultipleWriteLocations |> Option.toNullable
-                      locations =
-                        match this.FailoverLocations with
-                        | [] -> null
-                        | locations -> box locations
-                      publicNetworkAccess = string this.PublicNetworkAccess
-                      enableFreeTier = this.FreeTier
-                   |} |> box
-               tags = this.Tags
+            {| databaseAccounts.Create(this.Name, this.Location, tags = this.Tags) with
+                   kind = "GlobalDocumentDB"
+                   properties =
+                       {| consistencyPolicy =
+                            {| defaultConsistencyLevel =
+                                match this.ConsistencyPolicy with
+                                | BoundedStaleness _ -> "BoundedStaleness"
+                                | Session | Eventual | ConsistentPrefix | Strong as policy -> string policy
+                               maxStalenessPrefix = this.MaxStatelessPrefix |> Option.toNullable
+                               maxIntervalInSeconds = this.MaxInterval |> Option.toNullable
+                            |}
+                          databaseAccountOfferType = "Standard"
+                          enableAutomaticFailover = this.EnableAutomaticFailover |> Option.toNullable
+                          autoenableMultipleWriteLocations = this.EnableMultipleWriteLocations |> Option.toNullable
+                          locations =
+                            match this.FailoverLocations with
+                            | [] -> null
+                            | locations -> box locations
+                          publicNetworkAccess = string this.PublicNetworkAccess
+                          enableFreeTier = this.FreeTier
+                       |} |> box
             |} :> _

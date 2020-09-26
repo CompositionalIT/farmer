@@ -15,6 +15,8 @@ The App Insights builder is used to create Application Insights accounts. Use th
 | Keyword | Purpose |
 |-|-|
 | name | Sets the name of the App Insights instance. |
+| disable_ip_masking | Disable IP masking. |
+| sampling_percentage | Define sampling percentage (0-100) |
 
 #### Configuration Members
 
