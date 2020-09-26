@@ -15,6 +15,26 @@ Every PR to Farmer **must** include an entry to the `RELEASE_NOTES.md` file unde
 #### 5. Adhere to Coding Standards
 Here are some (very basic!) standards for the project:
 
-1. Follow the coding style of the existing source.
-2. Use 4 spaces for indentation.
-3. As a last resort, adhere to [official](https://docs.microsoft.com/en-us/dotnet/fsharp/style-guide/) style guide as a basis.
+* Follow the coding style of the existing source.
+* Use 4 spaces for indentation.
+* Records are defined as follows:
+
+```fsharp
+type MyRecord =
+    { Field : Type
+      Field : Type } list
+```
+
+* List comprehensions should be done as follows:
+
+```fsharp
+results = [
+  for item in collection do
+    item.Foo
+]
+```
+
+* Do not use `yield` - it is no longer necessary in F#.
+* Prefer `[ for x in y do ... ]`  to `[ for x in y -> ... ]`
+* Never use `.Value` on `Option` types.
+* As a last resort, adhere to [official](https://docs.microsoft.com/en-us/dotnet/fsharp/style-guide/) style guide as a basis.

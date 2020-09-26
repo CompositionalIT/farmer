@@ -3,6 +3,7 @@ module Farmer.Builders.VirtualMachine
 
 open Farmer
 open Farmer.CoreTypes
+open Farmer.PublicIpAddress
 open Farmer.Vm
 open Farmer.Helpers
 open Farmer.Arm.Compute
@@ -94,6 +95,8 @@ type VmConfig =
             // IP Address
             { Name = this.IpName
               Location = location
+              AllocationMethod = AllocationMethod.Dynamic
+              Sku = PublicIpAddress.Sku.Basic
               DomainNameLabel = this.DomainNamePrefix
               Tags = this.Tags }
 
