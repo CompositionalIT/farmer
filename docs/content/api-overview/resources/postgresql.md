@@ -6,7 +6,7 @@ weight: 17
 ---
 
 #### Overview
-The PostgreSQL mnodule contains two builders - `postgreSQL`, used to create 
+The PostgreSQL module contains two builders - `postgreSQL`, used to create 
 PostgreSQL Azure servers, and `postgreSQLDb`, used to create individual databases. 
 It supports features such as firewall, autogrow and version selection. 
 Every PostgreSQL Azure server you create will automatically create a SecureString 
