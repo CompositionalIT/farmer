@@ -1,9 +1,10 @@
 Release Notes
 =============
 ## 1.2.0-beta1
-* Bastion Hosts: Create bastion hosts for accessing resources on a virtual network.
+* Bastion Hosts: Create bastion hosts for accessing resources on a virtual network
 * Gateway: Add VPN Client configuration
 * Support for implicitly adding dependencies based on usage e.g. add settings, connection strings etc.
+* Internal changes to better capture full resource IDs
 
 ## 1.1.0
 * AKS: Basic AKS support

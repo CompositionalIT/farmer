@@ -17,19 +17,19 @@ type BastionHost =
         member this.ResourceName = this.Name
         member this.JsonModel =
             let dependsOn = [
-                ArmExpression.resourceId(virtualNetworks, this.VirtualNetwork).Eval() |> ResourceName
+                ResourceId.create(virtualNetworks, this.VirtualNetwork)
                 for config in this.IpConfigs do
-                    ArmExpression.resourceId(publicIPAddresses, config.PublicIpName).Eval() |> ResourceName
+                    ResourceId.create (publicIPAddresses, config.PublicIpName)
             ]
-            {| bastionHosts.Create(this.Name, this.Location, dependsOn, this.Tags) with
+            {| bastionHosts.Create(this.Name, dependsOn, this.Location, this.Tags) with
                 properties =
                     {| ipConfigurations =
                            this.IpConfigs
                            |> List.mapi(fun index ipConfig ->
                                {| name = sprintf "ipconfig%i" (index + 1)
                                   properties =
-                                   {| publicIPAddress = {| id = ArmExpression.resourceId(publicIPAddresses, ipConfig.PublicIpName).Eval() |}
-                                      subnet = {| id = ArmExpression.resourceId(subnets, this.VirtualNetwork, ResourceName "AzureBastionSubnet").Eval() |}
+                                   {| publicIPAddress = {| id = ResourceId.create(publicIPAddresses, ipConfig.PublicIpName).Eval() |}
+                                      subnet = {| id = ResourceId.create(subnets, this.VirtualNetwork, ResourceName "AzureBastionSubnet").Eval() |}
                                    |}
                                |})
                     |}
