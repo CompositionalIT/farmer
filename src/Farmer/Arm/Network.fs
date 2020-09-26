@@ -68,17 +68,14 @@ type VPNClientProtocol =
 
 type VpnClientConfiguration =
     {
-      ClientAddressPools: IPAddressCidr list
-      ClientRootCertificates:
-        {| Name: string
-           PublicCertData: string
-        |} list
-      ClientRevokedCertificates:
-        {|
-          Name: string
-          Thumbprint: string
-        |} list
-      ClientProtocols: VPNClientProtocol list
+      ClientAddressPools : IPAddressCidr list
+      ClientRootCertificates :
+        {| Name : string
+           PublicCertData : string |} list
+      ClientRevokedCertificates :
+        {| Name : string
+           Thumbprint : string |} list
+      ClientProtocols : VPNClientProtocol list
     }
 
 
@@ -133,25 +130,30 @@ type VirtualNetworkGateway =
                             | Some vpnClientConfig ->
                                 box {|
                                     vpnClientAddressPool =
-                                        {|
-                                            addressPrefixes = [ for prefix in vpnClientConfig.ClientAddressPools -> IPAddressCidr.format prefix  ]
+                                        {| addressPrefixes = [
+                                            for prefix in vpnClientConfig.ClientAddressPools do
+                                                IPAddressCidr.format prefix
+                                           ]
                                         |}
-                                    vpnClientProtocols = [ for protocol in vpnClientConfig.ClientProtocols do
-                                                            match protocol with
-                                                            | SSTP -> "SSTP"
-                                                            | IkeV2 -> "IkeV2"
-                                                            | OpenVPN -> "OpenVPN" ]
-                                    vpnClientRootCertificates =
-                                        [ for cert in vpnClientConfig.ClientRootCertificates ->
+                                    vpnClientProtocols = [
+                                        for protocol in vpnClientConfig.ClientProtocols do
+                                            match protocol with
+                                            | SSTP -> "SSTP"
+                                            | IkeV2 -> "IkeV2"
+                                            | OpenVPN -> "OpenVPN"
+                                    ]
+                                    vpnClientRootCertificates = [
+                                        for cert in vpnClientConfig.ClientRootCertificates do
                                             {| name = cert.Name
-                                               properties = {| publicCertData= cert.PublicCertData  |}
+                                               properties = {| publicCertData= cert.PublicCertData |}
                                             |}
                                     ]
-                                    vpnClientRevokedCertificates =
-                                        [ for cert in vpnClientConfig.ClientRevokedCertificates ->
+                                    vpnClientRevokedCertificates = [
+                                        for cert in vpnClientConfig.ClientRevokedCertificates do
                                             {| name = cert.Name
-                                               properties = {| thumbprint = cert.Thumbprint |} |}
-                                        ]
+                                               properties = {| thumbprint = cert.Thumbprint |}
+                                            |}
+                                    ]
                                     radiusServers = []
                                     vpnClientIpsecPolicies = []
                                 |}
