@@ -398,7 +398,7 @@ type WebAppBuilder() =
     member _.AddConnectionString(state:WebAppConfig, key) =
         { state with ConnectionStrings = state.ConnectionStrings.Add(key, (ParameterSetting (SecureParameter key), Custom)) }
     member _.AddConnectionString(state:WebAppConfig, (key, value:ArmExpression)) =
-        { state with ConnectionStrings = state.ConnectionStrings.Add(key, (LiteralSetting (value.Eval()), Custom)) }
+        { state with ConnectionStrings = state.ConnectionStrings.Add(key, (ExpressionSetting value, Custom)) }
     /// Creates a set of connection strings of the web app whose values will be supplied as secret parameters.
     [<CustomOperation "connection_strings">]
     member this.AddConnectionStrings(state:WebAppConfig, connectionStrings) =
