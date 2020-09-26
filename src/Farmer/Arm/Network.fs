@@ -19,14 +19,17 @@ let localNetworkGateways = ResourceType ("Microsoft.Network/localNetworkGateways
 type PublicIpAddress =
     { Name : ResourceName
       Location : Location
+      Sku : PublicIpAddress.Sku
+      AllocationMethod : PublicIpAddress.AllocationMethod
       DomainNameLabel : string option
       Tags: Map<string,string>  }
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
             {| publicIPAddresses.Create(this.Name, this.Location, tags = this.Tags) with
+                sku = {| name = this.Sku.ArmValue |}
                 properties =
-                    {| publicIPAllocationMethod = "Dynamic"
+                    {| publicIPAllocationMethod = this.AllocationMethod.ArmValue
                        dnsSettings =
                         match this.DomainNameLabel with
                         | Some label -> box {| domainNameLabel = label.ToLower() |}
