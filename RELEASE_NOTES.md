@@ -1,23 +1,19 @@
 Release Notes
 =============
-## 1.1.0-beta4
-* Cognitive Services: Retrieve ARM expression to the Key of the Cognitive Services instance.
+## 1.2.0-beta1
 * Bastion Hosts: Create bastion hosts for accessing resources on a virtual network.
 
-## 1.1.0-beta3
+## 1.1.0
+* Cognitive Services: Retrieve ARM expression to the Key of the Cognitive Services instance.
 * Web App / Functions: Allow CORS enable credentials (https://github.com/CompositionalIT/farmer/issues/265)
 * Container Instance: Change modelling from an anonymous type to a discriminated union (interop) (https://github.com/CompositionalIT/farmer/issues/372)
 * Fix a bug whereby optional Location, Tags and DependsOn were set to empty lists instead of null when not required.
-
-## 1.1.0-beta2
 * Storage: Create connection string expressions.
 * CosmosDB: Create connection string and key expressions.
 * App Insights: Create key expressions.
 * SQL Azure: Small updates to type naming
 * Azure CLI: Better error message when Azure CLI be found (https://github.com/CompositionalIT/farmer/pull/369)
 * Internal updates to ARM resource construction
-
-## 1.1.0-beta1
 * App Insights: Support for IP Masking and Sampling
 * AKS: Basic AKS support
 * Functions: Fix an issue with incorrect Service Plan linking
