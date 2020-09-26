@@ -10,6 +10,7 @@
     <Compile Include="Helpers.fs" />
     <Compile Include="AppInsights.fs" />
     <Compile Include="Common.fs" />
+    <Compile Include="Bastion.fs" />
     <Compile Include="Cdn.fs" />
     <Compile Include="ContainerGroup.fs" />
     <Compile Include="ContainerService.fs" />
@@ -32,6 +33,7 @@
     <Compile Include="SignalR.fs" />
     <Compile Include="EventGrid.fs" />
     <Compile Include="WebApp.fs" />
+    <Compile Include="VirtualNetworkGateway.fs" />
     <Compile Include="AllTests.fs" />
   </ItemGroup>
 
