@@ -2,6 +2,7 @@ Release Notes
 =============
 ## 1.2.0-beta1
 * Bastion Hosts: Create bastion hosts for accessing resources on a virtual network.
+* Support for implicitly adding dependencies based on usage e.g. add settings, connection strings etc.
 
 ## 1.1.0
 * Cognitive Services: Retrieve ARM expression to the Key of the Cognitive Services instance.
