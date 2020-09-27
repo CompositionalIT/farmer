@@ -143,14 +143,15 @@ type ServiceBusConfig =
       Queues : Map<ResourceName, ServiceBusQueueConfig>
       Topics : Map<ResourceName, ServiceBusTopicConfig>
       Tags: Map<string,string>  }
-    member private _.GetKeyPath sbNsName property =
-        sprintf
-            "listkeys(resourceId('Microsoft.ServiceBus/namespaces/authorizationRules', '%s', 'RootManageSharedAccessKey'), '2017-04-01').%s"
-            sbNsName
-            property
-        |> ArmExpression.create
-    member this.NamespaceDefaultConnectionString = this.GetKeyPath this.Name.Value "primaryConnectionString"
-    member this.DefaultSharedAccessPolicyPrimaryKey = this.GetKeyPath this.Name.Value "primaryKey"
+    member private this.GetKeyPath property =
+        let expr =
+            sprintf
+                "listkeys(resourceId('Microsoft.ServiceBus/namespaces/authorizationRules', '%s', 'RootManageSharedAccessKey'), '2017-04-01').%s"
+                this.Name.Value
+                property
+        ArmExpression.create(expr, this.Name)
+    member this.NamespaceDefaultConnectionString = this.GetKeyPath "primaryConnectionString"
+    member this.DefaultSharedAccessPolicyPrimaryKey = this.GetKeyPath "primaryKey"
     interface IBuilder with
         member this.DependencyName = this.Name
         member this.BuildResources location = [

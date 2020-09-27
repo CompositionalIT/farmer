@@ -10,9 +10,8 @@ type CognitiveServices =
     /// Gets an ARM Expression key for any Cognitives Services instance.
     static member getKey (name:ResourceName, ?resourceGroup:string) =
         let resourcePath = ArmExpression.resourceId(accounts, name, ?group = resourceGroup)
-
-        sprintf "listKeys(%s, '%s').key1" resourcePath.Value accounts.ApiVersion
-        |> ArmExpression.create
+        let expr = sprintf "listKeys(%s, '%s').key1" resourcePath.Value accounts.ApiVersion
+        ArmExpression.create(expr, name)
 
 type CognitiveServicesConfig =
     { Name : ResourceName

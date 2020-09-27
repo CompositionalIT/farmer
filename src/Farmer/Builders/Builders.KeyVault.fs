@@ -74,10 +74,14 @@ type SecretConfig =
         SecretConfig.isValid key
         SecretConfig.createUnsafe key
 
-    static member create (key, expression, resourceOwner) =
+    static member create (key, expression) =
         { SecretConfig.create key with
             Value = ExpressionSecret expression
-            Dependencies = [ resourceOwner ] }
+            Dependencies =
+                match expression.Owner with
+                | Some owner -> [ owner ]
+                | None -> failwithf "The supplied ARM expression ('%s') has no resource owner. You should explicitly set this using WithOwner(), supplying the Resource Name of the owner." expression.Value
+        }
 
 type KeyVaultConfig =
     { Name : ResourceName
@@ -132,6 +136,7 @@ type KeyVaultConfig =
                   Tags = this.Tags }
 
             keyVault
+
             for secret in this.Secrets do
                 { Name = sprintf "%s/%s" this.Name.Value secret.Key |> ResourceName
                   Value = secret.Value
@@ -312,15 +317,13 @@ type KeyVaultBuilder() =
     [<CustomOperation "add_secret">]
     member __.AddSecret(state:KeyVaultBuilderState, key:SecretConfig) = { state with Secrets = key :: state.Secrets }
     member this.AddSecret(state:KeyVaultBuilderState, key:string) = this.AddSecret(state, SecretConfig.create key)
-    member this.AddSecret(state:KeyVaultBuilderState, (key, builder:#IBuilder, value)) = this.AddSecret(state, SecretConfig.create(key, value, builder.DependencyName))
-    member this.AddSecret(state:KeyVaultBuilderState, (key, resourceName, value)) = this.AddSecret(state, SecretConfig.create(key, value, resourceName))
+    member this.AddSecret(state:KeyVaultBuilderState, (key, expression:ArmExpression)) = this.AddSecret(state, SecretConfig.create(key, expression))
 
     /// Allows to add multiple secrets to the vault.
     [<CustomOperation "add_secrets">]
     member this.AddSecrets(state:KeyVaultBuilderState, keys) = keys |> Seq.fold(fun state (key:SecretConfig) -> this.AddSecret(state, key)) state
     member this.AddSecrets(state:KeyVaultBuilderState, keys) = this.AddSecrets(state, keys |> Seq.map SecretConfig.create)
-    member this.AddSecrets(state:KeyVaultBuilderState, items) = this.AddSecrets(state, items |> Seq.map(fun (key, builder:#IBuilder, value) -> SecretConfig.create (key, value, builder.DependencyName)))
-    member this.AddSecrets(state:KeyVaultBuilderState, items) = this.AddSecrets(state, items |> Seq.map(fun (key, resourceName:ResourceName, value) -> SecretConfig.create (key, value, resourceName)))
+    member this.AddSecrets(state:KeyVaultBuilderState, items) = this.AddSecrets(state, items |> Seq.map(fun (key, value) -> SecretConfig.create (key, value)))
     [<CustomOperation "add_tags">]
     member _.Tags(state:KeyVaultBuilderState, pairs) =
         { state with

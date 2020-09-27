@@ -4,6 +4,7 @@ Release Notes
 * Bastion Hosts: Create bastion hosts for accessing resources on a virtual network.
 * Gateway: Add VPN Client configuration
 * Service Bus: Set message TTL 
+* Support for implicitly adding dependencies based on usage e.g. add settings, connection strings etc.
 
 ## 1.1.0
 * AKS: Basic AKS support

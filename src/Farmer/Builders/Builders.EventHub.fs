@@ -32,13 +32,15 @@ type EventHubConfig =
     member this.GetKey (ruleName:string) =
         ArmExpression
             .resourceId(authorizationRules, this.EventHubNamespaceName, this.Name, ResourceName ruleName)
-            .Map this.ToKeyExpression
+            .Map(this.ToKeyExpression)
+            .WithOwner(this.Name)
 
     /// Gets an ARM expression for the path to the key of the default RootManageSharedAccessKey for the entire namespace.
     member this.DefaultKey =
         ArmExpression
             .resourceId(authorizationRules, this.EventHubNamespaceName, ResourceName "RootManageSharedAccessKey")
-            .Map this.ToKeyExpression
+            .Map(this.ToKeyExpression)
+            .WithOwner(this.Name)
     interface IBuilder with
         member this.DependencyName = this.EventHubNamespaceName
         member this.BuildResources location = [
