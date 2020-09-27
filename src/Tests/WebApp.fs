@@ -134,11 +134,4 @@ let tests = testList "Web App Tests" [
         let wa = wa |> getResources |> getResource<Web.Site> |> List.head
         Expect.contains wa.Dependencies (ResourceId.create(storageAccounts, sa.Name.ResourceName)) "Storage Account is missing"
     }
-
-    test "Implicitly adds a dependency when adding a connection string" {
-        let sa = storageAccount { name "teststorage" }
-        let wa = webApp { name "testweb"; setting "storage" sa.Key }
-        let wa = wa |> getResources |> getResource<Web.Site> |> List.head
-        Expect.contains wa.Dependencies sa.Name.ResourceName "Storage Account is missing"
-    }
 ]
