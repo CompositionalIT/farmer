@@ -38,8 +38,7 @@ The Service Bus builder creates service bus namespaces and their associated queu
 | Topic | name | The name of the topic. |
 | Topic | duplicate_detection_minutes | Whether to enable duplicate detection, and if so, how long to check for. |
 | Topic | enable_partition | Enables partition support on the topic. |
-| Topic | message_ttl | Time To Live (TTL) value for messages expressed as a TimeSpan string, such as '01:30:00' 1 hour, 30 minutes. |
-| Topic | message_ttl_days | Time To Live (TTL) value for messages in days. |
+| Topic | message_ttl | Time To Live (TTL) value for messages expressed as a TimeSpan string, such as '01:30:00' 1 hour, 30 minutes, or as an integer days e.g. `4<Days>`. |
 | Namespace | sku | The ServiceBusNamespaceSku e.g. Standard |
 | Namespace | namespace_name | The name of the namespace that holds the queue. |
 | Namespace | depends_on | Sets dependencies on the service bus namespace. |
