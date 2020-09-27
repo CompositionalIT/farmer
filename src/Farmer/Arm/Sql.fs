@@ -27,7 +27,7 @@ type Server =
             {| servers.Create(this.ServerName,this.Location, tags = (this.Tags |> Map.add "displayName" this.ServerName.Value)) with
                 properties =
                  {| administratorLogin = this.Credentials.Username
-                    administratorLoginPassword = this.Credentials.Password.AsArmRef.Eval()
+                    administratorLoginPassword = this.Credentials.Password.ArmExpression.Eval()
                     version = "12.0" |}
             |} :> _
 
@@ -111,7 +111,7 @@ module Servers =
         type TransparentDataEncryption =
             { Server : ResourceName
               Database : ResourceName }
-            member this.Name = ResourceName (sprintf "%s/%s/current" this.Server.Value this.Database.Value)
+            member this.Name = this.Server + this.Database + "current"
             interface IArmResource with
                 member this.ResourceName = this.Name
                 member this.JsonModel =

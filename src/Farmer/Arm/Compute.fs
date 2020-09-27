@@ -74,11 +74,9 @@ type VirtualMachine =
                 properties =
                  {| hardwareProfile = {| vmSize = this.Size.ArmValue |}
                     osProfile =
-                     {|
-                        computerName = this.Name.Value
+                     {| computerName = this.Name.Value
                         adminUsername = this.Credentials.Username
-                        adminPassword = this.Credentials.Password.AsArmRef.Eval()
-                     |}
+                        adminPassword = this.Credentials.Password.ArmExpression.Eval() |}
                     storageProfile =
                         let vmNameLowerCase = this.Name.Value.ToLower()
                         {| imageReference =

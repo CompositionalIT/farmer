@@ -76,7 +76,7 @@ type ManagedCluster =
                                   vmSize = agent.VmSize.ArmValue
                                   vnetSubnetID =
                                       match agent.VirtualNetworkName, agent.SubnetName with
-                                      | Some vnet, Some subnet -> box (ResourceId.create(subnets, vnet, subnet).Eval())
+                                      | Some vnet, Some subnet -> ResourceId.create(subnets, vnet, subnet).Eval()
                                       | _ -> null
                                |})
                           dnsPrefix = this.DnsPrefix
@@ -99,13 +99,13 @@ type ManagedCluster =
                                 match this.ServicePrincipalProfile with
                                 | Some spProfile ->
                                     {| clientId = spProfile.ClientId
-                                       secret = spProfile.ClientSecret.AsArmRef.Eval() |}
+                                       secret = spProfile.ClientSecret.ArmExpression.Eval() |}
                                 | None -> Unchecked.defaultof<_>
                           windowsProfile =
                                 match this.WindowsProfile with
                                 | Some winProfile ->
                                     {| adminUsername = winProfile.AdminUserName
-                                       adminPassword = winProfile.AdminPassword.AsArmRef.Eval() |}
+                                       adminPassword = winProfile.AdminPassword.ArmExpression.Eval() |}
                                 | None -> Unchecked.defaultof<_>
                        |}
             |} :> _

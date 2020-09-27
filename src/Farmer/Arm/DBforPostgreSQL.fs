@@ -84,7 +84,7 @@ type Server =
             | VS_11 -> "11"
 
         {| administratorLogin = this.Credentials.Username
-           administratorLoginPassword = this.Credentials.Password.AsArmRef.Eval()
+           administratorLoginPassword = this.Credentials.Password.ArmExpression.Eval()
            version = version
            storageProfile = this.GetStorageProfile() |}
 

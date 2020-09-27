@@ -14,6 +14,8 @@ type ResourceName =
     member this.Map mapper = match this with ResourceName r -> ResourceName (mapper r)
     static member (+) (a:ResourceName, b) = ResourceName(a.Value + "/" + b)
     static member (+) (a:ResourceName, b:ResourceName) = a + b.Value
+    static member (/) (a:ResourceName, b) = ResourceName(a.Value + "/" + b)
+    static member (/) (a:ResourceName, b:ResourceName) = a + b.Value
 
 type Location =
     | Location of string
@@ -76,7 +78,9 @@ type ArmExpression =
     member this.Map mapper = match this with ArmExpression (e, r) -> ArmExpression(mapper e, r)
     /// Evaluates the expression for emitting into an ARM template. That is, wraps it in [].
     member this.Eval() = sprintf "[%s]" this.Value
+    /// Sets the owning resource on this ARM Expression.
     member this.WithOwner(owner:ResourceId) = match this with ArmExpression (e, _) -> ArmExpression(e, Some owner)
+    /// Sets the owning resource on this ARM Expression.
     member this.WithOwner(owner:ResourceName) = this.WithOwner(ResourceId.create owner)
 
     /// Evaluates the expression for emitting into an ARM template. That is, wraps it in [].
@@ -88,7 +92,7 @@ type SecureParameter =
     | SecureParameter of name:string
     member this.Value = match this with SecureParameter value -> value
     /// Gets an ARM expression reference to the parameter e.g. parameters('my-password')
-    member this.AsArmRef = sprintf "parameters('%s')" this.Value |> ArmExpression.create
+    member this.ArmExpression = sprintf "parameters('%s')" this.Value |> ArmExpression.create
 
 /// Exposes parameters which are required by a specific IArmResource.
 type IParameters =
@@ -128,6 +132,7 @@ type ResourceId with
             |> String.concat ", "
             |> sprintf "resourceId(%s)"
             |> ArmExpression.create
+    /// Evaluates the expression for emitting into an ARM template. That is, wraps it in [].
     member this.Eval() = this.ArmExpression.Eval()
 
 type ResourceType with
@@ -203,7 +208,7 @@ type SecretValue =
     | ExpressionSecret of ArmExpression
     member this.Value =
         match this with
-        | ParameterSecret secureParameter -> secureParameter.AsArmRef.Eval()
+        | ParameterSecret secureParameter -> secureParameter.ArmExpression.Eval()
         | ExpressionSecret armExpression -> armExpression.Eval()
 
 type Setting =
@@ -212,7 +217,7 @@ type Setting =
     | ExpressionSetting of ArmExpression
     member this.Value =
         match this with
-        | ParameterSetting secureParameter -> secureParameter.AsArmRef.Eval()
+        | ParameterSetting secureParameter -> secureParameter.ArmExpression.Eval()
         | LiteralSetting value -> value
         | ExpressionSetting expr -> expr.Eval()
     static member AsLiteral (a,b) = a, LiteralSetting b

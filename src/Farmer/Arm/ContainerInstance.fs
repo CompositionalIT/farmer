@@ -99,7 +99,7 @@ type ContainerGroup =
                             |}
                           networkProfile =
                             this.NetworkProfilePath
-                            |> Option.map(fun path -> box {| id = path.ArmExpression.Eval() |})
+                            |> Option.map(fun path -> box {| id = path.Eval() |})
                             |> Option.toObj
                           volumes = [
                             for (key, value) in Map.toSeq this.Volumes do
