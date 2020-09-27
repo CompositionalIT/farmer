@@ -54,7 +54,7 @@ let tests = testList "Service Bus Tests" [
                             enable_session
                             lock_duration_minutes 5
                             max_delivery_count 3
-                            message_ttl_days 10
+                            message_ttl 10<Days>
                         }
                     ]
                 }
@@ -156,7 +156,7 @@ let tests = testList "Service Bus Tests" [
                         topic {
                             name "my-topic"
                             duplicate_detection_minutes 3
-                            message_ttl_days 2
+                            message_ttl 2<Days>
                             enable_partition
                         }
                     ]
