@@ -106,6 +106,21 @@ let tests = testList "Service Bus Tests" [
 
             Expect.equal (queue.DefaultMessageTimeToLive.GetValueOrDefault TimeSpan.MinValue).TotalDays 14. "Default TTL should be 14 days"
         }
+        
+        test "Set TTL by timespan for Basic queue" {
+            let queue:SBQueue =
+                serviceBus {
+                    name "serviceBus"
+                    add_queues [
+                        queue {
+                            name "my-queue"
+                            message_ttl "00:05:00"
+                        }
+                    ]
+                } |> getResourceAtIndex 1
+
+            Expect.equal (queue.DefaultMessageTimeToLive.GetValueOrDefault TimeSpan.MinValue).TotalMinutes 5. "TTL from TimeSpan should be 5 minutes"
+        }
 
         test "Default TTL set for Standard queue" {
             let queue:SBQueue =
