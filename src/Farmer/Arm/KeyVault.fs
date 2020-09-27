@@ -29,7 +29,7 @@ module Vaults =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| secrets.Create(this.Name, this.Dependencies, this.Location) with
+                {| secrets.Create(this.Name, this.Location, this.Dependencies) with
                     properties =
                         {| value = this.Value.Value
                            contentType = this.ContentType |> Option.toObj
@@ -79,7 +79,7 @@ type Vault =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| vaults.Create(this.Name, this.Dependencies, this.Location, this.Tags) with
+            {| vaults.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
                 properties =
                     {| tenantId = this.TenantId
                        sku = {| name = this.Sku.ArmValue; family = "A" |}

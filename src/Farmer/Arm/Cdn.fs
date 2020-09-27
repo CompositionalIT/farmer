@@ -25,7 +25,7 @@ type Profile =
 module Profiles =
     type Endpoint =
         { Name : ResourceName
-          Profile : ResourceId
+          Profile : ResourceName
           DependsOn : ResourceId list
           CompressedContentTypes : string Set
           QueryStringCachingBehaviour : QueryStringCachingBehaviour
@@ -38,7 +38,7 @@ module Profiles =
         interface IArmResource with
             member this.ResourceName: ResourceName = this.Name
             member this.JsonModel =
-                {| endpoints.Create(this.Profile.Name + this.Name, this.Profile :: this.DependsOn, Location.Global, this.Tags) with
+                {| endpoints.Create(this.Profile + this.Name, Location.Global, ResourceId.create this.Profile :: this.DependsOn, this.Tags) with
                        properties =
                             {| originHostHeader = this.Origin
                                queryStringCachingBehavior = string this.QueryStringCachingBehaviour
@@ -63,6 +63,6 @@ module Profiles =
             interface IArmResource with
                 member this.ResourceName = this.Name
                 member this.JsonModel =
-                    {| customDomains.Create (this.Endpoint + this.Name, dependsOn = [ this.Endpoint ]) with
+                    {| customDomains.Create (this.Endpoint + this.Name, dependsOn = [ ResourceId.create this.Endpoint ]) with
                         properties = {| hostName = string this.Hostname |}
                     |} :> _

@@ -160,7 +160,7 @@ type Site =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| sites.Create(this.Name, this.Dependencies, this.Location, this.Tags) with
+            {| sites.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
                  kind = this.Kind
                  identity =
                    match this.Identity with
@@ -210,7 +210,7 @@ module Sites =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| sourceControls.Create(this.Name, this.Location, [ this.Website ]) with
+                {| sourceControls.Create(this.Name, this.Location, [ ResourceId.create this.Website ]) with
                     properties =
                         {| repoUrl = this.Repository.ToString()
                            branch = this.Branch

@@ -42,7 +42,7 @@ module Servers =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| elasticPools.Create(this.Server + this.Name, this.Location, [ this.Server ]) with
+                {| elasticPools.Create(this.Server + this.Name, this.Location, [ ResourceId.create this.Server ]) with
                     properties =
                      {| maxSizeBytes = this.MaxSizeBytes |> Option.toNullable
                         perDatabaseSettings =
@@ -61,7 +61,7 @@ module Servers =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| firewallRules.Create(this.Server + this.Name, this.Location, [ this.Server ]) with
+                {| firewallRules.Create(this.Server + this.Name, this.Location, [ ResourceId.create this.Server ]) with
                     properties =
                      {| endIpAddress = string this.Start
                         startIpAddress = string this.End |}
@@ -78,10 +78,10 @@ module Servers =
             member this.ResourceName = this.Name
             member this.JsonModel =
                 let dependsOn = [
-                        this.Server
+                        ResourceId.create this.Server
                         match this.Sku with
+                        | Pool poolName -> ResourceId.create poolName
                         | Standalone _ -> ()
-                        | Pool poolName -> poolName
                 ]
                 {| databases.Create(this.Server + this.Name, this.Location, dependsOn, tags = Map [ "displayName", this.Name.Value ]) with
                     sku =
@@ -115,7 +115,7 @@ module Servers =
             interface IArmResource with
                 member this.ResourceName = this.Name
                 member this.JsonModel =
-                   {| transparentDataEncryption.Create(this.Name, dependsOn = [ this.Database ]) with
+                   {| transparentDataEncryption.Create(this.Name, dependsOn = [ ResourceId.create this.Database ]) with
                         comments = "Transparent Data Encryption"
                         properties = {| status = string Enabled |}
                    |} :> _

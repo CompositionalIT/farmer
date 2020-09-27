@@ -61,7 +61,7 @@ type ManagedCluster =
                |> List.map (fun pool -> pool.VirtualNetworkName)
                |> List.choose id
                |> List.map(fun vnet -> ResourceId.create(virtualNetworks, vnet))
-            {| managedClusters.Create(this.Name, dependencies, this.Location) with
+            {| managedClusters.Create(this.Name, this.Location, dependencies) with
                    properties =
                        {| agentPoolProfiles =
                            this.AgentPoolProfiles

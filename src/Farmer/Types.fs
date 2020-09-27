@@ -136,7 +136,7 @@ type ResourceId with
     member this.Eval() = this.ArmExpression.Eval()
 
 type ResourceType with
-    member this.Create(name:ResourceName, dependsOn:ResourceId list, ?location:Location, ?tags:Map<string,string>) =
+    member this.Create(name:ResourceName, ?location:Location, ?dependsOn:ResourceId list, ?tags:Map<string,string>) =
         match this with
         | ResourceType (path, version) ->
             {| ``type`` = path
@@ -144,12 +144,10 @@ type ResourceType with
                name = name.Value
                location = location |> Option.map(fun r -> r.ArmValue) |> Option.toObj
                dependsOn =
-                match dependsOn with
-                | [] -> null
-                | dependsOn -> dependsOn |> List.map(fun r -> r.ArmExpression.Value) |> box
+                dependsOn
+                |> Option.map (List.map(fun r -> r.ArmExpression.Value) >> box)
+                |> Option.toObj
                tags = tags |> Option.map box |> Option.toObj |}
-    member this.Create(name:ResourceName, ?location:Location, ?dependsOn:ResourceName list, ?tags:Map<string,string>) =
-        this.Create(name, dependsOn |> Option.map (List.map ResourceId.create) |> Option.defaultValue [], ?location = location, ?tags = tags)
 
 type ArmExpression with
     static member reference (resourceType:ResourceType, resourceId:ResourceId) =

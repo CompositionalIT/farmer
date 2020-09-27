@@ -21,7 +21,7 @@ type BastionHost =
                 for config in this.IpConfigs do
                     ResourceId.create (publicIPAddresses, config.PublicIpName)
             ]
-            {| bastionHosts.Create(this.Name, dependsOn, this.Location, this.Tags) with
+            {| bastionHosts.Create(this.Name, this.Location, dependsOn, this.Tags) with
                 properties =
                     {| ipConfigurations =
                            this.IpConfigs

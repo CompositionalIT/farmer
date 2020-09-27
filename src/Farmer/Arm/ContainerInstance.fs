@@ -53,7 +53,7 @@ type ContainerGroup =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| containerGroups.Create(this.Name, this.Dependencies, this.Location, this.Tags) with
+            {| containerGroups.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
                    properties =
                        {| containers =
                            this.ContainerInstances

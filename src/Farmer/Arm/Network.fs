@@ -105,7 +105,7 @@ type VirtualNetworkGateway =
                     ResourceId.create(publicIPAddresses, config.PublicIpName)
             ]
 
-            {| virtualNetworkGateways.Create(this.Name, dependsOn, this.Location, this.Tags) with
+            {| virtualNetworkGateways.Create(this.Name, this.Location, dependsOn, this.Tags) with
                 properties =
                      {| ipConfigurations =
                             this.IpConfigs
@@ -185,7 +185,7 @@ type Connection =
             let dependsOn =
                 [ Some this.VNetGateway1ResourceId; this.VNetGateway2ResourceId; this.LocalNetworkGatewayResourceId ]
                 |> List.choose id
-            {| connections.Create(this.Name,  dependsOn, this.Location, this.Tags) with
+            {| connections.Create(this.Name, this.Location, dependsOn, this.Tags) with
                 properties =
                      {| authorizationKey = this.AuthorizationKey |> Option.toObj
                         connectionType = this.ConnectionType.ArmValue
@@ -216,9 +216,9 @@ type NetworkInterface =
         member this.ResourceName = this.Name
         member this.JsonModel =
             let dependsOn = [
-               this.VirtualNetwork
+               ResourceId.create this.VirtualNetwork
                for config in this.IpConfigs do
-                   config.PublicIpName
+                   ResourceId.create config.PublicIpName
             ]
             {| networkInterfaces.Create(this.Name, this.Location, dependsOn, this.Tags) with
                 properties =
@@ -246,7 +246,7 @@ type NetworkProfile =
         member this.ResourceName = this.Name
         member this.JsonModel =
             let dependsOn = [ ResourceId.create(virtualNetworks, this.VirtualNetwork) ]
-            {| networkProfiles.Create(this.Name, dependsOn, this.Location, this.Tags) with
+            {| networkProfiles.Create(this.Name, this.Location, dependsOn, this.Tags) with
                 properties =
                     {| containerNetworkInterfaceConfigurations =
                         this.ContainerNetworkInterfaceConfigurations

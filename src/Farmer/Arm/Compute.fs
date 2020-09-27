@@ -21,7 +21,7 @@ type CustomScriptExtension =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| extensions.Create(this.VirtualMachine + this.Name, this.Location, [ this.VirtualMachine ], this.Tags) with
+            {| extensions.Create(this.VirtualMachine + this.Name, this.Location, [ ResourceId.create this.VirtualMachine ], this.Tags) with
                    properties =
                     match this.OS with
                     | Windows ->
@@ -65,9 +65,9 @@ type VirtualMachine =
         member this.ResourceName = this.Name
         member this.JsonModel =
             let dependsOn = [
-                   this.NetworkInterfaceName
+                   ResourceId.create this.NetworkInterfaceName
                    match this.StorageAccount with
-                   | Some s -> s
+                   | Some s -> ResourceId.create s
                    | None -> ()
             ]
             {| virtualMachines.Create(this.Name, this.Location, dependsOn, this.Tags) with

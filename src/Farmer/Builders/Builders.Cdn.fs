@@ -34,7 +34,7 @@ type CdnConfig =
               Tags = this.Tags}
             for endpoint in this.Endpoints do
                 { Name = endpoint.Name
-                  Profile = ResourceId.create this.Name
+                  Profile = this.Name
                   DependsOn = endpoint.Dependencies
                   CompressedContentTypes = endpoint.CompressedContentTypes
                   QueryStringCachingBehaviour = endpoint.QueryStringCachingBehaviour

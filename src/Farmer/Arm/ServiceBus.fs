@@ -30,7 +30,7 @@ module Namespaces =
             interface IArmResource with
                 member this.ResourceName = this.Name
                 member this.JsonModel =
-                    {| subscriptions.Create(this.Namespace + this.Topic + this.Name, dependsOn = [ this.Topic ]) with
+                    {| subscriptions.Create(this.Namespace + this.Topic + this.Name, dependsOn = [ ResourceId.create this.Topic ]) with
                         properties =
                          {| defaultMessageTimeToLive = tryGetIso this.DefaultMessageTimeToLive
                             requiresDuplicateDetection =
@@ -45,7 +45,7 @@ module Namespaces =
                          |}
                         resources = [
                          for rule in this.Rules do
-                            {| rules.Create(rule.Name, dependsOn = [ this.Name ]) with
+                            {| rules.Create(rule.Name, dependsOn = [ ResourceId.create this.Name ]) with
                                 properties =
                                  match rule with
                                  | SqlFilter (_, expression) ->
@@ -75,7 +75,7 @@ module Namespaces =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| queues.Create(this.Namespace + this.Name, dependsOn = [ this.Namespace ]) with
+                {| queues.Create(this.Namespace + this.Name, dependsOn = [ ResourceId.create this.Namespace ]) with
                     properties =
                      {| lockDuration = tryGetIso this.LockDuration
                         requiresDuplicateDetection =
@@ -99,7 +99,7 @@ module Namespaces =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| topics.Create(this.Namespace + this.Name, dependsOn = [ this.Namespace ]) with
+                {| topics.Create(this.Namespace + this.Name, dependsOn = [ ResourceId.create this.Namespace ]) with
                     properties =
                         {| defaultMessageTimeToLive = tryGetIso this.DefaultMessageTimeToLive
                            requiresDuplicateDetection =
@@ -126,7 +126,7 @@ type Namespace =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| namespaces.Create(this.Name, this.DependsOn, this.Location, this.Tags) with
+            {| namespaces.Create(this.Name, this.Location, this.DependsOn, this.Tags) with
                 sku =
                      {| name = string this.Sku
                         tier = string this.Sku

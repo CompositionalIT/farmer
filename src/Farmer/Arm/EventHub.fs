@@ -57,7 +57,7 @@ module Namespaces =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-               {| eventHubs.Create(this.Name, this.Dependencies, this.Location, this.Tags) with
+               {| eventHubs.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
                       properties =
                         {| messageRetentionInDays = this.MessageRetentionDays |> Option.toNullable
                            partitionCount = this.Partitions
@@ -87,7 +87,7 @@ module Namespaces =
               Dependencies : ResourceId list }
             interface IArmResource with
                 member this.ResourceName = this.ConsumerGroupName
-                member this.JsonModel = consumerGroups.Create(this.EventHub + this.ConsumerGroupName, this.Dependencies, this.Location) :> _
+                member this.JsonModel = consumerGroups.Create(this.EventHub + this.ConsumerGroupName, this.Location, this.Dependencies) :> _
 
         type AuthorizationRule =
             { Name : ResourceName
@@ -97,6 +97,6 @@ module Namespaces =
             interface IArmResource with
                 member this.ResourceName = this.Name
                 member this.JsonModel =
-                    {| authorizationRules.Create(this.Name, this.Dependencies, this.Location) with
+                    {| authorizationRules.Create(this.Name, this.Location, this.Dependencies) with
                         properties = {| rights = this.Rights |> Set.map string |> Set.toList |}
                     |} :> _

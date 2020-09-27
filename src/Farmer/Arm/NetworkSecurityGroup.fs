@@ -65,7 +65,7 @@ type SecurityRule =
         member this.ResourceName = this.Name
         member this.JsonModel =
             let dependsOn = [ ResourceId.create(networkSecurityGroups, this.SecurityGroup.Name) ]
-            {| securityRules.Create(this.SecurityGroup.Name + this.Name, dependsOn) with
+            {| securityRules.Create(this.SecurityGroup.Name + this.Name, dependsOn = dependsOn) with
                 properties =
                  {| description = this.Description |> Option.toObj
                     protocol = this.Protocol.ArmValue
