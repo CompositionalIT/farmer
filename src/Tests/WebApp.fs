@@ -61,13 +61,14 @@ let tests = testList "Web App Tests" [
         Expect.equal 3 (wa.Tags|> Map.count) "Should not contain additional tags"
     }
     test "Web App correctly adds connection strings" {
+        let sa = storageAccount { name "foo" }
         let wa =
-            let resources = webApp { name "test"; connection_string "a"; connection_string ("b", literal "value") } |> getResources
+            let resources = webApp { name "test"; connection_string "a"; connection_string ("b", sa.Key) } |> getResources
             resources |> getResource<Web.Site> |> List.head
 
         let expected = [
-            "a", ((ParameterSetting(SecureParameter "a")), Custom)
-            "b", ((LiteralSetting "['value']"), Custom)
+            "a", (ParameterSetting(SecureParameter "a"), Custom)
+            "b", (ExpressionSetting sa.Key, Custom)
         ]
         let parameters = wa :> IParameters
 
@@ -102,15 +103,35 @@ let tests = testList "Web App Tests" [
     }
 
     test "CORS without credentials does not crash" {
-        let _ = webApp { name "test"; enable_cors AllOrigins }
-        let _ = webApp { name "test"; enable_cors [ "https://bbc.co.uk" ] }
-        ()
+        webApp { name "test"; enable_cors AllOrigins } |> ignore
+        webApp { name "test"; enable_cors [ "https://bbc.co.uk" ] } |> ignore
     }
-
 
     test "If CORS is not enabled, ignores enable credentials" {
         let wa : Site =
             webApp { name "test"; enable_cors_credentials } |> getResourceAtIndex 0
         Expect.isNull wa.SiteConfig.Cors "Should be no CORS settings"
+    }
+
+    test "Implicitly adds a dependency when adding a setting" {
+        let sa = storageAccount { name "teststorage" }
+        let sql = sqlServer { name "test"; admin_username "user"; add_databases [ sqlDb { name "thedb" } ] }
+        let wa = webApp {
+            name "testweb"
+            setting "storage" sa.Key
+            setting "conn" (sql.ConnectionString "thedb")
+            setting "bad" (literal "ignore_me")
+        }
+        let wa = wa |> getResources |> getResource<Web.Site> |> List.head
+
+        Expect.contains wa.Dependencies sa.Name.ResourceName "Storage Account is missing"
+        Expect.contains wa.Dependencies (ResourceName "thedb") "Database is missing"
+    }
+
+    test "Implicitly adds a dependency when adding a connection string" {
+        let sa = storageAccount { name "teststorage" }
+        let wa = webApp { name "testweb"; setting "storage" sa.Key }
+        let wa = wa |> getResources |> getResource<Web.Site> |> List.head
+        Expect.contains wa.Dependencies sa.Name.ResourceName "Storage Account is missing"
     }
 ]

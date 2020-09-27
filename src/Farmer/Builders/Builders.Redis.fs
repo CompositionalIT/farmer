@@ -6,12 +6,13 @@ open Farmer.CoreTypes
 open Farmer.Redis
 open Farmer.Arm.Cache
 
-let internal buildRedisKey (ResourceName name) =
-    sprintf
-        "concat('%s.redis.cache.windows.net,abortConnect=false,ssl=true,password=', listKeys('%s', '2015-08-01').primaryKey)"
-            name
-            name
-    |> ArmExpression.create
+let internal buildRedisKey (name:ResourceName) =
+    let expr =
+        sprintf
+            "concat('%s.redis.cache.windows.net,abortConnect=false,ssl=true,password=', listKeys('%s', '2015-08-01').primaryKey)"
+                name.Value
+                name.Value
+    ArmExpression.create(expr, name)
 
 type RedisConfig =
     { Name : ResourceName
@@ -91,8 +92,8 @@ type RedisBuilder() =
     [<CustomOperation "minimum_tls_version">]
     member __.MinimumTlsVersion(state:RedisConfig, tlsVersion) = { state with MinimumTlsVersion = Some tlsVersion }
     [<CustomOperation "add_tags">]
-    member _.Tags(state:RedisConfig, pairs) = 
-        { state with 
+    member _.Tags(state:RedisConfig, pairs) =
+        { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
     member this.Tag(state:RedisConfig, key, value) = this.Tags(state, [ (key,value) ])
