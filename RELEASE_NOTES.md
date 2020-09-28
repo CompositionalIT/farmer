@@ -3,7 +3,9 @@ Release Notes
 ## 1.2.0-beta1
 * Bastion Hosts: Create bastion hosts for accessing resources on a virtual network
 * Gateway: Add VPN Client configuration
+* Service Bus: Set message TTL 
 * Support for implicitly adding dependencies based on usage e.g. add settings, connection strings etc.
+* DNS Zones: Basic Azure DNS support
 * Internal changes to better capture full resource IDs
 
 ## 1.1.0

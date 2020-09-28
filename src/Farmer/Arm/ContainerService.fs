@@ -45,12 +45,10 @@ type ManagedCluster =
         member this.SecureParameters =
             [
                 match this.ServicePrincipalProfile with
-                | Some servicePrincipalProfile ->
-                    yield servicePrincipalProfile.ClientSecret
+                | Some servicePrincipalProfile -> servicePrincipalProfile.ClientSecret
                 | None -> ()
                 match this.WindowsProfile with
-                | Some windowsProfile ->
-                    yield windowsProfile.AdminPassword
+                | Some windowsProfile -> windowsProfile.AdminPassword
                 | None -> ()
             ]
     interface IArmResource with
