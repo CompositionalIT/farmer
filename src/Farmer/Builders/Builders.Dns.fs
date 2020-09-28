@@ -50,8 +50,9 @@ type DnsCNameRecordBuilder() =
                 if state.Name = ResourceName.Empty then failwith "You must set a DNS zone name"
                 else state.Name
             TTL =
-                if state.TTL = None then failwith "You must set a TTL"
-                else state.TTL.Value
+                match state.TTL with
+                | Some ttl -> ttl
+                | None -> failwith "You must set a TTL"
             CNameRecord = state.CName
             TargetResource = state.TargetResource
             Type = Some CName }
@@ -74,15 +75,16 @@ type DnsCNameRecordBuilder() =
     member _.RecordTargetResource(state:CNameRecordProperties, targetResource) = { state with TargetResource = Some targetResource }
 
 type DnsARecordBuilder() =
-    member __.Yield _ = { ARecordProperties.Ipv4Addresses = []; Name = ResourceName.Empty; TTL = None; TargetResource = None }
+    member __.Yield _ = { ARecordProperties.Ipv4Addresses = []; Name = ResourceName "@"; TTL = None; TargetResource = None }
     member __.Run(state : ARecordProperties) : DnsZoneRecordConfig =
         { emptyRecord with
             Name =
-                if state.Name = ResourceName.Empty then ResourceName "@"
+                if state.Name = ResourceName.Empty then failwith "You must set a Name"
                 else state.Name
             TTL =
-                if state.TTL = None then failwith "You must set a TTL"
-                else state.TTL.Value
+                match state.TTL with
+                | Some ttl -> ttl
+                | None -> failwith "You must set a TTL"
             ARecords = state.Ipv4Addresses
             TargetResource = state.TargetResource
             Type = Some A }
@@ -105,15 +107,16 @@ type DnsARecordBuilder() =
     member _.RecordTargetResource(state:ARecordProperties, targetResource) = { state with TargetResource = Some targetResource }
 
 type DnsAaaaRecordBuilder() =
-    member __.Yield _ = { AaaaRecordProperties.Ipv6Addresses = []; Name = ResourceName.Empty; TTL = None; TargetResource = None }
+    member __.Yield _ = { AaaaRecordProperties.Ipv6Addresses = []; Name = ResourceName "@"; TTL = None; TargetResource = None }
     member __.Run(state : AaaaRecordProperties) : DnsZoneRecordConfig =
         { emptyRecord with
             Name =
-                if state.Name = ResourceName.Empty then ResourceName "@"
+                if state.Name = ResourceName.Empty then failwith "You must set a Name"
                 else state.Name
             TTL =
-                if state.TTL = None then failwith "You must set a TTL"
-                else state.TTL.Value
+                match state.TTL with
+                | Some ttl -> ttl
+                | None -> failwith "You must set a TTL"
             AaaaRecords = state.Ipv6Addresses
             TargetResource = state.TargetResource
             Type = Some AAAA }
@@ -136,15 +139,16 @@ type DnsAaaaRecordBuilder() =
     member _.RecordTargetResource(state:AaaaRecordProperties, targetResource) = { state with TargetResource = Some targetResource }
 
 type DnsNsRecordBuilder() =
-    member __.Yield _ = { NsRecordProperties.NsdNames = []; Name = ResourceName.Empty; TTL = None; }
+    member __.Yield _ = { NsRecordProperties.NsdNames = []; Name = ResourceName "@"; TTL = None; }
     member __.Run(state : NsRecordProperties) : DnsZoneRecordConfig =
         { emptyRecord with
             Name =
-                if state.Name = ResourceName.Empty then ResourceName "@"
+                if state.Name = ResourceName.Empty then failwith "You must set a Name"
                 else state.Name
             TTL =
-                if state.TTL = None then failwith "You must set a TTL"
-                else state.TTL.Value
+                match state.TTL with
+                | Some ttl -> ttl
+                | None -> failwith "You must set a TTL"
             NsRecords = state.NsdNames
             Type = Some NS }
 
@@ -162,15 +166,16 @@ type DnsNsRecordBuilder() =
     member _.RecordTTL(state:NsRecordProperties, ttl) = { state with TTL = Some ttl }
 
 type DnsPtrRecordBuilder() =
-    member __.Yield _ = { PtrRecordProperties.PtrdNames = []; Name = ResourceName.Empty; TTL = None; }
+    member __.Yield _ = { PtrRecordProperties.PtrdNames = []; Name = ResourceName "@"; TTL = None; }
     member __.Run(state : PtrRecordProperties) : DnsZoneRecordConfig =
         { emptyRecord with
             Name =
-                if state.Name = ResourceName.Empty then ResourceName "@"
+                if state.Name = ResourceName.Empty then failwith "You must set a Name"
                 else state.Name
             TTL =
-                if state.TTL = None then failwith "You must set a TTL"
-                else state.TTL.Value
+                match state.TTL with
+                | Some ttl -> ttl
+                | None -> failwith "You must set a TTL"
             PtrRecords = state.PtrdNames
             Type = Some PTR }
 
@@ -188,15 +193,16 @@ type DnsPtrRecordBuilder() =
     member _.RecordTTL(state:PtrRecordProperties, ttl) = { state with TTL = Some ttl }
 
 type DnsTxtRecordBuilder() =
-    member __.Yield _ = { TxtRecordProperties.Name = ResourceName.Empty; TxtValues = []; TTL = None; }
+    member __.Yield _ = { TxtRecordProperties.Name = ResourceName "@"; TxtValues = []; TTL = None; }
     member __.Run(state : TxtRecordProperties) : DnsZoneRecordConfig =
         { emptyRecord with
             Name =
-                if state.Name = ResourceName.Empty then ResourceName "@"
+                if state.Name = ResourceName.Empty then failwith "You must set a Name"
                 else state.Name
             TTL =
-                if state.TTL = None then failwith "You must set a TTL"
-                else state.TTL.Value
+                match state.TTL with
+                | Some ttl -> ttl
+                | None -> failwith "You must set a TTL"
             TxtRecords = state.TxtValues
             Type = Some TXT }
 
@@ -214,15 +220,16 @@ type DnsTxtRecordBuilder() =
     member _.RecordTTL(state:TxtRecordProperties, ttl) = { state with TTL = Some ttl }
 
 type DnsMxRecordBuilder() =
-    member __.Yield _ = { MxRecordProperties.Name = ResourceName.Empty; MxValues = []; TTL = None; }
+    member __.Yield _ = { MxRecordProperties.Name = ResourceName "@"; MxValues = []; TTL = None; }
     member __.Run(state : MxRecordProperties) : DnsZoneRecordConfig =
         { emptyRecord with
             Name =
-                if state.Name = ResourceName.Empty then ResourceName "@"
+                if state.Name = ResourceName.Empty then failwith "You must set a Name"
                 else state.Name
             TTL =
-                if state.TTL = None then failwith "You must set a TTL"
-                else state.TTL.Value
+                match state.TTL with
+                | Some ttl -> ttl
+                | None -> failwith "You must set a TTL"
             MxRecords = state.MxValues
             Type = Some MX }
 
