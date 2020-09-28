@@ -10,7 +10,7 @@ type DnsZoneType = Public | Private
 
 type DnsZoneRecordConfig =
     { Name : ResourceName
-      Type : DnsRecordType
+      Type : DnsRecordType option
       TTL : int
       TargetResource : ResourceName option
       CNameRecord : string option
@@ -23,7 +23,7 @@ type DnsZoneRecordConfig =
 
 let emptyRecord =
     { DnsZoneRecordConfig.Name = ResourceName.Empty;
-      Type = Unknown
+      Type = None
       TTL = 0
       TargetResource = None
       CNameRecord = None
@@ -54,7 +54,7 @@ type DnsCNameRecordBuilder() =
                 else state.TTL.Value
             CNameRecord = state.CName
             TargetResource = state.TargetResource
-            Type = CName }
+            Type = Some CName }
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
@@ -85,7 +85,7 @@ type DnsARecordBuilder() =
                 else state.TTL.Value
             ARecords = state.Ipv4Addresses
             TargetResource = state.TargetResource
-            Type = A }
+            Type = Some A }
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
@@ -116,7 +116,7 @@ type DnsAaaaRecordBuilder() =
                 else state.TTL.Value
             AaaaRecords = state.Ipv6Addresses
             TargetResource = state.TargetResource
-            Type = AAAA }
+            Type = Some AAAA }
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
@@ -146,7 +146,7 @@ type DnsNsRecordBuilder() =
                 if state.TTL = None then failwith "You must set a TTL"
                 else state.TTL.Value
             NsRecords = state.NsdNames
-            Type = NS }
+            Type = Some NS }
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
@@ -172,7 +172,7 @@ type DnsPtrRecordBuilder() =
                 if state.TTL = None then failwith "You must set a TTL"
                 else state.TTL.Value
             PtrRecords = state.PtrdNames
-            Type = PTR }
+            Type = Some PTR }
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
@@ -198,7 +198,7 @@ type DnsTxtRecordBuilder() =
                 if state.TTL = None then failwith "You must set a TTL"
                 else state.TTL.Value
             TxtRecords = state.TxtValues
-            Type = TXT }
+            Type = Some TXT }
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
@@ -224,7 +224,7 @@ type DnsMxRecordBuilder() =
                 if state.TTL = None then failwith "You must set a TTL"
                 else state.TTL.Value
             MxRecords = state.MxValues
-            Type = MX }
+            Type = Some MX }
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
@@ -254,52 +254,52 @@ type DnsZoneConfig =
 
             for record in this.Records do
                 match record.Type with
-                | Unknown -> failwith "Unsupported DNS Record type"
-                | CName ->
+                | Some CName ->
                     { CNameDnsRecord.Name = record.Name
                       Zone = this.Name
-                      Type = record.Type
+                      Type = record.Type.Value
                       TTL = record.TTL
                       TargetResource = record.TargetResource
                       CNameRecord = record.CNameRecord }
-                | A ->
+                | Some A ->
                     { ADnsRecord.Name = record.Name
                       Zone = this.Name
-                      Type = record.Type
+                      Type = record.Type.Value
                       TTL = record.TTL
                       TargetResource = record.TargetResource
                       ARecords = record.ARecords }
-                | AAAA ->
+                | Some AAAA ->
                     { AaaaDnsRecord.Name = record.Name
                       Zone = this.Name
-                      Type = record.Type
+                      Type = record.Type.Value
                       TTL = record.TTL
                       TargetResource = record.TargetResource
                       AaaaRecords = record.AaaaRecords }
-                | NS ->
+                | Some NS ->
                     { NsDnsRecord.Name = record.Name
                       Zone = this.Name
-                      Type = record.Type
+                      Type = record.Type.Value
                       TTL = record.TTL
                       NsRecords = record.NsRecords }
-                | TXT ->
+                | Some TXT ->
                     { TxtDnsRecord.Name = record.Name
                       Zone = this.Name
-                      Type = record.Type
+                      Type = record.Type.Value
                       TTL = record.TTL
                       TxtRecords = record.TxtRecords }
-                | PTR ->
+                | Some PTR ->
                     { PtrDnsRecord.Name = record.Name
                       Zone = this.Name
-                      Type = record.Type
+                      Type = record.Type.Value
                       TTL = record.TTL
                       PtrRecords = record.PtrRecords }
-                | MX ->
+                | Some MX ->
                     { MxDnsRecord.Name = record.Name
                       Zone = this.Name
-                      Type = record.Type
+                      Type = record.Type.Value
                       TTL = record.TTL
                       MxRecords = record.MxRecords }
+                | None -> failwithf "DNS Record type must be set for %s" record.Name.Value
         ]
 
 type DnsZoneBuilder() =

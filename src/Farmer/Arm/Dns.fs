@@ -5,21 +5,20 @@ open Farmer
 open Farmer.CoreTypes
 open Farmer.Dns
 
-let zones = ResourceType ("Microsoft.Network/dnszones", "2018-05-01")
-let aRecord = ResourceType ("Microsoft.Network/dnszones/A", "2018-05-01")
-let aaaaRecord = ResourceType ("Microsoft.Network/dnszones/AAAA", "2018-05-01")
-let cnameRecord = ResourceType ("Microsoft.Network/dnszones/CNAME", "2018-05-01")
-let txtRecord = ResourceType ("Microsoft.Network/dnszones/TXT", "2018-05-01")
-let mxRecord = ResourceType ("Microsoft.Network/dnszones/MX", "2018-05-01")
-let nsRecord = ResourceType ("Microsoft.Network/dnszones/NS", "2018-05-01")
+let zones = ResourceType ("Microsoft.Network/dnsZones", "2018-05-01")
+let aRecord = ResourceType ("Microsoft.Network/dnsZones/A", "2018-05-01")
+let aaaaRecord = ResourceType ("Microsoft.Network/dnsZones/AAAA", "2018-05-01")
+let cnameRecord = ResourceType ("Microsoft.Network/dnsZones/CNAME", "2018-05-01")
+let txtRecord = ResourceType ("Microsoft.Network/dnsZones/TXT", "2018-05-01")
+let mxRecord = ResourceType ("Microsoft.Network/dnsZones/MX", "2018-05-01")
+let nsRecord = ResourceType ("Microsoft.Network/dnsZones/NS", "2018-05-01")
 let soaRecord = ResourceType ("Microsoft.Network/dnszones/SOA", "2018-05-01")
-let srvRecord = ResourceType ("Microsoft.Network/dnszones/SRV", "2018-05-01")
-let ptrRecord = ResourceType ("Microsoft.Network/dnszones/PTR", "2018-05-01")
+let srvRecord = ResourceType ("Microsoft.Network/dnsZones/SRV", "2018-05-01")
+let ptrRecord = ResourceType ("Microsoft.Network/dnsZones/PTR", "2018-05-01")
 
 type DnsRecordType with
     member this.ResourceType =
         match this with
-        | Unknown -> failwith "Not Implemented"
         | CName -> cnameRecord
         | A -> aRecord
         | AAAA -> aaaaRecord
@@ -27,8 +26,6 @@ type DnsRecordType with
         | PTR -> ptrRecord
         | TXT -> txtRecord
         | MX -> mxRecord
-        // | Soa -> soaRecord
-        // | Srv -> srvRecord
 
 type DnsZone =
     { Name : ResourceName
@@ -56,7 +53,7 @@ module DnsRecords =
                     properties =
                         {| TTL = this.TTL
                            targetResource = {| id = this.TargetResource |}
-                           CNAMERecords = {| cname = this.CNameRecord |> Option.toObj |} |}
+                           CNAMERecord = {| cname = this.CNameRecord |> Option.toObj |} |}
                 |} :> _
 
     type MxDnsRecord =
@@ -86,7 +83,6 @@ module DnsRecords =
                 {| this.Type.ResourceType.Create(this.Zone + this.Name, dependsOn = [ this.Zone ]) with
                     properties =
                         {| TTL = this.TTL
-                           targetResource = {| id = null |}
                            NSRecords = this.NsRecords |> List.map (fun ns -> {| nsdname = ns |}) |}
                 |} :> _
 
