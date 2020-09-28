@@ -9,14 +9,14 @@ weight: 8
 The DNS Zone module contains two types of builders - `dnsZone`, used to create DNS Zones, and `___Record` (like `cnameRecord`, `aRecord`, ..), used to create DNS Records sets.
 It supports most record types (except SOA, SRV and CAA) and has specific builders for every record type.
 
-* DNS Zone (`Microsoft.Network/dnszones`)
-* A Record (`Microsoft.Network/dnszones/A`)
-* AAAA Record (`Microsoft.Network/dnszones/AAAA`)
-* CNAME Record (`Microsoft.Network/dnszones/CNAME`)
-* TXT Record (`Microsoft.Network/dnszones/TXT`)
-* MX Record (`Microsoft.Network/dnszones/MX`)
-* NS Record (`Microsoft.Network/dnszones/NS`)
-* PTR Record (`Microsoft.Network/dnszones/PTR`)
+* DNS Zone (`Microsoft.Network/dnsZones`)
+* A Record (`Microsoft.Network/dnsZones/A`)
+* AAAA Record (`Microsoft.Network/dnsZones/AAAA`)
+* CNAME Record (`Microsoft.Network/dnsZones/CNAME`)
+* TXT Record (`Microsoft.Network/dnsZones/TXT`)
+* MX Record (`Microsoft.Network/dnsZones/MX`)
+* NS Record (`Microsoft.Network/dnsZones/NS`)
+* PTR Record (`Microsoft.Network/dnsZones/PTR`)
 
 #### TODO
 The following items are currently unsupported:
@@ -101,13 +101,13 @@ open Farmer.Builders
 open Sql
 
 let dns = dnsZone {
-    name "raymens.com"
+    name "farmer.com"
     zone_type Public
     add_records [
         cnameRecord {
             name "www2"
             ttl 3600
-            cname "raymens.github.com"
+            cname "farmer.github.com"
         }
         aRecord {
             ttl 7200
@@ -117,10 +117,6 @@ let dns = dnsZone {
             ttl 7200
             add_ipv6_addresses [ "100:100:100:100" ]
         }
-        nsRecord {
-            ttl 7200
-            add_nsd_names [ "ns1-08.azure-dns.com."; "ns2-08.azure-dns.net." ]
-        }
         txtRecord {
             ttl 3600
             add_values [ "v=spf1 include:spf.protection.outlook.com -all" ]
@@ -128,8 +124,8 @@ let dns = dnsZone {
         mxRecord {
             ttl 7200
             add_values [
-                0, "raymen-com.mail.protection.outlook.com";
-                1, "raymen2-com.mail.protection.outlook.com";
+                0, "farmer-com.mail.protection.outlook.com";
+                1, "farmer2-com.mail.protection.outlook.com";
             ]
         }
     ]
