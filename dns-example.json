@@ -1,0 +1,50 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "outputs": {},
+  "parameters": {},
+  "resources": [
+    {
+      "apiVersion": "2018-05-01",
+      "location": "global",
+      "name": "farmer.com",
+      "properties": {
+        "zoneType": "Public"
+      },
+      "type": "Microsoft.Network/dnsZones"
+    },
+    {
+      "apiVersion": "2018-05-01",
+      "dependsOn": [
+        "farmer.com"
+      ],
+      "name": "farmer.com/www2",
+      "properties": {
+        "CNAMERecord": {
+          "cname": "farmer.github.com"
+        },
+        "TTL": 3600
+      },
+      "type": "Microsoft.Network/dnsZones/CNAME"
+    },
+    {
+      "apiVersion": "2018-05-01",
+      "dependsOn": [
+        "farmer.com"
+      ],
+      "name": "farmer.com/@",
+      "properties": {
+        "ARecords": [
+          {
+            "ipv4Address": "192.168.0.1"
+          },
+          {
+            "ipv4Address": "192.168.0.2"
+          }
+        ],
+        "TTL": 7200
+      },
+      "type": "Microsoft.Network/dnsZones/A"
+    }
+  ]
+}

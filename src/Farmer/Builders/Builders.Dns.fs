@@ -6,7 +6,6 @@ open Farmer.Dns
 open Farmer.Arm.Dns
 open DnsRecords
 
-type DnsZoneType = Public | Private
 type DnsZoneRecordConfig =
     { Name : ResourceName
       Type : DnsRecordType

@@ -1002,6 +1002,7 @@ module Roles =
         let TrafficManagerContributor = RoleID "a4b10055-b0c7-44c2-b00f-c7b5b3550cf7"
 
 module Dns =
+    type DnsZoneType = Public | Private
     type DnsRecordType =
         | A of TargetResource : ResourceName option * ARecords : string list
         | AAAA of TargetResource : ResourceName option * AaaaRecords : string list
