@@ -842,10 +842,7 @@ module IPAddressCidr =
     /// Sequence of IP addresses for a CIDR block.
     let addresses (cidr:IPAddressCidr) =
         let first, last = ipRangeNums cidr
-        seq {
-            for i in first..last do
-                yield i |> ofNum
-        }
+        seq { for i in first..last do ofNum i }
     /// Carve a subnet out of an address space.
     let carveAddressSpace (addressSpace:IPAddressCidr) (subnetSizes:int list) =
         let addressSpaceStart, addressSpaceEnd = addressSpace |> ipRangeNums
@@ -866,7 +863,7 @@ module IPAddressCidr =
                         last, cidr
                 if last <= addressSpaceEnd then
                     startAddress <- (last + 1u) |> ofNum
-                    yield cidr
+                    cidr
                 else
                     raise (IndexOutOfRangeException (sprintf "Unable to create subnet %d of /%d" index size))
         }
