@@ -1002,4 +1002,11 @@ module Roles =
         let TrafficManagerContributor = RoleID "a4b10055-b0c7-44c2-b00f-c7b5b3550cf7"
 
 module Dns =
-    type DnsRecordType = A | AAAA | CName | NS | PTR | TXT | MX
+    type DnsRecordType =
+        | A of TargetResource : ResourceName option * ARecords : string list
+        | AAAA of TargetResource : ResourceName option * AaaaRecords : string list
+        | CName of TargetResource : ResourceName option * CNameRecord : string option
+        | NS of NsRecords : string list
+        | PTR of PtrRecords : string list
+        | TXT of TxtRecords : string list
+        | MX of {| Preference : int; Exchange : string |} list
