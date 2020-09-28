@@ -52,7 +52,7 @@ let vault =
         add_secret complexSecret
         add_secret "simpleSecret"
         add_secrets ["firstSecret"; "secondSecret"]
-        add_secret ("thirdSecret", store, store.Key)
+        add_secret ("thirdSecret", store.Key)
     }
 
 vault.Policies

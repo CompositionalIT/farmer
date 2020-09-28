@@ -948,6 +948,22 @@ module NetworkSecurity =
     type TrafficDirection with
         member this.ArmValue = this |> TrafficDirection.ArmValue
 
+module PublicIpAddress =
+    type AllocationMethod =
+        | Dynamic
+        | Static
+        member this.ArmValue =
+            match this with
+            | Dynamic -> "Dynamic"
+            | Static -> "Static"
+    type Sku =
+        | Basic
+        | Standard
+        member this.ArmValue =
+            match this with
+            | Basic -> "Basic"
+            | Standard -> "Standard"
+
 module Cdn =
     type Sku =
     | Custom_Verizon

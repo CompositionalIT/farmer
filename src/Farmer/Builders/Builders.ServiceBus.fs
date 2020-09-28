@@ -36,8 +36,11 @@ type ServiceBusQueueBuilder() =
     [<CustomOperation "lock_duration_minutes">] member _.LockDurationMinutes(state:ServiceBusQueueConfig, duration) = { state with LockDuration = Some (TimeSpan.FromMinutes (float duration)) }
     /// The maximum number of times a message can be delivered before dead lettering.
     [<CustomOperation "duplicate_detection_minutes">] member _.DuplicateDetection(state:ServiceBusQueueConfig, maxTimeWindow) = { state with DuplicateDetection = Some (TimeSpan.FromMinutes (float maxTimeWindow)) }
-    /// The default time-to-live for messages. If not specified, the maximum TTL will be set for the SKU.
-    [<CustomOperation "message_ttl_days">] member _.MessageTtl(state:ServiceBusQueueConfig, ttl) = { state with DefaultMessageTimeToLive = Some (TimeSpan.FromDays (float ttl)) }
+    /// The default time-to-live for messages in a timespan string (e.g. '00:05:00'). If not specified, the maximum TTL will be set for the SKU.
+    [<CustomOperation "message_ttl">]
+    member _.MessageTtl(state:ServiceBusQueueConfig, ttl) = { state with DefaultMessageTimeToLive = Some (TimeSpan.Parse ttl) }
+    /// The default time-to-live for messages in days. If not specified, the maximum TTL will be set for the SKU.
+    member _.MessageTtl(state:ServiceBusQueueConfig, ttl:int<Days>) = { state with DefaultMessageTimeToLive = ttl / 1<Days> |> float |> TimeSpan.FromDays |> Some }
     /// Enables session support.
     [<CustomOperation "max_delivery_count">] member _.MaxDeliveryCount(state:ServiceBusQueueConfig, count) = { state with MaxDeliveryCount = Some count }
     /// Whether to enable duplicate detection, and if so, how long to check for.ServiceBusQueueConfig
@@ -79,9 +82,6 @@ type ServiceBusSubscriptionBuilder() =
     /// Whether to enable duplicate detection, and if so, how long to check for.ServiceBusQueueConfig
     [<CustomOperation "duplicate_detection_minutes">]
      member _.DuplicateDetection(state:ServiceBusSubscriptionConfig, maxTimeWindow) = { state with DuplicateDetection = Some (TimeSpan.FromMinutes (float maxTimeWindow)) }
-    /// The default time-to-live for messages. If not specified, the maximum TTL will be set for the SKU.
-    [<CustomOperation "message_ttl_days">]
-     member _.MessageTtl(state:ServiceBusSubscriptionConfig, ttl) = { state with DefaultMessageTimeToLive = Some (TimeSpan.FromDays (float ttl)) }
     /// Enables session support.
     [<CustomOperation "max_delivery_count">]
      member _.MaxDeliveryCount(state:ServiceBusSubscriptionConfig, count) = { state with MaxDeliveryCount = Some count }
@@ -121,8 +121,11 @@ type ServiceBusTopicBuilder() =
     [<CustomOperation "name">] member _.Name(state:ServiceBusTopicConfig, name) = { state with Name = ResourceName name }
     /// Whether to enable duplicate detection, and if so, how long to check for.ServiceBusQueueConfig
     [<CustomOperation "duplicate_detection_minutes">] member _.DuplicateDetection(state:ServiceBusTopicConfig, maxTimeWindow) = { state with DuplicateDetection = Some (TimeSpan.FromMinutes (float maxTimeWindow)) }
-    /// The default time-to-live for messages. If not specified, the maximum TTL will be set for the SKU.
-    [<CustomOperation "message_ttl_days">] member _.MessageTtl(state:ServiceBusTopicConfig, ttl) = { state with DefaultMessageTimeToLive = Some (TimeSpan.FromDays (float ttl)) }
+    /// The default time-to-live for messages in a timespan string (e.g. '00:05:00'). If not specified, the maximum TTL will be set for the SKU.
+    [<CustomOperation "message_ttl">]
+    member _.MessageTtl(state:ServiceBusTopicConfig, ttl) = { state with DefaultMessageTimeToLive = Some (TimeSpan.Parse ttl) }
+    /// The default time-to-live for messages in days. If not specified, the maximum TTL will be set for the SKU.
+    member _.MessageTtl(state:ServiceBusTopicConfig, ttl:int<Days>) = { state with DefaultMessageTimeToLive = ttl / 1<Days> |> float |> TimeSpan.FromDays |> Some }
     /// Enables partition support on the queue.
     [<CustomOperation "enable_partition">] member _.EnablePartition(state:ServiceBusTopicConfig) = { state with EnablePartitioning = Some true }
     [<CustomOperation "add_subscriptions">]
@@ -140,14 +143,15 @@ type ServiceBusConfig =
       Queues : Map<ResourceName, ServiceBusQueueConfig>
       Topics : Map<ResourceName, ServiceBusTopicConfig>
       Tags: Map<string,string>  }
-    member private _.GetKeyPath sbNsName property =
-        sprintf
-            "listkeys(resourceId('Microsoft.ServiceBus/namespaces/authorizationRules', '%s', 'RootManageSharedAccessKey'), '2017-04-01').%s"
-            sbNsName
-            property
-        |> ArmExpression.create
-    member this.NamespaceDefaultConnectionString = this.GetKeyPath this.Name.Value "primaryConnectionString"
-    member this.DefaultSharedAccessPolicyPrimaryKey = this.GetKeyPath this.Name.Value "primaryKey"
+    member private this.GetKeyPath property =
+        let expr =
+            sprintf
+                "listkeys(resourceId('Microsoft.ServiceBus/namespaces/authorizationRules', '%s', 'RootManageSharedAccessKey'), '2017-04-01').%s"
+                this.Name.Value
+                property
+        ArmExpression.create(expr, this.Name)
+    member this.NamespaceDefaultConnectionString = this.GetKeyPath "primaryConnectionString"
+    member this.DefaultSharedAccessPolicyPrimaryKey = this.GetKeyPath "primaryKey"
     interface IBuilder with
         member this.DependencyName = this.Name
         member this.BuildResources location = [

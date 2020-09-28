@@ -17,12 +17,17 @@ type CosmosDb =
     static member getKey (name, keyType:KeyType, keyAccess:KeyAccess, ?resourceGroup) =
         let resourceId = ArmExpression.resourceId(databaseAccounts, name, ?group = resourceGroup)
         let keyPath = sprintf "%s%sMasterKey" keyType.ArmValue keyAccess.ArmValue
-        resourceId.Map(fun db -> sprintf "listKeys(%s, %s).%s" db CosmosDb.providerPath keyPath)
+        resourceId
+            .Map(fun db -> sprintf "listKeys(%s, %s).%s" db CosmosDb.providerPath keyPath)
+            .WithOwner(name)
     static member getKey (name, keyType, keyAccess, ?resourceGroup) = CosmosDb.getKey(ResourceName name, keyType, keyAccess, ?resourceGroup = resourceGroup)
     static member getConnectionString (name, connectionStringKind:ConnectionStringKind, ?resourceGroup) =
         let resourceId = ArmExpression.resourceId(databaseAccounts, name, ?group = resourceGroup)
-        resourceId.Map(fun db -> sprintf "listConnectionStrings(%s, %s).connectionStrings[%i].connectionString" db CosmosDb.providerPath connectionStringKind.KeyIndex)
-    static member getConnectionString (name, connectionStringKind, ?resourceGroup) = CosmosDb.getConnectionString (ResourceName name, connectionStringKind, ?resourceGroup = resourceGroup)
+        resourceId
+            .Map(fun db -> sprintf "listConnectionStrings(%s, %s).connectionStrings[%i].connectionString" db CosmosDb.providerPath connectionStringKind.KeyIndex)
+            .WithOwner(name)
+    static member getConnectionString (name, connectionStringKind, ?resourceGroup) =
+        CosmosDb.getConnectionString (ResourceName name, connectionStringKind, ?resourceGroup = resourceGroup)
 
 type CosmosDbContainerConfig =
     { Name : ResourceName

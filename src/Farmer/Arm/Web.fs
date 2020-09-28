@@ -140,7 +140,7 @@ type Site =
             @ (Map.toList this.ConnectionStrings |> List.map(fun (k, (v,_)) -> k, v))
             |> List.choose(snd >> function
                 | ParameterSetting s -> Some s
-                | LiteralSetting _ -> None)
+                | ExpressionSetting _ | LiteralSetting _ -> None)
 
     interface IPostDeploy with
         member this.Run resourceGroupName =

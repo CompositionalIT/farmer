@@ -54,7 +54,7 @@ let tests = testList "Service Bus Tests" [
                             enable_session
                             lock_duration_minutes 5
                             max_delivery_count 3
-                            message_ttl_days 10
+                            message_ttl 10<Days>
                         }
                     ]
                 }
@@ -106,6 +106,21 @@ let tests = testList "Service Bus Tests" [
 
             Expect.equal (queue.DefaultMessageTimeToLive.GetValueOrDefault TimeSpan.MinValue).TotalDays 14. "Default TTL should be 14 days"
         }
+        
+        test "Set TTL by timespan for Basic queue" {
+            let queue:SBQueue =
+                serviceBus {
+                    name "serviceBus"
+                    add_queues [
+                        queue {
+                            name "my-queue"
+                            message_ttl "00:05:00"
+                        }
+                    ]
+                } |> getResourceAtIndex 1
+
+            Expect.equal (queue.DefaultMessageTimeToLive.GetValueOrDefault TimeSpan.MinValue).TotalMinutes 5. "TTL from TimeSpan should be 5 minutes"
+        }
 
         test "Default TTL set for Standard queue" {
             let queue:SBQueue =
@@ -141,7 +156,7 @@ let tests = testList "Service Bus Tests" [
                         topic {
                             name "my-topic"
                             duplicate_detection_minutes 3
-                            message_ttl_days 2
+                            message_ttl 2<Days>
                             enable_partition
                         }
                     ]

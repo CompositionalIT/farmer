@@ -55,24 +55,25 @@ type ResourceType =
 
 /// Represents an expression used within an ARM template
 type ArmExpression =
-    private | ArmExpression of string
-    static member create (rawText:string) =
+    private | ArmExpression of string * ResourceName option
+    static member create (rawText:string, ?resourceName) =
         if System.Text.RegularExpressions.Regex.IsMatch(rawText, @"^\[.*\]$") then
             failwithf "ARM Expressions should not be wrapped in [ ]; these will automatically be added when the expression is evaluated. Please remove them from '%s'." rawText
         else
-            ArmExpression rawText
+            ArmExpression(rawText, resourceName)
     /// Gets the raw value of this expression.
-    member this.Value = match this with ArmExpression e -> e
-    /// Applies a mapping function that itself returns an expression, to this expression.
-    member this.Bind mapper : ArmExpression = mapper this.Value
+    member this.Value = match this with ArmExpression (e, _) -> e
+    /// Tries to get the owning resource of this expression.
+    member this.Owner = match this with ArmExpression (_, o) -> o
     /// Applies a mapping function to the expression.
-    member this.Map mapper = this.Bind (mapper >> ArmExpression)
+    member this.Map mapper = match this with ArmExpression (e, r) -> ArmExpression(mapper e, r)
     /// Evaluates the expression for emitting into an ARM template. That is, wraps it in [].
     member this.Eval() = sprintf "[%s]" this.Value
+    member this.WithOwner(owner:ResourceName) = match this with ArmExpression (e, _) -> ArmExpression(e, Some owner)
 
     /// Evaluates the expression for emitting into an ARM template. That is, wraps it in [].
     static member Eval (expression:ArmExpression) = expression.Eval()
-    static member Empty = ArmExpression ""
+    static member Empty = ArmExpression ("", None)
     /// Builds a resourceId ARM expression from the parts of a resource ID.
     static member resourceId (resourceType:ResourceType, name:ResourceName, ?group:string, ?subscriptionId:string) =
         match name, group, subscriptionId with
@@ -95,7 +96,7 @@ type SecureParameter =
     | SecureParameter of name:string
     member this.Value = match this with SecureParameter value -> value
     /// Gets an ARM expression reference to the parameter e.g. parameters('my-password')
-    member this.AsArmRef = sprintf "parameters('%s')" this.Value |> ArmExpression
+    member this.AsArmRef = sprintf "parameters('%s')" this.Value |> ArmExpression.create
 
 /// Exposes parameters which are required by a specific IArmResource.
 type IParameters =
@@ -113,7 +114,7 @@ module ArmExpression =
     /// A helper function used when building complex ARM expressions; lifts a literal string into a
     /// quoted ARM expression e.g. text becomes 'text'. This is useful for working with functions
     /// that can mix literal values and parameters.
-    let literal = sprintf "'%s'" >> ArmExpression
+    let literal = sprintf "'%s'" >> ArmExpression.create
     /// Generates an ARM expression for concatination.
     let concat values =
         values
@@ -178,10 +179,12 @@ type SecretValue =
 type Setting =
     | ParameterSetting of SecureParameter
     | LiteralSetting of string
+    | ExpressionSetting of ArmExpression
     member this.Value =
         match this with
         | ParameterSetting secureParameter -> secureParameter.AsArmRef.Eval()
         | LiteralSetting value -> value
+        | ExpressionSetting expr -> expr.Eval()
     static member AsLiteral (a,b) = a, LiteralSetting b
 
 type ArmTemplate =

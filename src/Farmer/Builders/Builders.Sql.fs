@@ -29,15 +29,17 @@ type SqlAzureConfig =
       Tags: Map<string,string>  }
     /// Gets a basic .NET connection string using the administrator username / password.
     member this.ConnectionString (database:SqlAzureDbConfig) =
-        concat [
-            literal
-                (sprintf "Server=tcp:%s.database.windows.net,1433;Initial Catalog=%s;Persist Security Info=False;User ID=%s;Password="
-                    this.Name.Value
-                    database.Name.Value
-                    this.AdministratorCredentials.UserName)
-            this.AdministratorCredentials.Password.AsArmRef
-            literal ";MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
-        ]
+        let expr =
+            concat [
+                literal
+                    (sprintf "Server=tcp:%s.database.windows.net,1433;Initial Catalog=%s;Persist Security Info=False;User ID=%s;Password="
+                        this.Name.Value
+                        database.Name.Value
+                        this.AdministratorCredentials.UserName)
+                this.AdministratorCredentials.Password.AsArmRef
+                literal ";MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+            ]
+        expr.WithOwner database.Name
     member this.ConnectionString databaseName =
         this.Databases
         |> List.tryFind(fun db -> db.Name = databaseName)
