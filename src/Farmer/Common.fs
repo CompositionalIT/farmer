@@ -1003,3 +1003,6 @@ module Roles =
         let NetworkContributor = RoleID "4d97b98b-1d4f-4787-a291-c67834d212e7"
         let PrivateDnsZoneContributor = RoleID "b12aa53e-6015-4669-85d0-8515ebb3ae7f"
         let TrafficManagerContributor = RoleID "a4b10055-b0c7-44c2-b00f-c7b5b3550cf7"
+
+module Dns =
+    type DnsRecordType = A | AAAA | CName | NS | PTR | TXT | MX

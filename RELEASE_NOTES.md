@@ -5,6 +5,7 @@ Release Notes
 * Gateway: Add VPN Client configuration
 * Service Bus: Set message TTL 
 * Support for implicitly adding dependencies based on usage e.g. add settings, connection strings etc.
+* DNS Zones: Basic Azure DNS support
 
 ## 1.1.0
 * AKS: Basic AKS support
