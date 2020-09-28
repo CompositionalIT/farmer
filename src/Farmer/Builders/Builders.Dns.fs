@@ -257,46 +257,46 @@ type DnsZoneConfig =
                 | Some CName ->
                     { CNameDnsRecord.Name = record.Name
                       Zone = this.Name
-                      Type = record.Type.Value
+                      Type = CName
                       TTL = record.TTL
                       TargetResource = record.TargetResource
                       CNameRecord = record.CNameRecord }
                 | Some A ->
                     { ADnsRecord.Name = record.Name
                       Zone = this.Name
-                      Type = record.Type.Value
+                      Type = A
                       TTL = record.TTL
                       TargetResource = record.TargetResource
                       ARecords = record.ARecords }
                 | Some AAAA ->
                     { AaaaDnsRecord.Name = record.Name
                       Zone = this.Name
-                      Type = record.Type.Value
+                      Type = AAAA
                       TTL = record.TTL
                       TargetResource = record.TargetResource
                       AaaaRecords = record.AaaaRecords }
                 | Some NS ->
                     { NsDnsRecord.Name = record.Name
                       Zone = this.Name
-                      Type = record.Type.Value
+                      Type = NS
                       TTL = record.TTL
                       NsRecords = record.NsRecords }
                 | Some TXT ->
                     { TxtDnsRecord.Name = record.Name
                       Zone = this.Name
-                      Type = record.Type.Value
+                      Type = TXT
                       TTL = record.TTL
                       TxtRecords = record.TxtRecords }
                 | Some PTR ->
                     { PtrDnsRecord.Name = record.Name
                       Zone = this.Name
-                      Type = record.Type.Value
+                      Type = PTR
                       TTL = record.TTL
                       PtrRecords = record.PtrRecords }
                 | Some MX ->
                     { MxDnsRecord.Name = record.Name
                       Zone = this.Name
-                      Type = record.Type.Value
+                      Type = MX
                       TTL = record.TTL
                       MxRecords = record.MxRecords }
                 | None -> failwithf "DNS Record type must be set for %s" record.Name.Value
