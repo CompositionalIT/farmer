@@ -48,43 +48,25 @@ module DnsRecords =
             member this.ResourceName = this.Name
             member this.JsonModel =
                 {| this.Type.ResourceType.Create(this.Zone + this.Name, dependsOn = [ this.Zone ]) with
-                    properties =
-                        {| TTL = this.TTL
-                           targetResource =
-                            match this.Type with
-                            | A (Some targetResource, _)
-                            | CName (Some targetResource, _)
-                            | AAAA (Some targetResource, _)  ->
-                                box {| id = targetResource.Value |}
-                            | _ ->
-                                null
-                           CNAMERecord =
-                            match this.Type with
-                            | CName (_, Some cnameRecord) -> box {| cname = cnameRecord |}
-                            | _ -> null
-                           MXRecords =
-                            match this.Type with
-                            | MX records -> records |> List.map (fun mx -> {| preference = mx.Preference; exchange = mx.Exchange |}) |> box
-                            | _ -> null
-                           NSRecords =
-                            match this.Type with
-                            | NS records -> records |> List.map (fun ns -> {| nsdname = ns |}) |> box
-                            | _ -> null
-                           TXTRecords =
-                            match this.Type with
-                            | TXT records -> records |> List.map (fun txt -> {| value = [ txt ] |}) |> box
-                            | _ -> null
-                           PTRRecords =
-                            match this.Type with
-                            | PTR records -> records |> List.map (fun ptr -> {| ptrdname = ptr |}) |> box
-                            | _ -> null
-                           ARecords =
-                            match this.Type with
-                            | A (_, records) -> records |> List.map (fun a -> {| ipv4Address = a |}) |> box
-                            | _ -> null
-                           AAAARecords =
-                            match this.Type with
-                            | AAAA (_, records) -> records |> List.map (fun aaaa -> {| ipv6Address = aaaa |}) |> box
-                            | _ -> null
-                        |}
+                    properties = [
+                        "TTL", box this.TTL
+
+                        match this.Type with
+                        | A (Some targetResource, _)
+                        | CName (Some targetResource, _)
+                        | AAAA (Some targetResource, _)  ->
+                            "targetResource", box {| id = targetResource.Value |}
+                        | _ ->
+                            ()
+
+                        match this.Type with
+                        | CName (_, Some cnameRecord) -> "CNAMERecord", box {| cname = cnameRecord |}
+                        | MX records -> "MXRecords", records |> List.map (fun mx -> {| preference = mx.Preference; exchange = mx.Exchange |}) |> box
+                        | NS records -> "NSRecords", records |> List.map (fun ns -> {| nsdname = ns |}) |> box
+                        | TXT records -> "TXTRecords", records |> List.map (fun txt -> {| value = [ txt ] |}) |> box
+                        | PTR records -> "PTRRecords", records |> List.map (fun ptr -> {| ptrdname = ptr |}) |> box
+                        | A (_, records) -> "ARecords", records |> List.map (fun a -> {| ipv4Address = a |}) |> box
+                        | AAAA (_, records) -> "AAAARecords", records |> List.map (fun aaaa -> {| ipv6Address = aaaa |}) |> box
+                        | CName (_, None) -> ()
+                    ] |> Map
                 |} :> _
