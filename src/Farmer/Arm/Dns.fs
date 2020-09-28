@@ -52,7 +52,10 @@ module DnsRecords =
                 {| this.Type.ResourceType.Create(this.Zone + this.Name, dependsOn = [ this.Zone ]) with
                     properties =
                         {| TTL = this.TTL
-                           targetResource = {| id = this.TargetResource |}
+                           targetResource =
+                               match this.TargetResource with
+                               | Some targetResource -> box {| id = targetResource.Value |}
+                               | None -> null
                            CNAMERecord = {| cname = this.CNameRecord |> Option.toObj |} |}
                 |} :> _
 
@@ -129,7 +132,10 @@ module DnsRecords =
                 {| this.Type.ResourceType.Create(this.Zone + this.Name, dependsOn = [ this.Zone ]) with
                     properties =
                         {| TTL = this.TTL;
-                           targetResource = {| id = this.TargetResource |}
+                           targetResource =
+                               match this.TargetResource with
+                               | Some targetResource -> box {| id = targetResource.Value |}
+                               | None -> null
                            ARecords = this.ARecords |> List.map (fun a -> {| ipv4Address = a |}) |}
                 |} :> _
 
@@ -146,6 +152,9 @@ module DnsRecords =
                 {| this.Type.ResourceType.Create(this.Zone + this.Name, dependsOn = [ this.Zone ]) with
                     properties =
                         {| TTL = this.TTL;
-                           targetResource = {| id = this.TargetResource |}
+                           targetResource =
+                               match this.TargetResource with
+                               | Some targetResource -> box {| id = targetResource.Value |}
+                               | None -> null
                            AAAARecords = this.AaaaRecords |> List.map (fun aaaa -> {| ipv6Address = aaaa |}) |}
                 |} :> _
