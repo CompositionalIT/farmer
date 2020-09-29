@@ -215,6 +215,7 @@ type VirtualMachineBuilder() =
     member __.LinkToVNet(state:VmConfig, name) = { state with VNet = External (Managed name) }
     member this.LinkToVNet(state:VmConfig, name) = this.LinkToVNet(state, ResourceName name)
     member this.LinkToVNet(state:VmConfig, vnet:Arm.Network.VirtualNetwork) = this.LinkToVNet(state, vnet.Name)
+    member this.LinkToVNet(state:VmConfig, vnet:VirtualNetworkConfig) = this.LinkToVNet(state, vnet.Name)
     [<CustomOperation "depends_on">]
     member __.DependsOn(state:VmConfig, resourceName) = { state with DependsOn = resourceName :: state.DependsOn }
     member __.DependsOn(state:VmConfig, resources) = { state with DependsOn = List.concat [ resources; state.DependsOn ] }

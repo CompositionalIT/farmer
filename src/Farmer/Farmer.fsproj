@@ -88,6 +88,7 @@
     <Compile Include="Builders/Builders.Redis.fs" />
     <Compile Include="Builders/Builders.KeyVault.fs" />
     <Compile Include="Builders\Builders.Bastion.fs" />
+    <Compile Include="Builders/Builders.VirtualNetwork.fs" />
     <Compile Include="Builders/Builders.Vm.fs" />
     <Compile Include="Builders/Builders.ServicePlan.fs" />
     <Compile Include="Builders/Builders.AppInsights.fs" />
@@ -105,7 +106,6 @@
     <Compile Include="Builders/Builders.Maps.fs" />
     <Compile Include="Builders/Builders.SignalR.fs" />
     <Compile Include="Builders/Builders.VirtualNetworkGateway.fs" />
-    <Compile Include="Builders/Builders.VirtualNetwork.fs" />
     <Compile Include="Builders/Builders.EventGrid.fs" />
     <Compile Include="Builders\Builders.NetworkSecurityGroup.fs" />
   </ItemGroup>
