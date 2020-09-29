@@ -213,6 +213,7 @@ type VirtualMachineBuilder() =
     member __.LinkToVNet(state:VmConfig, name) = { state with VNet = External (Managed name) }
     member this.LinkToVNet(state:VmConfig, name) = this.LinkToVNet(state, ResourceName name)
     member this.LinkToVNet(state:VmConfig, vnet:Arm.Network.VirtualNetwork) = this.LinkToVNet(state, vnet.Name)
+    member this.LinkToVNet(state:VmConfig, vnet:VirtualNetworkConfig) = this.LinkToVNet(state, vnet.Name)
 
     [<CustomOperation "custom_script">]
     member _.CustomScript(state:VmConfig, script:string) = { state with CustomScript = Some script }
