@@ -48,11 +48,11 @@ type FunctionsConfig =
         sprintf "listkeys(concat(resourceId('Microsoft.Web/sites', '%s'), '/host/default/'),'2016-08-01').masterKey" this.Name.Value
         |> ArmExpression.create
     /// Gets the Service Plan name for this functions app.
-    member this.ServicePlanName = this.ServicePlan.CreateResourceName this
+    member this.ServicePlanName = this.ServicePlan.CreateResourceId(this).Name
     /// Gets the App Insights name for this functions app, if it exists.
-    member this.AppInsightsName : ResourceName option = this.AppInsights |> Option.map (fun ai -> ai.CreateResourceName this)
+    member this.AppInsightsName : ResourceName option = this.AppInsights |> Option.map (fun ai -> ai.CreateResourceId(this).Name)
     /// Gets the Storage Account name for this functions app.
-    member this.StorageAccountName : Storage.StorageAccountName = this.StorageAccount.CreateResourceName this |> Storage.StorageAccountName.Create |> Result.get
+    member this.StorageAccountName : Storage.StorageAccountName = this.StorageAccount.CreateResourceId(this).Name |> Storage.StorageAccountName.Create |> Result.get
     interface IBuilder with
         member this.DependencyName = this.ServicePlanName
         member this.BuildResources location = [

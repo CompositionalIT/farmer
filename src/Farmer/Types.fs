@@ -122,7 +122,7 @@ type ResourceId with
     member this.ArmExpression =
         match this with
         | { Type = None } ->
-            ArmExpression.create this.Name.Value
+            this.Name.Value |> sprintf "string('%s')" |> ArmExpression.create
         | { Type = Some resourceType } ->
             [ match this.ResourceGroup with Some rg -> rg | None -> ()
               resourceType.Type
@@ -145,7 +145,7 @@ type ResourceType with
                location = location |> Option.map(fun r -> r.ArmValue) |> Option.toObj
                dependsOn =
                 dependsOn
-                |> Option.map (List.map(fun r -> r.ArmExpression.Value) >> box)
+                |> Option.map (List.map(fun r -> r.Eval()) >> box)
                 |> Option.toObj
                tags = tags |> Option.map box |> Option.toObj |}
 
@@ -154,25 +154,33 @@ type ArmExpression with
         sprintf "reference(%s, '%s')" resourceId.ArmExpression.Value resourceType.ApiVersion
         |> ArmExpression.create
 
-/// A ResourceRef represents a linked resource; typically this will be for two resources that have a relationship
-/// such as AppInsights on WebApp. WebApps can automatically create and configure an AI instance for the webapp,
-/// or configure the web app to an existing AI instance, or do nothing.
+/// A resource that will automatically be created by Farmer..
 type AutoCreationKind<'T> =
+    /// A resource that will automatically be created by Farmer with an explicit (user-defined) name.
     | Named of ResourceName
+    /// A resource that will automatically be created by Farmer with a name that is derived based on the configuration.
     | Derived of ('T -> ResourceName)
     member this.CreateResourceName config =
         match this with
         | Named r -> r
         | Derived f -> f config
-type ExternalKind = Managed of ResourceName | Unmanaged of ResourceId
+
+/// The different kinds of external Azure resources to this Farmer resource.
+type ExternalKind =
+    /// The name of a resource that will be created by Farmer but explicitly linked by the user.
+    | Managed of ResourceName
+    /// A Resource Id that is created externally from Farmer and already exists in Azure.
+    | Unmanaged of ResourceId
+
+/// A reference to another Azure resource that may or may not be created by Farmer.
 type ResourceRef<'T> =
     | AutoCreate of AutoCreationKind<'T>
     | External of ExternalKind
-    member this.CreateResourceName config =
+    member this.CreateResourceId config =
         match this with
-        | External (Managed r) -> r
-        | External (Unmanaged r) -> r.Name
-        | AutoCreate r -> r.CreateResourceName config
+        | External (Managed r) -> ResourceId.create r
+        | External (Unmanaged r) -> r
+        | AutoCreate r -> r.CreateResourceName config |> ResourceId.create
 
 [<AutoOpen>]
 module ResourceRef =

@@ -48,7 +48,7 @@ type VmConfig =
               Location = location
               StorageAccount =
                 this.DiagnosticsStorageAccount
-                |> Option.map(fun r -> r.CreateResourceName this)
+                |> Option.map(fun r -> r.CreateResourceId(this).Name)
               NetworkInterfaceName = this.NicName
               Size = this.Size
               Credentials =
@@ -63,7 +63,7 @@ type VmConfig =
               DataDisks = this.DataDisks
               Tags = this.Tags }
 
-            let vnetName = this.VNet.CreateResourceName this
+            let vnetName = this.VNet.CreateResourceId(this).Name
             let subnetName = this.Subnet.CreateResourceName this
 
             // NIC

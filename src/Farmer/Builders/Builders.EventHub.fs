@@ -30,7 +30,7 @@ type EventHubConfig =
         ArmExpression
             .create(sprintf "listkeys(%s, '2017-04-01').primaryConnectionString" resourceId.ArmExpression.Value)
             .WithOwner(ResourceId.create(eventHubs, this.Name))
-    member this.EventHubNamespaceName = this.EventHubNamespace.CreateResourceName this
+    member this.EventHubNamespaceName = this.EventHubNamespace.CreateResourceId(this).Name
     /// Gets an ARM expression for the path to the key of a specific authorization rule for this event hub.
     member this.GetKey (ruleName:string) =
         let ruleResource = ResourceId.create(authorizationRules, this.EventHubNamespaceName, this.Name, ResourceName ruleName)
