@@ -19,13 +19,13 @@ let ptrRecord = ResourceType ("Microsoft.Network/dnsZones/PTR", "2018-05-01")
 type DnsRecordType with
     member this.ResourceType =
         match this with
-        | CName -> cnameRecord
-        | A -> aRecord
-        | AAAA -> aaaaRecord
-        | NS -> nsRecord
-        | PTR -> ptrRecord
-        | TXT -> txtRecord
-        | MX -> mxRecord
+        | CName _ -> cnameRecord
+        | A _ -> aRecord
+        | AAAA _ -> aaaaRecord
+        | NS _ -> nsRecord
+        | PTR _ -> ptrRecord
+        | TXT _ -> txtRecord
+        | MX _ -> mxRecord
 
 type DnsZone =
     { Name : ResourceName
@@ -39,122 +39,34 @@ type DnsZone =
             |} :> _
 
 module DnsRecords =
-    type CNameDnsRecord =
+    type DnsRecord =
         { Name : ResourceName
           Zone : ResourceName
           Type : DnsRecordType
-          TTL : int
-          TargetResource : ResourceName option
-          CNameRecord : string option }
+          TTL : int }
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
                 {| this.Type.ResourceType.Create(this.Zone + this.Name, dependsOn = [ this.Zone ]) with
-                    properties =
-                        {| TTL = this.TTL
-                           targetResource =
-                               match this.TargetResource with
-                               | Some targetResource -> box {| id = targetResource.Value |}
-                               | None -> null
-                           CNAMERecord = {| cname = this.CNameRecord |> Option.toObj |} |}
-                |} :> _
+                    properties = [
+                        "TTL", box this.TTL
 
-    type MxDnsRecord =
-        { Name : ResourceName
-          Zone : ResourceName
-          Type : DnsRecordType
-          TTL : int
-          MxRecords : {| Preference : int; Exchange : string |} list }
-        interface IArmResource with
-            member this.ResourceName = this.Name
-            member this.JsonModel =
-                {| this.Type.ResourceType.Create(this.Zone + this.Name, dependsOn = [ this.Zone ]) with
-                    properties =
-                        {| TTL = this.TTL;
-                           MXRecords = this.MxRecords |> List.map (fun mx -> {| preference = mx.Preference; exchange = mx.Exchange |}) |}
-                |} :> _
+                        match this.Type with
+                        | A (Some targetResource, _)
+                        | CName (Some targetResource, _)
+                        | AAAA (Some targetResource, _)  ->
+                            "targetResource", box {| id = targetResource.Value |}
+                        | _ ->
+                            ()
 
-    type NsDnsRecord =
-        { Name : ResourceName
-          Zone : ResourceName
-          Type : DnsRecordType
-          TTL : int
-          NsRecords : string list }
-        interface IArmResource with
-            member this.ResourceName = this.Name
-            member this.JsonModel =
-                {| this.Type.ResourceType.Create(this.Zone + this.Name, dependsOn = [ this.Zone ]) with
-                    properties =
-                        {| TTL = this.TTL
-                           NSRecords = this.NsRecords |> List.map (fun ns -> {| nsdname = ns |}) |}
-                |} :> _
-
-    type TxtDnsRecord =
-        { Name : ResourceName
-          Zone : ResourceName
-          Type : DnsRecordType
-          TTL : int
-          TxtRecords : string list }
-        interface IArmResource with
-            member this.ResourceName = this.Name
-            member this.JsonModel =
-                {| this.Type.ResourceType.Create(this.Zone + this.Name, dependsOn = [ this.Zone ]) with
-                    properties =
-                        {| TTL = this.TTL;
-                           TXTRecords = this.TxtRecords |> List.map (fun txt -> {| value = [ txt ] |}) |}
-                |} :> _
-
-    type PtrDnsRecord =
-        { Name : ResourceName
-          Zone : ResourceName
-          Type : DnsRecordType
-          TTL : int
-          PtrRecords : string list }
-        interface IArmResource with
-            member this.ResourceName = this.Name
-            member this.JsonModel =
-                {| this.Type.ResourceType.Create(this.Zone + this.Name, dependsOn = [ this.Zone ]) with
-                    properties =
-                        {| TTL = this.TTL;
-                           PTRRecords = this.PtrRecords |> List.map (fun ptr -> {| ptrdname = ptr |}) |}
-                |} :> _
-
-    type ADnsRecord =
-        { Name : ResourceName
-          Zone : ResourceName
-          Type : DnsRecordType
-          TTL : int
-          TargetResource : ResourceName option
-          ARecords : string list }
-        interface IArmResource with
-            member this.ResourceName = this.Name
-            member this.JsonModel =
-                {| this.Type.ResourceType.Create(this.Zone + this.Name, dependsOn = [ this.Zone ]) with
-                    properties =
-                        {| TTL = this.TTL;
-                           targetResource =
-                               match this.TargetResource with
-                               | Some targetResource -> box {| id = targetResource.Value |}
-                               | None -> null
-                           ARecords = this.ARecords |> List.map (fun a -> {| ipv4Address = a |}) |}
-                |} :> _
-
-    type AaaaDnsRecord =
-        { Name : ResourceName
-          Zone : ResourceName
-          Type : DnsRecordType
-          TTL : int
-          TargetResource : ResourceName option
-          AaaaRecords : string list }
-        interface IArmResource with
-            member this.ResourceName = this.Name
-            member this.JsonModel =
-                {| this.Type.ResourceType.Create(this.Zone + this.Name, dependsOn = [ this.Zone ]) with
-                    properties =
-                        {| TTL = this.TTL;
-                           targetResource =
-                               match this.TargetResource with
-                               | Some targetResource -> box {| id = targetResource.Value |}
-                               | None -> null
-                           AAAARecords = this.AaaaRecords |> List.map (fun aaaa -> {| ipv6Address = aaaa |}) |}
+                        match this.Type with
+                        | CName (_, Some cnameRecord) -> "CNAMERecord", box {| cname = cnameRecord |}
+                        | MX records -> "MXRecords", records |> List.map (fun mx -> {| preference = mx.Preference; exchange = mx.Exchange |}) |> box
+                        | NS records -> "NSRecords", records |> List.map (fun ns -> {| nsdname = ns |}) |> box
+                        | TXT records -> "TXTRecords", records |> List.map (fun txt -> {| value = [ txt ] |}) |> box
+                        | PTR records -> "PTRRecords", records |> List.map (fun ptr -> {| ptrdname = ptr |}) |> box
+                        | A (_, records) -> "ARecords", records |> List.map (fun a -> {| ipv4Address = a |}) |> box
+                        | AAAA (_, records) -> "AAAARecords", records |> List.map (fun aaaa -> {| ipv6Address = aaaa |}) |> box
+                        | CName (_, None) -> ()
+                    ] |> Map
                 |} :> _

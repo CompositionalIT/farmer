@@ -32,15 +32,21 @@ The following items are currently unsupported:
 |-|-|
 | name | Sets the name of the domain. |
 | zone_type | Sets the zone type. |
-| add_records | Adds DNS Zone records. |
+| add_records | Adds DNS Zone records (see below). |
 
-
-#### A Record Builder Keywords
+Each Record type has its own custom builder. All builders share the following common keywords:
 
 | Keyword | Purpose |
 |-|-|
 | name | Sets the name of the record set (default to `@`). |
 | ttl | Sets the time-to-live of the record set. |
+
+In addition, each record builder has its own custom keywords:
+
+#### A Record Builder Keywords
+
+| Keyword | Purpose |
+|-|-|
 | add_ipv4_addresses | Add IPv4 addresses to this record set. |
 | target_resource | A reference to an azure resource from where the dns resource value is taken. |
 
@@ -48,8 +54,6 @@ The following items are currently unsupported:
 
 | Keyword | Purpose |
 |-|-|
-| name | Sets the name of the record set. (default to `@`) |
-| ttl | Sets the time-to-live of the record set. |
 | add_ipv6_addresses | Add IPv6 addresses to this record set. |
 | target_resource | A reference to an azure resource from where the dns resource value is taken. |
 
@@ -57,8 +61,6 @@ The following items are currently unsupported:
 
 | Keyword | Purpose |
 |-|-|
-| name | Sets the name of the record set. |
-| ttl | Sets the time-to-live of the record set. |
 | cname | Sets the canonical name for this CNAME record. |
 | target_resource | A reference to an azure resource from where the dns resource value is taken. |
 
@@ -66,43 +68,37 @@ The following items are currently unsupported:
 
 | Keyword | Purpose |
 |-|-|
-| name | Sets the name of the record set. (default to `@`) |
-| ttl | Sets the time-to-live of the record set. |
 | add_values | Add TXT values to this record set. |
 
 #### MX Record Builder Keywords
 
 | Keyword | Purpose |
 |-|-|
-| name | Sets the name of the record set. (default to `@`) |
-| ttl | Sets the time-to-live of the record set. |
 | add_values | Add MX values to the record set. |
 
 #### NS Record Builder Keywords
 
 | Keyword | Purpose |
 |-|-|
-| name | Sets the name of the record set. (default to `@`) |
-| ttl | Sets the time-to-live of the record set. |
 | add_nsd_names | Add NS values to this record set. |
 
 #### PTR Record Builder Keywords
 
 | Keyword | Purpose |
 |-|-|
-| name | Sets the name of the record set. (default to `@`) |
-| ttl | Sets the time-to-live of the record set. |
 | add_ptrd_names | Add PTR names to this record set. |
 
 #### Example
 ```fsharp
+#r @"./libs/Newtonsoft.Json.dll"
+#r @"../../src/Farmer/bin/Debug/netstandard2.0/Farmer.dll"
+
 open Farmer
 open Farmer.Builders
-open Sql
 
 let dns = dnsZone {
     name "farmer.com"
-    zone_type Public
+    zone_type Dns.Public
     add_records [
         cnameRecord {
             name "www2"
@@ -133,13 +129,9 @@ let dns = dnsZone {
 
 let deployment = arm {
     location Location.NorthEurope
-
     add_resource dns
 }
 
-template
+deployment
 |> Writer.quickWrite "dns-example"
-
-template
-|> Deploy.execute "my-resource-group" []
 ```
