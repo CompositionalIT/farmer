@@ -25,6 +25,7 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Web App | run_from_package | Sets the web app to use "run from package" deployment capabilities. |
 | Web App | website_node_default_version | Sets the node version of the web app. |
 | Web App | setting | Sets an app setting of the web app in the form "key" "value". |
+| Web App | secret_setting | Sets a "secret" app setting of the web app. You must supply the "key", whilst the value will be supplied as a secure parameter. |
 | Web App | settings | Sets a list of app setting of the web app as tuples in the form of ("key", "value"). |
 | Web App | connection_string | Creates a connection string whose value is supplied as secret parameter, or as an ARM expression in the tupled form of ("key", expr). |
 | Web App | connection_strings | Creates a set of connection strings of the web app whose values will be supplied as secret parameters. |
@@ -70,6 +71,17 @@ The Web App builder contains special commands that are executed *after* the ARM 
 | ServicePlan | Gets the Resource Name of the service plan for this web app. |
 | AppInsights | Gets the Resource Name of the service plan for the AI resource linked to this web app. |
 | SystemIdentity | Gets the system-created managed principal for the web app. It must have been enabled using enable_managed_identity. |
+
+#### Key Vault integration
+The Web App builder comes with special integration into KeyVault. By activating KeyVault integration, the web app builder can automatically link to, or even create, a full KeyVault instance. All Secret or ARM Expression-based Settings (e.g. a setting that links to the Key of a Storage Account) will automatically be redirected to KeyVault. The value will be stored in KeyVault and the system identity will be activated and provided into the KeyVault with GET permissions. Lastly, Web App app settings will remain in place, using the Azure App Service built-in KeyVault redirection capabilities.
+
+The following keywords exist on the web app:
+
+| Member | Purpose |
+|-|-|
+| use_keyvault | Tells the web app to create a brand new KeyVault for this App Service's secrets. |
+| use_managed_keyvault | Tells the web app to use an existing Farmer-managed KeyVault which you have defined elsewhere. |
+| use_external_keyvault | Tells the web app to use an existing non-Farmer managed KeyVault which you have defined elsewhere. |
 
 #### Example
 

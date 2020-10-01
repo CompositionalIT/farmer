@@ -209,7 +209,6 @@ type KeyVaultBuilderState =
       Policies : AccessPolicyConfig list
       Uri : Uri option
       Secrets : SecretConfig list
-      Dependencies : ResourceName list
       Tags: Map<string,string> }
 
 type KeyVaultBuilder() =
@@ -217,13 +216,12 @@ type KeyVaultBuilder() =
         { Name = ResourceName.Empty
           TenantId = Subscription.TenantId
           Access = { VirtualMachineAccess = None; ResourceManagerAccess = Some Enabled; AzureDiskEncryptionAccess = None; SoftDelete = None }
-          Sku = Sku.Standard
+          Sku = Standard
           NetworkAcl = { IpRules = []; VnetRules = []; Bypass = None; DefaultAction = None }
           Policies = []
           CreateMode = None
           Uri = None
           Secrets = []
-          Dependencies = []
           Tags = Map.empty  }
 
     member __.Run(state:KeyVaultBuilderState) : KeyVaultConfig =
@@ -240,7 +238,10 @@ type KeyVaultBuilder() =
             | Some SimpleCreateMode.Recover, [] -> failwith "Setting the creation mode to Recover requires at least one access policy. Use the accessPolicy builder to create a policy, and add it to the vault configuration using add_access_policy."
           Secrets = state.Secrets
           Uri = state.Uri
-          Dependencies = state.Dependencies
+          Dependencies =
+            state.Policies
+            |> List.choose(fun r -> r.ObjectId.Owner)
+            |> List.distinct
           Tags = state.Tags  }
     /// Sets the name of the vault.
     [<CustomOperation "name">]
