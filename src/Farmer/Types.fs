@@ -154,27 +154,27 @@ type ArmExpression with
         sprintf "reference(%s, '%s')" resourceId.ArmExpression.Value resourceType.ApiVersion
         |> ArmExpression.create
 
-/// A resource that will automatically be created by Farmer..
-type AutoCreationKind<'T> =
+/// A resource that will automatically be created by Farmer.
+type AutoCreationKind<'TConfig> =
     /// A resource that will automatically be created by Farmer with an explicit (user-defined) name.
     | Named of ResourceName
     /// A resource that will automatically be created by Farmer with a name that is derived based on the configuration.
-    | Derived of ('T -> ResourceName)
+    | Derived of ('TConfig -> ResourceName)
     member this.CreateResourceName config =
         match this with
         | Named r -> r
         | Derived f -> f config
 
-/// The different kinds of external Azure resources to this Farmer resource.
+/// A related resource that is created externally to this Farmer resource.
 type ExternalKind =
-    /// The name of a resource that will be created by Farmer but explicitly linked by the user.
+    /// The name of the resource that will be created by Farmer, but is explicitly linked by the user.
     | Managed of ResourceName
     /// A Resource Id that is created externally from Farmer and already exists in Azure.
     | Unmanaged of ResourceId
 
 /// A reference to another Azure resource that may or may not be created by Farmer.
-type ResourceRef<'T> =
-    | AutoCreate of AutoCreationKind<'T>
+type ResourceRef<'TConfig> =
+    | AutoCreate of AutoCreationKind<'TConfig>
     | External of ExternalKind
     member this.CreateResourceId config =
         match this with
@@ -197,6 +197,11 @@ module ResourceRef =
     let (|DeployableResource|_|) config = function
         | AutoCreate c -> Some (DeployableResource(c.CreateResourceName config))
         | External _ -> None
+    /// An active pattern that returns the resource name if the resource if external.
+    let (|ExternalResource|_|) = function
+        | AutoCreate c -> None
+        | External (Managed r) -> Some (ResourceId.create r)
+        | External (Unmanaged r) -> Some r
 
 /// Whether a specific feature is active or not.
 type FeatureFlag = Enabled | Disabled member this.AsBoolean = match this with Enabled -> true | Disabled -> false

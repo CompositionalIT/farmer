@@ -5,6 +5,7 @@ open Farmer
 open Farmer.CoreTypes
 open Farmer.WebApp
 open Farmer.Arm.Web
+open Farmer.Arm.KeyVault.Vaults
 open Farmer.Arm.Insights
 open Sites
 open System
@@ -65,6 +66,10 @@ let publishingPassword (name:ResourceName) =
     let expr = sprintf "list(%s, '2014-06-01').properties.publishingPassword" resourceId.ArmExpression.Value
     ArmExpression.create(expr, resourceId)
 
+type SecretStore =
+    | AppService
+    | KeyVault of ResourceRef<WebAppConfig>
+
 type WebAppConfig =
     { Name : ResourceName
       ServicePlan : ResourceRef<WebAppConfig>
@@ -95,7 +100,10 @@ type WebAppConfig =
 
       DockerImage : (string * string) option
       DockerCi : bool
-      DockerAcrCredentials : {| RegistryName : string; Password : SecureParameter |} option }
+      DockerAcrCredentials : {| RegistryName : string; Password : SecureParameter |} option
+
+      SecretStore : SecretStore
+    }
     /// Gets the ARM expression path to the publishing password of this web app.
     member this.PublishingPassword = publishingPassword (this.Name)
     /// Gets the Service Plan name for this web app.
@@ -104,15 +112,65 @@ type WebAppConfig =
     member this.AppInsightsName = this.AppInsights |> Option.map (fun ai -> ai.CreateResourceId(this).Name)
     /// Gets the system-created managed principal for the web app. It must have been enabled using enable_managed_identity.
     member this.SystemIdentity =
-        sprintf "reference(resourceId('Microsoft.Web/sites', '%s'), '2019-08-01', 'full').identity.principalId" this.Name.Value
-        |> ArmExpression.create
-        |> PrincipalId
+        let expr =
+            ArmExpression
+                .create(sprintf "reference(resourceId('Microsoft.Web/sites', '%s'), '2019-08-01', 'full').identity.principalId" this.Name.Value)
+                .WithOwner(this.Name)
+        PrincipalId expr
     member this.Endpoint =
         sprintf "%s.azurewebsites.net" this.Name.Value
 
     interface IBuilder with
         member this.DependencyName = this.ServicePlanName
         member this.BuildResources location = [
+            let keyVault, secrets =
+                match this.SecretStore with
+                | KeyVault (DeployableResource this vaultName) ->
+                    let store = keyVault {
+                        name vaultName
+                        add_access_policy (AccessPolicy.create (this.SystemIdentity, KeyVault.Secret.All))
+                        add_secrets [
+                            for setting in this.Settings do
+                                match setting.Value with
+                                | LiteralSetting _ ->
+                                    ()
+                                | ParameterSetting _ ->
+                                    SecretConfig.create (setting.Key)
+                                | ExpressionSetting expr ->
+                                    SecretConfig.create (setting.Key, expr)
+                        ]
+                    }
+                    Some store, []
+                | KeyVault (ExternalResource vaultName) ->
+                    let secrets = [
+                        for setting in this.Settings do
+                            let secret =
+                                match setting.Value with
+                                | LiteralSetting _ ->
+                                    None
+                                | ParameterSetting _ ->
+                                    SecretConfig.create (setting.Key) |> Some
+                                | ExpressionSetting expr ->
+                                    SecretConfig.create (setting.Key, expr) |> Some
+                            match secret with
+                            | Some secret ->
+                                { Secret.Name = vaultName.Name + secret.Key
+                                  Value = secret.Value
+                                  ContentType = secret.ContentType
+                                  Enabled = secret.Enabled
+                                  ActivationDate = secret.ActivationDate
+                                  ExpirationDate = secret.ExpirationDate
+                                  Location = location
+                                  Dependencies = vaultName :: secret.Dependencies } :> IArmResource
+                            | None ->
+                                ()
+                    ]
+                    None, secrets
+                | KeyVault _ | AppService ->
+                    None, []
+
+            yield! secrets
+
             { Name = this.Name
               Location = location
               ServicePlan = this.ServicePlanName
@@ -161,7 +219,21 @@ type WebAppConfig =
                 literalSettings
                 |> List.map Setting.AsLiteral
                 |> List.append dockerSettings
-                |> List.append (Map.toList this.Settings)
+                |> List.append (
+                    (match this.SecretStore with
+                     | AppService ->
+                         this.Settings
+                     | KeyVault r ->
+                        let name = r.CreateResourceId this
+                        [ for setting in this.Settings do
+                            match setting.Value with
+                            | LiteralSetting _ ->
+                                setting.Key, setting.Value
+                            | ParameterSetting _
+                            | ExpressionSetting _ ->
+                                setting.Key, LiteralSetting (sprintf "@Microsoft.KeyVault(SecretUri=https://%s.vault.azure.net/secrets/%s)" name.Name.Value setting.Key)
+                        ] |> Map.ofList
+                    ) |> Map.toList)
                 |> Map
               Kind = [
                 "app"
@@ -175,14 +247,19 @@ type WebAppConfig =
 
                 yield! this.Dependencies
 
-                for setting in this.Settings do
-                    match setting.Value with
-                    | ExpressionSetting expr ->
-                        match expr.Owner with
-                        | Some owner -> owner
-                        | None -> ()
-                    | ParameterSetting _ | LiteralSetting _ ->
-                        ()
+                match this.SecretStore with
+                | AppService ->
+                    for setting in this.Settings do
+                        match setting.Value with
+                        | ExpressionSetting expr ->
+                            match expr.Owner with
+                            | Some owner -> owner
+                            | None -> ()
+                        | ParameterSetting _
+                        | LiteralSetting _ ->
+                            ()
+                | KeyVault _ ->
+                    ()
 
                 match this.AppInsights with
                 | Some (DependableResource this resourceName) -> ResourceId.create resourceName
@@ -246,6 +323,13 @@ type WebAppConfig =
               AppCommandLine = this.DockerImage |> Option.map snd
               ZipDeployPath = this.ZipDeployPath |> Option.map (fun x -> x, ZipDeploy.ZipDeployTarget.WebApp)
             }
+
+            match keyVault with
+            | Some keyVault ->
+                let builder = keyVault :> IBuilder
+                yield! builder.BuildResources(location)
+            | None ->
+                ()
 
             match this.SourceControlSettings with
             | Some settings ->
@@ -312,7 +396,8 @@ type WebAppBuilder() =
           DockerCi = false
           Cors = None
           SourceControlSettings = None
-          DockerAcrCredentials = None }
+          DockerAcrCredentials = None
+          SecretStore = AppService }
     member __.Run(state:WebAppConfig) =
         let operatingSystem =
             match state.DockerImage with
@@ -502,6 +587,18 @@ type WebAppBuilder() =
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
     member this.Tag(state:WebAppConfig, key, value) = this.Tags(state, [ (key,value) ])
+    [<CustomOperation "use_keyvault">]
+    member this.UseKeyVault(state:WebAppConfig) =
+        let state = this.EnableManagedIdentity state
+        { state with SecretStore = KeyVault (derived(fun c -> ResourceName (c.Name.Value + "vault"))) }
+    [<CustomOperation "use_managed_keyvault">]
+    member this.LinkToKeyVault(state:WebAppConfig, name) =
+        let state = this.EnableManagedIdentity state
+        { state with SecretStore = KeyVault (External(Managed name)) }
+    [<CustomOperation "use_external_keyvault">]
+    member this.LinkToExternalKeyVault(state:WebAppConfig, name) =
+        let state = this.EnableManagedIdentity state
+        { state with SecretStore = KeyVault (External(Unmanaged name)) }
 
 let webApp = WebAppBuilder()
 

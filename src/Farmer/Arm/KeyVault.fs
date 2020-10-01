@@ -75,7 +75,7 @@ type Vault =
             None
         | Some SoftDeleteWithPurgeProtection ->
             Some true
-      member private this.ToStringArray s = s |> Set.map(fun s -> s.ToString().ToLower()) |> Set.toArray
+      member private _.ToStringArray s = s |> Set.map(fun s -> s.ToString().ToLower()) |> Set.toArray
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =

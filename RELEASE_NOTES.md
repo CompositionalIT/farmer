@@ -3,10 +3,11 @@ Release Notes
 ## 1.2.0-beta1
 * Bastion Hosts: Create bastion hosts for accessing resources on a virtual network
 * Gateway: Add VPN Client configuration
-* Service Bus: Set message TTL 
-* Support for implicitly adding dependencies based on usage e.g. add settings, connection strings etc.
+* Service Bus: Set message TTL
 * DNS Zones: Basic Azure DNS support
+* WebApp: Easy Key Vault integration
 * Internal changes to better capture full resource IDs
+* Support for implicitly adding dependencies based on usage e.g. add settings, connection strings etc.
 
 ## 1.1.0
 * AKS: Basic AKS support
