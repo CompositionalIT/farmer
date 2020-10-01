@@ -123,24 +123,33 @@ module ArmExpression =
         |> sprintf "concat(%s)"
         |> ArmExpression.create
 
-/// A ResourceRef represents a linked resource; typically this will be for two resources that have a relationship
-/// such as AppInsights on WebApp. WebApps can automatically create and configure an AI instance for the webapp,
-/// or configure the web app to an existing AI instance, or do nothing.
-type AutoCreationKind<'T> =
+/// A resource that will automatically be created by Farmer.
+type AutoCreationKind<'TConfig> =
+    /// A resource that will automatically be created by Farmer with an explicit (user-defined) name.
     | Named of ResourceName
-    | Derived of ('T -> ResourceName)
+    /// A resource that will automatically be created by Farmer with a name that is derived based on the configuration.
+    | Derived of ('TConfig -> ResourceName)
     member this.CreateResourceName config =
         match this with
         | Named r -> r
         | Derived f -> f config
-type ExternalKind = Managed of ResourceName | Unmanaged of ResourceName
-type ResourceRef<'T> =
-    | AutoCreate of AutoCreationKind<'T>
+
+/// A related resource that is created externally to this Farmer resource.
+type ExternalKind =
+    /// The name of the resource that will be created by Farmer, but is explicitly linked by the user.
+    | Managed of ResourceName
+    /// A resource that is created completely externally from Farmer and already exists in Azure.
+    | Unmanaged of ResourceName
+
+/// A reference to another Azure resource that may or may not be created by Farmer.
+type ResourceRef<'TConfig> =
+    | AutoCreate of AutoCreationKind<'TConfig>
     | External of ExternalKind
     member this.CreateResourceName config =
         match this with
         | External (Managed r | Unmanaged r) -> r
         | AutoCreate r -> r.CreateResourceName config
+
 [<AutoOpen>]
 module ResourceRef =
     /// Creates a ResourceRef which is automatically created and derived from the supplied config.
