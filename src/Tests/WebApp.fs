@@ -134,4 +134,34 @@ let tests = testList "Web App Tests" [
         let wa = wa |> getResources |> getResource<Web.Site> |> List.head
         Expect.contains wa.Dependencies sa.Name.ResourceName "Storage Account is missing"
     }
+
+    test "Key Vault support works correctly" {
+        let sa = storageAccount { name "teststorage" }
+        let wa = webApp { name "testweb"; setting "storage" sa.Key; secret_setting "secret"; setting "literal" "value"; use_keyvault }
+        let kv = wa |> getResources |> getResource<Vault> |> List.head
+        let secrets = wa |> getResources |> getResource<Vaults.Secret>
+        let site = wa |> getResources |> getResource<Web.Site> |> List.head
+
+        let expected = Map [
+            "storage", LiteralSetting "@Microsoft.KeyVault(SecretUri=https://testwebvault.vault.azure.net/secrets/storage)"
+            "secret", LiteralSetting "@Microsoft.KeyVault(SecretUri=https://testwebvault.vault.azure.net/secrets/secret)"
+            "literal", LiteralSetting "value"
+        ]
+        Expect.containsAll site.AppSettings expected "Incorrect settings"
+
+        Expect.sequenceEqual kv.Dependencies [ site.Name ] "Key Vault dependencies are wrong"
+        Expect.equal kv.Name (ResourceName (site.Name.Value + "vault")) "Key Vault name is wrong"
+        Expect.equal kv.AccessPolicies.[0].ObjectId wa.SystemIdentity.ArmValue "Policy is incorrect"
+        Expect.equal wa.Identity (Some Enabled) "System Identity should be turned on"
+
+        Expect.hasLength secrets 2 "Incorrect number of KV secrets"
+
+        Expect.equal secrets.[0].Name.Value "testwebvault/storage" "Incorrect secret name"
+        Expect.equal secrets.[0].Value (ExpressionSecret sa.Key) "Incorrect secret value"
+        Expect.sequenceEqual secrets.[0].Dependencies [ ResourceName "testwebvault"; ResourceName "teststorage" ] "Incorrect secret dependencies"
+
+        Expect.equal secrets.[1].Name.Value "testwebvault/secret" "Incorrect secret name"
+        Expect.equal secrets.[1].Value (ParameterSecret (SecureParameter "secret")) "Incorrect secret value"
+        Expect.sequenceEqual secrets.[1].Dependencies [ ResourceName "testwebvault" ] "Incorrect secret dependencies"
+    }
 ]

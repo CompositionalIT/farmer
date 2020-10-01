@@ -75,7 +75,7 @@ The Web App builder contains special commands that are executed *after* the ARM 
 #### Key Vault integration
 The Web App builder comes with special integration into KeyVault. By activating KeyVault integration, the web app builder can automatically link to, or even create, a full KeyVault instance. All Secret or ARM Expression-based Settings (e.g. a setting that links to the Key of a Storage Account) will automatically be redirected to KeyVault. The value will be stored in KeyVault and the system identity will be activated and provided into the KeyVault with GET permissions. Lastly, Web App app settings will remain in place, using the Azure App Service built-in KeyVault redirection capabilities.
 
-The following keywords exist on the web app.
+The following keywords exist on the web app:
 
 | Member | Purpose |
 |-|-|
