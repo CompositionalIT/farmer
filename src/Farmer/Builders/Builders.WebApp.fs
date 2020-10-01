@@ -111,9 +111,11 @@ type WebAppConfig =
     member this.AppInsightsName = this.AppInsights |> Option.map (fun ai -> ai.CreateResourceName this)
     /// Gets the system-created managed principal for the web app. It must have been enabled using enable_managed_identity.
     member this.SystemIdentity =
-        sprintf "reference(resourceId('Microsoft.Web/sites', '%s'), '2019-08-01', 'full').identity.principalId" this.Name.Value
-        |> ArmExpression.create
-        |> PrincipalId
+        let expr =
+            ArmExpression
+                .create(sprintf "reference(resourceId('Microsoft.Web/sites', '%s'), '2019-08-01', 'full').identity.principalId" this.Name.Value)
+                .WithOwner(this.Name)
+        PrincipalId expr
     member this.Endpoint =
         sprintf "%s.azurewebsites.net" this.Name.Value
 
@@ -255,8 +257,6 @@ type WebAppConfig =
                         | ParameterSetting _
                         | LiteralSetting _ ->
                             ()
-                | KeyVault (DependableResource this vaultName) ->
-                    vaultName
                 | KeyVault _ ->
                     ()
 
