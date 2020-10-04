@@ -86,26 +86,6 @@ type ArmExpression =
     /// Evaluates the expression for emitting into an ARM template. That is, wraps it in [].
     static member Eval (expression:ArmExpression) = expression.Eval()
     static member Empty = ArmExpression ("", None)
-
-/// A secure parameter to be captured in an ARM template.
-type SecureParameter =
-    | SecureParameter of name:string
-    member this.Value = match this with SecureParameter value -> value
-    /// Gets an ARM expression reference to the parameter e.g. parameters('my-password')
-    member this.ArmExpression = sprintf "parameters('%s')" this.Value |> ArmExpression.create
-
-/// Exposes parameters which are required by a specific IArmResource.
-type IParameters =
-    abstract member SecureParameters : SecureParameter list
-
-/// An action that needs to be run after the ARM template has been deployed.
-type IPostDeploy =
-    abstract member Run : resourceGroupName:string -> Option<Result<string, string>>
-
-/// A functional equivalent of the IBuilder's BuildResources method.
-type Builder = Location -> IArmResource list
-
-type ArmExpression with
     /// A helper function used when building complex ARM expressions; lifts a literal string into a
     /// quoted ARM expression e.g. text becomes 'text'. This is useful for working with functions
     /// that can mix literal values and parameters.
@@ -135,6 +115,11 @@ type ResourceId with
     /// Evaluates the expression for emitting into an ARM template. That is, wraps it in [].
     member this.Eval() = this.ArmExpression.Eval()
 
+type ArmExpression with
+    static member reference (resourceType:ResourceType, resourceId:ResourceId) =
+        sprintf "reference(%s, '%s')" resourceId.ArmExpression.Value resourceType.ApiVersion
+        |> ArmExpression.create
+
 type ResourceType with
     member this.Create(name:ResourceName, ?location:Location, ?dependsOn:ResourceId list, ?tags:Map<string,string>) =
         match this with
@@ -149,10 +134,24 @@ type ResourceType with
                 |> Option.toObj
                tags = tags |> Option.map box |> Option.toObj |}
 
-type ArmExpression with
-    static member reference (resourceType:ResourceType, resourceId:ResourceId) =
-        sprintf "reference(%s, '%s')" resourceId.ArmExpression.Value resourceType.ApiVersion
-        |> ArmExpression.create
+
+/// A secure parameter to be captured in an ARM template.
+type SecureParameter =
+    | SecureParameter of name:string
+    member this.Value = match this with SecureParameter value -> value
+    /// Gets an ARM expression reference to the parameter e.g. parameters('my-password')
+    member this.ArmExpression = sprintf "parameters('%s')" this.Value |> ArmExpression.create
+
+/// Exposes parameters which are required by a specific IArmResource.
+type IParameters =
+    abstract member SecureParameters : SecureParameter list
+
+/// An action that needs to be run after the ARM template has been deployed.
+type IPostDeploy =
+    abstract member Run : resourceGroupName:string -> Option<Result<string, string>>
+
+/// A functional equivalent of the IBuilder's BuildResources method.
+type Builder = Location -> IArmResource list
 
 /// A resource that will automatically be created by Farmer.
 type AutoCreationKind<'TConfig> =
