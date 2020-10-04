@@ -141,6 +141,7 @@ let tests = testList "Web App Tests" [
         let kv = wa |> getResources |> getResource<Vault> |> List.head
         let secrets = wa |> getResources |> getResource<Vaults.Secret>
         let site = wa |> getResources |> getResource<Web.Site> |> List.head
+        let vault = wa |> getResources |> getResource<Vault> |> List.head
 
         let expected = Map [
             "storage", LiteralSetting "@Microsoft.KeyVault(SecretUri=https://testwebvault.vault.azure.net/secrets/storage)"
@@ -163,5 +164,8 @@ let tests = testList "Web App Tests" [
         Expect.equal secrets.[1].Name.Value "testwebvault/secret" "Incorrect secret name"
         Expect.equal secrets.[1].Value (ParameterSecret (SecureParameter "secret")) "Incorrect secret value"
         Expect.sequenceEqual secrets.[1].Dependencies [ ResourceName "testwebvault" ] "Incorrect secret dependencies"
+
+        Expect.hasLength vault.AccessPolicies 1 "Incorrect number of access policies"
+        Expect.sequenceEqual vault.AccessPolicies.[0].Permissions.Secrets [ KeyVault.Secret.Get ] "Incorrect permissions"
     }
 ]
