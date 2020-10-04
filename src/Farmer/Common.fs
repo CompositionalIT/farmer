@@ -598,9 +598,15 @@ module Sql =
             | PremiumPool c ->
                 c
 
+module ManagedIdentity =
+    /// A user assigned managed identity that can be associated with a resource.
+    type UserAssignedIdentity = UserAssignedIdentity of Name:string * ResourceGroup:string option * Subscription:string option
+
 module ContainerGroup =
     type PortAccess = PublicPort | InternalPort
     type RestartPolicy = NeverRestart | AlwaysRestart | RestartOnFailure
+    /// Identity settings for a container group.
+    type ContainerGroupIdentity = SystemAssigned | UserAssigned of ManagedIdentity.UserAssignedIdentity list
     type IpAddressType =
         | PublicAddress
         | PublicAddressWithDns of DnsName:string

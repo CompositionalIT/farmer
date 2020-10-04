@@ -2,6 +2,7 @@ module ContainerGroup
 
 open Expecto
 open Farmer
+open Farmer.Arm.ManagedIdentity
 open Farmer.ContainerGroup
 open Farmer.Builders
 open Microsoft.Azure.Management.ContainerInstance
@@ -137,5 +138,51 @@ let tests = testList "Container Group" [
         Expect.isNotNull group.Volumes.[3].GitRepo "Git repo volume should not be null"
     }
 
-]
+    test "Container group with system assigned identity" {
+        let group =
+            containerGroup {
+                name "myapp"
+                add_instances [ nginx ]
+                identity SystemAssigned
+            } |> asAzureResource
+
+        Expect.isTrue group.Identity.Type.HasValue "Expecting an assigned identity."
+        Expect.equal group.Identity.Type.Value ResourceIdentityType.SystemAssigned "Expecting a system assigned identity"
+    }
+    
+    test "Container group with user assigned identity" {
+        let group =
+            containerGroup {
+                name "myapp"
+                add_instances [ nginx ]
+                identity (UserAssigned [ ManagedIdentity.UserAssignedIdentity("foo", Some "bar", Some "baz")])
+            } |> asAzureResource
+
+        Expect.hasLength group.Identity.UserAssignedIdentities 1 "No user assigned identity."
+    }
+    
+    test "Make container group with MSI" {
+        let msi = userAssignedIdentity {
+            name "aciUser"
+        }
+        let group =
+            containerGroup {
+                name "myapp-with-msi"
+                add_instances [ nginx ]
+                user_assigned_identity msi.Name
+            }
+        let template = arm {
+            location Location.EastUS
+            add_resource msi
+            add_resource group
+        }
+        let containerGroup = template.Template.Resources |> List.find(fun r -> r.ResourceName.Value = "myapp-with-msi") :?> Farmer.Arm.ContainerInstance.ContainerGroup
+        Expect.isSome containerGroup.Identity "Container group did not have identity"
+        Expect.wantSome containerGroup.Identity "Container group identity not user assigned" |> function
+        | UserAssigned userIdentities ->
+            Expect.hasLength userIdentities 1 "Expected 1 user identity"
+            Expect.equal userIdentities.Head (ManagedIdentity.UserAssignedIdentity("aciUser", None, None)) "Expected user identity named 'aciUser'."
+        | _ -> Expect.isTrue false "Expected a ContainerGroup.Identity to be user assigned."
+    }
+ ]
 

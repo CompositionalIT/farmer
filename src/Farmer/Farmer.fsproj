@@ -57,6 +57,7 @@
     <Compile Include="Arm/Dns.fs" />
     <Compile Include="Arm/Network.fs" />
     <Compile Include="Arm\Bastion.fs" />
+    <Compile Include="Arm\ManagedIdentity.fs" />
     <Compile Include="Arm/Compute.fs" />
     <Compile Include="Arm/ContainerInstance.fs" />
     <Compile Include="Arm/ContainerRegistry.fs" />
@@ -108,5 +109,6 @@
     <Compile Include="Builders/Builders.VirtualNetworkGateway.fs" />
     <Compile Include="Builders/Builders.EventGrid.fs" />
     <Compile Include="Builders\Builders.NetworkSecurityGroup.fs" />
+    <Compile Include="Builders\Builders.UserAssignedIdentity.fs" />
   </ItemGroup>
 </Project>

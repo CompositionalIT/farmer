@@ -56,6 +56,9 @@ type ContainerGroupConfig =
       Instances : ContainerInstanceConfig list
       /// Volumes to mount on the container group.
       Volumes : Map<string, Volume>
+      /// Managed identity for the container group.
+      Identity : ContainerGroupIdentity option
+      /// Tags for the container group.
       Tags: Map<string,string>  }
     interface IBuilder with
         member this.DependencyName = this.Name
@@ -74,6 +77,7 @@ type ContainerGroupConfig =
               ]
               OperatingSystem = this.OperatingSystem
               RestartPolicy = this.RestartPolicy
+              Identity = this.Identity
               IpAddress = this.IpAddress
               NetworkProfile = this.NetworkProfile
               Volumes = this.Volumes
@@ -85,6 +89,7 @@ type ContainerGroupBuilder() =
         { Name = ResourceName.Empty
           OperatingSystem = Linux
           RestartPolicy = AlwaysRestart
+          Identity = None
           IpAddress = { Type = PublicAddress; Ports = Set.empty }
           NetworkProfile = None
           Instances = []
@@ -139,6 +144,18 @@ type ContainerGroupBuilder() =
         let newVolumes = volumes |> Map.ofSeq
         let updatedVolumes = state.Volumes |> Map.fold (fun current key vol -> Map.add key vol current) newVolumes
         { state with Volumes = updatedVolumes }
+    /// Sets the managed identity on this container group.
+    [<CustomOperation "identity">]
+    member _.Identity(state:ContainerGroupConfig, identity:ContainerGroupIdentity) =
+        { state with Identity = Some identity }
+    /// Enables a system assigned managed identity to be set for this container group.
+    [<CustomOperation "system_assigned_identity">]
+    member _.SystemAssignedIdentity(state:ContainerGroupConfig) =
+        { state with Identity = Some SystemAssigned }
+    /// Sets the user assigned managed identity on this container group to a user assigned identity in the same resource group.
+    [<CustomOperation "user_assigned_identity">]
+    member _.UserAssignedIdentity(state:ContainerGroupConfig, userIdentity:ResourceName) =
+        { state with Identity = Some (UserAssigned [ ManagedIdentity.UserAssignedIdentity(userIdentity.Value, None, None) ]) }
     [<CustomOperation "add_tags">]
     member _.Tags(state:ContainerGroupConfig, pairs) =
         { state with

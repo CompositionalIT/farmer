@@ -4,13 +4,19 @@
 open Farmer
 open Farmer.Builders
 
+let containerGroupUser = userAssignedIdentity {
+    name "aciUser"
+}
+
 let template = arm {
     location Location.WestEurope
     add_resources [
+        containerGroupUser
         containerGroup {
             name "isaac-container-group"
             operating_system Linux
             restart_policy ContainerGroup.AlwaysRestart
+            user_assigned_identity containerGroupUser.Name
             add_instances [
                 containerInstance {
                     name "nginx"

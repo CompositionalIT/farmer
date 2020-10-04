@@ -2,6 +2,7 @@
 module Farmer.Arm.ContainerInstance
 
 open Farmer
+open Farmer.Arm.ManagedIdentity
 open Farmer.ContainerGroup
 open Farmer.CoreTypes
 open Newtonsoft.Json.Linq
@@ -30,6 +31,7 @@ type ContainerGroup =
         |} list
       OperatingSystem : OS
       RestartPolicy : RestartPolicy
+      Identity : ContainerGroupIdentity option
       IpAddress : ContainerGroupIpAddress
       NetworkProfile : ResourceName option
       Volumes : Map<string, Volume>
@@ -49,12 +51,29 @@ type ContainerGroup =
                 ArmExpression.resourceId(fileShares, fullShareName).Eval() |> ResourceName
             | _ ->
                 ()
+
+        match this.Identity with
+        | Some (UserAssigned identities) ->
+            yield! identities |> List.map (UserAssignedIdentity.resourceId >> ResourceName)
+        | _ -> ()
     ]
 
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
             {| containerGroups.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
+                   identity =
+                       match this.Identity with
+                       | None -> {| ``type`` = "None"; userAssignedIdentities = null |}
+                       | Some (SystemAssigned) -> {| ``type`` = "SystemAssigned"; userAssignedIdentities = null |}
+                       | Some (UserAssigned identities) ->
+                         // Identities are assigned as a dictionary with the user identity resource ID as the key
+                         // and an empty object as the value.
+                         let userAssigned = JObject()
+                         identities |> List.iter (fun identity ->
+                             userAssigned.Add (JProperty(UserAssignedIdentity.resourceId identity, JObject())))
+                         {| ``type`` = "UserAssigned"
+                            userAssignedIdentities = userAssigned |}
                    properties =
                        {| containers =
                            this.ContainerInstances

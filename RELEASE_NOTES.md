@@ -1,5 +1,9 @@
 Release Notes
 =============
+## 1.2.0-beta2
+* Managed Identity: Create user assigned manage identity resources.
+* Container Groups: Specify identity settings to support user or system assigned identity.
+
 ## 1.2.0-beta1
 * Bastion Hosts: Create bastion hosts for accessing resources on a virtual network.
 * Gateway: Add VPN Client configuration
