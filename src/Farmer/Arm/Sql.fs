@@ -42,7 +42,7 @@ module Servers =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| elasticPools.Create(this.Server + this.Name, this.Location, [ ResourceId.create this.Server ]) with
+                {| elasticPools.Create(this.Server/this.Name, this.Location, [ ResourceId.create this.Server ]) with
                     properties =
                      {| maxSizeBytes = this.MaxSizeBytes |> Option.toNullable
                         perDatabaseSettings =
@@ -61,7 +61,7 @@ module Servers =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| firewallRules.Create(this.Server + this.Name, this.Location, [ ResourceId.create this.Server ]) with
+                {| firewallRules.Create(this.Server/this.Name, this.Location, [ ResourceId.create this.Server ]) with
                     properties =
                      {| endIpAddress = string this.Start
                         startIpAddress = string this.End |}
@@ -83,7 +83,7 @@ module Servers =
                         | Pool poolName -> ResourceId.create poolName
                         | Standalone _ -> ()
                 ]
-                {| databases.Create(this.Server + this.Name, this.Location, dependsOn, tags = Map [ "displayName", this.Name.Value ]) with
+                {| databases.Create(this.Server/this.Name, this.Location, dependsOn, tags = Map [ "displayName", this.Name.Value ]) with
                     sku =
                         match this.Sku with
                         | Standalone sku -> box {| name = sku.Name; tier = sku.Edition |}
@@ -111,7 +111,7 @@ module Servers =
         type TransparentDataEncryption =
             { Server : ResourceName
               Database : ResourceName }
-            member this.Name = this.Server + this.Database + "current"
+            member this.Name = this.Server/this.Database/"current"
             interface IArmResource with
                 member this.ResourceName = this.Name
                 member this.JsonModel =

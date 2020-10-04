@@ -35,7 +35,7 @@ type CdnConfig =
             for endpoint in this.Endpoints do
                 { Name = endpoint.Name
                   Profile = this.Name
-                  DependsOn = endpoint.Dependencies
+                  Dependencies = endpoint.Dependencies
                   CompressedContentTypes = endpoint.CompressedContentTypes
                   QueryStringCachingBehaviour = endpoint.QueryStringCachingBehaviour
                   Http = endpoint.Http

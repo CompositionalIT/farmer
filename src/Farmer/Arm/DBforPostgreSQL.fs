@@ -30,7 +30,7 @@ module Servers =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {|  databases.Create(this.Server + this.Name, dependsOn = [ ResourceId.create this.Server ]) with
+                {|  databases.Create(this.Server/this.Name, dependsOn = [ ResourceId.create this.Server ]) with
                         properties = {|  charset = this.Charset; collation = this.Collation |}
                 |} :> _
 
@@ -43,7 +43,7 @@ module Servers =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| firewallRules.Create(this.Server + this.Name, this.Location, [ ResourceId.create this.Server ]) with
+                {| firewallRules.Create(this.Server/this.Name, this.Location, [ ResourceId.create this.Server ]) with
                     properties = {| startIpAddress = string this.Start; endIpAddress = string this.End; |}
                 |} :> _
 

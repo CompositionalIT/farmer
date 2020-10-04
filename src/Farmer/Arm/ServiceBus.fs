@@ -30,7 +30,7 @@ module Namespaces =
             interface IArmResource with
                 member this.ResourceName = this.Name
                 member this.JsonModel =
-                    {| subscriptions.Create(this.Namespace + this.Topic + this.Name, dependsOn = [ ResourceId.create this.Topic ]) with
+                    {| subscriptions.Create(this.Namespace/this.Topic/this.Name, dependsOn = [ ResourceId.create this.Topic ]) with
                         properties =
                          {| defaultMessageTimeToLive = tryGetIso this.DefaultMessageTimeToLive
                             requiresDuplicateDetection =
@@ -75,7 +75,7 @@ module Namespaces =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| queues.Create(this.Namespace + this.Name, dependsOn = [ ResourceId.create this.Namespace ]) with
+                {| queues.Create(this.Namespace/this.Name, dependsOn = [ ResourceId.create this.Namespace ]) with
                     properties =
                      {| lockDuration = tryGetIso this.LockDuration
                         requiresDuplicateDetection =
@@ -99,7 +99,7 @@ module Namespaces =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| topics.Create(this.Namespace + this.Name, dependsOn = [ ResourceId.create this.Namespace ]) with
+                {| topics.Create(this.Namespace/this.Name, dependsOn = [ ResourceId.create this.Namespace ]) with
                     properties =
                         {| defaultMessageTimeToLive = tryGetIso this.DefaultMessageTimeToLive
                            requiresDuplicateDetection =
@@ -114,7 +114,7 @@ type Namespace =
     { Name : ResourceName
       Location : Location
       Sku : Sku
-      DependsOn : ResourceId list
+      Dependencies : ResourceId list
       Tags: Map<string,string>  }
     member this.Capacity =
         match this.Sku with
@@ -126,7 +126,7 @@ type Namespace =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| namespaces.Create(this.Name, this.Location, this.DependsOn, this.Tags) with
+            {| namespaces.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
                 sku =
                      {| name = string this.Sku
                         tier = string this.Sku

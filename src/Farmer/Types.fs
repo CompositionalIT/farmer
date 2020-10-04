@@ -12,9 +12,10 @@ type ResourceName =
         | r when r = ResourceName.Empty -> ResourceName fallbackValue
         | r -> r
     member this.Map mapper = match this with ResourceName r -> ResourceName (mapper r)
-    static member (+) (a:ResourceName, b) = ResourceName(a.Value + "/" + b)
+
+    static member (+) (a:ResourceName, b:string) = ResourceName(a.Value + "/" + b)
     static member (+) (a:ResourceName, b:ResourceName) = a + b.Value
-    static member (/) (a:ResourceName, b) = ResourceName(a.Value + "/" + b)
+    static member (/) (a:ResourceName, b:string) = a + b
     static member (/) (a:ResourceName, b:ResourceName) = a + b.Value
 
 type Location =

@@ -47,7 +47,7 @@ module BlobServices =
         interface IArmResource with
             member this.ResourceName = this.Name.ResourceName
             member this.JsonModel =
-                {| containers.Create(this.StorageAccount + "default" + this.Name.ResourceName, dependsOn = [ ResourceId.create this.StorageAccount ]) with
+                {| containers.Create(this.StorageAccount/"default"/this.Name.ResourceName, dependsOn = [ ResourceId.create this.StorageAccount ]) with
                     properties =
                      {| publicAccess =
                          match this.Accessibility with
@@ -64,7 +64,7 @@ module FileShares =
         interface IArmResource with
             member this.ResourceName = this.Name.ResourceName
             member this.JsonModel =
-                {| fileShares.Create(this.StorageAccount + "default" + this.Name.ResourceName, dependsOn = [ ResourceId.create this.StorageAccount ]) with
+                {| fileShares.Create(this.StorageAccount/"default"/this.Name.ResourceName, dependsOn = [ ResourceId.create this.StorageAccount ]) with
                     properties = {| shareQuota = this.ShareQuota |> Option.defaultValue 5120<Gb> |}
                 |} :> _
 
@@ -75,7 +75,7 @@ module Queues =
         interface IArmResource with
             member this.ResourceName = this.Name.ResourceName
             member this.JsonModel =
-                queues.Create(this.StorageAccount + "default" + this.Name.ResourceName, dependsOn = [ ResourceId.create this.StorageAccount ]) :> _
+                queues.Create(this.StorageAccount/"default"/this.Name.ResourceName, dependsOn = [ ResourceId.create this.StorageAccount ]) :> _
 
 module ManagementPolicies =
     type ManagementPolicy =
@@ -87,7 +87,7 @@ module ManagementPolicies =
                DeleteSnapshotAfter : int<Days> option
                Filters : string list |} list
           StorageAccount : ResourceName }
-        member this.ResourceName = this.StorageAccount.Value + "/default" |> ResourceName
+        member this.ResourceName = this.StorageAccount/"default"
         interface IArmResource with
             member this.ResourceName = this.ResourceName
             member this.JsonModel =

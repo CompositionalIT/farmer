@@ -87,7 +87,7 @@ module Namespaces =
               Dependencies : ResourceId list }
             interface IArmResource with
                 member this.ResourceName = this.ConsumerGroupName
-                member this.JsonModel = consumerGroups.Create(this.EventHub + this.ConsumerGroupName, this.Location, this.Dependencies) :> _
+                member this.JsonModel = consumerGroups.Create(this.EventHub/this.ConsumerGroupName, this.Location, this.Dependencies) :> _
 
         type AuthorizationRule =
             { Name : ResourceName

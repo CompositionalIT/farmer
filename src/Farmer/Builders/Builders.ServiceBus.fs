@@ -158,7 +158,7 @@ type ServiceBusConfig =
             { Name = this.Name
               Location = location
               Sku = this.Sku
-              DependsOn = this.Dependencies
+              Dependencies = this.Dependencies
               Tags = this.Tags  }
 
             for queue in this.Queues do
