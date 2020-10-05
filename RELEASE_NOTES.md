@@ -1,5 +1,8 @@
 Release Notes
 =============
+## 1.1.1
+* SQL Azure: Fix a bug whereby firewall rule IP addresses were inverted.
+
 ## 1.1.0
 * Cognitive Services: Retrieve ARM expression to the Key of the Cognitive Services instance.
 * Web App / Functions: Allow CORS enable credentials (https://github.com/CompositionalIT/farmer/issues/265)
