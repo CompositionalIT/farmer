@@ -8,6 +8,7 @@ open System
 
 let serverFarms = ResourceType ("Microsoft.Web/serverfarms", "2018-02-01")
 let sites = ResourceType ("Microsoft.Web/sites", "2016-08-01")
+let config = ResourceType ("Microsoft.Web/sites/config", "2016-08-01")
 let sourceControls = ResourceType ("Microsoft.Web/sites/sourcecontrols", "2019-08-01")
 
 type ServerFarm =
@@ -120,7 +121,7 @@ type Site =
       ClientAffinityEnabled : bool option
       WebSocketsEnabled : bool option
       Cors : Cors option
-      Dependencies : ResourceName list
+      Dependencies : ResourceId list
       Kind : string
       Identity : FeatureFlag option
       LinuxFxVersion : string option
@@ -209,7 +210,7 @@ module Sites =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| sourceControls.Create(this.Name, this.Location, [ this.Website ]) with
+                {| sourceControls.Create(this.Name, this.Location, [ ResourceId.create this.Website ]) with
                     properties =
                         {| repoUrl = this.Repository.ToString()
                            branch = this.Branch

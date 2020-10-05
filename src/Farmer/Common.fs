@@ -613,7 +613,7 @@ module ContainerGroup =
         /// Mounts an empty directory on the container group.
         | EmptyDirectory
         /// Mounts an Azure File Share in the same resource group, performing a key lookup.
-        | AzureFileShare of ShareName:string * StorageAccountName:string
+        | AzureFileShare of ShareName:ResourceName * StorageAccountName:Storage.StorageAccountName
         /// A git repo volume, clonable by public HTTPS access.
         | GitRepo of Repository:Uri * Directory:string option * Revision:string option
         /// Mounts a volume containing secret files.

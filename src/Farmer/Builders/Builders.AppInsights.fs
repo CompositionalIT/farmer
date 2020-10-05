@@ -6,14 +6,14 @@ open Farmer.CoreTypes
 open Farmer.Arm.Insights
 
 type AppInsights =
-    static member getInstrumentationKey (name, ?resourceGroup) =
-        let resourceId = ArmExpression.resourceId(components, name, ?group = resourceGroup)
+    static member getInstrumentationKey (resourceId:ResourceId) =
+        let resourceId = resourceId.WithType components
         ArmExpression
             .reference(components, resourceId)
             .Map(fun r -> r + ".InstrumentationKey")
-            .WithOwner(name)
-    static member getInstrumentationKey (name, ?resourceGroup) =
-        AppInsights.getInstrumentationKey(ResourceName name, ?resourceGroup = resourceGroup)
+            .WithOwner(resourceId)
+    static member getInstrumentationKey (name:ResourceName, ?resourceGroup) =
+        AppInsights.getInstrumentationKey(ResourceId.create (name, ?group = resourceGroup))
 
 type AppInsightsConfig =
     { Name : ResourceName

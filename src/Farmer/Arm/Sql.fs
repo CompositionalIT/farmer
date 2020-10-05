@@ -27,7 +27,7 @@ type Server =
             {| servers.Create(this.ServerName,this.Location, tags = (this.Tags |> Map.add "displayName" this.ServerName.Value)) with
                 properties =
                  {| administratorLogin = this.Credentials.Username
-                    administratorLoginPassword = this.Credentials.Password.AsArmRef.Eval()
+                    administratorLoginPassword = this.Credentials.Password.ArmExpression.Eval()
                     version = "12.0" |}
             |} :> _
 
@@ -42,7 +42,7 @@ module Servers =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| elasticPools.Create(this.Server + this.Name, this.Location, [ this.Server ]) with
+                {| elasticPools.Create(this.Server/this.Name, this.Location, [ ResourceId.create this.Server ]) with
                     properties =
                      {| maxSizeBytes = this.MaxSizeBytes |> Option.toNullable
                         perDatabaseSettings =
@@ -61,7 +61,7 @@ module Servers =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| firewallRules.Create(this.Server + this.Name, this.Location, [ this.Server ]) with
+                {| firewallRules.Create(this.Server/this.Name, this.Location, [ ResourceId.create this.Server ]) with
                     properties =
                      {| startIpAddress = string this.Start
                         endIpAddress = string this.End |}
@@ -78,12 +78,12 @@ module Servers =
             member this.ResourceName = this.Name
             member this.JsonModel =
                 let dependsOn = [
-                        this.Server
+                        ResourceId.create this.Server
                         match this.Sku with
+                        | Pool poolName -> ResourceId.create poolName
                         | Standalone _ -> ()
-                        | Pool poolName -> poolName
                 ]
-                {| databases.Create(this.Server + this.Name, this.Location, dependsOn, tags = Map [ "displayName", this.Name.Value ]) with
+                {| databases.Create(this.Server/this.Name, this.Location, dependsOn, tags = Map [ "displayName", this.Name.Value ]) with
                     sku =
                         match this.Sku with
                         | Standalone sku -> box {| name = sku.Name; tier = sku.Edition |}
@@ -103,7 +103,7 @@ module Servers =
                             | Standalone _ ->
                                 null
                             | Pool pool ->
-                                ArmExpression.resourceId(elasticPools, this.Server, pool).Eval()
+                                ResourceId.create(elasticPools, this.Server, pool).Eval()
                         |}
                 |} :> _
 
@@ -111,11 +111,11 @@ module Servers =
         type TransparentDataEncryption =
             { Server : ResourceName
               Database : ResourceName }
-            member this.Name = ResourceName (sprintf "%s/%s/current" this.Server.Value this.Database.Value)
+            member this.Name = this.Server/this.Database/"current"
             interface IArmResource with
                 member this.ResourceName = this.Name
                 member this.JsonModel =
-                   {| transparentDataEncryption.Create(this.Name, dependsOn = [ this.Database ]) with
+                   {| transparentDataEncryption.Create(this.Name, dependsOn = [ ResourceId.create this.Database ]) with
                         comments = "Transparent Data Encryption"
                         properties = {| status = string Enabled |}
                    |} :> _

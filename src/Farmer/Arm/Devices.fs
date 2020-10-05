@@ -95,7 +95,7 @@ type ProvisioningServices =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| provisioningServices.Create(this.Name, this.Location, [ this.IotHubName ], this.Tags) with
+            {| provisioningServices.Create(this.Name, this.Location, [ ResourceId.create this.IotHubName ], this.Tags) with
                    sku =
                      {| name = "S1"
                         capacity = 1 |}

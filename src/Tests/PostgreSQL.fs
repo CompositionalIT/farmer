@@ -125,7 +125,7 @@ let tests = testList "PostgreSQL Database Service" [
             apiVersion = "2017-12-01"
             ``type`` = "Microsoft.DBforPostgreSQL/servers/databases"
             properties = {| collation = "de_DE"; charset = "ASCII" |}
-            dependsOn = ["testdb"]
+            dependsOn = [ "[string('testdb')]" ]
         }
 
         Expect.equal actual expectedDbRes "database resource"
@@ -148,7 +148,7 @@ let tests = testList "PostgreSQL Database Service" [
             { name = "testdb/allow-azure-services"
               ``type`` = "Microsoft.DBforPostgreSQL/servers/firewallrules"
               apiVersion = "2017-12-01"
-              dependsOn = ["testdb"]
+              dependsOn = [ "[string('testdb')]" ]
               location = "northeurope"
               properties = {| startIpAddress = "0.0.0.0"; endIpAddress = "0.0.0.0" |} }
         Expect.equal actual expectedFwRuleRes "Firewall is incorrect"
