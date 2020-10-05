@@ -159,16 +159,28 @@ let tests = testList "Template" [
         Expect.equal b.Dependencies [ ResourceId.create (ResourceName "aaa"); ResourceId.create (ResourceName "bbb") ] "Dependencies should have been set"
     }
 
-    test "Generates ARM Id with name only" {
-        let rid = ResourceId.create (Farmer.Arm.Network.connections, ResourceName "test")
+    test "Generates untyped Resource Id" {
+        let rid = ResourceId.create (ResourceName "test")
+        let id = rid.Eval()
+        Expect.equal id "[string('test')]" "resourceId template function should match"
+    }
+
+    test "Generates typed Resource Id" {
+        let rid = ResourceId.create (Arm.Network.connections, ResourceName "test")
         let id = rid.Eval()
         Expect.equal id "[resourceId('Microsoft.Network/connections', 'test')]" "resourceId template function should match"
     }
 
-    test "Generates ARM Id with name and group" {
-        let rid = ResourceId.create (Farmer.Arm.Network.connections, ResourceName "test", "myGroup")
+    test "Generates typed Resource Id with group" {
+        let rid = ResourceId.create (Arm.Network.connections, ResourceName "test", "myGroup")
         let id = rid.Eval()
         Expect.equal id "[resourceId('myGroup', 'Microsoft.Network/connections', 'test')]" "resourceId template function should match"
+    }
+
+    test "Generates typed Resource Id with segments" {
+        let rid = ResourceId.create (Arm.Network.connections, ResourceName "test", ResourceName "segment1", ResourceName "segment2")
+        let id = rid.Eval()
+        Expect.equal id "[resourceId('Microsoft.Network/connections', 'test', 'segment1', 'segment2')]" "resourceId template function should match"
     }
 
     test "Fails if ARM expression is already quoted" {
