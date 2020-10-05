@@ -23,7 +23,7 @@ type ContainerGroup =
         {| Name : ResourceName
            Image : string
            Ports : uint16 Set
-           Cpu : int
+           Cpu : float
            Memory : float<Gb>
            EnvironmentVariables: Map<string, EnvVarValue>
            VolumeMounts : Map<string,string>

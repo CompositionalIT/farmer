@@ -33,7 +33,7 @@ type ContainerInstanceConfig =
       /// List of ports the container instance listens on
       Ports : Map<uint16, PortAccess>
       /// Max number of CPU cores the container instance may use
-      Cpu : int
+      Cpu : float
       /// Max gigabytes of memory the container instance may use
       Memory : float<Gb>
       /// Environment variables for the container
@@ -151,7 +151,7 @@ type ContainerInstanceBuilder() =
         { Name = ResourceName.Empty
           Image = ""
           Ports = Map.empty
-          Cpu = 1
+          Cpu = 1.0
           Memory = 1.5<Gb>
           EnvironmentVariables = Map.empty
           VolumeMounts = Map.empty }
@@ -178,7 +178,8 @@ type ContainerInstanceBuilder() =
     member __.Ports (state:ContainerInstanceConfig, accessibility, ports) = ContainerInstanceBuilder.AddPorts(state, accessibility, ports)
     /// Sets the maximum CPU cores the container instance may use
     [<CustomOperationAttribute "cpu_cores">]
-    member __.CpuCount (state:ContainerInstanceConfig, cpuCount) = { state with Cpu = cpuCount }
+    member __.CpuCount (state:ContainerInstanceConfig, cpuCount:float) = { state with Cpu = cpuCount }
+    member __.CpuCount (state:ContainerInstanceConfig, cpuCount:int) = { state with Cpu = float(cpuCount) }
     /// Sets the maximum gigabytes of memory the container instance may use
     [<CustomOperationAttribute "memory">]
     member __.Memory (state:ContainerInstanceConfig, memory) = { state with Memory = memory }
