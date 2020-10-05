@@ -98,12 +98,26 @@ let tests = testList "SQL Server" [
                         sku (GeneralPurpose Gen5_12)
                         hybrid_benefit
                         db_size 2048<Mb>
-                     } ]
+                    }
+                ]
             }
 
         let model : Models.Database = sql |> getResourceAtIndex client.SerializationSettings 1
         Expect.equal model.Sku.Name "GP_Gen5_12" "Incorrect SKU"
         Expect.equal model.MaxSizeBytes (Nullable 2147483648L) "Incorrect Size"
         Expect.equal model.LicenseType "BasePrice" "Incorrect SKU"
+    }
+
+    test "SQL Firewall is correctly configured" {
+        let sql =
+            sqlServer {
+                name "server"
+                admin_username "isaac"
+                add_firewall_rule "Rule" "0.0.0.0" "255.255.255.255"
+                add_databases [ sqlDb { name "db" } ]
+            }
+        let model : Models.FirewallRule = sql |> getResourceAtIndex client.SerializationSettings 2
+        Expect.equal model.StartIpAddress "0.0.0.0" "Incorrect start IP"
+        Expect.equal model.EndIpAddress "255.255.255.255" "Incorrect end IP"
     }
 ]
