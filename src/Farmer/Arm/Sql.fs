@@ -63,8 +63,8 @@ module Servers =
             member this.JsonModel =
                 {| firewallRules.Create(this.Server + this.Name, this.Location, [ ResourceId.create this.Server ]) with
                     properties =
-                     {| endIpAddress = string this.Start
-                        startIpAddress = string this.End |}
+                     {| startIpAddress = string this.Start
+                        endIpAddress = string this.End |}
                 |} :> _
 
     type Database =

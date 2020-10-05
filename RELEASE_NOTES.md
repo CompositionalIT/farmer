@@ -11,6 +11,9 @@ Release Notes
 * WebApp: Easy Key Vault integration
 * Support for implicitly adding dependencies based on usage e.g. add settings, connection strings etc.
 
+## 1.1.1
+* SQL Azure: Fix a bug whereby firewall rule IP addresses were inverted.
+
 ## 1.1.0
 * AKS: Basic AKS support
 * App Insights:
