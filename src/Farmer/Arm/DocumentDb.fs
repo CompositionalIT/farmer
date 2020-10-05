@@ -30,7 +30,7 @@ module DatabaseAccounts =
             interface IArmResource with
                 member this.ResourceName = this.Name
                 member this.JsonModel =
-                    {| containers.Create(this.Account + this.Database + this.Name, dependsOn = [ this.Database ])
+                    {| containers.Create(this.Account/this.Database/this.Name, dependsOn = [ ResourceId.create this.Database ])
                         with
                            properties =
                                {| resource =
@@ -70,7 +70,7 @@ module DatabaseAccounts =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| sqlDatabases.Create(this.Account + this.Name, dependsOn = [ this.Account ]) with
+                {| sqlDatabases.Create(this.Account/this.Name, dependsOn = [ ResourceId.create this.Account ]) with
                        properties =
                            {| resource = {| id = this.Name.Value |}
                               options = {| throughput = string this.Throughput |} |}

@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <Compile Include="Helpers.fs" />
+    <Compile Include="AppInsights.fs" />
     <Compile Include="Common.fs" />
     <Compile Include="Bastion.fs" />
     <Compile Include="Cdn.fs" />
@@ -16,6 +17,7 @@
     <Compile Include="CognitiveServices.fs" />
     <Compile Include="Dns.fs" />
     <Compile Include="ExpressRoute.fs" />
+    <Compile Include="EventHub.fs" />
     <Compile Include="NetworkSecurityGroup.fs" />
     <Compile Include="Storage.fs" />
     <Compile Include="ServiceBus.fs" />

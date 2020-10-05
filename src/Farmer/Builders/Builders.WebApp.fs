@@ -62,8 +62,9 @@ module AppSettings =
     let RunFromPackage = "WEBSITE_RUN_FROM_PACKAGE", "1"
 
 let publishingPassword (name:ResourceName) =
-    let expr = sprintf "list(resourceId('Microsoft.Web/sites/config', '%s', 'publishingcredentials'), '2014-06-01').properties.publishingPassword" name.Value
-    ArmExpression.create(expr, name)
+    let resourceId = ResourceId.create(config, name, ResourceName "publishingCredentials")
+    let expr = sprintf "list(%s, '2014-06-01').properties.publishingPassword" resourceId.ArmExpression.Value
+    ArmExpression.create(expr, resourceId)
 
 type SecretStore =
     | AppService
@@ -80,7 +81,7 @@ type WebAppConfig =
       OperatingSystem : OS
       Settings : Map<string, Setting>
       ConnectionStrings : Map<string, (Setting * ConnectionStringKind)>
-      Dependencies : ResourceName list
+      Dependencies : ResourceId list
       Tags : Map<string,string>
 
       Cors : Cors option
@@ -104,11 +105,11 @@ type WebAppConfig =
       SecretStore : SecretStore
     }
     /// Gets the ARM expression path to the publishing password of this web app.
-    member this.PublishingPassword = publishingPassword this.Name
+    member this.PublishingPassword = publishingPassword (this.Name)
     /// Gets the Service Plan name for this web app.
-    member this.ServicePlanName = this.ServicePlan.CreateResourceName this
+    member this.ServicePlanName = this.ServicePlan.CreateResourceId(this).Name
     /// Gets the App Insights name for this web app, if it exists.
-    member this.AppInsightsName = this.AppInsights |> Option.map (fun ai -> ai.CreateResourceName this)
+    member this.AppInsightsName = this.AppInsights |> Option.map (fun ai -> ai.CreateResourceId(this).Name)
     /// Gets the system-created managed principal for the web app. It must have been enabled using enable_managed_identity.
     member this.SystemIdentity =
         let expr =
@@ -127,7 +128,7 @@ type WebAppConfig =
                 | KeyVault (DeployableResource this vaultName) ->
                     let store = keyVault {
                         name vaultName
-                        add_access_policy (AccessPolicy.create (this.SystemIdentity, KeyVault.Secret.All))
+                        add_access_policy (AccessPolicy.create (this.SystemIdentity, [ KeyVault.Secret.Get ]))
                         add_secrets [
                             for setting in this.Settings do
                                 match setting.Value with
@@ -140,7 +141,7 @@ type WebAppConfig =
                         ]
                     }
                     Some store, []
-                | KeyVault (External (Managed vaultName | Unmanaged vaultName)) ->
+                | KeyVault (ExternalResource vaultName) ->
                     let secrets = [
                         for setting in this.Settings do
                             let secret =
@@ -153,7 +154,7 @@ type WebAppConfig =
                                     SecretConfig.create (setting.Key, expr) |> Some
                             match secret with
                             | Some secret ->
-                                { Secret.Name = sprintf "%s/%s" vaultName.Value secret.Key |> ResourceName
+                                { Secret.Name = vaultName.Name/secret.Key
                                   Value = secret.Value
                                   ContentType = secret.ContentType
                                   Enabled = secret.Enabled
@@ -191,7 +192,7 @@ type WebAppConfig =
 
                     match this.OperatingSystem, this.AppInsights with
                     | Windows, Some resource ->
-                        "APPINSIGHTS_INSTRUMENTATIONKEY", AppInsights.getInstrumentationKey(resource.CreateResourceName this).Eval()
+                        "APPINSIGHTS_INSTRUMENTATIONKEY", AppInsights.getInstrumentationKey(resource.CreateResourceId this).Eval()
                         "APPINSIGHTS_PROFILERFEATURE_VERSION", "1.0.0"
                         "APPINSIGHTS_SNAPSHOTFEATURE_VERSION", "1.0.0"
                         "ApplicationInsightsAgent_EXTENSION_VERSION", "~2"
@@ -223,14 +224,14 @@ type WebAppConfig =
                      | AppService ->
                          this.Settings
                      | KeyVault r ->
-                        let name = r.CreateResourceName this
+                        let name = r.CreateResourceId this
                         [ for setting in this.Settings do
                             match setting.Value with
                             | LiteralSetting _ ->
                                 setting.Key, setting.Value
                             | ParameterSetting _
                             | ExpressionSetting _ ->
-                                setting.Key, LiteralSetting (sprintf "@Microsoft.KeyVault(SecretUri=https://%s.vault.azure.net/secrets/%s)" name.Value setting.Key)
+                                setting.Key, LiteralSetting (sprintf "@Microsoft.KeyVault(SecretUri=https://%s.vault.azure.net/secrets/%s)" name.Name.Value setting.Key)
                         ] |> Map.ofList
                     ) |> Map.toList)
                 |> Map
@@ -241,7 +242,7 @@ type WebAppConfig =
               ] |> String.concat ","
               Dependencies = [
                 match this.ServicePlan with
-                | DependableResource this resourceName -> resourceName
+                | DependableResource this resourceName -> ResourceId.create resourceName
                 | _ -> ()
 
                 yield! this.Dependencies
@@ -261,7 +262,7 @@ type WebAppConfig =
                     ()
 
                 match this.AppInsights with
-                | Some (DependableResource this resourceName) -> resourceName
+                | Some (DependableResource this resourceName) -> ResourceId.create resourceName
                 | Some _ | None -> ()
               ]
               AlwaysOn = this.AlwaysOn
@@ -430,7 +431,7 @@ type WebAppBuilder() =
     /// Instead of creating a new service plan instance, configure this webapp to point to another unmanaged service plan instance.
     /// A dependency will automatically be set for this instance.
     [<CustomOperation "link_to_unmanaged_service_plan">]
-    member __.LinkToUnmanagedServicePlan(state:WebAppConfig, name) = { state with ServicePlan = External (Unmanaged (ResourceName name)) }
+    member __.LinkToUnmanagedServicePlan(state:WebAppConfig, resourceId) = { state with ServicePlan = External (Unmanaged resourceId) }
     [<CustomOperation "sku">]
     member __.Sku(state:WebAppConfig, sku) = { state with Sku = sku }
     /// Sets the size of the service plan worker.
@@ -456,7 +457,7 @@ type WebAppBuilder() =
     /// Instead of creating a new AI instance, configure this webapp to point to an unmanaged AI instance.
     /// A dependency will not be set for this instance.
     [<CustomOperation "link_to_unmanaged_app_insights">]
-    member __.LinkUnmanagedAppInsights(state:WebAppConfig, name) = { state with AppInsights = Some(External (Unmanaged (ResourceName name))) }
+    member __.LinkUnmanagedAppInsights(state:WebAppConfig, resourceId) = { state with AppInsights = Some(External(Unmanaged resourceId)) }
     /// Sets the web app to use "run from package" deployment capabilities.
     [<CustomOperation "run_from_package">]
     member __.RunFromPackage(state:WebAppConfig) = { state with RunFromPackage = true }
@@ -490,14 +491,16 @@ type WebAppBuilder() =
     member this.AddConnectionStrings(state:WebAppConfig, connectionStrings) =
         connectionStrings
         |> List.fold (fun (state:WebAppConfig) (key:string) -> this.AddConnectionString(state, key)) state
+    member private _.AddDependency (state:WebAppConfig, resourceName:ResourceName) = { state with Dependencies = ResourceId.create resourceName :: state.Dependencies }
+    member private _.AddDependencies (state:WebAppConfig, resourceNames:ResourceName list) = { state with Dependencies = (resourceNames |> List.map ResourceId.create) @ state.Dependencies }
     /// Sets a dependency for the web app.
     [<CustomOperation "depends_on">]
-    member __.DependsOn(state:WebAppConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
-    member __.DependsOn(state:WebAppConfig, resources) = { state with Dependencies = List.concat [ resources; state.Dependencies ] }
-    member __.DependsOn(state:WebAppConfig, builder:IBuilder) = { state with Dependencies = builder.DependencyName :: state.Dependencies }
-    member __.DependsOn(state:WebAppConfig, builders:IBuilder list) = { state with Dependencies = List.concat [ builders |> List.map (fun x -> x.DependencyName); state.Dependencies ] }
-    member __.DependsOn(state:WebAppConfig, resource:IArmResource) = { state with Dependencies = resource.ResourceName :: state.Dependencies }
-    member __.DependsOn(state:WebAppConfig, resources:IArmResource list) = { state with Dependencies = List.concat [ resources |> List.map (fun x -> x.ResourceName); state.Dependencies ] }
+    member this.DependsOn(state:WebAppConfig, resourceName) = this.AddDependency(state, resourceName)
+    member this.DependsOn(state:WebAppConfig, resources) = this.AddDependencies(state, resources)
+    member this.DependsOn(state:WebAppConfig, builder:IBuilder) = this.AddDependency(state, builder.DependencyName)
+    member this.DependsOn(state:WebAppConfig, builders:IBuilder list) = this.AddDependencies(state, builders |> List.map (fun x -> x.DependencyName))
+    member this.DependsOn(state:WebAppConfig, resource:IArmResource) = this.AddDependency(state, resource.ResourceName)
+    member this.DependsOn(state:WebAppConfig, resources:IArmResource list) = this.AddDependencies(state, resources |> List.map (fun x -> x.ResourceName))
 
     /// Sets "Always On" flag
     [<CustomOperation "always_on">]
