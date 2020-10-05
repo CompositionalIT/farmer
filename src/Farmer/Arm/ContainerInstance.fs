@@ -94,7 +94,7 @@ type ContainerGroup =
                               this.ImageRegistryCredentials |> List.map (fun cred ->
                                   {| server = cred.Server
                                      username = cred.Username
-                                     password = cred.Password.AsArmRef.Eval() |})
+                                     password = cred.Password.ArmExpression.Eval() |})
                           ipAddress =
                             {| ``type`` =
                                 match this.IpAddress.Type with
