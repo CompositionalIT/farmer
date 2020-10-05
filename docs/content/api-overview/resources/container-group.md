@@ -26,6 +26,7 @@ The Container Group builder is used to create Azure Container Group instances.
 | containerGroup | public_dns | Sets the DNS host label when using a public IP. |
 | containerGroup | private_ip | Indicates the container should use a system-assigned private IP address for use in a virtual network. |
 | containerGroup | network_profile | Name of a network profile resource for the subnet in a virtual network where the container group will attach. |
+| containerGroup | add_registry_credentials | Adds a container image registry credential with a secure parameter for the password. |
 | containerGroup | add_tcp_port | Adds a TCP port to be externally accessible. |
 | containerGroup | add_udp_port | Adds a UDP port to be externally accessible. |
 | containerGroup | add_volumes | Adds volumes to a container group so they are accessible to containers. |
@@ -57,6 +58,9 @@ let group = containerGroup {
     restart_policy AlwaysRestart
     add_udp_port 123us
     add_instances [ nginx ]
+    add_registry_credentials [
+        registry "mygregistry.azurecr.io" "registryuser"
+    ]
     add_volumes [
         volume_mount.secret_string "secret-files" "secret1" "abcdefg"
         volume_mount.git_repo "source-code" (Uri "https://github.com/CompositionalIT/farmer")

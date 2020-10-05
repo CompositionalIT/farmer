@@ -1,5 +1,9 @@
 Release Notes
 =============
+## 1.2.0-beta2
+* Container Groups: Support for image registry credentials for private registries.
+* Container Groups: Support for partial CPU cores.
+
 ## 1.2.0-beta1
 * Bastion Hosts: Create bastion hosts for accessing resources on a virtual network.
 * Gateway: Add VPN Client configuration
