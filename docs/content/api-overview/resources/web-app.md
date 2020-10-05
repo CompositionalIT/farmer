@@ -14,14 +14,15 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 * Application Insights (`Microsoft.Insights/components`)
 
 #### Web App Builder Keywords
-
 | Applies To | Keyword | Purpose |
 |-|-|-|
 | Web App | name | Sets the name of the web app. |
-| Web App | link_to_service_plan | Instructs Farmer to link this webapp to an existing service plan rather than creating a new one. |
+| Web App | link_to_service_plan | Instructs Farmer to link this webapp to a Farmer service plan configuration defined elsewhere in your application, rather than creating a new one. |
+| Web App | link_to_unmanaged_service_plan | Instructs Farmer to link this webapp to an existing service plan that is externally managed, rather than creating a new one. |
 | Web App | app_insights_auto_name | Sets the name of the automatically-created app insights instance. |
 | Web App | app_insights_off | Removes any automatic app insights creation, configuration and settings for this webapp. |
-| Web App | link_to_app_insights | Instead of creating a new AI instance, configure this webapp to point to another AI instance that you are managing yourself. |
+| Web App | link_to_app_insights | Instructs Farmer to link this webapp to a Farmer App Insights configuration defined elsewhere in your application, rather than creating a new one. |
+| Web App | link_to_unmanaged_app_insights | Instructs Farmer to link this webapp to an existing app insights instance that is externally managed, rather than creating a new one. |
 | Web App | run_from_package | Sets the web app to use "run from package" deployment capabilities. |
 | Web App | website_node_default_version | Sets the node version of the web app. |
 | Web App | setting | Sets an app setting of the web app in the form "key" "value". |

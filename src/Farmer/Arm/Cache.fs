@@ -10,9 +10,7 @@ let redis = ResourceType ("Microsoft.Cache/Redis", "2018-03-01")
 type Redis =
     { Name : ResourceName
       Location : Location
-      Sku :
-        {| Sku : Sku
-           Capacity : int |}
+      Sku : {| Sku : Sku; Capacity : int |}
       RedisConfiguration : Map<string, string>
       NonSslEnabled : bool option
       ShardCount : int option

@@ -42,17 +42,16 @@ type ContainerGroup =
       Tags: Map<string,string>  }
     member this.NetworkProfilePath =
         this.NetworkProfile
-        |> Option.map (fun networkProfile -> ArmExpression.resourceId(networkProfiles, networkProfile).Eval())
+        |> Option.map (fun networkProfile -> ResourceId.create(networkProfiles, networkProfile))
     member private this.Dependencies = [
         match this.NetworkProfilePath with
-        | Some path -> ResourceName path
+        | Some path -> path
         | None -> ()
 
         for _, volume in this.Volumes |> Map.toSeq do
             match volume with
             | Volume.AzureFileShare (shareName, storageAccountName) ->
-                let fullShareName = [ storageAccountName; "default"; shareName ] |> Seq.map ResourceName |> Array.ofSeq
-                ArmExpression.resourceId(fileShares, fullShareName).Eval() |> ResourceName
+                ResourceId.create(fileShares, storageAccountName.ResourceName, ResourceName "default", shareName)
             | _ ->
                 ()
     ]
@@ -113,7 +112,7 @@ type ContainerGroup =
                             |}
                           networkProfile =
                             this.NetworkProfilePath
-                            |> Option.map(fun path -> box {| id = path |})
+                            |> Option.map(fun path -> box {| id = path.Eval() |})
                             |> Option.toObj
                           volumes = [
                             for (key, value) in Map.toSeq this.Volumes do
@@ -121,9 +120,9 @@ type ContainerGroup =
                                 |  volumeName, Volume.AzureFileShare (shareName, accountName) ->
                                     {| name = volumeName
                                        azureFile =
-                                           {| shareName = shareName
-                                              storageAccountName = accountName
-                                              storageAccountKey = sprintf "[listKeys('Microsoft.Storage/storageAccounts/%s', '2018-07-01').keys[0].value]" accountName |}
+                                           {| shareName = shareName.Value
+                                              storageAccountName = accountName.ResourceName.Value
+                                              storageAccountKey = sprintf "[listKeys('Microsoft.Storage/storageAccounts/%s', '2018-07-01').keys[0].value]" accountName.ResourceName.Value |}
                                        emptyDir = null
                                        gitRepo = Unchecked.defaultof<_>
                                        secret = Unchecked.defaultof<_> |}

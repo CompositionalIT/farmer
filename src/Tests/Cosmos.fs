@@ -8,6 +8,7 @@ open Microsoft.Azure.Management.Storage
 open Microsoft.Azure.Management.Storage.Models
 open Microsoft.Rest
 open System
+open Farmer.CoreTypes
 
 let tests = testList "Cosmos" [
     test "Cosmos container should ignore duplicate unique keys" {
@@ -43,10 +44,10 @@ let tests = testList "Cosmos" [
         |> ignore
     }
     test "Creates connection string and keys with resource groups" {
-        let conn = CosmosDb.getConnectionString("db", PrimaryConnectionString, "group").Eval()
-        let key = CosmosDb.getKey("db", PrimaryKey, ReadWrite, "group").Eval()
+        let conn = CosmosDb.getConnectionString(ResourceId.create("db", "group"), PrimaryConnectionString).Eval()
+        let key = CosmosDb.getKey(ResourceId.create("db", "group"), PrimaryKey, ReadWrite).Eval()
 
-        Expect.equal "[listKeys(resourceId('group', 'Microsoft.DocumentDb/databaseAccounts', 'db'), providers('Microsoft.DocumentDb','databaseAccounts').apiVersions[0]).primaryMasterKey]" key "Primary Key is incorrect"
-        Expect.equal "[listConnectionStrings(resourceId('group', 'Microsoft.DocumentDb/databaseAccounts', 'db'), providers('Microsoft.DocumentDb','databaseAccounts').apiVersions[0]).connectionStrings[0].connectionString]" conn "Primary Connection String is incorrect"
+        Expect.equal key "[listKeys(resourceId('group', 'Microsoft.DocumentDb/databaseAccounts', 'db'), providers('Microsoft.DocumentDb','databaseAccounts').apiVersions[0]).primaryMasterKey]" "Primary Key is incorrect"
+        Expect.equal conn "[listConnectionStrings(resourceId('group', 'Microsoft.DocumentDb/databaseAccounts', 'db'), providers('Microsoft.DocumentDb','databaseAccounts').apiVersions[0]).connectionStrings[0].connectionString]" "Primary Connection String is incorrect"
     }
 ]

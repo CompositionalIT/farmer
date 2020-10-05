@@ -38,9 +38,9 @@ type Topic =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| systemTopics.Create(this.Name, this.Location, [ this.Source ], this.Tags) with
+            {| systemTopics.Create(this.Name, this.Location, [ ResourceId.create this.Source ], this.Tags) with
                  properties =
-                    {| source = ArmExpression.resourceId(this.TopicType.ResourceType, this.Source).Eval()
+                    {| source = ResourceId.create(this.TopicType.ResourceType, this.Source).Eval()
                        topicType = this.TopicType.Value |}
              |} :> _
 
@@ -53,7 +53,7 @@ type Subscription =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| eventSubscriptions.Create(this.Topic + this.Name, dependsOn = [ this.Topic; this.Destination ]) with
+            {| eventSubscriptions.Create(this.Topic/this.Name, dependsOn = [ ResourceId.create this.Topic; ResourceId.create this.Destination ]) with
                  properties =
                    {| destination =
                           match this.DestinationEndpoint with
@@ -63,12 +63,12 @@ type Subscription =
                             |} |> box
                           | EventHub hubName ->
                             {| endpointType = "EventHub"
-                               properties = {| resourceId = ArmExpression.resourceId(eventHubs, this.Destination, hubName).Eval() |}
+                               properties = {| resourceId = ResourceId.create(eventHubs, this.Destination, hubName).Eval() |}
                             |} :> _
                           | StorageQueue queueName ->
                             {| endpointType = "StorageQueue"
                                properties =
-                                {| resourceId = ArmExpression.resourceId(Storage.storageAccounts, this.Destination).Eval()
+                                {| resourceId = ResourceId.create(Storage.storageAccounts, this.Destination).Eval()
                                    queueName = queueName |}
                             |} :> _
                       filter = {| includedEventTypes = [ for event in this.Events do event.Value ] |}

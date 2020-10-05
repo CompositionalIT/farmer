@@ -22,7 +22,7 @@ let tests = testList "Web App Tests" [
         let resources = webApp { name "test" } |> getResources
         let wa = resources |> getResource<Web.Site> |> List.head
 
-        Expect.containsAll wa.Dependencies [ ResourceName "test-ai"; ResourceName "test-farm" ] "Missing dependencies"
+        Expect.containsAll wa.Dependencies [ ResourceId.create "test-ai"; ResourceId.create "test-farm" ] "Missing dependencies"
         Expect.hasLength (resources |> getResource<Insights.Components>) 1 "Should be one AI component"
         Expect.hasLength (resources |> getResource<Web.ServerFarm>) 1 "Should be one server farm"
     }
@@ -30,7 +30,7 @@ let tests = testList "Web App Tests" [
         let resources = webApp { name "test"; service_plan_name "supersp"; app_insights_name "superai" } |> getResources
         let wa = resources |> getResource<Web.Site> |> List.head
 
-        Expect.containsAll wa.Dependencies [ ResourceName "supersp"; ResourceName "superai" ] "Missing dependencies"
+        Expect.containsAll wa.Dependencies [ ResourceId.create "supersp"; ResourceId.create "superai" ] "Missing dependencies"
         Expect.hasLength (resources |> getResource<Insights.Components>) 1 "Should be one AI component"
         Expect.hasLength (resources |> getResource<Web.ServerFarm>) 1 "Should be one server farm"
     }
@@ -39,12 +39,12 @@ let tests = testList "Web App Tests" [
         let ai = appInsights { name "ai" }
         let resources = webApp { name "test"; link_to_app_insights ai; link_to_service_plan sp } |> getResources
         let wa = resources |> getResource<Web.Site> |> List.head
-        Expect.containsAll wa.Dependencies [ ResourceName "plan"; ResourceName "ai" ] "Missing dependencies"
+        Expect.containsAll wa.Dependencies [ ResourceId.create "plan"; ResourceId.create "ai" ] "Missing dependencies"
         Expect.isEmpty (resources |> getResource<Insights.Components>) "Should be no AI component"
         Expect.isEmpty (resources |> getResource<Web.ServerFarm>) "Should be no server farm"
     }
     test "Web App does not create dependencies for unmanaged linked resources" {
-        let resources = webApp { name "test"; link_to_unmanaged_app_insights "test"; link_to_unmanaged_service_plan "test2" } |> getResources
+        let resources = webApp { name "test"; link_to_unmanaged_app_insights (ResourceId.create "test"); link_to_unmanaged_service_plan (ResourceId.create "test2") } |> getResources
         let wa = resources |> getResource<Web.Site> |> List.head
         Expect.isEmpty wa.Dependencies "Should be no dependencies"
         Expect.isEmpty (resources |> getResource<Insights.Components>) "Should be no AI component"
@@ -120,19 +120,19 @@ let tests = testList "Web App Tests" [
             name "testweb"
             setting "storage" sa.Key
             setting "conn" (sql.ConnectionString "thedb")
-            setting "bad" (literal "ignore_me")
+            setting "bad" (ArmExpression.literal "ignore_me")
         }
         let wa = wa |> getResources |> getResource<Web.Site> |> List.head
 
-        Expect.contains wa.Dependencies sa.Name.ResourceName "Storage Account is missing"
-        Expect.contains wa.Dependencies (ResourceName "thedb") "Database is missing"
+        Expect.contains wa.Dependencies (ResourceId.create(storageAccounts, sa.Name.ResourceName)) "Storage Account is missing"
+        Expect.contains wa.Dependencies (ResourceId.create(Sql.databases, ResourceName "thedb")) "Database is missing"
     }
 
     test "Implicitly adds a dependency when adding a connection string" {
         let sa = storageAccount { name "teststorage" }
         let wa = webApp { name "testweb"; setting "storage" sa.Key }
         let wa = wa |> getResources |> getResource<Web.Site> |> List.head
-        Expect.contains wa.Dependencies sa.Name.ResourceName "Storage Account is missing"
+        Expect.contains wa.Dependencies (ResourceId.create(storageAccounts, sa.Name.ResourceName)) "Storage Account is missing"
     }
 
     test "Key Vault support works correctly" {
@@ -150,7 +150,7 @@ let tests = testList "Web App Tests" [
         ]
         Expect.containsAll site.AppSettings expected "Incorrect settings"
 
-        Expect.sequenceEqual kv.Dependencies [ site.Name ] "Key Vault dependencies are wrong"
+        Expect.sequenceEqual kv.Dependencies [ ResourceId.create site.Name ] "Key Vault dependencies are wrong"
         Expect.equal kv.Name (ResourceName (site.Name.Value + "vault")) "Key Vault name is wrong"
         Expect.equal kv.AccessPolicies.[0].ObjectId wa.SystemIdentity.ArmValue "Policy is incorrect"
         Expect.equal wa.Identity (Some Enabled) "System Identity should be turned on"
@@ -159,11 +159,11 @@ let tests = testList "Web App Tests" [
 
         Expect.equal secrets.[0].Name.Value "testwebvault/storage" "Incorrect secret name"
         Expect.equal secrets.[0].Value (ExpressionSecret sa.Key) "Incorrect secret value"
-        Expect.sequenceEqual secrets.[0].Dependencies [ ResourceName "testwebvault"; ResourceName "teststorage" ] "Incorrect secret dependencies"
+        Expect.sequenceEqual secrets.[0].Dependencies [ ResourceId.create "testwebvault"; ResourceId.create(storageAccounts, ResourceName "teststorage") ] "Incorrect secret dependencies"
 
         Expect.equal secrets.[1].Name.Value "testwebvault/secret" "Incorrect secret name"
         Expect.equal secrets.[1].Value (ParameterSecret (SecureParameter "secret")) "Incorrect secret value"
-        Expect.sequenceEqual secrets.[1].Dependencies [ ResourceName "testwebvault" ] "Incorrect secret dependencies"
+        Expect.sequenceEqual secrets.[1].Dependencies [ ResourceId.create "testwebvault" ] "Incorrect secret dependencies"
 
         Expect.hasLength vault.AccessPolicies 1 "Incorrect number of access policies"
         Expect.sequenceEqual vault.AccessPolicies.[0].Permissions.Secrets [ KeyVault.Secret.Get ] "Incorrect permissions"

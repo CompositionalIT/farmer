@@ -20,7 +20,7 @@ type FunctionsConfig =
       OperatingSystem : OS
       Settings : Map<string, Setting>
       Tags : Map<string, string>
-      Dependencies : ResourceName list
+      Dependencies : ResourceId list
       Cors : Cors option
       StorageAccount : ResourceRef<FunctionsConfig>
       Runtime : FunctionsRuntime
@@ -48,11 +48,11 @@ type FunctionsConfig =
         sprintf "listkeys(concat(resourceId('Microsoft.Web/sites', '%s'), '/host/default/'),'2016-08-01').masterKey" this.Name.Value
         |> ArmExpression.create
     /// Gets the Service Plan name for this functions app.
-    member this.ServicePlanName = this.ServicePlan.CreateResourceName this
+    member this.ServicePlanName = this.ServicePlan.CreateResourceId(this).Name
     /// Gets the App Insights name for this functions app, if it exists.
-    member this.AppInsightsName : ResourceName option = this.AppInsights |> Option.map (fun ai -> ai.CreateResourceName this)
+    member this.AppInsightsName : ResourceName option = this.AppInsights |> Option.map (fun ai -> ai.CreateResourceId(this).Name)
     /// Gets the Storage Account name for this functions app.
-    member this.StorageAccountName : Storage.StorageAccountName = this.StorageAccount.CreateResourceName this |> Storage.StorageAccountName.Create |> Result.get
+    member this.StorageAccountName : Storage.StorageAccountName = this.StorageAccount.CreateResourceId(this).Name |> Storage.StorageAccountName.Create |> Result.get
     interface IBuilder with
         member this.DependencyName = this.ServicePlanName
         member this.BuildResources location = [
@@ -89,7 +89,7 @@ type FunctionsConfig =
               Dependencies = [
                 yield! this.Dependencies
                 match this.AppInsights with
-                | Some (DependableResource this resourceName) -> resourceName
+                | Some (DependableResource this resourceName) -> ResourceId.create resourceName
                 | _ -> ()
                 for setting in this.Settings do
                     match setting.Value with
@@ -100,10 +100,10 @@ type FunctionsConfig =
                     | ParameterSetting _ | LiteralSetting _ ->
                         ()
                 match this.ServicePlan with
-                | DependableResource this resourceName -> resourceName
+                | DependableResource this resourceName -> ResourceId.create resourceName
                 | _ -> ()
 
-                this.StorageAccountName.ResourceName
+                ResourceId.create this.StorageAccountName.ResourceName
               ]
               AlwaysOn = false
               HTTPSOnly = this.HTTPSOnly
@@ -231,13 +231,17 @@ type FunctionsBuilder() =
     [<CustomOperation "secret_setting">]
     member __.AddSecret(state:FunctionsConfig, key) =
         { state with Settings = state.Settings.Add(key, ParameterSetting (SecureParameter key)) }
+
+    member private _.AddDependency (state:FunctionsConfig, resourceName:ResourceName) = { state with Dependencies = ResourceId.create resourceName :: state.Dependencies }
+    member private _.AddDependencies (state:FunctionsConfig, resourceNames:ResourceName list) = { state with Dependencies = (resourceNames |> List.map ResourceId.create) @ state.Dependencies }
+    /// Sets a dependency for the web app.
     [<CustomOperation "depends_on">]
-    member __.DependsOn(state:FunctionsConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
-    member __.DependsOn(state:FunctionsConfig, resources) = { state with Dependencies = List.concat [ resources; state.Dependencies ] }
-    member __.DependsOn(state:FunctionsConfig, resource:IBuilder) = { state with Dependencies = resource.DependencyName :: state.Dependencies }
-    member __.DependsOn(state:FunctionsConfig, builders:IBuilder list) = { state with Dependencies = List.concat [ builders |> List.map (fun x -> x.DependencyName); state.Dependencies ] }
-    member __.DependsOn(state:FunctionsConfig, resource:IArmResource) = { state with Dependencies = resource.ResourceName :: state.Dependencies }
-    member __.DependsOn(state:FunctionsConfig, resources:IArmResource list) = { state with Dependencies = List.concat [ resources |> List.map (fun x -> x.ResourceName); state.Dependencies ] }
+    member this.DependsOn(state:FunctionsConfig, resourceName) = this.AddDependency(state, resourceName)
+    member this.DependsOn(state:FunctionsConfig, resources) = this.AddDependencies(state, resources)
+    member this.DependsOn(state:FunctionsConfig, builder:IBuilder) = this.AddDependency(state, builder.DependencyName)
+    member this.DependsOn(state:FunctionsConfig, builders:IBuilder list) = this.AddDependencies(state, builders |> List.map (fun x -> x.DependencyName))
+    member this.DependsOn(state:FunctionsConfig, resource:IArmResource) = this.AddDependency(state, resource.ResourceName)
+    member this.DependsOn(state:FunctionsConfig, resources:IArmResource list) = this.AddDependencies(state, resources |> List.map (fun x -> x.ResourceName))
 
     /// sets the list of origins that should be allowed to make cross-origin calls. Use AllOrigins to allow all.
     [<CustomOperation "enable_cors">]

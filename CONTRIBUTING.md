@@ -33,7 +33,7 @@ results = [
     item.Foo
 ]
 ```
-
+* Put all pattern matching handlers on the same line as the pattern *or* all of them one a new line.
 * Do not use `yield` - it is no longer necessary in F#.
 * Prefer `[ for x in y do ... ]`  to `[ for x in y -> ... ]`
 * Never use `.Value` on `Option` types.
