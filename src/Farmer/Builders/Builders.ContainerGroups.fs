@@ -155,7 +155,7 @@ type ContainerGroupBuilder() =
     /// Sets the user assigned managed identity on this container group to a user assigned identity in the same resource group.
     [<CustomOperation "user_assigned_identity">]
     member _.UserAssignedIdentity(state:ContainerGroupConfig, userIdentity:ResourceName) =
-        { state with Identity = Some (UserAssigned [ ManagedIdentity.UserAssignedIdentity(userIdentity.Value, None, None) ]) }
+        { state with Identity = Some (UserAssigned [ ManagedIdentity.UserAssignedIdentity(userIdentity.Value, None) ]) }
     [<CustomOperation "add_tags">]
     member _.Tags(state:ContainerGroupConfig, pairs) =
         { state with

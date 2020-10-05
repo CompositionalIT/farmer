@@ -156,7 +156,7 @@ let tests = testList "Container Group" [
             containerGroup {
                 name "myapp"
                 add_instances [ nginx ]
-                identity (UserAssigned [ ManagedIdentity.UserAssignedIdentity("foo", Some "bar", Some "baz")])
+                identity (UserAssigned [ ManagedIdentity.UserAssignedIdentity("foo", Some "bar")])
             } |> asAzureResource
 
         Expect.hasLength group.Identity.UserAssignedIdentities 1 "No user assigned identity."
@@ -182,7 +182,7 @@ let tests = testList "Container Group" [
         Expect.wantSome containerGroup.Identity "Container group identity not user assigned" |> function
         | UserAssigned userIdentities ->
             Expect.hasLength userIdentities 1 "Expected 1 user identity"
-            Expect.equal userIdentities.Head (ManagedIdentity.UserAssignedIdentity("aciUser", None, None)) "Expected user identity named 'aciUser'."
+            Expect.equal userIdentities.Head (ManagedIdentity.UserAssignedIdentity("aciUser", None)) "Expected user identity named 'aciUser'."
         | _ -> Expect.isTrue false "Expected a ContainerGroup.Identity to be user assigned."
     }
  ]

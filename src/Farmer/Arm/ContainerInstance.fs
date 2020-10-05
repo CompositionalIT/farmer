@@ -53,7 +53,7 @@ type ContainerGroup =
 
         match this.Identity with
         | Some (UserAssigned identities) ->
-            yield! identities |> List.map (UserAssignedIdentity.resourceId >> ResourceName)
+            yield! identities |> List.map (UserAssignedIdentity.resourceId)
         | _ -> ()
     ]
 
@@ -70,7 +70,8 @@ type ContainerGroup =
                          // and an empty object as the value.
                          let userAssigned = JObject()
                          identities |> List.iter (fun identity ->
-                             userAssigned.Add (JProperty(UserAssignedIdentity.resourceId identity, JObject())))
+                             let identityId = (UserAssignedIdentity.resourceId identity).Eval()
+                             userAssigned.Add (JProperty(identityId, JObject())))
                          {| ``type`` = "UserAssigned"
                             userAssignedIdentities = userAssigned |}
                    properties =

@@ -8,12 +8,10 @@ let userAssignedIdentities = ResourceType ("Microsoft.ManagedIdentity/userAssign
 module UserAssignedIdentity =
     /// Builds a user assigned identity resource ID.
     let resourceId = function
-        | (UserAssignedIdentity (name, Some resourceGroup, Some subscription)) ->
-            ArmExpression.resourceId(userAssignedIdentities, (ResourceName name), resourceGroup, subscription).Eval()
-        | (UserAssignedIdentity (name, Some resourceGroup, None)) ->
-            ArmExpression.resourceId(userAssignedIdentities, (ResourceName name), resourceGroup).Eval()
-        | (UserAssignedIdentity (name, _, _)) ->
-            ArmExpression.resourceId(userAssignedIdentities, (ResourceName name)).Eval()
+        | (UserAssignedIdentity (name, Some resourceGroup)) ->
+            ResourceId.create(userAssignedIdentities, (ResourceName name), resourceGroup)
+        | (UserAssignedIdentity (name, None)) ->
+            ResourceId.create(userAssignedIdentities, (ResourceName name))
 
 /// Creates a user assigned identity ARM resource
 type UserAssignedIdentity =
