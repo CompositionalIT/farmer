@@ -17,14 +17,16 @@ type  WorkSpaceconfig =
             [ { Name = this.Name
                 Location = location
                 Sku = this.Sku
-                retentionInDays =match this.retentionInDays with
-                    | Some value ->match this.Sku with
-                        | Standard   when value<>30 -> failwithf "the retention Days for Standard must be 30."
-                        | Premium    when  value<>365 -> failwithf "the retention Days for Premium must be 365."
-                        | Free    -> failwithf "Remove the retentionInDays element If you specify a pricing tier of Free,."
-                        | PerNode| PerGB2018 | Standalone   when  value <30 || value>730   ->failwithf "the retention Days for  PerNode,PerGB2018 and Standalone  must be between 30 and 730" 
-                        |_ ->  this.retentionInDays
-                    | None -> None
+                retentionInDays = 
+                    match this.retentionInDays with
+                        |Some value ->
+                            match this.Sku with
+                                |Standard   when value<>30 -> failwithf "the retention Days for Standard must be 30."
+                                |Premium    when  value<>365 -> failwithf "the retention Days for Premium must be 365."
+                                |Free    -> failwithf "Remove the retentionInDays element If you specify a pricing tier of Free,."
+                                |PerNode| PerGB2018 | Standalone   when  value <30 || value>730   ->failwithf "the retention Days for  PerNode,PerGB2018 and Standalone  must be between 30 and 730" 
+                                |_ ->  this.retentionInDays
+                        |None -> None
                 publicNetworkAccessForIngestion = this.publicNetworkAccessForIngestion
                 publicNetworkAccessForQuery = this.publicNetworkAccessForQuery
                 Tags=this.Tags
