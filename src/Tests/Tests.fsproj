@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <Compile Include="Helpers.fs" />
+    <Compile Include="AppInsights.fs" />
     <Compile Include="Common.fs" />
     <Compile Include="LogAnalytics.fs" />
     <Compile Include="Bastion.fs" />
@@ -15,7 +16,9 @@
     <Compile Include="ContainerGroup.fs" />
     <Compile Include="ContainerService.fs" />
     <Compile Include="CognitiveServices.fs" />
+    <Compile Include="Dns.fs" />
     <Compile Include="ExpressRoute.fs" />
+    <Compile Include="EventHub.fs" />
     <Compile Include="NetworkSecurityGroup.fs" />
     <Compile Include="Storage.fs" />
     <Compile Include="ServiceBus.fs" />
@@ -39,6 +42,7 @@
   <ItemGroup>
     <PackageReference Include="expecto" Version="9.0.0" />
     <PackageReference Include="Microsoft.Azure.Management.Cdn" Version="2.1.0" />
+    <PackageReference Include="Microsoft.Azure.Management.Dns" Version="3.0.1" />
     <PackageReference Include="Microsoft.Azure.Management.CognitiveServices" Version="7.0.0" />
     <PackageReference Include="Microsoft.Azure.Management.Compute" Version="35.2.0" />
     <PackageReference Include="Microsoft.Azure.Management.ContainerInstance" Version="2.0.0" />

@@ -2,6 +2,7 @@ module CognitiveServices
 
 open Expecto
 open Farmer
+open Farmer.CoreTypes
 open Farmer.Builders
 open Farmer.CognitiveServices
 open Microsoft.Azure.Management.CognitiveServices
@@ -29,11 +30,12 @@ let tests = testList "Cognitive Services" [
 
     test "Key is correctly calculated on a CS instance" {
         let service = cognitiveServices { name "test" }
+        Expect.equal service.Key.Owner.Value.ArmExpression.Value "resourceId('Microsoft.CognitiveServices/accounts', 'test')" "Owner is wrong"
         Expect.equal service.Key.Value "listKeys(resourceId('Microsoft.CognitiveServices/accounts', 'test'), '2017-04-18').key1" "Key is wrong"
     }
 
     test "Key is correctly calculated with a resource group" {
-        let key = CognitiveServices.getKey(ResourceName "test", "resource group")
+        let key = CognitiveServices.getKey(ResourceId.create("test", "resource group"))
         Expect.equal key.Value "listKeys(resourceId('resource group', 'Microsoft.CognitiveServices/accounts', 'test'), '2017-04-18').key1" "Key is wrong"
     }
 ]

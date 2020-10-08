@@ -51,7 +51,7 @@ module Namespaces =
           Location : Location
           MessageRetentionDays : int option
           Partitions : int
-          Dependencies : ResourceName list
+          Dependencies : ResourceId list
           CaptureDestination : CaptureDestination option
           Tags: Map<string,string>  }
         interface IArmResource with
@@ -70,7 +70,7 @@ module Namespaces =
                                    destination =
                                     {| name = "EventHubArchive.AzureBlockBlob"
                                        properties =
-                                        {| storageAccountResourceId = ArmExpression.resourceId(storageAccounts, name).Eval()
+                                        {| storageAccountResourceId = ResourceId.create(storageAccounts, name).Eval()
                                            blobContainer = container
                                         |}
                                     |}
@@ -84,15 +84,15 @@ module Namespaces =
             { ConsumerGroupName : ResourceName
               EventHub : ResourceName
               Location : Location
-              Dependencies : ResourceName list }
+              Dependencies : ResourceId list }
             interface IArmResource with
                 member this.ResourceName = this.ConsumerGroupName
-                member this.JsonModel = consumerGroups.Create(this.EventHub + this.ConsumerGroupName, this.Location, this.Dependencies) :> _
+                member this.JsonModel = consumerGroups.Create(this.EventHub/this.ConsumerGroupName, this.Location, this.Dependencies) :> _
 
         type AuthorizationRule =
             { Name : ResourceName
               Location : Location
-              Dependencies : ResourceName list
+              Dependencies : ResourceId list
               Rights : AuthorizationRuleRight Set }
             interface IArmResource with
                 member this.ResourceName = this.Name

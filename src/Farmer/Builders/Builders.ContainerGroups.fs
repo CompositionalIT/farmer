@@ -9,8 +9,8 @@ open Farmer.Arm.Network
 type volume_mount =
     static member empty_dir volumeName =
         volumeName, Volume.EmptyDirectory
-    static member azureFile volumeName shareName storageAccountName =
-        volumeName, Volume.AzureFileShare (shareName, storageAccountName)
+    static member azureFile volumeName shareName (storageAccountName:string) =
+        volumeName, Volume.AzureFileShare (ResourceName shareName, Storage.StorageAccountName.Create(storageAccountName).OkValue)
     static member git_repo volumeName repository =
         volumeName, Volume.GitRepo (repository, None, None)
     static member git_repo_directory volumeName  repository directory =

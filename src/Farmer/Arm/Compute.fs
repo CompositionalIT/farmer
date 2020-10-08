@@ -21,7 +21,7 @@ type CustomScriptExtension =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| extensions.Create(this.VirtualMachine + this.Name, this.Location, [ this.VirtualMachine ], this.Tags) with
+            {| extensions.Create(this.VirtualMachine/this.Name, this.Location, [ ResourceId.create this.VirtualMachine ], this.Tags) with
                    properties =
                     match this.OS with
                     | Windows ->
@@ -65,20 +65,18 @@ type VirtualMachine =
         member this.ResourceName = this.Name
         member this.JsonModel =
             let dependsOn = [
-                   this.NetworkInterfaceName
+                   ResourceId.create this.NetworkInterfaceName
                    match this.StorageAccount with
-                   | Some s -> s
+                   | Some s -> ResourceId.create s
                    | None -> ()
             ]
             {| virtualMachines.Create(this.Name, this.Location, dependsOn, this.Tags) with
                 properties =
                  {| hardwareProfile = {| vmSize = this.Size.ArmValue |}
                     osProfile =
-                     {|
-                        computerName = this.Name.Value
+                     {| computerName = this.Name.Value
                         adminUsername = this.Credentials.Username
-                        adminPassword = this.Credentials.Password.AsArmRef.Eval()
-                     |}
+                        adminPassword = this.Credentials.Password.ArmExpression.Eval() |}
                     storageProfile =
                         let vmNameLowerCase = this.Name.Value.ToLower()
                         {| imageReference =
@@ -103,7 +101,7 @@ type VirtualMachine =
                         |}
                     networkProfile =
                         {| networkInterfaces = [
-                            {| id = ArmExpression.resourceId(networkInterfaces, this.NetworkInterfaceName).Eval() |}
+                            {| id = ResourceId.create(networkInterfaces, this.NetworkInterfaceName).Eval() |}
                            ]
                         |}
                     diagnosticsProfile =
