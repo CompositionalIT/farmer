@@ -18,7 +18,7 @@ module Vaults =
           Enabled : bool option
           ActivationDate : DateTime option
           ExpirationDate : DateTime option
-          Dependencies : ResourceName list }
+          Dependencies : ResourceId list }
         static member ``1970`` = DateTime(1970,1,1,0,0,0)
         static member TotalSecondsSince1970 (d:DateTime) = (d.Subtract Secret.``1970``).TotalSeconds |> int
         interface IParameters with
@@ -66,7 +66,7 @@ type Vault =
       Bypass: Bypass option
       IpRules : string list
       VnetRules : string list
-      Dependencies : ResourceName list
+      Dependencies : ResourceId list
       Tags: Map<string,string>  }
       member this.PurgeProtection =
         match this.SoftDelete with
@@ -75,7 +75,7 @@ type Vault =
             None
         | Some SoftDeleteWithPurgeProtection ->
             Some true
-      member private this.ToStringArray s = s |> Set.map(fun s -> s.ToString().ToLower()) |> Set.toArray
+      member private _.ToStringArray s = s |> Set.map(fun s -> s.ToString().ToLower()) |> Set.toArray
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =

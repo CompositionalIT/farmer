@@ -121,12 +121,13 @@ let tests = testList "Container Group" [
                 name "containersWithFiles"
                 add_instances [ helloShared1; helloShared2 ]
                 add_volumes [
-                    volume_mount.azureFile "azure-file" "fileShare1" "storageAccount1"
+                    volume_mount.azureFile "azure-file" "fileShare1" "storageaccount1"
                     volume_mount.secret_string "secret-files" "secret1" "abcdefg"
                     volume_mount.empty_dir "shared-socket"
                     volume_mount.git_repo "source-code" (Uri "https://github.com/CompositionalIT/farmer")
                 ]
             } |> asAzureResource
+
         Expect.equal group.Name "containersWithFiles" "Incorrect name on container group"
         Expect.equal group.Containers.[0].VolumeMounts.Count 3 "Incorrect number of volume mounts on container 1"
         Expect.equal group.Containers.[1].VolumeMounts.Count 2 "Incorrect number of volume mounts on container 1"

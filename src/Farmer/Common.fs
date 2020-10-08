@@ -624,7 +624,7 @@ module ContainerGroup =
         /// Mounts an empty directory on the container group.
         | EmptyDirectory
         /// Mounts an Azure File Share in the same resource group, performing a key lookup.
-        | AzureFileShare of ShareName:string * StorageAccountName:string
+        | AzureFileShare of ShareName:ResourceName * StorageAccountName:Storage.StorageAccountName
         /// A git repo volume, clonable by public HTTPS access.
         | GitRepo of Repository:Uri * Directory:string option * Revision:string option
         /// Mounts a volume containing secret files.
@@ -853,10 +853,7 @@ module IPAddressCidr =
     /// Sequence of IP addresses for a CIDR block.
     let addresses (cidr:IPAddressCidr) =
         let first, last = ipRangeNums cidr
-        seq {
-            for i in first..last do
-                yield i |> ofNum
-        }
+        seq { for i in first..last do ofNum i }
     /// Carve a subnet out of an address space.
     let carveAddressSpace (addressSpace:IPAddressCidr) (subnetSizes:int list) =
         let addressSpaceStart, addressSpaceEnd = addressSpace |> ipRangeNums
@@ -877,7 +874,7 @@ module IPAddressCidr =
                         last, cidr
                 if last <= addressSpaceEnd then
                     startAddress <- (last + 1u) |> ofNum
-                    yield cidr
+                    cidr
                 else
                     raise (IndexOutOfRangeException (sprintf "Unable to create subnet %d of /%d" index size))
         }
@@ -1014,3 +1011,14 @@ module Roles =
         let NetworkContributor = RoleID "4d97b98b-1d4f-4787-a291-c67834d212e7"
         let PrivateDnsZoneContributor = RoleID "b12aa53e-6015-4669-85d0-8515ebb3ae7f"
         let TrafficManagerContributor = RoleID "a4b10055-b0c7-44c2-b00f-c7b5b3550cf7"
+
+module Dns =
+    type DnsZoneType = Public | Private
+    type DnsRecordType =
+        | A of TargetResource : ResourceName option * ARecords : string list
+        | AAAA of TargetResource : ResourceName option * AaaaRecords : string list
+        | CName of TargetResource : ResourceName option * CNameRecord : string option
+        | NS of NsRecords : string list
+        | PTR of PtrRecords : string list
+        | TXT of TxtRecords : string list
+        | MX of {| Preference : int; Exchange : string |} list

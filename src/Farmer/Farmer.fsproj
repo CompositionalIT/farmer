@@ -2,7 +2,7 @@
   <PropertyGroup>
     <!-- General -->
     <AssemblyName>Farmer</AssemblyName>
-    <Version>1.2.0-beta1</Version>
+    <Version>1.2.0-beta2</Version>
     <Description>Farmer makes authoring ARM templates easy!</Description>
     <Copyright>Copyright 2019, 2020 Compositional IT Ltd.</Copyright>
     <Company>Compositional IT</Company>
@@ -55,6 +55,7 @@
     <Compile Include="Arm/Cache.fs" />
     <Compile Include="Arm/Cdn.fs" />
     <Compile Include="Arm/CognitiveServices.fs" />
+    <Compile Include="Arm/Dns.fs" />
     <Compile Include="Arm/Network.fs" />
     <Compile Include="Arm\Bastion.fs" />
     <Compile Include="Arm/Compute.fs" />
@@ -84,10 +85,12 @@
     <Compile Include="Builders\Builders.ContainerGroups.fs" />
     <Compile Include="Builders\Builders.ContainerService.fs" />
     <Compile Include="Builders/Builders.DataLake.fs" />
+    <Compile Include="Builders/Builders.Dns.fs" />
     <Compile Include="Builders/Builders.Storage.fs" />
     <Compile Include="Builders/Builders.Redis.fs" />
     <Compile Include="Builders/Builders.KeyVault.fs" />
     <Compile Include="Builders\Builders.Bastion.fs" />
+    <Compile Include="Builders/Builders.VirtualNetwork.fs" />
     <Compile Include="Builders/Builders.Vm.fs" />
     <Compile Include="Builders/Builders.ServicePlan.fs" />
     <Compile Include="Builders/Builders.AppInsights.fs" />
@@ -105,7 +108,6 @@
     <Compile Include="Builders/Builders.Maps.fs" />
     <Compile Include="Builders/Builders.SignalR.fs" />
     <Compile Include="Builders/Builders.VirtualNetworkGateway.fs" />
-    <Compile Include="Builders/Builders.VirtualNetwork.fs" />
     <Compile Include="Builders/Builders.EventGrid.fs" />
     <Compile Include="Builders\Builders.NetworkSecurityGroup.fs" />
   </ItemGroup>

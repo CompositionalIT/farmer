@@ -1,10 +1,18 @@
 Release Notes
 =============
+## 1.2.0-beta2
+* Internal changes to better capture full resource IDs
+
 ## 1.2.0-beta1
-* Bastion Hosts: Create bastion hosts for accessing resources on a virtual network.
+* Bastion Hosts: Create bastion hosts for accessing resources on a virtual network
 * Gateway: Add VPN Client configuration
-* Service Bus: Set message TTL 
+* Service Bus: Set message TTL
+* DNS Zones: Basic Azure DNS support
+* WebApp: Easy Key Vault integration
 * Support for implicitly adding dependencies based on usage e.g. add settings, connection strings etc.
+
+## 1.1.1
+* SQL Azure: Fix a bug whereby firewall rule IP addresses were inverted.
 
 ## 1.1.0
 * AKS: Basic AKS support
