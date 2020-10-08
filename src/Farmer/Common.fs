@@ -299,6 +299,17 @@ module internal Validation =
         |> Seq.tryHead
         |> Option.defaultValue (Ok text)
 
+module LogAnalytics =
+    type Sku =
+        | Standard
+        | Premium
+        | Free
+        | PerNode
+        | PerGB2018
+        | Standalone
+        member this.ArmValue = this.ToString()
+    
+     
 module Storage =
     open Validation
     type StorageAccountName =
