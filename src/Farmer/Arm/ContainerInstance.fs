@@ -68,10 +68,7 @@ type ContainerGroup =
                        | Some (UserAssigned identities) ->
                          // Identities are assigned as a dictionary with the user identity resource ID as the key
                          // and an empty object as the value.
-                         let userAssigned = JObject()
-                         identities |> List.iter (fun identity ->
-                             let identityId = (UserAssignedIdentity.resourceId identity).Eval()
-                             userAssigned.Add (JProperty(identityId, JObject())))
+                         let userAssigned = identities |> List.map (fun identity -> (UserAssignedIdentity.resourceId identity).Eval(), obj) |> dict 
                          {| ``type`` = "UserAssigned"
                             userAssignedIdentities = userAssigned |}
                    properties =
