@@ -12,7 +12,7 @@ The Container Group builder is used to create Azure Container Group instances.
 
 #### Builder Keywords
 | Applies To | Keyword | Purpose |
-|-|-|
+|-|-|-|
 | containerInstance | name | Sets the name of the Container Group instance. |
 | containerInstance | image | Sets the container image. |
 | containerInstance | add_ports | Sets the ports the container exposes. |
@@ -21,7 +21,7 @@ The Container Group builder is used to create Azure Container Group instances.
 | containerInstance | env_vars | Sets a list of environment variables for the container. |
 | containerInstance | add_volume_mount | Adds a volume mount on a container from a volume in the container group. |
 | containerGroup | add_instances | Adds container instances to the group. |
-| containerGroup | os_type | Sets the OS type (default Linux). |
+| containerGroup | operating_system | Sets the OS type (default Linux). |
 | containerGroup | restart_policy | Sets the restart policy (default Always) |
 | containerGroup | public_dns | Sets the DNS host label when using a public IP. |
 | containerGroup | private_ip | Indicates the container should use a system-assigned private IP address for use in a virtual network. |
