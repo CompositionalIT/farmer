@@ -12,7 +12,7 @@ The Container Group builder is used to create Azure Container Group instances.
 
 #### Builder Keywords
 | Applies To | Keyword | Purpose |
-|-|-|
+|-|-|-|
 | containerInstance | name | Sets the name of the Container Group instance. |
 | containerInstance | image | Sets the container image. |
 | containerInstance | add_ports | Sets the ports the container exposes. |
