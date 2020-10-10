@@ -76,6 +76,7 @@
     <Compile Include="Arm/SignalR.fs" />
     <Compile Include="Arm/EventGrid.fs" />
     <Compile Include="Arm\NetworkSecurityGroup.fs" />
+    <Compile Include="Arm\DeploymentScript.fs" />
 
     <Compile Include="Builders/Builders.Helpers.fs" />
     <Compile Include="Builders/Builders.PostgreSQL.fs" />
@@ -83,6 +84,7 @@
     <Compile Include="Builders\Builders.ContainerGroups.fs" />
     <Compile Include="Builders\Builders.ContainerService.fs" />
     <Compile Include="Builders/Builders.DataLake.fs" />
+    <Compile Include="Builders\Builders.DeploymentScript.fs" />
     <Compile Include="Builders/Builders.Dns.fs" />
     <Compile Include="Builders/Builders.Storage.fs" />
     <Compile Include="Builders/Builders.Redis.fs" />
