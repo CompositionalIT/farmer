@@ -8,17 +8,17 @@ open Farmer.LogAnalytics
 let myRegistry =
     logAnalytics {
         name "testmyFarmer2"
-        sku  Free
+        sku PerGB2018
         publicNetworkAccessForIngestion
         publicNetworkAccessForQuery
-        retentionInDays 0
-    }
+        retentionInDays 30
+}
 
 let deployment =
     arm {
         location Location.CentralUS
         add_resource myRegistry
-    }
+}
 
 deployment
 |> Deploy.execute "SPS_Integration_POC" Deploy.NoParameters

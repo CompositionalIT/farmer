@@ -53,5 +53,4 @@ let tests = testList "Log analytics" [
                          } :> IBuilder
     Expect.throws (fun _ -> (f.BuildResources Location.WestEurope |> ignore)) "" 
     }        
-
      ]
