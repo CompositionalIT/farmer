@@ -13,6 +13,16 @@ let createFileScript = deploymentScript {
     content """printf "{'date':'%s'"} "`date`" > $AZ_SCRIPTS_OUTPUT_PATH """
 }
 
+let deployToAks = deploymentScript {
+    name "some-kubectl-stuff"
+    identity "script-user"
+    content """ set -e;
+        az aks install-cli;
+        az aks get-credentials -n my-cluster;
+        kubectl apply -f https://some/awesome/deployment.yml;
+        """
+}
+
 let template = arm {
     location Location.WestEurope
     add_resource createFileScript
