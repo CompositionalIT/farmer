@@ -18,15 +18,16 @@ type  WorkSpaceconfig =
                 Location = location
                 Sku = this.Sku
                 retentionInDays = 
-                    match this.retentionInDays with
-                        |Some value ->
-                            match this.Sku with
-                                |Standard   when value<>30 -> failwithf "the retention Days for Standard must be 30."
-                                |Premium    when  value<>365 -> failwithf "the retention Days for Premium must be 365."
-                                |Free    -> failwithf "Remove the retentionInDays element If you specify a pricing tier of Free,."
-                                |PerNode| PerGB2018 | Standalone   when  value <30 || value>730   ->failwithf "the retention Days for  PerNode,PerGB2018 and Standalone  must be between 30 and 730" 
-                                |_ ->  this.retentionInDays
-                        |None -> None
+                    match this.Sku, this.retentionInDays with
+                    |Standard, Some 30 -> Some 30
+                    |Standard, Some _ -> failwithf "the retention Days for Standard must be 30."
+                    |Premium, Some 365 -> Some 365
+                    |Premium, Some _ -> failwithf "the retention Days for Premium must be 365."
+                    |Free, None -> None
+                    |Free, _ -> failwithf "Remove the retentionInDays element If you specify a pricing tier of Free,."
+                    |(Standalone|PerNode|PerGB2018), Some value  when value < 30 || value > 730 -> failwithf "the retention Days for  PerNode,PerGB2018 and Standalone  must be between 30 and 730" 
+                    |_, Some value -> Some value
+                    |_, None -> None
                 publicNetworkAccessForIngestion = this.publicNetworkAccessForIngestion
                 publicNetworkAccessForQuery = this.publicNetworkAccessForQuery
                 Tags=this.Tags
@@ -34,12 +35,12 @@ type  WorkSpaceconfig =
 type  WorkSpaceBuilder() =
     /// Required - creates default "starting" values
     member _.Yield _ =
-        {   Name = ResourceName.Empty
-            Sku =PerGB2018
-            retentionInDays = None
-            publicNetworkAccessForIngestion =None
-            publicNetworkAccessForQuery = None
-            Tags=Map.empty
+        { Name = ResourceName.Empty
+          Sku = PerGB2018
+          retentionInDays = None
+          publicNetworkAccessForIngestion = None
+          publicNetworkAccessForQuery = None
+          Tags= Map.empty
           }
 
     [<CustomOperation "name">]
@@ -52,7 +53,6 @@ type  WorkSpaceBuilder() =
 
     [<CustomOperation "retentionInDays">]
     ///The workspace data retention in days. -1 means Unlimited retention for the Unlimited Sku. 730 days is the maximum allowed for all other Skus /Standard and Premium pricing tiers which have fixed data retention of 30 and 365 days respectively..
-    
     member _.RetentionInDays(state: WorkSpaceconfig, retentionInDays) =
         { state with
               retentionInDays = Some retentionInDays }

@@ -19,7 +19,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scripts", "scripts", "{F54A
 		samples\scripts\eventhubs.fsx = samples\scripts\eventhubs.fsx
 		samples\scripts\functions.fsx = samples\scripts\functions.fsx
 		samples\scripts\keyvault.fsx = samples\scripts\keyvault.fsx
-		loganalytics.fsx = loganalytics.fsx
 		samples\scripts\postgresql.fsx = samples\scripts\postgresql.fsx
 		samples\scripts\redis.fsx = samples\scripts\redis.fsx
 		samples\scripts\safe-template.fsx = samples\scripts\safe-template.fsx

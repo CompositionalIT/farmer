@@ -33,7 +33,7 @@ let convertResourceBuilder mapper (serializationSettings:Newtonsoft.Json.JsonSer
         |> fun json -> SafeJsonConvert.DeserializeObject(json, serializationSettings)
         |> Option.ofObj
     )
-//convertResourceBuilder ()(LogAnalytics)
+
 type TypedArmTemplate<'ResT> = { Resources : 'ResT array }
 
 let getFirstResourceOrFail (template: TypedArmTemplate<'ResourceType>) =
