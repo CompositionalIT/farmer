@@ -53,8 +53,9 @@ type ContainerGroup =
 
         match this.Identity with
         | Some (UserAssigned identities) ->
-            yield! identities |> List.map (UserAssignedIdentity.resourceId)
-        | _ -> ()
+            yield! identities |> List.map (fun identity -> identity.ResourceId)
+        | _ ->
+            ()
     ]
 
     interface IArmResource with
@@ -68,7 +69,7 @@ type ContainerGroup =
                        | Some (UserAssigned identities) ->
                          // Identities are assigned as a dictionary with the user identity resource ID as the key
                          // and an empty object as the value.
-                         let userAssigned = identities |> List.map (fun identity -> (UserAssignedIdentity.resourceId identity).Eval(), obj) |> dict 
+                         let userAssigned = identities |> List.map (fun identity -> identity.ResourceId.Eval(), obj) |> dict
                          {| ``type`` = "UserAssigned"
                             userAssignedIdentities = userAssigned |}
                    properties =
