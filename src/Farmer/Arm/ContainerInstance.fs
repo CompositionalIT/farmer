@@ -53,7 +53,8 @@ type ContainerGroup =
 
         match this.Identity with
         | Some (UserAssigned identities) ->
-            yield! identities |> List.map (fun identity -> identity.ResourceId)
+            for identity in identities do
+                identity.ResourceId
         | _ ->
             ()
     ]
@@ -64,14 +65,18 @@ type ContainerGroup =
             {| containerGroups.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
                    identity =
                        match this.Identity with
-                       | None -> {| ``type`` = "None"; userAssignedIdentities = null |}
-                       | Some (SystemAssigned) -> {| ``type`` = "SystemAssigned"; userAssignedIdentities = null |}
+                       | None ->
+                        {| ``type`` = "None"; userAssignedIdentities = null |}
+                       | Some (SystemAssigned) ->
+                        {| ``type`` = "SystemAssigned"; userAssignedIdentities = null |}
                        | Some (UserAssigned identities) ->
-                         // Identities are assigned as a dictionary with the user identity resource ID as the key
-                         // and an empty object as the value.
-                         let userAssigned = identities |> List.map (fun identity -> identity.ResourceId.Eval(), obj) |> dict
-                         {| ``type`` = "UserAssigned"
-                            userAssignedIdentities = userAssigned |}
+                        // Identities are assigned as a dictionary with the user identity resource ID as the key
+                        // and an empty object as the value.
+                        {| ``type`` = "UserAssigned"
+                           userAssignedIdentities =
+                            identities
+                            |> List.map (fun identity -> identity.ResourceId.Eval(), obj)
+                            |> dict |}
                    properties =
                        {| containers =
                            this.ContainerInstances
