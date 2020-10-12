@@ -4,6 +4,7 @@ module Farmer.Builders.ContainerService
 open Farmer
 open Farmer.Arm.ContainerService
 open Farmer.CoreTypes
+open Farmer.ManagedIdentity
 open Farmer.Vm
 
 type AgentPoolConfig =
@@ -32,6 +33,7 @@ type AksConfig =
       AgentPools : AgentPoolConfig list
       DnsPrefix : string
       EnableRBAC : bool
+      Identity : ResourceIdentity option
       LinuxProfile : (string * string list) option
       NetworkProfile : NetworkProfileConfig option
       ServicePrincipalClientID : string option
@@ -44,6 +46,7 @@ type AksConfig =
               Location = location
               DnsPrefix = this.DnsPrefix
               EnableRBAC = this.EnableRBAC
+              Identity = this.Identity
               AgentPoolProfiles =
                 this.AgentPools
                 |> List.map (fun agentPool ->
@@ -159,6 +162,7 @@ type AksBuilder() =
           AgentPools = []
           DnsPrefix = ""
           EnableRBAC = false
+          Identity = None
           LinuxProfile = None
           NetworkProfile = None
           ServicePrincipalClientID = None
@@ -172,6 +176,18 @@ type AksBuilder() =
     /// Enable Kubernetes Role-Based Access Control.
     [<CustomOperation "enable_rbac">]
     member _.EnableRBAC(state:AksConfig) = { state with EnableRBAC = true }
+    /// Sets the managed identity on this cluster.
+    [<CustomOperation "identity">]
+    member _.Identity(state:AksConfig, identity:ResourceIdentity) =
+        { state with Identity = Some identity }
+    /// Enables a system assigned managed identity to be set for this cluster.
+    [<CustomOperation "system_assigned_identity">]
+    member _.SystemAssignedIdentity(state:AksConfig) =
+        { state with Identity = Some SystemAssigned }
+    /// Sets the user assigned managed identity on this cluster to a user assigned identity in the same resource group.
+    [<CustomOperation "user_assigned_identity">]
+    member _.UserAssignedIdentity(state:AksConfig, userIdentity:ResourceName) =
+        { state with Identity = Some (UserAssigned [ UserAssignedIdentity(userIdentity.Value, None) ]) }
     /// Adds agent pools to the AKS cluster.
     [<CustomOperation "add_agent_pools">]
     member _.AddAgentPools(state:AksConfig, pools) = { state with AgentPools = state.AgentPools @ pools }

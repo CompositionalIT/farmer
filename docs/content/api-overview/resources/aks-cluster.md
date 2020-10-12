@@ -20,6 +20,9 @@ The AKS Builder constructs AKS clusters.
 | enable_rbac | Enable Kubernetes Role-Based Access Control. |
 | add_agent_pools | Adds agent pools to the AKS cluster. |
 | add_agent_pool | Adds an agent pool to the AKS cluster. |
+| identity | Sets the cluster's identity to a managed identity. |
+| system_assigned_identity | Sets the cluster's identity to be system assigned. |
+| user_assigned_identity | Sets the cluster's identity to a user assigned identity in the same resource group. |
 | network_profile | Sets the network profile for the AKS cluster. |
 | linux_profile | Sets the linux profile for the AKS cluster. |
 | service_principal_client_id | Sets the client id of the service principal for the AKS cluster. |

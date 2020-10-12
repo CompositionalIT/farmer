@@ -3,6 +3,7 @@ Release Notes
 ## 1.2.0-beta2
 * Managed Identity: Create user assigned manage identity resources.
 * Container Groups: Specify identity settings to support user or system assigned identity.
+* Container Service (AKS): Specify identity settings to support user or system assigned identity.
 * Internal changes to better capture full resource IDs
 
 ## 1.2.0-beta1

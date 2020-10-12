@@ -38,11 +38,16 @@ let makeVnet (n:int) =
         ]
     } :> IBuilder
 
+let msi = userAssignedIdentity {
+    name "aks-user"
+}
+
 let makeAks (n:int) =
     aks {
         name (aksName n)
         dns_prefix (aksDns n)
         enable_rbac
+        identity (ManagedIdentity.UserAssigned [ManagedIdentity.UserAssignedIdentity(msi.Name.Value, None)])
         add_agent_pools [
             agentPool {
                 name "linuxPool"
@@ -64,6 +69,7 @@ let vnets = [1..4] |> Seq.map makeVnet |> List.ofSeq
 let akses = [1..4] |> Seq.map makeAks |> List.ofSeq
 arm {
     location Location.EastUS
+    add_resource msi
     add_resources akses
     add_resources vnets
 } |> Writer.quickWrite "aks-on-vnet"

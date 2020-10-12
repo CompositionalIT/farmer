@@ -3,6 +3,7 @@ module Farmer.Arm.ContainerService
 
 open Farmer
 open Farmer.CoreTypes
+open Farmer.ManagedIdentity
 open Farmer.Vm
 
 let managedClusters = ResourceType ("Microsoft.ContainerService/managedClusters", "2020-04-01")
@@ -25,6 +26,7 @@ type ManagedCluster =
         |} list
       DnsPrefix : string
       EnableRBAC : bool
+      Identity : ResourceIdentity option
       LinuxProfile :
        {| AdminUserName : string
           PublicKeys : string list |} option
@@ -55,11 +57,15 @@ type ManagedCluster =
         member this.ResourceName = this.Name
         member this.JsonModel =
             let dependencies =
-               this.AgentPoolProfiles
-               |> List.map (fun pool -> pool.VirtualNetworkName)
-               |> List.choose id
-               |> List.map(fun vnet -> ResourceId.create(virtualNetworks, vnet))
+               List.concat [
+                   this.AgentPoolProfiles
+                   |> List.map (fun pool -> pool.VirtualNetworkName)
+                   |> List.choose id
+                   |> List.map(fun vnet -> ResourceId.create(virtualNetworks, vnet))
+                   this.Identity |> ManagedIdentity.Dependencies
+               ]
             {| managedClusters.Create(this.Name, this.Location, dependencies) with
+                   identity = this.Identity |> ManagedIdentity.ArmValue
                    properties =
                        {| agentPoolProfiles =
                            this.AgentPoolProfiles
