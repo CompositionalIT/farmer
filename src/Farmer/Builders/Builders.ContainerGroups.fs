@@ -3,6 +3,7 @@ module Farmer.Builders.ContainerGroups
 
 open Farmer
 open Farmer.ContainerGroup
+open Farmer.ManagedIdentity
 open Farmer.Arm.ContainerInstance
 open Farmer.Arm.Network
 
@@ -57,7 +58,7 @@ type ContainerGroupConfig =
       /// Volumes to mount on the container group.
       Volumes : Map<string, Volume>
       /// Managed identity for the container group.
-      Identity : ContainerGroupIdentity option
+      Identity : ResourceIdentity option
       /// Tags for the container group.
       Tags: Map<string,string>  }
     interface IBuilder with
@@ -146,7 +147,7 @@ type ContainerGroupBuilder() =
         { state with Volumes = updatedVolumes }
     /// Sets the managed identity on this container group.
     [<CustomOperation "identity">]
-    member _.Identity(state:ContainerGroupConfig, identity:ContainerGroupIdentity) =
+    member _.Identity(state:ContainerGroupConfig, identity:ResourceIdentity) =
         { state with Identity = Some identity }
     /// Enables a system assigned managed identity to be set for this container group.
     [<CustomOperation "system_assigned_identity">]
@@ -155,7 +156,7 @@ type ContainerGroupBuilder() =
     /// Sets the user assigned managed identity on this container group to a user assigned identity in the same resource group.
     [<CustomOperation "user_assigned_identity">]
     member _.UserAssignedIdentity(state:ContainerGroupConfig, userIdentity:ResourceName) =
-        { state with Identity = Some (UserAssigned [ ManagedIdentity.UserAssignedIdentity(userIdentity.Value, None) ]) }
+        { state with Identity = Some (UserAssigned [ UserAssignedIdentity(userIdentity.Value, None) ]) }
     [<CustomOperation "add_tags">]
     member _.Tags(state:ContainerGroupConfig, pairs) =
         { state with

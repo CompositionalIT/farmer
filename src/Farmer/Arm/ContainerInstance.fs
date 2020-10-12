@@ -2,9 +2,9 @@
 module Farmer.Arm.ContainerInstance
 
 open Farmer
-open Farmer.Arm.ManagedIdentity
 open Farmer.ContainerGroup
 open Farmer.CoreTypes
+open Farmer.ManagedIdentity
 open Newtonsoft.Json.Linq
 
 let containerGroups = ResourceType ("Microsoft.ContainerInstance/containerGroups", "2018-10-01")
@@ -31,7 +31,7 @@ type ContainerGroup =
         |} list
       OperatingSystem : OS
       RestartPolicy : RestartPolicy
-      Identity : ContainerGroupIdentity option
+      Identity : ResourceIdentity option
       IpAddress : ContainerGroupIpAddress
       NetworkProfile : ResourceName option
       Volumes : Map<string, Volume>
@@ -51,32 +51,15 @@ type ContainerGroup =
             | _ ->
                 ()
 
-        match this.Identity with
-        | Some (UserAssigned identities) ->
-            for identity in identities do
-                identity.ResourceId
-        | _ ->
-            ()
+        for identityId in this.Identity |> ManagedIdentity.Dependencies do
+            identityId // If the identity is set, include any dependent identity's resource ID
     ]
 
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
             {| containerGroups.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
-                   identity =
-                       match this.Identity with
-                       | None ->
-                        {| ``type`` = "None"; userAssignedIdentities = null |}
-                       | Some (SystemAssigned) ->
-                        {| ``type`` = "SystemAssigned"; userAssignedIdentities = null |}
-                       | Some (UserAssigned identities) ->
-                        // Identities are assigned as a dictionary with the user identity resource ID as the key
-                        // and an empty object as the value.
-                        {| ``type`` = "UserAssigned"
-                           userAssignedIdentities =
-                            identities
-                            |> List.map (fun identity -> identity.ResourceId.Eval(), obj)
-                            |> dict |}
+                   identity = this.Identity |> ManagedIdentity.ArmValue
                    properties =
                        {| containers =
                            this.ContainerInstances
