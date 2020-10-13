@@ -3,21 +3,18 @@
 
 open Farmer
 open Farmer.Builders
-open Farmer.LogAnalytics
 
-let myRegistry =
-    logAnalytics {
-        name "testmyFarmer2"
-        sku PerGB2018
-        publicNetworkAccessForIngestion
-        publicNetworkAccessForQuery
-        retentionInDays 30
+let myRegistry = logAnalytics {
+    name "testmyFarmer2"
+    sku LogAnalytics.PerGB2018
+    enable_ingestion
+    enable_query
+    retention_period 30<Days>
 }
 
-let deployment =
-    arm {
-        location Location.CentralUS
-        add_resource myRegistry
+let deployment = arm {
+    location Location.CentralUS
+    add_resource myRegistry
 }
 
 deployment
