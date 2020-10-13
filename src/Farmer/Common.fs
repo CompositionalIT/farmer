@@ -308,8 +308,7 @@ module LogAnalytics =
         | PerGB2018
         | Standalone
         member this.ArmValue = this.ToString()
-    
-     
+
 module Storage =
     open Validation
     type StorageAccountName =

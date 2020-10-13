@@ -42,26 +42,18 @@ let tests = testList "Log analytics" [
 
         Expect.equal workspace.QuerySupport None "Query should be off by default"
         Expect.equal workspace.IngestionSupport None "Ingestion should be off by default"
-
     }
 
     test "Can't create log analytics with Sku eqaul to Standalone, PerNode or PerGB2018 and retention_period is not bettwen 30 and 730 " {
-        let builder = makeLogAnalytics PerGB2018 29<Days>
-        Expect.throws (fun _ -> (builder.BuildResources Location.WestEurope |> ignore)) ""
-
-        let builder = makeLogAnalytics PerNode 29<Days>
-        Expect.throws (fun _ -> (builder.BuildResources Location.WestEurope |> ignore)) ""
-
-        let builder = makeLogAnalytics Standalone 29<Days>
-        Expect.throws (fun _ -> (builder.BuildResources Location.WestEurope |> ignore)) ""
+        Expect.throws (fun _ -> makeLogAnalytics PerGB2018 29<Days> |> ignore) "Should have thrown"
+        Expect.throws (fun _ -> makeLogAnalytics PerNode 29<Days> |> ignore) "Should have thrown"
+        Expect.throws (fun _ -> makeLogAnalytics Standalone 29<Days> |> ignore) "Should have thrown"
     }
     test "Can't create log analytics with Sku eqaul to Standard and retention_period doesn't eqaul to 30 " {
-        let builder = makeLogAnalytics Standalone 29<Days>
-        Expect.throws (fun _ -> (builder.BuildResources Location.WestEurope |> ignore)) ""
+        Expect.throws (fun _ -> makeLogAnalytics Standalone 29<Days> |> ignore) "Should have thrown"
     }
 
     test "Can't create log analytics with Sku eqaul to Premium and retention_period doesn't eqaul to 365 " {
-        let f = makeLogAnalytics Premium 300<Days>
-        Expect.throws (fun _ -> (f.BuildResources Location.WestEurope |> ignore)) ""
+        Expect.throws (fun _ -> makeLogAnalytics Premium 300<Days> |> ignore) "Should have thrown"
     }
 ]

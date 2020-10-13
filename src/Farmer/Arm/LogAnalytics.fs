@@ -5,7 +5,7 @@ open Farmer
 open Farmer.LogAnalytics
 open Farmer.CoreTypes
 
-let workspaces = ResourceType("Microsoft.OperationalInsights/workspaces", "2020-08-01")
+let workspaces = ResourceType("Microsoft.OperationalInsights/workspaces", "2020-03-01-preview")
 
 type WorkSpace =
     { Name: ResourceName

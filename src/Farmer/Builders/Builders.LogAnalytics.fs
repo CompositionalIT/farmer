@@ -6,10 +6,16 @@ open Farmer.Arm
 open Farmer.LogAnalytics
 open Farmer.CoreTypes
 
-type WorkSpaceconfig =
+let private (|InBounds|OutOfBounds|) days =
+    if days < 30<Days> then OutOfBounds
+    elif days > 730<Days> then OutOfBounds
+    else InBounds days
+
+
+type WorkspaceConfig =
     { Name: ResourceName
       Sku: Sku
-      RetentionInDays: int<Days> option
+      RetentionPeriod: int<Days> option
       IngestionSupport: FeatureFlag option
       QuerySupport: FeatureFlag option
       Tags: Map<string,string> }
@@ -19,72 +25,68 @@ type WorkSpaceconfig =
             { Name = this.Name
               Location = location
               Sku = this.Sku
-              RetentionPeriod =
-                match this.Sku, this.RetentionInDays with
-                | Standard, Some 30<Days> ->
-                    Some 30<Days>
-                | Standard, Some _ ->
-                    failwithf "The retention Days for Standard must be 30."
-                | Premium, Some 365<Days> ->
-                    Some 365<Days>
-                | Premium, Some _ ->
-                    failwithf "The retention Days for Premium must be 365."
-                | Free, None ->
-                    None
-                | Free, Some _ ->
-                    failwithf "Remove the retention period if you specify a pricing tier of Free."
-                | (Standalone | PerNode | PerGB2018), Some value when value < 30<Days> || value > 730<Days> ->
-                    failwithf "The retention period for PerNode, PerGB2018 and Standalone must be between 30 and 730"
-                | _, Some value ->
-                    Some value
-                | _, None ->
-                    None
+              RetentionPeriod = this.RetentionPeriod
               IngestionSupport = this.IngestionSupport
               QuerySupport = this.QuerySupport
               Tags = this.Tags }
         ]
 
-type WorkSpaceBuilder() =
+type WorkspaceBuilder() =
     /// Required - creates default "starting" values
     member _.Yield _ =
         { Name = ResourceName.Empty
           Sku = PerGB2018
-          RetentionInDays = None
+          RetentionPeriod = None
           IngestionSupport = None
           QuerySupport = None
           Tags = Map.empty }
 
+    member _.Run (state:WorkspaceConfig) =
+        match state.RetentionPeriod with
+        | None ->
+            ()
+        | Some days ->
+            match state.Sku, days with
+            | Standard, 30<Days> -> ()
+            | Premium, 365<Days> -> ()
+            | Standard, _ -> failwithf "The retention period for Standard must be 30."
+            | Premium, _ -> failwithf "The retention period for Premium must be 365."
+            | Free, _ -> failwithf "Remove the retention period if you specify a pricing tier of Free."
+            | (Standalone | PerNode | PerGB2018), OutOfBounds -> failwithf "The retention period for PerNode, PerGB2018 and Standalone must be between 30 and 730"
+            | _, InBounds value -> ()
+        state
+
     /// Sets the name of the Log Analytics workspace.
     [<CustomOperation "name">]
-    member _.Name(state: WorkSpaceconfig, name) = { state with Name = ResourceName name }
+    member _.Name(state: WorkspaceConfig, name) = { state with Name = ResourceName name }
 
     /// Sets the SKU of the Log Analytics workspace.
     [<CustomOperation "sku">]
-    member _.Sku(state: WorkSpaceconfig,sku) = { state with Sku = sku }
+    member _.Sku(state: WorkspaceConfig,sku) = { state with Sku = sku }
 
     /// The workspace data retention in days. -1 means Unlimited retention for the Unlimited Sku. 730 days is the maximum allowed for all other Skus. Standard and Premium pricing tiers which have fixed data retention of 30 and 365 days respectively.
     [<CustomOperation "retention_period">]
-    member _.RetentionInDays(state: WorkSpaceconfig, retentionInDays) =
-        { state with RetentionInDays = Some retentionInDays }
+    member _.RetentionInDays(state: WorkspaceConfig, retentionInDays) =
+        { state with RetentionPeriod = Some retentionInDays }
 
     /// Enables Log Analytics ingestion
     [<CustomOperation "enable_ingestion">]
-    member _.PublicNetworkAccessForIngestion(state: WorkSpaceconfig) =
+    member _.PublicNetworkAccessForIngestion(state: WorkspaceConfig) =
         { state with IngestionSupport = Some Enabled }
 
     /// Enables Log Analytics querying.
     [<CustomOperation "enable_query">]
-    member _.PublicNetworkAccessForQuery(state: WorkSpaceconfig) =
+    member _.PublicNetworkAccessForQuery(state: WorkspaceConfig) =
         { state with QuerySupport = Some Enabled }
 
     [<CustomOperation "add_tags">]
-        member _.Tags(state:WorkSpaceconfig, pairs) =
+        member _.Tags(state:WorkspaceConfig, pairs) =
             { state with
                 Tags = pairs |> List.fold (fun map (key, value) -> Map.add key value map) state.Tags }
 
     [<CustomOperation "add_tag">]
-        member this.Tag(state:WorkSpaceconfig, key, value) = this.Tags(state, [ key, value ])
+        member this.Tag(state:WorkspaceConfig, key, value) = this.Tags(state, [ key, value ])
 
-let logAnalytics = WorkSpaceBuilder()
+let logAnalytics = WorkspaceBuilder()
 
 
