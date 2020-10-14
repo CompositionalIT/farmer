@@ -6,10 +6,9 @@ open Farmer.Builders
 
 let myRegistry = logAnalytics {
     name "testmyFarmer2"
-    sku LogAnalytics.PerGB2018
+    sku (LogAnalytics.PerGb 30<Days>)
     enable_ingestion
     enable_query
-    retention_period 30<Days>
 }
 
 let deployment = arm {

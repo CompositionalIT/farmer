@@ -304,10 +304,17 @@ module LogAnalytics =
         | Standard
         | Premium
         | Free
-        | PerNode
-        | PerGB2018
-        | Standalone
-        member this.ArmValue = this.ToString()
+        | PerNode of int<Days>
+        | PerGb of int<Days>
+        | Standalone of int<Days>
+        member this.ArmValue =
+            match this with
+            | Standard -> "Standard"
+            | Premium -> "Premium"
+            | Free -> "Free"
+            | PerNode _ -> "PerNode"
+            | PerGb _ -> "PerGb2018"
+            | Standalone _ -> "Standalone"
 
 module Storage =
     open Validation
