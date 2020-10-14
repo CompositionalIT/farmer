@@ -93,7 +93,8 @@ type ContainerGroup =
                             | NeverRestart -> "Never"
                             | RestartOnFailure -> "OnFailure"
                           imageRegistryCredentials =
-                              this.ImageRegistryCredentials |> List.map (fun cred ->
+                              this.ImageRegistryCredentials
+                              |> List.map (fun cred ->
                                   {| server = cred.Server
                                      username = cred.Username
                                      password = cred.Password.ArmExpression.Eval() |})
