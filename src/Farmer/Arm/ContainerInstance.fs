@@ -81,7 +81,9 @@ type ContainerGroup =
                                            {| cpu = container.Cpu
                                               memoryInGB = container.Memory |}
                                        |}
-                                      volumeMounts = container.VolumeMounts |> Seq.map (fun kvp -> {| name=kvp.Key; mountPath=kvp.Value |}) |> List.ofSeq
+                                      volumeMounts =
+                                          container.VolumeMounts
+                                          |> Seq.map (fun kvp -> {| name=kvp.Key; mountPath=kvp.Value |}) |> List.ofSeq
                                    |}
                                |})
                           osType = string this.OperatingSystem
