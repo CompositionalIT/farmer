@@ -7,7 +7,7 @@ open Farmer.CoreTypes
 
 let workspaces = ResourceType("Microsoft.OperationalInsights/workspaces", "2020-03-01-preview")
 
-type WorkSpace =
+type Workspace =
     { Name: ResourceName
       Location: Location
       Sku: Sku

@@ -24,7 +24,7 @@ let tests = testList "Log analytics" [
             } :> IBuilder
 
         let resources = builder.BuildResources Location.WestEurope
-        let workspace = resources.[0] :?> WorkSpace
+        let workspace = resources.[0] :?> Workspace
 
         Expect.equal workspace.Location Location.WestEurope "Incorrect Location"
         Expect.equal workspace.Name (ResourceName "myFarmer") "Incorrect Name"
@@ -36,7 +36,7 @@ let tests = testList "Log analytics" [
     test "Ingestion and Query are disabled by default" {
         let builder = makeLogAnalytics (PerGb 30<Days>)
         let resources = builder.BuildResources Location.WestEurope
-        let workspace = resources.[0] :?> WorkSpace
+        let workspace = resources.[0] :?> Workspace
 
         Expect.equal workspace.QuerySupport None "Query should be off by default"
         Expect.equal workspace.IngestionSupport None "Ingestion should be off by default"
