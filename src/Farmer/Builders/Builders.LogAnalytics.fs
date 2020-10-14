@@ -16,6 +16,7 @@ type WorkspaceConfig =
       Sku: Sku
       IngestionSupport: FeatureFlag option
       QuerySupport: FeatureFlag option
+      DailyCap : int<Gb> option
       Tags: Map<string,string> }
     interface IBuilder with
         member this.DependencyName = this.Name
@@ -33,6 +34,7 @@ type WorkspaceBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
           Sku = PerGb 30<Days>
+          DailyCap = None
           IngestionSupport = None
           QuerySupport = None
           Tags = Map.empty }
@@ -71,6 +73,10 @@ type WorkspaceBuilder() =
     [<CustomOperation "enable_query">]
     member _.PublicNetworkAccessForQuery(state: WorkspaceConfig) =
         { state with QuerySupport = Some Enabled }
+
+    /// Specifies the daily cap of ingested data.
+    [<CustomOperation "daily_cap">]
+    member _.DailyCap(state: WorkspaceConfig, cap) = { state with DailyCap = Some cap }
 
     [<CustomOperation "add_tags">]
         member _.Tags(state:WorkspaceConfig, pairs) =

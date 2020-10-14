@@ -13,6 +13,7 @@ type Workspace =
       Sku: Sku
       IngestionSupport: FeatureFlag option
       QuerySupport: FeatureFlag option
+      DailyCap : int<Gb> option
       Tags: Map<string, string> }
     member this.RetentionPeriod =
         match this.Sku with
@@ -34,6 +35,10 @@ type Workspace =
                 properties =
                     {| sku = {| name = this.Sku.ArmValue |}
                        retentionInDays = this.RetentionPeriod
+                       workspaceCapping =
+                        match this.DailyCap with
+                        | None -> null
+                        | Some cap -> {| dailyQuotaGb = cap |} |> box
                        publicNetworkAccessForIngestion =
                         this.IngestionSupport |> Option.map(fun f -> f.ArmValue) |> Option.toObj
                        publicNetworkAccessForQuery =
