@@ -11,7 +11,6 @@ let private (|InBounds|OutOfBounds|) days =
     elif days > 730<Days> then OutOfBounds
     else InBounds days
 
-
 type WorkspaceConfig =
     { Name: ResourceName
       Sku: Sku
@@ -42,18 +41,15 @@ type WorkspaceBuilder() =
           Tags = Map.empty }
 
     member _.Run (state:WorkspaceConfig) =
-        match state.RetentionPeriod with
-        | None ->
-            ()
-        | Some days ->
-            match state.Sku, days with
-            | Standard, 30<Days> -> ()
-            | Premium, 365<Days> -> ()
-            | Standard, _ -> failwithf "The retention period for Standard must be 30."
-            | Premium, _ -> failwithf "The retention period for Premium must be 365."
-            | Free, _ -> failwithf "Remove the retention period if you specify a pricing tier of Free."
-            | (Standalone | PerNode | PerGB2018), OutOfBounds -> failwithf "The retention period for PerNode, PerGB2018 and Standalone must be between 30 and 730"
-            | _, InBounds value -> ()
+        match state.Sku, state.RetentionPeriod with
+        | _, None -> ()
+        | Standard, Some 30<Days> -> ()
+        | Premium, Some 365<Days> -> ()
+        | Standard, Some _ -> failwithf "The retention period for Standard must be 30."
+        | Premium, Some _ -> failwithf "The retention period for Premium must be 365."
+        | Free, Some _ -> failwithf "Remove the retention period if you specify a pricing tier of Free."
+        | (Standalone | PerNode | PerGB2018), Some OutOfBounds -> failwithf "The retention period for PerNode, PerGB2018 and Standalone must be between 30 and 730"
+        | (Standalone | PerNode | PerGB2018), Some (InBounds _) -> ()
         state
 
     /// Sets the name of the Log Analytics workspace.
