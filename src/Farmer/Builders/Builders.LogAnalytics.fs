@@ -26,6 +26,7 @@ type WorkspaceConfig =
               Sku = this.Sku
               IngestionSupport = this.IngestionSupport
               QuerySupport = this.QuerySupport
+              DailyCap = this.DailyCap
               Tags = this.Tags }
         ]
 
