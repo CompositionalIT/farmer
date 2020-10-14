@@ -14,6 +14,11 @@ type ContainerGroupIpAddress =
         {| Protocol : TransmissionProtocol
            Port : uint16 |} Set }
 
+type ImageRegistryCredential =
+    { Server : string
+      Username : string
+      Password : SecureParameter }
+
 type EnvVarValue = EnvValue of string | EnvSecureValue of string
 
 type ContainerGroup =
@@ -23,13 +28,14 @@ type ContainerGroup =
         {| Name : ResourceName
            Image : string
            Ports : uint16 Set
-           Cpu : int
+           Cpu : float
            Memory : float<Gb>
            EnvironmentVariables: Map<string, EnvVarValue>
            VolumeMounts : Map<string,string>
         |} list
       OperatingSystem : OS
       RestartPolicy : RestartPolicy
+      ImageRegistryCredentials : ImageRegistryCredential list
       IpAddress : ContainerGroupIpAddress
       NetworkProfile : ResourceName option
       Volumes : Map<string, Volume>
@@ -50,6 +56,8 @@ type ContainerGroup =
                 ()
     ]
 
+    interface IParameters with
+        member this.SecureParameters = this.ImageRegistryCredentials |> List.map (fun c -> c.Password)
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
@@ -73,7 +81,9 @@ type ContainerGroup =
                                            {| cpu = container.Cpu
                                               memoryInGB = container.Memory |}
                                        |}
-                                      volumeMounts = container.VolumeMounts |> Seq.map (fun kvp -> {| name=kvp.Key; mountPath=kvp.Value |}) |> List.ofSeq
+                                      volumeMounts =
+                                          container.VolumeMounts
+                                          |> Seq.map (fun kvp -> {| name=kvp.Key; mountPath=kvp.Value |}) |> List.ofSeq
                                    |}
                                |})
                           osType = string this.OperatingSystem
@@ -82,6 +92,12 @@ type ContainerGroup =
                             | AlwaysRestart -> "Always"
                             | NeverRestart -> "Never"
                             | RestartOnFailure -> "OnFailure"
+                          imageRegistryCredentials =
+                              this.ImageRegistryCredentials
+                              |> List.map (fun cred ->
+                                  {| server = cred.Server
+                                     username = cred.Username
+                                     password = cred.Password.ArmExpression.Eval() |})
                           ipAddress =
                             {| ``type`` =
                                 match this.IpAddress.Type with

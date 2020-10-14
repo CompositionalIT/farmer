@@ -138,5 +138,19 @@ let tests = testList "Container Group" [
         Expect.isNotNull group.Volumes.[3].GitRepo "Git repo volume should not be null"
     }
 
+    test "Container group with private registry" {
+        let group =
+            containerGroup {
+                add_instances [ nginx ]
+                add_registry_credentials [
+                    registry "my-registry.azurecr.io" "user"
+                ]
+            } |> asAzureResource
+        Expect.hasLength group.ImageRegistryCredentials 1 "Expected one image registry credential"
+        let credentials = group.ImageRegistryCredentials.[0]
+        Expect.equal credentials.Server "my-registry.azurecr.io" "Incorrect container image registry server"
+        Expect.equal credentials.Username "user" "Incorrect container image registry user"
+        Expect.equal credentials.Password "[parameters('my-registry.azurecr.io-password')]" "Container image registry password should be secure parameter"
+    }
 ]
 

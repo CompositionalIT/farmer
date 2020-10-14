@@ -5,6 +5,7 @@ open Farmer
 open Farmer.ContainerGroup
 open Farmer.Arm.ContainerInstance
 open Farmer.Arm.Network
+open Farmer.CoreTypes
 
 type volume_mount =
     static member empty_dir volumeName =
@@ -33,7 +34,7 @@ type ContainerInstanceConfig =
       /// List of ports the container instance listens on
       Ports : Map<uint16, PortAccess>
       /// Max number of CPU cores the container instance may use
-      Cpu : int
+      Cpu : float
       /// Max gigabytes of memory the container instance may use
       Memory : float<Gb>
       /// Environment variables for the container
@@ -48,6 +49,8 @@ type ContainerGroupConfig =
       OperatingSystem : OS
       /// Restart policy for the container group.
       RestartPolicy : RestartPolicy
+      /// Credentials for image registries used by containers in this group.
+      ImageRegistryCredentials : ImageRegistryCredential list
       /// IP address for the container group.
       IpAddress : ContainerGroupIpAddress
       /// Name of the network profile for this container's group.
@@ -74,6 +77,7 @@ type ContainerGroupConfig =
               ]
               OperatingSystem = this.OperatingSystem
               RestartPolicy = this.RestartPolicy
+              ImageRegistryCredentials = this.ImageRegistryCredentials
               IpAddress = this.IpAddress
               NetworkProfile = this.NetworkProfile
               Volumes = this.Volumes
@@ -85,6 +89,7 @@ type ContainerGroupBuilder() =
         { Name = ResourceName.Empty
           OperatingSystem = Linux
           RestartPolicy = AlwaysRestart
+          ImageRegistryCredentials = []
           IpAddress = { Type = PublicAddress; Ports = Set.empty }
           NetworkProfile = None
           Instances = []
@@ -130,6 +135,10 @@ type ContainerGroupBuilder() =
     /// Adds a UDP port to be externally accessible
     [<CustomOperation "add_udp_port">]
     member __.AddUdpPort(state:ContainerGroupConfig, port) = { state with IpAddress = { state.IpAddress with Ports = state.IpAddress.Ports.Add {| Protocol = UDP; Port = port |} } }
+    /// Adds container image registry credentials for images in this container group.
+    [<CustomOperation "add_registry_credentials">]
+    member _.AddRegistryCredentials(state:ContainerGroupConfig, credentials) =
+        { state with ImageRegistryCredentials = state.ImageRegistryCredentials @ credentials }
     /// Adds a collection of container instances to this group
     [<CustomOperation "add_instances">]
     member __.AddInstances(state:ContainerGroupConfig, instances) = { state with Instances = state.Instances @ (Seq.toList instances) }
@@ -146,12 +155,18 @@ type ContainerGroupBuilder() =
     [<CustomOperation "add_tag">]
     member this.Tag(state:ContainerGroupConfig, key, value) = this.Tags(state, [ (key,value) ])
 
+/// Creates an image registry credential with a generated SecureParameter for the password.
+let registry (server:string) (username:string) =
+    { Server = server
+      Username = username
+      Password = SecureParameter (sprintf "%s-password" server) }
+
 type ContainerInstanceBuilder() =
     member __.Yield _ =
         { Name = ResourceName.Empty
           Image = ""
           Ports = Map.empty
-          Cpu = 1
+          Cpu = 1.0
           Memory = 1.5<Gb>
           EnvironmentVariables = Map.empty
           VolumeMounts = Map.empty }
@@ -178,7 +193,8 @@ type ContainerInstanceBuilder() =
     member __.Ports (state:ContainerInstanceConfig, accessibility, ports) = ContainerInstanceBuilder.AddPorts(state, accessibility, ports)
     /// Sets the maximum CPU cores the container instance may use
     [<CustomOperationAttribute "cpu_cores">]
-    member __.CpuCount (state:ContainerInstanceConfig, cpuCount) = { state with Cpu = cpuCount }
+    member __.CpuCount (state:ContainerInstanceConfig, cpuCount:float) = { state with Cpu = cpuCount }
+    member __.CpuCount (state:ContainerInstanceConfig, cpuCount:int) = { state with Cpu = float(cpuCount) }
     /// Sets the maximum gigabytes of memory the container instance may use
     [<CustomOperationAttribute "memory">]
     member __.Memory (state:ContainerInstanceConfig, memory) = { state with Memory = memory }
