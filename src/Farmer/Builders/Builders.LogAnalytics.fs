@@ -30,7 +30,6 @@ type WorkspaceConfig =
         ]
 
 type WorkspaceBuilder() =
-    /// Required - creates default "starting" values
     member _.Yield _ =
         { Name = ResourceName.Empty
           RetentionPeriod = None
@@ -72,11 +71,13 @@ type WorkspaceBuilder() =
     [<CustomOperation "daily_cap">]
     member _.DailyCap(state: WorkspaceConfig, cap) = { state with DailyCap = Some cap }
 
+    /// Adds a set of tags to the resource
     [<CustomOperation "add_tags">]
         member _.Tags(state:WorkspaceConfig, pairs) =
             { state with
                 Tags = pairs |> List.fold (fun map (key, value) -> Map.add key value map) state.Tags }
 
+    /// Adds a tag to the resource
     [<CustomOperation "add_tag">]
         member this.Tag(state:WorkspaceConfig, key, value) = this.Tags(state, [ key, value ])
 

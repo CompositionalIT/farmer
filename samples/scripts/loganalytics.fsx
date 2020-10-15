@@ -4,16 +4,17 @@
 open Farmer
 open Farmer.Builders
 
-let myRegistry = logAnalytics {
+let myAnalytics = logAnalytics {
     name "isaacla"
-    retention_period 30<Days>
+    retention_period 50<Days>
     enable_ingestion
     enable_query
+    daily_cap 5<Gb>
 }
 
 let deployment = arm {
     location Location.WestEurope
-    add_resource myRegistry
+    add_resource myAnalytics
 }
 
 deployment
