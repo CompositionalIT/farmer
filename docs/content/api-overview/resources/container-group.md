@@ -12,7 +12,7 @@ The Container Group builder is used to create Azure Container Group instances.
 
 #### Builder Keywords
 | Applies To | Keyword | Purpose |
-|-|-|
+|-|-|-|
 | containerInstance | name | Sets the name of the Container Group instance. |
 | containerInstance | image | Sets the container image. |
 | containerInstance | add_ports | Sets the ports the container exposes. |
@@ -21,12 +21,13 @@ The Container Group builder is used to create Azure Container Group instances.
 | containerInstance | env_vars | Sets a list of environment variables for the container. |
 | containerInstance | add_volume_mount | Adds a volume mount on a container from a volume in the container group. |
 | containerGroup | add_instances | Adds container instances to the group. |
-| containerGroup | os_type | Sets the OS type (default Linux). |
+| containerGroup | operating_system | Sets the OS type (default Linux). |
 | containerGroup | restart_policy | Sets the restart policy (default Always) |
 | containerGroup | public_dns | Sets the DNS host label when using a public IP. |
 | containerGroup | private_ip | Indicates the container should use a system-assigned private IP address for use in a virtual network. |
 | containerGroup | network_profile | Name of a network profile resource for the subnet in a virtual network where the container group will attach. |
 | containerGroup | identity | Sets the container group identity to a managed identity. |
+| containerGroup | add_registry_credentials | Adds a container image registry credential with a secure parameter for the password. |
 | containerGroup | system_assigned_identity | Sets the container group identity to be system assigned. |
 | containerGroup | user_assigned_identity | Sets the container group identity to a user assigned identity in the same resource group. |
 | containerGroup | add_tcp_port | Adds a TCP port to be externally accessible. |
@@ -65,6 +66,9 @@ let group = containerGroup {
     user_assigned_identity containerGroupUser.Name
     add_udp_port 123us
     add_instances [ nginx ]
+    add_registry_credentials [
+        registry "mygregistry.azurecr.io" "registryuser"
+    ]
     add_volumes [
         volume_mount.secret_string "secret-files" "secret1" "abcdefg"
         volume_mount.git_repo "source-code" (Uri "https://github.com/CompositionalIT/farmer")

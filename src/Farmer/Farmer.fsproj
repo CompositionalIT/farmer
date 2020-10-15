@@ -49,6 +49,7 @@
     <Compile Include="ArmBuilder.fs" />
     <Compile Include="Writer.fs" />
     <Compile Include="Deploy.fs" />
+    <Compile Include="Arm\LogAnalytics.fs" />
 
     <Compile Include="Arm/Storage.fs" />
     <Compile Include="Arm/Cache.fs" />
@@ -77,6 +78,7 @@
     <Compile Include="Arm/SignalR.fs" />
     <Compile Include="Arm/EventGrid.fs" />
     <Compile Include="Arm\NetworkSecurityGroup.fs" />
+    <Compile Include="Builders\Builders.LogAnalytics.fs" />
 
     <Compile Include="Builders/Builders.Helpers.fs" />
     <Compile Include="Builders/Builders.PostgreSQL.fs" />
