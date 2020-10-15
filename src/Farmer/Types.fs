@@ -204,7 +204,10 @@ module ResourceRef =
         | External (Unmanaged r) -> Some r
 
 /// Whether a specific feature is active or not.
-type FeatureFlag = Enabled | Disabled member this.AsBoolean = match this with Enabled -> true | Disabled -> false
+type FeatureFlag =
+    | Enabled | Disabled
+    member this.AsBoolean = match this with Enabled -> true | Disabled -> false
+    member this.ArmValue = match this with Enabled -> "Enabled" | Disabled -> "Disabled"
 
 module FeatureFlag =
     let ofBool enabled = if enabled then Enabled else Disabled
