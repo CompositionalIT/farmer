@@ -183,7 +183,7 @@ let tests = testList "Container Group" [
             containerGroup {
                 name "myapp-with-msi"
                 add_instances [ nginx ]
-                user_assigned_identity msi.Name
+                identity msi
             }
         let template = arm {
             location Location.EastUS

@@ -2,11 +2,13 @@
 module Farmer.Builders.UserAssignedIdentity
 
 open Farmer
+open Farmer.ManagedIdentity
 open Farmer.Arm.ManagedIdentity
 
 type UserAssignedIdentityConfig =
     { Name : ResourceName
       Tags : Map<string, string> }
+    member this.Identity = UserAssigned [ UserAssignedIdentity(this.Name.Value, None) ]
     interface IBuilder with
         member this.DependencyName = this.Name
         member this.BuildResources location = [
@@ -25,8 +27,8 @@ type UserAssignedIdentityBuilder() =
     /// Adds tags to the user assigned identity.
     [<CustomOperation "add_tags">]
     member _.Tags(state:UserAssignedIdentityConfig, pairs) =
-      { state with
-          Tags = pairs |> List.fold (fun map (key, value) -> Map.add key value map) state.Tags }
+        { state with
+            Tags = pairs |> List.fold (fun map (key, value) -> Map.add key value map) state.Tags }
     /// Adds a tag to the user assigned identity.
     [<CustomOperation "add_tag">]
     member this.Tag(state:UserAssignedIdentityConfig, key, value) = this.Tags(state, [ (key,value) ])

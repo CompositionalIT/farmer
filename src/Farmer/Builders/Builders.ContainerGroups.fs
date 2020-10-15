@@ -158,14 +158,8 @@ type ContainerGroupBuilder() =
     [<CustomOperation "identity">]
     member _.Identity(state:ContainerGroupConfig, identity:ResourceIdentity) =
         { state with Identity = Some identity }
-    /// Enables a system assigned managed identity to be set for this container group.
-    [<CustomOperation "system_assigned_identity">]
-    member _.SystemAssignedIdentity(state:ContainerGroupConfig) =
-        { state with Identity = Some SystemAssigned }
-    /// Sets the user assigned managed identity on this container group to a user assigned identity in the same resource group.
-    [<CustomOperation "user_assigned_identity">]
-    member _.UserAssignedIdentity(state:ContainerGroupConfig, userIdentity:ResourceName) =
-        { state with Identity = Some (UserAssigned [ UserAssignedIdentity(userIdentity.Value, None) ]) }
+    member this.Identity(state:ContainerGroupConfig, identity:UserAssignedIdentityConfig) =
+        this.Identity(state, identity.Identity)
     [<CustomOperation "add_tags">]
     member _.Tags(state:ContainerGroupConfig, pairs) =
         { state with

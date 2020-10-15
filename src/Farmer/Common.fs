@@ -600,9 +600,7 @@ module Sql =
 
 module ManagedIdentity =
     /// A user assigned managed identity that can be associated with a resource.
-    type UserAssignedIdentity =
-        | UserAssignedIdentity of Name:string * ResourceGroup:string option
-    
+    type UserAssignedIdentity = UserAssignedIdentity of Name:string * ResourceGroup:string option
     type ResourceIdentity = SystemAssigned | UserAssigned of UserAssignedIdentity list
 
 module ContainerGroup =

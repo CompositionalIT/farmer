@@ -81,6 +81,7 @@
     <Compile Include="Builders\Builders.LogAnalytics.fs" />
 
     <Compile Include="Builders/Builders.Helpers.fs" />
+    <Compile Include="Builders/Builders.UserAssignedIdentity.fs" />
     <Compile Include="Builders/Builders.PostgreSQL.fs" />
     <Compile Include="Builders/Builders.Cdn.fs" />
     <Compile Include="Builders\Builders.ContainerGroups.fs" />
@@ -111,6 +112,5 @@
     <Compile Include="Builders/Builders.VirtualNetworkGateway.fs" />
     <Compile Include="Builders/Builders.EventGrid.fs" />
     <Compile Include="Builders/Builders.NetworkSecurityGroup.fs" />
-    <Compile Include="Builders/Builders.UserAssignedIdentity.fs" />
   </ItemGroup>
 </Project>
