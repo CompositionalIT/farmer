@@ -36,7 +36,7 @@ let myAnalytics = logAnalytics {
     enable_ingestion
     enable_query
     daily_cap 5<Gb>
-    add_tag ("tag1","myTestResourceFarmer")
+    add_tag "tag1""myTestResourceFarmer"
     add_tags [
         ("tag2","myTestResourceFarmer")
     ]
