@@ -5,17 +5,17 @@ open Farmer
 open Farmer.Builders
 
 let myRegistry = logAnalytics {
-    name "testmyFarmer2"
-    sku (LogAnalytics.PerGb 30<Days>)
+    name "isaacla"
+    retention_period 30<Days>
     enable_ingestion
     enable_query
 }
 
 let deployment = arm {
-    location Location.CentralUS
+    location Location.WestEurope
     add_resource myRegistry
 }
 
 deployment
-|> Deploy.execute "SPS_Integration_POC" Deploy.NoParameters
+|> Deploy.execute "test-resource-group" Deploy.NoParameters
 |> printfn "%A"

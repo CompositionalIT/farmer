@@ -3,17 +3,16 @@ module Farmer.Builders.LogAnalytics
 
 open Farmer
 open Farmer.Arm
-open Farmer.LogAnalytics
 open Farmer.CoreTypes
 
 let private (|InBounds|OutOfBounds|) days =
-    if days < 30<Days> then OutOfBounds
-    elif days > 730<Days> then OutOfBounds
+    if days < 30<Days> then OutOfBounds days
+    elif days > 730<Days> then OutOfBounds days
     else InBounds days
 
 type WorkspaceConfig =
     { Name: ResourceName
-      Sku: Sku
+      RetentionPeriod: int<Days> option
       IngestionSupport: FeatureFlag option
       QuerySupport: FeatureFlag option
       DailyCap : int<Gb> option
@@ -23,7 +22,7 @@ type WorkspaceConfig =
         member this.BuildResources location = [
             { Name = this.Name
               Location = location
-              Sku = this.Sku
+              RetentionPeriod = this.RetentionPeriod
               IngestionSupport = this.IngestionSupport
               QuerySupport = this.QuerySupport
               DailyCap = this.DailyCap
@@ -34,21 +33,19 @@ type WorkspaceBuilder() =
     /// Required - creates default "starting" values
     member _.Yield _ =
         { Name = ResourceName.Empty
-          Sku = PerGb 30<Days>
+          RetentionPeriod = None
           DailyCap = None
           IngestionSupport = None
           QuerySupport = None
           Tags = Map.empty }
 
     member _.Run (state:WorkspaceConfig) =
-        match state.Sku with
-        | Standard
-        | Premium
-        | Free
-        | (Standalone (InBounds _) | PerNode (InBounds _) | PerGb (InBounds _)) ->
+        match state.RetentionPeriod with
+        | Some (OutOfBounds days) ->
+            failwithf "The retention period must be between 30 and 730 days. It is currently %d" days
+        | None
+        | Some (InBounds _) ->
             ()
-        | (Standalone OutOfBounds | PerNode OutOfBounds | PerGb OutOfBounds) ->
-            failwithf "The retention period for PerNode, PerGb and Standalone must be between 30 and 730"
 
         state
 
@@ -56,14 +53,10 @@ type WorkspaceBuilder() =
     [<CustomOperation "name">]
     member _.Name(state: WorkspaceConfig, name) = { state with Name = ResourceName name }
 
-    /// Sets the SKU of the Log Analytics workspace.
-    [<CustomOperation "sku">]
-    member _.Sku(state: WorkspaceConfig,sku) = { state with Sku = sku }
-
-    // /// The workspace data retention in days. -1 means Unlimited retention for the Unlimited Sku. 730 days is the maximum allowed for all other Skus. Standard and Premium pricing tiers which have fixed data retention of 30 and 365 days respectively.
-    // [<CustomOperation "retention_period">]
-    // member _.RetentionInDays(state: WorkspaceConfig, retentionInDays) =
-    //     { state with RetentionPeriod = Some retentionInDays }
+    /// The workspace data retention in days. Must be between 30 and 730 days.
+    [<CustomOperation "retention_period">]
+    member _.RetentionInDays(state: WorkspaceConfig, retentionInDays) =
+        { state with RetentionPeriod = Some retentionInDays }
 
     /// Enables Log Analytics ingestion
     [<CustomOperation "enable_ingestion">]
