@@ -47,10 +47,12 @@
     <Compile Include="Types.fs" />
     <Compile Include="Common.fs" />
     <Compile Include="ArmBuilder.fs" />
+
     <Compile Include="Writer.fs" />
     <Compile Include="Deploy.fs" />
-    <Compile Include="Arm\LogAnalytics.fs" />
 
+    <Compile Include="Arm\ManagedIdentity.fs" />
+    <Compile Include="Arm\LogAnalytics.fs" />
     <Compile Include="Arm/Storage.fs" />
     <Compile Include="Arm/Cache.fs" />
     <Compile Include="Arm/Cdn.fs" />
@@ -58,7 +60,6 @@
     <Compile Include="Arm/Dns.fs" />
     <Compile Include="Arm/Network.fs" />
     <Compile Include="Arm\Bastion.fs" />
-    <Compile Include="Arm\ManagedIdentity.fs" />
     <Compile Include="Arm/Compute.fs" />
     <Compile Include="Arm/ContainerInstance.fs" />
     <Compile Include="Arm/ContainerRegistry.fs" />
@@ -78,8 +79,10 @@
     <Compile Include="Arm/SignalR.fs" />
     <Compile Include="Arm/EventGrid.fs" />
     <Compile Include="Arm\NetworkSecurityGroup.fs" />
-    <Compile Include="Builders\Builders.LogAnalytics.fs" />
 
+    <Compile Include="CommonOnArm.fs" />
+
+    <Compile Include="Builders\Builders.LogAnalytics.fs" />
     <Compile Include="Builders/Builders.Helpers.fs" />
     <Compile Include="Builders/Builders.UserAssignedIdentity.fs" />
     <Compile Include="Builders/Builders.PostgreSQL.fs" />

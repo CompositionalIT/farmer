@@ -6,17 +6,15 @@ open Farmer.CoreTypes
 
 let userAssignedIdentities = ResourceType ("Microsoft.ManagedIdentity/userAssignedIdentities", "2018-11-30")
 
-type private ManagedIdentity.UserAssignedIdentity with
-    /// Builds a user assigned identity resource ID.
-    member this.resourceId =
-        let (UserAssignedIdentity (name, resourceGroup)) = this
-        ResourceId.create (userAssignedIdentities, ResourceName name, ?group = resourceGroup)
-
+//TODO: Remove optionality?
 /// List of resource ID's for the managed identities when a resource is using user assigned identities.
 let Dependencies = function
     | Some (UserAssigned identities) ->
-        identities |> List.map (fun identity -> identity.resourceId)
-    | _ -> []
+        identities
+        |> List.map (fun identity -> identity.ResourceId)
+    | None
+    | Some SystemAssigned ->
+        []
 
 /// Builds the JSON ARM value for a resource's identity.
 let ArmValue = function
@@ -30,7 +28,7 @@ let ArmValue = function
         {| ``type`` = "UserAssigned"
            userAssignedIdentities =
             identities
-            |> List.map (fun identity -> identity.resourceId.Eval(), obj)
+            |> List.map (fun identity -> identity.ResourceId.Eval(), obj)
             |> dict |}
 
 /// Creates a user assigned identity ARM resource

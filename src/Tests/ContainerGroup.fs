@@ -4,6 +4,7 @@ open Expecto
 open Farmer
 open Farmer.ManagedIdentity
 open Farmer.ContainerGroup
+open Farmer.CoreTypes
 open Farmer.Builders
 open Microsoft.Azure.Management.ContainerInstance
 open Microsoft.Azure.Management.ContainerInstance.Models
@@ -171,7 +172,7 @@ let tests = testList "Container Group" [
             containerGroup {
                 name "myapp"
                 add_instances [ nginx ]
-                identity (UserAssigned [ UserAssignedIdentity("user", Some "resourceGroup")])
+                identity (ResourceIdentity.create (ResourceId.create("user", "resourceGroup")) )
             } |> asAzureResource
 
         Expect.hasLength group.Identity.UserAssignedIdentities 1 "No user assigned identity."
@@ -196,7 +197,7 @@ let tests = testList "Container Group" [
         Expect.wantSome containerGroup.Identity "Container group identity not user assigned"
         |> function
         | UserAssigned [ userIdentity ] ->
-            Expect.equal userIdentity (ManagedIdentity.UserAssignedIdentity("aciUser", None)) "Expected user identity named 'aciUser'."
+            Expect.equal userIdentity (UserAssignedIdentity(ResourceId.create(Arm.ManagedIdentity.userAssignedIdentities, ResourceName "aciUser"))) "Expected user identity named 'aciUser'."
         | UserAssigned identities ->
             failwithf "Expected 1 user identity, but got %d" identities.Length
         | SystemAssigned ->
