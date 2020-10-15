@@ -18,6 +18,8 @@ The Log Analytics builder is used to create Work space instances.
 | enable_ingestion | Enables ingestion network traffic. |
 | enable_query | Enables query network traffic. |
 | daily_cap | Specifies an upper limit on the amount of data to ingest daily. |
+| add_tags | Adds a set of tags to the resource|
+| add_tag |Adds a tag to the resource|
 
 #### Example
 
