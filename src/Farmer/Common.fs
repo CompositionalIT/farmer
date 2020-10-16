@@ -67,6 +67,7 @@ type IsoDateTime =
     member this.Value = match this with IsoDateTime value -> value
 type TransmissionProtocol = TCP | UDP
 type TlsVersion = Tls10 | Tls11 | Tls12
+
 module Mb =
     let toBytes (mb:int<Mb>) = int64 mb * 1024L * 1024L
 module Vm =
@@ -598,31 +599,34 @@ module Sql =
             | PremiumPool c ->
                 c
 
+/// Represents a role that can be granted to an identity.
+type RoleId =
+    | RoleId of Guid
+    member this.ArmValue =
+        match this with
+        | RoleId guid ->
+            sprintf "concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', '%O')" guid
+            |> Farmer.CoreTypes.ArmExpression.create
+
 module ManagedIdentity =
     open Farmer.CoreTypes
 
-    /// A user assigned managed identity that can be associated with a resource.
-    type UserAssignedIdentity =
-        | UserAssignedIdentity of ResourceId
-        member this.ResourceId = match this with UserAssignedIdentity rId -> rId
     /// Represents an identity that can be assigned to a resource or used for a permission claim.
-    type ResourceIdentity =
-        | SystemAssigned of ResourceId option
-        | UserAssigned of UserAssignedIdentity list
+    type ManagedIdentity =
+        | SystemIdentity of ResourceId option
+        | UserAssignedIdentity of ResourceId
         member this.PrincipalId =
             match this with
-            | UserAssigned (identity :: _) ->
-                let identityExpr = identity.ResourceId.ArmExpression.Value
+            | UserAssignedIdentity resourceId ->
+                let identityExpr = resourceId.ArmExpression.Value
                 ArmExpression
                     .create(sprintf "reference(%s).principalId" identityExpr)
-                    .WithOwner(identity.ResourceId)
-            | SystemAssigned resourceId ->
+                    .WithOwner(resourceId)
+            | SystemIdentity resourceId ->
                 let identity = resourceId.Value.ArmExpression.Value
                 ArmExpression
                     .create(sprintf "reference(%s, '2019-08-01', 'full').identity.principalId" identity)
                     .WithOwner(resourceId.Value)
-            | UserAssigned [] ->
-                failwith "No user assignments!"
             |> PrincipalId
 module ContainerGroup =
     type PortAccess = PublicPort | InternalPort
@@ -1016,221 +1020,6 @@ module EventGrid =
     type EventGridEvent = EventGridEvent of string member this.Value = match this with EventGridEvent s -> s
 
 /// Built in Azure roles (https://docs.microsoft.com/en-us/azure/role-based-access-control/built-in-roles)
-module Roles =
-    type RoleID = RoleID of string
-
-    let AcrPush = RoleID "8311e382-0749-4cb8-b61a-304f252e45ec"
-    let APIManagementServiceContributor = RoleID "312a565d-c81f-4fd8-895a-4e21e48d571c"
-    let AcrPull = RoleID "7f951dda-4ed3-4680-a7ca-43fe172d538d"
-    let AcrImageSigner = RoleID "6cef56e8-d556-48e5-a04f-b8e64114680f"
-    let AcrDelete = RoleID "c2f4ef07-c644-48eb-af81-4b1b4947fb11"
-    let AcrQuarantineReader = RoleID "cdda3590-29a3-44f6-95f2-9f980659eb04"
-    let AcrQuarantineWriter = RoleID "c8d4ff99-41c3-41a8-9f60-21dfdad59608"
-    let APIManagementServiceOperatorRole = RoleID "e022efe7-f5ba-4159-bbe4-b44f577e9b61"
-    let APIManagementServiceReaderRole = RoleID "71522526-b88f-4d52-b57f-d31fc3546d0d"
-    let ApplicationInsightsComponentContributor = RoleID "ae349356-3a1b-4a5e-921d-050484c6347e"
-    let ApplicationInsightsSnapshotDebugger = RoleID "08954f03-6346-4c2e-81c0-ec3a5cfae23b"
-    let AttestationReader = RoleID "fd1bd22b-8476-40bc-a0bc-69b95687b9f3"
-    let AutomationJobOperator = RoleID "4fe576fe-1146-4730-92eb-48519fa6bf9f"
-    let AutomationRunbookOperator = RoleID "5fb5aef8-1081-4b8e-bb16-9d5d0385bab5"
-    let AutomationOperator = RoleID "d3881f73-407a-4167-8283-e981cbba0404"
-    let AvereContributor = RoleID "4f8fab4f-1852-4a58-a46a-8eaf358af14a"
-    let AvereOperator = RoleID "c025889f-8102-4ebf-b32c-fc0c6f0c6bd9"
-    let AzureKubernetesServiceClusterAdminRole = RoleID "0ab0b1a8-8aac-4efd-b8c2-3ee1fb270be8"
-    let AzureKubernetesServiceClusterUserRole = RoleID "4abbcc35-e782-43d8-92c5-2d3f1bd2253f"
-    let AzureMapsDataReader = RoleID "423170ca-a8f6-4b0f-8487-9e4eb8f49bfa"
-    let AzureStackRegistrationOwner = RoleID "6f12a6df-dd06-4f3e-bcb1-ce8be600526a"
-    let BackupContributor = RoleID "5e467623-bb1f-42f4-a55d-6e525e11384b"
-    let BillingReader = RoleID "fa23ad8b-c56e-40d8-ac0c-ce449e1d2c64"
-    let BackupOperator = RoleID "00c29273-979b-4161-815c-10b084fb9324"
-    let BackupReader = RoleID "a795c7a0-d4a2-40c1-ae25-d81f01202912"
-    let BlockchainMemberNodeAccess = RoleID "31a002a1-acaf-453e-8a5b-297c9ca1ea24"
-    let BizTalkContributor = RoleID "5e3c6656-6cfa-4708-81fe-0de47ac73342"
-    let CDNEndpointContributor = RoleID "426e0c7f-0c7e-4658-b36f-ff54d6c29b45"
-    let CDNEndpointReader = RoleID "871e35f6-b5c1-49cc-a043-bde969a0f2cd"
-    let CDNProfileContributor = RoleID "ec156ff8-a8d1-4d15-830c-5b80698ca432"
-    let CDNProfileReader = RoleID "8f96442b-4075-438f-813d-ad51ab4019af"
-    let ClassicNetworkContributor = RoleID "b34d265f-36f7-4a0d-a4d4-e158ca92e90f"
-    let ClassicStorageAccountContributor = RoleID "86e8f5dc-a6e9-4c67-9d15-de283e8eac25"
-    let ClassicStorageAccountKeyOperatorServiceRole = RoleID "985d6b00-f706-48f5-a6fe-d0ca12fb668d"
-    let ClearDBMySQLDBContributor = RoleID "9106cda0-8a86-4e81-b686-29a22c54effe"
-    let ClassicVirtualMachineContributor = RoleID "d73bb868-a0df-4d4d-bd69-98a00b01fccb"
-    let CognitiveServicesUser = RoleID "a97b65f3-24c7-4388-baec-2e87135dc908"
-    let CognitiveServicesDataReader = RoleID "b59867f0-fa02-499b-be73-45a86b5b3e1c"
-    let CognitiveServicesContributor = RoleID "25fbc0a9-bd7c-42a3-aa1a-3b75d497ee68"
-    let CosmosBackupOperator = RoleID "db7b14f2-5adf-42da-9f96-f2ee17bab5cb"
-    let Contributor = RoleID "b24988ac-6180-42a0-ab88-20f7382dd24c"
-    let CosmosDBAccountReaderRole = RoleID "fbdf93bf-df7d-467e-a4d2-9458aa1360c8"
-    let CostManagementContributor = RoleID "434105ed-43f6-45c7-a02f-909b2ba83430"
-    let CostManagementReader = RoleID "72fafb9e-0641-4937-9268-a91bfd8191a3"
-    let DataBoxContributor = RoleID "add466c9-e687-43fc-8d98-dfcf8d720be5"
-    let DataBoxReader = RoleID "028f4ed7-e2a9-465e-a8f4-9c0ffdfdc027"
-    let DataFactoryContributor = RoleID "673868aa-7521-48a0-acc6-0f60742d39f5"
-    let DataPurger = RoleID "150f5e0c-0603-4f03-8c7f-cf70034c4e90"
-    let DataLakeAnalyticsDeveloper = RoleID "47b7735b-770e-4598-a7da-8b91488b4c88"
-    let DevTestLabsUser = RoleID "76283e04-6283-4c54-8f91-bcf1374a3c64"
-    let DocumentDBAccountContributor = RoleID "5bd9cd88-fe45-4216-938b-f97437e15450"
-    let DNSZoneContributor = RoleID "befefa01-2a29-4197-83a8-272ff33ce314"
-    let EventGridEventSubscriptionContributor = RoleID "428e0ff0-5e57-4d9c-a221-2c70d0e0a443"
-    let EventGridEventSubscriptionReader = RoleID "2414bbcf-6497-4faf-8c65-045460748405"
-    let GraphOwner = RoleID "b60367af-1334-4454-b71e-769d9a4f83d9"
-    let HDInsightDomainServicesContributor = RoleID "8d8d5a11-05d3-4bda-a417-a08778121c7c"
-    let IntelligentSystemsAccountContributor = RoleID "03a6d094-3444-4b3d-88af-7477090a9e5e"
-    let KeyVaultContributor = RoleID "f25e0fa2-a7c8-4377-a976-54943a77a395"
-    let KnowledgeConsumer = RoleID "ee361c5d-f7b5-4119-b4b6-892157c8f64c"
-    let LabCreator = RoleID "b97fb8bc-a8b2-4522-a38b-dd33c7e65ead"
-    let LogAnalyticsReader = RoleID "73c42c96-874c-492b-b04d-ab87d138a893"
-    let LogAnalyticsContributor = RoleID "92aaf0da-9dab-42b6-94a3-d43ce8d16293"
-    let LogicAppOperator = RoleID "515c2055-d9d4-4321-b1b9-bd0c9a0f79fe"
-    let LogicAppContributor = RoleID "87a39d53-fc1b-424a-814c-f7e04687dc9e"
-    let ManagedApplicationOperatorRole = RoleID "c7393b34-138c-406f-901b-d8cf2b17e6ae"
-    let ManagedApplicationsReader = RoleID "b9331d33-8a36-4f8c-b097-4f54124fdb44"
-    let ManagedIdentityOperator = RoleID "f1a07417-d97a-45cb-824c-7a7467783830"
-    let ManagedIdentityContributor = RoleID "e40ec5ca-96e0-45a2-b4ff-59039f2c2b59"
-    let ManagementGroupContributor = RoleID "5d58bcaf-24a5-4b20-bdb6-eed9f69fbe4c"
-    let ManagementGroupReader = RoleID "ac63b705-f282-497d-ac71-919bf39d939d"
-    let MonitoringMetricsPublisher = RoleID "3913510d-42f4-4e42-8a64-420c390055eb"
-    let MonitoringReader = RoleID "43d0d8ad-25c7-4714-9337-8ba259a9fe05"
-    let NetworkContributor = RoleID "4d97b98b-1d4f-4787-a291-c67834d212e7"
-    let MonitoringContributor = RoleID "749f88d5-cbae-40b8-bcfc-e573ddc772fa"
-    let NewRelicAPMAccountContributor = RoleID "5d28c62d-5b37-4476-8438-e587778df237"
-    let Owner = RoleID "8e3af657-a8ff-443c-a75c-2fe8c4bcb635"
-    let Reader = RoleID "acdd72a7-3385-48ef-bd42-f606fba81ae7"
-    let RedisCacheContributor = RoleID "e0f68234-74aa-48ed-b826-c38b57376e17"
-    let ReaderAndDataAccess = RoleID "c12c1c16-33a1-487b-954d-41c89c60f349"
-    let ResourcePolicyContributor = RoleID "36243c78-bf99-498c-9df9-86d9f8d28608"
-    let SchedulerJobCollectionsContributor = RoleID "188a0f2f-5c9e-469b-ae67-2aa5ce574b94"
-    let SearchServiceContributor = RoleID "7ca78c08-252a-4471-8644-bb5ff32d4ba0"
-    let SecurityAdmin = RoleID "fb1c8493-542b-48eb-b624-b4c8fea62acd"
-    let SecurityManager = RoleID "e3d13bf0-dd5a-482e-ba6b-9b8433878d10"
-    let SecurityReader = RoleID "39bc4728-0917-49c7-9d2c-d95423bc2eb4"
-    let SpatialAnchorsAccountContributor = RoleID "8bbe83f1-e2a6-4df7-8cb4-4e04d4e5c827"
-    let SiteRecoveryContributor = RoleID "6670b86e-a3f7-4917-ac9b-5d6ab1be4567"
-    let SiteRecoveryOperator = RoleID "494ae006-db33-4328-bf46-533a6560a3ca"
-    let SpatialAnchorsAccountReader = RoleID "5d51204f-eb77-4b1c-b86a-2ec626c49413"
-    let SiteRecoveryReader = RoleID "dbaa88c4-0c30-4179-9fb3-46319faa6149"
-    let SpatialAnchorsAccountOwner = RoleID "70bbe301-9835-447d-afdd-19eb3167307c"
-    let SQLManagedInstanceContributor = RoleID "4939a1f6-9ae0-4e48-a1e0-f2cbe897382d"
-    let SQLDBContributor = RoleID "9b7fa17d-e63e-47b0-bb0a-15c516ac86ec"
-    let SQLSecurityManager = RoleID "056cd41c-7e88-42e1-933e-88ba6a50c9c3"
-    let StorageAccountContributor = RoleID "17d1049b-9a84-46fb-8f53-869881c3d3ab"
-    let SQLServerContributor = RoleID "6d8ee4ec-f05a-4a1d-8b00-a9b17e38b437"
-    let StorageAccountKeyOperatorServiceRole = RoleID "81a9662b-bebf-436f-a333-f67b29880f12"
-    let StorageBlobDataContributor = RoleID "ba92f5b4-2d11-453d-a403-e96b0029c9fe"
-    let StorageBlobDataOwner = RoleID "b7e6dc6d-f1e8-4753-8033-0f276bb0955b"
-    let StorageBlobDataReader = RoleID "2a2b9908-6ea1-4ae2-8e65-a410df84e7d1"
-    let StorageQueueDataContributor = RoleID "974c5e8b-45b9-4653-ba55-5f855dd0fb88"
-    let StorageQueueDataMessageProcessor = RoleID "8a0f0c08-91a1-4084-bc3d-661d67233fed"
-    let StorageQueueDataMessageSender = RoleID "c6a89b2d-59bc-44d0-9896-0f6e12d7b80a"
-    let StorageQueueDataReader = RoleID "19e7f393-937e-4f77-808e-94535e297925"
-    let SupportRequestContributor = RoleID "cfd33db0-3dd1-45e3-aa9d-cdbdf3b6f24e"
-    let TrafficManagerContributor = RoleID "a4b10055-b0c7-44c2-b00f-c7b5b3550cf7"
-    let VirtualMachineAdministratorLogin = RoleID "1c0163c0-47e6-4577-8991-ea5c82e286e4"
-    let UserAccessAdministrator = RoleID "18d7d88d-d35e-4fb5-a5c3-7773c20a72d9"
-    let VirtualMachineUserLogin = RoleID "fb879df8-f326-4884-b1cf-06f3ad86be52"
-    let VirtualMachineContributor = RoleID "9980e02c-c2be-4d73-94e8-173b1dc7cf3c"
-    let WebPlanContributor = RoleID "2cc479cb-7b4d-49a8-b449-8c00fd0f0a4b"
-    let WebsiteContributor = RoleID "de139f84-1756-47ae-9be6-808fbbe84772"
-    let AzureServiceBusDataOwner = RoleID "090c5cfd-751d-490a-894a-3ce6f1109419"
-    let AzureEventHubsDataOwner = RoleID "f526a384-b230-433a-b45c-95f59c4a2dec"
-    let AttestationContributor = RoleID "bbf86eb8-f7b4-4cce-96e4-18cddf81d86e"
-    let HDInsightClusterOperator = RoleID "61ed4efc-fab3-44fd-b111-e24485cc132a"
-    let CosmosDBOperator = RoleID "230815da-be43-4aae-9cb4-875f7bd000aa"
-    let HybridServerResourceAdministrator = RoleID "48b40c6e-82e0-4eb3-90d5-19e40f49b624"
-    let HybridServerOnboarding = RoleID "5d1e5ee4-7c68-4a71-ac8b-0739630a3dfb"
-    let AzureEventHubsDataReceiver = RoleID "a638d3c7-ab3a-418d-83e6-5f17a39d4fde"
-    let AzureEventHubsDataSender = RoleID "2b629674-e913-4c01-ae53-ef4638d8f975"
-    let AzureServiceBusDataReceiver = RoleID "4f6d3b9b-027b-4f4c-9142-0e5a2a2247e0"
-    let AzureServiceBusDataSender = RoleID "69a216fc-b8fb-44d8-bc22-1f3c2cd27a39"
-    let StorageFileDataSMBShareReader = RoleID "aba4ae5f-2193-4029-9191-0cb91df5e314"
-    let StorageFileDataSMBShareContributor = RoleID "0c867c2a-1d8c-454a-a3db-ab2ea1bdc8bb"
-    let PrivateDNSZoneContributor = RoleID "b12aa53e-6015-4669-85d0-8515ebb3ae7f"
-    let StorageBlobDelegator = RoleID "db58b8e5-c6ad-4a2a-8342-4190687cbf4a"
-    let DesktopVirtualizationUser = RoleID "1d18fff3-a72a-46b5-b4a9-0b38a3cd7e63"
-    let StorageFileDataSMBShareElevatedContributor = RoleID "a7264617-510b-434b-a828-9731dc254ea7"
-    let BlueprintContributor = RoleID "41077137-e803-4205-871c-5a86e6a753b4"
-    let BlueprintOperator = RoleID "437d2ced-4a38-4302-8479-ed2bcb43d090"
-    let AzureSentinelContributor = RoleID "ab8e14d6-4a74-4a29-9ba8-549422addade"
-    let AzureSentinelResponder = RoleID "3e150937-b8fe-4cfb-8069-0eaf05ecd056"
-    let AzureSentinelReader = RoleID "8d289c81-5878-46d4-8554-54e1e3d8b5cb"
-    let WorkbookReader = RoleID "b279062a-9be3-42a0-92ae-8b3cf002ec4d"
-    let WorkbookContributor = RoleID "e8ddcd69-c73f-4f9f-9844-4100522f16ad"
-    let PolicyInsightsDataWriter = RoleID "66bb4e9e-b016-4a94-8249-4c0511c2be84"
-    let SignalRAccessKeyReader = RoleID "04165923-9d83-45d5-8227-78b77b0a687e"
-    let SignalRContributor = RoleID "8cf5e20a-e4b2-4e9d-b3a1-5ceb692c2761"
-    let AzureConnectedMachineOnboarding = RoleID "b64e21ea-ac4e-4cdf-9dc9-5b892992bee7"
-    let AzureConnectedMachineResourceAdministrator = RoleID "cd570a14-e51a-42ad-bac8-bafd67325302"
-    let ManagedServicesRegistrationAssignmentDeleteRole = RoleID "91c1777a-f3dc-4fae-b103-61d183457e46"
-    let AppConfigurationDataOwner = RoleID "5ae67dd6-50cb-40e7-96ff-dc2bfa4b606b"
-    let AppConfigurationDataReader = RoleID "516239f1-63e1-4d78-a4de-a74fb236a071"
-    let KubernetesClusterAzureArcOnboarding = RoleID "34e09817-6cbe-4d01-b1a2-e0eac5743d41"
-    let ExperimentationContributor = RoleID "7f646f1b-fa08-80eb-a22b-edd6ce5c915c"
-    let CognitiveServicesQnAMakerReader = RoleID "466ccd10-b268-4a11-b098-b4849f024126"
-    let CognitiveServicesQnAMakerEditor = RoleID "f4cc2bf9-21be-47a1-bdf1-5c5804381025"
-    let ExperimentationAdministrator = RoleID "7f646f1b-fa08-80eb-a33b-edd6ce5c915c"
-    let RemoteRenderingAdministrator = RoleID "3df8b902-2a6f-47c7-8cc5-360e9b272a7e"
-    let RemoteRenderingClient = RoleID "d39065c4-c120-43c9-ab0a-63eed9795f0a"
-    let ManagedApplicationContributorRole = RoleID "641177b8-a67a-45b9-a033-47bc880bb21e"
-    let SecurityAssessmentContributor = RoleID "612c2aa1-cb24-443b-ac28-3ab7272de6f5"
-    let TagContributor = RoleID "4a9ae827-6dc8-4573-8ac7-8239d42aa03f"
-    let IntegrationServiceEnvironmentDeveloper = RoleID "c7aa55d3-1abb-444a-a5ca-5e51e485d6ec"
-    let IntegrationServiceEnvironmentContributor = RoleID "a41e2c5b-bd99-4a07-88f4-9bf657a760b8"
-    let MarketplaceAdmin = RoleID "dd920d6d-f481-47f1-b461-f338c46b2d9f"
-    let AzureKubernetesServiceContributorRole = RoleID "ed7f3fbd-7b88-4dd4-9017-9adb7ce333f8"
-    let AzureDigitalTwinsReader = RoleID "d57506d4-4c8d-48b1-8587-93c323f6a5a3"
-    let AzureDigitalTwinsOwner = RoleID "bcd981a7-7f74-457b-83e1-cceb9e632ffe"
-    let HierarchySettingsAdministrator = RoleID "350f8d15-c687-4448-8ae1-157740a3936d"
-    let FHIRDataContributor = RoleID "5a1fc7df-4bf1-4951-a576-89034ee01acd"
-    let FHIRDataExporter = RoleID "3db33094-8700-4567-8da5-1501d4e7e843"
-    let FHIRDataReader = RoleID "4c8d0bbc-75d3-4935-991f-5f3c56d81508"
-    let FHIRDataWriter = RoleID "3f88fce4-5892-4214-ae73-ba5294559913"
-    let ExperimentationReader = RoleID "49632ef5-d9ac-41f4-b8e7-bbe587fa74a1"
-    let ObjectUnderstandingAccountOwner = RoleID "4dd61c23-6743-42fe-a388-d8bdd41cb745"
-    let AzureMapsDataContributor = RoleID "8f5e0ce6-4f7b-4dcf-bddf-e6f48634a204"
-    let CognitiveServicesCustomVisionContributor = RoleID "c1ff6cc2-c111-46fe-8896-e0ef812ad9f3"
-    let CognitiveServicesCustomVisionDeployment = RoleID "5c4089e1-6d96-4d2f-b296-c1bc7137275f"
-    let CognitiveServicesCustomVisionLabeler = RoleID "88424f51-ebe7-446f-bc41-7fa16989e96c"
-    let CognitiveServicesCustomVisionReader = RoleID "93586559-c37d-4a6b-ba08-b9f0940c2d73"
-    let CognitiveServicesCustomVisionTrainer = RoleID "0a5ae4ab-0d65-4eeb-be61-29fc9b54394b"
-    let KeyVaultAdministrator = RoleID "00482a5a-887f-4fb3-b363-3b7fe8e74483"
-    let KeyVaultCryptoOfficer = RoleID "14b46e9e-c2b7-41b4-b07b-48a6ebf60603"
-    let KeyVaultCryptoUser = RoleID "12338af0-0e69-4776-bea7-57ae8d297424"
-    let KeyVaultSecretsOfficer = RoleID "b86a8fe4-44ce-4948-aee5-eccb2c155cd7"
-    let KeyVaultSecretsUser = RoleID "4633458b-17de-408a-b874-0445c86b69e6"
-    let KeyVaultCertificatesOfficer = RoleID "a4417e6f-fecd-4de8-b567-7b0420556985"
-    let KeyVaultReader = RoleID "21090545-7ca7-4776-b22c-e363652d74d2"
-    let KeyVaultCryptoServiceEncryption = RoleID "e147488a-f6f5-4113-8e2d-b22465e65bf6"
-    let AzureArcKubernetesViewer = RoleID "63f0a09d-1495-4db4-a681-037d84835eb4"
-    let AzureArcKubernetesWriter = RoleID "5b999177-9696-4545-85c7-50de3797e5a1"
-    let AzureArcKubernetesClusterAdmin = RoleID "8393591c-06b9-48a2-a542-1bd6b377f6a2"
-    let AzureArcKubernetesAdmin = RoleID "dffb1e0c-446f-4dde-a09f-99eb5cc68b96"
-    let AzureKubernetesServiceRBACClusterAdmin = RoleID "b1ff04bb-8a4e-4dc4-8eb5-8693973ce19b"
-    let AzureKubernetesServiceRBACAdmin = RoleID "3498e952-d568-435e-9b2c-8d77e338d7f7"
-    let AzureKubernetesServiceRBACReader = RoleID "7f6c6a51-bcf8-42ba-9220-52d62157d7db"
-    let AzureKubernetesServiceRBACWriter = RoleID "a7ffa36f-339b-4b5c-8bdf-e2c188b2c0eb"
-    let ServicesHubOperator = RoleID "82200a5b-e217-47a5-b665-6d8765ee745b"
-    let ObjectUnderstandingAccountReader = RoleID "d18777c0-1514-4662-8490-608db7d334b6"
-    let AzureArcEnabledKubernetesClusterUserRole = RoleID "00493d72-78f6-4148-b6c5-d3ce8e4799dd"
-    let SignalRAppServer = RoleID "420fcaa2-552c-430f-98ca-3264be4806c7"
-    let SignalRServerlessContributor = RoleID "fd53cd77-2268-407a-8f46-7e7863d0f521"
-    let CollaborativeDataContributor = RoleID "daa9e50b-21df-454c-94a6-a8050adab352"
-    let DeviceUpdateReader = RoleID "e9dba6fb-3d52-4cf0-bce3-f06ce71b9e0f"
-    let DeviceUpdateAdministrator = RoleID "02ca0879-e8e4-47a5-a61e-5c618b76e64a"
-    let DeviceUpdateContentAdministrator = RoleID "0378884a-3af5-44ab-8323-f5b22f9f3c98"
-    let DeviceUpdateDeploymentsAdministrator = RoleID "e4237640-0e3d-4a46-8fda-70bc94856432"
-    let DeviceUpdateDeploymentsReader = RoleID "49e2f5d2-7741-4835-8efa-19e1fe35e47f"
-    let DeviceUpdateContentReader = RoleID "d1ee9a80-8b14-47f0-bdc2-f4a351625a7b"
-    let CognitiveServicesMetricsAdvisorAdministrator = RoleID "cb43c632-a144-4ec5-977c-e80c4affc34a"
-    let CognitiveServicesMetricsAdvisorUser = RoleID "3b20f47b-3825-43cb-8114-4bd2201156a8"
-    let SchemaRegistryReader = RoleID "2c56ea50-c6b3-40a6-83c0-9d98858bc7d2"
-    let SchemaRegistryContributor = RoleID "5dffeca3-4936-4216-b2bc-10343a5abb25"
-    let AgFoodPlatformServiceReader = RoleID "7ec7ccdc-f61e-41fe-9aaf-980df0a44eba"
-    let AgFoodPlatformServiceContributor = RoleID "8508508a-4469-4e45-963b-2518ee0bb728"
-    let AgFoodPlatformServiceAdmin = RoleID "f8da80de-1ff9-4747-ad80-a19b7f6079e3"
-    let ManagedHSMcontributor = RoleID "18500a29-7fe2-46b2-a342-b16a415e101d"
-    let SignalRServiceReader = RoleID "ddde6b66-c0df-4114-a159-3618637b3035"
-    let SignalRServiceOwner = RoleID "7e4f1700-ea5a-4f59-8f37-079cfe29dce3"
-
 module Dns =
     type DnsZoneType = Public | Private
     type DnsRecordType =

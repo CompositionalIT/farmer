@@ -33,7 +33,7 @@ type AksConfig =
       AgentPools : AgentPoolConfig list
       DnsPrefix : string
       EnableRBAC : bool
-      Identity : ResourceIdentity option
+      Identity : ManagedIdentity option
       LinuxProfile : (string * string list) option
       NetworkProfile : NetworkProfileConfig option
       ServicePrincipalClientID : string option
@@ -154,7 +154,7 @@ type AzureCniBuilder() =
 let azureCniNetworkProfile = AzureCniBuilder()
 
 /// Builds a Linux Profile from a username and list of ssh public keys
-let make_linux_profile user sshKeys = user, sshKeys
+let makeLinuxProfile user sshKeys = user, sshKeys
 
 type AksBuilder() =
     member _.Yield _ =
@@ -178,7 +178,7 @@ type AksBuilder() =
     member _.EnableRBAC(state:AksConfig) = { state with EnableRBAC = true }
     /// Sets the managed identity on this cluster.
     [<CustomOperation "identity">]
-    member _.Identity(state:AksConfig, identity:ResourceIdentity) = { state with Identity = Some identity }
+    member _.Identity(state:AksConfig, identity:ManagedIdentity) = { state with Identity = Some identity }
     member this.Identity(state:AksConfig, identity:UserAssignedIdentityConfig) = this.Identity(state, identity.Identity)
     /// Adds agent pools to the AKS cluster.
     [<CustomOperation "add_agent_pools">]

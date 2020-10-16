@@ -15,22 +15,21 @@ let roleAssignments = ResourceType ("Microsoft.Storage/storageAccounts/providers
 
 module Providers =
     type RoleAssignment =
-        { Name : string
-          StorageAccount : StorageAccountName
-          RoleDefinitionId : string
-          Identity : ManagedIdentity.ResourceIdentity }
+        { StorageAccount : StorageAccountName
+          RoleDefinitionId : RoleId
+          Identity : ManagedIdentity.ManagedIdentity }
         interface IArmResource with
             member this.ResourceName =
-                sprintf "[concat('%s', '/Microsoft.Authorization/', guid(uniqueString('%s')))]"
+                sprintf "[concat('%s', '/Microsoft.Authorization/', '%O')]"
                     this.StorageAccount.ResourceName.Value
-                    this.Name
+                    (DeterministicGuid.create (this.StorageAccount.ResourceName.Value + this.Identity.PrincipalId.ArmExpression.Value + this.RoleDefinitionId.ToString()))
                 |> ResourceName
             member this.JsonModel =
                 let iar = this :> IArmResource
                 {| roleAssignments.Create(iar.ResourceName, dependsOn = [ ResourceId.create(storageAccounts, this.StorageAccount.ResourceName) ]) with
                     properties =
-                        {| roleDefinitionId = this.RoleDefinitionId
-                           principalId = this.Identity.PrincipalId.ArmValue.Eval() |}
+                        {| roleDefinitionId = this.RoleDefinitionId.ArmValue.Eval()
+                           principalId = this.Identity.PrincipalId.ArmExpression.Eval() |}
                 |} :> _
 
 type StorageAccount =

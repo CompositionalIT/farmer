@@ -123,7 +123,7 @@ type Site =
       Cors : Cors option
       Dependencies : ResourceId list
       Kind : string
-      Identity : ManagedIdentity.ResourceIdentity option
+      Identity : ManagedIdentity.ManagedIdentity option
       LinuxFxVersion : string option
       AppCommandLine : string option
       NetFrameworkVersion : string option

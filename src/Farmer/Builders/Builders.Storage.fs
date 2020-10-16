@@ -44,7 +44,7 @@ type StorageAccountConfig =
       Queues : StorageResourceName Set
       /// Rules
       Rules : Map<ResourceName, StoragePolicy>
-      Identities : Map<string, ManagedIdentity.ResourceIdentity>
+      Identities : Roles.RoleAssignment Set
       /// Static Website Settings
       StaticWebsite : {| IndexPage : string; ContentPath : string; ErrorPage : string option |} option
       /// Tags to apply to the storage account
@@ -86,9 +86,8 @@ type StorageAccountConfig =
                 }
             for identity in this.Identities do
                 { Providers.StorageAccount = this.Name
-                  Providers.RoleDefinitionId = "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]"//"Contributor"
-                  Providers.Name = identity.Key
-                  Providers.Identity = identity.Value }
+                  Providers.RoleDefinitionId = identity.Role
+                  Providers.Identity = identity.Identity }
         ]
 
 type StorageAccountBuilder() =
@@ -100,7 +99,7 @@ type StorageAccountBuilder() =
         FileShares = []
         Rules = Map.empty
         Queues = Set.empty
-        Identities = Map.empty
+        Identities = Set.empty
         StaticWebsite = None
         Tags = Map.empty
     }
@@ -166,10 +165,10 @@ type StorageAccountBuilder() =
               DeleteSnapshotAfter = actions |> List.tryPick(function DeleteSnapshotAfter days -> Some days | _ -> None) }
         { state with Rules = state.Rules.Add (ResourceName ruleName, rule) }
     [<CustomOperation "grant_access">]
-    member _.GrantAccess(state:StorageAccountConfig, name, identity:ManagedIdentity.ResourceIdentity) =
-        { state with Identities = state.Identities.Add(name, identity) }
-    member this.GrantAccess(state:StorageAccountConfig, name, identity:UserAssignedIdentityConfig) =
-        this.GrantAccess(state, name, identity.Identity)
+    member _.GrantAccess(state:StorageAccountConfig, identity:ManagedIdentity.ManagedIdentity, role) =
+        { state with Identities = state.Identities.Add { Identity = identity; Role = role } }
+    member this.GrantAccess(state:StorageAccountConfig, identity:UserAssignedIdentityConfig, role) =
+        this.GrantAccess(state, identity.Identity, role)
 
 /// Allow adding storage accounts directly to CDNs
 type EndpointBuilder with

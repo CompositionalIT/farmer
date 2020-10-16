@@ -93,7 +93,7 @@ type WebAppConfig =
       AlwaysOn : bool
       Runtime : Runtime
 
-      Identity : ManagedIdentity.ResourceIdentity option
+      Identity : ManagedIdentity.ManagedIdentity option
 
       ZipDeployPath : string option
       SourceControlSettings : {| Repository : Uri; Branch : string; ContinuousIntegration : FeatureFlag |} option
@@ -113,7 +113,7 @@ type WebAppConfig =
     member this.Endpoint =
         sprintf "%s.azurewebsites.net" this.Name.Value
     member internal this.SystemIdentity =
-        ManagedIdentity.ResourceIdentity.SystemAssigned (ResourceId.create(sites, this.Name) |> Some)
+        ManagedIdentity.ManagedIdentity.SystemIdentity (ResourceId.create(sites, this.Name) |> Some)
     interface IBuilder with
         member this.DependencyName = this.ServicePlanName
         member this.BuildResources location = [
@@ -536,7 +536,7 @@ type WebAppBuilder() =
                         Password = SecureParameter (sprintf "docker-password-for-%s" registryName) |} }
     /// Sets the managed identity on this container group.
     [<CustomOperation "identity">]
-    member _.Identity(state:WebAppConfig, identity:ManagedIdentity.ResourceIdentity) =
+    member _.Identity(state:WebAppConfig, identity:ManagedIdentity.ManagedIdentity) =
         { state with Identity = Some identity }
     member this.Identity(state:WebAppConfig, identity:UserAssignedIdentityConfig) =
         this.Identity(state, identity.Identity)

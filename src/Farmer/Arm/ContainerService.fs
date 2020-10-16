@@ -26,7 +26,7 @@ type ManagedCluster =
         |} list
       DnsPrefix : string
       EnableRBAC : bool
-      Identity : ResourceIdentity option
+      Identity : ManagedIdentity option
       LinuxProfile :
        {| AdminUserName : string
           PublicKeys : string list |} option
@@ -59,10 +59,10 @@ type ManagedCluster =
             let dependencies =
                List.concat [
                    this.AgentPoolProfiles
-                   |> List.map (fun pool -> pool.VirtualNetworkName)
-                   |> List.choose id
+                   |> List.choose (fun pool -> pool.VirtualNetworkName)
                    |> List.map(fun vnet -> ResourceId.create(virtualNetworks, vnet))
-                   this.Identity |> ManagedIdentity.Dependencies
+
+                   this.Identity |> ManagedIdentity.Dependencies |> Option.toList
                ]
             {| managedClusters.Create(this.Name, this.Location, dependencies) with
                    identity = this.Identity |> ManagedIdentity.ArmValue

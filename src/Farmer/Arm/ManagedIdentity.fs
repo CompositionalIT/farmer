@@ -9,27 +9,27 @@ let userAssignedIdentities = ResourceType ("Microsoft.ManagedIdentity/userAssign
 //TODO: Remove optionality?
 /// List of resource ID's for the managed identities when a resource is using user assigned identities.
 let Dependencies = function
-    | Some (UserAssigned identities) ->
-        identities
-        |> List.map (fun identity -> identity.ResourceId)
-    | None
-    | Some (SystemAssigned _) ->
-        []
+    | Some (UserAssignedIdentity resourceId)
+    | Some (SystemIdentity (Some resourceId)) ->
+        Some resourceId
+    | Some (SystemIdentity None)
+    | None ->
+        None
 
 /// Builds the JSON ARM value for a resource's identity.
 let ArmValue = function
     | None ->
         {| ``type`` = "None"; userAssignedIdentities = null |}
-    | Some (SystemAssigned _) ->
+    | Some (SystemIdentity _) ->
         {| ``type`` = "SystemAssigned"; userAssignedIdentities = null |}
-    | Some (UserAssigned identities) ->
+    | Some (UserAssignedIdentity resourceId) ->
         // Identities are assigned as a dictionary with the user identity resource ID as the key
         // and an empty object as the value.
         {| ``type`` = "UserAssigned"
            userAssignedIdentities =
-            identities
-            |> List.map (fun identity -> identity.ResourceId.Eval(), obj)
-            |> dict |}
+            [ resourceId.Eval(), obj ]
+            |> dict
+        |}
 
 /// Creates a user assigned identity ARM resource
 type UserAssignedIdentity =

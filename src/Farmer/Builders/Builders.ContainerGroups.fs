@@ -61,7 +61,7 @@ type ContainerGroupConfig =
       /// Volumes to mount on the container group.
       Volumes : Map<string, Volume>
       /// Managed identity for the container group.
-      Identity : ResourceIdentity option
+      Identity : ManagedIdentity option
       /// Tags for the container group.
       Tags: Map<string,string>  }
     interface IBuilder with
@@ -156,7 +156,7 @@ type ContainerGroupBuilder() =
         { state with Volumes = updatedVolumes }
     /// Sets the managed identity on this container group.
     [<CustomOperation "identity">]
-    member _.Identity(state:ContainerGroupConfig, identity:ResourceIdentity) =
+    member _.Identity(state:ContainerGroupConfig, identity:ManagedIdentity) =
         { state with Identity = Some identity }
     member this.Identity(state:ContainerGroupConfig, identity:UserAssignedIdentityConfig) =
         this.Identity(state, identity.Identity)

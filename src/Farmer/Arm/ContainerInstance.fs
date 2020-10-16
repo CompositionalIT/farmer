@@ -36,7 +36,7 @@ type ContainerGroup =
         |} list
       OperatingSystem : OS
       RestartPolicy : RestartPolicy
-      Identity : ResourceIdentity option
+      Identity : ManagedIdentity option
       ImageRegistryCredentials : ImageRegistryCredential list
       IpAddress : ContainerGroupIpAddress
       NetworkProfile : ResourceName option
@@ -46,9 +46,7 @@ type ContainerGroup =
         this.NetworkProfile
         |> Option.map (fun networkProfile -> ResourceId.create(networkProfiles, networkProfile))
     member private this.Dependencies = [
-        match this.NetworkProfilePath with
-        | Some path -> path
-        | None -> ()
+        yield! this.NetworkProfilePath |> Option.toList
 
         for _, volume in this.Volumes |> Map.toSeq do
             match volume with
@@ -58,8 +56,7 @@ type ContainerGroup =
                 ()
 
         // If the identity is set, include any dependent identity's resource ID
-        for identityId in this.Identity |> ManagedIdentity.Dependencies do
-            identityId
+        yield! this.Identity |> ManagedIdentity.Dependencies |> Option.toList
     ]
 
     interface IParameters with

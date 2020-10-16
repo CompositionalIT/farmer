@@ -9,7 +9,7 @@ open Farmer.CoreTypes
 type UserAssignedIdentityConfig =
     { Name : ResourceName
       Tags : Map<string, string> }
-    member this.Identity = ResourceIdentity.create this.Name
+    member this.Identity = ManagedIdentity.create this.Name
     interface IBuilder with
         member this.DependencyName = this.Name
         member this.BuildResources location = [
