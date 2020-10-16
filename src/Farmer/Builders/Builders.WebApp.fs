@@ -120,12 +120,10 @@ type WebAppConfig =
             let keyVault, secrets =
                 match this.SecretStore with
                 | KeyVault (DeployableResource this vaultName) ->
-                    let identity =
-                        this.Identity
-                        |> Option.defaultValue this.SystemIdentity
+                    let identity = this.Identity |> Option.defaultValue this.SystemIdentity
                     let store = keyVault {
                         name vaultName
-                        add_access_policy (AccessPolicy.create (identity.PrincipalId, [ KeyVault.Secret.Get ]))
+                        add_access_policy (AccessPolicy.create (identity, [ KeyVault.Secret.Get ]))
                         add_secrets [
                             for setting in this.Settings do
                                 match setting.Value with

@@ -30,8 +30,7 @@ module Providers =
                 {| roleAssignments.Create(iar.ResourceName, dependsOn = [ ResourceId.create(storageAccounts, this.StorageAccount.ResourceName) ]) with
                     properties =
                         {| roleDefinitionId = this.RoleDefinitionId
-                           principalId = this.Identity.PrincipalId.ArmValue.Eval()
-                        |}
+                           principalId = this.Identity.PrincipalId.ArmValue.Eval() |}
                 |} :> _
 
 type StorageAccount =

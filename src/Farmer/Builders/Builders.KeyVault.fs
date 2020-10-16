@@ -180,6 +180,7 @@ let accessPolicy = AccessPolicyBuilder()
 type AccessPolicy =
     /// Quickly creates an access policy for the supplied Principal. If no permissions are supplied, defaults to GET and LIST.
     static member create (principal:PrincipalId, ?permissions) = accessPolicy { object_id principal; secret_permissions (permissions |> Option.defaultValue Secret.ReadSecrets) }
+    /// Quickly creates an access policy for the supplied Identity. If no permissions are supplied, defaults to GET and LIST.
     static member create (identity:ManagedIdentity.ResourceIdentity, ?permissions) = AccessPolicy.create(identity.PrincipalId, ?permissions = permissions)
     /// Quickly creates an access policy for the supplied ObjectId. If no permissions are supplied, defaults to GET and LIST.
     static member create (objectId:ObjectId, ?permissions) = accessPolicy { object_id objectId; secret_permissions (permissions |> Option.defaultValue Secret.ReadSecrets) }
