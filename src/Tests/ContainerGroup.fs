@@ -160,7 +160,7 @@ let tests = testList "Container Group" [
             containerGroup {
                 name "myapp"
                 add_instances [ nginx ]
-                identity SystemAssigned
+                identity (SystemAssigned None)
             } |> asAzureResource
 
         Expect.isTrue group.Identity.Type.HasValue "Expecting an assigned identity."
@@ -200,7 +200,7 @@ let tests = testList "Container Group" [
             Expect.equal userIdentity (UserAssignedIdentity(ResourceId.create(Arm.ManagedIdentity.userAssignedIdentities, ResourceName "aciUser"))) "Expected user identity named 'aciUser'."
         | UserAssigned identities ->
             failwithf "Expected 1 user identity, but got %d" identities.Length
-        | SystemAssigned ->
+        | SystemAssigned _ ->
             Expect.isTrue false "Expected a ContainerGroup.Identity to be user assigned."
     }
  ]

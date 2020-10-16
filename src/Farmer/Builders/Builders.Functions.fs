@@ -81,7 +81,7 @@ type FunctionsConfig =
               |> List.append (this.Settings |> Map.toList)
               |> Map
 
-              Identity = this.Identity
+              Identity = None //this.Identity
               Kind =
                 match this.OperatingSystem with
                 | Windows -> "functionapp"

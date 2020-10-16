@@ -13,14 +13,14 @@ let Dependencies = function
         identities
         |> List.map (fun identity -> identity.ResourceId)
     | None
-    | Some SystemAssigned ->
+    | Some (SystemAssigned _) ->
         []
 
 /// Builds the JSON ARM value for a resource's identity.
 let ArmValue = function
     | None ->
         {| ``type`` = "None"; userAssignedIdentities = null |}
-    | Some (SystemAssigned) ->
+    | Some (SystemAssigned _) ->
         {| ``type`` = "SystemAssigned"; userAssignedIdentities = null |}
     | Some (UserAssigned identities) ->
         // Identities are assigned as a dictionary with the user identity resource ID as the key

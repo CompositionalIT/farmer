@@ -57,8 +57,9 @@ type ContainerGroup =
             | _ ->
                 ()
 
+        // If the identity is set, include any dependent identity's resource ID
         for identityId in this.Identity |> ManagedIdentity.Dependencies do
-            identityId // If the identity is set, include any dependent identity's resource ID
+            identityId
     ]
 
     interface IParameters with

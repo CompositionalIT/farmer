@@ -159,7 +159,7 @@ type AccessPolicyBuilder() =
     member this.ObjectId(state:AccessPolicyConfig, objectId:Guid) = this.ObjectId(state, ArmExpression.create (sprintf "string('%O')" objectId))
     member this.ObjectId(state:AccessPolicyConfig, (ObjectId objectId)) = this.ObjectId(state, objectId)
     member this.ObjectId(state:AccessPolicyConfig, objectId:string) = this.ObjectId(state, Guid.Parse objectId)
-    member this.ObjectId(state:AccessPolicyConfig, PrincipalId principalId) = this.ObjectId(state, principalId)
+    member this.ObjectId(state:AccessPolicyConfig, PrincipalId expression) = this.ObjectId(state, expression)
     /// Sets the Application ID of the permission set.
     [<CustomOperation "application_id">]
     member __.ApplicationId(state:AccessPolicyConfig, applicationId) = { state with ApplicationId = Some applicationId }

@@ -150,10 +150,10 @@ let tests = testList "Web App Tests" [
         ]
         Expect.containsAll site.AppSettings expected "Incorrect settings"
 
-        Expect.sequenceEqual kv.Dependencies [ ResourceId.create site.Name ] "Key Vault dependencies are wrong"
+        Expect.sequenceEqual kv.Dependencies [ ResourceId.create(sites, site.Name) ] "Key Vault dependencies are wrong"
         Expect.equal kv.Name (ResourceName (site.Name.Value + "vault")) "Key Vault name is wrong"
-        Expect.equal kv.AccessPolicies.[0].ObjectId wa.SystemIdentity.ArmValue "Policy is incorrect"
-        Expect.equal wa.Identity (Some Enabled) "System Identity should be turned on"
+        Expect.isSome wa.Identity "System Identity should be turned on"
+        Expect.equal kv.AccessPolicies.[0].ObjectId wa.Identity.Value.PrincipalId.ArmValue "Policy is incorrect"
 
         Expect.hasLength secrets 2 "Incorrect number of KV secrets"
 

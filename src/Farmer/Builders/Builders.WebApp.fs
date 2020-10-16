@@ -93,7 +93,7 @@ type WebAppConfig =
       AlwaysOn : bool
       Runtime : Runtime
 
-      Identity : FeatureFlag option
+      Identity : ManagedIdentity.ResourceIdentity option
 
       ZipDeployPath : string option
       SourceControlSettings : {| Repository : Uri; Branch : string; ContinuousIntegration : FeatureFlag |} option
@@ -110,25 +110,22 @@ type WebAppConfig =
     member this.ServicePlanName = this.ServicePlan.CreateResourceId(this).Name
     /// Gets the App Insights name for this web app, if it exists.
     member this.AppInsightsName = this.AppInsights |> Option.map (fun ai -> ai.CreateResourceId(this).Name)
-    /// Gets the system-created managed principal for the web app. It must have been enabled using enable_managed_identity.
-    member this.SystemIdentity =
-        let expr =
-            ArmExpression
-                .create(sprintf "reference(resourceId('Microsoft.Web/sites', '%s'), '2019-08-01', 'full').identity.principalId" this.Name.Value)
-                .WithOwner(this.Name)
-        PrincipalId expr
     member this.Endpoint =
         sprintf "%s.azurewebsites.net" this.Name.Value
-
+    member internal this.SystemIdentity =
+        ManagedIdentity.ResourceIdentity.SystemAssigned (ResourceId.create(sites, this.Name) |> Some)
     interface IBuilder with
         member this.DependencyName = this.ServicePlanName
         member this.BuildResources location = [
             let keyVault, secrets =
                 match this.SecretStore with
                 | KeyVault (DeployableResource this vaultName) ->
+                    let identity =
+                        this.Identity
+                        |> Option.defaultValue this.SystemIdentity
                     let store = keyVault {
                         name vaultName
-                        add_access_policy (AccessPolicy.create (this.SystemIdentity, [ KeyVault.Secret.Get ]))
+                        add_access_policy (AccessPolicy.create (identity.PrincipalId, [ KeyVault.Secret.Get ]))
                         add_secrets [
                             for setting in this.Settings do
                                 match setting.Value with
@@ -539,12 +536,15 @@ type WebAppBuilder() =
             DockerAcrCredentials =
                 Some {| RegistryName = registryName
                         Password = SecureParameter (sprintf "docker-password-for-%s" registryName) |} }
-    [<CustomOperation "enable_managed_identity">]
-    member _.EnableManagedIdentity(state:WebAppConfig) =
-        { state with Identity = Some Enabled }
-    [<CustomOperation "disable_managed_identity">]
-    member _.DisableManagedIdentity(state:WebAppConfig) =
-        { state with Identity = Some Disabled }
+    /// Sets the managed identity on this container group.
+    [<CustomOperation "identity">]
+    member _.Identity(state:WebAppConfig, identity:ManagedIdentity.ResourceIdentity) =
+        { state with Identity = Some identity }
+    member this.Identity(state:WebAppConfig, identity:UserAssignedIdentityConfig) =
+        this.Identity(state, identity.Identity)
+    [<CustomOperation "system_identity">]
+    member _.SystemIdentity(state:WebAppConfig) =
+        { state with Identity = Some state.SystemIdentity }
     /// sets the list of origins that should be allowed to make cross-origin calls. Use AllOrigins to allow all.
     [<CustomOperation "enable_cors">]
     member _.EnableCors (state:WebAppConfig, origins) =
@@ -589,15 +589,15 @@ type WebAppBuilder() =
     member this.Tag(state:WebAppConfig, key, value) = this.Tags(state, [ (key,value) ])
     [<CustomOperation "use_keyvault">]
     member this.UseKeyVault(state:WebAppConfig) =
-        let state = this.EnableManagedIdentity state
+        let state = this.SystemIdentity(state)
         { state with SecretStore = KeyVault (derived(fun c -> ResourceName (c.Name.Value + "vault"))) }
     [<CustomOperation "use_managed_keyvault">]
     member this.LinkToKeyVault(state:WebAppConfig, name) =
-        let state = this.EnableManagedIdentity state
+        let state = this.SystemIdentity(state)
         { state with SecretStore = KeyVault (External(Managed name)) }
     [<CustomOperation "use_external_keyvault">]
     member this.LinkToExternalKeyVault(state:WebAppConfig, name) =
-        let state = this.EnableManagedIdentity state
+        let state = this.SystemIdentity(state)
         { state with SecretStore = KeyVault (External(Unmanaged name)) }
 
 let webApp = WebAppBuilder()

@@ -599,14 +599,30 @@ module Sql =
                 c
 
 module ManagedIdentity =
+    open Farmer.CoreTypes
+
     /// A user assigned managed identity that can be associated with a resource.
     type UserAssignedIdentity =
-        | UserAssignedIdentity of CoreTypes.ResourceId
+        | UserAssignedIdentity of ResourceId
         member this.ResourceId = match this with UserAssignedIdentity rId -> rId
     type ResourceIdentity =
-        | SystemAssigned
+        | SystemAssigned of ResourceId option
         | UserAssigned of UserAssignedIdentity list
-
+        member this.PrincipalId =
+            match this with
+            | UserAssigned (identity :: _) ->
+                let identityExpr = identity.ResourceId.ArmExpression.Value
+                ArmExpression
+                    .create(sprintf "reference(%s).principalId" identityExpr)
+                    .WithOwner(identity.ResourceId)
+            | UserAssigned [] ->
+                failwith "No user assignments!"
+            | SystemAssigned resourceId ->
+                let identity = resourceId.Value.ArmExpression.Value
+                ArmExpression
+                    .create(sprintf "reference(%s, '2019-08-01', 'full').identity.principalId" identity)
+                    .WithOwner(resourceId.Value)
+            |> PrincipalId
 module ContainerGroup =
     type PortAccess = PublicPort | InternalPort
     type RestartPolicy = NeverRestart | AlwaysRestart | RestartOnFailure
