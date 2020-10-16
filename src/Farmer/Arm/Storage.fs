@@ -11,6 +11,29 @@ let fileShares = ResourceType ("Microsoft.Storage/storageAccounts/fileServices/s
 let queues = ResourceType ("Microsoft.Storage/storageAccounts/queueServices/queues", "2019-06-01")
 let managementPolicies = ResourceType ("Microsoft.Storage/storageAccounts/managementPolicies", "2019-06-01")
 
+let roleAssignments = ResourceType ("Microsoft.Storage/storageAccounts/providers/roleAssignments", "2018-09-01-preview")
+
+module Providers =
+    type RoleAssignment =
+        { Name : string
+          StorageAccount : StorageAccountName
+          RoleDefinitionId : string
+          Identity : ManagedIdentity.ResourceIdentity }
+        interface IArmResource with
+            member this.ResourceName =
+                sprintf "[concat('%s', '/Microsoft.Authorization/', guid(uniqueString('%s')))]"
+                    this.StorageAccount.ResourceName.Value
+                    this.Name
+                |> ResourceName
+            member this.JsonModel =
+                let iar = this :> IArmResource
+                {| roleAssignments.Create(iar.ResourceName, dependsOn = [ ResourceId.create(storageAccounts, this.StorageAccount.ResourceName) ]) with
+                    properties =
+                        {| roleDefinitionId = this.RoleDefinitionId
+                           principalId = this.Identity.PrincipalId.ArmValue.Eval()
+                        |}
+                |} :> _
+
 type StorageAccount =
     { Name : StorageAccountName
       Location : Location

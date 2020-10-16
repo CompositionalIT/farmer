@@ -44,6 +44,7 @@ type StorageAccountConfig =
       Queues : StorageResourceName Set
       /// Rules
       Rules : Map<ResourceName, StoragePolicy>
+      Identities : Map<string, ManagedIdentity.ResourceIdentity>
       /// Static Website Settings
       StaticWebsite : {| IndexPage : string; ContentPath : string; ErrorPage : string option |} option
       /// Tags to apply to the storage account
@@ -83,6 +84,11 @@ type StorageAccountConfig =
                         {| rule with Name = name |}
                   ]
                 }
+            for identity in this.Identities do
+                { Providers.StorageAccount = this.Name
+                  Providers.RoleDefinitionId = "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]"//"Contributor"
+                  Providers.Name = identity.Key
+                  Providers.Identity = identity.Value }
         ]
 
 type StorageAccountBuilder() =
@@ -94,6 +100,7 @@ type StorageAccountBuilder() =
         FileShares = []
         Rules = Map.empty
         Queues = Set.empty
+        Identities = Map.empty
         StaticWebsite = None
         Tags = Map.empty
     }
@@ -158,6 +165,11 @@ type StorageAccountBuilder() =
               DeleteBlobAfter = actions |> List.tryPick(function DeleteAfter days -> Some days | _ -> None)
               DeleteSnapshotAfter = actions |> List.tryPick(function DeleteSnapshotAfter days -> Some days | _ -> None) }
         { state with Rules = state.Rules.Add (ResourceName ruleName, rule) }
+    [<CustomOperation "grant_access">]
+    member _.GrantAccess(state:StorageAccountConfig, name, identity:ManagedIdentity.ResourceIdentity) =
+        { state with Identities = state.Identities.Add(name, identity) }
+    member this.GrantAccess(state:StorageAccountConfig, name, identity:UserAssignedIdentityConfig) =
+        this.GrantAccess(state, name, identity.Identity)
 
 /// Allow adding storage accounts directly to CDNs
 type EndpointBuilder with
