@@ -47,7 +47,7 @@ type ContainerGroup =
         |> Option.map (fun networkProfile -> ResourceId.create(networkProfiles, networkProfile))
     member private this.Dependencies = [
         yield! this.NetworkProfilePath |> Option.toList
-        
+
         for _, volume in this.Volumes |> Map.toSeq do
             match volume with
             | Volume.AzureFileShare (shareName, storageAccountName) ->
@@ -56,8 +56,7 @@ type ContainerGroup =
                 ()
 
         // If the identity is set, include any dependent identity's resource ID
-        let x = this.Identity |> ManagedIdentity.Dependencies |> Option.toList
-        yield! x
+        yield! this.Identity |> ManagedIdentity.Dependencies
     ]
 
     interface IParameters with

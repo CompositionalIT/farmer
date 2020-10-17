@@ -18,8 +18,8 @@ type UserAssignedIdentity =
 
 
 //TODO: Remove optionality?
-/// List of resource ID's for the managed identities when a resource is using user assigned identities.
-let Dependencies (identity:ManagedIdentity option) = identity |> Option.bind (fun i -> i.ResourceId) 
+/// List of resource IDs for the managed identities when a resource is using user assigned identities.
+let Dependencies (identity:ManagedIdentity option) = identity |> Option.bind (fun i -> i.ResourceId) |> Option.toList
 
 /// Builds the JSON ARM value for a resource's identity.
 let toArmJson = function

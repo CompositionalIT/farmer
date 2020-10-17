@@ -62,7 +62,7 @@ type ManagedCluster =
                    |> List.choose (fun pool -> pool.VirtualNetworkName)
                    |> List.map(fun vnet -> ResourceId.create(virtualNetworks, vnet))
 
-                   this.Identity |> ManagedIdentity.Dependencies |> Option.toList
+                   this.Identity |> ManagedIdentity.Dependencies
                ]
             {| managedClusters.Create(this.Name, this.Location, dependencies) with
                    identity = this.Identity |> ManagedIdentity.toArmJson

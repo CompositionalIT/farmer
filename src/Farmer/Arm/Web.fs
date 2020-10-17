@@ -160,7 +160,8 @@ type Site =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| sites.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
+            let dependencies = this.Dependencies @ (this.Identity |> ManagedIdentity.Dependencies)
+            {| sites.Create(this.Name, this.Location, dependencies, this.Tags) with
                  kind = this.Kind
                  identity = this.Identity |> ManagedIdentity.toArmJson
                  properties =

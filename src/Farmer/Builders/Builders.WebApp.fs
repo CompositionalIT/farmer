@@ -245,8 +245,6 @@ type WebAppConfig =
 
                 yield! this.Dependencies
 
-                yield! this.Identity |> Option.bind(fun r -> r.ResourceId) |> Option.toList
-
                 match this.SecretStore with
                 | AppService ->
                     for setting in this.Settings do
