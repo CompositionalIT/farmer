@@ -47,7 +47,7 @@ let makeAks (n:int) =
         name (aksName n)
         dns_prefix (aksDns n)
         enable_rbac
-        identity msi
+        add_identity msi
         add_agent_pools [
             agentPool {
                 name "linuxPool"
@@ -67,6 +67,7 @@ let makeAks (n:int) =
 
 let vnets = [1..4] |> Seq.map makeVnet |> List.ofSeq
 let akses = [1..4] |> Seq.map makeAks |> List.ofSeq
+
 arm {
     location Location.EastUS
     add_resource msi

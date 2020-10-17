@@ -16,7 +16,7 @@ let template = arm {
             name "isaac-container-group"
             operating_system Linux
             restart_policy ContainerGroup.AlwaysRestart
-            user_assigned_identity containerGroupUser.Name
+            add_identity containerGroupUser
             add_instances [
                 containerInstance {
                     name "nginx"
