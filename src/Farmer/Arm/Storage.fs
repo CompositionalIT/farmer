@@ -47,13 +47,14 @@ type StorageAccount =
     { Name : StorageAccountName
       Location : Location
       Sku : Sku
+      Dependencies : ResourceId list
       EnableHierarchicalNamespace : bool option
       StaticWebsite : {| IndexPage : string; ErrorPage : string option; ContentPath : string |} option
       Tags: Map<string,string>}
     interface IArmResource with
         member this.ResourceName = this.Name.ResourceName
         member this.JsonModel =
-            {| storageAccounts.Create(this.Name.ResourceName, this.Location, tags = this.Tags) with
+            {| storageAccounts.Create(this.Name.ResourceName, this.Location, this.Dependencies, this.Tags) with
                 sku = {| name = this.Sku.ArmValue |}
                 kind = "StorageV2"
                 properties =

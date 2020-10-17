@@ -134,6 +134,7 @@ type FunctionsConfig =
                 { Name = Storage.StorageAccountName.Create(resourceName).OkValue
                   Location = location
                   Sku = Storage.Standard_LRS
+                  Dependencies = []
                   StaticWebsite = None
                   EnableHierarchicalNamespace = None
                   Tags = this.Tags }

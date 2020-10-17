@@ -61,6 +61,10 @@ type StorageAccountConfig =
               Location = location
               Sku = this.Sku
               EnableHierarchicalNamespace = this.EnableDataLake
+              Dependencies =
+                this.RoleAssignments
+                |> Seq.choose(fun roleAssignment -> roleAssignment.Principal.ArmExpression.Owner)
+                |> Seq.toList
               StaticWebsite = this.StaticWebsite
               Tags = this.Tags }
             for name, access in this.Containers do
