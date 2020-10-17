@@ -143,12 +143,14 @@ let tests = testList "Web App Tests" [
         let site = wa |> getResources |> getResource<Web.Site> |> List.head
         let vault = wa |> getResources |> getResource<Vault> |> List.head
 
-        let expected = Map [
+        let expectedSettings = Map [
             "storage", LiteralSetting "@Microsoft.KeyVault(SecretUri=https://testwebvault.vault.azure.net/secrets/storage)"
             "secret", LiteralSetting "@Microsoft.KeyVault(SecretUri=https://testwebvault.vault.azure.net/secrets/secret)"
             "literal", LiteralSetting "value"
         ]
-        Expect.containsAll site.AppSettings expected "Incorrect settings"
+
+        Expect.equal site.Identity.SystemAssigned Enabled "System Identity should be enabled"
+        Expect.containsAll site.AppSettings expectedSettings "Incorrect settings"
 
         Expect.sequenceEqual kv.Dependencies [ ResourceId.create(sites, site.Name) ] "Key Vault dependencies are wrong"
         Expect.equal kv.Name (ResourceName (site.Name.Value + "vault")) "Key Vault name is wrong"

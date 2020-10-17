@@ -120,15 +120,9 @@ type WebAppConfig =
             let keyVault, secrets =
                 match this.SecretStore with
                 | KeyVault (DeployableResource this vaultName) ->
-                    let principalId =
-                        match this.Identity with
-                        | { SystemAssigned = Disabled; UserAssigned = [ single ] } ->
-                            single.PrincipalId
-                        | _ ->
-                            this.SystemIdentity
                     let store = keyVault {
                         name vaultName
-                        add_access_policy (AccessPolicy.create (principalId, [ KeyVault.Secret.Get ]))
+                        add_access_policy (AccessPolicy.create (this.SystemIdentity, [ KeyVault.Secret.Get ]))
                         add_secrets [
                             for setting in this.Settings do
                                 match setting.Value with
@@ -166,7 +160,8 @@ type WebAppConfig =
                                 ()
                     ]
                     None, secrets
-                | KeyVault _ | AppService ->
+                | KeyVault _
+                | AppService ->
                     None, []
 
             yield! secrets
@@ -589,15 +584,15 @@ type WebAppBuilder() =
     member this.Tag(state:WebAppConfig, key, value) = this.Tags(state, [ (key,value) ])
     [<CustomOperation "use_keyvault">]
     member this.UseKeyVault(state:WebAppConfig) =
-        let state = this.SystemIdentity(state)
+        let state = this.SystemIdentity (state)
         { state with SecretStore = KeyVault (derived(fun c -> ResourceName (c.Name.Value + "vault"))) }
     [<CustomOperation "use_managed_keyvault">]
     member this.LinkToKeyVault(state:WebAppConfig, name) =
-        let state = this.SystemIdentity(state)
+        let state = this.SystemIdentity (state)
         { state with SecretStore = KeyVault (External(Managed name)) }
     [<CustomOperation "use_external_keyvault">]
     member this.LinkToExternalKeyVault(state:WebAppConfig, name) =
-        let state = this.SystemIdentity(state)
+        let state = this.SystemIdentity (state)
         { state with SecretStore = KeyVault (External(Unmanaged name)) }
 
 let webApp = WebAppBuilder()
