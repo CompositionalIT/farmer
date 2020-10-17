@@ -26,6 +26,7 @@ module Providers =
                 |> ResourceName
             member this.JsonModel =
                 let iar = this :> IArmResource
+                //TODO: Should depend on the principal as well.
                 {| roleAssignments.Create(iar.ResourceName, dependsOn = [ ResourceId.create(storageAccounts, this.StorageAccount.ResourceName) ]) with
                     properties =
                         {| roleDefinitionId = this.RoleDefinitionId.ArmValue.Eval()

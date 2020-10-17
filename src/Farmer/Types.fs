@@ -78,7 +78,9 @@ type ArmExpression =
     /// Applies a mapping function to the expression.
     member this.Map mapper = match this with ArmExpression (e, r) -> ArmExpression(mapper e, r)
     /// Evaluates the expression for emitting into an ARM template. That is, wraps it in [].
-    member this.Eval() = sprintf "[%s]" this.Value
+    member this.Eval() =
+        if System.Text.RegularExpressions.Regex.IsMatch(this.Value, @"string\(\'[^\']*\'\)") then this.Value.Substring(8, this.Value.Length - 10)
+        else sprintf "[%s]" this.Value
     /// Sets the owning resource on this ARM Expression.
     member this.WithOwner(owner:ResourceId) = match this with ArmExpression (e, _) -> ArmExpression(e, Some owner)
     /// Sets the owning resource on this ARM Expression.
