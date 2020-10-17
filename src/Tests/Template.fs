@@ -162,7 +162,7 @@ let tests = testList "Template" [
     test "Generates untyped Resource Id" {
         let rid = ResourceId.create (ResourceName "test")
         let id = rid.Eval()
-        Expect.equal id "[string('test')]" "resourceId template function should match"
+        Expect.equal id "test" "resourceId template function should match"
     }
 
     test "Generates typed Resource Id" {
