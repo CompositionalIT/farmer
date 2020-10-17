@@ -238,11 +238,14 @@ type WebAppConfig =
                 match this.DockerImage with Some _ -> "container" | _ -> ()
               ] |> String.concat ","
               Dependencies = [
+
                 match this.ServicePlan with
                 | DependableResource this resourceName -> ResourceId.create resourceName
                 | _ -> ()
 
                 yield! this.Dependencies
+
+                yield! this.Identity |> Option.bind(fun r -> r.ResourceId) |> Option.toList
 
                 match this.SecretStore with
                 | AppService ->
