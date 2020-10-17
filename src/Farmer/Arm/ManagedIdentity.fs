@@ -6,7 +6,6 @@ open Farmer.CoreTypes
 
 let userAssignedIdentities = ResourceType ("Microsoft.ManagedIdentity/userAssignedIdentities", "2018-11-30")
 
-/// Creates a user assigned identity ARM resource
 type UserAssignedIdentity =
     { Name : ResourceName
       Location : Location
@@ -24,9 +23,7 @@ let toArmJson = function
         {| ``type`` = "SystemAssigned"; userAssignedIdentities = null |}
     | { SystemAssigned = Disabled; UserAssigned = identities } ->
         {| ``type`` = "UserAssigned"
-           userAssignedIdentities = identities |> List.map(fun identity -> identity.ResourceId.Eval(), obj()) |> dict
-        |}
+           userAssignedIdentities = identities |> List.map(fun identity -> identity.ResourceId.Eval(), obj()) |> dict |}
     | { SystemAssigned = Enabled; UserAssigned = identities } ->
         {| ``type`` = "SystemAssigned, UserAssigned"
-           userAssignedIdentities = identities |> List.map(fun identity -> identity.ResourceId.Eval(), obj()) |> dict
-        |}
+           userAssignedIdentities = identities |> List.map(fun identity -> identity.ResourceId.Eval(), obj()) |> dict |}
