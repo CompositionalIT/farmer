@@ -95,7 +95,7 @@ type WebAppConfig =
       AlwaysOn : bool
       Runtime : Runtime
 
-      Identity : Identity.ManagedIdentities
+      Identity : Identity.ManagedIdentity
 
       ZipDeployPath : string option
       SourceControlSettings : {| Repository : Uri; Branch : string; ContinuousIntegration : FeatureFlag |} option
@@ -389,7 +389,7 @@ type WebAppBuilder() =
           ConnectionStrings = Map.empty
           Tags = Map.empty
           Dependencies = []
-          Identity = ManagedIdentities.Empty
+          Identity = ManagedIdentity.Empty
           Runtime = Runtime.DotNetCoreLts
           OperatingSystem = Windows
           ZipDeployPath = None
@@ -541,7 +541,7 @@ type WebAppBuilder() =
                 Some {| RegistryName = registryName
                         Password = SecureParameter (sprintf "docker-password-for-%s" registryName) |} }
     [<CustomOperation "add_identity">]
-    member _.Identity(state:WebAppConfig, identity:ManagedIdentities) = { state with Identity = state.Identity + identity }
+    member _.Identity(state:WebAppConfig, identity:ManagedIdentity) = { state with Identity = state.Identity + identity }
     member this.Identity(state:WebAppConfig, identity:UserAssignedIdentityConfig) = this.Identity(state, identity.ManagedIdentity)
     [<CustomOperation "system_identity">]
     member _.SystemIdentity(state:WebAppConfig) = { state with Identity = { state.Identity with SystemAssigned = Enabled } }

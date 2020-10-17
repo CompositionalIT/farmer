@@ -123,7 +123,7 @@ type Site =
       Cors : Cors option
       Dependencies : ResourceId list
       Kind : string
-      Identity : Identity.ManagedIdentities
+      Identity : Identity.ManagedIdentity
       LinuxFxVersion : string option
       AppCommandLine : string option
       NetFrameworkVersion : string option
@@ -160,7 +160,7 @@ type Site =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            let dependencies = this.Dependencies @ this.Identity.Resources
+            let dependencies = this.Dependencies @ this.Identity.Dependencies
             {| sites.Create(this.Name, this.Location, dependencies, this.Tags) with
                  kind = this.Kind
                  identity = this.Identity |> ManagedIdentity.toArmJson

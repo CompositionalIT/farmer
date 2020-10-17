@@ -26,7 +26,7 @@ type FunctionsConfig =
       StorageAccount : ResourceRef<FunctionsConfig>
       Runtime : FunctionsRuntime
       ExtensionVersion : FunctionsExtensionVersion
-      Identity : ManagedIdentities
+      Identity : ManagedIdentity
       ZipDeployPath : string option }
 
     /// Gets the system-created managed principal for the functions instance. It must have been enabled using enable_managed_identity.
@@ -173,7 +173,7 @@ type FunctionsBuilder() =
           OperatingSystem = Windows
           Settings = Map.empty
           Dependencies = []
-          Identity = ManagedIdentities.Empty
+          Identity = ManagedIdentity.Empty
           Tags = Map.empty
           ZipDeployPath = None }
     /// Sets the name of the functions instance.

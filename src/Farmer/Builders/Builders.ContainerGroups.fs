@@ -61,7 +61,7 @@ type ContainerGroupConfig =
       /// Volumes to mount on the container group.
       Volumes : Map<string, Volume>
       /// Managed identity for the container group.
-      Identity : ManagedIdentities
+      Identity : ManagedIdentity
       /// Tags for the container group.
       Tags: Map<string,string> }
     interface IBuilder with
@@ -94,7 +94,7 @@ type ContainerGroupBuilder() =
         { Name = ResourceName.Empty
           OperatingSystem = Linux
           RestartPolicy = AlwaysRestart
-          Identity = ManagedIdentities.Empty
+          Identity = ManagedIdentity.Empty
           ImageRegistryCredentials = []
           IpAddress = { Type = PublicAddress; Ports = Set.empty }
           NetworkProfile = None
@@ -156,7 +156,7 @@ type ContainerGroupBuilder() =
         { state with Volumes = updatedVolumes }
     /// Sets the managed identity on this container group.
     [<CustomOperation "add_identity">]
-    member _.Identity(state:ContainerGroupConfig, identity:ManagedIdentities) = { state with Identity = state.Identity + identity }
+    member _.Identity(state:ContainerGroupConfig, identity:ManagedIdentity) = { state with Identity = state.Identity + identity }
     member this.Identity(state:ContainerGroupConfig, identity:UserAssignedIdentityConfig) = this.Identity(state, identity.ManagedIdentity)
     [<CustomOperation "system_identity">]
     member _.SystemIdentity(state:ContainerGroupConfig) = { state with Identity = { state.Identity with SystemAssigned = Enabled } }

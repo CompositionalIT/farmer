@@ -625,11 +625,10 @@ module Identity =
         member this.ResourceId = match this with UserAssignedIdentity r -> r
 
     /// Represents an identity that can be assigned to a resource for impersonation.
-    type ManagedIdentities =
+    type ManagedIdentity =
         { SystemAssigned : FeatureFlag
           UserAssigned : UserAssignedIdentity list }
-        member this.Resources =
-            this.UserAssigned |> List.map(fun u -> u.ResourceId)
+        member this.Dependencies = this.UserAssigned |> List.map(fun u -> u.ResourceId)
         static member Empty = { SystemAssigned = Disabled; UserAssigned = [] }
         static member (+) (a, b) =
             { SystemAssigned = (a.SystemAssigned.AsBoolean || b.SystemAssigned.AsBoolean) |> FeatureFlag.ofBool

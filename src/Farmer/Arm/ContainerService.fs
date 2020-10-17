@@ -26,7 +26,7 @@ type ManagedCluster =
         |} list
       DnsPrefix : string
       EnableRBAC : bool
-      Identity : ManagedIdentities
+      Identity : ManagedIdentity
       LinuxProfile :
        {| AdminUserName : string
           PublicKeys : string list |} option
@@ -56,13 +56,12 @@ type ManagedCluster =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            let dependencies =
-               List.concat [
-                   this.AgentPoolProfiles
-                   |> List.choose (fun pool -> pool.VirtualNetworkName)
-                   |> List.map(fun vnet -> ResourceId.create(virtualNetworks, vnet))
-
-                   this.Identity.Resources
+            let dependencies = [
+                   yield!
+                       this.AgentPoolProfiles
+                       |> List.choose (fun pool -> pool.VirtualNetworkName)
+                       |> List.map(fun vnet -> ResourceId.create(virtualNetworks, vnet))
+                   yield! this.Identity.Dependencies
                ]
             {| managedClusters.Create(this.Name, this.Location, dependencies) with
                    identity = this.Identity |> ManagedIdentity.toArmJson
