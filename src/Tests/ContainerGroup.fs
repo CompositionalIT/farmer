@@ -2,7 +2,7 @@ module ContainerGroup
 
 open Expecto
 open Farmer
-open Farmer.ManagedIdentity
+open Farmer.Identity
 open Farmer.ContainerGroup
 open Farmer.CoreTypes
 open Farmer.Builders
@@ -160,7 +160,7 @@ let tests = testList "Container Group" [
             containerGroup {
                 name "myapp"
                 add_instances [ nginx ]
-                identity (SystemIdentity None)
+                system_identity
             } |> asAzureResource
 
         Expect.isTrue group.Identity.Type.HasValue "Expecting an assigned identity."
@@ -172,7 +172,7 @@ let tests = testList "Container Group" [
             containerGroup {
                 name "myapp"
                 add_instances [ nginx ]
-                identity (ManagedIdentity.create (ResourceId.create("user", "resourceGroup")) )
+                identity (ResourceId.create("user", "resourceGroup") |> ManagedIdentity.create)
             } |> asAzureResource
 
         Expect.hasLength group.Identity.UserAssignedIdentities 1 "No user assigned identity."
@@ -196,9 +196,9 @@ let tests = testList "Container Group" [
 
         Expect.wantSome containerGroup.Identity "Container group identity not user assigned"
         |> function
-        | UserAssignedIdentity userIdentity ->
-            Expect.equal userIdentity (ResourceId.create(Arm.ManagedIdentity.userAssignedIdentities, ResourceName "aciUser")) "Expected user identity named 'aciUser'."
-        | SystemIdentity _ ->
+        | UserAssigned userIdentity ->
+            Expect.equal userIdentity (UserAssignedIdentity(ResourceId.create(Arm.ManagedIdentity.userAssignedIdentities, ResourceName "aciUser"))) "Expected user identity named 'aciUser'."
+        | SystemAssigned _ ->
             Expect.isTrue false "Expected a ContainerGroup.Identity to be user assigned."
     }
  ]

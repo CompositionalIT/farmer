@@ -181,7 +181,7 @@ type AccessPolicy =
     /// Quickly creates an access policy for the supplied Principal. If no permissions are supplied, defaults to GET and LIST.
     static member create (principal:PrincipalId, ?permissions) = accessPolicy { object_id principal; secret_permissions (permissions |> Option.defaultValue Secret.ReadSecrets) }
     /// Quickly creates an access policy for the supplied Identity. If no permissions are supplied, defaults to GET and LIST.
-    static member create (identity:ManagedIdentity.ManagedIdentity, ?permissions) = AccessPolicy.create(identity.PrincipalId, ?permissions = permissions)
+    static member create (identity:UserAssignedIdentityConfig, ?permissions) = AccessPolicy.create(identity.UserAssignedIdentity.PrincipalId, ?permissions = permissions)
     /// Quickly creates an access policy for the supplied ObjectId. If no permissions are supplied, defaults to GET and LIST.
     static member create (objectId:ObjectId, ?permissions) = accessPolicy { object_id objectId; secret_permissions (permissions |> Option.defaultValue Secret.ReadSecrets) }
     static member private findEntity (searchField, values, searcher) =

@@ -1,7 +1,7 @@
 ﻿namespace Farmer
 
 open Farmer.CoreTypes
-open ManagedIdentity
+open Identity
 open Farmer.Arm.ManagedIdentity
 open System
 
@@ -12,11 +12,12 @@ module ManagedIdentityExtensions =
         static member create (resourceId:ResourceId) =
             resourceId.WithType(userAssignedIdentities)
             |> UserAssignedIdentity
+            |> UserAssigned
         /// Creates a resource identity from a resource name
-        static member create (name:ResourceName) = CoreTypes.ResourceId.create (userAssignedIdentities, name) |> ManagedIdentity.create
+        static member create (name:ResourceName) = ResourceId.create (userAssignedIdentities, name) |> ManagedIdentity.create
 
 module Roles =
-    type RoleAssignment = { Role : RoleId; Identity : ManagedIdentity }
+    type RoleAssignment = { Role : RoleId; Principal : PrincipalId }
     let private makeRoleId = Guid.Parse >> RoleId
 
     /// acr push

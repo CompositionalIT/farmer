@@ -47,7 +47,7 @@ let makeAks (n:int) =
         name (aksName n)
         dns_prefix (aksDns n)
         enable_rbac
-        identity (ManagedIdentity.UserAssigned [ManagedIdentity.UserAssignedIdentity(msi.Name.Value, None)])
+        identity msi
         add_agent_pools [
             agentPool {
                 name "linuxPool"

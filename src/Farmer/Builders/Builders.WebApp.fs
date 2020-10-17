@@ -2,6 +2,7 @@
 module rec Farmer.Builders.WebApp
 
 open Farmer
+open Farmer.Arm
 open Farmer.CoreTypes
 open Farmer.WebApp
 open Farmer.Arm.Web
@@ -93,7 +94,7 @@ type WebAppConfig =
       AlwaysOn : bool
       Runtime : Runtime
 
-      Identity : ManagedIdentity.ManagedIdentity option
+      Identity : Identity.ManagedIdentity option
 
       ZipDeployPath : string option
       SourceControlSettings : {| Repository : Uri; Branch : string; ContinuousIntegration : FeatureFlag |} option
@@ -110,20 +111,21 @@ type WebAppConfig =
     member this.ServicePlanName = this.ServicePlan.CreateResourceId(this).Name
     /// Gets the App Insights name for this web app, if it exists.
     member this.AppInsightsName = this.AppInsights |> Option.map (fun ai -> ai.CreateResourceId(this).Name)
-    member this.Endpoint =
-        sprintf "%s.azurewebsites.net" this.Name.Value
-    member internal this.SystemIdentity =
-        ManagedIdentity.ManagedIdentity.SystemIdentity (ResourceId.create(sites, this.Name) |> Some)
+    member this.Endpoint = sprintf "%s.azurewebsites.net" this.Name.Value
+    member this.SystemIdentity = ResourceId.create(sites, this.Name) |> Identity.buildSystemIdentityPrincipal
     interface IBuilder with
         member this.DependencyName = this.ServicePlanName
         member this.BuildResources location = [
             let keyVault, secrets =
                 match this.SecretStore with
                 | KeyVault (DeployableResource this vaultName) ->
-                    let identity = this.Identity |> Option.defaultValue this.SystemIdentity
+                    let principalId =
+                            match this.Identity with
+                            | Some (Identity.UserAssigned i) -> i.PrincipalId
+                            | Some Identity.SystemAssigned | None -> this.SystemIdentity
                     let store = keyVault {
                         name vaultName
-                        add_access_policy (AccessPolicy.create (identity, [ KeyVault.Secret.Get ]))
+                        add_access_policy (AccessPolicy.create (principalId, [ KeyVault.Secret.Get ]))
                         add_secrets [
                             for setting in this.Settings do
                                 match setting.Value with
@@ -536,13 +538,13 @@ type WebAppBuilder() =
                         Password = SecureParameter (sprintf "docker-password-for-%s" registryName) |} }
     /// Sets the managed identity on this container group.
     [<CustomOperation "identity">]
-    member _.Identity(state:WebAppConfig, identity:ManagedIdentity.ManagedIdentity) =
+    member _.Identity(state:WebAppConfig, identity:Identity.ManagedIdentity) =
         { state with Identity = Some identity }
     member this.Identity(state:WebAppConfig, identity:UserAssignedIdentityConfig) =
-        this.Identity(state, identity.Identity)
+        this.Identity(state, identity.ManagedIdentity)
     [<CustomOperation "system_identity">]
     member _.SystemIdentity(state:WebAppConfig) =
-        { state with Identity = Some state.SystemIdentity }
+        { state with Identity = Some Identity.SystemAssigned }
     /// sets the list of origins that should be allowed to make cross-origin calls. Use AllOrigins to allow all.
     [<CustomOperation "enable_cors">]
     member _.EnableCors (state:WebAppConfig, origins) =

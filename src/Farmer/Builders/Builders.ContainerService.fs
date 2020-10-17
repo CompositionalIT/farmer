@@ -4,7 +4,7 @@ module Farmer.Builders.ContainerService
 open Farmer
 open Farmer.Arm.ContainerService
 open Farmer.CoreTypes
-open Farmer.ManagedIdentity
+open Farmer.Identity
 open Farmer.Vm
 
 type AgentPoolConfig =
@@ -179,7 +179,7 @@ type AksBuilder() =
     /// Sets the managed identity on this cluster.
     [<CustomOperation "identity">]
     member _.Identity(state:AksConfig, identity:ManagedIdentity) = { state with Identity = Some identity }
-    member this.Identity(state:AksConfig, identity:UserAssignedIdentityConfig) = this.Identity(state, identity.Identity)
+    member this.Identity(state:AksConfig, identity:UserAssignedIdentityConfig) = this.Identity(state, identity.ManagedIdentity)
     /// Adds agent pools to the AKS cluster.
     [<CustomOperation "add_agent_pools">]
     member _.AddAgentPools(state:AksConfig, pools) = { state with AgentPools = state.AgentPools @ pools }

@@ -212,7 +212,7 @@ type FeatureFlag =
 module FeatureFlag =
     let ofBool enabled = if enabled then Enabled else Disabled
 
-/// Represents an ARM expression that evaluates to a principal ID.
+/// Represents an ARM expression that evaluates to a Principal ID. You can quickly generate a PrincipalId through the ManagedIdentity.
 type PrincipalId = PrincipalId of ArmExpression member this.ArmExpression = match this with PrincipalId e -> e
 type ObjectId = ObjectId of Guid
 

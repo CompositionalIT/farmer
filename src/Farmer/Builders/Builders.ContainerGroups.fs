@@ -3,7 +3,7 @@ module Farmer.Builders.ContainerGroups
 
 open Farmer
 open Farmer.ContainerGroup
-open Farmer.ManagedIdentity
+open Farmer.Identity
 open Farmer.Arm.ContainerInstance
 open Farmer.Arm.Network
 open Farmer.CoreTypes
@@ -156,10 +156,10 @@ type ContainerGroupBuilder() =
         { state with Volumes = updatedVolumes }
     /// Sets the managed identity on this container group.
     [<CustomOperation "identity">]
-    member _.Identity(state:ContainerGroupConfig, identity:ManagedIdentity) =
-        { state with Identity = Some identity }
-    member this.Identity(state:ContainerGroupConfig, identity:UserAssignedIdentityConfig) =
-        this.Identity(state, identity.Identity)
+    member this.Identity(state:ContainerGroupConfig, identity:ManagedIdentity) = { state with Identity = Some identity }
+    member this.Identity(state:ContainerGroupConfig, identity:UserAssignedIdentityConfig) = this.Identity(state, identity.ManagedIdentity)
+    [<CustomOperation "system_identity">]
+    member this.SystemIdentity(state:ContainerGroupConfig) = { state with Identity = Some SystemAssigned }
     [<CustomOperation "add_tags">]
     member _.Tags(state:ContainerGroupConfig, pairs) =
         { state with

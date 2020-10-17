@@ -17,19 +17,19 @@ module Providers =
     type RoleAssignment =
         { StorageAccount : StorageAccountName
           RoleDefinitionId : RoleId
-          Identity : ManagedIdentity.ManagedIdentity }
+          PrincipalId : PrincipalId }
         interface IArmResource with
             member this.ResourceName =
                 sprintf "[concat('%s', '/Microsoft.Authorization/', '%O')]"
                     this.StorageAccount.ResourceName.Value
-                    (DeterministicGuid.create (this.StorageAccount.ResourceName.Value + this.Identity.PrincipalId.ArmExpression.Value + this.RoleDefinitionId.ToString()))
+                    (DeterministicGuid.create (this.StorageAccount.ResourceName.Value + this.PrincipalId.ArmExpression.Value + this.RoleDefinitionId.ToString()))
                 |> ResourceName
             member this.JsonModel =
                 let iar = this :> IArmResource
                 {| roleAssignments.Create(iar.ResourceName, dependsOn = [ ResourceId.create(storageAccounts, this.StorageAccount.ResourceName) ]) with
                     properties =
                         {| roleDefinitionId = this.RoleDefinitionId.ArmValue.Eval()
-                           principalId = this.Identity.PrincipalId.ArmExpression.Eval() |}
+                           principalId = this.PrincipalId.ArmExpression.Eval() |}
                 |} :> _
 
 type StorageAccount =

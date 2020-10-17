@@ -123,7 +123,7 @@ type Site =
       Cors : Cors option
       Dependencies : ResourceId list
       Kind : string
-      Identity : ManagedIdentity.ManagedIdentity option
+      Identity : Identity.ManagedIdentity option
       LinuxFxVersion : string option
       AppCommandLine : string option
       NetFrameworkVersion : string option
@@ -162,7 +162,7 @@ type Site =
         member this.JsonModel =
             {| sites.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
                  kind = this.Kind
-                 identity = this.Identity |> ManagedIdentity.ArmValue
+                 identity = this.Identity |> ManagedIdentity.toArmJson
                  properties =
                     {| serverFarmId = this.ServicePlan.Value
                        httpsOnly = this.HTTPSOnly

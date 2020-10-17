@@ -2,14 +2,13 @@
 module Farmer.Builders.UserAssignedIdentity
 
 open Farmer
-open Farmer.ManagedIdentity
+open Farmer.Identity
 open Farmer.Arm.ManagedIdentity
 open Farmer.CoreTypes
 
 type UserAssignedIdentityConfig =
     { Name : ResourceName
       Tags : Map<string, string> }
-    member this.Identity = ManagedIdentity.create this.Name
     interface IBuilder with
         member this.DependencyName = this.Name
         member this.BuildResources location = [
@@ -17,7 +16,10 @@ type UserAssignedIdentityConfig =
               Location = location
               Tags = this.Tags }
         ]
-
+    member this.ResourceId = ResourceId.create(userAssignedIdentities, this.Name)
+    member this.UserAssignedIdentity = UserAssignedIdentity this.ResourceId
+    member this.ManagedIdentity = ManagedIdentity.create this.Name
+    
 type UserAssignedIdentityBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty

@@ -608,26 +608,34 @@ type RoleId =
             sprintf "concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', '%O')" guid
             |> Farmer.CoreTypes.ArmExpression.create
 
-module ManagedIdentity =
+module Identity =
     open Farmer.CoreTypes
-
-    /// Represents an identity that can be assigned to a resource or used for a permission claim.
-    type ManagedIdentity =
-        | SystemIdentity of ResourceId option
+    
+    type UserAssignedIdentity =
         | UserAssignedIdentity of ResourceId
         member this.PrincipalId =
+            let (UserAssignedIdentity resourceId) = this
+            ArmExpression
+                .create(sprintf "reference(%s).principalId" resourceId.ArmExpression.Value)
+                |> PrincipalId
+        member this.ResourceId = match this with UserAssignedIdentity r -> r
+
+    let buildSystemIdentityPrincipal (resourceId:ResourceId) =
+        let identity = resourceId.ArmExpression.Value
+        ArmExpression
+            .create(sprintf "reference(%s, '2019-08-01', 'full').identity.principalId" identity)
+            .WithOwner(resourceId)
+        |> PrincipalId
+    
+    /// Represents an identity that can be assigned to a resource for impersonation.
+    type ManagedIdentity =
+        | SystemAssigned
+        | UserAssigned of UserAssignedIdentity
+        member this.ResourceId =
             match this with
-            | UserAssignedIdentity resourceId ->
-                let identityExpr = resourceId.ArmExpression.Value
-                ArmExpression
-                    .create(sprintf "reference(%s).principalId" identityExpr)
-                    .WithOwner(resourceId)
-            | SystemIdentity resourceId ->
-                let identity = resourceId.Value.ArmExpression.Value
-                ArmExpression
-                    .create(sprintf "reference(%s, '2019-08-01', 'full').identity.principalId" identity)
-                    .WithOwner(resourceId.Value)
-            |> PrincipalId
+            | UserAssigned uai -> Some uai.ResourceId
+            | SystemAssigned -> None
+
 module ContainerGroup =
     type PortAccess = PublicPort | InternalPort
     type RestartPolicy = NeverRestart | AlwaysRestart | RestartOnFailure

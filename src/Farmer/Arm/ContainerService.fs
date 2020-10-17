@@ -3,7 +3,7 @@ module Farmer.Arm.ContainerService
 
 open Farmer
 open Farmer.CoreTypes
-open Farmer.ManagedIdentity
+open Farmer.Identity
 open Farmer.Vm
 
 let managedClusters = ResourceType ("Microsoft.ContainerService/managedClusters", "2020-04-01")
@@ -65,7 +65,7 @@ type ManagedCluster =
                    this.Identity |> ManagedIdentity.Dependencies |> Option.toList
                ]
             {| managedClusters.Create(this.Name, this.Location, dependencies) with
-                   identity = this.Identity |> ManagedIdentity.ArmValue
+                   identity = this.Identity |> ManagedIdentity.toArmJson
                    properties =
                        {| agentPoolProfiles =
                            this.AgentPoolProfiles
