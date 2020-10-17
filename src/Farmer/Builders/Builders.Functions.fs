@@ -29,10 +29,7 @@ type FunctionsConfig =
       ZipDeployPath : string option }
 
     /// Gets the system-created managed principal for the functions instance. It must have been enabled using enable_managed_identity.
-    member this.SystemIdentity =
-        sprintf "reference(resourceId('Microsoft.Web/sites', '%s'), '2019-08-01', 'full').identity.principalId" this.Name.Value
-        |> ArmExpression.create
-        |> PrincipalId
+    member this.SystemIdentity = PrincipalId.CreateSystemIdentity (ResourceId.create(sites, this.Name))
     /// Gets the ARM expression path to the publishing password of this functions app.
     member this.PublishingPassword = publishingPassword this.Name
     /// Gets the ARM expression path to the storage account key of this functions app.

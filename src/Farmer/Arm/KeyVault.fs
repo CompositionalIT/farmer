@@ -61,12 +61,11 @@ type Vault =
                Secrets : Secret Set
                Certificates : Certificate Set
                Storage : Storage Set |}
-        |} array
+        |} list
       DefaultAction : DefaultAction option
       Bypass: Bypass option
       IpRules : string list
       VnetRules : string list
-      Dependencies : ResourceId list
       Tags: Map<string,string>  }
       member this.PurgeProtection =
         match this.SoftDelete with
@@ -79,7 +78,11 @@ type Vault =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| vaults.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
+            let dependencies =
+                this.AccessPolicies
+                |> List.choose(fun r -> r.ObjectId.Owner)
+                |> List.distinct
+            {| vaults.Create(this.Name, this.Location, dependencies, this.Tags) with
                 properties =
                     {| tenantId = this.TenantId
                        sku = {| name = this.Sku.ArmValue; family = "A" |}

@@ -20,14 +20,24 @@ module Providers =
           PrincipalId : PrincipalId }
         interface IArmResource with
             member this.ResourceName =
-                sprintf "[concat('%s', '/Microsoft.Authorization/', '%O')]"
+                sprintf "%s/%s/%O"
                     this.StorageAccount.ResourceName.Value
-                    (DeterministicGuid.create (this.StorageAccount.ResourceName.Value + this.PrincipalId.ArmExpression.Value + this.RoleDefinitionId.ToString()))
+                    "Microsoft.Authorization"
+                    (DeterministicGuid.create(this.StorageAccount.ResourceName.Value + this.PrincipalId.ArmExpression.Value + this.RoleDefinitionId.ToString()))
                 |> ResourceName
             member this.JsonModel =
                 let iar = this :> IArmResource
-                //TODO: Should depend on the principal as well.
-                {| roleAssignments.Create(iar.ResourceName, dependsOn = [ ResourceId.create(storageAccounts, this.StorageAccount.ResourceName) ]) with
+                let dependencies =
+                    [ ResourceId.create(storageAccounts, this.StorageAccount.ResourceName) ]
+                    @ (this.PrincipalId.ArmExpression.Owner |> Option.toList)
+
+                {| roleAssignments.Create(iar.ResourceName, dependsOn = dependencies) with
+                    tags =
+                        {| displayName =
+                            match this.PrincipalId.ArmExpression.Owner with
+                            | None -> this.RoleDefinitionId.Name
+                            | Some owner -> sprintf "%s (%s)" this.RoleDefinitionId.Name owner.Name.Value
+                        |}
                     properties =
                         {| roleDefinitionId = this.RoleDefinitionId.ArmValue.Eval()
                            principalId = this.PrincipalId.ArmExpression.Eval() |}

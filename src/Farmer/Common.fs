@@ -601,32 +601,29 @@ module Sql =
 
 /// Represents a role that can be granted to an identity.
 type RoleId =
-    | RoleId of Guid
+    | RoleId of {| Name:string; Id : Guid |}
     member this.ArmValue =
         match this with
-        | RoleId guid ->
-            sprintf "concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', '%O')" guid
+        | RoleId roleId ->
+            sprintf "concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', '%O')" roleId.Id
             |> Farmer.CoreTypes.ArmExpression.create
+    member this.Name = match this with (RoleId v) -> v.Name
 
 module Identity =
     open Farmer.CoreTypes
-    
+
+    /// Represents a User Assigned Identity, and the ability to create a Principal Id from it.
     type UserAssignedIdentity =
         | UserAssignedIdentity of ResourceId
-        member this.PrincipalId =
+        member private this.CreateExpression field =
             let (UserAssignedIdentity resourceId) = this
             ArmExpression
-                .create(sprintf "reference(%s).principalId" resourceId.ArmExpression.Value)
-                |> PrincipalId
+                .create(sprintf "reference(%s).%s" resourceId.ArmExpression.Value field)
+                .WithOwner(resourceId)
+        member this.PrincipalId = this.CreateExpression "principalId" |> PrincipalId
+        member this.ClientId = this.CreateExpression "clientId"
         member this.ResourceId = match this with UserAssignedIdentity r -> r
 
-    let buildSystemIdentityPrincipal (resourceId:ResourceId) =
-        let identity = resourceId.ArmExpression.Value
-        ArmExpression
-            .create(sprintf "reference(%s, '2019-08-01', 'full').identity.principalId" identity)
-            .WithOwner(resourceId)
-        |> PrincipalId
-    
     /// Represents an identity that can be assigned to a resource for impersonation.
     type ManagedIdentity =
         | SystemAssigned

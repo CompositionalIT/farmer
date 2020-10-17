@@ -214,8 +214,20 @@ type FeatureFlag =
 module FeatureFlag =
     let ofBool enabled = if enabled then Enabled else Disabled
 
-/// Represents an ARM expression that evaluates to a Principal ID. You can quickly generate a PrincipalId through the ManagedIdentity.
-type PrincipalId = PrincipalId of ArmExpression member this.ArmExpression = match this with PrincipalId e -> e
+/// A Principal ID represents an Identity, typically either a system or user generated Identity.
+type PrincipalId =
+    | PrincipalId of ArmExpression member this.ArmExpression = match this with PrincipalId e -> e
+    static member CreateSystemIdentity (resourceId:ResourceId) =
+        match resourceId.Type with
+        | None ->
+            failwith "Resource Id must have a type in order to generate a Prinicipal ID"
+        | Some resourceType ->
+            let identity = resourceId.ArmExpression.Value
+            ArmExpression
+                .create(sprintf "reference(%s, '%s', 'full').identity.principalId" identity resourceType.ApiVersion)
+                .WithOwner(resourceId)
+            |> PrincipalId
+
 type ObjectId = ObjectId of Guid
 
 /// Represents a secret to be captured either via an ARM expression or a secure parameter.
