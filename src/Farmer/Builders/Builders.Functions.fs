@@ -4,6 +4,7 @@ module Farmer.Builders.Functions
 open Farmer
 open Farmer.CoreTypes
 open Farmer.Helpers
+open Farmer.Identity
 open Farmer.WebApp
 open Farmer.Arm.Web
 open Farmer.Arm.Insights
@@ -25,7 +26,7 @@ type FunctionsConfig =
       StorageAccount : ResourceRef<FunctionsConfig>
       Runtime : FunctionsRuntime
       ExtensionVersion : FunctionsExtensionVersion
-      Identity : FeatureFlag option
+      Identity : ManagedIdentities
       ZipDeployPath : string option }
 
     /// Gets the system-created managed principal for the functions instance. It must have been enabled using enable_managed_identity.
@@ -78,7 +79,7 @@ type FunctionsConfig =
               |> List.append (this.Settings |> Map.toList)
               |> Map
 
-              Identity = None //this.Identity
+              Identity = this.Identity
               Kind =
                 match this.OperatingSystem with
                 | Windows -> "functionapp"
@@ -172,7 +173,7 @@ type FunctionsBuilder() =
           OperatingSystem = Windows
           Settings = Map.empty
           Dependencies = []
-          Identity = None
+          Identity = ManagedIdentities.Empty
           Tags = Map.empty
           ZipDeployPath = None }
     /// Sets the name of the functions instance.
@@ -255,12 +256,9 @@ type FunctionsBuilder() =
                 | SpecificOrigins (origins, _) -> SpecificOrigins (origins, Some true)
                 | AllOrigins -> failwith "You cannot enable CORS Credentials if you have already set CORS to AllOrigins.")
         }
-    [<CustomOperation "enable_managed_identity">]
+    [<CustomOperation "system_identity">]
     member _.EnableManagedIdentity(state:FunctionsConfig) =
-        { state with Identity = Some Enabled }
-    [<CustomOperation "disable_managed_identity">]
-    member _.DisableManagedIdentity(state:FunctionsConfig) =
-        { state with Identity = Some Disabled }
+        { state with Identity = { state.Identity with SystemAssigned = Enabled } }
     [<CustomOperation "add_tags">]
     member _.Tags(state:FunctionsConfig, pairs) =
         { state with

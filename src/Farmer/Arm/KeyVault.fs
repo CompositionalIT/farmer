@@ -75,14 +75,14 @@ type Vault =
         | Some SoftDeleteWithPurgeProtection ->
             Some true
       member private _.ToStringArray s = s |> Set.map(fun s -> s.ToString().ToLower()) |> Set.toArray
+      member this.Dependencies =
+        this.AccessPolicies
+        |> List.choose(fun r -> r.ObjectId.Owner)
+        |> List.distinct
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            let dependencies =
-                this.AccessPolicies
-                |> List.choose(fun r -> r.ObjectId.Owner)
-                |> List.distinct
-            {| vaults.Create(this.Name, this.Location, dependencies, this.Tags) with
+            {| vaults.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
                 properties =
                     {| tenantId = this.TenantId
                        sku = {| name = this.Sku.ArmValue; family = "A" |}

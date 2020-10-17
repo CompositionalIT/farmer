@@ -36,7 +36,7 @@ type ContainerGroup =
         |} list
       OperatingSystem : OS
       RestartPolicy : RestartPolicy
-      Identity : ManagedIdentity option
+      Identity : ManagedIdentities
       ImageRegistryCredentials : ImageRegistryCredential list
       IpAddress : ContainerGroupIpAddress
       NetworkProfile : ResourceName option
@@ -56,7 +56,7 @@ type ContainerGroup =
                 ()
 
         // If the identity is set, include any dependent identity's resource ID
-        yield! this.Identity |> ManagedIdentity.Dependencies
+        yield! this.Identity.Resources
     ]
 
     interface IParameters with

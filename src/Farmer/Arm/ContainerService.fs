@@ -26,7 +26,7 @@ type ManagedCluster =
         |} list
       DnsPrefix : string
       EnableRBAC : bool
-      Identity : ManagedIdentity option
+      Identity : ManagedIdentities
       LinuxProfile :
        {| AdminUserName : string
           PublicKeys : string list |} option
@@ -62,7 +62,7 @@ type ManagedCluster =
                    |> List.choose (fun pool -> pool.VirtualNetworkName)
                    |> List.map(fun vnet -> ResourceId.create(virtualNetworks, vnet))
 
-                   this.Identity |> ManagedIdentity.Dependencies
+                   this.Identity.Resources
                ]
             {| managedClusters.Create(this.Name, this.Location, dependencies) with
                    identity = this.Identity |> ManagedIdentity.toArmJson

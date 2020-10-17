@@ -172,7 +172,7 @@ let tests = testList "Container Group" [
             containerGroup {
                 name "myapp"
                 add_instances [ nginx ]
-                identity (ResourceId.create("user", "resourceGroup") |> ManagedIdentity.create)
+                add_identity (ResourceId.create("user", "resourceGroup") |> ManagedIdentities.create)
             } |> asAzureResource
 
         Expect.hasLength group.Identity.UserAssignedIdentities 1 "No user assigned identity."
@@ -184,7 +184,7 @@ let tests = testList "Container Group" [
             containerGroup {
                 name "myapp-with-msi"
                 add_instances [ nginx ]
-                identity msi
+                add_identity msi
             }
         let template = arm {
             location Location.EastUS
@@ -192,14 +192,8 @@ let tests = testList "Container Group" [
             add_resource group
         }
         let containerGroup = template.Template.Resources |> List.find(fun r -> r.ResourceName.Value = "myapp-with-msi") :?> Farmer.Arm.ContainerInstance.ContainerGroup
-        Expect.isSome containerGroup.Identity "Container group did not have identity"
-
-        Expect.wantSome containerGroup.Identity "Container group identity not user assigned"
-        |> function
-        | UserAssigned userIdentity ->
-            Expect.equal userIdentity (UserAssignedIdentity(ResourceId.create(Arm.ManagedIdentity.userAssignedIdentities, ResourceName "aciUser"))) "Expected user identity named 'aciUser'."
-        | SystemAssigned _ ->
-            Expect.isTrue false "Expected a ContainerGroup.Identity to be user assigned."
+        Expect.isNonEmpty containerGroup.Identity.UserAssigned "Container group did not have identity"
+        Expect.equal containerGroup.Identity.UserAssigned.[0] (UserAssignedIdentity(ResourceId.create(Arm.ManagedIdentity.userAssignedIdentities, ResourceName "aciUser"))) "Expected user identity named 'aciUser'."
     }
  ]
 

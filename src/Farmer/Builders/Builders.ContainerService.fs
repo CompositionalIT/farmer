@@ -33,7 +33,7 @@ type AksConfig =
       AgentPools : AgentPoolConfig list
       DnsPrefix : string
       EnableRBAC : bool
-      Identity : ManagedIdentity option
+      Identity : ManagedIdentities
       LinuxProfile : (string * string list) option
       NetworkProfile : NetworkProfileConfig option
       ServicePrincipalClientID : string option
@@ -162,7 +162,7 @@ type AksBuilder() =
           AgentPools = []
           DnsPrefix = ""
           EnableRBAC = false
-          Identity = None
+          Identity = ManagedIdentities.Empty
           LinuxProfile = None
           NetworkProfile = None
           ServicePrincipalClientID = None
@@ -177,8 +177,8 @@ type AksBuilder() =
     [<CustomOperation "enable_rbac">]
     member _.EnableRBAC(state:AksConfig) = { state with EnableRBAC = true }
     /// Sets the managed identity on this cluster.
-    [<CustomOperation "identity">]
-    member _.Identity(state:AksConfig, identity:ManagedIdentity) = { state with Identity = Some identity }
+    [<CustomOperation "add_identity">]
+    member _.Identity(state:AksConfig, identity:ManagedIdentities) = { state with Identity = state.Identity + identity }
     member this.Identity(state:AksConfig, identity:UserAssignedIdentityConfig) = this.Identity(state, identity.ManagedIdentity)
     /// Adds agent pools to the AKS cluster.
     [<CustomOperation "add_agent_pools">]

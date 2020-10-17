@@ -10,6 +10,7 @@ open Farmer.Arm.KeyVault.Vaults
 open Farmer.Arm.Insights
 open Sites
 open System
+open Farmer.Identity
 
 type JavaHost =
     | JavaSE | WildFly14 | Tomcat of string
@@ -94,7 +95,7 @@ type WebAppConfig =
       AlwaysOn : bool
       Runtime : Runtime
 
-      Identity : Identity.ManagedIdentity option
+      Identity : Identity.ManagedIdentities
 
       ZipDeployPath : string option
       SourceControlSettings : {| Repository : Uri; Branch : string; ContinuousIntegration : FeatureFlag |} option
@@ -120,9 +121,11 @@ type WebAppConfig =
                 match this.SecretStore with
                 | KeyVault (DeployableResource this vaultName) ->
                     let principalId =
-                            match this.Identity with
-                            | Some (Identity.UserAssigned i) -> i.PrincipalId
-                            | Some Identity.SystemAssigned | None -> this.SystemIdentity
+                        match this.Identity with
+                        | { SystemAssigned = Disabled; UserAssigned = [ single ] } ->
+                            single.PrincipalId
+                        | _ ->
+                            this.SystemIdentity
                     let store = keyVault {
                         name vaultName
                         add_access_policy (AccessPolicy.create (principalId, [ KeyVault.Secret.Get ]))
@@ -386,7 +389,7 @@ type WebAppBuilder() =
           ConnectionStrings = Map.empty
           Tags = Map.empty
           Dependencies = []
-          Identity = None
+          Identity = ManagedIdentities.Empty
           Runtime = Runtime.DotNetCoreLts
           OperatingSystem = Windows
           ZipDeployPath = None
@@ -537,15 +540,11 @@ type WebAppBuilder() =
             DockerAcrCredentials =
                 Some {| RegistryName = registryName
                         Password = SecureParameter (sprintf "docker-password-for-%s" registryName) |} }
-    /// Sets the managed identity on this container group.
-    [<CustomOperation "identity">]
-    member _.Identity(state:WebAppConfig, identity:Identity.ManagedIdentity) =
-        { state with Identity = Some identity }
-    member this.Identity(state:WebAppConfig, identity:UserAssignedIdentityConfig) =
-        this.Identity(state, identity.ManagedIdentity)
+    [<CustomOperation "add_identity">]
+    member _.Identity(state:WebAppConfig, identity:ManagedIdentities) = { state with Identity = state.Identity + identity }
+    member this.Identity(state:WebAppConfig, identity:UserAssignedIdentityConfig) = this.Identity(state, identity.ManagedIdentity)
     [<CustomOperation "system_identity">]
-    member _.SystemIdentity(state:WebAppConfig) =
-        { state with Identity = Some Identity.SystemAssigned }
+    member _.SystemIdentity(state:WebAppConfig) = { state with Identity = { state.Identity with SystemAssigned = Enabled } }
     /// sets the list of origins that should be allowed to make cross-origin calls. Use AllOrigins to allow all.
     [<CustomOperation "enable_cors">]
     member _.EnableCors (state:WebAppConfig, origins) =

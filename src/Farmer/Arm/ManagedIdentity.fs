@@ -16,22 +16,17 @@ type UserAssignedIdentity =
         member this.ResourceName = this.Name
         member this.JsonModel = userAssignedIdentities.Create(this.Name, this.Location, [], this.Tags) :> _
 
-
-//TODO: Remove optionality?
-/// List of resource IDs for the managed identities when a resource is using user assigned identities.
-let Dependencies (identity:ManagedIdentity option) = identity |> Option.bind (fun i -> i.ResourceId) |> Option.toList
-
 /// Builds the JSON ARM value for a resource's identity.
 let toArmJson = function
-    | None ->
+    | { SystemAssigned = Disabled; UserAssigned = [] } ->
         {| ``type`` = "None"; userAssignedIdentities = null |}
-    | Some (SystemAssigned _) ->
+    | { SystemAssigned = Enabled; UserAssigned = [] } ->
         {| ``type`` = "SystemAssigned"; userAssignedIdentities = null |}
-    | Some (UserAssigned identity) ->
-        // Identities are assigned as a dictionary with the user identity resource ID as the key
-        // and an empty object as the value.
+    | { SystemAssigned = Disabled; UserAssigned = identities } ->
         {| ``type`` = "UserAssigned"
-           userAssignedIdentities =
-            [ identity.ResourceId.Eval(), obj ]
-            |> dict
+           userAssignedIdentities = identities |> List.map(fun identity -> identity.ResourceId.Eval(), obj()) |> dict
+        |}
+    | { SystemAssigned = Enabled; UserAssigned = identities } ->
+        {| ``type`` = "SystemAssigned, UserAssigned"
+           userAssignedIdentities = identities |> List.map(fun identity -> identity.ResourceId.Eval(), obj()) |> dict
         |}

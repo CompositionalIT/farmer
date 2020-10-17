@@ -61,9 +61,9 @@ type ContainerGroupConfig =
       /// Volumes to mount on the container group.
       Volumes : Map<string, Volume>
       /// Managed identity for the container group.
-      Identity : ManagedIdentity option
+      Identity : ManagedIdentities
       /// Tags for the container group.
-      Tags: Map<string,string>  }
+      Tags: Map<string,string> }
     interface IBuilder with
         member this.DependencyName = this.Name
         member this.BuildResources location = [
@@ -94,7 +94,7 @@ type ContainerGroupBuilder() =
         { Name = ResourceName.Empty
           OperatingSystem = Linux
           RestartPolicy = AlwaysRestart
-          Identity = None
+          Identity = ManagedIdentities.Empty
           ImageRegistryCredentials = []
           IpAddress = { Type = PublicAddress; Ports = Set.empty }
           NetworkProfile = None
@@ -155,11 +155,11 @@ type ContainerGroupBuilder() =
         let updatedVolumes = state.Volumes |> Map.fold (fun current key vol -> Map.add key vol current) newVolumes
         { state with Volumes = updatedVolumes }
     /// Sets the managed identity on this container group.
-    [<CustomOperation "identity">]
-    member this.Identity(state:ContainerGroupConfig, identity:ManagedIdentity) = { state with Identity = Some identity }
+    [<CustomOperation "add_identity">]
+    member _.Identity(state:ContainerGroupConfig, identity:ManagedIdentities) = { state with Identity = state.Identity + identity }
     member this.Identity(state:ContainerGroupConfig, identity:UserAssignedIdentityConfig) = this.Identity(state, identity.ManagedIdentity)
     [<CustomOperation "system_identity">]
-    member this.SystemIdentity(state:ContainerGroupConfig) = { state with Identity = Some SystemAssigned }
+    member _.SystemIdentity(state:ContainerGroupConfig) = { state with Identity = { state.Identity with SystemAssigned = Enabled } }
     [<CustomOperation "add_tags">]
     member _.Tags(state:ContainerGroupConfig, pairs) =
         { state with

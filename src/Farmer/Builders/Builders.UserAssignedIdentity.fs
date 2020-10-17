@@ -18,8 +18,8 @@ type UserAssignedIdentityConfig =
         ]
     member this.ResourceId = ResourceId.create(userAssignedIdentities, this.Name)
     member this.UserAssignedIdentity = UserAssignedIdentity this.ResourceId
-    member this.ManagedIdentity = ManagedIdentity.create this.Name
-    
+    member this.ManagedIdentity = ManagedIdentities.create this.Name
+
 type UserAssignedIdentityBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
