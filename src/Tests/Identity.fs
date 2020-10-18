@@ -1,6 +1,8 @@
 module Identity
 
 open Expecto
+open Farmer
+open Farmer.Arm
 open Farmer.Identity
 open Farmer.CoreTypes
 
@@ -19,5 +21,29 @@ let tests = testList "Identity" [
             (userOnlyA + userOnlyA).UserAssigned
             [ UserAssignedIdentity(ResourceId.create "a") ]
             "User Assigned duplicates exist"
+    }
+    test "Creates ARM JSON correctly" {
+        let json = ManagedIdentity.Empty |> ManagedIdentity.toArmJson
+        Expect.equal json.``type`` "None" "Should be empty json"
+        Expect.isNull json.userAssignedIdentities "Should be empty json"
+
+        let testIdentity = ResourceId.create "test" |> ManagedIdentity.create
+
+        let json = testIdentity |> ManagedIdentity.toArmJson
+        Expect.equal json.``type`` "UserAssigned" "Should be user assigned"
+        Expect.sequenceEqual (json.userAssignedIdentities |> Seq.map(fun s -> s.Key)) [ "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test')]" ]  "Should be single UAI"
+        Expect.equal (json.userAssignedIdentities |> Seq.map(fun r -> r.Value.GetType()) |> Seq.head) typeof<obj> "Should be an object"
+
+        let json = { SystemAssigned = Enabled; UserAssigned = [] } |> ManagedIdentity.toArmJson
+        Expect.equal json.``type`` "SystemAssigned" "Wrong type"
+        Expect.isNull json.userAssignedIdentities "Wrong identities"
+
+        let json =
+            let testIdentity2 = ResourceId.create "test2" |> ManagedIdentity.create
+            { ManagedIdentity.Empty with SystemAssigned = Enabled } + testIdentity +
+              testIdentity2 + testIdentity2
+            |> ManagedIdentity.toArmJson
+        Expect.equal json.``type`` "SystemAssigned, UserAssigned" "Wrong type"
+        Expect.hasLength json.userAssignedIdentities 2 "Wrong identities"
     }
 ]

@@ -3,13 +3,14 @@ module WebApp
 open Expecto
 open Farmer
 open Farmer.Builders
+open Farmer.CoreTypes
+open Farmer.Identity
 open Farmer.WebApp
 open Farmer.Arm
-open System
-open Farmer.CoreTypes
 open Microsoft.Azure.Management.WebSites
 open Microsoft.Azure.Management.WebSites.Models
 open Microsoft.Rest
+open System
 
 let getResource<'T when 'T :> IArmResource> (data:IArmResource list) = data |> List.choose(function :? 'T as x -> Some x | _ -> None)
 /// Client instance needed to get the serializer settings.
@@ -169,5 +170,18 @@ let tests = testList "Web App Tests" [
 
         Expect.hasLength vault.AccessPolicies 1 "Incorrect number of access policies"
         Expect.sequenceEqual vault.AccessPolicies.[0].Permissions.Secrets [ KeyVault.Secret.Get ] "Incorrect permissions"
+    }
+
+    test "Handles identity correctly" {
+        let wa = webApp { name "testweb" }
+        Expect.equal wa.Identity ManagedIdentity.Empty "Incorrect default managed identity"
+
+        let wa = webApp { system_identity }
+        Expect.equal wa.Identity.SystemAssigned Enabled "Should have system identity"
+        Expect.isEmpty wa.Identity.UserAssigned "Should have no user assigned identities"
+
+        let wa = webApp { system_identity; add_identity (createUserAssignedIdentity "test"); add_identity (createUserAssignedIdentity "test2") }
+        Expect.equal wa.Identity.SystemAssigned Enabled "Should have system identity"
+        Expect.sequenceEqual (wa.Identity.UserAssigned |> List.map(fun r -> r.ResourceId.Name.Value)) [ "test2"; "test" ] "Should have two user assigned identities"
     }
 ]
