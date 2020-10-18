@@ -536,8 +536,8 @@ type WebAppBuilder() =
                 Some {| RegistryName = registryName
                         Password = SecureParameter (sprintf "docker-password-for-%s" registryName) |} }
     [<CustomOperation "add_identity">]
-    member _.Identity(state:WebAppConfig, identity:ManagedIdentity) = { state with Identity = state.Identity + identity }
-    member this.Identity(state:WebAppConfig, identity:UserAssignedIdentityConfig) = this.Identity(state, identity.ManagedIdentity)
+    member _.Identity(state:WebAppConfig, identity:UserAssignedIdentity) = { state with Identity = state.Identity + identity }
+    member this.Identity(state, identity:UserAssignedIdentityConfig) = this.Identity(state, identity.UserAssignedIdentity)
     [<CustomOperation "system_identity">]
     member _.SystemIdentity(state:WebAppConfig) = { state with Identity = { state.Identity with SystemAssigned = Enabled } }
     /// sets the list of origins that should be allowed to make cross-origin calls. Use AllOrigins to allow all.

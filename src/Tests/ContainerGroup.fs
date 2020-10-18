@@ -172,7 +172,7 @@ let tests = testList "Container Group" [
             containerGroup {
                 name "myapp"
                 add_instances [ nginx ]
-                add_identity (ResourceId.create("user", "resourceGroup") |> ManagedIdentity.create)
+                add_identity (ResourceId.create("user", "resourceGroup") |> UserAssignedIdentity)
             } |> asAzureResource
 
         Expect.hasLength group.Identity.UserAssignedIdentities 1 "No user assigned identity."

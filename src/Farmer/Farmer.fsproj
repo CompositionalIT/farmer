@@ -80,7 +80,7 @@
     <Compile Include="Arm/EventGrid.fs" />
     <Compile Include="Arm\NetworkSecurityGroup.fs" />
 
-    <Compile Include="CommonOnArm.fs" />
+    <Compile Include="IdentityExtensions.fs" />
 
     <Compile Include="Builders\Builders.LogAnalytics.fs" />
     <Compile Include="Builders/Builders.Helpers.fs" />

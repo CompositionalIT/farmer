@@ -633,6 +633,8 @@ module Identity =
         static member (+) (a, b) =
             { SystemAssigned = (a.SystemAssigned.AsBoolean || b.SystemAssigned.AsBoolean) |> FeatureFlag.ofBool
               UserAssigned = a.UserAssigned @ b.UserAssigned |> List.distinct }
+        static member (+) (managedIdentity, userAssignedIdentity:UserAssignedIdentity) =
+            { managedIdentity with UserAssigned = userAssignedIdentity :: managedIdentity.UserAssigned }
 
 module ContainerGroup =
     type PortAccess = PublicPort | InternalPort

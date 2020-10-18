@@ -16,9 +16,10 @@ type UserAssignedIdentityConfig =
               Location = location
               Tags = this.Tags }
         ]
-    member this.ResourceId = ResourceId.create(userAssignedIdentities, this.Name)
+    member this.ResourceId = ResourceId.create (userAssignedIdentities, this.Name)
     member this.UserAssignedIdentity = UserAssignedIdentity this.ResourceId
-    member this.ManagedIdentity = ManagedIdentity.create this.Name
+    member this.ClientId = this.UserAssignedIdentity.ClientId
+    member this.PrincipalId = this.UserAssignedIdentity.PrincipalId
 
 type UserAssignedIdentityBuilder() =
     member _.Yield _ =
