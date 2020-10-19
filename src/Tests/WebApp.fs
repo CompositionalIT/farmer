@@ -172,16 +172,17 @@ let tests = testList "Web App Tests" [
         Expect.sequenceEqual vault.AccessPolicies.[0].Permissions.Secrets [ KeyVault.Secret.Get ] "Incorrect permissions"
     }
 
-    test "Handles identity correctly" {
-        let wa = webApp { name "testweb" }
-        Expect.equal wa.Identity ManagedIdentity.Empty "Incorrect default managed identity"
+    ftest "Handles identity correctly" {
+        let wa : Site = webApp { name "" } |> getResourceAtIndex 0
+        Expect.equal wa.Identity.Type (Nullable ManagedServiceIdentityType.None) "Incorrect default managed identity"
+        Expect.isNull wa.Identity.UserAssignedIdentities "Incorrect default managed identity"
 
-        let wa = webApp { system_identity }
-        Expect.equal wa.Identity.SystemAssigned Enabled "Should have system identity"
-        Expect.isEmpty wa.Identity.UserAssigned "Should have no user assigned identities"
+        let wa : Site = webApp { system_identity } |> getResourceAtIndex 0
+        Expect.equal wa.Identity.Type (Nullable ManagedServiceIdentityType.SystemAssigned) "Should have system identity"
+        Expect.isNull wa.Identity.UserAssignedIdentities "Should have no user assigned identities"
 
-        let wa = webApp { system_identity; add_identity (createUserAssignedIdentity "test"); add_identity (createUserAssignedIdentity "test2") }
-        Expect.equal wa.Identity.SystemAssigned Enabled "Should have system identity"
-        Expect.sequenceEqual (wa.Identity.UserAssigned |> List.map(fun r -> r.ResourceId.Name.Value)) [ "test2"; "test" ] "Should have two user assigned identities"
+        let wa : Site = webApp { system_identity; add_identity (createUserAssignedIdentity "test"); add_identity (createUserAssignedIdentity "test2") } |> getResourceAtIndex 0
+        Expect.equal wa.Identity.Type (Nullable ManagedServiceIdentityType.SystemAssignedUserAssigned) "Should have system identity"
+        Expect.sequenceEqual (wa.Identity.UserAssignedIdentities |> Seq.map(fun r -> r.Key)) [ "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test2')]"; "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test')]" ] "Should have two user assigned identities"
     }
 ]
