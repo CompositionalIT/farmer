@@ -11,6 +11,8 @@ open System
 
 /// Client instance needed to get the serializer settings.
 let client = new StorageManagementClient(Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
+let getStorageResource = findAzureResources<StorageAccount> client.SerializationSettings >> List.head
+
 let tests = testList "Storage Tests" [
     test "Can create a basic storage account" {
         let resource =
@@ -20,8 +22,7 @@ let tests = testList "Storage Tests" [
                 enable_data_lake true
             }
             arm { add_resource account }
-            |> findAzureResources<StorageAccount> client.SerializationSettings
-            |> List.head
+            |> getStorageResource
 
         resource.Validate()
         Expect.equal resource.Name "mystorage123" "Account name is wrong"
@@ -36,8 +37,7 @@ let tests = testList "Storage Tests" [
                 enable_data_lake false
             }
             arm { add_resource account }
-            |> findAzureResources<StorageAccount> client.SerializationSettings
-            |> List.head
+            |> getStorageResource
 
         resource.Validate()
         Expect.isFalse resource.IsHnsEnabled.Value "Hierarchical namespace shouldn't be included"
@@ -49,8 +49,7 @@ let tests = testList "Storage Tests" [
                 sku Premium_LRS
             }
             arm { add_resource account }
-            |> findAzureResources<StorageAccount> client.SerializationSettings
-            |> List.head
+            |> getStorageResource
 
         resource.Validate()
         Expect.equal resource.IsHnsEnabled (Nullable<bool>()) "Hierarchical namespace shouldn't be included"
@@ -134,7 +133,7 @@ let tests = testList "Storage Tests" [
     }
     test "Creates connection strings correctly" {
         let strongConn = StorageAccount.getConnectionString (StorageAccountName.Create("account").OkValue)
-        let rgConn = StorageAccount.getConnectionString(StorageAccountName.Create("account").OkValue, "rg")
+        let rgConn = StorageAccount.getConnectionString (StorageAccountName.Create("account").OkValue, "rg")
 
         Expect.equal "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'account'), '2017-10-01').keys[0].value)" strongConn.Value "Strong connection string"
         Expect.equal "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('rg', 'Microsoft.Storage/storageAccounts', 'account'), '2017-10-01').keys[0].value)" rgConn.Value "Complex connection string"

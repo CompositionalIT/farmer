@@ -172,7 +172,7 @@ let tests = testList "Web App Tests" [
         Expect.sequenceEqual vault.AccessPolicies.[0].Permissions.Secrets [ KeyVault.Secret.Get ] "Incorrect permissions"
     }
 
-    ftest "Handles identity correctly" {
+    test "Handles identity correctly" {
         let wa : Site = webApp { name "" } |> getResourceAtIndex 0
         Expect.equal wa.Identity.Type (Nullable ManagedServiceIdentityType.None) "Incorrect default managed identity"
         Expect.isNull wa.Identity.UserAssignedIdentities "Incorrect default managed identity"
