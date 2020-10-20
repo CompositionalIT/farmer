@@ -217,16 +217,6 @@ module FeatureFlag =
 /// A Principal ID represents an Identity, typically either a system or user generated Identity.
 type PrincipalId =
     | PrincipalId of ArmExpression member this.ArmExpression = match this with PrincipalId e -> e
-    static member CreateSystemIdentity (resourceId:ResourceId) =
-        match resourceId.Type with
-        | None ->
-            failwith "Resource Id must have a type in order to generate a Prinicipal ID"
-        | Some resourceType ->
-            let identity = resourceId.ArmExpression.Value
-            ArmExpression
-                .create(sprintf "reference(%s, '%s', 'full').identity.principalId" identity resourceType.ApiVersion)
-                .WithOwner(resourceId)
-            |> PrincipalId
 
 type ObjectId = ObjectId of Guid
 

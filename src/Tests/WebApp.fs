@@ -156,7 +156,7 @@ let tests = testList "Web App Tests" [
         Expect.sequenceEqual kv.Dependencies [ ResourceId.create(sites, site.Name) ] "Key Vault dependencies are wrong"
         Expect.equal kv.Name (ResourceName (site.Name.Value + "vault")) "Key Vault name is wrong"
         Expect.equal wa.Identity.SystemAssigned Enabled "System Identity should be turned on"
-        Expect.equal kv.AccessPolicies.[0].ObjectId wa.SystemIdentity.ArmExpression "Policy is incorrect"
+        Expect.equal kv.AccessPolicies.[0].ObjectId wa.SystemIdentity.PrincipalId.ArmExpression "Policy is incorrect"
 
         Expect.hasLength secrets 2 "Incorrect number of KV secrets"
 

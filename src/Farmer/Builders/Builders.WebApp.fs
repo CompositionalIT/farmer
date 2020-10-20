@@ -113,7 +113,7 @@ type WebAppConfig =
     /// Gets the App Insights name for this web app, if it exists.
     member this.AppInsightsName = this.AppInsights |> Option.map (fun ai -> ai.CreateResourceId(this).Name)
     member this.Endpoint = sprintf "%s.azurewebsites.net" this.Name.Value
-    member this.SystemIdentity = PrincipalId.CreateSystemIdentity (ResourceId.create(sites, this.Name))
+    member this.SystemIdentity = SystemIdentity (ResourceId.create(sites, this.Name))
     interface IBuilder with
         member this.DependencyName = this.ServicePlanName
         member this.BuildResources location = [
@@ -122,7 +122,7 @@ type WebAppConfig =
                 | KeyVault (DeployableResource this vaultName) ->
                     let store = keyVault {
                         name vaultName
-                        add_access_policy (AccessPolicy.create (this.SystemIdentity, [ KeyVault.Secret.Get ]))
+                        add_access_policy (AccessPolicy.create (this.SystemIdentity.PrincipalId, [ KeyVault.Secret.Get ]))
                         add_secrets [
                             for setting in this.Settings do
                                 match setting.Value with

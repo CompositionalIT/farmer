@@ -625,6 +625,21 @@ module Identity =
         member this.ClientId = this.CreateExpression "clientId"
         member this.ResourceId = match this with UserAssignedIdentity r -> r
 
+    type SystemIdentity =
+        | SystemIdentity of ResourceId
+        member private this.CreateExpression field =
+            match this.ResourceId.Type with
+            | None ->
+                failwith "Resource Id must have a type in order to generate a Prinicipal ID"
+            | Some resourceType ->
+                let identity = this.ResourceId.ArmExpression.Value
+                ArmExpression
+                    .create(sprintf "reference(%s, '%s', 'full').identity.%s" identity resourceType.ApiVersion field)
+                    .WithOwner(this.ResourceId)
+        member this.PrincipalId = this.CreateExpression "principalId" |> PrincipalId
+        member this.ClientId = this.CreateExpression "clientId"
+        member this.ResourceId = match this with SystemIdentity r -> r
+
     /// Represents an identity that can be assigned to a resource for impersonation.
     type ManagedIdentity =
         { SystemAssigned : FeatureFlag
