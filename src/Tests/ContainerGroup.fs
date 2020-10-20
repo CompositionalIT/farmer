@@ -25,7 +25,7 @@ let fsharpApp = containerInstance {
     cpu_cores 2
 }
 let appWithoutPorts = containerInstance {
-    name "fsharpApp"
+    name "appWithoutPorts"
     image "myapp:1.7.2"
     memory 1.5<Gb>
     cpu_cores 2
