@@ -640,8 +640,6 @@ module Identity =
 module ContainerGroup =
     type PortAccess = PublicPort | InternalPort
     type RestartPolicy = NeverRestart | AlwaysRestart | RestartOnFailure
-    /// Identity settings for a container group.
-    type ContainerGroupIdentity = ResourceIdentity
     type IpAddressType =
         | PublicAddress
         | PublicAddressWithDns of DnsName:string
