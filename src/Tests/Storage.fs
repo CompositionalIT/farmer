@@ -138,4 +138,16 @@ let tests = testList "Storage Tests" [
         Expect.equal "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'account'), '2017-10-01').keys[0].value)" strongConn.Value "Strong connection string"
         Expect.equal "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('rg', 'Microsoft.Storage/storageAccounts', 'account'), '2017-10-01').keys[0].value)" rgConn.Value "Complex connection string"
     }
+    test "Creates Role Assignment correctly" {
+        let uai = UserAssignedIdentity.createUserAssignedIdentity "user"
+        let builder = storageAccount { name "foo"; grant_access uai Roles.StorageBlobDataOwner } :> IBuilder
+        let roleAssignment = builder.BuildResources Location.NorthEurope |> List.last :?> Farmer.Arm.Storage.Providers.RoleAssignment
+        Expect.equal roleAssignment.PrincipalId uai.PrincipalId "PrincipalId"
+        Expect.equal roleAssignment.RoleDefinitionId Roles.StorageBlobDataOwner "RoleId"
+        Expect.equal roleAssignment.StorageAccount.ResourceName.Value "foo" "Storage Account Name"
+
+        let storage = builder.BuildResources Location.NorthEurope |> List.head :?> Farmer.Arm.Storage.StorageAccount
+
+        Expect.sequenceEqual storage.Dependencies [ uai.ResourceId ] "ResourceId"
+    }
 ]

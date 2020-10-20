@@ -5,6 +5,7 @@ open Farmer.Builders
 open Farmer.CoreTypes
 open Farmer.KeyVault
 open System
+open Farmer
 
 let tests = testList "KeyVault" [
     test "Can create secrets without popping" {
@@ -47,5 +48,12 @@ let tests = testList "KeyVault" [
         Expect.sequenceEqual expressionSecret.Dependencies [ ResourceId.create(Farmer.Arm.Storage.storageAccounts, sa.Name.ResourceName) ] "Missing storage account dependency"
 
         Expect.throws (fun _ -> SecretConfig.create("bad", (ArmExpression.literal "foo")) |> ignore) "Should throw exception on expression with no owner"
+    }
+
+    test "Works with identities" {
+        let a = webApp { name "test" }
+        let v = keyVault { add_access_policy (AccessPolicy.create a.SystemIdentity) } :> IBuilder
+        let vault = v.BuildResources Location.NorthEurope |> List.head :?> Farmer.Arm.KeyVault.Vault
+        Expect.sequenceEqual vault.Dependencies [ ResourceId.create(Arm.Web.sites, a.Name) ] "Web App dependency"
     }
 ]
