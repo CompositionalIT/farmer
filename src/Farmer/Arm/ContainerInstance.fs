@@ -36,7 +36,7 @@ type ContainerGroup =
       OperatingSystem : OS
       RestartPolicy : RestartPolicy
       ImageRegistryCredentials : ImageRegistryCredential list
-      IpAddress : ContainerGroupIpAddress
+      IpAddress : ContainerGroupIpAddress option
       NetworkProfile : ResourceName option
       Volumes : Map<string, Volume>
       Tags: Map<string,string>  }
@@ -99,20 +99,23 @@ type ContainerGroup =
                                      username = cred.Username
                                      password = cred.Password.ArmExpression.Eval() |})
                           ipAddress =
-                            {| ``type`` =
-                                match this.IpAddress.Type with
-                                | PublicAddress | PublicAddressWithDns _ -> "Public"
-                                | PrivateAddress _ -> "Private"
-                               ports = [
-                                   for port in this.IpAddress.Ports do
-                                    {| protocol = string port.Protocol
-                                       port = port.Port |}
-                               ]
-                               dnsNameLabel =
-                                match this.IpAddress.Type with
-                                | PublicAddressWithDns dnsLabel -> dnsLabel
-                                | _ -> null
-                            |}
+                            match this.IpAddress with
+                            | Some ipAddresses ->
+                                {| ``type`` =
+                                    match ipAddresses.Type with
+                                    | PublicAddress | PublicAddressWithDns _ -> "Public"
+                                    | PrivateAddress _ -> "Private"
+                                   ports = [
+                                       for port in ipAddresses.Ports do
+                                        {| protocol = string port.Protocol
+                                           port = port.Port |}
+                                   ]
+                                   dnsNameLabel =
+                                    match ipAddresses.Type with
+                                    | PublicAddressWithDns dnsLabel -> dnsLabel
+                                    | _ -> null
+                                |} |> box
+                            | None -> null
                           networkProfile =
                             this.NetworkProfilePath
                             |> Option.map(fun path -> box {| id = path.Eval() |})

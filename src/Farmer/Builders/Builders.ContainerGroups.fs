@@ -52,7 +52,7 @@ type ContainerGroupConfig =
       /// Credentials for image registries used by containers in this group.
       ImageRegistryCredentials : ImageRegistryCredential list
       /// IP address for the container group.
-      IpAddress : ContainerGroupIpAddress
+      IpAddress : ContainerGroupIpAddress option
       /// Name of the network profile for this container's group.
       NetworkProfile : ResourceName option
       /// The instances in this container group.
@@ -85,12 +85,21 @@ type ContainerGroupConfig =
         ]
 
 type ContainerGroupBuilder() =
+    member private __.AddPort (state, portType, port): ContainerGroupConfig =
+        {
+            state with IpAddress =
+                        match state.IpAddress with
+                        | Some ipAddresses ->
+                            { ipAddresses with Ports = ipAddresses.Ports.Add {| Protocol = portType; Port = port |} } |> Some
+                        | None -> { Type = IpAddressType.PublicAddress; Ports = [ {| Protocol = portType; Port = port |} ] |> Set.ofList } |> Some
+        }
+
     member __.Yield _ =
         { Name = ResourceName.Empty
           OperatingSystem = Linux
           RestartPolicy = AlwaysRestart
           ImageRegistryCredentials = []
-          IpAddress = { Type = PublicAddress; Ports = Set.empty }
+          IpAddress = None
           NetworkProfile = None
           Instances = []
           Volumes = Map.empty
@@ -99,13 +108,9 @@ type ContainerGroupBuilder() =
         // Automatically apply all public-facing ports to the container group itself.
         state.Instances
         |> Seq.collect(fun i -> i.Ports |> Map.toSeq |> Seq.choose(function (port, PublicPort) -> Some port | _, InternalPort -> None))
-        |> Seq.fold (fun (state:ContainerGroupConfig) port ->
-            { state with
-                IpAddress =
-                    { state.IpAddress with
-                        Ports = state.IpAddress.Ports.Add {| Protocol = TCP; Port = port |} } }) state
+        |> Seq.fold (fun (state:ContainerGroupConfig) port -> this.AddPort (state, TCP, port)) state
 
-    member __.AddTcpPort(state:ContainerGroupConfig, port) = { state with IpAddress = { state.IpAddress with Ports = state.IpAddress.Ports.Add {| Protocol = TCP; Port = port |} } }
+    member __.AddTcpPort(state:ContainerGroupConfig, port) = __.AddPort (state, TCP, port)
 
     [<CustomOperation "name">]
     /// Sets the name of the container group.
@@ -121,7 +126,7 @@ type ContainerGroupBuilder() =
         { state with
             IpAddress =
                 { Type = ipAddressType
-                  Ports = ports |> Seq.map(fun (prot, port) -> {| Protocol = prot; Port = port |}) |> Set } }
+                  Ports = ports |> Seq.map(fun (prot, port) -> {| Protocol = prot; Port = port |}) |> Set } |> Some }
 
     /// Sets the IP addresss to a public address with a DNS label
     [<CustomOperation "public_dns">]
@@ -134,7 +139,7 @@ type ContainerGroupBuilder() =
     member __.NetworkProfile(state:ContainerGroupConfig, networkProfileName:string) = { state with NetworkProfile = Some (ResourceName networkProfileName) }
     /// Adds a UDP port to be externally accessible
     [<CustomOperation "add_udp_port">]
-    member __.AddUdpPort(state:ContainerGroupConfig, port) = { state with IpAddress = { state.IpAddress with Ports = state.IpAddress.Ports.Add {| Protocol = UDP; Port = port |} } }
+    member __.AddUdpPort(state:ContainerGroupConfig, port) = __.AddPort (state, UDP, port)
     /// Adds container image registry credentials for images in this container group.
     [<CustomOperation "add_registry_credentials">]
     member _.AddRegistryCredentials(state:ContainerGroupConfig, credentials) =
