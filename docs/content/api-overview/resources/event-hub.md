@@ -24,7 +24,6 @@ The Event Hub builder creates event hub namespaces, event hubs, consumer groups 
 | Namespace | enable_zone_redundant | Enables zone redundancy on the event hub namespace. |
 | Namespace | enable_auto_inflate | Enables auto inflate throughput; you must supply the maximum throughput level. |
 | Namespace | disable_auto_inflate | Disables auto inflate throughput. |
-| Namespace | disable_kafka | Disables Kafka support. |
 | Event Hub | name | Sets the name of the event hub. |
 | Event Hub | message_retention_days | Sets the number of days to retain messages for on the event hub. |
 | Event Hub | partitions | Sets the number of partitions on the event hub. |
@@ -48,7 +47,6 @@ open Farmer.Builders
 let primaryHub = eventHub {
     namespace_name "allmyevents"
     sku EventHub.Standard
-    disable_kafka
     enable_zone_redundant
     enable_auto_inflate 3
     add_authorization_rule "FirstRule" [ EventHub.Listen; EventHub.Send ]

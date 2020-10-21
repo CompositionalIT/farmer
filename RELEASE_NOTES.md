@@ -6,6 +6,7 @@ Release Notes
 * Log Analytics: Initial support.
 * Static Web Apps: Initial support.
 * Internal changes to better capture full resource IDs.
+* Event Hubs: Remove redundant kafka flag (breaking change).
 
 ## 1.2.0-beta1
 * Bastion Hosts: Create bastion hosts for accessing resources on a virtual network
