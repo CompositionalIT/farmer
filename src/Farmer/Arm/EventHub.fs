@@ -19,7 +19,6 @@ type Namespace =
       Sku : {| Name : EventHubSku; Capacity : int |}
       ZoneRedundant : bool option
       AutoInflateSettings : InflateSetting option
-      KafkaEnabled : bool option
       Tags: Map<string,string>  }
     member this.MaxThroughputUnits =
         this.AutoInflateSettings
@@ -42,8 +41,7 @@ type Namespace =
                              | AutoInflate _ -> true
                              | ManualInflate -> false)
                          |> Option.toNullable
-                        maximumThroughputUnits = this.MaxThroughputUnits |> Option.toNullable
-                        kafkaEnabled = this.KafkaEnabled |> Option.toNullable |}
+                        maximumThroughputUnits = this.MaxThroughputUnits |> Option.toNullable |}
             |} :> _
 module Namespaces =
     type EventHub =
