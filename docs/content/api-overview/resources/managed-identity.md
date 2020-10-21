@@ -19,7 +19,7 @@ Using a managed identity as opposed to e.g. connection strings brings several be
 
 Once created, the managed identity resource can be referenced by other resources both in order to:
 
-* Enable a resource to run *under* that identity
+* Enable a resource to run *as* that identity
 * Enable a resource to grant permissions *to* that identity
 
 For example, you may wish to run a Virtual Machine or an Web App under a identity that you create, and then to *grant permissions* to that identity to allow reading from a storage account. You can define the permissions completely independently of the Virtual Machine or Web App.
@@ -29,8 +29,9 @@ graph LR
 
 A(identity)
 B(virtual machine)-. runs as .->A
+D(web app)-. runs as .->A
 C(storage account)-. grants permissions .->A
-A -. makes request on behalf of VM .->C
+A -. request made in this identiy .->C
 
 {{< /mermaid >}}
 
