@@ -4,6 +4,7 @@ Release Notes
 * Container Groups: Support for image registry credentials for private registries.
 * Container Groups: Support for partial CPU cores.
 * Log Analytics: Initial support.
+* Static Web Apps: Initial support.
 * Internal changes to better capture full resource IDs.
 
 ## 1.2.0-beta1

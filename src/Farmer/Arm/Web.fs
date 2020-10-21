@@ -10,6 +10,7 @@ let serverFarms = ResourceType ("Microsoft.Web/serverfarms", "2018-02-01")
 let sites = ResourceType ("Microsoft.Web/sites", "2016-08-01")
 let config = ResourceType ("Microsoft.Web/sites/config", "2016-08-01")
 let sourceControls = ResourceType ("Microsoft.Web/sites/sourcecontrols", "2019-08-01")
+let staticSites = ResourceType("Microsoft.Web/staticSites", "2019-12-01-preview")
 
 type ServerFarm =
     { Name : ResourceName
@@ -216,3 +217,35 @@ module Sites =
                            branch = this.Branch
                            isManualIntegration = this.ContinuousIntegration.AsBoolean |> not |}
                 |} :> _
+
+type StaticSite =
+    { Name : ResourceName
+      Location : Location
+      Repository : Uri
+      Branch : string
+      RepositoryToken : SecureParameter
+      AppLocation : string
+      ApiLocation : string option
+      AppArtifactLocation : string option }
+    interface IArmResource with
+        member this.ResourceName = this.Name
+        member this.JsonModel =
+            {| staticSites.Create(this.Name, this.Location) with
+                properties =
+                 {| repositoryUrl = this.Repository.ToString()
+                    branch = this.Branch
+                    repositoryToken = this.RepositoryToken.ArmExpression.Eval()
+                    buildProperties =
+                     {| appLocation = this.AppLocation
+                        apiLocation = this.ApiLocation |> Option.toObj
+                        appArtifactLocation = this.AppArtifactLocation |> Option.toObj |}
+                 |}
+                sku =
+                 {| Tier = "Free"
+                    Name = "Free" |}
+            |} :> _
+    interface IParameters with
+        member this.SecureParameters = [
+            this.RepositoryToken
+        ]
+
