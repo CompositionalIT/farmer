@@ -18,7 +18,6 @@ type EventHubConfig =
       Capacity : int
       ZoneRedundant : bool option
       ThroughputSettings : InflateSetting option
-      KafkaEnabled : bool option
       MessageRetentionInDays : int option
       Partitions : int
       ConsumerGroups : ResourceName Set
@@ -55,7 +54,6 @@ type EventHubConfig =
                        Capacity = this.Capacity |}
                   ZoneRedundant = this.ZoneRedundant
                   AutoInflateSettings = this.ThroughputSettings
-                  KafkaEnabled = this.KafkaEnabled
                   Tags = this.Tags  }
             | _ ->
                 ()
@@ -104,7 +102,6 @@ type EventHubBuilder() =
           Capacity = 1
           ZoneRedundant = None
           ThroughputSettings = None
-          KafkaEnabled = None
           MessageRetentionInDays = None
           Partitions = 1
           CaptureDestination = None
@@ -135,8 +132,6 @@ type EventHubBuilder() =
     member __.AutoInflate(state:EventHubConfig, maxThroughput) = { state with ThroughputSettings = Some (AutoInflate maxThroughput) }
     [<CustomOperation "disable_auto_inflate">]
     member __.MaximumThroughputUnits(state:EventHubConfig) = { state with ThroughputSettings = Some ManualInflate }
-    [<CustomOperation "disable_kafka">]
-    member __.Kafka(state:EventHubConfig) = { state with KafkaEnabled = Some false }
     [<CustomOperation "message_retention_days">]
     member __.MessageRetentionDays(state:EventHubConfig, days) = { state with MessageRetentionInDays = Some days }
     [<CustomOperation "partitions">]
