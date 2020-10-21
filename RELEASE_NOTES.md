@@ -2,12 +2,16 @@ Release Notes
 =============
 ## 1.2.0-beta2
 * Managed Identity: Create user assigned manage identity resources.
-* Container Service (AKS): Specify identity settings to support user or system assigned identity.
-* Container Groups: Specify identity settings to support user or system assigned identity.
+* Container Service (AKS): Support for Managed Identity.
+* Container Groups: Support for Managed Identity.
 * Container Groups: Support for image registry credentials for private registries.
 * Container Groups: Support for partial CPU cores.
 * Log Analytics: Initial support.
+* Web App: Support for Managed Identity.
+* Key Vault: Grant access to managed identities.
+* Storage Account: Grant access to managed identities.
 * Internal changes to better capture full resource IDs.
+* Provide all Roles for managed identity purposes.
 
 ## 1.2.0-beta1
 * Bastion Hosts: Create bastion hosts for accessing resources on a virtual network
