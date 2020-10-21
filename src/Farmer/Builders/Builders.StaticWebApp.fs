@@ -2,15 +2,15 @@
 module Farmer.Builders.StaticWebApp
 
 open Farmer
-open Farmer.StaticWebApp
 open Farmer.Arm.Web
+open Farmer.CoreTypes
 open System
 
 type StaticWebAppConfig =
     { Name : ResourceName
       Repository : Uri option
       Branch : string
-      RepositoryToken : PAT
+      RepositoryToken : SecureParameter
       AppLocation : string
       ApiLocation : string option
       AppArtifactLocation : string option }
@@ -30,21 +30,24 @@ type StaticWebAppConfig =
             | _ ->
                 failwith "You must set the repository URI."
         ]
+    member this.RepositoryParameter = sprintf "repositorytoken-for-%s" this.Name.Value
 
 type StaticWebAppBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
           Repository = None
           Branch = "master"
-          RepositoryToken = PAT ""
+          RepositoryToken = SecureParameter ""
           AppLocation = ""
           ApiLocation = None
           AppArtifactLocation = None }
+    member _.Run (state:StaticWebAppConfig) =
+        { state with RepositoryToken = SecureParameter state.RepositoryParameter }
 
     [<CustomOperation "name">]
     member _.Name (state:StaticWebAppConfig, name) = { state with Name = ResourceName name }
     [<CustomOperation "repository">]
-    member _.RepositoryToken (state:StaticWebAppConfig, uri, token) = { state with Repository = Some (Uri uri); RepositoryToken = PAT token }
+    member _.Repository (state:StaticWebAppConfig, uri) = { state with Repository = Some (Uri uri) }
     [<CustomOperation "branch">]
     member _.Branch (state:StaticWebAppConfig, branch) = { state with Branch = branch }
     [<CustomOperation "api_location">]

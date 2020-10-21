@@ -388,12 +388,6 @@ module WebApp =
         static member Y1 = Dynamic
     type ConnectionStringKind = MySql | SQLServer | SQLAzure | Custom | NotificationHub | ServiceBus | EventHub | ApiHub | DocDb | RedisCache | PostgreSQL
 
-module StaticWebApp =
-    /// A Personal Access Token
-    type PAT =
-        | PAT of string
-        member this.Value = match this with PAT s -> s
-
 module CognitiveServices =
     /// Type of SKU. See https://github.com/Azure/azure-quickstart-templates/tree/master/101-cognitive-services-translate
     type Sku =

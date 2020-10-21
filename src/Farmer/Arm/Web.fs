@@ -2,7 +2,6 @@
 module Farmer.Arm.Web
 
 open Farmer
-open Farmer.StaticWebApp
 open Farmer.CoreTypes
 open Farmer.WebApp
 open System
@@ -224,7 +223,7 @@ type StaticSite =
       Location : Location
       Repository : Uri
       Branch : string
-      RepositoryToken : PAT
+      RepositoryToken : SecureParameter
       AppLocation : string
       ApiLocation : string option
       AppArtifactLocation : string option }
@@ -235,7 +234,7 @@ type StaticSite =
                 properties =
                  {| repositoryUrl = this.Repository.ToString()
                     branch = this.Branch
-                    repositoryToken = this.RepositoryToken.Value
+                    repositoryToken = this.RepositoryToken.ArmExpression.Eval()
                     buildProperties =
                      {| appLocation = this.AppLocation
                         apiLocation = this.ApiLocation |> Option.toObj
@@ -245,3 +244,8 @@ type StaticSite =
                  {| Tier = "Free"
                     Name = "Free" |}
             |} :> _
+    interface IParameters with
+        member this.SecureParameters = [
+            this.RepositoryToken
+        ]
+
