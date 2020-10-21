@@ -5,7 +5,7 @@ open Farmer
 open Farmer.Storage
 open Farmer.CoreTypes
 
-let storageAccounts = ResourceType ("Microsoft.Storage/storageAccounts", "2018-07-01")
+let storageAccounts = ResourceType ("Microsoft.Storage/storageAccounts", "2019-04-01")
 let containers = ResourceType ("Microsoft.Storage/storageAccounts/blobServices/containers", "2018-03-01-preview")
 let fileShares = ResourceType ("Microsoft.Storage/storageAccounts/fileServices/shares", "2019-06-01")
 let queues = ResourceType ("Microsoft.Storage/storageAccounts/queueServices/queues", "2019-06-01")

@@ -5,6 +5,7 @@ Release Notes
 * Container Groups: Support for partial CPU cores.
 * Log Analytics: Initial support.
 * Static Web Apps: Initial support.
+* Storage Accounts: Upgrade API version to 2019-04-01 to support RA-GZRS.
 * Internal changes to better capture full resource IDs.
 * Event Hubs: Remove redundant kafka flag (breaking change).
 
