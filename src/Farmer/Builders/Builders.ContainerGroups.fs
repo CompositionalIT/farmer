@@ -156,8 +156,8 @@ type ContainerGroupBuilder() =
         { state with Volumes = updatedVolumes }
     /// Sets the managed identity on this container group.
     [<CustomOperation "add_identity">]
-    member _.Identity(state:ContainerGroupConfig, identity:UserAssignedIdentity) = { state with Identity = state.Identity + identity }
-    member this.Identity(state, identity:UserAssignedIdentityConfig) = this.Identity(state, identity.UserAssignedIdentity)
+    member _.AddIdentity(state:ContainerGroupConfig, identity:UserAssignedIdentity) = { state with Identity = state.Identity + identity }
+    member this.AddIdentity(state, identity:UserAssignedIdentityConfig) = this.AddIdentity(state, identity.UserAssignedIdentity)
     [<CustomOperation "system_identity">]
     member _.SystemIdentity(state:ContainerGroupConfig) = { state with Identity = { state.Identity with SystemAssigned = Enabled } }
     [<CustomOperation "add_tags">]

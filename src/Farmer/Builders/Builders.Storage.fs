@@ -172,7 +172,9 @@ type StorageAccountBuilder() =
     member _.GrantAccess(state:StorageAccountConfig, principalId:PrincipalId, role) =
         { state with RoleAssignments = state.RoleAssignments.Add { Principal = principalId; Role = role } }
     member this.GrantAccess(state:StorageAccountConfig, identity:UserAssignedIdentityConfig, role) =
-        this.GrantAccess(state, identity.UserAssignedIdentity.PrincipalId, role)
+        this.GrantAccess(state, identity.PrincipalId, role)
+    member this.GrantAccess(state:StorageAccountConfig, identity:Identity.SystemIdentity, role) =
+        this.GrantAccess(state, identity.PrincipalId, role)
 
 /// Allow adding storage accounts directly to CDNs
 type EndpointBuilder with

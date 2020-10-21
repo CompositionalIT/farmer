@@ -178,8 +178,8 @@ type AksBuilder() =
     member _.EnableRBAC(state:AksConfig) = { state with EnableRBAC = true }
     /// Sets the managed identity on this cluster.
     [<CustomOperation "add_identity">]
-    member _.Identity(state:AksConfig, identity:UserAssignedIdentity) = { state with Identity = state.Identity + identity }
-    member this.Identity(state, identity:UserAssignedIdentityConfig) = this.Identity(state, identity.UserAssignedIdentity)
+    member _.AddIdentity(state:AksConfig, identity:UserAssignedIdentity) = { state with Identity = state.Identity + identity }
+    member this.AddIdentity(state, identity:UserAssignedIdentityConfig) = this.AddIdentity(state, identity.UserAssignedIdentity)
     /// Adds agent pools to the AKS cluster.
     [<CustomOperation "add_agent_pools">]
     member _.AddAgentPools(state:AksConfig, pools) = { state with AgentPools = state.AgentPools @ pools }
