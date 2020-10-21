@@ -72,6 +72,7 @@
     <Compile Include="Arm/Insights.fs" />
     <Compile Include="Arm/KeyVault.fs" />
     <Compile Include="Arm\RoleAssignment.fs" />
+    <Compile Include="Arm\MachineLearning.fs" />
     <Compile Include="Arm/Search.fs" />
     <Compile Include="Arm/ServiceBus.fs" />
     <Compile Include="Arm/Sql.fs" />
