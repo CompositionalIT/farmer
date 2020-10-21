@@ -33,6 +33,7 @@ let allTests =
                 Sql.tests
                 EventGrid.tests
                 WebApp.tests
+                StaticWebApp.tests
                 VirtualNetworkGateway.tests
             ]
             testList "Control" [

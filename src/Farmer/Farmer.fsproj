@@ -114,6 +114,7 @@
     <Compile Include="Builders/Builders.SignalR.fs" />
     <Compile Include="Builders/Builders.VirtualNetworkGateway.fs" />
     <Compile Include="Builders/Builders.EventGrid.fs" />
-    <Compile Include="Builders/Builders.NetworkSecurityGroup.fs" />
+    <Compile Include="Builders/Builders.StaticWebApp.fs" />
+    <Compile Include="Builders\Builders.NetworkSecurityGroup.fs" />
   </ItemGroup>
 </Project>

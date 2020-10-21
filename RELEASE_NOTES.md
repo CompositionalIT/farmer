@@ -10,8 +10,11 @@ Release Notes
 * Web App: Full support for Managed Identity (minor breaking change).
 * Key Vault: Grant access to managed identities.
 * Storage Account: Grant access to managed identities.
+* Static Web Apps: Initial support.
+* Storage Accounts: Upgrade API version to 2019-04-01 to support RA-GZRS.
 * Internal changes to better capture full resource IDs.
 * Provide all Roles for managed identity purposes.
+* Event Hubs: Remove redundant kafka flag (breaking change).
 
 ## 1.2.0-beta1
 * Bastion Hosts: Create bastion hosts for accessing resources on a virtual network
