@@ -38,6 +38,7 @@ type AksConfig =
       NetworkProfile : NetworkProfileConfig option
       ServicePrincipalClientID : string option
       WindowsProfileAdminUserName : string option }
+    member this.SystemIdentity = SystemIdentity (ResourceId.create(managedClusters, this.Name))
     interface IBuilder with
         member this.DependencyName = this.Name
         member this.BuildResources location = [

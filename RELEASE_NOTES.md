@@ -7,7 +7,7 @@ Release Notes
 * Container Groups: Support for image registry credentials for private registries.
 * Container Groups: Support for partial CPU cores.
 * Log Analytics: Initial support.
-* Web App: Support for Managed Identity.
+* Web App: Full support for Managed Identity (minor breaking change).
 * Key Vault: Grant access to managed identities.
 * Storage Account: Grant access to managed identities.
 * Internal changes to better capture full resource IDs.

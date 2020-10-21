@@ -64,6 +64,7 @@ type ContainerGroupConfig =
       Identity : ManagedIdentity
       /// Tags for the container group.
       Tags: Map<string,string> }
+    member this.SystemIdentity = SystemIdentity (ResourceId.create(containerGroups, this.Name))
     interface IBuilder with
         member this.DependencyName = this.Name
         member this.BuildResources location = [
@@ -101,7 +102,7 @@ type ContainerGroupBuilder() =
           Instances = []
           Volumes = Map.empty
           Tags = Map.empty }
-    member this.Run (state:ContainerGroupConfig) =
+    member _.Run (state:ContainerGroupConfig) =
         // Automatically apply all public-facing ports to the container group itself.
         state.Instances
         |> Seq.collect(fun i -> i.Ports |> Map.toSeq |> Seq.choose(function (port, PublicPort) -> Some port | _, InternalPort -> None))
