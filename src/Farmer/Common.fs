@@ -299,6 +299,21 @@ module internal Validation =
         |> Seq.tryHead
         |> Option.defaultValue (Ok text)
 
+module CosmosDbValidation =
+    open Validation
+    type CosmosDbName =
+        private | CosmosDbName of ResourceName
+        static member Create name =
+            [ isNonEmpty
+              lengthBetween 3 44
+              containsOnly "lowercase letters" lowercaseOnly
+              containsOnly "alphanumeric characters or dash" (fun x -> Char.IsLetterOrDigit x || x = '-') ]
+            |> validate "CosmosDb account names" name
+            |> Result.map (ResourceName >> CosmosDbName)
+
+        static member Create (ResourceName name) = CosmosDbName.Create name
+        member this.ResourceName = match this with CosmosDbName name -> name
+
 module Storage =
     open Validation
     type StorageAccountName =
