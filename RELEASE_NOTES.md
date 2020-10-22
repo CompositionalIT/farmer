@@ -2,6 +2,7 @@ Release Notes
 =============
 ## 1.2.0-beta2
 * Managed Identity: Create user assigned manage identity resources.
+* Container Groups: Support for creating group without public IP Address.
 * Container Service (AKS): Support for Managed Identity.
 * Container Groups: Support for Managed Identity.
 * Container Groups: Support for image registry credentials for private registries.
