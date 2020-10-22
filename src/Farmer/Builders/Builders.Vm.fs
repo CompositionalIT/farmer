@@ -104,6 +104,7 @@ type VmConfig =
             | Some (DeployableResource this resourceName) ->
                 { Name = Storage.StorageAccountName.Create(resourceName).OkValue
                   Location = location
+                  Dependencies = []
                   Sku = Storage.Standard_LRS
                   StaticWebsite = None
                   EnableHierarchicalNamespace = None

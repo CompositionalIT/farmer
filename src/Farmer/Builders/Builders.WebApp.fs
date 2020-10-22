@@ -2,6 +2,7 @@
 module rec Farmer.Builders.WebApp
 
 open Farmer
+open Farmer.Arm
 open Farmer.CoreTypes
 open Farmer.WebApp
 open Farmer.Arm.Web
@@ -9,6 +10,7 @@ open Farmer.Arm.KeyVault.Vaults
 open Farmer.Arm.Insights
 open Sites
 open System
+open Farmer.Identity
 
 type JavaHost =
     | JavaSE | WildFly14 | Tomcat of string
@@ -93,7 +95,7 @@ type WebAppConfig =
       AlwaysOn : bool
       Runtime : Runtime
 
-      Identity : FeatureFlag option
+      Identity : Identity.ManagedIdentity
 
       ZipDeployPath : string option
       SourceControlSettings : {| Repository : Uri; Branch : string; ContinuousIntegration : FeatureFlag |} option
@@ -110,16 +112,8 @@ type WebAppConfig =
     member this.ServicePlanName = this.ServicePlan.CreateResourceId(this).Name
     /// Gets the App Insights name for this web app, if it exists.
     member this.AppInsightsName = this.AppInsights |> Option.map (fun ai -> ai.CreateResourceId(this).Name)
-    /// Gets the system-created managed principal for the web app. It must have been enabled using enable_managed_identity.
-    member this.SystemIdentity =
-        let expr =
-            ArmExpression
-                .create(sprintf "reference(resourceId('Microsoft.Web/sites', '%s'), '2019-08-01', 'full').identity.principalId" this.Name.Value)
-                .WithOwner(this.Name)
-        PrincipalId expr
-    member this.Endpoint =
-        sprintf "%s.azurewebsites.net" this.Name.Value
-
+    member this.Endpoint = sprintf "%s.azurewebsites.net" this.Name.Value
+    member this.SystemIdentity = SystemIdentity (ResourceId.create(sites, this.Name))
     interface IBuilder with
         member this.DependencyName = this.ServicePlanName
         member this.BuildResources location = [
@@ -128,7 +122,7 @@ type WebAppConfig =
                 | KeyVault (DeployableResource this vaultName) ->
                     let store = keyVault {
                         name vaultName
-                        add_access_policy (AccessPolicy.create (this.SystemIdentity, [ KeyVault.Secret.Get ]))
+                        add_access_policy (AccessPolicy.create (this.SystemIdentity.PrincipalId, [ KeyVault.Secret.Get ]))
                         add_secrets [
                             for setting in this.Settings do
                                 match setting.Value with
@@ -166,7 +160,8 @@ type WebAppConfig =
                                 ()
                     ]
                     None, secrets
-                | KeyVault _ | AppService ->
+                | KeyVault _
+                | AppService ->
                     None, []
 
             yield! secrets
@@ -241,6 +236,7 @@ type WebAppConfig =
                 match this.DockerImage with Some _ -> "container" | _ -> ()
               ] |> String.concat ","
               Dependencies = [
+
                 match this.ServicePlan with
                 | DependableResource this resourceName -> ResourceId.create resourceName
                 | _ -> ()
@@ -388,7 +384,7 @@ type WebAppBuilder() =
           ConnectionStrings = Map.empty
           Tags = Map.empty
           Dependencies = []
-          Identity = None
+          Identity = ManagedIdentity.Empty
           Runtime = Runtime.DotNetCoreLts
           OperatingSystem = Windows
           ZipDeployPath = None
@@ -539,12 +535,11 @@ type WebAppBuilder() =
             DockerAcrCredentials =
                 Some {| RegistryName = registryName
                         Password = SecureParameter (sprintf "docker-password-for-%s" registryName) |} }
-    [<CustomOperation "enable_managed_identity">]
-    member _.EnableManagedIdentity(state:WebAppConfig) =
-        { state with Identity = Some Enabled }
-    [<CustomOperation "disable_managed_identity">]
-    member _.DisableManagedIdentity(state:WebAppConfig) =
-        { state with Identity = Some Disabled }
+    [<CustomOperation "add_identity">]
+    member _.AddIdentity(state:WebAppConfig, identity:UserAssignedIdentity) = { state with Identity = state.Identity + identity }
+    member this.AddIdentity(state, identity:UserAssignedIdentityConfig) = this.AddIdentity(state, identity.UserAssignedIdentity)
+    [<CustomOperation "system_identity">]
+    member _.SystemIdentity(state:WebAppConfig) = { state with Identity = { state.Identity with SystemAssigned = Enabled } }
     /// sets the list of origins that should be allowed to make cross-origin calls. Use AllOrigins to allow all.
     [<CustomOperation "enable_cors">]
     member _.EnableCors (state:WebAppConfig, origins) =
@@ -589,15 +584,15 @@ type WebAppBuilder() =
     member this.Tag(state:WebAppConfig, key, value) = this.Tags(state, [ (key,value) ])
     [<CustomOperation "use_keyvault">]
     member this.UseKeyVault(state:WebAppConfig) =
-        let state = this.EnableManagedIdentity state
+        let state = this.SystemIdentity (state)
         { state with SecretStore = KeyVault (derived(fun c -> ResourceName (c.Name.Value + "vault"))) }
     [<CustomOperation "use_managed_keyvault">]
     member this.LinkToKeyVault(state:WebAppConfig, name) =
-        let state = this.EnableManagedIdentity state
+        let state = this.SystemIdentity (state)
         { state with SecretStore = KeyVault (External(Managed name)) }
     [<CustomOperation "use_external_keyvault">]
     member this.LinkToExternalKeyVault(state:WebAppConfig, name) =
-        let state = this.EnableManagedIdentity state
+        let state = this.SystemIdentity (state)
         { state with SecretStore = KeyVault (External(Unmanaged name)) }
 
 let webApp = WebAppBuilder()

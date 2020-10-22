@@ -61,12 +61,11 @@ type Vault =
                Secrets : Secret Set
                Certificates : Certificate Set
                Storage : Storage Set |}
-        |} array
+        |} list
       DefaultAction : DefaultAction option
       Bypass: Bypass option
       IpRules : string list
       VnetRules : string list
-      Dependencies : ResourceId list
       Tags: Map<string,string>  }
       member this.PurgeProtection =
         match this.SoftDelete with
@@ -76,6 +75,10 @@ type Vault =
         | Some SoftDeleteWithPurgeProtection ->
             Some true
       member private _.ToStringArray s = s |> Set.map(fun s -> s.ToString().ToLower()) |> Set.toArray
+      member this.Dependencies =
+        this.AccessPolicies
+        |> List.choose(fun r -> r.ObjectId.Owner)
+        |> List.distinct
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =

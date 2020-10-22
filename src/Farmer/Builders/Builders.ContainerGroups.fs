@@ -3,6 +3,7 @@ module Farmer.Builders.ContainerGroups
 
 open Farmer
 open Farmer.ContainerGroup
+open Farmer.Identity
 open Farmer.Arm.ContainerInstance
 open Farmer.Arm.Network
 open Farmer.CoreTypes
@@ -59,7 +60,11 @@ type ContainerGroupConfig =
       Instances : ContainerInstanceConfig list
       /// Volumes to mount on the container group.
       Volumes : Map<string, Volume>
-      Tags: Map<string,string>  }
+      /// Managed identity for the container group.
+      Identity : ManagedIdentity
+      /// Tags for the container group.
+      Tags: Map<string,string> }
+    member this.SystemIdentity = SystemIdentity (ResourceId.create(containerGroups, this.Name))
     interface IBuilder with
         member this.DependencyName = this.Name
         member this.BuildResources location = [
@@ -77,6 +82,7 @@ type ContainerGroupConfig =
               ]
               OperatingSystem = this.OperatingSystem
               RestartPolicy = this.RestartPolicy
+              Identity = this.Identity
               ImageRegistryCredentials = this.ImageRegistryCredentials
               IpAddress = this.IpAddress
               NetworkProfile = this.NetworkProfile
@@ -89,13 +95,14 @@ type ContainerGroupBuilder() =
         { Name = ResourceName.Empty
           OperatingSystem = Linux
           RestartPolicy = AlwaysRestart
+          Identity = ManagedIdentity.Empty
           ImageRegistryCredentials = []
           IpAddress = { Type = PublicAddress; Ports = Set.empty }
           NetworkProfile = None
           Instances = []
           Volumes = Map.empty
           Tags = Map.empty }
-    member this.Run (state:ContainerGroupConfig) =
+    member _.Run (state:ContainerGroupConfig) =
         // Automatically apply all public-facing ports to the container group itself.
         state.Instances
         |> Seq.collect(fun i -> i.Ports |> Map.toSeq |> Seq.choose(function (port, PublicPort) -> Some port | _, InternalPort -> None))
@@ -148,6 +155,12 @@ type ContainerGroupBuilder() =
         let newVolumes = volumes |> Map.ofSeq
         let updatedVolumes = state.Volumes |> Map.fold (fun current key vol -> Map.add key vol current) newVolumes
         { state with Volumes = updatedVolumes }
+    /// Sets the managed identity on this container group.
+    [<CustomOperation "add_identity">]
+    member _.AddIdentity(state:ContainerGroupConfig, identity:UserAssignedIdentity) = { state with Identity = state.Identity + identity }
+    member this.AddIdentity(state, identity:UserAssignedIdentityConfig) = this.AddIdentity(state, identity.UserAssignedIdentity)
+    [<CustomOperation "system_identity">]
+    member _.SystemIdentity(state:ContainerGroupConfig) = { state with Identity = { state.Identity with SystemAssigned = Enabled } }
     [<CustomOperation "add_tags">]
     member _.Tags(state:ContainerGroupConfig, pairs) =
         { state with

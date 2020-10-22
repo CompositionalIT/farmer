@@ -124,7 +124,7 @@ type Site =
       Cors : Cors option
       Dependencies : ResourceId list
       Kind : string
-      Identity : FeatureFlag option
+      Identity : Identity.ManagedIdentity
       LinuxFxVersion : string option
       AppCommandLine : string option
       NetFrameworkVersion : string option
@@ -161,43 +161,40 @@ type Site =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| sites.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
+            let dependencies = this.Dependencies @ this.Identity.Dependencies
+            {| sites.Create(this.Name, this.Location, dependencies, this.Tags) with
                  kind = this.Kind
-                 identity =
-                   match this.Identity with
-                   | Some Enabled -> box {| ``type`` = "SystemAssigned" |}
-                   | Some Disabled -> box {| ``type`` = "None" |}
-                   | None -> null
+                 identity = this.Identity |> ManagedIdentity.toArmJson
                  properties =
-                      {| serverFarmId = this.ServicePlan.Value
-                         httpsOnly = this.HTTPSOnly
-                         clientAffinityEnabled = match this.ClientAffinityEnabled with Some v -> box v | None -> null
-                         siteConfig =
-                          {| alwaysOn = this.AlwaysOn
-                             appSettings = this.AppSettings |> Map.toList |> List.map(fun (k,v) -> {| name = k; value = v.Value |})
-                             connectionStrings = this.ConnectionStrings |> Map.toList |> List.map(fun (k,(v, t)) -> {| name = k; connectionString = v.Value; ``type`` = t.ToString() |})
-                             linuxFxVersion = this.LinuxFxVersion |> Option.toObj
-                             appCommandLine = this.AppCommandLine |> Option.toObj
-                             netFrameworkVersion = this.NetFrameworkVersion |> Option.toObj
-                             javaVersion = this.JavaVersion |> Option.toObj
-                             javaContainer = this.JavaContainer |> Option.toObj
-                             javaContainerVersion = this.JavaContainerVersion |> Option.toObj
-                             phpVersion = this.PhpVersion |> Option.toObj
-                             pythonVersion = this.PythonVersion |> Option.toObj
-                             http20Enabled = this.HTTP20Enabled |> Option.toNullable
-                             webSocketsEnabled = this.WebSocketsEnabled |> Option.toNullable
-                             metadata = this.Metadata |> List.map(fun (k,v) -> {| name = k; value = v |})
-                             cors =
-                                this.Cors
-                                |> Option.map (function
-                                    | AllOrigins ->
-                                        box {| allowedOrigins = [ "*" ] |}
-                                    | SpecificOrigins (origins, credentials) ->
-                                        box {| allowedOrigins = origins
-                                               supportCredentials = credentials |> Option.toNullable |})
-                                |> Option.toObj
-                          |}
-                      |}
+                    {| serverFarmId = this.ServicePlan.Value
+                       httpsOnly = this.HTTPSOnly
+                       clientAffinityEnabled = match this.ClientAffinityEnabled with Some v -> box v | None -> null
+                       siteConfig =
+                        {| alwaysOn = this.AlwaysOn
+                           appSettings = this.AppSettings |> Map.toList |> List.map(fun (k,v) -> {| name = k; value = v.Value |})
+                           connectionStrings = this.ConnectionStrings |> Map.toList |> List.map(fun (k,(v, t)) -> {| name = k; connectionString = v.Value; ``type`` = t.ToString() |})
+                           linuxFxVersion = this.LinuxFxVersion |> Option.toObj
+                           appCommandLine = this.AppCommandLine |> Option.toObj
+                           netFrameworkVersion = this.NetFrameworkVersion |> Option.toObj
+                           javaVersion = this.JavaVersion |> Option.toObj
+                           javaContainer = this.JavaContainer |> Option.toObj
+                           javaContainerVersion = this.JavaContainerVersion |> Option.toObj
+                           phpVersion = this.PhpVersion |> Option.toObj
+                           pythonVersion = this.PythonVersion |> Option.toObj
+                           http20Enabled = this.HTTP20Enabled |> Option.toNullable
+                           webSocketsEnabled = this.WebSocketsEnabled |> Option.toNullable
+                           metadata = this.Metadata |> List.map(fun (k,v) -> {| name = k; value = v |})
+                           cors =
+                            this.Cors
+                            |> Option.map (function
+                                | AllOrigins ->
+                                    box {| allowedOrigins = [ "*" ] |}
+                                | SpecificOrigins (origins, credentials) ->
+                                    box {| allowedOrigins = origins
+                                           supportCredentials = credentials |> Option.toNullable |})
+                            |> Option.toObj
+                        |}
+                    |}
             |} :> _
 
 module Sites =
