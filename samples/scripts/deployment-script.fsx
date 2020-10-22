@@ -3,6 +3,7 @@
 
 open Farmer
 open Farmer.Builders
+open Farmer.CoreTypes
 
 let scriptIdentity = userAssignedIdentity {
     name "script-user"
@@ -17,7 +18,7 @@ let scriptRole =
 
 let createFileScript = deploymentScript {
     name "custom-deploy-steps"
-    add_identity scriptIdentity
+    identity scriptIdentity
     force_update_tag (System.DateTime.Now.ToString("o"))
     /// Set the script content directly
     /// Format output as JSON and pipe to $AZ_SCRIPTS_OUTPUT_PATH to make it available as output.
@@ -26,7 +27,7 @@ let createFileScript = deploymentScript {
 
 let deployToAks = deploymentScript {
     name "some-kubectl-stuff"
-    add_identity scriptIdentity
+    identity scriptIdentity
     content """ set -e;
         az aks install-cli;
         az aks get-credentials -n my-cluster;

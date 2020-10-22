@@ -1,5 +1,8 @@
 Release Notes
 =============
+## 1.2.0-beta3
+* Deployment Scripts: Run Azure CLI commands as part of an ARM deployment (PowerShell or AzCli)
+
 ## 1.2.0-beta2
 * Managed Identity: Create user assigned manage identity resources.
 * Container Service (AKS): Support for Managed Identity.

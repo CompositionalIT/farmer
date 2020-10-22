@@ -16,6 +16,7 @@ let allTests =
                 CognitiveServices.tests
                 ContainerGroup.tests
                 ContainerService.tests
+                DeploymentScript.tests
                 Dns.tests
                 EventHub.tests
                 IotHub.tests

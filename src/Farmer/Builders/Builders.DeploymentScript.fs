@@ -77,12 +77,10 @@ type DeploymentScriptBuilder() =
     [<CustomOperation "force_update_tag">]
     member this.ForceUpdateTag(state:DeploymentScriptConfig, forceUpdateTag:string) =
         { state with ForceUpdateTag = Some forceUpdateTag }
-    /// Sets the managed identity under which this deployment script runs.
-    [<CustomOperation "add_identity">]
-    member _.AddIdentity(state:DeploymentScriptConfig, identity:UserAssignedIdentity) = { state with Identity = state.Identity + identity }
-    member this.AddIdentity(state, identity:UserAssignedIdentityConfig) = this.AddIdentity(state, identity.UserAssignedIdentity)
-    [<CustomOperation "system_identity">]
-    member _.SystemIdentity(state:DeploymentScriptConfig) = { state with Identity = { state.Identity with SystemAssigned = Enabled } }
+    /// Sets the user assigned managed identity under which this deployment script runs.
+    [<CustomOperation "identity">]
+    member _.Identity(state:DeploymentScriptConfig, identity:UserAssignedIdentity) = { state with Identity = state.Identity + identity }
+    member this.Identity(state, identity:UserAssignedIdentityConfig) = this.Identity(state, identity.UserAssignedIdentity)
     /// URI to download the primary script to execute.
     [<CustomOperation "primary_script_uri">]
     member this.PrimaryScriptUri(state:DeploymentScriptConfig, primaryScriptUri:System.Uri) =
