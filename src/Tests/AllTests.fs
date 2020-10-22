@@ -9,6 +9,7 @@ let allTests =
     testSequencedGroup "" <|
         testList "All Tests" [
             testList "Builders" [
+                LogAnalytics.tests
                 AppInsights.tests
                 Bastion.tests
                 Cdn.tests
@@ -32,10 +33,12 @@ let allTests =
                 Sql.tests
                 EventGrid.tests
                 WebApp.tests
+                StaticWebApp.tests
                 VirtualNetworkGateway.tests
             ]
             testList "Control" [
                 Template.tests
+                Identity.tests
                 Common.tests
                 if Environment.GetEnvironmentVariable "TF_BUILD" = "True" then AzCli.tests
             ]

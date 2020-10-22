@@ -1,8 +1,8 @@
 ---
-title: "Bastion HOst"
+title: "Bastion Host"
 date: 2020-08-26T17:55:00-04:00
 chapter: false
-weight: 26
+weight: 3
 ---
 
 #### Overview

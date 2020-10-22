@@ -92,7 +92,6 @@ type KeyVaultConfig =
       NetworkAcl : NetworkAcl
       Uri : Uri option
       Secrets : SecretConfig list
-      Dependencies : ResourceId list
       Tags: Map<string,string>  }
       interface IBuilder with
         member this.DependencyName = this.Name
@@ -117,22 +116,21 @@ type KeyVaultConfig =
                         | Unspecified policies -> policies
                         | Recover(policy, secondaryPolicies) -> policy :: secondaryPolicies
                         | Default policies -> policies
-                    [| for policy in policies do
-                        {| ObjectId = policy.ObjectId
-                           ApplicationId = policy.ApplicationId
-                           Permissions =
-                            {| Certificates = policy.Permissions.Certificates
-                               Storage = policy.Permissions.Storage
-                               Keys = policy.Permissions.Keys
-                               Secrets = policy.Permissions.Secrets |}
-                        |}
-                    |]
+                    [ for policy in policies do
+                       {| ObjectId = policy.ObjectId
+                          ApplicationId = policy.ApplicationId
+                          Permissions =
+                           {| Certificates = policy.Permissions.Certificates
+                              Storage = policy.Permissions.Storage
+                              Keys = policy.Permissions.Keys
+                              Secrets = policy.Permissions.Secrets |}
+                       |}
+                    ]
                   Uri = this.Uri
                   DefaultAction = this.NetworkAcl.DefaultAction
                   Bypass = this.NetworkAcl.Bypass
                   IpRules = this.NetworkAcl.IpRules
                   VnetRules = this.NetworkAcl.VnetRules
-                  Dependencies = this.Dependencies
                   Tags = this.Tags }
 
             keyVault
@@ -159,7 +157,7 @@ type AccessPolicyBuilder() =
     member this.ObjectId(state:AccessPolicyConfig, objectId:Guid) = this.ObjectId(state, ArmExpression.create (sprintf "string('%O')" objectId))
     member this.ObjectId(state:AccessPolicyConfig, (ObjectId objectId)) = this.ObjectId(state, objectId)
     member this.ObjectId(state:AccessPolicyConfig, objectId:string) = this.ObjectId(state, Guid.Parse objectId)
-    member this.ObjectId(state:AccessPolicyConfig, PrincipalId principalId) = this.ObjectId(state, principalId)
+    member this.ObjectId(state:AccessPolicyConfig, PrincipalId expression) = this.ObjectId(state, expression)
     /// Sets the Application ID of the permission set.
     [<CustomOperation "application_id">]
     member __.ApplicationId(state:AccessPolicyConfig, applicationId) = { state with ApplicationId = Some applicationId }
@@ -180,6 +178,10 @@ let accessPolicy = AccessPolicyBuilder()
 type AccessPolicy =
     /// Quickly creates an access policy for the supplied Principal. If no permissions are supplied, defaults to GET and LIST.
     static member create (principal:PrincipalId, ?permissions) = accessPolicy { object_id principal; secret_permissions (permissions |> Option.defaultValue Secret.ReadSecrets) }
+    /// Quickly creates an access policy for the supplied Identity. If no permissions are supplied, defaults to GET and LIST.
+    static member create (identity:UserAssignedIdentityConfig, ?permissions) = AccessPolicy.create(identity.PrincipalId, ?permissions = permissions)
+    /// Quickly creates an access policy for the supplied Identity. If no permissions are supplied, defaults to GET and LIST.
+    static member create (identity:Identity.SystemIdentity, ?permissions) = AccessPolicy.create(identity.PrincipalId, ?permissions = permissions)
     /// Quickly creates an access policy for the supplied ObjectId. If no permissions are supplied, defaults to GET and LIST.
     static member create (objectId:ObjectId, ?permissions) = accessPolicy { object_id objectId; secret_permissions (permissions |> Option.defaultValue Secret.ReadSecrets) }
     static member private findEntity (searchField, values, searcher) =
@@ -238,10 +240,6 @@ type KeyVaultBuilder() =
             | Some SimpleCreateMode.Recover, [] -> failwith "Setting the creation mode to Recover requires at least one access policy. Use the accessPolicy builder to create a policy, and add it to the vault configuration using add_access_policy."
           Secrets = state.Secrets
           Uri = state.Uri
-          Dependencies =
-            state.Policies
-            |> List.choose(fun r -> r.ObjectId.Owner)
-            |> List.distinct
           Tags = state.Tags  }
     /// Sets the name of the vault.
     [<CustomOperation "name">]

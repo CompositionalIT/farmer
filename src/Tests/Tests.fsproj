@@ -10,6 +10,7 @@
     <Compile Include="Helpers.fs" />
     <Compile Include="AppInsights.fs" />
     <Compile Include="Common.fs" />
+    <Compile Include="LogAnalytics.fs" />
     <Compile Include="Bastion.fs" />
     <Compile Include="Cdn.fs" />
     <Compile Include="ContainerGroup.fs" />
@@ -34,7 +35,9 @@
     <Compile Include="SignalR.fs" />
     <Compile Include="EventGrid.fs" />
     <Compile Include="WebApp.fs" />
+    <Compile Include="StaticWebApp.fs" />
     <Compile Include="VirtualNetworkGateway.fs" />
+    <Compile Include="Identity.fs" />
     <Compile Include="AllTests.fs" />
   </ItemGroup>
 
@@ -50,6 +53,7 @@
     <PackageReference Include="Microsoft.Azure.Management.IotHub" Version="2.10.0-preview" />
     <PackageReference Include="Microsoft.Azure.Management.Maps" Version="1.0.2" />
     <PackageReference Include="Microsoft.Azure.Management.Network" Version="19.20.0-preview" />
+    <PackageReference Include="Microsoft.Azure.Management.OperationalInsights" Version="0.21.0-preview" />
     <PackageReference Include="Microsoft.Azure.Management.ServiceBus" Version="2.1.0" />
     <PackageReference Include="Microsoft.Azure.Management.SignalR" Version="1.0.1" />
     <PackageReference Include="Microsoft.Azure.Management.Sql" Version="1.43.0-preview" />

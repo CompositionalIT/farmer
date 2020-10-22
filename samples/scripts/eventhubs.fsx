@@ -10,7 +10,6 @@ let myEh = eventHub {
     namespace_name "allmyevents"
 
     sku Standard
-    disable_kafka
     enable_zone_redundant
     enable_auto_inflate 3
     add_authorization_rule "FirstRule" [ Listen; Send ]

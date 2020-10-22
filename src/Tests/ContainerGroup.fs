@@ -2,7 +2,9 @@ module ContainerGroup
 
 open Expecto
 open Farmer
+open Farmer.Identity
 open Farmer.ContainerGroup
+open Farmer.CoreTypes
 open Farmer.Builders
 open Microsoft.Azure.Management.ContainerInstance
 open Microsoft.Azure.Management.ContainerInstance.Models
@@ -138,5 +140,60 @@ let tests = testList "Container Group" [
         Expect.isNotNull group.Volumes.[3].GitRepo "Git repo volume should not be null"
     }
 
-]
+    test "Container group with private registry" {
+        let group =
+            containerGroup {
+                add_instances [ nginx ]
+                add_registry_credentials [
+                    registry "my-registry.azurecr.io" "user"
+                ]
+            } |> asAzureResource
+        Expect.hasLength group.ImageRegistryCredentials 1 "Expected one image registry credential"
+        let credentials = group.ImageRegistryCredentials.[0]
+        Expect.equal credentials.Server "my-registry.azurecr.io" "Incorrect container image registry server"
+        Expect.equal credentials.Username "user" "Incorrect container image registry user"
+        Expect.equal credentials.Password "[parameters('my-registry.azurecr.io-password')]" "Container image registry password should be secure parameter"
+    }
+
+    test "Container group with system assigned identity" {
+        let group =
+            containerGroup {
+                name "myapp"
+                add_instances [ nginx ]
+                system_identity
+            } |> asAzureResource
+
+        Expect.isTrue group.Identity.Type.HasValue "Expecting an assigned identity."
+        Expect.equal group.Identity.Type.Value ResourceIdentityType.SystemAssigned "Expecting a system assigned identity"
+    }
+
+    test "Container group with user assigned identity" {
+        let group =
+            containerGroup {
+                name "myapp"
+                add_instances [ nginx ]
+                add_identity (ResourceId.create("user", "resourceGroup") |> UserAssignedIdentity)
+            } |> asAzureResource
+
+        Expect.hasLength group.Identity.UserAssignedIdentities 1 "No user assigned identity."
+    }
+
+    test "Make container group with MSI" {
+        let msi = createUserAssignedIdentity "aciUser"
+        let group =
+            containerGroup {
+                name "myapp-with-msi"
+                add_instances [ nginx ]
+                add_identity msi
+            }
+        let template = arm {
+            location Location.EastUS
+            add_resource msi
+            add_resource group
+        }
+        let containerGroup = template.Template.Resources |> List.find(fun r -> r.ResourceName.Value = "myapp-with-msi") :?> Farmer.Arm.ContainerInstance.ContainerGroup
+        Expect.isNonEmpty containerGroup.Identity.UserAssigned "Container group did not have identity"
+        Expect.equal containerGroup.Identity.UserAssigned.[0] (UserAssignedIdentity(ResourceId.create(Arm.ManagedIdentity.userAssignedIdentities, ResourceName "aciUser"))) "Expected user identity named 'aciUser'."
+    }
+ ]
 

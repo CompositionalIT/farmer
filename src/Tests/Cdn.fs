@@ -9,6 +9,7 @@ open Microsoft.Azure.Management.Cdn.Models
 open Microsoft.Rest
 open System
 
+
 /// Client instance needed to get the serializer settings.
 let dummyClient = new CdnManagementClient (Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
 let getResourceAtIndex = getResourceAtIndex dummyClient.SerializationSettings

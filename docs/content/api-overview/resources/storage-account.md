@@ -31,6 +31,7 @@ The Storage Account builder creates storage accounts and their associated contai
 | static_website_error_page | Specifies the 404 page to display for static website hosting |
 | enable_data_lake | Enables Azure Data Lake Gen2 support on the storage account |
 | add_lifecycle_policy | Given a rule name, a list of PolicyActions and a list of string filters, creates a lifecycle policy for the storage account |
+| grant_access | Given a managed identity (can be either user- or system- assigned), and a specific RoleId from the Roles module, grants access to the identity for the provided role. |
 
 #### Configuration Members
 
@@ -61,5 +62,6 @@ let storage = storageAccount {
     enable_data_lake
     add_lifecycle_rule "moveToCool" [ Storage.CoolAfter 30<Days>; Storage.ArchiveAfter 90<Days> ] Storage.NoRuleFilters
     add_lifecycle_rule "cleanup" [ Storage.DeleteAfter 7<Days> ] [ "data/recyclebin" ]
+    grant_access myWebApp.SystemIdentity Roles.StorageBlobDataReader
 }
 ```
