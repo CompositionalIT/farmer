@@ -1,23 +1,29 @@
 Release Notes
 =============
+## 1.2.0
+
 ## 1.2.0-beta3
 * Deployment Scripts: Run Azure CLI commands as part of an ARM deployment (PowerShell or AzCli)
 
 ## 1.2.0-beta2
-* Managed Identity: Create user assigned manage identity resources.
-* Container Service (AKS): Support for Managed Identity.
+* Log Analytics: Initial release.
+* Static Web Apps: Initial release.
+
+* Managed Identity: Initial release.
 * Container Groups: Support for Managed Identity.
-* Container Groups: Support for image registry credentials for private registries.
-* Container Groups: Support for partial CPU cores.
-* Log Analytics: Initial support.
 * Web App: Full support for Managed Identity (minor breaking change).
 * Key Vault: Grant access to managed identities.
-* Storage Account: Grant access to managed identities.
-* Static Web Apps: Initial support.
-* Storage Accounts: Upgrade API version to 2019-04-01 to support RA-GZRS.
-* Internal changes to better capture full resource IDs.
 * Provide all Roles for managed identity purposes.
-* Event Hubs: Remove redundant kafka flag (breaking change).
+* Storage Account: Grant access to managed identities.
+* Container Service (AKS): Support for Managed Identity.
+
+* Container Groups: Support for creating group without public IP Address.
+* Container Groups: Support for image registry credentials for private registries.
+* Container Groups: Support for partial CPU cores.
+* Storage Accounts: Upgrade API version to 2019-04-01 to support RA-GZRS.
+* Event Hubs: Remove redundant kafka flag (minor breaking change).
+
+* Internal changes to better capture full resource IDs.
 
 ## 1.2.0-beta1
 * Bastion Hosts: Create bastion hosts for accessing resources on a virtual network

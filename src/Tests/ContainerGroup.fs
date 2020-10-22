@@ -26,6 +26,12 @@ let fsharpApp = containerInstance {
     memory 1.5<Gb>
     cpu_cores 2
 }
+let appWithoutPorts = containerInstance {
+    name "appWithoutPorts"
+    image "myapp:1.7.2"
+    memory 1.5<Gb>
+    cpu_cores 2
+}
 
 /// Client instance needed to get the serializer settings.
 let dummyClient = new ContainerInstanceManagementClient (Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
@@ -64,6 +70,17 @@ let tests = testList "Container Group" [
         Expect.equal ports [ 80; 443; 9090 ] "Incorrect ports on container"
     }
 
+    test "Group without public ip" {
+        let group = containerGroup {
+            name "myGroup"
+            operating_system Linux
+            restart_policy RestartOnFailure
+            add_instances [ appWithoutPorts ]
+        }
+
+        Expect.isNone group.IpAddress "IpAddresses should be none"
+    }
+
     test "Multiple containers are correctly added" {
         let group = containerGroup { add_instances [ nginx; fsharpApp ] } |> asAzureResource
 
@@ -94,7 +111,7 @@ let tests = testList "Container Group" [
                 ]
             } |> asAzureResource
 
-        Expect.isEmpty group.IpAddress.Ports "Should not be any public ports"
+        Expect.equal group.IpAddress null "Should not be any public ports"
         Expect.equal group.Containers.[0].Ports.[0].Port 123 "Incorrect private port"
         Expect.hasLength group.Containers.[0].Ports 1 "Should only be one port"
     }
