@@ -78,7 +78,9 @@ type ArmExpression =
     /// Applies a mapping function to the expression.
     member this.Map mapper = match this with ArmExpression (e, r) -> ArmExpression(mapper e, r)
     /// Evaluates the expression for emitting into an ARM template. That is, wraps it in [].
-    member this.Eval() = sprintf "[%s]" this.Value
+    member this.Eval() =
+        if System.Text.RegularExpressions.Regex.IsMatch(this.Value, @"string\(\'[^\']*\'\)") then this.Value.Substring(8, this.Value.Length - 10)
+        else sprintf "[%s]" this.Value
     /// Sets the owning resource on this ARM Expression.
     member this.WithOwner(owner:ResourceId) = match this with ArmExpression (e, _) -> ArmExpression(e, Some owner)
     /// Sets the owning resource on this ARM Expression.
@@ -212,8 +214,10 @@ type FeatureFlag =
 module FeatureFlag =
     let ofBool enabled = if enabled then Enabled else Disabled
 
-/// Represents an ARM expression that evaluates to a principal ID.
-type PrincipalId = PrincipalId of ArmExpression member this.ArmValue = match this with PrincipalId e -> e
+/// A Principal ID represents an Identity, typically either a system or user generated Identity.
+type PrincipalId =
+    | PrincipalId of ArmExpression member this.ArmExpression = match this with PrincipalId e -> e
+
 type ObjectId = ObjectId of Guid
 
 /// Represents a secret to be captured either via an ARM expression or a secure parameter.
@@ -245,3 +249,40 @@ type Deployment =
     { Location : Location
       Template : ArmTemplate
       PostDeployTasks : IPostDeploy list }
+
+module internal DeterministicGuid =
+    open System
+    open System.Security.Cryptography
+    open System.Text
+
+    let namespaceGuid = Guid.Parse "92f3929f-622a-4149-8f39-83a4bcd385c8"
+    let namespaceBytes = namespaceGuid.ToByteArray()
+
+    let private swapBytes(guid:byte array, left, right) =
+        let temp = guid.[left]
+        guid.[left] <- guid.[right]
+        guid.[right] <- temp
+
+    let private swapByteOrder guid =
+        swapBytes(guid, 0, 3)
+        swapBytes(guid, 1, 2)
+        swapBytes(guid, 4, 5)
+        swapBytes(guid, 6, 7)
+
+    let create(source:string) =
+        let source = Encoding.UTF8.GetBytes source
+
+        let hash =
+            use algorithm = SHA1.Create()
+            algorithm.TransformBlock(namespaceBytes, 0, namespaceBytes.Length, null, 0) |> ignore
+            algorithm.TransformFinalBlock(source, 0, source.Length) |> ignore
+            algorithm.Hash
+
+        let newGuid = Array.zeroCreate<byte> 16
+        Array.Copy(hash, 0, newGuid, 0, 16)
+
+        newGuid.[6] <- ((newGuid.[6] &&& 0x0Fuy) ||| (5uy <<< 4))
+        newGuid.[8] <- ((newGuid.[8] &&& 0x3Fuy) ||| 0x80uy)
+
+        swapByteOrder newGuid
+        Guid newGuid

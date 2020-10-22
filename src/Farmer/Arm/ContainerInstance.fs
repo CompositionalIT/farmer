@@ -4,6 +4,7 @@ module Farmer.Arm.ContainerInstance
 open Farmer
 open Farmer.ContainerGroup
 open Farmer.CoreTypes
+open Farmer.Identity
 open Newtonsoft.Json.Linq
 
 let containerGroups = ResourceType ("Microsoft.ContainerInstance/containerGroups", "2018-10-01")
@@ -35,6 +36,7 @@ type ContainerGroup =
         |} list
       OperatingSystem : OS
       RestartPolicy : RestartPolicy
+      Identity : ManagedIdentity
       ImageRegistryCredentials : ImageRegistryCredential list
       IpAddress : ContainerGroupIpAddress option
       NetworkProfile : ResourceName option
@@ -44,9 +46,7 @@ type ContainerGroup =
         this.NetworkProfile
         |> Option.map (fun networkProfile -> ResourceId.create(networkProfiles, networkProfile))
     member private this.Dependencies = [
-        match this.NetworkProfilePath with
-        | Some path -> path
-        | None -> ()
+        yield! this.NetworkProfilePath |> Option.toList
 
         for _, volume in this.Volumes |> Map.toSeq do
             match volume with
@@ -54,6 +54,9 @@ type ContainerGroup =
                 ResourceId.create(fileShares, storageAccountName.ResourceName, ResourceName "default", shareName)
             | _ ->
                 ()
+
+        // If the identity is set, include any dependent identity's resource ID
+        yield! this.Identity.Dependencies
     ]
 
     interface IParameters with
@@ -62,6 +65,7 @@ type ContainerGroup =
         member this.ResourceName = this.Name
         member this.JsonModel =
             {| containerGroups.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
+                   identity = this.Identity |> ManagedIdentity.toArmJson
                    properties =
                        {| containers =
                            this.ContainerInstances

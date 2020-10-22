@@ -33,10 +33,12 @@ let allTests =
                 Sql.tests
                 EventGrid.tests
                 WebApp.tests
+                StaticWebApp.tests
                 VirtualNetworkGateway.tests
             ]
             testList "Control" [
                 Template.tests
+                Identity.tests
                 Common.tests
                 if Environment.GetEnvironmentVariable "TF_BUILD" = "True" then AzCli.tests
             ]

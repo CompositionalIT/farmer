@@ -22,18 +22,6 @@ let findAzureResources<'T when 'T : null> (serializationSettings:Newtonsoft.Json
     |> Seq.choose (fun json -> SafeJsonConvert.DeserializeObject<'T>(json, serializationSettings) |> Option.ofObj)
     |> Seq.toList
 
-let convertResourceBuilder mapper (serializationSettings:Newtonsoft.Json.JsonSerializerSettings) (resourceBuilder:IBuilder) =
-    resourceBuilder.BuildResources Location.NorthEurope
-    |> List.pick(fun r ->
-        r.JsonModel
-        |> SafeJsonConvert.SerializeObject
-        |> SafeJsonConvert.DeserializeObject
-        |> mapper
-        |> SafeJsonConvert.SerializeObject
-        |> fun json -> SafeJsonConvert.DeserializeObject(json, serializationSettings)
-        |> Option.ofObj
-    )
-
 type TypedArmTemplate<'ResT> = { Resources : 'ResT array }
 
 let getFirstResourceOrFail (template: TypedArmTemplate<'ResourceType>) =

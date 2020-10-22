@@ -4,6 +4,7 @@ module Farmer.Builders.ContainerService
 open Farmer
 open Farmer.Arm.ContainerService
 open Farmer.CoreTypes
+open Farmer.Identity
 open Farmer.Vm
 
 type AgentPoolConfig =
@@ -32,10 +33,12 @@ type AksConfig =
       AgentPools : AgentPoolConfig list
       DnsPrefix : string
       EnableRBAC : bool
+      Identity : ManagedIdentity
       LinuxProfile : (string * string list) option
       NetworkProfile : NetworkProfileConfig option
       ServicePrincipalClientID : string option
       WindowsProfileAdminUserName : string option }
+    member this.SystemIdentity = SystemIdentity (ResourceId.create(managedClusters, this.Name))
     interface IBuilder with
         member this.DependencyName = this.Name
         member this.BuildResources location = [
@@ -44,6 +47,7 @@ type AksConfig =
               Location = location
               DnsPrefix = this.DnsPrefix
               EnableRBAC = this.EnableRBAC
+              Identity = this.Identity
               AgentPoolProfiles =
                 this.AgentPools
                 |> List.map (fun agentPool ->
@@ -151,7 +155,7 @@ type AzureCniBuilder() =
 let azureCniNetworkProfile = AzureCniBuilder()
 
 /// Builds a Linux Profile from a username and list of ssh public keys
-let make_linux_profile user sshKeys = user, sshKeys
+let makeLinuxProfile user sshKeys = user, sshKeys
 
 type AksBuilder() =
     member _.Yield _ =
@@ -159,6 +163,7 @@ type AksBuilder() =
           AgentPools = []
           DnsPrefix = ""
           EnableRBAC = false
+          Identity = ManagedIdentity.Empty
           LinuxProfile = None
           NetworkProfile = None
           ServicePrincipalClientID = None
@@ -172,6 +177,10 @@ type AksBuilder() =
     /// Enable Kubernetes Role-Based Access Control.
     [<CustomOperation "enable_rbac">]
     member _.EnableRBAC(state:AksConfig) = { state with EnableRBAC = true }
+    /// Sets the managed identity on this cluster.
+    [<CustomOperation "add_identity">]
+    member _.AddIdentity(state:AksConfig, identity:UserAssignedIdentity) = { state with Identity = state.Identity + identity }
+    member this.AddIdentity(state, identity:UserAssignedIdentityConfig) = this.AddIdentity(state, identity.UserAssignedIdentity)
     /// Adds agent pools to the AKS cluster.
     [<CustomOperation "add_agent_pools">]
     member _.AddAgentPools(state:AksConfig, pools) = { state with AgentPools = state.AgentPools @ pools }

@@ -67,6 +67,7 @@ type IsoDateTime =
     member this.Value = match this with IsoDateTime value -> value
 type TransmissionProtocol = TCP | UDP
 type TlsVersion = Tls10 | Tls11 | Tls12
+
 module Mb =
     let toBytes (mb:int<Mb>) = int64 mb * 1024L * 1024L
 module Vm =
@@ -598,6 +599,59 @@ module Sql =
             | PremiumPool c ->
                 c
 
+/// Represents a role that can be granted to an identity.
+type RoleId =
+    | RoleId of {| Name:string; Id : Guid |}
+    member this.ArmValue =
+        match this with
+        | RoleId roleId ->
+            sprintf "concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', '%O')" roleId.Id
+            |> Farmer.CoreTypes.ArmExpression.create
+    member this.Name = match this with (RoleId v) -> v.Name
+    member this.Id = match this with (RoleId v) -> v.Id
+
+module Identity =
+    open Farmer.CoreTypes
+
+    /// Represents a User Assigned Identity, and the ability to create a Principal Id from it.
+    type UserAssignedIdentity =
+        | UserAssignedIdentity of ResourceId
+        member private this.CreateExpression field =
+            let (UserAssignedIdentity resourceId) = this
+            ArmExpression
+                .create(sprintf "reference(%s).%s" resourceId.ArmExpression.Value field)
+                .WithOwner(resourceId)
+        member this.PrincipalId = this.CreateExpression "principalId" |> PrincipalId
+        member this.ClientId = this.CreateExpression "clientId"
+        member this.ResourceId = match this with UserAssignedIdentity r -> r
+
+    type SystemIdentity =
+        | SystemIdentity of ResourceId
+        member private this.CreateExpression field =
+            match this.ResourceId.Type with
+            | None ->
+                failwith "Resource Id must have a type in order to generate a Prinicipal ID"
+            | Some resourceType ->
+                let identity = this.ResourceId.ArmExpression.Value
+                ArmExpression
+                    .create(sprintf "reference(%s, '%s', 'full').identity.%s" identity resourceType.ApiVersion field)
+                    .WithOwner(this.ResourceId)
+        member this.PrincipalId = this.CreateExpression "principalId" |> PrincipalId
+        member this.ClientId = this.CreateExpression "clientId"
+        member this.ResourceId = match this with SystemIdentity r -> r
+
+    /// Represents an identity that can be assigned to a resource for impersonation.
+    type ManagedIdentity =
+        { SystemAssigned : FeatureFlag
+          UserAssigned : UserAssignedIdentity list }
+        member this.Dependencies = this.UserAssigned |> List.map(fun u -> u.ResourceId)
+        static member Empty = { SystemAssigned = Disabled; UserAssigned = [] }
+        static member (+) (a, b) =
+            { SystemAssigned = (a.SystemAssigned.AsBoolean || b.SystemAssigned.AsBoolean) |> FeatureFlag.ofBool
+              UserAssigned = a.UserAssigned @ b.UserAssigned |> List.distinct }
+        static member (+) (managedIdentity, userAssignedIdentity:UserAssignedIdentity) =
+            { managedIdentity with UserAssigned = userAssignedIdentity :: managedIdentity.UserAssigned }
+
 module ContainerGroup =
     type PortAccess = PublicPort | InternalPort
     type RestartPolicy = NeverRestart | AlwaysRestart | RestartOnFailure
@@ -988,19 +1042,6 @@ module EventGrid =
     type EventGridEvent = EventGridEvent of string member this.Value = match this with EventGridEvent s -> s
 
 /// Built in Azure roles (https://docs.microsoft.com/en-us/azure/role-based-access-control/built-in-roles)
-module Roles =
-    type RoleID = RoleID of string
-    module General =
-        let Contributor = RoleID "b24988ac-6180-42a0-ab88-20f7382dd24c"
-        let Owner = RoleID "8e3af657-a8ff-443c-a75c-2fe8c4bcb635"
-        let Reader = RoleID "acdd72a7-3385-48ef-bd42-f606fba81ae7"
-        let UserAccessAdministrator = RoleID "18d7d88d-d35e-4fb5-a5c3-7773c20a72d9"
-    module Networking =
-        let DnsZoneContributor = RoleID "befefa01-2a29-4197-83a8-272ff33ce314"
-        let NetworkContributor = RoleID "4d97b98b-1d4f-4787-a291-c67834d212e7"
-        let PrivateDnsZoneContributor = RoleID "b12aa53e-6015-4669-85d0-8515ebb3ae7f"
-        let TrafficManagerContributor = RoleID "a4b10055-b0c7-44c2-b00f-c7b5b3550cf7"
-
 module Dns =
     type DnsZoneType = Public | Private
     type DnsRecordType =
