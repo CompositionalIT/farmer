@@ -2,9 +2,9 @@
 module Farmer.Builders.DeploymentScript
 
 open Farmer
-open Farmer.Arm.ContainerInstance
-open Farmer.Arm.DeploymentScript
-//open Farmer.DeploymentScript
+open Farmer.Arm
+open Farmer.CoreTypes
+open Farmer.Identity
 
 type DeploymentScriptConfig =
     { Name : ResourceName
@@ -12,7 +12,7 @@ type DeploymentScriptConfig =
       Cli : CliVersion
       EnvironmentVariables: Map<string, EnvVarValue>
       ForceUpdateTag : string option
-      Identity : ResourceName
+      Identity : ManagedIdentity
       PrimaryScriptUri : System.Uri option
       RetentionInterval : System.TimeSpan option
       ScriptContent : string option
@@ -44,7 +44,7 @@ type DeploymentScriptBuilder() =
           Cli = AzCli "2.9.1"
           EnvironmentVariables = Map.empty
           ForceUpdateTag = None
-          Identity = ResourceName.Empty
+          Identity = ManagedIdentity.Empty
           PrimaryScriptUri = None
           RetentionInterval = None
           ScriptContent = None
@@ -78,9 +78,11 @@ type DeploymentScriptBuilder() =
     member this.ForceUpdateTag(state:DeploymentScriptConfig, forceUpdateTag:string) =
         { state with ForceUpdateTag = Some forceUpdateTag }
     /// Sets the managed identity under which this deployment script runs.
-    [<CustomOperation "identity">]
-    member _.Identity(state:DeploymentScriptConfig, identity) =
-        { state with Identity = ResourceName identity }
+    [<CustomOperation "add_identity">]
+    member _.AddIdentity(state:DeploymentScriptConfig, identity:UserAssignedIdentity) = { state with Identity = state.Identity + identity }
+    member this.AddIdentity(state, identity:UserAssignedIdentityConfig) = this.AddIdentity(state, identity.UserAssignedIdentity)
+    [<CustomOperation "system_identity">]
+    member _.SystemIdentity(state:DeploymentScriptConfig) = { state with Identity = { state.Identity with SystemAssigned = Enabled } }
     /// URI to download the primary script to execute.
     [<CustomOperation "primary_script_uri">]
     member this.PrimaryScriptUri(state:DeploymentScriptConfig, primaryScriptUri:System.Uri) =
