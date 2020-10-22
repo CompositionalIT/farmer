@@ -10,13 +10,12 @@ let scriptIdentity = userAssignedIdentity {
     name "script-user"
 }
 
-let scriptRole:Assignment =
-    {
-        Name = ArmExpression.create("guid(resourceGroup().id)").Eval() |> ResourceName
-        RoleDefinitionId = Roles.Contributor
-        PrincipalId = scriptIdentity.PrincipalId
-        Scope = ResourceName.Empty
-    }
+/// The script identity must be a contributor over this resource group.
+let scriptRole =
+    role_assignment
+        (ArmExpression.create("guid(resourceGroup().id)").Eval())
+        Roles.Contributor
+        scriptIdentity.PrincipalId
 
 let createFileScript = deploymentScript {
     name "custom-deploy-steps"
