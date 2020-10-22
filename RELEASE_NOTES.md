@@ -1,9 +1,7 @@
 Release Notes
 =============
-## 1.2.0
-* Container Groups: Support for creating group without public IP Address.
-
 ## 1.2.0-beta2
+* Container Groups: Support for creating group without public IP Address.
 * Container Groups: Support for image registry credentials for private registries.
 * Container Groups: Support for partial CPU cores.
 * Log Analytics: Initial support.
