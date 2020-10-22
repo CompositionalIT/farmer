@@ -111,24 +111,24 @@ type ContainerGroupBuilder() =
           Instances = []
           Volumes = Map.empty
           Tags = Map.empty }
-    member _.Run (state:ContainerGroupConfig) =
+    member this.Run (state:ContainerGroupConfig) =
         // Automatically apply all public-facing ports to the container group itself.
         state.Instances
         |> Seq.collect(fun i -> i.Ports |> Map.toSeq |> Seq.choose(function (port, PublicPort) -> Some port | _, InternalPort -> None))
         |> Seq.fold (fun (state:ContainerGroupConfig) port -> this.AddPort (state, TCP, port)) state
 
-    member __.AddTcpPort(state:ContainerGroupConfig, port) = __.AddPort (state, TCP, port)
+    member this.AddTcpPort(state:ContainerGroupConfig, port) = this.AddPort (state, TCP, port)
 
     [<CustomOperation "name">]
     /// Sets the name of the container group.
-    member __.Name(state:ContainerGroupConfig, name) = { state with Name = name }
+    member _.Name(state:ContainerGroupConfig, name) = { state with Name = name }
     member this.Name(state:ContainerGroupConfig, name) = this.Name(state, ResourceName name)
     /// Sets the OS type (default Linux)
     [<CustomOperation "operating_system">]
-    member __.OsType(state:ContainerGroupConfig, os) = { state with OperatingSystem = os }
+    member _.OsType(state:ContainerGroupConfig, os) = { state with OperatingSystem = os }
     /// Sets the restart policy (default Always)
     [<CustomOperation "restart_policy">]
-    member __.RestartPolicy(state:ContainerGroupConfig, restartPolicy) = { state with RestartPolicy = restartPolicy }
+    member _.RestartPolicy(state:ContainerGroupConfig, restartPolicy) = { state with RestartPolicy = restartPolicy }
     member private _.SetIpAddress(state:ContainerGroupConfig, ipAddressType, ports) =
         { state with
             IpAddress =
