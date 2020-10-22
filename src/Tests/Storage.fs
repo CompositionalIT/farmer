@@ -141,10 +141,11 @@ let tests = testList "Storage Tests" [
     test "Creates Role Assignment correctly" {
         let uai = UserAssignedIdentity.createUserAssignedIdentity "user"
         let builder = storageAccount { name "foo"; grant_access uai Roles.StorageBlobDataOwner } :> IBuilder
-        let roleAssignment = builder.BuildResources Location.NorthEurope |> List.last :?> Farmer.Arm.Storage.Providers.RoleAssignment
+        let roleAssignment = builder.BuildResources Location.NorthEurope |> List.last :?> Farmer.Arm.RoleAssignment.Assignment
         Expect.equal roleAssignment.PrincipalId uai.PrincipalId "PrincipalId"
         Expect.equal roleAssignment.RoleDefinitionId Roles.StorageBlobDataOwner "RoleId"
-        Expect.equal roleAssignment.StorageAccount.ResourceName.Value "foo" "Storage Account Name"
+        let expectedRoleAssignmentName = "efad7c9d-881a-5ca8-9177-eb1c95550036" // Deterministic guid for this input.
+        Expect.equal roleAssignment.Name.Value expectedRoleAssignmentName "Storage Account Name"
 
         let storage = builder.BuildResources Location.NorthEurope |> List.head :?> Farmer.Arm.Storage.StorageAccount
 

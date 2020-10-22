@@ -10,7 +10,7 @@ let scriptIdentity = userAssignedIdentity {
     name "script-user"
 }
 
-let scriptRole:RoleAssignment =
+let scriptRole:Assignment =
     {
         Name = ArmExpression.create("guid(resourceGroup().id)").Eval() |> ResourceName
         RoleDefinitionId = Roles.Contributor

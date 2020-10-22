@@ -1,3 +1,4 @@
+[<AutoOpen>]
 module Farmer.Arm.RoleAssignment
 
 open Farmer
@@ -5,8 +6,8 @@ open Farmer.CoreTypes
 
 let roleAssignments = ResourceType ("Microsoft.Authorization/roleAssignments", "2020-04-01-preview")
 
-type RoleAssignment =
-    { /// Use a deterministic GUID for this role name.
+type Assignment =
+    { /// It's recommended to use a deterministic GUID for the role name.
       Name : ResourceName
       /// The role to assign, such as Roles.Contributor
       RoleDefinitionId : RoleId
@@ -14,7 +15,7 @@ type RoleAssignment =
       PrincipalId : PrincipalId
       /// Resource this role applies to. If empty, this will apply to the resource group where deployed.
       Scope : ResourceName }
-
+    
     member private this.Dependencies = [
         if this.Scope <> ResourceName.Empty then
             ResourceId.create this.Scope
