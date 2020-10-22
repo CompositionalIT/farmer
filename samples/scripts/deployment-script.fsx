@@ -2,9 +2,7 @@
 #r @"../../src/Farmer/bin/Debug/netstandard2.0/Farmer.dll"
 
 open Farmer
-open Farmer.Arm.RoleAssignment
 open Farmer.Builders
-open Farmer.CoreTypes
 
 let scriptIdentity = userAssignedIdentity {
     name "script-user"
