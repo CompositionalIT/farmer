@@ -44,6 +44,7 @@ type StorageAccountConfig =
       Queues : StorageResourceName Set
       /// Rules
       Rules : Map<ResourceName, StoragePolicy>
+      RoleAssignments : Roles.RoleAssignment Set
       /// Static Website Settings
       StaticWebsite : {| IndexPage : string; ContentPath : string; ErrorPage : string option |} option
       /// Tags to apply to the storage account
@@ -60,6 +61,10 @@ type StorageAccountConfig =
               Location = location
               Sku = this.Sku
               EnableHierarchicalNamespace = this.EnableDataLake
+              Dependencies =
+                this.RoleAssignments
+                |> Seq.choose(fun roleAssignment -> roleAssignment.Principal.ArmExpression.Owner)
+                |> Seq.toList
               StaticWebsite = this.StaticWebsite
               Tags = this.Tags }
             for name, access in this.Containers do
@@ -83,6 +88,10 @@ type StorageAccountConfig =
                         {| rule with Name = name |}
                   ]
                 }
+            for roleAssignment in this.RoleAssignments do
+                { Providers.StorageAccount = this.Name
+                  Providers.RoleDefinitionId = roleAssignment.Role
+                  Providers.PrincipalId = roleAssignment.Principal }
         ]
 
 type StorageAccountBuilder() =
@@ -94,6 +103,7 @@ type StorageAccountBuilder() =
         FileShares = []
         Rules = Map.empty
         Queues = Set.empty
+        RoleAssignments = Set.empty
         StaticWebsite = None
         Tags = Map.empty
     }
@@ -158,6 +168,13 @@ type StorageAccountBuilder() =
               DeleteBlobAfter = actions |> List.tryPick(function DeleteAfter days -> Some days | _ -> None)
               DeleteSnapshotAfter = actions |> List.tryPick(function DeleteSnapshotAfter days -> Some days | _ -> None) }
         { state with Rules = state.Rules.Add (ResourceName ruleName, rule) }
+    [<CustomOperation "grant_access">]
+    member _.GrantAccess(state:StorageAccountConfig, principalId:PrincipalId, role) =
+        { state with RoleAssignments = state.RoleAssignments.Add { Principal = principalId; Role = role } }
+    member this.GrantAccess(state:StorageAccountConfig, identity:UserAssignedIdentityConfig, role) =
+        this.GrantAccess(state, identity.PrincipalId, role)
+    member this.GrantAccess(state:StorageAccountConfig, identity:Identity.SystemIdentity, role) =
+        this.GrantAccess(state, identity.PrincipalId, role)
 
 /// Allow adding storage accounts directly to CDNs
 type EndpointBuilder with

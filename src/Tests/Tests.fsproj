@@ -35,7 +35,9 @@
     <Compile Include="SignalR.fs" />
     <Compile Include="EventGrid.fs" />
     <Compile Include="WebApp.fs" />
+    <Compile Include="StaticWebApp.fs" />
     <Compile Include="VirtualNetworkGateway.fs" />
+    <Compile Include="Identity.fs" />
     <Compile Include="AllTests.fs" />
   </ItemGroup>
 

@@ -3,13 +3,14 @@ module WebApp
 open Expecto
 open Farmer
 open Farmer.Builders
+open Farmer.CoreTypes
+open Farmer.Identity
 open Farmer.WebApp
 open Farmer.Arm
-open System
-open Farmer.CoreTypes
 open Microsoft.Azure.Management.WebSites
 open Microsoft.Azure.Management.WebSites.Models
 open Microsoft.Rest
+open System
 
 let getResource<'T when 'T :> IArmResource> (data:IArmResource list) = data |> List.choose(function :? 'T as x -> Some x | _ -> None)
 /// Client instance needed to get the serializer settings.
@@ -143,17 +144,19 @@ let tests = testList "Web App Tests" [
         let site = wa |> getResources |> getResource<Web.Site> |> List.head
         let vault = wa |> getResources |> getResource<Vault> |> List.head
 
-        let expected = Map [
+        let expectedSettings = Map [
             "storage", LiteralSetting "@Microsoft.KeyVault(SecretUri=https://testwebvault.vault.azure.net/secrets/storage)"
             "secret", LiteralSetting "@Microsoft.KeyVault(SecretUri=https://testwebvault.vault.azure.net/secrets/secret)"
             "literal", LiteralSetting "value"
         ]
-        Expect.containsAll site.AppSettings expected "Incorrect settings"
 
-        Expect.sequenceEqual kv.Dependencies [ ResourceId.create site.Name ] "Key Vault dependencies are wrong"
+        Expect.equal site.Identity.SystemAssigned Enabled "System Identity should be enabled"
+        Expect.containsAll site.AppSettings expectedSettings "Incorrect settings"
+
+        Expect.sequenceEqual kv.Dependencies [ ResourceId.create(sites, site.Name) ] "Key Vault dependencies are wrong"
         Expect.equal kv.Name (ResourceName (site.Name.Value + "vault")) "Key Vault name is wrong"
-        Expect.equal kv.AccessPolicies.[0].ObjectId wa.SystemIdentity.ArmValue "Policy is incorrect"
-        Expect.equal wa.Identity (Some Enabled) "System Identity should be turned on"
+        Expect.equal wa.Identity.SystemAssigned Enabled "System Identity should be turned on"
+        Expect.equal kv.AccessPolicies.[0].ObjectId wa.SystemIdentity.PrincipalId.ArmExpression "Policy is incorrect"
 
         Expect.hasLength secrets 2 "Incorrect number of KV secrets"
 
@@ -167,5 +170,20 @@ let tests = testList "Web App Tests" [
 
         Expect.hasLength vault.AccessPolicies 1 "Incorrect number of access policies"
         Expect.sequenceEqual vault.AccessPolicies.[0].Permissions.Secrets [ KeyVault.Secret.Get ] "Incorrect permissions"
+    }
+
+    test "Handles identity correctly" {
+        let wa : Site = webApp { name "" } |> getResourceAtIndex 0
+        Expect.equal wa.Identity.Type (Nullable ManagedServiceIdentityType.None) "Incorrect default managed identity"
+        Expect.isNull wa.Identity.UserAssignedIdentities "Incorrect default managed identity"
+
+        let wa : Site = webApp { system_identity } |> getResourceAtIndex 0
+        Expect.equal wa.Identity.Type (Nullable ManagedServiceIdentityType.SystemAssigned) "Should have system identity"
+        Expect.isNull wa.Identity.UserAssignedIdentities "Should have no user assigned identities"
+
+        let wa : Site = webApp { system_identity; add_identity (createUserAssignedIdentity "test"); add_identity (createUserAssignedIdentity "test2") } |> getResourceAtIndex 0
+        Expect.equal wa.Identity.Type (Nullable ManagedServiceIdentityType.SystemAssignedUserAssigned) "Should have system identity"
+        Expect.sequenceEqual (wa.Identity.UserAssignedIdentities |> Seq.map(fun r -> r.Key)) [ "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test2')]"; "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test')]" ] "Should have two user assigned identities"
+
     }
 ]
