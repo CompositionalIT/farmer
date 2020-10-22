@@ -3,6 +3,8 @@ module Farmer.Writer
 open Farmer.CoreTypes
 open Newtonsoft.Json
 open System.IO
+open System
+open System.Reflection
 
 module TemplateGeneration =
     let processTemplate (template:ArmTemplate) = {|
@@ -24,8 +26,30 @@ module TemplateGeneration =
     let serialize data =
         JsonConvert.SerializeObject(data, Formatting.Indented, JsonSerializerSettings(NullValueHandling = NullValueHandling.Ignore))
 
+
+let private branding () =
+    let version =
+        Assembly
+            .GetExecutingAssembly()
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+            .InformationalVersion
+
+    let asRed (text: string) =
+        Console.ForegroundColor <- ConsoleColor.Red
+        Console.Write text
+        Console.ResetColor ()
+
+    Console.WriteLine "=================================================="
+    Console.WriteLine (sprintf "Farmer %s" version)
+    Console.Write "Repeatable Deployments "
+    asRed "in"
+    Console.Write " Azure made Easy"
+    asRed "!"
+    Console.WriteLine (sprintf "%s==================================================" Environment.NewLine)
+
 /// Returns a JSON string representing the supplied ARMTemplate.
-let toJson = TemplateGeneration.processTemplate >> TemplateGeneration.serialize
+let toJson =
+    TemplateGeneration.processTemplate >> TemplateGeneration.serialize
 
 /// Writes the provided JSON to a file based on the supplied template name. The postfix ".json" will automatically be added to the filename.
 let toFile folder templateName json =
@@ -40,6 +64,7 @@ let toFile folder templateName json =
 
 /// Converts the supplied ARMTemplate to JSON and then writes it out to the provided template name. The postfix ".json" will automatically be added to the filename.
 let quickWrite templateName deployment =
+    branding ()
     deployment.Template
     |> toJson
     |> toFile "." templateName
