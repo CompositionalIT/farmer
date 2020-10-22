@@ -1,5 +1,7 @@
 Release Notes
 =============
+## 1.2.0
+
 ## 1.2.0-beta2
 * Log Analytics: Initial release.
 * Static Web Apps: Initial release.
