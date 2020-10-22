@@ -1,5 +1,8 @@
 Release Notes
 =============
+## 1.2.0
+* Add branding.
+
 ## 1.2.0-beta2
 * Container Groups: Support for image registry credentials for private registries.
 * Container Groups: Support for partial CPU cores.

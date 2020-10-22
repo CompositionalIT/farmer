@@ -27,7 +27,7 @@ module TemplateGeneration =
         JsonConvert.SerializeObject(data, Formatting.Indented, JsonSerializerSettings(NullValueHandling = NullValueHandling.Ignore))
 
 
-let private branding () =
+let branding () =
     let version =
         Assembly
             .GetExecutingAssembly()

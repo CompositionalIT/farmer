@@ -22,7 +22,7 @@ module Az =
     let MinimumVersion = Version "2.5.0"
 
     type AzureCLIToolsNotFound (message:string, innerException : exn) =
-        inherit System.Exception (message, innerException)  
+        inherit System.Exception (message, innerException)
 
     [<AutoOpen>]
     module AzHelpers =
@@ -61,14 +61,14 @@ module Az =
                 azProcess.WaitForExit()
                 flushContents()
                 azProcess, sb.ToString()
-            with 
+            with
             | :? System.ComponentModel.Win32Exception as e when e.Message.Contains("No such file or directory") ->
                 let message = sprintf "Could not find Azure CLI tools on %s. Make sure you've setup the Azure CLI tools.  Go to https://compositionalit.github.io/farmer/quickstarts/quickstart-3/#install-the-azure-cli for more information." azCliPath.Value
                 AzureCLIToolsNotFound(message, e) |> raise
-            | _ -> 
+            | _ ->
                 reraise()
 
-            
+
         let processToResult (p:Process, response) =
             match p.ExitCode with
             | 0 -> Ok response
@@ -193,6 +193,7 @@ let validateParameters suppliedParameters deployment =
 let NoParameters : (string * string) list = []
 
 let private prepareForDeployment parameters resourceGroupName deployment = result {
+    Writer.branding ()
     do! deployment |> validateParameters parameters
 
     let! version = checkVersion Az.MinimumVersion
