@@ -101,6 +101,8 @@ type StorageAccountConfig =
                 { Name = uniqueName
                   RoleDefinitionId = roleAssignment.Role
                   PrincipalId = roleAssignment.Principal
+                  PrincipalResourceId = ResourceId.create (storageAccounts, this.Name.ResourceName)
+                  PrincipalType = PrincipalType.ServicePrincipal
                   Scope = this.Name.ResourceName }
         ]
 

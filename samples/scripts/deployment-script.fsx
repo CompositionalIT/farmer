@@ -14,7 +14,7 @@ let scriptRole =
     role_assignment
         (ArmExpression.create("guid(resourceGroup().id)").Eval())
         Roles.Contributor
-        scriptIdentity.PrincipalId
+        scriptIdentity
 
 let createFileScript = deploymentScript {
     name "custom-deploy-steps"
