@@ -44,6 +44,10 @@ The Event Hub builder creates event hub namespaces, event hubs, consumer groups 
 open Farmer
 open Farmer.Builders
 
+let storage = storageAccount {
+    name "isaacssuperstorage"
+}
+
 let primaryHub = eventHub {
     namespace_name "allmyevents"
     sku EventHub.Standard
