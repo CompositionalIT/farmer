@@ -53,7 +53,9 @@ type StorageAccountConfig =
     member this.Key = StorageAccount.getConnectionString this.Name
     /// Gets the Primary endpoint for static website (if enabled)
     member this.WebsitePrimaryEndpoint =
-        sprintf "[reference(%s, '2019-04-01').primaryEndpoints.web]" this.Name.ResourceName.Value
+        ArmExpression
+            .create(sprintf "reference(%s, '2019-04-01').primaryEndpoints.web" this.Name.ResourceName.Value)
+            .Eval()
     member this.Endpoint = sprintf "%s.blob.core.windows.net" this.Name.ResourceName.Value
     interface IBuilder with
         member this.DependencyName = this.Name.ResourceName
