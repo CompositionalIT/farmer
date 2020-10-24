@@ -2,7 +2,6 @@
 module Farmer.Arm.Network
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.ExpressRoute
 open Farmer.VirtualNetworkGateway
 

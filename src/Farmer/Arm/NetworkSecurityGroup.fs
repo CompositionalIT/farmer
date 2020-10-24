@@ -2,7 +2,6 @@
 module Farmer.Arm.NetworkSecurityGroup
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.NetworkSecurity
 
 let networkSecurityGroups = ResourceType ("Microsoft.Network/networkSecurityGroups", "2020-04-01")

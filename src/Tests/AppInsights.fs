@@ -3,7 +3,6 @@ module AppInsights
 open Expecto
 open Farmer
 open Farmer.Builders.AppInsights
-open Farmer.CoreTypes
 
 let tests = testList "AppInsights" [
     test "Creates keys on an AI instance correctly" {

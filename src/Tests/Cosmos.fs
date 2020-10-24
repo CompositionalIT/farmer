@@ -8,7 +8,6 @@ open Microsoft.Azure.Management.Storage
 open Microsoft.Azure.Management.Storage.Models
 open Microsoft.Rest
 open System
-open Farmer.CoreTypes
 
 let tests = testList "Cosmos" [
     test "Cosmos container should ignore duplicate unique keys" {

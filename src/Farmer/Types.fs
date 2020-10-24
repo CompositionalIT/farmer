@@ -1,5 +1,7 @@
 namespace Farmer
 
+open System
+
 /// Represents a name of an ARM resource
 type ResourceName =
     | ResourceName of string
@@ -24,25 +26,6 @@ type Location =
     | Location of string
     member this.ArmValue = match this with Location location -> location.ToLower()
 
-/// An Azure ARM resource value which can be mapped into an ARM template.
-type IArmResource =
-    /// The name of the resource, to uniquely identify against other resources in the template.
-    abstract member ResourceName : ResourceName
-    /// A raw object that is ready for serialization directly to JSON.
-    abstract member JsonModel : obj
-
-/// Represents a high-level configuration that can create a set of ARM Resources.
-type IBuilder =
-    /// Given a location and the currently-built resources, returns a set of resource actions.
-    abstract member BuildResources : Location -> IArmResource list
-    /// Provides the resource name that other resources should use when depending upon this builder.
-    abstract member DependencyName : ResourceName
-
-namespace Farmer.CoreTypes
-
-open Farmer
-open System
-
 type ResourceType =
     | ResourceType of path:string * version:string
     /// Returns the ARM resource type string value.
@@ -64,6 +47,24 @@ type ResourceId =
         { ResourceId.Empty with Type = Some resourceType; ResourceGroup = group; Name = name }
     static member create (resourceType:ResourceType, name:ResourceName, [<ParamArray>] resourceSegments:ResourceName []) =
         { ResourceId.Empty with Type = Some resourceType; Name = name; Segments = List.ofArray resourceSegments }
+
+type ResourceType with
+    member this.CreateResourceId name = ResourceId.create (this, name)
+    member this.CreateResourceId name = this.CreateResourceId (ResourceName name)
+
+/// An Azure ARM resource value which can be mapped into an ARM template.
+type IArmResource =
+    /// The name of the resource, to uniquely identify against other resources in the template.
+    abstract member ResourceName : ResourceName
+    /// A raw object that is ready for serialization directly to JSON.
+    abstract member JsonModel : obj
+
+/// Represents a high-level configuration that can create a set of ARM Resources.
+type IBuilder =
+    /// Given a location and the currently-built resources, returns a set of resource actions.
+    abstract member BuildResources : Location -> IArmResource list
+    /// Provides the resource name that other resources should use when depending upon this builder.
+    abstract member Dependency : ResourceId
 
 /// Represents an expression used within an ARM template
 type ArmExpression =

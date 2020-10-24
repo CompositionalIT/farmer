@@ -2,7 +2,6 @@
 module Farmer.Builders.VirtualMachine
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.PublicIpAddress
 open Farmer.Vm
 open Farmer.Helpers
@@ -41,7 +40,7 @@ type VmConfig =
     member this.Hostname = ArmExpression.reference(publicIPAddresses, this.IpName).Map(sprintf "%s.dnsSettings.fqdn")
 
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.Dependency = ResourceId.create(virtualMachines, this.Name)
         member this.BuildResources location = [
             // VM itself
             { Name = this.Name

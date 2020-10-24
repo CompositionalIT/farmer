@@ -2,7 +2,6 @@ module CognitiveServices
 
 open Expecto
 open Farmer
-open Farmer.CoreTypes
 open Farmer.Builders
 open Farmer.CognitiveServices
 open Microsoft.Azure.Management.CognitiveServices

@@ -3,7 +3,6 @@ module WebApp
 open Expecto
 open Farmer
 open Farmer.Builders
-open Farmer.CoreTypes
 open Farmer.Identity
 open Farmer.WebApp
 open Farmer.Arm

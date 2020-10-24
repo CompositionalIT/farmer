@@ -2,7 +2,6 @@
 module Farmer.Arm.Web
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.WebApp
 open System
 

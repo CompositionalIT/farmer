@@ -2,7 +2,6 @@
 module Farmer.Builders.Functions
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.Helpers
 open Farmer.Identity
 open Farmer.WebApp
@@ -52,7 +51,7 @@ type FunctionsConfig =
     /// Gets the Storage Account name for this functions app.
     member this.StorageAccountName : Storage.StorageAccountName = this.StorageAccount.CreateResourceId(this).Name |> Storage.StorageAccountName.Create |> Result.get
     interface IBuilder with
-        member this.DependencyName = this.ServicePlanName
+        member this.Dependency = ResourceId.create(sites, this.Name)
         member this.BuildResources location = [
             { Name = this.Name
               ServicePlan = this.ServicePlanName
@@ -235,16 +234,16 @@ type FunctionsBuilder() =
     member _.AddSecret(state:FunctionsConfig, key) =
         { state with Settings = state.Settings.Add(key, ParameterSetting (SecureParameter key)) }
 
-    member private _.AddDependency (state:FunctionsConfig, resourceName:ResourceName) = { state with Dependencies = ResourceId.create resourceName :: state.Dependencies }
-    member private _.AddDependencies (state:FunctionsConfig, resourceNames:ResourceName list) = { state with Dependencies = (resourceNames |> List.map ResourceId.create) @ state.Dependencies }
+    member private _.AddDependency (state:FunctionsConfig, resourceId) = { state with Dependencies = resourceId :: state.Dependencies }
+    member private _.AddDependencies (state:FunctionsConfig, resourceIds) = { state with Dependencies = resourceIds @ state.Dependencies }
     /// Sets a dependency for the web app.
     [<CustomOperation "depends_on">]
     member this.DependsOn(state:FunctionsConfig, resourceName) = this.AddDependency(state, resourceName)
     member this.DependsOn(state:FunctionsConfig, resources) = this.AddDependencies(state, resources)
-    member this.DependsOn(state:FunctionsConfig, builder:IBuilder) = this.AddDependency(state, builder.DependencyName)
-    member this.DependsOn(state:FunctionsConfig, builders:IBuilder list) = this.AddDependencies(state, builders |> List.map (fun x -> x.DependencyName))
-    member this.DependsOn(state:FunctionsConfig, resource:IArmResource) = this.AddDependency(state, resource.ResourceName)
-    member this.DependsOn(state:FunctionsConfig, resources:IArmResource list) = this.AddDependencies(state, resources |> List.map (fun x -> x.ResourceName))
+    member this.DependsOn(state:FunctionsConfig, builder:IBuilder) = this.AddDependency(state, builder.Dependency)
+    member this.DependsOn(state:FunctionsConfig, builders:IBuilder list) = this.AddDependencies(state, builders |> List.map (fun x -> x.Dependency))
+    member this.DependsOn(state:FunctionsConfig, resource:IArmResource) = this.AddDependency(state, ResourceId.create resource.ResourceName)
+    member this.DependsOn(state:FunctionsConfig, resources:IArmResource list) = this.AddDependencies(state, resources |> List.map (fun x -> ResourceId.create x.ResourceName))
 
     /// sets the list of origins that should be allowed to make cross-origin calls. Use AllOrigins to allow all.
     [<CustomOperation "enable_cors">]

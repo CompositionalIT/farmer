@@ -3,7 +3,6 @@ module Farmer.Arm.EventGrid
 
 open Farmer
 open Farmer.EventGrid
-open Farmer.CoreTypes
 
 let systemTopics = ResourceType ("Microsoft.EventGrid/systemTopics", "2020-04-01-preview")
 let eventSubscriptions = ResourceType ("Microsoft.EventGrid/systemTopics/eventSubscriptions", "2020-04-01-preview")

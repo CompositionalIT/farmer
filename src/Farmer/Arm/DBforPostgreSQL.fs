@@ -3,7 +3,6 @@ module Farmer.Arm.DBforPostgreSQL
 
 open System.Net
 open Farmer
-open Farmer.CoreTypes
 open Farmer.PostgreSQL
 
 let databases = ResourceType ("Microsoft.DBforPostgreSQL/servers/databases", "2017-12-01")

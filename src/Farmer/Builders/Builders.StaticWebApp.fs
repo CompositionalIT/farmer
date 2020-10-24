@@ -3,7 +3,6 @@ module Farmer.Builders.StaticWebApp
 
 open Farmer
 open Farmer.Arm.Web
-open Farmer.CoreTypes
 open System
 
 type StaticWebAppConfig =
@@ -15,7 +14,7 @@ type StaticWebAppConfig =
       ApiLocation : string option
       AppArtifactLocation : string option }
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.Dependency = ResourceId.create(staticSites, this.Name)
         member this.BuildResources location = [
             match this with
             | { Repository = Some uri } ->

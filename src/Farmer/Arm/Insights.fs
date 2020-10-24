@@ -2,7 +2,6 @@
 module Farmer.Arm.Insights
 
 open Farmer
-open Farmer.CoreTypes
 
 let components = ResourceType("Microsoft.Insights/components", "2014-04-01")
 

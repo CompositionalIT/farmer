@@ -2,7 +2,6 @@
 module Farmer.Arm.EventHub
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.EventHub
 
 let namespaces = ResourceType ("Microsoft.EventHub/namespaces", "2017-04-01")

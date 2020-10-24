@@ -40,7 +40,7 @@ type VNetGatewayConfig =
       EnableBgp : bool
       Tags: Map<string,string>  }
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.Dependency = ResourceId.create(virtualNetworkGateways, this.Name)
         member this.BuildResources location = [
             if this.GatewayPublicIpName = ResourceName.Empty then
                 { // No public IP set, so generate one named after the gateway
@@ -187,7 +187,7 @@ type ConnectionConfig =
       AuthorizationKey : string option
       Tags: Map<string,string> }
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.Dependency = ResourceId.create(connections, this.Name)
         member this.BuildResources location = [
             { Name = this.Name
               Location = location

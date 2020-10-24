@@ -8,10 +8,10 @@ open Farmer.Arm.Maps
 
 type MapsConfig =
     { Name : ResourceName
-      Sku : Sku 
+      Sku : Sku
       Tags: Map<string,string> }
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.Dependency = ResourceId.create(Arm.Maps.accounts, this.Name)
         member this.BuildResources _ = [
             { Name = this.Name
               Location = Location "global"
@@ -32,10 +32,10 @@ type MapsBuilder() =
     member this.Name(state:MapsConfig, name) = this.Name(state, ResourceName name)
     /// Sets the SKU of the Azure Maps instance.
     [<CustomOperation("sku")>]
-    member _.Sku(state:MapsConfig, sku) = { state with Sku = sku }    
+    member _.Sku(state:MapsConfig, sku) = { state with Sku = sku }
     [<CustomOperation "add_tags">]
-    member _.Tags(state:MapsConfig, pairs) = 
-        { state with 
+    member _.Tags(state:MapsConfig, pairs) =
+        { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
     member this.Tag(state:MapsConfig, key, value) = this.Tags(state, [ (key,value) ])

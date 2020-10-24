@@ -2,7 +2,6 @@
 module Farmer.Arm.LogAnalytics
 
 open Farmer
-open Farmer.CoreTypes
 
 let workspaces = ResourceType("Microsoft.OperationalInsights/workspaces", "2020-03-01-preview")
 

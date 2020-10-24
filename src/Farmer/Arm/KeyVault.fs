@@ -2,7 +2,6 @@
 module Farmer.Arm.KeyVault
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.KeyVault
 open System
 

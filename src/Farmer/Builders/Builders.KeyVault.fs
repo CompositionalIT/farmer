@@ -2,7 +2,6 @@
 module Farmer.Builders.KeyVault
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.KeyVault
 open Farmer.Arm.KeyVault
 open System
@@ -94,7 +93,7 @@ type KeyVaultConfig =
       Secrets : SecretConfig list
       Tags: Map<string,string>  }
       interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.Dependency = ResourceId.create(vaults, this.Name)
         member this.BuildResources location = [
             let keyVault =
                 { Name = this.Name
@@ -350,16 +349,16 @@ type SecretBuilder() =
     [<CustomOperation "expiration_date">]
     member __.ExpirationDate(state:SecretConfig, expirationDate) = { state with ExpirationDate = Some expirationDate }
 
-    member private _.AddDependency (state:SecretConfig, resourceName:ResourceName) = { state with Dependencies = ResourceId.create resourceName :: state.Dependencies }
-    member private _.AddDependencies (state:SecretConfig, resourceNames:ResourceName list) = { state with Dependencies = (resourceNames |> List.map ResourceId.create) @ state.Dependencies }
+    member private _.AddDependency (state:SecretConfig, resourceId) = { state with Dependencies = resourceId :: state.Dependencies }
+    member private _.AddDependencies (state:SecretConfig, resourceIds) = { state with Dependencies = resourceIds @ state.Dependencies }
     /// Sets a dependency for the web app.
     [<CustomOperation "depends_on">]
     member this.DependsOn(state:SecretConfig, resourceName) = this.AddDependency(state, resourceName)
     member this.DependsOn(state:SecretConfig, resources) = this.AddDependencies(state, resources)
-    member this.DependsOn(state:SecretConfig, builder:IBuilder) = this.AddDependency(state, builder.DependencyName)
-    member this.DependsOn(state:SecretConfig, builders:IBuilder list) = this.AddDependencies(state, builders |> List.map (fun x -> x.DependencyName))
-    member this.DependsOn(state:SecretConfig, resource:IArmResource) = this.AddDependency(state, resource.ResourceName)
-    member this.DependsOn(state:SecretConfig, resources:IArmResource list) = this.AddDependencies(state, resources |> List.map (fun x -> x.ResourceName))
+    member this.DependsOn(state:SecretConfig, builder:IBuilder) = this.AddDependency(state, builder.Dependency)
+    member this.DependsOn(state:SecretConfig, builders:IBuilder list) = this.AddDependencies(state, builders |> List.map (fun x -> x.Dependency))
+    member this.DependsOn(state:SecretConfig, resource:IArmResource) = this.AddDependency(state, ResourceId.create resource.ResourceName)
+    member this.DependsOn(state:SecretConfig, resources:IArmResource list) = this.AddDependencies(state, resources |> List.map (fun x -> ResourceId.create x.ResourceName))
 
 let secret = SecretBuilder()
 let keyVault = KeyVaultBuilder()

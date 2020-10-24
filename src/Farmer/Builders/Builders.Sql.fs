@@ -2,7 +2,6 @@
 module Farmer.Builders.SqlAzure
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.Sql
 open Farmer.Arm.Sql
 open System.Net
@@ -50,7 +49,7 @@ type SqlAzureConfig =
     member this.PasswordParameter = sprintf "password-for-%s" this.Name.Value
 
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.Dependency = ResourceId.create(servers, this.Name)
         member this.BuildResources location = [
             let elasticPoolName =
                 this.ElasticPoolSettings.Name

@@ -606,12 +606,11 @@ type RoleId =
         match this with
         | RoleId roleId ->
             sprintf "concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', '%O')" roleId.Id
-            |> Farmer.CoreTypes.ArmExpression.create
+            |> ArmExpression.create
     member this.Name = match this with (RoleId v) -> v.Name
     member this.Id = match this with (RoleId v) -> v.Id
 
 module Identity =
-    open Farmer.CoreTypes
 
     /// Represents a User Assigned Identity, and the ability to create a Principal Id from it.
     type UserAssignedIdentity =

@@ -4,7 +4,6 @@ open Expecto
 open Farmer
 open Farmer.Identity
 open Farmer.ContainerGroup
-open Farmer.CoreTypes
 open Farmer.Builders
 open Microsoft.Azure.Management.ContainerInstance
 open Microsoft.Azure.Management.ContainerInstance.Models

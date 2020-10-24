@@ -2,7 +2,6 @@
 module Farmer.Arm.DocumentDb
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.CosmosDb
 
 let containers = ResourceType ("Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers", "2020-03-01")

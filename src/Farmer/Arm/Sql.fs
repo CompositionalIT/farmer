@@ -2,7 +2,6 @@
 module Farmer.Arm.Sql
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.Sql
 open System.Net
 

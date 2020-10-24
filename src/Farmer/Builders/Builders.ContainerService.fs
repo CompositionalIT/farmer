@@ -3,7 +3,6 @@ module Farmer.Builders.ContainerService
 
 open Farmer
 open Farmer.Arm.ContainerService
-open Farmer.CoreTypes
 open Farmer.Identity
 open Farmer.Vm
 
@@ -38,9 +37,10 @@ type AksConfig =
       NetworkProfile : NetworkProfileConfig option
       ServicePrincipalClientID : string option
       WindowsProfileAdminUserName : string option }
-    member this.SystemIdentity = SystemIdentity (ResourceId.create(managedClusters, this.Name))
+    member private this.ResourceId = ResourceId.create(managedClusters, this.Name)
+    member this.SystemIdentity = SystemIdentity this.ResourceId
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.Dependency = this.ResourceId
         member this.BuildResources location = [
             // VM itself
             { Name = this.Name

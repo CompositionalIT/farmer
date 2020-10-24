@@ -2,7 +2,6 @@
 module Farmer.Arm.ServiceBus
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.ServiceBus
 open System
 

@@ -3,7 +3,6 @@ module Farmer.Builders.SignalR
 
 open Farmer
 open Farmer.Arm.SignalRService
-open Farmer.CoreTypes
 open Farmer.Helpers
 open Farmer.SignalR
 
@@ -12,9 +11,10 @@ type SignalRConfig =
       Sku : Sku
       Capacity : int option
       AllowedOrigins : string list
-      Tags: Map<string,string>  }
+      Tags: Map<string,string> }
+    member this.ResourceId = ResourceId.create(signalR, this.Name)
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.Dependency = this.ResourceId
         member this.BuildResources location = [
             { Name = this.Name
               Location = location
@@ -25,7 +25,7 @@ type SignalRConfig =
         ]
     member this.Key =
         let expr = sprintf "listKeys(resourceId('Microsoft.SignalRService/SignalR', '%s'), providers('Microsoft.SignalRService', 'SignalR').apiVersions[0]).primaryConnectionString" this.Name.Value
-        ArmExpression.create(expr, ResourceId.create this.Name)
+        ArmExpression.create(expr, this.ResourceId)
 
 type SignalRBuilder() =
     member _.Yield _ =

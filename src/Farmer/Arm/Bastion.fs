@@ -2,7 +2,6 @@
 module Farmer.Arm.Bastion
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.Arm.Network
 
 let bastionHosts = ResourceType ("Microsoft.Network/bastionHosts", "2020-05-01")

@@ -3,7 +3,7 @@ module Template
 open Expecto
 open Farmer
 open Farmer.Builders
-open Farmer.CoreTypes
+open Farmer.Arm
 open Newtonsoft.Json
 
 [<AutoOpen>]
@@ -140,7 +140,7 @@ let tests = testList "Template" [
         let a = storageAccount { name "aaa" }
         let b = webApp { name "b"; depends_on a }
 
-        Expect.equal b.Dependencies [ ResourceId.create (ResourceName "aaa") ] "Dependency should have been set"
+        Expect.equal b.Dependencies [ storageAccounts.CreateResourceId "aaa" ] "Dependency should have been set"
     }
 
     test "Can add dependencies through Resource Name" {
@@ -156,7 +156,7 @@ let tests = testList "Template" [
         let b = storageAccount { name "bbb" }
         let b = webApp { name "b"; depends_on [ a :> IBuilder; b :> IBuilder ] }
 
-        Expect.equal b.Dependencies [ ResourceId.create (ResourceName "aaa"); ResourceId.create (ResourceName "bbb") ] "Dependencies should have been set"
+        Expect.equal b.Dependencies [ storageAccounts.CreateResourceId "aaa"; storageAccounts.CreateResourceId "bbb" ] "Dependencies should have been set"
     }
 
     test "Generates untyped Resource Id" {
@@ -166,7 +166,7 @@ let tests = testList "Template" [
     }
 
     test "Generates typed Resource Id" {
-        let rid = ResourceId.create (Arm.Network.connections, ResourceName "test")
+        let rid = connections.CreateResourceId "test"
         let id = rid.Eval()
         Expect.equal id "[resourceId('Microsoft.Network/connections', 'test')]" "resourceId template function should match"
     }

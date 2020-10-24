@@ -3,7 +3,6 @@ module Farmer.Arm.ContainerRegistry
 
 open Farmer
 open Farmer.ContainerRegistry
-open Farmer.CoreTypes
 
 let registries = ResourceType ("Microsoft.ContainerRegistry/registries", "2019-05-01")
 

@@ -2,7 +2,6 @@
 module Farmer.Arm.Cdn
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.Cdn
 open System
 

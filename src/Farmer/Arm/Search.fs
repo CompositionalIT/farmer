@@ -2,7 +2,6 @@
 module Farmer.Arm.Search
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.Search
 
 let searchServices = ResourceType ("Microsoft.Search/searchServices", "2015-08-19")

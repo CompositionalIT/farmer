@@ -3,7 +3,6 @@ module Farmer.Arm.ContainerInstance
 
 open Farmer
 open Farmer.ContainerGroup
-open Farmer.CoreTypes
 open Farmer.Identity
 open Newtonsoft.Json.Linq
 

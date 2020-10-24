@@ -2,7 +2,6 @@
 module Farmer.Arm.Devices
 
 open Farmer
-open Farmer.CoreTypes
 
 let iotHubs = ResourceType ("Microsoft.Devices/IotHubs", "2019-03-22")
 let provisioningServices = ResourceType ("Microsoft.Devices/provisioningServices",  "2018-01-22")

@@ -2,7 +2,6 @@
 module Farmer.Arm.Cache
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.Redis
 
 let redis = ResourceType ("Microsoft.Cache/Redis", "2018-03-01")

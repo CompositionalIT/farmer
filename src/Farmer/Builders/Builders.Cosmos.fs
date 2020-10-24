@@ -2,7 +2,6 @@
 module Farmer.Builders.CosmosDb
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.CosmosDb
 open Farmer.Arm.DocumentDb
 open DatabaseAccounts
@@ -41,7 +40,7 @@ type CosmosDbConfig =
       PublicNetworkAccess : FeatureFlag
       FreeTier : bool
       Tags: Map<string,string> }
-    member private this.AccountResourceId = this.AccountName.CreateResourceId(this).WithType(databaseAccounts)
+    member private this.AccountResourceId = this.AccountName.CreateResourceId this
     member this.PrimaryKey = CosmosDb.getKey(this.AccountResourceId, PrimaryKey, ReadWrite)
     member this.SecondaryKey = CosmosDb.getKey(this.AccountResourceId, SecondaryKey, ReadWrite)
     member this.PrimaryReadonlyKey = CosmosDb.getKey(this.AccountResourceId, PrimaryKey, ReadOnly)
@@ -53,7 +52,7 @@ type CosmosDbConfig =
             .reference(databaseAccounts, this.AccountResourceId)
             .Map(sprintf "%s.documentEndpoint")
     interface IBuilder with
-        member this.DependencyName = this.AccountResourceId.Name
+        member this.Dependency = this.AccountResourceId
         member this.BuildResources location = [
             // Account
             match this.AccountName with

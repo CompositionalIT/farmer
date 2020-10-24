@@ -2,7 +2,6 @@
 module Farmer.Arm.Dns
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.Dns
 
 let zones = ResourceType ("Microsoft.Network/dnsZones", "2018-05-01")

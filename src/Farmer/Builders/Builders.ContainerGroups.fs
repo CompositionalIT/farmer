@@ -6,7 +6,6 @@ open Farmer.ContainerGroup
 open Farmer.Identity
 open Farmer.Arm.ContainerInstance
 open Farmer.Arm.Network
-open Farmer.CoreTypes
 
 type volume_mount =
     static member empty_dir volumeName =
@@ -64,9 +63,10 @@ type ContainerGroupConfig =
       Identity : ManagedIdentity
       /// Tags for the container group.
       Tags: Map<string,string> }
-    member this.SystemIdentity = SystemIdentity (ResourceId.create(containerGroups, this.Name))
+    member private this.ResourceId = ResourceId.create(containerGroups, this.Name)
+    member this.SystemIdentity = SystemIdentity this.ResourceId
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.Dependency = this.ResourceId
         member this.BuildResources location = [
             { Location = location
               Name = this.Name
@@ -239,7 +239,7 @@ type NetworkProfileConfig =
       VirtualNetwork : ResourceName
       Tags: Map<string,string>  }
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.Dependency = ResourceId.create(networkProfiles, this.Name)
         member this.BuildResources location = [
             { Name = this.Name
               Location = location

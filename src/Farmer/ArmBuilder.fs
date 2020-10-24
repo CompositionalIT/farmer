@@ -1,7 +1,6 @@
 [<AutoOpen>]
 module Farmer.ArmBuilder
 
-open Farmer.CoreTypes
 open Farmer
 
 module Resource =

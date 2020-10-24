@@ -2,7 +2,6 @@
 module Farmer.Builders.ServicePlan
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.WebApp
 open Arm.Web
 
@@ -14,7 +13,7 @@ type ServicePlanConfig =
       OperatingSystem : OS
       Tags : Map<string,string> }
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.Dependency = ResourceId.create(serverFarms, this.Name)
         member this.BuildResources location = [
           { Name = this.Name
             Location = location
@@ -31,7 +30,7 @@ type ServicePlanBuilder() =
           Sku = Free
           WorkerSize = Small
           WorkerCount = 1
-          OperatingSystem = Windows 
+          OperatingSystem = Windows
           Tags = Map.empty }
     [<CustomOperation "name">]
     /// Sets the name of the Server Farm.
@@ -52,8 +51,8 @@ type ServicePlanBuilder() =
     /// Configures this server farm to host serverless functions, not web apps.
     member __.Serverless(state:ServicePlanConfig) = { state with Sku = Dynamic; WorkerSize = Serverless }
     [<CustomOperation "add_tags">]
-    member _.Tags(state:ServicePlanConfig, pairs) = 
-        { state with 
+    member _.Tags(state:ServicePlanConfig, pairs) =
+        { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
     member this.Tag(state:ServicePlanConfig, key, value) = this.Tags(state, [ (key,value) ])

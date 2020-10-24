@@ -2,7 +2,6 @@
 module Farmer.Arm.ContainerService
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.Identity
 open Farmer.Vm
 

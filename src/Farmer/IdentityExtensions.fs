@@ -1,6 +1,5 @@
 ﻿namespace Farmer
 
-open Farmer.CoreTypes
 open Identity
 open Farmer.Arm.ManagedIdentity
 open System

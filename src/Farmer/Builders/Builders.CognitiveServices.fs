@@ -4,7 +4,6 @@ module Farmer.Builders.CognitiveServices
 open Farmer
 open Farmer.Arm.CognitiveServices
 open Farmer.CognitiveServices
-open Farmer.CoreTypes
 
 type CognitiveServices =
     /// Gets an ARM Expression key for any Cognitives Services instance.
@@ -21,7 +20,7 @@ type CognitiveServicesConfig =
     /// Gets an ARM expression to the key of this Cognitive Services instance.
     member this.Key = CognitiveServices.getKey (ResourceId.create this.Name)
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.Dependency = ResourceId.create(Arm.CognitiveServices.accounts, this.Name)
         member this.BuildResources location = [
             { Name = this.Name
               Location = location

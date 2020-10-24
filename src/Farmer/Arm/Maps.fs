@@ -2,7 +2,6 @@
 module Farmer.Arm.Maps
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.Maps
 
 let accounts = ResourceType ("Microsoft.Maps/accounts", "2018-05-01")

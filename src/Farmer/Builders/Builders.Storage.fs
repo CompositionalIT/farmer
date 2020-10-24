@@ -2,7 +2,6 @@
 module Farmer.Builders.Storage
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.Storage
 open Farmer.Arm.Storage
 open BlobServices
@@ -54,11 +53,12 @@ type StorageAccountConfig =
     /// Gets the Primary endpoint for static website (if enabled)
     member this.WebsitePrimaryEndpoint =
         ArmExpression
-            .reference(storageAccounts, ResourceId.create(storageAccounts, this.Name.ResourceName))
+            .reference(storageAccounts, this.ResourceId)
             .Map(sprintf "%s.primaryEndpoints.web")
     member this.Endpoint = sprintf "%s.blob.core.windows.net" this.Name.ResourceName.Value
+    member this.ResourceId = ResourceId.create(storageAccounts, this.Name.ResourceName)
     interface IBuilder with
-        member this.DependencyName = this.Name.ResourceName
+        member this.Dependency = this.ResourceId
         member this.BuildResources location = [
             { Name = this.Name
               Location = location
@@ -183,6 +183,6 @@ type StorageAccountBuilder() =
 type EndpointBuilder with
     member this.Origin(state:EndpointConfig, storage:StorageAccountConfig) =
         let state = this.Origin(state, storage.Endpoint)
-        this.DependsOn(state, storage.Name.ResourceName)
+        this.DependsOn(state, storage.ResourceId)
 
 let storageAccount = StorageAccountBuilder()

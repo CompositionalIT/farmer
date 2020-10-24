@@ -2,7 +2,6 @@
 module Farmer.Builders.VirtualNetwork
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.Arm.Network
 open Helpers
 
@@ -80,7 +79,7 @@ type VirtualNetworkConfig =
       Subnets : SubnetConfig list
       Tags: Map<string,string>  }
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.Dependency = ResourceId.create(virtualNetworks, this.Name)
         member this.BuildResources location = [
             { Name = this.Name
               Location = location

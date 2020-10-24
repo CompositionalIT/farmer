@@ -4,7 +4,6 @@ open Expecto
 open Farmer
 open Farmer.Arm
 open Farmer.Identity
-open Farmer.CoreTypes
 
 let tests = testList "Identity" [
     test "Can add two identities together" {

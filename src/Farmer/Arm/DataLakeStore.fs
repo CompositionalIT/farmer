@@ -2,7 +2,6 @@
 module Farmer.Arm.DataLakeStore
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.DataLake
 
 let accounts = ResourceType ("Microsoft.DataLakeStore/accounts", "2016-11-01")

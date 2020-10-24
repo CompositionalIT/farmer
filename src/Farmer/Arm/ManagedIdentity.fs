@@ -2,7 +2,6 @@ module Farmer.Arm.ManagedIdentity
 
 open Farmer
 open Farmer.Identity
-open Farmer.CoreTypes
 
 let userAssignedIdentities = ResourceType ("Microsoft.ManagedIdentity/userAssignedIdentities", "2018-11-30")
 
