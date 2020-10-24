@@ -80,7 +80,7 @@ type ExpressRouteConfig =
     Tags: Map<string,string>  }
 
     interface IBuilder with
-        member this.Dependency = ResourceId.create(expressRouteCircuits, this.Name)
+        member this.ResourceId = ResourceId.create(expressRouteCircuits, this.Name)
         member this.BuildResources location = [
             { Name = this.Name
               Location = location

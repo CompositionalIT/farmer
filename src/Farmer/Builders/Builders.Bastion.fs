@@ -11,7 +11,7 @@ type BastionConfig =
       VirtualNetwork : ResourceName
       Tags : Map<string, string> }
     interface IBuilder with
-        member this.Dependency = ResourceId.create(bastionHosts, this.Name)
+        member this.ResourceId = ResourceId.create(bastionHosts, this.Name)
         member this.BuildResources location =
             let publicIpName = sprintf "%s-ip" this.Name.Value |> ResourceName
             [

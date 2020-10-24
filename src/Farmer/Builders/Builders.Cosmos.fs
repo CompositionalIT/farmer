@@ -52,7 +52,7 @@ type CosmosDbConfig =
             .reference(databaseAccounts, this.AccountResourceId)
             .Map(sprintf "%s.documentEndpoint")
     interface IBuilder with
-        member this.Dependency = this.AccountResourceId
+        member this.ResourceId = this.AccountResourceId
         member this.BuildResources location = [
             // Account
             match this.AccountName with

@@ -40,7 +40,7 @@ type AksConfig =
     member private this.ResourceId = ResourceId.create(managedClusters, this.Name)
     member this.SystemIdentity = SystemIdentity this.ResourceId
     interface IBuilder with
-        member this.Dependency = this.ResourceId
+        member this.ResourceId = this.ResourceId
         member this.BuildResources location = [
             // VM itself
             { Name = this.Name

@@ -9,7 +9,7 @@ type UserAssignedIdentityConfig =
     { Name : ResourceName
       Tags : Map<string, string> }
     interface IBuilder with
-        member this.Dependency = this.ResourceId
+        member this.ResourceId = this.ResourceId
         member this.BuildResources location = [
             { UserAssignedIdentity.Name = this.Name
               Location = location

@@ -66,7 +66,7 @@ type ContainerGroupConfig =
     member private this.ResourceId = ResourceId.create(containerGroups, this.Name)
     member this.SystemIdentity = SystemIdentity this.ResourceId
     interface IBuilder with
-        member this.Dependency = this.ResourceId
+        member this.ResourceId = this.ResourceId
         member this.BuildResources location = [
             { Location = location
               Name = this.Name
@@ -239,7 +239,7 @@ type NetworkProfileConfig =
       VirtualNetwork : ResourceName
       Tags: Map<string,string>  }
     interface IBuilder with
-        member this.Dependency = ResourceId.create(networkProfiles, this.Name)
+        member this.ResourceId = ResourceId.create(networkProfiles, this.Name)
         member this.BuildResources location = [
             { Name = this.Name
               Location = location

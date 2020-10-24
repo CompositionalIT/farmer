@@ -64,7 +64,7 @@ type IBuilder =
     /// Given a location and the currently-built resources, returns a set of resource actions.
     abstract member BuildResources : Location -> IArmResource list
     /// Provides the resource name that other resources should use when depending upon this builder.
-    abstract member Dependency : ResourceId
+    abstract member ResourceId : ResourceId
 
 /// Represents an expression used within an ARM template
 type ArmExpression =

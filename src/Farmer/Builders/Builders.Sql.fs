@@ -49,7 +49,7 @@ type SqlAzureConfig =
     member this.PasswordParameter = sprintf "password-for-%s" this.Name.Value
 
     interface IBuilder with
-        member this.Dependency = ResourceId.create(servers, this.Name)
+        member this.ResourceId = ResourceId.create(servers, this.Name)
         member this.BuildResources location = [
             let elasticPoolName =
                 this.ElasticPoolSettings.Name

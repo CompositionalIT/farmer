@@ -20,7 +20,7 @@ type CognitiveServicesConfig =
     /// Gets an ARM expression to the key of this Cognitive Services instance.
     member this.Key = CognitiveServices.getKey (ResourceId.create this.Name)
     interface IBuilder with
-        member this.Dependency = ResourceId.create(Arm.CognitiveServices.accounts, this.Name)
+        member this.ResourceId = ResourceId.create(Arm.CognitiveServices.accounts, this.Name)
         member this.BuildResources location = [
             { Name = this.Name
               Location = location

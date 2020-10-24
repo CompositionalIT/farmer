@@ -14,7 +14,7 @@ type SignalRConfig =
       Tags: Map<string,string> }
     member this.ResourceId = ResourceId.create(signalR, this.Name)
     interface IBuilder with
-        member this.Dependency = this.ResourceId
+        member this.ResourceId = this.ResourceId
         member this.BuildResources location = [
             { Name = this.Name
               Location = location

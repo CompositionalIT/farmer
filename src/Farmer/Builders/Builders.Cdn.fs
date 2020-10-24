@@ -26,7 +26,7 @@ type CdnConfig =
       Endpoints : EndpointConfig list
       Tags: Map<string,string>  }
     interface IBuilder with
-        member this.Dependency = ResourceId.create(profiles, this.Name)
+        member this.ResourceId = ResourceId.create(profiles, this.Name)
         member this.BuildResources _ = [
             { Name = this.Name
               Sku = this.Sku
@@ -95,16 +95,16 @@ type EndpointBuilder() =
           Name = state.Name.IfEmpty ((name |> Seq.filter Char.IsLetterOrDigit |> Seq.toArray |> String) + "-endpoint")
           Origin = name }
 
-    member private _.AddDependency (state:EndpointConfig, resourceId:ResourceId) = { state with Dependencies = resourceId :: state.Dependencies }
-    member private _.AddDependencies (state:EndpointConfig, resourceIds:ResourceId list) = { state with Dependencies = resourceIds @ state.Dependencies }
     /// Sets a dependency for the web app.
     [<CustomOperation "depends_on">]
-    member this.DependsOn(state:EndpointConfig, resourceName) = this.AddDependency(state, resourceName)
-    member this.DependsOn(state:EndpointConfig, resources) = this.AddDependencies(state, resources)
-    member this.DependsOn(state:EndpointConfig, builder:IBuilder) = this.AddDependency(state, builder.Dependency)
-    member this.DependsOn(state:EndpointConfig, builders:IBuilder list) = this.AddDependencies(state, builders |> List.map (fun x -> x.Dependency))
-    member this.DependsOn(state:EndpointConfig, resource:IArmResource) = this.AddDependency(state, ResourceId.create resource.ResourceName)
-    member this.DependsOn(state:EndpointConfig, resources:IArmResource list) = this.AddDependencies(state, resources |> List.map (fun x -> ResourceId.create x.ResourceName))
+    member this.DependsOn(state:EndpointConfig, resourceName:ResourceName) = this.DependsOn (state, ResourceId.create resourceName)
+    member this.DependsOn(state:EndpointConfig, resources:ResourceName list) = this.DependsOn (state, resources |> List.map ResourceId.create)
+    member this.DependsOn(state:EndpointConfig, builder:IBuilder) = this.DependsOn (state, builder.ResourceId)
+    member this.DependsOn(state:EndpointConfig, builders:IBuilder list) = this.DependsOn (state, builders |> List.map (fun x -> x.ResourceId))
+    member this.DependsOn(state:EndpointConfig, resource:IArmResource) = this.DependsOn (state, resource.ResourceName)
+    member this.DependsOn(state:EndpointConfig, resources:IArmResource list) = this.DependsOn (state, resources |> List.map (fun x -> x.ResourceName))
+    member this.DependsOn (state:EndpointConfig, resourceId:ResourceId) = { state with Dependencies = resourceId :: state.Dependencies }
+    member this.DependsOn (state:EndpointConfig, resourceIds:ResourceId list) = { state with Dependencies = resourceIds @ state.Dependencies }
 
     /// Adds a list of MIME content types on which compression applies.
     [<CustomOperation "add_compressed_content">]

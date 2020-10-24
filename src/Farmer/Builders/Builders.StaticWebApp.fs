@@ -14,7 +14,7 @@ type StaticWebAppConfig =
       ApiLocation : string option
       AppArtifactLocation : string option }
     interface IBuilder with
-        member this.Dependency = ResourceId.create(staticSites, this.Name)
+        member this.ResourceId = ResourceId.create(staticSites, this.Name)
         member this.BuildResources location = [
             match this with
             | { Repository = Some uri } ->

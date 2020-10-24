@@ -96,7 +96,7 @@ type NsgConfig =
       SecurityRules : SecurityRuleConfig list
       Tags: Map<string,string>  }
     interface IBuilder with
-        member this.Dependency = ResourceId.create(networkSecurityGroups, this.Name)
+        member this.ResourceId = ResourceId.create(networkSecurityGroups, this.Name)
         member this.BuildResources location = [
             let securityGroup =
                 { Name = this.Name

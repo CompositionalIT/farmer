@@ -115,7 +115,7 @@ type WebAppConfig =
     member this.SystemIdentity = SystemIdentity this.ResourceId
     member this.ResourceId = ResourceId.create(sites, this.Name)
     interface IBuilder with
-        member this.Dependency = this.ResourceId
+        member this.ResourceId = this.ResourceId
         member this.BuildResources location = [
             let keyVault, secrets =
                 match this.SecretStore with
@@ -488,16 +488,17 @@ type WebAppBuilder() =
     member this.AddConnectionStrings(state:WebAppConfig, connectionStrings) =
         connectionStrings
         |> List.fold (fun (state:WebAppConfig) (key:string) -> this.AddConnectionString(state, key)) state
-    member private _.AddDependency (state:WebAppConfig, resourceId) = { state with Dependencies = resourceId :: state.Dependencies }
-    member private _.AddDependencies (state:WebAppConfig, resourceIds) = { state with Dependencies = resourceIds @ state.Dependencies }
+
     /// Sets a dependency for the web app.
     [<CustomOperation "depends_on">]
-    member this.DependsOn(state:WebAppConfig, resourceName:ResourceName) = this.AddDependency(state, ResourceId.create resourceName)
-    member this.DependsOn(state:WebAppConfig, resources) = this.AddDependencies(state, resources |> List.map(fun (r:ResourceName) -> ResourceId.create r))
-    member this.DependsOn(state:WebAppConfig, builder:IBuilder) = this.AddDependency(state, builder.Dependency)
-    member this.DependsOn(state:WebAppConfig, builders:IBuilder list) = this.AddDependencies(state, builders |> List.map (fun x -> x.Dependency))
-    member this.DependsOn(state:WebAppConfig, resource:IArmResource) = this.AddDependency(state, ResourceId.create resource.ResourceName)
-    member this.DependsOn(state:WebAppConfig, resources:IArmResource list) = this.AddDependencies(state, resources |> List.map (fun x -> ResourceId.create x.ResourceName))
+    member this.DependsOn(state:WebAppConfig, resourceName:ResourceName) = this.DependsOn (state, ResourceId.create resourceName)
+    member this.DependsOn(state:WebAppConfig, resources:ResourceName list) = this.DependsOn (state, resources |> List.map ResourceId.create)
+    member this.DependsOn(state:WebAppConfig, builder:IBuilder) = this.DependsOn (state, builder.ResourceId)
+    member this.DependsOn(state:WebAppConfig, builders:IBuilder list) = this.DependsOn (state, builders |> List.map (fun x -> x.ResourceId))
+    member this.DependsOn(state:WebAppConfig, resource:IArmResource) = this.DependsOn (state, resource.ResourceName)
+    member this.DependsOn(state:WebAppConfig, resources:IArmResource list) = this.DependsOn (state, resources |> List.map (fun x -> x.ResourceName))
+    member this.DependsOn (state:WebAppConfig, resourceId:ResourceId) = { state with Dependencies = resourceId :: state.Dependencies }
+    member this.DependsOn (state:WebAppConfig, resourceIds:ResourceId list) = { state with Dependencies = resourceIds @ state.Dependencies }
 
     /// Sets "Always On" flag
     [<CustomOperation "always_on">]

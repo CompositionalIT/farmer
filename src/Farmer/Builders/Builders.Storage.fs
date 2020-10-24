@@ -58,7 +58,7 @@ type StorageAccountConfig =
     member this.Endpoint = sprintf "%s.blob.core.windows.net" this.Name.ResourceName.Value
     member this.ResourceId = ResourceId.create(storageAccounts, this.Name.ResourceName)
     interface IBuilder with
-        member this.Dependency = this.ResourceId
+        member this.ResourceId = this.ResourceId
         member this.BuildResources location = [
             { Name = this.Name
               Location = location

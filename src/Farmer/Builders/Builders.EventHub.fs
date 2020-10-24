@@ -39,7 +39,7 @@ type EventHubConfig =
         let ruleResource = ResourceId.create(authorizationRules, this.EventHubNamespaceName, ResourceName "RootManageSharedAccessKey")
         this.CreateKeyExpression ruleResource
     interface IBuilder with
-        member this.Dependency = ResourceId.create(namespaces, this.EventHubNamespaceName)
+        member this.ResourceId = ResourceId.create(namespaces, this.EventHubNamespaceName)
         member this.BuildResources location = [
             let eventHubName = this.Name.Map(fun hubName -> sprintf "%s/%s" this.EventHubNamespaceName.Value hubName)
 
@@ -146,16 +146,16 @@ type EventHubBuilder() =
     member this.CaptureToStorage(state:EventHubConfig, storageAccount:StorageAccountConfig, container) =
         this.CaptureToStorage(state, storageAccount.Name.ResourceName, container)
 
-    member private _.AddDependency (state:EventHubConfig, resourceId) = { state with Dependencies = resourceId :: state.Dependencies }
-    member private _.AddDependencies (state:EventHubConfig, resourceIds) = { state with Dependencies = resourceIds @ state.Dependencies }
     /// Sets a dependency for the web app.
     [<CustomOperation "depends_on">]
-    member this.DependsOn(state:EventHubConfig, resourceName) = this.AddDependency(state, resourceName)
-    member this.DependsOn(state:EventHubConfig, resources) = this.AddDependencies(state, resources)
-    member this.DependsOn(state:EventHubConfig, builder:IBuilder) = this.AddDependency(state, builder.Dependency)
-    member this.DependsOn(state:EventHubConfig, builders:IBuilder list) = this.AddDependencies(state, builders |> List.map (fun x -> x.Dependency))
-    member this.DependsOn(state:EventHubConfig, resource:IArmResource) = this.AddDependency(state, ResourceId.create resource.ResourceName)
-    member this.DependsOn(state:EventHubConfig, resources:IArmResource list) = this.AddDependencies(state, resources |> List.map (fun x -> ResourceId.create x.ResourceName))
+    member this.DependsOn(state:EventHubConfig, resourceName:ResourceName) = this.DependsOn (state, ResourceId.create resourceName)
+    member this.DependsOn(state:EventHubConfig, resources:ResourceName list) = this.DependsOn (state, resources |> List.map ResourceId.create)
+    member this.DependsOn(state:EventHubConfig, builder:IBuilder) = this.DependsOn (state, builder.ResourceId)
+    member this.DependsOn(state:EventHubConfig, builders:IBuilder list) = this.DependsOn (state, builders |> List.map (fun x -> x.ResourceId))
+    member this.DependsOn(state:EventHubConfig, resource:IArmResource) = this.DependsOn (state, resource.ResourceName)
+    member this.DependsOn(state:EventHubConfig, resources:IArmResource list) = this.DependsOn (state, resources |> List.map (fun x -> x.ResourceName))
+    member this.DependsOn (state:EventHubConfig, resourceId:ResourceId) = { state with Dependencies = resourceId :: state.Dependencies }
+    member this.DependsOn (state:EventHubConfig, resourceIds:ResourceId list) = { state with Dependencies = resourceIds @ state.Dependencies }
 
     [<CustomOperation "add_tags">]
     member _.Tags(state:EventHubConfig, pairs) =

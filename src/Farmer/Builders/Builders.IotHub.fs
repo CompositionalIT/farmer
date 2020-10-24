@@ -27,7 +27,7 @@ type IotHubConfig =
         ArmExpression.create(expr, this.ResourceId)
     member private this.ResourceId = ResourceId.create(iotHubs, this.Name)
     interface IBuilder with
-        member this.Dependency = this.ResourceId
+        member this.ResourceId = this.ResourceId
         member this.BuildResources location = [
             { Name = this.Name
               Location = location

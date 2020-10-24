@@ -25,7 +25,7 @@ type RedisConfig =
     member this.Key = buildRedisKey this.ResourceId
     member private this.ResourceId = ResourceId.create(Arm.Cache.redis, this.Name)
     interface IBuilder with
-        member this.Dependency = this.ResourceId
+        member this.ResourceId = this.ResourceId
         member this.BuildResources location = [
             { Name = this.Name
               Location = location

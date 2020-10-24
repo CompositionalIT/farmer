@@ -40,7 +40,7 @@ type VmConfig =
     member this.Hostname = ArmExpression.reference(publicIPAddresses, this.IpName).Map(sprintf "%s.dnsSettings.fqdn")
 
     interface IBuilder with
-        member this.Dependency = ResourceId.create(virtualMachines, this.Name)
+        member this.ResourceId = ResourceId.create(virtualMachines, this.Name)
         member this.BuildResources location = [
             // VM itself
             { Name = this.Name
