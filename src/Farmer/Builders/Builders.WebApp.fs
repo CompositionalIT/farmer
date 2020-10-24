@@ -472,6 +472,9 @@ type WebAppBuilder() =
     member this.AddSettings(state:WebAppConfig, settings: (string*string) list) =
         settings
         |> List.fold (fun state (key, value: string) -> this.AddSetting(state, key, value)) state
+    member this.AddSettings(state:WebAppConfig, settings) =
+        settings
+        |> List.fold (fun state (key, value:ArmExpression) -> this.AddSetting(state, key, value)) state
     /// Creates an app setting of the web app whose value will be supplied as a secret parameter.
     [<CustomOperation "secret_setting">]
     member __.AddSecret(state:WebAppConfig, key) =

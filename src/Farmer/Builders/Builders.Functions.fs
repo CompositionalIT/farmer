@@ -225,6 +225,9 @@ type FunctionsBuilder() =
     member __.AddSettings(state:FunctionsConfig, settings: (string * string) list) =
         settings
         |> List.fold (fun state (key,value: string) -> __.AddSetting(state, key, value)) state
+    member __.AddSettings(state:FunctionsConfig, settings) =
+        settings
+        |> List.fold (fun state (key,value: ArmExpression) -> __.AddSetting(state, key, value)) state
     /// Sets a dependency for the functions app.
     /// Creates an app setting of the web app whose value will be supplied as a secret parameter.
     [<CustomOperation "secret_setting">]
