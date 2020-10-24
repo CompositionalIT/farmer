@@ -1,8 +1,15 @@
 Release Notes
 =============
-## 1.2.0
+## 1.2.0-beta3
 * SQL Azure: Connection string owner now has the correct path.
+* SQL Azure: New PasswordParameter returns the name of the Password parameter.
 * Functions: Ability to override the auto-generated storage account name.
+* Functions: Ability to add multiple ARM Expressions as settings.
+* Functions: Ability to add a Resource Name as a setting.
+* WebApp: Ability to add multiple ARM Expressions as settings.
+* Storage Account: WebsitePrimaryEndpoint is now a generated ARM expression.
+
+* Internal: ARM Expression refernces now add the Resource Id as the Owner.
 
 ## 1.2.0-beta2
 * Log Analytics: Initial release.
