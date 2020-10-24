@@ -32,7 +32,7 @@ Add the storage account's connection key to the webapp as an app setting.
 ```fsharp
 let myWebApp = webApp {
     ...
-    setting "STORAGE_CONNECTION" myStorage.Key
+    setting "storageKey" myStorage.Key
 }
 ```
 
