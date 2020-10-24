@@ -23,6 +23,7 @@ Release Notes
 * Event Hubs: Remove redundant kafka flag (minor breaking change).
 
 * Internal changes to better capture full resource IDs.
+* Storage Account: WebsitePrimaryEndpoint depends on storage account name instead of being hardcoded.
 
 ## 1.2.0-beta1
 * Bastion Hosts: Create bastion hosts for accessing resources on a virtual network
