@@ -158,7 +158,7 @@ type FunctionsConfig =
         ]
 
 type FunctionsBuilder() =
-    member __.Yield _ =
+    member _.Yield _ =
         { Name = ResourceName.Empty
           ServicePlan = derived (fun config -> config.Name.Map(sprintf "%s-farm"))
           AppInsights = Some (derived (fun config -> config.Name.Map(sprintf "%s-ai")))
@@ -178,60 +178,59 @@ type FunctionsBuilder() =
           ZipDeployPath = None }
     /// Sets the name of the functions instance.
     [<CustomOperation "name">]
-    member __.Name(state:FunctionsConfig, name) = { state with Name = ResourceName name }
+    member _.Name(state:FunctionsConfig, name) = { state with Name = ResourceName name }
     /// Sets the name of the service plan hosting the function instance.
     [<CustomOperation "service_plan_name">]
-    member __.ServicePlanName(state:FunctionsConfig, name) = { state with ServicePlan = AutoCreate(Named(ResourceName name)) }
+    member _.ServicePlanName(state:FunctionsConfig, name) = { state with ServicePlan = AutoCreate(Named(ResourceName name)) }
     /// Do not create an automatic service plan; instead, link to a service plan that is created outside of this Functions instance.
     [<CustomOperation "link_to_service_plan">]
-    member __.LinkToServicePlan(state:FunctionsConfig, name) = { state with ServicePlan = External (Managed name) }
+    member _.LinkToServicePlan(state:FunctionsConfig, name) = { state with ServicePlan = External (Managed name) }
     member this.LinkToServicePlan(state:FunctionsConfig, name:string) = this.LinkToServicePlan (state, ResourceName name)
     member this.LinkToServicePlan(state:FunctionsConfig, config:ServicePlanConfig) = this.LinkToServicePlan (state, config.Name)
     /// Do not create an automatic storage account; instead, link to a storage account that is created outside of this Functions instance.
     [<CustomOperation "link_to_storage_account">]
-    member __.LinkToStorageAccount(state:FunctionsConfig, name) = { state with StorageAccount = External (Managed name) }
+    member _.LinkToStorageAccount(state:FunctionsConfig, name) = { state with StorageAccount = External (Managed name) }
     member this.LinkToStorageAccount(state:FunctionsConfig, name) = this.LinkToStorageAccount(state, ResourceName name)
     /// Sets the name of the automatically-created app insights instance.
     [<CustomOperation "app_insights_name">]
-    member __.AppInsightsName(state:FunctionsConfig, name) = { state with AppInsights = Some (AutoCreate (Named name)) }
+    member _.AppInsightsName(state:FunctionsConfig, name) = { state with AppInsights = Some (AutoCreate (Named name)) }
     member this.AppInsightsName(state:FunctionsConfig, name:string) = this.AppInsightsName(state, ResourceName name)
     /// Removes any automatic app insights creation, configuration and settings for this webapp.
     [<CustomOperation "app_insights_off">]
-    member __.DeactivateAppInsights(state:FunctionsConfig) = { state with AppInsights = None }
+    member _.DeactivateAppInsights(state:FunctionsConfig) = { state with AppInsights = None }
     /// Disables http for this webapp so that only https is used.
     [<CustomOperation "https_only">]
-    member __.HttpsOnly(state:FunctionsConfig) = { state with HTTPSOnly = true }
+    member _.HttpsOnly(state:FunctionsConfig) = { state with HTTPSOnly = true }
     /// Instead of creating a new AI instance, configure this webapp to point to another AI instance that you are managing
     /// yourself.
     [<CustomOperation "link_to_app_insights">]
-    member __.LinkToAppInsights(state:FunctionsConfig, name) = { state with AppInsights = Some(External (Managed name)) }
-    member __.LinkToAppInsights(state:FunctionsConfig, name) = { state with AppInsights = name |> Option.map (Managed >> External)  }
+    member _.LinkToAppInsights(state:FunctionsConfig, name) = { state with AppInsights = Some(External (Managed name)) }
+    member _.LinkToAppInsights(state:FunctionsConfig, name) = { state with AppInsights = name |> Option.map (Managed >> External)  }
     /// Sets the runtime of the Functions host.
     [<CustomOperation "use_runtime">]
-    member __.Runtime(state:FunctionsConfig, runtime) = { state with Runtime = runtime }
+    member _.Runtime(state:FunctionsConfig, runtime) = { state with Runtime = runtime }
     [<CustomOperation "use_extension_version">]
-    member __.ExtensionVersion(state:FunctionsConfig, version) = { state with ExtensionVersion = version }
+    member _.ExtensionVersion(state:FunctionsConfig, version) = { state with ExtensionVersion = version }
     /// Sets the operating system of the Functions host.
     [<CustomOperation "operating_system">]
-    member __.OperatingSystem(state:FunctionsConfig, os) = { state with OperatingSystem = os }
+    member _.OperatingSystem(state:FunctionsConfig, os) = { state with OperatingSystem = os }
     /// Sets an app setting of the web app in the form "key" "value".
     [<CustomOperation "setting">]
-    member __.AddSetting(state:FunctionsConfig, key, value) =
-        { state with Settings = state.Settings.Add(key, LiteralSetting value) }
-    member _.AddSetting(state:FunctionsConfig, key, value:ArmExpression) =
-        { state with Settings = state.Settings.Add(key, ExpressionSetting value) }
+    member _.AddSetting(state:FunctionsConfig, key, value) = { state with Settings = state.Settings.Add(key, LiteralSetting value) }
+    member _.AddSetting(state:FunctionsConfig, key, value:ArmExpression) = { state with Settings = state.Settings.Add(key, ExpressionSetting value) }
+    member this.AddSetting(state:FunctionsConfig, key, resourceName:ResourceName) = this.AddSetting(state, key, resourceName.Value)
     /// Sets a list of app setting of the web app in the form "key" "value".
     [<CustomOperation "settings">]
-    member __.AddSettings(state:FunctionsConfig, settings: (string * string) list) =
+    member this.AddSettings(state:FunctionsConfig, settings: (string * string) list) =
         settings
-        |> List.fold (fun state (key,value: string) -> __.AddSetting(state, key, value)) state
-    member __.AddSettings(state:FunctionsConfig, settings) =
+        |> List.fold (fun state (key,value: string) -> this.AddSetting(state, key, value)) state
+    member this.AddSettings(state:FunctionsConfig, settings) =
         settings
-        |> List.fold (fun state (key,value: ArmExpression) -> __.AddSetting(state, key, value)) state
+        |> List.fold (fun state (key,value: ArmExpression) -> this.AddSetting(state, key, value)) state
     /// Sets a dependency for the functions app.
     /// Creates an app setting of the web app whose value will be supplied as a secret parameter.
     [<CustomOperation "secret_setting">]
-    member __.AddSecret(state:FunctionsConfig, key) =
+    member _.AddSecret(state:FunctionsConfig, key) =
         { state with Settings = state.Settings.Add(key, ParameterSetting (SecureParameter key)) }
 
     member private _.AddDependency (state:FunctionsConfig, resourceName:ResourceName) = { state with Dependencies = ResourceId.create resourceName :: state.Dependencies }
@@ -270,7 +269,7 @@ type FunctionsBuilder() =
     member this.Tag(state:FunctionsConfig, key, value) = this.Tags(state, [ (key,value) ])
     [<CustomOperation "zip_deploy">]
     /// Specifies a folder path or a zip file containing the function app to install as a post-deployment task.
-    member __.ZipDeploy(state:FunctionsConfig, path) = { state with ZipDeployPath = Some path }
+    member _.ZipDeploy(state:FunctionsConfig, path) = { state with ZipDeployPath = Some path }
 
 
 let functions = FunctionsBuilder()
