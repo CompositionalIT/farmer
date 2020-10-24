@@ -14,6 +14,8 @@ In this exercise, you'll:
 
 {{< figure src="../../images/quickstarts/webapp-cosmos.png">}}
 
+![Full sample available here]()
+
 #### Create the CosmosDB instance
 Create a CosmosDB instance using the `cosmosDb` builder:
 
