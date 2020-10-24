@@ -191,6 +191,9 @@ type FunctionsBuilder() =
     [<CustomOperation "link_to_storage_account">]
     member _.LinkToStorageAccount(state:FunctionsConfig, name) = { state with StorageAccount = External (Managed name) }
     member this.LinkToStorageAccount(state:FunctionsConfig, name) = this.LinkToStorageAccount(state, ResourceName name)
+    /// Set the name of the storage account instead of using an auto-generated one based on the function instance name.
+    [<CustomOperation "storage_account_name">]
+    member _.StorageAccountName(state:FunctionsConfig, name) = { state with StorageAccount = AutoCreate (Named (ResourceName name)) }
     /// Sets the name of the automatically-created app insights instance.
     [<CustomOperation "app_insights_name">]
     member _.AppInsightsName(state:FunctionsConfig, name) = { state with AppInsights = Some (AutoCreate (Named name)) }
