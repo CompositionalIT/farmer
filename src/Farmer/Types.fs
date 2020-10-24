@@ -13,6 +13,11 @@ type ResourceName =
         | r -> r
     member this.Map mapper = match this with ResourceName r -> ResourceName (mapper r)
 
+    static member (+) (a:ResourceName, b:string) = ResourceName(a.Value + "/" + b)
+    static member (+) (a:ResourceName, b:ResourceName) = a + b.Value
+    static member (/) (a:ResourceName, b:string) = a + b
+    static member (/) (a:ResourceName, b:ResourceName) = a + b.Value
+
 type Location =
     | Location of string
     member this.ArmValue = match this with Location location -> location.ToLower()
@@ -37,50 +42,108 @@ open Farmer
 open System
 
 type ResourceType =
-    | ResourceType of string
+    | ResourceType of path:string * version:string
     /// Returns the ARM resource type string value.
-    member this.ArmValue = match this with ResourceType r -> r
+    member this.Type = match this with ResourceType (p, _) -> p
+    member this.ApiVersion = match this with ResourceType (_, v) -> v
+
+type ResourceId =
+    { Type : ResourceType option
+      ResourceGroup : string option
+      Name : ResourceName
+      Segments : ResourceName list }
+    static member Empty = { Type = None; ResourceGroup = None; Name = ResourceName.Empty; Segments = [] }
+    member this.WithType resourceType = { this with Type = Some resourceType }
+    static member create (name:ResourceName, ?group) =
+        { ResourceId.Empty with Name = name; ResourceGroup = group }
+    static member create (name:string, ?group) =
+        ResourceId.create (ResourceName name, ?group = group)
+    static member create (resourceType:ResourceType, name:ResourceName, ?group:string) =
+        { ResourceId.Empty with Type = Some resourceType; ResourceGroup = group; Name = name }
+    static member create (resourceType:ResourceType, name:ResourceName, [<ParamArray>] resourceSegments:ResourceName []) =
+        { ResourceId.Empty with Type = Some resourceType; Name = name; Segments = List.ofArray resourceSegments }
 
 /// Represents an expression used within an ARM template
 type ArmExpression =
-    private | ArmExpression of string
-    static member create (rawText:string) =
+    private | ArmExpression of expression:string * owner:ResourceId option
+    static member create (rawText:string, ?owner) =
         if System.Text.RegularExpressions.Regex.IsMatch(rawText, @"^\[.*\]$") then
             failwithf "ARM Expressions should not be wrapped in [ ]; these will automatically be added when the expression is evaluated. Please remove them from '%s'." rawText
         else
-            ArmExpression rawText
+            ArmExpression(rawText, owner)
     /// Gets the raw value of this expression.
-    member this.Value = match this with ArmExpression e -> e
-    /// Applies a mapping function that itself returns an expression, to this expression.
-    member this.Bind mapper : ArmExpression = mapper this.Value
+    member this.Value = match this with ArmExpression (e, _) -> e
+    /// Tries to get the owning resource of this expression.
+    member this.Owner = match this with ArmExpression (_, o) -> o
     /// Applies a mapping function to the expression.
-    member this.Map mapper = this.Bind (mapper >> ArmExpression)
+    member this.Map mapper = match this with ArmExpression (e, r) -> ArmExpression(mapper e, r)
     /// Evaluates the expression for emitting into an ARM template. That is, wraps it in [].
-    member this.Eval() = sprintf "[%s]" this.Value
+    member this.Eval() =
+        if System.Text.RegularExpressions.Regex.IsMatch(this.Value, @"string\(\'[^\']*\'\)") then this.Value.Substring(8, this.Value.Length - 10)
+        else sprintf "[%s]" this.Value
+    /// Sets the owning resource on this ARM Expression.
+    member this.WithOwner(owner:ResourceId) = match this with ArmExpression (e, _) -> ArmExpression(e, Some owner)
+    /// Sets the owning resource on this ARM Expression.
+    member this.WithOwner(owner:ResourceName) = this.WithOwner(ResourceId.create owner)
 
     /// Evaluates the expression for emitting into an ARM template. That is, wraps it in [].
     static member Eval (expression:ArmExpression) = expression.Eval()
-    static member Empty = ArmExpression ""
-    /// Builds a resourceId ARM expression from the parts of a resource ID.
-    static member resourceId (ResourceType resourceType, name:ResourceName, ?group:string, ?subscriptionId:string) =
-        match name, group, subscriptionId with
-        | name, Some group, Some sub -> sprintf "resourceId('%s', '%s', '%s', '%s')" sub group resourceType name.Value
-        | name, Some group, None -> sprintf "resourceId('%s', '%s', '%s')" group resourceType name.Value
-        | name, _, _ -> sprintf "resourceId('%s', '%s')" resourceType name.Value
+    static member Empty = ArmExpression ("", None)
+    /// A helper function used when building complex ARM expressions; lifts a literal string into a
+    /// quoted ARM expression e.g. text becomes 'text'. This is useful for working with functions
+    /// that can mix literal values and parameters.
+    static member literal = sprintf "'%s'" >> ArmExpression.create
+    /// Generates an ARM expression for concatination.
+    static member concat values =
+        values
+        |> Seq.map(fun (r:ArmExpression) -> r.Value)
+        |> String.concat ", "
+        |> sprintf "concat(%s)"
         |> ArmExpression.create
-    static member resourceId (ResourceType resourceType, [<ParamArray>] resourceSegments:ResourceName []) =
-        sprintf
-            "resourceId('%s', %s)"
-            resourceType
-            (resourceSegments |> Array.map (fun r -> sprintf "'%s'" r.Value) |> String.concat ", ")
-        |> ArmExpression.create
+
+type ResourceId with
+    member this.ArmExpression =
+        match this with
+        | { Type = None } ->
+            this.Name.Value |> sprintf "string('%s')" |> ArmExpression.create
+        | { Type = Some resourceType } ->
+            [ match this.ResourceGroup with Some rg -> rg | None -> ()
+              resourceType.Type
+              this.Name.Value
+              for segment in this.Segments do segment.Value ]
+            |> List.map (sprintf "'%s'")
+            |> String.concat ", "
+            |> sprintf "resourceId(%s)"
+            |> ArmExpression.create
+    /// Evaluates the expression for emitting into an ARM template. That is, wraps it in [].
+    member this.Eval() = this.ArmExpression.Eval()
+
+type ArmExpression with
+    static member reference (resourceType:ResourceType, resourceId:ResourceId) =
+        ArmExpression.create(sprintf "reference(%s, '%s')" resourceId.ArmExpression.Value resourceType.ApiVersion)
+                     .WithOwner(resourceId)
+
+type ResourceType with
+    member this.Create(name:ResourceName, ?location:Location, ?dependsOn:ResourceId list, ?tags:Map<string,string>) =
+        match this with
+        | ResourceType (path, version) ->
+            {| ``type`` = path
+               apiVersion = version
+               name = name.Value
+               location = location |> Option.map(fun r -> r.ArmValue) |> Option.toObj
+               dependsOn =
+                dependsOn
+                |> Option.map (List.map(fun r -> r.Eval()) >> box)
+                |> Option.toObj
+               tags = tags |> Option.map box |> Option.toObj |}
+
 
 /// A secure parameter to be captured in an ARM template.
 type SecureParameter =
     | SecureParameter of name:string
     member this.Value = match this with SecureParameter value -> value
     /// Gets an ARM expression reference to the parameter e.g. parameters('my-password')
-    member this.AsArmRef = sprintf "parameters('%s')" this.Value |> ArmExpression
+    member this.ArmExpression = sprintf "parameters('%s')" this.Value |> ArmExpression.create
 
 /// Exposes parameters which are required by a specific IArmResource.
 type IParameters =
@@ -93,38 +156,34 @@ type IPostDeploy =
 /// A functional equivalent of the IBuilder's BuildResources method.
 type Builder = Location -> IArmResource list
 
-[<AutoOpen>]
-module ArmExpression =
-    /// A helper function used when building complex ARM expressions; lifts a literal string into a
-    /// quoted ARM expression e.g. text becomes 'text'. This is useful for working with functions
-    /// that can mix literal values and parameters.
-    let literal = sprintf "'%s'" >> ArmExpression
-    /// Generates an ARM expression for concatination.
-    let concat values =
-        values
-        |> Seq.map(fun (r:ArmExpression) -> r.Value)
-        |> String.concat ", "
-        |> sprintf "concat(%s)"
-        |> ArmExpression.create
-
-/// A ResourceRef represents a linked resource; typically this will be for two resources that have a relationship
-/// such as AppInsights on WebApp. WebApps can automatically create and configure an AI instance for the webapp,
-/// or configure the web app to an existing AI instance, or do nothing.
-type AutoCreationKind<'T> =
+/// A resource that will automatically be created by Farmer.
+type AutoCreationKind<'TConfig> =
+    /// A resource that will automatically be created by Farmer with an explicit (user-defined) name.
     | Named of ResourceName
-    | Derived of ('T -> ResourceName)
+    /// A resource that will automatically be created by Farmer with a name that is derived based on the configuration.
+    | Derived of ('TConfig -> ResourceName)
     member this.CreateResourceName config =
         match this with
         | Named r -> r
         | Derived f -> f config
-type ExternalKind = Managed of ResourceName | Unmanaged of ResourceName
-type ResourceRef<'T> =
-    | AutoCreate of AutoCreationKind<'T>
+
+/// A related resource that is created externally to this Farmer resource.
+type ExternalKind =
+    /// The name of the resource that will be created by Farmer, but is explicitly linked by the user.
+    | Managed of ResourceName
+    /// A Resource Id that is created externally from Farmer and already exists in Azure.
+    | Unmanaged of ResourceId
+
+/// A reference to another Azure resource that may or may not be created by Farmer.
+type ResourceRef<'TConfig> =
+    | AutoCreate of AutoCreationKind<'TConfig>
     | External of ExternalKind
-    member this.CreateResourceName config =
+    member this.CreateResourceId config =
         match this with
-        | External (Managed r | Unmanaged r) -> r
-        | AutoCreate r -> r.CreateResourceName config
+        | External (Managed r) -> ResourceId.create r
+        | External (Unmanaged r) -> r
+        | AutoCreate r -> r.CreateResourceName config |> ResourceId.create
+
 [<AutoOpen>]
 module ResourceRef =
     /// Creates a ResourceRef which is automatically created and derived from the supplied config.
@@ -140,15 +199,25 @@ module ResourceRef =
     let (|DeployableResource|_|) config = function
         | AutoCreate c -> Some (DeployableResource(c.CreateResourceName config))
         | External _ -> None
+    /// An active pattern that returns the resource name if the resource if external.
+    let (|ExternalResource|_|) = function
+        | AutoCreate c -> None
+        | External (Managed r) -> Some (ResourceId.create r)
+        | External (Unmanaged r) -> Some r
 
 /// Whether a specific feature is active or not.
-type FeatureFlag = Enabled | Disabled member this.AsBoolean = match this with Enabled -> true | Disabled -> false
+type FeatureFlag =
+    | Enabled | Disabled
+    member this.AsBoolean = match this with Enabled -> true | Disabled -> false
+    member this.ArmValue = match this with Enabled -> "Enabled" | Disabled -> "Disabled"
 
 module FeatureFlag =
     let ofBool enabled = if enabled then Enabled else Disabled
 
-/// Represents an ARM expression that evaluates to a principal ID.
-type PrincipalId = PrincipalId of ArmExpression member this.ArmValue = match this with PrincipalId e -> e
+/// A Principal ID represents an Identity, typically either a system or user generated Identity.
+type PrincipalId =
+    | PrincipalId of ArmExpression member this.ArmExpression = match this with PrincipalId e -> e
+
 type ObjectId = ObjectId of Guid
 
 /// Represents a secret to be captured either via an ARM expression or a secure parameter.
@@ -157,16 +226,18 @@ type SecretValue =
     | ExpressionSecret of ArmExpression
     member this.Value =
         match this with
-        | ParameterSecret secureParameter -> secureParameter.AsArmRef.Eval()
+        | ParameterSecret secureParameter -> secureParameter.ArmExpression.Eval()
         | ExpressionSecret armExpression -> armExpression.Eval()
 
 type Setting =
     | ParameterSetting of SecureParameter
     | LiteralSetting of string
+    | ExpressionSetting of ArmExpression
     member this.Value =
         match this with
-        | ParameterSetting secureParameter -> secureParameter.AsArmRef.Eval()
+        | ParameterSetting secureParameter -> secureParameter.ArmExpression.Eval()
         | LiteralSetting value -> value
+        | ExpressionSetting expr -> expr.Eval()
     static member AsLiteral (a,b) = a, LiteralSetting b
 
 type ArmTemplate =
@@ -178,3 +249,40 @@ type Deployment =
     { Location : Location
       Template : ArmTemplate
       PostDeployTasks : IPostDeploy list }
+
+module internal DeterministicGuid =
+    open System
+    open System.Security.Cryptography
+    open System.Text
+
+    let namespaceGuid = Guid.Parse "92f3929f-622a-4149-8f39-83a4bcd385c8"
+    let namespaceBytes = namespaceGuid.ToByteArray()
+
+    let private swapBytes(guid:byte array, left, right) =
+        let temp = guid.[left]
+        guid.[left] <- guid.[right]
+        guid.[right] <- temp
+
+    let private swapByteOrder guid =
+        swapBytes(guid, 0, 3)
+        swapBytes(guid, 1, 2)
+        swapBytes(guid, 4, 5)
+        swapBytes(guid, 6, 7)
+
+    let create(source:string) =
+        let source = Encoding.UTF8.GetBytes source
+
+        let hash =
+            use algorithm = SHA1.Create()
+            algorithm.TransformBlock(namespaceBytes, 0, namespaceBytes.Length, null, 0) |> ignore
+            algorithm.TransformFinalBlock(source, 0, source.Length) |> ignore
+            algorithm.Hash
+
+        let newGuid = Array.zeroCreate<byte> 16
+        Array.Copy(hash, 0, newGuid, 0, 16)
+
+        newGuid.[6] <- ((newGuid.[6] &&& 0x0Fuy) ||| (5uy <<< 4))
+        newGuid.[8] <- ((newGuid.[8] &&& 0x3Fuy) ||| 0x80uy)
+
+        swapByteOrder newGuid
+        Guid newGuid

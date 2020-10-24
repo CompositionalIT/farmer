@@ -2,7 +2,9 @@ module ContainerGroup
 
 open Expecto
 open Farmer
+open Farmer.Identity
 open Farmer.ContainerGroup
+open Farmer.CoreTypes
 open Farmer.Builders
 open Microsoft.Azure.Management.ContainerInstance
 open Microsoft.Azure.Management.ContainerInstance.Models
@@ -21,6 +23,12 @@ let fsharpApp = containerInstance {
     name "fsharpApp"
     image "myapp:1.7.2"
     add_ports PublicPort [ 8080us ]
+    memory 1.5<Gb>
+    cpu_cores 2
+}
+let appWithoutPorts = containerInstance {
+    name "appWithoutPorts"
+    image "myapp:1.7.2"
     memory 1.5<Gb>
     cpu_cores 2
 }
@@ -62,6 +70,17 @@ let tests = testList "Container Group" [
         Expect.equal ports [ 80; 443; 9090 ] "Incorrect ports on container"
     }
 
+    test "Group without public ip" {
+        let group = containerGroup {
+            name "myGroup"
+            operating_system Linux
+            restart_policy RestartOnFailure
+            add_instances [ appWithoutPorts ]
+        }
+
+        Expect.isNone group.IpAddress "IpAddresses should be none"
+    }
+
     test "Multiple containers are correctly added" {
         let group = containerGroup { add_instances [ nginx; fsharpApp ] } |> asAzureResource
 
@@ -92,7 +111,7 @@ let tests = testList "Container Group" [
                 ]
             } |> asAzureResource
 
-        Expect.isEmpty group.IpAddress.Ports "Should not be any public ports"
+        Expect.equal group.IpAddress null "Should not be any public ports"
         Expect.equal group.Containers.[0].Ports.[0].Port 123 "Incorrect private port"
         Expect.hasLength group.Containers.[0].Ports 1 "Should only be one port"
     }
@@ -121,12 +140,13 @@ let tests = testList "Container Group" [
                 name "containersWithFiles"
                 add_instances [ helloShared1; helloShared2 ]
                 add_volumes [
-                    volume_mount.azureFile "azure-file" "fileShare1" "storageAccount1"
+                    volume_mount.azureFile "azure-file" "fileShare1" "storageaccount1"
                     volume_mount.secret_string "secret-files" "secret1" "abcdefg"
                     volume_mount.empty_dir "shared-socket"
                     volume_mount.git_repo "source-code" (Uri "https://github.com/CompositionalIT/farmer")
                 ]
             } |> asAzureResource
+
         Expect.equal group.Name "containersWithFiles" "Incorrect name on container group"
         Expect.equal group.Containers.[0].VolumeMounts.Count 3 "Incorrect number of volume mounts on container 1"
         Expect.equal group.Containers.[1].VolumeMounts.Count 2 "Incorrect number of volume mounts on container 1"
@@ -137,5 +157,60 @@ let tests = testList "Container Group" [
         Expect.isNotNull group.Volumes.[3].GitRepo "Git repo volume should not be null"
     }
 
-]
+    test "Container group with private registry" {
+        let group =
+            containerGroup {
+                add_instances [ nginx ]
+                add_registry_credentials [
+                    registry "my-registry.azurecr.io" "user"
+                ]
+            } |> asAzureResource
+        Expect.hasLength group.ImageRegistryCredentials 1 "Expected one image registry credential"
+        let credentials = group.ImageRegistryCredentials.[0]
+        Expect.equal credentials.Server "my-registry.azurecr.io" "Incorrect container image registry server"
+        Expect.equal credentials.Username "user" "Incorrect container image registry user"
+        Expect.equal credentials.Password "[parameters('my-registry.azurecr.io-password')]" "Container image registry password should be secure parameter"
+    }
+
+    test "Container group with system assigned identity" {
+        let group =
+            containerGroup {
+                name "myapp"
+                add_instances [ nginx ]
+                system_identity
+            } |> asAzureResource
+
+        Expect.isTrue group.Identity.Type.HasValue "Expecting an assigned identity."
+        Expect.equal group.Identity.Type.Value ResourceIdentityType.SystemAssigned "Expecting a system assigned identity"
+    }
+
+    test "Container group with user assigned identity" {
+        let group =
+            containerGroup {
+                name "myapp"
+                add_instances [ nginx ]
+                add_identity (ResourceId.create("user", "resourceGroup") |> UserAssignedIdentity)
+            } |> asAzureResource
+
+        Expect.hasLength group.Identity.UserAssignedIdentities 1 "No user assigned identity."
+    }
+
+    test "Make container group with MSI" {
+        let msi = createUserAssignedIdentity "aciUser"
+        let group =
+            containerGroup {
+                name "myapp-with-msi"
+                add_instances [ nginx ]
+                add_identity msi
+            }
+        let template = arm {
+            location Location.EastUS
+            add_resource msi
+            add_resource group
+        }
+        let containerGroup = template.Template.Resources |> List.find(fun r -> r.ResourceName.Value = "myapp-with-msi") :?> Farmer.Arm.ContainerInstance.ContainerGroup
+        Expect.isNonEmpty containerGroup.Identity.UserAssigned "Container group did not have identity"
+        Expect.equal containerGroup.Identity.UserAssigned.[0] (UserAssignedIdentity(ResourceId.create(Arm.ManagedIdentity.userAssignedIdentities, ResourceName "aciUser"))) "Expected user identity named 'aciUser'."
+    }
+ ]
 

@@ -46,7 +46,7 @@ type SecretConfig =
       Enabled : bool option
       ActivationDate : DateTime option
       ExpirationDate : DateTime option
-      Dependencies : ResourceName list }
+      Dependencies : ResourceId list }
     static member internal createUnsafe key =
         { Key = key
           Value = ParameterSecret(SecureParameter key)
@@ -74,10 +74,14 @@ type SecretConfig =
         SecretConfig.isValid key
         SecretConfig.createUnsafe key
 
-    static member create (key, expression, resourceOwner) =
+    static member create (key, expression) =
         { SecretConfig.create key with
             Value = ExpressionSecret expression
-            Dependencies = [ resourceOwner ] }
+            Dependencies =
+                match expression.Owner with
+                | Some owner -> [ owner ]
+                | None -> failwithf "The supplied ARM expression ('%s') has no resource owner. You should explicitly set this using WithOwner(), supplying the Resource Name of the owner." expression.Value
+        }
 
 type KeyVaultConfig =
     { Name : ResourceName
@@ -88,7 +92,6 @@ type KeyVaultConfig =
       NetworkAcl : NetworkAcl
       Uri : Uri option
       Secrets : SecretConfig list
-      Dependencies : ResourceName list
       Tags: Map<string,string>  }
       interface IBuilder with
         member this.DependencyName = this.Name
@@ -113,25 +116,25 @@ type KeyVaultConfig =
                         | Unspecified policies -> policies
                         | Recover(policy, secondaryPolicies) -> policy :: secondaryPolicies
                         | Default policies -> policies
-                    [| for policy in policies do
-                        {| ObjectId = policy.ObjectId
-                           ApplicationId = policy.ApplicationId
-                           Permissions =
-                            {| Certificates = policy.Permissions.Certificates
-                               Storage = policy.Permissions.Storage
-                               Keys = policy.Permissions.Keys
-                               Secrets = policy.Permissions.Secrets |}
-                        |}
-                    |]
+                    [ for policy in policies do
+                       {| ObjectId = policy.ObjectId
+                          ApplicationId = policy.ApplicationId
+                          Permissions =
+                           {| Certificates = policy.Permissions.Certificates
+                              Storage = policy.Permissions.Storage
+                              Keys = policy.Permissions.Keys
+                              Secrets = policy.Permissions.Secrets |}
+                       |}
+                    ]
                   Uri = this.Uri
                   DefaultAction = this.NetworkAcl.DefaultAction
                   Bypass = this.NetworkAcl.Bypass
                   IpRules = this.NetworkAcl.IpRules
                   VnetRules = this.NetworkAcl.VnetRules
-                  Dependencies = this.Dependencies
                   Tags = this.Tags }
 
             keyVault
+
             for secret in this.Secrets do
                 { Name = sprintf "%s/%s" this.Name.Value secret.Key |> ResourceName
                   Value = secret.Value
@@ -140,7 +143,7 @@ type KeyVaultConfig =
                   ActivationDate = secret.ActivationDate
                   ExpirationDate = secret.ExpirationDate
                   Location = location
-                  Dependencies = this.Name :: secret.Dependencies }
+                  Dependencies = ResourceId.create this.Name :: secret.Dependencies }
         ]
 
 type AccessPolicyBuilder() =
@@ -154,7 +157,7 @@ type AccessPolicyBuilder() =
     member this.ObjectId(state:AccessPolicyConfig, objectId:Guid) = this.ObjectId(state, ArmExpression.create (sprintf "string('%O')" objectId))
     member this.ObjectId(state:AccessPolicyConfig, (ObjectId objectId)) = this.ObjectId(state, objectId)
     member this.ObjectId(state:AccessPolicyConfig, objectId:string) = this.ObjectId(state, Guid.Parse objectId)
-    member this.ObjectId(state:AccessPolicyConfig, PrincipalId principalId) = this.ObjectId(state, principalId)
+    member this.ObjectId(state:AccessPolicyConfig, PrincipalId expression) = this.ObjectId(state, expression)
     /// Sets the Application ID of the permission set.
     [<CustomOperation "application_id">]
     member __.ApplicationId(state:AccessPolicyConfig, applicationId) = { state with ApplicationId = Some applicationId }
@@ -175,6 +178,10 @@ let accessPolicy = AccessPolicyBuilder()
 type AccessPolicy =
     /// Quickly creates an access policy for the supplied Principal. If no permissions are supplied, defaults to GET and LIST.
     static member create (principal:PrincipalId, ?permissions) = accessPolicy { object_id principal; secret_permissions (permissions |> Option.defaultValue Secret.ReadSecrets) }
+    /// Quickly creates an access policy for the supplied Identity. If no permissions are supplied, defaults to GET and LIST.
+    static member create (identity:UserAssignedIdentityConfig, ?permissions) = AccessPolicy.create(identity.PrincipalId, ?permissions = permissions)
+    /// Quickly creates an access policy for the supplied Identity. If no permissions are supplied, defaults to GET and LIST.
+    static member create (identity:Identity.SystemIdentity, ?permissions) = AccessPolicy.create(identity.PrincipalId, ?permissions = permissions)
     /// Quickly creates an access policy for the supplied ObjectId. If no permissions are supplied, defaults to GET and LIST.
     static member create (objectId:ObjectId, ?permissions) = accessPolicy { object_id objectId; secret_permissions (permissions |> Option.defaultValue Secret.ReadSecrets) }
     static member private findEntity (searchField, values, searcher) =
@@ -204,7 +211,6 @@ type KeyVaultBuilderState =
       Policies : AccessPolicyConfig list
       Uri : Uri option
       Secrets : SecretConfig list
-      Dependencies : ResourceName list
       Tags: Map<string,string> }
 
 type KeyVaultBuilder() =
@@ -212,13 +218,12 @@ type KeyVaultBuilder() =
         { Name = ResourceName.Empty
           TenantId = Subscription.TenantId
           Access = { VirtualMachineAccess = None; ResourceManagerAccess = Some Enabled; AzureDiskEncryptionAccess = None; SoftDelete = None }
-          Sku = Sku.Standard
+          Sku = Standard
           NetworkAcl = { IpRules = []; VnetRules = []; Bypass = None; DefaultAction = None }
           Policies = []
           CreateMode = None
           Uri = None
           Secrets = []
-          Dependencies = []
           Tags = Map.empty  }
 
     member __.Run(state:KeyVaultBuilderState) : KeyVaultConfig =
@@ -235,7 +240,6 @@ type KeyVaultBuilder() =
             | Some SimpleCreateMode.Recover, [] -> failwith "Setting the creation mode to Recover requires at least one access policy. Use the accessPolicy builder to create a policy, and add it to the vault configuration using add_access_policy."
           Secrets = state.Secrets
           Uri = state.Uri
-          Dependencies = state.Dependencies
           Tags = state.Tags  }
     /// Sets the name of the vault.
     [<CustomOperation "name">]
@@ -312,18 +316,16 @@ type KeyVaultBuilder() =
     [<CustomOperation "add_secret">]
     member __.AddSecret(state:KeyVaultBuilderState, key:SecretConfig) = { state with Secrets = key :: state.Secrets }
     member this.AddSecret(state:KeyVaultBuilderState, key:string) = this.AddSecret(state, SecretConfig.create key)
-    member this.AddSecret(state:KeyVaultBuilderState, (key, builder:#IBuilder, value)) = this.AddSecret(state, SecretConfig.create(key, value, builder.DependencyName))
-    member this.AddSecret(state:KeyVaultBuilderState, (key, resourceName, value)) = this.AddSecret(state, SecretConfig.create(key, value, resourceName))
+    member this.AddSecret(state:KeyVaultBuilderState, (key, expression:ArmExpression)) = this.AddSecret(state, SecretConfig.create(key, expression))
 
     /// Allows to add multiple secrets to the vault.
     [<CustomOperation "add_secrets">]
     member this.AddSecrets(state:KeyVaultBuilderState, keys) = keys |> Seq.fold(fun state (key:SecretConfig) -> this.AddSecret(state, key)) state
     member this.AddSecrets(state:KeyVaultBuilderState, keys) = this.AddSecrets(state, keys |> Seq.map SecretConfig.create)
-    member this.AddSecrets(state:KeyVaultBuilderState, items) = this.AddSecrets(state, items |> Seq.map(fun (key, builder:#IBuilder, value) -> SecretConfig.create (key, value, builder.DependencyName)))
-    member this.AddSecrets(state:KeyVaultBuilderState, items) = this.AddSecrets(state, items |> Seq.map(fun (key, resourceName:ResourceName, value) -> SecretConfig.create (key, value, resourceName)))
+    member this.AddSecrets(state:KeyVaultBuilderState, items) = this.AddSecrets(state, items |> Seq.map(fun (key, value) -> SecretConfig.create (key, value)))
     [<CustomOperation "add_tags">]
-    member _.Tags(state:KeyVaultBuilderState, pairs) = 
-        { state with 
+    member _.Tags(state:KeyVaultBuilderState, pairs) =
+        { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
     member this.Tag(state:KeyVaultBuilderState, key, value) = this.Tags(state, [ (key,value) ])
@@ -347,10 +349,17 @@ type SecretBuilder() =
     member __.ActivationDate(state:SecretConfig, activationDate) = { state with ActivationDate = Some activationDate }
     [<CustomOperation "expiration_date">]
     member __.ExpirationDate(state:SecretConfig, expirationDate) = { state with ExpirationDate = Some expirationDate }
+
+    member private _.AddDependency (state:SecretConfig, resourceName:ResourceName) = { state with Dependencies = ResourceId.create resourceName :: state.Dependencies }
+    member private _.AddDependencies (state:SecretConfig, resourceNames:ResourceName list) = { state with Dependencies = (resourceNames |> List.map ResourceId.create) @ state.Dependencies }
+    /// Sets a dependency for the web app.
     [<CustomOperation "depends_on">]
-    member __.DependsOn(state:SecretConfig, resourceName) = { state with Dependencies = resourceName :: state.Dependencies }
-    member __.DependsOn(state:SecretConfig, builder:IBuilder) = { state with Dependencies = builder.DependencyName :: state.Dependencies }
-    member __.DependsOn(state:SecretConfig, resource:IArmResource) = { state with Dependencies = resource.ResourceName :: state.Dependencies }
+    member this.DependsOn(state:SecretConfig, resourceName) = this.AddDependency(state, resourceName)
+    member this.DependsOn(state:SecretConfig, resources) = this.AddDependencies(state, resources)
+    member this.DependsOn(state:SecretConfig, builder:IBuilder) = this.AddDependency(state, builder.DependencyName)
+    member this.DependsOn(state:SecretConfig, builders:IBuilder list) = this.AddDependencies(state, builders |> List.map (fun x -> x.DependencyName))
+    member this.DependsOn(state:SecretConfig, resource:IArmResource) = this.AddDependency(state, resource.ResourceName)
+    member this.DependsOn(state:SecretConfig, resources:IArmResource list) = this.AddDependencies(state, resources |> List.map (fun x -> x.ResourceName))
 
 let secret = SecretBuilder()
 let keyVault = KeyVaultBuilder()

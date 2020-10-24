@@ -8,6 +8,7 @@ open Microsoft.Azure.Management.Storage
 open Microsoft.Azure.Management.Storage.Models
 open Microsoft.Rest
 open System
+open Farmer.CoreTypes
 
 let tests = testList "Cosmos" [
     test "Cosmos container should ignore duplicate unique keys" {
@@ -27,21 +28,26 @@ let tests = testList "Cosmos" [
     }
     test "DB properties are correctly evaluated" {
         let db = cosmosDb { name "test" }
-        Expect.equal "[reference(concat('Microsoft.DocumentDb/databaseAccounts/', 'test-account')).documentEndpoint]" (db.Endpoint.Eval()) "Endpoint is incorrect"
-        Expect.equal "[listKeys(resourceId('Microsoft.DocumentDB/databaseAccounts', 'test-account'), providers('Microsoft.DocumentDB','databaseAccounts').apiVersions[0]).primaryMasterKey]" (db.PrimaryKey.Eval()) "Primary Key is incorrect"
-        Expect.equal "[listKeys(resourceId('Microsoft.DocumentDB/databaseAccounts', 'test-account'), providers('Microsoft.DocumentDB','databaseAccounts').apiVersions[0]).secondaryMasterKey]" (db.SecondaryKey.Eval()) "Secondary Key is incorrect"
-        Expect.equal "[listKeys(resourceId('Microsoft.DocumentDB/databaseAccounts', 'test-account'), providers('Microsoft.DocumentDB','databaseAccounts').apiVersions[0]).primaryReadonlyMasterKey]" (db.PrimaryReadonlyKey.Eval()) "Primary Readonly Key is incorrect"
-        Expect.equal "[listKeys(resourceId('Microsoft.DocumentDB/databaseAccounts', 'test-account'), providers('Microsoft.DocumentDB','databaseAccounts').apiVersions[0]).secondaryReadonlyMasterKey]" (db.SecondaryReadonlyKey.Eval()) "Secondary Readonly Key is incorrect"
-        Expect.equal "[listConnectionStrings(resourceId('Microsoft.DocumentDB/databaseAccounts', 'test-account'), providers('Microsoft.DocumentDB','databaseAccounts').apiVersions[0]).connectionStrings[0].connectionString]" (db.PrimaryConnectionString.Eval()) "Primary Connection String is incorrect"
-        Expect.equal "[listConnectionStrings(resourceId('Microsoft.DocumentDB/databaseAccounts', 'test-account'), providers('Microsoft.DocumentDB','databaseAccounts').apiVersions[0]).connectionStrings[1].connectionString]" (db.SecondaryConnectionString.Eval()) "Secondary Connection String is incorrect"
+        Expect.equal "[reference(resourceId('Microsoft.DocumentDb/databaseAccounts', 'test-account'), '2020-03-01').documentEndpoint]" (db.Endpoint.Eval()) "Endpoint is incorrect"
+        Expect.equal "[listKeys(resourceId('Microsoft.DocumentDb/databaseAccounts', 'test-account'), providers('Microsoft.DocumentDb','databaseAccounts').apiVersions[0]).primaryMasterKey]" (db.PrimaryKey.Eval()) "Primary Key is incorrect"
+        Expect.equal "[listKeys(resourceId('Microsoft.DocumentDb/databaseAccounts', 'test-account'), providers('Microsoft.DocumentDb','databaseAccounts').apiVersions[0]).secondaryMasterKey]" (db.SecondaryKey.Eval()) "Secondary Key is incorrect"
+        Expect.equal "[listKeys(resourceId('Microsoft.DocumentDb/databaseAccounts', 'test-account'), providers('Microsoft.DocumentDb','databaseAccounts').apiVersions[0]).primaryreadonlyMasterKey]" (db.PrimaryReadonlyKey.Eval()) "Primary Readonly Key is incorrect"
+        Expect.equal "[listKeys(resourceId('Microsoft.DocumentDb/databaseAccounts', 'test-account'), providers('Microsoft.DocumentDb','databaseAccounts').apiVersions[0]).secondaryreadonlyMasterKey]" (db.SecondaryReadonlyKey.Eval()) "Secondary Readonly Key is incorrect"
+        Expect.equal "[listConnectionStrings(resourceId('Microsoft.DocumentDb/databaseAccounts', 'test-account'), providers('Microsoft.DocumentDb','databaseAccounts').apiVersions[0]).connectionStrings[0].connectionString]" (db.PrimaryConnectionString.Eval()) "Primary Connection String is incorrect"
+        Expect.equal "[listConnectionStrings(resourceId('Microsoft.DocumentDb/databaseAccounts', 'test-account'), providers('Microsoft.DocumentDb','databaseAccounts').apiVersions[0]).connectionStrings[1].connectionString]" (db.SecondaryConnectionString.Eval()) "Secondary Connection String is incorrect"
     }
     test "Correctly serializes to JSON" {
-        let t = arm {
-            add_resource (cosmosDb { name "test" })
-        }
+        let t = arm { add_resource (cosmosDb { name "test" }) }
 
         t.Template
         |> Writer.toJson
         |> ignore
+    }
+    test "Creates connection string and keys with resource groups" {
+        let conn = CosmosDb.getConnectionString(ResourceId.create("db", "group"), PrimaryConnectionString).Eval()
+        let key = CosmosDb.getKey(ResourceId.create("db", "group"), PrimaryKey, ReadWrite).Eval()
+
+        Expect.equal key "[listKeys(resourceId('group', 'Microsoft.DocumentDb/databaseAccounts', 'db'), providers('Microsoft.DocumentDb','databaseAccounts').apiVersions[0]).primaryMasterKey]" "Primary Key is incorrect"
+        Expect.equal conn "[listConnectionStrings(resourceId('group', 'Microsoft.DocumentDb/databaseAccounts', 'db'), providers('Microsoft.DocumentDb','databaseAccounts').apiVersions[0]).connectionStrings[0].connectionString]" "Primary Connection String is incorrect"
     }
 ]

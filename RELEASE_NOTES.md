@@ -1,5 +1,73 @@
 Release Notes
 =============
+## 1.2.0-beta3
+* SQL Azure: Connection string owner now has the correct path.
+* SQL Azure: New PasswordParameter returns the name of the Password parameter.
+* Functions: Ability to override the auto-generated storage account name.
+* Functions: Ability to add multiple ARM Expressions as settings.
+* Functions: Ability to add a Resource Name as a setting.
+* WebApp: Ability to add multiple ARM Expressions as settings.
+* Storage Account: WebsitePrimaryEndpoint is now a generated ARM expression.
+
+* Internal: ARM Expression refernces now add the Resource Id as the Owner.
+
+## 1.2.0-beta2
+* Log Analytics: Initial release.
+* Static Web Apps: Initial release.
+
+* Managed Identity: Initial release.
+* Container Groups: Support for Managed Identity.
+* Web App: Full support for Managed Identity (minor breaking change).
+* Key Vault: Grant access to managed identities.
+* Provide all Roles for managed identity purposes.
+* Storage Account: Grant access to managed identities.
+* Container Service (AKS): Support for Managed Identity.
+
+* Container Groups: Support for creating group without public IP Address.
+* Container Groups: Support for image registry credentials for private registries.
+* Container Groups: Support for partial CPU cores.
+* Storage Accounts: Upgrade API version to 2019-04-01 to support RA-GZRS.
+* Event Hubs: Remove redundant kafka flag (minor breaking change).
+
+* Internal changes to better capture full resource IDs.
+* Storage Account: WebsitePrimaryEndpoint depends on storage account name instead of being hardcoded.
+
+## 1.2.0-beta1
+* Bastion Hosts: Create bastion hosts for accessing resources on a virtual network
+* Gateway: Add VPN Client configuration
+* Service Bus: Set message TTL
+* DNS Zones: Basic Azure DNS support
+* WebApp: Easy Key Vault integration
+* Support for implicitly adding dependencies based on usage e.g. add settings, connection strings etc.
+
+## 1.1.1
+* SQL Azure: Fix a bug whereby firewall rule IP addresses were inverted.
+
+## 1.1.0
+* AKS: Basic AKS support
+* App Insights:
+    * Create key expressions
+    * Support for IP Masking and Sampling
+* Container Instance: Change modelling from an anonymous type to a discriminated union (interop) (https://github.com/CompositionalIT/farmer/issues/372)
+* Cognitive Services: Retrieve ARM expression to the Key of the Cognitive Services instance.
+* CosmosDB: Create connection string and key expressions.
+* Functions: Fix an issue with incorrect Service Plan linking
+* Gateway: Add VPN Client configuration
+* SQL Azure:
+    * Small updates to type naming
+    * Support for VCore model
+    * Support for specifying disk size
+* Storage:
+    * Create connection string expressions.
+    * Data Lake support is now optional and off by default
+    * Support for lifecycle policies
+* Web App / Functions: Allow CORS enable credentials (https://github.com/CompositionalIT/farmer/issues/265)
+* Web App: Support for Connection Strings
+* Azure CLI: Better error message when Azure CLI be found (https://github.com/CompositionalIT/farmer/pull/369)
+* Fix a bug whereby optional Location, Tags and DependsOn were set to empty lists instead of null when not required.
+* Internal updates to ARM resource construction
+* Support for adding a list of dependencies to resources
+
 ## 1.0.0
 * Formal release
 

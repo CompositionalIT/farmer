@@ -8,23 +8,22 @@ open Farmer.Arm.DocumentDb
 open DatabaseAccounts
 open SqlDatabases
 
-let internal buildKey (name:ResourceName) key =
-    ArmExpression
-        .resourceId(databaseAccounts, name)
-        .Map(fun db ->
-            sprintf
-                "listKeys(%s, providers('Microsoft.DocumentDB','databaseAccounts').apiVersions[0]).%s"
-                db
-                key)
+type KeyType = PrimaryKey | SecondaryKey member this.ArmValue = match this with PrimaryKey -> "primary" | SecondaryKey -> "secondary"
+type KeyAccess = ReadWrite | ReadOnly member this.ArmValue = match this with ReadWrite -> "" | ReadOnly -> "readonly"
+type ConnectionStringKind = PrimaryConnectionString | SecondaryConnectionString member this.KeyIndex = match this with PrimaryConnectionString -> 0 | SecondaryConnectionString -> 1
 
-let internal buildConnectionString (name:ResourceName) keyIndex =
-    ArmExpression
-        .resourceId(databaseAccounts, name)
-        .Map(fun db ->
-            sprintf
-                "listConnectionStrings(%s, providers('Microsoft.DocumentDB','databaseAccounts').apiVersions[0]).connectionStrings[%i].connectionString"
-                db
-                keyIndex)
+type CosmosDb =
+    static member private providerPath = "providers('Microsoft.DocumentDb','databaseAccounts').apiVersions[0]"
+    static member getKey (resourceId:ResourceId, keyType:KeyType, keyAccess:KeyAccess) =
+        let resourceId = resourceId.WithType(databaseAccounts)
+        let expr = sprintf "listKeys(%s, %s).%s%sMasterKey" resourceId.ArmExpression.Value CosmosDb.providerPath keyType.ArmValue keyAccess.ArmValue
+        ArmExpression.create(expr).WithOwner(resourceId)
+    static member getKey (name:ResourceName, keyType, keyAccess) = CosmosDb.getKey(ResourceId.create name, keyType, keyAccess)
+    static member getConnectionString (resourceId:ResourceId, connectionStringKind:ConnectionStringKind) =
+        let resourceId = resourceId.WithType(databaseAccounts)
+        let expr = sprintf "listConnectionStrings(%s, %s).connectionStrings[%i].connectionString" resourceId.ArmExpression.Value CosmosDb.providerPath connectionStringKind.KeyIndex
+        ArmExpression.create(expr).WithOwner(resourceId)
+    static member getConnectionString (name:ResourceName, connectionStringKind) = CosmosDb.getConnectionString (ResourceId.create name, connectionStringKind)
 
 type CosmosDbContainerConfig =
     { Name : ResourceName
@@ -41,24 +40,25 @@ type CosmosDbConfig =
       Containers : CosmosDbContainerConfig list
       PublicNetworkAccess : FeatureFlag
       FreeTier : bool
-      Tags: Map<string,string>  }
-    member private this.AccountResourceName = this.AccountName.CreateResourceName this
-    member this.PrimaryKey = buildKey this.AccountResourceName "primaryMasterKey"
-    member this.SecondaryKey = buildKey this.AccountResourceName "secondaryMasterKey"
-    member this.PrimaryReadonlyKey = buildKey this.AccountResourceName "primaryReadonlyMasterKey"
-    member this.SecondaryReadonlyKey = buildKey this.AccountResourceName "secondaryReadonlyMasterKey"
-    member this.PrimaryConnectionString = buildConnectionString this.AccountResourceName 0
-    member this.SecondaryConnectionString = buildConnectionString this.AccountResourceName 1
+      Tags: Map<string,string> }
+    member private this.AccountResourceId = this.AccountName.CreateResourceId(this).WithType(databaseAccounts)
+    member this.PrimaryKey = CosmosDb.getKey(this.AccountResourceId, PrimaryKey, ReadWrite)
+    member this.SecondaryKey = CosmosDb.getKey(this.AccountResourceId, SecondaryKey, ReadWrite)
+    member this.PrimaryReadonlyKey = CosmosDb.getKey(this.AccountResourceId, PrimaryKey, ReadOnly)
+    member this.SecondaryReadonlyKey = CosmosDb.getKey(this.AccountResourceId, SecondaryKey, ReadOnly)
+    member this.PrimaryConnectionString = CosmosDb.getConnectionString(this.AccountResourceId, PrimaryConnectionString)
+    member this.SecondaryConnectionString = CosmosDb.getConnectionString(this.AccountResourceId, SecondaryConnectionString)
     member this.Endpoint =
-        sprintf "reference(concat('Microsoft.DocumentDb/databaseAccounts/', '%s')).documentEndpoint" this.AccountResourceName.Value
-        |> ArmExpression.create
+        ArmExpression
+            .reference(databaseAccounts, this.AccountResourceId)
+            .Map(sprintf "%s.documentEndpoint")
     interface IBuilder with
-        member this.DependencyName = this.AccountResourceName
+        member this.DependencyName = this.AccountResourceId.Name
         member this.BuildResources location = [
             // Account
             match this.AccountName with
             | DeployableResource this _ ->
-                { Name = this.AccountResourceName
+                { Name = this.AccountResourceId.Name
                   Location = location
                   ConsistencyPolicy = this.AccountConsistencyPolicy
                   PublicNetworkAccess = this.PublicNetworkAccess
@@ -70,13 +70,13 @@ type CosmosDbConfig =
 
             // Database
             { Name = this.DbName
-              Account = this.AccountResourceName
+              Account = this.AccountResourceId.Name
               Throughput = this.DbThroughput }
 
             // Containers
             for container in this.Containers do
                 { Name = container.Name
-                  Account = this.AccountResourceName
+                  Account = this.AccountResourceId.Name
                   Database = this.DbName
                   PartitionKey =
                     {| Paths = fst container.PartitionKey
@@ -84,9 +84,7 @@ type CosmosDbConfig =
                   UniqueKeyPolicy =
                     {| UniqueKeys =
                         container.UniqueKeys
-                        |> Set.map (fun uniqueKeyPath ->
-                            {| Paths = uniqueKeyPath |}
-                        )
+                        |> Set.map (fun uniqueKeyPath -> {| Paths = uniqueKeyPath |})
                     |}
                   IndexingPolicy =
                     {| ExcludedPaths = container.ExcludedPaths
@@ -165,7 +163,7 @@ type CosmosDbBuilder() =
     member this.AccountName(state:CosmosDbConfig, serverName) = this.AccountName(state, ResourceName serverName)
     /// Links the database to an existing server
     [<CustomOperation "link_to_account">]
-    member __.LinkToAccount(state:CosmosDbConfig, server:CosmosDbConfig) = { state with AccountName = External(Managed(server.AccountName.CreateResourceName server)) }
+    member __.LinkToAccount(state:CosmosDbConfig, server:CosmosDbConfig) = { state with AccountName = External(Managed(server.AccountName.CreateResourceId(server).Name)) }
     /// Sets the name of the database.
     [<CustomOperation "name">]
     member __.Name(state:CosmosDbConfig, name) = { state with DbName = name }
@@ -192,8 +190,8 @@ type CosmosDbBuilder() =
     [<CustomOperation "free_tier">]
     member __.FreeTier(state:CosmosDbConfig) = { state with FreeTier = true }
     [<CustomOperation "add_tags">]
-    member _.Tags(state:CosmosDbConfig, pairs) = 
-        { state with 
+    member _.Tags(state:CosmosDbConfig, pairs) =
+        { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
     member this.Tag(state:CosmosDbConfig, key, value) = this.Tags(state, [ (key,value) ])

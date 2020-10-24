@@ -3,6 +3,7 @@ module Farmer.Builders.VirtualMachine
 
 open Farmer
 open Farmer.CoreTypes
+open Farmer.PublicIpAddress
 open Farmer.Vm
 open Farmer.Helpers
 open Farmer.Arm.Compute
@@ -32,7 +33,6 @@ type VmConfig =
       SubnetPrefix : string
       Subnet : AutoCreationKind<VmConfig>
 
-      DependsOn : ResourceName list
       Tags: Map<string,string> }
 
     member internal this.deriveResourceName = makeName this.Name >> ResourceName
@@ -48,7 +48,7 @@ type VmConfig =
               Location = location
               StorageAccount =
                 this.DiagnosticsStorageAccount
-                |> Option.map(fun r -> r.CreateResourceName this)
+                |> Option.map(fun r -> r.CreateResourceId(this).Name)
               NetworkInterfaceName = this.NicName
               Size = this.Size
               Credentials =
@@ -63,7 +63,7 @@ type VmConfig =
               DataDisks = this.DataDisks
               Tags = this.Tags }
 
-            let vnetName = this.VNet.CreateResourceName this
+            let vnetName = this.VNet.CreateResourceId(this).Name
             let subnetName = this.Subnet.CreateResourceName this
 
             // NIC
@@ -94,18 +94,21 @@ type VmConfig =
             // IP Address
             { Name = this.IpName
               Location = location
+              AllocationMethod = AllocationMethod.Dynamic
+              Sku = PublicIpAddress.Sku.Basic
               DomainNameLabel = this.DomainNamePrefix
               Tags = this.Tags }
 
             // Storage account - optional
             match this.DiagnosticsStorageAccount with
             | Some (DeployableResource this resourceName) ->
-                { Name = Storage.StorageAccountName.Create resourceName |> Result.get
+                { Name = Storage.StorageAccountName.Create(resourceName).OkValue
                   Location = location
+                  Dependencies = []
                   Sku = Storage.Standard_LRS
                   Kind = StorageAccountKind.V1
                   StaticWebsite = None
-                  EnableHierarchicalNamespace = false
+                  EnableHierarchicalNamespace = None
                   Tags = this.Tags }
             | Some _
             | None ->
@@ -138,12 +141,11 @@ type VirtualMachineBuilder() =
           CustomScript = None
           CustomScriptFiles = []
           DomainNamePrefix = None
-          OsDisk = { Size = 128; DiskType = DiskType.Standard_LRS }
+          OsDisk = { Size = 128; DiskType = Standard_LRS }
           AddressPrefix = "10.0.0.0/16"
           SubnetPrefix = "10.0.0.0/24"
           VNet = derived (fun config -> config.deriveResourceName "vnet")
           Subnet = Derived(fun config -> config.deriveResourceName "subnet")
-          DependsOn = []
           Tags = Map.empty }
 
     member __.Run (state:VmConfig) =
@@ -213,10 +215,8 @@ type VirtualMachineBuilder() =
     member __.LinkToVNet(state:VmConfig, name) = { state with VNet = External (Managed name) }
     member this.LinkToVNet(state:VmConfig, name) = this.LinkToVNet(state, ResourceName name)
     member this.LinkToVNet(state:VmConfig, vnet:Arm.Network.VirtualNetwork) = this.LinkToVNet(state, vnet.Name)
-    [<CustomOperation "depends_on">]
-    member __.DependsOn(state:VmConfig, resourceName) = { state with DependsOn = resourceName :: state.DependsOn }
-    member __.DependsOn(state:VmConfig, resource:IBuilder) = { state with DependsOn = resource.DependencyName :: state.DependsOn }
-    member __.DependsOn(state:VmConfig, resource:IArmResource) = { state with DependsOn = resource.ResourceName :: state.DependsOn }
+    member this.LinkToVNet(state:VmConfig, vnet:VirtualNetworkConfig) = this.LinkToVNet(state, vnet.Name)
+
     [<CustomOperation "custom_script">]
     member _.CustomScript(state:VmConfig, script:string) = { state with CustomScript = Some script }
     [<CustomOperation "custom_script_files">]

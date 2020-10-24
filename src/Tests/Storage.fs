@@ -11,22 +11,48 @@ open System
 
 /// Client instance needed to get the serializer settings.
 let client = new StorageManagementClient(Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
+let getStorageResource = findAzureResources<StorageAccount> client.SerializationSettings >> List.head
+
 let tests = testList "Storage Tests" [
     test "Can create a basic storage account" {
         let resource =
             let account = storageAccount {
                 name "mystorage123"
                 sku Premium_LRS
-                enable_data_lake
+                enable_data_lake true
             }
             arm { add_resource account }
-            |> findAzureResources<StorageAccount> client.SerializationSettings
-            |> List.head
+            |> getStorageResource
 
         resource.Validate()
         Expect.equal resource.Name "mystorage123" "Account name is wrong"
         Expect.equal resource.Sku.Name "Premium_LRS" "SKU is wrong"
         Expect.isTrue resource.IsHnsEnabled.Value "Hierarchical namespace not enabled"
+    }
+    test "When data lake is not enabled" {
+        let resource =
+            let account = storageAccount {
+                name "mystorage123"
+                sku Premium_LRS
+                enable_data_lake false
+            }
+            arm { add_resource account }
+            |> getStorageResource
+
+        resource.Validate()
+        Expect.isFalse resource.IsHnsEnabled.Value "Hierarchical namespace shouldn't be included"
+    }
+    test "When data lake is not enabled by default" {
+        let resource =
+            let account = storageAccount {
+                name "mystorage123"
+                sku Premium_LRS
+            }
+            arm { add_resource account }
+            |> getStorageResource
+
+        resource.Validate()
+        Expect.equal resource.IsHnsEnabled (Nullable<bool>()) "Hierarchical namespace shouldn't be included"
     }
     test "Creates containers correctly" {
         let resources : BlobContainer list =
@@ -66,7 +92,7 @@ let tests = testList "Storage Tests" [
         check "abcdefghij1234567890abcde" "max length is 24, but here is 25 ('abcdefghij1234567890abcde')" "Name too long"
         check "zzzT" "can only contain lowercase letters ('zzzT')" "Upper case character allowed"
         check "zzz!" "can only contain alphanumeric characters ('zzz!')" "Non alpha numeric character allowed"
-        Expect.equal (StorageResourceName.Create "abcdefghij1234567890abcd" |> Result.get |> fun name -> name.ResourceName) (ResourceName "abcdefghij1234567890abcd") "Should have created a valid storage account name"
+        Expect.equal (StorageResourceName.Create("abcdefghij1234567890abcd").OkValue.ResourceName) (ResourceName "abcdefghij1234567890abcd") "Should have created a valid storage account name"
     }
     test "Rejects invalid storage resource names" {
         let check (v:string) m = Expect.equal (StorageResourceName.Create v) (Error ("Storage resource names " + m))
@@ -81,7 +107,7 @@ let tests = testList "Storage Tests" [
         check "-zz" "must start with an alphanumeric character ('-zz')" "Start with dash"
         check "zz-" "must end with an alphanumeric character ('zz-')" "End with dash"
 
-        Expect.equal (StorageResourceName.Create "abcdefghij1234567890abcd" |> Result.get |> fun name -> name.ResourceName) (ResourceName "abcdefghij1234567890abcd") "Should have created a valid storage resource name"
+        Expect.equal (StorageResourceName.Create("abcdefghij1234567890abcd").OkValue.ResourceName) (ResourceName "abcdefghij1234567890abcd") "Should have created a valid storage resource name"
     }
     test "Adds lifecycle policies correctly" {
         let resource : ManagementPolicy =
@@ -104,5 +130,29 @@ let tests = testList "Storage Tests" [
         Expect.equal rule.Definition.Actions.BaseBlob.Delete.DaysAfterModificationGreaterThan 1. "should ignore duplicate actions"
         Expect.equal rule.Definition.Actions.BaseBlob.TierToArchive.DaysAfterModificationGreaterThan 2. "should add multiple actions to a rule"
         Expect.equal (rule.Definition.Filters.PrefixMatch |> Seq.toList) [ "foo/bar" ] "incorrect filter"
-   }
+    }
+    test "Creates connection strings correctly" {
+        let strongConn = StorageAccount.getConnectionString (StorageAccountName.Create("account").OkValue)
+        let rgConn = StorageAccount.getConnectionString (StorageAccountName.Create("account").OkValue, "rg")
+
+        Expect.equal "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'account'), '2017-10-01').keys[0].value)" strongConn.Value "Strong connection string"
+        Expect.equal "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('rg', 'Microsoft.Storage/storageAccounts', 'account'), '2017-10-01').keys[0].value)" rgConn.Value "Complex connection string"
+    }
+    test "Creates Role Assignment correctly" {
+        let uai = UserAssignedIdentity.createUserAssignedIdentity "user"
+        let builder = storageAccount { name "foo"; grant_access uai Roles.StorageBlobDataOwner } :> IBuilder
+        let roleAssignment = builder.BuildResources Location.NorthEurope |> List.last :?> Farmer.Arm.Storage.Providers.RoleAssignment
+        Expect.equal roleAssignment.PrincipalId uai.PrincipalId "PrincipalId"
+        Expect.equal roleAssignment.RoleDefinitionId Roles.StorageBlobDataOwner "RoleId"
+        Expect.equal roleAssignment.StorageAccount.ResourceName.Value "foo" "Storage Account Name"
+
+        let storage = builder.BuildResources Location.NorthEurope |> List.head :?> Farmer.Arm.Storage.StorageAccount
+
+        Expect.sequenceEqual storage.Dependencies [ uai.ResourceId ] "ResourceId"
+    }
+    test "WebsitePrimaryEndpoint creation" {
+        let builder = storageAccount { name "foo" }
+
+        Expect.equal builder.WebsitePrimaryEndpoint.Value "reference(resourceId('Microsoft.Storage/storageAccounts', 'foo'), '2019-04-01').primaryEndpoints.web" "Zone names are not fixed and should be related to a storage account name"
+    }
 ]

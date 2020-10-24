@@ -3,6 +3,13 @@
 open System
 
 [<AutoOpen>]
+module internal DuHelpers =
+    let makeAll<'TUnion> =
+        Reflection.FSharpType.GetUnionCases(typeof<'TUnion>)
+        |> Array.map(fun t -> Reflection.FSharpValue.MakeUnion(t, null) :?> 'TUnion)
+        |> Array.toList
+
+[<AutoOpen>]
 module LocationExtensions =
     type Location with
         static member EastAsia = Location "EastAsia"
@@ -45,6 +52,7 @@ module LocationExtensions =
         static member GermanyWestCentral = Location "GermanyWestCentral"
         static member NorwayWest = Location "NorwayWest"
         static member NorwayEast = Location "NorwayEast"
+        static member Global = Location "global"
 
 type OS = Windows | Linux
 
@@ -60,6 +68,8 @@ type IsoDateTime =
 type TransmissionProtocol = TCP | UDP
 type TlsVersion = Tls10 | Tls11 | Tls12
 
+module Mb =
+    let toBytes (mb:int<Mb>) = int64 mb * 1024L * 1024L
 module Vm =
     type VMSize =
     | Basic_A0
@@ -349,7 +359,7 @@ module Storage =
 
 module WebApp =
     type WorkerSize = Small | Medium | Large | Serverless
-    type Cors = AllOrigins | SpecificOrigins of Uri list
+    type Cors = AllOrigins | SpecificOrigins of origins : Uri list * allowCredentials : bool option
     type Sku =
         | Shared
         | Free
@@ -377,6 +387,7 @@ module WebApp =
         static member I2 = Isolated "I2"
         static member I3 = Isolated "I3"
         static member Y1 = Dynamic
+    type ConnectionStringKind = MySql | SQLServer | SQLAzure | Custom | NotificationHub | ServiceBus | EventHub | ApiHub | DocDb | RedisCache | PostgreSQL
 
 module CognitiveServices =
     /// Type of SKU. See https://github.com/Azure/azure-quickstart-templates/tree/master/101-cognitive-services-translate
@@ -429,9 +440,73 @@ module Search =
         | StorageOptimisedL2
 
 module Sql =
-    [<Measure>]
-    type DTU
-    type DbSku =
+    [<Measure>] type DTU
+
+    type Gen5Series =
+        | Gen5_2
+        | Gen5_4
+        | Gen5_6
+        | Gen5_8
+        | Gen5_10
+        | Gen5_12
+        | Gen5_14
+        | Gen5_16
+        | Gen5_18
+        | Gen5_20
+        | Gen5_24
+        | Gen5_32
+        | Gen5_40
+        | Gen5_80
+        member this.Name = Reflection.FSharpValue.GetUnionFields(this, typeof<Gen5Series>) |> fun (v,_) -> v.Name
+
+    type FSeries =
+        | Fsv2_8
+        | Fsv2_10
+        | Fsv2_12
+        | Fsv2_14
+        | Fsv2_16
+        | Fsv2_18
+        | Fsv2_20
+        | Fsv2_24
+        | Fsv2_32
+        | Fsv2_36
+        | Fsv2_72
+        member this.Name = Reflection.FSharpValue.GetUnionFields(this, typeof<FSeries>) |> fun (v,_) -> v.Name
+
+    type MSeries =
+        | M_8
+        | M_10
+        | M_12
+        | M_14
+        | M_16
+        | M_18
+        | M_20
+        | M_24
+        | M_32
+        | M_64
+        | M_128
+        member this.Name = Reflection.FSharpValue.GetUnionFields(this, typeof<MSeries>) |> fun (v,_) -> v.Name
+
+    type VCoreSku =
+        | MemoryIntensive of MSeries
+        | CpuIntensive of FSeries
+        | GeneralPurpose of Gen5Series
+        | BusinessCritical of Gen5Series
+        | Hyperscale of Gen5Series
+        member this.Edition =
+            match this with
+            | GeneralPurpose _ | CpuIntensive _ -> "GeneralPurpose"
+            | BusinessCritical _ | MemoryIntensive _ -> "BusinessCritical"
+            | Hyperscale _ -> "Hyperscale"
+         member this.Name =
+            match this with
+            | GeneralPurpose g -> "GP_" + g.Name
+            | BusinessCritical b -> "BC_" + b.Name
+            | Hyperscale h -> "HS_" + h.Name
+            | MemoryIntensive m -> "BC_" + m.Name
+            | CpuIntensive c -> "GP_" + c.Name
+
+    type DtuSku =
         | Free
         | Basic
         | Standard of string
@@ -444,7 +519,7 @@ module Sql =
         static member S6 = Standard "S6"
         static member S7 = Standard "S7"
         static member S9 = Standard "S9"
-        static member S12 =Standard "S12"
+        static member S12 = Standard "S12"
         static member P1 = Premium "P1"
         static member P2 = Premium "P2"
         static member P4 = Premium "P4"
@@ -453,16 +528,27 @@ module Sql =
         static member P15 = Premium "P15"
         member this.Edition =
             match this with
-            | Basic -> "Basic"
             | Free -> "Free"
+            | Basic -> "Basic"
             | Standard _ -> "Standard"
             | Premium _ -> "Premium"
          member this.Name =
             match this with
-            | Basic -> "Basic"
             | Free -> "Free"
+            | Basic -> "Basic"
             | Standard s -> s
             | Premium p -> p
+
+    type SqlLicense =
+        | AzureHybridBenefit
+        | LicenseRequired
+        member this.ArmValue = match this with AzureHybridBenefit -> "BasePrice" | LicenseRequired -> "LicenseIncluded"
+    type DbPurchaseModel =
+        | DTU of DtuSku
+        | VCore of VCoreSku * SqlLicense
+        member this.Edition = match this with DTU d -> d.Edition | VCore (v, _) -> v.Edition
+        member this.Name = match this with DTU d -> d.Name | VCore (v, _) -> v.Name
+
     type PoolSku =
         | BasicPool of int
         | StandardPool of int
@@ -513,6 +599,59 @@ module Sql =
             | PremiumPool c ->
                 c
 
+/// Represents a role that can be granted to an identity.
+type RoleId =
+    | RoleId of {| Name:string; Id : Guid |}
+    member this.ArmValue =
+        match this with
+        | RoleId roleId ->
+            sprintf "concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', '%O')" roleId.Id
+            |> Farmer.CoreTypes.ArmExpression.create
+    member this.Name = match this with (RoleId v) -> v.Name
+    member this.Id = match this with (RoleId v) -> v.Id
+
+module Identity =
+    open Farmer.CoreTypes
+
+    /// Represents a User Assigned Identity, and the ability to create a Principal Id from it.
+    type UserAssignedIdentity =
+        | UserAssignedIdentity of ResourceId
+        member private this.CreateExpression field =
+            let (UserAssignedIdentity resourceId) = this
+            ArmExpression
+                .create(sprintf "reference(%s).%s" resourceId.ArmExpression.Value field)
+                .WithOwner(resourceId)
+        member this.PrincipalId = this.CreateExpression "principalId" |> PrincipalId
+        member this.ClientId = this.CreateExpression "clientId"
+        member this.ResourceId = match this with UserAssignedIdentity r -> r
+
+    type SystemIdentity =
+        | SystemIdentity of ResourceId
+        member private this.CreateExpression field =
+            match this.ResourceId.Type with
+            | None ->
+                failwith "Resource Id must have a type in order to generate a Prinicipal ID"
+            | Some resourceType ->
+                let identity = this.ResourceId.ArmExpression.Value
+                ArmExpression
+                    .create(sprintf "reference(%s, '%s', 'full').identity.%s" identity resourceType.ApiVersion field)
+                    .WithOwner(this.ResourceId)
+        member this.PrincipalId = this.CreateExpression "principalId" |> PrincipalId
+        member this.ClientId = this.CreateExpression "clientId"
+        member this.ResourceId = match this with SystemIdentity r -> r
+
+    /// Represents an identity that can be assigned to a resource for impersonation.
+    type ManagedIdentity =
+        { SystemAssigned : FeatureFlag
+          UserAssigned : UserAssignedIdentity list }
+        member this.Dependencies = this.UserAssigned |> List.map(fun u -> u.ResourceId)
+        static member Empty = { SystemAssigned = Disabled; UserAssigned = [] }
+        static member (+) (a, b) =
+            { SystemAssigned = (a.SystemAssigned.AsBoolean || b.SystemAssigned.AsBoolean) |> FeatureFlag.ofBool
+              UserAssigned = a.UserAssigned @ b.UserAssigned |> List.distinct }
+        static member (+) (managedIdentity, userAssignedIdentity:UserAssignedIdentity) =
+            { managedIdentity with UserAssigned = userAssignedIdentity :: managedIdentity.UserAssigned }
+
 module ContainerGroup =
     type PortAccess = PublicPort | InternalPort
     type RestartPolicy = NeverRestart | AlwaysRestart | RestartOnFailure
@@ -528,7 +667,7 @@ module ContainerGroup =
         /// Mounts an empty directory on the container group.
         | EmptyDirectory
         /// Mounts an Azure File Share in the same resource group, performing a key lookup.
-        | AzureFileShare of ShareName:string * StorageAccountName:string
+        | AzureFileShare of ShareName:ResourceName * StorageAccountName:Storage.StorageAccountName
         /// A git repo volume, clonable by public HTTPS access.
         | GitRepo of Repository:Uri * Directory:string option * Revision:string option
         /// Mounts a volume containing secret files.
@@ -554,13 +693,6 @@ module EventHub =
         | Premium
     type InflateSetting = ManualInflate | AutoInflate of maxThroughput:int
     type AuthorizationRuleRight = Manage | Send | Listen
-
-[<AutoOpen>]
-module internal DuHelpers =
-    let makeAll<'TUnion> =
-        Reflection.FSharpType.GetUnionCases(typeof<'TUnion>)
-        |> Array.map(fun t -> Reflection.FSharpValue.MakeUnion(t, null) :?> 'TUnion)
-        |> Array.toList
 
 module KeyVault =
     type Bypass = AzureServices | NoTraffic
@@ -764,10 +896,7 @@ module IPAddressCidr =
     /// Sequence of IP addresses for a CIDR block.
     let addresses (cidr:IPAddressCidr) =
         let first, last = ipRangeNums cidr
-        seq {
-            for i in first..last do
-                yield i |> ofNum
-        }
+        seq { for i in first..last do ofNum i }
     /// Carve a subnet out of an address space.
     let carveAddressSpace (addressSpace:IPAddressCidr) (subnetSizes:int list) =
         let addressSpaceStart, addressSpaceEnd = addressSpace |> ipRangeNums
@@ -788,7 +917,7 @@ module IPAddressCidr =
                         last, cidr
                 if last <= addressSpaceEnd then
                     startAddress <- (last + 1u) |> ofNum
-                    yield cidr
+                    cidr
                 else
                     raise (IndexOutOfRangeException (sprintf "Unable to create subnet %d of /%d" index size))
         }
@@ -870,6 +999,22 @@ module NetworkSecurity =
     type TrafficDirection with
         member this.ArmValue = this |> TrafficDirection.ArmValue
 
+module PublicIpAddress =
+    type AllocationMethod =
+        | Dynamic
+        | Static
+        member this.ArmValue =
+            match this with
+            | Dynamic -> "Dynamic"
+            | Static -> "Static"
+    type Sku =
+        | Basic
+        | Standard
+        member this.ArmValue =
+            match this with
+            | Basic -> "Basic"
+            | Standard -> "Standard"
+
 module Cdn =
     type Sku =
     | Custom_Verizon
@@ -897,15 +1042,13 @@ module EventGrid =
     type EventGridEvent = EventGridEvent of string member this.Value = match this with EventGridEvent s -> s
 
 /// Built in Azure roles (https://docs.microsoft.com/en-us/azure/role-based-access-control/built-in-roles)
-module Roles =
-    type RoleID = RoleID of string
-    module General =
-        let Contributor = RoleID "b24988ac-6180-42a0-ab88-20f7382dd24c"
-        let Owner = RoleID "8e3af657-a8ff-443c-a75c-2fe8c4bcb635"
-        let Reader = RoleID "acdd72a7-3385-48ef-bd42-f606fba81ae7"
-        let UserAccessAdministrator = RoleID "18d7d88d-d35e-4fb5-a5c3-7773c20a72d9"
-    module Networking =
-        let DnsZoneContributor = RoleID "befefa01-2a29-4197-83a8-272ff33ce314"
-        let NetworkContributor = RoleID "4d97b98b-1d4f-4787-a291-c67834d212e7"
-        let PrivateDnsZoneContributor = RoleID "b12aa53e-6015-4669-85d0-8515ebb3ae7f"
-        let TrafficManagerContributor = RoleID "a4b10055-b0c7-44c2-b00f-c7b5b3550cf7"
+module Dns =
+    type DnsZoneType = Public | Private
+    type DnsRecordType =
+        | A of TargetResource : ResourceName option * ARecords : string list
+        | AAAA of TargetResource : ResourceName option * AaaaRecords : string list
+        | CName of TargetResource : ResourceName option * CNameRecord : string option
+        | NS of NsRecords : string list
+        | PTR of PtrRecords : string list
+        | TXT of TxtRecords : string list
+        | MX of {| Preference : int; Exchange : string |} list

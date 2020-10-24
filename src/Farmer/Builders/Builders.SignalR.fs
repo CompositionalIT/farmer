@@ -24,8 +24,8 @@ type SignalRConfig =
               Tags = this.Tags  }
         ]
     member this.Key =
-        sprintf "listKeys(resourceId('Microsoft.SignalRService/SignalR', '%s'), providers('Microsoft.SignalRService', 'SignalR').apiVersions[0]).primaryConnectionString" this.Name.Value
-        |> ArmExpression.create
+        let expr = sprintf "listKeys(resourceId('Microsoft.SignalRService/SignalR', '%s'), providers('Microsoft.SignalRService', 'SignalR').apiVersions[0]).primaryConnectionString" this.Name.Value
+        ArmExpression.create(expr, ResourceId.create this.Name)
 
 type SignalRBuilder() =
     member _.Yield _ =
@@ -51,8 +51,8 @@ type SignalRBuilder() =
     [<CustomOperation("allowed_origins")>]
     member _.AllowedOrigins(state:SignalRConfig, allowedOrigins) = { state with AllowedOrigins = allowedOrigins}
     [<CustomOperation "add_tags">]
-    member _.Tags(state:SignalRConfig, pairs) = 
-        { state with 
+    member _.Tags(state:SignalRConfig, pairs) =
+        { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
     member this.Tag(state:SignalRConfig, key, value) = this.Tags(state, [ (key,value) ])

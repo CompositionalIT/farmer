@@ -11,7 +11,7 @@ open System
 
 type EndpointConfig =
     { Name : ResourceName
-      DependsOn : ResourceName list
+      Dependencies : ResourceId list
       CompressedContentTypes : string Set
       QueryStringCachingBehaviour : QueryStringCachingBehaviour
       Http : FeatureFlag
@@ -33,9 +33,9 @@ type CdnConfig =
               Sku = this.Sku
               Tags = this.Tags}
             for endpoint in this.Endpoints do
-                { Profile = this.Name
-                  Name = endpoint.Name
-                  DependsOn = endpoint.DependsOn
+                { Name = endpoint.Name
+                  Profile = this.Name
+                  Dependencies = endpoint.Dependencies
                   CompressedContentTypes = endpoint.CompressedContentTypes
                   QueryStringCachingBehaviour = endpoint.QueryStringCachingBehaviour
                   Http = endpoint.Http
@@ -66,8 +66,8 @@ type CdnBuilder() =
     [<CustomOperation "add_endpoints">]
     member _.AddEndpoints(state:CdnConfig, endpoints) = { state with Endpoints = state.Endpoints @ endpoints }
     [<CustomOperation "add_tags">]
-    member _.Tags(state:CdnConfig, pairs) = 
-        { state with 
+    member _.Tags(state:CdnConfig, pairs) =
+        { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
     member this.Tag(state:CdnConfig, key, value) = this.Tags(state, [ (key,value) ])
@@ -75,7 +75,7 @@ type CdnBuilder() =
 type EndpointBuilder() =
     member _.Yield _ : EndpointConfig =
         { Name = ResourceName.Empty
-          DependsOn = []
+          Dependencies = []
           CompressedContentTypes = Set.empty
           QueryStringCachingBehaviour = UseQueryString
           Http = Enabled
@@ -96,10 +96,16 @@ type EndpointBuilder() =
           Name = state.Name.IfEmpty ((name |> Seq.filter Char.IsLetterOrDigit |> Seq.toArray |> String) + "-endpoint")
           Origin = name }
 
+    member private _.AddDependency (state:EndpointConfig, resourceName:ResourceName) = { state with Dependencies = ResourceId.create resourceName :: state.Dependencies }
+    member private _.AddDependencies (state:EndpointConfig, resourceNames:ResourceName list) = { state with Dependencies = (resourceNames |> List.map ResourceId.create) @ state.Dependencies }
+    /// Sets a dependency for the web app.
     [<CustomOperation "depends_on">]
-    member _.DependsOn(state:EndpointConfig, resourceName) = { state with DependsOn = resourceName :: state.DependsOn }
-    member _.DependsOn(state:EndpointConfig, resource:IBuilder) = { state with DependsOn = resource.DependencyName :: state.DependsOn }
-    member _.DependsOn(state:EndpointConfig, resource:IArmResource) = { state with DependsOn = resource.ResourceName :: state.DependsOn }
+    member this.DependsOn(state:EndpointConfig, resourceName) = this.AddDependency(state, resourceName)
+    member this.DependsOn(state:EndpointConfig, resources) = this.AddDependencies(state, resources)
+    member this.DependsOn(state:EndpointConfig, builder:IBuilder) = this.AddDependency(state, builder.DependencyName)
+    member this.DependsOn(state:EndpointConfig, builders:IBuilder list) = this.AddDependencies(state, builders |> List.map (fun x -> x.DependencyName))
+    member this.DependsOn(state:EndpointConfig, resource:IArmResource) = this.AddDependency(state, resource.ResourceName)
+    member this.DependsOn(state:EndpointConfig, resources:IArmResource list) = this.AddDependencies(state, resources |> List.map (fun x -> x.ResourceName))
 
     /// Adds a list of MIME content types on which compression applies.
     [<CustomOperation "add_compressed_content">]

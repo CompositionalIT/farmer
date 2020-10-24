@@ -5,14 +5,12 @@ open Farmer
 open Farmer.CoreTypes
 open Farmer.Redis
 
-let redis = ResourceType "Microsoft.Cache/Redis"
+let redis = ResourceType ("Microsoft.Cache/Redis", "2018-03-01")
 
 type Redis =
     { Name : ResourceName
       Location : Location
-      Sku :
-        {| Sku : Sku
-           Capacity : int |}
+      Sku : {| Sku : Sku; Capacity : int |}
       RedisConfiguration : Map<string, string>
       NonSslEnabled : bool option
       ShardCount : int option
@@ -26,26 +24,22 @@ type Redis =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = redis.ArmValue
-               apiVersion = "2018-03-01"
-               name = this.Name.Value
-               location = this.Location.ArmValue
-               properties =
-                    {| sku =
-                        {| name = string this.Sku.Sku
-                           family = this.Family
-                           capacity = this.Sku.Capacity
-                        |}
-                       enableNonSslPort = this.NonSslEnabled |> Option.toNullable
-                       shardCount = this.ShardCount |> Option.toNullable
-                       minimumTlsVersion =
-                         this.MinimumTlsVersion
-                         |> Option.map(function
-                             | Tls10 -> "1.0"
-                             | Tls11 -> "1.1"
-                             | Tls12 -> "1.2")
-                         |> Option.toObj
-                       redisConfiguration = this.RedisConfiguration
-                   |}
-               tags = this.Tags
+            {| redis.Create(this.Name, this.Location, tags = this.Tags) with
+                 properties =
+                      {| sku =
+                          {| name = string this.Sku.Sku
+                             family = this.Family
+                             capacity = this.Sku.Capacity
+                          |}
+                         enableNonSslPort = this.NonSslEnabled |> Option.toNullable
+                         shardCount = this.ShardCount |> Option.toNullable
+                         minimumTlsVersion =
+                           this.MinimumTlsVersion
+                           |> Option.map(function
+                               | Tls10 -> "1.0"
+                               | Tls11 -> "1.1"
+                               | Tls12 -> "1.2")
+                           |> Option.toObj
+                         redisConfiguration = this.RedisConfiguration
+                     |}
             |} :> _

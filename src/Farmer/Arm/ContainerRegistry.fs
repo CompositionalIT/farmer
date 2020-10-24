@@ -5,7 +5,7 @@ open Farmer
 open Farmer.ContainerRegistry
 open Farmer.CoreTypes
 
-let registries = ResourceType "Microsoft.ContainerRegistry/registries"
+let registries = ResourceType ("Microsoft.ContainerRegistry/registries", "2019-05-01")
 
 type Registries =
     { Name : ResourceName
@@ -16,11 +16,7 @@ type Registries =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| name = this.Name.Value
-               ``type`` = registries.ArmValue
-               apiVersion = "2019-05-01"
-               sku = {| name = this.Sku.ToString() |}
-               location = this.Location.ArmValue
-               tags = this.Tags
-               properties = {| adminUserEnabled = this.AdminUserEnabled |}
+            {| registries.Create(this.Name, this.Location, tags = this.Tags) with
+                 sku = {| name = this.Sku.ToString() |}
+                 properties = {| adminUserEnabled = this.AdminUserEnabled |}
             |} :> _

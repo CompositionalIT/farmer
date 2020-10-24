@@ -3,9 +3,10 @@ module Farmer.Arm.ContainerService
 
 open Farmer
 open Farmer.CoreTypes
+open Farmer.Identity
 open Farmer.Vm
 
-let managedClusters = ResourceType "Microsoft.ContainerService/managedClusters"
+let managedClusters = ResourceType ("Microsoft.ContainerService/managedClusters", "2020-04-01")
 
 type AgentPoolMode = System | User
 
@@ -25,6 +26,7 @@ type ManagedCluster =
         |} list
       DnsPrefix : string
       EnableRBAC : bool
+      Identity : ManagedIdentity
       LinuxProfile :
        {| AdminUserName : string
           PublicKeys : string list |} option
@@ -40,76 +42,73 @@ type ManagedCluster =
         {| ClientId : string
            ClientSecret : SecureParameter |} option
     }
-    
+
     interface IParameters with
         member this.SecureParameters =
             [
                 match this.ServicePrincipalProfile with
-                | Some servicePrincipalProfile ->
-                    yield servicePrincipalProfile.ClientSecret
+                | Some servicePrincipalProfile -> servicePrincipalProfile.ClientSecret
                 | None -> ()
                 match this.WindowsProfile with
-                | Some windowsProfile ->
-                    yield windowsProfile.AdminPassword
+                | Some windowsProfile -> windowsProfile.AdminPassword
                 | None -> ()
             ]
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = managedClusters.ArmValue
-               apiVersion = "2020-04-01"
-               name = this.Name.Value
-               location = this.Location.ArmValue
-               dependsOn =
-                   this.AgentPoolProfiles
-                   |> List.map (fun pool -> pool.VirtualNetworkName)
-                   |> List.choose id
-                   |> List.map(fun vnet -> ArmExpression.resourceId(virtualNetworks, vnet).Eval())
-               properties =
-                   {| agentPoolProfiles =
+            let dependencies = [
+                   yield!
                        this.AgentPoolProfiles
-                       |> List.mapi (fun idx agent ->
-                           {| name = if agent.Name = ResourceName.Empty then (sprintf "%s-agent-pool%i" this.Name.Value idx) 
-                                     else agent.Name.Value.ToLowerInvariant ()
-                              count = agent.Count
-                              maxPods = agent.MaxPods |> Option.toNullable
-                              mode = agent.Mode |> string
-                              osDiskSizeGB = agent.OsDiskSize
-                              osType = string agent.OsType
-                              vmSize = agent.VmSize.ArmValue
-                              vnetSubnetID =
-                                  match agent.VirtualNetworkName, agent.SubnetName with
-                                  | Some vnet, Some subnet ->
-                                      box (ArmExpression.resourceId(Arm.Network.subnets, vnet, subnet).Eval())
-                                  | _ -> null
-                           |})
-                      dnsPrefix = this.DnsPrefix
-                      enableRBAC = this.EnableRBAC
-                      linuxProfile =
-                            match this.LinuxProfile with
-                            | Some linuxProfile ->
-                                {| adminUsername = linuxProfile.AdminUserName
-                                   ssh = {| publicKeys = linuxProfile.PublicKeys |> List.map (fun k -> {| keyData = k |}) |} |}
-                            | None -> Unchecked.defaultof<_>
-                      networkProfile =
-                          match this.NetworkProfile with
-                          | Some networkProfile ->
-                                {| dnsServiceIP = networkProfile.DnsServiceIP |> string
-                                   dockerBridgeCidr = networkProfile.DockerBridgeCidr |> IPAddressCidr.format
-                                   networkPlugin = networkProfile.NetworkPlugin.ArmValue
-                                   serviceCidr = networkProfile.ServiceCidr |> IPAddressCidr.format |}
-                          | None -> Unchecked.defaultof<_>
-                      servicePrincipalProfile =
-                            match this.ServicePrincipalProfile with
-                            | Some spProfile ->
-                                {| clientId = spProfile.ClientId
-                                   secret = spProfile.ClientSecret.AsArmRef.Eval() |}
-                            | None -> Unchecked.defaultof<_>
-                      windowsProfile =
-                            match this.WindowsProfile with
-                            | Some winProfile ->
-                                {| adminUsername = winProfile.AdminUserName
-                                   adminPassword = winProfile.AdminPassword.AsArmRef.Eval() |}
-                            | None -> Unchecked.defaultof<_>
-                   |}
+                       |> List.choose (fun pool -> pool.VirtualNetworkName)
+                       |> List.map(fun vnet -> ResourceId.create(virtualNetworks, vnet))
+                   yield! this.Identity.Dependencies
+               ]
+            {| managedClusters.Create(this.Name, this.Location, dependencies) with
+                   identity = this.Identity |> ManagedIdentity.toArmJson
+                   properties =
+                       {| agentPoolProfiles =
+                           this.AgentPoolProfiles
+                           |> List.mapi (fun idx agent ->
+                               {| name = if agent.Name = ResourceName.Empty then (sprintf "%s-agent-pool%i" this.Name.Value idx)
+                                         else agent.Name.Value.ToLowerInvariant ()
+                                  count = agent.Count
+                                  maxPods = agent.MaxPods |> Option.toNullable
+                                  mode = agent.Mode |> string
+                                  osDiskSizeGB = agent.OsDiskSize
+                                  osType = string agent.OsType
+                                  vmSize = agent.VmSize.ArmValue
+                                  vnetSubnetID =
+                                      match agent.VirtualNetworkName, agent.SubnetName with
+                                      | Some vnet, Some subnet -> ResourceId.create(subnets, vnet, subnet).Eval()
+                                      | _ -> null
+                               |})
+                          dnsPrefix = this.DnsPrefix
+                          enableRBAC = this.EnableRBAC
+                          linuxProfile =
+                                match this.LinuxProfile with
+                                | Some linuxProfile ->
+                                    {| adminUsername = linuxProfile.AdminUserName
+                                       ssh = {| publicKeys = linuxProfile.PublicKeys |> List.map (fun k -> {| keyData = k |}) |} |}
+                                | None -> Unchecked.defaultof<_>
+                          networkProfile =
+                              match this.NetworkProfile with
+                              | Some networkProfile ->
+                                    {| dnsServiceIP = networkProfile.DnsServiceIP |> string
+                                       dockerBridgeCidr = networkProfile.DockerBridgeCidr |> IPAddressCidr.format
+                                       networkPlugin = networkProfile.NetworkPlugin.ArmValue
+                                       serviceCidr = networkProfile.ServiceCidr |> IPAddressCidr.format |}
+                              | None -> Unchecked.defaultof<_>
+                          servicePrincipalProfile =
+                                match this.ServicePrincipalProfile with
+                                | Some spProfile ->
+                                    {| clientId = spProfile.ClientId
+                                       secret = spProfile.ClientSecret.ArmExpression.Eval() |}
+                                | None -> Unchecked.defaultof<_>
+                          windowsProfile =
+                                match this.WindowsProfile with
+                                | Some winProfile ->
+                                    {| adminUsername = winProfile.AdminUserName
+                                       adminPassword = winProfile.AdminPassword.ArmExpression.Eval() |}
+                                | None -> Unchecked.defaultof<_>
+                       |}
             |} :> _

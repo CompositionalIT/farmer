@@ -15,12 +15,12 @@ type SearchConfig =
       Tags: Map<string,string>  }
     /// Gets an ARM expression for the admin key of the search instance.
     member this.AdminKey =
-        sprintf "listAdminKeys('Microsoft.Search/searchServices/%s', '2015-08-19').primaryKey" this.Name.Value
-        |> ArmExpression.create
+        let expr = sprintf "listAdminKeys('Microsoft.Search/searchServices/%s', '2015-08-19').primaryKey" this.Name.Value
+        ArmExpression.create(expr, (ResourceId.create this.Name))
     /// Gets an ARM expression for the query key of the search instance.
     member this.QueryKey =
-        sprintf "listQueryKeys('Microsoft.Search/searchServices/%s', '2015-08-19').value[0].key" this.Name.Value
-        |> ArmExpression.create
+        let expr = sprintf "listQueryKeys('Microsoft.Search/searchServices/%s', '2015-08-19').value[0].key" this.Name.Value
+        ArmExpression.create(expr, (ResourceId.create this.Name))
     interface IBuilder with
         member this.DependencyName = this.Name
         member this.BuildResources location = [
@@ -55,8 +55,8 @@ type SearchBuilder() =
     [<CustomOperation "partitions">]
     member __.PartitionCount(state:SearchConfig, partitions:int) = { state with Partitions = partitions }
     [<CustomOperation "add_tags">]
-    member _.Tags(state:SearchConfig, pairs) = 
-        { state with 
+    member _.Tags(state:SearchConfig, pairs) =
+        { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
     member this.Tag(state:SearchConfig, key, value) = this.Tags(state, [ (key,value) ])

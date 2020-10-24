@@ -19,7 +19,7 @@ The Network Security Group builder creates network security groups with rules fo
 | nsg | add_rules | Adds security rules to the network security group |
 | securityRule | name | The name of the security rule |
 | securityRule | description | The description  of the security rule |
-| securityRule | service | The service port(s) and protocol(s) protected by this security rule |
+| securityRule | services | The services port(s) and protocol(s) protected by this security rule |
 | securityRule | add_source | Specify access from any source protocol, address, and port |
 | securityRule | add_source_any | Specify access from any address and any port |
 | securityRule | add_source_address | Specify access from a specific address and any port |
@@ -43,7 +43,7 @@ open Farmer.NetworkSecurity
 // Create a rule for https services accessible from the internet
 let httpsAccess = securityRule {
     name "web-servers"
-    service (Service ("https", Port 443us))
+    services [ NetworkService ("https", Port 443us) ]
     add_source_tag TCP "Internet"
     add_destination_any
 }
@@ -64,14 +64,7 @@ open Farmer.Builders
 open Farmer.NetworkSecurity
 
 // Many services have a few ports, such as web services that are often on 80 and 443.
-let web = Services ("web", [
-    Service ("http", Port 80us)
-    Service ("https", Port 443us)
-])
 // Some services only have a single port
-let app = Service ("http", Port 8080us)
-let database = Service ("postgres", Port 5432us)
-
 // Different tiers may reside on different network segments
 let corporateNet = "172.24.0.0/20"
 let webNet = "10.100.30.0/24"
@@ -82,7 +75,10 @@ let dbNet = "10.100.32.0/24"
 let webAccess = securityRule {
     name "web-servers"
     description "Public web server access"
-    service web
+    services [
+        NetworkService ("http", Port 80us)
+        NetworkService ("https", Port 443us)
+    ]
     add_source_network TCP corporateNet
     add_destination_network webNet
 }
@@ -91,7 +87,7 @@ let webAccess = securityRule {
 let appAccess= securityRule {
     name "app-servers"
     description "Internal app server access"
-    service app
+    services [ NetworkService ("http", Port 8080us) ]
     add_source_network TCP webNet
     add_destination_network appNet
 }
@@ -100,7 +96,7 @@ let appAccess= securityRule {
 let dbAccess = securityRule {
     name "db-servers"
     description "Internal database server access"
-    service database
+    services [ NetworkService ("postgres", Port 5432us)]
     add_source_network TCP appNet
     add_destination_network dbNet
 }

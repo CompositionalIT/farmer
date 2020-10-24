@@ -6,9 +6,11 @@ open Farmer.CoreTypes
 open Farmer.WebApp
 open System
 
-let serverFarms = ResourceType "Microsoft.Web/serverfarms"
-let sites = ResourceType "Microsoft.Web/sites"
-let sourceControls = ResourceType "Microsoft.Web/sites/sourcecontrols"
+let serverFarms = ResourceType ("Microsoft.Web/serverfarms", "2018-02-01")
+let sites = ResourceType ("Microsoft.Web/sites", "2016-08-01")
+let config = ResourceType ("Microsoft.Web/sites/config", "2016-08-01")
+let sourceControls = ResourceType ("Microsoft.Web/sites/sourcecontrols", "2019-08-01")
+let staticSites = ResourceType("Microsoft.Web/staticSites", "2019-12-01-preview")
 
 type ServerFarm =
     { Name : ResourceName
@@ -16,7 +18,7 @@ type ServerFarm =
       Sku: Sku
       WorkerSize : WorkerSize
       WorkerCount : int
-      OperatingSystem : OS 
+      OperatingSystem : OS
       Tags: Map<string,string> }
     member this.IsDynamic =
         match this.Sku, this.WorkerSize with
@@ -43,8 +45,8 @@ type ServerFarm =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = serverFarms.ArmValue
-               sku =
+            {| serverFarms.Create(this.Name, this.Location, tags = this.Tags) with
+                 sku =
                    {| name =
                         match this.Sku with
                         | Free ->
@@ -68,26 +70,22 @@ type ServerFarm =
                         | Serverless -> "Y1"
                       family = if this.IsDynamic then "Y" else null
                       capacity = if this.IsDynamic then 0 else this.WorkerCount |}
-               name = this.Name.Value
-               apiVersion = "2018-02-01"
-               location = this.Location.ArmValue
-               properties =
-                    {| name = this.Name.Value
-                       computeMode = if this.IsDynamic then "Dynamic" else null
-                       perSiteScaling = if this.IsDynamic then Nullable() else Nullable false
-                       reserved = this.Reserved |}
-               kind = this.Kind |> Option.toObj
-               tags = this.Tags
+                 properties =
+                      {| name = this.Name.Value
+                         computeMode = if this.IsDynamic then "Dynamic" else null
+                         perSiteScaling = if this.IsDynamic then Nullable() else Nullable false
+                         reserved = this.Reserved |}
+                 kind = this.Kind |> Option.toObj
             |} :> _
 
 module ZipDeploy =
     open System.IO
     open System.IO.Compression
-    
+
     type ZipDeployTarget =
         | WebApp
         | FunctionApp
-    
+
     type ZipDeployKind =
         | DeployFolder of string
         | DeployZip of string
@@ -116,16 +114,17 @@ type Site =
     { Name : ResourceName
       Location : Location
       ServicePlan : ResourceName
-      AppSettings : List<string * Setting>
+      AppSettings : Map<string, Setting>
+      ConnectionStrings : Map<string, (Setting * ConnectionStringKind)>
       AlwaysOn : bool
       HTTPSOnly : bool
       HTTP20Enabled : bool option
       ClientAffinityEnabled : bool option
       WebSocketsEnabled : bool option
       Cors : Cors option
-      Dependencies : ResourceName list
+      Dependencies : ResourceId list
       Kind : string
-      Identity : FeatureFlag option
+      Identity : Identity.ManagedIdentity
       LinuxFxVersion : string option
       AppCommandLine : string option
       NetFrameworkVersion : string option
@@ -139,10 +138,12 @@ type Site =
       ZipDeployPath : (string * ZipDeploy.ZipDeployTarget) option }
     interface IParameters with
         member this.SecureParameters =
-            this.AppSettings
+            Map.toList this.AppSettings
+            @ (Map.toList this.ConnectionStrings |> List.map(fun (k, (v,_)) -> k, v))
             |> List.choose(snd >> function
                 | ParameterSetting s -> Some s
-                | LiteralSetting _ -> None)
+                | ExpressionSetting _ | LiteralSetting _ -> None)
+
     interface IPostDeploy with
         member this.Run resourceGroupName =
             match this with
@@ -160,25 +161,18 @@ type Site =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = sites.ArmValue
-               name = this.Name.Value
-               apiVersion = "2016-08-01"
-               location = this.Location.ArmValue
-               dependsOn = this.Dependencies |> List.map(fun p -> p.Value)
-               kind = this.Kind
-               identity =
-                 match this.Identity with
-                 | Some Enabled -> box {| ``type`` = "SystemAssigned" |}
-                 | Some Disabled -> box {| ``type`` = "None" |}
-                 | None -> null
-               tags = this.Tags
-               properties =
+            let dependencies = this.Dependencies @ this.Identity.Dependencies
+            {| sites.Create(this.Name, this.Location, dependencies, this.Tags) with
+                 kind = this.Kind
+                 identity = this.Identity |> ManagedIdentity.toArmJson
+                 properties =
                     {| serverFarmId = this.ServicePlan.Value
                        httpsOnly = this.HTTPSOnly
                        clientAffinityEnabled = match this.ClientAffinityEnabled with Some v -> box v | None -> null
                        siteConfig =
                         {| alwaysOn = this.AlwaysOn
-                           appSettings = this.AppSettings |> List.map(fun (k,v) -> {| name = k; value = v.Value |})
+                           appSettings = this.AppSettings |> Map.toList |> List.map(fun (k,v) -> {| name = k; value = v.Value |})
+                           connectionStrings = this.ConnectionStrings |> Map.toList |> List.map(fun (k,(v, t)) -> {| name = k; connectionString = v.Value; ``type`` = t.ToString() |})
                            linuxFxVersion = this.LinuxFxVersion |> Option.toObj
                            appCommandLine = this.AppCommandLine |> Option.toObj
                            netFrameworkVersion = this.NetFrameworkVersion |> Option.toObj
@@ -191,10 +185,14 @@ type Site =
                            webSocketsEnabled = this.WebSocketsEnabled |> Option.toNullable
                            metadata = this.Metadata |> List.map(fun (k,v) -> {| name = k; value = v |})
                            cors =
-                            match this.Cors with
-                            | None -> null
-                            | Some AllOrigins -> box {| allowedOrigins = [ "*" ] |}
-                            | Some (SpecificOrigins origins) -> box {| allowedOrigins = origins |}
+                            this.Cors
+                            |> Option.map (function
+                                | AllOrigins ->
+                                    box {| allowedOrigins = [ "*" ] |}
+                                | SpecificOrigins (origins, credentials) ->
+                                    box {| allowedOrigins = origins
+                                           supportCredentials = credentials |> Option.toNullable |})
+                            |> Option.toObj
                         |}
                     |}
             |} :> _
@@ -210,14 +208,41 @@ module Sites =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| ``type`` = sourceControls.ArmValue
-                   apiVersion = "2019-08-01"
-                   name = this.Name.Value
-                   location = this.Location.ArmValue
-                   dependsOn = [ this.Website.Value ]
-                   properties =
-                    {| repoUrl = this.Repository.ToString()
-                       branch = this.Branch
-                       isManualIntegration = this.ContinuousIntegration.AsBoolean |> not
-                    |}
+                {| sourceControls.Create(this.Name, this.Location, [ ResourceId.create this.Website ]) with
+                    properties =
+                        {| repoUrl = this.Repository.ToString()
+                           branch = this.Branch
+                           isManualIntegration = this.ContinuousIntegration.AsBoolean |> not |}
                 |} :> _
+
+type StaticSite =
+    { Name : ResourceName
+      Location : Location
+      Repository : Uri
+      Branch : string
+      RepositoryToken : SecureParameter
+      AppLocation : string
+      ApiLocation : string option
+      AppArtifactLocation : string option }
+    interface IArmResource with
+        member this.ResourceName = this.Name
+        member this.JsonModel =
+            {| staticSites.Create(this.Name, this.Location) with
+                properties =
+                 {| repositoryUrl = this.Repository.ToString()
+                    branch = this.Branch
+                    repositoryToken = this.RepositoryToken.ArmExpression.Eval()
+                    buildProperties =
+                     {| appLocation = this.AppLocation
+                        apiLocation = this.ApiLocation |> Option.toObj
+                        appArtifactLocation = this.AppArtifactLocation |> Option.toObj |}
+                 |}
+                sku =
+                 {| Tier = "Free"
+                    Name = "Free" |}
+            |} :> _
+    interface IParameters with
+        member this.SecureParameters = [
+            this.RepositoryToken
+        ]
+

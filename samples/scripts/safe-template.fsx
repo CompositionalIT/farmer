@@ -21,7 +21,7 @@ let makeSafeApp (environment:string) theLocation storageSku webAppSku =
         setting "public_path" "./public"
         setting "STORAGE_CONNECTIONSTRING" myStorageAccount.Key
 
-        depends_on myStorageAccount.Name
+        depends_on [ myStorageAccount.Name ]
     }
 
     arm {

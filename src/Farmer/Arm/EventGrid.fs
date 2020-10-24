@@ -5,8 +5,8 @@ open Farmer
 open Farmer.EventGrid
 open Farmer.CoreTypes
 
-let systemTopics = ResourceType "Microsoft.EventGrid/systemTopics"
-let eventSubscriptions = ResourceType "Microsoft.EventGrid/systemTopics/eventSubscriptions"
+let systemTopics = ResourceType ("Microsoft.EventGrid/systemTopics", "2020-04-01-preview")
+let eventSubscriptions = ResourceType ("Microsoft.EventGrid/systemTopics/eventSubscriptions", "2020-04-01-preview")
 
 type TopicType =
     | TopicType of ResourceType * topic:string
@@ -38,15 +38,10 @@ type Topic =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| name = this.Name.Value
-               ``type`` = systemTopics.ArmValue
-               apiVersion = "2020-04-01-preview"
-               location = this.Location.ArmValue
-               dependsOn = [ this.Source.Value ]
-               properties =
-                  {| source = ArmExpression.resourceId(this.TopicType.ResourceType, this.Source).Eval()
-                     topicType = this.TopicType.Value |}
-               tags = this.Tags
+            {| systemTopics.Create(this.Name, this.Location, [ ResourceId.create this.Source ], this.Tags) with
+                 properties =
+                    {| source = ResourceId.create(this.TopicType.ResourceType, this.Source).Eval()
+                       topicType = this.TopicType.Value |}
              |} :> _
 
 type Subscription =
@@ -58,27 +53,24 @@ type Subscription =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| ``type`` = eventSubscriptions.ArmValue
-               apiVersion = "2020-04-01-preview"
-               name = this.Topic.Value + "/" + this.Name.Value
-               dependsOn = [ this.Topic.Value; this.Destination.Value ]
-               properties =
-                 {| destination =
-                        match this.DestinationEndpoint with
-                        | WebHook uri ->
-                          {| endpointType = "WebHook"
-                             properties = {| endpointUrl = uri.ToString() |}
-                          |} |> box
-                        | EventHub hubName ->
-                          {| endpointType = "EventHub"
-                             properties = {| resourceId = ArmExpression.resourceId(eventHubs, this.Destination, hubName).Eval() |}
-                          |} :> _
-                        | StorageQueue queueName ->
-                          {| endpointType = "StorageQueue"
-                             properties =
-                              {| resourceId = ArmExpression.resourceId(Storage.storageAccounts, this.Destination).Eval()
-                                 queueName = queueName |}
-                          |} :> _
-                    filter = {| includedEventTypes = [ for event in this.Events do event.Value ] |}
-                 |}
+            {| eventSubscriptions.Create(this.Topic/this.Name, dependsOn = [ ResourceId.create this.Topic; ResourceId.create this.Destination ]) with
+                 properties =
+                   {| destination =
+                          match this.DestinationEndpoint with
+                          | WebHook uri ->
+                            {| endpointType = "WebHook"
+                               properties = {| endpointUrl = uri.ToString() |}
+                            |} |> box
+                          | EventHub hubName ->
+                            {| endpointType = "EventHub"
+                               properties = {| resourceId = ResourceId.create(eventHubs, this.Destination, hubName).Eval() |}
+                            |} :> _
+                          | StorageQueue queueName ->
+                            {| endpointType = "StorageQueue"
+                               properties =
+                                {| resourceId = ResourceId.create(Storage.storageAccounts, this.Destination).Eval()
+                                   queueName = queueName |}
+                            |} :> _
+                      filter = {| includedEventTypes = [ for event in this.Events do event.Value ] |}
+                   |}
             |} :> _
