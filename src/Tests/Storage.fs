@@ -27,6 +27,7 @@ let tests = testList "Storage Tests" [
         resource.Validate()
         Expect.equal resource.Name "mystorage123" "Account name is wrong"
         Expect.equal resource.Sku.Name "Premium_LRS" "SKU is wrong"
+        Expect.equal resource.Kind "StorageV2" "Kind"
         Expect.isTrue resource.IsHnsEnabled.Value "Hierarchical namespace not enabled"
     }
     test "When data lake is not enabled" {

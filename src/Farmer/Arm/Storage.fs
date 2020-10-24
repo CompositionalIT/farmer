@@ -44,7 +44,7 @@ module Providers =
 
 [<RequireQualifiedAccess>]
 type StorageAccountKind =
-    V1 | V2 | BlobOnly | FilesOnly | BlockBlobOnly
+    | V1 | V2 | BlobOnly | FilesOnly | BlockBlobOnly
     member this.ArmValue = match this with | V1 -> "Storage" | V2 -> "StorageV2" | BlobOnly -> "BlobStorage" | FilesOnly -> "FileStorage" | BlockBlobOnly -> "BlockBlobStorage"
 
 type StorageAccount =
