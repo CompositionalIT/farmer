@@ -1,6 +1,8 @@
 Release Notes
 =============
 ## 1.2.0
+* SQL Azure: Connection string owner now has the correct path.
+* Functions: Ability to override the auto-generated storage account name.
 
 ## 1.2.0-beta2
 * Log Analytics: Initial release.
