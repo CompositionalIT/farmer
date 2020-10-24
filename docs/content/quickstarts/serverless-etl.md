@@ -16,7 +16,7 @@ This may be a useful pattern for a code-first ETL e.g. you wish to react to data
 
 > This exercise will *not* implement an ETL in code; it only illustrates how to create and configure the resources required.
 
-{{< figure src="../../images/quickstarts/serverless-etl.png">}}
+{{< figure src="../../images/quickstarts/serverless-etl.png" caption="[Full code available here](https://github.com/CompositionalIT/farmer/blob/master/samples/scripts/tutorials/serverless-etl.fsx)">}}
 
 #### Create the SQL instance
 Create a SQL Server and database using the `sqlServer` builder. This server would be used for processed data at the end of the ETL pipeline.

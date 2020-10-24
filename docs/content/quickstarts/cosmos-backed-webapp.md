@@ -12,9 +12,7 @@ In this exercise, you'll:
 * create a web application with an automatically configured app insights instance
 * configure the web application to have connection settings required to connect to the cosmos DB
 
-{{< figure src="../../images/quickstarts/webapp-cosmos.png">}}
-
-![Full sample available here]()
+{{< figure src="../../images/quickstarts/webapp-cosmos.png" caption="[Full code available here](https://github.com/CompositionalIT/farmer/blob/master/samples/scripts/tutorials/cosmos-backed-webapp.fsx)">}}
 
 #### Create the CosmosDB instance
 Create a CosmosDB instance using the `cosmosDb` builder:
