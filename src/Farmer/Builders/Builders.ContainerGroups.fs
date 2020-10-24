@@ -63,7 +63,7 @@ type ContainerGroupConfig =
       Identity : ManagedIdentity
       /// Tags for the container group.
       Tags: Map<string,string> }
-    member private this.ResourceId = ResourceId.create(containerGroups, this.Name)
+    member private this.ResourceId = containerGroups.createResourceId this.Name
     member this.SystemIdentity = SystemIdentity this.ResourceId
     interface IBuilder with
         member this.ResourceId = this.ResourceId

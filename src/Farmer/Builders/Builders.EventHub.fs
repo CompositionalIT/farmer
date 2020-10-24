@@ -4,6 +4,7 @@ module Farmer.Builders.EventHub
 open Farmer
 open Farmer.EventHub
 open Farmer.Arm.EventHub
+open Farmer.Arm.Storage
 open Namespaces
 open EventHubs
 
@@ -64,9 +65,9 @@ type EventHubConfig =
               Partitions = this.Partitions
               CaptureDestination = this.CaptureDestination
               Dependencies = [
-                  ResourceId.create this.EventHubNamespaceName
+                  namespaces.createResourceId this.EventHubNamespaceName
                   match this.CaptureDestination with
-                  | Some (StorageAccount(name, _)) -> ResourceId.create name
+                  | Some (StorageAccount(name, _)) -> storageAccounts.createResourceId name
                   | None -> ()
                   yield! this.Dependencies
               ]

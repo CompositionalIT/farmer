@@ -16,9 +16,9 @@ type BastionHost =
         member this.ResourceName = this.Name
         member this.JsonModel =
             let dependsOn = [
-                ResourceId.create(virtualNetworks, this.VirtualNetwork)
+                virtualNetworks.createResourceId this.VirtualNetwork
                 for config in this.IpConfigs do
-                    ResourceId.create (publicIPAddresses, config.PublicIpName)
+                    publicIPAddresses.createResourceId config.PublicIpName
             ]
             {| bastionHosts.Create(this.Name, this.Location, dependsOn, this.Tags) with
                 properties =

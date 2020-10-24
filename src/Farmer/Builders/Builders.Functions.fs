@@ -100,7 +100,7 @@ type FunctionsConfig =
                 | DependableResource this resourceId -> resourceId
                 | _ -> ()
 
-                ResourceId.create this.StorageAccountName.ResourceName
+                storageAccounts.createResourceId this.StorageAccountName.ResourceName
               ]
               AlwaysOn = false
               HTTPSOnly = this.HTTPSOnly

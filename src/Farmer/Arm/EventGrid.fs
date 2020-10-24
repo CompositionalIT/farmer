@@ -52,7 +52,7 @@ type Subscription =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| eventSubscriptions.Create(this.Topic/this.Name, dependsOn = [ ResourceId.create this.Topic; ResourceId.create this.Destination ]) with
+            {| eventSubscriptions.Create(this.Topic/this.Name, dependsOn = [ systemTopics.createResourceId this.Topic; ResourceId.create this.Destination ]) with
                  properties =
                    {| destination =
                           match this.DestinationEndpoint with

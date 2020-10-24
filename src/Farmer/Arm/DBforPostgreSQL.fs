@@ -29,7 +29,7 @@ module Servers =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {|  databases.Create(this.Server/this.Name, dependsOn = [ ResourceId.create this.Server ]) with
+                {|  databases.Create(this.Server/this.Name, dependsOn = [ servers.createResourceId this.Server ]) with
                         properties = {|  charset = this.Charset; collation = this.Collation |}
                 |} :> _
 

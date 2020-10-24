@@ -236,7 +236,6 @@ type WebAppConfig =
                 match this.DockerImage with Some _ -> "container" | _ -> ()
               ] |> String.concat ","
               Dependencies = [
-
                 match this.ServicePlan with
                 | DependableResource this resourceId -> resourceId
                 | _ -> ()

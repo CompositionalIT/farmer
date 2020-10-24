@@ -99,9 +99,9 @@ type VirtualNetworkGateway =
         member this.ResourceName = this.Name
         member this.JsonModel =
             let dependsOn = [
-                ResourceId.create(virtualNetworks, this.VirtualNetwork)
+                virtualNetworks.createResourceId this.VirtualNetwork
                 for config in this.IpConfigs do
-                    ResourceId.create(publicIPAddresses, config.PublicIpName)
+                    publicIPAddresses.createResourceId config.PublicIpName
             ]
 
             {| virtualNetworkGateways.Create(this.Name, this.Location, dependsOn, this.Tags) with
@@ -174,9 +174,9 @@ type Connection =
       PeerId : string option
       AuthorizationKey : string option
       Tags: Map<string,string>  }
-    member private this.VNetGateway1ResourceId = ResourceId.create(virtualNetworkGateways, this.VirtualNetworkGateway1)
-    member private this.VNetGateway2ResourceId = this.VirtualNetworkGateway2 |> Option.map(fun gw -> ResourceId.create(virtualNetworkGateways, gw))
-    member private this.LocalNetworkGatewayResourceId = this.LocalNetworkGateway |> Option.map(fun lng -> ResourceId.create(localNetworkGateways, lng))
+    member private this.VNetGateway1ResourceId = virtualNetworkGateways.createResourceId this.VirtualNetworkGateway1
+    member private this.VNetGateway2ResourceId = this.VirtualNetworkGateway2 |> Option.map virtualNetworkGateways.createResourceId
+    member private this.LocalNetworkGatewayResourceId = this.LocalNetworkGateway |> Option.map localNetworkGateways.createResourceId
 
     interface IArmResource with
         member this.ResourceName = this.Name
@@ -215,9 +215,9 @@ type NetworkInterface =
         member this.ResourceName = this.Name
         member this.JsonModel =
             let dependsOn = [
-               ResourceId.create this.VirtualNetwork
-               for config in this.IpConfigs do
-                   ResourceId.create config.PublicIpName
+                virtualNetworks.createResourceId this.VirtualNetwork
+                for config in this.IpConfigs do
+                    publicIPAddresses.createResourceId config.PublicIpName
             ]
             {| networkInterfaces.Create(this.Name, this.Location, dependsOn, this.Tags) with
                 properties =
@@ -244,7 +244,7 @@ type NetworkProfile =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            let dependsOn = [ ResourceId.create(virtualNetworks, this.VirtualNetwork) ]
+            let dependsOn = [ virtualNetworks.createResourceId this.VirtualNetwork ]
             {| networkProfiles.Create(this.Name, this.Location, dependsOn, this.Tags) with
                 properties =
                     {| containerNetworkInterfaceConfigurations =

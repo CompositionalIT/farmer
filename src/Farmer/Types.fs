@@ -49,8 +49,8 @@ type ResourceId =
         { ResourceId.Empty with Type = Some resourceType; Name = name; Segments = List.ofArray resourceSegments }
 
 type ResourceType with
-    member this.CreateResourceId name = ResourceId.create (this, name)
-    member this.CreateResourceId name = this.CreateResourceId (ResourceName name)
+    member this.createResourceId name = ResourceId.create (this, name)
+    member this.createResourceId name = this.createResourceId (ResourceName name)
 
 /// An Azure ARM resource value which can be mapped into an ARM template.
 type IArmResource =

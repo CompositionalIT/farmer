@@ -26,7 +26,7 @@ module Providers =
             member this.JsonModel =
                 let iar = this :> IArmResource
                 let dependencies =
-                    [ ResourceId.create(storageAccounts, this.StorageAccount.ResourceName) ]
+                    [ storageAccounts.createResourceId this.StorageAccount.ResourceName ]
                     @ (this.PrincipalId.ArmExpression.Owner |> Option.toList)
 
                 {| roleAssignments.Create(iar.ResourceName, dependsOn = dependencies) with
@@ -78,7 +78,7 @@ module BlobServices =
         interface IArmResource with
             member this.ResourceName = this.Name.ResourceName
             member this.JsonModel =
-                {| containers.Create(this.StorageAccount/"default"/this.Name.ResourceName, dependsOn = [ ResourceId.create this.StorageAccount ]) with
+                {| containers.Create(this.StorageAccount/"default"/this.Name.ResourceName, dependsOn = [ storageAccounts.createResourceId this.StorageAccount ]) with
                     properties =
                      {| publicAccess =
                          match this.Accessibility with
@@ -95,7 +95,7 @@ module FileShares =
         interface IArmResource with
             member this.ResourceName = this.Name.ResourceName
             member this.JsonModel =
-                {| fileShares.Create(this.StorageAccount/"default"/this.Name.ResourceName, dependsOn = [ ResourceId.create this.StorageAccount ]) with
+                {| fileShares.Create(this.StorageAccount/"default"/this.Name.ResourceName, dependsOn = [ storageAccounts.createResourceId this.StorageAccount ]) with
                     properties = {| shareQuota = this.ShareQuota |> Option.defaultValue 5120<Gb> |}
                 |} :> _
 
@@ -106,7 +106,7 @@ module Queues =
         interface IArmResource with
             member this.ResourceName = this.Name.ResourceName
             member this.JsonModel =
-                queues.Create(this.StorageAccount/"default"/this.Name.ResourceName, dependsOn = [ ResourceId.create this.StorageAccount ]) :> _
+                queues.Create(this.StorageAccount/"default"/this.Name.ResourceName, dependsOn = [ storageAccounts.createResourceId this.StorageAccount ]) :> _
 
 module ManagementPolicies =
     type ManagementPolicy =
@@ -122,7 +122,7 @@ module ManagementPolicies =
         interface IArmResource with
             member this.ResourceName = this.ResourceName
             member this.JsonModel =
-                {| managementPolicies.Create(this.ResourceName, dependsOn = [ ResourceId.create this.StorageAccount ]) with
+                {| managementPolicies.Create(this.ResourceName, dependsOn = [ storageAccounts.createResourceId this.StorageAccount ]) with
                     properties =
                      {| policy =
                          {| rules = [

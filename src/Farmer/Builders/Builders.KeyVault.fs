@@ -142,7 +142,7 @@ type KeyVaultConfig =
                   ActivationDate = secret.ActivationDate
                   ExpirationDate = secret.ExpirationDate
                   Location = location
-                  Dependencies = ResourceId.create this.Name :: secret.Dependencies }
+                  Dependencies = vaults.createResourceId this.Name :: secret.Dependencies }
         ]
 
 type AccessPolicyBuilder() =

@@ -125,7 +125,7 @@ let tests = testList "PostgreSQL Database Service" [
             apiVersion = "2017-12-01"
             ``type`` = "Microsoft.DBforPostgreSQL/servers/databases"
             properties = {| collation = "de_DE"; charset = "ASCII" |}
-            dependsOn = [ "testdb" ]
+            dependsOn = [ "[resourceId('Microsoft.DBforPostgreSQL/servers', 'testdb')]" ]
         }
 
         Expect.equal actual expectedDbRes "database resource"

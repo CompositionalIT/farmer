@@ -161,11 +161,11 @@ let tests = testList "Web App Tests" [
 
         Expect.equal secrets.[0].Name.Value "testwebvault/storage" "Incorrect secret name"
         Expect.equal secrets.[0].Value (ExpressionSecret sa.Key) "Incorrect secret value"
-        Expect.sequenceEqual secrets.[0].Dependencies [ ResourceId.create "testwebvault"; ResourceId.create(storageAccounts, ResourceName "teststorage") ] "Incorrect secret dependencies"
+        Expect.sequenceEqual secrets.[0].Dependencies [ vaults.createResourceId "testwebvault"; storageAccounts.createResourceId "teststorage" ] "Incorrect secret dependencies"
 
         Expect.equal secrets.[1].Name.Value "testwebvault/secret" "Incorrect secret name"
         Expect.equal secrets.[1].Value (ParameterSecret (SecureParameter "secret")) "Incorrect secret value"
-        Expect.sequenceEqual secrets.[1].Dependencies [ ResourceId.create "testwebvault" ] "Incorrect secret dependencies"
+        Expect.sequenceEqual secrets.[1].Dependencies [ vaults.createResourceId "testwebvault" ] "Incorrect secret dependencies"
 
         Expect.hasLength vault.AccessPolicies 1 "Incorrect number of access policies"
         Expect.sequenceEqual vault.AccessPolicies.[0].Permissions.Secrets [ KeyVault.Secret.Get ] "Incorrect permissions"

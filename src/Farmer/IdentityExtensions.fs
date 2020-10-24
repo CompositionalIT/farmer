@@ -13,7 +13,7 @@ module ManagedIdentityExtensions =
               UserAssigned = [ resourceId.WithType(userAssignedIdentities) |> UserAssignedIdentity ] }
         /// Creates a resource identity from a resource name
         static member create (name:ResourceName) =
-            ResourceId.create (userAssignedIdentities, name) |> ManagedIdentity.create
+            userAssignedIdentities.createResourceId name |> ManagedIdentity.create
 
 module Roles =
     type RoleAssignment = { Role : RoleId; Principal : PrincipalId }
