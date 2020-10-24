@@ -32,7 +32,7 @@ let theDatabase = cosmosDb {
 #### Create and link to a web app
 Create a web application, and provide settings that are derived from the Cosmos DB instance that you just created.
 
-> If you want to use Azure Functions, the API is virtual identity to that of the Web App builder. You can replace `webApp` with `functions` below, removing the `sku` keyword.
+> The API of the functions builder is virtually identical to that of the Web App builder. You can replace `webApp` with `functions` below, removing the `sku` keyword, and you will get a working Azure Functions instance instead.
 
 ```fsharp
 let theApp = webApp {
