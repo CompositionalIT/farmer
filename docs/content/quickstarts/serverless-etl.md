@@ -47,9 +47,11 @@ let etlProcessor = functions {
 }
 ```
 
-> Functions instances require a storage account to operate, and will automatically create one for you. In this sample, we have explicitly provided the storage account name; you don't have to do this - Farmer will derive one based on the function instance name.
+If the mistype the database name for the connection string, Farmer will automatically fail and let you know. You can also, of course, bind the name to a symbol and use across both resources. Alternatively, bind the database itself to a value and provide that to both `add_databases` and as the value to the `ConnectionString` member.
+
+> Functions instances require a storage account to operate, and will automatically create one for you. In this sample, we have explicitly provided the storage account name; you don't have to do this - Farmer will derive one based on the function instance name. If you prefer to manage the storage account yourself, you can create a storage account and use the `link_to_storage_account` keyword instead.
 >
-> Farmer will also automatically configure the functions instance with connection string settings for both the AzureWebJobsStorage and AzureWebJobsDashboard settings. You can use these to also configure your functions app to read from. If you prefer to manage the storage account yourself, you can create a storage account and use the `link_to_storage_account` keyword instead.
+> Farmer will also automatically configure the functions instance with connection string settings for both the AzureWebJobsStorage and AzureWebJobsDashboard settings. You can use these to also configure your functions app to read from.
 
 #### Add both resources to your ARM template
 
