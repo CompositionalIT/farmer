@@ -13,10 +13,12 @@ type ResourceName =
         | r -> r
     member this.Map mapper = match this with ResourceName r -> ResourceName (mapper r)
 
-    static member (+) (a:ResourceName, b:string) = ResourceName(a.Value + "/" + b)
-    static member (+) (a:ResourceName, b:ResourceName) = a + b.Value
-    static member (/) (a:ResourceName, b:string) = a + b
-    static member (/) (a:ResourceName, b:ResourceName) = a + b.Value
+    // static member (+) (a:ResourceName, b:string) = ResourceName(a.Value + "/" + b)
+    // static member (+) (a:ResourceName, b:ResourceName) = a + b.Value
+    static member (/) (a:ResourceName, b:string) = ResourceName(a.Value + "/" + b)
+    static member (/) (a:ResourceName, b:ResourceName) = a / b.Value
+    static member (-) (a:ResourceName, b:string) = ResourceName(a.Value + "-" + b)
+    static member (-) (a:ResourceName, b:ResourceName) = a - b.Value
 
 type Location =
     | Location of string
@@ -159,10 +161,10 @@ type Builder = Location -> IArmResource list
 /// A resource that will automatically be created by Farmer.
 type AutoCreationKind<'TConfig> =
     /// A resource that will automatically be created by Farmer with an explicit (user-defined) name.
-    | Named of ResourceName
+    | Named of ResourceId
     /// A resource that will automatically be created by Farmer with a name that is derived based on the configuration.
-    | Derived of ('TConfig -> ResourceName)
-    member this.CreateResourceName config =
+    | Derived of ('TConfig -> ResourceId)
+    member this.CreateResourceId config =
         match this with
         | Named r -> r
         | Derived f -> f config
@@ -170,7 +172,7 @@ type AutoCreationKind<'TConfig> =
 /// A related resource that is created externally to this Farmer resource.
 type ExternalKind =
     /// The name of the resource that will be created by Farmer, but is explicitly linked by the user.
-    | Managed of ResourceName
+    | Managed of ResourceId
     /// A Resource Id that is created externally from Farmer and already exists in Azure.
     | Unmanaged of ResourceId
 
@@ -180,30 +182,34 @@ type ResourceRef<'TConfig> =
     | External of ExternalKind
     member this.CreateResourceId config =
         match this with
-        | External (Managed r) -> ResourceId.create r
+        | External (Managed r) -> r
         | External (Unmanaged r) -> r
-        | AutoCreate r -> r.CreateResourceName config |> ResourceId.create
+        | AutoCreate r -> r.CreateResourceId config
 
 [<AutoOpen>]
 module ResourceRef =
     /// Creates a ResourceRef which is automatically created and derived from the supplied config.
     let derived derivation = derivation |> Derived |> AutoCreate
+    let named (resourceType:ResourceType) name = AutoCreate(Named(ResourceId.create(resourceType, name)))
+    let managed (resourceType:ResourceType) name = External(Managed(ResourceId.create(resourceType, name)))
     /// An active pattern that returns the resource name if the resource should be set as a dependency.
     /// In other words, all cases except External Unmanaged.
     let (|DependableResource|_|) config = function
         | External (Managed r) -> Some (DependableResource r)
-        | AutoCreate r -> Some(DependableResource(r.CreateResourceName config))
+        | AutoCreate r -> Some(DependableResource(r.CreateResourceId config))
         | External (Unmanaged _) -> None
     /// An active pattern that returns the resource name if the resource should be deployed. In other
     /// words, AutoCreate only.
     let (|DeployableResource|_|) config = function
-        | AutoCreate c -> Some (DeployableResource(c.CreateResourceName config))
+        | AutoCreate c -> Some (DeployableResource(c.CreateResourceId config))
         | External _ -> None
     /// An active pattern that returns the resource name if the resource if external.
     let (|ExternalResource|_|) = function
-        | AutoCreate c -> None
-        | External (Managed r) -> Some (ResourceId.create r)
-        | External (Unmanaged r) -> Some r
+        | AutoCreate _ ->
+            None
+        | External (Managed r)
+        | External (Unmanaged r) ->
+            Some r
 
 /// Whether a specific feature is active or not.
 type FeatureFlag =

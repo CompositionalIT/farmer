@@ -97,7 +97,7 @@ type EventHubConfig =
 type EventHubBuilder() =
     member __.Yield _ =
         { Name = ResourceName "hub"
-          EventHubNamespace = derived (fun config -> config.Name.Map(sprintf "%s-ns"))
+          EventHubNamespace = derived (fun config -> ResourceId.create(namespaces, config.Name-"ns"))
           Sku = Standard
           Capacity = 1
           ZoneRedundant = None
@@ -115,11 +115,11 @@ type EventHubBuilder() =
     member this.Name(state:EventHubConfig, name) = this.Name(state, ResourceName name)
     /// Sets the name of the Event Hub namespace.
     [<CustomOperation "namespace_name">]
-    member __.NamespaceName(state:EventHubConfig, name) = { state with EventHubNamespace = AutoCreate(Named name) }
+    member __.NamespaceName(state:EventHubConfig, name) = { state with EventHubNamespace = named namespaces name }
     member this.NamespaceName(state:EventHubConfig, name) = this.NamespaceName(state, ResourceName name)
     /// Sets the name of the Event Hub namespace.
     [<CustomOperation "link_to_namespace">]
-    member __.LinkToNamespaceName(state:EventHubConfig, name) = { state with EventHubNamespace = External (Managed name) }
+    member __.LinkToNamespaceName(state:EventHubConfig, name) = { state with EventHubNamespace = managed namespaces name }
     member this.LinkToNamespaceName(state:EventHubConfig, name) = this.LinkToNamespaceName(state, ResourceName name)
     /// Sets the sku of the Event Hub instance.
     [<CustomOperation "sku">]

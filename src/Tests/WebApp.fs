@@ -23,7 +23,7 @@ let tests = testList "Web App Tests" [
         let resources = webApp { name "test" } |> getResources
         let wa = resources |> getResource<Web.Site> |> List.head
 
-        Expect.containsAll wa.Dependencies [ ResourceId.create "test-ai"; ResourceId.create "test-farm" ] "Missing dependencies"
+        Expect.containsAll wa.Dependencies [ ResourceId.create(components, ResourceName "test-ai"); ResourceId.create(serverFarms, ResourceName "test-farm") ] "Missing dependencies"
         Expect.hasLength (resources |> getResource<Insights.Components>) 1 "Should be one AI component"
         Expect.hasLength (resources |> getResource<Web.ServerFarm>) 1 "Should be one server farm"
     }
@@ -31,7 +31,7 @@ let tests = testList "Web App Tests" [
         let resources = webApp { name "test"; service_plan_name "supersp"; app_insights_name "superai" } |> getResources
         let wa = resources |> getResource<Web.Site> |> List.head
 
-        Expect.containsAll wa.Dependencies [ ResourceId.create "supersp"; ResourceId.create "superai" ] "Missing dependencies"
+        Expect.containsAll wa.Dependencies [ ResourceId.create(serverFarms, ResourceName "supersp"); ResourceId.create (components, ResourceName "superai") ] "Missing dependencies"
         Expect.hasLength (resources |> getResource<Insights.Components>) 1 "Should be one AI component"
         Expect.hasLength (resources |> getResource<Web.ServerFarm>) 1 "Should be one server farm"
     }
@@ -40,7 +40,7 @@ let tests = testList "Web App Tests" [
         let ai = appInsights { name "ai" }
         let resources = webApp { name "test"; link_to_app_insights ai; link_to_service_plan sp } |> getResources
         let wa = resources |> getResource<Web.Site> |> List.head
-        Expect.containsAll wa.Dependencies [ ResourceId.create "plan"; ResourceId.create "ai" ] "Missing dependencies"
+        Expect.containsAll wa.Dependencies [ ResourceId.create(serverFarms, ResourceName "plan"); ResourceId.create(components, ResourceName "ai") ] "Missing dependencies"
         Expect.isEmpty (resources |> getResource<Insights.Components>) "Should be no AI component"
         Expect.isEmpty (resources |> getResource<Web.ServerFarm>) "Should be no server farm"
     }

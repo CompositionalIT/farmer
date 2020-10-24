@@ -121,7 +121,7 @@ type WebAppConfig =
                 match this.SecretStore with
                 | KeyVault (DeployableResource this vaultName) ->
                     let store = keyVault {
-                        name vaultName
+                        name vaultName.Name
                         add_access_policy (AccessPolicy.create (this.SystemIdentity.PrincipalId, [ KeyVault.Secret.Get ]))
                         add_secrets [
                             for setting in this.Settings do
@@ -238,7 +238,7 @@ type WebAppConfig =
               Dependencies = [
 
                 match this.ServicePlan with
-                | DependableResource this resourceName -> ResourceId.create resourceName
+                | DependableResource this resourceId -> resourceId
                 | _ -> ()
 
                 yield! this.Dependencies
@@ -258,7 +258,7 @@ type WebAppConfig =
                     ()
 
                 match this.AppInsights with
-                | Some (DependableResource this resourceName) -> ResourceId.create resourceName
+                | Some (DependableResource this resourceId) -> resourceId
                 | Some _ | None -> ()
               ]
               AlwaysOn = this.AlwaysOn
@@ -338,8 +338,8 @@ type WebAppConfig =
                 ()
 
             match this.AppInsights with
-            | Some (DeployableResource this resourceName) ->
-                { Name = resourceName
+            | Some (DeployableResource this resourceId) ->
+                { Name = resourceId.Name
                   Location = location
                   DisableIpMasking = false
                   SamplingPercentage = 100
@@ -353,8 +353,8 @@ type WebAppConfig =
                 ()
 
             match this.ServicePlan with
-            | DeployableResource this resourceName ->
-                { Name = resourceName
+            | DeployableResource this resourceId ->
+                { Name = resourceId.Name
                   Location = location
                   Sku = this.Sku
                   WorkerSize = this.WorkerSize
@@ -368,8 +368,8 @@ type WebAppConfig =
 type WebAppBuilder() =
     member __.Yield _ =
         { Name = ResourceName.Empty
-          ServicePlan = derived (fun t -> t.Name.Map(sprintf "%s-farm"))
-          AppInsights = Some (derived (fun t -> t.Name.Map(sprintf "%s-ai")))
+          ServicePlan = derived (fun config -> ResourceId.create(serverFarms, config.Name-"farm"))
+          AppInsights = Some (derived (fun config -> ResourceId.create(components, config.Name-"ai")))
           Sku = Sku.F1
           WorkerSize = Small
           WorkerCount = 1
@@ -416,12 +416,12 @@ type WebAppBuilder() =
     member this.Name(state:WebAppConfig, name:string) = this.Name(state, ResourceName name)
     /// Sets the name of the service plan.
     [<CustomOperation "service_plan_name">]
-    member _.ServicePlanName(state:WebAppConfig, name) = { state with ServicePlan = AutoCreate(Named name) }
+    member _.ServicePlanName(state:WebAppConfig, name) = { state with ServicePlan = named serverFarms name }
     member this.ServicePlanName(state:WebAppConfig, name:string) = this.ServicePlanName(state, ResourceName name)
     /// Instead of creating a new service plan instance, configure this webapp to point to another Farmer-managed service plan instance.
     /// A dependency will automatically be set for this instance.
     [<CustomOperation "link_to_service_plan">]
-    member __.LinkToServicePlan(state:WebAppConfig, name) = { state with ServicePlan = External (Managed name) }
+    member __.LinkToServicePlan(state:WebAppConfig, name) = { state with ServicePlan = managed serverFarms name }
     member this.LinkToServicePlan(state:WebAppConfig, name:string) = this.LinkToServicePlan (state, ResourceName name)
     member this.LinkToServicePlan(state:WebAppConfig, config:ServicePlanConfig) = this.LinkToServicePlan (state, config.Name)
     /// Instead of creating a new service plan instance, configure this webapp to point to another unmanaged service plan instance.
@@ -438,7 +438,7 @@ type WebAppBuilder() =
     member __.NumberOfWorkers(state:WebAppConfig, workerCount) = { state with WorkerCount = workerCount }
     /// Sets the name of the automatically-created app insights instance.
     [<CustomOperation "app_insights_name">]
-    member __.UseAppInsights(state:WebAppConfig, name) = { state with AppInsights = Some (AutoCreate (Named name)) }
+    member __.UseAppInsights(state:WebAppConfig, name) = { state with AppInsights = Some (named components name) }
     member this.UseAppInsights(state:WebAppConfig, name:string) = this.UseAppInsights(state, ResourceName name)
     /// Removes any automatic app insights creation, configuration and settings for this webapp.
     [<CustomOperation "app_insights_off">]
@@ -446,14 +446,14 @@ type WebAppBuilder() =
     /// Instead of creating a new AI instance, configure this webapp to point to another Farmer-managed AI instance.
     /// A dependency will automatically be set for this instance.
     [<CustomOperation "link_to_app_insights">]
-    member __.LinkToAi(state:WebAppConfig, name) = { state with AppInsights = Some(External (Managed name)) }
+    member __.LinkToAi(state:WebAppConfig, name) = { state with AppInsights = Some (managed components name) }
     member this.LinkToAi(state:WebAppConfig, name) = this.LinkToAi (state, ResourceName name)
     member this.LinkToAi(state:WebAppConfig, name:ResourceName option) = match name with Some name -> this.LinkToAi (state, name) | None -> state
     member this.LinkToAi(state:WebAppConfig, config:AppInsightsConfig) = this.LinkToAi (state, config.Name)
     /// Instead of creating a new AI instance, configure this webapp to point to an unmanaged AI instance.
     /// A dependency will not be set for this instance.
     [<CustomOperation "link_to_unmanaged_app_insights">]
-    member __.LinkUnmanagedAppInsights(state:WebAppConfig, resourceId) = { state with AppInsights = Some(External(Unmanaged resourceId)) }
+    member __.LinkUnmanagedAppInsights(state:WebAppConfig, resourceId) = { state with AppInsights = Some (External(Unmanaged resourceId)) }
     /// Sets the web app to use "run from package" deployment capabilities.
     [<CustomOperation "run_from_package">]
     member __.RunFromPackage(state:WebAppConfig) = { state with RunFromPackage = true }
@@ -586,7 +586,7 @@ type WebAppBuilder() =
     [<CustomOperation "use_keyvault">]
     member this.UseKeyVault(state:WebAppConfig) =
         let state = this.SystemIdentity (state)
-        { state with SecretStore = KeyVault (derived(fun c -> ResourceName (c.Name.Value + "vault"))) }
+        { state with SecretStore = KeyVault (derived(fun c -> ResourceId.create(vaults, ResourceName (c.Name.Value + "vault")))) }
     [<CustomOperation "use_managed_keyvault">]
     member this.LinkToKeyVault(state:WebAppConfig, name) =
         let state = this.SystemIdentity (state)

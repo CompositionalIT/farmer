@@ -87,7 +87,7 @@ type FunctionsConfig =
               Dependencies = [
                 yield! this.Dependencies
                 match this.AppInsights with
-                | Some (DependableResource this resourceName) -> ResourceId.create resourceName
+                | Some (DependableResource this resourceId) -> resourceId
                 | _ -> ()
                 for setting in this.Settings do
                     match setting.Value with
@@ -98,7 +98,7 @@ type FunctionsConfig =
                     | ParameterSetting _ | LiteralSetting _ ->
                         ()
                 match this.ServicePlan with
-                | DependableResource this resourceName -> ResourceId.create resourceName
+                | DependableResource this resourceId -> resourceId
                 | _ -> ()
 
                 ResourceId.create this.StorageAccountName.ResourceName
@@ -120,8 +120,8 @@ type FunctionsConfig =
               AppCommandLine = None
             }
             match this.ServicePlan with
-            | DeployableResource this resourceName ->
-                { Name = resourceName
+            | DeployableResource this resourceId ->
+                { Name = resourceId.Name
                   Location = location
                   Sku = Sku.Y1
                   WorkerSize = Serverless
@@ -131,8 +131,8 @@ type FunctionsConfig =
             | _ ->
                 ()
             match this.StorageAccount with
-            | DeployableResource this resourceName ->
-                { Name = Storage.StorageAccountName.Create(resourceName).OkValue
+            | DeployableResource this resourceId ->
+                { Name = Storage.StorageAccountName.Create(resourceId.Name).OkValue
                   Location = location
                   Sku = Storage.Standard_LRS
                   Dependencies = []
@@ -142,8 +142,8 @@ type FunctionsConfig =
             | _ ->
                 ()
             match this.AppInsights with
-            | Some (DeployableResource this resourceName) ->
-                { Name = resourceName
+            | Some (DeployableResource this resourceId) ->
+                { Name = resourceId.Name
                   Location = location
                   DisableIpMasking = false
                   SamplingPercentage = 100
@@ -160,12 +160,11 @@ type FunctionsConfig =
 type FunctionsBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
-          ServicePlan = derived (fun config -> config.Name.Map(sprintf "%s-farm"))
-          AppInsights = Some (derived (fun config -> config.Name.Map(sprintf "%s-ai")))
+          ServicePlan = derived (fun config -> ResourceId.create(serverFarms, config.Name-"farm"))
+          AppInsights = Some (derived (fun config -> ResourceId.create(components, config.Name-"ai")))
           StorageAccount = derived (fun config ->
-            config.Name.Map (sprintf "%sstorage")
-            |> sanitiseStorage
-            |> ResourceName)
+            let storage = config.Name.Map (sprintf "%sstorage") |> sanitiseStorage |> ResourceName
+            ResourceId.create(storageAccounts, storage))
           Runtime = DotNet
           ExtensionVersion = V3
           Cors = None
@@ -181,22 +180,22 @@ type FunctionsBuilder() =
     member _.Name(state:FunctionsConfig, name) = { state with Name = ResourceName name }
     /// Sets the name of the service plan hosting the function instance.
     [<CustomOperation "service_plan_name">]
-    member _.ServicePlanName(state:FunctionsConfig, name) = { state with ServicePlan = AutoCreate(Named(ResourceName name)) }
+    member _.ServicePlanName(state:FunctionsConfig, name) = { state with ServicePlan = named serverFarms (ResourceName name) }
     /// Do not create an automatic service plan; instead, link to a service plan that is created outside of this Functions instance.
     [<CustomOperation "link_to_service_plan">]
-    member _.LinkToServicePlan(state:FunctionsConfig, name) = { state with ServicePlan = External (Managed name) }
+    member _.LinkToServicePlan(state:FunctionsConfig, name) = { state with ServicePlan = managed serverFarms name }
     member this.LinkToServicePlan(state:FunctionsConfig, name:string) = this.LinkToServicePlan (state, ResourceName name)
     member this.LinkToServicePlan(state:FunctionsConfig, config:ServicePlanConfig) = this.LinkToServicePlan (state, config.Name)
     /// Do not create an automatic storage account; instead, link to a storage account that is created outside of this Functions instance.
     [<CustomOperation "link_to_storage_account">]
-    member _.LinkToStorageAccount(state:FunctionsConfig, name) = { state with StorageAccount = External (Managed name) }
+    member _.LinkToStorageAccount(state:FunctionsConfig, name) = { state with StorageAccount = managed storageAccounts name }
     member this.LinkToStorageAccount(state:FunctionsConfig, name) = this.LinkToStorageAccount(state, ResourceName name)
     /// Set the name of the storage account instead of using an auto-generated one based on the function instance name.
     [<CustomOperation "storage_account_name">]
-    member _.StorageAccountName(state:FunctionsConfig, name) = { state with StorageAccount = AutoCreate (Named (ResourceName name)) }
+    member _.StorageAccountName(state:FunctionsConfig, name) = { state with StorageAccount = named storageAccounts (ResourceName name) }
     /// Sets the name of the automatically-created app insights instance.
     [<CustomOperation "app_insights_name">]
-    member _.AppInsightsName(state:FunctionsConfig, name) = { state with AppInsights = Some (AutoCreate (Named name)) }
+    member _.AppInsightsName(state:FunctionsConfig, name) = { state with AppInsights = Some (named components name) }
     member this.AppInsightsName(state:FunctionsConfig, name:string) = this.AppInsightsName(state, ResourceName name)
     /// Removes any automatic app insights creation, configuration and settings for this webapp.
     [<CustomOperation "app_insights_off">]
@@ -207,8 +206,8 @@ type FunctionsBuilder() =
     /// Instead of creating a new AI instance, configure this webapp to point to another AI instance that you are managing
     /// yourself.
     [<CustomOperation "link_to_app_insights">]
-    member _.LinkToAppInsights(state:FunctionsConfig, name) = { state with AppInsights = Some(External (Managed name)) }
-    member _.LinkToAppInsights(state:FunctionsConfig, name) = { state with AppInsights = name |> Option.map (Managed >> External)  }
+    member _.LinkToAppInsights(state:FunctionsConfig, name) = { state with AppInsights = Some(managed components name) }
+    member _.LinkToAppInsights(state:FunctionsConfig, name) = { state with AppInsights = name |> Option.map (managed components)  }
     /// Sets the runtime of the Functions host.
     [<CustomOperation "use_runtime">]
     member _.Runtime(state:FunctionsConfig, runtime) = { state with Runtime = runtime }
