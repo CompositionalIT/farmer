@@ -46,6 +46,8 @@ type SqlAzureConfig =
         |> Option.map this.ConnectionString
         |> Option.defaultWith(fun _ -> failwithf "Unknown database name %s" databaseName.Value)
     member this.ConnectionString databaseName = this.ConnectionString (ResourceName databaseName)
+    /// The key of the parameter that is required by Farmer for the SQL password.
+    member this.PasswordParameter = sprintf "password-for-%s" this.Name.Value
 
     interface IBuilder with
         member this.DependencyName = this.Name
@@ -163,7 +165,7 @@ type SqlServerBuilder() =
             AdministratorCredentials =
                 if System.String.IsNullOrWhiteSpace state.AdministratorCredentials.UserName then failwithf "You must specify the admin_username for SQL Server instance %s" state.Name.Value
                 {| state.AdministratorCredentials with
-                    Password = SecureParameter (sprintf "password-for-%s" state.Name.Value) |} }
+                    Password = SecureParameter state.PasswordParameter |} }
     /// Sets the name of the SQL server.
     [<CustomOperation "name">]
     member _.ServerName(state:SqlAzureConfig, serverName) = { state with Name = serverName }
