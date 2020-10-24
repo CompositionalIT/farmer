@@ -153,6 +153,6 @@ let tests = testList "Storage Tests" [
     test "WebsitePrimaryEndpoint creation" {
         let builder = storageAccount { name "foo" }
 
-        Expect.equal builder.WebsitePrimaryEndpoint "[reference(foo, '2019-04-01').primaryEndpoints.web]" "Zone names are not fixed and should be related to a storage account name"
+        Expect.equal builder.WebsitePrimaryEndpoint.Value "reference(resourceId('Microsoft.Storage/storageAccounts', 'foo'), '2019-04-01').primaryEndpoints.web" "Zone names are not fixed and should be related to a storage account name"
     }
 ]

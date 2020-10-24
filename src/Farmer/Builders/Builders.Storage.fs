@@ -54,8 +54,8 @@ type StorageAccountConfig =
     /// Gets the Primary endpoint for static website (if enabled)
     member this.WebsitePrimaryEndpoint =
         ArmExpression
-            .create(sprintf "reference(%s, '2019-04-01').primaryEndpoints.web" this.Name.ResourceName.Value)
-            .Eval()
+            .reference(storageAccounts, ResourceId.create(storageAccounts, this.Name.ResourceName))
+            .Map(sprintf "%s.primaryEndpoints.web")
     member this.Endpoint = sprintf "%s.blob.core.windows.net" this.Name.ResourceName.Value
     interface IBuilder with
         member this.DependencyName = this.Name.ResourceName
