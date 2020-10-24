@@ -29,7 +29,7 @@ let theDatabase = cosmosDb {
 }
 ```
 
-#### Create and link to a web app
+#### Create and configure a web app
 Create a web application, and provide settings that are derived from the Cosmos DB instance that you just created.
 
 > The API of the functions builder is virtually identical to that of the Web App builder. You can replace `webApp` with `functions` below, removing the `sku` keyword, and you will get a working Azure Functions instance instead.

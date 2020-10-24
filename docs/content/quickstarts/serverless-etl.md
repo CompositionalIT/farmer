@@ -36,7 +36,7 @@ let transactionalDb = sqlServer {
 
 > We explicitly set the SKU of the database. You don't *have* to do this; if you elect not to, Farmer will create an elastic pool and assign the database into that.
 
-#### Create and link to the functions app
+#### Create and configure a functions app
 Create a functions instance which would contain the application that monitors the storage account for blobs, process each blob and then insert data into SQL. Also, provide the connection string that is derived from the SQL instance that you just created.
 
 ```fsharp
