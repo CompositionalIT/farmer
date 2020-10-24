@@ -69,7 +69,7 @@ You should notice that the template now contains a storage account. Also observe
     {
       "apiVersion": "2016-08-01",
       "dependsOn": [
-        "yourfirststorage"
+        "[resourceId('Microsoft.Storage/storageAccounts', 'yourfirststorage')]"
       ],
       "type": "Microsoft.Web/sites"
     }
@@ -97,7 +97,7 @@ open Farmer
 open Farmer.Builders
 
 let myStorageAccount = storageAccount {
-    name "yourfirststorageaccount"
+    name "yourfirststorage"
 }
 
 let myWebApp = webApp {
