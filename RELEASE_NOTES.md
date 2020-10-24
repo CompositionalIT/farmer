@@ -1,6 +1,7 @@
 Release Notes
 =============
 ## 1.2.0
+* Fix an issue whereby the Owner of a SQL connection string did not have the correct path.
 
 ## 1.2.0-beta2
 * Log Analytics: Initial release.
