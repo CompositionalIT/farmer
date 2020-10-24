@@ -8,7 +8,7 @@ weight: 5
 #### Introduction
 In this exercise, you'll:
 
-* create am Azure Functions instance (with automatically configured storage account and app insights instances)
+* create an Azure Functions instance (with automatically configured storage account and app insights instances)
 * create a SQL Azure instance
 * configure the functions to have connection settings required to connect to both the Storage and SQL instances
 
