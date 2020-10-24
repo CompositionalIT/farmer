@@ -462,16 +462,17 @@ type WebAppBuilder() =
     member __.NodeVersion(state:WebAppConfig, version) = { state with WebsiteNodeDefaultVersion = Some version }
     /// Sets an app setting of the web app in the form "key" "value".
     [<CustomOperation "setting">]
-    member __.AddSetting(state:WebAppConfig, key, value) =
-        { state with Settings = state.Settings.Add(key, LiteralSetting value) }
+    member __.AddSetting(state:WebAppConfig, key, value) = { state with Settings = state.Settings.Add(key, LiteralSetting value) }
     member this.AddSetting(state:WebAppConfig, key, resourceName:ResourceName) = this.AddSetting(state, key, resourceName.Value)
-    member _.AddSetting(state:WebAppConfig, key, value:ArmExpression) =
-        { state with Settings = state.Settings.Add(key, ExpressionSetting value) }
+    member _.AddSetting(state:WebAppConfig, key, value:ArmExpression) = { state with Settings = state.Settings.Add(key, ExpressionSetting value) }
     /// Sets a list of app setting of the web app in the form "key" "value".
     [<CustomOperation "settings">]
     member this.AddSettings(state:WebAppConfig, settings: (string*string) list) =
         settings
         |> List.fold (fun state (key, value: string) -> this.AddSetting(state, key, value)) state
+    member this.AddSettings(state:WebAppConfig, settings) =
+        settings
+        |> List.fold (fun state (key, value:ArmExpression) -> this.AddSetting(state, key, value)) state
     /// Creates an app setting of the web app whose value will be supplied as a secret parameter.
     [<CustomOperation "secret_setting">]
     member __.AddSecret(state:WebAppConfig, key) =

@@ -99,7 +99,7 @@ let complexSecret = secret {
 let vault =
     keyVault {
         name "MyVault"
-        sku KeyVault.KeyVaultSku.Standard
+        sku KeyVault.Sku.Standard
         tenant_id Guid.Empty
 
         enable_disk_encryption_access

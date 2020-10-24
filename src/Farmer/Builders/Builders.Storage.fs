@@ -52,7 +52,10 @@ type StorageAccountConfig =
     /// Gets the ARM expression path to the key of this storage account.
     member this.Key = StorageAccount.getConnectionString this.Name
     /// Gets the Primary endpoint for static website (if enabled)
-    member this.WebsitePrimaryEndpoint = sprintf "https://%s.z6.web.core.windows.net" this.Name.ResourceName.Value
+    member this.WebsitePrimaryEndpoint =
+        ArmExpression
+            .reference(storageAccounts, ResourceId.create(storageAccounts, this.Name.ResourceName))
+            .Map(sprintf "%s.primaryEndpoints.web")
     member this.Endpoint = sprintf "%s.blob.core.windows.net" this.Name.ResourceName.Value
     interface IBuilder with
         member this.DependencyName = this.Name.ResourceName

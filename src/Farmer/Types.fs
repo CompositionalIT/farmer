@@ -120,8 +120,8 @@ type ResourceId with
 
 type ArmExpression with
     static member reference (resourceType:ResourceType, resourceId:ResourceId) =
-        sprintf "reference(%s, '%s')" resourceId.ArmExpression.Value resourceType.ApiVersion
-        |> ArmExpression.create
+        ArmExpression.create(sprintf "reference(%s, '%s')" resourceId.ArmExpression.Value resourceType.ApiVersion)
+                     .WithOwner(resourceId)
 
 type ResourceType with
     member this.Create(name:ResourceName, ?location:Location, ?dependsOn:ResourceId list, ?tags:Map<string,string>) =

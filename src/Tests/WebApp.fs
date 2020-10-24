@@ -126,7 +126,7 @@ let tests = testList "Web App Tests" [
         let wa = wa |> getResources |> getResource<Web.Site> |> List.head
 
         Expect.contains wa.Dependencies (ResourceId.create(storageAccounts, sa.Name.ResourceName)) "Storage Account is missing"
-        Expect.contains wa.Dependencies (ResourceId.create(Sql.databases, ResourceName "thedb")) "Database is missing"
+        Expect.contains wa.Dependencies (ResourceId.create(Sql.databases, ResourceName "test", ResourceName "thedb")) "Database is missing"
     }
 
     test "Implicitly adds a dependency when adding a connection string" {
