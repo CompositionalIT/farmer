@@ -6,11 +6,11 @@ weight: 5
 ---
 
 #### Introduction
-In this exercise, you'll:
+This tutorial walks you through creating a web application which is backed by a Cosmos DB database, and is fully configured with connection string settings for you to start developing against. We'll cover the following steps:
 
-* create a Cosmos DB account with a single database
-* create a web application with an automatically configured app insights instance
-* configure the web application to have connection settings required to connect to the cosmos DB
+1. Creating a Cosmos DB account with a single database.
+1. Creating a web application with an automatically configured app insights instance.
+1. Configuring the web application to have the connection settings required to connect to the Cosmos DB instance.
 
 {{< figure src="../../images/quickstarts/webapp-cosmos.png" caption="[Full code available here](https://github.com/CompositionalIT/farmer/blob/master/samples/scripts/tutorials/cosmos-backed-webapp.fsx)">}}
 
