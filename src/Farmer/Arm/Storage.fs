@@ -43,14 +43,18 @@ module Providers =
                 |} :> _
 
 [<RequireQualifiedAccess>]
+type BlobStorageSku = Standard_LRS | Standard_GRS | Standard_RAGRS member this.ArmValue = this.ToString()
+
 type StorageAccountKind =
-    | V1 | V2 | BlobOnly | FilesOnly | BlockBlobOnly
-    member this.ArmValue = match this with | V1 -> "Storage" | V2 -> "StorageV2" | BlobOnly -> "BlobStorage" | FilesOnly -> "FileStorage" | BlockBlobOnly -> "BlockBlobStorage"
+    | StorageV1 of Sku
+    | StorageV2 of Sku
+    | BlobStorage of BlobStorageSku
+    | FileStorage
+    | BlockBlobStorage
 
 type StorageAccount =
     { Name : StorageAccountName
       Location : Location
-      Sku : Sku
       Kind : StorageAccountKind
       Dependencies : ResourceId list
       EnableHierarchicalNamespace : bool option
@@ -60,8 +64,25 @@ type StorageAccount =
         member this.ResourceName = this.Name.ResourceName
         member this.JsonModel =
             {| storageAccounts.Create(this.Name.ResourceName, this.Location, this.Dependencies, this.Tags) with
-                sku = {| name = this.Sku.ArmValue |}
-                kind = this.Kind.ArmValue
+                sku =
+                    {| name =
+                        match this.Kind with
+                        | StorageV1 sku
+                        | StorageV2 sku ->
+                            sku.ArmValue
+                        | BlobStorage sku ->
+                            sku.ArmValue
+                        | FileStorage
+                        | BlockBlobStorage ->
+                            "Premium_LRS"
+                    |}
+                kind =
+                    match this.Kind with
+                    | StorageV1 _ -> "Storage"
+                    | StorageV2 _ -> "StorageV2"
+                    | BlobStorage _ -> "BlobStorage"
+                    | FileStorage -> "FileStorage"
+                    | BlockBlobStorage -> "BlockBlobStorage" 
                 properties =
                  match this.EnableHierarchicalNamespace with
                  | Some hnsEnabled -> {| isHnsEnabled = hnsEnabled |} :> obj

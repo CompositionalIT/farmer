@@ -134,9 +134,8 @@ type FunctionsConfig =
             match this.StorageAccount with
             | DeployableResource this resourceName ->
                 { Name = Storage.StorageAccountName.Create(resourceName).OkValue
-                  Location = location
-                  Sku = Storage.Standard_LRS
-                  Kind = StorageAccountKind.V1
+                  Location = location                  
+                  Kind = StorageV2 Storage.Standard_LRS
                   Dependencies = []
                   StaticWebsite = None
                   EnableHierarchicalNamespace = None

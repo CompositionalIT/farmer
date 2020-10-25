@@ -62,8 +62,7 @@ type StorageAccountConfig =
         member this.BuildResources location = [
             { Name = this.Name
               Location = location
-              Sku = this.Sku
-              Kind = StorageAccountKind.V2
+              Kind = StorageV2 this.Sku
               EnableHierarchicalNamespace = this.EnableDataLake
               Dependencies =
                 this.RoleAssignments
