@@ -44,10 +44,10 @@ module Providers =
 
 [<RequireQualifiedAccess>]
 type BlobStorageSku = Standard_LRS | Standard_GRS | Standard_RAGRS member this.ArmValue = this.ToString()
+type StorageKind = V1 | V2
 
 type StorageAccountKind =
-    | StorageV1 of Sku
-    | StorageV2 of Sku
+    | Storage of StorageKind * Sku
     | BlobStorage of BlobStorageSku
     | FileStorage
     | BlockBlobStorage
@@ -67,8 +67,7 @@ type StorageAccount =
                 sku =
                     {| name =
                         match this.Kind with
-                        | StorageV1 sku
-                        | StorageV2 sku ->
+                        | Storage (_, sku) ->
                             sku.ArmValue
                         | BlobStorage sku ->
                             sku.ArmValue
@@ -78,8 +77,8 @@ type StorageAccount =
                     |}
                 kind =
                     match this.Kind with
-                    | StorageV1 _ -> "Storage"
-                    | StorageV2 _ -> "StorageV2"
+                    | Storage (V1, _) -> "Storage"
+                    | Storage (V2, _) -> "StorageV2"
                     | BlobStorage _ -> "BlobStorage"
                     | FileStorage -> "FileStorage"
                     | BlockBlobStorage -> "BlockBlobStorage" 
