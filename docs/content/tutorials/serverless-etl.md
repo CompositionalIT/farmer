@@ -6,15 +6,12 @@ weight: 5
 ---
 
 #### Introduction
-In this exercise, you'll:
+This tutorial shows how to create the infrastructure required to implement a common pattern for code-first "extract-transform-load" (ETL) processes. In this tutorial, imagine you wish to react to data being created in a blob in Storage, then parse it, and finally insert the "parsed" data into SQL in a relational database for use by e.g. a web application. We'll cover the following steps:
 
-* create an Azure Functions instance (with automatically configured storage account and app insights instances)
-* create a SQL Azure instance
-* configure the functions to have connection settings required to connect to both the Storage and SQL instances
-
-This may be a useful pattern for a code-first ETL e.g. you wish to react to data being created in a blob in Storage, parsing it, before inserting some data into SQL.
-
-> This exercise will *not* implement an ETL in code; it only illustrates how to create and configure the resources required.
+1. Creating an Azure Functions instance, with automatically configured storage and app insights instances.
+1. Creating a SQL Azure database and server.
+1. Configuring the Functions instance to have connection settings required to connect to both Storage and SQL instances.
+1. Safely providing a SQL Server password to Farmer at deployment time.
 
 {{< figure src="../../images/quickstarts/serverless-etl.png" caption="[Full code available here](https://github.com/CompositionalIT/farmer/blob/master/samples/scripts/tutorials/serverless-etl.fsx)">}}
 
@@ -63,7 +60,7 @@ let template = arm {
 }
 ```
 
-#### Deploying the template
+#### Deploy the template
 When deploying the template, you'll need to provide the password for the SQL Server instance. This is captured as a secure parameter to the template; this guarantees that the password will not be stored in the ARM template as plain text.
 
 ```json
