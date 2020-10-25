@@ -98,14 +98,20 @@ type ArmExpression =
 
 type ResourceId with
     member this.ArmExpression =
-        [ match this.ResourceGroup with Some rg -> rg | None -> ()
-          this.Type.Type
-          this.Name.Value
-          for segment in this.Segments do segment.Value ]
-        |> List.map (sprintf "'%s'")
-        |> String.concat ", "
-        |> sprintf "resourceId(%s)"
-        |> ArmExpression.create
+        match this.Type.Type with
+        | "" ->
+            sprintf "string('%s')" this.Name.Value
+            |> ArmExpression.create
+        | _ ->
+            [ match this.ResourceGroup with Some rg -> rg | None -> ()
+              this.Type.Type
+              this.Name.Value
+              for segment in this.Segments do segment.Value ]
+            |> List.map (sprintf "'%s'")
+            |> String.concat ", "
+            |> sprintf "resourceId(%s)"
+            |> ArmExpression.create
+
     /// Evaluates the expression for emitting into an ARM template. That is, wraps it in [].
     member this.Eval() = this.ArmExpression.Eval()
 
