@@ -41,7 +41,7 @@ module Servers =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| elasticPools.Create(this.Server/this.Name, this.Location, [ ResourceId.create this.Server ]) with
+                {| elasticPools.Create(this.Server/this.Name, this.Location, [ servers.createResourceId this.Server ]) with
                     properties =
                      {| maxSizeBytes = this.MaxSizeBytes |> Option.toNullable
                         perDatabaseSettings =
@@ -60,7 +60,7 @@ module Servers =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| firewallRules.Create(this.Server/this.Name, this.Location, [ ResourceId.create this.Server ]) with
+                {| firewallRules.Create(this.Server/this.Name, this.Location, [ servers.createResourceId this.Server ]) with
                     properties =
                      {| startIpAddress = string this.Start
                         endIpAddress = string this.End |}
@@ -99,10 +99,8 @@ module Servers =
                                 null
                            elasticPoolId =
                             match this.Sku with
-                            | Standalone _ ->
-                                null
-                            | Pool pool ->
-                                ResourceId.create(elasticPools, this.Server, pool).Eval()
+                            | Standalone _ -> null
+                            | Pool pool -> ResourceId.create(elasticPools, this.Server, pool).Eval()
                         |}
                 |} :> _
 
