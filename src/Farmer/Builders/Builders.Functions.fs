@@ -238,6 +238,8 @@ type FunctionsBuilder() =
     [<CustomOperation "depends_on">]
     member this.DependsOn(state:FunctionsConfig, builder:IBuilder) = this.DependsOn (state, builder.ResourceId)
     member this.DependsOn(state:FunctionsConfig, builders:IBuilder list) = this.DependsOn (state, builders |> List.map (fun x -> x.ResourceId))
+    member this.DependsOn(state:FunctionsConfig, resource:IArmResource) = this.DependsOn (state, resource.ResourceId)
+    member this.DependsOn(state:FunctionsConfig, resources:IArmResource list) = this.DependsOn (state, resources |> List.map (fun x -> x.ResourceId))
     member _.DependsOn (state:FunctionsConfig, resourceId:ResourceId) = { state with Dependencies = resourceId :: state.Dependencies }
     member _.DependsOn (state:FunctionsConfig, resourceIds:ResourceId list) = { state with Dependencies = resourceIds @ state.Dependencies }
 

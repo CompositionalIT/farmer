@@ -353,6 +353,8 @@ type SecretBuilder() =
     [<CustomOperation "depends_on">]
     member this.DependsOn(state:SecretConfig, builder:IBuilder) = this.DependsOn (state, builder.ResourceId)
     member this.DependsOn(state:SecretConfig, builders:IBuilder list) = this.DependsOn (state, builders |> List.map (fun x -> x.ResourceId))
+    member this.DependsOn(state:SecretConfig, resource:IArmResource) = this.DependsOn (state, resource.ResourceId)
+    member this.DependsOn(state:SecretConfig, resources:IArmResource list) = this.DependsOn (state, resources |> List.map (fun x -> x.ResourceId))
     member _.DependsOn (state:SecretConfig, resourceId:ResourceId) = { state with Dependencies = resourceId :: state.Dependencies }
     member _.DependsOn (state:SecretConfig, resourceIds:ResourceId list) = { state with Dependencies = resourceIds @ state.Dependencies }
 

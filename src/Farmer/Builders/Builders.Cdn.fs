@@ -99,6 +99,8 @@ type EndpointBuilder() =
     [<CustomOperation "depends_on">]
     member this.DependsOn(state:EndpointConfig, builder:IBuilder) = this.DependsOn (state, builder.ResourceId)
     member this.DependsOn(state:EndpointConfig, builders:IBuilder list) = this.DependsOn (state, builders |> List.map (fun x -> x.ResourceId))
+    member this.DependsOn(state:EndpointConfig, resource:IArmResource) = this.DependsOn (state, resource.ResourceId)
+    member this.DependsOn(state:EndpointConfig, resources:IArmResource list) = this.DependsOn (state, resources |> List.map (fun x -> x.ResourceId))
     member this.DependsOn (state:EndpointConfig, resourceId:ResourceId) = { state with Dependencies = resourceId :: state.Dependencies }
     member this.DependsOn (state:EndpointConfig, resourceIds:ResourceId list) = { state with Dependencies = resourceIds @ state.Dependencies }
 

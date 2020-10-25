@@ -151,6 +151,8 @@ type EventHubBuilder() =
     [<CustomOperation "depends_on">]
     member this.DependsOn(state:EventHubConfig, builder:IBuilder) = this.DependsOn (state, builder.ResourceId)
     member this.DependsOn(state:EventHubConfig, builders:IBuilder list) = this.DependsOn (state, builders |> List.map (fun x -> x.ResourceId))
+    member this.DependsOn(state:EventHubConfig, resource:IArmResource) = this.DependsOn (state, resource.ResourceId)
+    member this.DependsOn(state:EventHubConfig, resources:IArmResource list) = this.DependsOn (state, resources |> List.map (fun x -> x.ResourceId))
     member _.DependsOn (state:EventHubConfig, resourceId:ResourceId) = { state with Dependencies = resourceId :: state.Dependencies }
     member _.DependsOn (state:EventHubConfig, resourceIds:ResourceId list) = { state with Dependencies = resourceIds @ state.Dependencies }
 
