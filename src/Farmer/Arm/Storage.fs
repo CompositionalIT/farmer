@@ -42,15 +42,32 @@ module Providers =
                            principalId = this.PrincipalId.ArmExpression.Eval() |}
                 |} :> _
 
-[<RequireQualifiedAccess>]
-type BlobKindSku = Standard_LRS | Standard_GRS | Standard_RAGRS member this.ArmValue = this.ToString()
-type GeneralPurposeVersion = V1 | V2
-
+type FullReplication = LRS | GRS | RAGRS | ZRS | GZRS | RAGZRS member this.ArmValue = this.ToString()
+type BasicReplication = LRS | ZRS member this.ArmValue = this.ToString()
+type StandardReplication = LRS | GRS | RAGRS member this.ArmValue = this.ToString()
+type PerformanceTier = Standard | Premium member this.ArmValue = this.ToString()
+type GeneralPurposeReplication = V1 of StandardReplication | V2 of FullReplication
 type StorageAccountKind =
-    | GeneralPurpose of GeneralPurposeVersion * Sku
-    | Blobs of BlobKindSku
-    | Files
-    | BlockBlobs
+    | GeneralPurpose of PerformanceTier * GeneralPurposeReplication
+    | Blobs of StandardReplication 
+    | Files of BasicReplication
+    | BlockBlobs of BasicReplication
+
+type Sku with
+    member this.AsGeneralPurposeV2 =
+        let replication =
+            match this with
+            | Premium_LRS | Standard_LRS -> FullReplication.LRS
+            | Standard_ZRS | Premium_ZRS -> FullReplication.ZRS
+            | Standard_GRS -> FullReplication.GRS
+            | Standard_GZRS -> FullReplication.GZRS
+            | Standard_RAGRS -> FullReplication.RAGRS
+            | Standard_RAGZRS -> FullReplication.RAGZRS
+        let performance =
+            match this with
+            | Premium_LRS | Premium_ZRS -> Premium
+            | _ -> Standard
+        GeneralPurpose (performance, V2 replication)
 
 type StorageAccount =
     { Name : StorageAccountName
@@ -67,21 +84,19 @@ type StorageAccount =
                 sku =
                     {| name =
                         match this.Kind with
-                        | GeneralPurpose (_, sku) ->
-                            sku.ArmValue
-                        | Blobs sku ->
-                            sku.ArmValue
-                        | Files
-                        | BlockBlobs ->
-                            "Premium_LRS"
+                        | GeneralPurpose (performanceTier, V1 replication) -> performanceTier.ArmValue + "_" + replication.ArmValue
+                        | GeneralPurpose (performanceTier, V2 replication) -> performanceTier.ArmValue + "_" + replication.ArmValue
+                        | Blobs replication -> "Standard_" + replication.ArmValue
+                        | Files replication -> "Premium_" + replication.ArmValue 
+                        | BlockBlobs replication -> "Premium_" + replication.ArmValue
                     |}
                 kind =
                     match this.Kind with
-                    | GeneralPurpose (V1, _) -> "Storage"
-                    | GeneralPurpose (V2, _) -> "StorageV2"
+                    | GeneralPurpose (_, V1 _) -> "Storage"
+                    | GeneralPurpose (_, V2 _) -> "StorageV2"
                     | Blobs _ -> "BlobStorage"
-                    | Files -> "FileStorage"
-                    | BlockBlobs -> "BlockBlobStorage" 
+                    | Files _ -> "FileStorage"
+                    | BlockBlobs _ -> "BlockBlobStorage" 
                 properties =
                  match this.EnableHierarchicalNamespace with
                  | Some hnsEnabled -> {| isHnsEnabled = hnsEnabled |} :> obj
