@@ -4,18 +4,21 @@
 open Farmer
 open Farmer.Builders
 
+let database = sqlDb {
+    name "isaacparseddata"
+    sku Sql.DtuSku.S1
+}
+
 let transactionalDb = sqlServer {
     name "isaacetlserver"
     admin_username "theadministrator"
-    add_databases [
-        sqlDb { name "isaacparseddata"; sku Sql.DtuSku.S1 }
-    ]
+    add_databases [ database ]
 }
 
 let etlProcessor = functions {
     name "isaacetlprocessor"
     storage_account_name "isaacmydata"
-    setting "sql-conn" (transactionalDb.ConnectionString "isaacparseddata")
+    setting "sql-conn" (transactionalDb.ConnectionString database)
 }
 
 let template = arm {

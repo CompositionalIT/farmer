@@ -33,7 +33,7 @@ let transactionalDb = sqlServer {
 
 > We explicitly set the SKU of the database. You don't *have* to do this; if you elect not to, Farmer will create an elastic pool and assign the database into that.
 
-#### Create and configure a functions app
+#### Create and configure a Functions instance
 Create a functions instance which would contain the application that monitors the storage account for blobs, process each blob and then insert data into SQL. Also, provide the connection string that is derived from the SQL instance that you just created.
 
 ```fsharp
@@ -44,11 +44,32 @@ let etlProcessor = functions {
 }
 ```
 
-If the mistype the database name for the connection string, Farmer will automatically fail and let you know. You can also, of course, bind the name to a symbol and use across both resources. Alternatively, bind the database itself to a value and provide that to both `add_databases` and as the value to the `ConnectionString` member.
-
 > Functions instances require a storage account to operate, and will automatically create one for you. In this sample, we have explicitly provided the storage account name; you don't have to do this - Farmer will derive one based on the function instance name. If you prefer to manage the storage account yourself, you can create a storage account and use the `link_to_storage_account` keyword instead.
 >
 > Farmer will also automatically configure the functions instance with connection string settings for both the AzureWebJobsStorage and AzureWebJobsDashboard settings. You can use these to also configure your functions app to read from.
+
+#### Adding extra type safety for sharing resources
+
+If the mistype the database name for the connection string, Farmer will automatically fail and let you know at runtime. However, a better approach is to use F# to enforce sharing the same database name across the Function instance and SQL server by referencing the database instance directly, instead of a raw string:
+
+```fsharp
+let database = sqlDb {
+    name "isaacparseddata"
+    sku Sql.DtuSku.S1
+}
+
+let transactionalDb = sqlServer {
+    ...
+    add_databases [ database ]
+}
+
+let etlProcessor = functions {
+    ...
+    setting "sql-conn" (transactionalDb.ConnectionString database)
+}
+```
+
+> In this case, you don't need to add the database as a resource to the `arm { }` block; Farmer will do it automatically as part of the `sqlServer` builder.
 
 #### Add both resources to your ARM template
 
@@ -79,6 +100,4 @@ template
 |> printfn "%A"
 ```
 
-> *Be sure to change the names of the Functions and SQL instances to be unique!*
->
-> You should **never commit secrets into source control**. Instead, set environment variables or command line parameters to your Farmer program to read in the password and pass it into the `execute` function. For CI/CD tools such as Octopus or Azure DevOps, you can set secrets within such tools which will appear as environment variables.
+> You should **never commit secrets into source control**. Instead, set environment variables or command line parameters to your Farmer program to read in the password and pass it into the `execute` function. For CI/CD tools such as Octopus or Azure DevOps, you can set secrets that appear as environment variables.
