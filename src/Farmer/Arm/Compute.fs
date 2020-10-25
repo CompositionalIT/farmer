@@ -20,7 +20,7 @@ type CustomScriptExtension =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| extensions.Create(this.VirtualMachine/this.Name, this.Location, [ ResourceId.create this.VirtualMachine ], this.Tags) with
+            {| extensions.Create(this.VirtualMachine/this.Name, this.Location, [ virtualMachines.createResourceId this.VirtualMachine ], this.Tags) with
                    properties =
                     match this.OS with
                     | Windows ->

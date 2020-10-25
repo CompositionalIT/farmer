@@ -11,7 +11,7 @@ let internal buildRedisKey (resourceId:ResourceId) =
             "concat('%s.redis.cache.windows.net,abortConnect=false,ssl=true,password=', listKeys('%s', '2015-08-01').primaryKey)"
                 resourceId.Name.Value
                 resourceId.Name.Value
-    ArmExpression.create(expr, resourceId.WithType redis).WithOwner(resourceId)
+    ArmExpression.create(expr, resourceId).WithOwner(resourceId)
 
 type RedisConfig =
     { Name : ResourceName
@@ -23,7 +23,7 @@ type RedisConfig =
       MinimumTlsVersion : TlsVersion option
       Tags: Map<string,string> }
     member this.Key = buildRedisKey this.ResourceId
-    member private this.ResourceId = ResourceId.create(Arm.Cache.redis, this.Name)
+    member private this.ResourceId = ResourceId.create(redis, this.Name)
     interface IBuilder with
         member this.ResourceId = this.ResourceId
         member this.BuildResources location = [

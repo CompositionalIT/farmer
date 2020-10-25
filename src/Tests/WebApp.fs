@@ -44,7 +44,7 @@ let tests = testList "Web App Tests" [
         Expect.isEmpty (resources |> getResource<Web.ServerFarm>) "Should be no server farm"
     }
     test "Web App does not create dependencies for unmanaged linked resources" {
-        let resources = webApp { name "test"; link_to_unmanaged_app_insights (ResourceId.create "test"); link_to_unmanaged_service_plan (ResourceId.create "test2") } |> getResources
+        let resources = webApp { name "test"; link_to_unmanaged_app_insights (components.createResourceId "test"); link_to_unmanaged_service_plan (serverFarms.createResourceId "test2") } |> getResources
         let wa = resources |> getResource<Web.Site> |> List.head
         Expect.isEmpty wa.Dependencies "Should be no dependencies"
         Expect.isEmpty (resources |> getResource<Insights.Components>) "Should be no AI component"

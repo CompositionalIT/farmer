@@ -490,12 +490,8 @@ type WebAppBuilder() =
 
     /// Sets a dependency for the web app.
     [<CustomOperation "depends_on">]
-    member this.DependsOn(state:WebAppConfig, resourceName:ResourceName) = this.DependsOn (state, ResourceId.create resourceName)
-    member this.DependsOn(state:WebAppConfig, resources:ResourceName list) = this.DependsOn (state, resources |> List.map ResourceId.create)
     member this.DependsOn(state:WebAppConfig, builder:IBuilder) = this.DependsOn (state, builder.ResourceId)
     member this.DependsOn(state:WebAppConfig, builders:IBuilder list) = this.DependsOn (state, builders |> List.map (fun x -> x.ResourceId))
-    member this.DependsOn(state:WebAppConfig, resource:IArmResource) = this.DependsOn (state, resource.ResourceName)
-    member this.DependsOn(state:WebAppConfig, resources:IArmResource list) = this.DependsOn (state, resources |> List.map (fun x -> x.ResourceName))
     member this.DependsOn (state:WebAppConfig, resourceId:ResourceId) = { state with Dependencies = resourceId :: state.Dependencies }
     member this.DependsOn (state:WebAppConfig, resourceIds:ResourceId list) = { state with Dependencies = resourceIds @ state.Dependencies }
 

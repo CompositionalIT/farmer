@@ -10,7 +10,7 @@ module ManagedIdentityExtensions =
         /// Creates a single User-Assigned ResourceIdentity from a ResourceId
         static member create (resourceId:ResourceId) =
             { SystemAssigned = Disabled
-              UserAssigned = [ resourceId.WithType(userAssignedIdentities) |> UserAssignedIdentity ] }
+              UserAssigned = [ UserAssignedIdentity resourceId ] }
         /// Creates a resource identity from a resource name
         static member create (name:ResourceName) =
             userAssignedIdentities.createResourceId name |> ManagedIdentity.create

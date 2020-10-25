@@ -207,7 +207,7 @@ module Sites =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| sourceControls.Create(this.Name, this.Location, [ ResourceId.create this.Website ]) with
+                {| sourceControls.Create(this.Name, this.Location, [ sites.createResourceId this.Website ]) with
                     properties =
                         {| repoUrl = this.Repository.ToString()
                            branch = this.Branch

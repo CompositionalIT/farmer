@@ -15,8 +15,6 @@ type ResourceName =
         | r -> r
     member this.Map mapper = match this with ResourceName r -> ResourceName (mapper r)
 
-    // static member (+) (a:ResourceName, b:string) = ResourceName(a.Value + "/" + b)
-    // static member (+) (a:ResourceName, b:ResourceName) = a + b.Value
     static member (/) (a:ResourceName, b:string) = ResourceName(a.Value + "/" + b)
     static member (/) (a:ResourceName, b:ResourceName) = a / b.Value
     static member (-) (a:ResourceName, b:string) = ResourceName(a.Value + "-" + b)
@@ -33,20 +31,14 @@ type ResourceType =
     member this.ApiVersion = match this with ResourceType (_, v) -> v
 
 type ResourceId =
-    { Type : ResourceType option
+    { Type : ResourceType
       ResourceGroup : string option
       Name : ResourceName
       Segments : ResourceName list }
-    static member Empty = { Type = None; ResourceGroup = None; Name = ResourceName.Empty; Segments = [] }
-    member this.WithType resourceType = { this with Type = Some resourceType }
-    static member create (name:ResourceName, ?group) =
-        { ResourceId.Empty with Name = name; ResourceGroup = group }
-    static member create (name:string, ?group) =
-        ResourceId.create (ResourceName name, ?group = group)
     static member create (resourceType:ResourceType, name:ResourceName, ?group:string) =
-        { ResourceId.Empty with Type = Some resourceType; ResourceGroup = group; Name = name }
+        { Type = resourceType; ResourceGroup = group; Name = name; Segments = [] }
     static member create (resourceType:ResourceType, name:ResourceName, [<ParamArray>] resourceSegments:ResourceName []) =
-        { ResourceId.Empty with Type = Some resourceType; Name = name; Segments = List.ofArray resourceSegments }
+        { Type = resourceType; Name = name; ResourceGroup = None; Segments = List.ofArray resourceSegments }
 
 type ResourceType with
     member this.createResourceId name = ResourceId.create (this, name)
@@ -86,8 +78,8 @@ type ArmExpression =
         else sprintf "[%s]" this.Value
     /// Sets the owning resource on this ARM Expression.
     member this.WithOwner(owner:ResourceId) = match this with ArmExpression (e, _) -> ArmExpression(e, Some owner)
-    /// Sets the owning resource on this ARM Expression.
-    member this.WithOwner(owner:ResourceName) = this.WithOwner(ResourceId.create owner)
+    // /// Sets the owning resource on this ARM Expression.
+    // member this.WithOwner(owner:ResourceName) = this.WithOwner(ResourceId.create owner)
 
     /// Evaluates the expression for emitting into an ARM template. That is, wraps it in [].
     static member Eval (expression:ArmExpression) = expression.Eval()
@@ -106,18 +98,14 @@ type ArmExpression =
 
 type ResourceId with
     member this.ArmExpression =
-        match this with
-        | { Type = None } ->
-            this.Name.Value |> sprintf "string('%s')" |> ArmExpression.create
-        | { Type = Some resourceType } ->
-            [ match this.ResourceGroup with Some rg -> rg | None -> ()
-              resourceType.Type
-              this.Name.Value
-              for segment in this.Segments do segment.Value ]
-            |> List.map (sprintf "'%s'")
-            |> String.concat ", "
-            |> sprintf "resourceId(%s)"
-            |> ArmExpression.create
+        [ match this.ResourceGroup with Some rg -> rg | None -> ()
+          this.Type.Type
+          this.Name.Value
+          for segment in this.Segments do segment.Value ]
+        |> List.map (sprintf "'%s'")
+        |> String.concat ", "
+        |> sprintf "resourceId(%s)"
+        |> ArmExpression.create
     /// Evaluates the expression for emitting into an ARM template. That is, wraps it in [].
     member this.Eval() = this.ArmExpression.Eval()
 

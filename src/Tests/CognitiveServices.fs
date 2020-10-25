@@ -34,7 +34,7 @@ let tests = testList "Cognitive Services" [
     }
 
     test "Key is correctly calculated with a resource group" {
-        let key = CognitiveServices.getKey(ResourceId.create("test", "resource group"))
+        let key = CognitiveServices.getKey(ResourceId.create(Arm.CognitiveServices.accounts, ResourceName "test", "resource group"))
         Expect.equal key.Value "listKeys(resourceId('resource group', 'Microsoft.CognitiveServices/accounts', 'test'), '2017-04-18').key1" "Key is wrong"
     }
 ]

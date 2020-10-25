@@ -148,7 +148,7 @@ type ServiceBusConfig =
                 "listkeys(resourceId('Microsoft.ServiceBus/namespaces/authorizationRules', '%s', 'RootManageSharedAccessKey'), '2017-04-01').%s"
                 this.Name.Value
                 property
-        ArmExpression.create(expr, ResourceId.create this.Name)
+        ArmExpression.create(expr, namespaces.createResourceId this.Name)
     member this.NamespaceDefaultConnectionString = this.GetKeyPath "primaryConnectionString"
     member this.DefaultSharedAccessPolicyPrimaryKey = this.GetKeyPath "primaryKey"
     interface IBuilder with
@@ -229,12 +229,8 @@ type ServiceBusBuilder() =
 
     /// Sets a dependency for the web app.
     [<CustomOperation "depends_on">]
-    member this.DependsOn(state:ServiceBusConfig, resourceName:ResourceName) = this.DependsOn (state, ResourceId.create resourceName)
-    member this.DependsOn(state:ServiceBusConfig, resources:ResourceName list) = this.DependsOn (state, resources |> List.map ResourceId.create)
     member this.DependsOn(state:ServiceBusConfig, builder:IBuilder) = this.DependsOn (state, builder.ResourceId)
     member this.DependsOn(state:ServiceBusConfig, builders:IBuilder list) = this.DependsOn (state, builders |> List.map (fun x -> x.ResourceId))
-    member this.DependsOn(state:ServiceBusConfig, resource:IArmResource) = this.DependsOn (state, resource.ResourceName)
-    member this.DependsOn(state:ServiceBusConfig, resources:IArmResource list) = this.DependsOn (state, resources |> List.map (fun x -> x.ResourceName))
     member this.DependsOn (state:ServiceBusConfig, resourceId:ResourceId) = { state with Dependencies = resourceId :: state.Dependencies }
     member this.DependsOn (state:ServiceBusConfig, resourceIds:ResourceId list) = { state with Dependencies = resourceIds @ state.Dependencies }
 

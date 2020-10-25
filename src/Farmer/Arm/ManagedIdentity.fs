@@ -1,3 +1,4 @@
+[<AutoOpen>]
 module Farmer.Arm.ManagedIdentity
 
 open Farmer

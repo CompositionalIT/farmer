@@ -37,7 +37,7 @@ module Profiles =
         interface IArmResource with
             member this.ResourceName: ResourceName = this.Name
             member this.JsonModel =
-                {| endpoints.Create(this.Profile/this.Name, Location.Global, ResourceId.create this.Profile :: this.Dependencies, this.Tags) with
+                {| endpoints.Create(this.Profile/this.Name, Location.Global, profiles.createResourceId this.Profile :: this.Dependencies, this.Tags) with
                        properties =
                             {| originHostHeader = this.Origin
                                queryStringCachingBehavior = string this.QueryStringCachingBehaviour

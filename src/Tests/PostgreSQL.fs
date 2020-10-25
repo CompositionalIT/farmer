@@ -148,7 +148,7 @@ let tests = testList "PostgreSQL Database Service" [
             { name = "testdb/allow-azure-services"
               ``type`` = "Microsoft.DBforPostgreSQL/servers/firewallrules"
               apiVersion = "2017-12-01"
-              dependsOn = [ "testdb" ]
+              dependsOn = [ "[resourceId('Microsoft.DBforPostgreSQL/servers', 'testdb')]" ]
               location = "northeurope"
               properties = {| startIpAddress = "0.0.0.0"; endIpAddress = "0.0.0.0" |} }
         Expect.equal actual expectedFwRuleRes "Firewall is incorrect"

@@ -14,15 +14,13 @@ type ConnectionStringKind = PrimaryConnectionString | SecondaryConnectionString 
 type CosmosDb =
     static member private providerPath = "providers('Microsoft.DocumentDb','databaseAccounts').apiVersions[0]"
     static member getKey (resourceId:ResourceId, keyType:KeyType, keyAccess:KeyAccess) =
-        let resourceId = resourceId.WithType(databaseAccounts)
         let expr = sprintf "listKeys(%s, %s).%s%sMasterKey" resourceId.ArmExpression.Value CosmosDb.providerPath keyType.ArmValue keyAccess.ArmValue
         ArmExpression.create(expr).WithOwner(resourceId)
-    static member getKey (name:ResourceName, keyType, keyAccess) = CosmosDb.getKey(ResourceId.create name, keyType, keyAccess)
+    static member getKey (name:ResourceName, keyType, keyAccess) = CosmosDb.getKey(databaseAccounts.createResourceId name, keyType, keyAccess)
     static member getConnectionString (resourceId:ResourceId, connectionStringKind:ConnectionStringKind) =
-        let resourceId = resourceId.WithType(databaseAccounts)
         let expr = sprintf "listConnectionStrings(%s, %s).connectionStrings[%i].connectionString" resourceId.ArmExpression.Value CosmosDb.providerPath connectionStringKind.KeyIndex
         ArmExpression.create(expr).WithOwner(resourceId)
-    static member getConnectionString (name:ResourceName, connectionStringKind) = CosmosDb.getConnectionString (ResourceId.create name, connectionStringKind)
+    static member getConnectionString (name:ResourceName, connectionStringKind) = CosmosDb.getConnectionString (databaseAccounts.createResourceId name, connectionStringKind)
 
 type CosmosDbContainerConfig =
     { Name : ResourceName

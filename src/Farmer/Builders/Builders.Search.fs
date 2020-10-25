@@ -15,13 +15,14 @@ type SearchConfig =
     /// Gets an ARM expression for the admin key of the search instance.
     member this.AdminKey =
         let expr = sprintf "listAdminKeys('Microsoft.Search/searchServices/%s', '2015-08-19').primaryKey" this.Name.Value
-        ArmExpression.create(expr, (ResourceId.create this.Name))
+        ArmExpression.create(expr, this.ResourceId)
     /// Gets an ARM expression for the query key of the search instance.
     member this.QueryKey =
         let expr = sprintf "listQueryKeys('Microsoft.Search/searchServices/%s', '2015-08-19').value[0].key" this.Name.Value
-        ArmExpression.create(expr, (ResourceId.create this.Name))
+        ArmExpression.create(expr, this.ResourceId)
+    member this.ResourceId = searchServices.createResourceId this.Name
     interface IBuilder with
-        member this.ResourceId = ResourceId.create(searchServices, this.Name)
+        member this.ResourceId = this.ResourceId
         member this.BuildResources location = [
             { Name = this.Name
               Location = location

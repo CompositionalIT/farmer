@@ -11,6 +11,7 @@ type TopicType =
     | TopicType of ResourceType * topic:string
     member this.Value = match this with TopicType (_, s) -> s
     member this.ResourceType = match this with TopicType (r, _) -> r
+
 module Topics =
     let EventHubsNamespace = TopicType (EventHub.namespaces, "Microsoft.Eventhub.Namespaces")
     let StorageAccount = TopicType (storageAccounts, "Microsoft.Storage.StorageAccounts")
@@ -37,9 +38,10 @@ type Topic =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| systemTopics.Create(this.Name, this.Location, [ ResourceId.create this.Source ], this.Tags) with
-                 properties =
-                    {| source = ResourceId.create(this.TopicType.ResourceType, this.Source).Eval()
+            let sourceResourceId = this.TopicType.ResourceType.createResourceId this.Source
+            {| systemTopics.Create(this.Name, this.Location, [ sourceResourceId ], this.Tags) with
+                properties =
+                    {| source = sourceResourceId.Eval()
                        topicType = this.TopicType.Value |}
              |} :> _
 
@@ -52,7 +54,13 @@ type Subscription =
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
-            {| eventSubscriptions.Create(this.Topic/this.Name, dependsOn = [ systemTopics.createResourceId this.Topic; ResourceId.create this.Destination ]) with
+            let destinationResourceId =
+                match this.DestinationEndpoint with
+                | EventHub hubName -> Some (ResourceId.create(eventHubs, this.Destination, hubName))
+                | StorageQueue _ -> Some (storageAccounts.createResourceId this.Destination)
+                | WebHook _ -> None
+
+            {| eventSubscriptions.Create(this.Topic/this.Name, dependsOn = [ systemTopics.createResourceId this.Topic; yield! Option.toList destinationResourceId ]) with
                  properties =
                    {| destination =
                           match this.DestinationEndpoint with
@@ -67,7 +75,7 @@ type Subscription =
                           | StorageQueue queueName ->
                             {| endpointType = "StorageQueue"
                                properties =
-                                {| resourceId = ResourceId.create(Storage.storageAccounts, this.Destination).Eval()
+                                {| resourceId = (storageAccounts.createResourceId this.Destination).Eval()
                                    queueName = queueName |}
                             |} :> _
                       filter = {| includedEventTypes = [ for event in this.Events do event.Value ] |}
