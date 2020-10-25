@@ -45,7 +45,7 @@ type iotHubs =
       FileNotifications : DeliveryDetails option
       Tags: Map<string,string>  }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = iotHubs.createResourceId this.Name
         member this.JsonModel =
             {| iotHubs.Create(this.Name, this.Location, tags = this.Tags) with
                    properties =
@@ -92,7 +92,7 @@ type ProvisioningServices =
     member this.IotHubPath =
         sprintf "%s.azure-devices.net" this.IotHubName.Value
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = provisioningServices.createResourceId this.Name
         member this.JsonModel =
             {| provisioningServices.Create(this.Name, this.Location, [ iotHubs.createResourceId this.IotHubName ], this.Tags) with
                    sku =

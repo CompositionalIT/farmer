@@ -14,7 +14,7 @@ type Profile =
       Sku : Sku
       Tags: Map<string,string> }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = profiles.createResourceId this.Name
         member this.JsonModel =
             {| profiles.Create (this.Name, Location.Global, tags = this.Tags) with
                    sku = {| name = string this.Sku |}
@@ -35,7 +35,7 @@ module Profiles =
           OptimizationType : OptimizationType
           Tags: Map<string,string>  }
         interface IArmResource with
-            member this.ResourceName: ResourceName = this.Name
+            member this.ResourceId = endpoints.createResourceId this.Name
             member this.JsonModel =
                 {| endpoints.Create(this.Profile/this.Name, Location.Global, profiles.createResourceId this.Profile :: this.Dependencies, this.Tags) with
                        properties =
@@ -60,7 +60,7 @@ module Profiles =
               Endpoint : ResourceName
               Hostname : Uri }
             interface IArmResource with
-                member this.ResourceName = this.Name
+                member this.ResourceId = customDomains.createResourceId this.Name
                 member this.JsonModel =
                     {| customDomains.Create (this.Endpoint/this.Name, dependsOn = [ endpoints.createResourceId this.Endpoint ]) with
                         properties = {| hostName = string this.Hostname |}

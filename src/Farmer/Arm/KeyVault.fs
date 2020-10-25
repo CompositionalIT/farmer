@@ -26,7 +26,7 @@ module Vaults =
                 | { Value = ParameterSecret secureParameter } -> [ secureParameter ]
                 | _ -> []
         interface IArmResource with
-            member this.ResourceName = this.Name
+            member this.ResourceId = secrets.createResourceId this.Name
             member this.JsonModel =
                 {| secrets.Create(this.Name, this.Location, this.Dependencies) with
                     properties =
@@ -79,7 +79,7 @@ type Vault =
         |> List.choose(fun r -> r.ObjectId.Owner)
         |> List.distinct
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = vaults.createResourceId this.Name
         member this.JsonModel =
             {| vaults.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
                 properties =

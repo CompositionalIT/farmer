@@ -14,7 +14,7 @@ type SignalR =
       AllowedOrigins : string list
       Tags: Map<string,string>  }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = signalR.createResourceId this.Name
         member this.JsonModel =
             {| signalR.Create(this.Name, this.Location, tags = this.Tags) with
                 sku =

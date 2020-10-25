@@ -61,7 +61,7 @@ type ContainerGroup =
     interface IParameters with
         member this.SecureParameters = this.ImageRegistryCredentials |> List.map (fun c -> c.Password)
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = containerGroups.createResourceId this.Name
         member this.JsonModel =
             {| containerGroups.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
                    identity = this.Identity |> ManagedIdentity.toArmJson

@@ -13,7 +13,7 @@ type Registries =
       AdminUserEnabled : bool
       Tags: Map<string,string> }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = registries.createResourceId this.Name
         member this.JsonModel =
             {| registries.Create(this.Name, this.Location, tags = this.Tags) with
                  sku = {| name = this.Sku.ToString() |}

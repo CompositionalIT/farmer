@@ -21,7 +21,7 @@ type Server =
     interface IParameters with
         member this.SecureParameters = [ this.Credentials.Password ]
     interface IArmResource with
-        member this.ResourceName = this.ServerName
+        member this.ResourceId = servers.createResourceId this.ServerName
         member this.JsonModel =
             {| servers.Create(this.ServerName,this.Location, tags = (this.Tags |> Map.add "displayName" this.ServerName.Value)) with
                 properties =
@@ -39,7 +39,7 @@ module Servers =
           MinMax : (int<DTU> * int<DTU>) option
           MaxSizeBytes : int64 option }
         interface IArmResource with
-            member this.ResourceName = this.Name
+            member this.ResourceId = elasticPools.createResourceId this.Name
             member this.JsonModel =
                 {| elasticPools.Create(this.Server/this.Name, this.Location, [ servers.createResourceId this.Server ]) with
                     properties =
@@ -58,7 +58,7 @@ module Servers =
           Start : IPAddress
           End : IPAddress }
         interface IArmResource with
-            member this.ResourceName = this.Name
+            member this.ResourceId = firewallRules.createResourceId this.Name
             member this.JsonModel =
                 {| firewallRules.Create(this.Server/this.Name, this.Location, [ servers.createResourceId this.Server ]) with
                     properties =
@@ -74,7 +74,7 @@ module Servers =
           Sku : DbKind
           Collation : string }
         interface IArmResource with
-            member this.ResourceName = this.Name
+            member this.ResourceId = databases.createResourceId this.Name
             member this.JsonModel =
                 let dependsOn = [
                     servers.createResourceId this.Server
@@ -110,7 +110,7 @@ module Servers =
               Database : ResourceName }
             member this.Name = this.Server/this.Database/"current"
             interface IArmResource with
-                member this.ResourceName = this.Name
+                member this.ResourceId = transparentDataEncryption.createResourceId this.Name
                 member this.JsonModel =
                    {| transparentDataEncryption.Create(this.Name, dependsOn = [ sqlDatabases.createResourceId this.Database ]) with
                         comments = "Transparent Data Encryption"

@@ -36,7 +36,7 @@ type Topic =
       TopicType : TopicType
       Tags: Map<string,string>  }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = systemTopics.createResourceId this.Name
         member this.JsonModel =
             let sourceResourceId = this.TopicType.ResourceType.createResourceId this.Source
             {| systemTopics.Create(this.Name, this.Location, [ sourceResourceId ], this.Tags) with
@@ -52,7 +52,7 @@ type Subscription =
       DestinationEndpoint : EndpointType
       Events : EventGridEvent list }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = eventSubscriptions.createResourceId this.Name
         member this.JsonModel =
             let destinationResourceId =
                 match this.DestinationEndpoint with

@@ -18,7 +18,7 @@ type CustomScriptExtension =
       OS : OS
       Tags: Map<string,string>  }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = extensions.createResourceId this.Name
         member this.JsonModel =
             {| extensions.Create(this.VirtualMachine/this.Name, this.Location, [ virtualMachines.createResourceId this.VirtualMachine ], this.Tags) with
                    properties =
@@ -61,7 +61,7 @@ type VirtualMachine =
     interface IParameters with
         member this.SecureParameters = [ this.Credentials.Password ]
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = virtualMachines.createResourceId this.Name
         member this.JsonModel =
             let dependsOn = [
                 networkInterfaces.createResourceId this.NetworkInterfaceName

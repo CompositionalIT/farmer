@@ -13,7 +13,7 @@ type BastionHost =
       IpConfigs : {| PublicIpName : ResourceName |} list
       Tags : Map<string,string> }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = bastionHosts.createResourceId this.Name
         member this.JsonModel =
             let dependsOn = [
                 virtualNetworks.createResourceId this.VirtualNetwork

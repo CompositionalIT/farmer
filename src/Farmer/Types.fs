@@ -47,7 +47,7 @@ type ResourceType with
 /// An Azure ARM resource value which can be mapped into an ARM template.
 type IArmResource =
     /// The name of the resource, to uniquely identify against other resources in the template.
-    abstract member ResourceName : ResourceName
+    abstract member ResourceId : ResourceId
     /// A raw object that is ready for serialization directly to JSON.
     abstract member JsonModel : obj
 

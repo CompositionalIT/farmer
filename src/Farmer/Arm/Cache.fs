@@ -21,7 +21,7 @@ type Redis =
         | Premium -> 'P'
 
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = redis.createResourceId this.Name
         member this.JsonModel =
             {| redis.Create(this.Name, this.Location, tags = this.Tags) with
                  properties =

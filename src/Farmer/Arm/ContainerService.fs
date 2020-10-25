@@ -53,7 +53,7 @@ type ManagedCluster =
                 | None -> ()
             ]
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = managedClusters.createResourceId this.Name
         member this.JsonModel =
             let dependencies = [
                    yield!

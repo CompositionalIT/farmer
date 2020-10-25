@@ -15,7 +15,7 @@ type Workspace =
       Tags: Map<string, string> }
 
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = workspaces.createResourceId this.Name
         member this.JsonModel =
             {| workspaces.Create(this.Name, this.Location, tags = this.Tags) with
                 properties =

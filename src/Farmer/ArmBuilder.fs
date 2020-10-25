@@ -5,13 +5,13 @@ open Farmer
 
 module Resource =
     /// Creates a unique IArmResource from an arbitrary object.
-    let ofObj armObject =
+    let ofObj resourceType armObject =
         { new IArmResource with
-             member _.ResourceName = ResourceName (System.Guid.NewGuid().ToString())
+             member _.ResourceId = ResourceId.create (ResourceType(resourceType, ""), ResourceName (System.Guid.NewGuid().ToString()))
              member _.JsonModel = armObject }
 
     /// Creates a unique IArmResource from a JSON string containing the output you want.
-    let ofJson json = json |> Newtonsoft.Json.Linq.JObject.Parse |> ofObj
+    let ofJson resourceType json = json |> Newtonsoft.Json.Linq.JObject.Parse |> ofObj resourceType
 
 module Json =
     /// Creates a unique IArmResource from a JSON string containing the output you want.
@@ -80,7 +80,7 @@ type ArmBuilder() =
             Resources =
                 state.Resources
                 @ resources
-                |> List.distinctBy(fun r -> r.ResourceName, r.GetType().Name) }
+                |> List.distinctBy(fun r -> r.ResourceId, r.GetType().Name) }
 
     /// Adds a builder's ARM resources to the ARM template.
     [<CustomOperation "add_resource">]

@@ -23,7 +23,7 @@ type PublicIpAddress =
       DomainNameLabel : string option
       Tags: Map<string,string>  }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = publicIPAddresses.createResourceId this.Name
         member this.JsonModel =
             {| publicIPAddresses.Create(this.Name, this.Location, tags = this.Tags) with
                 sku = {| name = this.Sku.ArmValue |}
@@ -42,7 +42,7 @@ type VirtualNetwork =
       Subnets : {| Name : ResourceName; Prefix : string; Delegations: {| Name: ResourceName; ServiceName: string |} list |} list;
       Tags: Map<string,string>  }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = virtualNetworks.createResourceId this.Name
         member this.JsonModel =
             {| virtualNetworks.Create(this.Name, this.Location, tags = this.Tags) with
                 properties =
@@ -96,7 +96,7 @@ type VirtualNetworkGateway =
 
       Tags: Map<string,string>  }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = virtualNetworkGateways.createResourceId this.Name
         member this.JsonModel =
             let dependsOn = [
                 virtualNetworks.createResourceId this.VirtualNetwork
@@ -179,7 +179,7 @@ type Connection =
     member private this.LocalNetworkGatewayResourceId = this.LocalNetworkGateway |> Option.map localNetworkGateways.createResourceId
 
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = connections.createResourceId this.Name
         member this.JsonModel =
             let dependsOn =
                 [ Some this.VNetGateway1ResourceId; this.VNetGateway2ResourceId; this.LocalNetworkGatewayResourceId ]
@@ -212,7 +212,7 @@ type NetworkInterface =
       VirtualNetwork : ResourceName
       Tags: Map<string,string>  }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = networkInterfaces.createResourceId this.Name
         member this.JsonModel =
             let dependsOn = [
                 virtualNetworks.createResourceId this.VirtualNetwork
@@ -242,7 +242,7 @@ type NetworkProfile =
       VirtualNetwork : ResourceName
       Tags: Map<string,string> }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = networkProfiles.createResourceId this.Name
         member this.JsonModel =
             let dependsOn = [ virtualNetworks.createResourceId this.VirtualNetwork ]
             {| networkProfiles.Create(this.Name, this.Location, dependsOn, this.Tags) with
@@ -287,7 +287,7 @@ type ExpressRouteCircuit =
       Tags: Map<string,string>  }
 
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = expressRouteCircuits.createResourceId this.Name
         member this.JsonModel =
             {| expressRouteCircuits.Create(this.Name, this.Location, tags = this.Tags) with
                 sku =
