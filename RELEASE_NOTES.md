@@ -1,36 +1,42 @@
 Release Notes
 =============
-## 1.2.0-beta3
+## 1.2.0
+* Log Analytics: Initial release.
+* Static Web Apps: Initial release.
+* Managed Identity: Initial release.
+
 * SQL Azure: Connection string owner now has the correct path.
 * SQL Azure: New PasswordParameter returns the name of the Password parameter.
+
 * Functions: Ability to override the auto-generated storage account name.
 * Functions: Ability to add multiple ARM Expressions as settings.
 * Functions: Ability to add a Resource Name as a setting.
-* WebApp: Ability to add multiple ARM Expressions as settings.
-* Storage Account: WebsitePrimaryEndpoint is now a generated ARM expression.
 
-* Internal: ARM Expression refernces now add the Resource Id as the Owner.
-
-## 1.2.0-beta2
-* Log Analytics: Initial release.
-* Static Web Apps: Initial release.
-
-* Managed Identity: Initial release.
-* Container Groups: Support for Managed Identity.
-* Web App: Full support for Managed Identity (minor breaking change).
 * Key Vault: Grant access to managed identities.
-* Provide all Roles for managed identity purposes.
+
+* Service Bus: Fix an issue whereby duplicate topics across different subscriptions were silently removed.
+
+* Web App: Ability to add multiple ARM Expressions as settings.
+* Web App: Full support for Managed Identity (minor breaking change).
+
+* Storage Account: WebsitePrimaryEndpoint is now a generated ARM expression.
+* Storage Account: Upgrade API version to 2019-04-01 to support RA-GZRS.
+* Storage Account: WebsitePrimaryEndpoint depends on storage account name instead of being hardcoded.
 * Storage Account: Grant access to managed identities.
+
 * Container Service (AKS): Support for Managed Identity.
 
 * Container Groups: Support for creating group without public IP Address.
 * Container Groups: Support for image registry credentials for private registries.
 * Container Groups: Support for partial CPU cores.
-* Storage Accounts: Upgrade API version to 2019-04-01 to support RA-GZRS.
+* Container Groups: Support for Managed Identity.
+
 * Event Hubs: Remove redundant kafka flag (minor breaking change).
 
-* Internal changes to better capture full resource IDs.
-* Storage Account: WebsitePrimaryEndpoint depends on storage account name instead of being hardcoded.
+* Provide all Roles for managed identity purposes.
+
+* Internal: ARM Expression refernces now add the Resource Id as the Owner.
+* Internal: Changes to better capture full resource IDs.
 
 ## 1.2.0-beta1
 * Bastion Hosts: Create bastion hosts for accessing resources on a virtual network
