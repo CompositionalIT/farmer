@@ -28,7 +28,7 @@ module Namespaces =
               DeadLetteringOnMessageExpiration : bool option
               Rules : Rule list }
             interface IArmResource with
-                member this.ResourceName = this.Name
+                member this.ResourceName = this.Namespace/this.Topic/this.Name
                 member this.JsonModel =
                     {| subscriptions.Create(this.Namespace/this.Topic/this.Name, dependsOn = [ ResourceId.create this.Topic ]) with
                         properties =
@@ -73,7 +73,7 @@ module Namespaces =
           MaxDeliveryCount : int option
           EnablePartitioning : bool option }
         interface IArmResource with
-            member this.ResourceName = this.Name
+            member this.ResourceName = this.Namespace/this.Name
             member this.JsonModel =
                 {| queues.Create(this.Namespace/this.Name, dependsOn = [ ResourceId.create this.Namespace ]) with
                     properties =
@@ -97,7 +97,7 @@ module Namespaces =
           DefaultMessageTimeToLive : IsoDateTime option
           EnablePartitioning : bool option }
         interface IArmResource with
-            member this.ResourceName = this.Name
+            member this.ResourceName = this.Namespace/this.Name
             member this.JsonModel =
                 {| topics.Create(this.Namespace/this.Name, dependsOn = [ ResourceId.create this.Namespace ]) with
                     properties =
