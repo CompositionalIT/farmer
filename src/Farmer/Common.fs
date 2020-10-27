@@ -339,7 +339,6 @@ module Storage =
         | Standard_GZRS
         | Standard_RAGZRS
         | Premium_LRS
-        | Premium_ZRS
         member this.ArmValue = this.ToString()
 
     type StorageContainerAccess =

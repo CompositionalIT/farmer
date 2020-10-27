@@ -1,11 +1,12 @@
 [<AutoOpen>]
 module Farmer.Arm.Storage
 
+open System
 open Farmer
 open Farmer.Storage
 open Farmer.CoreTypes
 
-let storageAccounts = ResourceType ("Microsoft.Storage/storageAccounts", "2019-04-01")
+let storageAccounts = ResourceType ("Microsoft.Storage/storageAccounts", "2019-06-01")
 let containers = ResourceType ("Microsoft.Storage/storageAccounts/blobServices/containers", "2018-03-01-preview")
 let fileShares = ResourceType ("Microsoft.Storage/storageAccounts/fileServices/shares", "2019-06-01")
 let queues = ResourceType ("Microsoft.Storage/storageAccounts/queueServices/queues", "2019-06-01")
@@ -42,32 +43,30 @@ module Providers =
                            principalId = this.PrincipalId.ArmExpression.Eval() |}
                 |} :> _
 
-type FullReplication = LRS | GRS | RAGRS | ZRS | GZRS | RAGZRS member this.ArmValue = this.ToString()
-type BasicReplication = LRS | ZRS member this.ArmValue = this.ToString()
-type StandardReplication = LRS | GRS | RAGRS member this.ArmValue = this.ToString()
-type PerformanceTier = Standard | Premium member this.ArmValue = this.ToString()
-type GeneralPurposeReplication = V1 of StandardReplication | V2 of FullReplication
+type StoragePerformance = Standard | Premium
+type V1Replication = LRS of StoragePerformance | GRS | RAGRS
+type V2Replication = LRS of StoragePerformance | GRS | ZRS | GZRS | RAGRS | RAGZRS
+type BasicReplication = LRS | ZRS
+type GeneralPurpose = V1 of V1Replication | V2 of V2Replication 
+type BlobReplication = LRS | GRS | RAGRS
+type BlobAccessTier = Hot | Cool
 type StorageAccountKind =
-    | GeneralPurpose of PerformanceTier * GeneralPurposeReplication
-    | Blobs of StandardReplication 
-    | Files of BasicReplication
+    | GeneralPurpose of GeneralPurpose
+    | Blobs of BlobReplication * BlobAccessTier
     | BlockBlobs of BasicReplication
-
+    | Files of BasicReplication
 type Sku with
     member this.AsGeneralPurposeV2 =
         let replication =
             match this with
-            | Premium_LRS | Standard_LRS -> FullReplication.LRS
-            | Standard_ZRS | Premium_ZRS -> FullReplication.ZRS
-            | Standard_GRS -> FullReplication.GRS
-            | Standard_GZRS -> FullReplication.GZRS
-            | Standard_RAGRS -> FullReplication.RAGRS
-            | Standard_RAGZRS -> FullReplication.RAGZRS
-        let performance =
-            match this with
-            | Premium_LRS | Premium_ZRS -> Premium
-            | _ -> Standard
-        GeneralPurpose (performance, V2 replication)
+            | Premium_LRS -> V2Replication.LRS Premium
+            | Standard_LRS -> V2Replication.LRS Standard
+            | Standard_ZRS -> V2Replication.ZRS
+            | Standard_GRS -> V2Replication.GRS
+            | Standard_GZRS -> V2Replication.GZRS
+            | Standard_RAGRS -> V2Replication.RAGRS
+            | Standard_RAGZRS -> V2Replication.RAGZRS
+        GeneralPurpose (V2 replication)
 
 type StorageAccount =
     { Name : StorageAccountName
@@ -83,24 +82,42 @@ type StorageAccount =
             {| storageAccounts.Create(this.Name.ResourceName, this.Location, this.Dependencies, this.Tags) with
                 sku =
                     {| name =
-                        match this.Kind with
-                        | GeneralPurpose (performanceTier, V1 replication) -> performanceTier.ArmValue + "_" + replication.ArmValue
-                        | GeneralPurpose (performanceTier, V2 replication) -> performanceTier.ArmValue + "_" + replication.ArmValue
-                        | Blobs replication -> "Standard_" + replication.ArmValue
-                        | Files replication -> "Premium_" + replication.ArmValue 
-                        | BlockBlobs replication -> "Premium_" + replication.ArmValue
+                        let performanceTier =
+                            match this.Kind with
+                            | GeneralPurpose (V1 (V1Replication.LRS performanceTier))
+                            | GeneralPurpose (V2 (V2Replication.LRS performanceTier)) ->
+                                performanceTier.ToString()
+                            | Files _
+                            | BlockBlobs _ ->
+                                "Premium"
+                            | GeneralPurpose _
+                            | Blobs _ ->
+                                "Standard"
+                        let replicationModel =                            
+                            match this.Kind with
+                            | GeneralPurpose (V1 (V1Replication.LRS _)) -> "LRS"
+                            | GeneralPurpose (V2 (V2Replication.LRS _)) -> "LRS"
+                            | GeneralPurpose (V1 replication) -> replication.ToString()
+                            | GeneralPurpose (V2 replication) -> replication.ToString()
+                            | Blobs (replication, _) -> replication.ToString()
+                            | Files replication -> replication.ToString()
+                            | BlockBlobs replication -> replication.ToString()
+                        sprintf "%s_%s" performanceTier replicationModel
                     |}
                 kind =
                     match this.Kind with
-                    | GeneralPurpose (_, V1 _) -> "Storage"
-                    | GeneralPurpose (_, V2 _) -> "StorageV2"
+                    | GeneralPurpose (V1 _) -> "Storage"
+                    | GeneralPurpose (V2 _) -> "StorageV2"
                     | Blobs _ -> "BlobStorage"
                     | Files _ -> "FileStorage"
                     | BlockBlobs _ -> "BlockBlobStorage" 
                 properties =
-                 match this.EnableHierarchicalNamespace with
-                 | Some hnsEnabled -> {| isHnsEnabled = hnsEnabled |} :> obj
-                 | _ -> {||} :> obj
+                    {| isHnsEnabled = this.EnableHierarchicalNamespace |> Option.toNullable
+                       accessTier =
+                           match this.Kind with
+                           | Blobs (_, accessTier) -> accessTier.ToString()
+                           | _ -> null
+                    |}
             |} :> _
     interface IPostDeploy with
         member this.Run _ =

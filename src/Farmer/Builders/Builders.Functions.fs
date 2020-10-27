@@ -135,7 +135,7 @@ type FunctionsConfig =
             | DeployableResource this resourceName ->
                 { Name = Storage.StorageAccountName.Create(resourceName).OkValue
                   Location = location                  
-                  Kind = GeneralPurpose (Standard, GeneralPurposeReplication.V2 FullReplication.LRS)
+                  Kind = GeneralPurpose (GeneralPurpose.V2 (V2Replication.LRS Standard))
                   Dependencies = []
                   StaticWebsite = None
                   EnableHierarchicalNamespace = None
