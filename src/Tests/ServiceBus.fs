@@ -15,6 +15,7 @@ open System
 /// Client instance needed to get the serializer settings.
 let dummyClient = new ServiceBusManagementClient (Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
 let getResourceAtIndex o = o |> getResourceAtIndex dummyClient.SerializationSettings
+
 let tests = testList "Service Bus Tests" [
     test "Namespace is correctly created" {
         let sbNs =
@@ -248,6 +249,7 @@ let tests = testList "Service Bus Tests" [
                 |> findAzureResources<SBSubscription> dummyClient.SerializationSettings
                 |> List.filter(fun s -> s.Name.Contains "debug")
 
+            Expect.hasLength subscriptions 2 "Subscription length"
             Expect.hasLength subscriptions 2 "Subscription length"
         }
     ]
