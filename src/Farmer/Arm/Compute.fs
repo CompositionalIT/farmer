@@ -18,7 +18,7 @@ type CustomScriptExtension =
       OS : OS
       Tags: Map<string,string>  }
     interface IArmResource with
-        member this.ResourceId = extensions.createResourceId this.Name
+        member this.ResourceId = extensions.createResourceId (this.VirtualMachine/this.Name)
         member this.JsonModel =
             {| extensions.Create(this.VirtualMachine/this.Name, this.Location, [ virtualMachines.createResourceId this.VirtualMachine ], this.Tags) with
                    properties =

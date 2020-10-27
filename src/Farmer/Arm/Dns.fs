@@ -44,7 +44,7 @@ module DnsRecords =
           Type : DnsRecordType
           TTL : int }
         interface IArmResource with
-            member this.ResourceId = this.Type.ResourceType.createResourceId this.Name
+            member this.ResourceId = this.Type.ResourceType.createResourceId (this.Zone/this.Name)
             member this.JsonModel =
                 {| this.Type.ResourceType.Create(this.Zone/this.Name, dependsOn = [ zones.createResourceId this.Zone ]) with
                     properties = [

@@ -27,7 +27,7 @@ module Servers =
           Charset : string
           Collation : string }
         interface IArmResource with
-            member this.ResourceId = databases.createResourceId this.Name
+            member this.ResourceId = databases.createResourceId (this.Server/this.Name)
             member this.JsonModel =
                 {|  databases.Create(this.Server/this.Name, dependsOn = [ servers.createResourceId this.Server ]) with
                         properties = {|  charset = this.Charset; collation = this.Collation |}
@@ -40,7 +40,7 @@ module Servers =
           End : IPAddress
           Location : Location }
         interface IArmResource with
-            member this.ResourceId = firewallRules.createResourceId this.Name
+            member this.ResourceId = firewallRules.createResourceId (this.Server/this.Name)
             member this.JsonModel =
                 {| firewallRules.Create(this.Server/this.Name, this.Location, [ servers.createResourceId this.Server ]) with
                     properties = {| startIpAddress = string this.Start; endIpAddress = string this.End; |}

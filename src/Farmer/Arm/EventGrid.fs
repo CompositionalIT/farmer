@@ -52,7 +52,7 @@ type Subscription =
       DestinationEndpoint : EndpointType
       Events : EventGridEvent list }
     interface IArmResource with
-        member this.ResourceId = eventSubscriptions.createResourceId this.Name
+        member this.ResourceId = eventSubscriptions.createResourceId (this.Topic/this.Name)
         member this.JsonModel =
             let destinationResourceId =
                 match this.DestinationEndpoint with

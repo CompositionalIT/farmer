@@ -27,7 +27,7 @@ module DatabaseAccounts =
                 |}
             }
             interface IArmResource with
-                member this.ResourceId = containers.createResourceId this.Name
+                member this.ResourceId = containers.createResourceId (this.Account/this.Database/this.Name)
                 member this.JsonModel =
                     {| containers.Create(this.Account/this.Database/this.Name, dependsOn = [ sqlDatabases.createResourceId this.Database ])
                         with
@@ -67,7 +67,7 @@ module DatabaseAccounts =
           Account : ResourceName
           Throughput : int<RU> }
         interface IArmResource with
-            member this.ResourceId = sqlDatabases.createResourceId this.Name
+            member this.ResourceId = sqlDatabases.createResourceId (this.Account/this.Name)
             member this.JsonModel =
                 {| sqlDatabases.Create(this.Account/this.Name, dependsOn = [ accounts.createResourceId this.Account ]) with
                        properties =

@@ -76,7 +76,7 @@ module BlobServices =
           StorageAccount : ResourceName
           Accessibility : StorageContainerAccess }
         interface IArmResource with
-            member this.ResourceId = containers.createResourceId this.Name.ResourceName
+            member this.ResourceId = containers.createResourceId (this.StorageAccount/"default"/this.Name.ResourceName)
             member this.JsonModel =
                 {| containers.Create(this.StorageAccount/"default"/this.Name.ResourceName, dependsOn = [ storageAccounts.createResourceId this.StorageAccount ]) with
                     properties =
@@ -93,7 +93,7 @@ module FileShares =
           ShareQuota: int<Gb> option
           StorageAccount: ResourceName }
         interface IArmResource with
-            member this.ResourceId = fileShares.createResourceId this.Name.ResourceName
+            member this.ResourceId = fileShares.createResourceId (this.StorageAccount/"default"/this.Name.ResourceName)
             member this.JsonModel =
                 {| fileShares.Create(this.StorageAccount/"default"/this.Name.ResourceName, dependsOn = [ storageAccounts.createResourceId this.StorageAccount ]) with
                     properties = {| shareQuota = this.ShareQuota |> Option.defaultValue 5120<Gb> |}
@@ -104,7 +104,7 @@ module Queues =
         { Name : StorageResourceName
           StorageAccount : ResourceName }
         interface IArmResource with
-            member this.ResourceId = queues.createResourceId this.Name.ResourceName
+            member this.ResourceId = queues.createResourceId (this.StorageAccount/"default"/this.Name.ResourceName)
             member this.JsonModel =
                 queues.Create(this.StorageAccount/"default"/this.Name.ResourceName, dependsOn = [ storageAccounts.createResourceId this.StorageAccount ]) :> _
 
