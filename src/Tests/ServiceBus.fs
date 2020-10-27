@@ -15,6 +15,7 @@ open System
 /// Client instance needed to get the serializer settings.
 let dummyClient = new ServiceBusManagementClient (Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
 let getResourceAtIndex o = o |> getResourceAtIndex dummyClient.SerializationSettings
+
 let tests = testList "Service Bus Tests" [
     test "Namespace is correctly created" {
         let sbNs =
@@ -106,7 +107,7 @@ let tests = testList "Service Bus Tests" [
 
             Expect.equal (queue.DefaultMessageTimeToLive.GetValueOrDefault TimeSpan.MinValue).TotalDays 14. "Default TTL should be 14 days"
         }
-        
+
         test "Set TTL by timespan for Basic queue" {
             let queue:SBQueue =
                 serviceBus {
@@ -228,6 +229,28 @@ let tests = testList "Service Bus Tests" [
             Expect.equal genSubscription.Rules.[1] (Rule.CreateSqlFilter("Thing", "Status = Success")) "Rule 1 is incorrect"
             Expect.equal genSubscription.Rules.[2] (Rule.CreateCorrelationFilter("FailedStatus", ["Status", "Fail"])) "Rule 2 is incorrect"
             Expect.equal genSubscription.Rules.[3] (Rule.CreateSqlFilter("OtherSqlThing", "Status = Failed")) "Rule 3 is incorrect"
+        }
+
+        test "Same subscription in different topic is ok" {
+            let myServiceBus =
+                let makeTopic topicName = topic {
+                    name topicName
+                    add_subscriptions [ subscription { name "debug" } ]
+                }
+                serviceBus {
+                    name "mynamespace"
+                    add_topics [
+                        makeTopic "topicA"
+                        makeTopic "topicB"
+                    ]
+                }
+
+            let subscriptions =
+                arm { add_resource myServiceBus }
+                |> findAzureResources<SBSubscription> dummyClient.SerializationSettings
+                |> List.filter(fun s -> s.Name.Contains "debug")
+
+            Expect.hasLength subscriptions 2 "Subscription length"
         }
     ]
 ]
