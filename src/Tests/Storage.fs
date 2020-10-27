@@ -18,7 +18,7 @@ let tests = testList "Storage Tests" [
         let resource =
             let account = storageAccount {
                 name "mystorage123"
-                sku Premium_LRS
+                sku Sku.Premium_LRS
                 enable_data_lake true
             }
             arm { add_resource account }
@@ -34,7 +34,7 @@ let tests = testList "Storage Tests" [
         let resource =
             let account = storageAccount {
                 name "mystorage123"
-                sku Premium_LRS
+                sku Sku.Premium_LRS
                 enable_data_lake false
             }
             arm { add_resource account }
@@ -47,7 +47,7 @@ let tests = testList "Storage Tests" [
         let resource =
             let account = storageAccount {
                 name "mystorage123"
-                sku Premium_LRS
+                sku Sku.Premium_LRS
             }
             arm { add_resource account }
             |> getStorageResource

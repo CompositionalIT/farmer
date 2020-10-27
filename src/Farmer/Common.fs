@@ -331,15 +331,32 @@ module Storage =
         static member Create (ResourceName name) = StorageResourceName.Create name
         member this.ResourceName = match this with StorageResourceName name -> name
 
+    type StoragePerformance = Standard | Premium
+    type BasicReplication = LRS | ZRS
+    type BlobReplication = LRS | GRS | RAGRS
+    type V1Replication = LRS of StoragePerformance | GRS | RAGRS
+    type V2Replication = LRS of StoragePerformance | GRS | ZRS | GZRS | RAGRS | RAGZRS
+    type GeneralPurpose = V1 of V1Replication | V2 of V2Replication 
+    type BlobAccessTier = Hot | Cool
     type Sku =
-        | Standard_LRS
-        | Standard_GRS
-        | Standard_RAGRS
-        | Standard_ZRS
-        | Standard_GZRS
-        | Standard_RAGZRS
-        | Premium_LRS
-        member this.ArmValue = this.ToString()
+        | GeneralPurpose of GeneralPurpose
+        | Blobs of BlobReplication * BlobAccessTier
+        | BlockBlobs of BasicReplication
+        | Files of BasicReplication
+        /// General Purpose V2 Standard LRS.
+        static member Standard_LRS = GeneralPurpose (V2 (LRS Standard))
+        /// General Purpose V2 Premium LRS.
+        static member Premium_LRS = GeneralPurpose (V2 (LRS Premium))
+        /// General Purpose V2 Standard GRS.
+        static member Standard_GRS = GeneralPurpose (V2 GRS)
+        /// General Purpose V2 Standard RAGRS.
+        static member Standard_RAGRS = GeneralPurpose (V2 RAGRS)
+        /// General Purpose V2 Standard ZRS.
+        static member Standard_ZRS = GeneralPurpose (V2 ZRS)
+        /// General Purpose V2 Standard GZRS.
+        static member Standard_GZRS = GeneralPurpose (V2 GZRS)
+        /// General Purpose V2 Standard RAGZRS.
+        static member Standard_RAGZRS = GeneralPurpose (V2 RAGZRS)
 
     type StorageContainerAccess =
         | Private

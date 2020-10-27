@@ -43,35 +43,10 @@ module Providers =
                            principalId = this.PrincipalId.ArmExpression.Eval() |}
                 |} :> _
 
-type StoragePerformance = Standard | Premium
-type V1Replication = LRS of StoragePerformance | GRS | RAGRS
-type V2Replication = LRS of StoragePerformance | GRS | ZRS | GZRS | RAGRS | RAGZRS
-type BasicReplication = LRS | ZRS
-type GeneralPurpose = V1 of V1Replication | V2 of V2Replication 
-type BlobReplication = LRS | GRS | RAGRS
-type BlobAccessTier = Hot | Cool
-type StorageAccountKind =
-    | GeneralPurpose of GeneralPurpose
-    | Blobs of BlobReplication * BlobAccessTier
-    | BlockBlobs of BasicReplication
-    | Files of BasicReplication
-type Sku with
-    member this.AsGeneralPurposeV2 =
-        let replication =
-            match this with
-            | Premium_LRS -> V2Replication.LRS Premium
-            | Standard_LRS -> V2Replication.LRS Standard
-            | Standard_ZRS -> V2Replication.ZRS
-            | Standard_GRS -> V2Replication.GRS
-            | Standard_GZRS -> V2Replication.GZRS
-            | Standard_RAGRS -> V2Replication.RAGRS
-            | Standard_RAGZRS -> V2Replication.RAGZRS
-        GeneralPurpose (V2 replication)
-
 type StorageAccount =
     { Name : StorageAccountName
       Location : Location
-      Kind : StorageAccountKind
+      Sku : Sku
       Dependencies : ResourceId list
       EnableHierarchicalNamespace : bool option
       StaticWebsite : {| IndexPage : string; ErrorPage : string option; ContentPath : string |} option
@@ -83,7 +58,7 @@ type StorageAccount =
                 sku =
                     {| name =
                         let performanceTier =
-                            match this.Kind with
+                            match this.Sku with
                             | GeneralPurpose (V1 (V1Replication.LRS performanceTier))
                             | GeneralPurpose (V2 (V2Replication.LRS performanceTier)) ->
                                 performanceTier.ToString()
@@ -94,7 +69,7 @@ type StorageAccount =
                             | Blobs _ ->
                                 "Standard"
                         let replicationModel =                            
-                            match this.Kind with
+                            match this.Sku with
                             | GeneralPurpose (V1 (V1Replication.LRS _)) -> "LRS"
                             | GeneralPurpose (V2 (V2Replication.LRS _)) -> "LRS"
                             | GeneralPurpose (V1 replication) -> replication.ToString()
@@ -105,7 +80,7 @@ type StorageAccount =
                         sprintf "%s_%s" performanceTier replicationModel
                     |}
                 kind =
-                    match this.Kind with
+                    match this.Sku with
                     | GeneralPurpose (V1 _) -> "Storage"
                     | GeneralPurpose (V2 _) -> "StorageV2"
                     | Blobs _ -> "BlobStorage"
@@ -114,7 +89,7 @@ type StorageAccount =
                 properties =
                     {| isHnsEnabled = this.EnableHierarchicalNamespace |> Option.toNullable
                        accessTier =
-                           match this.Kind with
+                           match this.Sku with
                            | Blobs (_, accessTier) -> accessTier.ToString()
                            | _ -> null
                     |}

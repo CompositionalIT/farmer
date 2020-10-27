@@ -62,7 +62,7 @@ type StorageAccountConfig =
         member this.BuildResources location = [
             { Name = this.Name
               Location = location
-              Kind = this.Sku.AsGeneralPurposeV2
+              Sku = this.Sku
               EnableHierarchicalNamespace = this.EnableDataLake
               Dependencies =
                 this.RoleAssignments
@@ -100,7 +100,7 @@ type StorageAccountConfig =
 type StorageAccountBuilder() =
     member _.Yield _ = {
         Name = StorageAccountName.Create("default").OkValue
-        Sku = Standard_LRS
+        Sku = Sku.Premium_LRS
         EnableDataLake = None
         Containers = []
         FileShares = []
