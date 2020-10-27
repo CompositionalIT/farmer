@@ -1,5 +1,8 @@
 Release Notes
 =============
+## 1.3.0
+* Storage Account: Support for the full set of Storage Account Kind and SKUs (minor breaking change).
+
 ## 1.2.0-beta3
 * SQL Azure: Connection string owner now has the correct path.
 * SQL Azure: New PasswordParameter returns the name of the Password parameter.
