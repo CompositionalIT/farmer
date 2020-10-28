@@ -1,9 +1,7 @@
 Release Notes
 =============
-## 1.3.1
-* Container Instance: Support for command line arguments
-
 ## 1.3.0
+* Container Instance: Support for command line arguments
 * Storage Account: Support for the full set of Storage Account Kind and SKUs (minor breaking change).
 
 ## 1.2.0
