@@ -3,6 +3,17 @@ module AzCli
 open Expecto
 open Farmer
 open System
+open Farmer.Builders
+
+let deployTo resourceGroupName parameters deployment =
+    printfn "Creating resource group %s..." resourceGroupName
+    let deployResponse = deployment |> Deploy.tryExecute resourceGroupName parameters
+    let deleteResponse = Deploy.Az.delete resourceGroupName
+    match deployResponse, deleteResponse with
+    | Ok _, Ok _ -> ()
+    | Error e, _ -> failwithf "Something went wrong during the deployment: %s" e
+    | _, Error e -> failwithf "Something went wrong during the delete: %s" e
+
 
 let tests = testList "Azure CLI" [
     test "Can connect to Az CLI" {
@@ -17,15 +28,25 @@ let tests = testList "Azure CLI" [
     }
 
     test "Deploys and deletes a resource group" {
-        let deployment = arm { location Location.NorthEurope }
         let resourceGroupName = sprintf "farmer-integration-test-delete-%O" (Guid.NewGuid())
-        printfn "Creating resource group %s..." resourceGroupName
-        let deployResponse = deployment |> Deploy.tryExecute resourceGroupName []
-        let deleteResponse = Deploy.Az.delete resourceGroupName
+        arm { location Location.NorthEurope } |> deployTo resourceGroupName []
+    }
 
-        match deployResponse, deleteResponse with
-        | Ok _, Ok _ -> ()
-        | Error e, _ -> failwithf "Something went wrong during the deployment: %s" e
-        | _, Error e -> failwithf "Something went wrong during the delete: %s" e
+    test "Deploys and deletes lots of different resources" {
+        let number = Random().Next(1000, 10000).ToString()
+
+        let sql = sqlServer { name ("farmersql" + number); admin_username "farmersqladmin"; add_databases [ sqlDb { name "farmertestdb"; use_encryption } ]; enable_azure_firewall }
+        let storage = storageAccount { name ("farmerstorage" + number) }
+        let web = webApp { name ("farmerwebapp" + number) }
+        let fns = functions { name ("farmerfuncs" + number) }
+        let cogs = cognitiveServices { name ("farmercogs" + number); api CognitiveServices.Kind.TextAnalytics }
+        let svcBus = serviceBus { name ("farmerbus" + number); sku ServiceBus.Sku.Standard; add_queues [ queue { name "queue1" } ]; add_topics [ topic { name "topic1"; add_subscriptions [ subscription { name "sub1" } ] } ] }
+
+        let deployment = arm {
+            location Location.NorthEurope
+            add_resources [ sql; storage; web; fns; cogs; svcBus ]
+        }
+        let resourceGroupName = sprintf "farmer-integration-test-delete-%O" (Guid.NewGuid())
+        deployment |> deployTo resourceGroupName [ sql.PasswordParameter, Guid.NewGuid().ToString() ]
     }
 ]

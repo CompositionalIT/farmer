@@ -29,7 +29,7 @@ module Namespaces =
             interface IArmResource with
                 member this.ResourceId = subscriptions.createResourceId (this.Namespace/this.Topic/this.Name)
                 member this.JsonModel =
-                    {| subscriptions.Create(this.Namespace/this.Topic/this.Name, dependsOn = [ topics.createResourceId this.Topic ]) with
+                    {| subscriptions.Create(this.Namespace/this.Topic/this.Name, dependsOn = [ ResourceId.create(topics, this.Namespace, this.Topic) ]) with
                         properties =
                          {| defaultMessageTimeToLive = tryGetIso this.DefaultMessageTimeToLive
                             requiresDuplicateDetection =
