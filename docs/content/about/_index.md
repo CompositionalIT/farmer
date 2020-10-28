@@ -5,7 +5,7 @@ weight: 1
 ---
 
 #### About Farmer
-Farmer is a .NET domain-specific-language (DSL) for rapidly generating non-complex Azure Resource Manager (ARM) templates. Farmer is [commercially supported](../support/), open source and free-to-use.
+Farmer is a .NET domain-specific-language (DSL) for rapidly generating Azure Resource Manager (ARM) templates. Farmer is [commercially supported](../support/), open source and free-to-use.
 
 For those of you working with Azure today, you may already be aware that one of the most useful features is the ability to generate entire infrastructure architectures as code via ARM Template files. These templates contain a declarative model that allows repeatable deployments and idempotent releases (among other things).
 

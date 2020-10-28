@@ -38,8 +38,10 @@ let myWebApp = webApp {
 
 > Settings can be strings or (as in this case) an ARM expression, which is evaluated at deployment time.
 
-#### Setting a dependency on the storage account
-In ARM templates, you need to explicitly set up **dependencies** between resources that refer to one another; this is still required in Farmer. This tells Azure to create the storage account *before* it creates the web app.
+#### Setting dependencies between resources on the storage account
+In ARM templates, you need to explicitly set up **dependencies** between resources that refer to one another. In Farmer, this is not generally required, as it can detect the source of a specific "link" and set the dependency as appropriate. In the example above, the act of setting the storage key as a setting on the web application automatically tells Farmer that there's a dependency between them.
+
+Nonetheless, if you need to explicitly set a dependency between resources, you can do so as follows:
 
 ```fsharp
 let myWebApp = webApp {
@@ -67,7 +69,7 @@ You should notice that the template now contains a storage account. Also observe
     {
       "apiVersion": "2016-08-01",
       "dependsOn": [
-        "yourfirststorage"
+        "[resourceId('Microsoft.Storage/storageAccounts', 'yourfirststorage')]"
       ],
       "type": "Microsoft.Web/sites"
     }
@@ -95,13 +97,12 @@ open Farmer
 open Farmer.Builders
 
 let myStorageAccount = storageAccount {
-    name "yourfirststorageaccount"
+    name "yourfirststorage"
 }
 
 let myWebApp = webApp {
     name "yourFirstFarmerApp"
     setting "storageKey" myStorageAccount.Key
-    depends_on myStorageAccount.Name
 }
 
 let deployment = arm {
