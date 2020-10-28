@@ -367,6 +367,7 @@ module WebApp =
         | Standard of string
         | Premium of string
         | PremiumV2 of string
+        | PremiumV3 of string
         | Isolated of string
         | Dynamic
         static member D1 = Shared
@@ -383,6 +384,9 @@ module WebApp =
         static member P1V2 = PremiumV2 "P1V2"
         static member P2V2 = PremiumV2 "P2V2"
         static member P3V2 = PremiumV2 "P3V2"
+        static member P1V3 = PremiumV2 "P1V3"
+        static member P2V3 = PremiumV2 "P2V3"
+        static member P3V3 = PremiumV2 "P3V3"
         static member I1 = Isolated "I1"
         static member I2 = Isolated "I2"
         static member I3 = Isolated "I3"
@@ -390,7 +394,9 @@ module WebApp =
     type ConnectionStringKind = MySql | SQLServer | SQLAzure | Custom | NotificationHub | ServiceBus | EventHub | ApiHub | DocDb | RedisCache | PostgreSQL
 
 module CognitiveServices =
-    /// Type of SKU. See https://github.com/Azure/azure-quickstart-templates/tree/master/101-cognitive-services-translate
+    open Validation
+
+    /// Type of SKU. See https://docs.microsoft.com/en-us/rest/api/cognitiveservices/accountmanagement/resourceskus/list
     type Sku =
         /// Free Tier
         | F0
@@ -399,6 +405,10 @@ module CognitiveServices =
         | S2
         | S3
         | S4
+        | S5
+        | S6
+        | S7
+        | S8
 
     type Kind =
         | AllInOne
@@ -419,6 +429,27 @@ module CognitiveServices =
         | SpeechServices
         | TextAnalytics
         | TextTranslation
+
+    type CognitiveServicesSku =
+        private | CognitiveServicesSku of Sku
+        static member Create kind sku =
+            [
+                yield
+                    (fun kind sku ->
+                        match kind with
+                        | Bing_Search_v7 -> Ok ()
+                        | _ ->
+                            match sku with
+                            | Sku.S5 | Sku.S6 | Sku.S7 | Sku.S8 ->
+                                Error (sprintf "Cognitive services sku (%A) is not available for this kind (%A)" sku kind)
+                            | _ -> Ok ()
+                    )
+            ]
+            |> Seq.ofList
+            |> validate kind sku
+            |> Result.map CognitiveServicesSku
+
+        member this.Sku = match this with CognitiveServicesSku sku -> sku
 
 module ContainerRegistry =
     /// Container Registry SKU

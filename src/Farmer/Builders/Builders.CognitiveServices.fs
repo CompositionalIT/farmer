@@ -39,7 +39,7 @@ type CognitiveServicesBuilder() =
     [<CustomOperation "name">]
     member _.Name (state:CognitiveServicesConfig, name) = { state with Name = ResourceName name }
     [<CustomOperation "sku">]
-    member _.Sku (state:CognitiveServicesConfig, sku) = { state with Sku = sku }
+    member _.Sku (state:CognitiveServicesConfig, sku) = { state with Sku = (CognitiveServices.CognitiveServicesSku.Create state.Api sku).OkValue.Sku }
     [<CustomOperation "api">]
     member _.Api (state:CognitiveServicesConfig, api) = { state with Api = api }
     [<CustomOperation "add_tags">]
