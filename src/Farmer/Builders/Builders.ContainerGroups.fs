@@ -31,6 +31,8 @@ type ContainerInstanceConfig =
       Name : ResourceName
       /// The container instance image
       Image : string
+      /// The commands to execute within the container instance in exec form
+      Command : string list
       /// List of ports the container instance listens on
       Ports : Map<uint16, PortAccess>
       /// Max number of CPU cores the container instance may use
@@ -74,6 +76,7 @@ type ContainerGroupConfig =
                 for instance in this.Instances do
                     {| Name = instance.Name
                        Image = instance.Image
+                       Command = instance.Command
                        Ports = instance.Ports |> Map.toSeq |> Seq.map fst |> Set
                        Cpu = instance.Cpu
                        Memory = instance.Memory
@@ -183,6 +186,7 @@ type ContainerInstanceBuilder() =
     member __.Yield _ =
         { Name = ResourceName.Empty
           Image = ""
+          Command = List.empty
           Ports = Map.empty
           Cpu = 1.0
           Memory = 1.5<Gb>
@@ -223,6 +227,10 @@ type ContainerInstanceBuilder() =
     [<CustomOperation "add_volume_mount">]
     member __.AddVolumeMount (state:ContainerInstanceConfig, volumeName, mountPath) =
         { state with VolumeMounts = state.VolumeMounts |> Map.add volumeName mountPath }
+    /// Adds commands to execute within the container instance
+    [<CustomOperation "command_line">]
+    member __.CommandLine (state:ContainerInstanceConfig, command) =
+        { state with Command = state.Command @ command }
 
 let env_var (name:string) (value:string) = name, EnvValue value
 let secure_env_var (name:string) (value:string) = name, EnvSecureValue value

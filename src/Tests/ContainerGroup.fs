@@ -80,6 +80,18 @@ let tests = testList "Container Group" [
         Expect.isNone group.IpAddress "IpAddresses should be none"
     }
 
+    test "Container with command line arguments" {
+        let containerInstance = containerInstance {
+            name "appWithCommand"
+            image "myapp:1.7.2"
+            memory 1.5<Gb>
+            cpu_cores 2
+            command_line [ "echo"; "hello world" ]
+        }
+
+        Expect.equal containerInstance.Command [ "echo"; "hello world" ] "Incorrect container command line arguments"
+    }
+
     test "Multiple containers are correctly added" {
         let group = containerGroup { add_instances [ nginx; fsharpApp ] } |> asAzureResource
 
