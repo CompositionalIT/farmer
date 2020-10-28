@@ -47,12 +47,12 @@ let gw = gateway {
     vnet "my-vnet" // Must contain a subnet named 'GatewaySubnet'
     er_gateway_sku ErGatewaySku.Standard
 
-     vpn_client 
+    vpn_client
         (vpnclient {
-               add_address_pool "10.31.0.0/16"
-               add_root_certificate "rootcert" "" })
+           add_address_pool "10.31.0.0/16"
+           add_root_certificate "rootcert" "" })
 }
-}
+
 
 let privateNet = vnet {
     name "my-vnet"

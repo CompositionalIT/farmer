@@ -52,14 +52,14 @@ open Farmer.Builders
 let storage = storageAccount {
     name "isaacssuperstorage"
     sku Storage.Premium_LRS
-    add_public_container "myPublicContainer"
-    add_private_container "myPrivateContainer"
-    add_blob_container "myBlobContainer"
+    add_public_container "mypubliccontainer"
+    add_private_container "myprivatecontainer"
+    add_blob_container "myblobcontainer"
     add_file_share "share1"
-    add_file_share_with_quota "share2" 1024
+    add_file_share_with_quota "share2" 1024<Gb>
     use_static_website "local/path/to/folder/content" "index.html"
     static_website_error_page "error.html"
-    enable_data_lake
+    enable_data_lake true
     add_lifecycle_rule "moveToCool" [ Storage.CoolAfter 30<Days>; Storage.ArchiveAfter 90<Days> ] Storage.NoRuleFilters
     add_lifecycle_rule "cleanup" [ Storage.DeleteAfter 7<Days> ] [ "data/recyclebin" ]
     grant_access myWebApp.SystemIdentity Roles.StorageBlobDataReader

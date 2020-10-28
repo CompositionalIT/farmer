@@ -10,6 +10,7 @@
     <Compile Include="Helpers.fs" />
     <Compile Include="AppInsights.fs" />
     <Compile Include="Common.fs" />
+    <Compile Include="Functions.fs" />
     <Compile Include="LogAnalytics.fs" />
     <Compile Include="Bastion.fs" />
     <Compile Include="Cdn.fs" />

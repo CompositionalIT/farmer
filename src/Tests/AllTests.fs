@@ -34,6 +34,7 @@ let allTests =
                 Sql.tests
                 EventGrid.tests
                 WebApp.tests
+                Functions.tests
                 StaticWebApp.tests
                 VirtualNetworkGateway.tests
             ]

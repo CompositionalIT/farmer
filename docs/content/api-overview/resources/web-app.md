@@ -89,6 +89,7 @@ The following keywords exist on the web app:
 ```fsharp
 open Farmer
 open Farmer.Builders
+open Farmer.WebApp
 
 let myWebApp = webApp {
     name "myWebApp"
