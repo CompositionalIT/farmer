@@ -116,8 +116,8 @@ type VirtualNetworkGateway =
                                         | DynamicPrivateIp -> "Dynamic", null
                                         | StaticPrivateIp ip -> "Static", string ip
                                     {| privateIpAllocationMethod = allocationMethod; privateIpAddress = ip
-                                       publicIPAddress = {| id = ResourceId.create(publicIPAddresses, ipConfig.PublicIpName).Eval() |}
-                                       subnet = {| id = ResourceId.create(subnets, this.VirtualNetwork, ResourceName "GatewaySubnet").Eval() |}
+                                       publicIPAddress = {| id = publicIPAddresses.createResourceId(ipConfig.PublicIpName).Eval() |}
+                                       subnet = {| id = subnets.createResourceId(this.VirtualNetwork, ResourceName "GatewaySubnet").Eval() |}
                                     |}
                                 |})
                         sku =
@@ -227,8 +227,8 @@ type NetworkInterface =
                             {| name = sprintf "ipconfig%i" (index + 1)
                                properties =
                                 {| privateIPAllocationMethod = "Dynamic"
-                                   publicIPAddress = {| id = ResourceId.create(publicIPAddresses, ipConfig.PublicIpName).Eval() |}
-                                   subnet = {| id = ResourceId.create(subnets, this.VirtualNetwork, ipConfig.SubnetName).Eval() |}
+                                   publicIPAddress = {| id = publicIPAddresses.createResourceId(ipConfig.PublicIpName).Eval() |}
+                                   subnet = {| id = subnets.createResourceId(this.VirtualNetwork, ipConfig.SubnetName).Eval() |}
                                 |}
                             |})
                     |}
@@ -258,7 +258,7 @@ type NetworkProfile =
                                     {| name = sprintf "ipconfig%i" (index + 1)
                                        properties =
                                         {| subnet =
-                                            {| id = ResourceId.create(subnets, this.VirtualNetwork, ipConfig.SubnetName).Eval() |}
+                                            {| id = subnets.createResourceId(this.VirtualNetwork, ipConfig.SubnetName).Eval() |}
                                         |}
                                     |})
                                 |}

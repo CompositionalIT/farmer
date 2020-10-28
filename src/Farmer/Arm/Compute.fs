@@ -98,7 +98,7 @@ type VirtualMachine =
                         |}
                     networkProfile =
                         {| networkInterfaces = [
-                            {| id = ResourceId.create(networkInterfaces, this.NetworkInterfaceName).Eval() |}
+                            {| id = networkInterfaces.createResourceId(this.NetworkInterfaceName).Eval() |}
                            ]
                         |}
                     diagnosticsProfile =

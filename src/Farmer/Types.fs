@@ -43,6 +43,7 @@ type ResourceId =
 type ResourceType with
     member this.createResourceId name = ResourceId.create (this, name)
     member this.createResourceId name = this.createResourceId (ResourceName name)
+    member this.createResourceId (name, [<ParamArray>] resourceSegments:ResourceName []) = ResourceId.create (this, name, resourceSegments)
 
 /// An Azure ARM resource value which can be mapped into an ARM template.
 type IArmResource =

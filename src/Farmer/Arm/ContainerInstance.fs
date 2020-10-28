@@ -44,14 +44,14 @@ type ContainerGroup =
       Tags: Map<string,string>  }
     member this.NetworkProfilePath =
         this.NetworkProfile
-        |> Option.map (fun networkProfile -> ResourceId.create(networkProfiles, networkProfile))
+        |> Option.map networkProfiles.createResourceId
     member private this.Dependencies = [
         yield! this.NetworkProfilePath |> Option.toList
 
         for _, volume in this.Volumes |> Map.toSeq do
             match volume with
             | Volume.AzureFileShare (shareName, storageAccountName) ->
-                ResourceId.create(fileShares, storageAccountName.ResourceName, ResourceName "default", shareName)
+                fileShares.createResourceId (storageAccountName.ResourceName, ResourceName "default", shareName)
             | _ ->
                 ()
 

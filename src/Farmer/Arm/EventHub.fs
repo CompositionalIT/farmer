@@ -67,7 +67,7 @@ module Namespaces =
                                    destination =
                                     {| name = "EventHubArchive.AzureBlockBlob"
                                        properties =
-                                        {| storageAccountResourceId = ResourceId.create(storageAccounts, name).Eval()
+                                        {| storageAccountResourceId = storageAccounts.createResourceId(name).Eval()
                                            blobContainer = container
                                         |}
                                     |}

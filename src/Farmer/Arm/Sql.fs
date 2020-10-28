@@ -79,7 +79,7 @@ module Servers =
                 let dependsOn = [
                     servers.createResourceId this.Server
                     match this.Sku with
-                    | Pool poolName -> ResourceId.create(elasticPools, this.Server, poolName)
+                    | Pool poolName -> elasticPools.createResourceId(this.Server, poolName)
                     | Standalone _ -> ()
                 ]
                 {| databases.Create(this.Server/this.Name, this.Location, dependsOn, tags = Map [ "displayName", this.Name.Value ]) with
@@ -100,7 +100,7 @@ module Servers =
                            elasticPoolId =
                             match this.Sku with
                             | Standalone _ -> null
-                            | Pool pool -> ResourceId.create(elasticPools, this.Server, pool).Eval()
+                            | Pool pool -> elasticPools.createResourceId(this.Server, pool).Eval()
                         |}
                 |} :> _
 
@@ -112,7 +112,7 @@ module Servers =
             interface IArmResource with
                 member this.ResourceId = transparentDataEncryption.createResourceId this.Name
                 member this.JsonModel =
-                   {| transparentDataEncryption.Create(this.Name, dependsOn = [ ResourceId.create(databases, this.Server, this.Database) ]) with
+                   {| transparentDataEncryption.Create(this.Name, dependsOn = [ databases.createResourceId(this.Server, this.Database) ]) with
                         comments = "Transparent Data Encryption"
                         properties = {| status = string Enabled |}
                    |} :> _
