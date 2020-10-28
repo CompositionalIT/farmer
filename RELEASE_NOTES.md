@@ -20,6 +20,7 @@ Release Notes
 * Web App: Ability to add multiple ARM Expressions as settings.
 * Web App: Full support for Managed Identity (minor breaking change).
 * Web App: Easy Key Vault integration.
+* Web App: Add PremiumV3 SKU.
 
 * Storage Account: WebsitePrimaryEndpoint is now a generated ARM expression.
 * Storage Account: Upgrade API version to 2019-04-01 to support RA-GZRS.
@@ -37,6 +38,7 @@ Release Notes
 * Gateway: Add VPN Client configuration
 * Bastion Hosts: Create bastion hosts for accessing resources on a virtual network
 * DNS Zones: Basic Azure DNS support
+* CognitiveServices: Add S5/S6/S7/S8 Skus and add validation to kind & sku selection.
 
 * Provide all Roles for managed identity purposes.
 * Support for implicitly adding dependencies based on usage e.g. add settings, connection strings etc.
