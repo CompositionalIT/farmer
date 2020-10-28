@@ -1,5 +1,8 @@
 Release Notes
 =============
+## 1.3.0
+* Storage Account: Support for the full set of Storage Account Kind and SKUs (minor breaking change).
+
 ## 1.2.0
 * Log Analytics: Initial release.
 * Static Web Apps: Initial release.
@@ -15,9 +18,11 @@ Release Notes
 * Key Vault: Grant access to managed identities.
 
 * Service Bus: Fix an issue whereby duplicate topics across different subscriptions were silently removed.
+* Service Bus: Set message TTL
 
 * Web App: Ability to add multiple ARM Expressions as settings.
 * Web App: Full support for Managed Identity (minor breaking change).
+* Web App: Easy Key Vault integration.
 
 * Storage Account: WebsitePrimaryEndpoint is now a generated ARM expression.
 * Storage Account: Upgrade API version to 2019-04-01 to support RA-GZRS.
@@ -32,19 +37,15 @@ Release Notes
 * Container Groups: Support for Managed Identity.
 
 * Event Hubs: Remove redundant kafka flag (minor breaking change).
+* Gateway: Add VPN Client configuration
+* Bastion Hosts: Create bastion hosts for accessing resources on a virtual network
+* DNS Zones: Basic Azure DNS support
 
 * Provide all Roles for managed identity purposes.
+* Support for implicitly adding dependencies based on usage e.g. add settings, connection strings etc.
 
 * Internal: ARM Expression refernces now add the Resource Id as the Owner.
 * Internal: Changes to better capture full resource IDs.
-
-## 1.2.0-beta1
-* Bastion Hosts: Create bastion hosts for accessing resources on a virtual network
-* Gateway: Add VPN Client configuration
-* Service Bus: Set message TTL
-* DNS Zones: Basic Azure DNS support
-* WebApp: Easy Key Vault integration
-* Support for implicitly adding dependencies based on usage e.g. add settings, connection strings etc.
 
 ## 1.1.1
 * SQL Azure: Fix a bug whereby firewall rule IP addresses were inverted.

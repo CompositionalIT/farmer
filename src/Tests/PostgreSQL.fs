@@ -81,7 +81,7 @@ let tests = testList "PostgreSQL Database Service" [
             storage_size 50<Gb>
             backup_retention 17<Days>
             capacity 4<VCores>
-            tier GeneralPurpose
+            tier Sku.GeneralPurpose
             enable_geo_redundant_backup
             disable_storage_autogrow
         }
