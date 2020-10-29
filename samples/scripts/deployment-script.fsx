@@ -11,7 +11,7 @@ let scriptIdentity = userAssignedIdentity {
 
 /// The script identity must be a contributor over this resource group.
 let scriptRole =
-    role_assignment
+    roleAssignment
         (ArmExpression.create("guid(resourceGroup().id)").Eval())
         Roles.Contributor
         scriptIdentity
@@ -23,16 +23,6 @@ let createFileScript = deploymentScript {
     /// Set the script content directly
     /// Format output as JSON and pipe to $AZ_SCRIPTS_OUTPUT_PATH to make it available as output.
     content """printf "{'date':'%s'"} "`date`" > $AZ_SCRIPTS_OUTPUT_PATH """
-}
-
-let deployToAks = deploymentScript {
-    name "some-kubectl-stuff"
-    identity scriptIdentity
-    content """ set -e;
-        az aks install-cli;
-        az aks get-credentials -n my-cluster;
-        kubectl apply -f https://some/awesome/deployment.yml;
-        """
 }
 
 let template = arm {
