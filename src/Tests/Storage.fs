@@ -18,7 +18,7 @@ let tests = testList "Storage Tests" [
         let resource =
             let account = storageAccount {
                 name "mystorage123"
-                sku Premium_LRS
+                sku Sku.Premium_LRS
                 enable_data_lake true
             }
             arm { add_resource account }
@@ -27,13 +27,14 @@ let tests = testList "Storage Tests" [
         resource.Validate()
         Expect.equal resource.Name "mystorage123" "Account name is wrong"
         Expect.equal resource.Sku.Name "Premium_LRS" "SKU is wrong"
+        Expect.equal resource.Kind "StorageV2" "Kind"
         Expect.isTrue resource.IsHnsEnabled.Value "Hierarchical namespace not enabled"
     }
     test "When data lake is not enabled" {
         let resource =
             let account = storageAccount {
                 name "mystorage123"
-                sku Premium_LRS
+                sku Sku.Premium_LRS
                 enable_data_lake false
             }
             arm { add_resource account }
@@ -46,7 +47,7 @@ let tests = testList "Storage Tests" [
         let resource =
             let account = storageAccount {
                 name "mystorage123"
-                sku Premium_LRS
+                sku Sku.Premium_LRS
             }
             arm { add_resource account }
             |> getStorageResource
@@ -154,6 +155,33 @@ let tests = testList "Storage Tests" [
     test "WebsitePrimaryEndpoint creation" {
         let builder = storageAccount { name "foo" }
 
-        Expect.equal builder.WebsitePrimaryEndpoint.Value "reference(resourceId('Microsoft.Storage/storageAccounts', 'foo'), '2019-04-01').primaryEndpoints.web" "Zone names are not fixed and should be related to a storage account name"
+        Expect.equal builder.WebsitePrimaryEndpoint.Value "reference(resourceId('Microsoft.Storage/storageAccounts', 'foo'), '2019-06-01').primaryEndpoints.web" "Zone names are not fixed and should be related to a storage account name"
+    }
+    test "Creates different SKU kinds correctly" {
+        let account = storageAccount { sku (Blobs (BlobReplication.LRS, Cool)) }
+        let resource = arm { add_resource account } |> getStorageResource
+        Expect.equal resource.Kind "BlobStorage" "Kind"
+        Expect.equal resource.AccessTier (Nullable AccessTier.Cool) "Access Tier"
+        Expect.equal resource.Sku.Name "Standard_LRS" "Sku Name"       
+
+        let account = storageAccount { sku (Files BasicReplication.ZRS) }
+        let resource = arm { add_resource account } |> getStorageResource
+        Expect.equal resource.Kind "FileStorage" "Kind"
+        Expect.equal resource.Sku.Name "Premium_ZRS" "Sku Name"       
+
+        let account = storageAccount { sku (BlockBlobs BasicReplication.LRS) }
+        let resource = arm { add_resource account } |> getStorageResource
+        Expect.equal resource.Kind "BlockBlobStorage" "Kind"
+        Expect.equal resource.Sku.Name "Premium_LRS" "Sku Name"       
+
+        let account = storageAccount { sku (GeneralPurpose (V1 V1Replication.RAGRS)) }
+        let resource = arm { add_resource account } |> getStorageResource
+        Expect.equal resource.Kind "Storage" "Kind"
+        Expect.equal resource.Sku.Name "Standard_RAGRS" "Sku Name"       
+
+        let account = storageAccount { sku (GeneralPurpose (V2 (V2Replication.LRS Premium))) }
+        let resource = arm { add_resource account } |> getStorageResource
+        Expect.equal resource.Kind "StorageV2" "Kind"
+        Expect.equal resource.Sku.Name "Premium_LRS" "Sku Name"       
     }
 ]

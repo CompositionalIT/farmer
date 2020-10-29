@@ -1,9 +1,11 @@
 Release Notes
 =============
 ## 1.3.0
+* Container Instance: Support for command line arguments
 * Deployment Scripts: Run Azure CLI commands as part of an ARM deployment (PowerShell or AzCli)
+* Storage Account: Support for the full set of Storage Account Kind and SKUs (minor breaking change).
 
-## 1.2.0-beta2
+## 1.2.0
 * Log Analytics: Initial release.
 * Static Web Apps: Initial release.
 * Managed Identity: Initial release.

@@ -28,6 +28,7 @@ type ContainerGroup =
       ContainerInstances :
         {| Name : ResourceName
            Image : string
+           Command : string list
            Ports : uint16 Set
            Cpu : float
            Memory : float<Gb>
@@ -73,6 +74,7 @@ type ContainerGroup =
                                {| name = container.Name.Value.ToLowerInvariant ()
                                   properties =
                                    {| image = container.Image
+                                      command = container.Command
                                       ports = container.Ports |> Set.map (fun port -> {| port = port |})
                                       environmentVariables = [
                                           for (key, value) in Map.toSeq container.EnvironmentVariables do
