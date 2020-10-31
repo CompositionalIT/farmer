@@ -19,7 +19,7 @@ The Storage Account builder creates storage accounts and their associated contai
 | Keyword | Purpose |
 |-|-|
 | name | Specifies the name of the storage account |
-| sku | Sets the SKU of the storage account |
+| sku | Sets the SKU of the storage account. A set of predefined SKU values are available as members in `Storage.Sku`, but you can create the full range of combinations of Kind and SKU as needed. |
 | add_public_container | Adds a general-purpose public storage container |
 | add_private_container | Adds a general-purpose private storage container |
 | add_blob_container | Adds a general-purpose private blob container |

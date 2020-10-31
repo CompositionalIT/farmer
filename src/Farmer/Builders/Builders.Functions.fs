@@ -130,17 +130,19 @@ type FunctionsConfig =
                   Tags = this.Tags }
             | _ ->
                 ()
+
             match this.StorageAccount with
             | DeployableResource this resourceName ->
                 { Name = Storage.StorageAccountName.Create(resourceName).OkValue
-                  Location = location
-                  Sku = Storage.Standard_LRS
+                  Location = location                  
+                  Sku = Storage.Sku.Standard_LRS
                   Dependencies = []
                   StaticWebsite = None
                   EnableHierarchicalNamespace = None
                   Tags = this.Tags }
             | _ ->
                 ()
+
             match this.AppInsights with
             | Some (DeployableResource this resourceName) ->
                 { Name = resourceName

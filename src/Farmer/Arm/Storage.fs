@@ -1,11 +1,12 @@
 [<AutoOpen>]
 module Farmer.Arm.Storage
 
+open System
 open Farmer
 open Farmer.Storage
 open Farmer.CoreTypes
 
-let storageAccounts = ResourceType ("Microsoft.Storage/storageAccounts", "2019-04-01")
+let storageAccounts = ResourceType ("Microsoft.Storage/storageAccounts", "2019-06-01")
 let containers = ResourceType ("Microsoft.Storage/storageAccounts/blobServices/containers", "2018-03-01-preview")
 let fileShares = ResourceType ("Microsoft.Storage/storageAccounts/fileServices/shares", "2019-06-01")
 let queues = ResourceType ("Microsoft.Storage/storageAccounts/queueServices/queues", "2019-06-01")
@@ -54,12 +55,44 @@ type StorageAccount =
         member this.ResourceName = this.Name.ResourceName
         member this.JsonModel =
             {| storageAccounts.Create(this.Name.ResourceName, this.Location, this.Dependencies, this.Tags) with
-                sku = {| name = this.Sku.ArmValue |}
-                kind = "StorageV2"
+                sku =
+                    {| name =
+                        let performanceTier =
+                            match this.Sku with
+                            | GeneralPurpose (V1 (V1Replication.LRS performanceTier))
+                            | GeneralPurpose (V2 (V2Replication.LRS performanceTier)) ->
+                                performanceTier.ToString()
+                            | Files _
+                            | BlockBlobs _ ->
+                                "Premium"
+                            | GeneralPurpose _
+                            | Blobs _ ->
+                                "Standard"
+                        let replicationModel =                            
+                            match this.Sku with
+                            | GeneralPurpose (V1 (V1Replication.LRS _)) -> "LRS"
+                            | GeneralPurpose (V2 (V2Replication.LRS _)) -> "LRS"
+                            | GeneralPurpose (V1 replication) -> replication.ToString()
+                            | GeneralPurpose (V2 replication) -> replication.ToString()
+                            | Blobs (replication, _) -> replication.ToString()
+                            | Files replication -> replication.ToString()
+                            | BlockBlobs replication -> replication.ToString()
+                        sprintf "%s_%s" performanceTier replicationModel
+                    |}
+                kind =
+                    match this.Sku with
+                    | GeneralPurpose (V1 _) -> "Storage"
+                    | GeneralPurpose (V2 _) -> "StorageV2"
+                    | Blobs _ -> "BlobStorage"
+                    | Files _ -> "FileStorage"
+                    | BlockBlobs _ -> "BlockBlobStorage" 
                 properties =
-                 match this.EnableHierarchicalNamespace with
-                 | Some hnsEnabled -> {| isHnsEnabled = hnsEnabled |} :> obj
-                 | _ -> {||} :> obj
+                    {| isHnsEnabled = this.EnableHierarchicalNamespace |> Option.toNullable
+                       accessTier =
+                           match this.Sku with
+                           | Blobs (_, accessTier) -> accessTier.ToString()
+                           | _ -> null
+                    |}
             |} :> _
     interface IPostDeploy with
         member this.Run _ =
