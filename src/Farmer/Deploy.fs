@@ -193,7 +193,6 @@ let validateParameters suppliedParameters deployment =
 let NoParameters : (string * string) list = []
 
 let private prepareForDeployment parameters resourceGroupName deployment = result {
-    Writer.branding ()
     do! deployment |> validateParameters parameters
 
     let! version = checkVersion Az.MinimumVersion

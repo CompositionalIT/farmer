@@ -26,7 +26,6 @@ module TemplateGeneration =
     let serialize data =
         JsonConvert.SerializeObject(data, Formatting.Indented, JsonSerializerSettings(NullValueHandling = NullValueHandling.Ignore))
 
-
 let branding () =
     let version =
         Assembly
@@ -34,18 +33,10 @@ let branding () =
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
             .InformationalVersion
 
-    let asRed (text: string) =
-        Console.ForegroundColor <- ConsoleColor.Red
-        Console.Write text
-        Console.ResetColor ()
-
-    Console.WriteLine "=================================================="
-    Console.WriteLine (sprintf "Farmer %s" version)
-    Console.Write "Repeatable Deployments "
-    asRed "in"
-    Console.Write " Azure made Easy"
-    asRed "!"
-    Console.WriteLine (sprintf "%s==================================================" Environment.NewLine)
+    printfn "=================================================="
+    printfn "Farmer %s" version
+    printfn "Repeatable deployments in Azure made easy!"
+    printfn "=================================================="
 
 /// Returns a JSON string representing the supplied ARMTemplate.
 let toJson =
@@ -64,7 +55,6 @@ let toFile folder templateName json =
 
 /// Converts the supplied ARMTemplate to JSON and then writes it out to the provided template name. The postfix ".json" will automatically be added to the filename.
 let quickWrite templateName deployment =
-    branding ()
     deployment.Template
     |> toJson
     |> toFile "." templateName
