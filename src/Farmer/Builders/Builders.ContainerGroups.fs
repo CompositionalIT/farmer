@@ -247,7 +247,7 @@ type NetworkProfileConfig =
       VirtualNetwork : ResourceName
       Tags: Map<string,string>  }
     interface IBuilder with
-        member this.ResourceId = ResourceId.create(networkProfiles, this.Name)
+        member this.ResourceId = networkProfiles.createResourceId this.Name
         member this.BuildResources location = [
             { Name = this.Name
               Location = location

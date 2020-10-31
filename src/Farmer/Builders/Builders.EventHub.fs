@@ -28,7 +28,7 @@ type EventHubConfig =
     member private this.CreateKeyExpression (resourceId:ResourceId) =
         ArmExpression
             .create(sprintf "listkeys(%s, '2017-04-01').primaryConnectionString" resourceId.ArmExpression.Value)
-            .WithOwner(ResourceId.create(eventHubs, this.Name))
+            .WithOwner(eventHubs.createResourceId this.Name)
     member this.EventHubNamespaceName = this.EventHubNamespace.CreateResourceId(this).Name
     /// Gets an ARM expression for the path to the key of a specific authorization rule for this event hub.
     member this.GetKey (ruleName:string) =

@@ -11,7 +11,7 @@ type DataLakeConfig =
       Sku : Sku
       Tags: Map<string,string>  }
     interface IBuilder with
-        member this.ResourceId = ResourceId.create(Arm.DataLakeStore.accounts, this.Name)
+        member this.ResourceId = accounts.createResourceId this.Name
         member this.BuildResources location = [
             { Name = this.Name
               Location = location

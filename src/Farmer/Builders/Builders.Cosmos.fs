@@ -140,13 +140,13 @@ type CosmosDbBuilder() =
     member __.Yield _ =
         { DbName = ResourceName.Empty
           AccountName = derived (fun config ->
-            let dbNamePart =
-                let maxLength = 36
-                let dbName = config.DbName.Value.ToLower()
-                if config.DbName.Value.Length > maxLength then dbName.Substring maxLength
-                else dbName
-            let name = ResourceName (sprintf "%s-account" dbNamePart)
-            ResourceId.create(databaseAccounts, name))
+            let maxLength = 36
+            let dbName = config.DbName.Value.ToLower()
+            if config.DbName.Value.Length > maxLength then dbName.Substring maxLength
+            else dbName
+            |> sprintf "%s-account"
+            |> ResourceName
+            |> databaseAccounts.createResourceId)
           AccountConsistencyPolicy = Eventual
           AccountFailoverPolicy = NoFailover
           DbThroughput = 400<RU>
@@ -157,7 +157,7 @@ type CosmosDbBuilder() =
 
     /// Sets the name of the CosmosDB server.
     [<CustomOperation "account_name">]
-    member __.AccountName(state:CosmosDbConfig, serverName) = { state with AccountName = AutoCreate (Named (ResourceId.create(databaseAccounts, serverName))) }
+    member __.AccountName(state:CosmosDbConfig, serverName:ResourceName) = { state with AccountName = AutoCreate (Named (databaseAccounts.createResourceId serverName)) }
     member this.AccountName(state:CosmosDbConfig, serverName) = this.AccountName(state, ResourceName serverName)
     /// Links the database to an existing server
     [<CustomOperation "link_to_account">]

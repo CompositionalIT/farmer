@@ -26,7 +26,7 @@ type CdnConfig =
       Endpoints : EndpointConfig list
       Tags: Map<string,string>  }
     interface IBuilder with
-        member this.ResourceId = ResourceId.create(profiles, this.Name)
+        member this.ResourceId = profiles.createResourceId this.Name
         member this.BuildResources _ = [
             { Name = this.Name
               Sku = this.Sku
