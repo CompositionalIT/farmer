@@ -167,7 +167,7 @@ type DnsZoneConfig =
       Records : DnsZoneRecordConfig list }
 
     interface IBuilder with
-        member this.ResourceId = zones.createResourceId this.Name
+        member this.ResourceId = zones.resourceId this.Name
         member this.BuildResources _ = [
             { DnsZone.Name = this.Name
               Properties = {| ZoneType = this.ZoneType |> string |} }

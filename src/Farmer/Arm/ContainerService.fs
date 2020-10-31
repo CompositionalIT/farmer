@@ -53,13 +53,13 @@ type ManagedCluster =
                 | None -> ()
             ]
     interface IArmResource with
-        member this.ResourceId = managedClusters.createResourceId this.Name
+        member this.ResourceId = managedClusters.resourceId this.Name
         member this.JsonModel =
             let dependencies = [
                    yield!
                        this.AgentPoolProfiles
                        |> List.choose (fun pool -> pool.VirtualNetworkName)
-                       |> List.map virtualNetworks.createResourceId
+                       |> List.map virtualNetworks.resourceId
                    yield! this.Identity.Dependencies
                ]
             {| managedClusters.Create(this.Name, this.Location, dependencies) with
@@ -78,7 +78,7 @@ type ManagedCluster =
                                   vmSize = agent.VmSize.ArmValue
                                   vnetSubnetID =
                                       match agent.VirtualNetworkName, agent.SubnetName with
-                                      | Some vnet, Some subnet -> subnets.createResourceId(vnet, subnet).Eval()
+                                      | Some vnet, Some subnet -> subnets.resourceId(vnet, subnet).Eval()
                                       | _ -> null
                                |})
                           dnsPrefix = this.DnsPrefix

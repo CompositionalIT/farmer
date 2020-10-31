@@ -37,7 +37,7 @@ type AksConfig =
       NetworkProfile : NetworkProfileConfig option
       ServicePrincipalClientID : string option
       WindowsProfileAdminUserName : string option }
-    member private this.ResourceId = managedClusters.createResourceId this.Name
+    member private this.ResourceId = managedClusters.resourceId this.Name
     member this.SystemIdentity = SystemIdentity this.ResourceId
     interface IBuilder with
         member this.ResourceId = this.ResourceId

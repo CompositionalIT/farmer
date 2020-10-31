@@ -44,14 +44,14 @@ type ContainerGroup =
       Tags: Map<string,string>  }
     member this.NetworkProfilePath =
         this.NetworkProfile
-        |> Option.map networkProfiles.createResourceId
+        |> Option.map networkProfiles.resourceId
     member private this.Dependencies = [
         yield! this.NetworkProfilePath |> Option.toList
 
         for _, volume in this.Volumes |> Map.toSeq do
             match volume with
             | Volume.AzureFileShare (shareName, storageAccountName) ->
-                fileShares.createResourceId (storageAccountName.ResourceName, ResourceName "default", shareName)
+                fileShares.resourceId (storageAccountName.ResourceName, ResourceName "default", shareName)
             | _ ->
                 ()
 
@@ -62,7 +62,7 @@ type ContainerGroup =
     interface IParameters with
         member this.SecureParameters = this.ImageRegistryCredentials |> List.map (fun c -> c.Password)
     interface IArmResource with
-        member this.ResourceId = containerGroups.createResourceId this.Name
+        member this.ResourceId = containerGroups.resourceId this.Name
         member this.JsonModel =
             {| containerGroups.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
                    identity = this.Identity |> ManagedIdentity.toArmJson

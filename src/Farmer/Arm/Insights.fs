@@ -13,7 +13,7 @@ type Components =
       SamplingPercentage : int
       Tags: Map<string,string> }
     interface IArmResource with
-        member this.ResourceId = components.createResourceId this.Name
+        member this.ResourceId = components.resourceId this.Name
         member this.JsonModel =
             let tags =
                 match this.LinkedWebsite with

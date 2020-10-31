@@ -25,7 +25,7 @@ type Namespace =
             | AutoInflate throughput -> Some throughput
             | ManualInflate -> None)
     interface IArmResource with
-        member this.ResourceId = namespaces.createResourceId this.Name
+        member this.ResourceId = namespaces.resourceId this.Name
         member this.JsonModel =
             {| namespaces.Create(this.Name, this.Location, tags = this.Tags) with
                 sku =
@@ -52,7 +52,7 @@ module Namespaces =
           CaptureDestination : CaptureDestination option
           Tags: Map<string,string>  }
         interface IArmResource with
-            member this.ResourceId = eventHubs.createResourceId this.Name
+            member this.ResourceId = eventHubs.resourceId this.Name
             member this.JsonModel =
                {| eventHubs.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
                       properties =
@@ -67,7 +67,7 @@ module Namespaces =
                                    destination =
                                     {| name = "EventHubArchive.AzureBlockBlob"
                                        properties =
-                                        {| storageAccountResourceId = storageAccounts.createResourceId(name).Eval()
+                                        {| storageAccountResourceId = storageAccounts.resourceId(name).Eval()
                                            blobContainer = container
                                         |}
                                     |}
@@ -83,7 +83,7 @@ module Namespaces =
               Location : Location
               Dependencies : ResourceId list }
             interface IArmResource with
-                member this.ResourceId = consumerGroups.createResourceId (this.EventHub/this.ConsumerGroupName)
+                member this.ResourceId = consumerGroups.resourceId (this.EventHub/this.ConsumerGroupName)
                 member this.JsonModel = consumerGroups.Create(this.EventHub/this.ConsumerGroupName, this.Location, this.Dependencies) :> _
 
         type AuthorizationRule =
@@ -92,7 +92,7 @@ module Namespaces =
               Dependencies : ResourceId list
               Rights : AuthorizationRuleRight Set }
             interface IArmResource with
-                member this.ResourceId = authorizationRules.createResourceId this.Name
+                member this.ResourceId = authorizationRules.resourceId this.Name
                 member this.JsonModel =
                     {| authorizationRules.Create(this.Name, this.Location, this.Dependencies) with
                         properties = {| rights = this.Rights |> Set.map string |> Set.toList |}

@@ -13,7 +13,7 @@ type ServicePlanConfig =
       OperatingSystem : OS
       Tags : Map<string,string> }
     interface IBuilder with
-        member this.ResourceId = serverFarms.createResourceId this.Name
+        member this.ResourceId = serverFarms.resourceId this.Name
         member this.BuildResources location = [
           { Name = this.Name
             Location = location

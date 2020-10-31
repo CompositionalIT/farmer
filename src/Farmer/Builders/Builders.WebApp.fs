@@ -63,7 +63,7 @@ module AppSettings =
     let RunFromPackage = "WEBSITE_RUN_FROM_PACKAGE", "1"
 
 let publishingPassword (name:ResourceName) =
-    let resourceId = config.createResourceId (name, ResourceName "publishingCredentials")
+    let resourceId = config.resourceId (name, ResourceName "publishingCredentials")
     let expr = sprintf "list(%s, '2014-06-01').properties.publishingPassword" resourceId.ArmExpression.Value
     ArmExpression.create(expr, resourceId)
 
@@ -108,12 +108,12 @@ type WebAppConfig =
     /// Gets the ARM expression path to the publishing password of this web app.
     member this.PublishingPassword = publishingPassword (this.Name)
     /// Gets the Service Plan name for this web app.
-    member this.ServicePlanName = this.ServicePlan.CreateResourceId(this).Name
+    member this.ServicePlanName = this.ServicePlan.resourceId(this).Name
     /// Gets the App Insights name for this web app, if it exists.
-    member this.AppInsightsName = this.AppInsights |> Option.map (fun ai -> ai.CreateResourceId(this).Name)
+    member this.AppInsightsName = this.AppInsights |> Option.map (fun ai -> ai.resourceId(this).Name)
     member this.Endpoint = sprintf "%s.azurewebsites.net" this.Name.Value
     member this.SystemIdentity = SystemIdentity this.ResourceId
-    member this.ResourceId = sites.createResourceId this.Name
+    member this.ResourceId = sites.resourceId this.Name
     interface IBuilder with
         member this.ResourceId = this.ResourceId
         member this.BuildResources location = [
@@ -188,7 +188,7 @@ type WebAppConfig =
 
                     match this.OperatingSystem, this.AppInsights with
                     | Windows, Some resource ->
-                        "APPINSIGHTS_INSTRUMENTATIONKEY", AppInsights.getInstrumentationKey(resource.CreateResourceId this).Eval()
+                        "APPINSIGHTS_INSTRUMENTATIONKEY", AppInsights.getInstrumentationKey(resource.resourceId this).Eval()
                         "APPINSIGHTS_PROFILERFEATURE_VERSION", "1.0.0"
                         "APPINSIGHTS_SNAPSHOTFEATURE_VERSION", "1.0.0"
                         "ApplicationInsightsAgent_EXTENSION_VERSION", "~2"
@@ -220,7 +220,7 @@ type WebAppConfig =
                      | AppService ->
                          this.Settings
                      | KeyVault r ->
-                        let name = r.CreateResourceId this
+                        let name = r.resourceId this
                         [ for setting in this.Settings do
                             match setting.Value with
                             | LiteralSetting _ ->
@@ -368,8 +368,8 @@ type WebAppConfig =
 type WebAppBuilder() =
     member __.Yield _ =
         { Name = ResourceName.Empty
-          ServicePlan = derived (fun config -> serverFarms.createResourceId (config.Name-"farm"))
-          AppInsights = Some (derived (fun config -> components.createResourceId (config.Name-"ai")))
+          ServicePlan = derived (fun config -> serverFarms.resourceId (config.Name-"farm"))
+          AppInsights = Some (derived (fun config -> components.resourceId (config.Name-"ai")))
           Sku = Sku.F1
           WorkerSize = Small
           WorkerCount = 1
@@ -585,7 +585,7 @@ type WebAppBuilder() =
     [<CustomOperation "use_keyvault">]
     member this.UseKeyVault(state:WebAppConfig) =
         let state = this.SystemIdentity (state)
-        { state with SecretStore = KeyVault (derived(fun c -> vaults.createResourceId (ResourceName (c.Name.Value + "vault")))) }
+        { state with SecretStore = KeyVault (derived(fun c -> vaults.resourceId (ResourceName (c.Name.Value + "vault")))) }
     [<CustomOperation "use_managed_keyvault">]
     member this.LinkToKeyVault(state:WebAppConfig, name) =
         let state = this.SystemIdentity (state)

@@ -13,7 +13,7 @@ module ManagedIdentityExtensions =
               UserAssigned = [ UserAssignedIdentity resourceId ] }
         /// Creates a resource identity from a resource name
         static member create (name:ResourceName) =
-            userAssignedIdentities.createResourceId name |> ManagedIdentity.create
+            userAssignedIdentities.resourceId name |> ManagedIdentity.create
 
 module Roles =
     type RoleAssignment = { Role : RoleId; Principal : PrincipalId }

@@ -12,7 +12,7 @@ type UserAssignedIdentity =
       Tags: Map<string,string>  }
 
     interface IArmResource with
-        member this.ResourceId = userAssignedIdentities.createResourceId this.Name
+        member this.ResourceId = userAssignedIdentities.resourceId this.Name
         member this.JsonModel = userAssignedIdentities.Create(this.Name, this.Location, [], this.Tags) :> _
 
 /// Builds the JSON ARM value for a resource's identity.

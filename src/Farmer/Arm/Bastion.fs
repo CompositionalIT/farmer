@@ -13,12 +13,12 @@ type BastionHost =
       IpConfigs : {| PublicIpName : ResourceName |} list
       Tags : Map<string,string> }
     interface IArmResource with
-        member this.ResourceId = bastionHosts.createResourceId this.Name
+        member this.ResourceId = bastionHosts.resourceId this.Name
         member this.JsonModel =
             let dependsOn = [
-                virtualNetworks.createResourceId this.VirtualNetwork
+                virtualNetworks.resourceId this.VirtualNetwork
                 for config in this.IpConfigs do
-                    publicIPAddresses.createResourceId config.PublicIpName
+                    publicIPAddresses.resourceId config.PublicIpName
             ]
             {| bastionHosts.Create(this.Name, this.Location, dependsOn, this.Tags) with
                 properties =
@@ -27,8 +27,8 @@ type BastionHost =
                            |> List.mapi(fun index ipConfig ->
                                {| name = sprintf "ipconfig%i" (index + 1)
                                   properties =
-                                   {| publicIPAddress = {| id = publicIPAddresses.createResourceId(ipConfig.PublicIpName).Eval() |}
-                                      subnet = {| id = subnets.createResourceId(this.VirtualNetwork, ResourceName "AzureBastionSubnet").Eval() |}
+                                   {| publicIPAddress = {| id = publicIPAddresses.resourceId(ipConfig.PublicIpName).Eval() |}
+                                      subnet = {| id = subnets.resourceId(this.VirtualNetwork, ResourceName "AzureBastionSubnet").Eval() |}
                                    |}
                                |})
                     |}

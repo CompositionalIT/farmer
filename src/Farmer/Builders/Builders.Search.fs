@@ -20,7 +20,7 @@ type SearchConfig =
     member this.QueryKey =
         let expr = sprintf "listQueryKeys('Microsoft.Search/searchServices/%s', '2015-08-19').value[0].key" this.Name.Value
         ArmExpression.create(expr, this.ResourceId)
-    member this.ResourceId = searchServices.createResourceId this.Name
+    member this.ResourceId = searchServices.resourceId this.Name
     interface IBuilder with
         member this.ResourceId = this.ResourceId
         member this.BuildResources location = [

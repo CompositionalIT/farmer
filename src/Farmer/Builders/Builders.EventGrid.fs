@@ -91,7 +91,7 @@ type EventGridConfig<'T> =
       Tags: Map<string,string>
     }
     interface IBuilder with
-        member this.ResourceId = systemTopics.createResourceId this.TopicName
+        member this.ResourceId = systemTopics.resourceId this.TopicName
         member this.BuildResources location = [
             { Name = this.TopicName
               Location = location

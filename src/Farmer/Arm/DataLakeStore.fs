@@ -13,7 +13,7 @@ type Account =
       Sku : Sku
       Tags: Map<string,string>  }
     interface IArmResource with
-        member this.ResourceId = accounts.createResourceId this.Name
+        member this.ResourceId = accounts.resourceId this.Name
         member this.JsonModel =
             {| accounts.Create(this.Name, this.Location, tags = this.Tags) with
                  properties =

@@ -65,7 +65,7 @@ type ContainerGroupConfig =
       Identity : ManagedIdentity
       /// Tags for the container group.
       Tags: Map<string,string> }
-    member private this.ResourceId = containerGroups.createResourceId this.Name
+    member private this.ResourceId = containerGroups.resourceId this.Name
     member this.SystemIdentity = SystemIdentity this.ResourceId
     interface IBuilder with
         member this.ResourceId = this.ResourceId
@@ -247,7 +247,7 @@ type NetworkProfileConfig =
       VirtualNetwork : ResourceName
       Tags: Map<string,string>  }
     interface IBuilder with
-        member this.ResourceId = networkProfiles.createResourceId this.Name
+        member this.ResourceId = networkProfiles.resourceId this.Name
         member this.BuildResources location = [
             { Name = this.Name
               Location = location

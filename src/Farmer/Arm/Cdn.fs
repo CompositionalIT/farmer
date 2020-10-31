@@ -14,7 +14,7 @@ type Profile =
       Sku : Sku
       Tags: Map<string,string> }
     interface IArmResource with
-        member this.ResourceId = profiles.createResourceId this.Name
+        member this.ResourceId = profiles.resourceId this.Name
         member this.JsonModel =
             {| profiles.Create (this.Name, Location.Global, tags = this.Tags) with
                    sku = {| name = string this.Sku |}
@@ -35,9 +35,9 @@ module Profiles =
           OptimizationType : OptimizationType
           Tags: Map<string,string>  }
         interface IArmResource with
-            member this.ResourceId = endpoints.createResourceId (this.Profile/this.Name)
+            member this.ResourceId = endpoints.resourceId (this.Profile/this.Name)
             member this.JsonModel =
-                {| endpoints.Create(this.Profile/this.Name, Location.Global, profiles.createResourceId this.Profile :: this.Dependencies, this.Tags) with
+                {| endpoints.Create(this.Profile/this.Name, Location.Global, profiles.resourceId this.Profile :: this.Dependencies, this.Tags) with
                        properties =
                             {| originHostHeader = this.Origin
                                queryStringCachingBehavior = string this.QueryStringCachingBehaviour
@@ -60,8 +60,8 @@ module Profiles =
               Endpoint : ResourceName
               Hostname : Uri }
             interface IArmResource with
-                member this.ResourceId = customDomains.createResourceId (this.Endpoint/this.Name)
+                member this.ResourceId = customDomains.resourceId (this.Endpoint/this.Name)
                 member this.JsonModel =
-                    {| customDomains.Create (this.Endpoint/this.Name, dependsOn = [ endpoints.createResourceId this.Endpoint ]) with
+                    {| customDomains.Create (this.Endpoint/this.Name, dependsOn = [ endpoints.resourceId this.Endpoint ]) with
                         properties = {| hostName = string this.Hostname |}
                     |} :> _

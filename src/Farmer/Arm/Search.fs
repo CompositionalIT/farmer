@@ -18,7 +18,7 @@ type SearchService =
         | Standard3 HighDensity -> "highDensity"
         | _ -> "default"
     interface IArmResource with
-        member this.ResourceId = searchServices.createResourceId this.Name
+        member this.ResourceId = searchServices.resourceId this.Name
         member this.JsonModel =
             {| searchServices.Create(this.Name, this.Location, tags = this.Tags) with
                 sku =

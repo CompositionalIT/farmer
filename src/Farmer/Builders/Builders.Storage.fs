@@ -55,7 +55,7 @@ type StorageAccountConfig =
             .reference(storageAccounts, this.ResourceId)
             .Map(sprintf "%s.primaryEndpoints.web")
     member this.Endpoint = sprintf "%s.blob.core.windows.net" this.Name.ResourceName.Value
-    member this.ResourceId = storageAccounts.createResourceId this.Name.ResourceName
+    member this.ResourceId = storageAccounts.resourceId this.Name.ResourceName
     interface IBuilder with
         member this.ResourceId = this.ResourceId
         member this.BuildResources location = [

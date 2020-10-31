@@ -27,9 +27,9 @@ module Namespaces =
               DeadLetteringOnMessageExpiration : bool option
               Rules : Rule list }
             interface IArmResource with
-                member this.ResourceId = subscriptions.createResourceId (this.Namespace/this.Topic/this.Name)
+                member this.ResourceId = subscriptions.resourceId (this.Namespace/this.Topic/this.Name)
                 member this.JsonModel =
-                    {| subscriptions.Create(this.Namespace/this.Topic/this.Name, dependsOn = [ topics.createResourceId(this.Namespace, this.Topic) ]) with
+                    {| subscriptions.Create(this.Namespace/this.Topic/this.Name, dependsOn = [ topics.resourceId(this.Namespace, this.Topic) ]) with
                         properties =
                          {| defaultMessageTimeToLive = tryGetIso this.DefaultMessageTimeToLive
                             requiresDuplicateDetection =
@@ -44,7 +44,7 @@ module Namespaces =
                          |}
                         resources = [
                          for rule in this.Rules do
-                            {| rules.Create(rule.Name, dependsOn = [ subscriptions.createResourceId this.Name ]) with
+                            {| rules.Create(rule.Name, dependsOn = [ subscriptions.resourceId this.Name ]) with
                                 properties =
                                  match rule with
                                  | SqlFilter (_, expression) ->
@@ -72,9 +72,9 @@ module Namespaces =
           MaxDeliveryCount : int option
           EnablePartitioning : bool option }
         interface IArmResource with
-            member this.ResourceId = queues.createResourceId (this.Namespace/this.Name)
+            member this.ResourceId = queues.resourceId (this.Namespace/this.Name)
             member this.JsonModel =
-                {| queues.Create(this.Namespace/this.Name, dependsOn = [ namespaces.createResourceId this.Namespace ]) with
+                {| queues.Create(this.Namespace/this.Name, dependsOn = [ namespaces.resourceId this.Namespace ]) with
                     properties =
                      {| lockDuration = tryGetIso this.LockDuration
                         requiresDuplicateDetection =
@@ -96,9 +96,9 @@ module Namespaces =
           DefaultMessageTimeToLive : IsoDateTime option
           EnablePartitioning : bool option }
         interface IArmResource with
-            member this.ResourceId = topics.createResourceId (this.Namespace/this.Name)
+            member this.ResourceId = topics.resourceId (this.Namespace/this.Name)
             member this.JsonModel =
-                {| topics.Create(this.Namespace/this.Name, dependsOn = [ namespaces.createResourceId this.Namespace ]) with
+                {| topics.Create(this.Namespace/this.Name, dependsOn = [ namespaces.resourceId this.Namespace ]) with
                     properties =
                         {| defaultMessageTimeToLive = tryGetIso this.DefaultMessageTimeToLive
                            requiresDuplicateDetection =
@@ -123,7 +123,7 @@ type Namespace =
         | Premium TwoUnits -> Some 2
         | Premium FourUnits -> Some 4
     interface IArmResource with
-        member this.ResourceId = namespaces.createResourceId this.Name
+        member this.ResourceId = namespaces.resourceId this.Name
         member this.JsonModel =
             {| namespaces.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
                 sku =

@@ -34,20 +34,20 @@ type VmConfig =
 
       Tags: Map<string,string> }
 
-    member internal this.DeriveResourceName (resourceType:ResourceType) elementName = resourceType.createResourceId (makeName this.Name elementName)
+    member internal this.DeriveResourceName (resourceType:ResourceType) elementName = resourceType.resourceId (makeName this.Name elementName)
     member this.NicName = this.DeriveResourceName networkInterfaces "nic"
     member this.IpName = this.DeriveResourceName publicIPAddresses "ip"
     member this.Hostname = ArmExpression.reference(publicIPAddresses, this.IpName).Map(sprintf "%s.dnsSettings.fqdn")
 
     interface IBuilder with
-        member this.ResourceId = virtualMachines.createResourceId this.Name
+        member this.ResourceId = virtualMachines.resourceId this.Name
         member this.BuildResources location = [
             // VM itself
             { Name = this.Name
               Location = location
               StorageAccount =
                 this.DiagnosticsStorageAccount
-                |> Option.map(fun r -> r.CreateResourceId(this).Name)
+                |> Option.map(fun r -> r.resourceId(this).Name)
               NetworkInterfaceName = this.NicName.Name
               Size = this.Size
               Credentials =
@@ -62,8 +62,8 @@ type VmConfig =
               DataDisks = this.DataDisks
               Tags = this.Tags }
 
-            let vnetName = this.VNet.CreateResourceId(this).Name
-            let subnetName = this.Subnet.CreateResourceId this
+            let vnetName = this.VNet.resourceId(this).Name
+            let subnetName = this.Subnet.resourceId this
 
             // NIC
             { Name = this.NicName.Name
@@ -163,7 +163,7 @@ type VirtualMachineBuilder() =
     member __.StorageAccountName(state:VmConfig) =
         let storageResourceRef = derived (fun config ->
             let name = config.Name.Map (sprintf "%sstorage") |> sanitiseStorage |> ResourceName
-            storageAccounts.createResourceId name)
+            storageAccounts.resourceId name)
 
         { state with DiagnosticsStorageAccount = Some storageResourceRef }
     /// Turns on diagnostics support using an externally managed storage account.
@@ -205,11 +205,11 @@ type VirtualMachineBuilder() =
     member __.SubnetPrefix(state:VmConfig, prefix) = { state with SubnetPrefix = prefix }
     /// Sets the subnet name of the VM.
     [<CustomOperation "subnet_name">]
-    member __.SubnetName(state:VmConfig, name:ResourceName) = { state with Subnet = Named (subnets.createResourceId name) }
+    member __.SubnetName(state:VmConfig, name:ResourceName) = { state with Subnet = Named (subnets.resourceId name) }
     member this.SubnetName(state:VmConfig, name) = this.SubnetName(state, ResourceName name)
     /// Uses an external VNet instead of creating a new one.
     [<CustomOperation "link_to_vnet">]
-    member __.LinkToVNet(state:VmConfig, name:ResourceName) = { state with VNet = External (Managed (virtualNetworks.createResourceId name)) }
+    member __.LinkToVNet(state:VmConfig, name:ResourceName) = { state with VNet = External (Managed (virtualNetworks.resourceId name)) }
     member this.LinkToVNet(state:VmConfig, name) = this.LinkToVNet(state, ResourceName name)
     member this.LinkToVNet(state:VmConfig, vnet:Arm.Network.VirtualNetwork) = this.LinkToVNet(state, vnet.Name)
     member this.LinkToVNet(state:VmConfig, vnet:VirtualNetworkConfig) = this.LinkToVNet(state, vnet.Name)

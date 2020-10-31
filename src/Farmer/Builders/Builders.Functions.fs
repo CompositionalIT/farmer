@@ -29,7 +29,7 @@ type FunctionsConfig =
       ZipDeployPath : string option }
 
     /// Gets the system-created managed principal for the functions instance. It must have been enabled using enable_managed_identity.
-    member this.SystemIdentity = SystemIdentity (sites.createResourceId this.Name)
+    member this.SystemIdentity = SystemIdentity (sites.resourceId this.Name)
     /// Gets the ARM expression path to the publishing password of this functions app.
     member this.PublishingPassword = publishingPassword this.Name
     /// Gets the ARM expression path to the storage account key of this functions app.
@@ -45,13 +45,13 @@ type FunctionsConfig =
         sprintf "listkeys(concat(resourceId('Microsoft.Web/sites', '%s'), '/host/default/'),'2016-08-01').masterKey" this.Name.Value
         |> ArmExpression.create
     /// Gets the Service Plan name for this functions app.
-    member this.ServicePlanName = this.ServicePlan.CreateResourceId(this).Name
+    member this.ServicePlanName = this.ServicePlan.resourceId(this).Name
     /// Gets the App Insights name for this functions app, if it exists.
-    member this.AppInsightsName : ResourceName option = this.AppInsights |> Option.map (fun ai -> ai.CreateResourceId(this).Name)
+    member this.AppInsightsName : ResourceName option = this.AppInsights |> Option.map (fun ai -> ai.resourceId(this).Name)
     /// Gets the Storage Account name for this functions app.
-    member this.StorageAccountName : Storage.StorageAccountName = this.StorageAccount.CreateResourceId(this).Name |> Storage.StorageAccountName.Create |> Result.get
+    member this.StorageAccountName : Storage.StorageAccountName = this.StorageAccount.resourceId(this).Name |> Storage.StorageAccountName.Create |> Result.get
     interface IBuilder with
-        member this.ResourceId = sites.createResourceId this.Name
+        member this.ResourceId = sites.resourceId this.Name
         member this.BuildResources location = [
             { Name = this.Name
               ServicePlan = this.ServicePlanName
@@ -100,7 +100,7 @@ type FunctionsConfig =
                 | DependableResource this resourceId -> resourceId
                 | _ -> ()
 
-                storageAccounts.createResourceId this.StorageAccountName.ResourceName
+                storageAccounts.resourceId this.StorageAccountName.ResourceName
               ]
               AlwaysOn = false
               HTTPSOnly = this.HTTPSOnly
@@ -161,11 +161,11 @@ type FunctionsConfig =
 type FunctionsBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
-          ServicePlan = derived (fun config -> serverFarms.createResourceId (config.Name-"farm"))
-          AppInsights = Some (derived (fun config -> components.createResourceId (config.Name-"ai")))
+          ServicePlan = derived (fun config -> serverFarms.resourceId (config.Name-"farm"))
+          AppInsights = Some (derived (fun config -> components.resourceId (config.Name-"ai")))
           StorageAccount = derived (fun config ->
             let storage = config.Name.Map (sprintf "%sstorage") |> sanitiseStorage |> ResourceName
-            storageAccounts.createResourceId storage)
+            storageAccounts.resourceId storage)
           Runtime = DotNet
           ExtensionVersion = V3
           Cors = None

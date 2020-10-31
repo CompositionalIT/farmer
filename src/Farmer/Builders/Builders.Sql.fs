@@ -38,7 +38,7 @@ type SqlAzureConfig =
                 this.AdministratorCredentials.Password.ArmExpression
                 ArmExpression.literal ";MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
             ]
-        expr.WithOwner (databases.createResourceId (this.Name, database.Name))
+        expr.WithOwner (databases.resourceId (this.Name, database.Name))
     member this.ConnectionString databaseName =
         this.Databases
         |> List.tryFind(fun db -> db.Name = databaseName)
@@ -49,7 +49,7 @@ type SqlAzureConfig =
     member this.PasswordParameter = sprintf "password-for-%s" this.Name.Value
 
     interface IBuilder with
-        member this.ResourceId = servers.createResourceId this.Name
+        member this.ResourceId = servers.resourceId this.Name
         member this.BuildResources location = [
             let elasticPoolName =
                 this.ElasticPoolSettings.Name

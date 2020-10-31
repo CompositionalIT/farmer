@@ -11,7 +11,7 @@ type MapsConfig =
       Sku : Sku
       Tags: Map<string,string> }
     interface IBuilder with
-        member this.ResourceId = accounts.createResourceId this.Name
+        member this.ResourceId = accounts.resourceId this.Name
         member this.BuildResources _ = [
             { Name = this.Name
               Location = Location "global"

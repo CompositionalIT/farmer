@@ -12,7 +12,7 @@ type NetworkSecurityGroup =
       Location : Location
       Tags: Map<string,string>  }
     interface IArmResource with
-        member this.ResourceId = networkSecurityGroups.createResourceId this.Name
+        member this.ResourceId = networkSecurityGroups.resourceId this.Name
         member this.JsonModel = networkSecurityGroups.Create(this.Name, this.Location, tags = this.Tags) :> _
 
 let (|SingleEndpoint|ManyEndpoints|) endpoints =
@@ -60,9 +60,9 @@ type SecurityRule =
       Direction : TrafficDirection
       Priority : int }
     interface IArmResource with
-        member this.ResourceId = securityRules.createResourceId (this.SecurityGroup.Name/this.Name)
+        member this.ResourceId = securityRules.resourceId (this.SecurityGroup.Name/this.Name)
         member this.JsonModel =
-            let dependsOn = [ networkSecurityGroups.createResourceId this.SecurityGroup.Name ]
+            let dependsOn = [ networkSecurityGroups.resourceId this.SecurityGroup.Name ]
             {| securityRules.Create(this.SecurityGroup.Name/this.Name, dependsOn = dependsOn) with
                 properties =
                  {| description = this.Description |> Option.toObj

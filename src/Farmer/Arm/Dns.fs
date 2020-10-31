@@ -31,7 +31,7 @@ type DnsZone =
       Properties : {| ZoneType : string |} }
 
     interface IArmResource with
-        member this.ResourceId = zones.createResourceId this.Name
+        member this.ResourceId = zones.resourceId this.Name
         member this.JsonModel =
             {| zones.Create(this.Name, Location.Global) with
                 properties = {| zoneType = this.Properties.ZoneType |}
@@ -44,9 +44,9 @@ module DnsRecords =
           Type : DnsRecordType
           TTL : int }
         interface IArmResource with
-            member this.ResourceId = this.Type.ResourceType.createResourceId (this.Zone/this.Name)
+            member this.ResourceId = this.Type.ResourceType.resourceId (this.Zone/this.Name)
             member this.JsonModel =
-                {| this.Type.ResourceType.Create(this.Zone/this.Name, dependsOn = [ zones.createResourceId this.Zone ]) with
+                {| this.Type.ResourceType.Create(this.Zone/this.Name, dependsOn = [ zones.resourceId this.Zone ]) with
                     properties = [
                         "TTL", box this.TTL
 

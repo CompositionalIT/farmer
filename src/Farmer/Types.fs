@@ -41,9 +41,9 @@ type ResourceId =
         { Type = resourceType; Name = name; ResourceGroup = None; Segments = List.ofArray resourceSegments }
 
 type ResourceType with
-    member this.createResourceId name = ResourceId.create (this, name)
-    member this.createResourceId name = this.createResourceId (ResourceName name)
-    member this.createResourceId (name, [<ParamArray>] resourceSegments:ResourceName []) = ResourceId.create (this, name, resourceSegments)
+    member this.resourceId name = ResourceId.create (this, name)
+    member this.resourceId name = this.resourceId (ResourceName name)
+    member this.resourceId (name, [<ParamArray>] resourceSegments:ResourceName []) = ResourceId.create (this, name, resourceSegments)
 
 /// An Azure ARM resource value which can be mapped into an ARM template.
 type IArmResource =
@@ -160,7 +160,7 @@ type AutoCreationKind<'TConfig> =
     | Named of ResourceId
     /// A resource that will automatically be created by Farmer with a name that is derived based on the configuration.
     | Derived of ('TConfig -> ResourceId)
-    member this.CreateResourceId config =
+    member this.resourceId config =
         match this with
         | Named r -> r
         | Derived f -> f config
@@ -176,11 +176,11 @@ type ExternalKind =
 type ResourceRef<'TConfig> =
     | AutoCreate of AutoCreationKind<'TConfig>
     | External of ExternalKind
-    member this.CreateResourceId config =
+    member this.resourceId config =
         match this with
         | External (Managed r) -> r
         | External (Unmanaged r) -> r
-        | AutoCreate r -> r.CreateResourceId config
+        | AutoCreate r -> r.resourceId config
 
 [<AutoOpen>]
 module ResourceRef =
@@ -192,12 +192,12 @@ module ResourceRef =
     /// In other words, all cases except External Unmanaged.
     let (|DependableResource|_|) config = function
         | External (Managed r) -> Some (DependableResource r)
-        | AutoCreate r -> Some(DependableResource(r.CreateResourceId config))
+        | AutoCreate r -> Some(DependableResource(r.resourceId config))
         | External (Unmanaged _) -> None
     /// An active pattern that returns the resource name if the resource should be deployed. In other
     /// words, AutoCreate only.
     let (|DeployableResource|_|) config = function
-        | AutoCreate c -> Some (DeployableResource(c.CreateResourceId config))
+        | AutoCreate c -> Some (DeployableResource(c.resourceId config))
         | External _ -> None
     /// An active pattern that returns the resource name if the resource if external.
     let (|ExternalResource|_|) = function

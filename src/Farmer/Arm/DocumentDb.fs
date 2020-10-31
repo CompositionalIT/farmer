@@ -27,9 +27,9 @@ module DatabaseAccounts =
                 |}
             }
             interface IArmResource with
-                member this.ResourceId = containers.createResourceId (this.Account/this.Database/this.Name)
+                member this.ResourceId = containers.resourceId (this.Account/this.Database/this.Name)
                 member this.JsonModel =
-                    {| containers.Create(this.Account/this.Database/this.Name, dependsOn = [ sqlDatabases.createResourceId this.Database ])
+                    {| containers.Create(this.Account/this.Database/this.Name, dependsOn = [ sqlDatabases.resourceId this.Database ])
                         with
                            properties =
                                {| resource =
@@ -67,9 +67,9 @@ module DatabaseAccounts =
           Account : ResourceName
           Throughput : int<RU> }
         interface IArmResource with
-            member this.ResourceId = sqlDatabases.createResourceId (this.Account/this.Name)
+            member this.ResourceId = sqlDatabases.resourceId (this.Account/this.Name)
             member this.JsonModel =
-                {| sqlDatabases.Create(this.Account/this.Name, dependsOn = [ accounts.createResourceId this.Account ]) with
+                {| sqlDatabases.Create(this.Account/this.Name, dependsOn = [ accounts.resourceId this.Account ]) with
                        properties =
                            {| resource = {| id = this.Name.Value |}
                               options = {| throughput = string this.Throughput |} |}
@@ -110,7 +110,7 @@ type DatabaseAccount =
     ]
 
     interface IArmResource with
-        member this.ResourceId = databaseAccounts.createResourceId this.Name
+        member this.ResourceId = databaseAccounts.resourceId this.Name
         member this.JsonModel =
             {| databaseAccounts.Create(this.Name, this.Location, tags = this.Tags) with
                    kind = "GlobalDocumentDB"
