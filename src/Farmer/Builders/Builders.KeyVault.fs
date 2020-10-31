@@ -46,7 +46,8 @@ type SecretConfig =
       Enabled : bool option
       ActivationDate : DateTime option
       ExpirationDate : DateTime option
-      Dependencies : ResourceId list }
+      Dependencies : ResourceId list
+      Tags: Map<string,string> }
     static member internal createUnsafe key =
         { Key = key
           Value = ParameterSecret(SecureParameter key)
@@ -54,7 +55,8 @@ type SecretConfig =
           Enabled = None
           ActivationDate = None
           ExpirationDate = None
-          Dependencies = [] }
+          Dependencies = []
+          Tags = Map.empty }
 
     static member internal isValid key =
         let charRulesPassed =
@@ -143,7 +145,8 @@ type KeyVaultConfig =
                   ActivationDate = secret.ActivationDate
                   ExpirationDate = secret.ExpirationDate
                   Location = location
-                  Dependencies = ResourceId.create this.Name :: secret.Dependencies }
+                  Dependencies = ResourceId.create this.Name :: secret.Dependencies
+                  Tags = secret.Tags }
         ]
 
 type AccessPolicyBuilder() =
@@ -360,6 +363,12 @@ type SecretBuilder() =
     member this.DependsOn(state:SecretConfig, builders:IBuilder list) = this.AddDependencies(state, builders |> List.map (fun x -> x.DependencyName))
     member this.DependsOn(state:SecretConfig, resource:IArmResource) = this.AddDependency(state, resource.ResourceName)
     member this.DependsOn(state:SecretConfig, resources:IArmResource list) = this.AddDependencies(state, resources |> List.map (fun x -> x.ResourceName))
+    [<CustomOperation "add_tags">]
+    member _.Tags(state:SecretConfig, pairs) =
+        { state with
+            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
+    [<CustomOperation "add_tag">]
+    member this.Tag(state:SecretConfig, key, value) = this.Tags(state, [ (key,value) ])
 
 let secret = SecretBuilder()
 let keyVault = KeyVaultBuilder()
