@@ -155,7 +155,8 @@ type WebAppConfig =
                                   ActivationDate = secret.ActivationDate
                                   ExpirationDate = secret.ExpirationDate
                                   Location = location
-                                  Dependencies = vaultName :: secret.Dependencies } :> IArmResource
+                                  Dependencies = vaultName :: secret.Dependencies
+                                  Tags = secret.Tags } :> IArmResource
                             | None ->
                                 ()
                     ]

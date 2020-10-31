@@ -19,6 +19,17 @@ let tests = testList "KeyVault" [
             }
         Expect.hasLength vault.Secrets 2 "Bad secrets"
     }
+    test "Can create secrets with tags" {
+        let s = 
+            secret {
+                name "test"
+                add_tag "foo" "bar"
+                add_tag "fizz" "buzz"
+            }
+        Expect.hasLength s.Tags 2 "Incorrect number of tags on secret"
+        Expect.equal s.Tags.["foo"] "bar" "Incorrect value on secret tag 'foo'"
+        Expect.equal s.Tags.["fizz"] "buzz" "Incorrect value on secret tag 'fizz'"
+    }
     test "Throws on empty inline secret" {
         Expect.throws(fun () ->
             keyVault {
