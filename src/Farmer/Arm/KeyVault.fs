@@ -18,7 +18,8 @@ module Vaults =
           Enabled : bool option
           ActivationDate : DateTime option
           ExpirationDate : DateTime option
-          Dependencies : ResourceId list }
+          Dependencies : ResourceId list
+          Tags: Map<string,string> }
         static member ``1970`` = DateTime(1970,1,1,0,0,0)
         static member TotalSecondsSince1970 (d:DateTime) = (d.Subtract Secret.``1970``).TotalSeconds |> int
         interface IParameters with
@@ -29,7 +30,7 @@ module Vaults =
         interface IArmResource with
             member this.ResourceName = this.Name
             member this.JsonModel =
-                {| secrets.Create(this.Name, this.Location, this.Dependencies) with
+                {| secrets.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
                     properties =
                         {| value = this.Value.Value
                            contentType = this.ContentType |> Option.toObj
