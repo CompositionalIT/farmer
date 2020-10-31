@@ -152,7 +152,7 @@ type ServiceBusConfig =
     member this.NamespaceDefaultConnectionString = this.GetKeyPath "primaryConnectionString"
     member this.DefaultSharedAccessPolicyPrimaryKey = this.GetKeyPath "primaryKey"
     interface IBuilder with
-        member this.ResourceId = ResourceId.create(namespaces, this.Name)
+        member this.ResourceId = namespaces.createResourceId this.Name
         member this.BuildResources location = [
             { Name = this.Name
               Location = location

@@ -63,7 +63,7 @@ module AppSettings =
     let RunFromPackage = "WEBSITE_RUN_FROM_PACKAGE", "1"
 
 let publishingPassword (name:ResourceName) =
-    let resourceId = ResourceId.create(config, name, ResourceName "publishingCredentials")
+    let resourceId = config.createResourceId (name, ResourceName "publishingCredentials")
     let expr = sprintf "list(%s, '2014-06-01').properties.publishingPassword" resourceId.ArmExpression.Value
     ArmExpression.create(expr, resourceId)
 
@@ -113,7 +113,7 @@ type WebAppConfig =
     member this.AppInsightsName = this.AppInsights |> Option.map (fun ai -> ai.CreateResourceId(this).Name)
     member this.Endpoint = sprintf "%s.azurewebsites.net" this.Name.Value
     member this.SystemIdentity = SystemIdentity this.ResourceId
-    member this.ResourceId = ResourceId.create(sites, this.Name)
+    member this.ResourceId = sites.createResourceId this.Name
     interface IBuilder with
         member this.ResourceId = this.ResourceId
         member this.BuildResources location = [
@@ -368,8 +368,8 @@ type WebAppConfig =
 type WebAppBuilder() =
     member __.Yield _ =
         { Name = ResourceName.Empty
-          ServicePlan = derived (fun config -> ResourceId.create(serverFarms, config.Name-"farm"))
-          AppInsights = Some (derived (fun config -> ResourceId.create(components, config.Name-"ai")))
+          ServicePlan = derived (fun config -> serverFarms.createResourceId (config.Name-"farm"))
+          AppInsights = Some (derived (fun config -> components.createResourceId (config.Name-"ai")))
           Sku = Sku.F1
           WorkerSize = Small
           WorkerCount = 1
@@ -585,7 +585,7 @@ type WebAppBuilder() =
     [<CustomOperation "use_keyvault">]
     member this.UseKeyVault(state:WebAppConfig) =
         let state = this.SystemIdentity (state)
-        { state with SecretStore = KeyVault (derived(fun c -> ResourceId.create(vaults, ResourceName (c.Name.Value + "vault")))) }
+        { state with SecretStore = KeyVault (derived(fun c -> vaults.createResourceId (ResourceName (c.Name.Value + "vault")))) }
     [<CustomOperation "use_managed_keyvault">]
     member this.LinkToKeyVault(state:WebAppConfig, name) =
         let state = this.SystemIdentity (state)

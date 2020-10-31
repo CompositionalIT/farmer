@@ -95,7 +95,7 @@ type KeyVaultConfig =
       Secrets : SecretConfig list
       Tags: Map<string,string>  }
       interface IBuilder with
-        member this.ResourceId = ResourceId.create(vaults, this.Name)
+        member this.ResourceId = vaults.createResourceId this.Name
         member this.BuildResources location = [
             let keyVault =
                 { Name = this.Name

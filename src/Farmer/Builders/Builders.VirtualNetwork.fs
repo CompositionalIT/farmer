@@ -78,7 +78,7 @@ type VirtualNetworkConfig =
       Subnets : SubnetConfig list
       Tags: Map<string,string>  }
     interface IBuilder with
-        member this.ResourceId = ResourceId.create(virtualNetworks, this.Name)
+        member this.ResourceId = virtualNetworks.createResourceId this.Name
         member this.BuildResources location = [
             { Name = this.Name
               Location = location

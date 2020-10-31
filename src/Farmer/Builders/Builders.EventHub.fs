@@ -32,15 +32,15 @@ type EventHubConfig =
     member this.EventHubNamespaceName = this.EventHubNamespace.CreateResourceId(this).Name
     /// Gets an ARM expression for the path to the key of a specific authorization rule for this event hub.
     member this.GetKey (ruleName:string) =
-        let ruleResource = ResourceId.create(authorizationRules, this.EventHubNamespaceName, this.Name, ResourceName ruleName)
+        let ruleResource = authorizationRules.createResourceId(this.EventHubNamespaceName, this.Name, ResourceName ruleName)
         this.CreateKeyExpression ruleResource
 
     /// Gets an ARM expression for the path to the key of the default RootManageSharedAccessKey for the entire namespace.
     member this.DefaultKey =
-        let ruleResource = ResourceId.create(authorizationRules, this.EventHubNamespaceName, ResourceName "RootManageSharedAccessKey")
+        let ruleResource = authorizationRules.createResourceId(this.EventHubNamespaceName, ResourceName "RootManageSharedAccessKey")
         this.CreateKeyExpression ruleResource
     interface IBuilder with
-        member this.ResourceId = ResourceId.create(namespaces, this.EventHubNamespaceName)
+        member this.ResourceId = namespaces.createResourceId this.EventHubNamespaceName
         member this.BuildResources location = [
             let eventHubName = this.Name.Map(fun hubName -> sprintf "%s/%s" this.EventHubNamespaceName.Value hubName)
 
@@ -79,8 +79,8 @@ type EventHubConfig =
                 EventHub = eventHubName
                 Location = location
                 Dependencies = [
-                    ResourceId.create(namespaces, this.EventHubNamespaceName)
-                    ResourceId.create(eventHubs, this.EventHubNamespaceName, this.Name)
+                    namespaces.createResourceId this.EventHubNamespaceName
+                    eventHubs.createResourceId (this.EventHubNamespaceName, this.Name)
                 ] }
 
             // Auth rules
@@ -88,8 +88,8 @@ type EventHubConfig =
                 { Name = rule.Key.Map(fun rule -> sprintf "%s/%s/%s" this.EventHubNamespaceName.Value this.Name.Value rule)
                   Location = location
                   Dependencies = [
-                      ResourceId.create(namespaces, this.EventHubNamespaceName)
-                      ResourceId.create(eventHubs, this.EventHubNamespaceName, this.Name)
+                      namespaces.createResourceId this.EventHubNamespaceName
+                      eventHubs.createResourceId (this.EventHubNamespaceName, this.Name)
                   ]
                   Rights = rule.Value }
         ]
@@ -97,7 +97,7 @@ type EventHubConfig =
 type EventHubBuilder() =
     member __.Yield _ =
         { Name = ResourceName "hub"
-          EventHubNamespace = derived (fun config -> ResourceId.create(namespaces, config.Name-"ns"))
+          EventHubNamespace = derived (fun config -> namespaces.createResourceId (config.Name-"ns"))
           Sku = Standard
           Capacity = 1
           ZoneRedundant = None

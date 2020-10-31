@@ -17,7 +17,7 @@ type WorkspaceConfig =
       DailyCap : int<Gb> option
       Tags: Map<string,string> }
     interface IBuilder with
-        member this.ResourceId = ResourceId.create(workspaces, this.Name)
+        member this.ResourceId = workspaces.createResourceId this.Name
         member this.BuildResources location = [
             { Name = this.Name
               Location = location

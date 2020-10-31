@@ -12,7 +12,7 @@ type SignalRConfig =
       Capacity : int option
       AllowedOrigins : string list
       Tags: Map<string,string> }
-    member this.ResourceId = ResourceId.create(signalR, this.Name)
+    member this.ResourceId = signalR.createResourceId this.Name
     interface IBuilder with
         member this.ResourceId = this.ResourceId
         member this.BuildResources location = [

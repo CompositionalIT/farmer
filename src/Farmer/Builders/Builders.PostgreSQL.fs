@@ -31,7 +31,7 @@ type PostgreSQLConfig =
       Tags: Map<string,string>  }
 
     interface IBuilder with
-        member this.ResourceId = ResourceId.create(databases, this.Name)
+        member this.ResourceId = databases.createResourceId this.Name
         member this.BuildResources location = [
             { Name = this.Name
               Location = location

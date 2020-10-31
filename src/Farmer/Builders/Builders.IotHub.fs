@@ -25,7 +25,7 @@ type IotHubConfig =
                 (policy.ToString().ToLower())
                 (this.BuildKey policy)
         ArmExpression.create(expr, this.ResourceId)
-    member private this.ResourceId = ResourceId.create(iotHubs, this.Name)
+    member private this.ResourceId = iotHubs.createResourceId this.Name
     interface IBuilder with
         member this.ResourceId = this.ResourceId
         member this.BuildResources location = [

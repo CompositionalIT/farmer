@@ -18,7 +18,7 @@ type StorageAccount =
         ArmExpression.create(expr, storageAccount)
     /// Gets an ARM Expression connection string for any Storage Account.
     static member getConnectionString (storageAccountName:StorageAccountName, ?group) =
-        StorageAccount.getConnectionString(ResourceId.create(storageAccounts, storageAccountName.ResourceName, ?group = group))
+        StorageAccount.getConnectionString (ResourceId.create (storageAccounts, storageAccountName.ResourceName, ?group = group))
 
 type StoragePolicy =
     { CoolBlobAfter : int<Days> option
@@ -55,7 +55,7 @@ type StorageAccountConfig =
             .reference(storageAccounts, this.ResourceId)
             .Map(sprintf "%s.primaryEndpoints.web")
     member this.Endpoint = sprintf "%s.blob.core.windows.net" this.Name.ResourceName.Value
-    member this.ResourceId = ResourceId.create(storageAccounts, this.Name.ResourceName)
+    member this.ResourceId = storageAccounts.createResourceId this.Name.ResourceName
     interface IBuilder with
         member this.ResourceId = this.ResourceId
         member this.BuildResources location = [

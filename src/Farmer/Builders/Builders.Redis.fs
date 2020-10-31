@@ -23,7 +23,7 @@ type RedisConfig =
       MinimumTlsVersion : TlsVersion option
       Tags: Map<string,string> }
     member this.Key = buildRedisKey this.ResourceId
-    member private this.ResourceId = ResourceId.create(redis, this.Name)
+    member private this.ResourceId = redis.createResourceId this.Name
     interface IBuilder with
         member this.ResourceId = this.ResourceId
         member this.BuildResources location = [

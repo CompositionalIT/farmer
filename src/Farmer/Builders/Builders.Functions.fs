@@ -29,7 +29,7 @@ type FunctionsConfig =
       ZipDeployPath : string option }
 
     /// Gets the system-created managed principal for the functions instance. It must have been enabled using enable_managed_identity.
-    member this.SystemIdentity = SystemIdentity (ResourceId.create(sites, this.Name))
+    member this.SystemIdentity = SystemIdentity (sites.createResourceId this.Name)
     /// Gets the ARM expression path to the publishing password of this functions app.
     member this.PublishingPassword = publishingPassword this.Name
     /// Gets the ARM expression path to the storage account key of this functions app.
@@ -51,7 +51,7 @@ type FunctionsConfig =
     /// Gets the Storage Account name for this functions app.
     member this.StorageAccountName : Storage.StorageAccountName = this.StorageAccount.CreateResourceId(this).Name |> Storage.StorageAccountName.Create |> Result.get
     interface IBuilder with
-        member this.ResourceId = ResourceId.create(sites, this.Name)
+        member this.ResourceId = sites.createResourceId this.Name
         member this.BuildResources location = [
             { Name = this.Name
               ServicePlan = this.ServicePlanName
@@ -133,7 +133,7 @@ type FunctionsConfig =
             match this.StorageAccount with
             | DeployableResource this resourceId ->
                 { Name = Storage.StorageAccountName.Create(resourceId.Name).OkValue
-                  Location = location                  
+                  Location = location
                   Sku = Storage.Sku.Standard_LRS
                   Dependencies = []
                   StaticWebsite = None
@@ -161,11 +161,11 @@ type FunctionsConfig =
 type FunctionsBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
-          ServicePlan = derived (fun config -> ResourceId.create(serverFarms, config.Name-"farm"))
-          AppInsights = Some (derived (fun config -> ResourceId.create(components, config.Name-"ai")))
+          ServicePlan = derived (fun config -> serverFarms.createResourceId (config.Name-"farm"))
+          AppInsights = Some (derived (fun config -> components.createResourceId (config.Name-"ai")))
           StorageAccount = derived (fun config ->
             let storage = config.Name.Map (sprintf "%sstorage") |> sanitiseStorage |> ResourceName
-            ResourceId.create(storageAccounts, storage))
+            storageAccounts.createResourceId storage)
           Runtime = DotNet
           ExtensionVersion = V3
           Cors = None

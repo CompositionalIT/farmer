@@ -34,13 +34,13 @@ type VmConfig =
 
       Tags: Map<string,string> }
 
-    member internal this.DeriveResourceName (resourceType:ResourceType) elementName = ResourceId.create(resourceType, makeName this.Name elementName)
+    member internal this.DeriveResourceName (resourceType:ResourceType) elementName = resourceType.createResourceId (makeName this.Name elementName)
     member this.NicName = this.DeriveResourceName networkInterfaces "nic"
     member this.IpName = this.DeriveResourceName publicIPAddresses "ip"
     member this.Hostname = ArmExpression.reference(publicIPAddresses, this.IpName).Map(sprintf "%s.dnsSettings.fqdn")
 
     interface IBuilder with
-        member this.ResourceId = ResourceId.create(virtualMachines, this.Name)
+        member this.ResourceId = virtualMachines.createResourceId this.Name
         member this.BuildResources location = [
             // VM itself
             { Name = this.Name
@@ -163,7 +163,7 @@ type VirtualMachineBuilder() =
     member __.StorageAccountName(state:VmConfig) =
         let storageResourceRef = derived (fun config ->
             let name = config.Name.Map (sprintf "%sstorage") |> sanitiseStorage |> ResourceName
-            ResourceId.create(storageAccounts, name))
+            storageAccounts.createResourceId name)
 
         { state with DiagnosticsStorageAccount = Some storageResourceRef }
     /// Turns on diagnostics support using an externally managed storage account.
@@ -205,11 +205,11 @@ type VirtualMachineBuilder() =
     member __.SubnetPrefix(state:VmConfig, prefix) = { state with SubnetPrefix = prefix }
     /// Sets the subnet name of the VM.
     [<CustomOperation "subnet_name">]
-    member __.SubnetName(state:VmConfig, name) = { state with Subnet = Named (ResourceId.create(subnets, name)) }
+    member __.SubnetName(state:VmConfig, name:ResourceName) = { state with Subnet = Named (subnets.createResourceId name) }
     member this.SubnetName(state:VmConfig, name) = this.SubnetName(state, ResourceName name)
     /// Uses an external VNet instead of creating a new one.
     [<CustomOperation "link_to_vnet">]
-    member __.LinkToVNet(state:VmConfig, name) = { state with VNet = External (Managed (ResourceId.create(virtualNetworks, name))) }
+    member __.LinkToVNet(state:VmConfig, name:ResourceName) = { state with VNet = External (Managed (virtualNetworks.createResourceId name)) }
     member this.LinkToVNet(state:VmConfig, name) = this.LinkToVNet(state, ResourceName name)
     member this.LinkToVNet(state:VmConfig, vnet:Arm.Network.VirtualNetwork) = this.LinkToVNet(state, vnet.Name)
     member this.LinkToVNet(state:VmConfig, vnet:VirtualNetworkConfig) = this.LinkToVNet(state, vnet.Name)
