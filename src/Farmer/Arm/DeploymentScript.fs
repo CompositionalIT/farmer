@@ -18,14 +18,14 @@ type DeploymentScript =
       Cli : CliVersion
       EnvironmentVariables: Map<string, EnvVarValue>
       ForceUpdateTag : string option
-      Identity : ManagedIdentity
+      Identity : UserAssignedIdentity
       PrimaryScriptUri : System.Uri option
       RetentionInterval : System.TimeSpan option
       ScriptContent : string option
       SupportingScriptUris : System.Uri list
       Timeout : System.TimeSpan option
       Tags: Map<string,string> }
-    member private this.Dependencies = this.Identity.Dependencies
+    member private this.Dependencies = [ this.Identity.ResourceId ]
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
@@ -35,7 +35,7 @@ type DeploymentScript =
                 | AzPowerShell version -> "AzurePowerShell", null, version
             {| deploymentScripts.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
                    kind = cliKind
-                   identity = this.Identity |> ManagedIdentity.toArmJson
+                   identity = { SystemAssigned = Disabled; UserAssigned = [ this.Identity ] } |> ManagedIdentity.toArmJson
                    properties =
                        {| arguments = match this.Arguments with | [] -> null | args -> String.concat " " args
                           azPowerShellVersion = azPowerShellVersion

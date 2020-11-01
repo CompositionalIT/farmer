@@ -3,6 +3,7 @@ module Farmer.Builders.DeploymentScript
 
 open Farmer
 open Farmer.Arm
+open Farmer.Arm.ManagedIdentity
 open Farmer.CoreTypes
 open Farmer.Identity
 
@@ -12,7 +13,7 @@ type DeploymentScriptConfig =
       Cli : CliVersion
       EnvironmentVariables: Map<string, EnvVarValue>
       ForceUpdateTag : string option
-      Identity : ManagedIdentity
+      Identity : UserAssignedIdentity option
       PrimaryScriptUri : System.Uri option
       RetentionInterval : System.TimeSpan option
       ScriptContent : string option
@@ -21,21 +22,49 @@ type DeploymentScriptConfig =
       Timeout : System.TimeSpan option }
     interface IBuilder with
         member this.DependencyName = this.Name
-        member this.BuildResources location = [
-            { Location = location
-              Name = this.Name
-              Arguments = this.Arguments
-              Cli = this. Cli
-              EnvironmentVariables = this.EnvironmentVariables
-              ForceUpdateTag = this.ForceUpdateTag
-              Identity = this.Identity
-              PrimaryScriptUri = this.PrimaryScriptUri
-              RetentionInterval = this.RetentionInterval
-              ScriptContent = this.ScriptContent
-              SupportingScriptUris = this.SupportingScriptUris
-              Tags = this.Tags
-              Timeout = this.Timeout }
-        ]
+        member this.BuildResources location =
+            let generatedIdentityId =
+                let generatedIdentityName = sprintf "%s-identity" this.Name.Value |> ResourceName
+                ResourceId.create (userAssignedIdentities, generatedIdentityName)
+            [
+                if this.Identity.IsNone then
+                    {
+                        Name = generatedIdentityId.Name
+                        Location = location
+                        Tags = Map.empty
+                    }
+                {
+                    Name =
+                        (sprintf "guid(concat(resourceGroup().id, '%O'))" Roles.Contributor.Id
+                        |> ArmExpression.create).Eval()
+                        |> ResourceName
+                    RoleDefinitionId = Roles.Contributor
+                    PrincipalId =
+                        match this.Identity with
+                        | Some identity -> identity.PrincipalId
+                        | None ->
+                            sprintf "reference(%s).%s" generatedIdentityId.ArmExpression.Value "principalId"
+                            |> ArmExpression.create
+                            |> PrincipalId
+                    PrincipalType = PrincipalType.ServicePrincipal
+                    Scope = ResourceName.Empty // assigned over this resource group
+                }
+                { Location = location
+                  Name = this.Name
+                  Arguments = this.Arguments
+                  Cli = this. Cli
+                  EnvironmentVariables = this.EnvironmentVariables
+                  ForceUpdateTag = this.ForceUpdateTag
+                  Identity =
+                    this.Identity
+                    |> Option.defaultValue (UserAssignedIdentity generatedIdentityId)
+                  PrimaryScriptUri = this.PrimaryScriptUri
+                  RetentionInterval = this.RetentionInterval
+                  ScriptContent = this.ScriptContent
+                  SupportingScriptUris = this.SupportingScriptUris
+                  Tags = this.Tags
+                  Timeout = this.Timeout }
+            ]
 
 type DeploymentScriptBuilder() =
     member _.Yield _ =
@@ -44,7 +73,7 @@ type DeploymentScriptBuilder() =
           Cli = AzCli "2.9.1"
           EnvironmentVariables = Map.empty
           ForceUpdateTag = None
-          Identity = ManagedIdentity.Empty
+          Identity = None
           PrimaryScriptUri = None
           RetentionInterval = None
           ScriptContent = None
@@ -79,7 +108,7 @@ type DeploymentScriptBuilder() =
         { state with ForceUpdateTag = Some forceUpdateTag }
     /// Sets the user assigned managed identity under which this deployment script runs.
     [<CustomOperation "identity">]
-    member _.Identity(state:DeploymentScriptConfig, identity:UserAssignedIdentity) = { state with Identity = state.Identity + identity }
+    member _.Identity(state:DeploymentScriptConfig, identity:UserAssignedIdentity) = { state with Identity = Some identity }
     member this.Identity(state, identity:UserAssignedIdentityConfig) = this.Identity(state, identity.UserAssignedIdentity)
     /// URI to download the primary script to execute.
     [<CustomOperation "primary_script_uri">]

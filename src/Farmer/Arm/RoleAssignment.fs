@@ -20,16 +20,16 @@ type PrincipalType =
     | Everyone
     member this.ArmValue =
         match this with
-            | User -> "User"
-            | Group -> "Group"
-            | ServicePrincipal -> "ServicePrincipal"
-            | Unknown -> "Unknown"
-            | DirectoryRoleTemplate -> "DirectoryRoleTemplate"
-            | ForeignGroup -> "ForeignGroup"
-            | Application -> "Application"
-            | MSI -> "MSI"
-            | DirectoryObjectOrGroup -> "DirectoryObjectOrGroup"
-            | Everyone -> "Everyone"
+        | User -> "User"
+        | Group -> "Group"
+        | ServicePrincipal -> "ServicePrincipal"
+        | Unknown -> "Unknown"
+        | DirectoryRoleTemplate -> "DirectoryRoleTemplate"
+        | ForeignGroup -> "ForeignGroup"
+        | Application -> "Application"
+        | MSI -> "MSI"
+        | DirectoryObjectOrGroup -> "DirectoryObjectOrGroup"
+        | Everyone -> "Everyone"
 
 type Assignment =
     { /// It's recommended to use a deterministic GUID for the role name.
@@ -38,8 +38,6 @@ type Assignment =
       RoleDefinitionId : RoleId
       /// The principal ID of the user or service identity that should be granted this role.
       PrincipalId : PrincipalId
-      /// The dependent resource that must exist to get the principal to ensure it is created first.
-      PrincipalResourceId : ResourceId
       /// The type of principal being assigned - should be set to ServicePrincipal for managed identities to avoid
       /// the role assignment being created before Active Directory can replicate the principal.
       PrincipalType : PrincipalType
@@ -49,8 +47,6 @@ type Assignment =
     member private this.Dependencies = [
         if this.Scope <> ResourceName.Empty then
             ResourceId.create this.Scope
-        if this.PrincipalResourceId <> ResourceId.Empty then
-            this.PrincipalResourceId
     ]
     interface IArmResource with
         member this.ResourceName = this.Name
