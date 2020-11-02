@@ -4,6 +4,7 @@ Release Notes
 * Container Instance: Support for command line arguments
 * Key Vault: Support for setting tags on key vault secrets
 * Storage Account: Support for the full set of Storage Account Kind and SKUs (minor breaking change).
+* CognitiveServices: Add S5/S6/S7/S8 Skus and add validation to kind & sku selection.
 
 ## 1.2.0
 * Log Analytics: Initial release.

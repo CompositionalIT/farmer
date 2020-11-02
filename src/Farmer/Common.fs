@@ -336,7 +336,7 @@ module Storage =
     type BlobReplication = LRS | GRS | RAGRS
     type V1Replication = LRS of StoragePerformance | GRS | RAGRS
     type V2Replication = LRS of StoragePerformance | GRS | ZRS | GZRS | RAGRS | RAGZRS
-    type GeneralPurpose = V1 of V1Replication | V2 of V2Replication 
+    type GeneralPurpose = V1 of V1Replication | V2 of V2Replication
     type BlobAccessTier = Hot | Cool
     type Sku =
         | GeneralPurpose of GeneralPurpose
@@ -406,7 +406,8 @@ module WebApp =
     type ConnectionStringKind = MySql | SQLServer | SQLAzure | Custom | NotificationHub | ServiceBus | EventHub | ApiHub | DocDb | RedisCache | PostgreSQL
 
 module CognitiveServices =
-    /// Type of SKU. See https://github.com/Azure/azure-quickstart-templates/tree/master/101-cognitive-services-translate
+    open Validation
+    /// Type of SKU. See https://docs.microsoft.com/en-us/rest/api/cognitiveservices/accountmanagement/resourceskus/list
     type Sku =
         /// Free Tier
         | F0
@@ -415,6 +416,10 @@ module CognitiveServices =
         | S2
         | S3
         | S4
+        | S5
+        | S6
+        | S7
+        | S8
 
     type Kind =
         | AllInOne
@@ -435,6 +440,26 @@ module CognitiveServices =
         | SpeechServices
         | TextAnalytics
         | TextTranslation
+
+    type CognitiveServicesSku =
+        private | CognitiveServicesSku of Sku
+        static member Create kind sku =
+            [
+                (fun kind sku ->
+                    match kind with
+                    | Bing_Search_v7 -> Ok ()
+                    | _ ->
+                        match sku with
+                        | S5 | S6 | S7 | S8 ->
+                            Error (sprintf "Cognitive services sku (%A) is not available for this kind (%A)" sku kind)
+                        | _ -> Ok ()
+                )
+            ]
+            |> Seq.ofList
+            |> validate kind sku
+            |> Result.map CognitiveServicesSku
+
+        member this.Sku = match this with CognitiveServicesSku sku -> sku
 
 module ContainerRegistry =
     /// Container Registry SKU
