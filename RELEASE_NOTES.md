@@ -38,7 +38,6 @@ Release Notes
 * Gateway: Add VPN Client configuration
 * Bastion Hosts: Create bastion hosts for accessing resources on a virtual network
 * DNS Zones: Basic Azure DNS support
-* CognitiveServices: Add S5/S6/S7/S8 Skus and add validation to kind & sku selection.
 
 * Provide all Roles for managed identity purposes.
 * Support for implicitly adding dependencies based on usage e.g. add settings, connection strings etc.

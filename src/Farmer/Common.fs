@@ -394,9 +394,7 @@ module WebApp =
     type ConnectionStringKind = MySql | SQLServer | SQLAzure | Custom | NotificationHub | ServiceBus | EventHub | ApiHub | DocDb | RedisCache | PostgreSQL
 
 module CognitiveServices =
-    open Validation
-
-    /// Type of SKU. See https://docs.microsoft.com/en-us/rest/api/cognitiveservices/accountmanagement/resourceskus/list
+    /// Type of SKU. See https://github.com/Azure/azure-quickstart-templates/tree/master/101-cognitive-services-translate
     type Sku =
         /// Free Tier
         | F0
@@ -405,10 +403,6 @@ module CognitiveServices =
         | S2
         | S3
         | S4
-        | S5
-        | S6
-        | S7
-        | S8
 
     type Kind =
         | AllInOne
@@ -429,27 +423,6 @@ module CognitiveServices =
         | SpeechServices
         | TextAnalytics
         | TextTranslation
-
-    type CognitiveServicesSku =
-        private | CognitiveServicesSku of Sku
-        static member Create kind sku =
-            [
-                yield
-                    (fun kind sku ->
-                        match kind with
-                        | Bing_Search_v7 -> Ok ()
-                        | _ ->
-                            match sku with
-                            | Sku.S5 | Sku.S6 | Sku.S7 | Sku.S8 ->
-                                Error (sprintf "Cognitive services sku (%A) is not available for this kind (%A)" sku kind)
-                            | _ -> Ok ()
-                    )
-            ]
-            |> Seq.ofList
-            |> validate kind sku
-            |> Result.map CognitiveServicesSku
-
-        member this.Sku = match this with CognitiveServicesSku sku -> sku
 
 module ContainerRegistry =
     /// Container Registry SKU
