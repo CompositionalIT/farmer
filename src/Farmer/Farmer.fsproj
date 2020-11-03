@@ -46,7 +46,6 @@
     <Compile Include="Result.fs" />
     <Compile Include="Types.fs" />
     <Compile Include="Common.fs" />
-    <Compile Include="ArmBuilder.fs" />
 
     <Compile Include="Writer.fs" />
     <Compile Include="Deploy.fs" />
@@ -116,5 +115,6 @@
     <Compile Include="Builders/Builders.EventGrid.fs" />
     <Compile Include="Builders/Builders.StaticWebApp.fs" />
     <Compile Include="Builders\Builders.NetworkSecurityGroup.fs" />
+    <Compile Include="ArmBuilder.fs" />
   </ItemGroup>
 </Project>

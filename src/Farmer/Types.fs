@@ -286,3 +286,21 @@ module internal DeterministicGuid =
 
         swapByteOrder newGuid
         Guid newGuid
+
+module Resource =
+    /// Creates a unique IArmResource from an arbitrary object.
+    let ofObj armObject =
+        { new IArmResource with
+             member _.ResourceName = ResourceName (System.Guid.NewGuid().ToString())
+             member _.JsonModel = armObject }
+
+    /// Creates a unique IArmResource from a JSON string containing the output you want.
+    let ofJson json = json |> Newtonsoft.Json.Linq.JObject.Parse |> ofObj
+
+module Json =
+    /// Creates a unique IArmResource from a JSON string containing the output you want.
+    let toIArmResource = Resource.ofJson
+
+module Subscription =
+    /// Gets an ARM expression pointing to the tenant id of the current subscription.
+    let TenantId = ArmExpression.create "subscription().tenantid"
