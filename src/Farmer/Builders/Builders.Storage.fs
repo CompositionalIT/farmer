@@ -54,6 +54,9 @@ type StorageAccountConfig =
         ArmExpression
             .reference(storageAccounts, this.ResourceId)
             .Map(sprintf "%s.primaryEndpoints.web")
+    member this.WebsitePrimaryEndpointHost =
+        this.WebsitePrimaryEndpoint
+            .Map(fun uri -> sprintf "replace(replace(%s, 'https://', ''), '/', '')" uri)
     member this.Endpoint = sprintf "%s.blob.core.windows.net" this.Name.ResourceName.Value
     member this.ResourceId = storageAccounts.resourceId this.Name.ResourceName
     interface IBuilder with
@@ -99,7 +102,7 @@ type StorageAccountConfig =
 type StorageAccountBuilder() =
     member _.Yield _ = {
         Name = StorageAccountName.Create("default").OkValue
-        Sku = Sku.Premium_LRS
+        Sku = Sku.Standard_LRS
         EnableDataLake = None
         Containers = []
         FileShares = []

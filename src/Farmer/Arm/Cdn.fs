@@ -31,15 +31,20 @@ module Profiles =
           Http : FeatureFlag
           Https : FeatureFlag
           Compression : FeatureFlag
-          Origin : string
+          Origin : ArmExpression
           OptimizationType : OptimizationType
-          Tags: Map<string,string>  }
+          Tags: Map<string,string> }
         interface IArmResource with
             member this.ResourceId = endpoints.resourceId (this.Profile/this.Name)
             member this.JsonModel =
-                {| endpoints.Create(this.Profile/this.Name, Location.Global, profiles.resourceId this.Profile :: this.Dependencies, this.Tags) with
+                let dependencies = [
+                    profiles.resourceId this.Profile
+                    yield! this.Origin.Owner |> Option.toList
+                    yield! this.Dependencies
+                ]
+                {| endpoints.Create(this.Profile/this.Name, Location.Global, dependencies, this.Tags) with
                        properties =
-                            {| originHostHeader = this.Origin
+                            {| originHostHeader = this.Origin.Eval()
                                queryStringCachingBehavior = string this.QueryStringCachingBehaviour
                                optimizationType = string this.OptimizationType
                                isHttpAllowed = this.Http.AsBoolean
@@ -48,7 +53,7 @@ module Profiles =
                                contentTypesToCompress = this.CompressedContentTypes
                                origins = [
                                    {| name = "origin"
-                                      properties = {| hostName = this.Origin |}
+                                      properties = {| hostName = this.Origin.Eval() |}
                                    |}
                                ]
                             |}
@@ -57,10 +62,11 @@ module Profiles =
     module Endpoints =
         type CustomDomain =
             { Name : ResourceName
+              Profile : ResourceName
               Endpoint : ResourceName
               Hostname : Uri }
             interface IArmResource with
-                member this.ResourceId = customDomains.resourceId (this.Endpoint/this.Name)
+                member this.ResourceId = customDomains.resourceId (this.Profile/this.Endpoint/this.Name)
                 member this.JsonModel =
                     {| customDomains.Create (this.Endpoint/this.Name, dependsOn = [ endpoints.resourceId this.Endpoint ]) with
                         properties = {| hostName = string this.Hostname |}

@@ -16,7 +16,7 @@ type EndpointConfig =
       Http : FeatureFlag
       Https : FeatureFlag
       Compression : FeatureFlag
-      Origin : string
+      Origin : ArmExpression
       CustomDomain : Uri option
       OptimizationType : OptimizationType }
 
@@ -24,7 +24,7 @@ type CdnConfig =
     { Name : ResourceName
       Sku : Sku
       Endpoints : EndpointConfig list
-      Tags: Map<string,string>  }
+      Tags: Map<string,string> }
     interface IBuilder with
         member this.ResourceId = profiles.resourceId this.Name
         member this.BuildResources _ = [
@@ -46,6 +46,7 @@ type CdnConfig =
                 match endpoint.CustomDomain with
                 | Some customDomain ->
                     { Name = endpoint.Name.Map(sprintf "%sdomain")
+                      Profile = this.Name
                       Endpoint = endpoint.Name
                       Hostname = customDomain }
                 | None ->
@@ -80,7 +81,7 @@ type EndpointBuilder() =
           Http = Enabled
           Https = Enabled
           Compression = Disabled
-          Origin = ""
+          Origin = ArmExpression.Empty
           CustomDomain = None
           OptimizationType = GeneralWebDelivery }
 
@@ -90,10 +91,12 @@ type EndpointBuilder() =
     member this.Name(state:EndpointConfig, name) = this.Name(state, ResourceName name)
     /// The address of the origin.
     [<CustomOperation "origin">]
-    member _.Origin(state:EndpointConfig, name) =
+    member _.Origin(state:EndpointConfig, name:ArmExpression) =
       { state with
-          Name = state.Name.IfEmpty ((name |> Seq.filter Char.IsLetterOrDigit |> Seq.toArray |> String) + "-endpoint")
+          Name = state.Name.IfEmpty ((name.Value |> Seq.filter Char.IsLetterOrDigit |> Seq.toArray |> String) + "-endpoint")
           Origin = name }
+    member this.Origin(state:EndpointConfig, name) = this.Origin(state, ArmExpression.literal name)
+    member this.Origin(state:EndpointConfig, name:Uri) = this.Origin(state, ArmExpression.literal name.Host)
 
     /// Sets a dependency for the web app.
     [<CustomOperation "depends_on">]

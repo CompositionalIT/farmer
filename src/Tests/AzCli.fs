@@ -39,12 +39,12 @@ let tests = testList "Azure CLI" [
         let storage = storageAccount { name ("farmerstorage" + number) }
         let web = webApp { name ("farmerwebapp" + number) }
         let fns = functions { name ("farmerfuncs" + number) }
-        let cogs = cognitiveServices { name ("farmercogs" + number); api CognitiveServices.Kind.TextAnalytics }
         let svcBus = serviceBus { name ("farmerbus" + number); sku ServiceBus.Sku.Standard; add_queues [ queue { name "queue1" } ]; add_topics [ topic { name "topic1"; add_subscriptions [ subscription { name "sub1" } ] } ] }
+        let cdn = cdn { name ("farmercdn" + number); add_endpoints [ endpoint { name ("farmercdnendpoint" + number); origin storage.WebsitePrimaryEndpointHost } ] }
 
         let deployment = arm {
             location Location.NorthEurope
-            add_resources [ sql; storage; web; fns; cogs; svcBus ]
+            add_resources [ sql; storage; web; fns; svcBus; cdn ]
         }
         let resourceGroupName = sprintf "farmer-integration-test-delete-%O" (Guid.NewGuid())
         deployment |> deployTo resourceGroupName [ sql.PasswordParameter, Guid.NewGuid().ToString() ]

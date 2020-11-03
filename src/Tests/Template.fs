@@ -184,11 +184,15 @@ let tests = testList "Template" [
     }
 
     test "Fails if ARM expression is already quoted" {
-        Expect.throws(fun () -> ArmExpression.create "[test]" |> ignore ) "Should fail on quoted ARM expression"
+        Expect.throws(fun () -> ArmExpression.create "[test]" |> ignore ) ""
+    }
+
+    test "Correctly strips a literal expression" {
+        Expect.equal ((ArmExpression.literal "test").Eval()) "test" ""
     }
 
     test "Does not fail if ARM expression contains an inner quote" {
-        Expect.equal "[foo[test]]" ((ArmExpression.create "foo[test]").Eval()) "Failed on quoted ARM expression"
+        Expect.equal "[foo[test]]" ((ArmExpression.create "foo[test]").Eval()) ""
     }
     test "Does not create empty nodes for core resource fields when nothing is supplied" {
         let createdResource = ResourceType("Test", "2017-01-01").Create(ResourceName "Name")
