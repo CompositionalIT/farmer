@@ -74,6 +74,11 @@ module ArmBuilder =
               Location = state1.Location }
 
         member this.For (state: ArmConfig, f: unit -> ArmConfig) = this.Combine(state, f())
+        member this.For (xs: seq<'T>, f: 'T -> ArmConfig) =
+            xs
+            |> Seq.fold (fun xs x -> 
+                this.Combine(xs, f x)
+            ) ArmConfig.empty
         
         member _.Run (state:ArmConfig) =
             let resources = 
@@ -128,7 +133,6 @@ module ArmBuilder =
 
         [<CustomOperation "add_resources">]
         member _.AddResources(state:ArmConfig, input:IBuilder list) =
-            //let resources = input |> List.collect(fun i -> i.BuildResources state.Location)
             input 
             |> List.map (fun b -> b.BuildResources)
             |> ArmConfig.addResources state
