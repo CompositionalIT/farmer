@@ -83,7 +83,7 @@ type FunctionsConfig =
                 match this.OperatingSystem with
                 | Windows -> "functionapp"
                 | Linux -> "functionapp,linux"
-              Dependencies = [
+              Dependencies = Set [
                 yield! this.Dependencies
                 match this.AppInsights with
                 | Some (DependableResource this resourceId) -> resourceId

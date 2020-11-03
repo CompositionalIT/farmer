@@ -121,7 +121,7 @@ type Site =
       ClientAffinityEnabled : bool option
       WebSocketsEnabled : bool option
       Cors : Cors option
-      Dependencies : ResourceId list
+      Dependencies : ResourceId Set
       Kind : string
       Identity : Identity.ManagedIdentity
       LinuxFxVersion : string option
@@ -160,7 +160,7 @@ type Site =
     interface IArmResource with
         member this.ResourceId = sites.resourceId this.Name
         member this.JsonModel =
-            let dependencies = this.Dependencies @ this.Identity.Dependencies
+            let dependencies = this.Dependencies + (Set this.Identity.Dependencies)
             {| sites.Create(this.Name, this.Location, dependencies, this.Tags) with
                  kind = this.Kind
                  identity = this.Identity |> ManagedIdentity.toArmJson

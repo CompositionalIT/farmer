@@ -56,7 +56,7 @@ type IArmResource =
 type IBuilder =
     /// Given a location and the currently-built resources, returns a set of resource actions.
     abstract member BuildResources : Location -> IArmResource list
-    /// Provides the resource name that other resources should use when depending upon this builder.
+    /// Provides the ResourceId that other resources should use when depending upon this builder.
     abstract member ResourceId : ResourceId
 
 /// Represents an expression used within an ARM template
@@ -122,7 +122,7 @@ type ArmExpression with
                      .WithOwner(resourceId)
 
 type ResourceType with
-    member this.Create(name:ResourceName, ?location:Location, ?dependsOn:ResourceId list, ?tags:Map<string,string>) =
+    member this.Create(name:ResourceName, ?location:Location, ?dependsOn:ResourceId seq, ?tags:Map<string,string>) =
         match this with
         | ResourceType (path, version) ->
             {| ``type`` = path
@@ -131,7 +131,7 @@ type ResourceType with
                location = location |> Option.map(fun r -> r.ArmValue) |> Option.toObj
                dependsOn =
                 dependsOn
-                |> Option.map (List.map(fun r -> r.Eval()) >> box)
+                |> Option.map (Seq.map(fun r -> r.Eval()) >> Seq.toArray >> box)
                 |> Option.toObj
                tags = tags |> Option.map box |> Option.toObj |}
 

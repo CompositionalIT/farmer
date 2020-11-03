@@ -82,7 +82,7 @@ type WebAppConfig =
       OperatingSystem : OS
       Settings : Map<string, Setting>
       ConnectionStrings : Map<string, (Setting * ConnectionStringKind)>
-      Dependencies : ResourceId list
+      Dependencies : ResourceId Set
       Tags : Map<string,string>
 
       Cors : Cors option
@@ -236,7 +236,7 @@ type WebAppConfig =
                 match this.OperatingSystem with Linux -> "linux" | Windows -> ()
                 match this.DockerImage with Some _ -> "container" | _ -> ()
               ] |> String.concat ","
-              Dependencies = [
+              Dependencies = Set [
                 match this.ServicePlan with
                 | DependableResource this resourceId -> resourceId
                 | _ -> ()
@@ -383,7 +383,7 @@ type WebAppBuilder() =
           Settings = Map.empty
           ConnectionStrings = Map.empty
           Tags = Map.empty
-          Dependencies = []
+          Dependencies = Set.empty
           Identity = ManagedIdentity.Empty
           Runtime = Runtime.DotNetCoreLts
           OperatingSystem = Windows
@@ -495,8 +495,8 @@ type WebAppBuilder() =
     member this.DependsOn(state:WebAppConfig, builders:IBuilder list) = this.DependsOn (state, builders |> List.map (fun x -> x.ResourceId))
     member this.DependsOn(state:WebAppConfig, resource:IArmResource) = this.DependsOn (state, resource.ResourceId)
     member this.DependsOn(state:WebAppConfig, resources:IArmResource list) = this.DependsOn (state, resources |> List.map (fun x -> x.ResourceId))
-    member this.DependsOn (state:WebAppConfig, resourceId:ResourceId) = { state with Dependencies = resourceId :: state.Dependencies }
-    member this.DependsOn (state:WebAppConfig, resourceIds:ResourceId list) = { state with Dependencies = resourceIds @ state.Dependencies }
+    member this.DependsOn (state:WebAppConfig, resourceId:ResourceId) = { state with Dependencies = state.Dependencies.Add resourceId }
+    member this.DependsOn (state:WebAppConfig, resourceIds:ResourceId list) = { state with Dependencies = state.Dependencies + Set resourceIds }
 
     /// Sets "Always On" flag
     [<CustomOperation "always_on">]
