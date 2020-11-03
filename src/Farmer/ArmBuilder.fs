@@ -41,17 +41,12 @@ module ArmBuilder =
 
         let addResource (state: ArmConfig) (resource: Builder) =
             { state with Resources = resource::state.Resources }
-        
-            // |> List.distinctBy(fun r -> r.ResourceName, r.GetType().Name)
 
     type ArmBuilder() =
         member _.Yield (x: unit) = ArmConfig.empty
-        member this.Yield (appInsight: #IBuilder) =
-            this.Yield(appInsight)
-
         member _.Yield (location: Location) = 
             ArmConfig.create location
-        member _.Yield (input: IBuilder) =
+        member _.Yield (input: #IBuilder) =
             ArmConfig.addResource ArmConfig.empty input.BuildResources
         member _.Yield (input: Builder) =
             ArmConfig.addResource ArmConfig.empty input
