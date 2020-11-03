@@ -1,10 +1,13 @@
 Release Notes
 =============
-## 1.3.0
+## 1.3.0-beta1
 * Container Instance: Support for command line arguments
 * Key Vault: Support for setting tags on key vault secrets
 * Deployment Scripts: Run Azure CLI commands as part of an ARM deployment (PowerShell or AzCli)
 * Storage Account: Support for the full set of Storage Account Kind and SKUs (minor breaking change).
+* Storage Account: Improved integration with CDN.
+
+* CDN has improved integration with Storage Accounts.
 
 ## 1.2.0
 * Log Analytics: Initial release.
