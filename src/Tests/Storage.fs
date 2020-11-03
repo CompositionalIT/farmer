@@ -18,6 +18,20 @@ let tests = testList "Storage Tests" [
         let resource =
             let account = storageAccount {
                 name "mystorage123"
+            }
+            arm { add_resource account }
+            |> getStorageResource
+
+        resource.Validate()
+        Expect.equal resource.Name "mystorage123" "Account name is wrong"
+        Expect.equal resource.Sku.Name "Standard_LRS" "SKU is wrong"
+        Expect.equal resource.Kind "StorageV2" "Kind"
+        Expect.equal resource.IsHnsEnabled (Nullable<bool>()) "Hierarchical namespace shouldn't be included"
+    }
+    test "Data lake is not enabled by default" {
+        let resource =
+            let account = storageAccount {
+                name "mystorage123"
                 sku Sku.Premium_LRS
                 enable_data_lake true
             }
@@ -25,35 +39,20 @@ let tests = testList "Storage Tests" [
             |> getStorageResource
 
         resource.Validate()
-        Expect.equal resource.Name "mystorage123" "Account name is wrong"
         Expect.equal resource.Sku.Name "Premium_LRS" "SKU is wrong"
-        Expect.equal resource.Kind "StorageV2" "Kind"
         Expect.isTrue resource.IsHnsEnabled.Value "Hierarchical namespace not enabled"
     }
-    test "When data lake is not enabled" {
+    test "When data lake can be disabled" {
         let resource =
             let account = storageAccount {
                 name "mystorage123"
-                sku Sku.Premium_LRS
                 enable_data_lake false
             }
             arm { add_resource account }
             |> getStorageResource
 
         resource.Validate()
-        Expect.isFalse resource.IsHnsEnabled.Value "Hierarchical namespace shouldn't be included"
-    }
-    test "When data lake is not enabled by default" {
-        let resource =
-            let account = storageAccount {
-                name "mystorage123"
-                sku Sku.Premium_LRS
-            }
-            arm { add_resource account }
-            |> getStorageResource
-
-        resource.Validate()
-        Expect.equal resource.IsHnsEnabled (Nullable<bool>()) "Hierarchical namespace shouldn't be included"
+        Expect.isFalse resource.IsHnsEnabled.Value "Hierarchical namespace should be false"
     }
     test "Creates containers correctly" {
         let resources : BlobContainer list =
@@ -161,26 +160,26 @@ let tests = testList "Storage Tests" [
         let resource = arm { add_resource account } |> getStorageResource
         Expect.equal resource.Kind "BlobStorage" "Kind"
         Expect.equal resource.AccessTier (Nullable AccessTier.Cool) "Access Tier"
-        Expect.equal resource.Sku.Name "Standard_LRS" "Sku Name"       
+        Expect.equal resource.Sku.Name "Standard_LRS" "Sku Name"
 
         let account = storageAccount { sku (Files BasicReplication.ZRS) }
         let resource = arm { add_resource account } |> getStorageResource
         Expect.equal resource.Kind "FileStorage" "Kind"
-        Expect.equal resource.Sku.Name "Premium_ZRS" "Sku Name"       
+        Expect.equal resource.Sku.Name "Premium_ZRS" "Sku Name"
 
         let account = storageAccount { sku (BlockBlobs BasicReplication.LRS) }
         let resource = arm { add_resource account } |> getStorageResource
         Expect.equal resource.Kind "BlockBlobStorage" "Kind"
-        Expect.equal resource.Sku.Name "Premium_LRS" "Sku Name"       
+        Expect.equal resource.Sku.Name "Premium_LRS" "Sku Name"
 
         let account = storageAccount { sku (GeneralPurpose (V1 V1Replication.RAGRS)) }
         let resource = arm { add_resource account } |> getStorageResource
         Expect.equal resource.Kind "Storage" "Kind"
-        Expect.equal resource.Sku.Name "Standard_RAGRS" "Sku Name"       
+        Expect.equal resource.Sku.Name "Standard_RAGRS" "Sku Name"
 
         let account = storageAccount { sku (GeneralPurpose (V2 (V2Replication.LRS Premium))) }
         let resource = arm { add_resource account } |> getStorageResource
         Expect.equal resource.Kind "StorageV2" "Kind"
-        Expect.equal resource.Sku.Name "Premium_LRS" "Sku Name"       
+        Expect.equal resource.Sku.Name "Premium_LRS" "Sku Name"
     }
 ]
