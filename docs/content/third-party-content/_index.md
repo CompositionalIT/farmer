@@ -14,4 +14,4 @@ In this page, you can find blog posts, videos and tweets on Farmer that will giv
 
 ### Videos
 - Compositional IT
-  - 
+  - [Working with raw JSON ARM resources with Farmer](https://www.youtube.com/watch?v=a8pWqGqPKGg)
