@@ -85,6 +85,7 @@
 
     <Compile Include="IdentityExtensions.fs" />
 
+    <Compile Include="Builders\Builders.MachineLearning.fs" />
     <Compile Include="Builders\Builders.LogAnalytics.fs" />
     <Compile Include="Builders/Builders.Helpers.fs" />
     <Compile Include="Builders/Builders.UserAssignedIdentity.fs" />
