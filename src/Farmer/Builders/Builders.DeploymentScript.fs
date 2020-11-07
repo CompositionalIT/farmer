@@ -14,7 +14,7 @@ type OutputCollection(owner) =
         with get key =
             ArmExpression
                 .reference(deploymentScripts, ResourceId.create(deploymentScripts, owner))
-                .Map(fun v -> v + ".output." + key)
+                .Map(fun v -> v + ".outputs." + key)
 
 type DeploymentScriptConfig =
     { Name : ResourceName
@@ -47,7 +47,7 @@ type DeploymentScriptConfig =
             let identity =
                 this.CustomIdentity
                 |> Option.defaultValue (UserAssignedIdentity generatedIdentityId)
-            
+
             // Assignment
             { Name =
                 (sprintf "guid(concat(resourceGroup().id, '%O'))" Roles.Contributor.Id
@@ -57,7 +57,7 @@ type DeploymentScriptConfig =
               PrincipalId = identity.PrincipalId
               PrincipalType = PrincipalType.ServicePrincipal
               Scope = ResourceGroup }
-            
+
             // Deployment Script
             { Location = location
               Name = this.Name
@@ -86,6 +86,7 @@ type DeploymentScriptBuilder() =
           SupportingScriptUris = []
           Tags = Map.empty
           Timeout = None }
+
     /// Sets the name of the container instance.
     [<CustomOperation "name">]
     member _.Name(state:DeploymentScriptConfig, name) = { state with Name = name }
@@ -122,11 +123,11 @@ type DeploymentScriptBuilder() =
     [<CustomOperation "identity">]
     member _.Identity(state:DeploymentScriptConfig, identity) = { state with CustomIdentity = Some identity }
     member this.Identity(state, identity:UserAssignedIdentityConfig) = this.Identity(state, identity.UserAssignedIdentity)
-    /// Time to retain the container instance that runs the script - 1 to 30 days.
+    /// Time to retain the container instance that runs the script - 1 to 26 hours.
     [<CustomOperation "retention_interval">]
     member _.RetentionInterval(state:DeploymentScriptConfig, retentionInterval) =
-        let maxRetention = min retentionInterval 30<Days>
-        { state with RetentionInterval = Some (TimeSpan.FromDays (float maxRetention)) }
+        let maxRetention = min retentionInterval 30<Hours>
+        { state with RetentionInterval = Some (TimeSpan.FromHours (float maxRetention)) }
     /// Additional URIs to download scripts that the primary script relies on.
     [<CustomOperation "supporting_script_uris">]
     member _.SupportingScriptUris(state:DeploymentScriptConfig, supportingScriptUris) =

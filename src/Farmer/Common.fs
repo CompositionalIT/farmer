@@ -59,6 +59,7 @@ type OS = Windows | Linux
 type [<Measure>] Gb
 type [<Measure>] Mb
 type [<Measure>] Mbps
+type [<Measure>] Hours
 type [<Measure>] Days
 type [<Measure>] VCores
 type IsoDateTime =
@@ -72,7 +73,7 @@ type EnvVar =
     | SecureEnvValue of string
     static member create (name:string) (value:string) = name, EnvValue value
     static member createSecure (name:string) (value:string) = name, SecureEnvValue value
-    
+
 module Mb =
     let toBytes (mb:int<Mb>) = int64 mb * 1024L * 1024L
 module Vm =
@@ -341,7 +342,7 @@ module Storage =
     type BlobReplication = LRS | GRS | RAGRS
     type V1Replication = LRS of StoragePerformance | GRS | RAGRS
     type V2Replication = LRS of StoragePerformance | GRS | ZRS | GZRS | RAGRS | RAGZRS
-    type GeneralPurpose = V1 of V1Replication | V2 of V2Replication 
+    type GeneralPurpose = V1 of V1Replication | V2 of V2Replication
     type BlobAccessTier = Hot | Cool
     type Sku =
         | GeneralPurpose of GeneralPurpose
