@@ -186,4 +186,35 @@ let tests = testList "Web App Tests" [
         Expect.sequenceEqual (wa.Identity.UserAssignedIdentities |> Seq.map(fun r -> r.Key)) [ "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test2')]"; "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test')]" ] "Should have two user assigned identities"
 
     }
+
+    test "Handles use_extension correctly" {
+        let wa = webApp { name "xyz"; use_extension "abc"; }
+        let resources = wa |> getResources
+        let sx = resources |> getResource<SiteExtension> |> List.head
+        let r  = sx :> IArmResource
+
+        Expect.equal sx.SiteName (ResourceName "xyz") "Extension knows the site name"
+        Expect.notEqual sx.Location (Location "") "Location has a default value"
+        Expect.equal sx.Name (ResourceName "abc") "Extension name is correct"
+        Expect.equal r.ResourceName (ResourceName "xyz/abc") "Resource name composed of site name and extension name"
+    }
+
+    test "Handles multiple use_extension correctly" {
+        let wa = webApp { name "xyz"; use_extension "abc"; use_extension "def" }
+        let resources = wa |> getResources |> getResource<SiteExtension>
+
+        Expect.equal resources.Length 2 "Both extensions captured"
+
+        // We will make no assertion on the ordering of sx1 and sx2
+        let sx1 = resources |> List.head
+        let sx2 = resources |> List.tail |> List.head
+
+        let abc = ResourceName "abc"
+        let def = ResourceName "def"
+
+        Expect.isTrue (sx1.Name <> sx2.Name) "Extensions are distinct"
+        Expect.isTrue (sx1.Name = abc || sx1.Name = def) "Extension #1 named correctly"
+        Expect.isTrue (sx2.Name = abc || sx2.Name = def) "Extension #1 named correctly"
+    }
+
 ]

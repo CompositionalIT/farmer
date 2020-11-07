@@ -72,6 +72,17 @@ type SecretStore =
     | AppService
     | KeyVault of ResourceRef<WebAppConfig>
 
+//
+// I really want to call this a
+// - SiteExtension (annoys me that it collides with type with same name from module SiteExtension) or
+// - SiteExtensionConfiguration (doesn't seem to fit with naming scheme around these parts)
+//
+type Extension = {
+    Name : string
+    Location : Location option // Defaults to main location
+    // TODO: Version : Version option // Defaults to being unspecified in the template
+}
+
 type WebAppConfig =
     { Name : ResourceName
       ServicePlan : ResourceRef<WebAppConfig>
@@ -105,6 +116,8 @@ type WebAppConfig =
       DockerAcrCredentials : {| RegistryName : string; Password : SecureParameter |} option
 
       SecretStore : SecretStore
+
+      SiteExtensions : Extension list
     }
     /// Gets the ARM expression path to the publishing password of this web app.
     member this.PublishingPassword = publishingPassword (this.Name)
@@ -364,6 +377,16 @@ type WebAppConfig =
                   Tags = this.Tags}
             | _ ->
                 ()
+
+            yield! this.SiteExtensions
+                |> List.map (fun x ->
+                    {
+                        SiteName = this.Name
+                        Name     = ResourceName x.Name
+                        Location = match x.Location with
+                                    | None -> location // Default to main location
+                                    | Some loc -> loc
+                    } :> IArmResource ) // Can't understand why I have to *upcast* . An anomaly of trying to mix OO and FP? Compiler insists that I be clear on what type I'm working with?
         ]
 
 type WebAppBuilder() =
@@ -394,7 +417,8 @@ type WebAppBuilder() =
           Cors = None
           SourceControlSettings = None
           DockerAcrCredentials = None
-          SecretStore = AppService }
+          SecretStore = AppService
+          SiteExtensions = [] }
     member __.Run(state:WebAppConfig) =
         let operatingSystem =
             match state.DockerImage with
@@ -596,6 +620,18 @@ type WebAppBuilder() =
     member this.LinkToExternalKeyVault(state:WebAppConfig, name) =
         let state = this.SystemIdentity (state)
         { state with SecretStore = KeyVault (External(Unmanaged name)) }
+
+    [<CustomOperation "use_extension">]
+    member this.UseExtension(state:WebAppConfig, name:string) =
+        let state = this.SystemIdentity (state) // REVIEW: Implied as required in https://www.visualstudiogeeks.com/devops/installing-aspnet-core-site-extensions-for-azure-app-service-using-arm
+        { state with SiteExtensions = { Name = name; Location = None } :: state.SiteExtensions }
+
+    // An initial attempt at handling location override. Then I noticed that we can also specify version, so decided
+    // that it would be best to use a builder for anything more complicated than just the extension name
+    //[<CustomOperation "use_extension_at">]
+    //member this.UseExtensionAt(state:WebAppConfig, name:string, location:Location) =
+    //    let state = this.SystemIdentity (state)
+    //    { state with SiteExtensions = { Name = name; Location = Some location } :: state.SiteExtensions }
 
 let webApp = WebAppBuilder()
 
