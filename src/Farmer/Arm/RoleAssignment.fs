@@ -31,7 +31,10 @@ type PrincipalType =
         | DirectoryObjectOrGroup -> "DirectoryObjectOrGroup"
         | Everyone -> "Everyone"
 
-type Assignment =
+/// The scope that an assignment applies to - either a specific resource, or the entire resource group.
+type AssignmentScope = ResourceGroup | SpecificResource of ResourceId
+
+type RoleAssignment =
     { /// It's recommended to use a deterministic GUID for the role name.
       Name : ResourceName
       /// The role to assign, such as Roles.Contributor
@@ -41,12 +44,13 @@ type Assignment =
       /// The type of principal being assigned - should be set to ServicePrincipal for managed identities to avoid
       /// the role assignment being created before Active Directory can replicate the principal.
       PrincipalType : PrincipalType
-      /// Resource this role applies to. If empty, this will apply to the resource group where deployed.
-      Scope : ResourceName }
+      /// Resource this role applies to.
+      Scope : AssignmentScope }
     
     member private this.Dependencies = [
-        if this.Scope <> ResourceName.Empty then
-            ResourceId.create this.Scope
+        match this.Scope with
+        | SpecificResource resourceId -> resourceId
+        | ResourceGroup -> ()
     ]
     interface IArmResource with
         member this.ResourceName = this.Name
@@ -56,9 +60,9 @@ type Assignment =
                     {| roleDefinitionId = this.RoleDefinitionId.ArmValue.Eval()
                        principalId = this.PrincipalId.ArmExpression.Eval()
                        scope =
-                           if this.Scope <> ResourceName.Empty then
-                               (ResourceId.create this.Scope).Eval()
-                           else null // Scope will be the resource group where this is deployed.
+                        match this.Scope with
+                        | SpecificResource resourceId -> resourceId.Eval()
+                        | ResourceGroup -> null
                        principalType = this.PrincipalType.ArmValue
                     |}
             |}:> _
