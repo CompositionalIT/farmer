@@ -67,7 +67,12 @@ type IsoDateTime =
     member this.Value = match this with IsoDateTime value -> value
 type TransmissionProtocol = TCP | UDP
 type TlsVersion = Tls10 | Tls11 | Tls12
-
+type EnvVar =
+    | EnvValue of string
+    | SecureEnvValue of string
+    static member create (name:string) (value:string) = name, EnvValue value
+    static member createSecure (name:string) (value:string) = name, SecureEnvValue value
+    
 module Mb =
     let toBytes (mb:int<Mb>) = int64 mb * 1024L * 1024L
 module Vm =
