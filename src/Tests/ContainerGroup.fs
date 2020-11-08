@@ -139,9 +139,7 @@ let tests = testList "Container Group" [
         let helloShared2 = containerInstance {
             name "hello-shared-dir2"
             add_ports PublicPort [ 81us ]
-            env_vars [
-                env_var "testing" "environment variables"
-            ]
+            env_vars [ "testing", "environment variables" ]
             image "mcr.microsoft.com/azuredocs/aci-helloworld:latest"
             add_volume_mount "shared-socket" "/var/lib/shared/hello"
             add_volume_mount "azure-file" "/var/lib/files"

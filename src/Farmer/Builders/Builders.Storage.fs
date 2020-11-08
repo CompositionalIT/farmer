@@ -3,6 +3,7 @@ module Farmer.Builders.Storage
 
 open Farmer
 open Farmer.Storage
+open Farmer.Arm.RoleAssignment
 open Farmer.Arm.Storage
 open BlobServices
 open FileShares
@@ -94,9 +95,19 @@ type StorageAccountConfig =
                   ]
                 }
             for roleAssignment in this.RoleAssignments do
-                { Providers.StorageAccount = this.Name
-                  Providers.RoleDefinitionId = roleAssignment.Role
-                  Providers.PrincipalId = roleAssignment.Principal }
+                let uniqueName =
+                    sprintf "%s%s%O"
+                        this.Name.ResourceName.Value
+                        roleAssignment.Principal.ArmExpression.Value
+                        roleAssignment.Role.Id
+                    |> DeterministicGuid.create
+                    |> string
+                    |> ResourceName
+                { Name = uniqueName
+                  RoleDefinitionId = roleAssignment.Role
+                  PrincipalId = roleAssignment.Principal
+                  PrincipalType = PrincipalType.ServicePrincipal
+                  Scope = SpecificResource (ResourceId.create(storageAccounts, this.Name.ResourceName)) }
         ]
 
 type StorageAccountBuilder() =

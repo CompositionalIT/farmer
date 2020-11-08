@@ -12,36 +12,6 @@ let queues = ResourceType ("Microsoft.Storage/storageAccounts/queueServices/queu
 let managementPolicies = ResourceType ("Microsoft.Storage/storageAccounts/managementPolicies", "2019-06-01")
 let roleAssignments = ResourceType ("Microsoft.Storage/storageAccounts/providers/roleAssignments", "2018-09-01-preview")
 
-module Providers =
-    type RoleAssignment =
-        { StorageAccount : StorageAccountName
-          RoleDefinitionId : RoleId
-          PrincipalId : PrincipalId }
-        interface IArmResource with
-            member this.ResourceId =
-                sprintf "%s/%s/%O"
-                    this.StorageAccount.ResourceName.Value
-                    "Microsoft.Authorization"
-                    (DeterministicGuid.create(this.StorageAccount.ResourceName.Value + this.PrincipalId.ArmExpression.Value + this.RoleDefinitionId.ToString()))
-                |> roleAssignments.resourceId
-            member this.JsonModel =
-                let iar = this :> IArmResource
-                let dependencies =
-                    [ storageAccounts.resourceId this.StorageAccount.ResourceName ]
-                    @ (this.PrincipalId.ArmExpression.Owner |> Option.toList)
-
-                {| roleAssignments.Create(iar.ResourceId.Name, dependsOn = dependencies) with
-                    tags =
-                        {| displayName =
-                            match this.PrincipalId.ArmExpression.Owner with
-                            | None -> this.RoleDefinitionId.Name
-                            | Some owner -> sprintf "%s (%s)" this.RoleDefinitionId.Name owner.Name.Value
-                        |}
-                    properties =
-                        {| roleDefinitionId = this.RoleDefinitionId.ArmValue.Eval()
-                           principalId = this.PrincipalId.ArmExpression.Eval() |}
-                |} :> _
-
 type StorageAccount =
     { Name : StorageAccountName
       Location : Location
