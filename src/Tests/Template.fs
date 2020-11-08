@@ -159,14 +159,6 @@ let tests = testList "Template" [
         Expect.equal b.Dependencies [ ResourceId.create (ResourceName "aaa"); ResourceId.create (ResourceName "bbb") ] "Dependencies should have been set"
     }
 
-    test "Can add a list of dependencies without upcasting to IBuilder" {
-        let a = storageAccount { name "aaa" }
-        let b = storageAccount { name "bbb" }
-        let b = webApp { name "b"; depends_on [ a; b ] }
-
-        Expect.equal b.Dependencies [ ResourceId.create (ResourceName "aaa"); ResourceId.create (ResourceName "bbb") ] "Dependencies should have been set"
-    }
-
     test "Generates untyped Resource Id" {
         let rid = ResourceId.create (ResourceName "test")
         let id = rid.Eval()
