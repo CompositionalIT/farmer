@@ -3,20 +3,24 @@
 
 open Farmer
 open Farmer.Builders
+open System
 
 let createFileScript = deploymentScript {
     name "custom-deploy-steps"
     force_update
-    retention_interval 3<Days>
-    supporting_script_uris []
-    /// Set the script content directly
-    /// Format output as JSON and pipe to $AZ_SCRIPTS_OUTPUT_PATH to make it available as output.
-    script_content """printf "{'date':'%s'"} "`date`" > $AZ_SCRIPTS_OUTPUT_PATH """
+    retention_interval 1<Hours>
+    script_content """printf "{'date':'%s' }" "`date`" > $AZ_SCRIPTS_OUTPUT_PATH """
 }
 
 let template = arm {
     add_resource createFileScript
-    output "date" createFileScript.Outputs.["date"]
+    location Location.NorthEurope
+    output "fromscript" createFileScript.Outputs.["date"]
+    output "name" "isaac"
+    output "age" "21"
+    output "mydate" "2020-11-07T20:09:45.4329796Z"
 }
 
-template |> Writer.quickWrite "dep-script"
+let outputs = template.Deploy<{| FromScript : string; Name : string; Age : int; MyDate : DateTime |}> "my-resource-group"
+
+outputs.
