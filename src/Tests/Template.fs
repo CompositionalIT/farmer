@@ -152,9 +152,9 @@ let tests = testList "Template" [
     }
 
     test "Can add dependencies through IBuilder" {
-        let a = storageAccount { name "aaa" }
-        let b = storageAccount { name "bbb" }
-        let b = webApp { name "b"; depends_on [ a :> IBuilder; b :> IBuilder ] }
+        let a = storageAccount { name "aaa" } :> IBuilder
+        let b = storageAccount { name "bbb" } :> IBuilder
+        let b = webApp { name "b"; depends_on [ a; b ] }
 
         Expect.equal b.Dependencies [ ResourceId.create (ResourceName "aaa"); ResourceId.create (ResourceName "bbb") ] "Dependencies should have been set"
     }
