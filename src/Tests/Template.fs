@@ -5,6 +5,8 @@ open Farmer
 open Farmer.Builders
 open Farmer.CoreTypes
 open Newtonsoft.Json
+open Farmer.Arm.Maps
+open Farmer.Arm.CognitiveServices
 
 [<AutoOpen>]
 module TestHelpers =
@@ -152,9 +154,38 @@ let tests = testList "Template" [
     }
 
     test "Can add dependencies through IBuilder" {
-        let a = storageAccount { name "aaa" } :> IBuilder
-        let b = storageAccount { name "bbb" } :> IBuilder
-        let b = webApp { name "b"; depends_on [ a; b ] }
+        let builders = [ "aaa"; "bbb" ] |> List.map(fun x -> storageAccount { name x } :> IBuilder)
+        let b = webApp { name "b"; depends_on builders }
+
+        Expect.equal b.Dependencies [ ResourceId.create (ResourceName "aaa"); ResourceId.create (ResourceName "bbb") ] "Dependencies should have been set"
+    }
+
+    test "Can add IBuilder dependencies of the same subtype without converting to IBuilder" {
+        let storageAccounts = [ storageAccount { name "aaa" }; storageAccount { name "bbb" } ]
+        let b = webApp { name "b"; depends_on storageAccounts }
+
+        Expect.equal b.Dependencies [ ResourceId.create (ResourceName "aaa"); ResourceId.create (ResourceName "bbb") ] "Dependencies should have been set"
+    }
+
+    test "Can add IBuilder dependencies of a different subtype" {
+        let resources : IBuilder list = [ storageAccount { name "aaa" }; search { name "bbb" } ]
+        let b = webApp { name "b"; depends_on resources }
+
+        Expect.equal b.Dependencies [ ResourceId.create (ResourceName "aaa"); ResourceId.create (ResourceName "bbb") ] "Dependencies should have been set"
+    }
+
+    let makeMap name = { Name = ResourceName name; Location = Location.NorthEurope; Sku = Maps.S0; Tags = Map.empty }
+
+    test "Can add dependencies through IArmResource" {
+        let builders : IArmResource list = [ makeMap "aaa"; makeMap "bbb" ]
+        let b = webApp { name "b"; depends_on builders }
+
+        Expect.equal b.Dependencies [ ResourceId.create (ResourceName "aaa"); ResourceId.create (ResourceName "bbb") ] "Dependencies should have been set"
+    }
+
+    test "Can add IArmResource dependencies of a different subtype" {
+        let resources : IArmResource list = [ makeMap "aaa"; { Name = ResourceName "bbb"; Location = Location.NorthEurope; Sku = CognitiveServices.S0; Kind = CognitiveServices.AllInOne; Tags = Map.empty } ]
+        let b = webApp { name "b"; depends_on resources }
 
         Expect.equal b.Dependencies [ ResourceId.create (ResourceName "aaa"); ResourceId.create (ResourceName "bbb") ] "Dependencies should have been set"
     }

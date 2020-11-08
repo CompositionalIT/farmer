@@ -360,7 +360,7 @@ type SecretBuilder() =
     member this.DependsOn(state:SecretConfig, resourceName) = this.AddDependency(state, resourceName)
     member this.DependsOn(state:SecretConfig, resources) = this.AddDependencies(state, resources)
     member this.DependsOn(state:SecretConfig, builder:IBuilder) = this.AddDependency(state, builder.DependencyName)
-    member this.DependsOn(state:SecretConfig, builders:IBuilder list) = this.AddDependencies(state, builders |> List.map (fun x -> x.DependencyName))
+    member this.DependsOn(state:SecretConfig, builders:#IBuilder list) = this.AddDependencies(state, builders |> List.map (fun x -> x.DependencyName))
     member this.DependsOn(state:SecretConfig, resource:IArmResource) = this.AddDependency(state, resource.ResourceName)
     member this.DependsOn(state:SecretConfig, resources:IArmResource list) = this.AddDependencies(state, resources |> List.map (fun x -> x.ResourceName))
     [<CustomOperation "add_tags">]

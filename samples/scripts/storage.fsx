@@ -13,6 +13,3 @@ let myStorage = storageAccount {
 let template = arm {
     add_resource myStorage
 }
-
-template |> Writer.quickWrite "template"
-template |> Deploy.execute "functions-rg" []

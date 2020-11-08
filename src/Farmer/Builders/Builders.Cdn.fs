@@ -106,7 +106,7 @@ type EndpointBuilder() =
     member this.DependsOn(state:EndpointConfig, resourceName) = this.AddDependency(state, resourceName)
     member this.DependsOn(state:EndpointConfig, resources) = this.AddDependencies(state, resources)
     member this.DependsOn(state:EndpointConfig, builder:IBuilder) = this.AddDependency(state, builder.DependencyName)
-    member this.DependsOn(state:EndpointConfig, builders:IBuilder list) = this.AddDependencies(state, builders |> List.map (fun x -> x.DependencyName))
+    member this.DependsOn(state:EndpointConfig, builders:#IBuilder list) = this.AddDependencies(state, builders |> List.map (fun x -> x.DependencyName))
     member this.DependsOn(state:EndpointConfig, resource:IArmResource) = this.AddDependency(state, resource.ResourceName)
     member this.DependsOn(state:EndpointConfig, resources:IArmResource list) = this.AddDependencies(state, resources |> List.map (fun x -> x.ResourceName))
 

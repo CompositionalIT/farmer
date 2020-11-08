@@ -235,7 +235,7 @@ type ServiceBusBuilder() =
     member this.DependsOn(state:ServiceBusConfig, resourceName) = this.AddDependency(state, resourceName)
     member this.DependsOn(state:ServiceBusConfig, resources) = this.AddDependencies(state, resources)
     member this.DependsOn(state:ServiceBusConfig, builder:IBuilder) = this.AddDependency(state, builder.DependencyName)
-    member this.DependsOn(state:ServiceBusConfig, builders:IBuilder list) = this.AddDependencies(state, builders |> List.map (fun x -> x.DependencyName))
+    member this.DependsOn(state:ServiceBusConfig, builders:#IBuilder list) = this.AddDependencies(state, builders |> List.map (fun x -> x.DependencyName))
     member this.DependsOn(state:ServiceBusConfig, resource:IArmResource) = this.AddDependency(state, resource.ResourceName)
     member this.DependsOn(state:ServiceBusConfig, resources:IArmResource list) = this.AddDependencies(state, resources |> List.map (fun x -> x.ResourceName))
 

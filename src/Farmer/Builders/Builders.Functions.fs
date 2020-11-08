@@ -134,7 +134,7 @@ type FunctionsConfig =
             match this.StorageAccount with
             | DeployableResource this resourceName ->
                 { Name = Storage.StorageAccountName.Create(resourceName).OkValue
-                  Location = location                  
+                  Location = location
                   Sku = Storage.Sku.Standard_LRS
                   Dependencies = []
                   StaticWebsite = None
@@ -245,7 +245,7 @@ type FunctionsBuilder() =
     member this.DependsOn(state:FunctionsConfig, resourceName) = this.AddDependency(state, resourceName)
     member this.DependsOn(state:FunctionsConfig, resources) = this.AddDependencies(state, resources)
     member this.DependsOn(state:FunctionsConfig, builder:IBuilder) = this.AddDependency(state, builder.DependencyName)
-    member this.DependsOn(state:FunctionsConfig, builders:IBuilder list) = this.AddDependencies(state, builders |> List.map (fun x -> x.DependencyName))
+    member this.DependsOn(state:FunctionsConfig, builders:#IBuilder list) = this.AddDependencies(state, builders |> List.map (fun x -> x.DependencyName))
     member this.DependsOn(state:FunctionsConfig, resource:IArmResource) = this.AddDependency(state, resource.ResourceName)
     member this.DependsOn(state:FunctionsConfig, resources:IArmResource list) = this.AddDependencies(state, resources |> List.map (fun x -> x.ResourceName))
 
