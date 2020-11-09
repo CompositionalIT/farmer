@@ -1,7 +1,7 @@
 ---
 title: "Third Party Content"
 date: 2020-11-02
-weight: 9
+weight: 8
 ---
 
 In this page, you can find blog posts, videos and tweets on Farmer that will give you a better sense of the scenery and the dialogue around it.
@@ -17,12 +17,20 @@ In this page, you can find blog posts, videos and tweets on Farmer that will giv
 #### Videos
 - Compositional IT 
   - [Working with raw JSON ARM resources with Farmer](https://www.youtube.com/watch?v=a8pWqGqPKGg)
+- NDC Conferences
+  - [Authoring ARM templates the easy way with FARMer - Isaac Abraham](https://www.youtube.com/watch?v=w-tgwwAR8_Y)
 - SSW TV
   - [Making Infrastructure as Code Easier in Azure](https://www.youtube.com/watch?v=8E63s2QlbhA)
 
 #### Tweets
-- Isaac Abraham
-  - [Here's a Farmer generated Azure ARM template...](https://twitter.com/isaac_abraham/status/1173185643721166848?lang=en-gb)
+- Isaac Abraham ([@isaac_abraham](https://twitter.com/isaac_abraham))
+  - Here's a Farmer-generated @azure ARM template for a VM. Nine lines of #fsharp (and look - even curly braces ;-)) gives a 135-line, fully-configured and parameterised template. Creating custom disk configurations is easy, as per the screenshots. https://github.com/CompositionalIT/farmer
+- Jan De Vries ([@Jan_de_V](https://twitter.com/Jan_de_V))
+  - Holy moly, this was a breeze! Smiling face with heart-shaped eyes. I'm SO going to use this more often, even if it's just to get a baseline for a customer. Saves tons of time! Sidenote: I've just written my first 19 lines of #fsharp
+- SvenMalvik ([@SvenMalvik](https://twitter.com/SvenMalvik))
+  - New Blog post: I created a first Farmer for #ARM deployments project to see if its something we want to use in the future. #Azure #Pulumi
+- Jan(ek) Fellien ([@anekf](https://twitter.com/janekf))
+  - Hey @isaac_abraham, #Farmer is kind of awesome. A few lines and my fav env is created. #ILike Do you have any samples how to deploy #AzureFunctions from DevOps to previously with Farmer created infrastructure?
 
 #### Reddit
 - Isaac Abraham
