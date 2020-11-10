@@ -20,8 +20,6 @@ type ImageRegistryCredential =
       Username : string
       Password : SecureParameter }
 
-type EnvVarValue = EnvValue of string | EnvSecureValue of string
-
 type ContainerGroup =
     { Name : ResourceName
       Location : Location
@@ -32,7 +30,7 @@ type ContainerGroup =
            Ports : uint16 Set
            Cpu : float
            Memory : float<Gb>
-           EnvironmentVariables: Map<string, EnvVarValue>
+           EnvironmentVariables: Map<string, EnvVar>
            VolumeMounts : Map<string,string>
         |} list
       OperatingSystem : OS
@@ -80,7 +78,7 @@ type ContainerGroup =
                                           for (key, value) in Map.toSeq container.EnvironmentVariables do
                                               match value with
                                               | EnvValue v -> {| name = key; value = v; secureValue = null |}
-                                              | EnvSecureValue v -> {| name = key; value = null; secureValue = v |}
+                                              | SecureEnvValue v -> {| name = key; value = null; secureValue = v |}
                                       ]
                                       resources =
                                        {| requests =
