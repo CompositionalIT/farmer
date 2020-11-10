@@ -14,13 +14,14 @@ In this quickstart, you'll expand on the deployment authored in the [previous qu
 
 #### Creating a storage account
 Create a storage account by using the `storageAccount` builder.
+
 ```fsharp
 let myStorage = storageAccount {
     name "yourfirststorage"
 }
 ```
 
-> Azure Storage Account names must be globally unique and between 3-24 alphanumeric lower-case characters:
+> Azure Storage Account names must be globally unique and between 3-24 alphanumeric lower-case characters!
 
 #### Referencing the storage account in the web app
 In this section, we will add an app setting to the web app and set the value to the storage account's connection string.
@@ -36,19 +37,9 @@ let myWebApp = webApp {
 }
 ```
 
+If you're coming from a raw ARM template background, don't worry about the need to set dependencies between the Storage Account and Web App - Farmer will automatically do this for you!
+
 > Settings can be strings or (as in this case) an ARM expression, which is evaluated at deployment time.
-
-#### Setting dependencies between resources on the storage account
-In ARM templates, you need to explicitly set up **dependencies** between resources that refer to one another. In Farmer, this is not generally required, as it can detect the source of a specific "link" and set the dependency as appropriate. In the example above, the act of setting the storage key as a setting on the web application automatically tells Farmer that there's a dependency between them.
-
-Nonetheless, if you need to explicitly set a dependency between resources, you can do so as follows:
-
-```fsharp
-let myWebApp = webApp {
-    ...
-    depends_on myStorage
-}
-```
 
 #### Adding the storage account to the deployment
 Add the storage account to the deployment using the same `add_resource` keyword as you did with `myWebApp`.
