@@ -79,7 +79,6 @@
     <Compile Include="Arm/SignalR.fs" />
     <Compile Include="Arm/EventGrid.fs" />
     <Compile Include="Arm\NetworkSecurityGroup.fs" />
-    <Compile Include="Arm/SiteExtensions.fs" />
 
     <Compile Include="IdentityExtensions.fs" />
 

@@ -11,6 +11,9 @@ let sites = ResourceType ("Microsoft.Web/sites", "2016-08-01")
 let config = ResourceType ("Microsoft.Web/sites/config", "2016-08-01")
 let sourceControls = ResourceType ("Microsoft.Web/sites/sourcecontrols", "2019-08-01")
 let staticSites = ResourceType("Microsoft.Web/staticSites", "2019-12-01-preview")
+// https://docs.microsoft.com/en-us/azure/templates/microsoft.web/2020-06-01/sites/siteextensions
+let siteExtensions =
+    ResourceType("Microsoft.Web/sites/siteextensions", "2020-06-01")
 
 type ServerFarm =
     { Name : ResourceName
@@ -246,3 +249,33 @@ type StaticSite =
             this.RepositoryToken
         ]
 
+[<AutoOpen>]
+module SiteExtensions =
+    type SiteExtension =
+        { SiteName  : ResourceName
+          Name      : ResourceName
+          Location  : Location
+          }
+        interface IArmResource with
+            member this.ResourceName = this.SiteName / this.Name
+
+            member this.JsonModel =
+                siteExtensions.Create(
+                    this.Name,
+                    this.Location,
+                    [ ResourceId.create( sites, this.SiteName) ] ) :> _
+
+    //
+    //  What we're trying to generate in JsonModel. Note that we've short-circuited the `parameters()` calls
+    //
+    (*
+        {
+            "type": "Microsoft.Web/sites/siteextensions",
+            "apiVersion": "2018-11-01",
+            "name": "[concat(parameters('sites_myapp_name'), '/Microsoft.AspNetCore.AzureAppServices.SiteExtension')]",
+            "location": "West Europe",
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('sites_myapp_name'))]"
+            ]
+        }
+    *)

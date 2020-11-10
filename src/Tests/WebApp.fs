@@ -214,7 +214,15 @@ let tests = testList "Web App Tests" [
 
         Expect.isTrue (sx1.Name <> sx2.Name) "Extensions are distinct"
         Expect.isTrue (sx1.Name = abc || sx1.Name = def) "Extension #1 named correctly"
-        Expect.isTrue (sx2.Name = abc || sx2.Name = def) "Extension #1 named correctly"
+        Expect.isTrue (sx2.Name = abc || sx2.Name = def) "Extension #2 named correctly"
     }
 
+    test "SiteExtension ResourceId constructed correctly" {
+        let siteName = ResourceName "xyz"
+        let resourceType = ResourceType ("Microsoft.Web/sites" ,"") // Guessing that "" for version is OK
+        let id = ResourceId.create( resourceType, siteName )
+
+        // Be resilient with changes to whitespace. Ish.
+        Expect.equal (id.ArmExpression.Value.Replace(" ", "")) "resourceId('Microsoft.Web/sites','xyz')" "Produces the right resourceId used in siteextensions"
+    }
 ]
