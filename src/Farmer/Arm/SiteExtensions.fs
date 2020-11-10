@@ -13,16 +13,9 @@ type SiteExtension =
       Name      : ResourceName
       Location  : Location }
     interface IArmResource with
-        member this.ResourceName = sprintf "%s/%s" this.SiteName.Value this.Name.Value |> ResourceName
-
+        member this.ResourceName = this.SiteName/this.Name
         member this.JsonModel =
-            {|
-                siteExtensions.Create(this.Name, this.Location) with
-                    dependsOn = [
-                        sprintf "resourceId('Microsoft.Web/sites', '%s')" this.SiteName.Value
-                    ]
-            |} :> _
-
+            siteExtensions.Create(this.Name, this.Location, [ ResourceId.create(Web.sites, this.SiteName) ]) :> _
 
 //
 //  What we're trying to generate in JsonModel. Note that we've short-circuited the `parameters()` calls
