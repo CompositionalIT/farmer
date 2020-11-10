@@ -19,14 +19,13 @@ weight: 7
 >
 > **Roman Provazník, F# Lead Developer, [CN Group](https://cngroup.dk)**
 
-> "[Holy moly, this was a breeze!](https://twitter.com/Jan_de_V/status/1276250776042692627) 
-> Smiling face with heart-shaped eyes. I'm SO going to use this more often, even if it's 
-> just to get a baseline for a customer. Saves tons of time! Sidenote: I've just written my 
-> first 19 lines of #fsharp"
+> "[Holy moly, this was a breeze!](https://twitter.com/Jan_de_V/status/1276250776042692627)! I'm SO going to use this more often, even if it's just to get a baseline for a customer. Saves tons of time!
 >
 > **[Jan De Vries](https://twitter.com/Jan_de_V), Microsoft MVP**
 
-> "[Hey @isaac_abraham, #Farmer is kind of awesome](https://twitter.com/janekf/status/1305518187115696129). 
-> A few lines and my fav env is created. #ILike"
+> "[Hey @isaac_abraham, #Farmer is kind of awesome](https://twitter.com/janekf/status/1305518187115696129). A few lines and my fav env is created. #ILike"
 >
 > **[Jan(ek) Fellien](https://twitter.com/janekf), Microsoft MVP**
+
+> "[Finally took a look at farmer just now](https://twitter.com/Danthar/status/1263406509951721474).... I should have looked months ago. I mean, I can actually read a farmer template. And it makes sense?!"
+> **[Arjen Smits](https://twitter.com/Danthar)**
