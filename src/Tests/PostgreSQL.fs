@@ -197,13 +197,13 @@ let tests = testList "PostgreSQL Database Service" [
             Expect.throws (validate candidate) label
 
         Validate.reservedUsernames |> List.iter (fun candidate ->
-            Expect.throws (validate candidate) (sprintf "Reserved name '%s'" candidate)
+            Expect.throws (validate candidate) $"Reserved name '{candidate}'"
         )
         let goodNames = [
             "a"; "abd23"; (String('a', 63))
         ]
         for candidate in goodNames do
-            Expect.throwsNot (validate candidate) (sprintf "'%s' should work" candidate)
+            Expect.throwsNot (validate candidate) $"'{candidate}' should work"
     }
 
     test "Servername can be validated" {
@@ -228,7 +228,7 @@ let tests = testList "PostgreSQL Database Service" [
             "abc"; "abd-23"; (String('a', 63))
         ]
         for candidate in goodNames do
-            Expect.throwsNot (validate candidate) (sprintf "'%s' should work" candidate)
+            Expect.throwsNot (validate candidate) $"'{candidate}' should work"
     }
 
     test "Database name can be validated" {
@@ -247,7 +247,7 @@ let tests = testList "PostgreSQL Database Service" [
             "abc"; "abd-23"; (String('a', 63))
         ]
         for candidate in goodNames do
-            Expect.throwsNot (validate candidate) (sprintf "'%s' should work" candidate)
+            Expect.throwsNot (validate candidate) $"'{candidate}' should work"
     }
 
     test "Storage size can be validated" {

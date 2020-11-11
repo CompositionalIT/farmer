@@ -47,7 +47,7 @@ type StorageAccount =
                             | Blobs (replication, _) -> replication.ToString()
                             | Files replication -> replication.ToString()
                             | BlockBlobs replication -> replication.ToString()
-                        sprintf "%s_%s" performanceTier replicationModel
+                        $"{performanceTier}_{replicationModel}"
                     |}
                 kind =
                     match this.Sku with

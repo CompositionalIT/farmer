@@ -188,7 +188,7 @@ type PostgreSQLBuilder() =
         { state with
             AdministratorCredentials =
                 {| state.AdministratorCredentials with
-                    Password = sprintf "password-for-%s" state.Name.Value |> SecureParameter |}  }
+                    Password = SecureParameter $"password-for-{state.Name.Value}" |}  }
 
     /// Sets the name of the PostgreSQL server
     [<CustomOperation "name">]
@@ -276,7 +276,7 @@ type PostgreSQLBuilder() =
 
     /// Adds a custom firewall rule given a name, start and end IP address range.
     [<CustomOperation "add_firewall_rule">]
-    member _.AddFirewallWall(state:PostgreSQLConfig, name, startRange, endRange) =
+    member _.AddFirewallWall(state:PostgreSQLConfig, name, startRange:string, endRange:string) =
         { state with
             FirewallRules =
                 {| Name = ResourceName name

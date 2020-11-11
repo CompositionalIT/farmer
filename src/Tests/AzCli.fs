@@ -18,7 +18,7 @@ let tests = testList "Azure CLI" [
 
     test "Deploys and deletes a resource group" {
         let deployment = arm { location Location.NorthEurope }
-        let resourceGroupName = sprintf "farmer-integration-test-delete-%O" (Guid.NewGuid())
+        let resourceGroupName = $"farmer-integration-test-delete-{Guid.NewGuid()}"
         printfn "Creating resource group %s..." resourceGroupName
         let deployResponse = deployment |> Deploy.tryExecute resourceGroupName []
         let deleteResponse = Deploy.Az.delete resourceGroupName

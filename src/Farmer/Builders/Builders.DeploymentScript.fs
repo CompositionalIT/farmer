@@ -35,7 +35,7 @@ type DeploymentScriptConfig =
         member this.DependencyName = this.Name
         member this.BuildResources location = [
             let generatedIdentityId =
-                let generatedIdentityName = sprintf "%s-identity" this.Name.Value |> ResourceName
+                let generatedIdentityName = ResourceName $"{this.Name.Value}-identity"
                 ResourceId.create (userAssignedIdentities, generatedIdentityName)
 
             // User Assigned Identity - create one if none was supplied.
@@ -50,9 +50,10 @@ type DeploymentScriptConfig =
 
             // Assignment
             { Name =
-                (sprintf "guid(concat(resourceGroup().id, '%O'))" Roles.Contributor.Id
-                |> ArmExpression.create).Eval()
-                |> ResourceName
+                ArmExpression
+                    .create($"guid(concat(resourceGroup().id, '{Roles.Contributor.Id}'))")
+                    .Eval()
+                    |> ResourceName
               RoleDefinitionId = Roles.Contributor
               PrincipalId = identity.PrincipalId
               PrincipalType = PrincipalType.ServicePrincipal

@@ -180,7 +180,7 @@ type ContainerGroupBuilder() =
 let registry (server:string) (username:string) =
     { Server = server
       Username = username
-      Password = SecureParameter (sprintf "%s-password" server) }
+      Password = SecureParameter $"{server}-password" }
 
 type ContainerInstanceBuilder() =
     member _.Yield _ =

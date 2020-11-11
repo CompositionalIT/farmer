@@ -40,7 +40,7 @@ module Az =
                 | OperatingSystem OSPlatform.OSX ->
                     "az"
                 | _ ->
-                    failwithf "OSPlatform: %s not supported" RuntimeInformation.OSDescription
+                    failwith $"OSPlatform: {RuntimeInformation.OSDescription} not supported"
         let executeAz arguments =
             try
                 let azProcess =
@@ -63,7 +63,7 @@ module Az =
                 azProcess, sb.ToString()
             with
             | :? System.ComponentModel.Win32Exception as e when e.Message.Contains("No such file or directory") ->
-                let message = sprintf "Could not find Azure CLI tools on %s. Make sure you've setup the Azure CLI tools.  Go to https://compositionalit.github.io/farmer/quickstarts/quickstart-3/#install-the-azure-cli for more information." azCliPath.Value
+                let message = $"Could not find Azure CLI tools on {azCliPath.Value}. Make sure you've setup the Azure CLI tools.  Go to https://compositionalit.github.io/farmer/quickstarts/quickstart-3/#install-the-azure-cli for more information."
                 AzureCLIToolsNotFound(message, e) |> raise
             | _ ->
                 reraise()
@@ -81,13 +81,13 @@ module Az =
     /// Logs you into Az CLI interactively.
     let login() = az "login" |> Result.ignore
     /// Logs you into the Az CLI using the supplied service principal credentials.
-    let loginWithCredentials appId secret tenantId = az (sprintf "login --service-principal --username %s --password %s --tenant %s" appId secret tenantId)
+    let loginWithCredentials appId secret tenantId = az $"login --service-principal --username {appId} --password {secret} --tenant {tenantId}"
     let version() = az "--version"
     /// Lists all subscriptions
     let listSubscriptions() = az "account list"
-    let setSubscription subscriptionId = az (sprintf "account set --subscription %s" subscriptionId)
+    let setSubscription subscriptionId = az $"account set --subscription {subscriptionId}"
     /// Creates a resource group.
-    let createResourceGroup location resourceGroup = az (sprintf "group create -l %s -n %s" location resourceGroup) |> Result.ignore
+    let createResourceGroup location resourceGroup = az $"group create -l {location} -n {resourceGroup}" |> Result.ignore
     /// Searches for users in AD using the supplied filter.
     let searchUsers filter = az ("ad user list --filter " + filter)
     /// Searches for groups in AD using the supplied filter.
@@ -109,7 +109,7 @@ module Az =
             match parameters with
             | [] -> ""
             | parameters -> sprintf "--parameters %s" (parameters |> List.map(fun (a,b) -> sprintf "%s=%s" a b) |> String.concat " ")
-        let cmd = sprintf """deployment group %s -g %s -n %s --template-file %s %s""" deploymentCommand.Description resourceGroup deploymentName templateFilename parametersArgument
+        let cmd = $"deployment group {deploymentCommand.Description} -g {resourceGroup} -n {deploymentName} --template-file {templateFilename} {parametersArgument}"
         az cmd
     /// Deploys an ARM template to an existing resource group.
     let deploy resourceGroup deploymentName templateFilename parameters = deployOrValidate Create resourceGroup deploymentName templateFilename parameters
@@ -120,22 +120,22 @@ module Az =
     /// Generic function for ZipDeploy using custom command (based on application type)
     let private zipDeploy command appName getZipPath resourceGroup =
         let packageFilename = getZipPath deployFolder
-        az (sprintf """%s deployment source config-zip --resource-group "%s" --name "%s" --src %s""" command resourceGroup appName packageFilename)
+        az $"""%s{command} deployment source config-zip --resource-group "%s{resourceGroup}" --name "%s{appName}" --src %s{packageFilename}"""
     /// Deploys a zip file to a web app using the Zip Deploy mechanism.
     let zipDeployWebApp = zipDeploy "webapp"
     /// Deploys a zip file to a function app using the Zip Deploy mechanism.
     let zipDeployFunctionApp = zipDeploy "functionapp"
     let delete resourceGroup =
-        az (sprintf "group delete --name %s --yes --no-wait" resourceGroup)
+        az $"group delete --name {resourceGroup} --yes --no-wait"
     let enableStaticWebsite name indexDoc errorDoc =
-        [ sprintf "storage blob service-properties update --account-name %s --static-website --index-document %s" name indexDoc
+        [ $"storage blob service-properties update --account-name {name} --static-website --index-document {indexDoc}"
           match errorDoc with
-          | Some errorDoc -> sprintf "--404-document %s" errorDoc
+          | Some errorDoc -> $"--404-document {errorDoc}"
           | None -> () ]
         |> String.concat " "
         |> az
     let batchUploadStaticWebsite name path =
-        az (sprintf "storage blob upload-batch --account-name %s --destination $web --source %s" name path)
+        az $"storage blob upload-batch --account-name %s{name} --destination $web --source %s{path}"
 
 /// Represents an Azure subscription
 type Subscription = { ID : Guid; Name : string; IsDefault : bool }
@@ -169,9 +169,9 @@ let checkVersion minimum = result {
         |> Option.bind(fun versionText ->
             try Some(Version versionText)
             with _ -> None)
-        |> Result.ofOption (sprintf "Unable to determine Azure CLI version. You need to have at least %O installed. Output was: %s" minimum versionOutput)
+        |> Result.ofOption $"Unable to determine Azure CLI version. You need to have at least {minimum} installed. Output was: {versionOutput}"
     return!
-        if version < minimum then Error (sprintf "You have %O of the Azure CLI installed, but the minimum version is %O. Please upgrade." version minimum)
+        if version < minimum then Error $"You have {version} of the Azure CLI installed, but the minimum version is {minimum}. Please upgrade."
         else Ok version
 }
 
@@ -187,8 +187,8 @@ let validateParameters suppliedParameters deployment =
     let extra = Set.toList (supplied - expected)
     match missing, extra with
     | [], [] -> Ok ()
-    | (_ :: _), _ -> Error (sprintf "The following parameters are missing: %s. Please add them." (missing |> String.concat ", "))
-    | [], (_ :: _) -> Error (sprintf "The following parameters are not required: %s. Please remove them." (extra |> String.concat ", "))
+    | (_ :: _), _ -> Error $"""The following parameters are missing: {missing |> String.concat ", "}. Please add them."""
+    | [], (_ :: _) -> Error $"""The following parameters are not required: {extra |> String.concat ", "}. Please remove them."""
 
 let NoParameters : (string * string) list = []
 
@@ -196,7 +196,7 @@ let private prepareForDeployment parameters resourceGroupName deployment = resul
     do! deployment |> validateParameters parameters
 
     let! version = checkVersion Az.MinimumVersion
-    printfn "Compatible version of Azure CLI %O detected" version
+    printfn $"Compatible version of Azure CLI {version} detected"
 
     prepareDeploymentFolder()
 
@@ -212,13 +212,13 @@ let private prepareForDeployment parameters resourceGroupName deployment = resul
             |> Result.bind(fun _ -> Az.showAccount())
 
     let subscriptionDetails = subscriptionDetails |> JsonConvert.DeserializeObject<{| id : Guid; name : string |}>
-    printfn "Using subscription '%s' (%O)." subscriptionDetails.name subscriptionDetails.id
+    printfn $"Using subscription '{subscriptionDetails.name}' ({subscriptionDetails.id})."
 
-    printfn "Creating resource group %s..." resourceGroupName
+    printfn $"Creating resource group {resourceGroupName}..."
     do! Az.createResourceGroup deployment.Location.ArmValue resourceGroupName
 
     return
-        {| DeploymentName = sprintf "farmer-deploy-%d" (generateDeployNumber())
+        {| DeploymentName = $"farmer-deploy-{generateDeployNumber()}"
            TemplateFilename = deployment.Template |> Writer.toJson |> Writer.toFile deployFolder "farmer-deploy" |}
 }
 
@@ -267,3 +267,5 @@ let whatIf resourceGroupName parameters deployment =
     match tryWhatIf resourceGroupName parameters deployment with
     | Ok output -> output
     | Error message -> failwith message
+
+

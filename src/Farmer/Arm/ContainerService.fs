@@ -69,7 +69,7 @@ type ManagedCluster =
                        {| agentPoolProfiles =
                            this.AgentPoolProfiles
                            |> List.mapi (fun idx agent ->
-                               {| name = if agent.Name = ResourceName.Empty then (sprintf "%s-agent-pool%i" this.Name.Value idx)
+                               {| name = if agent.Name = ResourceName.Empty then $"{this.Name.Value }-agent-pool{idx}"
                                          else agent.Name.Value.ToLowerInvariant ()
                                   count = agent.Count
                                   maxPods = agent.MaxPods |> Option.toNullable

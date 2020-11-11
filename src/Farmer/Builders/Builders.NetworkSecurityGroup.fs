@@ -48,7 +48,7 @@ type SecurityRuleBuilder () =
     member _.AddSourceTag(state:SecurityRuleConfig, protocol, tag) = { state with Sources = (protocol, Tag tag, AnyPort) :: state.Sources }
     /// Sets the rule to match on a source address.
     [<CustomOperation("add_source_address")>]
-    member _.AddSourceAddress(state:SecurityRuleConfig, protocol, sourceAddress) = { state with Sources = (protocol, Host (IPAddress.Parse sourceAddress), AnyPort) :: state.Sources }
+    member _.AddSourceAddress(state:SecurityRuleConfig, protocol, sourceAddress:string) = { state with Sources = (protocol, Host (IPAddress.Parse sourceAddress), AnyPort) :: state.Sources }
     /// Sets the rule to match on a source network.
     [<CustomOperation("add_source_network")>]
     member _.AddSourceNetwork(state:SecurityRuleConfig, protocol, sourceNetwork) = { state with Sources = (protocol, Network (IPAddressCidr.parse sourceNetwork), AnyPort) :: state.Sources }
@@ -63,7 +63,7 @@ type SecurityRuleBuilder () =
     member _.AddDestinationTag(state:SecurityRuleConfig, tag) = { state with Destinations = Tag tag :: state.Destinations }
     /// Sets the rule to match on a destination address.
     [<CustomOperation("add_destination_address")>]
-    member _.AddDestinationAddress(state:SecurityRuleConfig, destAddress) = { state with Destinations = Host (IPAddress.Parse destAddress) :: state.Destinations }
+    member _.AddDestinationAddress(state:SecurityRuleConfig, destAddress:string) = { state with Destinations = Host (IPAddress.Parse destAddress) :: state.Destinations }
     /// Sets the rule to match on a destination network.
     [<CustomOperation("add_destination_network")>]
     member _.AddDestinationNetwork(state:SecurityRuleConfig, destNetwork) = { state with Destinations = Network (IPAddressCidr.parse destNetwork):: state.Destinations }

@@ -24,7 +24,7 @@ type SignalRConfig =
               Tags = this.Tags  }
         ]
     member this.Key =
-        let expr = sprintf "listKeys(resourceId('Microsoft.SignalRService/SignalR', '%s'), providers('Microsoft.SignalRService', 'SignalR').apiVersions[0]).primaryConnectionString" this.Name.Value
+        let expr = $"listKeys(resourceId('Microsoft.SignalRService/SignalR', '{this.Name.Value}'), providers('Microsoft.SignalRService', 'SignalR').apiVersions[0]).primaryConnectionString"
         ArmExpression.create(expr, ResourceId.create this.Name)
 
 type SignalRBuilder() =

@@ -11,7 +11,7 @@ open Farmer.Arm.Network
 open Farmer.Arm.Storage
 open System
 
-let makeName (vmName:ResourceName) elementType = sprintf "%s-%s" vmName.Value elementType
+let makeName (vmName:ResourceName) elementType = $"{vmName.Value}-{elementType}"
 
 type VmConfig =
     { Name : ResourceName
@@ -38,7 +38,7 @@ type VmConfig =
     member internal this.deriveResourceName = makeName this.Name >> ResourceName
     member this.NicName = this.deriveResourceName "nic"
     member this.IpName = this.deriveResourceName "ip"
-    member this.Hostname = sprintf "reference('%s').dnsSettings.fqdn" this.IpName.Value |> ArmExpression.create
+    member this.Hostname = ArmExpression.create $"reference('{this.IpName.Value}').dnsSettings.fqdn"
 
     interface IBuilder with
         member this.DependencyName = this.Name
@@ -55,7 +55,7 @@ type VmConfig =
                 match this.Username with
                 | Some username ->
                     {| Username = username
-                       Password = SecureParameter (sprintf "password-for-%s" this.Name.Value) |}
+                       Password = SecureParameter $"password-for-{this.Name.Value}" |}
                 | None ->
                     failwithf "You must specify a username for virtual machine %s" this.Name.Value
               Image = this.Image

@@ -86,7 +86,7 @@ type VirtualMachine =
                                version = "latest" |}
                            osDisk =
                             {| createOption = "FromImage"
-                               name = sprintf "%s-osdisk" vmNameLowerCase
+                               name = $"{vmNameLowerCase}-osdisk"
                                diskSizeGB = this.OsDisk.Size
                                managedDisk = {| storageAccountType = this.OsDisk.DiskType.ArmValue |}
                             |}
@@ -94,7 +94,7 @@ type VirtualMachine =
                             this.DataDisks
                             |> List.mapi(fun lun dataDisk ->
                                 {| createOption = "Empty"
-                                   name = sprintf "%s-datadisk-%i" vmNameLowerCase lun
+                                   name = $"{vmNameLowerCase}-datadisk-{lun}"
                                    diskSizeGB = dataDisk.Size
                                    lun = lun
                                    managedDisk = {| storageAccountType = dataDisk.DiskType.ArmValue |} |})
@@ -110,7 +110,7 @@ type VirtualMachine =
                             box
                                 {| bootDiagnostics =
                                     {| enabled = true
-                                       storageUri = sprintf "[reference('%s').primaryEndpoints.blob]" storageAccount.Value
+                                       storageUri = $"[reference('{storageAccount.Value}').primaryEndpoints.blob]"
                                     |}
                                 |}
                         | None ->

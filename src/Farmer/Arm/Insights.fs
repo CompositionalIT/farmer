@@ -18,7 +18,7 @@ type Components =
         member this.JsonModel =
             let tags =
                 match this.LinkedWebsite with
-                | Some linkedWebsite -> this.Tags.Add(sprintf "[concat('hidden-link:', resourceGroup().id, '/providers/Microsoft.Web/sites/', '%s')]" linkedWebsite.Value, "Resource")
+                | Some linkedWebsite -> this.Tags.Add($"[concat('hidden-link:', resourceGroup().id, '/providers/Microsoft.Web/sites/', '{linkedWebsite.Value}')]", "Resource")
                 | None -> this.Tags
 
             {| components.Create(this.Name, this.Location, tags = tags) with

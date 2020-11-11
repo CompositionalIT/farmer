@@ -1,5 +1,4 @@
-#r "./libs/Newtonsoft.Json.dll"
-#r "../../src/Farmer/bin/Debug/netstandard2.0/Farmer.dll"
+#r "nuget:Farmer.dll"
 
 open Farmer
 open Farmer.Builders

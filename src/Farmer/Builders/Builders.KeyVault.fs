@@ -138,7 +138,7 @@ type KeyVaultConfig =
             keyVault
 
             for secret in this.Secrets do
-                { Name = sprintf "%s/%s" this.Name.Value secret.Key |> ResourceName
+                { Name = this.Name/secret.Key
                   Value = secret.Value
                   ContentType = secret.ContentType
                   Enabled = secret.Enabled
@@ -157,7 +157,7 @@ type AccessPolicyBuilder() =
     /// Sets the Object ID of the permission set.
     [<CustomOperation "object_id">]
     member __.ObjectId(state:AccessPolicyConfig, objectId:ArmExpression) = { state with ObjectId = objectId }
-    member this.ObjectId(state:AccessPolicyConfig, objectId:Guid) = this.ObjectId(state, ArmExpression.create (sprintf "string('%O')" objectId))
+    member this.ObjectId(state:AccessPolicyConfig, objectId:Guid) = this.ObjectId(state, ArmExpression.create $"string('{objectId}')")
     member this.ObjectId(state:AccessPolicyConfig, (ObjectId objectId)) = this.ObjectId(state, objectId)
     member this.ObjectId(state:AccessPolicyConfig, objectId:string) = this.ObjectId(state, Guid.Parse objectId)
     member this.ObjectId(state:AccessPolicyConfig, PrincipalId expression) = this.ObjectId(state, expression)
@@ -254,8 +254,8 @@ type KeyVaultBuilder() =
     /// Sets the Tenant ID of the vault.
     [<CustomOperation "tenant_id">]
     member __.SetTenantId(state:KeyVaultBuilderState, tenantId) = { state with TenantId = tenantId }
-    member this.SetTenantId(state:KeyVaultBuilderState, tenantId) = this.SetTenantId(state, ArmExpression.create (sprintf "string('%O')" tenantId))
-    member this.SetTenantId(state:KeyVaultBuilderState, tenantId) = this.SetTenantId(state, Guid.Parse tenantId)
+    member this.SetTenantId(state:KeyVaultBuilderState, tenantId:Guid) = this.SetTenantId(state, ArmExpression.create $"string('{tenantId}')")
+    member this.SetTenantId(state:KeyVaultBuilderState, tenantId:string) = this.SetTenantId(state, Guid.Parse tenantId)
     /// Allows VM access to the vault.
     [<CustomOperation "enable_vm_access">]
     member __.EnableVmAccess(state:KeyVaultBuilderState) = { state with Access = { state.Access with VirtualMachineAccess = Some Enabled } }

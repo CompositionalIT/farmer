@@ -65,7 +65,7 @@ module AppSettings =
 
 let publishingPassword (name:ResourceName) =
     let resourceId = ResourceId.create(config, name, ResourceName "publishingCredentials")
-    let expr = sprintf "list(%s, '2014-06-01').properties.publishingPassword" resourceId.ArmExpression.Value
+    let expr = $"list({resourceId.ArmExpression.Value}, '2014-06-01').properties.publishingPassword"
     ArmExpression.create(expr, resourceId)
 
 type SecretStore =
@@ -112,7 +112,7 @@ type WebAppConfig =
     member this.ServicePlanName = this.ServicePlan.CreateResourceId(this).Name
     /// Gets the App Insights name for this web app, if it exists.
     member this.AppInsightsName = this.AppInsights |> Option.map (fun ai -> ai.CreateResourceId(this).Name)
-    member this.Endpoint = sprintf "%s.azurewebsites.net" this.Name.Value
+    member this.Endpoint = $"{this.Name.Value}.azurewebsites.net"
     member this.SystemIdentity = SystemIdentity (ResourceId.create(sites, this.Name))
     interface IBuilder with
         member this.DependencyName = this.ServicePlanName
@@ -207,7 +207,7 @@ type WebAppConfig =
                     match this.DockerAcrCredentials with
                     | Some credentials ->
                         "DOCKER_REGISTRY_SERVER_PASSWORD", ParameterSetting credentials.Password
-                        Setting.AsLiteral ("DOCKER_REGISTRY_SERVER_URL", sprintf "https://%s.azurecr.io" credentials.RegistryName)
+                        Setting.AsLiteral ("DOCKER_REGISTRY_SERVER_URL", $"https://{credentials.RegistryName}.azurecr.io")
                         Setting.AsLiteral ("DOCKER_REGISTRY_SERVER_USERNAME", credentials.RegistryName)
                     | None ->
                         ()
@@ -227,7 +227,7 @@ type WebAppConfig =
                                 setting.Key, setting.Value
                             | ParameterSetting _
                             | ExpressionSetting _ ->
-                                setting.Key, LiteralSetting (sprintf "@Microsoft.KeyVault(SecretUri=https://%s.vault.azure.net/secrets/%s)" name.Name.Value setting.Key)
+                                setting.Key, LiteralSetting $"@Microsoft.KeyVault(SecretUri=https://{name.Name.Value}.vault.azure.net/secrets/{setting.Key})"
                         ] |> Map.ofList
                     ) |> Map.toList)
                 |> Map
@@ -277,14 +277,14 @@ type WebAppConfig =
                         | Node version -> Some ("NODE|" + version)
                         | Php version -> Some ("PHP|" + version)
                         | Ruby version -> Some ("RUBY|" + version)
-                        | Java (runtime, JavaSE) -> Some (sprintf "JAVA|%d-%s" runtime.Version runtime.Jre)
-                        | Java (runtime, (Tomcat version)) -> Some (sprintf "TOMCAT|%s-%s" version runtime.Jre)
-                        | Java (Java8, WildFly14) -> Some (sprintf "WILDFLY|14-%s" Java8.Jre)
-                        | Python (linuxVersion, _) -> Some (sprintf "PYTHON|%s" linuxVersion)
+                        | Java (runtime, JavaSE) -> Some $"JAVA|{runtime.Version}-{runtime.Jre}"
+                        | Java (runtime, (Tomcat version)) -> Some $"TOMCAT|{version}-{runtime.Jre}"
+                        | Java (Java8, WildFly14) -> Some $"WILDFLY|14-{Java8.Jre}"
+                        | Python (linuxVersion, _) -> Some $"PYTHON|{linuxVersion}"
                         | _ -> None
               NetFrameworkVersion =
                 match this.Runtime with
-                | AspNet version -> Some (sprintf "v%s" version)
+                | AspNet version -> Some $"v{version}"
                 | _ -> None
               JavaVersion =
                 match this.Runtime, this.OperatingSystem with
@@ -405,7 +405,7 @@ type WebAppBuilder() =
             DockerImage =
                 match state.DockerImage, state.DockerAcrCredentials with
                 | Some (image, tag), Some credentials when not (image.Contains "azurecr.io") ->
-                    Some (sprintf "%s.azurecr.io/%s" credentials.RegistryName image, tag)
+                    Some ($"{credentials.RegistryName}.azurecr.io/{image}", tag)
                 | Some x, _ ->
                     Some x
                 | None, _ ->
@@ -536,7 +536,7 @@ type WebAppBuilder() =
         { state with
             DockerAcrCredentials =
                 Some {| RegistryName = registryName
-                        Password = SecureParameter (sprintf "docker-password-for-%s" registryName) |} }
+                        Password = SecureParameter $"docker-password-for-{registryName}" |} }
     [<CustomOperation "add_identity">]
     member _.AddIdentity(state:WebAppConfig, identity:UserAssignedIdentity) = { state with Identity = state.Identity + identity }
     member this.AddIdentity(state, identity:UserAssignedIdentityConfig) = this.AddIdentity(state, identity.UserAssignedIdentity)

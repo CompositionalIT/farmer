@@ -13,11 +13,7 @@ type StorageAccount =
     /// Gets an ARM Expression connection string for any Storage Account.
     static member getConnectionString (storageAccount:ResourceId) =
         let storageAccount = storageAccount.WithType storageAccounts
-        let expr =
-            sprintf
-                "concat('DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=', listKeys(%s, '2017-10-01').keys[0].value)"
-                storageAccount.Name.Value
-                storageAccount.ArmExpression.Value
+        let expr = $"concat('DefaultEndpointsProtocol=https;AccountName={storageAccount.Name.Value};AccountKey=', listKeys({storageAccount.ArmExpression.Value}, '2017-10-01').keys[0].value)"
         ArmExpression.create(expr, storageAccount)
     /// Gets an ARM Expression connection string for any Storage Account.
     static member getConnectionString (storageAccountName:StorageAccountName, ?group) =
@@ -59,8 +55,8 @@ type StorageAccountConfig =
             .Map(sprintf "%s.primaryEndpoints.web")
     member this.WebsitePrimaryEndpointHost =
         this.WebsitePrimaryEndpoint
-            .Map(fun uri -> sprintf "replace(replace(%s, 'https://', ''), '/', '')" uri)
-    member this.Endpoint = sprintf "%s.blob.core.windows.net" this.Name.ResourceName.Value
+            .Map(fun uri -> $"replace(replace({uri}, 'https://', ''), '/', '')")
+    member this.Endpoint = $"{this.Name.ResourceName.Value}.blob.core.windows.net"
     interface IBuilder with
         member this.DependencyName = this.Name.ResourceName
         member this.BuildResources location = [
@@ -97,10 +93,7 @@ type StorageAccountConfig =
                 }
             for roleAssignment in this.RoleAssignments do
                 let uniqueName =
-                    sprintf "%s%s%O"
-                        this.Name.ResourceName.Value
-                        roleAssignment.Principal.ArmExpression.Value
-                        roleAssignment.Role.Id
+                    $"{this.Name.ResourceName.Value}{roleAssignment.Principal.ArmExpression.Value}{roleAssignment.Role.Id}"
                     |> DeterministicGuid.create
                     |> string
                     |> ResourceName

@@ -119,7 +119,7 @@ type VirtualNetworkBuilder() =
                             (addressSpaceConfig.Subnets
                             |> Seq.map (fun subnet ->
                                 if subnet.Size > 29 then
-                                    invalidArg "size" (sprintf "Subnet must be of /29 or larger, cannot carve subnet %s of /%d" subnet.Name subnet.Size)
+                                    invalidArg "size" $"Subnet must be of /29 or larger, cannot carve subnet {subnet.Name} of /{subnet.Size}"
                                 subnet.Size)
                             |> List.ofSeq)
                     Seq.zip (addressSpaceConfig.Subnets |> Seq.map (fun s -> s.Name, s.Delegations)) subnetCidrs

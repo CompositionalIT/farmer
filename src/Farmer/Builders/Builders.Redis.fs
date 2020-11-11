@@ -8,11 +8,7 @@ open Farmer.Arm.Cache
 
 let internal buildRedisKey (resourceId:ResourceId) =
     let resourceId = resourceId.WithType redis
-    let expr =
-        sprintf
-            "concat('%s.redis.cache.windows.net,abortConnect=false,ssl=true,password=', listKeys('%s', '2015-08-01').primaryKey)"
-                resourceId.Name.Value
-                resourceId.Name.Value
+    let expr = $"concat('{resourceId.Name.Value}.redis.cache.windows.net,abortConnect=false,ssl=true,password=', listKeys('{resourceId.Name.Value}', '2015-08-01').primaryKey)"
     ArmExpression.create(expr, resourceId)
 
 type RedisConfig =

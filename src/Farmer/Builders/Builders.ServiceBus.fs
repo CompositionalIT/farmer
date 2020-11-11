@@ -144,11 +144,7 @@ type ServiceBusConfig =
       Topics : Map<ResourceName, ServiceBusTopicConfig>
       Tags: Map<string,string>  }
     member private this.GetKeyPath property =
-        let expr =
-            sprintf
-                "listkeys(resourceId('Microsoft.ServiceBus/namespaces/authorizationRules', '%s', 'RootManageSharedAccessKey'), '2017-04-01').%s"
-                this.Name.Value
-                property
+        let expr = $"listkeys(resourceId('Microsoft.ServiceBus/namespaces/authorizationRules', '{this.Name.Value}', 'RootManageSharedAccessKey'), '2017-04-01').{property}"
         ArmExpression.create(expr, ResourceId.create this.Name)
     member this.NamespaceDefaultConnectionString = this.GetKeyPath "primaryConnectionString"
     member this.DefaultSharedAccessPolicyPrimaryKey = this.GetKeyPath "primaryKey"

@@ -86,12 +86,10 @@ type ProvisioningServices =
       IotHubKey : ArmExpression
       Tags: Map<string,string>  }
     member this.IotHubConnection =
-        sprintf "concat('HostName=%s.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=',%s)"
-            this.IotHubName.Value
-            this.IotHubKey.Value
+        $"concat('HostName={this.IotHubName.Value}.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=',{this.IotHubKey.Value})"
         |> ArmExpression.create
     member this.IotHubPath =
-        sprintf "%s.azure-devices.net" this.IotHubName.Value
+        $"{this.IotHubName.Value}.azure-devices.net"
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =

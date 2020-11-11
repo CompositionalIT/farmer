@@ -1,5 +1,4 @@
-#r @"./libs/Newtonsoft.Json.dll"
-#r @"../../src/Farmer/bin/Debug/netstandard2.0/Farmer.dll"
+#r "nuget:Farmer"
 
 open Farmer
 open Farmer.Builders
@@ -9,7 +8,7 @@ let makeSafeApp (environment:string) theLocation storageSku webAppSku =
     let generateResourceName = sprintf "safe-%s-%s" environment
 
     let myStorageAccount = storageAccount {
-        name (sprintf "safe%sstorage" environment)
+        name $"safe{environment}storage"
         sku storageSku
     }
 

@@ -39,11 +39,11 @@ type FunctionsConfig =
     member this.AppInsightsKey = this.AppInsightsName |> Option.map AppInsights.getInstrumentationKey
     /// Gets the default key for the functions site
     member this.DefaultKey =
-        sprintf "listkeys(concat(resourceId('Microsoft.Web/sites', '%s'), '/host/default/'),'2016-08-01').functionKeys.default" this.Name.Value
+        $"listkeys(concat(resourceId('Microsoft.Web/sites', '{this.Name.Value}'), '/host/default/'),'2016-08-01').functionKeys.default"
         |> ArmExpression.create
     /// Gets the master key for the functions site
     member this.MasterKey =
-        sprintf "listkeys(concat(resourceId('Microsoft.Web/sites', '%s'), '/host/default/'),'2016-08-01').masterKey" this.Name.Value
+        $"listkeys(concat(resourceId('Microsoft.Web/sites', '{this.Name.Value}'), '/host/default/'),'2016-08-01').masterKey"
         |> ArmExpression.create
     /// Gets the Service Plan name for this functions app.
     member this.ServicePlanName = this.ServicePlan.CreateResourceId(this).Name

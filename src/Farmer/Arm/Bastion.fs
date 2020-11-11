@@ -26,7 +26,7 @@ type BastionHost =
                     {| ipConfigurations =
                            this.IpConfigs
                            |> List.mapi(fun index ipConfig ->
-                               {| name = sprintf "ipconfig%i" (index + 1)
+                               {| name = $"ipconfig{index + 1}"
                                   properties =
                                    {| publicIPAddress = {| id = ResourceId.create(publicIPAddresses, ipConfig.PublicIpName).Eval() |}
                                       subnet = {| id = ResourceId.create(subnets, this.VirtualNetwork, ResourceName "AzureBastionSubnet").Eval() |}

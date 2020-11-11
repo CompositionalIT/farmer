@@ -27,7 +27,7 @@ type EventHubConfig =
       Tags: Map<string,string>  }
     member private this.CreateKeyExpression (resourceId:ResourceId) =
         ArmExpression
-            .create(sprintf "listkeys(%s, '2017-04-01').primaryConnectionString" resourceId.ArmExpression.Value)
+            .create($"listkeys({resourceId.ArmExpression.Value}, '2017-04-01').primaryConnectionString")
             .WithOwner(ResourceId.create(eventHubs, this.Name))
     member this.EventHubNamespaceName = this.EventHubNamespace.CreateResourceId(this).Name
     /// Gets an ARM expression for the path to the key of a specific authorization rule for this event hub.
@@ -42,7 +42,7 @@ type EventHubConfig =
     interface IBuilder with
         member this.DependencyName = this.EventHubNamespaceName
         member this.BuildResources location = [
-            let eventHubName = this.Name.Map(fun hubName -> sprintf "%s/%s" this.EventHubNamespaceName.Value hubName)
+            let eventHubName = this.EventHubNamespaceName/this.Name
 
             // Namespace
             match this.EventHubNamespace with
@@ -85,7 +85,7 @@ type EventHubConfig =
 
             // Auth rules
             for rule in this.AuthorizationRules do
-                { Name = rule.Key.Map(fun rule -> sprintf "%s/%s/%s" this.EventHubNamespaceName.Value this.Name.Value rule)
+                { Name = this.EventHubNamespaceName/this.Name.Value/rule.Key
                   Location = location
                   Dependencies = [
                       ResourceId.create(namespaces, this.EventHubNamespaceName)

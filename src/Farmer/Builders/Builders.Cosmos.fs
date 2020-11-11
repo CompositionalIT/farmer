@@ -16,12 +16,12 @@ type CosmosDb =
     static member private providerPath = "providers('Microsoft.DocumentDb','databaseAccounts').apiVersions[0]"
     static member getKey (resourceId:ResourceId, keyType:KeyType, keyAccess:KeyAccess) =
         let resourceId = resourceId.WithType(databaseAccounts)
-        let expr = sprintf "listKeys(%s, %s).%s%sMasterKey" resourceId.ArmExpression.Value CosmosDb.providerPath keyType.ArmValue keyAccess.ArmValue
+        let expr = $"listKeys({resourceId.ArmExpression.Value}, {CosmosDb.providerPath}).{keyType.ArmValue}{keyAccess.ArmValue}MasterKey"
         ArmExpression.create(expr).WithOwner(resourceId)
     static member getKey (name:ResourceName, keyType, keyAccess) = CosmosDb.getKey(ResourceId.create name, keyType, keyAccess)
     static member getConnectionString (resourceId:ResourceId, connectionStringKind:ConnectionStringKind) =
         let resourceId = resourceId.WithType(databaseAccounts)
-        let expr = sprintf "listConnectionStrings(%s, %s).connectionStrings[%i].connectionString" resourceId.ArmExpression.Value CosmosDb.providerPath connectionStringKind.KeyIndex
+        let expr = $"listConnectionStrings({resourceId.ArmExpression.Value}, {CosmosDb.providerPath}).connectionStrings[{connectionStringKind.KeyIndex}].connectionString"
         ArmExpression.create(expr).WithOwner(resourceId)
     static member getConnectionString (name:ResourceName, connectionStringKind) = CosmosDb.getConnectionString (ResourceId.create name, connectionStringKind)
 
@@ -148,7 +148,7 @@ type CosmosDbBuilder() =
                 let dbName = config.DbName.Value.ToLower()
                 if config.DbName.Value.Length > maxLength then dbName.Substring maxLength
                 else dbName
-            ResourceName (sprintf "%s-account" dbNamePart))
+            ResourceName $"{dbNamePart}-account")
           AccountConsistencyPolicy = Eventual
           AccountFailoverPolicy = NoFailover
           DbThroughput = 400<RU>

@@ -82,7 +82,7 @@ type ArmExpression =
         let specialCases = [ @"string\(\'[^\']*\'\)", 8, 10; @"^'\w*'$", 1, 2 ]
         match specialCases |> List.tryFind(fun (case, _, _) -> System.Text.RegularExpressions.Regex.IsMatch(this.Value, case)) with
         | Some (_, start, finish) -> this.Value.Substring(start, this.Value.Length - finish)
-        | None -> sprintf "[%s]" this.Value
+        | None -> $"[{this.Value}]"
     /// Sets the owning resource on this ARM Expression.
     member this.WithOwner(owner:ResourceId) = match this with ArmExpression (e, _) -> ArmExpression(e, Some owner)
     /// Sets the owning resource on this ARM Expression.
@@ -107,7 +107,7 @@ type ResourceId with
     member this.ArmExpression =
         match this with
         | { Type = None } ->
-            this.Name.Value |> sprintf "string('%s')" |> ArmExpression.create
+            ArmExpression.create $"string('{this.Name.Value}')" 
         | { Type = Some resourceType } ->
             [ match this.ResourceGroup with Some rg -> rg | None -> ()
               resourceType.Type
@@ -122,8 +122,9 @@ type ResourceId with
 
 type ArmExpression with
     static member reference (resourceType:ResourceType, resourceId:ResourceId) =
-        ArmExpression.create(sprintf "reference(%s, '%s')" resourceId.ArmExpression.Value resourceType.ApiVersion)
-                     .WithOwner(resourceId)
+        ArmExpression
+            .create($"reference({resourceId.ArmExpression.Value}, '{resourceType.ApiVersion}')")
+            .WithOwner(resourceId)
 
 type ResourceType with
     member this.Create(name:ResourceName, ?location:Location, ?dependsOn:ResourceId list, ?tags:Map<string,string>) =
@@ -145,7 +146,7 @@ type SecureParameter =
     | SecureParameter of name:string
     member this.Value = match this with SecureParameter value -> value
     /// Gets an ARM expression reference to the parameter e.g. parameters('my-password')
-    member this.ArmExpression = sprintf "parameters('%s')" this.Value |> ArmExpression.create
+    member this.ArmExpression = ArmExpression.create $"parameters('{this.Value}')"
 
 /// Exposes parameters which are required by a specific IArmResource.
 type IParameters =

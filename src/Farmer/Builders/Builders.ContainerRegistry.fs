@@ -12,7 +12,7 @@ type ContainerRegistryConfig =
       AdminUserEnabled : bool
       Tags: Map<string,string>  }
     member this.LoginServer =
-        (sprintf "reference(resourceId('Microsoft.ContainerRegistry/registries', '%s'),'2019-05-01').loginServer" this.Name.Value)
+        $"reference(resourceId('Microsoft.ContainerRegistry/registries', '{this.Name.Value}'),'2019-05-01').loginServer"
         |> ArmExpression.create
     interface IBuilder with
         member this.DependencyName = this.Name

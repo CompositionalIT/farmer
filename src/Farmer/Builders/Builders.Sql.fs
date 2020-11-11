@@ -30,12 +30,9 @@ type SqlAzureConfig =
     /// Gets a basic .NET connection string using the administrator username / password.
     member this.ConnectionString (database:SqlAzureDbConfig) =
         let expr =
+            //TODO: We can remove the concat here...
             ArmExpression.concat [
-                ArmExpression.literal
-                    (sprintf "Server=tcp:%s.database.windows.net,1433;Initial Catalog=%s;Persist Security Info=False;User ID=%s;Password="
-                        this.Name.Value
-                        database.Name.Value
-                        this.AdministratorCredentials.UserName)
+                ArmExpression.literal $"Server=tcp:{this.Name.Value}.database.windows.net,1433;Initial Catalog={database.Name.Value};Persist Security Info=False;User ID={this.AdministratorCredentials.UserName};Password="
                 this.AdministratorCredentials.Password.ArmExpression
                 ArmExpression.literal ";MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
             ]
@@ -47,7 +44,7 @@ type SqlAzureConfig =
         |> Option.defaultWith(fun _ -> failwithf "Unknown database name %s" databaseName.Value)
     member this.ConnectionString databaseName = this.ConnectionString (ResourceName databaseName)
     /// The key of the parameter that is required by Farmer for the SQL password.
-    member this.PasswordParameter = sprintf "password-for-%s" this.Name.Value
+    member this.PasswordParameter = $"password-for-{this.Name.Value}"
 
     interface IBuilder with
         member this.DependencyName = this.Name
@@ -145,7 +142,7 @@ type SqlDbBuilder() =
         state
 
 type SqlServerBuilder() =
-    let makeIp = IPAddress.Parse
+    let makeIp : string -> _ = IPAddress.Parse
     member __.Yield _ =
         { Name = ResourceName ""
           AdministratorCredentials = {| UserName = ""; Password = SecureParameter "" |}

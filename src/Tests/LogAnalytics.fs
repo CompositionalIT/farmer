@@ -50,6 +50,6 @@ let tests = testList "Log analytics" [
 
     test "Can't create log analytics with retention period outside 30 and 730 " {
         for days in [ 29<Days>; 731<Days> ] do
-            Expect.throws (fun _ -> logAnalytics { retention_period days } |> ignore) (sprintf "Should have thrown for %d" days)
+            Expect.throws (fun _ -> logAnalytics { retention_period days } |> ignore) $"Should have thrown for {days}"
     }
 ]

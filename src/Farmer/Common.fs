@@ -282,17 +282,17 @@ module Vm =
     type DiskInfo = { Size : int; DiskType : DiskType }
 
 module internal Validation =
-    let isNonEmpty entity s = if String.IsNullOrWhiteSpace s then Error (sprintf "%s cannot be empty" entity) else Ok()
-    let notLongerThan max entity (s:string) = if s.Length > max then Error (sprintf "%s max length is %d, but here is %d ('%s')" entity max s.Length s) else Ok()
-    let notShorterThan min entity (s:string) = if s.Length < min then Error (sprintf "%s min length is %d, but here is %d ('%s')" entity min s.Length s) else Ok()
+    let isNonEmpty entity s = if String.IsNullOrWhiteSpace s then Error $"{entity} cannot be empty" else Ok()
+    let notLongerThan max entity (s:string) = if s.Length > max then Error $"{entity} max length is {max}, but here is {s.Length} ('{s}')" else Ok()
+    let notShorterThan min entity (s:string) = if s.Length < min then Error $"{entity} min length is {min}, but here is {s.Length} ('{s}')" else Ok()
     let lengthBetween min max entity (s:string) = s |> notLongerThan max entity |> Result.bind (fun _ -> s |> notShorterThan min entity)
-    let containsOnly message predicate entity (s:string) = if s |> Seq.exists (predicate >> not) then Error (sprintf "%s can only contain %s ('%s')" entity message s) else Ok()
-    let cannotContain message predicate entity (s:string) = if s |> Seq.exists predicate then Error (sprintf "%s do not allow %s ('%s')" entity message s) else Ok()
-    let startsWith message predicate entity (s:string) = if not (predicate s.[0]) then Error (sprintf "%s must start with %s ('%s')" entity message s) else Ok()
-    let endsWith message predicate entity (s:string) = if not (predicate s.[s.Length - 1]) then Error (sprintf "%s must end with %s ('%s')" entity message s) else Ok()
-    let cannotStartWith message predicate entity (s:string) = if predicate s.[0] then Error (sprintf "%s cannot start with %s ('%s')" entity message s) else Ok()
-    let cannotEndWith message predicate entity (s:string) = if predicate s.[s.Length - 1] then Error (sprintf "%s cannot end with %s ('%s')" entity message s) else Ok()
-    let arb message predicate entity (s:string) = if predicate s then Error (sprintf "%s %s ('%s')" entity message s) else Ok()
+    let containsOnly message predicate entity (s:string) = if s |> Seq.exists (predicate >> not) then Error $"{entity} can only contain {message} ('{s}')" else Ok()
+    let cannotContain message predicate entity (s:string) = if s |> Seq.exists predicate then Error $"{entity} do not allow {message} ('{s}')" else Ok()
+    let startsWith message predicate entity (s:string) = if not (predicate s.[0]) then Error $"{entity} must start with {message} ('{s}')"  else Ok()
+    let endsWith message predicate entity (s:string) = if not (predicate s.[s.Length - 1]) then Error $"{entity} must end with {message} ('{s}')" else Ok()
+    let cannotStartWith message predicate entity (s:string) = if predicate s.[0] then Error $"{entity} cannot start with {message} ('{s}')" else Ok()
+    let cannotEndWith message predicate entity (s:string) = if predicate s.[s.Length - 1] then Error $"{entity} cannot end with {message} ('{s}')" else Ok()
+    let arb message predicate entity (s:string) = if predicate s then Error $"{entity} {message} ('{s}')" else Ok()
     let (<+>) a b v = a v && b v
     let (<|>) a b v = a v || b v
     let lowercaseOnly = Char.IsLetter >> not <|> Char.IsLower
@@ -627,7 +627,7 @@ type RoleId =
     member this.ArmValue =
         match this with
         | RoleId roleId ->
-            sprintf "concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', '%O')" roleId.Id
+            $"concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', '{roleId.Id}')"
             |> Farmer.CoreTypes.ArmExpression.create
     member this.Name = match this with (RoleId v) -> v.Name
     member this.Id = match this with (RoleId v) -> v.Id
@@ -641,7 +641,7 @@ module Identity =
         member private this.CreateExpression field =
             let (UserAssignedIdentity resourceId) = this
             ArmExpression
-                .create(sprintf "reference(%s).%s" resourceId.ArmExpression.Value field)
+                .create($"reference({resourceId.ArmExpression.Value}).{field}")
                 .WithOwner(resourceId)
         member this.PrincipalId = this.CreateExpression "principalId" |> PrincipalId
         member this.ClientId = this.CreateExpression "clientId"
@@ -656,7 +656,7 @@ module Identity =
             | Some resourceType ->
                 let identity = this.ResourceId.ArmExpression.Value
                 ArmExpression
-                    .create(sprintf "reference(%s, '%s', 'full').identity.%s" identity resourceType.ApiVersion field)
+                    .create($"reference({identity}, '{resourceType.ApiVersion}', 'full').identity.{field}")
                     .WithOwner(this.ResourceId)
         member this.PrincipalId = this.CreateExpression "principalId" |> PrincipalId
         member this.ClientId = this.CreateExpression "clientId"
@@ -894,7 +894,7 @@ module IPAddressCidr =
     let safeParse (s:string) : Result<IPAddressCidr, System.Exception> =
         try parse s |> Ok
         with ex -> Error ex
-    let format (cidr:IPAddressCidr) = sprintf "%O/%d" cidr.Address cidr.Prefix
+    let format (cidr:IPAddressCidr) = $"{cidr.Address}/{cidr.Prefix}"
     /// Gets uint32 representation of an IP address.
     let private num (ip:System.Net.IPAddress) =
         ip.GetAddressBytes() |> Array.rev |> fun bytes -> BitConverter.ToUInt32 (bytes, 0)
@@ -941,7 +941,7 @@ module IPAddressCidr =
                     startAddress <- (last + 1u) |> ofNum
                     cidr
                 else
-                    raise (IndexOutOfRangeException (sprintf "Unable to create subnet %d of /%d" index size))
+                    raise (IndexOutOfRangeException $"Unable to create subnet {index} of /{size}")
         }
     /// The first two addresses are the network address and gateway address
     /// so not assignable.
@@ -994,7 +994,7 @@ module NetworkSecurity =
         member this.ArmValue =
             match this with
             | Port num -> num |> string
-            | Range (first,last) -> sprintf "%d-%d" first last
+            | Range (first,last) -> $"{first}-{last}"
             | AnyPort -> "*"
     module Port =
         let ArmValue (port:Port) = port.ArmValue
