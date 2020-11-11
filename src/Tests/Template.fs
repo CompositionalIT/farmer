@@ -186,4 +186,28 @@ let tests = testList "Template" [
             {| name = "Name"; ``type`` = "Test"; apiVersion = "2017-01-01"; dependsOn = null; location = null; tags = null |}
             "Default values don't match"
     }
+
+    testList "ARM Writer Regression Tests" [
+        test "Generates lots of resources" {
+            let number = string 1979
+
+            let sql = sqlServer { name ("farmersql" + number); admin_username "farmersqladmin"; add_databases [ sqlDb { name "farmertestdb"; use_encryption } ]; enable_azure_firewall }
+            let storage = storageAccount { name ("farmerstorage" + number) }
+            let web = webApp { name ("farmerwebapp" + number) }
+            let fns = functions { name ("farmerfuncs" + number) }
+            let svcBus = serviceBus { name ("farmerbus" + number); sku ServiceBus.Sku.Standard; add_queues [ queue { name "queue1" } ]; add_topics [ topic { name "topic1"; add_subscriptions [ subscription { name "sub1" } ] } ] }
+            let cdn = cdn { name ("farmercdn" + number); add_endpoints [ endpoint { name ("farmercdnendpoint" + number); origin storage.WebsitePrimaryEndpointHost } ] }
+
+            let deployment = arm {
+                location Location.NorthEurope
+                add_resources [ sql; storage; web; fns; svcBus; cdn ]
+            }
+
+            let path = @".\test-data\farmer-integration-test-1.json"
+            let expected = System.IO.File.ReadAllText path
+            let actual = deployment.Template |> Writer.toJson
+
+            Expect.equal expected actual (sprintf "ARM template generation has changed! Either fix the writer, or update the contents of the generated file (%s)" path)
+        }
+    ]
 ]
