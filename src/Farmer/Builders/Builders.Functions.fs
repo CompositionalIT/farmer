@@ -45,8 +45,10 @@ type FunctionsConfig =
     member this.MasterKey =
         sprintf "listkeys(concat(resourceId('Microsoft.Web/sites', '%s'), '/host/default/'),'2016-08-01').masterKey" this.Name.Value
         |> ArmExpression.create
-    /// Gets the Service Plan name for this functions app.
-    member this.ServicePlanName = this.ServicePlan.CreateResourceId(this).Name
+    /// Gets this web app's Server Plan's full resource ID.
+    member this.ServicePlanId = this.ServicePlan.CreateResourceId this
+    /// Gets the Service Plan name for this web app.
+    member this.ServicePlanName = this.ServicePlanId.Name
     /// Gets the App Insights name for this functions app, if it exists.
     member this.AppInsightsName : ResourceName option = this.AppInsights |> Option.map (fun ai -> ai.CreateResourceId(this).Name)
     /// Gets the Storage Account name for this functions app.
@@ -55,7 +57,7 @@ type FunctionsConfig =
         member this.DependencyName = this.ServicePlanName
         member this.BuildResources location = [
             { Name = this.Name
-              ServicePlan = this.ServicePlanName
+              ServicePlan = this.ServicePlanId
               Location = location
               Cors = this.Cors
               Tags = this.Tags
