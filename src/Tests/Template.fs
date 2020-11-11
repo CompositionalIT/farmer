@@ -203,7 +203,7 @@ let tests = testList "Template" [
                 add_resources [ sql; storage; web; fns; svcBus; cdn ]
             }
 
-            let path = @".\test-data\farmer-integration-test-1.json"
+            let path = "./test-data/farmer-integration-test-1.json"
             let expected = System.IO.File.ReadAllText path
             let actual = deployment.Template |> Writer.toJson
 
