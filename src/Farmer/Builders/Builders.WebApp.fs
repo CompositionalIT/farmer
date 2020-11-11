@@ -107,8 +107,10 @@ type WebAppConfig =
     }
     /// Gets the ARM expression path to the publishing password of this web app.
     member this.PublishingPassword = publishingPassword (this.Name)
+    /// Gets this web app's Server Plan's full resource ID.
+    member this.ServicePlanId = this.ServicePlan.resourceId this
     /// Gets the Service Plan name for this web app.
-    member this.ServicePlanName = this.ServicePlan.resourceId(this).Name
+    member this.ServicePlanName = this.ServicePlanId.Name
     /// Gets the App Insights name for this web app, if it exists.
     member this.AppInsightsName = this.AppInsights |> Option.map (fun ai -> ai.resourceId(this).Name)
     member this.Endpoint = sprintf "%s.azurewebsites.net" this.Name.Value
@@ -169,7 +171,7 @@ type WebAppConfig =
 
             { Name = this.Name
               Location = location
-              ServicePlan = this.ServicePlanName
+              ServicePlan = this.ServicePlanId
               HTTPSOnly = this.HTTPSOnly
               HTTP20Enabled = this.HTTP20Enabled
               ClientAffinityEnabled = this.ClientAffinityEnabled

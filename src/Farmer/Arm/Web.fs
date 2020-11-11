@@ -112,7 +112,7 @@ module ZipDeploy =
 type Site =
     { Name : ResourceName
       Location : Location
-      ServicePlan : ResourceName
+      ServicePlan : ResourceId
       AppSettings : Map<string, Setting>
       ConnectionStrings : Map<string, (Setting * ConnectionStringKind)>
       AlwaysOn : bool
@@ -165,7 +165,7 @@ type Site =
                  kind = this.Kind
                  identity = this.Identity |> ManagedIdentity.toArmJson
                  properties =
-                    {| serverFarmId = this.ServicePlan.Value
+                    {| serverFarmId = this.ServicePlan.Eval()
                        httpsOnly = this.HTTPSOnly
                        clientAffinityEnabled = match this.ClientAffinityEnabled with Some v -> box v | None -> null
                        siteConfig =
