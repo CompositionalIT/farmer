@@ -242,8 +242,17 @@ type Setting =
         | ExpressionSetting expr -> expr.Eval()
     static member AsLiteral (a,b) = a, LiteralSetting b
 
+type DeploymentScope = 
+| ResourceGroup
+| Subscription
+    member this.Schema = 
+        match this with
+        | ResourceGroup -> "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#"
+        | Subscription ->"https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#"
+
 type ArmTemplate =
-    { Parameters : SecureParameter list
+    { DeploymentScope: DeploymentScope
+      Parameters : SecureParameter list
       Outputs : (string * string) list
       Resources : IArmResource list }
 

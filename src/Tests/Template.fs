@@ -12,6 +12,7 @@ module TestHelpers =
         { Location = Location.NorthEurope
           PostDeployTasks = []
           Template = {
+              DeploymentScope = ResourceGroup
               Outputs = []
               Parameters = parameters |> List.map SecureParameter
               Resources = []

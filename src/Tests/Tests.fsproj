@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <Compile Include="Helpers.fs" />
+    <Compile Include="Deployment.fs" />
     <Compile Include="AppInsights.fs" />
     <Compile Include="Common.fs" />
     <Compile Include="Functions.fs" />
@@ -40,6 +41,7 @@
     <Compile Include="VirtualNetworkGateway.fs" />
     <Compile Include="Identity.fs" />
     <Compile Include="DeploymentScript.fs" />
+    <Compile Include="ResourceGroup.fs" />
     <Compile Include="AllTests.fs" />
   </ItemGroup>
 

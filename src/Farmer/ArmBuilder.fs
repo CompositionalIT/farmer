@@ -27,14 +27,16 @@ type ArmConfig =
     { Parameters : string Set
       Outputs : Map<string, string>
       Location : Location
-      Resources : IArmResource list }
+      Resources : IArmResource list
+      DeploymentScope: DeploymentScope }
 
 type ArmBuilder() =
     member __.Yield _ =
         { Parameters = Set.empty
           Outputs = Map.empty
           Resources = List.empty
-          Location = Location.WestEurope }
+          Location = Location.WestEurope
+          DeploymentScope = ResourceGroup }
 
     member __.Run (state:ArmConfig) =
         let template =
@@ -45,7 +47,8 @@ type ArmBuilder() =
                     | _ -> ()
               ] |> List.distinct
               Outputs = state.Outputs |> Map.toList
-              Resources = state.Resources }
+              Resources = state.Resources
+              DeploymentScope = state.DeploymentScope }
 
         let postDeployTasks = [
             for resource in state.Resources do
@@ -88,10 +91,14 @@ type ArmBuilder() =
     member _.AddResource (state:ArmConfig, input:IBuilder) = ArmBuilder.AddResources(state, input.BuildResources state.Location)
     member _.AddResource (state:ArmConfig, input:Builder) = ArmBuilder.AddResources(state, input state.Location)
     member _.AddResource (state:ArmConfig, input:IArmResource) = ArmBuilder.AddResources(state, [ input ])
-
+    
     [<CustomOperation "add_resources">]
     member this.AddResources(state:ArmConfig, input:IBuilder list) =
         let resources = input |> List.collect(fun i -> i.BuildResources state.Location)
         ArmBuilder.AddResources(state, resources)
+
+    [<CustomOperation "scope">]
+    member this.SetScope(state:ArmConfig, scope:DeploymentScope) =
+        { state with DeploymentScope = scope }
 
 let arm = ArmBuilder()
