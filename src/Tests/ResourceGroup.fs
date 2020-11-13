@@ -36,7 +36,7 @@ let tests = testList "ResourceGroup" [
         Expect.equal (getValue<string> "$.[1].apiVersion" rg) deployments.ApiVersion "Incorrect api version"
         Expect.equal (getValue<string> "$.[1].resourceGroup" rg) "my-resgroup" "Incorrect api version"
         Expect.hasLength (getValue<JArray> "$.[1].dependsOn" rg) 1 "Incorrect dependsOn count"
-        Expect.equal (getValue<string> "$.[1].dependsOn.[0]" rg) "[resourceId('Microsoft.Resources/resourceGroups', 'my-resgroup')]" "Incorrect dependsOn"
+        Expect.equal (getValue<string> "$.[1].dependsOn.[0]" rg) "my-resgroup" "Incorrect dependsOn"
         Expect.equal (getValue<string> "$.[1].properties.mode" rg) "Incremental" "Incorrect mode"
         Expect.equal (getValue<string> "$.[1].properties.template.$schema" rg) "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#" "Incorrect nested template schema"
         Expect.equal (getValue<string> "$.[1].properties.template.contentVersion" rg) "1.0.0.0" "Incorrect nested content version"

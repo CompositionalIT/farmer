@@ -5,6 +5,7 @@ open Farmer
 open Farmer.Builders
 open Farmer.CoreTypes
 open Newtonsoft.Json
+open Newtonsoft.Json.Linq
 
 [<AutoOpen>]
 module TestHelpers =
@@ -12,11 +13,12 @@ module TestHelpers =
         { Location = Location.NorthEurope
           PostDeployTasks = []
           Template = {
-              DeploymentScope = ResourceGroup
+              Schema = ResourceGroup.Schema
               Outputs = []
               Parameters = parameters |> List.map SecureParameter
               Resources = []
           }
+          Scope = ResourceGroup
         }
     let convertTo<'T> = JsonConvert.SerializeObject >> JsonConvert.DeserializeObject<'T>
 
@@ -201,5 +203,29 @@ let tests = testList "Template" [
             createdResource
             {| name = "Name"; ``type`` = "Test"; apiVersion = "2017-01-01"; dependsOn = null; location = null; tags = null |}
             "Default values don't match"
+    }
+    test "Defaults to ResourceGroup Scope" {
+        let deployment = arm { location Location.WestEurope }
+        Expect.equal deployment.Scope ResourceGroup "Incorrect schema"
+    }
+    test "Can set subscription scope" {
+        let deployment = arm { location Location.WestEurope; scope Subscription }
+        Expect.equal deployment.Scope Subscription "Incorrect scope"
+    }
+    test "Has correct schema for ResourceGroup" {
+        let deployment = arm { location Location.WestEurope; scope ResourceGroup }
+        let template = 
+            deployment.Template
+            |> Writer.toJson
+            |> JObject.Parse
+        Expect.equal (template.SelectToken("$.$schema").Value<string> ()) "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#" "Incorrect schema"
+    }
+    test "Has correct schema for Subscription" {
+        let deployment = arm { location Location.WestEurope; scope Subscription }
+        let template = 
+            deployment.Template
+            |> Writer.toJson
+            |> JObject.Parse
+        Expect.equal (template.SelectToken("$.$schema").Value<string> ()) "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#" "Incorrect schema"
     }
 ]

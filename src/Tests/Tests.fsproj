@@ -8,7 +8,6 @@
 
   <ItemGroup>
     <Compile Include="Helpers.fs" />
-    <Compile Include="Deployment.fs" />
     <Compile Include="AppInsights.fs" />
     <Compile Include="Common.fs" />
     <Compile Include="Functions.fs" />

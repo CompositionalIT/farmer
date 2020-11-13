@@ -9,7 +9,6 @@ let allTests =
     testSequencedGroup "" <|
         testList "All Tests" [
             testList "Builders" [
-                Deployment.tests
                 LogAnalytics.tests
                 AppInsights.tests
                 Bastion.tests
