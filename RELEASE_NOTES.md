@@ -1,5 +1,9 @@
 Release Notes
 =============
+## vNext
+* ResourceGroup: initial release of ResourceGroup builder
+* Support for subscription-scoped deployments
+
 ## 1.3.0-beta2
 * Web App: Unmanaged Server Farm uses Resource Id for fully-qualified path.
 
