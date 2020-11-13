@@ -5,25 +5,29 @@ open Farmer
 open Farmer.Builders
 open Farmer.CoreTypes
 
-let myStorage = storageAccount {
-    name "farmerstg"
+let grp1Storage = storageAccount {
+    name "codatgrp1storage"
 }
 
-let myStorage2 = storageAccount {
-    name "farmerstg2"
+let grp2Storage = storageAccount {
+    name "codatgrp2storage"
 }
 
-let rg = resourceGroup {
-    name "deleteme2"
-    add_resource myStorage2
+let group1 = resourceGroup {
+    name "grp1"
+    add_resource grp1Storage
+}
+
+let group2 = resourceGroup {
+    name "grp2"
+    add_resource grp2Storage
 }
 
 let template = arm {
-    location Location.NorthEurope
-    scope DeploymentScope.Subscription
-    add_resource myStorage
-    add_resource rg
+    scope Subscription
+    add_resource group1
+    add_resource group2
 }
 
 template
-|> Deploy.execute "deleteme" Deploy.NoParameters
+|> Deploy.executeSubscription Location.WestEurope Deploy.NoParameters

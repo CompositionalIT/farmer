@@ -3,7 +3,6 @@ module Farmer.Arm.ResourceGroup
 
 open Farmer
 open Farmer.CoreTypes
-open Farmer.Identity
 open System
 
 let resourceGroups = ResourceType ("Microsoft.Resources/resourceGroups", "2020-06-01")
@@ -15,7 +14,8 @@ let private getDeploymentNumber =
 
 type ResourceGroup = 
     { Name : ResourceName 
-      Location: Location }
+      Location: Location
+      PostDeployTasks: IPostDeploy list }
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
@@ -23,6 +23,13 @@ type ResourceGroup =
                apiVersion= resourceGroups.ApiVersion
                name= this.Name.Value
                location= this.Location.ArmValue |} :> _
+    interface IPostDeploy with
+        member this.Run _ =
+          [ for task in this.PostDeployTasks do task.Run this.Name.Value ]
+          |> List.choose id
+          |> Result.sequence
+          |> Result.map (String.concat Environment.NewLine)
+          |> Some
 
 type ResourceGroupDeployment = 
     { Name : ResourceName 
@@ -36,7 +43,7 @@ type ResourceGroupDeployment =
                name = sprintf "%s-deployment-%d" this.Name.Value (getDeploymentNumber ())
                resourceGroup = this.Name.Value
                dependsOn = 
-                 [ sprintf "[%s]" (ResourceId.create (resourceGroups, this.Name)).ArmExpression.Value ]
+                 [ this.Name.Value ]
                properties = 
                  {| mode = "Incremental"
                     template = this.Template |> Writer.TemplateGeneration.processTemplate

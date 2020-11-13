@@ -48,7 +48,7 @@ type ArmBuilder() =
               ] |> List.distinct
               Outputs = state.Outputs |> Map.toList
               Resources = state.Resources
-              DeploymentScope = state.DeploymentScope }
+              Schema = state.DeploymentScope.Schema }
 
         let postDeployTasks = [
             for resource in state.Resources do
@@ -57,7 +57,8 @@ type ArmBuilder() =
                 | _ -> ()
             ]
 
-        { Location = state.Location
+        { Scope = state.DeploymentScope
+          Location = state.Location
           Template = template
           PostDeployTasks = postDeployTasks }
 

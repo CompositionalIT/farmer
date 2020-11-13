@@ -8,7 +8,7 @@ open System.Reflection
 
 module TemplateGeneration =
     let processTemplate (template:ArmTemplate) = {|
-        ``$schema`` = template.DeploymentScope.Schema
+        ``$schema`` = template.Schema
         contentVersion = "1.0.0.0"
         resources = template.Resources |> List.map(fun r -> r.JsonModel)
         parameters =

@@ -251,13 +251,14 @@ type DeploymentScope =
         | Subscription ->"https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#"
 
 type ArmTemplate =
-    { DeploymentScope: DeploymentScope
+    { Schema: string
       Parameters : SecureParameter list
       Outputs : (string * string) list
       Resources : IArmResource list }
 
 type Deployment =
-    { Location : Location
+    { Scope : DeploymentScope
+      Location : Location
       Template : ArmTemplate
       PostDeployTasks : IPostDeploy list }
 

@@ -16,7 +16,8 @@ type ResourceGroupConfig =
         member this.DependencyName = this.Name
         member this.BuildResources location = [
             { ResourceGroup.Name = this.Name
-              Location = this.Location }
+              Location = this.Location
+              PostDeployTasks = List.empty }
             if not this.Resources.IsEmpty then
                 { ResourceGroupDeployment.Name = this.Name
                   Location = this.Location
@@ -29,7 +30,7 @@ type ResourceGroupConfig =
                       ] |> List.distinct
                       Resources = this.Resources
                       Outputs = this.Outputs |> Map.toList
-                      DeploymentScope = DeploymentScope.ResourceGroup}
+                      Schema = DeploymentScope.ResourceGroup.Schema }
                   }
         ]
 
