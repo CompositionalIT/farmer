@@ -23,6 +23,7 @@ The Deployment Script builder is used to execute Azure CLI scripts as part of an
 | identity | Sets the user assigned identity for the deployment script resource (must be a contributor in the resource group). |
 | primary_script_uri | Sets a URI to download script content. |
 | retention_interval | Sets the hours to retain the script runtime infrastructure to run again quickly. |
+| run_after | Specifies the resource ID of resource that must exist before script execution. |
 | script_content | Sets script content for the resource. |
 | supporting_script_uris | Sets a URI to download additional content for the script. |
 | timeout | Sets the maximum amount of time to allow the script to run. |
@@ -66,5 +67,25 @@ let template = arm {
     add_resource scriptRole
     add_resource getDateScript
     output "date" "[reference('custom-script').outputs.date]"
+}
+```
+
+#### Example with dependent resource
+```fsharp
+let storage = storageAccount {
+    name "storagewithstuff"
+    add_public_container "public"
+}
+/// The deployment script can run azure CLI commands against resources in the
+/// same deployment by using 'run_after' and referencing those resources.
+let script = deploymentScript {
+    name "write-files"
+    script_content "echo 'hello world' > hello && az storage blob upload --account-name storagewithstuff -f hello -c public -n hello"
+    run_after (ResourceId.create (storageAccounts, storage.Name.ResourceName))
+}
+let template = arm {
+    location Location.EastUS
+    add_resource storage
+    add_resource script
 }
 ```

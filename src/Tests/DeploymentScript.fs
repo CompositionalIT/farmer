@@ -1,8 +1,11 @@
 module DeploymentScript
 
 open Expecto
+open Farmer
 open Farmer.Arm.DeploymentScript
+open Farmer.Arm.Storage
 open Farmer.Builders
+open Farmer.CoreTypes
 
 let tests = testList "deploymentScripts" [
     test "creates a script" {
@@ -65,5 +68,19 @@ let tests = testList "deploymentScripts" [
     test "Outputs are generated correctly" {
         let s = deploymentScript { name "thing" }
         Expect.equal (s.Outputs.["test"].Eval()) "[reference(resourceId('Microsoft.Resources/deploymentScripts', 'thing'), '2019-10-01-preview').outputs.test]" ""
+    }
+
+    test "Script runs after dependency is created" {
+        let storage = storageAccount {
+            name "storagewithstuff"
+            add_public_container "public"
+        }
+        let script = deploymentScript {
+            name "write-files"
+            script_content "echo 'hello world' > hello && az storage blob upload --account-name storagewithstuff -f hello -c public -n hello"
+            run_after (ResourceId.create (storageAccounts, storage.Name.ResourceName))
+        }
+        Expect.hasLength script.AdditionalDependencies 1 "Should have additional dependency"
+        Expect.equal script.AdditionalDependencies.Head.Name.Value "storagewithstuff" "Dependency should be on storage account"
     }
 ]

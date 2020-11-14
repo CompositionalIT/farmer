@@ -18,6 +18,7 @@ type OutputCollection(owner) =
 
 type DeploymentScriptConfig =
     { Name : ResourceName
+      AdditionalDependencies : ResourceId list
       Arguments : string list
       CleanupPreference : Cleanup option
       Cli : CliVersion
@@ -61,6 +62,7 @@ type DeploymentScriptConfig =
             // Deployment Script
             { Location = location
               Name = this.Name
+              AdditionalDependencies = this.AdditionalDependencies
               Arguments = this.Arguments
               CleanupPreference = this.CleanupPreference
               Cli = this.Cli
@@ -76,6 +78,7 @@ type DeploymentScriptConfig =
 type DeploymentScriptBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
+          AdditionalDependencies = []
           Arguments = []
           CleanupPreference = None
           Cli = AzCli "2.9.1"
@@ -101,6 +104,10 @@ type DeploymentScriptBuilder() =
     /// Specify the CLI type and version to use - defaults to the 'az cli' version 2.12.1.
     [<CustomOperation "cli">]
     member _.Cli(state:DeploymentScriptConfig, cliVersion) = { state with Cli = cliVersion }
+    [<CustomOperation "run_after">]
+    /// Specify the script runs after other resources are created.
+    member _.RunAfter(state:DeploymentScriptConfig, resourceId) =
+        { state with AdditionalDependencies = resourceId :: state.AdditionalDependencies }
     /// The contents of the script to execute.
     [<CustomOperation "script_content">]
     member _.Content(state:DeploymentScriptConfig, content) = { state with ScriptSource = Content content }

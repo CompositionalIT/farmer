@@ -26,6 +26,7 @@ type Cleanup =
 type DeploymentScript =
     { Name : ResourceName
       Location : Location
+      AdditionalDependencies : ResourceId list
       Arguments : string list
       CleanupPreference : Cleanup option
       Cli : CliVersion
@@ -36,7 +37,7 @@ type DeploymentScript =
       SupportingScriptUris : Uri list
       Timeout : TimeSpan option
       Tags: Map<string,string> }
-    member private this.Dependencies = [ this.Identity.ResourceId ]
+    member private this.Dependencies = this.Identity.ResourceId :: this.AdditionalDependencies
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
