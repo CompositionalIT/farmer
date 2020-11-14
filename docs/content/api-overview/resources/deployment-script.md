@@ -15,13 +15,14 @@ The Deployment Script builder is used to execute Azure CLI scripts as part of an
 |-|-|
 | name | Sets the name of the deployment script resource. |
 | arguments | List of arguments to pass to the script. |
+| cleanup_on_success | The script will *only* be cleaned up on success to allow for inspection of failures. |
 | cli | Specifies the CLI runtime, default is az cli. |
 | content | Sets script content for the resource. |
 | env_vars | Defines environment variables in the script environment. |
 | force_update_tag | A tag that cn be changed to force a resource update so the script is run again. |
 | identity | Sets the user assigned identity for the deployment script resource (must be a contributor in the resource group). |
 | primary_script_uri | Sets a URI to download script content. |
-| retention_interval_days | Sets the days to retain the script runtime infrastructure to run again quickly. |
+| retention_interval | Sets the hours to retain the script runtime infrastructure to run again quickly. |
 | script_content | Sets script content for the resource. |
 | supporting_script_uris | Sets a URI to download additional content for the script. |
 | timeout | Sets the maximum amount of time to allow the script to run. |

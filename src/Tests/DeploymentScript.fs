@@ -17,8 +17,29 @@ let tests = testList "deploymentScripts" [
         Expect.equal script.ScriptSource (Content " echo 'hello' ") "Script content not set"
         Expect.equal script.Cli (AzCli "2.9.1") "Script default CLI was not az cli 2.9.1"
         Expect.equal script.Timeout None "Script timeout should not have a value"
+        Expect.equal script.CleanupPreference None "Script should not have a cleanup preference"
         Expect.hasLength script.Arguments 2 "Incorrect number of script arguments"
         Expect.hasLength script.EnvironmentVariables 1 "Incorrect number of environment variables"
+    }
+
+    test "creates a script that is cleaned up only on success" {
+        let script = deploymentScript {
+            name "some-script"
+            script_content """ echo 'hello' """
+            cleanup_on_success
+        }
+        let cleanup = Expect.wantSome script.CleanupPreference "Script should have a cleanup preference"
+        Expect.equal cleanup Cleanup.OnSuccess "Cleanup preference was incorrect"
+    }
+
+    test "creates a script that is cleaned up after the retention interval" {
+        let script = deploymentScript {
+            name "some-script"
+            script_content """ echo 'hello' """
+            retention_interval 4<Farmer.Hours>
+        }
+        let cleanup = Expect.wantSome script.CleanupPreference "Script should have a cleanup preference"
+        Expect.equal cleanup (Cleanup.OnExpiration (System.TimeSpan.FromHours 4.)) "Cleanup preference should be on expiration of 4 hours"
     }
 
     test "creates a script with explicit identity" {

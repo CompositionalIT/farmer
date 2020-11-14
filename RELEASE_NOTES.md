@@ -1,6 +1,7 @@
 Release Notes
 =============
 ## 1.3.0-beta2
+* Deployment Scripts: Specifies cleanup on expiration when retention interval is set, and enables cleanup on success only.
 * Web App: Unmanaged Server Farm uses Resource Id for fully-qualified path.
 
 ## 1.3.0-beta1

@@ -17,16 +17,22 @@ type ScriptSource =
     | Content of string
     | Remote of Uri
 
+[<RequireQualifiedAccess>]
+type Cleanup =
+    | Always
+    | OnSuccess
+    | OnExpiration of TimeSpan
+
 type DeploymentScript =
     { Name : ResourceName
       Location : Location
       Arguments : string list
+      CleanupPreference : Cleanup option
       Cli : CliVersion
       EnvironmentVariables: Map<string, EnvVar>
       ForceUpdateTag : Guid option
       Identity : UserAssignedIdentity
       ScriptSource : ScriptSource
-      RetentionInterval : TimeSpan option
       SupportingScriptUris : Uri list
       Timeout : TimeSpan option
       Tags: Map<string,string> }
@@ -38,6 +44,13 @@ type DeploymentScript =
                 match this.Cli with
                 | AzCli version -> "AzureCLI", version, null
                 | AzPowerShell version -> "AzurePowerShell", null, version
+            let cleanup, retention =
+                let defaultRetentionInterval = TimeSpan.FromDays 1.
+                match this.CleanupPreference with
+                | Some Cleanup.OnSuccess -> "OnSuccess", defaultRetentionInterval
+                | Some (Cleanup.OnExpiration retention) -> "OnExpiration", retention
+                | Some Cleanup.Always
+                | None -> "Always", defaultRetentionInterval
             {| deploymentScripts.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
                 kind = cliKind
                 identity = { SystemAssigned = Disabled; UserAssigned = [ this.Identity ] } |> ManagedIdentity.toArmJson
@@ -45,6 +58,7 @@ type DeploymentScript =
                     {| arguments = match this.Arguments with [] -> null | args -> String.concat " " args
                        azPowerShellVersion = azPowerShellVersion
                        azCliVersion = azCliVersion
+                       cleanupPreference = cleanup
                        environmentVariables = [
                          for (key, value) in Map.toSeq this.EnvironmentVariables do
                              match value with
@@ -60,10 +74,7 @@ type DeploymentScript =
                         match this.ScriptSource with
                         | Content _ -> null
                         | Remote uri -> uri
-                       retentionInterval =
-                           this.RetentionInterval
-                           |> Option.defaultValue (TimeSpan.FromDays 1.)
-                           |> Xml.XmlConvert.ToString
+                       retentionInterval = retention |> Xml.XmlConvert.ToString
                        supportingScriptUris =
                            match this.SupportingScriptUris with
                            | [] -> null

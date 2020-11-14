@@ -19,12 +19,12 @@ type OutputCollection(owner) =
 type DeploymentScriptConfig =
     { Name : ResourceName
       Arguments : string list
+      CleanupPreference : Cleanup option
       Cli : CliVersion
       EnvironmentVariables: Map<string, EnvVar>
       ForceUpdate : bool
       CustomIdentity : UserAssignedIdentity option
       ScriptSource : ScriptSource
-      RetentionInterval : TimeSpan option
       SupportingScriptUris : Uri list
       Tags : Map<string,string>
       Timeout : TimeSpan option }
@@ -62,12 +62,12 @@ type DeploymentScriptConfig =
             { Location = location
               Name = this.Name
               Arguments = this.Arguments
+              CleanupPreference = this.CleanupPreference
               Cli = this.Cli
               EnvironmentVariables = this.EnvironmentVariables
               ForceUpdateTag = if this.ForceUpdate then Some (Guid.NewGuid()) else None
               Identity = identity
               ScriptSource = this.ScriptSource
-              RetentionInterval = this.RetentionInterval
               SupportingScriptUris = this.SupportingScriptUris
               Tags = this.Tags
               Timeout = this.Timeout }
@@ -77,12 +77,12 @@ type DeploymentScriptBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
           Arguments = []
+          CleanupPreference = None
           Cli = AzCli "2.9.1"
           EnvironmentVariables = Map.empty
           ForceUpdate = false
           CustomIdentity = None
           ScriptSource = Content ""
-          RetentionInterval = None
           SupportingScriptUris = []
           Tags = Map.empty
           Timeout = None }
@@ -95,6 +95,9 @@ type DeploymentScriptBuilder() =
     [<CustomOperation "arguments">]
     member _.Arguments(state:DeploymentScriptConfig, arguments) =
         { state with Arguments = state.Arguments @ arguments }
+    /// Specify deployment script should only be cleaned up if it succeeds so failures cn be inspected.
+    [<CustomOperation "cleanup_on_success">]
+    member _.CleanupPreference(state:DeploymentScriptConfig) = { state with CleanupPreference = Some Cleanup.OnSuccess }
     /// Specify the CLI type and version to use - defaults to the 'az cli' version 2.12.1.
     [<CustomOperation "cli">]
     member _.Cli(state:DeploymentScriptConfig, cliVersion) = { state with Cli = cliVersion }
@@ -126,8 +129,8 @@ type DeploymentScriptBuilder() =
     /// Time to retain the container instance that runs the script - 1 to 26 hours.
     [<CustomOperation "retention_interval">]
     member _.RetentionInterval(state:DeploymentScriptConfig, retentionInterval) =
-        let maxRetention = min retentionInterval 30<Hours>
-        { state with RetentionInterval = Some (TimeSpan.FromHours (float maxRetention)) }
+        let maxRetention = min retentionInterval 26<Hours>
+        { state with CleanupPreference = Some (Cleanup.OnExpiration (TimeSpan.FromHours (float maxRetention))) }
     /// Additional URIs to download scripts that the primary script relies on.
     [<CustomOperation "supporting_script_uris">]
     member _.SupportingScriptUris(state:DeploymentScriptConfig, supportingScriptUris) =
