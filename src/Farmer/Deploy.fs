@@ -50,7 +50,7 @@ module Az =
                 let azProcess =
                     ProcessStartInfo(
                         FileName = azCliPath.Value,
-                        Arguments = arguments,
+                        Arguments = argumentsWithOutputSet,
                         UseShellExecute = false,
                         RedirectStandardOutput = true,
                         RedirectStandardError = true)
