@@ -46,7 +46,6 @@
     <Compile Include="Result.fs" />
     <Compile Include="Types.fs" />
     <Compile Include="Common.fs" />
-    <Compile Include="ArmBuilder.fs" />
 
     <Compile Include="Writer.fs" />
     <Compile Include="Deploy.fs" />
@@ -83,6 +82,8 @@
     <Compile Include="Arm\DeploymentScript.fs" />
 
     <Compile Include="IdentityExtensions.fs" />
+
+    <Compile Include="Builders\Builders.ResourceGroup.fs" />
 
     <Compile Include="Builders\Builders.LogAnalytics.fs" />
     <Compile Include="Builders/Builders.Helpers.fs" />
