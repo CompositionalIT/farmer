@@ -43,6 +43,10 @@ module Az =
                     failwithf "OSPlatform: %s not supported" RuntimeInformation.OSDescription
         let executeAz arguments =
             try
+                let argumentsWithOutputSet =
+                    if System.Text.RegularExpressions.Regex.IsMatch(arguments, "(-o|--output) (json|table|jsonc|yaml|tsv|none)") then
+                        arguments
+                    else arguments + " -o json"
                 let azProcess =
                     ProcessStartInfo(
                         FileName = azCliPath.Value,
