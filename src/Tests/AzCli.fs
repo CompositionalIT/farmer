@@ -3,6 +3,13 @@ module AzCli
 open Expecto
 open Farmer
 open System
+open Newtonsoft.Json
+
+// #r "nuget: Newtonsoft.Json"
+open Newtonsoft.Json
+let json = "[]/"
+let a = JsonConvert.DeserializeObject(json)
+printfn "%A" a
 
 let tests = testList "Azure CLI" [
     test "Can connect to Az CLI" {
@@ -14,6 +21,21 @@ let tests = testList "Azure CLI" [
         let deployment = Template.TestHelpers.createSimpleDeployment [ "p1" ]
         let result = deployment |> Deploy.tryExecute "sample-rg" []
         Expect.equal result (Error "The following parameters are missing: p1. Please add them.") ""
+    }
+    test "Az output is JSON unless overridden" {
+        let result = Deploy.Az.az "account list"
+        match result with
+        | Ok ok -> Newtonsoft.Json.JsonConvert.DeserializeObject(ok) |> ignore
+        | Error error -> failwithf "Error checking az json: %s" error
+
+        let result = Deploy.Az.az "account list -o yaml"
+        match result with
+        | Ok ok ->
+            try
+                Newtonsoft.Json.JsonConvert.DeserializeObject(ok) |> ignore
+            with _ -> ()
+        | Error error -> failwithf "Error overriding az output: %s" error
+
     }
 
     test "Deploys and deletes a resource group" {
