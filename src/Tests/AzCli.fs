@@ -33,6 +33,7 @@ let tests = testList "Azure CLI" [
         | Ok ok ->
             try
                 Newtonsoft.Json.JsonConvert.DeserializeObject(ok) |> ignore
+                failwith "Error overriding az output: expected deserialization to fail."
             with _ -> ()
         | Error error -> failwithf "Error overriding az output: %s" error
 
