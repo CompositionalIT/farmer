@@ -66,7 +66,7 @@ module Writer =
 
 [<AutoOpen>]
 module TemplateWriterExtensions =
-    type CoreTypes.Deployment with
+    type Deployment with
         /// Returns a JSON string representing the supplied ARMTemplate.
         member this.ToJson () = this.Template |> Writer.doToJson
 

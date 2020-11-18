@@ -216,7 +216,7 @@ module Deploy =
 
         return
             {| DeploymentName = sprintf "farmer-deploy-%d" (generateDeployNumber())
-               TemplateFilename = deployment.Template |> Writer.toJson |> Writer.toFile deployFolder "farmer-deploy" |}
+               TemplateFilename = deployment.ToJson() |> Writer.toFile deployFolder "farmer-deploy" |}
     }
 
     /// Validates a deployment against a resource group. If the resource group does not exist, it will be created automatically.
@@ -276,7 +276,7 @@ module TemplateDeploymentExtensions =
     open Deploy
     open Newtonsoft.Json
 
-    type CoreTypes.Deployment with
+    type Deployment with
         /// Executes this deployment against a resource group using the Azure CLI.
         /// If successful, returns a Map of the output keys and values, otherwise returns any error as an exception.
         member this.Deploy(resourceGroupName, ?parameters) =
