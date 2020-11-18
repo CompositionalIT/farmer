@@ -222,5 +222,27 @@ let tests = testList "Container Group" [
         Expect.isNonEmpty containerGroup.Identity.UserAssigned "Container group did not have identity"
         Expect.equal containerGroup.Identity.UserAssigned.[0] (UserAssignedIdentity(ResourceId.create(Arm.ManagedIdentity.userAssignedIdentities, ResourceName "aciUser"))) "Expected user identity named 'aciUser'."
     }
- ]
-
+    test "Secure environment variables are generated correctly" {
+        let cg = containerGroup {
+            name "myapp"
+            add_instances [
+                containerInstance {
+                    name "nginx"
+                    image "nginx:1.17.6-alpine"
+                    add_ports PublicPort [ 80us; 443us ]
+                    add_ports InternalPort [ 9090us; ]
+                    memory 0.5<Gb>
+                    cpu_cores 1
+                    env_vars [
+                        EnvVar.createSecureParameter "foo" "secret-foo"
+                    ]
+                }
+            ]
+        }
+        let deployment = arm {
+            add_resource cg
+        }
+        Expect.hasLength deployment.Template.Parameters 1 "Should have a secure parameter for environment variable"
+        Expect.equal (deployment.Template.Parameters.Head.ArmExpression.Eval()) "[parameters('secret-foo')]" "Generated incorrect secure parameter."
+    }
+]

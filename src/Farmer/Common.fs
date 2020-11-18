@@ -1,6 +1,7 @@
 ﻿namespace Farmer
 
 open System
+open Farmer.CoreTypes
 
 [<AutoOpen>]
 module internal DuHelpers =
@@ -71,8 +72,11 @@ type TlsVersion = Tls10 | Tls11 | Tls12
 type EnvVar =
     | EnvValue of string
     | SecureEnvValue of string
+    | SecureParamEnvValue of SecureParameter
     static member create (name:string) (value:string) = name, EnvValue value
     static member createSecure (name:string) (value:string) = name, SecureEnvValue value
+    static member createSecureParameter (name:string) (paramName:string) =
+        name, SecureParamEnvValue (SecureParameter paramName)
 
 module Mb =
     let toBytes (mb:int<Mb>) = int64 mb * 1024L * 1024L

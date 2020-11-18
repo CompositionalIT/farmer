@@ -31,6 +31,13 @@ type DeploymentScript =
       Timeout : TimeSpan option
       Tags: Map<string,string> }
     member private this.Dependencies = [ this.Identity.ResourceId ]
+    interface IParameters with
+        member this.SecureParameters = [
+            for envVar in this.EnvironmentVariables do
+                match envVar.Value with
+                | SecureParamEnvValue p -> p
+                | _ -> ()
+        ]
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
@@ -50,6 +57,7 @@ type DeploymentScript =
                              match value with
                              | EnvValue v -> {| name = key; value = v; secureValue = null |}
                              | SecureEnvValue v -> {| name = key; value = null; secureValue = v |}
+                             | SecureParamEnvValue v -> {| name = key; value = null; secureValue = v.ArmExpression.Eval() |}
                        ]
                        forceUpdateTag = this.ForceUpdateTag |> Option.toNullable
                        scriptContent =

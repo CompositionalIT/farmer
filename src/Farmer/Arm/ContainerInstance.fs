@@ -59,7 +59,15 @@ type ContainerGroup =
     ]
 
     interface IParameters with
-        member this.SecureParameters = this.ImageRegistryCredentials |> List.map (fun c -> c.Password)
+        member this.SecureParameters = [
+            for credential in this.ImageRegistryCredentials do
+                credential.Password
+            for container in this.ContainerInstances do
+                for envVar in container.EnvironmentVariables do
+                    match envVar.Value with
+                    | SecureParamEnvValue p -> p
+                    | _ -> ()
+        ]
     interface IArmResource with
         member this.ResourceName = this.Name
         member this.JsonModel =
@@ -79,6 +87,8 @@ type ContainerGroup =
                                               match value with
                                               | EnvValue v -> {| name = key; value = v; secureValue = null |}
                                               | SecureEnvValue v -> {| name = key; value = null; secureValue = v |}
+                                              | SecureParamEnvValue v ->
+                                                  {| name = key; value = null; secureValue = v.ArmExpression.Eval() |}
                                       ]
                                       resources =
                                        {| requests =

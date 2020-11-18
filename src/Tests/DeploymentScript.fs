@@ -1,6 +1,7 @@
 module DeploymentScript
 
 open Expecto
+open Farmer
 open Farmer.Arm.DeploymentScript
 open Farmer.Builders
 
@@ -44,5 +45,19 @@ let tests = testList "deploymentScripts" [
     test "Outputs are generated correctly" {
         let s = deploymentScript { name "thing" }
         Expect.equal (s.Outputs.["test"].Eval()) "[reference(resourceId('Microsoft.Resources/deploymentScripts', 'thing'), '2019-10-01-preview').outputs.test]" ""
+    }
+
+    test "Secure parameters are generated correctly" {
+        let s = deploymentScript {
+            name "thing"
+            env_vars [
+                EnvVar.createSecureParameter "foo" "secret-foo"
+            ]
+        }
+        let deployment = arm {
+            add_resource s
+        }
+        Expect.hasLength deployment.Template.Parameters 1 "Should have a secure parameter"
+        Expect.equal (deployment.Template.Parameters.Head.ArmExpression.Eval()) "[parameters('secret-foo')]" "Generated incorrect secure parameter."
     }
 ]
