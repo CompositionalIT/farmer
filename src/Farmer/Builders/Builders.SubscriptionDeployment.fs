@@ -70,3 +70,5 @@ type SubscriptionDeploymentBuilder()=
     [<CustomOperation "add_resource_group">]
     member this.AddResourceGroup(state: SubscriptionDeployment, resGroup) =
         this.AddResourceGroups(state, [resGroup])
+
+let subscriptionDeployment = SubscriptionDeploymentBuilder()
