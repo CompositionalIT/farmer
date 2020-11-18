@@ -66,9 +66,7 @@ type EventHubConfig =
               CaptureDestination = this.CaptureDestination
               Dependencies = [
                   namespaces.resourceId this.EventHubNamespaceName
-                  match this.CaptureDestination with
-                  | Some (StorageAccount(name, _)) -> storageAccounts.resourceId name
-                  | None -> ()
+                  yield! this.CaptureDestination |> Option.mapList (fun (StorageAccount (name, _)) -> storageAccounts.resourceId name)
                   yield! this.Dependencies
               ]
               Tags = this.Tags  }

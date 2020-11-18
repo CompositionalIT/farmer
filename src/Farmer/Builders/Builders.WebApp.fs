@@ -183,11 +183,7 @@ type WebAppConfig =
               AppSettings =
                 let literalSettings = [
                     if this.RunFromPackage then AppSettings.RunFromPackage
-
-                    match this.WebsiteNodeDefaultVersion with
-                    | Some v -> AppSettings.WebsiteNodeDefaultVersion v
-                    | None -> ()
-
+                    yield! this.WebsiteNodeDefaultVersion |> Option.mapList AppSettings.WebsiteNodeDefaultVersion 
                     match this.OperatingSystem, this.AppInsights with
                     | Windows, Some resource ->
                         "APPINSIGHTS_INSTRUMENTATIONKEY", AppInsights.getInstrumentationKey(resource.resourceId this).Eval()
@@ -250,9 +246,7 @@ type WebAppConfig =
                     for setting in this.Settings do
                         match setting.Value with
                         | ExpressionSetting expr ->
-                            match expr.Owner with
-                            | Some owner -> owner
-                            | None -> ()
+                            yield! Option.toList expr.Owner
                         | ParameterSetting _
                         | LiteralSetting _ ->
                             ()

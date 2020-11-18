@@ -44,7 +44,7 @@ type ContainerGroup =
         this.NetworkProfile
         |> Option.map networkProfiles.resourceId
     member private this.Dependencies = [
-        yield! this.NetworkProfilePath |> Option.toList
+        yield! Option.toList this.NetworkProfilePath
 
         for _, volume in this.Volumes |> Map.toSeq do
             match volume with

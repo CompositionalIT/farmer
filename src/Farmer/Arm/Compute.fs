@@ -65,7 +65,7 @@ type VirtualMachine =
         member this.JsonModel =
             let dependsOn = [
                 networkInterfaces.resourceId this.NetworkInterfaceName
-                yield! this.StorageAccount |> Option.map storageAccounts.resourceId |> Option.toList
+                yield! this.StorageAccount |> Option.mapList storageAccounts.resourceId
             ]
             {| virtualMachines.Create(this.Name, this.Location, dependsOn, this.Tags) with
                 properties =

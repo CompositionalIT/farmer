@@ -106,7 +106,7 @@ type ResourceId with
             sprintf "string('%s')" this.Name.Value
             |> ArmExpression.create
         | _ ->
-            [ match this.ResourceGroup with Some rg -> rg | None -> ()
+            [ yield! Option.toList this.ResourceGroup
               this.Type.Type
               this.Name.Value
               for segment in this.Segments do segment.Value ]

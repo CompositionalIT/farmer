@@ -39,7 +39,7 @@ module Profiles =
             member this.JsonModel =
                 let dependencies = [
                     profiles.resourceId this.Profile
-                    yield! this.Origin.Owner |> Option.toList
+                    yield! Option.toList this.Origin.Owner
                     yield! this.Dependencies
                 ]
                 {| endpoints.Create(this.Profile/this.Name, Location.Global, dependencies, this.Tags) with

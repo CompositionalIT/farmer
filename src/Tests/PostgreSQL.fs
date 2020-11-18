@@ -68,7 +68,8 @@ module Expect =
             with e ->
                 Some e.Message
         match thrown with
-        | None -> ()
+        | None ->
+            ()
         | Some msg ->
             failtestf "%s. Expected f to not throw, but it did. Exception message: %s" message msg
 

@@ -68,9 +68,7 @@ type FunctionsConfig =
                 "AzureWebJobsStorage", StorageAccount.getConnectionString this.StorageAccountName |> ArmExpression.Eval
                 "AzureWebJobsDashboard", StorageAccount.getConnectionString this.StorageAccountName |> ArmExpression.Eval
 
-                match this.AppInsightsKey with
-                | Some key -> "APPINSIGHTS_INSTRUMENTATIONKEY", key |> ArmExpression.Eval
-                | None -> ()
+                yield! this.AppInsightsKey |> Option.mapList (fun key -> "APPINSIGHTS_INSTRUMENTATIONKEY", key |> ArmExpression.Eval)
 
                 if this.OperatingSystem = Windows then
                     "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING", StorageAccount.getConnectionString this.StorageAccountName |> ArmExpression.Eval
@@ -92,12 +90,8 @@ type FunctionsConfig =
                 | _ -> ()
                 for setting in this.Settings do
                     match setting.Value with
-                    | ExpressionSetting e ->
-                        match e.Owner with
-                        | Some owner -> owner
-                        | None -> ()
-                    | ParameterSetting _ | LiteralSetting _ ->
-                        ()
+                    | ExpressionSetting e -> yield! Option.toList e.Owner
+                    | ParameterSetting _ | LiteralSetting _ -> ()
                 match this.ServicePlan with
                 | DependableResource this resourceId -> resourceId
                 | _ -> ()
