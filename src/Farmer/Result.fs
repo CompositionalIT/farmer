@@ -58,9 +58,14 @@ module Result =
         member __.For(sequence:seq<_>, body) =
             __.Using(sequence.GetEnumerator(), fun enum -> __.While(enum.MoveNext, __.Delay(fun () -> body enum.Current)))
 
+[<RequireQualifiedAccess>]
+module Option =
+    let mapList mapper = Option.map mapper >> Option.toList
+
 [<AutoOpen>]
 module Builders =
     let result = Result.ResultBuilder()
     type Result<'TS, 'TE> with
         /// Unsafely unwraps the Success value out of the Result.
         member this.OkValue = Result.get this
+

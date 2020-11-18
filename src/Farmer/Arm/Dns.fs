@@ -2,7 +2,6 @@
 module Farmer.Arm.Dns
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.Dns
 
 let zones = ResourceType ("Microsoft.Network/dnsZones", "2018-05-01")
@@ -32,7 +31,7 @@ type DnsZone =
       Properties : {| ZoneType : string |} }
 
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = zones.resourceId this.Name
         member this.JsonModel =
             {| zones.Create(this.Name, Location.Global) with
                 properties = {| zoneType = this.Properties.ZoneType |}
@@ -45,9 +44,9 @@ module DnsRecords =
           Type : DnsRecordType
           TTL : int }
         interface IArmResource with
-            member this.ResourceName = this.Name
+            member this.ResourceId = this.Type.ResourceType.resourceId (this.Zone/this.Name)
             member this.JsonModel =
-                {| this.Type.ResourceType.Create(this.Zone/this.Name, dependsOn = [ ResourceId.create this.Zone ]) with
+                {| this.Type.ResourceType.Create(this.Zone/this.Name, dependsOn = [ zones.resourceId this.Zone ]) with
                     properties = [
                         "TTL", box this.TTL
 

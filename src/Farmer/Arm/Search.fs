@@ -2,7 +2,6 @@
 module Farmer.Arm.Search
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.Search
 
 let searchServices = ResourceType ("Microsoft.Search/searchServices", "2015-08-19")
@@ -19,7 +18,7 @@ type SearchService =
         | Standard3 HighDensity -> "highDensity"
         | _ -> "default"
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = searchServices.resourceId this.Name
         member this.JsonModel =
             {| searchServices.Create(this.Name, this.Location, tags = this.Tags) with
                 sku =
