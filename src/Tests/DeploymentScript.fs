@@ -19,7 +19,7 @@ let tests = testList "deploymentScripts" [
         Expect.equal script.ScriptSource (Content " echo 'hello' ") "Script content not set"
         Expect.equal script.Cli (AzCli "2.9.1") "Script default CLI was not az cli 2.9.1"
         Expect.equal script.Timeout None "Script timeout should not have a value"
-        Expect.equal script.CleanupPreference None "Script should not have a cleanup preference"
+        Expect.equal script.CleanupPreference Cleanup.Always "Script should default to cleanup Always"
         Expect.hasLength script.Arguments 2 "Incorrect number of script arguments"
         Expect.hasLength script.EnvironmentVariables 1 "Incorrect number of environment variables"
     }
@@ -30,8 +30,7 @@ let tests = testList "deploymentScripts" [
             script_content """ echo 'hello' """
             cleanup_on_success
         }
-        let cleanup = Expect.wantSome script.CleanupPreference "Script should have a cleanup preference"
-        Expect.equal cleanup Cleanup.OnSuccess "Cleanup preference was incorrect"
+        Expect.equal script.CleanupPreference Cleanup.OnSuccess "Cleanup preference was incorrect"
     }
 
     test "creates a script that is cleaned up after the retention interval" {
@@ -40,8 +39,7 @@ let tests = testList "deploymentScripts" [
             script_content """ echo 'hello' """
             retention_interval 4<Farmer.Hours>
         }
-        let cleanup = Expect.wantSome script.CleanupPreference "Script should have a cleanup preference"
-        Expect.equal cleanup (Cleanup.OnExpiration (System.TimeSpan.FromHours 4.)) "Cleanup preference should be on expiration of 4 hours"
+        Expect.equal script.CleanupPreference (Cleanup.OnExpiration (System.TimeSpan.FromHours 4.)) "Cleanup preference should be on expiration of 4 hours"
     }
 
     test "creates a script with explicit identity" {
@@ -77,9 +75,9 @@ let tests = testList "deploymentScripts" [
         let script = deploymentScript {
             name "write-files"
             script_content "echo 'hello world' > hello && az storage blob upload --account-name storagewithstuff -f hello -c public -n hello"
-            run_after (ResourceId.create (storageAccounts, storage.Name.ResourceName))
+            depends_on storage
         }
-        Expect.hasLength script.AdditionalDependencies 1 "Should have additional dependency"
-        Expect.equal script.AdditionalDependencies.Head.Name.Value "storagewithstuff" "Dependency should be on storage account"
+        Expect.hasLength script.Dependencies 1 "Should have additional dependency"
+        Expect.equal (Set.toList script.Dependencies).[0].Name.Value "storagewithstuff" "Dependency should be on storage account"
     }
 ]

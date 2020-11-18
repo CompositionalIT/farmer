@@ -17,9 +17,9 @@ type OutputCollection(owner) =
 
 type DeploymentScriptConfig =
     { Name : ResourceName
-      AdditionalDependencies : ResourceId list
+      Dependencies : ResourceId Set
       Arguments : string list
-      CleanupPreference : Cleanup option
+      CleanupPreference : Cleanup
       Cli : CliVersion
       EnvironmentVariables: Map<string, EnvVar>
       ForceUpdate : bool
@@ -61,7 +61,7 @@ type DeploymentScriptConfig =
             // Deployment Script
             { Location = location
               Name = this.Name
-              AdditionalDependencies = this.AdditionalDependencies
+              Dependencies = this.Dependencies
               Arguments = this.Arguments
               CleanupPreference = this.CleanupPreference
               Cli = this.Cli
@@ -77,9 +77,9 @@ type DeploymentScriptConfig =
 type DeploymentScriptBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
-          AdditionalDependencies = []
+          Dependencies = Set.empty
           Arguments = []
-          CleanupPreference = None
+          CleanupPreference = Cleanup.Always
           Cli = AzCli "2.9.1"
           EnvironmentVariables = Map.empty
           ForceUpdate = false
@@ -99,14 +99,11 @@ type DeploymentScriptBuilder() =
         { state with Arguments = state.Arguments @ arguments }
     /// Specify deployment script should only be cleaned up if it succeeds so failures cn be inspected.
     [<CustomOperation "cleanup_on_success">]
-    member _.CleanupPreference(state:DeploymentScriptConfig) = { state with CleanupPreference = Some Cleanup.OnSuccess }
+    member _.CleanupPreference(state:DeploymentScriptConfig) = { state with CleanupPreference = Cleanup.OnSuccess }
     /// Specify the CLI type and version to use - defaults to the 'az cli' version 2.12.1.
     [<CustomOperation "cli">]
     member _.Cli(state:DeploymentScriptConfig, cliVersion) = { state with Cli = cliVersion }
-    [<CustomOperation "run_after">]
-    /// Specify the script runs after other resources are created.
-    member _.RunAfter(state:DeploymentScriptConfig, resourceId) =
-        { state with AdditionalDependencies = resourceId :: state.AdditionalDependencies }
+
     /// The contents of the script to execute.
     [<CustomOperation "script_content">]
     member _.Content(state:DeploymentScriptConfig, content) = { state with ScriptSource = Content content }
@@ -136,7 +133,7 @@ type DeploymentScriptBuilder() =
     [<CustomOperation "retention_interval">]
     member _.RetentionInterval(state:DeploymentScriptConfig, retentionInterval) =
         let maxRetention = min retentionInterval 26<Hours>
-        { state with CleanupPreference = Some (Cleanup.OnExpiration (TimeSpan.FromHours (float maxRetention))) }
+        { state with CleanupPreference = Cleanup.OnExpiration (TimeSpan.FromHours (float maxRetention)) }
     /// Additional URIs to download scripts that the primary script relies on.
     [<CustomOperation "supporting_script_uris">]
     member _.SupportingScriptUris(state:DeploymentScriptConfig, supportingScriptUris) =
@@ -154,5 +151,14 @@ type DeploymentScriptBuilder() =
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
     member this.Tag(state:DeploymentScriptConfig, key, value) = this.Tags(state, [ (key,value) ])
+
+    /// Sets a dependency for the deployment script. Use this if you want to ensure that the script runs only after another resource has been deployed.
+    [<CustomOperation "depends_on">]
+    member this.DependsOn(state:DeploymentScriptConfig, builder:IBuilder) = this.DependsOn (state, builder.ResourceId)
+    member this.DependsOn(state:DeploymentScriptConfig, builders:IBuilder list) = this.DependsOn (state, builders |> List.map (fun x -> x.ResourceId))
+    member this.DependsOn(state:DeploymentScriptConfig, resource:IArmResource) = this.DependsOn (state, resource.ResourceId)
+    member this.DependsOn(state:DeploymentScriptConfig, resources:IArmResource list) = this.DependsOn (state, resources |> List.map (fun x -> x.ResourceId))
+    member _.DependsOn (state:DeploymentScriptConfig, resourceId:ResourceId) = { state with Dependencies = state.Dependencies.Add resourceId }
+    member _.DependsOn (state:DeploymentScriptConfig, resourceIds:ResourceId list) = { state with Dependencies = Set resourceIds + state.Dependencies }
 
 let deploymentScript = DeploymentScriptBuilder()

@@ -25,9 +25,9 @@ type Cleanup =
 type DeploymentScript =
     { Name : ResourceName
       Location : Location
-      AdditionalDependencies : ResourceId list
+      Dependencies : ResourceId Set
       Arguments : string list
-      CleanupPreference : Cleanup option
+      CleanupPreference : Cleanup
       Cli : CliVersion
       EnvironmentVariables: Map<string, EnvVar>
       ForceUpdateTag : Guid option
@@ -36,7 +36,6 @@ type DeploymentScript =
       SupportingScriptUris : Uri list
       Timeout : TimeSpan option
       Tags: Map<string,string> }
-    member private this.Dependencies = this.Identity.ResourceId :: this.AdditionalDependencies
     interface IArmResource with
         member this.ResourceId = deploymentScripts.resourceId this.Name
         member this.JsonModel =
@@ -44,21 +43,19 @@ type DeploymentScript =
                 match this.Cli with
                 | AzCli version -> "AzureCLI", version, null
                 | AzPowerShell version -> "AzurePowerShell", null, version
-            let cleanup, retention =
-                let defaultRetentionInterval = TimeSpan.FromDays 1.
-                match this.CleanupPreference with
-                | Some Cleanup.OnSuccess -> "OnSuccess", defaultRetentionInterval
-                | Some (Cleanup.OnExpiration retention) -> "OnExpiration", retention
-                | Some Cleanup.Always
-                | None -> "Always", defaultRetentionInterval
-            {| deploymentScripts.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
+            let dependencies = this.Dependencies.Add this.Identity.ResourceId
+            {| deploymentScripts.Create(this.Name, this.Location, dependencies, this.Tags) with
                 kind = cliKind
                 identity = { SystemAssigned = Disabled; UserAssigned = [ this.Identity ] } |> ManagedIdentity.toArmJson
                 properties =
                     {| arguments = match this.Arguments with [] -> null | args -> String.concat " " args
                        azPowerShellVersion = azPowerShellVersion
                        azCliVersion = azCliVersion
-                       cleanupPreference = cleanup
+                       cleanupPreference =
+                        match this.CleanupPreference with
+                        | Cleanup.OnSuccess -> "OnSuccess"
+                        | Cleanup.OnExpiration _ -> "OnExpiration"
+                        | Cleanup.Always -> "Always"
                        environmentVariables = [
                          for (key, value) in Map.toSeq this.EnvironmentVariables do
                              match value with
@@ -74,10 +71,20 @@ type DeploymentScript =
                         match this.ScriptSource with
                         | Content _ -> null
                         | Remote uri -> uri
-                       retentionInterval = retention |> Xml.XmlConvert.ToString
+                       retentionInterval =
+                        match this.CleanupPreference with
+                        | Cleanup.OnSuccess
+                        | Cleanup.Always ->
+                            TimeSpan.FromDays 1.
+                        | Cleanup.OnExpiration retention ->
+                            retention
+                        |> Xml.XmlConvert.ToString
                        supportingScriptUris =
-                           match this.SupportingScriptUris with
-                           | [] -> null
-                           | uris -> uris |> Seq.map string |> ResizeArray
-                       timeout = this.Timeout |> Option.map Xml.XmlConvert.ToString |> Option.toObj |}
+                        match this.SupportingScriptUris with
+                        | [] -> null
+                        | uris -> uris |> Seq.map string |> ResizeArray
+                       timeout =
+                        this.Timeout
+                        |> Option.map Xml.XmlConvert.ToString
+                        |> Option.toObj |}
             |} :> _
