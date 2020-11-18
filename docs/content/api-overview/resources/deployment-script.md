@@ -23,10 +23,10 @@ The Deployment Script builder is used to execute Azure CLI scripts as part of an
 | identity | Sets the user assigned identity for the deployment script resource (must be a contributor in the resource group). |
 | primary_script_uri | Sets a URI to download script content. |
 | retention_interval | Sets the hours to retain the script runtime infrastructure to run again quickly. |
-| run_after | Specifies the resource ID of resource that must exist before script execution. |
 | script_content | Sets script content for the resource. |
 | supporting_script_uris | Sets a URI to download additional content for the script. |
 | timeout | Sets the maximum amount of time to allow the script to run. |
+| depends_on | Specifies the resource or resource ID of resources that must exist before script execution. |
 | add_tags | Adds tags to the script runtime resource. |
 | add_tag | Adds a tag to the script runtime resource. |
 
@@ -38,8 +38,8 @@ open Farmer.Builders
 open Farmer.CoreTypes
 
 /// The deployment script must run under an identity with any necessary permissions
-/// to perform the commands in the script. Also must be a contributor in the 
-/// resource group. 
+/// to perform the commands in the script. Also must be a contributor in the
+/// resource group.
 let scriptIdentity = userAssignedIdentity {
     name "script-user"
 }
