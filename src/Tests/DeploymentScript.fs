@@ -5,7 +5,6 @@ open Farmer
 open Farmer.Arm.DeploymentScript
 open Farmer.Arm.Storage
 open Farmer.Builders
-open Farmer.CoreTypes
 
 let tests = testList "deploymentScripts" [
     test "creates a script" {
