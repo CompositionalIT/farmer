@@ -3,7 +3,6 @@ module Farmer.Arm.ContainerInstance
 
 open Farmer
 open Farmer.ContainerGroup
-open Farmer.CoreTypes
 open Farmer.Identity
 open Newtonsoft.Json.Linq
 
@@ -43,14 +42,14 @@ type ContainerGroup =
       Tags: Map<string,string>  }
     member this.NetworkProfilePath =
         this.NetworkProfile
-        |> Option.map (fun networkProfile -> ResourceId.create(networkProfiles, networkProfile))
+        |> Option.map networkProfiles.resourceId
     member private this.Dependencies = [
-        yield! this.NetworkProfilePath |> Option.toList
+        yield! Option.toList this.NetworkProfilePath
 
         for _, volume in this.Volumes |> Map.toSeq do
             match volume with
             | Volume.AzureFileShare (shareName, storageAccountName) ->
-                ResourceId.create(fileShares, storageAccountName.ResourceName, ResourceName "default", shareName)
+                fileShares.resourceId (storageAccountName.ResourceName, ResourceName "default", shareName)
             | _ ->
                 ()
 
@@ -61,7 +60,7 @@ type ContainerGroup =
     interface IParameters with
         member this.SecureParameters = this.ImageRegistryCredentials |> List.map (fun c -> c.Password)
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = containerGroups.resourceId this.Name
         member this.JsonModel =
             {| containerGroups.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
                    identity = this.Identity |> ManagedIdentity.toArmJson

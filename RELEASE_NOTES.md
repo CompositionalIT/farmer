@@ -1,5 +1,8 @@
 Release Notes
 =============
+## 1.3.0-beta2
+* Web App: Unmanaged Server Farm uses Resource Id for fully-qualified path.
+
 ## 1.3.0-beta1
 * Container Instance: Support for command line arguments.
 * Key Vault: Support for setting tags on key vault secrets.

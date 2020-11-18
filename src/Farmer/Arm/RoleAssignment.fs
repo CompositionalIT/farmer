@@ -2,7 +2,6 @@
 module Farmer.Arm.RoleAssignment
 
 open Farmer
-open Farmer.CoreTypes
 
 let roleAssignments = ResourceType ("Microsoft.Authorization/roleAssignments", "2020-04-01-preview")
 
@@ -46,14 +45,14 @@ type RoleAssignment =
       PrincipalType : PrincipalType
       /// Resource this role applies to.
       Scope : AssignmentScope }
-    
+
     member private this.Dependencies = [
         match this.Scope with
         | SpecificResource resourceId -> resourceId
         | ResourceGroup -> ()
     ]
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = roleAssignments.resourceId this.Name
         member this.JsonModel =
             {| roleAssignments.Create(this.Name, dependsOn = this.Dependencies) with
                 properties =

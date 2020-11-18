@@ -2,7 +2,6 @@
 module Farmer.Arm.DeploymentScript
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.Identity
 open System
 
@@ -32,7 +31,7 @@ type DeploymentScript =
       Tags: Map<string,string> }
     member private this.Dependencies = [ this.Identity.ResourceId ]
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = deploymentScripts.resourceId this.Name
         member this.JsonModel =
             let cliKind, azCliVersion, azPowerShellVersion =
                 match this.Cli with

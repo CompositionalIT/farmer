@@ -2,7 +2,6 @@
 module Farmer.Builders.ServiceBus
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.ServiceBus
 open Farmer.Arm.ServiceBus
 open Namespaces
@@ -149,11 +148,11 @@ type ServiceBusConfig =
                 "listkeys(resourceId('Microsoft.ServiceBus/namespaces/authorizationRules', '%s', 'RootManageSharedAccessKey'), '2017-04-01').%s"
                 this.Name.Value
                 property
-        ArmExpression.create(expr, ResourceId.create this.Name)
+        ArmExpression.create(expr, namespaces.resourceId this.Name)
     member this.NamespaceDefaultConnectionString = this.GetKeyPath "primaryConnectionString"
     member this.DefaultSharedAccessPolicyPrimaryKey = this.GetKeyPath "primaryKey"
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.ResourceId = namespaces.resourceId this.Name
         member this.BuildResources location = [
             { Name = this.Name
               Location = location
@@ -228,16 +227,14 @@ type ServiceBusBuilder() =
     [<CustomOperation "sku">]
     member _.Sku(state:ServiceBusConfig, sku) = { state with Sku = sku }
 
-    member private _.AddDependency (state:ServiceBusConfig, resourceName:ResourceName) = { state with Dependencies = ResourceId.create resourceName :: state.Dependencies }
-    member private _.AddDependencies (state:ServiceBusConfig, resourceNames:ResourceName list) = { state with Dependencies = (resourceNames |> List.map ResourceId.create) @ state.Dependencies }
     /// Sets a dependency for the web app.
     [<CustomOperation "depends_on">]
-    member this.DependsOn(state:ServiceBusConfig, resourceName) = this.AddDependency(state, resourceName)
-    member this.DependsOn(state:ServiceBusConfig, resources) = this.AddDependencies(state, resources)
-    member this.DependsOn(state:ServiceBusConfig, builder:IBuilder) = this.AddDependency(state, builder.DependencyName)
-    member this.DependsOn(state:ServiceBusConfig, builders:IBuilder list) = this.AddDependencies(state, builders |> List.map (fun x -> x.DependencyName))
-    member this.DependsOn(state:ServiceBusConfig, resource:IArmResource) = this.AddDependency(state, resource.ResourceName)
-    member this.DependsOn(state:ServiceBusConfig, resources:IArmResource list) = this.AddDependencies(state, resources |> List.map (fun x -> x.ResourceName))
+    member this.DependsOn(state:ServiceBusConfig, builder:IBuilder) = this.DependsOn (state, builder.ResourceId)
+    member this.DependsOn(state:ServiceBusConfig, builders:IBuilder list) = this.DependsOn (state, builders |> List.map (fun x -> x.ResourceId))
+    member this.DependsOn(state:ServiceBusConfig, resource:IArmResource) = this.DependsOn (state, resource.ResourceId)
+    member this.DependsOn(state:ServiceBusConfig, resources:IArmResource list) = this.DependsOn (state, resources |> List.map (fun x -> x.ResourceId))
+    member this.DependsOn (state:ServiceBusConfig, resourceId:ResourceId) = { state with Dependencies = resourceId :: state.Dependencies }
+    member this.DependsOn (state:ServiceBusConfig, resourceIds:ResourceId list) = { state with Dependencies = resourceIds @ state.Dependencies }
 
     [<CustomOperation "add_queues">]
     member _.AddQueues(state:ServiceBusConfig, queues) =

@@ -1,7 +1,6 @@
 namespace Farmer
 
 module Writer =
-    open Farmer.CoreTypes
     open Newtonsoft.Json
     open System.IO
     open System

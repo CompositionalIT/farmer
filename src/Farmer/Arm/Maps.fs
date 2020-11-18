@@ -2,7 +2,6 @@
 module Farmer.Arm.Maps
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.Maps
 
 let accounts = ResourceType ("Microsoft.Maps/accounts", "2018-05-01")
@@ -13,7 +12,7 @@ type Maps =
       Sku : Sku
       Tags: Map<string,string> }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = accounts.resourceId this.Name
         member this.JsonModel =
             {| accounts.Create(this.Name, this.Location, tags = this.Tags) with
                 sku =

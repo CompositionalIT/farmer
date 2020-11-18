@@ -2,7 +2,6 @@
 module Farmer.Arm.LogAnalytics
 
 open Farmer
-open Farmer.CoreTypes
 
 let workspaces = ResourceType("Microsoft.OperationalInsights/workspaces", "2020-03-01-preview")
 
@@ -16,7 +15,7 @@ type Workspace =
       Tags: Map<string, string> }
 
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = workspaces.resourceId this.Name
         member this.JsonModel =
             {| workspaces.Create(this.Name, this.Location, tags = this.Tags) with
                 properties =
