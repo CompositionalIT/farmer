@@ -223,7 +223,7 @@ let tests = testList "Service Bus Tests" [
                     add_resource sb
                 }
             let generatedTemplate = template.Template
-            let genSubscription = generatedTemplate.Resources.Item 2 :?> Subscription
+            let genSubscription = generatedTemplate.ResourceGroups.Item 2 :?> Subscription
             Expect.hasLength genSubscription.Rules 4 "Expected subscription should have 4 rules"
             Expect.equal genSubscription.Rules.[0] (Rule.CreateCorrelationFilter("SuccessfulStatus", ["Status", "Success"])) "Rule 0 is incorrect"
             Expect.equal genSubscription.Rules.[1] (Rule.CreateSqlFilter("Thing", "Status = Success")) "Rule 1 is incorrect"

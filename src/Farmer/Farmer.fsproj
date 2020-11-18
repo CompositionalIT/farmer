@@ -49,6 +49,7 @@
 
     <Compile Include="Writer.fs" />
     <Compile Include="Deploy.fs" />
+    <Compile Include="Arm\ResourceGroup.fs" />
 
     <Compile Include="Arm\ManagedIdentity.fs" />
     <Compile Include="Arm\LogAnalytics.fs" />
@@ -84,6 +85,8 @@
     <Compile Include="IdentityExtensions.fs" />
 
     <Compile Include="Builders\Builders.ResourceGroup.fs" />
+
+    <Compile Include="Builders\Builders.SubscriptionDeployment.fs" />
 
     <Compile Include="Builders\Builders.LogAnalytics.fs" />
     <Compile Include="Builders/Builders.Helpers.fs" />

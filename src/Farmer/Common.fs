@@ -1094,9 +1094,3 @@ module Subscription =
     /// Gets an ARM expression pointing to the tenant id of the current subscription.
     let TenantId = Farmer.CoreTypes.ArmExpression.create "subscription().tenantid"
 
-/// Represents all configuration information to generate an ARM template.
-type ArmConfig =
-    { Parameters : string Set
-      Outputs : Map<string, string>
-      Location : Location
-      Resources : IArmResource list }

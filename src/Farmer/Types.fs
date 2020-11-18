@@ -36,6 +36,11 @@ type IBuilder =
     /// Provides the resource name that other resources should use when depending upon this builder.
     abstract member DependencyName : ResourceName
 
+/// Represents a high-level configuration that can create a set of ARM Resources at the subscription scope.
+type ISubscriptionResourceBuilder =
+    /// Given a location and the currently-built resources, returns a set of resource actions.
+    abstract member BuildResources : Location -> IArmResource list
+
 namespace Farmer.CoreTypes
 
 open Farmer
@@ -248,9 +253,13 @@ type ArmTemplate =
       Resources : IArmResource list }
 
 type Deployment =
-    { Location : Location
+    { Schema : string
+      Location : Location
       Template : ArmTemplate
       PostDeployTasks : IPostDeploy list }
+
+type IDeploymentBuilder =
+    abstract member BuildDeployment : Location -> Deployment
 
 module internal DeterministicGuid =
     open System
