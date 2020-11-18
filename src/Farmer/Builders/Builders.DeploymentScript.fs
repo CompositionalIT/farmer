@@ -5,7 +5,6 @@ open Farmer
 open Farmer.Arm.DeploymentScript
 open Farmer.Arm.ManagedIdentity
 open Farmer.Arm.RoleAssignment
-open Farmer.CoreTypes
 open Farmer.Identity
 open System
 
@@ -33,7 +32,7 @@ type DeploymentScriptConfig =
     member this.Outputs = OutputCollection this.Name
 
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.ResourceId = deploymentScripts.resourceId this.Name
         member this.BuildResources location = [
             let generatedIdentityId =
                 let generatedIdentityName = sprintf "%s-identity" this.Name.Value |> ResourceName

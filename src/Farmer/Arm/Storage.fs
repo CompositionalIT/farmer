@@ -4,7 +4,6 @@ module Farmer.Arm.Storage
 open System
 open Farmer
 open Farmer.Storage
-open Farmer.CoreTypes
 
 let storageAccounts = ResourceType ("Microsoft.Storage/storageAccounts", "2019-06-01")
 let containers = ResourceType ("Microsoft.Storage/storageAccounts/blobServices/containers", "2018-03-01-preview")
@@ -22,7 +21,7 @@ type StorageAccount =
       StaticWebsite : {| IndexPage : string; ErrorPage : string option; ContentPath : string |} option
       Tags: Map<string,string>}
     interface IArmResource with
-        member this.ResourceName = this.Name.ResourceName
+        member this.ResourceId = storageAccounts.resourceId this.Name.ResourceName
         member this.JsonModel =
             {| storageAccounts.Create(this.Name.ResourceName, this.Location, this.Dependencies, this.Tags) with
                 sku =
@@ -38,7 +37,7 @@ type StorageAccount =
                             | GeneralPurpose _
                             | Blobs _ ->
                                 "Standard"
-                        let replicationModel =                            
+                        let replicationModel =
                             match this.Sku with
                             | GeneralPurpose (V1 (V1Replication.LRS _)) -> "LRS"
                             | GeneralPurpose (V2 (V2Replication.LRS _)) -> "LRS"
@@ -55,7 +54,7 @@ type StorageAccount =
                     | GeneralPurpose (V2 _) -> "StorageV2"
                     | Blobs _ -> "BlobStorage"
                     | Files _ -> "FileStorage"
-                    | BlockBlobs _ -> "BlockBlobStorage" 
+                    | BlockBlobs _ -> "BlockBlobStorage"
                 properties =
                     {| isHnsEnabled = this.EnableHierarchicalNamespace |> Option.toNullable
                        accessTier =
@@ -80,9 +79,9 @@ module BlobServices =
           StorageAccount : ResourceName
           Accessibility : StorageContainerAccess }
         interface IArmResource with
-            member this.ResourceName = this.Name.ResourceName
+            member this.ResourceId = containers.resourceId (this.StorageAccount/"default"/this.Name.ResourceName)
             member this.JsonModel =
-                {| containers.Create(this.StorageAccount/"default"/this.Name.ResourceName, dependsOn = [ ResourceId.create this.StorageAccount ]) with
+                {| containers.Create(this.StorageAccount/"default"/this.Name.ResourceName, dependsOn = [ storageAccounts.resourceId this.StorageAccount ]) with
                     properties =
                      {| publicAccess =
                          match this.Accessibility with
@@ -97,9 +96,9 @@ module FileShares =
           ShareQuota: int<Gb> option
           StorageAccount: ResourceName }
         interface IArmResource with
-            member this.ResourceName = this.Name.ResourceName
+            member this.ResourceId = fileShares.resourceId (this.StorageAccount/"default"/this.Name.ResourceName)
             member this.JsonModel =
-                {| fileShares.Create(this.StorageAccount/"default"/this.Name.ResourceName, dependsOn = [ ResourceId.create this.StorageAccount ]) with
+                {| fileShares.Create(this.StorageAccount/"default"/this.Name.ResourceName, dependsOn = [ storageAccounts.resourceId this.StorageAccount ]) with
                     properties = {| shareQuota = this.ShareQuota |> Option.defaultValue 5120<Gb> |}
                 |} :> _
 
@@ -108,9 +107,9 @@ module Queues =
         { Name : StorageResourceName
           StorageAccount : ResourceName }
         interface IArmResource with
-            member this.ResourceName = this.Name.ResourceName
+            member this.ResourceId = queues.resourceId (this.StorageAccount/"default"/this.Name.ResourceName)
             member this.JsonModel =
-                queues.Create(this.StorageAccount/"default"/this.Name.ResourceName, dependsOn = [ ResourceId.create this.StorageAccount ]) :> _
+                queues.Create(this.StorageAccount/"default"/this.Name.ResourceName, dependsOn = [ storageAccounts.resourceId this.StorageAccount ]) :> _
 
 module ManagementPolicies =
     type ManagementPolicy =
@@ -124,9 +123,9 @@ module ManagementPolicies =
           StorageAccount : ResourceName }
         member this.ResourceName = this.StorageAccount/"default"
         interface IArmResource with
-            member this.ResourceName = this.ResourceName
+            member this.ResourceId = managementPolicies.resourceId this.ResourceName
             member this.JsonModel =
-                {| managementPolicies.Create(this.ResourceName, dependsOn = [ ResourceId.create this.StorageAccount ]) with
+                {| managementPolicies.Create(this.ResourceName, dependsOn = [ storageAccounts.resourceId this.StorageAccount ]) with
                     properties =
                      {| policy =
                          {| rules = [

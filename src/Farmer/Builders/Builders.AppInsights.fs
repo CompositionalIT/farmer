@@ -2,18 +2,16 @@
 module Farmer.Builders.AppInsights
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.Arm.Insights
 
 type AppInsights =
     static member getInstrumentationKey (resourceId:ResourceId) =
-        let resourceId = resourceId.WithType components
         ArmExpression
             .reference(components, resourceId)
             .Map(fun r -> r + ".InstrumentationKey")
             .WithOwner(resourceId)
     static member getInstrumentationKey (name:ResourceName, ?resourceGroup) =
-        AppInsights.getInstrumentationKey(ResourceId.create (name, ?group = resourceGroup))
+        AppInsights.getInstrumentationKey(ResourceId.create (components, name, ?group = resourceGroup))
 
 type AppInsightsConfig =
     { Name : ResourceName
@@ -23,7 +21,7 @@ type AppInsightsConfig =
     /// Gets the ARM expression path to the instrumentation key of this App Insights instance.
     member this.InstrumentationKey = AppInsights.getInstrumentationKey this.Name
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.ResourceId = components.resourceId this.Name
         member this.BuildResources location = [
             { Name = this.Name
               Location = location
