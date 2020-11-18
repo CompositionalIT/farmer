@@ -123,5 +123,6 @@
     <Compile Include="Builders/Builders.EventGrid.fs" />
     <Compile Include="Builders/Builders.StaticWebApp.fs" />
     <Compile Include="Builders\Builders.NetworkSecurityGroup.fs" />
+    <Compile Include="Aliases.fs" />
   </ItemGroup>
 </Project>

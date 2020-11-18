@@ -11,6 +11,7 @@ open Microsoft.Azure.Management.ServiceBus
 open Microsoft.Azure.Management.ServiceBus.Models
 open Microsoft.Rest
 open System
+open Farmer.CoreTypes
 
 /// Client instance needed to get the serializer settings.
 let dummyClient = new ServiceBusManagementClient (Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
@@ -143,7 +144,7 @@ let tests = testList "Service Bus Tests" [
                 ]
             }
             let deployment = arm { add_resource theBus }
-            let queues = deployment.Template.Resources |> List.choose(function :? Queue as q -> Some q | _ -> None)
+            let queues = (deployment |> Deployment.getTemplate).Resources |> List.choose(function :? Queue as q -> Some q | _ -> None)
             Expect.hasLength queues 2 "Should have two queues in a single namespace."
         }
     ]
@@ -222,7 +223,7 @@ let tests = testList "Service Bus Tests" [
                     location Location.EastUS
                     add_resource sb
                 }
-            let generatedTemplate = template.Template
+            let generatedTemplate = template |> Deployment.getTemplate
             let genSubscription = generatedTemplate.ResourceGroups.Item 2 :?> Subscription
             Expect.hasLength genSubscription.Rules 4 "Expected subscription should have 4 rules"
             Expect.equal genSubscription.Rules.[0] (Rule.CreateCorrelationFilter("SuccessfulStatus", ["Status", "Success"])) "Rule 0 is incorrect"

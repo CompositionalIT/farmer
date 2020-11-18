@@ -4,6 +4,7 @@ module TestHelpers
 open Farmer
 open Farmer.CoreTypes
 open Microsoft.Rest.Serialization
+open Farmer.Builders
 
 let farmerToMs<'T when 'T : null> (serializationSettings:Newtonsoft.Json.JsonSerializerSettings) data =
     data
@@ -14,8 +15,8 @@ let getResourceAtIndex serializationSettings index (builder:#IBuilder) =
     builder.BuildResources Location.WestEurope
     |> fun r -> r.[index].JsonModel |> farmerToMs serializationSettings
 
-let findAzureResources<'T when 'T : null> (serializationSettings:Newtonsoft.Json.JsonSerializerSettings) (deployment:Deployment) =
-    let template = deployment.Template |> Writer.TemplateGeneration.processTemplate
+let findAzureResources<'T when 'T : null> (serializationSettings:Newtonsoft.Json.JsonSerializerSettings) (deployment:#IDeploymentBuilder) =
+    let template = Deployment.getTemplate deployment |> Writer.TemplateGeneration.processTemplate
 
     template.resources
     |> Seq.map SafeJsonConvert.SerializeObject
@@ -30,11 +31,11 @@ let getFirstResourceOrFail (template: TypedArmTemplate<'ResourceType>) =
     template.Resources.[0]
 
 let toTemplate loc (d : IBuilder) =
-    let a = arm {
+    arm {
         location loc
         add_resource d
-    }
-    a.Template
+    } 
+    |> Deployment.getTemplate
 
 let toTypedTemplate<'ResourceType> loc =
     toTemplate loc

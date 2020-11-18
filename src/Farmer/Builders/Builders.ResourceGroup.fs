@@ -27,7 +27,7 @@ type ResourceGroupConfig =
             ]
             
     interface ISubscriptionResourceBuilder with
-        member this.BuildResources location = 
+        member this.BuildResources () = 
             [
                 { Name = this.Name
                   Location = this.Location
@@ -41,7 +41,7 @@ type ResourceGroupConfig =
             ]
             
     interface IDeploymentBuilder with
-        member this.BuildDeployment location =
+        member this.BuildDeployment () =
             let template =
                 { Parameters = [
                     for resource in this.Resources do
@@ -115,4 +115,3 @@ type ResourceGroupBuilder() =
         ResourceGroupBuilder.AddResources(state, resources)
 
 let resourceGroup = ResourceGroupBuilder()
-let arm = resourceGroup

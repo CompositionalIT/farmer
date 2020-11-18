@@ -3,6 +3,7 @@
 open Farmer
 open Farmer.CoreTypes
 
+let schema = "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#"
 let resourceGroups = ResourceType ("Microsoft.Resources/resourceGroups", "2020-06-01")
 let resourceGroupDeployments = ResourceType ("Microsoft.Resources/deployments", "2020-06-01")
 
@@ -43,7 +44,7 @@ type ResourceGroupDeployment =
             {| resourceGroupDeployments.Create (this.ResourceName, this.Location, this.DependsOn, this.Tags) with
                  properties = {|
                    template = {|
-                     ``$schema`` = "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#"
+                     ``$schema`` = schema
                      contentVersion = "1.0.0.0"
                      resources = this.Resources |> List.map(fun r -> r.JsonModel)
                    |}

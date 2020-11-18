@@ -39,7 +39,7 @@ let tests = testList "Cosmos" [
     test "Correctly serializes to JSON" {
         let t = arm { add_resource (cosmosDb { name "test" }) }
 
-        t.Template
+        Deployment.getTemplate t
         |> Writer.toJson
         |> ignore
     }

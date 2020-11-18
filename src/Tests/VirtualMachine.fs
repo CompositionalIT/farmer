@@ -8,6 +8,7 @@ open Microsoft.Azure.Management.Compute
 open Microsoft.Azure.Management.Compute.Models
 open Microsoft.Rest
 open System
+open Farmer.CoreTypes
 
 /// Client instance needed to get the serializer settings.
 let client = new ComputeManagementClient(Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
@@ -44,6 +45,7 @@ let tests = testList "Virtual Machine" [
                 add_resource
                     (vm { name "isaac"; username "foo" })
             }
+            |> Deployment.build
         let template = deployment.Template |> Writer.TemplateGeneration.processTemplate
         Expect.isTrue (template.parameters.ContainsKey "password-for-isaac") "Missing parameter"
         Expect.equal template.parameters.Count 1 "Should only be one parameter"

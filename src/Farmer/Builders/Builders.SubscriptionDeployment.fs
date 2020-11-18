@@ -11,7 +11,7 @@ type SubscriptionDeployment=
       Resources: ISubscriptionResourceBuilder list
       Tags: Map<string,string> }
     interface IDeploymentBuilder with
-        member this.BuildDeployment location =
+        member this.BuildDeployment () =
             let template =
                 { Parameters = [
                     for resource in this.Resources do
@@ -20,7 +20,7 @@ type SubscriptionDeployment=
                         | _ -> ()
                   ] |> List.distinct
                   Outputs = this.Outputs |> Map.toList
-                  Resources = this.Resources|> List.collect (fun rg -> rg.BuildResources location) }
+                  Resources = this.Resources|> List.collect (fun rg -> rg.BuildResources ()) }
 
             let postDeployTasks = [
                 for resource in this.Resources do

@@ -213,12 +213,14 @@ let tests = testList "Container Group" [
                 add_instances [ nginx ]
                 add_identity msi
             }
-        let template = arm {
-            location Location.EastUS
-            add_resource msi
-            add_resource group
-        }
-        let containerGroup = template.Template.Resources |> List.find(fun r -> r.ResourceName.Value = "myapp-with-msi") :?> Farmer.Arm.ContainerInstance.ContainerGroup
+        let template =
+            arm {
+                location Location.EastUS
+                add_resource msi
+                add_resource group
+            }
+            |> Deployment.getTemplate
+        let containerGroup = template.Resources |> List.find(fun r -> r.ResourceName.Value = "myapp-with-msi") :?> Farmer.Arm.ContainerInstance.ContainerGroup
         Expect.isNonEmpty containerGroup.Identity.UserAssigned "Container group did not have identity"
         Expect.equal containerGroup.Identity.UserAssigned.[0] (UserAssignedIdentity(ResourceId.create(Arm.ManagedIdentity.userAssignedIdentities, ResourceName "aciUser"))) "Expected user identity named 'aciUser'."
     }

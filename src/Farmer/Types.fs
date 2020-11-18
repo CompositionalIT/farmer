@@ -39,7 +39,7 @@ type IBuilder =
 /// Represents a high-level configuration that can create a set of ARM Resources at the subscription scope.
 type ISubscriptionResourceBuilder =
     /// Given a location and the currently-built resources, returns a set of resource actions.
-    abstract member BuildResources : Location -> IArmResource list
+    abstract member BuildResources : unit -> IArmResource list
 
 namespace Farmer.CoreTypes
 
@@ -257,9 +257,15 @@ type Deployment =
       Location : Location
       Template : ArmTemplate
       PostDeployTasks : IPostDeploy list }
+    interface IDeploymentBuilder with
+        member this.BuildDeployment () = this
 
-type IDeploymentBuilder =
-    abstract member BuildDeployment : Location -> Deployment
+and IDeploymentBuilder =
+    abstract member BuildDeployment : unit -> Deployment
+
+module Deployment =
+    let build (builder:#IDeploymentBuilder) = builder.BuildDeployment ()
+    let getTemplate (builder:#IDeploymentBuilder) = (build builder).Template
 
 module internal DeterministicGuid =
     open System

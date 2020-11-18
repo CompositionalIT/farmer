@@ -229,14 +229,16 @@ let tryValidate resourceGroupName parameters deployment = result {
 }
 
 /// Validates a deployment against a resource group. If the resource group does not exist, it will be created automatically.
-let tryWhatIf resourceGroupName parameters deployment = result {
+let tryWhatIf resourceGroupName parameters deploymentBuilder = result {
+    let deployment = Deployment.build deploymentBuilder
     let! deploymentParameters = deployment |> prepareForDeployment parameters resourceGroupName
     return! Az.whatIf resourceGroupName deploymentParameters.DeploymentName deploymentParameters.TemplateFilename parameters
 }
 
 /// Executes the supplied Deployment against a resource group using the Azure CLI.
 /// If successful, returns a Map of the output keys and values.
-let tryExecute resourceGroupName parameters deployment = result {
+let tryExecute resourceGroupName parameters deploymentBuilder = result {
+    let deployment = Deployment.build deploymentBuilder
     let! deploymentParameters = deployment |> prepareForDeployment parameters resourceGroupName
 
     printfn "Deploying ARM template (please be patient, this can take a while)..."

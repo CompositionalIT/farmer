@@ -11,6 +11,7 @@ open Microsoft.Azure.Management.IotHub.Models
 open Microsoft.Rest
 open Microsoft.Rest.Serialization
 open System
+open Farmer.CoreTypes
 
 let iotClient = new IotHubClient(Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
 let provisioningClient = new IotHubClient(Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
@@ -46,8 +47,7 @@ let tests = testList "IOT Hub" [
                 enable_device_provisioning
             }
             let deployment = arm { add_resource hub }
-
-            deployment.Template.Resources.[1].JsonModel
+            (Deployment.getTemplate deployment).Resources.[1].JsonModel
             |> SafeJsonConvert.SerializeObject
             |> fun json -> SafeJsonConvert.DeserializeObject<ProvisioningServiceDescription>(json, provisioningClient.SerializationSettings)
 

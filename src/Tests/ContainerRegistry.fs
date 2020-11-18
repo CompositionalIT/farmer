@@ -6,6 +6,7 @@ open Farmer.ContainerRegistry
 open Farmer.Builders
 open Microsoft.Rest.Serialization
 open Newtonsoft.Json.Linq
+open Farmer.CoreTypes
 
 type RegistryJson =
     { resources :
@@ -19,11 +20,12 @@ type RegistryJson =
     }
 
 let toTemplate loc (d : ContainerRegistryConfig) =
-    let a = arm {
+    arm {
         location loc
         add_resource d
     }
-    a.Template
+    |> Deployment.getTemplate
+
 let fromJson = SafeJsonConvert.DeserializeObject<RegistryJson>
 let resource (r : RegistryJson) = r.resources.[0]
 let whenWritten deploy = deploy |> toTemplate Location.NorthEurope |> Writer.toJson |> fromJson
