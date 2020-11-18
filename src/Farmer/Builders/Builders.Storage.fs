@@ -2,7 +2,6 @@
 module Farmer.Builders.Storage
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.Storage
 open Farmer.Arm.RoleAssignment
 open Farmer.Arm.Storage
@@ -12,12 +11,11 @@ open FileShares
 type StorageAccount =
     /// Gets an ARM Expression connection string for any Storage Account.
     static member getConnectionString (storageAccount:ResourceId) =
-        let storageAccount = storageAccount.WithType storageAccounts
         let expr = $"concat('DefaultEndpointsProtocol=https;AccountName={storageAccount.Name.Value};AccountKey=', listKeys({storageAccount.ArmExpression.Value}, '2017-10-01').keys[0].value)"
         ArmExpression.create(expr, storageAccount)
     /// Gets an ARM Expression connection string for any Storage Account.
     static member getConnectionString (storageAccountName:StorageAccountName, ?group) =
-        StorageAccount.getConnectionString(ResourceId.create(storageAccountName.ResourceName, ?group = group))
+        StorageAccount.getConnectionString (ResourceId.create (storageAccounts, storageAccountName.ResourceName, ?group = group))
 
 type StoragePolicy =
     { CoolBlobAfter : int<Days> option
@@ -51,14 +49,15 @@ type StorageAccountConfig =
     /// Gets the Primary endpoint for static website (if enabled)
     member this.WebsitePrimaryEndpoint =
         ArmExpression
-            .reference(storageAccounts, ResourceId.create(storageAccounts, this.Name.ResourceName))
+            .reference(storageAccounts, this.ResourceId)
             .Map(sprintf "%s.primaryEndpoints.web")
     member this.WebsitePrimaryEndpointHost =
         this.WebsitePrimaryEndpoint
             .Map(fun uri -> $"replace(replace({uri}, 'https://', ''), '/', '')")
     member this.Endpoint = $"{this.Name.ResourceName.Value}.blob.core.windows.net"
+    member this.ResourceId = storageAccounts.resourceId this.Name.ResourceName
     interface IBuilder with
-        member this.DependencyName = this.Name.ResourceName
+        member this.ResourceId = this.ResourceId
         member this.BuildResources location = [
             { Name = this.Name
               Location = location
@@ -190,6 +189,6 @@ type StorageAccountBuilder() =
 type EndpointBuilder with
     member this.Origin(state:EndpointConfig, storage:StorageAccountConfig) =
         let state = this.Origin(state, storage.Endpoint)
-        this.DependsOn(state, storage.Name.ResourceName)
+        this.DependsOn(state, storage.ResourceId)
 
 let storageAccount = StorageAccountBuilder()

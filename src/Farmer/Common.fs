@@ -628,12 +628,11 @@ type RoleId =
         match this with
         | RoleId roleId ->
             $"concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', '{roleId.Id}')"
-            |> Farmer.CoreTypes.ArmExpression.create
+            |> ArmExpression.create
     member this.Name = match this with (RoleId v) -> v.Name
     member this.Id = match this with (RoleId v) -> v.Id
 
 module Identity =
-    open Farmer.CoreTypes
 
     /// Represents a User Assigned Identity, and the ability to create a Principal Id from it.
     type UserAssignedIdentity =
@@ -649,18 +648,14 @@ module Identity =
 
     type SystemIdentity =
         | SystemIdentity of ResourceId
+        member this.ResourceId = match this with SystemIdentity r -> r
         member private this.CreateExpression field =
-            match this.ResourceId.Type with
-            | None ->
-                failwith "Resource Id must have a type in order to generate a Prinicipal ID"
-            | Some resourceType ->
-                let identity = this.ResourceId.ArmExpression.Value
-                ArmExpression
-                    .create($"reference({identity}, '{resourceType.ApiVersion}', 'full').identity.{field}")
-                    .WithOwner(this.ResourceId)
+            let identity = this.ResourceId.ArmExpression.Value
+            ArmExpression
+                .create($"reference({identity}, '{this.ResourceId.Type.ApiVersion}', 'full').identity.{field}")
+                .WithOwner(this.ResourceId)
         member this.PrincipalId = this.CreateExpression "principalId" |> PrincipalId
         member this.ClientId = this.CreateExpression "clientId"
-        member this.ResourceId = match this with SystemIdentity r -> r
 
     /// Represents an identity that can be assigned to a resource for impersonation.
     type ManagedIdentity =

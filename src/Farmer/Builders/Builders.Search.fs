@@ -2,7 +2,6 @@
 module Farmer.Builders.Search
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.Search
 open Farmer.Helpers
 open Farmer.Arm.Search
@@ -16,13 +15,14 @@ type SearchConfig =
     /// Gets an ARM expression for the admin key of the search instance.
     member this.AdminKey =
         let expr = $"listAdminKeys('Microsoft.Search/searchServices/{this.Name.Value}', '2015-08-19').primaryKey"
-        ArmExpression.create(expr, (ResourceId.create this.Name))
+        ArmExpression.create(expr, this.ResourceId)
     /// Gets an ARM expression for the query key of the search instance.
     member this.QueryKey =
         let expr = $"listQueryKeys('Microsoft.Search/searchServices/{this.Name.Value}', '2015-08-19').value[0].key"
-        ArmExpression.create(expr, (ResourceId.create this.Name))
+        ArmExpression.create(expr, this.ResourceId)
+    member this.ResourceId = searchServices.resourceId this.Name
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.ResourceId = this.ResourceId
         member this.BuildResources location = [
             { Name = this.Name
               Location = location

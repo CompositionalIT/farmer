@@ -2,14 +2,12 @@
 module Farmer.Builders.Redis
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.Redis
 open Farmer.Arm.Cache
 
 let internal buildRedisKey (resourceId:ResourceId) =
-    let resourceId = resourceId.WithType redis
     let expr = $"concat('{resourceId.Name.Value}.redis.cache.windows.net,abortConnect=false,ssl=true,password=', listKeys('{resourceId.Name.Value}', '2015-08-01').primaryKey)"
-    ArmExpression.create(expr, resourceId)
+    ArmExpression.create(expr, resourceId).WithOwner(resourceId)
 
 type RedisConfig =
     { Name : ResourceName
@@ -20,9 +18,10 @@ type RedisConfig =
       ShardCount : int option
       MinimumTlsVersion : TlsVersion option
       Tags: Map<string,string> }
-    member this.Key = buildRedisKey (ResourceId.create this.Name)
+    member this.Key = buildRedisKey this.ResourceId
+    member private this.ResourceId = redis.resourceId this.Name
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.ResourceId = this.ResourceId
         member this.BuildResources location = [
             { Name = this.Name
               Location = location

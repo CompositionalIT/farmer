@@ -1,6 +1,5 @@
 ﻿module Farmer.Deploy
 
-open Farmer.CoreTypes
 open Newtonsoft.Json
 open System
 open System.Diagnostics
@@ -129,9 +128,7 @@ module Az =
         az $"group delete --name {resourceGroup} --yes --no-wait"
     let enableStaticWebsite name indexDoc errorDoc =
         [ $"storage blob service-properties update --account-name {name} --static-website --index-document {indexDoc}"
-          match errorDoc with
-          | Some errorDoc -> $"--404-document {errorDoc}"
-          | None -> () ]
+          yield! errorDoc |> Option.mapList (sprintf "--404-document %s") ]
         |> String.concat " "
         |> az
     let batchUploadStaticWebsite name path =

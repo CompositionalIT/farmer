@@ -2,7 +2,6 @@
 module Farmer.Builders.DataLake
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.DataLake
 open Farmer.Arm.DataLakeStore
 
@@ -12,7 +11,7 @@ type DataLakeConfig =
       Sku : Sku
       Tags: Map<string,string>  }
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.ResourceId = accounts.resourceId this.Name
         member this.BuildResources location = [
             { Name = this.Name
               Location = location
@@ -39,8 +38,8 @@ type DataLakeBuilder() =
     member _.Sku (state:DataLakeConfig, sku) =
         { state with Sku = sku }
     [<CustomOperation "add_tags">]
-    member _.Tags(state:DataLakeConfig, pairs) = 
-        { state with 
+    member _.Tags(state:DataLakeConfig, pairs) =
+        { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
     member this.Tag(state:DataLakeConfig, key, value) = this.Tags(state, [ (key,value) ])

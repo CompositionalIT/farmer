@@ -3,7 +3,6 @@ module Farmer.Builders.LogAnalytics
 
 open Farmer
 open Farmer.Arm
-open Farmer.CoreTypes
 
 let private (|InBounds|OutOfBounds|) days =
     if days < 30<Days> then OutOfBounds days
@@ -18,7 +17,7 @@ type WorkspaceConfig =
       DailyCap : int<Gb> option
       Tags: Map<string,string> }
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.ResourceId = workspaces.resourceId this.Name
         member this.BuildResources location = [
             { Name = this.Name
               Location = location

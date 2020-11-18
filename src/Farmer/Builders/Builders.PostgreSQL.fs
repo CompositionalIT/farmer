@@ -5,7 +5,6 @@ open System
 open System.Net
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.PostgreSQL
 open Arm.DBforPostgreSQL
 open Servers
@@ -32,7 +31,7 @@ type PostgreSQLConfig =
       Tags: Map<string,string>  }
 
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.ResourceId = databases.resourceId this.Name
         member this.BuildResources location = [
             { Name = this.Name
               Location = location

@@ -2,7 +2,6 @@
 module Farmer.Arm.Network
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.ExpressRoute
 open Farmer.VirtualNetworkGateway
 
@@ -24,7 +23,7 @@ type PublicIpAddress =
       DomainNameLabel : string option
       Tags: Map<string,string>  }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = publicIPAddresses.resourceId this.Name
         member this.JsonModel =
             {| publicIPAddresses.Create(this.Name, this.Location, tags = this.Tags) with
                 sku = {| name = this.Sku.ArmValue |}
@@ -43,7 +42,7 @@ type VirtualNetwork =
       Subnets : {| Name : ResourceName; Prefix : string; Delegations: {| Name: ResourceName; ServiceName: string |} list |} list;
       Tags: Map<string,string>  }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = virtualNetworks.resourceId this.Name
         member this.JsonModel =
             {| virtualNetworks.Create(this.Name, this.Location, tags = this.Tags) with
                 properties =
@@ -97,12 +96,12 @@ type VirtualNetworkGateway =
 
       Tags: Map<string,string>  }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = virtualNetworkGateways.resourceId this.Name
         member this.JsonModel =
             let dependsOn = [
-                ResourceId.create(virtualNetworks, this.VirtualNetwork)
+                virtualNetworks.resourceId this.VirtualNetwork
                 for config in this.IpConfigs do
-                    ResourceId.create(publicIPAddresses, config.PublicIpName)
+                    publicIPAddresses.resourceId config.PublicIpName
             ]
 
             {| virtualNetworkGateways.Create(this.Name, this.Location, dependsOn, this.Tags) with
@@ -117,8 +116,8 @@ type VirtualNetworkGateway =
                                         | DynamicPrivateIp -> "Dynamic", null
                                         | StaticPrivateIp ip -> "Static", string ip
                                     {| privateIpAllocationMethod = allocationMethod; privateIpAddress = ip
-                                       publicIPAddress = {| id = ResourceId.create(publicIPAddresses, ipConfig.PublicIpName).Eval() |}
-                                       subnet = {| id = ResourceId.create(subnets, this.VirtualNetwork, ResourceName "GatewaySubnet").Eval() |}
+                                       publicIPAddress = {| id = publicIPAddresses.resourceId(ipConfig.PublicIpName).Eval() |}
+                                       subnet = {| id = subnets.resourceId(this.VirtualNetwork, ResourceName "GatewaySubnet").Eval() |}
                                     |}
                                 |})
                         sku =
@@ -175,12 +174,12 @@ type Connection =
       PeerId : string option
       AuthorizationKey : string option
       Tags: Map<string,string>  }
-    member private this.VNetGateway1ResourceId = ResourceId.create(virtualNetworkGateways, this.VirtualNetworkGateway1)
-    member private this.VNetGateway2ResourceId = this.VirtualNetworkGateway2 |> Option.map(fun gw -> ResourceId.create(virtualNetworkGateways, gw))
-    member private this.LocalNetworkGatewayResourceId = this.LocalNetworkGateway |> Option.map(fun lng -> ResourceId.create(localNetworkGateways, lng))
+    member private this.VNetGateway1ResourceId = virtualNetworkGateways.resourceId this.VirtualNetworkGateway1
+    member private this.VNetGateway2ResourceId = this.VirtualNetworkGateway2 |> Option.map virtualNetworkGateways.resourceId
+    member private this.LocalNetworkGatewayResourceId = this.LocalNetworkGateway |> Option.map localNetworkGateways.resourceId
 
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = connections.resourceId this.Name
         member this.JsonModel =
             let dependsOn =
                 [ Some this.VNetGateway1ResourceId; this.VNetGateway2ResourceId; this.LocalNetworkGatewayResourceId ]
@@ -213,12 +212,12 @@ type NetworkInterface =
       VirtualNetwork : ResourceName
       Tags: Map<string,string>  }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = networkInterfaces.resourceId this.Name
         member this.JsonModel =
             let dependsOn = [
-               ResourceId.create this.VirtualNetwork
-               for config in this.IpConfigs do
-                   ResourceId.create config.PublicIpName
+                virtualNetworks.resourceId this.VirtualNetwork
+                for config in this.IpConfigs do
+                    publicIPAddresses.resourceId config.PublicIpName
             ]
             {| networkInterfaces.Create(this.Name, this.Location, dependsOn, this.Tags) with
                 properties =
@@ -228,8 +227,8 @@ type NetworkInterface =
                             {| name = $"ipconfig{index + 1}"
                                properties =
                                 {| privateIPAllocationMethod = "Dynamic"
-                                   publicIPAddress = {| id = ResourceId.create(publicIPAddresses, ipConfig.PublicIpName).Eval() |}
-                                   subnet = {| id = ResourceId.create(subnets, this.VirtualNetwork, ipConfig.SubnetName).Eval() |}
+                                   publicIPAddress = {| id = publicIPAddresses.resourceId(ipConfig.PublicIpName).Eval() |}
+                                   subnet = {| id = subnets.resourceId(this.VirtualNetwork, ipConfig.SubnetName).Eval() |}
                                 |}
                             |})
                     |}
@@ -243,9 +242,9 @@ type NetworkProfile =
       VirtualNetwork : ResourceName
       Tags: Map<string,string> }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = networkProfiles.resourceId this.Name
         member this.JsonModel =
-            let dependsOn = [ ResourceId.create(virtualNetworks, this.VirtualNetwork) ]
+            let dependsOn = [ virtualNetworks.resourceId this.VirtualNetwork ]
             {| networkProfiles.Create(this.Name, this.Location, dependsOn, this.Tags) with
                 properties =
                     {| containerNetworkInterfaceConfigurations =
@@ -259,7 +258,7 @@ type NetworkProfile =
                                     {| name = $"ipconfig{index + 1}"
                                        properties =
                                         {| subnet =
-                                            {| id = ResourceId.create(subnets, this.VirtualNetwork, ipConfig.SubnetName).Eval() |}
+                                            {| id = subnets.resourceId(this.VirtualNetwork, ipConfig.SubnetName).Eval() |}
                                         |}
                                     |})
                                 |}
@@ -288,7 +287,7 @@ type ExpressRouteCircuit =
       Tags: Map<string,string>  }
 
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = expressRouteCircuits.resourceId this.Name
         member this.JsonModel =
             {| expressRouteCircuits.Create(this.Name, this.Location, tags = this.Tags) with
                 sku =

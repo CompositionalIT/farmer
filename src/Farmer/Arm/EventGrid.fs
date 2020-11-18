@@ -3,7 +3,6 @@ module Farmer.Arm.EventGrid
 
 open Farmer
 open Farmer.EventGrid
-open Farmer.CoreTypes
 
 let systemTopics = ResourceType ("Microsoft.EventGrid/systemTopics", "2020-04-01-preview")
 let eventSubscriptions = ResourceType ("Microsoft.EventGrid/systemTopics/eventSubscriptions", "2020-04-01-preview")
@@ -12,6 +11,7 @@ type TopicType =
     | TopicType of ResourceType * topic:string
     member this.Value = match this with TopicType (_, s) -> s
     member this.ResourceType = match this with TopicType (r, _) -> r
+
 module Topics =
     let EventHubsNamespace = TopicType (EventHub.namespaces, "Microsoft.Eventhub.Namespaces")
     let StorageAccount = TopicType (storageAccounts, "Microsoft.Storage.StorageAccounts")
@@ -36,11 +36,12 @@ type Topic =
       TopicType : TopicType
       Tags: Map<string,string>  }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = systemTopics.resourceId this.Name
         member this.JsonModel =
-            {| systemTopics.Create(this.Name, this.Location, [ ResourceId.create this.Source ], this.Tags) with
-                 properties =
-                    {| source = ResourceId.create(this.TopicType.ResourceType, this.Source).Eval()
+            let sourceResourceId = this.TopicType.ResourceType.resourceId this.Source
+            {| systemTopics.Create(this.Name, this.Location, [ sourceResourceId ], this.Tags) with
+                properties =
+                    {| source = sourceResourceId.Eval()
                        topicType = this.TopicType.Value |}
              |} :> _
 
@@ -51,9 +52,15 @@ type Subscription =
       DestinationEndpoint : EndpointType
       Events : EventGridEvent list }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = eventSubscriptions.resourceId (this.Topic/this.Name)
         member this.JsonModel =
-            {| eventSubscriptions.Create(this.Topic/this.Name, dependsOn = [ ResourceId.create this.Topic; ResourceId.create this.Destination ]) with
+            let destinationResourceId =
+                match this.DestinationEndpoint with
+                | EventHub hubName -> Some (eventHubs.resourceId (this.Destination, hubName))
+                | StorageQueue _ -> Some (storageAccounts.resourceId this.Destination)
+                | WebHook _ -> None
+
+            {| eventSubscriptions.Create(this.Topic/this.Name, dependsOn = [ systemTopics.resourceId this.Topic; yield! Option.toList destinationResourceId ]) with
                  properties =
                    {| destination =
                           match this.DestinationEndpoint with
@@ -63,12 +70,12 @@ type Subscription =
                             |} |> box
                           | EventHub hubName ->
                             {| endpointType = "EventHub"
-                               properties = {| resourceId = ResourceId.create(eventHubs, this.Destination, hubName).Eval() |}
+                               properties = {| resourceId = eventHubs.resourceId(this.Destination, hubName).Eval() |}
                             |} :> _
                           | StorageQueue queueName ->
                             {| endpointType = "StorageQueue"
                                properties =
-                                {| resourceId = ResourceId.create(Storage.storageAccounts, this.Destination).Eval()
+                                {| resourceId = (storageAccounts.resourceId this.Destination).Eval()
                                    queueName = queueName |}
                             |} :> _
                       filter = {| includedEventTypes = [ for event in this.Events do event.Value ] |}

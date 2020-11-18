@@ -2,7 +2,6 @@
 module Farmer.Arm.Bastion
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.Arm.Network
 
 let bastionHosts = ResourceType ("Microsoft.Network/bastionHosts", "2020-05-01")
@@ -14,12 +13,12 @@ type BastionHost =
       IpConfigs : {| PublicIpName : ResourceName |} list
       Tags : Map<string,string> }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = bastionHosts.resourceId this.Name
         member this.JsonModel =
             let dependsOn = [
-                ResourceId.create(virtualNetworks, this.VirtualNetwork)
+                virtualNetworks.resourceId this.VirtualNetwork
                 for config in this.IpConfigs do
-                    ResourceId.create (publicIPAddresses, config.PublicIpName)
+                    publicIPAddresses.resourceId config.PublicIpName
             ]
             {| bastionHosts.Create(this.Name, this.Location, dependsOn, this.Tags) with
                 properties =
@@ -28,8 +27,8 @@ type BastionHost =
                            |> List.mapi(fun index ipConfig ->
                                {| name = $"ipconfig{index + 1}"
                                   properties =
-                                   {| publicIPAddress = {| id = ResourceId.create(publicIPAddresses, ipConfig.PublicIpName).Eval() |}
-                                      subnet = {| id = ResourceId.create(subnets, this.VirtualNetwork, ResourceName "AzureBastionSubnet").Eval() |}
+                                   {| publicIPAddress = {| id = publicIPAddresses.resourceId(ipConfig.PublicIpName).Eval() |}
+                                      subnet = {| id = subnets.resourceId(this.VirtualNetwork, ResourceName "AzureBastionSubnet").Eval() |}
                                    |}
                                |})
                     |}

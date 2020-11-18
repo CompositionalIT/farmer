@@ -2,7 +2,6 @@
 module Farmer.Arm.Compute
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.Vm
 open System
 open System.Text
@@ -19,9 +18,9 @@ type CustomScriptExtension =
       OS : OS
       Tags: Map<string,string>  }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = extensions.resourceId (this.VirtualMachine/this.Name)
         member this.JsonModel =
-            {| extensions.Create(this.VirtualMachine/this.Name, this.Location, [ ResourceId.create this.VirtualMachine ], this.Tags) with
+            {| extensions.Create(this.VirtualMachine/this.Name, this.Location, [ virtualMachines.resourceId this.VirtualMachine ], this.Tags) with
                    properties =
                     match this.OS with
                     | Windows ->
@@ -62,13 +61,11 @@ type VirtualMachine =
     interface IParameters with
         member this.SecureParameters = [ this.Credentials.Password ]
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = virtualMachines.resourceId this.Name
         member this.JsonModel =
             let dependsOn = [
-                   ResourceId.create this.NetworkInterfaceName
-                   match this.StorageAccount with
-                   | Some s -> ResourceId.create s
-                   | None -> ()
+                networkInterfaces.resourceId this.NetworkInterfaceName
+                yield! this.StorageAccount |> Option.mapList storageAccounts.resourceId
             ]
             {| virtualMachines.Create(this.Name, this.Location, dependsOn, this.Tags) with
                 properties =
@@ -101,7 +98,7 @@ type VirtualMachine =
                         |}
                     networkProfile =
                         {| networkInterfaces = [
-                            {| id = ResourceId.create(networkInterfaces, this.NetworkInterfaceName).Eval() |}
+                            {| id = networkInterfaces.resourceId(this.NetworkInterfaceName).Eval() |}
                            ]
                         |}
                     diagnosticsProfile =

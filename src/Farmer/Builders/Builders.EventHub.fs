@@ -2,9 +2,9 @@
 module Farmer.Builders.EventHub
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.EventHub
 open Farmer.Arm.EventHub
+open Farmer.Arm.Storage
 open Namespaces
 open EventHubs
 
@@ -28,19 +28,19 @@ type EventHubConfig =
     member private this.CreateKeyExpression (resourceId:ResourceId) =
         ArmExpression
             .create($"listkeys({resourceId.ArmExpression.Value}, '2017-04-01').primaryConnectionString")
-            .WithOwner(ResourceId.create(eventHubs, this.Name))
-    member this.EventHubNamespaceName = this.EventHubNamespace.CreateResourceId(this).Name
+            .WithOwner(eventHubs.resourceId this.Name)
+    member this.EventHubNamespaceName = this.EventHubNamespace.resourceId(this).Name
     /// Gets an ARM expression for the path to the key of a specific authorization rule for this event hub.
     member this.GetKey (ruleName:string) =
-        let ruleResource = ResourceId.create(authorizationRules, this.EventHubNamespaceName, this.Name, ResourceName ruleName)
+        let ruleResource = authorizationRules.resourceId(this.EventHubNamespaceName, this.Name, ResourceName ruleName)
         this.CreateKeyExpression ruleResource
 
     /// Gets an ARM expression for the path to the key of the default RootManageSharedAccessKey for the entire namespace.
     member this.DefaultKey =
-        let ruleResource = ResourceId.create(authorizationRules, this.EventHubNamespaceName, ResourceName "RootManageSharedAccessKey")
+        let ruleResource = authorizationRules.resourceId(this.EventHubNamespaceName, ResourceName "RootManageSharedAccessKey")
         this.CreateKeyExpression ruleResource
     interface IBuilder with
-        member this.DependencyName = this.EventHubNamespaceName
+        member this.ResourceId = namespaces.resourceId this.EventHubNamespaceName
         member this.BuildResources location = [
             let eventHubName = this.EventHubNamespaceName/this.Name
 
@@ -65,10 +65,8 @@ type EventHubConfig =
               Partitions = this.Partitions
               CaptureDestination = this.CaptureDestination
               Dependencies = [
-                  ResourceId.create this.EventHubNamespaceName
-                  match this.CaptureDestination with
-                  | Some (StorageAccount(name, _)) -> ResourceId.create name
-                  | None -> ()
+                  namespaces.resourceId this.EventHubNamespaceName
+                  yield! this.CaptureDestination |> Option.mapList (fun (StorageAccount (name, _)) -> storageAccounts.resourceId name)
                   yield! this.Dependencies
               ]
               Tags = this.Tags  }
@@ -79,8 +77,8 @@ type EventHubConfig =
                 EventHub = eventHubName
                 Location = location
                 Dependencies = [
-                    ResourceId.create(namespaces, this.EventHubNamespaceName)
-                    ResourceId.create(eventHubs, this.EventHubNamespaceName, this.Name)
+                    namespaces.resourceId this.EventHubNamespaceName
+                    eventHubs.resourceId (this.EventHubNamespaceName, this.Name)
                 ] }
 
             // Auth rules
@@ -88,8 +86,8 @@ type EventHubConfig =
                 { Name = this.EventHubNamespaceName/this.Name.Value/rule.Key
                   Location = location
                   Dependencies = [
-                      ResourceId.create(namespaces, this.EventHubNamespaceName)
-                      ResourceId.create(eventHubs, this.EventHubNamespaceName, this.Name)
+                      namespaces.resourceId this.EventHubNamespaceName
+                      eventHubs.resourceId (this.EventHubNamespaceName, this.Name)
                   ]
                   Rights = rule.Value }
         ]
@@ -97,7 +95,7 @@ type EventHubConfig =
 type EventHubBuilder() =
     member __.Yield _ =
         { Name = ResourceName "hub"
-          EventHubNamespace = derived (fun config -> config.Name.Map(sprintf "%s-ns"))
+          EventHubNamespace = derived (fun config -> namespaces.resourceId (config.Name-"ns"))
           Sku = Standard
           Capacity = 1
           ZoneRedundant = None
@@ -115,11 +113,11 @@ type EventHubBuilder() =
     member this.Name(state:EventHubConfig, name) = this.Name(state, ResourceName name)
     /// Sets the name of the Event Hub namespace.
     [<CustomOperation "namespace_name">]
-    member __.NamespaceName(state:EventHubConfig, name) = { state with EventHubNamespace = AutoCreate(Named name) }
+    member __.NamespaceName(state:EventHubConfig, name) = { state with EventHubNamespace = named namespaces name }
     member this.NamespaceName(state:EventHubConfig, name) = this.NamespaceName(state, ResourceName name)
     /// Sets the name of the Event Hub namespace.
     [<CustomOperation "link_to_namespace">]
-    member __.LinkToNamespaceName(state:EventHubConfig, name) = { state with EventHubNamespace = External (Managed name) }
+    member __.LinkToNamespaceName(state:EventHubConfig, name) = { state with EventHubNamespace = managed namespaces name }
     member this.LinkToNamespaceName(state:EventHubConfig, name) = this.LinkToNamespaceName(state, ResourceName name)
     /// Sets the sku of the Event Hub instance.
     [<CustomOperation "sku">]
@@ -147,16 +145,14 @@ type EventHubBuilder() =
     member this.CaptureToStorage(state:EventHubConfig, storageAccount:StorageAccountConfig, container) =
         this.CaptureToStorage(state, storageAccount.Name.ResourceName, container)
 
-    member private _.AddDependency (state:EventHubConfig, resourceName:ResourceName) = { state with Dependencies = ResourceId.create resourceName :: state.Dependencies }
-    member private _.AddDependencies (state:EventHubConfig, resourceNames:ResourceName list) = { state with Dependencies = (resourceNames |> List.map ResourceId.create) @ state.Dependencies }
     /// Sets a dependency for the web app.
     [<CustomOperation "depends_on">]
-    member this.DependsOn(state:EventHubConfig, resourceName) = this.AddDependency(state, resourceName)
-    member this.DependsOn(state:EventHubConfig, resources) = this.AddDependencies(state, resources)
-    member this.DependsOn(state:EventHubConfig, builder:IBuilder) = this.AddDependency(state, builder.DependencyName)
-    member this.DependsOn(state:EventHubConfig, builders:IBuilder list) = this.AddDependencies(state, builders |> List.map (fun x -> x.DependencyName))
-    member this.DependsOn(state:EventHubConfig, resource:IArmResource) = this.AddDependency(state, resource.ResourceName)
-    member this.DependsOn(state:EventHubConfig, resources:IArmResource list) = this.AddDependencies(state, resources |> List.map (fun x -> x.ResourceName))
+    member this.DependsOn(state:EventHubConfig, builder:IBuilder) = this.DependsOn (state, builder.ResourceId)
+    member this.DependsOn(state:EventHubConfig, builders:IBuilder list) = this.DependsOn (state, builders |> List.map (fun x -> x.ResourceId))
+    member this.DependsOn(state:EventHubConfig, resource:IArmResource) = this.DependsOn (state, resource.ResourceId)
+    member this.DependsOn(state:EventHubConfig, resources:IArmResource list) = this.DependsOn (state, resources |> List.map (fun x -> x.ResourceId))
+    member _.DependsOn (state:EventHubConfig, resourceId:ResourceId) = { state with Dependencies = resourceId :: state.Dependencies }
+    member _.DependsOn (state:EventHubConfig, resourceIds:ResourceId list) = { state with Dependencies = resourceIds @ state.Dependencies }
 
     [<CustomOperation "add_tags">]
     member _.Tags(state:EventHubConfig, pairs) =

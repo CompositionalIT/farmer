@@ -2,7 +2,6 @@
 module Farmer.Arm.Sql
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.Sql
 open System.Net
 
@@ -22,9 +21,9 @@ type Server =
     interface IParameters with
         member this.SecureParameters = [ this.Credentials.Password ]
     interface IArmResource with
-        member this.ResourceName = this.ServerName
+        member this.ResourceId = servers.resourceId this.ServerName
         member this.JsonModel =
-            {| servers.Create(this.ServerName,this.Location, tags = (this.Tags |> Map.add "displayName" this.ServerName.Value)) with
+            {| servers.Create(this.ServerName, this.Location, tags = (this.Tags |> Map.add "displayName" this.ServerName.Value)) with
                 properties =
                  {| administratorLogin = this.Credentials.Username
                     administratorLoginPassword = this.Credentials.Password.ArmExpression.Eval()
@@ -40,9 +39,9 @@ module Servers =
           MinMax : (int<DTU> * int<DTU>) option
           MaxSizeBytes : int64 option }
         interface IArmResource with
-            member this.ResourceName = this.Name
+            member this.ResourceId = elasticPools.resourceId (this.Server/this.Name)
             member this.JsonModel =
-                {| elasticPools.Create(this.Server/this.Name, this.Location, [ ResourceId.create this.Server ]) with
+                {| elasticPools.Create(this.Server/this.Name, this.Location, [ servers.resourceId this.Server ]) with
                     properties =
                      {| maxSizeBytes = this.MaxSizeBytes |> Option.toNullable
                         perDatabaseSettings =
@@ -59,9 +58,9 @@ module Servers =
           Start : IPAddress
           End : IPAddress }
         interface IArmResource with
-            member this.ResourceName = this.Name
+            member this.ResourceId = firewallRules.resourceId (this.Server/this.Name)
             member this.JsonModel =
-                {| firewallRules.Create(this.Server/this.Name, this.Location, [ ResourceId.create this.Server ]) with
+                {| firewallRules.Create(this.Server/this.Name, this.Location, [ servers.resourceId this.Server ]) with
                     properties =
                      {| startIpAddress = string this.Start
                         endIpAddress = string this.End |}
@@ -75,13 +74,13 @@ module Servers =
           Sku : DbKind
           Collation : string }
         interface IArmResource with
-            member this.ResourceName = this.Name
+            member this.ResourceId = databases.resourceId (this.Server/this.Name)
             member this.JsonModel =
                 let dependsOn = [
-                        ResourceId.create this.Server
-                        match this.Sku with
-                        | Pool poolName -> ResourceId.create poolName
-                        | Standalone _ -> ()
+                    servers.resourceId this.Server
+                    match this.Sku with
+                    | Pool poolName -> elasticPools.resourceId(this.Server, poolName)
+                    | Standalone _ -> ()
                 ]
                 {| databases.Create(this.Server/this.Name, this.Location, dependsOn, tags = Map [ "displayName", this.Name.Value ]) with
                     sku =
@@ -100,10 +99,8 @@ module Servers =
                                 null
                            elasticPoolId =
                             match this.Sku with
-                            | Standalone _ ->
-                                null
-                            | Pool pool ->
-                                ResourceId.create(elasticPools, this.Server, pool).Eval()
+                            | Standalone _ -> null
+                            | Pool pool -> elasticPools.resourceId(this.Server, pool).Eval()
                         |}
                 |} :> _
 
@@ -113,9 +110,9 @@ module Servers =
               Database : ResourceName }
             member this.Name = this.Server/this.Database/"current"
             interface IArmResource with
-                member this.ResourceName = this.Name
+                member this.ResourceId = transparentDataEncryption.resourceId this.Name
                 member this.JsonModel =
-                   {| transparentDataEncryption.Create(this.Name, dependsOn = [ ResourceId.create this.Database ]) with
+                   {| transparentDataEncryption.Create(this.Name, dependsOn = [ databases.resourceId(this.Server, this.Database) ]) with
                         comments = "Transparent Data Encryption"
                         properties = {| status = string Enabled |}
                    |} :> _
