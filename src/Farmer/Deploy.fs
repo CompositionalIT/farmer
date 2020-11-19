@@ -307,9 +307,11 @@ module TemplateDeploymentExtensions =
         /// Validates that the parameters supplied meet the deployment requirements.
         member this.ValidateParameters ([<ParamArray>] parameterNames) =
             this |> validateParametersImpl (parameterNames |> Array.map(fun a -> a, null) |> Array.toList)
+        /// Validates that the parameters supplied meet the deployment requirements.
         member this.ValidateParameters parameters =
             this |> validateParametersImpl parameters
 
+        /// Performs a "what-if" analysis on the deployment.
         member this.TryWhatIf (resourceGroupName, ?parameters) =
             let parameters = emptyIfNone parameters
             this |> whatIf resourceGroupName parameters
