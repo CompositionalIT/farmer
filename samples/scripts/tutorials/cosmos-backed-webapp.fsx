@@ -28,5 +28,4 @@ let template = arm {
     ]
 }
 
-template
-|> Writer.quickWrite @"generated-template"
+template.ToFile @"generated-template"

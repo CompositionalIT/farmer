@@ -30,10 +30,8 @@ let template = arm {
 }
 
 // Generate the ARM template here...
-template
-|> Writer.quickWrite @"generated-template"
+template.ToFile @"generated-template"
 
 // Or deploy it directly to Azure here... (required Azure CLI installed!)
-// template
-// |> Deploy.execute "my-resource-group" [ transactionalDb.PasswordParameter, "SQL PASSWORD GOES HERE" ]
-// |> printfn "%A"
+template.Deploy ("my-resource-group", [ transactionalDb.PasswordParameter, "SQL PASSWORD GOES HERE" ])
+|> printfn "%A"

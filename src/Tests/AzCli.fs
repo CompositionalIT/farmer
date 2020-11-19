@@ -7,7 +7,7 @@ open Farmer.Builders
 
 let deployTo resourceGroupName parameters (deployment:Deployment) =
     printfn "Creating resource group %s..." resourceGroupName
-    let deployResponse = deployment.TryDeploy(resourceGroupName, parameters)
+    let deployResponse = deployment.TryDeploy(resourceGroupName, List.toArray parameters)
     let deleteResponse = Deploy.Az.delete resourceGroupName
     match deployResponse, deleteResponse with
     | Ok _, Ok _ -> ()

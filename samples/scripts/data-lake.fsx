@@ -15,5 +15,4 @@ let deployment = arm {
     add_resource myLake
 }
 
-deployment
-|> Deploy.execute "my-resource-group-name" Deploy.NoParameters
+deployment.Deploy "my-resource-group-name"

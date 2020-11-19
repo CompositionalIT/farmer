@@ -18,5 +18,4 @@ let deployment =
         output "storageAccountKey" myFunctions.StorageAccountKey
     }
 
-deployment
-|> Deploy.execute "my-resource-group-name" Deploy.NoParameters
+deployment.Deploy "my-resource-group-name"

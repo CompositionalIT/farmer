@@ -17,6 +17,5 @@ let deployment = arm {
     add_resource myAnalytics
 }
 
-deployment
-|> Deploy.execute "test-resource-group" Deploy.NoParameters
+deployment.Deploy "test-resource-group"
 |> printfn "%A"

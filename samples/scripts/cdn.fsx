@@ -39,4 +39,4 @@ let deployment = arm {
     ]
 }
 
-deployment |> Writer.quickWrite "generated-template"
+deployment.ToFile "generated-template"

@@ -176,8 +176,7 @@ module Deploy =
     let setSubscription (subscriptionId:Guid) =
         Az.setSubscription (subscriptionId.ToString())
 
-    /// Validates that the parameters supplied meet the deployment requirements.
-    let validateParameters suppliedParameters deployment =
+    let internal validateParametersImpl suppliedParameters deployment =
         let expected = deployment.Template.Parameters |> List.map(fun (SecureParameter p) -> p) |> Set
         let supplied = suppliedParameters |> List.map fst |> Set
         let missing = Set.toList (expected - supplied)
@@ -187,10 +186,14 @@ module Deploy =
         | (_ :: _), _ -> Error (sprintf "The following parameters are missing: %s. Please add them." (missing |> String.concat ", "))
         | [], (_ :: _) -> Error (sprintf "The following parameters are not required: %s. Please remove them." (extra |> String.concat ", "))
 
+    [<Obsolete "Prefer the ValidateParameters method on the Deployment value itself">]
+    /// Validates that the parameters supplied meet the deployment requirements.
+    let validateParameters suppliedParameters deployment = validateParametersImpl suppliedParameters deployment
+
     let NoParameters : (string * string) list = []
 
     let private prepareForDeployment parameters resourceGroupName deployment = result {
-        do! deployment |> validateParameters parameters
+        do! deployment |> validateParametersImpl parameters
 
         let! version = checkVersion Az.MinimumVersion
         printfn "Compatible version of Azure CLI %O detected" version
@@ -219,19 +222,26 @@ module Deploy =
                TemplateFilename = deployment.ToJson() |> Writer.toFile deployFolder "farmer-deploy" |}
     }
 
-    /// Validates a deployment against a resource group. If the resource group does not exist, it will be created automatically.
-    let tryValidate resourceGroupName parameters deployment = result {
+    let internal tryValidateImpl resourceGroupName parameters deployment = result {
         let! deploymentParameters = deployment |> prepareForDeployment parameters resourceGroupName
         return! Az.validate resourceGroupName deploymentParameters.DeploymentName deploymentParameters.TemplateFilename parameters
     }
 
     /// Validates a deployment against a resource group. If the resource group does not exist, it will be created automatically.
-    let tryWhatIf resourceGroupName parameters deployment = result {
+    [<Obsolete "Prefer the TryWhatIf method on the Deployment value itself">]
+    let tryValidate resourceGroupName parameters deployment = tryValidateImpl resourceGroupName parameters deployment
+
+    let internal tryWhatIfImpl resourceGroupName parameters deployment = result {
         let! deploymentParameters = deployment |> prepareForDeployment parameters resourceGroupName
         return! Az.whatIf resourceGroupName deploymentParameters.DeploymentName deploymentParameters.TemplateFilename parameters
     }
 
-    let internal doTryExecute resourceGroupName parameters deployment = result {
+
+    /// Validates a deployment against a resource group. If the resource group does not exist, it will be created automatically.
+    [<Obsolete "Prefer the TryWhatIf method on the Deployment value itself">]
+    let tryWhatIf resourceGroupName parameters deployment = tryWhatIfImpl resourceGroupName parameters deployment
+
+    let internal tryExecuteImpl resourceGroupName parameters deployment = result {
         let! deploymentParameters = deployment |> prepareForDeployment parameters resourceGroupName
 
         printfn "Deploying ARM template (please be patient, this can take a while)..."
@@ -251,55 +261,66 @@ module Deploy =
         return response.properties.outputs |> Map.map (fun _ value -> value.value)
     }
 
-    let doExecute resourceGroupName parameters deployment =
-        match doTryExecute resourceGroupName parameters deployment with
+    let internal executeImpl resourceGroupName parameters deployment =
+        match tryExecuteImpl resourceGroupName parameters deployment with
         | Ok output -> output
         | Error message -> failwith message
 
     /// Executes the supplied Deployment against a resource group using the Azure CLI.
     /// If successful, returns a Map of the output keys and values.
     [<Obsolete "Prefer the TryDeploy method on the Deployment value itself">]
-    let tryExecute resourceGroupName parameters deployment = doTryExecute resourceGroupName parameters deployment
+    let tryExecute resourceGroupName parameters deployment = tryExecuteImpl resourceGroupName parameters deployment
 
     /// Executes the supplied Deployment against a resource group using the Azure CLI.
     /// If successful, returns a Map of the output keys and values, otherwise returns any error as an exception.
     [<Obsolete "Prefer the Deploy method on the Deployment value itself">]
-    let execute resourceGroupName parameters deployment = doExecute resourceGroupName parameters deployment
+    let execute resourceGroupName parameters deployment = executeImpl resourceGroupName parameters deployment
 
     let whatIf resourceGroupName parameters deployment =
-        match tryWhatIf resourceGroupName parameters deployment with
+        match tryWhatIfImpl resourceGroupName parameters deployment with
         | Ok output -> output
         | Error message -> failwith message
 
 [<AutoOpen>]
 module TemplateDeploymentExtensions =
     open Deploy
-    open Newtonsoft.Json
+    open System
 
     type Deployment with
         /// Executes this deployment against a resource group using the Azure CLI.
         /// If successful, returns a Map of the output keys and values, otherwise returns any error as an exception.
-        member this.Deploy(resourceGroupName, ?parameters) =
-            let parameters = defaultArg parameters []
-            this |> doExecute resourceGroupName parameters
+        member this.Deploy(resourceGroupName, [<ParamArray>] parameters) =
+            this |> executeImpl resourceGroupName (Array.toList parameters)
         /// Executes the supplied Deployment against a resource group using the Azure CLI.
         /// If successful, returns a Map of the output keys and values.
-        member this.TryDeploy(resourceGroupName, ?parameters) =
-            let parameters = defaultArg parameters []
-            this |> doTryExecute resourceGroupName parameters
-        /// Executes this deployment against a resource group using the Azure CLI.
-        /// If successful, returns an instance of 'TOutput with the fields set based on the ARM outputs.
-        member this.Deploy<'TOutput>(resourceGroupName, ?parameters) =
-            let parameters = defaultArg parameters []
-            this
-            |> doExecute resourceGroupName parameters
-            |> JsonConvert.SerializeObject
-            |> JsonConvert.DeserializeObject<'TOutput>
-        /// Executes the supplied Deployment against a resource group using the Azure CLI.
-        /// If successful, returns an instance of 'TOutput with the fields set based on the ARM outputs.
-        member this.TryDeploy<'TOutput>(resourceGroupName, ?parameters) =
-            let parameters = defaultArg parameters []
-            this
-            |> doTryExecute resourceGroupName parameters
-            |> JsonConvert.SerializeObject
-            |> JsonConvert.DeserializeObject<'TOutput>
+        member this.TryDeploy(resourceGroupName, [<ParamArray>] parameters) =
+            this |> tryExecuteImpl resourceGroupName (Array.toList parameters)
+
+        /// Validates a deployment against a resource group. If the resource group does not exist, it will be created automatically.
+        member this.TryValidate(resourceGroupName, [<ParamArray>] parameters) =
+            this |> tryValidateImpl resourceGroupName (Array.toList parameters)
+        /// Validates that the parameters supplied meet the deployment requirements.
+        member this.ValidateParameters ([<ParamArray>] parameters) =
+            this |> validateParametersImpl (Array.toList parameters |> List.map(fun a -> a, null))
+        member this.ValidateParameters parameters =
+            this |> validateParametersImpl parameters
+
+        member this.TryWhatIf (resourceGroupName, [<ParamArray>] parameters) =
+            this |> whatIf resourceGroupName (Array.toList parameters)
+
+        // /// Executes this deployment against a resource group using the Azure CLI.
+        // /// If successful, returns an instance of 'TOutput with the fields set based on the ARM outputs.
+        // member this.Deploy<'TOutput>(resourceGroupName, ?parameters) =
+        //     let parameters = defaultArg parameters []
+        //     this
+        //     |> executeImpl resourceGroupName parameters
+        //     |> JsonConvert.SerializeObject
+        //     |> JsonConvert.DeserializeObject<'TOutput>
+        // /// Executes the supplied Deployment against a resource group using the Azure CLI.
+        // /// If successful, returns an instance of 'TOutput with the fields set based on the ARM outputs.
+        // member this.TryDeploy<'TOutput>(resourceGroupName, ?parameters) =
+        //     let parameters = defaultArg parameters []
+        //     this
+        //     |> tryExecuteImpl resourceGroupName parameters
+        //     |> JsonConvert.SerializeObject
+        //     |> JsonConvert.DeserializeObject<'TOutput>

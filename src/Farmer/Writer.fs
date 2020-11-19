@@ -49,26 +49,36 @@ module Writer =
         File.WriteAllText(filename, json)
         filename
 
-    let internal doToJson = TemplateGeneration.processTemplate >> TemplateGeneration.serialize
-    let internal doQuickWrite templateName deployment =
+    let internal toJsonImpl = TemplateGeneration.processTemplate >> TemplateGeneration.serialize
+    let internal quickWriteImpl templateName deployment =
         deployment.Template
-        |> doToJson
+        |> toJsonImpl
         |> toFile "." templateName
         |> ignore
 
     /// Returns a JSON string representing the supplied ARMTemplate.
-    [<Obsolete "Prefer the ToJson extension method on the Deployment value itself.">]
-    let toJson = doToJson
+    let toJson = toJsonImpl
 
     /// Converts the supplied ARMTemplate to JSON and then writes it out to the provided template name. The postfix ".json" will automatically be added to the filename.
-    [<Obsolete "Prefer the ToFile extension method on the Deployment value itself.">]
-    let quickWrite templateName deployment = doQuickWrite templateName deployment
+    let quickWrite templateName deployment = quickWriteImpl templateName deployment
 
 [<AutoOpen>]
 module TemplateWriterExtensions =
     type Deployment with
         /// Returns a JSON string representing the supplied ARMTemplate.
-        member this.ToJson () = this.Template |> Writer.doToJson
+        member this.ToJson () = this.Template |> Writer.toJsonImpl
 
         /// Converts the supplied ARMTemplate to JSON and then writes it out to the provided template name. The postfix ".json" will automatically be added to the filename.
-        member this.ToFile templateName = this |> Writer.doQuickWrite templateName
+        member this.ToFile templateName = this |> Writer.quickWriteImpl templateName
+
+    type ArmTemplate with
+        member this.ToJson () = this |> Writer.toJsonImpl
+
+    type IBuilder with
+        member this.ToJson location =
+            [ for resource in this.BuildResources location do resource.JsonModel ]
+            |> Writer.TemplateGeneration.serialize
+
+    type IArmResource with
+        member this.ToJson =
+            Writer.TemplateGeneration.serialize this.JsonModel

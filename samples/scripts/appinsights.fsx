@@ -19,16 +19,4 @@ let template = arm {
     add_resource myFunctions
 }
 
-template
-|> Deploy.execute "deleteme" Deploy.NoParameters
-
-open Newtonsoft.Json
-
-let start = {| properties = {| outputs = {| Name = {| value = "Isaac" |}; Age = {| value = 40 |} |} |} |}
-let p1 = start |> JsonConvert.SerializeObject
-let p2 = p1 |> JsonConvert.DeserializeObject<{| properties : {| outputs : Map<string, {| value : string |}> |} |}>
-let p3 = p2.properties.outputs |> Map.map (fun _ value -> value.value)
-
-
-let p4 = p3 |> JsonConvert.SerializeObject
-let p5 = p4 |> JsonConvert.DeserializeObject<{| Age : int; Name : string |}>
+template.Deploy "deleteme"

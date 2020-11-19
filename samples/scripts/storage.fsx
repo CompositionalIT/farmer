@@ -15,8 +15,5 @@ let template = arm {
     add_resource myStorage
 }
 
-template |> Writer.quickWrite "template"
 template.ToFile "template"
-
-template |> Deploy.execute "functions-rg" []
 template.Deploy "functions-rg"

@@ -33,7 +33,5 @@ let template = arm {
     ]
 }
 
-Writer.quickWrite "generated-template" template
-
-Deploy.execute "my-resource-group" [] template
-
+template.ToFile "generated-template"
+template.Deploy "my-resource-group"

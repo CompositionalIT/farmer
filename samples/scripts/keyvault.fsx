@@ -62,5 +62,4 @@ let deployment = arm {
     location Location.NorthEurope
 }
 
-deployment
-|> Writer.quickWrite "output"
+deployment.ToFile "output"
