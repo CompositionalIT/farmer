@@ -5,6 +5,7 @@ open Farmer
 open Farmer.CoreTypes
 open Microsoft.Rest.Serialization
 open Farmer.Builders
+open Newtonsoft.Json.Linq
 
 let farmerToMs<'T when 'T : null> (serializationSettings:Newtonsoft.Json.JsonSerializerSettings) data =
     data
@@ -15,11 +16,16 @@ let getResourceAtIndex serializationSettings index (builder:#IBuilder) =
     builder.BuildResources Location.WestEurope
     |> fun r -> r.[index].JsonModel |> farmerToMs serializationSettings
 
-let findAzureResources<'T when 'T : null> (serializationSettings:Newtonsoft.Json.JsonSerializerSettings) (deployment:#IDeploymentBuilder) =
-    let template = Deployment.getTemplate deployment |> Writer.TemplateGeneration.processTemplate
+let findAzureResources<'T when 'T : null> (serializationSettings:Newtonsoft.Json.JsonSerializerSettings) deployment =
+    let template = Deployment.getTemplate "farmer-resources" deployment |> Writer.TemplateGeneration.processTemplate
+    let getResources ress =
+        let jobj = JArray.FromObject ress
+        let query = sprintf "$[?(@.type == '%s')].properties.template.resources.[*]" Arm.ResourceGroup.resourceGroupDeployments.Type
+        jobj.SelectTokens query
+        |> Seq.map string
 
     template.resources
-    |> Seq.map SafeJsonConvert.SerializeObject
+    |> getResources
     |> Seq.choose (fun json -> SafeJsonConvert.DeserializeObject<'T>(json, serializationSettings) |> Option.ofObj)
     |> Seq.toList
 
@@ -35,7 +41,7 @@ let toTemplate loc (d : IBuilder) =
         location loc
         add_resource d
     } 
-    |> Deployment.getTemplate
+    |> Deployment.getTemplate "farmer-resources" 
 
 let toTypedTemplate<'ResourceType> loc =
     toTemplate loc

@@ -25,7 +25,7 @@ let createSimpleTemplate parameters =
     |> Writer.TemplateGeneration.processTemplate
 
 let toTemplate deployment =
-    Deployment.getTemplate deployment
+    Deployment.getTemplate "farmer-resources"  deployment
     |> Writer.TemplateGeneration.processTemplate
 
 let tests = testList "Template" [
@@ -57,7 +57,7 @@ let tests = testList "Template" [
             add_resource (storageAccount { name "test" })
         }
 
-        Expect.equal (Deployment.getTemplate template).Resources.Length 1 "Should be a single resource"
+        Expect.equal (Deployment.getTemplate "farmer-resources" template).Resources.Length 1 "Should be a single resource"
     }
 
     test "Can create multiple resources simultaneously" {
@@ -68,7 +68,7 @@ let tests = testList "Template" [
             ]
         }
 
-        Expect.equal (Deployment.getTemplate template).Resources.Length 2 "Should be two resources"
+        Expect.equal (Deployment.getTemplate "farmer-resources" template).Resources.Length 2 "Should be two resources"
     }
 
     test "De-dupes the same resource name and type" {
@@ -79,7 +79,7 @@ let tests = testList "Template" [
             ]
         }
 
-        Expect.equal (Deployment.getTemplate template).Resources.Length 1 "Should be a single resource"
+        Expect.equal (Deployment.getTemplate "farmer-resources" template).Resources.Length 1 "Should be a single resource"
     }
 
     test "Does not de-dupe the same resource name but different type" {
@@ -90,7 +90,7 @@ let tests = testList "Template" [
             ]
         }
 
-        Expect.equal (Deployment.getTemplate template).Resources.Length 2 "Should be two resources"
+        Expect.equal (Deployment.getTemplate "farmer-resources" template).Resources.Length 2 "Should be two resources"
     }
 
     test "Location is cascaded to all resources" {
@@ -102,7 +102,7 @@ let tests = testList "Template" [
             ]
         }
 
-        let allLocations = (Deployment.getTemplate template).Resources |> List.map (fun r -> r.JsonModel |> convertTo<{| Location : string |}>)
+        let allLocations = (Deployment.getTemplate "farmer-resources" template).Resources |> List.map (fun r -> r.JsonModel |> convertTo<{| Location : string |}>)
         Expect.sequenceEqual allLocations [ {| Location = Location.NorthCentralUS.ArmValue |}; {| Location = Location.NorthCentralUS.ArmValue |} ] "Incorrect Location"
     }
 
@@ -110,7 +110,7 @@ let tests = testList "Template" [
         let template = arm {
             add_resource (vm { name "isaacvm"; username "foo" })
         }
-        Expect.sequenceEqual (Deployment.getTemplate template).Parameters [ SecureParameter "password-for-isaacvm" ] "Missing parameter for VM."
+        Expect.sequenceEqual (Deployment.getTemplate "farmer-resources" template).Parameters [ SecureParameter "password-for-isaacvm" ] "Missing parameter for VM."
     }
 
     test "Outputs are correctly added" {
@@ -119,7 +119,7 @@ let tests = testList "Template" [
             output "foo" "baz"
             output "bar" "bop"
         }
-        Expect.sequenceEqual (Deployment.getTemplate template).Outputs [ "bar", "bop"; "foo", "baz" ] "Outputs should work like a key/value store"
+        Expect.sequenceEqual (Deployment.getTemplate "farmer-resources" template).Outputs [ "bar", "bop"; "foo", "baz" ] "Outputs should work like a key/value store"
     }
 
     test "Can add a list of resources types together" {
@@ -130,7 +130,7 @@ let tests = testList "Template" [
         let template = arm {
             add_resources resources
         }
-        Expect.hasLength (Deployment.getTemplate template).Resources 2 "Should be two resources added"
+        Expect.hasLength (Deployment.getTemplate "farmer-resources" template).Resources 2 "Should be two resources added"
     }
 
     test "Can add dependency through Resource Name" {

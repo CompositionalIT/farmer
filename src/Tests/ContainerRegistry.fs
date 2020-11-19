@@ -24,7 +24,7 @@ let toTemplate loc (d : ContainerRegistryConfig) =
         location loc
         add_resource d
     }
-    |> Deployment.getTemplate
+    |> Deployment.getTemplate "farmer-resources" 
 
 let fromJson = SafeJsonConvert.DeserializeObject<RegistryJson>
 let resource (r : RegistryJson) = r.resources.[0]

@@ -45,7 +45,7 @@ let tests = testList "Virtual Machine" [
                 add_resource
                     (vm { name "isaac"; username "foo" })
             }
-            |> Deployment.build
+            |> Deployment.build "farmer-resources" 
         let template = deployment.Template |> Writer.TemplateGeneration.processTemplate
         Expect.isTrue (template.parameters.ContainsKey "password-for-isaac") "Missing parameter"
         Expect.equal template.parameters.Count 1 "Should only be one parameter"
