@@ -80,4 +80,12 @@ let tests = testList "deploymentScripts" [
         Expect.hasLength script.Dependencies 1 "Should have additional dependency"
         Expect.equal (Set.toList script.Dependencies).[0].Name.Value "storagewithstuff" "Dependency should be on storage account"
     }
+
+    test "Retention period cannot be more than 26 hours" {
+        let createScript hours () =
+            deploymentScript { retention_interval (hours * 1<Hours>) } |> ignore
+
+        Expect.equal (createScript 26 ()) () "Should have not thrown"
+        Expect.throws (createScript 27) ""
+    }
 ]

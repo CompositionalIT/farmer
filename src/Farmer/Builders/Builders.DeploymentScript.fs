@@ -132,8 +132,8 @@ type DeploymentScriptBuilder() =
     /// Time to retain the container instance that runs the script - 1 to 26 hours.
     [<CustomOperation "retention_interval">]
     member _.RetentionInterval(state:DeploymentScriptConfig, retentionInterval) =
-        let maxRetention = min retentionInterval 26<Hours>
-        { state with CleanupPreference = Cleanup.OnExpiration (TimeSpan.FromHours (float maxRetention)) }
+        if retentionInterval > 26<Hours> then failwithf "Max retention interval is 26 hours, but was set as %i" retentionInterval
+        { state with CleanupPreference = Cleanup.OnExpiration (TimeSpan.FromHours (float retentionInterval)) }
     /// Additional URIs to download scripts that the primary script relies on.
     [<CustomOperation "supporting_script_uris">]
     member _.SupportingScriptUris(state:DeploymentScriptConfig, supportingScriptUris) =
