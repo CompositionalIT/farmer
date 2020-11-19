@@ -41,6 +41,9 @@ type ISubscriptionResourceBuilder =
     /// Given a location and the currently-built resources, returns a set of resource actions.
     abstract member BuildResources : unit -> IArmResource list
 
+    /// Gets the list of tasks to execute after a deployment
+    abstract member RunPostDeployTasks : unit -> Result<string,string> list
+
 namespace Farmer.CoreTypes
 
 open Farmer
@@ -158,7 +161,7 @@ type IParameters =
 
 /// An action that needs to be run after the ARM template has been deployed.
 type IPostDeploy =
-    abstract member Run : resourceGroupName:string -> Option<Result<string, string>>
+    abstract member Run : string -> Option<Result<string, string>>
 
 /// A functional equivalent of the IBuilder's BuildResources method.
 type Builder = Location -> IArmResource list
@@ -256,16 +259,16 @@ type Deployment =
     { Schema : string
       Location : Location
       Template : ArmTemplate
-      PostDeployTasks : IPostDeploy list }
+      PostDeployTasks : (unit -> Result<string ,string> list) list}
     interface IDeploymentBuilder with
-        member this.BuildDeployment () = this
+        member this.BuildDeployment _ = this
 
 and IDeploymentBuilder =
-    abstract member BuildDeployment : unit -> Deployment
+    abstract member BuildDeployment : string -> Deployment
 
 module Deployment =
-    let build (builder:#IDeploymentBuilder) = builder.BuildDeployment ()
-    let getTemplate (builder:#IDeploymentBuilder) = (build builder).Template
+    let build defaultName (builder:#IDeploymentBuilder) = builder.BuildDeployment defaultName
+    let getTemplate defaultName (builder:#IDeploymentBuilder) = (builder |> build defaultName).Template
 
 module internal DeterministicGuid =
     open System

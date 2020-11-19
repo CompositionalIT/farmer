@@ -84,9 +84,9 @@
 
     <Compile Include="IdentityExtensions.fs" />
 
-    <Compile Include="Builders\Builders.ResourceGroup.fs" />
-
     <Compile Include="Builders\Builders.SubscriptionDeployment.fs" />
+
+    <Compile Include="Builders\Builders.ResourceGroup.fs" />
 
     <Compile Include="Builders\Builders.LogAnalytics.fs" />
     <Compile Include="Builders/Builders.Helpers.fs" />

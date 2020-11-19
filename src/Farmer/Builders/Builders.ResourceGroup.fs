@@ -7,19 +7,19 @@ open Farmer.Arm.ResourceGroup
 
 /// Represents all configuration information to generate an ARM template.
 type ResourceGroupConfig =
-    { Name: ResourceName
+    { Name: Option<ResourceName>
       Parameters : string Set
       Outputs : Map<string, string>
       Location : Location 
       Resources : IArmResource list
       Tags: Map<string,string>
       DeploymentMode: DeploymentMode}
-      
+    member private this.ResourceName = this.Name |> Option.defaultValue (ResourceName "farmer-resource-group")
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.DependencyName = this.ResourceName
         member this.BuildResources location = 
             [
-                { ResourceGroupName = this.Name
+                { ResourceGroupName = this.ResourceName
                   Location = this.Location
                   Resources = this.Resources
                   Tags = this.Tags
@@ -29,44 +29,35 @@ type ResourceGroupConfig =
     interface ISubscriptionResourceBuilder with
         member this.BuildResources () = 
             [
-                { Name = this.Name
+                { Name = this.ResourceName
                   Location = this.Location
                   Tags = this.Tags }
 
-                { ResourceGroupName = this.Name
+                { ResourceGroupName = this.ResourceName
                   Location = this.Location
                   Resources = this.Resources
                   Tags = this.Tags
                   DeploymentMode = this.DeploymentMode}
             ]
+        member this.RunPostDeployTasks () =
+            this.Resources
+            |> List.choose 
+                (function
+                | :? IPostDeploy as pd -> pd.Run this.ResourceName.Value
+                | _ -> None)   
             
     interface IDeploymentBuilder with
-        member this.BuildDeployment () =
-            let template =
-                { Parameters = [
-                    for resource in this.Resources do
-                        match resource with
-                        | :? IParameters as p -> yield! p.SecureParameters
-                        | _ -> ()
-                  ] |> List.distinct
-                  Outputs = this.Outputs |> Map.toList
-                  Resources = this.Resources }
-
-            let postDeployTasks = [
-                for resource in this.Resources do
-                    match resource with
-                    | :? IPostDeploy as pd -> pd
-                    | _ -> ()
-                ]
-
-            { Schema = "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#"
-              Location = this.Location
-              Template = template
-              PostDeployTasks = postDeployTasks }
+        member this.BuildDeployment name =
+            let resolvedName = Option.orElse (Some (ResourceName name)) this.Name
+            subscriptionDeployment {
+                location this.Location
+                add_resource_group {this with Name = resolvedName }
+            }
+            |>  Deployment.build name
 
 type ResourceGroupBuilder() =
     member __.Yield _ =
-        { Name = ResourceName.Empty
+        { Name = Option.None
           Parameters = Set.empty
           Outputs = Map.empty
           Resources = List.empty
@@ -76,7 +67,7 @@ type ResourceGroupBuilder() =
 
     /// Sets the name of the resource group
     [<CustomOperation "name">]
-    member __.SetName (state, name) : ResourceGroupConfig = { state with Name = ResourceName name }
+    member __.SetName (state, name) : ResourceGroupConfig = { state with Name = ResourceName name |> Some }
 
     /// Creates an output value that will be returned by the ARM template.
     [<CustomOperation "output">]

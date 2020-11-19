@@ -11,7 +11,7 @@ type SubscriptionDeployment=
       Resources: ISubscriptionResourceBuilder list
       Tags: Map<string,string> }
     interface IDeploymentBuilder with
-        member this.BuildDeployment () =
+        member this.BuildDeployment _ =
             let template =
                 { Parameters = [
                     for resource in this.Resources do
@@ -21,18 +21,14 @@ type SubscriptionDeployment=
                   ] |> List.distinct
                   Outputs = this.Outputs |> Map.toList
                   Resources = this.Resources|> List.collect (fun rg -> rg.BuildResources ()) }
-
-            let postDeployTasks = [
-                for resource in this.Resources do
-                    match resource with
-                    | :? IPostDeploy as pd -> pd
-                    | _ -> ()
-                ]
+            let postDeploy = 
+                this.Resources 
+                |> List.map (fun x-> x.RunPostDeployTasks) 
 
             { Schema = "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#"
               Location = this.Location
               Template = template
-              PostDeployTasks = postDeployTasks }
+              PostDeployTasks = postDeploy }
 
 type SubscriptionDeploymentBuilder()=
     member __.Yield _ =

@@ -104,19 +104,19 @@ module Az =
             | WhatIf -> "what-if"
             | Validate -> "validate"
 
-    let private deployOrValidate (deploymentCommand:DeploymentCommand) resourceGroup deploymentName templateFilename parameters =
+    let private deployOrValidate (deploymentCommand:DeploymentCommand) (location:Location) deploymentName templateFilename parameters =
         let parametersArgument =
             match parameters with
             | [] -> ""
             | parameters -> sprintf "--parameters %s" (parameters |> List.map(fun (a,b) -> sprintf "%s=%s" a b) |> String.concat " ")
-        let cmd = sprintf """deployment group %s -g %s -n %s --template-file %s %s""" deploymentCommand.Description resourceGroup deploymentName templateFilename parametersArgument
+        let cmd = sprintf """deployment sub %s -l %s -n %s --template-file %s %s""" deploymentCommand.Description location.ArmValue deploymentName templateFilename parametersArgument
         az cmd
     /// Deploys an ARM template to an existing resource group.
-    let deploy resourceGroup deploymentName templateFilename parameters = deployOrValidate Create resourceGroup deploymentName templateFilename parameters
+    let deploy location deploymentName templateFilename parameters = deployOrValidate Create location deploymentName templateFilename parameters
     /// Validates whether the specified template is syntactically correct and will be accepted by Azure Resource Manager.
-    let validate resourceGroup deploymentName templateFilename parameters = deployOrValidate Validate resourceGroup deploymentName templateFilename parameters |> Result.ignore
+    let validate location deploymentName templateFilename parameters = deployOrValidate Validate location deploymentName templateFilename parameters |> Result.ignore
     // The what-if operation doesn't make any changes to existing resources. Instead, it predicts the changes if the specified template is deployed.
-    let whatIf resourceGroup deploymentName templateFilename parameters = deployOrValidate WhatIf resourceGroup deploymentName templateFilename parameters
+    let whatIf location deploymentName templateFilename parameters = deployOrValidate WhatIf location deploymentName templateFilename parameters
     /// Generic function for ZipDeploy using custom command (based on application type)
     let private zipDeploy command appName getZipPath resourceGroup =
         let packageFilename = getZipPath deployFolder
@@ -192,7 +192,7 @@ let validateParameters suppliedParameters deployment =
 
 let NoParameters : (string * string) list = []
 
-let private prepareForDeployment parameters resourceGroupName deployment = result {
+let private prepareForDeployment parameters deployment = result {
     do! deployment |> validateParameters parameters
 
     let! version = checkVersion Az.MinimumVersion
@@ -214,39 +214,37 @@ let private prepareForDeployment parameters resourceGroupName deployment = resul
     let subscriptionDetails = subscriptionDetails |> JsonConvert.DeserializeObject<{| id : Guid; name : string |}>
     printfn "Using subscription '%s' (%O)." subscriptionDetails.name subscriptionDetails.id
 
-    printfn "Creating resource group %s..." resourceGroupName
-    do! Az.createResourceGroup deployment.Location.ArmValue resourceGroupName
-
     return
         {| DeploymentName = sprintf "farmer-deploy-%d" (generateDeployNumber())
            TemplateFilename = deployment.Template |> Writer.toJson |> Writer.toFile deployFolder "farmer-deploy" |}
 }
 
-/// Validates a deployment against a resource group. If the resource group does not exist, it will be created automatically.
-let tryValidate resourceGroupName parameters deployment = result {
-    let! deploymentParameters = deployment |> prepareForDeployment parameters resourceGroupName
-    return! Az.validate resourceGroupName deploymentParameters.DeploymentName deploymentParameters.TemplateFilename parameters
+/// Validates a deployment against a resource group.
+let tryValidate resourceGroup parameters deploymentBuilder = result {
+    let deployment = Deployment.build resourceGroup deploymentBuilder
+    let! deploymentParameters = deployment |> prepareForDeployment parameters 
+    return! Az.validate deployment.Location deploymentParameters.DeploymentName deploymentParameters.TemplateFilename parameters
 }
 
-/// Validates a deployment against a resource group. If the resource group does not exist, it will be created automatically.
-let tryWhatIf resourceGroupName parameters deploymentBuilder = result {
-    let deployment = Deployment.build deploymentBuilder
-    let! deploymentParameters = deployment |> prepareForDeployment parameters resourceGroupName
-    return! Az.whatIf resourceGroupName deploymentParameters.DeploymentName deploymentParameters.TemplateFilename parameters
+/// Validates a deployment against a resource group. 
+let tryWhatIf resourceGroup parameters deploymentBuilder = result {
+    let deployment = Deployment.build resourceGroup deploymentBuilder
+    let! deploymentParameters = deployment |> prepareForDeployment parameters    
+    return! Az.whatIf deployment.Location deploymentParameters.DeploymentName deploymentParameters.TemplateFilename parameters
 }
 
 /// Executes the supplied Deployment against a resource group using the Azure CLI.
 /// If successful, returns a Map of the output keys and values.
-let tryExecute resourceGroupName parameters deploymentBuilder = result {
-    let deployment = Deployment.build deploymentBuilder
-    let! deploymentParameters = deployment |> prepareForDeployment parameters resourceGroupName
+let tryExecute resourceGroup parameters deploymentBuilder = result {
+    let deployment = Deployment.build resourceGroup deploymentBuilder
+    let! deploymentParameters = deployment |> prepareForDeployment parameters 
 
     printfn "Deploying ARM template (please be patient, this can take a while)..."
-    let! response = Az.deploy resourceGroupName deploymentParameters.DeploymentName deploymentParameters.TemplateFilename parameters
+    let! response = Az.deploy deployment.Location deploymentParameters.DeploymentName deploymentParameters.TemplateFilename parameters
 
     do!
-        [ for task in deployment.PostDeployTasks do task.Run resourceGroupName ]
-        |> List.choose id
+        [ for task in deployment.PostDeployTasks do task () ]
+        |> List.collect id
         |> Result.sequence
         |> Result.ignore
 
@@ -260,12 +258,12 @@ let tryExecute resourceGroupName parameters deploymentBuilder = result {
 
 /// Executes the supplied Deployment against a resource group using the Azure CLI.
 /// If successful, returns a Map of the output keys and values, otherwise returns any error as an exception.
-let execute resourceGroupName parameters deployment =
-    match tryExecute resourceGroupName parameters deployment with
+let execute resourceGroup parameters deployment =
+    match tryExecute resourceGroup parameters deployment with
     | Ok output -> output
     | Error message -> failwith message
 
-let whatIf resourceGroupName parameters deployment =
-    match tryWhatIf resourceGroupName parameters deployment with
+let whatIf resourceGroup parameters deployment =
+    match tryWhatIf resourceGroup parameters deployment with
     | Ok output -> output
     | Error message -> failwith message

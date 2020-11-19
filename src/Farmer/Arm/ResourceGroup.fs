@@ -42,12 +42,10 @@ type ResourceGroupDeployment =
         member this.ResourceName = this.ResourceName
         member this.JsonModel = 
             {| resourceGroupDeployments.Create (this.ResourceName, this.Location, this.DependsOn, this.Tags) with
-                 properties = {|
-                   template = {|
-                     ``$schema`` = schema
-                     contentVersion = "1.0.0.0"
-                     resources = this.Resources |> List.map(fun r -> r.JsonModel)
-                   |}
-                   mode = this.DeploymentMode.ArmValue
-                 |}
+                 properties = 
+                    {| template =
+                           {| ``$schema`` = schema
+                              contentVersion = "1.0.0.0"
+                              resources = this.Resources |> List.map(fun r -> r.JsonModel) |}
+                       mode = this.DeploymentMode.ArmValue |}
             |} :> _
