@@ -286,27 +286,33 @@ module TemplateDeploymentExtensions =
     open Deploy
     open System
 
+    let emptyIfNone p = defaultArg p []
+
     type Deployment with
         /// Executes this deployment against a resource group using the Azure CLI.
         /// If successful, returns a Map of the output keys and values, otherwise returns any error as an exception.
-        member this.Deploy(resourceGroupName, [<ParamArray>] parameters) =
-            this |> executeImpl resourceGroupName (Array.toList parameters)
+        member this.Deploy(resourceGroupName, ?parameters) =
+            let parameters = emptyIfNone parameters
+            this |> executeImpl resourceGroupName parameters
         /// Executes the supplied Deployment against a resource group using the Azure CLI.
         /// If successful, returns a Map of the output keys and values.
-        member this.TryDeploy(resourceGroupName, [<ParamArray>] parameters) =
-            this |> tryExecuteImpl resourceGroupName (Array.toList parameters)
+        member this.TryDeploy(resourceGroupName, ?parameters) =
+            let parameters = emptyIfNone parameters
+            this |> tryExecuteImpl resourceGroupName parameters
 
         /// Validates a deployment against a resource group. If the resource group does not exist, it will be created automatically.
-        member this.TryValidate(resourceGroupName, [<ParamArray>] parameters) =
-            this |> tryValidateImpl resourceGroupName (Array.toList parameters)
+        member this.TryValidate(resourceGroupName, ?parameters) =
+            let parameters = emptyIfNone parameters
+            this |> tryValidateImpl resourceGroupName parameters
         /// Validates that the parameters supplied meet the deployment requirements.
-        member this.ValidateParameters ([<ParamArray>] parameters) =
-            this |> validateParametersImpl (Array.toList parameters |> List.map(fun a -> a, null))
+        member this.ValidateParameters ([<ParamArray>] parameterNames) =
+            this |> validateParametersImpl (parameterNames |> Array.map(fun a -> a, null) |> Array.toList)
         member this.ValidateParameters parameters =
             this |> validateParametersImpl parameters
 
-        member this.TryWhatIf (resourceGroupName, [<ParamArray>] parameters) =
-            this |> whatIf resourceGroupName (Array.toList parameters)
+        member this.TryWhatIf (resourceGroupName, ?parameters) =
+            let parameters = emptyIfNone parameters
+            this |> whatIf resourceGroupName parameters
 
         // /// Executes this deployment against a resource group using the Azure CLI.
         // /// If successful, returns an instance of 'TOutput with the fields set based on the ARM outputs.
