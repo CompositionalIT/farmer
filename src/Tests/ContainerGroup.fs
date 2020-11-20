@@ -229,10 +229,6 @@ let tests = testList "Container Group" [
                 containerInstance {
                     name "nginx"
                     image "nginx:1.17.6-alpine"
-                    add_ports PublicPort [ 80us; 443us ]
-                    add_ports InternalPort [ 9090us; ]
-                    memory 0.5<Gb>
-                    cpu_cores 1
                     env_vars [
                         EnvVar.createSecureParameter "foo" "secret-foo"
                     ]
@@ -243,6 +239,25 @@ let tests = testList "Container Group" [
             add_resource cg
         }
         Expect.hasLength deployment.Template.Parameters 1 "Should have a secure parameter for environment variable"
+        Expect.equal (deployment.Template.Parameters.Head.ArmExpression.Eval()) "[parameters('secret-foo')]" "Generated incorrect secure parameter."
+    }
+    test "Secure parameters for secret volume is generated correctly" {
+        let cg = containerGroup {
+            name "myapp"
+            add_instances [
+                containerInstance {
+                    name "nginx"
+                    image "nginx:1.17.6-alpine"
+                }
+            ]
+            add_volumes [
+                volume_mount.secret_parameter "secrets" "foo" "secret-foo"
+            ]
+        }
+        let deployment = arm {
+            add_resource cg
+        }
+        Expect.hasLength deployment.Template.Parameters 1 "Should have a secure parameter for secret volume"
         Expect.equal (deployment.Template.Parameters.Head.ArmExpression.Eval()) "[parameters('secret-foo')]" "Generated incorrect secure parameter."
     }
 ]

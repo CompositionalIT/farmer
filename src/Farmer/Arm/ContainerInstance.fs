@@ -5,7 +5,6 @@ open Farmer
 open Farmer.ContainerGroup
 open Farmer.CoreTypes
 open Farmer.Identity
-open Newtonsoft.Json.Linq
 
 let containerGroups = ResourceType ("Microsoft.ContainerInstance/containerGroups", "2018-10-01")
 
@@ -67,6 +66,14 @@ type ContainerGroup =
                     match envVar.Value with
                     | SecureParamEnvValue p -> p
                     | _ -> ()
+            for volume in this.Volumes do
+                match volume.Value with
+                | Volume.Secret secrets ->
+                    for secret in secrets do
+                        match secret with
+                        | SecretParameter (_, parameter) -> parameter
+                        | _ -> ()
+                | _ -> ()
         ]
     interface IArmResource with
         member this.ResourceName = this.Name
@@ -166,10 +173,10 @@ type ContainerGroup =
                                        emptyDir = null
                                        gitRepo = Unchecked.defaultof<_>
                                        secret =
-                                           let jobj = JObject()
-                                           for (SecretFile (name, secret)) in secrets do
-                                               jobj.Add (name, secret |> System.Convert.ToBase64String |> JValue)
-                                           jobj
+                                           secrets |> Seq.map (function 
+                                               | SecretFile (name, secret) -> name, secret |> System.Convert.ToBase64String
+                                               | SecretParameter (name, parameter) -> name, parameter.ArmExpression.Eval()
+                                           ) |> dict
                                        |}
                           ]
                        |}

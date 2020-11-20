@@ -25,6 +25,8 @@ type volume_mount =
         volumeName, secrets |> List.map SecretFile |> Volume.Secret
     static member secret_string volumeName  (file:string) (secret:string) =
         volumeName, Volume.Secret [ SecretFile (file, secret |> System.Text.Encoding.UTF8.GetBytes) ]
+    static member secret_parameter volumeName  (file:string) (secretParameterName:string) =
+        volumeName, Volume.Secret [ SecretParameter (file, SecureParameter secretParameterName) ]
 
 /// Represents configuration for a single Container.
 type ContainerInstanceConfig =
