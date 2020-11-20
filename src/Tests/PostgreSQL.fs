@@ -115,8 +115,7 @@ let tests = testList "PostgreSQL Database Service" [
         let actual =
             actual
             |> toTemplate Location.NorthEurope
-            |> Writer.toJson
-            |> Microsoft.Rest.Serialization.SafeJsonConvert.DeserializeObject<TypedArmTemplate<DatabaseResource>>
+            |> getResourceGroupDeploymentFromTemplate<TypedArmTemplate<DatabaseResource>>
             |> fun r -> r.Resources
             |> Seq.find(fun r -> r.name = "testdb/my_db")
 
@@ -140,8 +139,7 @@ let tests = testList "PostgreSQL Database Service" [
         let actual =
             actual
             |> toTemplate Location.NorthEurope
-            |> Writer.toJson
-            |> Microsoft.Rest.Serialization.SafeJsonConvert.DeserializeObject<TypedArmTemplate<FirewallResource>>
+            |> getResourceGroupDeploymentFromTemplate<TypedArmTemplate<FirewallResource>>
             |> fun r -> r.Resources
             |> Seq.find(fun r -> r.name = "testdb/allow-azure-services")
         let expectedFwRuleRes =

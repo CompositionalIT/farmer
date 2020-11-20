@@ -28,7 +28,8 @@ let toTemplate loc (d : ContainerRegistryConfig) =
 
 let fromJson = SafeJsonConvert.DeserializeObject<RegistryJson>
 let resource (r : RegistryJson) = r.resources.[0]
-let whenWritten deploy = deploy |> toTemplate Location.NorthEurope |> Writer.toJson |> fromJson
+
+let whenWritten deploy = deploy |> toTemplate Location.NorthEurope |> getResourceGroupDeploymentFromTemplate<RegistryJson>
 // resource assertions
 let shouldHaveName name (r : RegistryJson) = Expect.equal name (resource(r).name) "Resource names do not match"; r
 let shouldHaveSku (sku : Sku) (r : RegistryJson) = Expect.equal (sku.ToString()) (resource(r).sku.name) "SKUs do not match"; r

@@ -46,8 +46,9 @@ let tests = testList "IOT Hub" [
                 name "iothub"
                 enable_device_provisioning
             }
-            let deployment = arm { add_resource hub }
-            (Deployment.getTemplate "farmer-resources" deployment).Resources.[1].JsonModel
+            arm { add_resource hub }
+            |> getResources
+            |> (fun x -> x.[2].JsonModel)
             |> SafeJsonConvert.SerializeObject
             |> fun json -> SafeJsonConvert.DeserializeObject<ProvisioningServiceDescription>(json, provisioningClient.SerializationSettings)
 
