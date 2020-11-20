@@ -2,7 +2,6 @@
 module Farmer.Arm.Cdn
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.Cdn
 open System
 
@@ -15,7 +14,7 @@ type Profile =
       Sku : Sku
       Tags: Map<string,string> }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = profiles.resourceId this.Name
         member this.JsonModel =
             {| profiles.Create (this.Name, Location.Global, tags = this.Tags) with
                    sku = {| name = string this.Sku |}
@@ -36,11 +35,11 @@ module Profiles =
           OptimizationType : OptimizationType
           Tags: Map<string,string> }
         interface IArmResource with
-            member this.ResourceName = this.Profile/this.Name
+            member this.ResourceId = endpoints.resourceId (this.Profile/this.Name)
             member this.JsonModel =
                 let dependencies = [
-                    ResourceId.create this.Profile
-                    yield! this.Origin.Owner |> Option.toList
+                    profiles.resourceId this.Profile
+                    yield! Option.toList this.Origin.Owner
                     yield! this.Dependencies
                 ]
                 {| endpoints.Create(this.Profile/this.Name, Location.Global, dependencies, this.Tags) with
@@ -67,8 +66,8 @@ module Profiles =
               Endpoint : ResourceName
               Hostname : Uri }
             interface IArmResource with
-                member this.ResourceName = this.Profile/this.Endpoint/this.Name
+                member this.ResourceId = customDomains.resourceId (this.Profile/this.Endpoint/this.Name)
                 member this.JsonModel =
-                    {| customDomains.Create (this.Profile/this.Endpoint/this.Name, dependsOn = [ ResourceId.create this.Endpoint ]) with
+                    {| customDomains.Create (this.Profile/this.Endpoint/this.Name, dependsOn = [ endpoints.resourceId this.Endpoint ]) with
                         properties = {| hostName = string this.Hostname |}
                     |} :> _

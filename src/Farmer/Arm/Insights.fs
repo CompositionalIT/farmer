@@ -2,7 +2,6 @@
 module Farmer.Arm.Insights
 
 open Farmer
-open Farmer.CoreTypes
 
 let components = ResourceType("Microsoft.Insights/components", "2014-04-01")
 
@@ -14,7 +13,7 @@ type Components =
       SamplingPercentage : int
       Tags: Map<string,string> }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = components.resourceId this.Name
         member this.JsonModel =
             let tags =
                 match this.LinkedWebsite with

@@ -3,7 +3,6 @@ module Farmer.Arm.DBforPostgreSQL
 
 open System.Net
 open Farmer
-open Farmer.CoreTypes
 open Farmer.PostgreSQL
 
 let databases = ResourceType ("Microsoft.DBforPostgreSQL/servers/databases", "2017-12-01")
@@ -28,9 +27,9 @@ module Servers =
           Charset : string
           Collation : string }
         interface IArmResource with
-            member this.ResourceName = this.Name
+            member this.ResourceId = databases.resourceId (this.Server/this.Name)
             member this.JsonModel =
-                {|  databases.Create(this.Server/this.Name, dependsOn = [ ResourceId.create this.Server ]) with
+                {|  databases.Create(this.Server/this.Name, dependsOn = [ servers.resourceId this.Server ]) with
                         properties = {|  charset = this.Charset; collation = this.Collation |}
                 |} :> _
 
@@ -41,9 +40,9 @@ module Servers =
           End : IPAddress
           Location : Location }
         interface IArmResource with
-            member this.ResourceName = this.Name
+            member this.ResourceId = firewallRules.resourceId (this.Server/this.Name)
             member this.JsonModel =
-                {| firewallRules.Create(this.Server/this.Name, this.Location, [ ResourceId.create this.Server ]) with
+                {| firewallRules.Create(this.Server/this.Name, this.Location, [ servers.resourceId this.Server ]) with
                     properties = {| startIpAddress = string this.Start; endIpAddress = string this.End; |}
                 |} :> _
 
@@ -92,7 +91,7 @@ type Server =
         member this.SecureParameters = [ this.Credentials.Password ]
 
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = servers.resourceId this.Name
         member this.JsonModel =
             {| servers.Create(this.Name, this.Location, tags = (this.Tags |> Map.add "displayName" this.Name.Value)) with
                     sku = this.Sku

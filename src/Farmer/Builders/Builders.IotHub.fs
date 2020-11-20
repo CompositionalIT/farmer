@@ -3,7 +3,6 @@ module Farmer.Builders.IotHub
 
 open Farmer
 open Farmer.Arm
-open Farmer.CoreTypes
 open Farmer.IotHub
 
 type IotHubConfig =
@@ -17,8 +16,7 @@ type IotHubConfig =
     member private this.BuildKey (policy:Policy) =
         sprintf "listKeys('%s','2019-03-22').value[%d].primaryKey" this.Name.Value policy.Index
     member this.GetKey policy =
-        let key = this.BuildKey policy
-        ArmExpression.create(key, ResourceId.create this.Name)
+        ArmExpression.create(this.BuildKey policy, this.ResourceId)
     member this.GetConnectionString policy =
         let endpoint = sprintf "reference('%s').eventHubEndpoints.events.endpoint" this.Name.Value
         let expr =
@@ -26,9 +24,10 @@ type IotHubConfig =
                 endpoint
                 (policy.ToString().ToLower())
                 (this.BuildKey policy)
-        ArmExpression.create(expr, ResourceId.create this.Name)
+        ArmExpression.create(expr, this.ResourceId)
+    member private this.ResourceId = iotHubs.resourceId this.Name
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.ResourceId = this.ResourceId
         member this.BuildResources location = [
             { Name = this.Name
               Location = location

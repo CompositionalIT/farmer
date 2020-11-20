@@ -3,6 +3,8 @@ Release Notes
 ## 1.3.0-beta2
 * Container Instance: Support for secure parameters for environment variables and secret volumes.
 * Deployment Scripts: Support for secure parameters for environment variables.
+* Deployment Scripts: Specifies cleanup on expiration when retention interval is set, and enables cleanup on success only.
+* Deployment Scripts: Support for running the script after other resources are deployed.
 * Web App: Unmanaged Server Farm uses Resource Id for fully-qualified path.
 
 ## 1.3.0-beta1
