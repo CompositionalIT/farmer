@@ -175,7 +175,7 @@ type ContainerGroup =
                                        secret =
                                            secrets |> Seq.map (function 
                                                | SecretFile (name, secret) -> name, secret |> System.Convert.ToBase64String
-                                               | SecretParameter (name, parameter) -> name, parameter.ArmExpression.Eval()
+                                               | SecretParameter (name, parameter) -> name, ArmExpression.create(sprintf "base64(%s)" parameter.ArmExpression.Value).Eval()
                                            ) |> dict
                                        |}
                           ]

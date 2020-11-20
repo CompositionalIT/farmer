@@ -248,6 +248,7 @@ let tests = testList "Container Group" [
                 containerInstance {
                     name "nginx"
                     image "nginx:1.17.6-alpine"
+                    add_volume_mount "secrets" "/config/secrets"
                 }
             ]
             add_volumes [
@@ -255,8 +256,10 @@ let tests = testList "Container Group" [
             ]
         }
         let deployment = arm {
+            location Location.EastUS
             add_resource cg
         }
+        deployment |> Writer.quickWrite "aci-with-secret-param"
         Expect.hasLength deployment.Template.Parameters 1 "Should have a secure parameter for secret volume"
         Expect.equal (deployment.Template.Parameters.Head.ArmExpression.Eval()) "[parameters('secret-foo')]" "Generated incorrect secure parameter."
     }
