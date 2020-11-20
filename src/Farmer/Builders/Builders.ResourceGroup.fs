@@ -18,26 +18,44 @@ type ResourceGroupConfig =
     interface IBuilder with
         member this.DependencyName = this.ResourceName
         member this.BuildResources location = 
-            [
-                { ResourceGroupName = this.ResourceName
-                  Location = this.Location
-                  Resources = this.Resources
-                  Tags = this.Tags
-                  DeploymentMode = this.DeploymentMode}
-            ]
-            
+            match this.Resources with
+            | [] -> []
+            | _ ->
+                [{ ResourceGroupName = this.ResourceName
+                   Location = this.Location
+                   Resources = this.Resources
+                   Tags = this.Tags
+                   DeploymentMode = this.DeploymentMode}]
+    interface IParameters with
+        member this.SecureParameters =
+            let nestedParams = 
+                this.Resources
+                |> List.choose 
+                    (function 
+                     | :? IParameters as p -> Some p.SecureParameters
+                     | _ -> None)
+            let thisParams = 
+                this.Parameters 
+                |> Set.map SecureParameter 
+                |> Set.toList
+            thisParams::nestedParams
+            |> List.collect id
+        
     interface ISubscriptionResourceBuilder with
+        member this.Outputs = this.Outputs
         member this.BuildResources () = 
             [
                 { Name = this.ResourceName
                   Location = this.Location
                   Tags = this.Tags }
-
-                { ResourceGroupName = this.ResourceName
-                  Location = this.Location
-                  Resources = this.Resources
-                  Tags = this.Tags
-                  DeploymentMode = this.DeploymentMode}
+                match this.Resources with
+                | [] -> ()
+                | _ ->
+                    { ResourceGroupName = this.ResourceName
+                      Location = this.Location
+                      Resources = this.Resources
+                      Tags = this.Tags
+                      DeploymentMode = this.DeploymentMode}
             ]
         member this.RunPostDeployTasks () =
             this.Resources

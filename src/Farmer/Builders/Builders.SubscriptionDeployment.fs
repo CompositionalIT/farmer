@@ -12,6 +12,11 @@ type SubscriptionDeployment=
       Tags: Map<string,string> }
     interface IDeploymentBuilder with
         member this.BuildDeployment _ =
+            let outputs = 
+                this.Resources
+                |> Seq.collect (fun x -> x.Outputs |> Map.toSeq)
+                |> Seq.fold (fun acc (k,v) -> Map.add k v acc) Map.empty
+                |> Map.foldBack Map.add this.Outputs // ensue the subscription outputs override any resource outputs
             let template =
                 { Parameters = [
                     for resource in this.Resources do
@@ -19,7 +24,7 @@ type SubscriptionDeployment=
                         | :? IParameters as p -> yield! p.SecureParameters
                         | _ -> ()
                   ] |> List.distinct
-                  Outputs = this.Outputs |> Map.toList
+                  Outputs = outputs |> Map.toList
                   Resources = this.Resources|> List.collect (fun rg -> rg.BuildResources ()) }
             let postDeploy = 
                 this.Resources 

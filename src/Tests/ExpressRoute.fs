@@ -10,17 +10,18 @@ open Microsoft.Rest
 open System
 
 let client = new NetworkManagementClient(Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
+let toAzResource (er:ExpressRouteConfig) =
+    arm { add_resource er }
+    |> findAzureResourcesByType<ExpressRouteCircuit> Arm.Network.expressRouteCircuits client.SerializationSettings
 let tests = testList "ExpressRoute" [
     test "Can create a basic ExR" {
         let resource =
-            let er = expressRoute {
+            expressRoute {
                 name "my-circuit"
                 service_provider "My ISP"
                 peering_location "My ISP's Location"
             }
-
-            arm { add_resource er }
-            |> findAzureResources<ExpressRouteCircuit> client.SerializationSettings
+            |> toAzResource
             |> List.head
 
         Expect.equal resource.Name "my-circuit" ""
@@ -35,7 +36,7 @@ let tests = testList "ExpressRoute" [
 
     test "Can create an ExR with one private peering" {
         let resource =
-            let er = expressRoute {
+            expressRoute {
                 name "my-circuit"
                 service_provider "My ISP"
                 peering_location "My ISP's Location"
@@ -50,9 +51,7 @@ let tests = testList "ExpressRoute" [
                 )
                 enable_global_reach
             }
-
-            arm { add_resource er }
-            |> findAzureResources<ExpressRouteCircuit> client.SerializationSettings
+            |> toAzResource
             |> List.head
 
         Expect.equal resource.Peerings.[0].AzureASN (Nullable 65412) ""
@@ -63,7 +62,7 @@ let tests = testList "ExpressRoute" [
 
     test "Can create an ExR with global reach, premium tier, unlimited data" {
         let resource =
-            let er = expressRoute {
+            expressRoute {
                 name "my-circuit"
                 service_provider "My ISP"
                 peering_location "My ISP's Location"
@@ -80,9 +79,7 @@ let tests = testList "ExpressRoute" [
                 )
                 enable_global_reach
             }
-
-            arm { add_resource er }
-            |> findAzureResources<ExpressRouteCircuit> client.SerializationSettings
+            |> toAzResource
             |> List.head
 
         Expect.equal resource.Sku.Name "Premium_UnlimitedData" ""

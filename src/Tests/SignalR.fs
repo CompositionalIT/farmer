@@ -12,16 +12,19 @@ open Microsoft.Azure.Management.SignalR.Models
 open Microsoft.Rest
 
 let client = new SignalRManagementClient(Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
+
+let toAzResource (mySignalR:SignalRConfig) = 
+    arm { add_resource mySignalR }
+    |> findAzureResourcesByType<SignalRResource> Arm.SignalRService.signalR client.SerializationSettings
+
 let tests = testList "SignalR" [
     test "Can create a basic SignalR account" {
         let resource =
-            let mySignalR =
-                signalR {
-                    name "my-signalr~@"
-                    sku Free
-                }
-            arm { add_resource mySignalR }
-            |> findAzureResources<SignalRResource> client.SerializationSettings
+            signalR {
+                name "my-signalr~@"
+                sku Free
+            }
+            |> toAzResource
             |> List.head
 
         resource.Validate()
@@ -31,14 +34,12 @@ let tests = testList "SignalR" [
 
     test "Can create a SignalR account with specific allowed origins" {
         let resource =
-            let mySignalR =
-                signalR {
-                    name "my-signalr~@"
-                    sku Free
-                    allowed_origins [ "https://github.com"; "https://duckduckgo.com" ]
-                }
-            arm { add_resource mySignalR }
-            |> findAzureResources<SignalRResource> client.SerializationSettings
+            signalR {
+                name "my-signalr~@"
+                sku Free
+                allowed_origins [ "https://github.com"; "https://duckduckgo.com" ]
+            }
+            |> toAzResource
             |> List.head
 
         resource.Validate()
@@ -52,14 +53,12 @@ let tests = testList "SignalR" [
 
     test "Can create a SignalR account with specific capacity" {
         let resource =
-            let mySignalR =
-                signalR {
-                    name "my-signalr~@"
-                    sku Standard
-                    capacity 10
-                }
-            arm { add_resource mySignalR }
-            |> findAzureResources<SignalRResource> client.SerializationSettings
+            signalR {
+                name "my-signalr~@"
+                sku Standard
+                capacity 10
+            }
+            |> toAzResource
             |> List.head
 
         resource.Validate()

@@ -40,10 +40,10 @@ let tests = testList "Bastion Host" [
                         ]
                     }
                 ]
-            } |> findAzureResources<BastionHost> client.SerializationSettings
+            } |> findAzureResourcesByType<BastionHost> Arm.Bastion.bastionHosts client.SerializationSettings
             |> Array.ofList
             
-        Expect.equal resources.[1].Name "my-bastion-host" "Account name is wrong"
-        Expect.equal resources.[1].IpConfigurations.[0].Subnet.Id "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'private-network', 'AzureBastionSubnet')]" "Subnet name must be 'AzureBastionSubnet'"
+        Expect.equal resources.[0].Name "my-bastion-host" "Account name is wrong"
+        Expect.equal resources.[0].IpConfigurations.[0].Subnet.Id "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'private-network', 'AzureBastionSubnet')]" "Subnet name must be 'AzureBastionSubnet'"
     }
 ]

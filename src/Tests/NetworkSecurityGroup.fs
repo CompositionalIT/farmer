@@ -19,7 +19,7 @@ let tests = testList "NetworkSecurityGroup" [
                   Location = Location.WestEurope
                   Tags = Map.empty }
             arm { add_resource nsg }
-            |> findAzureResources<NetworkSecurityGroup> client.SerializationSettings
+            |> findAzureResourcesByType<NetworkSecurityGroup> Arm.NetworkSecurityGroup.networkSecurityGroups client.SerializationSettings
             |> List.head
         Expect.equal resource.Name "my-nsg" ""
     }
@@ -45,10 +45,10 @@ let tests = testList "NetworkSecurityGroup" [
                 add_resource nsg
                 add_resource acceptRule
             }
-            |> findAzureResources<SecurityRule> client.SerializationSettings
+            |> findAzureResourcesByType<SecurityRule> Arm.NetworkSecurityGroup.securityRules client.SerializationSettings
 
         match rules with
-        | [ _; rule1 ] ->
+        | [ rule1 ] ->
             rule1.Validate()
 
             Expect.equal rule1.Name "my-nsg/accept-web" ""
@@ -78,9 +78,9 @@ let tests = testList "NetworkSecurityGroup" [
             name "my-nsg"
             add_rules [ webPolicy ]
         }
-        let rules = arm { add_resource myNsg } |> findAzureResources<SecurityRule> client.SerializationSettings
+        let rules = arm { add_resource myNsg } |> findAzureResourcesByType<SecurityRule> Arm.NetworkSecurityGroup.securityRules client.SerializationSettings
         match rules with
-        | [ _; rule1 ] ->
+        | [ rule1 ] ->
             rule1.Validate()
             Expect.equal rule1.Name "my-nsg/web-servers" ""
             Expect.equal rule1.Access "Allow" ""
@@ -127,9 +127,9 @@ let tests = testList "NetworkSecurityGroup" [
                 dbPolicy
             ]
         }
-        let rules = arm { add_resource myNsg } |> findAzureResources<SecurityRule> client.SerializationSettings
+        let rules = arm { add_resource myNsg } |> findAzureResourcesByType<SecurityRule> Arm.NetworkSecurityGroup.securityRules client.SerializationSettings
         match rules with
-        | [ _; rule1; rule2; rule3 ] ->
+        | [ rule1; rule2; rule3 ] ->
             // Web server access
             rule1.Validate()
             Expect.equal rule1.Name "my-nsg/web-servers" ""

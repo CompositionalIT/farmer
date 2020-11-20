@@ -3,6 +3,7 @@ module ContainerService
 open Expecto
 open Farmer.Builders
 open Farmer
+open Farmer.Arm.ContainerService
 open Microsoft.Azure.Management.Compute.Models
 open Microsoft.Azure.Management.ContainerService
 open Microsoft.Azure.Management.ContainerService.Models
@@ -27,7 +28,7 @@ let tests = testList "AKS" [
         }
         let aks =
             arm { add_resource myAks }
-            |> findAzureResources<ContainerService> dummyClient.SerializationSettings
+            |> findAzureResourcesByType<ContainerService> managedClusters dummyClient.SerializationSettings
             |> Seq.head
         Expect.equal aks.Name "k8s-cluster" ""
         Expect.hasLength aks.AgentPoolProfiles 1 ""
@@ -71,7 +72,7 @@ let tests = testList "AKS" [
         }
         let aks =
             arm { add_resource myAks }
-            |> findAzureResources<ContainerService> dummyClient.SerializationSettings
+            |> findAzureResourcesByType<ContainerService> managedClusters dummyClient.SerializationSettings
             |> Seq.head
         Expect.hasLength aks.AgentPoolProfiles 1 ""
         Expect.equal aks.AgentPoolProfiles.[0].Name "linuxpool" ""

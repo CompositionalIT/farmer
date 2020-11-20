@@ -18,7 +18,7 @@ let tests = testList "Maps" [
                 sku S0
             }
             arm { add_resource account }
-            |> findAzureResources<MapsAccount> client.SerializationSettings
+            |> findAzureResourcesByType<MapsAccount> Arm.Maps.accounts client.SerializationSettings
             |> List.head
 
         resource.Validate()

@@ -27,7 +27,7 @@ let tests = testList "Service Bus Tests" [
                         sku Standard
                     })
             }
-            |> findAzureResources<SBNamespace> dummyClient.SerializationSettings
+            |> findAzureResourcesByType<SBNamespace> Arm.ServiceBus.namespaces dummyClient.SerializationSettings
             |> List.head
 
         sbNs.Validate()
@@ -144,7 +144,7 @@ let tests = testList "Service Bus Tests" [
                 ]
             }
             let deployment = arm { add_resource theBus }
-            let queues = (deployment |> Deployment.getTemplate "farmer-resources" ).Resources |> List.choose(function :? Queue as q -> Some q | _ -> None)
+            let queues = (deployment |> getResources) |> List.choose(function :? Queue as q -> Some q | _ -> None)
             Expect.hasLength queues 2 "Should have two queues in a single namespace."
         }
     ]
@@ -223,8 +223,8 @@ let tests = testList "Service Bus Tests" [
                     location Location.EastUS
                     add_resource sb
                 }
-            let generatedTemplate = template |> Deployment.getTemplate "farmer-resources" 
-            let genSubscription = generatedTemplate.Resources.Item 2 :?> Subscription
+            let resources = template |> getResources
+            let genSubscription = resources.Item 3 :?> Subscription
             Expect.hasLength genSubscription.Rules 4 "Expected subscription should have 4 rules"
             Expect.equal genSubscription.Rules.[0] (Rule.CreateCorrelationFilter("SuccessfulStatus", ["Status", "Success"])) "Rule 0 is incorrect"
             Expect.equal genSubscription.Rules.[1] (Rule.CreateSqlFilter("Thing", "Status = Success")) "Rule 1 is incorrect"

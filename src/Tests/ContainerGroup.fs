@@ -38,7 +38,7 @@ let dummyClient = new ContainerInstanceManagementClient (Uri "http://management.
 
 let asAzureResource (group:ContainerGroupConfig) =
     arm { add_resource group }
-    |> findAzureResources<ContainerGroup> dummyClient.SerializationSettings
+    |> findAzureResourcesByType<ContainerGroup> Arm.ContainerInstance.containerGroups dummyClient.SerializationSettings
     |> List.head
     |> fun r ->
         r.Validate()

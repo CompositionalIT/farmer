@@ -11,7 +11,7 @@ open System
 
 /// Client instance needed to get the serializer settings.
 let client = new StorageManagementClient(Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
-let getStorageResource = findAzureResources<StorageAccount> client.SerializationSettings >> List.head
+let getStorageResource = findAzureResourcesByType<StorageAccount> Arm.Storage.storageAccounts client.SerializationSettings >> List.head
 
 let tests = testList "Storage Tests" [
     test "Can create a basic storage account" {

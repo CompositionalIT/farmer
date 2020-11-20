@@ -1,10 +1,14 @@
 module Template
 
+open System
 open Expecto
 open Farmer
 open Farmer.Builders
 open Farmer.CoreTypes
 open Newtonsoft.Json
+open Microsoft.Rest
+open Microsoft.Azure.Management.ResourceManager
+open Microsoft.Azure.Management.ResourceManager.Models
 
 [<AutoOpen>]
 module TestHelpers =
@@ -20,6 +24,8 @@ module TestHelpers =
         }
     let convertTo<'T> = JsonConvert.SerializeObject >> JsonConvert.DeserializeObject<'T>
 
+let dummyClient = new ResourceManagementClient (Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
+
 let createSimpleTemplate parameters = 
     (createSimpleDeployment parameters).Template
     |> Writer.TemplateGeneration.processTemplate
@@ -28,13 +34,20 @@ let toTemplate deployment =
     Deployment.getTemplate "farmer-resources"  deployment
     |> Writer.TemplateGeneration.processTemplate
 
+let isType<'t> (o:obj) =
+    match o with
+    | :? 't -> true
+    | _ -> false
+
 let tests = testList "Template" [
     test "Can create a basic template" {
-        let template = arm { location Location.NorthEurope } |> toTemplate
-        Expect.equal template.``$schema`` "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#" ""
-        Expect.isEmpty template.outputs ""
-        Expect.isEmpty template.parameters ""
-        Expect.isEmpty template.resources ""
+        let arm = arm { location Location.NorthEurope } 
+        let template = arm |> toTemplate
+        let resources = arm |> findAzureResources<ResourceGroup> dummyClient.SerializationSettings
+        Expect.hasLength resources 1 ""
+        Expect.equal resources.[0].Location Location.NorthEurope.ArmValue ""
+        Expect.isEmpty template.outputs "outputs should be empty"
+        Expect.isEmpty template.parameters "parameters should be empty"
     }
     test "Correctly generates outputs" {
         let template =
@@ -53,11 +66,14 @@ let tests = testList "Template" [
     }
 
     test "Can create a single resource" {
-        let template = arm {
-            add_resource (storageAccount { name "test" })
-        }
-
-        Expect.equal (Deployment.getTemplate "farmer-resources" template).Resources.Length 1 "Should be a single resource"
+        let resources =
+            arm {
+                add_resource (storageAccount { name "test" })
+            }
+            |> getResources
+        Expect.hasLength resources 2 "Should have two resources"
+        Expect.isTrue (isType<Arm.ResourceGroup.ResourceGroup> resources.[0]) "Should be ResourceGroup"
+        Expect.isTrue (isType<Arm.Storage.StorageAccount> resources.[1]) "Should be StorageAccount"
     }
 
     test "Can create multiple resources simultaneously" {
@@ -67,8 +83,9 @@ let tests = testList "Template" [
                 storageAccount { name "test2" }
             ]
         }
+        let storages = template |> findAzureResourcesByType<obj> Arm.Storage.storageAccounts (JsonSerializerSettings())
 
-        Expect.equal (Deployment.getTemplate "farmer-resources" template).Resources.Length 2 "Should be two resources"
+        Expect.hasLength storages 2 "Should be two resources"
     }
 
     test "De-dupes the same resource name and type" {
@@ -78,8 +95,9 @@ let tests = testList "Template" [
                 storageAccount { name "test" }
             ]
         }
+        let storages = template |> findAzureResourcesByType<obj> Arm.Storage.storageAccounts (JsonSerializerSettings())
 
-        Expect.equal (Deployment.getTemplate "farmer-resources" template).Resources.Length 1 "Should be a single resource"
+        Expect.hasLength storages 1 "Should be a single resource"
     }
 
     test "Does not de-dupe the same resource name but different type" {
@@ -89,8 +107,12 @@ let tests = testList "Template" [
                 cognitiveServices { name "test" }
             ]
         }
+        let resources = 
+            template 
+            |> getResources
+            |> List.filter (function | :? Arm.ResourceGroup.ResourceGroup -> false | _ -> true)
 
-        Expect.equal (Deployment.getTemplate "farmer-resources" template).Resources.Length 2 "Should be two resources"
+        Expect.hasLength resources 2 "Should be two resources"
     }
 
     test "Location is cascaded to all resources" {
@@ -101,9 +123,12 @@ let tests = testList "Template" [
                 storageAccount { name "test2" }
             ]
         }
-
-        let allLocations = (Deployment.getTemplate "farmer-resources" template).Resources |> List.map (fun r -> r.JsonModel |> convertTo<{| Location : string |}>)
-        Expect.sequenceEqual allLocations [ {| Location = Location.NorthCentralUS.ArmValue |}; {| Location = Location.NorthCentralUS.ArmValue |} ] "Incorrect Location"
+        let allLocations = 
+            template
+            |> getResources 
+            |> List.map (fun r -> r.JsonModel |> convertTo<{| Location : string |}>)
+        
+        Expect.allEqual allLocations {| Location = Location.NorthCentralUS.ArmValue |} "Incorrect Location"
     }
 
     test "Secure parameter is correctly added" {

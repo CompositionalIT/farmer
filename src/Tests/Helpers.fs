@@ -17,12 +17,12 @@ let getResourceAtIndex serializationSettings index (builder:#IBuilder) =
     builder.BuildResources Location.WestEurope
     |> fun r -> r.[index].JsonModel |> farmerToMs serializationSettings
 
-let private flattenResourcesQuery = sprintf "$..[?(@.type == '%s')].properties.template.resources.[*]" Arm.ResourceGroup.resourceGroupDeployments.Type
+let private flattenResourcesQuery = sprintf "$..resources.[?(@.type != '%s')]" Arm.ResourceGroup.resourceGroupDeployments.Type
 let getResourceTokens deployment =
     let template = 
         Deployment.getTemplate "farmer-resources" deployment 
         |> Writer.TemplateGeneration.processTemplate
-    let jobj = JArray.FromObject template.resources
+    let jobj = JObject.FromObject template
     jobj.SelectTokens flattenResourcesQuery
 
 let getResources (deployment:IDeploymentBuilder) =
@@ -55,12 +55,19 @@ let getResourceGroupDeploymentFromTemplate<'a> (template:ArmTemplate) =
     let jobj = JArray.FromObject template.resources
     let rgd = jobj.SelectToken (sprintf "$.[?(@.type == '%s')].properties.template" Arm.ResourceGroup.resourceGroupDeployments.Type)
     rgd.ToObject<'a>()
+    
+let findAzureResources<'T when 'T : null> (serializationSettings:Newtonsoft.Json.JsonSerializerSettings) deployment =
+    let tokens = getResourceTokens deployment
+    let jsons =  tokens |> Seq.map string
+    let desrs =  jsons |> Seq.choose (fun json -> SafeJsonConvert.DeserializeObject<'T>(json, serializationSettings) |> Option.ofObj)
+    desrs |> Seq.toList
 
-let findAzureResources<'T when 'T : null> (serializationSettings:Newtonsoft.Json.JsonSerializerSettings) =
-    getResourceTokens
-    >> Seq.map string
-    >> Seq.choose (fun json -> SafeJsonConvert.DeserializeObject<'T>(json, serializationSettings) |> Option.ofObj)
-    >> Seq.toList
+let findAzureResourcesByType<'T when 'T : null> (resourceType:ResourceType) (serializationSettings:Newtonsoft.Json.JsonSerializerSettings) deployment =
+     getResourceTokens deployment
+    |> Seq.filter (fun x-> x.["type"].Value<string>() = resourceType.Type)
+    |> Seq.map string
+    |> Seq.choose (fun json -> SafeJsonConvert.DeserializeObject<'T>(json, serializationSettings) |> Option.ofObj)
+    |> Seq.toList
 
 type TypedArmTemplate<'ResT> = { Resources : 'ResT array }
 
