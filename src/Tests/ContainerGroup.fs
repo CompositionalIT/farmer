@@ -258,7 +258,6 @@ let tests = testList "Container Group" [
             location Location.EastUS
             add_resource cg
         }
-        deployment |> Writer.quickWrite "aci-with-secret-param"
         Expect.hasLength deployment.Template.Parameters 1 "Should have a secure parameter for secret volume"
         Expect.equal (deployment.Template.Parameters.Head.ArmExpression.Eval()) "[parameters('secret-foo')]" "Generated incorrect secure parameter."
     }

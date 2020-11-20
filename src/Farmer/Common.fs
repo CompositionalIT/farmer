@@ -1,7 +1,6 @@
 ﻿namespace Farmer
 
 open System
-open Farmer.CoreTypes
 
 [<AutoOpen>]
 module internal DuHelpers =
