@@ -15,17 +15,18 @@ type ResourceGroupConfig =
       Tags: Map<string,string>
       DeploymentMode: DeploymentMode}
     member private this.ResourceName = this.Name |> Option.defaultValue (ResourceName "farmer-resource-group")
+    member private this.IncludeDeployment = not (this.Resources.IsEmpty && this.Outputs.IsEmpty)
     interface IBuilder with
         member this.DependencyName = this.ResourceName
         member this.BuildResources location = 
-            match this.Resources with
-            | [] -> []
-            | _ ->
-                [{ ResourceGroupName = this.ResourceName
-                   Location = this.Location
-                   Resources = this.Resources
-                   Tags = this.Tags
-                   DeploymentMode = this.DeploymentMode}]
+            [ if this.IncludeDeployment then
+                  { Name = sprintf "%s-%s" this.ResourceName.Value (System.DateTime.UtcNow.ToString "yyyyMMddTHHmm") |> ResourceName
+                    ResourceGroupName = this.ResourceName
+                    Location = this.Location
+                    Resources = this.Resources
+                    Outputs = this.Outputs
+                    Tags = this.Tags
+                    DeploymentMode = this.DeploymentMode}]
     interface IParameters with
         member this.SecureParameters =
             let nestedParams = 
@@ -43,20 +44,23 @@ type ResourceGroupConfig =
         
     interface ISubscriptionResourceBuilder with
         member this.Outputs = this.Outputs
-        member this.BuildResources () = 
-            [
-                { Name = this.ResourceName
-                  Location = this.Location
-                  Tags = this.Tags }
-                match this.Resources with
-                | [] -> ()
-                | _ ->
-                    { ResourceGroupName = this.ResourceName
+        member this.BuildResources key = 
+            let deploymentName = sprintf "%s-%s" this.ResourceName.Value key
+            {| DeploymentName = deploymentName
+               Resources = 
+                [
+                    { Name = this.ResourceName
                       Location = this.Location
-                      Resources = this.Resources
-                      Tags = this.Tags
-                      DeploymentMode = this.DeploymentMode}
-            ]
+                      Tags = this.Tags }
+                    if this.IncludeDeployment then
+                        { Name = ResourceName deploymentName
+                          ResourceGroupName = this.ResourceName
+                          Location = this.Location
+                          Resources = this.Resources
+                          Outputs = this.Outputs
+                          Tags = this.Tags
+                          DeploymentMode = this.DeploymentMode}
+                ]|}
         member this.RunPostDeployTasks () =
             this.Resources
             |> List.choose 

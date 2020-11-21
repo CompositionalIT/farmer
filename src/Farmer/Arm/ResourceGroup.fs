@@ -26,26 +26,31 @@ type ResourceGroup =
             :> _
 
 type ResourceGroupDeployment =
-    { ResourceGroupName: ResourceName
+    { Name: ResourceName
+      ResourceGroupName: ResourceName
       Location: Location
       Resources: IArmResource list
+      Outputs: Map<string,string>
       Tags: Map<string,string>
       DeploymentMode: DeploymentMode}
-    member this.ResourceName = 
-        let rg = this.ResourceGroupName.Value
-        sprintf "%s-deployment" rg
-        |> ResourceName
+    member this.ResourceName = this.Name
     member this.DependsOn = [
         ResourceId.create (resourceGroups, this.ResourceGroupName)
     ]
     interface IArmResource with
-        member this.ResourceName = this.ResourceName
+        member this.ResourceName = this.Name
         member this.JsonModel = 
-            {| resourceGroupDeployments.Create (this.ResourceName, this.Location, this.DependsOn, this.Tags) with
+            {| resourceGroupDeployments.Create (this.ResourceName, dependsOn=this.DependsOn, tags=this.Tags) with
+                 resourceGroup = this.ResourceGroupName.Value
                  properties = 
-                    {| template =
+                    {| mode = this.DeploymentMode.ArmValue 
+                       expressionEvaluationOptions = {| scope = "inner" |}
+                       template =
                            {| ``$schema`` = schema
                               contentVersion = "1.0.0.0"
-                              resources = this.Resources |> List.map(fun r -> r.JsonModel) |}
-                       mode = this.DeploymentMode.ArmValue |}
+                              parameters = {||}
+                              variables = {||}
+                              resources = this.Resources |> List.map(fun r -> r.JsonModel)
+                              outputs = this.Outputs |> Map.map (fun _ v -> {| ``type`` = "string"; value = v |})|}
+                    |}
             |} :> _

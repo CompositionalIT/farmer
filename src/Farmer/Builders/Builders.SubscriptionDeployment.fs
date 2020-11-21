@@ -4,19 +4,30 @@ module Farmer.Builders.SubscriptionDeployment
 open Farmer
 open Farmer.CoreTypes
 
+let private linkedTemplateOutput deplName outputName =
+    sprintf "[reference('%s').outputs.%s.value]" deplName outputName
+
 type SubscriptionDeployment=
     { Parameters : string Set
-      Outputs : Map<string, string>
       Location : Location 
       Resources: ISubscriptionResourceBuilder list
       Tags: Map<string,string> }
     interface IDeploymentBuilder with
         member this.BuildDeployment _ =
+            let deploymentNameSuffix = System.DateTime.UtcNow.ToString("yyyyMMddTHHmm") 
+            let resources = 
+                this.Resources 
+                |> List.map (fun rg -> {| rg.BuildResources deploymentNameSuffix with Outputs = rg.Outputs |} )
+
             let outputs = 
-                this.Resources
-                |> Seq.collect (fun x -> x.Outputs |> Map.toSeq)
-                |> Seq.fold (fun acc (k,v) -> Map.add k v acc) Map.empty
-                |> Map.foldBack Map.add this.Outputs // ensue the subscription outputs override any resource outputs
+                resources
+                |> List.collect 
+                    (fun x -> 
+                        x.Outputs 
+                        |> Map.toList
+                        |> List.map (fun (k, _) -> k, linkedTemplateOutput x.DeploymentName k))
+                |> List.fold (fun acc (k,v) -> Map.add k v acc) Map.empty
+
             let template =
                 { Parameters = [
                     for resource in this.Resources do
@@ -25,7 +36,7 @@ type SubscriptionDeployment=
                         | _ -> ()
                   ] |> List.distinct
                   Outputs = outputs |> Map.toList
-                  Resources = this.Resources|> List.collect (fun rg -> rg.BuildResources ()) }
+                  Resources = resources |> List.collect (fun x -> x.Resources) }
             let postDeploy = 
                 this.Resources 
                 |> List.map (fun x-> x.RunPostDeployTasks) 
@@ -38,24 +49,9 @@ type SubscriptionDeployment=
 type SubscriptionDeploymentBuilder()=
     member __.Yield _ =
         { Parameters = Set.empty
-          Outputs = Map.empty
           Resources = List.empty
           Location = Location.WestEurope
           Tags = Map.empty }
-
-    /// Creates an output value that will be returned by the ARM template.
-    [<CustomOperation "output">]
-    member __.Output (state, outputName, outputValue) : SubscriptionDeployment = { state with Outputs = state.Outputs.Add(outputName, outputValue) }
-    member this.Output (state:SubscriptionDeployment, outputName:string, (ResourceName outputValue)) = this.Output(state, outputName, outputValue)
-    member this.Output (state:SubscriptionDeployment, outputName:string, outputValue:ArmExpression) = this.Output(state, outputName, outputValue.Eval())
-    member this.Output (state:SubscriptionDeployment, outputName:string, outputValue:string option) =
-        match outputValue with
-        | Some outputValue -> this.Output(state, outputName, outputValue)
-        | None -> state
-    member this.Output (state:SubscriptionDeployment, outputName:string, outputValue:ArmExpression option) =
-        match outputValue with
-        | Some outputValue -> this.Output(state, outputName, outputValue)
-        | None -> state
 
     /// Sets the location for deployment metadata
     [<CustomOperation "location">]

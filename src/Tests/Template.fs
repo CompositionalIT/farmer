@@ -9,6 +9,8 @@ open Newtonsoft.Json
 open Microsoft.Rest
 open Microsoft.Azure.Management.ResourceManager
 open Microsoft.Azure.Management.ResourceManager.Models
+open Microsoft.Azure.Management.Resources.Models
+open Newtonsoft.Json
 
 [<AutoOpen>]
 module TestHelpers =
@@ -50,12 +52,19 @@ let tests = testList "Template" [
         Expect.isEmpty template.parameters "parameters should be empty"
     }
     test "Correctly generates outputs" {
-        let template =
-            arm { location Location.NorthEurope; output "p1" "v1"; output "p2" "v2" }
-            |> toTemplate
-        Expect.equal template.outputs.["p1"].value "v1" ""
-        Expect.equal template.outputs.["p2"].value "v2" ""
-        Expect.equal template.outputs.Count 2 ""
+        let arm = arm { location Location.NorthEurope; output "p1" "v1"; output "p2" "v2"; add_resource (storageAccount{name "stg"}) }
+        let template = arm |> toTemplate |> Newtonsoft.Json.Linq.JObject.FromObject
+        let getValue = template.SelectToken >> string
+        let getTokens = template.SelectTokens
+        Expect.equal (getValue "$.resources.[1].properties.template.outputs.p1.value") "v1" ""
+        Expect.equal (getValue "$.resources.[1].properties.template.outputs.p2.value")  "v2" ""
+        Expect.hasLength (getTokens "$.resources.[1].properties.template.outputs.*") 2 ""
+
+        let nestedDeplName = getValue "$.resources.[1].name"
+        Expect.equal (getValue "$.outputs.p1.type") "string" ""
+        Expect.equal (getValue "$.outputs.p1.value") (sprintf "[reference('%s').outputs.p1.value]" nestedDeplName) ""
+        Expect.equal (getValue "$.outputs.p2.type") "string" ""
+        Expect.equal (getValue "$.outputs.p2.value") (sprintf "[reference('%s').outputs.p2.value]" nestedDeplName)  ""
     }
     test "Processes parameters correctly" {
         let template = createSimpleTemplate [ "p1"; "p2" ]
@@ -138,13 +147,18 @@ let tests = testList "Template" [
         Expect.sequenceEqual (Deployment.getTemplate "farmer-resources" template).Parameters [ SecureParameter "password-for-isaacvm" ] "Missing parameter for VM."
     }
 
-    test "Outputs are correctly added" {
-        let template = arm {
+    test "Outputs overwrite earlier outputs of the same name" {
+        let arm = arm {
             output "foo" "bar"
             output "foo" "baz"
             output "bar" "bop"
         }
-        Expect.sequenceEqual (Deployment.getTemplate "farmer-resources" template).Outputs [ "bar", "bop"; "foo", "baz" ] "Outputs should work like a key/value store"
+        let template = arm |> toTemplate |> Newtonsoft.Json.Linq.JObject.FromObject
+        let getValue = template.SelectToken >> string
+        let getTokens = template.SelectTokens
+        
+        Expect.equal (getValue "$.resources.[1].properties.template.outputs.foo.value") "baz" ""
+        Expect.equal (getValue "$.resources.[1].properties.template.outputs.bar.value")  "bop" ""
     }
 
     test "Can add a list of resources types together" {

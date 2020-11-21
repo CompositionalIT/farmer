@@ -41,7 +41,7 @@ type ISubscriptionResourceBuilder =
     // Gets the outputs specified by this resource
     abstract member Outputs: Map<string,string>
     /// Given a location and the currently-built resources, returns a set of resource actions.
-    abstract member BuildResources : unit -> IArmResource list
+    abstract member BuildResources : string -> {|Resources: IArmResource list; DeploymentName: string|}
     /// Gets the list of tasks to execute after a deployment
     abstract member RunPostDeployTasks : unit -> Result<string,string> list
 

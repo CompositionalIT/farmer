@@ -4,13 +4,14 @@
 open Farmer
 open Farmer.Builders
 
-let storage1 = storageAccount{ name "storage1" }
-let storage2 = storageAccount{ name "storage2" }
+let storage1 = storageAccount{ name "codatdevstorage1" }
+let storage2 = storageAccount{ name "codatdevstorage2" }
     
 let resGroup1 = resourceGroup {
     name "deleteme-1"
     location Location.WestEurope
     add_resource storage1
+    output "storage1_key" storage1.Key
 }
 
 let resGroup2 = resourceGroup {
@@ -26,4 +27,5 @@ let template = subscriptionDeployment {
 }
 
 template
-|> Deploy.execute "deleteme" Deploy.NoParameters
+|> Deploy.execute "deleteme" Deploy.NoParameters |> printf "%A"
+//|> Writer.quickWrite "deleteme"
