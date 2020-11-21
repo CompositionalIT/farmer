@@ -1,14 +1,13 @@
 [<AutoOpen>]
 module Farmer.ArmBuilder
 
-open Farmer.CoreTypes
 open Farmer
 
 module Resource =
     /// Creates a unique IArmResource from an arbitrary object.
     let ofObj armObject =
         { new IArmResource with
-             member _.ResourceName = ResourceName (System.Guid.NewGuid().ToString())
+             member _.ResourceId = ResourceId.create (ResourceType("", ""), ResourceName (System.Guid.NewGuid().ToString()))
              member _.JsonModel = armObject }
 
     /// Creates a unique IArmResource from a JSON string containing the output you want.
@@ -81,7 +80,7 @@ type ArmBuilder() =
             Resources =
                 state.Resources
                 @ resources
-                |> List.distinctBy(fun r -> r.ResourceName, r.GetType().Name) }
+                |> List.distinctBy(fun r -> r.ResourceId, r.GetType().Name) }
 
     /// Adds a builder's ARM resources to the ARM template.
     [<CustomOperation "add_resource">]

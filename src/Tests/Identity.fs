@@ -4,22 +4,21 @@ open Expecto
 open Farmer
 open Farmer.Arm
 open Farmer.Identity
-open Farmer.CoreTypes
 
 let tests = testList "Identity" [
     test "Can add two identities together" {
         let systemOnly = { ManagedIdentity.Empty with SystemAssigned = Enabled }
-        let userOnlyA = { ManagedIdentity.Empty with UserAssigned = [ UserAssignedIdentity(ResourceId.create "a") ] }
-        let userOnlyB = { ManagedIdentity.Empty with UserAssigned = [ UserAssignedIdentity(ResourceId.create "b") ] }
+        let userOnlyA = { ManagedIdentity.Empty with UserAssigned = [ UserAssignedIdentity(userAssignedIdentities.resourceId "a") ] }
+        let userOnlyB = { ManagedIdentity.Empty with UserAssigned = [ UserAssignedIdentity(userAssignedIdentities.resourceId "b") ] }
 
         Expect.isTrue (userOnlyA + systemOnly).SystemAssigned.AsBoolean "Should have System Assigned on"
         Expect.sequenceEqual
             (userOnlyA + userOnlyB).UserAssigned
-            [ UserAssignedIdentity(ResourceId.create "a"); UserAssignedIdentity(ResourceId.create "b") ]
+            [ UserAssignedIdentity(userAssignedIdentities.resourceId "a"); UserAssignedIdentity(userAssignedIdentities.resourceId "b") ]
             "User Assigned not added correctly"
         Expect.sequenceEqual
             (userOnlyA + userOnlyA).UserAssigned
-            [ UserAssignedIdentity(ResourceId.create "a") ]
+            [ UserAssignedIdentity(userAssignedIdentities.resourceId "a") ]
             "User Assigned duplicates exist"
     }
     test "Creates ARM JSON correctly" {
@@ -27,7 +26,7 @@ let tests = testList "Identity" [
         Expect.equal json.``type`` "None" "Should be empty json"
         Expect.isNull json.userAssignedIdentities "Should be empty json"
 
-        let testIdentity = ResourceId.create "test" |> ManagedIdentity.create
+        let testIdentity = userAssignedIdentities.resourceId "test" |> ManagedIdentity.create
 
         let json = testIdentity |> ManagedIdentity.toArmJson
         Expect.equal json.``type`` "UserAssigned" "Should be user assigned"
@@ -39,9 +38,8 @@ let tests = testList "Identity" [
         Expect.isNull json.userAssignedIdentities "Wrong identities"
 
         let json =
-            let testIdentity2 = ResourceId.create "test2" |> ManagedIdentity.create
-            { ManagedIdentity.Empty with SystemAssigned = Enabled } + testIdentity +
-              testIdentity2 + testIdentity2
+            let testIdentity2 = userAssignedIdentities.resourceId "test2" |> ManagedIdentity.create
+            { ManagedIdentity.Empty with SystemAssigned = Enabled } + testIdentity + testIdentity2 + testIdentity2
             |> ManagedIdentity.toArmJson
         Expect.equal json.``type`` "SystemAssigned, UserAssigned" "Wrong type"
         Expect.hasLength json.userAssignedIdentities 2 "Wrong identities"

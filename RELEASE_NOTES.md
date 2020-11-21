@@ -3,6 +3,11 @@ Release Notes
 ## To Be Decided
 * Web App: Support for adding site extensions with "use_extension"
 
+## 1.3.0-beta2
+* Deployment Scripts: Specifies cleanup on expiration when retention interval is set, and enables cleanup on success only.
+* Deployment Scripts: Support for running the script after other resources are deployed.
+* Web App: Unmanaged Server Farm uses Resource Id for fully-qualified path.
+
 ## 1.3.0-beta1
 * Container Instance: Support for command line arguments.
 * Key Vault: Support for setting tags on key vault secrets.

@@ -3,7 +3,6 @@ module Functions
 open Expecto
 open Farmer
 open Farmer.Builders
-open Farmer.CoreTypes
 open Farmer.WebApp
 open Farmer.Arm
 open Microsoft.Azure.Management.WebSites

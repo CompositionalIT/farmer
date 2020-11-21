@@ -2,7 +2,6 @@
 module Farmer.Arm.Web
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.WebApp
 open System
 
@@ -46,7 +45,7 @@ type ServerFarm =
         | Dynamic -> "Dynamic"
         | Isolated _ -> "Isolated"
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = serverFarms.resourceId this.Name
         member this.JsonModel =
             {| serverFarms.Create(this.Name, this.Location, tags = this.Tags) with
                  sku =
@@ -116,7 +115,7 @@ module ZipDeploy =
 type Site =
     { Name : ResourceName
       Location : Location
-      ServicePlan : ResourceName
+      ServicePlan : ResourceId
       AppSettings : Map<string, Setting>
       ConnectionStrings : Map<string, (Setting * ConnectionStringKind)>
       AlwaysOn : bool
@@ -125,7 +124,7 @@ type Site =
       ClientAffinityEnabled : bool option
       WebSocketsEnabled : bool option
       Cors : Cors option
-      Dependencies : ResourceId list
+      Dependencies : ResourceId Set
       Kind : string
       Identity : Identity.ManagedIdentity
       LinuxFxVersion : string option
@@ -162,14 +161,14 @@ type Site =
             | _ ->
                 None
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = sites.resourceId this.Name
         member this.JsonModel =
-            let dependencies = this.Dependencies @ this.Identity.Dependencies
+            let dependencies = this.Dependencies + (Set this.Identity.Dependencies)
             {| sites.Create(this.Name, this.Location, dependencies, this.Tags) with
                  kind = this.Kind
                  identity = this.Identity |> ManagedIdentity.toArmJson
                  properties =
-                    {| serverFarmId = this.ServicePlan.Value
+                    {| serverFarmId = this.ServicePlan.Eval()
                        httpsOnly = this.HTTPSOnly
                        clientAffinityEnabled = match this.ClientAffinityEnabled with Some v -> box v | None -> null
                        siteConfig =
@@ -209,9 +208,9 @@ module Sites =
           ContinuousIntegration : FeatureFlag }
         member this.Name = this.Website.Map(sprintf "%s/web")
         interface IArmResource with
-            member this.ResourceName = this.Name
+            member this.ResourceId = sourceControls.resourceId this.Name
             member this.JsonModel =
-                {| sourceControls.Create(this.Name, this.Location, [ ResourceId.create this.Website ]) with
+                {| sourceControls.Create(this.Name, this.Location, [ sites.resourceId this.Website ]) with
                     properties =
                         {| repoUrl = this.Repository.ToString()
                            branch = this.Branch
@@ -228,7 +227,7 @@ type StaticSite =
       ApiLocation : string option
       AppArtifactLocation : string option }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = staticSites.resourceId this.Name
         member this.JsonModel =
             {| staticSites.Create(this.Name, this.Location) with
                 properties =

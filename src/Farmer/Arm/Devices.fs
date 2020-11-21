@@ -2,7 +2,6 @@
 module Farmer.Arm.Devices
 
 open Farmer
-open Farmer.CoreTypes
 
 let iotHubs = ResourceType ("Microsoft.Devices/IotHubs", "2019-03-22")
 let provisioningServices = ResourceType ("Microsoft.Devices/provisioningServices",  "2018-01-22")
@@ -46,7 +45,7 @@ type iotHubs =
       FileNotifications : DeliveryDetails option
       Tags: Map<string,string>  }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = iotHubs.resourceId this.Name
         member this.JsonModel =
             {| iotHubs.Create(this.Name, this.Location, tags = this.Tags) with
                    properties =
@@ -93,9 +92,9 @@ type ProvisioningServices =
     member this.IotHubPath =
         sprintf "%s.azure-devices.net" this.IotHubName.Value
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = provisioningServices.resourceId this.Name
         member this.JsonModel =
-            {| provisioningServices.Create(this.Name, this.Location, [ ResourceId.create this.IotHubName ], this.Tags) with
+            {| provisioningServices.Create(this.Name, this.Location, [ iotHubs.resourceId this.IotHubName ], this.Tags) with
                    sku =
                      {| name = "S1"
                         capacity = 1 |}

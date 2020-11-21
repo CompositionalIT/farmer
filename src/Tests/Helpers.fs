@@ -2,7 +2,6 @@
 module TestHelpers
 
 open Farmer
-open Farmer.CoreTypes
 open Microsoft.Rest.Serialization
 
 let farmerToMs<'T when 'T : null> (serializationSettings:Newtonsoft.Json.JsonSerializerSettings) data =
