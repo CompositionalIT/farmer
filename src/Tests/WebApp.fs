@@ -16,9 +16,10 @@ let getResource<'T when 'T :> IArmResource> (data:IArmResource list) = data |> L
 /// Client instance needed to get the serializer settings.
 let dummyClient = new WebSiteManagementClient (Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
 let getResourceAtIndex o = o |> getResourceAtIndex dummyClient.SerializationSettings
+let testLocation = Location.WestEurope
 
 let tests = testList "Web App Tests" [
-    let getResources (wa:WebAppConfig) = (wa :> IBuilder).BuildResources Location.WestEurope
+    let getResources (wa:WebAppConfig) = (wa :> IBuilder).BuildResources testLocation
     test "Basic Web App has service plan and AI dependencies set" {
         let resources = webApp { name "test" } |> getResources
         let wa = resources |> getResource<Web.Site> |> List.head
@@ -188,41 +189,36 @@ let tests = testList "Web App Tests" [
     }
 
     test "Handles use_extension correctly" {
-        let wa = webApp { name "xyz"; use_extension "abc"; }
+        let wa = webApp { name "siteX"; use_extension "extensionA"; }
         let resources = wa |> getResources
         let sx = resources |> getResource<SiteExtension> |> List.head
         let r  = sx :> IArmResource
 
-        Expect.equal sx.SiteName (ResourceName "xyz") "Extension knows the site name"
-        Expect.notEqual sx.Location (Location "") "Location has a default value"
-        Expect.equal sx.Name (ResourceName "abc") "Extension name is correct"
-        Expect.equal r.ResourceName (ResourceName "xyz/abc") "Resource name composed of site name and extension name"
+        Expect.equal sx.SiteName (ResourceName "siteX") "Extension knows the site name"
+        Expect.equal sx.Location testLocation "Location is correct"
+        Expect.equal sx.Name (ResourceName "extensionA") "Extension name is correct"
+        Expect.equal r.ResourceName (ResourceName "siteX/extensionA") "Resource name composed of site name and extension name"
     }
 
     test "Handles multiple use_extension correctly" {
-        let wa = webApp { name "xyz"; use_extension "abc"; use_extension "def" }
+        let wa = webApp { name "siteX"; use_extension "extensionA"; use_extension "extensionB" }
         let resources = wa |> getResources |> getResource<SiteExtension>
 
-        Expect.equal resources.Length 2 "Both extensions captured"
-
-        // We will make no assertion on the ordering of sx1 and sx2
-        let sx1 = resources |> List.head
-        let sx2 = resources |> List.tail |> List.head
-
-        let abc = ResourceName "abc"
-        let def = ResourceName "def"
-
-        Expect.isTrue (sx1.Name <> sx2.Name) "Extensions are distinct"
-        Expect.isTrue (sx1.Name = abc || sx1.Name = def) "Extension #1 named correctly"
-        Expect.isTrue (sx2.Name = abc || sx2.Name = def) "Extension #2 named correctly"
+        Expect.sequenceEqual
+            (List.sortBy (fun (x : SiteExtension) -> x.Name) resources)
+            [
+                { Location = testLocation; Name = ResourceName "extensionA"; SiteName = ResourceName "siteX" }
+                { Location = testLocation; Name = ResourceName "extensionB"; SiteName = ResourceName "siteX" }
+            ]
+            "Both extensions defined"
     }
 
     test "SiteExtension ResourceId constructed correctly" {
-        let siteName = ResourceName "xyz"
+        let siteName = ResourceName "siteX"
         let resourceType = ResourceType ("Microsoft.Web/sites" ,"") // Guessing that "" for version is OK
         let id = ResourceId.create( resourceType, siteName )
 
         // Be resilient with changes to whitespace. Ish.
-        Expect.equal (id.ArmExpression.Value.Replace(" ", "")) "resourceId('Microsoft.Web/sites','xyz')" "Produces the right resourceId used in siteextensions"
+        Expect.equal (id.ArmExpression.Value.Replace(" ", "")) "resourceId('Microsoft.Web/sites','siteX')" "Produces the right resourceId used in siteextensions"
     }
 ]

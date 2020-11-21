@@ -264,18 +264,3 @@ module SiteExtensions =
                     this.Name,
                     this.Location,
                     [ ResourceId.create( sites, this.SiteName) ] ) :> _
-
-    //
-    //  What we're trying to generate in JsonModel. Note that we've short-circuited the `parameters()` calls
-    //
-    (*
-        {
-            "type": "Microsoft.Web/sites/siteextensions",
-            "apiVersion": "2018-11-01",
-            "name": "[concat(parameters('sites_myapp_name'), '/Microsoft.AspNetCore.AzureAppServices.SiteExtension')]",
-            "location": "West Europe",
-            "dependsOn": [
-                "[resourceId('Microsoft.Web/sites', parameters('sites_myapp_name'))]"
-            ]
-        }
-    *)

@@ -367,15 +367,12 @@ type WebAppConfig =
             | _ ->
                 ()
 
-            yield!
-                this.SiteExtensions
-                |> List.map
-                        (fun x ->
-                            {
-                                SiteName = this.Name
-                                Name     = ResourceName x
-                                Location = location
-                            } :> IArmResource)
+            for x in this.SiteExtensions do
+            {
+                SiteName = this.Name
+                Name = ResourceName x
+                Location = location
+            }
         ]
 
 type WebAppBuilder() =
