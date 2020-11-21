@@ -4,8 +4,8 @@
 open Farmer
 open Farmer.Builders
 
-let storage1 = storageAccount{ name "codatdevstorage1" }
-let storage2 = storageAccount{ name "codatdevstorage2" }
+let storage1 = storageAccount{ name "storage1" }
+let storage2 = storageAccount{ name "storage2" }
     
 let resGroup1 = resourceGroup {
     name "deleteme-1"
@@ -18,12 +18,14 @@ let resGroup2 = resourceGroup {
     location Location.EastUS
     name "deleteme-2"
     add_resource storage2
+
+    add_tag "Project" "farmer-test"
 }
 
 let template = subscriptionDeployment {
     location Location.NorthEurope // Store deployment metadata in North Eurpoe
-    add_resource_group resGroup1
-    add_resource_group resGroup2
+    add_resource resGroup1
+    add_resource resGroup2
 }
 
 template

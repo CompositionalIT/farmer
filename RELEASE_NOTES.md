@@ -1,5 +1,8 @@
 Release Notes
 =============
+## vNext
+* Initial support for subscription-level deployments
+
 ## 1.3.0-beta2
 * Web App: Unmanaged Server Farm uses Resource Id for fully-qualified path.
 

@@ -73,7 +73,7 @@ type ResourceGroupConfig =
             let resolvedName = Option.orElse (Some (ResourceName name)) this.Name
             subscriptionDeployment {
                 location this.Location
-                add_resource_group {this with Name = resolvedName }
+                add_resource {this with Name = resolvedName }
             }
             |>  Deployment.build name
 
@@ -126,5 +126,15 @@ type ResourceGroupBuilder() =
     member this.AddResources(state:ResourceGroupConfig, input:IBuilder list) =
         let resources = input |> List.collect(fun i -> i.BuildResources state.Location)
         ResourceGroupBuilder.AddResources(state, resources)
+        
+    /// Adds a set of tags to the resource
+    [<CustomOperation "add_tags">]
+        member _.AddTags(state:ResourceGroupConfig, pairs) =
+            { state with
+                Tags = pairs |> List.fold (fun map (key, value) -> Map.add key value map) state.Tags }
+        
+    /// Adds a tag to the resource
+    [<CustomOperation "add_tag">]
+        member this.AddTag(state:ResourceGroupConfig, key, value) = this.AddTags(state, [ key, value ])
 
 let resourceGroup = ResourceGroupBuilder()

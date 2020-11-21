@@ -58,14 +58,14 @@ type SubscriptionDeploymentBuilder()=
     member this.Location (state, location) : SubscriptionDeployment = { state with Location = location }
     
     /// Adds the given resource group to the deployment
-    [<CustomOperation "add_resource_groups">]
-    member this.AddResourceGroups(state: SubscriptionDeployment, resGroups) =
+    [<CustomOperation "add_resources">]
+    member this.AddResources(state: SubscriptionDeployment, resGroups) =
         { state with
             Resources = state.Resources @ resGroups }
 
     /// Adds the given resource group to the deployment
-    [<CustomOperation "add_resource_group">]
-    member this.AddResourceGroup(state: SubscriptionDeployment, resGroup) =
-        this.AddResourceGroups(state, [resGroup])
+    [<CustomOperation "add_resource">]
+    member this.AddResource(state: SubscriptionDeployment, resGroup) =
+        this.AddResources(state, [resGroup])
 
 let subscriptionDeployment = SubscriptionDeploymentBuilder()
