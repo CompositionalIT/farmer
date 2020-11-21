@@ -185,7 +185,7 @@ let tests = testList "Web App Tests" [
         Expect.equal wa.Identity.Type (Nullable ManagedServiceIdentityType.SystemAssignedUserAssigned) "Should have system identity"
         Expect.sequenceEqual (wa.Identity.UserAssignedIdentities |> Seq.map(fun r -> r.Key)) [ "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test2')]"; "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test')]" ] "Should have two user assigned identities"
     }
-    
+
     test "Unmanaged server farm is fully qualified in ARM" {
         let farm = ResourceId.create(serverFarms, ResourceName "my-asp-name", "my-asp-resource-group")
         let wa : Site = webApp { name "test"; link_to_unmanaged_service_plan farm } |> getResourceAtIndex 0
@@ -201,7 +201,7 @@ let tests = testList "Web App Tests" [
         Expect.equal sx.SiteName (ResourceName "siteX") "Extension knows the site name"
         Expect.equal sx.Location testLocation "Location is correct"
         Expect.equal sx.Name (ResourceName "extensionA") "Extension name is correct"
-        Expect.equal r.ResourceName (ResourceName "siteX/extensionA") "Resource name composed of site name and extension name"
+        Expect.equal r.ResourceId.ArmExpression.Value "resourceId('Microsoft.Web/sites/siteextensions', 'siteX/extensionA')" "Resource name composed of site name and extension name"
     }
 
     test "Handles multiple use_extension correctly" {

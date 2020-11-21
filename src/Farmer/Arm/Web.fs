@@ -253,13 +253,11 @@ module SiteExtensions =
     type SiteExtension =
         { SiteName  : ResourceName
           Name      : ResourceName
-          Location  : Location
-          }
+          Location  : Location }
         interface IArmResource with
-            member this.ResourceName = this.SiteName / this.Name
-
+            member this.ResourceId = siteExtensions.resourceId(this.SiteName/this.Name)
             member this.JsonModel =
                 siteExtensions.Create(
                     this.Name,
                     this.Location,
-                    [ ResourceId.create( sites, this.SiteName) ] ) :> _
+                    [ ResourceId.create (sites, this.SiteName) ] ) :> _
