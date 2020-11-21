@@ -15,10 +15,9 @@ let getResource<'T when 'T :> IArmResource> (data:IArmResource list) = data |> L
 /// Client instance needed to get the serializer settings.
 let dummyClient = new WebSiteManagementClient (Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
 let getResourceAtIndex o = o |> getResourceAtIndex dummyClient.SerializationSettings
-let testLocation = Location.WestEurope
 
 let tests = testList "Web App Tests" [
-    let getResources (wa:WebAppConfig) = (wa :> IBuilder).BuildResources testLocation
+    let getResources (wa:WebAppConfig) = (wa :> IBuilder).BuildResources Location.WestEurope
     test "Basic Web App has service plan and AI dependencies set" {
         let resources = webApp { name "test" } |> getResources
         let wa = resources |> getResource<Web.Site> |> List.head
@@ -199,7 +198,7 @@ let tests = testList "Web App Tests" [
         let r  = sx :> IArmResource
 
         Expect.equal sx.SiteName (ResourceName "siteX") "Extension knows the site name"
-        Expect.equal sx.Location testLocation "Location is correct"
+        Expect.equal sx.Location Location.WestEurope "Location is correct"
         Expect.equal sx.Name (ResourceName "extensionA") "Extension name is correct"
         Expect.equal r.ResourceId.ArmExpression.Value "resourceId('Microsoft.Web/sites/siteextensions', 'siteX/extensionA')" "Resource name composed of site name and extension name"
     }
@@ -208,21 +207,18 @@ let tests = testList "Web App Tests" [
         let wa = webApp { name "siteX"; use_extension "extensionA"; use_extension "extensionB" }
         let resources = wa |> getResources |> getResource<SiteExtension>
 
-        Expect.sequenceEqual
-            (List.sortBy (fun (x : SiteExtension) -> x.Name) resources)
-            [
-                { Location = testLocation; Name = ResourceName "extensionA"; SiteName = ResourceName "siteX" }
-                { Location = testLocation; Name = ResourceName "extensionB"; SiteName = ResourceName "siteX" }
-            ]
-            "Both extensions defined"
+        let actual = List.sort resources
+        let expected = [
+            { Location = Location.WestEurope; Name = ResourceName "extensionA"; SiteName = ResourceName "siteX" }
+            { Location = Location.WestEurope; Name = ResourceName "extensionB"; SiteName = ResourceName "siteX" }
+        ]
+        Expect.sequenceEqual actual expected "Both extensions defined"
     }
 
     test "SiteExtension ResourceId constructed correctly" {
         let siteName = ResourceName "siteX"
-        let resourceType = ResourceType ("Microsoft.Web/sites" ,"") // Guessing that "" for version is OK
-        let id = ResourceId.create( resourceType, siteName )
+        let resourceId = siteExtensions.resourceId siteName
 
-        // Be resilient with changes to whitespace. Ish.
-        Expect.equal (id.ArmExpression.Value.Replace(" ", "")) "resourceId('Microsoft.Web/sites','siteX')" "Produces the right resourceId used in siteextensions"
+        Expect.equal resourceId.ArmExpression.Value "resourceId('Microsoft.Web/sites/siteextensions', 'siteX')" ""
     }
 ]

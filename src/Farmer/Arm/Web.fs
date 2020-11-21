@@ -10,9 +10,7 @@ let sites = ResourceType ("Microsoft.Web/sites", "2016-08-01")
 let config = ResourceType ("Microsoft.Web/sites/config", "2016-08-01")
 let sourceControls = ResourceType ("Microsoft.Web/sites/sourcecontrols", "2019-08-01")
 let staticSites = ResourceType("Microsoft.Web/staticSites", "2019-12-01-preview")
-// https://docs.microsoft.com/en-us/azure/templates/microsoft.web/2020-06-01/sites/siteextensions
-let siteExtensions =
-    ResourceType("Microsoft.Web/sites/siteextensions", "2020-06-01")
+let siteExtensions = ResourceType("Microsoft.Web/sites/siteextensions", "2020-06-01")
 
 type ServerFarm =
     { Name : ResourceName
@@ -251,13 +249,10 @@ type StaticSite =
 [<AutoOpen>]
 module SiteExtensions =
     type SiteExtension =
-        { SiteName  : ResourceName
-          Name      : ResourceName
-          Location  : Location }
+        { SiteName : ResourceName
+          Name : ResourceName
+          Location : Location }
         interface IArmResource with
             member this.ResourceId = siteExtensions.resourceId(this.SiteName/this.Name)
             member this.JsonModel =
-                siteExtensions.Create(
-                    this.Name,
-                    this.Location,
-                    [ ResourceId.create (sites, this.SiteName) ] ) :> _
+                siteExtensions.Create(this.Name, this.Location, [ sites.resourceId this.SiteName ]) :> _

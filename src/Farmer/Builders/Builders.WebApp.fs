@@ -105,7 +105,7 @@ type WebAppConfig =
 
       SecretStore : SecretStore
 
-      SiteExtensions : string list
+      SiteExtensions : ResourceName list
     }
     /// Gets the ARM expression path to the publishing password of this web app.
     member this.PublishingPassword = publishingPassword (this.Name)
@@ -185,7 +185,7 @@ type WebAppConfig =
               AppSettings =
                 let literalSettings = [
                     if this.RunFromPackage then AppSettings.RunFromPackage
-                    yield! this.WebsiteNodeDefaultVersion |> Option.mapList AppSettings.WebsiteNodeDefaultVersion 
+                    yield! this.WebsiteNodeDefaultVersion |> Option.mapList AppSettings.WebsiteNodeDefaultVersion
                     match this.OperatingSystem, this.AppInsights with
                     | Windows, Some resource ->
                         "APPINSIGHTS_INSTRUMENTATIONKEY", AppInsights.getInstrumentationKey(resource.resourceId this).Eval()
@@ -362,12 +362,10 @@ type WebAppConfig =
             | _ ->
                 ()
 
-            for x in this.SiteExtensions do
-            {
-                SiteName = this.Name
-                Name = ResourceName x
-                Location = location
-            }
+            for extension in this.SiteExtensions do
+                { SiteName = this.Name
+                  Name = extension
+                  Location = location }
         ]
 
 type WebAppBuilder() =
@@ -602,8 +600,7 @@ type WebAppBuilder() =
         { state with SecretStore = KeyVault (External(Unmanaged name)) }
     [<CustomOperation "use_extension">]
     member this.UseExtension(state:WebAppConfig, name:string) =
-        //let state = this.SystemIdentity (state) // REVIEW: Implied as required in https://www.visualstudiogeeks.com/devops/installing-aspnet-core-site-extensions-for-azure-app-service-using-arm
-        { state with SiteExtensions = name :: state.SiteExtensions }
+        { state with SiteExtensions = ResourceName name :: state.SiteExtensions }
 
 let webApp = WebAppBuilder()
 
