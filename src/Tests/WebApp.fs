@@ -3,7 +3,6 @@ module WebApp
 open Expecto
 open Farmer
 open Farmer.Builders
-open Farmer.CoreTypes
 open Farmer.Identity
 open Farmer.WebApp
 open Farmer.Arm
@@ -23,7 +22,7 @@ let tests = testList "Web App Tests" [
         let resources = webApp { name "test" } |> getResources
         let wa = resources |> getResource<Web.Site> |> List.head
 
-        Expect.containsAll wa.Dependencies [ ResourceId.create "test-ai"; ResourceId.create "test-farm" ] "Missing dependencies"
+        Expect.containsAll wa.Dependencies [ ResourceId.create(components, ResourceName "test-ai"); ResourceId.create(serverFarms, ResourceName "test-farm") ] "Missing dependencies"
         Expect.hasLength (resources |> getResource<Insights.Components>) 1 "Should be one AI component"
         Expect.hasLength (resources |> getResource<Web.ServerFarm>) 1 "Should be one server farm"
     }
@@ -31,7 +30,7 @@ let tests = testList "Web App Tests" [
         let resources = webApp { name "test"; service_plan_name "supersp"; app_insights_name "superai" } |> getResources
         let wa = resources |> getResource<Web.Site> |> List.head
 
-        Expect.containsAll wa.Dependencies [ ResourceId.create "supersp"; ResourceId.create "superai" ] "Missing dependencies"
+        Expect.containsAll wa.Dependencies [ ResourceId.create(serverFarms, ResourceName "supersp"); ResourceId.create (components, ResourceName "superai") ] "Missing dependencies"
         Expect.hasLength (resources |> getResource<Insights.Components>) 1 "Should be one AI component"
         Expect.hasLength (resources |> getResource<Web.ServerFarm>) 1 "Should be one server farm"
     }
@@ -40,12 +39,12 @@ let tests = testList "Web App Tests" [
         let ai = appInsights { name "ai" }
         let resources = webApp { name "test"; link_to_app_insights ai; link_to_service_plan sp } |> getResources
         let wa = resources |> getResource<Web.Site> |> List.head
-        Expect.containsAll wa.Dependencies [ ResourceId.create "plan"; ResourceId.create "ai" ] "Missing dependencies"
+        Expect.containsAll wa.Dependencies [ ResourceId.create(serverFarms, ResourceName "plan"); ResourceId.create(components, ResourceName "ai") ] "Missing dependencies"
         Expect.isEmpty (resources |> getResource<Insights.Components>) "Should be no AI component"
         Expect.isEmpty (resources |> getResource<Web.ServerFarm>) "Should be no server farm"
     }
     test "Web App does not create dependencies for unmanaged linked resources" {
-        let resources = webApp { name "test"; link_to_unmanaged_app_insights (ResourceId.create "test"); link_to_unmanaged_service_plan (ResourceId.create "test2") } |> getResources
+        let resources = webApp { name "test"; link_to_unmanaged_app_insights (components.resourceId "test"); link_to_unmanaged_service_plan (serverFarms.resourceId "test2") } |> getResources
         let wa = resources |> getResource<Web.Site> |> List.head
         Expect.isEmpty wa.Dependencies "Should be no dependencies"
         Expect.isEmpty (resources |> getResource<Insights.Components>) "Should be no AI component"
@@ -162,11 +161,11 @@ let tests = testList "Web App Tests" [
 
         Expect.equal secrets.[0].Name.Value "testwebvault/storage" "Incorrect secret name"
         Expect.equal secrets.[0].Value (ExpressionSecret sa.Key) "Incorrect secret value"
-        Expect.sequenceEqual secrets.[0].Dependencies [ ResourceId.create "testwebvault"; ResourceId.create(storageAccounts, ResourceName "teststorage") ] "Incorrect secret dependencies"
+        Expect.sequenceEqual secrets.[0].Dependencies [ vaults.resourceId "testwebvault"; storageAccounts.resourceId "teststorage" ] "Incorrect secret dependencies"
 
         Expect.equal secrets.[1].Name.Value "testwebvault/secret" "Incorrect secret name"
         Expect.equal secrets.[1].Value (ParameterSecret (SecureParameter "secret")) "Incorrect secret value"
-        Expect.sequenceEqual secrets.[1].Dependencies [ ResourceId.create "testwebvault" ] "Incorrect secret dependencies"
+        Expect.sequenceEqual secrets.[1].Dependencies [ vaults.resourceId "testwebvault" ] "Incorrect secret dependencies"
 
         Expect.hasLength vault.AccessPolicies 1 "Incorrect number of access policies"
         Expect.sequenceEqual vault.AccessPolicies.[0].Permissions.Secrets [ KeyVault.Secret.Get ] "Incorrect permissions"

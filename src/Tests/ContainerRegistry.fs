@@ -6,7 +6,6 @@ open Farmer.ContainerRegistry
 open Farmer.Builders
 open Microsoft.Rest.Serialization
 open Newtonsoft.Json.Linq
-open Farmer.CoreTypes
 
 type RegistryJson =
     { resources :

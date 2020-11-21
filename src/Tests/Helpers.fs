@@ -2,7 +2,6 @@
 module TestHelpers
 
 open Farmer
-open Farmer.CoreTypes
 open Microsoft.Rest.Serialization
 open Farmer.Builders
 open Newtonsoft.Json.Linq
@@ -33,14 +32,14 @@ let getResources (deployment:IDeploymentBuilder) =
              | :? ResourceGroupDeployment as rg -> flatten rg.Resources
              | x -> [x]
             )
-    let depl = deployment.BuildDeployment ""
+    let depl = deployment.BuildDeployment "" Option.None
     flatten depl.Template.Resources
     
 let getResourcesByName<'a when 'a:>IArmResource > name (deployment:IDeploymentBuilder) : 'a list =
     getResources deployment
     |> List.choose 
         (function
-            | :? 'a as x when x.ResourceName.Value = name -> Some x
+            | :? 'a as x when x.ResourceId.Name.Value = name -> Some x
             | _ -> None)
 
 let getResourceByName<'a when 'a:>IArmResource > name (deployment:IDeploymentBuilder) : 'a =

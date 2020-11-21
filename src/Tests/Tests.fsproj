@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Include="test-data\farmer-integration-test-1.json" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="Helpers.fs" />
     <Compile Include="AppInsights.fs" />
     <Compile Include="Common.fs" />
@@ -42,6 +43,8 @@
     <Compile Include="DeploymentScript.fs" />
     <Compile Include="AllTests.fs" />
   </ItemGroup>
+
+  <ItemGroup />
 
   <ItemGroup>
     <PackageReference Include="expecto" Version="9.0.2" />

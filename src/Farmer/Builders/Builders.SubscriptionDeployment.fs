@@ -2,7 +2,6 @@
 module Farmer.Builders.SubscriptionDeployment
 
 open Farmer
-open Farmer.CoreTypes
 
 let private linkedTemplateOutput deplName outputName =
     sprintf "[reference('%s').outputs.%s.value]" deplName outputName
@@ -13,8 +12,7 @@ type SubscriptionDeployment=
       Resources: ISubscriptionResourceBuilder list
       Tags: Map<string,string> }
     interface IDeploymentBuilder with
-        member this.BuildDeployment _ =
-            let deploymentNameSuffix = System.DateTime.UtcNow.ToString("yyyyMMddTHHmm") 
+        member this.BuildDeployment _ deploymentNameSuffix =
             let resources = 
                 this.Resources 
                 |> List.map (fun rg -> {| rg.BuildResources deploymentNameSuffix with Outputs = rg.Outputs |} )

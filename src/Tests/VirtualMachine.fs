@@ -8,7 +8,6 @@ open Microsoft.Azure.Management.Compute
 open Microsoft.Azure.Management.Compute.Models
 open Microsoft.Rest
 open System
-open Farmer.CoreTypes
 
 /// Client instance needed to get the serializer settings.
 let client = new ComputeManagementClient(Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")

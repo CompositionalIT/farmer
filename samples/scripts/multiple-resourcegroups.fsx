@@ -4,8 +4,8 @@
 open Farmer
 open Farmer.Builders
 
-let storage1 = storageAccount{ name "storage1" }
-let storage2 = storageAccount{ name "storage2" }
+let storage1 = storageAccount{ name "farmerstorage1" }
+let storage2 = storageAccount{ name "farmerstorage2" }
     
 let resGroup1 = resourceGroup {
     name "deleteme-1"
@@ -29,5 +29,5 @@ let template = subscriptionDeployment {
 }
 
 template
-|> Deploy.execute "deleteme" Deploy.NoParameters |> printf "%A"
+|> Deploy.whatIf "deleteme" Deploy.NoParameters |> printf "%A"
 //|> Writer.quickWrite "deleteme"

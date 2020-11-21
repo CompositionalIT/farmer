@@ -2,7 +2,6 @@
 module Farmer.Arm.DeploymentScript
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.Identity
 open System
 
@@ -17,34 +16,46 @@ type ScriptSource =
     | Content of string
     | Remote of Uri
 
+[<RequireQualifiedAccess>]
+type Cleanup =
+    | Always
+    | OnSuccess
+    | OnExpiration of TimeSpan
+
 type DeploymentScript =
     { Name : ResourceName
       Location : Location
+      Dependencies : ResourceId Set
       Arguments : string list
+      CleanupPreference : Cleanup
       Cli : CliVersion
       EnvironmentVariables: Map<string, EnvVar>
       ForceUpdateTag : Guid option
       Identity : UserAssignedIdentity
       ScriptSource : ScriptSource
-      RetentionInterval : TimeSpan option
       SupportingScriptUris : Uri list
       Timeout : TimeSpan option
       Tags: Map<string,string> }
-    member private this.Dependencies = [ this.Identity.ResourceId ]
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = deploymentScripts.resourceId this.Name
         member this.JsonModel =
             let cliKind, azCliVersion, azPowerShellVersion =
                 match this.Cli with
                 | AzCli version -> "AzureCLI", version, null
                 | AzPowerShell version -> "AzurePowerShell", null, version
-            {| deploymentScripts.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
+            let dependencies = this.Dependencies.Add this.Identity.ResourceId
+            {| deploymentScripts.Create(this.Name, this.Location, dependencies, this.Tags) with
                 kind = cliKind
                 identity = { SystemAssigned = Disabled; UserAssigned = [ this.Identity ] } |> ManagedIdentity.toArmJson
                 properties =
                     {| arguments = match this.Arguments with [] -> null | args -> String.concat " " args
                        azPowerShellVersion = azPowerShellVersion
                        azCliVersion = azCliVersion
+                       cleanupPreference =
+                        match this.CleanupPreference with
+                        | Cleanup.OnSuccess -> "OnSuccess"
+                        | Cleanup.OnExpiration _ -> "OnExpiration"
+                        | Cleanup.Always -> "Always"
                        environmentVariables = [
                          for (key, value) in Map.toSeq this.EnvironmentVariables do
                              match value with
@@ -61,12 +72,19 @@ type DeploymentScript =
                         | Content _ -> null
                         | Remote uri -> uri
                        retentionInterval =
-                           this.RetentionInterval
-                           |> Option.defaultValue (TimeSpan.FromDays 1.)
-                           |> Xml.XmlConvert.ToString
+                        match this.CleanupPreference with
+                        | Cleanup.OnSuccess
+                        | Cleanup.Always ->
+                            TimeSpan.FromDays 1.
+                        | Cleanup.OnExpiration retention ->
+                            retention
+                        |> Xml.XmlConvert.ToString
                        supportingScriptUris =
-                           match this.SupportingScriptUris with
-                           | [] -> null
-                           | uris -> uris |> Seq.map string |> ResizeArray
-                       timeout = this.Timeout |> Option.map Xml.XmlConvert.ToString |> Option.toObj |}
+                        match this.SupportingScriptUris with
+                        | [] -> null
+                        | uris -> uris |> Seq.map string |> ResizeArray
+                       timeout =
+                        this.Timeout
+                        |> Option.map Xml.XmlConvert.ToString
+                        |> Option.toObj |}
             |} :> _

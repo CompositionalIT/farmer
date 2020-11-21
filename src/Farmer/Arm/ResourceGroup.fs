@@ -1,7 +1,6 @@
 ﻿module Farmer.Arm.ResourceGroup
 
 open Farmer
-open Farmer.CoreTypes
 
 let schema = "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#"
 let resourceGroups = ResourceType ("Microsoft.Resources/resourceGroups", "2020-06-01")
@@ -20,7 +19,7 @@ type ResourceGroup =
       Location: Location
       Tags: Map<string,string> }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = resourceGroups.resourceId this.Name
         member this.JsonModel = 
             resourceGroups.Create(this.Name, this.Location, tags = this.Tags)
             :> _
@@ -38,7 +37,7 @@ type ResourceGroupDeployment =
         ResourceId.create (resourceGroups, this.ResourceGroupName)
     ]
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = resourceGroupDeployments.resourceId this.Name
         member this.JsonModel = 
             {| resourceGroupDeployments.Create (this.ResourceName, dependsOn=this.DependsOn, tags=this.Tags) with
                  resourceGroup = this.ResourceGroupName.Value

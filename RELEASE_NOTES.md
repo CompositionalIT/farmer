@@ -4,6 +4,8 @@ Release Notes
 * Initial support for subscription-level deployments
 
 ## 1.3.0-beta2
+* Deployment Scripts: Specifies cleanup on expiration when retention interval is set, and enables cleanup on success only.
+* Deployment Scripts: Support for running the script after other resources are deployed.
 * Web App: Unmanaged Server Farm uses Resource Id for fully-qualified path.
 
 ## 1.3.0-beta1

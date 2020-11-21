@@ -11,7 +11,6 @@ open Microsoft.Azure.Management.IotHub.Models
 open Microsoft.Rest
 open Microsoft.Rest.Serialization
 open System
-open Farmer.CoreTypes
 
 let iotClient = new IotHubClient(Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
 let provisioningClient = new IotHubClient(Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")

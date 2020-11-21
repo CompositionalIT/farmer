@@ -3,7 +3,6 @@ module AppInsights
 open Expecto
 open Farmer
 open Farmer.Builders.AppInsights
-open Farmer.CoreTypes
 
 let tests = testList "AppInsights" [
     test "Creates keys on an AI instance correctly" {
@@ -13,7 +12,7 @@ let tests = testList "AppInsights" [
     }
 
     test "Create generated keys correctly" {
-        let generatedKey = AppInsights.getInstrumentationKey(ResourceId.create("foo", "group"))
+        let generatedKey = AppInsights.getInstrumentationKey(ResourceId.create(Arm.Insights.components, ResourceName "foo", "group"))
         Expect.equal generatedKey.Value "reference(resourceId('group', 'Microsoft.Insights/components', 'foo'), '2014-04-01').InstrumentationKey" "Incorrect generated key"
     }
 ]

@@ -4,7 +4,6 @@ open Expecto
 open Farmer
 open Farmer.Identity
 open Farmer.ContainerGroup
-open Farmer.CoreTypes
 open Farmer.Builders
 open Microsoft.Azure.Management.ContainerInstance
 open Microsoft.Azure.Management.ContainerInstance.Models
@@ -199,7 +198,7 @@ let tests = testList "Container Group" [
             containerGroup {
                 name "myapp"
                 add_instances [ nginx ]
-                add_identity (ResourceId.create("user", "resourceGroup") |> UserAssignedIdentity)
+                add_identity (ResourceId.create(Arm.ManagedIdentity.userAssignedIdentities, ResourceName "user", "resourceGroup") |> UserAssignedIdentity)
             } |> asAzureResource
 
         Expect.hasLength group.Identity.UserAssignedIdentities 1 "No user assigned identity."
@@ -213,12 +212,11 @@ let tests = testList "Container Group" [
                 add_instances [ nginx ]
                 add_identity msi
             }
-        let template =
-            arm {
-                location Location.EastUS
-                add_resource msi
-                add_resource group
-            }
+        let template =arm {
+            location Location.EastUS
+            add_resource msi
+            add_resource group
+        }
         let containerGroup = template |> getResourceByName<Farmer.Arm.ContainerInstance.ContainerGroup> "myapp-with-msi"
         Expect.isNonEmpty containerGroup.Identity.UserAssigned "Container group did not have identity"
         Expect.equal containerGroup.Identity.UserAssigned.[0] (UserAssignedIdentity(ResourceId.create(Arm.ManagedIdentity.userAssignedIdentities, ResourceName "aciUser"))) "Expected user identity named 'aciUser'."

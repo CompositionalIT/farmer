@@ -2,7 +2,6 @@
 module Farmer.Builders.ResourceGroup
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.Arm.ResourceGroup
 
 /// Represents all configuration information to generate an ARM template.
@@ -17,10 +16,10 @@ type ResourceGroupConfig =
     member private this.ResourceName = this.Name |> Option.defaultValue (ResourceName "farmer-resource-group")
     member private this.IncludeDeployment = not (this.Resources.IsEmpty && this.Outputs.IsEmpty)
     interface IBuilder with
-        member this.DependencyName = this.ResourceName
+        member this.ResourceId = resourceGroups.resourceId this.ResourceName
         member this.BuildResources location = 
             [ if this.IncludeDeployment then
-                  { Name = sprintf "%s-%s" this.ResourceName.Value (System.DateTime.UtcNow.ToString "yyyyMMddTHHmm") |> ResourceName
+                  { Name = this.ResourceName.Value |> ResourceName
                     ResourceGroupName = this.ResourceName
                     Location = this.Location
                     Resources = this.Resources
@@ -45,7 +44,10 @@ type ResourceGroupConfig =
     interface ISubscriptionResourceBuilder with
         member this.Outputs = this.Outputs
         member this.BuildResources key = 
-            let deploymentName = sprintf "%s-%s" this.ResourceName.Value key
+            let deploymentName = 
+                match key with
+                | Some sfx -> sprintf "%s-%s" this.ResourceName.Value sfx
+                | None -> this.ResourceName.Value
             {| DeploymentName = deploymentName
                Resources = 
                 [
@@ -69,13 +71,13 @@ type ResourceGroupConfig =
                 | _ -> None)   
             
     interface IDeploymentBuilder with
-        member this.BuildDeployment name =
+        member this.BuildDeployment name sfx =
             let resolvedName = Option.orElse (Some (ResourceName name)) this.Name
             subscriptionDeployment {
                 location this.Location
                 add_resource {this with Name = resolvedName }
             }
-            |>  Deployment.build name
+            |>  Deployment.buildWithSuffix name sfx
 
 type ResourceGroupBuilder() =
     member __.Yield _ =
@@ -114,7 +116,7 @@ type ResourceGroupBuilder() =
             Resources =
                 state.Resources
                 @ resources
-                |> List.distinctBy(fun r -> r.ResourceName, r.GetType().Name) }
+                |> List.distinctBy(fun r -> r.ResourceId, r.GetType().Name) }
 
     /// Adds a builder's ARM resources to the ARM template.
     [<CustomOperation "add_resource">]
