@@ -249,10 +249,10 @@ type StaticSite =
 [<AutoOpen>]
 module SiteExtensions =
     type SiteExtension =
-        { SiteName : ResourceName
-          Name : ResourceName
+        { Name : ResourceName
+          SiteName : ResourceName
           Location : Location }
         interface IArmResource with
             member this.ResourceId = siteExtensions.resourceId(this.SiteName/this.Name)
             member this.JsonModel =
-                siteExtensions.Create(this.Name, this.Location, [ sites.resourceId this.SiteName ]) :> _
+                siteExtensions.Create(this.SiteName/this.Name, this.Location, [ sites.resourceId this.SiteName ]) :> _
