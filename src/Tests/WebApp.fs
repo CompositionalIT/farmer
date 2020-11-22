@@ -191,8 +191,8 @@ let tests = testList "Web App Tests" [
         Expect.equal wa.ServerFarmId "[resourceId('my-asp-resource-group', 'Microsoft.Web/serverfarms', 'my-asp-name')]" ""
     }
 
-    test "Handles use_extension correctly" {
-        let wa = webApp { name "siteX"; use_extension "extensionA"; }
+    test "Handles add_extension correctly" {
+        let wa = webApp { name "siteX"; add_extension "extensionA"; }
         let resources = wa |> getResources
         let sx = resources |> getResource<SiteExtension> |> List.head
         let r  = sx :> IArmResource
@@ -203,8 +203,8 @@ let tests = testList "Web App Tests" [
         Expect.equal r.ResourceId.ArmExpression.Value "resourceId('Microsoft.Web/sites/siteextensions', 'siteX/extensionA')" "Resource name composed of site name and extension name"
     }
 
-    test "Handles multiple use_extension correctly" {
-        let wa = webApp { name "siteX"; use_extension "extensionA"; use_extension "extensionB" }
+    test "Handles multiple add_extension correctly" {
+        let wa = webApp { name "siteX"; add_extension "extensionA"; add_extension "extensionB" }
         let resources = wa |> getResources |> getResource<SiteExtension>
 
         let actual = List.sort resources

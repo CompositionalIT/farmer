@@ -598,8 +598,8 @@ type WebAppBuilder() =
     member this.LinkToExternalKeyVault(state:WebAppConfig, name) =
         let state = this.SystemIdentity (state)
         { state with SecretStore = KeyVault (External(Unmanaged name)) }
-    [<CustomOperation "use_extension">]
-    member this.UseExtension(state:WebAppConfig, name:string) =
+    [<CustomOperation "add_extension">]
+    member _.AddExtension(state:WebAppConfig, name:string) =
         { state with SiteExtensions = ResourceName name :: state.SiteExtensions }
 
 let webApp = WebAppBuilder()
