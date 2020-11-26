@@ -193,7 +193,7 @@ let tests = testList "Template" [
 
             let sql = sqlServer { name ("farmersql" + number); admin_username "farmersqladmin"; add_databases [ sqlDb { name "farmertestdb"; use_encryption } ]; enable_azure_firewall }
             let storage = storageAccount { name ("farmerstorage" + number) }
-            let web = webApp { name ("farmerwebapp" + number) }
+            let web = webApp { name ("farmerwebapp" + number); add_extension WebApp.Extensions.Logging }
             let fns = functions { name ("farmerfuncs" + number) }
             let svcBus = serviceBus { name ("farmerbus" + number); sku ServiceBus.Sku.Standard; add_queues [ queue { name "queue1" } ]; add_topics [ topic { name "topic1"; add_subscriptions [ subscription { name "sub1" } ] } ] }
             let cdn = cdn { name ("farmercdn" + number); add_endpoints [ endpoint { name ("farmercdnendpoint" + number); origin storage.WebsitePrimaryEndpointHost } ] }
