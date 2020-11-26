@@ -105,7 +105,7 @@ type WebAppConfig =
 
       SecretStore : SecretStore
 
-      SiteExtensions : ResourceName list
+      SiteExtensions : ResourceName Set
     }
     /// Gets the ARM expression path to the publishing password of this web app.
     member this.PublishingPassword = publishingPassword (this.Name)
@@ -397,7 +397,7 @@ type WebAppBuilder() =
           SourceControlSettings = None
           DockerAcrCredentials = None
           SecretStore = AppService
-          SiteExtensions = [] }
+          SiteExtensions = Set.empty }
     member __.Run(state:WebAppConfig) =
         let operatingSystem =
             match state.DockerImage with
@@ -600,7 +600,7 @@ type WebAppBuilder() =
         { state with SecretStore = KeyVault (External(Unmanaged name)) }
     [<CustomOperation "add_extension">]
     member _.AddExtension(state:WebAppConfig, name:string) =
-        { state with SiteExtensions = ResourceName name :: state.SiteExtensions }
+        { state with SiteExtensions = state.SiteExtensions.Add (ResourceName name) }
 
 let webApp = WebAppBuilder()
 

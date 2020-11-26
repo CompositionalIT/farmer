@@ -31,7 +31,7 @@ type ServerFarm =
     member this.Kind =
         match this.OperatingSystem with
         | Linux -> Some "linux"
-        | _ -> None
+        | Windows -> None
     member this.Tier =
         match this.Sku with
         | Free -> "Free"

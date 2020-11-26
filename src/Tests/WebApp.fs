@@ -204,7 +204,7 @@ let tests = testList "Web App Tests" [
     }
 
     test "Handles multiple add_extension correctly" {
-        let wa = webApp { name "siteX"; add_extension "extensionA"; add_extension "extensionB" }
+        let wa = webApp { name "siteX"; add_extension "extensionA"; add_extension "extensionB"; add_extension "extensionB" }
         let resources = wa |> getResources |> getResource<SiteExtension>
 
         let actual = List.sort resources
