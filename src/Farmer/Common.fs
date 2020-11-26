@@ -681,8 +681,8 @@ module ContainerGroup =
         | PrivateAddress
     /// A secret file which will be encoded as base64 and attached to a container group.
     type SecretFile =
-            | SecretFile of Name:string * Secret:byte array
-            | SecretParameter of Name:string * Secret:SecureParameter
+        | SecretFile of Name:string * Secret:byte array
+        | SecretParameter of Name:string * Secret:SecureParameter
     /// A container group volume.
     [<RequireQualifiedAccess>]
     type Volume =

@@ -64,15 +64,19 @@ type ContainerGroup =
                 for envVar in container.EnvironmentVariables do
                     match envVar.Value with
                     | SecureParamEnvValue p -> p
-                    | _ -> ()
+                    | EnvValue _ | SecureEnvValue _ -> ()
             for volume in this.Volumes do
                 match volume.Value with
                 | Volume.Secret secrets ->
                     for secret in secrets do
                         match secret with
                         | SecretParameter (_, parameter) -> parameter
-                        | _ -> ()
-                | _ -> ()
+                        | SecretFile _ -> ()
+                | Volume.EmptyDirectory
+                | Volume.AzureFileShare _
+                | Volume.Secret _
+                | Volume.GitRepo _ ->
+                    ()
         ]
     interface IArmResource with
         member this.ResourceId = containerGroups.resourceId this.Name
@@ -91,10 +95,12 @@ type ContainerGroup =
                                       environmentVariables = [
                                           for (key, value) in Map.toSeq container.EnvironmentVariables do
                                               match value with
-                                              | EnvValue v -> {| name = key; value = v; secureValue = null |}
-                                              | SecureEnvValue v -> {| name = key; value = null; secureValue = v |}
+                                              | EnvValue v ->
+                                                {| name = key; value = v; secureValue = null |}
+                                              | SecureEnvValue v ->
+                                                {| name = key; value = null; secureValue = v |}
                                               | SecureParamEnvValue v ->
-                                                  {| name = key; value = null; secureValue = v.ArmExpression.Eval() |}
+                                                {| name = key; value = null; secureValue = v.ArmExpression.Eval() |}
                                       ]
                                       resources =
                                        {| requests =
@@ -171,11 +177,12 @@ type ContainerGroup =
                                        azureFile = Unchecked.defaultof<_>
                                        emptyDir = null
                                        gitRepo = Unchecked.defaultof<_>
-                                       secret =
-                                           secrets |> Seq.map (function 
-                                               | SecretFile (name, secret) -> name, secret |> System.Convert.ToBase64String
-                                               | SecretParameter (name, parameter) -> name, ArmExpression.create(sprintf "base64(%s)" parameter.ArmExpression.Value).Eval()
-                                           ) |> dict
+                                       secret = dict [
+                                           for secret in secrets do
+                                            match secret with
+                                            | SecretFile (name, secret) -> name, secret |> System.Convert.ToBase64String
+                                            | SecretParameter (name, parameter) -> name, ArmExpression.create(sprintf "base64(%s)" parameter.ArmExpression.Value).Eval()
+                                        ]
                                        |}
                           ]
                        |}
