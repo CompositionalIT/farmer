@@ -51,4 +51,10 @@ let tests = testList "Common" [
         let outerCidr = IPAddressCidr.parse "10.0.0.0/16"
         Expect.isFalse (outerCidr |> IPAddressCidr.contains innerCidr) ""
     }
+
+    test "zipDeploy supports paths with spaces" {
+        let azTest s = 
+            Expect.equal s "webapp deployment source config-zip --resource-group \"my-res-group\" --name \"my-webapp\" --src \"/path to/webapp.zip\"" "" 
+        Farmer.Deploy.Az.zipDeploy azTest "webapp" "my-webapp" (fun _ -> "/path to/webapp.zip") "my-res-group"
+    }
 ]

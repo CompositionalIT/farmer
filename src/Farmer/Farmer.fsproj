@@ -36,6 +36,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="Properties\Assembly.fs" />
     <None Include="../../Icon.jpg">
       <Pack>true</Pack>
       <PackagePath>$(PackageIconUrl)</PackagePath>
