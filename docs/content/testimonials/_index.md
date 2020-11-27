@@ -29,3 +29,6 @@ weight: 7
 
 > "[Finally took a look at farmer just now](https://twitter.com/Danthar/status/1263406509951721474).... I should have looked months ago. I mean, I can actually read a farmer template. And it makes sense?!"
 > **[Arjen Smits](https://twitter.com/Danthar)**
+
+> "With Farmer we were finally able to organize our Azure infrastructure. No messy names of storageaccounts anymore. Thanks for this great tool!"
+> **[Tim Frokmann](https://twitter.com/tforkmann), Head of EnergyData at Danpower**
