@@ -2,6 +2,7 @@ Release Notes
 =============
 ## To Be Decided
 * Web App: Support for adding site extensions with "use_extension"
+* Storage: Support for setting default blob access tier at account level with "default_blob_access_tier"
 
 ## 1.3.0-beta2
 * Deployment Scripts: Specifies cleanup on expiration when retention interval is set, and enables cleanup on success only.
