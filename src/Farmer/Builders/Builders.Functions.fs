@@ -131,6 +131,7 @@ type FunctionsConfig =
                 { Name = Storage.StorageAccountName.Create(resourceId.Name).OkValue
                   Location = location
                   Sku = Storage.Sku.Standard_LRS
+                  DefaultBlobAccessTier = None
                   Dependencies = []
                   StaticWebsite = None
                   EnableHierarchicalNamespace = None

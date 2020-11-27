@@ -16,6 +16,7 @@ type StorageAccount =
     { Name : StorageAccountName
       Location : Location
       Sku : Sku
+      DefaultBlobAccessTier: BlobAccessTier Option
       Dependencies : ResourceId list
       EnableHierarchicalNamespace : bool option
       StaticWebsite : {| IndexPage : string; ErrorPage : string option; ContentPath : string |} option
@@ -43,7 +44,7 @@ type StorageAccount =
                             | GeneralPurpose (V2 (V2Replication.LRS _)) -> "LRS"
                             | GeneralPurpose (V1 replication) -> replication.ToString()
                             | GeneralPurpose (V2 replication) -> replication.ToString()
-                            | Blobs (replication, _) -> replication.ToString()
+                            | Blobs replication -> replication.ToString()
                             | Files replication -> replication.ToString()
                             | BlockBlobs replication -> replication.ToString()
                         sprintf "%s_%s" performanceTier replicationModel
@@ -58,9 +59,10 @@ type StorageAccount =
                 properties =
                     {| isHnsEnabled = this.EnableHierarchicalNamespace |> Option.toNullable
                        accessTier =
-                           match this.Sku with
-                           | Blobs (_, accessTier) -> accessTier.ToString()
-                           | _ -> null
+                           match this.DefaultBlobAccessTier, this.Sku with
+                           | Some accessTier, _ -> accessTier.ToString()
+                           | None, Blobs _ -> BlobAccessTier.Hot.ToString()
+                           | None, _ -> null
                     |}
             |} :> _
     interface IPostDeploy with

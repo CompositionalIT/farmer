@@ -346,7 +346,7 @@ module Storage =
     type BlobAccessTier = Hot | Cool
     type Sku =
         | GeneralPurpose of GeneralPurpose
-        | Blobs of BlobReplication * BlobAccessTier
+        | Blobs of BlobReplication
         | BlockBlobs of BasicReplication
         | Files of BasicReplication
         /// General Purpose V2 Standard LRS.

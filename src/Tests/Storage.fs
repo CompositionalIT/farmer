@@ -157,10 +157,10 @@ let tests = testList "Storage Tests" [
         Expect.equal builder.WebsitePrimaryEndpoint.Value "reference(resourceId('Microsoft.Storage/storageAccounts', 'foo'), '2019-06-01').primaryEndpoints.web" "Zone names are not fixed and should be related to a storage account name"
     }
     test "Creates different SKU kinds correctly" {
-        let account = storageAccount { sku (Blobs (BlobReplication.LRS, Cool)) }
+        let account = storageAccount { sku (Blobs BlobReplication.LRS) }
         let resource = arm { add_resource account } |> getStorageResource
         Expect.equal resource.Kind "BlobStorage" "Kind"
-        Expect.equal resource.AccessTier (Nullable AccessTier.Cool) "Access Tier"
+        Expect.equal resource.AccessTier (Nullable AccessTier.Hot) "Access Tier"
         Expect.equal resource.Sku.Name "Standard_LRS" "Sku Name"
 
         let account = storageAccount { sku (Files BasicReplication.ZRS) }
@@ -182,5 +182,22 @@ let tests = testList "Storage Tests" [
         let resource = arm { add_resource account } |> getStorageResource
         Expect.equal resource.Kind "StorageV2" "Kind"
         Expect.equal resource.Sku.Name "Premium_LRS" "Sku Name"
+    }
+    test "Sets blob access tier correctly different SKU kinds correctly" {
+        let account = storageAccount { default_blob_access_tier Cool }
+        let resource = arm { add_resource account } |> getStorageResource
+        Expect.equal resource.AccessTier (Nullable AccessTier.Cool) "Access Tier"
+
+        let account = storageAccount { default_blob_access_tier Hot }
+        let resource = arm { add_resource account } |> getStorageResource
+        Expect.equal resource.AccessTier (Nullable AccessTier.Cool) "Access Tier"
+
+        let account = storageAccount { sku (GeneralPurpose (V2 (V2Replication.LRS Premium))) }
+        let resource = arm { add_resource account } |> getStorageResource
+        Expect.equal resource.AccessTier (Nullable ()) "Access Tier"
+        
+        let account = storageAccount { sku (Blobs BlobReplication.LRS) }
+        let resource = arm { add_resource account } |> getStorageResource
+        Expect.equal resource.AccessTier (Nullable AccessTier.Hot) "Access Tier"
     }
 ]
