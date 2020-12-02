@@ -2,7 +2,6 @@
 #r "../../src/Farmer/bin/Debug/netstandard2.0/Farmer.dll"
 open Farmer
 open Farmer.Builders
-open Farmer.CoreTypes
 open System
 
 let storageAccountResourceType=ResourceType("Microsoft.Storage/storageAccounts","")
@@ -11,10 +10,12 @@ let storageAccountResourceId=ResourceId.create(storageAccountResourceType,storag
 let workspaceResourceType=ResourceType("Microsoft.OperationalInsights/workspaces","")
 let workspaceName=ResourceName("tryw")
 let workspaceResourceId=ResourceId.create(workspaceResourceType,workspaceName)
+
 let myLog = log { 
     category "WorkflowRuntime"
     retention_period 1<Days>
 }
+
 let myMetric = metric { 
     category "AllMetrics" 
     retention_period 2<Days>
@@ -30,6 +31,7 @@ let mydiagnosticSetting = diagnosticSettings {
     logs [myLog]
     enable_dedicated_loganalytics
 }
+
 let deployment = arm {
     add_resource mydiagnosticSetting
     location Location.NorthEurope
