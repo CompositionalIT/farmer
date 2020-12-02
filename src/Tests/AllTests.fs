@@ -16,6 +16,7 @@ let allTests =
                 CognitiveServices.tests
                 ContainerGroup.tests
                 ContainerService.tests
+                DeploymentScript.tests
                 Dns.tests
                 EventHub.tests
                 IotHub.tests
@@ -33,10 +34,13 @@ let allTests =
                 Sql.tests
                 EventGrid.tests
                 WebApp.tests
+                Functions.tests
+                StaticWebApp.tests
                 VirtualNetworkGateway.tests
             ]
             testList "Control" [
                 Template.tests
+                Identity.tests
                 Common.tests
                 if Environment.GetEnvironmentVariable "TF_BUILD" = "True" then AzCli.tests
             ]

@@ -2,7 +2,6 @@
 module Farmer.Arm.NetworkSecurityGroup
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.NetworkSecurity
 
 let networkSecurityGroups = ResourceType ("Microsoft.Network/networkSecurityGroups", "2020-04-01")
@@ -13,9 +12,8 @@ type NetworkSecurityGroup =
       Location : Location
       Tags: Map<string,string>  }
     interface IArmResource with
-        member this.ResourceName = this.Name
-        member this.JsonModel =
-            networkSecurityGroups.Create(this.Name, this.Location, tags = this.Tags) :> _
+        member this.ResourceId = networkSecurityGroups.resourceId this.Name
+        member this.JsonModel = networkSecurityGroups.Create(this.Name, this.Location, tags = this.Tags) :> _
 
 let (|SingleEndpoint|ManyEndpoints|) endpoints =
     // Use a wildcard if there is one
@@ -62,9 +60,9 @@ type SecurityRule =
       Direction : TrafficDirection
       Priority : int }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = securityRules.resourceId (this.SecurityGroup.Name/this.Name)
         member this.JsonModel =
-            let dependsOn = [ ResourceId.create(networkSecurityGroups, this.SecurityGroup.Name) ]
+            let dependsOn = [ networkSecurityGroups.resourceId this.SecurityGroup.Name ]
             {| securityRules.Create(this.SecurityGroup.Name/this.Name, dependsOn = dependsOn) with
                 properties =
                  {| description = this.Description |> Option.toObj

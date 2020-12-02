@@ -7,9 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Include="test-data\farmer-integration-test-1.json" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="Helpers.fs" />
     <Compile Include="AppInsights.fs" />
     <Compile Include="Common.fs" />
+    <Compile Include="Functions.fs" />
     <Compile Include="LogAnalytics.fs" />
     <Compile Include="Bastion.fs" />
     <Compile Include="Cdn.fs" />
@@ -35,9 +37,14 @@
     <Compile Include="SignalR.fs" />
     <Compile Include="EventGrid.fs" />
     <Compile Include="WebApp.fs" />
+    <Compile Include="StaticWebApp.fs" />
     <Compile Include="VirtualNetworkGateway.fs" />
+    <Compile Include="Identity.fs" />
+    <Compile Include="DeploymentScript.fs" />
     <Compile Include="AllTests.fs" />
   </ItemGroup>
+
+  <ItemGroup />
 
   <ItemGroup>
     <PackageReference Include="expecto" Version="9.0.0" />

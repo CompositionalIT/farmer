@@ -28,7 +28,6 @@ The Log Analytics builder is used to create Work space instances.
 ```fsharp
 open Farmer
 open Farmer.Builders
-open Farmer.LogAnalytics
 
 let myAnalytics = logAnalytics {
     name "myloganalytics"
@@ -36,10 +35,7 @@ let myAnalytics = logAnalytics {
     enable_ingestion
     enable_query
     daily_cap 5<Gb>
-    add_tag "tag1""myTestResourceFarmer"
-    add_tags [
-        ("tag2","myTestResourceFarmer")
-    ]
+    add_tag "tag1" "myTestResourceFarmer"
 }
 
 let deployment = arm {

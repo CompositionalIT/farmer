@@ -2,8 +2,8 @@
 module Farmer.Builders.Storage
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.Storage
+open Farmer.Arm.RoleAssignment
 open Farmer.Arm.Storage
 open BlobServices
 open FileShares
@@ -11,7 +11,6 @@ open FileShares
 type StorageAccount =
     /// Gets an ARM Expression connection string for any Storage Account.
     static member getConnectionString (storageAccount:ResourceId) =
-        let storageAccount = storageAccount.WithType storageAccounts
         let expr =
             sprintf
                 "concat('DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=', listKeys(%s, '2017-10-01').keys[0].value)"
@@ -20,7 +19,7 @@ type StorageAccount =
         ArmExpression.create(expr, storageAccount)
     /// Gets an ARM Expression connection string for any Storage Account.
     static member getConnectionString (storageAccountName:StorageAccountName, ?group) =
-        StorageAccount.getConnectionString(ResourceId.create(storageAccountName.ResourceName, ?group = group))
+        StorageAccount.getConnectionString (ResourceId.create (storageAccounts, storageAccountName.ResourceName, ?group = group))
 
 type StoragePolicy =
     { CoolBlobAfter : int<Days> option
@@ -44,6 +43,7 @@ type StorageAccountConfig =
       Queues : StorageResourceName Set
       /// Rules
       Rules : Map<ResourceName, StoragePolicy>
+      RoleAssignments : Roles.RoleAssignment Set
       /// Static Website Settings
       StaticWebsite : {| IndexPage : string; ContentPath : string; ErrorPage : string option |} option
       /// Tags to apply to the storage account
@@ -51,15 +51,26 @@ type StorageAccountConfig =
     /// Gets the ARM expression path to the key of this storage account.
     member this.Key = StorageAccount.getConnectionString this.Name
     /// Gets the Primary endpoint for static website (if enabled)
-    member this.WebsitePrimaryEndpoint = sprintf "https://%s.z6.web.core.windows.net" this.Name.ResourceName.Value
+    member this.WebsitePrimaryEndpoint =
+        ArmExpression
+            .reference(storageAccounts, this.ResourceId)
+            .Map(sprintf "%s.primaryEndpoints.web")
+    member this.WebsitePrimaryEndpointHost =
+        this.WebsitePrimaryEndpoint
+            .Map(fun uri -> sprintf "replace(replace(%s, 'https://', ''), '/', '')" uri)
     member this.Endpoint = sprintf "%s.blob.core.windows.net" this.Name.ResourceName.Value
+    member this.ResourceId = storageAccounts.resourceId this.Name.ResourceName
     interface IBuilder with
-        member this.DependencyName = this.Name.ResourceName
+        member this.ResourceId = this.ResourceId
         member this.BuildResources location = [
             { Name = this.Name
               Location = location
               Sku = this.Sku
               EnableHierarchicalNamespace = this.EnableDataLake
+              Dependencies =
+                this.RoleAssignments
+                |> Seq.choose(fun roleAssignment -> roleAssignment.Principal.ArmExpression.Owner)
+                |> Seq.toList
               StaticWebsite = this.StaticWebsite
               Tags = this.Tags }
             for name, access in this.Containers do
@@ -83,17 +94,32 @@ type StorageAccountConfig =
                         {| rule with Name = name |}
                   ]
                 }
+            for roleAssignment in this.RoleAssignments do
+                let uniqueName =
+                    sprintf "%s%s%O"
+                        this.Name.ResourceName.Value
+                        roleAssignment.Principal.ArmExpression.Value
+                        roleAssignment.Role.Id
+                    |> DeterministicGuid.create
+                    |> string
+                    |> ResourceName
+                { Name = uniqueName
+                  RoleDefinitionId = roleAssignment.Role
+                  PrincipalId = roleAssignment.Principal
+                  PrincipalType = PrincipalType.ServicePrincipal
+                  Scope = SpecificResource (ResourceId.create(storageAccounts, this.Name.ResourceName)) }
         ]
 
 type StorageAccountBuilder() =
     member _.Yield _ = {
         Name = StorageAccountName.Create("default").OkValue
-        Sku = Standard_LRS
+        Sku = Sku.Standard_LRS
         EnableDataLake = None
         Containers = []
         FileShares = []
         Rules = Map.empty
         Queues = Set.empty
+        RoleAssignments = Set.empty
         StaticWebsite = None
         Tags = Map.empty
     }
@@ -158,11 +184,18 @@ type StorageAccountBuilder() =
               DeleteBlobAfter = actions |> List.tryPick(function DeleteAfter days -> Some days | _ -> None)
               DeleteSnapshotAfter = actions |> List.tryPick(function DeleteSnapshotAfter days -> Some days | _ -> None) }
         { state with Rules = state.Rules.Add (ResourceName ruleName, rule) }
+    [<CustomOperation "grant_access">]
+    member _.GrantAccess(state:StorageAccountConfig, principalId:PrincipalId, role) =
+        { state with RoleAssignments = state.RoleAssignments.Add { Principal = principalId; Role = role } }
+    member this.GrantAccess(state:StorageAccountConfig, identity:UserAssignedIdentityConfig, role) =
+        this.GrantAccess(state, identity.PrincipalId, role)
+    member this.GrantAccess(state:StorageAccountConfig, identity:Identity.SystemIdentity, role) =
+        this.GrantAccess(state, identity.PrincipalId, role)
 
 /// Allow adding storage accounts directly to CDNs
 type EndpointBuilder with
     member this.Origin(state:EndpointConfig, storage:StorageAccountConfig) =
         let state = this.Origin(state, storage.Endpoint)
-        this.DependsOn(state, storage.Name.ResourceName)
+        this.DependsOn(state, storage.ResourceId)
 
 let storageAccount = StorageAccountBuilder()

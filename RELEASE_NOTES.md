@@ -1,15 +1,70 @@
 Release Notes
 =============
-## 1.2.0-beta2
-* Internal changes to better capture full resource IDs
+## Next release
+* Web App: Support for adding site extensions with "use_extension"
+* Functions: Support for external unmanaged storage accounts.
 
-## 1.2.0-beta1
-* Bastion Hosts: Create bastion hosts for accessing resources on a virtual network
-* Gateway: Add VPN Client configuration
+## 1.3.0-beta2
+* Deployment Scripts: Specifies cleanup on expiration when retention interval is set, and enables cleanup on success only.
+* Deployment Scripts: Support for running the script after other resources are deployed.
+* Web App: Unmanaged Server Farm uses Resource Id for fully-qualified path.
+
+## 1.3.0-beta1
+* Container Instance: Support for command line arguments.
+* Key Vault: Support for setting tags on key vault secrets.
+* Deployment Scripts: Run Azure CLI commands as part of an ARM deployment (PowerShell or AzCli).
+
+* Storage Account: Support for the full set of Storage Account Kind and SKUs (minor breaking change).
+* Storage Account: Improved integration with CDN.
+
+* CDN: Improved integration with Storage Accounts.
+* CDN: Fixed an issue where custom domains did not generate the correct ARM name path.
+
+* ARM generation: Smarter emitting of "raw" ARM expressions.
+
+## 1.2.0
+* Log Analytics: Initial release.
+* Static Web Apps: Initial release.
+* Managed Identity: Initial release.
+
+* SQL Azure: Connection string owner now has the correct path.
+* SQL Azure: New PasswordParameter returns the name of the Password parameter.
+
+* Functions: Ability to override the auto-generated storage account name.
+* Functions: Ability to add multiple ARM Expressions as settings.
+* Functions: Ability to add a Resource Name as a setting.
+
+* Key Vault: Grant access to managed identities.
+
+* Service Bus: Fix an issue whereby duplicate topics across different subscriptions were silently removed.
 * Service Bus: Set message TTL
+
+* Web App: Ability to add multiple ARM Expressions as settings.
+* Web App: Full support for Managed Identity (minor breaking change).
+* Web App: Easy Key Vault integration.
+
+* Storage Account: WebsitePrimaryEndpoint is now a generated ARM expression.
+* Storage Account: Upgrade API version to 2019-04-01 to support RA-GZRS.
+* Storage Account: WebsitePrimaryEndpoint depends on storage account name instead of being hardcoded.
+* Storage Account: Grant access to managed identities.
+
+* Container Service (AKS): Support for Managed Identity.
+
+* Container Groups: Support for creating group without public IP Address.
+* Container Groups: Support for image registry credentials for private registries.
+* Container Groups: Support for partial CPU cores.
+* Container Groups: Support for Managed Identity.
+
+* Event Hubs: Remove redundant kafka flag (minor breaking change).
+* Gateway: Add VPN Client configuration
+* Bastion Hosts: Create bastion hosts for accessing resources on a virtual network
 * DNS Zones: Basic Azure DNS support
-* WebApp: Easy Key Vault integration
+
+* Provide all Roles for managed identity purposes.
 * Support for implicitly adding dependencies based on usage e.g. add settings, connection strings etc.
+
+* Internal: ARM Expression refernces now add the Resource Id as the Owner.
+* Internal: Changes to better capture full resource IDs.
 
 ## 1.1.1
 * SQL Azure: Fix a bug whereby firewall rule IP addresses were inverted.

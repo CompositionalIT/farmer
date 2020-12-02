@@ -68,7 +68,8 @@ module Expect =
             with e ->
                 Some e.Message
         match thrown with
-        | None -> ()
+        | None ->
+            ()
         | Some msg ->
             failtestf "%s. Expected f to not throw, but it did. Exception message: %s" message msg
 
@@ -81,7 +82,7 @@ let tests = testList "PostgreSQL Database Service" [
             storage_size 50<Gb>
             backup_retention 17<Days>
             capacity 4<VCores>
-            tier GeneralPurpose
+            tier Sku.GeneralPurpose
             enable_geo_redundant_backup
             disable_storage_autogrow
         }
@@ -125,7 +126,7 @@ let tests = testList "PostgreSQL Database Service" [
             apiVersion = "2017-12-01"
             ``type`` = "Microsoft.DBforPostgreSQL/servers/databases"
             properties = {| collation = "de_DE"; charset = "ASCII" |}
-            dependsOn = [ "[string('testdb')]" ]
+            dependsOn = [ "[resourceId('Microsoft.DBforPostgreSQL/servers', 'testdb')]" ]
         }
 
         Expect.equal actual expectedDbRes "database resource"
@@ -148,7 +149,7 @@ let tests = testList "PostgreSQL Database Service" [
             { name = "testdb/allow-azure-services"
               ``type`` = "Microsoft.DBforPostgreSQL/servers/firewallrules"
               apiVersion = "2017-12-01"
-              dependsOn = [ "[string('testdb')]" ]
+              dependsOn = [ "[resourceId('Microsoft.DBforPostgreSQL/servers', 'testdb')]" ]
               location = "northeurope"
               properties = {| startIpAddress = "0.0.0.0"; endIpAddress = "0.0.0.0" |} }
         Expect.equal actual expectedFwRuleRes "Firewall is incorrect"

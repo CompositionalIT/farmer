@@ -1,4 +1,4 @@
-This PR closes issue #
+This PR closes #
 
 The changes in this PR are as follows:
 

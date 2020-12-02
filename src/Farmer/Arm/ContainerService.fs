@@ -2,7 +2,7 @@
 module Farmer.Arm.ContainerService
 
 open Farmer
-open Farmer.CoreTypes
+open Farmer.Identity
 open Farmer.Vm
 
 let managedClusters = ResourceType ("Microsoft.ContainerService/managedClusters", "2020-04-01")
@@ -25,6 +25,7 @@ type ManagedCluster =
         |} list
       DnsPrefix : string
       EnableRBAC : bool
+      Identity : ManagedIdentity
       LinuxProfile :
        {| AdminUserName : string
           PublicKeys : string list |} option
@@ -42,24 +43,22 @@ type ManagedCluster =
     }
 
     interface IParameters with
-        member this.SecureParameters =
-            [
-                match this.ServicePrincipalProfile with
-                | Some servicePrincipalProfile -> servicePrincipalProfile.ClientSecret
-                | None -> ()
-                match this.WindowsProfile with
-                | Some windowsProfile -> windowsProfile.AdminPassword
-                | None -> ()
-            ]
+        member this.SecureParameters = [
+            yield! this.ServicePrincipalProfile |> Option.mapList(fun spp -> spp.ClientSecret)
+            yield! this.WindowsProfile |> Option.mapList (fun wp -> wp.AdminPassword)
+        ]
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = managedClusters.resourceId this.Name
         member this.JsonModel =
-            let dependencies =
-               this.AgentPoolProfiles
-               |> List.map (fun pool -> pool.VirtualNetworkName)
-               |> List.choose id
-               |> List.map(fun vnet -> ResourceId.create(virtualNetworks, vnet))
+            let dependencies = [
+                yield!
+                    this.AgentPoolProfiles
+                    |> List.choose (fun pool -> pool.VirtualNetworkName)
+                    |> List.map virtualNetworks.resourceId
+                yield! this.Identity.Dependencies
+            ]
             {| managedClusters.Create(this.Name, this.Location, dependencies) with
+                   identity = this.Identity |> ManagedIdentity.toArmJson
                    properties =
                        {| agentPoolProfiles =
                            this.AgentPoolProfiles
@@ -74,7 +73,7 @@ type ManagedCluster =
                                   vmSize = agent.VmSize.ArmValue
                                   vnetSubnetID =
                                       match agent.VirtualNetworkName, agent.SubnetName with
-                                      | Some vnet, Some subnet -> ResourceId.create(subnets, vnet, subnet).Eval()
+                                      | Some vnet, Some subnet -> subnets.resourceId(vnet, subnet).Eval()
                                       | _ -> null
                                |})
                           dnsPrefix = this.DnsPrefix

@@ -3,7 +3,7 @@ module Farmer.Arm.ContainerInstance
 
 open Farmer
 open Farmer.ContainerGroup
-open Farmer.CoreTypes
+open Farmer.Identity
 open Newtonsoft.Json.Linq
 
 let containerGroups = ResourceType ("Microsoft.ContainerInstance/containerGroups", "2018-10-01")
@@ -14,7 +14,10 @@ type ContainerGroupIpAddress =
         {| Protocol : TransmissionProtocol
            Port : uint16 |} Set }
 
-type EnvVarValue = EnvValue of string | EnvSecureValue of string
+type ImageRegistryCredential =
+    { Server : string
+      Username : string
+      Password : SecureParameter }
 
 type ContainerGroup =
     { Name : ResourceName
@@ -22,38 +25,45 @@ type ContainerGroup =
       ContainerInstances :
         {| Name : ResourceName
            Image : string
+           Command : string list
            Ports : uint16 Set
-           Cpu : int
+           Cpu : float
            Memory : float<Gb>
-           EnvironmentVariables: Map<string, EnvVarValue>
+           EnvironmentVariables: Map<string, EnvVar>
            VolumeMounts : Map<string,string>
         |} list
       OperatingSystem : OS
       RestartPolicy : RestartPolicy
-      IpAddress : ContainerGroupIpAddress
+      Identity : ManagedIdentity
+      ImageRegistryCredentials : ImageRegistryCredential list
+      IpAddress : ContainerGroupIpAddress option
       NetworkProfile : ResourceName option
       Volumes : Map<string, Volume>
       Tags: Map<string,string>  }
     member this.NetworkProfilePath =
         this.NetworkProfile
-        |> Option.map (fun networkProfile -> ResourceId.create(networkProfiles, networkProfile))
+        |> Option.map networkProfiles.resourceId
     member private this.Dependencies = [
-        match this.NetworkProfilePath with
-        | Some path -> path
-        | None -> ()
+        yield! Option.toList this.NetworkProfilePath
 
         for _, volume in this.Volumes |> Map.toSeq do
             match volume with
             | Volume.AzureFileShare (shareName, storageAccountName) ->
-                ResourceId.create(fileShares, storageAccountName.ResourceName, ResourceName "default", shareName)
+                fileShares.resourceId (storageAccountName.ResourceName, ResourceName "default", shareName)
             | _ ->
                 ()
+
+        // If the identity is set, include any dependent identity's resource ID
+        yield! this.Identity.Dependencies
     ]
 
+    interface IParameters with
+        member this.SecureParameters = this.ImageRegistryCredentials |> List.map (fun c -> c.Password)
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = containerGroups.resourceId this.Name
         member this.JsonModel =
             {| containerGroups.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
+                   identity = this.Identity |> ManagedIdentity.toArmJson
                    properties =
                        {| containers =
                            this.ContainerInstances
@@ -61,19 +71,22 @@ type ContainerGroup =
                                {| name = container.Name.Value.ToLowerInvariant ()
                                   properties =
                                    {| image = container.Image
+                                      command = container.Command
                                       ports = container.Ports |> Set.map (fun port -> {| port = port |})
                                       environmentVariables = [
                                           for (key, value) in Map.toSeq container.EnvironmentVariables do
                                               match value with
                                               | EnvValue v -> {| name = key; value = v; secureValue = null |}
-                                              | EnvSecureValue v -> {| name = key; value = null; secureValue = v |}
+                                              | SecureEnvValue v -> {| name = key; value = null; secureValue = v |}
                                       ]
                                       resources =
                                        {| requests =
                                            {| cpu = container.Cpu
                                               memoryInGB = container.Memory |}
                                        |}
-                                      volumeMounts = container.VolumeMounts |> Seq.map (fun kvp -> {| name=kvp.Key; mountPath=kvp.Value |}) |> List.ofSeq
+                                      volumeMounts =
+                                          container.VolumeMounts
+                                          |> Seq.map (fun kvp -> {| name=kvp.Key; mountPath=kvp.Value |}) |> List.ofSeq
                                    |}
                                |})
                           osType = string this.OperatingSystem
@@ -82,21 +95,30 @@ type ContainerGroup =
                             | AlwaysRestart -> "Always"
                             | NeverRestart -> "Never"
                             | RestartOnFailure -> "OnFailure"
+                          imageRegistryCredentials =
+                              this.ImageRegistryCredentials
+                              |> List.map (fun cred ->
+                                  {| server = cred.Server
+                                     username = cred.Username
+                                     password = cred.Password.ArmExpression.Eval() |})
                           ipAddress =
-                            {| ``type`` =
-                                match this.IpAddress.Type with
-                                | PublicAddress | PublicAddressWithDns _ -> "Public"
-                                | PrivateAddress _ -> "Private"
-                               ports = [
-                                   for port in this.IpAddress.Ports do
-                                    {| protocol = string port.Protocol
-                                       port = port.Port |}
-                               ]
-                               dnsNameLabel =
-                                match this.IpAddress.Type with
-                                | PublicAddressWithDns dnsLabel -> dnsLabel
-                                | _ -> null
-                            |}
+                            match this.IpAddress with
+                            | Some ipAddresses ->
+                                {| ``type`` =
+                                    match ipAddresses.Type with
+                                    | PublicAddress | PublicAddressWithDns _ -> "Public"
+                                    | PrivateAddress _ -> "Private"
+                                   ports = [
+                                       for port in ipAddresses.Ports do
+                                        {| protocol = string port.Protocol
+                                           port = port.Port |}
+                                   ]
+                                   dnsNameLabel =
+                                    match ipAddresses.Type with
+                                    | PublicAddressWithDns dnsLabel -> dnsLabel
+                                    | _ -> null
+                                |} |> box
+                            | None -> null
                           networkProfile =
                             this.NetworkProfilePath
                             |> Option.map(fun path -> box {| id = path.Eval() |})

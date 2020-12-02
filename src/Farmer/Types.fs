@@ -1,5 +1,7 @@
 namespace Farmer
 
+open System
+
 /// Represents a name of an ARM resource
 type ResourceName =
     | ResourceName of string
@@ -13,33 +15,14 @@ type ResourceName =
         | r -> r
     member this.Map mapper = match this with ResourceName r -> ResourceName (mapper r)
 
-    static member (+) (a:ResourceName, b:string) = ResourceName(a.Value + "/" + b)
-    static member (+) (a:ResourceName, b:ResourceName) = a + b.Value
-    static member (/) (a:ResourceName, b:string) = a + b
-    static member (/) (a:ResourceName, b:ResourceName) = a + b.Value
+    static member (/) (a:ResourceName, b:string) = ResourceName(a.Value + "/" + b)
+    static member (/) (a:ResourceName, b:ResourceName) = a / b.Value
+    static member (-) (a:ResourceName, b:string) = ResourceName(a.Value + "-" + b)
+    static member (-) (a:ResourceName, b:ResourceName) = a - b.Value
 
 type Location =
     | Location of string
     member this.ArmValue = match this with Location location -> location.ToLower()
-
-/// An Azure ARM resource value which can be mapped into an ARM template.
-type IArmResource =
-    /// The name of the resource, to uniquely identify against other resources in the template.
-    abstract member ResourceName : ResourceName
-    /// A raw object that is ready for serialization directly to JSON.
-    abstract member JsonModel : obj
-
-/// Represents a high-level configuration that can create a set of ARM Resources.
-type IBuilder =
-    /// Given a location and the currently-built resources, returns a set of resource actions.
-    abstract member BuildResources : Location -> IArmResource list
-    /// Provides the resource name that other resources should use when depending upon this builder.
-    abstract member DependencyName : ResourceName
-
-namespace Farmer.CoreTypes
-
-open Farmer
-open System
 
 type ResourceType =
     | ResourceType of path:string * version:string
@@ -48,20 +31,33 @@ type ResourceType =
     member this.ApiVersion = match this with ResourceType (_, v) -> v
 
 type ResourceId =
-    { Type : ResourceType option
+    { Type : ResourceType
       ResourceGroup : string option
       Name : ResourceName
       Segments : ResourceName list }
-    static member Empty = { Type = None; ResourceGroup = None; Name = ResourceName.Empty; Segments = [] }
-    member this.WithType resourceType = { this with Type = Some resourceType }
-    static member create (name:ResourceName, ?group) =
-        { ResourceId.Empty with Name = name; ResourceGroup = group }
-    static member create (name:string, ?group) =
-        ResourceId.create (ResourceName name, ?group = group)
     static member create (resourceType:ResourceType, name:ResourceName, ?group:string) =
-        { ResourceId.Empty with Type = Some resourceType; ResourceGroup = group; Name = name }
+        { Type = resourceType; ResourceGroup = group; Name = name; Segments = [] }
     static member create (resourceType:ResourceType, name:ResourceName, [<ParamArray>] resourceSegments:ResourceName []) =
-        { ResourceId.Empty with Type = Some resourceType; Name = name; Segments = List.ofArray resourceSegments }
+        { Type = resourceType; Name = name; ResourceGroup = None; Segments = List.ofArray resourceSegments }
+
+type ResourceType with
+    member this.resourceId name = ResourceId.create (this, name)
+    member this.resourceId name = this.resourceId (ResourceName name)
+    member this.resourceId (name, [<ParamArray>] resourceSegments:ResourceName []) = ResourceId.create (this, name, resourceSegments)
+
+/// An Azure ARM resource value which can be mapped into an ARM template.
+type IArmResource =
+    /// The name of the resource, to uniquely identify against other resources in the template.
+    abstract member ResourceId : ResourceId
+    /// A raw object that is ready for serialization directly to JSON.
+    abstract member JsonModel : obj
+
+/// Represents a high-level configuration that can create a set of ARM Resources.
+type IBuilder =
+    /// Given a location and the currently-built resources, returns a set of resource actions.
+    abstract member BuildResources : Location -> IArmResource list
+    /// Provides the ResourceId that other resources should use when depending upon this builder.
+    abstract member ResourceId : ResourceId
 
 /// Represents an expression used within an ARM template
 type ArmExpression =
@@ -78,11 +74,15 @@ type ArmExpression =
     /// Applies a mapping function to the expression.
     member this.Map mapper = match this with ArmExpression (e, r) -> ArmExpression(mapper e, r)
     /// Evaluates the expression for emitting into an ARM template. That is, wraps it in [].
-    member this.Eval() = sprintf "[%s]" this.Value
+    member this.Eval() =
+        let specialCases = [ @"string\(\'[^\']*\'\)", 8, 10; @"^'\w*'$", 1, 2 ]
+        match specialCases |> List.tryFind(fun (case, _, _) -> System.Text.RegularExpressions.Regex.IsMatch(this.Value, case)) with
+        | Some (_, start, finish) -> this.Value.Substring(start, this.Value.Length - finish)
+        | None -> sprintf "[%s]" this.Value
     /// Sets the owning resource on this ARM Expression.
     member this.WithOwner(owner:ResourceId) = match this with ArmExpression (e, _) -> ArmExpression(e, Some owner)
-    /// Sets the owning resource on this ARM Expression.
-    member this.WithOwner(owner:ResourceName) = this.WithOwner(ResourceId.create owner)
+    // /// Sets the owning resource on this ARM Expression.
+    // member this.WithOwner(owner:ResourceName) = this.WithOwner(ResourceId.create owner)
 
     /// Evaluates the expression for emitting into an ARM template. That is, wraps it in [].
     static member Eval (expression:ArmExpression) = expression.Eval()
@@ -101,28 +101,30 @@ type ArmExpression =
 
 type ResourceId with
     member this.ArmExpression =
-        match this with
-        | { Type = None } ->
-            this.Name.Value |> sprintf "string('%s')" |> ArmExpression.create
-        | { Type = Some resourceType } ->
-            [ match this.ResourceGroup with Some rg -> rg | None -> ()
-              resourceType.Type
+        match this.Type.Type with
+        | "" ->
+            sprintf "string('%s')" this.Name.Value
+            |> ArmExpression.create
+        | _ ->
+            [ yield! Option.toList this.ResourceGroup
+              this.Type.Type
               this.Name.Value
               for segment in this.Segments do segment.Value ]
             |> List.map (sprintf "'%s'")
             |> String.concat ", "
             |> sprintf "resourceId(%s)"
             |> ArmExpression.create
+
     /// Evaluates the expression for emitting into an ARM template. That is, wraps it in [].
     member this.Eval() = this.ArmExpression.Eval()
 
 type ArmExpression with
     static member reference (resourceType:ResourceType, resourceId:ResourceId) =
-        sprintf "reference(%s, '%s')" resourceId.ArmExpression.Value resourceType.ApiVersion
-        |> ArmExpression.create
+        ArmExpression.create(sprintf "reference(%s, '%s')" resourceId.ArmExpression.Value resourceType.ApiVersion)
+                     .WithOwner(resourceId)
 
 type ResourceType with
-    member this.Create(name:ResourceName, ?location:Location, ?dependsOn:ResourceId list, ?tags:Map<string,string>) =
+    member this.Create(name:ResourceName, ?location:Location, ?dependsOn:ResourceId seq, ?tags:Map<string,string>) =
         match this with
         | ResourceType (path, version) ->
             {| ``type`` = path
@@ -131,7 +133,7 @@ type ResourceType with
                location = location |> Option.map(fun r -> r.ArmValue) |> Option.toObj
                dependsOn =
                 dependsOn
-                |> Option.map (List.map(fun r -> r.Eval()) >> box)
+                |> Option.map (Seq.map(fun r -> r.Eval()) >> Seq.toArray >> box)
                 |> Option.toObj
                tags = tags |> Option.map box |> Option.toObj |}
 
@@ -157,10 +159,10 @@ type Builder = Location -> IArmResource list
 /// A resource that will automatically be created by Farmer.
 type AutoCreationKind<'TConfig> =
     /// A resource that will automatically be created by Farmer with an explicit (user-defined) name.
-    | Named of ResourceName
+    | Named of ResourceId
     /// A resource that will automatically be created by Farmer with a name that is derived based on the configuration.
-    | Derived of ('TConfig -> ResourceName)
-    member this.CreateResourceName config =
+    | Derived of ('TConfig -> ResourceId)
+    member this.resourceId config =
         match this with
         | Named r -> r
         | Derived f -> f config
@@ -168,7 +170,7 @@ type AutoCreationKind<'TConfig> =
 /// A related resource that is created externally to this Farmer resource.
 type ExternalKind =
     /// The name of the resource that will be created by Farmer, but is explicitly linked by the user.
-    | Managed of ResourceName
+    | Managed of ResourceId
     /// A Resource Id that is created externally from Farmer and already exists in Azure.
     | Unmanaged of ResourceId
 
@@ -176,32 +178,36 @@ type ExternalKind =
 type ResourceRef<'TConfig> =
     | AutoCreate of AutoCreationKind<'TConfig>
     | External of ExternalKind
-    member this.CreateResourceId config =
+    member this.resourceId config =
         match this with
-        | External (Managed r) -> ResourceId.create r
+        | External (Managed r) -> r
         | External (Unmanaged r) -> r
-        | AutoCreate r -> r.CreateResourceName config |> ResourceId.create
+        | AutoCreate r -> r.resourceId config
 
 [<AutoOpen>]
 module ResourceRef =
     /// Creates a ResourceRef which is automatically created and derived from the supplied config.
     let derived derivation = derivation |> Derived |> AutoCreate
+    let named (resourceType:ResourceType) name = AutoCreate(Named(ResourceId.create(resourceType, name)))
+    let managed (resourceType:ResourceType) name = External(Managed(ResourceId.create(resourceType, name)))
     /// An active pattern that returns the resource name if the resource should be set as a dependency.
     /// In other words, all cases except External Unmanaged.
     let (|DependableResource|_|) config = function
         | External (Managed r) -> Some (DependableResource r)
-        | AutoCreate r -> Some(DependableResource(r.CreateResourceName config))
+        | AutoCreate r -> Some(DependableResource(r.resourceId config))
         | External (Unmanaged _) -> None
     /// An active pattern that returns the resource name if the resource should be deployed. In other
     /// words, AutoCreate only.
     let (|DeployableResource|_|) config = function
-        | AutoCreate c -> Some (DeployableResource(c.CreateResourceName config))
+        | AutoCreate c -> Some (DeployableResource(c.resourceId config))
         | External _ -> None
     /// An active pattern that returns the resource name if the resource if external.
     let (|ExternalResource|_|) = function
-        | AutoCreate c -> None
-        | External (Managed r) -> Some (ResourceId.create r)
-        | External (Unmanaged r) -> Some r
+        | AutoCreate _ ->
+            None
+        | External (Managed r)
+        | External (Unmanaged r) ->
+            Some r
 
 /// Whether a specific feature is active or not.
 type FeatureFlag =
@@ -212,8 +218,10 @@ type FeatureFlag =
 module FeatureFlag =
     let ofBool enabled = if enabled then Enabled else Disabled
 
-/// Represents an ARM expression that evaluates to a principal ID.
-type PrincipalId = PrincipalId of ArmExpression member this.ArmValue = match this with PrincipalId e -> e
+/// A Principal ID represents an Identity, typically either a system or user generated Identity.
+type PrincipalId =
+    | PrincipalId of ArmExpression member this.ArmExpression = match this with PrincipalId e -> e
+
 type ObjectId = ObjectId of Guid
 
 /// Represents a secret to be captured either via an ARM expression or a secure parameter.
@@ -245,3 +253,40 @@ type Deployment =
     { Location : Location
       Template : ArmTemplate
       PostDeployTasks : IPostDeploy list }
+
+module internal DeterministicGuid =
+    open System
+    open System.Security.Cryptography
+    open System.Text
+
+    let namespaceGuid = Guid.Parse "92f3929f-622a-4149-8f39-83a4bcd385c8"
+    let namespaceBytes = namespaceGuid.ToByteArray()
+
+    let private swapBytes(guid:byte array, left, right) =
+        let temp = guid.[left]
+        guid.[left] <- guid.[right]
+        guid.[right] <- temp
+
+    let private swapByteOrder guid =
+        swapBytes(guid, 0, 3)
+        swapBytes(guid, 1, 2)
+        swapBytes(guid, 4, 5)
+        swapBytes(guid, 6, 7)
+
+    let create(source:string) =
+        let source = Encoding.UTF8.GetBytes source
+
+        let hash =
+            use algorithm = SHA1.Create()
+            algorithm.TransformBlock(namespaceBytes, 0, namespaceBytes.Length, null, 0) |> ignore
+            algorithm.TransformFinalBlock(source, 0, source.Length) |> ignore
+            algorithm.Hash
+
+        let newGuid = Array.zeroCreate<byte> 16
+        Array.Copy(hash, 0, newGuid, 0, 16)
+
+        newGuid.[6] <- ((newGuid.[6] &&& 0x0Fuy) ||| (5uy <<< 4))
+        newGuid.[8] <- ((newGuid.[8] &&& 0x3Fuy) ||| 0x80uy)
+
+        swapByteOrder newGuid
+        Guid newGuid

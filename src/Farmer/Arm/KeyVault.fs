@@ -2,7 +2,6 @@
 module Farmer.Arm.KeyVault
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.KeyVault
 open System
 
@@ -18,7 +17,8 @@ module Vaults =
           Enabled : bool option
           ActivationDate : DateTime option
           ExpirationDate : DateTime option
-          Dependencies : ResourceId list }
+          Dependencies : ResourceId list
+          Tags: Map<string,string> }
         static member ``1970`` = DateTime(1970,1,1,0,0,0)
         static member TotalSecondsSince1970 (d:DateTime) = (d.Subtract Secret.``1970``).TotalSeconds |> int
         interface IParameters with
@@ -27,9 +27,9 @@ module Vaults =
                 | { Value = ParameterSecret secureParameter } -> [ secureParameter ]
                 | _ -> []
         interface IArmResource with
-            member this.ResourceName = this.Name
+            member this.ResourceId = secrets.resourceId this.Name
             member this.JsonModel =
-                {| secrets.Create(this.Name, this.Location, this.Dependencies) with
+                {| secrets.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
                     properties =
                         {| value = this.Value.Value
                            contentType = this.ContentType |> Option.toObj
@@ -61,12 +61,11 @@ type Vault =
                Secrets : Secret Set
                Certificates : Certificate Set
                Storage : Storage Set |}
-        |} array
+        |} list
       DefaultAction : DefaultAction option
       Bypass: Bypass option
       IpRules : string list
       VnetRules : string list
-      Dependencies : ResourceId list
       Tags: Map<string,string>  }
       member this.PurgeProtection =
         match this.SoftDelete with
@@ -76,8 +75,12 @@ type Vault =
         | Some SoftDeleteWithPurgeProtection ->
             Some true
       member private _.ToStringArray s = s |> Set.map(fun s -> s.ToString().ToLower()) |> Set.toArray
+      member this.Dependencies =
+        this.AccessPolicies
+        |> List.choose(fun r -> r.ObjectId.Owner)
+        |> List.distinct
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = vaults.resourceId this.Name
         member this.JsonModel =
             {| vaults.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
                 properties =
