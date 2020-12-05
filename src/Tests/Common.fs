@@ -19,7 +19,7 @@ let tests = testList "Common" [
         Expect.equal subnets.[2] "192.168.2.0/24" "Third subnet incorrect"
         Expect.equal subnets.[3] "192.168.3.0/24" "Fourth subnet incorrect"
     }
-    
+
     test "Can carve /22 into 7 different subnets preventing overlap" {
         let cidr = IPAddressCidr.parse "192.168.0.0/22"
         let subnets = [24; 24; 24; 30; 30; 28; 26] |> IPAddressCidr.carveAddressSpace cidr |> Seq.map IPAddressCidr.format |> Array.ofSeq
@@ -39,7 +39,7 @@ let tests = testList "Common" [
                 [24; 24; 24; 23] |> IPAddressCidr.carveAddressSpace cidr |> List.ofSeq |> ignore
         ) "Should have failed to carve /22 into subnets"
     }
-    
+
     test "10.0.5.0/24 is contained within 10.0.0.0/16" {
         let innerCidr = IPAddressCidr.parse "10.0.5.0/24"
         let outerCidr = IPAddressCidr.parse "10.0.0.0/16"
@@ -50,11 +50,5 @@ let tests = testList "Common" [
         let innerCidr = IPAddressCidr.parse "192.168.1.0/24"
         let outerCidr = IPAddressCidr.parse "10.0.0.0/16"
         Expect.isFalse (outerCidr |> IPAddressCidr.contains innerCidr) ""
-    }
-
-    test "zipDeploy supports paths with spaces" {
-        let azTest s = 
-            Expect.equal s "webapp deployment source config-zip --resource-group \"my-res-group\" --name \"my-webapp\" --src \"/path to/webapp.zip\"" "" 
-        Farmer.Deploy.Az.zipDeploy azTest "webapp" "my-webapp" (fun _ -> "/path to/webapp.zip") "my-res-group"
     }
 ]

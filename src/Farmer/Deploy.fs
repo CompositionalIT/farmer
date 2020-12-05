@@ -117,13 +117,13 @@ module Az =
     // The what-if operation doesn't make any changes to existing resources. Instead, it predicts the changes if the specified template is deployed.
     let whatIf resourceGroup deploymentName templateFilename parameters = deployOrValidate WhatIf resourceGroup deploymentName templateFilename parameters
     /// Generic function for ZipDeploy using custom command (based on application type)
-    let internal zipDeploy az command appName getZipPath resourceGroup =
-        let packageFilename = sprintf "\"%s\"" (getZipPath deployFolder)
+    let private zipDeploy command appName getZipPath resourceGroup =
+        let packageFilename = getZipPath deployFolder |> sprintf "\"%s\""
         az (sprintf """%s deployment source config-zip --resource-group "%s" --name "%s" --src %s""" command resourceGroup appName packageFilename)
     /// Deploys a zip file to a web app using the Zip Deploy mechanism.
-    let zipDeployWebApp = zipDeploy az "webapp"
+    let zipDeployWebApp = zipDeploy "webapp"
     /// Deploys a zip file to a function app using the Zip Deploy mechanism.
-    let zipDeployFunctionApp = zipDeploy az "functionapp"
+    let zipDeployFunctionApp = zipDeploy "functionapp"
     let delete resourceGroup =
         az (sprintf "group delete --name %s --yes --no-wait" resourceGroup)
     let enableStaticWebsite name indexDoc errorDoc =
