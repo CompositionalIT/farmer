@@ -679,10 +679,12 @@ module ContainerGroup =
         | PublicAddress
         | PublicAddressWithDns of DnsName:string
         | PrivateAddress
-    /// A secret file which will be encoded as base64 and attached to a container group.
+    /// A secret file that will be attached to a container group.
     type SecretFile =
-        | SecretFile of Name:string * Secret:byte array
-        | SecretParameter of Name:string * Secret:SecureParameter
+        /// A secret file which will be encoded as base64 data.
+        | SecretFileContents of Name:string * Secret:byte array
+        /// A secret file which will provided by an ARM parameter at runtime.
+        | SecretFileParameter of Name:string * Secret:SecureParameter
     /// A container group volume.
     [<RequireQualifiedAccess>]
     type Volume =

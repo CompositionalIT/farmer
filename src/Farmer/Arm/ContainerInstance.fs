@@ -4,6 +4,7 @@ module Farmer.Arm.ContainerInstance
 open Farmer
 open Farmer.ContainerGroup
 open Farmer.Identity
+open System
 
 let containerGroups = ResourceType ("Microsoft.ContainerInstance/containerGroups", "2018-10-01")
 
@@ -70,8 +71,8 @@ type ContainerGroup =
                 | Volume.Secret secrets ->
                     for secret in secrets do
                         match secret with
-                        | SecretParameter (_, parameter) -> parameter
-                        | SecretFile _ -> ()
+                        | SecretFileParameter (_, parameter) -> parameter
+                        | SecretFileContents _ -> ()
                 | Volume.EmptyDirectory
                 | Volume.AzureFileShare _
                 | Volume.Secret _
@@ -93,14 +94,14 @@ type ContainerGroup =
                                       command = container.Command
                                       ports = container.Ports |> Set.map (fun port -> {| port = port |})
                                       environmentVariables = [
-                                          for (key, value) in Map.toSeq container.EnvironmentVariables do
+                                          for key, value in Map.toSeq container.EnvironmentVariables do
                                               match value with
-                                              | EnvValue v ->
-                                                {| name = key; value = v; secureValue = null |}
-                                              | SecureEnvValue v ->
-                                                {| name = key; value = null; secureValue = v |}
-                                              | SecureParamEnvValue v ->
-                                                {| name = key; value = null; secureValue = v.ArmExpression.Eval() |}
+                                              | EnvValue value ->
+                                                {| name = key; value = value; secureValue = null |}
+                                              | SecureEnvValue value ->
+                                                {| name = key; value = null; secureValue = value |}
+                                              | SecureParamEnvValue value ->
+                                                {| name = key; value = null; secureValue = value.ArmExpression.Eval() |}
                                       ]
                                       resources =
                                        {| requests =
@@ -178,12 +179,14 @@ type ContainerGroup =
                                        emptyDir = null
                                        gitRepo = Unchecked.defaultof<_>
                                        secret = dict [
-                                           for secret in secrets do
+                                        for secret in secrets do
                                             match secret with
-                                            | SecretFile (name, secret) -> name, secret |> System.Convert.ToBase64String
-                                            | SecretParameter (name, parameter) -> name, ArmExpression.create(sprintf "base64(%s)" parameter.ArmExpression.Value).Eval()
-                                        ]
-                                       |}
+                                            | SecretFileContents (name, secret) ->
+                                                name, Convert.ToBase64String secret
+                                            | SecretFileParameter (name, parameter) ->
+                                                name, parameter.ArmExpression.Map(sprintf "base64(%s)").Eval()
+                                       ]
+                                    |}
                           ]
                        |}
             |} :> _
