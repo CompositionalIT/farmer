@@ -266,7 +266,7 @@ type FunctionsBuilder() =
     member _.AddIdentity(state:FunctionsConfig, identity:UserAssignedIdentity) = { state with Identity = state.Identity + identity }
     member this.AddIdentity(state, identity:UserAssignedIdentityConfig) = this.AddIdentity(state, identity.UserAssignedIdentity)
     [<CustomOperation "system_identity">]
-    member _.EnableManagedIdentity(state:FunctionsConfig) =
+    member _.SystemIdentity(state:FunctionsConfig) =
         { state with Identity = { state.Identity with SystemAssigned = Enabled } }
     [<CustomOperation "add_tags">]
     member _.Tags(state:FunctionsConfig, pairs) =
