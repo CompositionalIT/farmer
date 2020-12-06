@@ -36,13 +36,11 @@ type diagnosticSettingsConfig=
                       for i in this.Logs do
                           { Category = i.Category
                             Enabled = i.Enabled
-                            RetentionPolicy=
-                            match i.RetentionPolicy with
-                            | Some x ->
-                              { Enabled = x.Enabled
-                                Retention_period = x.Retention_period 
-                              } |> Some 
-                            |None ->None
+                            RetentionPolicy = 
+                              i.RetentionPolicy 
+                              |> Option.map( fun x ->  
+                                { Enabled = x.Enabled 
+                                  Retention_period = x.Retention_period  }) 
                           }
                     |]
                   Metrics = [|
@@ -50,13 +48,11 @@ type diagnosticSettingsConfig=
                           { Category = i.Category
                             Enabled = i.Enabled
                             TimeGrain = i.TimeGrain
-                            RetentionPolicy=
-                            match i.RetentionPolicy with
-                            | Some x -> 
-                                { Enabled = x.Enabled
-                                  Retention_period = x.Retention_period 
-                                } |> Some
-                            | None -> None
+                            RetentionPolicy = 
+                              i.RetentionPolicy 
+                              |> Option.map( fun x ->  
+                                { Enabled = x.Enabled 
+                                  Retention_period = x.Retention_period  }) 
                           }
                     |]
                   WorkspaceId = this.WorkspaceId
@@ -64,7 +60,7 @@ type diagnosticSettingsConfig=
                   DedicatedLogAnalyticsDestination = this.DedicatedLogAnalyticsDestination
                   Tags = this.Tags }
         ]
-type RenentionPolicyBuilder()=
+type RenentionPolicyBuilder () =
     member _.Yield _ =
         { Enabled = false
           Retention_period = 0<Days>
@@ -73,22 +69,24 @@ type RenentionPolicyBuilder()=
             match state.Retention_period with
             | OutOfBounds days -> 
                 failwithf "The retention period must be between 1 and 365 days. It is currently %d" days
-            | InBounds _ -> {state with Enabled = true}
+            | InBounds _ -> 
+                {state with Enabled = true}
 
     [<CustomOperation "retention_period">]
-    member _.Days(state:RetentionPolicy, days) = { state with Retention_period=days }
+    member _.Days(state:RetentionPolicy, days) = { state with Retention_period = days }
 
-let retentionPolicy=RenentionPolicyBuilder()
+let retentionPolicy = RenentionPolicyBuilder()
 
 type MetricBuilder () = 
     member _.Yield _ =
         { Category = ""
           Enabled = true
           TimeGrain = None
-          RetentionPolicy= 
-            { Enabled = false
-              Retention_period = 0<Days>  
-            } |> Some
+          RetentionPolicy = 
+             Some
+                { Enabled = false
+                  Retention_period = 0<Days>  
+                } 
          }
 
     /// Sets the Diagnostic Metric category for a resource type.
@@ -97,22 +95,23 @@ type MetricBuilder () =
     
     /// Sets the timegrain of the metric in ISO8601 format.
     [<CustomOperation "time_grain">]
-    member _.TimeGrain(state:MetricSettings, timeGrain) = { state with TimeGrain=Some timeGrain }
+    member _.TimeGrain(state:MetricSettings, timeGrain) = { state with TimeGrain = Some timeGrain }
 
     ///  The retention in days metric setting. Must be between 1 and 365 days. 0 is selected by default.                         
     [<CustomOperation "retention_period">]
     member _.Retention_period(state: MetricSettings, retentionPeriod: int<Days>) = 
         { state with 
-            RetentionPolicy =Some (retentionPolicy { retention_period retentionPeriod }) }
+            RetentionPolicy = Some (retentionPolicy { retention_period retentionPeriod }) }
 
 type LogBuilder () = 
     member _.Yield _ =
         { Category = ""
           Enabled = true
-          RetentionPolicy=
-            { Enabled = false
-              Retention_period = 0<Days>  
-            } |> Some 
+          RetentionPolicy =
+            Some
+                { Enabled = false
+                  Retention_period = 0<Days>  
+                } 
          }
 
     /// Sets the Diagnostic Log category for a resource type 
@@ -140,23 +139,15 @@ type DiagnosticSettingsBuilder() =
            DedicatedLogAnalyticsDestination = None
            Tags = Map.empty }
     member _.Run(state:diagnosticSettingsConfig) =
-            
-        match state.EventHubName,state.EventHubAuthorizationRuleId with 
-        | Some _, None -> 
+        match state with 
+        | { EventHubName = Some _; EventHubAuthorizationRuleId = None } -> 
             failwith "EventHubAuthorizationRuleId is not specified."
-        | _, _ -> 
-            ()
-
-        match state.Metrics,state.Logs with
-        | [], [] ->
+        | { Metrics = []; Logs = [] } -> 
             failwith "Specify at least one category details."
-        | _ -> 
-            ()
+        | { EventHubAuthorizationRuleId = None; StorageAccountId = None; WorkspaceId = None } -> 
+            failwith "Specify at least one data sink." 
+        | _ -> state    
        
-        match state.EventHubAuthorizationRuleId, state.StorageAccountId, state.WorkspaceId with 
-        | None, None, None ->
-            failwith "Specify at least one data sink. "
-        | _ ->state
         
     /// Sets the name of the Diagnostic Settings(parentResourceName, resourceName).
     [<CustomOperation "name">]
@@ -215,8 +206,8 @@ type DiagnosticSettingsBuilder() =
     member this.DependsOn(state:diagnosticSettingsConfig, builders:IBuilder list) = this.DependsOn (state, builders |> List.map (fun x -> x.ResourceId))
     member this.DependsOn(state:diagnosticSettingsConfig, resource:IArmResource) = this.DependsOn (state, resource.ResourceId)
     member this.DependsOn(state:diagnosticSettingsConfig, resources:IArmResource list) = this.DependsOn (state, resources |> List.map (fun x -> x.ResourceId))
-    member this.DependsOn (state:diagnosticSettingsConfig, resourceId:ResourceId) = { state with Dependencies = resourceId :: state.Dependencies }
-    member this.DependsOn (state:diagnosticSettingsConfig, resourceIds:ResourceId list) = { state with Dependencies = resourceIds @ state.Dependencies }
+    member this.DependsOn(state:diagnosticSettingsConfig, resourceId:ResourceId) = { state with Dependencies = resourceId :: state.Dependencies }
+    member this.DependsOn(state:diagnosticSettingsConfig, resourceIds:ResourceId list) = { state with Dependencies = resourceIds @ state.Dependencies }
 
     /// Adds a set of tags to the resource
     [<CustomOperation "add_tags">]
@@ -229,6 +220,6 @@ type DiagnosticSettingsBuilder() =
         member this.Tag(state:diagnosticSettingsConfig, key, value) = this.Tags(state, [ key, value ])
 
 let diagnosticSettings = DiagnosticSettingsBuilder()
-let metric=MetricBuilder()
-let log=LogBuilder()
+let metric = MetricBuilder()
+let log = LogBuilder()
 

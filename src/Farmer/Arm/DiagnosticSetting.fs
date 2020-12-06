@@ -4,11 +4,11 @@ open System
 open Farmer
 
 
-type RetentionPolicy={
+type RetentionPolicy = {
     Enabled:bool
     Retention_period:int<Days> }
 
-type MetricSettings=
+type MetricSettings =
     { Category:string
       TimeGrain: TimeSpan  option
       Enabled:bool
@@ -25,28 +25,30 @@ let diagnosticSettingsType parentResourceType  =
     ResourceType(parentResourceType + "providers/diagnosticSettings", "2017-05-01-preview")
 
 let metricSettingsBuilder (state: MetricSettings) =
-    {| category=state.Category
-       enabled=state.Enabled
+    {| category = state.Category
+       enabled = state.Enabled
        timeGrain = tryGetIso (state.TimeGrain |> Option.map IsoDateTime.OfTimeSpan )
-       retentionPolicy=
+       retentionPolicy =
        match state.RetentionPolicy with
        | None -> null
-       | Some x -> 
-        {| enabled=x.Enabled
-           days=x.Retention_period
-        |} |> box
+       | Some x ->
+           box
+             {| enabled = x.Enabled
+                days = x.Retention_period
+             |}
     
     |}
 let logSettingsBuilder (statex:LogSettings) =
         {| category = statex.Category
            enabled = statex.Enabled
-           retentionPolicy=
+           retentionPolicy =
            match statex.RetentionPolicy with
            | None -> null
-           | Some x -> 
-            {| enabled = x.Enabled
-               days = x.Retention_period
-            |} |> box
+           | Some x ->
+               box
+                 {| enabled = x.Enabled
+                    days = x.Retention_period
+                 |} 
         
         |}
 
@@ -68,28 +70,14 @@ type DiagnosticSettings =
     interface IArmResource with
         member this.ResourceId = diagnosticSettingsType(this.ParentResourceType).resourceId this.Name
         member this.JsonModel =
-            {| diagnosticSettingsType(this.ParentResourceType).Create(this.Name,this.Location, tags = this.Tags,dependsOn=this.Dependencies) with
+            {| diagnosticSettingsType(this.ParentResourceType).Create(this.Name,this.Location, tags = this.Tags,dependsOn = this.Dependencies) with
                 properties =
                     {| serviceBusRuleId = this.ServiceBusRuleId
-                       LogAnalyticsDestinationType = 
-                        match this.DedicatedLogAnalyticsDestination with
-                        | Some x -> x
-                        | None -> null
+                       LogAnalyticsDestinationType = this.DedicatedLogAnalyticsDestination |> Option.toObj 
                        eventHubName = this.EventHubName |> Option.toObj
-                       eventHubAuthorizationRuleId = 
-                        match this.EventHubAuthorizationRuleId with
-                        | None -> null
-                        | Some x -> x.Eval()
-                       storageAccountId = 
-                        match this.StorageAccountId with
-                        | None  -> null
-                        | Some x -> x.Eval()
-                       metrics=this.Metrics 
-                       |> Array.map(fun x -> metricSettingsBuilder x) 
-                       logs=this.Logs
-                       |> Array.map(fun x -> logSettingsBuilder x) 
-                       workspaceId = 
-                        match this.WorkspaceId with
-                        | None  -> null
-                        | Some x -> x.Eval() |}
+                       eventHubAuthorizationRuleId = this.EventHubAuthorizationRuleId |> Option.map(fun x -> x.Eval()) |> Option.toObj 
+                       storageAccountId = this.StorageAccountId |> Option.map( fun x -> x.Eval()) |> Option.toObj
+                       metrics = this.Metrics |> Array.map  metricSettingsBuilder  
+                       logs = this.Logs |> Array.map  logSettingsBuilder
+                       workspaceId = this.WorkspaceId |> Option.map( fun x -> x.Eval()) |> Option.toObj  |}
             |} :> _

@@ -2,6 +2,8 @@
 
 open Expecto
 open Farmer
+open Farmer.Arm.Storage
+open Farmer.Arm.LogAnalytics
 open Farmer.Builders
 open Microsoft.Azure.Management.OperationalInsights
 open Microsoft.Azure.Management.Monitor.Models
@@ -17,14 +19,8 @@ let asAzureResource (ws:diagnosticSettingsConfig) =
 
 let tests = testList "Diagnostic Settings" [
     test "Creates diagnostic settings" {
-
-        let storageAccountResourceType = ResourceType("providers/Microsoft.Storage/storageAccounts/","")
-        let storageAccountName = ResourceName ("bccrmintegration")
-        let storageAccountResourceId = ResourceId.create(storageAccountResourceType,storageAccountName,"BC_CRM_Integration_POC")
-
-        let workspaceResourceType=ResourceType("Microsoft.OperationalInsights/workspaces","")
-        let workspaceName=ResourceName("tryw")
-        let workspaceResourceId=ResourceId.create(workspaceResourceType,workspaceName)
+        let storageAccountResourceId = ResourceId.create(storageAccounts, ResourceName ("bccrmintegration"), "BC_CRM_Integration_POC")
+        let workspaceResourceId = ResourceId.create(workspaces, ResourceName("tryw") )
         
         let myLog = log {
             category "WorkflowRuntime"
@@ -65,7 +61,7 @@ let tests = testList "Diagnostic Settings" [
                name  "LogicApp" "myDiagnosticSetting"
                parent_resource_type "Microsoft.Logic" "workflows"
                logs [myLog]
-           } |> ignore) (sprintf "Should have thrown for " ) 
+           } |> ignore) (sprintf "Should have thrown an exception for not specifying at least on data sink") 
     }
 
     test "Can't create test with retention period outside 1 and 365 " {

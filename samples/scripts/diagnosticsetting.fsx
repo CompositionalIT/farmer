@@ -1,15 +1,15 @@
 #r "./libs/Newtonsoft.Json.dll"
 #r "../../src/Farmer/bin/Debug/netstandard2.0/Farmer.dll"
 open Farmer
+open Farmer.Arm.Storage
+open Farmer.Arm.LogAnalytics
+open Farmer.Arm.EventHub
 open Farmer.Builders
 open System
-
-let storageAccountResourceType=ResourceType("Microsoft.Storage/storageAccounts","")
-let storageAccountName=ResourceName ("bccrmintegration")
-let storageAccountResourceId=ResourceId.create(storageAccountResourceType,storageAccountName,"BC_CRM_Integration_POC")
-let workspaceResourceType=ResourceType("Microsoft.OperationalInsights/workspaces","")
-let workspaceName=ResourceName("tryw")
-let workspaceResourceId=ResourceId.create(workspaceResourceType,workspaceName)
+let storageAccountName = ResourceName ("bccrmintegration")
+let storageAccountResourceId = ResourceId.create(storageAccounts,storageAccountName,"BC_CRM_Integration_POC")
+let workspaceName = ResourceName("tryw")
+let workspaceResourceId = ResourceId.create(workspaces,workspaceName)
 
 let myLog = log { 
     category "WorkflowRuntime"
