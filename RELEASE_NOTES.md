@@ -1,7 +1,9 @@
 Release Notes
 =============
-## To Be Decided
+## Next release
 * Web App: Support for adding site extensions with "use_extension"
+* Functions: Support for external unmanaged storage accounts.
+* Functions: Support for user-assigned managed identity.
 * Storage: Support for setting default blob access tier at account level with "default_blob_access_tier"
 
 ## 1.3.0-beta2

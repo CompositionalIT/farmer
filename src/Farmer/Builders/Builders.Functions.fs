@@ -85,18 +85,23 @@ type FunctionsConfig =
                 | Linux -> "functionapp,linux"
               Dependencies = Set [
                 yield! this.Dependencies
+
                 match this.AppInsights with
                 | Some (DependableResource this resourceId) -> resourceId
                 | _ -> ()
+
                 for setting in this.Settings do
                     match setting.Value with
                     | ExpressionSetting e -> yield! Option.toList e.Owner
                     | ParameterSetting _ | LiteralSetting _ -> ()
+
                 match this.ServicePlan with
                 | DependableResource this resourceId -> resourceId
                 | _ -> ()
 
-                storageAccounts.resourceId this.StorageAccountName.ResourceName
+                match this.StorageAccount with
+                | DependableResource this resourceId -> resourceId
+                | _ -> ()
               ]
               AlwaysOn = false
               HTTPSOnly = this.HTTPSOnly
@@ -188,6 +193,8 @@ type FunctionsBuilder() =
     [<CustomOperation "link_to_storage_account">]
     member _.LinkToStorageAccount(state:FunctionsConfig, name) = { state with StorageAccount = managed storageAccounts name }
     member this.LinkToStorageAccount(state:FunctionsConfig, name) = this.LinkToStorageAccount(state, ResourceName name)
+    [<CustomOperation "link_to_unmanaged_storage_account">]
+    member _.LinkToUnmanagedStorageAccount(state:FunctionsConfig, resourceId) = { state with StorageAccount = External(Unmanaged resourceId) }
     /// Set the name of the storage account instead of using an auto-generated one based on the function instance name.
     [<CustomOperation "storage_account_name">]
     member _.StorageAccountName(state:FunctionsConfig, name) = { state with StorageAccount = named storageAccounts (ResourceName name) }
@@ -256,8 +263,11 @@ type FunctionsBuilder() =
                 | SpecificOrigins (origins, _) -> SpecificOrigins (origins, Some true)
                 | AllOrigins -> failwith "You cannot enable CORS Credentials if you have already set CORS to AllOrigins.")
         }
+    [<CustomOperation "add_identity">]
+    member _.AddIdentity(state:FunctionsConfig, identity:UserAssignedIdentity) = { state with Identity = state.Identity + identity }
+    member this.AddIdentity(state, identity:UserAssignedIdentityConfig) = this.AddIdentity(state, identity.UserAssignedIdentity)
     [<CustomOperation "system_identity">]
-    member _.EnableManagedIdentity(state:FunctionsConfig) =
+    member _.SystemIdentity(state:FunctionsConfig) =
         { state with Identity = { state.Identity with SystemAssigned = Enabled } }
     [<CustomOperation "add_tags">]
     member _.Tags(state:FunctionsConfig, pairs) =
@@ -268,6 +278,5 @@ type FunctionsBuilder() =
     [<CustomOperation "zip_deploy">]
     /// Specifies a folder path or a zip file containing the function app to install as a post-deployment task.
     member _.ZipDeploy(state:FunctionsConfig, path) = { state with ZipDeployPath = Some path }
-
 
 let functions = FunctionsBuilder()
