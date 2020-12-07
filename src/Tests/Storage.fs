@@ -190,7 +190,7 @@ let tests = testList "Storage Tests" [
 
         let account = storageAccount { default_blob_access_tier Hot }
         let resource = arm { add_resource account } |> getStorageResource
-        Expect.equal resource.AccessTier (Nullable AccessTier.Cool) "Access Tier"
+        Expect.equal resource.AccessTier (Nullable AccessTier.Hot) "Access Tier"
 
         let account = storageAccount { sku (GeneralPurpose (V2 (V2Replication.LRS Premium))) }
         let resource = arm { add_resource account } |> getStorageResource
