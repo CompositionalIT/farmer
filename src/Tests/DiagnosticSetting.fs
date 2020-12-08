@@ -52,7 +52,14 @@ let tests = testList "Diagnostic Settings" [
         Expect.equal result.Logs.[0].Category "WorkflowRuntime" "Incorrect LogCategory"
         Expect.equal result.Logs.[0].RetentionPolicy.Days 1 "Incorrect LogRetentionPeriod"
     }
-
+    test "Event hub name can't be specified without the Event hub authorization rule id  " {
+       Expect.throws (fun _ -> 
+           diagnosticSettings {
+               name  "LogicApp" "myDiagnosticSetting"
+               parent_resource_type "Microsoft.Logic" "workflows"
+               event_hub_name "myeventhubname"
+           } |> ignore) (sprintf "Should have thrown an exception for not specifying Event Hub authorization rule id") 
+    }
     test "Can't create Diagnostic Settings without at least one data sink " {
        let myLog = log { category "WorkflowRuntime"}
 
