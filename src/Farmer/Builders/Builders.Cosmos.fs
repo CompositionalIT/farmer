@@ -157,8 +157,9 @@ type CosmosDbBuilder() =
 
     /// Sets the name of the CosmosDB server.
     [<CustomOperation "account_name">]
-    member __.AccountName(state:CosmosDbConfig, accountName: ResourceName) = { state with AccountName = AutoCreate (Named (databaseAccounts.resourceId accountName)) }
-    member this.AccountName(state:CosmosDbConfig, accountName: string) = this.AccountName(state, CosmosDbValidation.CosmosDbName.Create(accountName).OkValue.ResourceName)
+    member __.AccountName(state:CosmosDbConfig, accountName: ResourceName) =
+        { state with AccountName = AutoCreate (Named (databaseAccounts.resourceId (CosmosDbValidation.CosmosDbName.Create(accountName).OkValue.ResourceName))) }
+    member this.AccountName(state:CosmosDbConfig, accountName: string) = this.AccountName(state, ResourceName accountName)
     /// Links the database to an existing server
     [<CustomOperation "link_to_account">]
     member __.LinkToAccount(state:CosmosDbConfig, accountConfig:CosmosDbConfig) = { state with AccountName = External(Managed(accountConfig.AccountName.resourceId accountConfig)) }
