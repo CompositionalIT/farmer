@@ -79,7 +79,7 @@ let tests = testList "CDN tests" [
         let domain : CustomDomain = 
             cdn {
                 name "test"
-                add_endpoints [ endpoint { custom_domain_name "https://www.compositional-it.com" } ]
+                add_endpoints [ endpoint { custom_domain_name "www.compositional-it.com" } ]
             }
             |> getResourceAtIndex 2
 
