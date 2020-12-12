@@ -1,5 +1,9 @@
 Release Notes
 =============
+## Next release
+* Web App: Support for adding site extensions with "use_extension"
+* Functions: Support for external unmanaged storage accounts.
+
 ## 1.3.0-beta2
 * Container Instance: Support for secure parameters for environment variables and secret volumes.
 * Deployment Scripts: Support for secure parameters for environment variables.
