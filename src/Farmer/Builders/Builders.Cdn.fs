@@ -17,7 +17,7 @@ type EndpointConfig =
       Https : FeatureFlag
       Compression : FeatureFlag
       Origin : ArmExpression
-      CustomDomain : Uri option
+      CustomDomain : string option
       OptimizationType : OptimizationType }
 
 type CdnConfig =
@@ -124,7 +124,7 @@ type EndpointBuilder() =
     member _.DisableHttps(state:EndpointConfig) = { state with Https = Disabled }
     /// Name of the custom domain hostname.
     [<CustomOperation "custom_domain_name">]
-    member _.CustomDomain(state:EndpointConfig, hostname) = { state with CustomDomain = Some (System.Uri hostname) }
+    member _.CustomDomain(state:EndpointConfig, hostname) = { state with CustomDomain = Some hostname }
     /// Specifies what scenario the customer wants this CDN endpoint to optimise for.
     [<CustomOperation "optimise_for">]
     member _.OptimiseFor(state:EndpointConfig, optimizationType) = { state with OptimizationType = optimizationType }

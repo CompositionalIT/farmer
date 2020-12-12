@@ -12,7 +12,7 @@ open System
 
 /// Client instance needed to get the serializer settings.
 let dummyClient = new CdnManagementClient (Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
-let getResourceAtIndex = getResourceAtIndex dummyClient.SerializationSettings
+let getResourceAtIndex x = x |> getResourceAtIndex dummyClient.SerializationSettings
 
 let asAzureResource (cdn:CdnConfig) =
     arm { add_resource cdn }
@@ -73,5 +73,16 @@ let tests = testList "CDN tests" [
         Expect.equal endpoint.QueryStringCachingBehavior.Value QueryStringCachingBehavior.BypassCaching "Query String Caching Behaviour"
         Expect.isFalse endpoint.IsHttpAllowed.Value "HTTP should be disabled"
         Expect.isFalse endpoint.IsHttpsAllowed.Value "HTTPS should be disabled"
+    }
+
+    test "Custom Domain is correctly set" {
+        let domain : CustomDomain = 
+            cdn {
+                name "test"
+                add_endpoints [ endpoint { custom_domain_name "www.compositional-it.com" } ]
+            }
+            |> getResourceAtIndex 2
+
+        Expect.equal domain.HostName "www.compositional-it.com" "Custom Domain name is wrong"
     }
 ]
