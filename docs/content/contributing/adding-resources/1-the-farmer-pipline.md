@@ -22,7 +22,6 @@ Start by looking at [this sample](https://github.com/Azure/azure-quickstart-temp
 #r "nuget: Newtonsoft.Json"
 
 open Farmer
-open Farmer.CoreTypes
 
 // A function called "registries" that takes in a name, sku and boolean flag for whether to enable the admin user.
 let registries name sku adminUserEnabled =
