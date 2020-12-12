@@ -2,7 +2,6 @@
 module Farmer.Arm.Web
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.WebApp
 open System
 
@@ -10,6 +9,8 @@ let serverFarms = ResourceType ("Microsoft.Web/serverfarms", "2018-02-01")
 let sites = ResourceType ("Microsoft.Web/sites", "2016-08-01")
 let config = ResourceType ("Microsoft.Web/sites/config", "2016-08-01")
 let sourceControls = ResourceType ("Microsoft.Web/sites/sourcecontrols", "2019-08-01")
+let staticSites = ResourceType("Microsoft.Web/staticSites", "2019-12-01-preview")
+let siteExtensions = ResourceType("Microsoft.Web/sites/siteextensions", "2020-06-01")
 
 type ServerFarm =
     { Name : ResourceName
@@ -30,7 +31,7 @@ type ServerFarm =
     member this.Kind =
         match this.OperatingSystem with
         | Linux -> Some "linux"
-        | _ -> None
+        | Windows -> None
     member this.Tier =
         match this.Sku with
         | Free -> "Free"
@@ -42,7 +43,7 @@ type ServerFarm =
         | Dynamic -> "Dynamic"
         | Isolated _ -> "Isolated"
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = serverFarms.resourceId this.Name
         member this.JsonModel =
             {| serverFarms.Create(this.Name, this.Location, tags = this.Tags) with
                  sku =
@@ -112,7 +113,7 @@ module ZipDeploy =
 type Site =
     { Name : ResourceName
       Location : Location
-      ServicePlan : ResourceName
+      ServicePlan : ResourceId
       AppSettings : Map<string, Setting>
       ConnectionStrings : Map<string, (Setting * ConnectionStringKind)>
       AlwaysOn : bool
@@ -121,9 +122,9 @@ type Site =
       ClientAffinityEnabled : bool option
       WebSocketsEnabled : bool option
       Cors : Cors option
-      Dependencies : ResourceId list
+      Dependencies : ResourceId Set
       Kind : string
-      Identity : FeatureFlag option
+      Identity : Identity.ManagedIdentity
       LinuxFxVersion : string option
       AppCommandLine : string option
       NetFrameworkVersion : string option
@@ -153,50 +154,47 @@ type Site =
                         failwithf "Path '%s' must either be a folder to be zipped, or an existing zip." path)
                 printfn "Running ZIP deploy for %s" path.Value
                 Some (match target with
-                        | ZipDeploy.ZipDeployTarget.WebApp -> Deploy.Az.zipDeployWebApp name.Value path.GetZipPath resourceGroupName
-                        | ZipDeploy.ZipDeployTarget.FunctionApp -> Deploy.Az.zipDeployFunctionApp name.Value path.GetZipPath resourceGroupName)
+                      | ZipDeploy.WebApp -> Deploy.Az.zipDeployWebApp name.Value path.GetZipPath resourceGroupName
+                      | ZipDeploy.FunctionApp -> Deploy.Az.zipDeployFunctionApp name.Value path.GetZipPath resourceGroupName)
             | _ ->
                 None
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = sites.resourceId this.Name
         member this.JsonModel =
-            {| sites.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
+            let dependencies = this.Dependencies + (Set this.Identity.Dependencies)
+            {| sites.Create(this.Name, this.Location, dependencies, this.Tags) with
                  kind = this.Kind
-                 identity =
-                   match this.Identity with
-                   | Some Enabled -> box {| ``type`` = "SystemAssigned" |}
-                   | Some Disabled -> box {| ``type`` = "None" |}
-                   | None -> null
+                 identity = this.Identity |> ManagedIdentity.toArmJson
                  properties =
-                      {| serverFarmId = this.ServicePlan.Value
-                         httpsOnly = this.HTTPSOnly
-                         clientAffinityEnabled = match this.ClientAffinityEnabled with Some v -> box v | None -> null
-                         siteConfig =
-                          {| alwaysOn = this.AlwaysOn
-                             appSettings = this.AppSettings |> Map.toList |> List.map(fun (k,v) -> {| name = k; value = v.Value |})
-                             connectionStrings = this.ConnectionStrings |> Map.toList |> List.map(fun (k,(v, t)) -> {| name = k; connectionString = v.Value; ``type`` = t.ToString() |})
-                             linuxFxVersion = this.LinuxFxVersion |> Option.toObj
-                             appCommandLine = this.AppCommandLine |> Option.toObj
-                             netFrameworkVersion = this.NetFrameworkVersion |> Option.toObj
-                             javaVersion = this.JavaVersion |> Option.toObj
-                             javaContainer = this.JavaContainer |> Option.toObj
-                             javaContainerVersion = this.JavaContainerVersion |> Option.toObj
-                             phpVersion = this.PhpVersion |> Option.toObj
-                             pythonVersion = this.PythonVersion |> Option.toObj
-                             http20Enabled = this.HTTP20Enabled |> Option.toNullable
-                             webSocketsEnabled = this.WebSocketsEnabled |> Option.toNullable
-                             metadata = this.Metadata |> List.map(fun (k,v) -> {| name = k; value = v |})
-                             cors =
-                                this.Cors
-                                |> Option.map (function
-                                    | AllOrigins ->
-                                        box {| allowedOrigins = [ "*" ] |}
-                                    | SpecificOrigins (origins, credentials) ->
-                                        box {| allowedOrigins = origins
-                                               supportCredentials = credentials |> Option.toNullable |})
-                                |> Option.toObj
-                          |}
-                      |}
+                    {| serverFarmId = this.ServicePlan.Eval()
+                       httpsOnly = this.HTTPSOnly
+                       clientAffinityEnabled = match this.ClientAffinityEnabled with Some v -> box v | None -> null
+                       siteConfig =
+                        {| alwaysOn = this.AlwaysOn
+                           appSettings = this.AppSettings |> Map.toList |> List.map(fun (k,v) -> {| name = k; value = v.Value |})
+                           connectionStrings = this.ConnectionStrings |> Map.toList |> List.map(fun (k,(v, t)) -> {| name = k; connectionString = v.Value; ``type`` = t.ToString() |})
+                           linuxFxVersion = this.LinuxFxVersion |> Option.toObj
+                           appCommandLine = this.AppCommandLine |> Option.toObj
+                           netFrameworkVersion = this.NetFrameworkVersion |> Option.toObj
+                           javaVersion = this.JavaVersion |> Option.toObj
+                           javaContainer = this.JavaContainer |> Option.toObj
+                           javaContainerVersion = this.JavaContainerVersion |> Option.toObj
+                           phpVersion = this.PhpVersion |> Option.toObj
+                           pythonVersion = this.PythonVersion |> Option.toObj
+                           http20Enabled = this.HTTP20Enabled |> Option.toNullable
+                           webSocketsEnabled = this.WebSocketsEnabled |> Option.toNullable
+                           metadata = this.Metadata |> List.map(fun (k,v) -> {| name = k; value = v |})
+                           cors =
+                            this.Cors
+                            |> Option.map (function
+                                | AllOrigins ->
+                                    box {| allowedOrigins = [ "*" ] |}
+                                | SpecificOrigins (origins, credentials) ->
+                                    box {| allowedOrigins = origins
+                                           supportCredentials = credentials |> Option.toNullable |})
+                            |> Option.toObj
+                        |}
+                    |}
             |} :> _
 
 module Sites =
@@ -208,11 +206,53 @@ module Sites =
           ContinuousIntegration : FeatureFlag }
         member this.Name = this.Website.Map(sprintf "%s/web")
         interface IArmResource with
-            member this.ResourceName = this.Name
+            member this.ResourceId = sourceControls.resourceId this.Name
             member this.JsonModel =
-                {| sourceControls.Create(this.Name, this.Location, [ ResourceId.create this.Website ]) with
+                {| sourceControls.Create(this.Name, this.Location, [ sites.resourceId this.Website ]) with
                     properties =
                         {| repoUrl = this.Repository.ToString()
                            branch = this.Branch
                            isManualIntegration = this.ContinuousIntegration.AsBoolean |> not |}
                 |} :> _
+
+type StaticSite =
+    { Name : ResourceName
+      Location : Location
+      Repository : Uri
+      Branch : string
+      RepositoryToken : SecureParameter
+      AppLocation : string
+      ApiLocation : string option
+      AppArtifactLocation : string option }
+    interface IArmResource with
+        member this.ResourceId = staticSites.resourceId this.Name
+        member this.JsonModel =
+            {| staticSites.Create(this.Name, this.Location) with
+                properties =
+                 {| repositoryUrl = this.Repository.ToString()
+                    branch = this.Branch
+                    repositoryToken = this.RepositoryToken.ArmExpression.Eval()
+                    buildProperties =
+                     {| appLocation = this.AppLocation
+                        apiLocation = this.ApiLocation |> Option.toObj
+                        appArtifactLocation = this.AppArtifactLocation |> Option.toObj |}
+                 |}
+                sku =
+                 {| Tier = "Free"
+                    Name = "Free" |}
+            |} :> _
+    interface IParameters with
+        member this.SecureParameters = [
+            this.RepositoryToken
+        ]
+
+[<AutoOpen>]
+module SiteExtensions =
+    type SiteExtension =
+        { Name : ResourceName
+          SiteName : ResourceName
+          Location : Location }
+        interface IArmResource with
+            member this.ResourceId = siteExtensions.resourceId(this.SiteName/this.Name)
+            member this.JsonModel =
+                siteExtensions.Create(this.SiteName/this.Name, this.Location, [ sites.resourceId this.SiteName ]) :> _

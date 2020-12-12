@@ -11,49 +11,48 @@ open System
 
 /// Client instance needed to get the serializer settings.
 let client = new StorageManagementClient(Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
+let getStorageResource = findAzureResources<StorageAccount> client.SerializationSettings >> List.head
+
 let tests = testList "Storage Tests" [
     test "Can create a basic storage account" {
         let resource =
             let account = storageAccount {
                 name "mystorage123"
-                sku Premium_LRS
-                enable_data_lake true
             }
             arm { add_resource account }
-            |> findAzureResources<StorageAccount> client.SerializationSettings
-            |> List.head
+            |> getStorageResource
 
         resource.Validate()
         Expect.equal resource.Name "mystorage123" "Account name is wrong"
+        Expect.equal resource.Sku.Name "Standard_LRS" "SKU is wrong"
+        Expect.equal resource.Kind "StorageV2" "Kind"
+        Expect.equal resource.IsHnsEnabled (Nullable<bool>()) "Hierarchical namespace shouldn't be included"
+    }
+    test "Data lake is not enabled by default" {
+        let resource =
+            let account = storageAccount {
+                name "mystorage123"
+                sku Sku.Premium_LRS
+                enable_data_lake true
+            }
+            arm { add_resource account }
+            |> getStorageResource
+
+        resource.Validate()
         Expect.equal resource.Sku.Name "Premium_LRS" "SKU is wrong"
         Expect.isTrue resource.IsHnsEnabled.Value "Hierarchical namespace not enabled"
     }
-    test "When data lake is not enabled" {
+    test "When data lake can be disabled" {
         let resource =
             let account = storageAccount {
                 name "mystorage123"
-                sku Premium_LRS
                 enable_data_lake false
             }
             arm { add_resource account }
-            |> findAzureResources<StorageAccount> client.SerializationSettings
-            |> List.head
+            |> getStorageResource
 
         resource.Validate()
-        Expect.isFalse resource.IsHnsEnabled.Value "Hierarchical namespace shouldn't be included"
-    }
-    test "When data lake is not enabled by default" {
-        let resource =
-            let account = storageAccount {
-                name "mystorage123"
-                sku Premium_LRS
-            }
-            arm { add_resource account }
-            |> findAzureResources<StorageAccount> client.SerializationSettings
-            |> List.head
-
-        resource.Validate()
-        Expect.equal resource.IsHnsEnabled (Nullable<bool>()) "Hierarchical namespace shouldn't be included"
+        Expect.isFalse resource.IsHnsEnabled.Value "Hierarchical namespace should be false"
     }
     test "Creates containers correctly" {
         let resources : BlobContainer list =
@@ -134,9 +133,54 @@ let tests = testList "Storage Tests" [
     }
     test "Creates connection strings correctly" {
         let strongConn = StorageAccount.getConnectionString (StorageAccountName.Create("account").OkValue)
-        let rgConn = StorageAccount.getConnectionString(StorageAccountName.Create("account").OkValue, "rg")
+        let rgConn = StorageAccount.getConnectionString (StorageAccountName.Create("account").OkValue, "rg")
 
         Expect.equal "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'account'), '2017-10-01').keys[0].value)" strongConn.Value "Strong connection string"
         Expect.equal "concat('DefaultEndpointsProtocol=https;AccountName=account;AccountKey=', listKeys(resourceId('rg', 'Microsoft.Storage/storageAccounts', 'account'), '2017-10-01').keys[0].value)" rgConn.Value "Complex connection string"
+    }
+    test "Creates Role Assignment correctly" {
+        let uai = UserAssignedIdentity.createUserAssignedIdentity "user"
+        let builder = storageAccount { name "foo"; grant_access uai Roles.StorageBlobDataOwner } :> IBuilder
+        let roleAssignment = builder.BuildResources Location.NorthEurope |> List.last :?> Farmer.Arm.RoleAssignment.RoleAssignment
+        Expect.equal roleAssignment.PrincipalId uai.PrincipalId "PrincipalId"
+        Expect.equal roleAssignment.RoleDefinitionId Roles.StorageBlobDataOwner "RoleId"
+        let expectedRoleAssignmentName = "efad7c9d-881a-5ca8-9177-eb1c95550036" // Deterministic guid for this input.
+        Expect.equal roleAssignment.Name.Value expectedRoleAssignmentName "Storage Account Name"
+
+        let storage = builder.BuildResources Location.NorthEurope |> List.head :?> Farmer.Arm.Storage.StorageAccount
+
+        Expect.sequenceEqual storage.Dependencies [ uai.ResourceId ] "ResourceId"
+    }
+    test "WebsitePrimaryEndpoint creation" {
+        let builder = storageAccount { name "foo" }
+
+        Expect.equal builder.WebsitePrimaryEndpoint.Value "reference(resourceId('Microsoft.Storage/storageAccounts', 'foo'), '2019-06-01').primaryEndpoints.web" "Zone names are not fixed and should be related to a storage account name"
+    }
+    test "Creates different SKU kinds correctly" {
+        let account = storageAccount { sku (Blobs (BlobReplication.LRS, Cool)) }
+        let resource = arm { add_resource account } |> getStorageResource
+        Expect.equal resource.Kind "BlobStorage" "Kind"
+        Expect.equal resource.AccessTier (Nullable AccessTier.Cool) "Access Tier"
+        Expect.equal resource.Sku.Name "Standard_LRS" "Sku Name"
+
+        let account = storageAccount { sku (Files BasicReplication.ZRS) }
+        let resource = arm { add_resource account } |> getStorageResource
+        Expect.equal resource.Kind "FileStorage" "Kind"
+        Expect.equal resource.Sku.Name "Premium_ZRS" "Sku Name"
+
+        let account = storageAccount { sku (BlockBlobs BasicReplication.LRS) }
+        let resource = arm { add_resource account } |> getStorageResource
+        Expect.equal resource.Kind "BlockBlobStorage" "Kind"
+        Expect.equal resource.Sku.Name "Premium_LRS" "Sku Name"
+
+        let account = storageAccount { sku (GeneralPurpose (V1 V1Replication.RAGRS)) }
+        let resource = arm { add_resource account } |> getStorageResource
+        Expect.equal resource.Kind "Storage" "Kind"
+        Expect.equal resource.Sku.Name "Standard_RAGRS" "Sku Name"
+
+        let account = storageAccount { sku (GeneralPurpose (V2 (V2Replication.LRS Premium))) }
+        let resource = arm { add_resource account } |> getStorageResource
+        Expect.equal resource.Kind "StorageV2" "Kind"
+        Expect.equal resource.Sku.Name "Premium_LRS" "Sku Name"
     }
 ]

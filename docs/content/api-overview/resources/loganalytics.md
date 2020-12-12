@@ -28,7 +28,6 @@ The Log Analytics builder is used to create Work space instances.
 ```fsharp
 open Farmer
 open Farmer.Builders
-open Farmer.LogAnalytics
 
 let myAnalytics = logAnalytics {
     name "myloganalytics"

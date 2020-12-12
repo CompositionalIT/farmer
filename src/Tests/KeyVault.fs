@@ -2,9 +2,9 @@ module KeyVault
 
 open Expecto
 open Farmer.Builders
-open Farmer.CoreTypes
 open Farmer.KeyVault
 open System
+open Farmer
 
 let tests = testList "KeyVault" [
     test "Can create secrets without popping" {
@@ -18,6 +18,17 @@ let tests = testList "KeyVault" [
                 add_secret (secret { name "test2" })
             }
         Expect.hasLength vault.Secrets 2 "Bad secrets"
+    }
+    test "Can create secrets with tags" {
+        let s = 
+            secret {
+                name "test"
+                add_tag "foo" "bar"
+                add_tag "fizz" "buzz"
+            }
+        Expect.hasLength s.Tags 2 "Incorrect number of tags on secret"
+        Expect.equal s.Tags.["foo"] "bar" "Incorrect value on secret tag 'foo'"
+        Expect.equal s.Tags.["fizz"] "buzz" "Incorrect value on secret tag 'fizz'"
     }
     test "Throws on empty inline secret" {
         Expect.throws(fun () ->
@@ -47,5 +58,12 @@ let tests = testList "KeyVault" [
         Expect.sequenceEqual expressionSecret.Dependencies [ ResourceId.create(Farmer.Arm.Storage.storageAccounts, sa.Name.ResourceName) ] "Missing storage account dependency"
 
         Expect.throws (fun _ -> SecretConfig.create("bad", (ArmExpression.literal "foo")) |> ignore) "Should throw exception on expression with no owner"
+    }
+
+    test "Works with identities" {
+        let a = webApp { name "test" }
+        let v = keyVault { add_access_policy (AccessPolicy.create a.SystemIdentity.PrincipalId) } :> IBuilder
+        let vault = v.BuildResources Location.NorthEurope |> List.head :?> Farmer.Arm.KeyVault.Vault
+        Expect.sequenceEqual vault.Dependencies [ ResourceId.create(Arm.Web.sites, a.Name) ] "Web App dependency"
     }
 ]

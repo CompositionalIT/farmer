@@ -3,8 +3,8 @@ module Farmer.Arm.ContainerInstance
 
 open Farmer
 open Farmer.ContainerGroup
-open Farmer.CoreTypes
-open Newtonsoft.Json.Linq
+open Farmer.Identity
+open System
 
 let containerGroups = ResourceType ("Microsoft.ContainerInstance/containerGroups", "2018-10-01")
 
@@ -19,49 +19,71 @@ type ImageRegistryCredential =
       Username : string
       Password : SecureParameter }
 
-type EnvVarValue = EnvValue of string | EnvSecureValue of string
-
 type ContainerGroup =
     { Name : ResourceName
       Location : Location
       ContainerInstances :
         {| Name : ResourceName
            Image : string
+           Command : string list
            Ports : uint16 Set
            Cpu : float
            Memory : float<Gb>
-           EnvironmentVariables: Map<string, EnvVarValue>
+           EnvironmentVariables: Map<string, EnvVar>
            VolumeMounts : Map<string,string>
         |} list
       OperatingSystem : OS
       RestartPolicy : RestartPolicy
+      Identity : ManagedIdentity
       ImageRegistryCredentials : ImageRegistryCredential list
-      IpAddress : ContainerGroupIpAddress
+      IpAddress : ContainerGroupIpAddress option
       NetworkProfile : ResourceName option
       Volumes : Map<string, Volume>
       Tags: Map<string,string>  }
     member this.NetworkProfilePath =
         this.NetworkProfile
-        |> Option.map (fun networkProfile -> ResourceId.create(networkProfiles, networkProfile))
+        |> Option.map networkProfiles.resourceId
     member private this.Dependencies = [
-        match this.NetworkProfilePath with
-        | Some path -> path
-        | None -> ()
+        yield! Option.toList this.NetworkProfilePath
 
         for _, volume in this.Volumes |> Map.toSeq do
             match volume with
             | Volume.AzureFileShare (shareName, storageAccountName) ->
-                ResourceId.create(fileShares, storageAccountName.ResourceName, ResourceName "default", shareName)
+                fileShares.resourceId (storageAccountName.ResourceName, ResourceName "default", shareName)
             | _ ->
                 ()
+
+        // If the identity is set, include any dependent identity's resource ID
+        yield! this.Identity.Dependencies
     ]
 
     interface IParameters with
-        member this.SecureParameters = this.ImageRegistryCredentials |> List.map (fun c -> c.Password)
+        member this.SecureParameters = [
+            for credential in this.ImageRegistryCredentials do
+                credential.Password
+            for container in this.ContainerInstances do
+                for envVar in container.EnvironmentVariables do
+                    match envVar.Value with
+                    | SecureEnvValue p -> p
+                    | EnvValue _ -> ()
+            for volume in this.Volumes do
+                match volume.Value with
+                | Volume.Secret secrets ->
+                    for secret in secrets do
+                        match secret with
+                        | SecretFileParameter (_, parameter) -> parameter
+                        | SecretFileContents _ -> ()
+                | Volume.EmptyDirectory
+                | Volume.AzureFileShare _
+                | Volume.Secret _
+                | Volume.GitRepo _ ->
+                    ()
+        ]
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = containerGroups.resourceId this.Name
         member this.JsonModel =
             {| containerGroups.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
+                   identity = this.Identity |> ManagedIdentity.toArmJson
                    properties =
                        {| containers =
                            this.ContainerInstances
@@ -69,12 +91,15 @@ type ContainerGroup =
                                {| name = container.Name.Value.ToLowerInvariant ()
                                   properties =
                                    {| image = container.Image
+                                      command = container.Command
                                       ports = container.Ports |> Set.map (fun port -> {| port = port |})
                                       environmentVariables = [
-                                          for (key, value) in Map.toSeq container.EnvironmentVariables do
+                                          for key, value in Map.toSeq container.EnvironmentVariables do
                                               match value with
-                                              | EnvValue v -> {| name = key; value = v; secureValue = null |}
-                                              | EnvSecureValue v -> {| name = key; value = null; secureValue = v |}
+                                              | EnvValue value ->
+                                                {| name = key; value = value; secureValue = null |}
+                                              | SecureEnvValue value ->
+                                                {| name = key; value = null; secureValue = value.ArmExpression.Eval() |}
                                       ]
                                       resources =
                                        {| requests =
@@ -99,20 +124,23 @@ type ContainerGroup =
                                      username = cred.Username
                                      password = cred.Password.ArmExpression.Eval() |})
                           ipAddress =
-                            {| ``type`` =
-                                match this.IpAddress.Type with
-                                | PublicAddress | PublicAddressWithDns _ -> "Public"
-                                | PrivateAddress _ -> "Private"
-                               ports = [
-                                   for port in this.IpAddress.Ports do
-                                    {| protocol = string port.Protocol
-                                       port = port.Port |}
-                               ]
-                               dnsNameLabel =
-                                match this.IpAddress.Type with
-                                | PublicAddressWithDns dnsLabel -> dnsLabel
-                                | _ -> null
-                            |}
+                            match this.IpAddress with
+                            | Some ipAddresses ->
+                                {| ``type`` =
+                                    match ipAddresses.Type with
+                                    | PublicAddress | PublicAddressWithDns _ -> "Public"
+                                    | PrivateAddress _ -> "Private"
+                                   ports = [
+                                       for port in ipAddresses.Ports do
+                                        {| protocol = string port.Protocol
+                                           port = port.Port |}
+                                   ]
+                                   dnsNameLabel =
+                                    match ipAddresses.Type with
+                                    | PublicAddressWithDns dnsLabel -> dnsLabel
+                                    | _ -> null
+                                |} |> box
+                            | None -> null
                           networkProfile =
                             this.NetworkProfilePath
                             |> Option.map(fun path -> box {| id = path.Eval() |})
@@ -148,12 +176,15 @@ type ContainerGroup =
                                        azureFile = Unchecked.defaultof<_>
                                        emptyDir = null
                                        gitRepo = Unchecked.defaultof<_>
-                                       secret =
-                                           let jobj = JObject()
-                                           for (SecretFile (name, secret)) in secrets do
-                                               jobj.Add (name, secret |> System.Convert.ToBase64String |> JValue)
-                                           jobj
-                                       |}
+                                       secret = dict [
+                                        for secret in secrets do
+                                            match secret with
+                                            | SecretFileContents (name, secret) ->
+                                                name, Convert.ToBase64String secret
+                                            | SecretFileParameter (name, parameter) ->
+                                                name, parameter.ArmExpression.Map(sprintf "base64(%s)").Eval()
+                                       ]
+                                    |}
                           ]
                        |}
             |} :> _

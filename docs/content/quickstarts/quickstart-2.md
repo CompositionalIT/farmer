@@ -14,13 +14,14 @@ In this quickstart, you'll expand on the deployment authored in the [previous qu
 
 #### Creating a storage account
 Create a storage account by using the `storageAccount` builder.
+
 ```fsharp
 let myStorage = storageAccount {
     name "yourfirststorage"
 }
 ```
 
-> Azure Storage Account names must be globally unique and between 3-24 alphanumeric lower-case characters:
+> Azure Storage Account names must be globally unique and between 3-24 alphanumeric lower-case characters!
 
 #### Referencing the storage account in the web app
 In this section, we will add an app setting to the web app and set the value to the storage account's connection string.
@@ -32,21 +33,13 @@ Add the storage account's connection key to the webapp as an app setting.
 ```fsharp
 let myWebApp = webApp {
     ...
-    setting "STORAGE_CONNECTION" myStorage.Key
+    setting "storageKey" myStorage.Key
 }
 ```
+
+If you're coming from a raw ARM template background, don't worry about the need to set dependencies between the Storage Account and Web App - Farmer will automatically do this for you!
 
 > Settings can be strings or (as in this case) an ARM expression, which is evaluated at deployment time.
-
-#### Setting a dependency on the storage account
-In ARM templates, you need to explicitly set up **dependencies** between resources that refer to one another; this is still required in Farmer. This tells Azure to create the storage account *before* it creates the web app.
-
-```fsharp
-let myWebApp = webApp {
-    ...
-    depends_on myStorage
-}
-```
 
 #### Adding the storage account to the deployment
 Add the storage account to the deployment using the same `add_resource` keyword as you did with `myWebApp`.
@@ -67,7 +60,7 @@ You should notice that the template now contains a storage account. Also observe
     {
       "apiVersion": "2016-08-01",
       "dependsOn": [
-        "yourfirststorage"
+        "[resourceId('Microsoft.Storage/storageAccounts', 'yourfirststorage')]"
       ],
       "type": "Microsoft.Web/sites"
     }
@@ -95,13 +88,12 @@ open Farmer
 open Farmer.Builders
 
 let myStorageAccount = storageAccount {
-    name "yourfirststorageaccount"
+    name "yourfirststorage"
 }
 
 let myWebApp = webApp {
     name "yourFirstFarmerApp"
     setting "storageKey" myStorageAccount.Key
-    depends_on myStorageAccount.Name
 }
 
 let deployment = arm {

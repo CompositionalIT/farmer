@@ -2,7 +2,6 @@
 module Farmer.Builders.SqlAzure
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.Sql
 open Farmer.Arm.Sql
 open System.Net
@@ -39,16 +38,18 @@ type SqlAzureConfig =
                 this.AdministratorCredentials.Password.ArmExpression
                 ArmExpression.literal ";MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
             ]
-        expr.WithOwner (ResourceId.create(databases, database.Name))
+        expr.WithOwner (databases.resourceId (this.Name, database.Name))
     member this.ConnectionString databaseName =
         this.Databases
         |> List.tryFind(fun db -> db.Name = databaseName)
         |> Option.map this.ConnectionString
         |> Option.defaultWith(fun _ -> failwithf "Unknown database name %s" databaseName.Value)
     member this.ConnectionString databaseName = this.ConnectionString (ResourceName databaseName)
+    /// The key of the parameter that is required by Farmer for the SQL password.
+    member this.PasswordParameter = sprintf "password-for-%s" this.Name.Value
 
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.ResourceId = servers.resourceId this.Name
         member this.BuildResources location = [
             let elasticPoolName =
                 this.ElasticPoolSettings.Name
@@ -163,7 +164,7 @@ type SqlServerBuilder() =
             AdministratorCredentials =
                 if System.String.IsNullOrWhiteSpace state.AdministratorCredentials.UserName then failwithf "You must specify the admin_username for SQL Server instance %s" state.Name.Value
                 {| state.AdministratorCredentials with
-                    Password = SecureParameter (sprintf "password-for-%s" state.Name.Value) |} }
+                    Password = SecureParameter state.PasswordParameter |} }
     /// Sets the name of the SQL server.
     [<CustomOperation "name">]
     member _.ServerName(state:SqlAzureConfig, serverName) = { state with Name = serverName }

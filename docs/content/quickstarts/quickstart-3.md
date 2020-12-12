@@ -46,7 +46,6 @@ let myStorageAccount = storageAccount {
 let myWebApp = webApp {
     name "yourFirstFarmerApp"
     setting "storageKey" myStorageAccount.Key
-    depends_on myStorageAccount.Name
 }
 
 let deployment = arm {

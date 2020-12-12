@@ -2,7 +2,6 @@
 module TestHelpers
 
 open Farmer
-open Farmer.CoreTypes
 open Microsoft.Rest.Serialization
 
 let farmerToMs<'T when 'T : null> (serializationSettings:Newtonsoft.Json.JsonSerializerSettings) data =
@@ -21,18 +20,6 @@ let findAzureResources<'T when 'T : null> (serializationSettings:Newtonsoft.Json
     |> Seq.map SafeJsonConvert.SerializeObject
     |> Seq.choose (fun json -> SafeJsonConvert.DeserializeObject<'T>(json, serializationSettings) |> Option.ofObj)
     |> Seq.toList
-
-let convertResourceBuilder mapper (serializationSettings:Newtonsoft.Json.JsonSerializerSettings) (resourceBuilder:IBuilder) =
-    resourceBuilder.BuildResources Location.NorthEurope
-    |> List.pick(fun r ->
-        r.JsonModel
-        |> SafeJsonConvert.SerializeObject
-        |> SafeJsonConvert.DeserializeObject
-        |> mapper
-        |> SafeJsonConvert.SerializeObject
-        |> fun json -> SafeJsonConvert.DeserializeObject(json, serializationSettings)
-        |> Option.ofObj
-    )
 
 type TypedArmTemplate<'ResT> = { Resources : 'ResT array }
 

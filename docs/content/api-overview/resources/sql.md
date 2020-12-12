@@ -2,7 +2,7 @@
 title: "SQL Azure"
 date: 2020-02-05T08:53:46+01:00
 chapter: false
-weight: 22
+weight: 24
 ---
 
 #### Overview
@@ -26,6 +26,7 @@ The SQL Azure module contains two builders - `sqlServer`, used to create SQL Azu
 | Member | Purpose |
 |-|-|
 | ConnectionString | Gets a literal .NET connection string using the administrator username / password, given a database or database name. The password will be evaluated based on the contents of the password parameter supplied to the template at deploy time. |
+| PasswordParameter | Gets a string that represents the parameter password required for deployment on the sql instance by Farmer e.g. "password-for-mysqlserver".
 
 #### SQL Database Builder Keywords
 

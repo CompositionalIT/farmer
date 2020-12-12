@@ -2,6 +2,7 @@ module ContainerGroup
 
 open Expecto
 open Farmer
+open Farmer.Identity
 open Farmer.ContainerGroup
 open Farmer.Builders
 open Microsoft.Azure.Management.ContainerInstance
@@ -21,6 +22,12 @@ let fsharpApp = containerInstance {
     name "fsharpApp"
     image "myapp:1.7.2"
     add_ports PublicPort [ 8080us ]
+    memory 1.5<Gb>
+    cpu_cores 2
+}
+let appWithoutPorts = containerInstance {
+    name "appWithoutPorts"
+    image "myapp:1.7.2"
     memory 1.5<Gb>
     cpu_cores 2
 }
@@ -62,6 +69,29 @@ let tests = testList "Container Group" [
         Expect.equal ports [ 80; 443; 9090 ] "Incorrect ports on container"
     }
 
+    test "Group without public ip" {
+        let group = containerGroup {
+            name "myGroup"
+            operating_system Linux
+            restart_policy RestartOnFailure
+            add_instances [ appWithoutPorts ]
+        }
+
+        Expect.isNone group.IpAddress "IpAddresses should be none"
+    }
+
+    test "Container with command line arguments" {
+        let containerInstance = containerInstance {
+            name "appWithCommand"
+            image "myapp:1.7.2"
+            memory 1.5<Gb>
+            cpu_cores 2
+            command_line [ "echo"; "hello world" ]
+        }
+
+        Expect.equal containerInstance.Command [ "echo"; "hello world" ] "Incorrect container command line arguments"
+    }
+
     test "Multiple containers are correctly added" {
         let group = containerGroup { add_instances [ nginx; fsharpApp ] } |> asAzureResource
 
@@ -92,7 +122,7 @@ let tests = testList "Container Group" [
                 ]
             } |> asAzureResource
 
-        Expect.isEmpty group.IpAddress.Ports "Should not be any public ports"
+        Expect.equal group.IpAddress null "Should not be any public ports"
         Expect.equal group.Containers.[0].Ports.[0].Port 123 "Incorrect private port"
         Expect.hasLength group.Containers.[0].Ports 1 "Should only be one port"
     }
@@ -109,9 +139,7 @@ let tests = testList "Container Group" [
         let helloShared2 = containerInstance {
             name "hello-shared-dir2"
             add_ports PublicPort [ 81us ]
-            env_vars [
-                env_var "testing" "environment variables"
-            ]
+            env_vars [ "testing", "environment variables" ]
             image "mcr.microsoft.com/azuredocs/aci-helloworld:latest"
             add_volume_mount "shared-socket" "/var/lib/shared/hello"
             add_volume_mount "azure-file" "/var/lib/files"
@@ -152,5 +180,85 @@ let tests = testList "Container Group" [
         Expect.equal credentials.Username "user" "Incorrect container image registry user"
         Expect.equal credentials.Password "[parameters('my-registry.azurecr.io-password')]" "Container image registry password should be secure parameter"
     }
-]
 
+    test "Container group with system assigned identity" {
+        let group =
+            containerGroup {
+                name "myapp"
+                add_instances [ nginx ]
+                system_identity
+            } |> asAzureResource
+
+        Expect.isTrue group.Identity.Type.HasValue "Expecting an assigned identity."
+        Expect.equal group.Identity.Type.Value ResourceIdentityType.SystemAssigned "Expecting a system assigned identity"
+    }
+
+    test "Container group with user assigned identity" {
+        let group =
+            containerGroup {
+                name "myapp"
+                add_instances [ nginx ]
+                add_identity (ResourceId.create(Arm.ManagedIdentity.userAssignedIdentities, ResourceName "user", "resourceGroup") |> UserAssignedIdentity)
+            } |> asAzureResource
+
+        Expect.hasLength group.Identity.UserAssignedIdentities 1 "No user assigned identity."
+    }
+
+    test "Make container group with MSI" {
+        let msi = createUserAssignedIdentity "aciUser"
+        let group =
+            containerGroup {
+                name "myapp-with-msi"
+                add_instances [ nginx ]
+                add_identity msi
+            }
+        let template = arm {
+            location Location.EastUS
+            add_resource msi
+            add_resource group
+        }
+        let containerGroup = template.Template.Resources |> List.find(fun r -> r.ResourceId.Name.Value = "myapp-with-msi") :?> Farmer.Arm.ContainerInstance.ContainerGroup
+        Expect.isNonEmpty containerGroup.Identity.UserAssigned "Container group did not have identity"
+        Expect.equal containerGroup.Identity.UserAssigned.[0] (UserAssignedIdentity(ResourceId.create(Arm.ManagedIdentity.userAssignedIdentities, ResourceName "aciUser"))) "Expected user identity named 'aciUser'."
+    }
+    test "Secure environment variables are generated correctly" {
+        let cg = containerGroup {
+            name "myapp"
+            add_instances [
+                containerInstance {
+                    name "nginx"
+                    image "nginx:1.17.6-alpine"
+                    env_vars [
+                        EnvVar.createSecure "foo" "secret-foo"
+                    ]
+                }
+            ]
+        }
+        let deployment = arm {
+            add_resource cg
+        }
+        Expect.hasLength deployment.Template.Parameters 1 "Should have a secure parameter for environment variable"
+        Expect.equal (deployment.Template.Parameters.Head.ArmExpression.Eval()) "[parameters('secret-foo')]" "Generated incorrect secure parameter."
+    }
+    test "Secure parameters for secret volume is generated correctly" {
+        let cg = containerGroup {
+            name "myapp"
+            add_instances [
+                containerInstance {
+                    name "nginx"
+                    image "nginx:1.17.6-alpine"
+                    add_volume_mount "secrets" "/config/secrets"
+                }
+            ]
+            add_volumes [
+                volume_mount.secret_parameter "secrets" "foo" "secret-foo"
+            ]
+        }
+        let deployment = arm {
+            location Location.EastUS
+            add_resource cg
+        }
+        Expect.hasLength deployment.Template.Parameters 1 "Should have a secure parameter for secret volume"
+        Expect.equal (deployment.Template.Parameters.Head.ArmExpression.Eval()) "[parameters('secret-foo')]" "Generated incorrect secure parameter."
+    }
+]
