@@ -1,14 +1,19 @@
 Release Notes
 =============
-## Next release
-* Web App: Support for adding site extensions with "use_extension"
-* Functions: Support for external unmanaged storage accounts.
-* Functions: Support for user-assigned managed identity.
+## vNext
 * Storage: Support for setting default blob access tier at account level with "default_blob_access_tier"
 
-## 1.3.0-beta2
+## 1.3.0-beta3
+* Container Instance: Support for secure parameters for environment variables and secret volumes.
+* CDN: Fix issues around custom domain host names.
+* Deployment Scripts: Support for secure parameters for environment variables.
 * Deployment Scripts: Specifies cleanup on expiration when retention interval is set, and enables cleanup on success only.
 * Deployment Scripts: Support for running the script after other resources are deployed.
+* Functions: Support for external unmanaged storage accounts.
+* Functions: Support for user-assigned managed identity.
+* Web App: Support for site extensions.
+
+## 1.3.0-beta2
 * Web App: Unmanaged Server Farm uses Resource Id for fully-qualified path.
 
 ## 1.3.0-beta1
