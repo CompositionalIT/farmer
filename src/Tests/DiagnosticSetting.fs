@@ -11,7 +11,7 @@ open Microsoft.Rest
 open System
 
 let dummyClient = new OperationalInsightsManagementClient (Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
-
+let parentresourceId = ResourceId.create(ResourceType ("Microsoft.Logic/workflows",""), ResourceName ("Logicapp"))
 let asAzureResource (ws:diagnosticSettingsConfig) = 
     arm { add_resource ws }
     |> findAzureResources<DiagnosticSettingsResource> dummyClient.SerializationSettings
@@ -33,8 +33,8 @@ let tests = testList "Diagnostic Settings" [
 
         let config =
             diagnosticSettings {
-                name  "LogicApp" "myDiagnosticSetting"
-                parent_resource_type "Microsoft.Logic" "workflows"
+                name "myDiagnosticSetting"
+                parent_resource parentresourceId
                 storage_account_id storageAccountResourceId
                 work_space_id workspaceResourceId
                 metrics [myMetric]
@@ -55,8 +55,8 @@ let tests = testList "Diagnostic Settings" [
     test "Event hub name can't be specified without the Event hub authorization rule id  " {
        Expect.throws (fun _ -> 
            diagnosticSettings {
-               name  "LogicApp" "myDiagnosticSetting"
-               parent_resource_type "Microsoft.Logic" "workflows"
+               name "myDiagnosticSetting" 
+               parent_resource parentresourceId
                event_hub_name "myeventhubname"
            } |> ignore) (sprintf "Should have thrown an exception for not specifying Event Hub authorization rule id") 
     }
@@ -65,8 +65,8 @@ let tests = testList "Diagnostic Settings" [
 
        Expect.throws (fun _ -> 
            diagnosticSettings {
-               name  "LogicApp" "myDiagnosticSetting"
-               parent_resource_type "Microsoft.Logic" "workflows"
+               name "myDiagnosticSetting"
+               parent_resource parentresourceId
                logs [myLog]
            } |> ignore) (sprintf "Should have thrown an exception for not specifying at least on data sink") 
     }

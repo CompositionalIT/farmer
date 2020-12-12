@@ -10,6 +10,7 @@ let storageAccountName = ResourceName ("bccrmintegration")
 let storageAccountResourceId = ResourceId.create(storageAccounts,storageAccountName,"BC_CRM_Integration_POC")
 let workspaceName = ResourceName("tryw")
 let workspaceResourceId = ResourceId.create(workspaces,workspaceName)
+let parentresourceId = ResourceId.create(ResourceType ("Microsoft.Logic/workflows",""),ResourceName ("Logicapp"))
 
 let myLog = log { 
     category "WorkflowRuntime"
@@ -23,8 +24,8 @@ let myMetric = metric {
 }
 
 let mydiagnosticSetting = diagnosticSettings {
-    name  "test" "myDiagnosticSetting"
-    parent_resource_type "Microsoft.Logic" "workflows"
+    name  "myDiagnosticSetting"
+    parent_resource parentresourceId
     storage_account_id storageAccountResourceId
     work_space_id workspaceResourceId
     metrics [myMetric]

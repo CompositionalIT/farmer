@@ -12,7 +12,7 @@ type diagnosticSettingsConfig=
     { Name : ResourceName
       StorageAccountId : ResourceId option 
       ServiceBusRuleId : ResourceId option 
-      ParentResourceType : string
+      ParentResourceType: string
       EventHubAuthorizationRuleId : ResourceId option
       EventHubName : string option
       Dependencies : ResourceId list
@@ -149,15 +149,15 @@ type DiagnosticSettingsBuilder() =
         | _ -> state    
        
         
-    /// Sets the name of the Diagnostic Settings(parentResourceName, resourceName).
+    /// Sets the name of the diagnostic settings.
     [<CustomOperation "name">]
-    member _.Name(state: diagnosticSettingsConfig, parentResourceName:string, resourceName:string) =
-        { state with Name = ResourceName (parentResourceName + "/Microsoft.Insights/" + resourceName) }
+    member _.Name(state: diagnosticSettingsConfig,resourceName:string) =
+        { state with Name = ResourceName ("/Microsoft.Insights/" + resourceName) }
 
     ///Sets the namespace type of the parent resource.
-    [<CustomOperation "parent_resource_type">]
-    member _.ParentResourceType(state: diagnosticSettingsConfig, namespaceResourceType, resourceType) = 
-        { state with ParentResourceType =  namespaceResourceType + "/" + resourceType + "/" }
+    [<CustomOperation "parent_resource">]
+    member this.ParentResourceType(state: diagnosticSettingsConfig, parentId:ResourceId) = 
+       { state with ParentResourceType =  parentId.Type.Type ; Name = parentId.Name / state.Name }
 
     /// Sets the storage Account Id.
     [<CustomOperation "storage_account_id">]
