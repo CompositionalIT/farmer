@@ -154,8 +154,8 @@ type Site =
                         failwithf "Path '%s' must either be a folder to be zipped, or an existing zip." path)
                 printfn "Running ZIP deploy for %s" path.Value
                 Some (match target with
-                        | ZipDeploy.ZipDeployTarget.WebApp -> Deploy.Az.zipDeployWebApp name.Value path.GetZipPath resourceGroupName
-                        | ZipDeploy.ZipDeployTarget.FunctionApp -> Deploy.Az.zipDeployFunctionApp name.Value path.GetZipPath resourceGroupName)
+                      | ZipDeploy.WebApp -> Deploy.Az.zipDeployWebApp name.Value path.GetZipPath resourceGroupName
+                      | ZipDeploy.FunctionApp -> Deploy.Az.zipDeployFunctionApp name.Value path.GetZipPath resourceGroupName)
             | _ ->
                 None
     interface IArmResource with
