@@ -5,6 +5,7 @@ open Farmer
 open Farmer.Builders
 open Farmer.Arm
 open Newtonsoft.Json
+open System.IO
 
 [<AutoOpen>]
 module TestHelpers =
@@ -204,8 +205,8 @@ let tests = testList "Template" [
                 add_resources [ sql; storage; web; fns; svcBus; cdn; containerGroup ]
             }
 
-            let path = "./test-data/farmer-integration-test-1.json"
-            let expected = System.IO.File.ReadAllText path
+            let path = __SOURCE_DIRECTORY__ + "/test-data/farmer-integration-test-1.json"
+            let expected = File.ReadAllText path
             let actual = deployment.Template |> Writer.toJson
 
             Expect.equal expected actual (sprintf "ARM template generation has changed! Either fix the writer, or update the contents of the generated file (%s)" path)
