@@ -40,7 +40,7 @@ type DeploymentScript =
         member this.SecureParameters = [
             for envVar in this.EnvironmentVariables do
                 match envVar.Value with
-                | SecureParamEnvValue p -> p
+                | SecureEnvValue p -> p
                 | _ -> ()
         ]
     interface IArmResource with
@@ -67,8 +67,7 @@ type DeploymentScript =
                          for (key, value) in Map.toSeq this.EnvironmentVariables do
                              match value with
                              | EnvValue v -> {| name = key; value = v; secureValue = null |}
-                             | SecureEnvValue v -> {| name = key; value = null; secureValue = v |}
-                             | SecureParamEnvValue v -> {| name = key; value = null; secureValue = v.ArmExpression.Eval() |}
+                             | SecureEnvValue v -> {| name = key; value = null; secureValue = v.ArmExpression.Eval() |}
                        ]
                        forceUpdateTag = this.ForceUpdateTag |> Option.toNullable
                        scriptContent =

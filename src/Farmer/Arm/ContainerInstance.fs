@@ -64,8 +64,8 @@ type ContainerGroup =
             for container in this.ContainerInstances do
                 for envVar in container.EnvironmentVariables do
                     match envVar.Value with
-                    | SecureParamEnvValue p -> p
-                    | EnvValue _ | SecureEnvValue _ -> ()
+                    | SecureEnvValue p -> p
+                    | EnvValue _ -> ()
             for volume in this.Volumes do
                 match volume.Value with
                 | Volume.Secret secrets ->
@@ -99,8 +99,6 @@ type ContainerGroup =
                                               | EnvValue value ->
                                                 {| name = key; value = value; secureValue = null |}
                                               | SecureEnvValue value ->
-                                                {| name = key; value = null; secureValue = value |}
-                                              | SecureParamEnvValue value ->
                                                 {| name = key; value = null; secureValue = value.ArmExpression.Eval() |}
                                       ]
                                       resources =

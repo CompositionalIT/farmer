@@ -229,7 +229,7 @@ let tests = testList "Container Group" [
                     name "nginx"
                     image "nginx:1.17.6-alpine"
                     env_vars [
-                        EnvVar.createSecureParameter "foo" "secret-foo"
+                        EnvVar.createSecure "foo" "secret-foo"
                     ]
                 }
             ]

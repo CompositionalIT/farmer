@@ -69,13 +69,12 @@ type IsoDateTime =
 type TransmissionProtocol = TCP | UDP
 type TlsVersion = Tls10 | Tls11 | Tls12
 type EnvVar =
+    /// Use for non-secret environment variables to be surfaced in the container. These will be stored in cleartext in the ARM template.
     | EnvValue of string
-    | SecureEnvValue of string
-    | SecureParamEnvValue of SecureParameter
+    /// Use for secret environment variables to be surfaced in the container securely. These will be provided as secure parameters to the ARM template.
+    | SecureEnvValue of SecureParameter
     static member create (name:string) (value:string) = name, EnvValue value
-    static member createSecure (name:string) (value:string) = name, SecureEnvValue value
-    static member createSecureParameter (name:string) (paramName:string) =
-        name, SecureParamEnvValue (SecureParameter paramName)
+    static member createSecure (name:string) (paramName:string) = name, SecureEnvValue (SecureParameter paramName)
 
 module Mb =
     let toBytes (mb:int<Mb>) = int64 mb * 1024L * 1024L

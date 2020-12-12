@@ -71,7 +71,7 @@ let tests = testList "deploymentScripts" [
         let s = deploymentScript {
             name "thing"
             env_vars [
-                EnvVar.createSecureParameter "foo" "secret-foo"
+                EnvVar.createSecure "foo" "secret-foo"
             ]
         }
         let deployment = arm {
