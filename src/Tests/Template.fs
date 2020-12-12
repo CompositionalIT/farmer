@@ -197,10 +197,11 @@ let tests = testList "Template" [
             let fns = functions { name ("farmerfuncs" + number) }
             let svcBus = serviceBus { name ("farmerbus" + number); sku ServiceBus.Sku.Standard; add_queues [ queue { name "queue1" } ]; add_topics [ topic { name "topic1"; add_subscriptions [ subscription { name "sub1" } ] } ] }
             let cdn = cdn { name ("farmercdn" + number); add_endpoints [ endpoint { name ("farmercdnendpoint" + number); origin storage.WebsitePrimaryEndpointHost } ] }
+            let containerGroup = containerGroup { name ("farmeraci" + number); add_instances [ containerInstance { name "webserver"; image "nginx:latest"; add_ports ContainerGroup.PublicPort [ 80us ]; add_volume_mount "source-code" "/src/farmer" } ]; add_volumes [ volume_mount.git_repo "source-code" (System.Uri "https://github.com/CompositionalIT/farmer") ] }
 
             let deployment = arm {
                 location Location.NorthEurope
-                add_resources [ sql; storage; web; fns; svcBus; cdn ]
+                add_resources [ sql; storage; web; fns; svcBus; cdn; containerGroup ]
             }
 
             let path = "./test-data/farmer-integration-test-1.json"

@@ -69,10 +69,12 @@ type IsoDateTime =
 type TransmissionProtocol = TCP | UDP
 type TlsVersion = Tls10 | Tls11 | Tls12
 type EnvVar =
+    /// Use for non-secret environment variables to be surfaced in the container. These will be stored in cleartext in the ARM template.
     | EnvValue of string
-    | SecureEnvValue of string
+    /// Use for secret environment variables to be surfaced in the container securely. These will be provided as secure parameters to the ARM template.
+    | SecureEnvValue of SecureParameter
     static member create (name:string) (value:string) = name, EnvValue value
-    static member createSecure (name:string) (value:string) = name, SecureEnvValue value
+    static member createSecure (name:string) (paramName:string) = name, SecureEnvValue (SecureParameter paramName)
 
 module Mb =
     let toBytes (mb:int<Mb>) = int64 mb * 1024L * 1024L
@@ -679,8 +681,12 @@ module ContainerGroup =
         | PublicAddress
         | PublicAddressWithDns of DnsName:string
         | PrivateAddress
-    /// A secret file which will be encoded as base64 and attached to a container group.
-    type SecretFile = SecretFile of Name:string * Secret:byte array
+    /// A secret file that will be attached to a container group.
+    type SecretFile =
+        /// A secret file which will be encoded as base64 data.
+        | SecretFileContents of Name:string * Secret:byte array
+        /// A secret file which will provided by an ARM parameter at runtime.
+        | SecretFileParameter of Name:string * Secret:SecureParameter
     /// A container group volume.
     [<RequireQualifiedAccess>]
     type Volume =

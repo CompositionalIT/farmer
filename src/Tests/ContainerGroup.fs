@@ -221,5 +221,44 @@ let tests = testList "Container Group" [
         Expect.isNonEmpty containerGroup.Identity.UserAssigned "Container group did not have identity"
         Expect.equal containerGroup.Identity.UserAssigned.[0] (UserAssignedIdentity(ResourceId.create(Arm.ManagedIdentity.userAssignedIdentities, ResourceName "aciUser"))) "Expected user identity named 'aciUser'."
     }
- ]
-
+    test "Secure environment variables are generated correctly" {
+        let cg = containerGroup {
+            name "myapp"
+            add_instances [
+                containerInstance {
+                    name "nginx"
+                    image "nginx:1.17.6-alpine"
+                    env_vars [
+                        EnvVar.createSecure "foo" "secret-foo"
+                    ]
+                }
+            ]
+        }
+        let deployment = arm {
+            add_resource cg
+        }
+        Expect.hasLength deployment.Template.Parameters 1 "Should have a secure parameter for environment variable"
+        Expect.equal (deployment.Template.Parameters.Head.ArmExpression.Eval()) "[parameters('secret-foo')]" "Generated incorrect secure parameter."
+    }
+    test "Secure parameters for secret volume is generated correctly" {
+        let cg = containerGroup {
+            name "myapp"
+            add_instances [
+                containerInstance {
+                    name "nginx"
+                    image "nginx:1.17.6-alpine"
+                    add_volume_mount "secrets" "/config/secrets"
+                }
+            ]
+            add_volumes [
+                volume_mount.secret_parameter "secrets" "foo" "secret-foo"
+            ]
+        }
+        let deployment = arm {
+            location Location.EastUS
+            add_resource cg
+        }
+        Expect.hasLength deployment.Template.Parameters 1 "Should have a secure parameter for secret volume"
+        Expect.equal (deployment.Template.Parameters.Head.ArmExpression.Eval()) "[parameters('secret-foo')]" "Generated incorrect secure parameter."
+    }
+]
