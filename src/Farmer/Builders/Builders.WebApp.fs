@@ -405,6 +405,10 @@ type WebAppBuilder() =
             | Some _ -> Linux
         { state with
             OperatingSystem = operatingSystem
+            SiteExtensions =
+                match state.Runtime with
+                | Runtime.DotNetCore _ -> state.SiteExtensions.Add WebApp.Extensions.Logging
+                | _ -> state.SiteExtensions
             DockerImage =
                 match state.DockerImage, state.DockerAcrCredentials with
                 | Some (image, tag), Some credentials when not (image.Contains "azurecr.io") ->
