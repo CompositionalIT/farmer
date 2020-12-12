@@ -196,7 +196,11 @@ let tests = testList "Web App Tests" [
         let extension = wa |> getResources |> getResource<SiteExtension> |> List.head
         Expect.equal extension.Name.Value "Microsoft.AspNetCore.AzureAppServices.SiteExtension" "Wrong extension"
 
-        let wa = webApp { name "otherSite"; runtime_stack Runtime.Java11 }
+        let wa = webApp { name "siteX"; runtime_stack Runtime.Java11 }
+        let extensions = wa |> getResources |> getResource<SiteExtension>
+        Expect.isEmpty extensions "Shouldn't be any extensions"
+
+        let wa = webApp { name "siteX"; automatic_logging_extension false }
         let extensions = wa |> getResources |> getResource<SiteExtension>
         Expect.isEmpty extensions "Shouldn't be any extensions"
     }
