@@ -1,6 +1,7 @@
 Release Notes
 =============
 ## vNext
+* Web App: Automatically add Logging extension for ASP.NET Core apps.
 
 ## 1.3.0-beta3
 * Container Instance: Support for secure parameters for environment variables and secret volumes.
