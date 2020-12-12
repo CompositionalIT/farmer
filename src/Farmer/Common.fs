@@ -427,9 +427,10 @@ module WebApp =
         static member I3 = Isolated "I3"
         static member Y1 = Dynamic
     type ConnectionStringKind = MySql | SQLServer | SQLAzure | Custom | NotificationHub | ServiceBus | EventHub | ApiHub | DocDb | RedisCache | PostgreSQL
-    type Extensions =
+    type ExtensionName = ExtensionName of string
+    module Extensions =
         /// The Microsoft.AspNetCore.AzureAppServices logging extension.
-        static member Logging = "Microsoft.AspNetCore.AzureAppServices.SiteExtension"
+        let Logging = ExtensionName "Microsoft.AspNetCore.AzureAppServices.SiteExtension"
 
 module CognitiveServices =
     /// Type of SKU. See https://github.com/Azure/azure-quickstart-templates/tree/master/101-cognitive-services-translate
