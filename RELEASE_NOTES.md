@@ -8,7 +8,7 @@ Release Notes
 * Deployment Scripts: Support for running the script after other resources are deployed.
 * Functions: Support for external unmanaged storage accounts.
 * Functions: Support for user-assigned managed identity.
-* Web App: Support for adding site extensions with "use_extension"
+* Web App: Support for site extensions.
 
 ## 1.3.0-beta2
 * Web App: Unmanaged Server Farm uses Resource Id for fully-qualified path.
