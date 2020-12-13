@@ -298,6 +298,9 @@ module internal Validation =
     let (<+>) a b v = a v && b v
     let (<|>) a b v = a v || b v
     let lowercaseOnly = Char.IsLetter >> not <|> Char.IsLower
+    let lettersNumbersOrDash c = Char.IsLetterOrDigit c || c = '-'
+    module Rules =
+        let containsOnlyLettersNumbersOrDash = containsOnly "alphanumeric characters or the dash" lettersNumbersOrDash
 
     let validate entity text rules =
         rules
@@ -316,7 +319,7 @@ module CosmosDbValidation =
             [ isNonEmpty
               lengthBetween 3 44
               containsOnly "lowercase letters" lowercaseOnly
-              containsOnly "alphanumeric characters or dash" (fun x -> Char.IsLetterOrDigit x || x = '-') ]
+              Rules.containsOnlyLettersNumbersOrDash ]
             |> validate "CosmosDb account names" name
             |> Result.map (ResourceName >> CosmosDbName)
 
@@ -345,7 +348,7 @@ module Storage =
               lengthBetween 3 63
               startsWith "an alphanumeric character" Char.IsLetterOrDigit
               endsWith "an alphanumeric character" Char.IsLetterOrDigit
-              containsOnly "letters, numbers, and the dash (-) character" (fun c -> Char.IsLetterOrDigit c || c = '-')
+              Rules.containsOnlyLettersNumbersOrDash
               containsOnly "lowercase letters" lowercaseOnly
               arb "do not allow consecutive dashes" (fun s -> s.Contains "--") ]
             |> validate "Storage resource names" name
@@ -641,6 +644,22 @@ module Sql =
             | StandardPool c
             | PremiumPool c ->
                 c
+    open Validation
+    type SqlAccountName =
+        private | SqlAccountName of ResourceName
+        static member Create name =
+            [ isNonEmpty
+              lengthBetween 1 63
+              cannotStartWith "a dash" ((=) '-')
+              cannotEndWith "a dash" ((=) '-')
+              containsOnly "lowercase letters" lowercaseOnly
+              Rules.containsOnlyLettersNumbersOrDash ]
+            |> validate "SQL account names" name
+            |> Result.map (ResourceName >> SqlAccountName)
+
+        static member Create (ResourceName name) = SqlAccountName.Create name
+        member this.ResourceName = match this with SqlAccountName name -> name
+
 
 /// Represents a role that can be granted to an identity.
 type RoleId =
