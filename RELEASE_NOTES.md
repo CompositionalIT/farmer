@@ -1,6 +1,7 @@
 Release Notes
 =============
 ## vNext
+* Support for .NET5
 
 ## 1.3.0-beta3
 * Container Instance: Support for secure parameters for environment variables and secret volumes.
