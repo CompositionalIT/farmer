@@ -103,7 +103,7 @@ type ResourceId with
     member this.ArmExpression =
         match this.Type.Type with
         | "" ->
-	    ArmExpression.create $"string('{this.Name.Value}')"
+            ArmExpression.create $"string('{this.Name.Value}')"
         | _ ->
             [ yield! Option.toList this.ResourceGroup
               this.Type.Type
