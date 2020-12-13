@@ -105,7 +105,6 @@ type VmConfig =
                   Location = location
                   Dependencies = []
                   Sku = Storage.Sku.Standard_LRS
-                  DefaultBlobAccessTier = None
                   StaticWebsite = None
                   EnableHierarchicalNamespace = None
                   Tags = this.Tags }

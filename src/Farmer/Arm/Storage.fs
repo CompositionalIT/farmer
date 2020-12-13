@@ -16,7 +16,6 @@ type StorageAccount =
     { Name : StorageAccountName
       Location : Location
       Sku : Sku
-      DefaultBlobAccessTier: BlobAccessTier Option
       Dependencies : ResourceId list
       EnableHierarchicalNamespace : bool option
       StaticWebsite : {| IndexPage : string; ErrorPage : string option; ContentPath : string |} option
@@ -30,7 +29,7 @@ type StorageAccount =
                         let performanceTier =
                             match this.Sku with
                             | GeneralPurpose (V1 (V1Replication.LRS performanceTier))
-                            | GeneralPurpose (V2 (V2Replication.LRS performanceTier)) ->
+                            | GeneralPurpose (V2 (V2Replication.LRS performanceTier, _)) ->
                                 performanceTier.ToString()
                             | Files _
                             | BlockBlobs _ ->
@@ -41,10 +40,10 @@ type StorageAccount =
                         let replicationModel =
                             match this.Sku with
                             | GeneralPurpose (V1 (V1Replication.LRS _)) -> "LRS"
-                            | GeneralPurpose (V2 (V2Replication.LRS _)) -> "LRS"
+                            | GeneralPurpose (V2 (V2Replication.LRS _, _)) -> "LRS"
                             | GeneralPurpose (V1 replication) -> replication.ToString()
-                            | GeneralPurpose (V2 replication) -> replication.ToString()
-                            | Blobs replication -> replication.ToString()
+                            | GeneralPurpose (V2 (replication, _)) -> replication.ToString()
+                            | Blobs (replication, _) -> replication.ToString()
                             | Files replication -> replication.ToString()
                             | BlockBlobs replication -> replication.ToString()
                         sprintf "%s_%s" performanceTier replicationModel
@@ -59,10 +58,14 @@ type StorageAccount =
                 properties =
                     {| isHnsEnabled = this.EnableHierarchicalNamespace |> Option.toNullable
                        accessTier =
-                           match this.DefaultBlobAccessTier, this.Sku with
-                           | Some accessTier, _ -> accessTier.ToString()
-                           | None, Blobs _ -> BlobAccessTier.Hot.ToString()
-                           | None, _ -> null
+                        match this.Sku with
+                        | Blobs (_, Some tier)
+                        | GeneralPurpose (V2 (_, Some tier)) ->
+                            match tier with
+                            | Hot -> "Hot"
+                            | Cool -> "Cool"
+                        | _ ->
+                            null
                     |}
             |} :> _
     interface IPostDeploy with

@@ -33,8 +33,6 @@ type StorageAccountConfig =
       Name : StorageAccountName
       /// The sku of the storage account.
       Sku : Sku
-      // Default access tier for blob containers (including static websites)
-      DefaultBlobAccessTier: BlobAccessTier option
       /// Whether to enable Data Lake Storage Gen2.
       EnableDataLake : bool option
       /// Containers for the storage account.
@@ -69,7 +67,6 @@ type StorageAccountConfig =
               Location = location
               Sku = this.Sku
               EnableHierarchicalNamespace = this.EnableDataLake
-              DefaultBlobAccessTier = this.DefaultBlobAccessTier
               Dependencies =
                 this.RoleAssignments
                 |> Seq.choose(fun roleAssignment -> roleAssignment.Principal.ArmExpression.Owner)
@@ -117,7 +114,6 @@ type StorageAccountBuilder() =
     member _.Yield _ = {
         Name = StorageAccountName.Create("default").OkValue
         Sku = Sku.Standard_LRS
-        DefaultBlobAccessTier = None
         EnableDataLake = None
         Containers = []
         FileShares = []
@@ -196,8 +192,14 @@ type StorageAccountBuilder() =
     member this.GrantAccess(state:StorageAccountConfig, identity:Identity.SystemIdentity, role) =
         this.GrantAccess(state, identity.PrincipalId, role)
     [<CustomOperation "default_blob_access_tier">]
-    member _.SetDefaultAccessTier(state:StorageAccountConfig, tier:BlobAccessTier) =
-        {state with DefaultBlobAccessTier = Some tier}
+    member _.SetDefaultAccessTier(state:StorageAccountConfig, tier) =
+        { state with
+            Sku =
+                match state.Sku with
+                | Blobs (replication, _) -> Blobs(replication, Some tier)
+                | GeneralPurpose (V2 (replication, _)) -> GeneralPurpose (V2 (replication, Some tier))
+                | other -> failwithf "You can only set the default access tier for Blobs or General Purpose V2 storage accounts. This account is %A" other
+        }
 
 /// Allow adding storage accounts directly to CDNs
 type EndpointBuilder with
