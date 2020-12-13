@@ -6,7 +6,11 @@ open Farmer.ContainerGroup
 open Farmer.Identity
 open Farmer.Arm.ContainerInstance
 open Farmer.Arm.Network
+open System.Text
 
+//TODO: I think we should rename these to standard F# naming conventioned e.g. VolumeMount, EmptyDir etc.
+//TODO: Indeed, this should either be made into a module with let-bound functions, or make use of static
+//members by using e.g. optional parameters or overloading.
 type volume_mount =
     static member empty_dir volumeName =
         volumeName, Volume.EmptyDirectory
@@ -16,14 +20,16 @@ type volume_mount =
         volumeName, Volume.GitRepo (repository, None, None)
     static member git_repo_directory volumeName  repository directory =
         volumeName, Volume.GitRepo (repository, Some directory, None)
-    static member git_repo_directory_revision volumeName  repository directory revision =
+    static member git_repo_directory_revision volumeName repository directory revision =
         volumeName, Volume.GitRepo (repository, Some directory, Some revision)
     static member secret volumeName  (file:string) (secret:byte array) =
-        volumeName, Volume.Secret [ SecretFile (file, secret) ]
+        volumeName, Volume.Secret [ SecretFileContents (file, secret) ]
     static member secrets volumeName  (secrets:(string * byte array) list) =
-        volumeName, secrets |> List.map SecretFile |> Volume.Secret
+        volumeName, secrets |> List.map SecretFileContents |> Volume.Secret
     static member secret_string volumeName  (file:string) (secret:string) =
-        volumeName, Volume.Secret [ SecretFile (file, secret |> System.Text.Encoding.UTF8.GetBytes) ]
+        volumeName, Volume.Secret [ SecretFileContents (file, Encoding.UTF8.GetBytes secret) ]
+    static member secret_parameter volumeName  (file:string) (secretParameterName:string) =
+        volumeName, Volume.Secret [ SecretFileParameter (file, SecureParameter secretParameterName) ]
 
 /// Represents configuration for a single Container.
 type ContainerInstanceConfig =

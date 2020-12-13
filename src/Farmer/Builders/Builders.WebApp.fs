@@ -104,6 +104,8 @@ type WebAppConfig =
       DockerAcrCredentials : {| RegistryName : string; Password : SecureParameter |} option
 
       SecretStore : SecretStore
+
+      SiteExtensions : ExtensionName Set
     }
     /// Gets the ARM expression path to the publishing password of this web app.
     member this.PublishingPassword = publishingPassword (this.Name)
@@ -183,7 +185,7 @@ type WebAppConfig =
               AppSettings =
                 let literalSettings = [
                     if this.RunFromPackage then AppSettings.RunFromPackage
-                    yield! this.WebsiteNodeDefaultVersion |> Option.mapList AppSettings.WebsiteNodeDefaultVersion 
+                    yield! this.WebsiteNodeDefaultVersion |> Option.mapList AppSettings.WebsiteNodeDefaultVersion
                     match this.OperatingSystem, this.AppInsights with
                     | Windows, Some resource ->
                         "APPINSIGHTS_INSTRUMENTATIONKEY", AppInsights.getInstrumentationKey(resource.resourceId this).Eval()
@@ -359,6 +361,11 @@ type WebAppConfig =
                   Tags = this.Tags}
             | _ ->
                 ()
+
+            for (ExtensionName extension) in this.SiteExtensions do
+                { Name = ResourceName extension
+                  SiteName = this.Name
+                  Location = location }
         ]
 
 type WebAppBuilder() =
@@ -389,7 +396,8 @@ type WebAppBuilder() =
           Cors = None
           SourceControlSettings = None
           DockerAcrCredentials = None
-          SecretStore = AppService }
+          SecretStore = AppService
+          SiteExtensions = Set.empty }
     member __.Run(state:WebAppConfig) =
         let operatingSystem =
             match state.DockerImage with
@@ -590,6 +598,11 @@ type WebAppBuilder() =
     member this.LinkToExternalKeyVault(state:WebAppConfig, name) =
         let state = this.SystemIdentity (state)
         { state with SecretStore = KeyVault (External(Unmanaged name)) }
+    [<CustomOperation "add_extension">]
+    member _.AddExtension(state:WebAppConfig, extension) =
+        { state with SiteExtensions = state.SiteExtensions.Add extension }
+    member this.AddExtension(state, name) =
+        this.AddExtension(state, ExtensionName name)
 
 let webApp = WebAppBuilder()
 
