@@ -390,6 +390,66 @@
       },
       "tags": {},
       "type": "Microsoft.Cdn/profiles/endpoints"
+    },
+    {
+      "apiVersion": "2018-10-01",
+      "dependsOn": [],
+      "identity": {
+        "type": "None"
+      },
+      "location": "northeurope",
+      "name": "farmeraci1979",
+      "properties": {
+        "containers": [
+          {
+            "name": "webserver",
+            "properties": {
+              "command": [],
+              "environmentVariables": [],
+              "image": "nginx:latest",
+              "ports": [
+                {
+                  "port": 80
+                }
+              ],
+              "resources": {
+                "requests": {
+                  "cpu": 1.0,
+                  "memoryInGB": 1.5
+                }
+              },
+              "volumeMounts": [
+                {
+                  "mountPath": "/src/farmer",
+                  "name": "source-code"
+                }
+              ]
+            }
+          }
+        ],
+        "imageRegistryCredentials": [],
+        "ipAddress": {
+          "ports": [
+            {
+              "port": 80,
+              "protocol": "TCP"
+            }
+          ],
+          "type": "Public"
+        },
+        "osType": "Linux",
+        "restartPolicy": "Always",
+        "volumes": [
+          {
+            "gitRepo": {
+              "repository": "https://github.com/CompositionalIT/farmer"
+            },
+            "name": "source-code"
+          }
+        ]
+      },
+      "tags": {},
+      "type": "Microsoft.ContainerInstance/containerGroups"
     }
   ]
 }

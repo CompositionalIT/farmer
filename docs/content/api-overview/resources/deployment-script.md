@@ -35,7 +35,6 @@ The Deployment Script builder is used to execute Azure CLI scripts as part of an
 ```fsharp
 open Farmer
 open Farmer.Builders
-open Farmer.CoreTypes
 
 /// The deployment script must run under an identity with any necessary permissions
 /// to perform the commands in the script. Also must be a contributor in the

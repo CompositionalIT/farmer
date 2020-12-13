@@ -140,8 +140,8 @@ type CosmosDbBuilder() =
     member __.Yield _ =
         { DbName = ResourceName.Empty
           AccountName = derived (fun config ->
-            let maxLength = 36
             let dbName = config.DbName.Value.ToLower()
+            let maxLength = 36 // 44 less "-account"
             if config.DbName.Value.Length > maxLength then dbName.Substring maxLength
             else dbName
             |> sprintf "%s-account"
@@ -157,11 +157,12 @@ type CosmosDbBuilder() =
 
     /// Sets the name of the CosmosDB server.
     [<CustomOperation "account_name">]
-    member __.AccountName(state:CosmosDbConfig, serverName:ResourceName) = { state with AccountName = AutoCreate (Named (databaseAccounts.resourceId serverName)) }
-    member this.AccountName(state:CosmosDbConfig, serverName) = this.AccountName(state, ResourceName serverName)
+    member __.AccountName(state:CosmosDbConfig, accountName: ResourceName) =
+        { state with AccountName = AutoCreate (Named (databaseAccounts.resourceId (CosmosDbValidation.CosmosDbName.Create(accountName).OkValue.ResourceName))) }
+    member this.AccountName(state:CosmosDbConfig, accountName: string) = this.AccountName(state, ResourceName accountName)
     /// Links the database to an existing server
     [<CustomOperation "link_to_account">]
-    member __.LinkToAccount(state:CosmosDbConfig, server:CosmosDbConfig) = { state with AccountName = External(Managed(server.AccountName.resourceId server)) }
+    member __.LinkToAccount(state:CosmosDbConfig, accountConfig:CosmosDbConfig) = { state with AccountName = External(Managed(accountConfig.AccountName.resourceId accountConfig)) }
     /// Sets the name of the database.
     [<CustomOperation "name">]
     member __.Name(state:CosmosDbConfig, name) = { state with DbName = name }

@@ -69,10 +69,12 @@ type IsoDateTime =
 type TransmissionProtocol = TCP | UDP
 type TlsVersion = Tls10 | Tls11 | Tls12
 type EnvVar =
+    /// Use for non-secret environment variables to be surfaced in the container. These will be stored in cleartext in the ARM template.
     | EnvValue of string
-    | SecureEnvValue of string
+    /// Use for secret environment variables to be surfaced in the container securely. These will be provided as secure parameters to the ARM template.
+    | SecureEnvValue of SecureParameter
     static member create (name:string) (value:string) = name, EnvValue value
-    static member createSecure (name:string) (value:string) = name, SecureEnvValue value
+    static member createSecure (name:string) (paramName:string) = name, SecureEnvValue (SecureParameter paramName)
 
 module Mb =
     let toBytes (mb:int<Mb>) = int64 mb * 1024L * 1024L
@@ -306,6 +308,21 @@ module internal Validation =
         |> Seq.tryHead
         |> Option.defaultValue (Ok text)
 
+module CosmosDbValidation =
+    open Validation
+    type CosmosDbName =
+        private | CosmosDbName of ResourceName
+        static member Create name =
+            [ isNonEmpty
+              lengthBetween 3 44
+              containsOnly "lowercase letters" lowercaseOnly
+              containsOnly "alphanumeric characters or dash" (fun x -> Char.IsLetterOrDigit x || x = '-') ]
+            |> validate "CosmosDb account names" name
+            |> Result.map (ResourceName >> CosmosDbName)
+
+        static member Create (ResourceName name) = CosmosDbName.Create name
+        member this.ResourceName = match this with CosmosDbName name -> name
+
 module Storage =
     open Validation
     type StorageAccountName =
@@ -410,9 +427,10 @@ module WebApp =
         static member I3 = Isolated "I3"
         static member Y1 = Dynamic
     type ConnectionStringKind = MySql | SQLServer | SQLAzure | Custom | NotificationHub | ServiceBus | EventHub | ApiHub | DocDb | RedisCache | PostgreSQL
-    type Extensions =
+    type ExtensionName = ExtensionName of string
+    module Extensions =
         /// The Microsoft.AspNetCore.AzureAppServices logging extension.
-        static member Logging = "Microsoft.AspNetCore.AzureAppServices.SiteExtension"
+        let Logging = ExtensionName "Microsoft.AspNetCore.AzureAppServices.SiteExtension"
 
 module CognitiveServices =
     /// Type of SKU. See https://github.com/Azure/azure-quickstart-templates/tree/master/101-cognitive-services-translate
@@ -679,8 +697,12 @@ module ContainerGroup =
         | PublicAddress
         | PublicAddressWithDns of DnsName:string
         | PrivateAddress
-    /// A secret file which will be encoded as base64 and attached to a container group.
-    type SecretFile = SecretFile of Name:string * Secret:byte array
+    /// A secret file that will be attached to a container group.
+    type SecretFile =
+        /// A secret file which will be encoded as base64 data.
+        | SecretFileContents of Name:string * Secret:byte array
+        /// A secret file which will provided by an ARM parameter at runtime.
+        | SecretFileParameter of Name:string * Secret:SecureParameter
     /// A container group volume.
     [<RequireQualifiedAccess>]
     type Volume =

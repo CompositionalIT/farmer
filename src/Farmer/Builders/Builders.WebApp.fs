@@ -105,7 +105,7 @@ type WebAppConfig =
 
       SecretStore : SecretStore
 
-      SiteExtensions : ResourceName Set
+      SiteExtensions : ExtensionName Set
     }
     /// Gets the ARM expression path to the publishing password of this web app.
     member this.PublishingPassword = publishingPassword (this.Name)
@@ -362,9 +362,9 @@ type WebAppConfig =
             | _ ->
                 ()
 
-            for extension in this.SiteExtensions do
-                { SiteName = this.Name
-                  Name = extension
+            for (ExtensionName extension) in this.SiteExtensions do
+                { Name = ResourceName extension
+                  SiteName = this.Name
                   Location = location }
         ]
 
@@ -599,8 +599,10 @@ type WebAppBuilder() =
         let state = this.SystemIdentity (state)
         { state with SecretStore = KeyVault (External(Unmanaged name)) }
     [<CustomOperation "add_extension">]
-    member _.AddExtension(state:WebAppConfig, name:string) =
-        { state with SiteExtensions = state.SiteExtensions.Add (ResourceName name) }
+    member _.AddExtension(state:WebAppConfig, extension) =
+        { state with SiteExtensions = state.SiteExtensions.Add extension }
+    member this.AddExtension(state, name) =
+        this.AddExtension(state, ExtensionName name)
 
 let webApp = WebAppBuilder()
 
