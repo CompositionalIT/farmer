@@ -11,15 +11,13 @@ let workspaces = ResourceType ("Microsoft.Databricks/workspaces", "2018-04-01")
 type ByovConfig =
     { Vnet: string
       PublicSubnet: string
-      PrivateSubnet: string
-    }
+      PrivateSubnet: string }
 
 type EncryptionConfig =
     { KeySource: string
       KeyName: string
       KeyVersion: string
-      KeyVaultUri: string
-    }
+      KeyVaultUri: string }
 
 type Databricks =
     { Name: ResourceName
