@@ -64,10 +64,10 @@ module Profiles =
             { Name : ResourceName
               Profile : ResourceName
               Endpoint : ResourceName
-              Hostname : Uri }
+              Hostname : string }
             interface IArmResource with
                 member this.ResourceId = customDomains.resourceId (this.Profile/this.Endpoint/this.Name)
                 member this.JsonModel =
-                    {| customDomains.Create (this.Profile/this.Endpoint/this.Name, dependsOn = [ endpoints.resourceId this.Endpoint ]) with
-                        properties = {| hostName = string this.Hostname |}
+                    {| customDomains.Create (this.Profile/this.Endpoint/this.Name, dependsOn = [ endpoints.resourceId(this.Profile, this.Endpoint) ]) with
+                        properties = {| hostName = this.Hostname |}
                     |} :> _
