@@ -37,6 +37,7 @@ let allTests =
                 Functions.tests
                 StaticWebApp.tests
                 VirtualNetworkGateway.tests
+                Databricks.tests
             ]
             testList "Control" [
                 Template.tests

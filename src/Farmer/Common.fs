@@ -1072,3 +1072,10 @@ module Dns =
         | PTR of PtrRecords : string list
         | TXT of TxtRecords : string list
         | MX of {| Preference : int; Exchange : string |} list
+
+module Databricks = 
+    type PricingTier =
+        | StandardTier
+        | PremiumTier
+        static member Standard = StandardTier
+        static member Premium = PremiumTier

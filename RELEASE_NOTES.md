@@ -4,6 +4,7 @@ Release Notes
 * Web App: Support for adding site extensions with "use_extension"
 * Functions: Support for external unmanaged storage accounts.
 * Functions: Support for user-assigned managed identity.
+* Databricks Workspace: Support for creating Databricks Workspaces
 
 ## 1.3.0-beta2
 * Deployment Scripts: Specifies cleanup on expiration when retention interval is set, and enables cleanup on success only.
