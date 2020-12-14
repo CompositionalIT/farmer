@@ -2,7 +2,6 @@
 module Farmer.Arm.MachineLearning
 
 open Farmer
-open Farmer.CoreTypes
 
 let workspaces = ResourceType("Microsoft.MachineLearningServices/workspaces","2020-08-01")
 
@@ -44,7 +43,7 @@ type AzureMachineLearningWorkspace =
       PrivateEndpointResourceGroupName : ResourceName
       Tags : Map<string,string> }
     interface IArmResource with
-        member this.ResourceName = this.WorkspaceName
+        member this.ResourceId = workspaces.resourceId this.WorkspaceName
         member this.JsonModel = {| |} :> _ // TODO : Create JsonModel
 
 
