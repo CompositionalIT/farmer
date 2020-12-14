@@ -114,11 +114,11 @@ type WorkspaceBuilder() =
         { state with ByovConfig = state.ByovConfig |> Option.map(fun vnetConfig -> { vnetConfig with PrivateSubnet = privateSubnet })}
     ///Add list of tags to workspace resource
     [<CustomOperation "add_tags">]
-    member _.Tags(state:DataLakeConfig, pairs) =
+    member _.Tags(state:WorkspaceConfig, pairs) =
         { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     ///Add single tag to workspace resource
     [<CustomOperation "add_tag">]
-    member this.Tag(state:DataLakeConfig, key, value) = this.Tags(state, [ (key,value) ])
+    member this.Tag(state:WorkspaceConfig, key, value) = this.Tags(state, [ (key,value) ])
 
 let databricksWorkspace = WorkspaceBuilder()
