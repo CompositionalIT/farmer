@@ -284,24 +284,35 @@ module Vm =
     type DiskInfo = { Size : int; DiskType : DiskType }
 
 module internal Validation =
+    let (<+>) a b v = a v && b v
+    let (<|>) a b v = a v || b v
+    let (<!>) a b e s =
+        match a e s, b e s with
+        | Ok _, Ok _ -> Ok ()
+        | Error x, _
+        | _, Error x -> Error x
+
     let isNonEmpty entity s = if String.IsNullOrWhiteSpace s then Error (sprintf "%s cannot be empty" entity) else Ok()
     let notLongerThan max entity (s:string) = if s.Length > max then Error (sprintf "%s max length is %d, but here is %d ('%s')" entity max s.Length s) else Ok()
     let notShorterThan min entity (s:string) = if s.Length < min then Error (sprintf "%s min length is %d, but here is %d ('%s')" entity min s.Length s) else Ok()
     let lengthBetween min max entity (s:string) = s |> notLongerThan max entity |> Result.bind (fun _ -> s |> notShorterThan min entity)
-    let containsOnly message predicate entity (s:string) = if s |> Seq.exists (predicate >> not) then Error (sprintf "%s can only contain %s ('%s')" entity message s) else Ok()
-    let cannotContain message predicate entity (s:string) = if s |> Seq.exists predicate then Error (sprintf "%s do not allow %s ('%s')" entity message s) else Ok()
-    let startsWith message predicate entity (s:string) = if not (predicate s.[0]) then Error (sprintf "%s must start with %s ('%s')" entity message s) else Ok()
-    let endsWith message predicate entity (s:string) = if not (predicate s.[s.Length - 1]) then Error (sprintf "%s must end with %s ('%s')" entity message s) else Ok()
-    let cannotStartWith message predicate entity (s:string) = if predicate s.[0] then Error (sprintf "%s cannot start with %s ('%s')" entity message s) else Ok()
-    let cannotEndWith message predicate entity (s:string) = if predicate s.[s.Length - 1] then Error (sprintf "%s cannot end with %s ('%s')" entity message s) else Ok()
-    let arb message predicate entity (s:string) = if predicate s then Error (sprintf "%s %s ('%s')" entity message s) else Ok()
-    let (<+>) a b v = a v && b v
-    let (<|>) a b v = a v || b v
-    let lowercaseOnly = Char.IsLetter >> not <|> Char.IsLower
-    let lettersNumbersOrDash c = Char.IsLetterOrDigit c || c = '-'
-    module Rules =
-        let containsOnlyLettersNumbersOrDash = containsOnly "alphanumeric characters or the dash" lettersNumbersOrDash
-
+    let containsOnly (message, predicate) entity (s:string) = if s |> Seq.exists (predicate >> not) then Error (sprintf "%s can only contain %s ('%s')" entity message s) else Ok()
+    let cannotContain (message, predicate) entity (s:string) = if s |> Seq.exists predicate then Error (sprintf "%s do not allow %s ('%s')" entity message s) else Ok()
+    let startsWith (message, predicate) entity (s:string) = if not (predicate s.[0]) then Error (sprintf "%s must start with %s ('%s')" entity message s) else Ok()
+    let endsWith (message, predicate) entity (s:string) = if not (predicate s.[s.Length - 1]) then Error (sprintf "%s must end with %s ('%s')" entity message s) else Ok()
+    let cannotStartWith (message, predicate) entity (s:string) = if predicate s.[0] then Error (sprintf "%s cannot start with %s ('%s')" entity message s) else Ok()
+    let cannotEndWith (message, predicate) entity (s:string) = if predicate s.[s.Length - 1] then Error (sprintf "%s cannot end with %s ('%s')" entity message s) else Ok()
+    let arb (message, predicate) entity (s:string) = if predicate s then Error (sprintf "%s %s ('%s')" entity message s) else Ok()
+    let containsOnlyM containers =
+        containers
+        |> List.map containsOnly
+        |> List.reduce (<!>)
+    let lowercaseLetters = "lowercase letters", Char.IsLetter >> not <|> Char.IsLower
+    let aLetterOrNumber = "an alphanumeric character", Char.IsLetterOrDigit
+    let lettersOrNumbers = "alphanumeric characters", Char.IsLetterOrDigit
+    let aDash = "a dash", ((=) '-')
+    let lettersNumbersOrDash = "alphanumeric characters or the dash", Char.IsLetterOrDigit <|> (snd aDash)
+    let nonEmptyLengthBetween a b = isNonEmpty <!> lengthBetween a b
     let validate entity text rules =
         rules
         |> Seq.choose (fun v ->
@@ -316,10 +327,9 @@ module CosmosDbValidation =
     type CosmosDbName =
         private | CosmosDbName of ResourceName
         static member Create name =
-            [ isNonEmpty
-              lengthBetween 3 44
-              containsOnly "lowercase letters" lowercaseOnly
-              Rules.containsOnlyLettersNumbersOrDash ]
+            [ nonEmptyLengthBetween 3 44
+              containsOnlyM [ lowercaseLetters; lettersNumbersOrDash ]
+            ]
             |> validate "CosmosDb account names" name
             |> Result.map (ResourceName >> CosmosDbName)
 
@@ -331,10 +341,9 @@ module Storage =
     type StorageAccountName =
         private | StorageAccountName of ResourceName
         static member Create name =
-            [ isNonEmpty
-              lengthBetween 3 24
-              containsOnly "lowercase letters" lowercaseOnly
-              containsOnly "alphanumeric characters" Char.IsLetterOrDigit ]
+            [ nonEmptyLengthBetween 3 24
+              containsOnlyM [ lowercaseLetters; lettersOrNumbers ]
+            ]
             |> validate "Storage account names" name
             |> Result.map (ResourceName >> StorageAccountName)
 
@@ -344,13 +353,11 @@ module Storage =
     type StorageResourceName =
         private | StorageResourceName of ResourceName
         static member Create name =
-            [ isNonEmpty
-              lengthBetween 3 63
-              startsWith "an alphanumeric character" Char.IsLetterOrDigit
-              endsWith "an alphanumeric character" Char.IsLetterOrDigit
-              Rules.containsOnlyLettersNumbersOrDash
-              containsOnly "lowercase letters" lowercaseOnly
-              arb "do not allow consecutive dashes" (fun s -> s.Contains "--") ]
+            [ nonEmptyLengthBetween 3 63
+              startsWith aLetterOrNumber
+              endsWith aLetterOrNumber
+              containsOnlyM [ lettersNumbersOrDash; lowercaseLetters ]
+              arb ("do not allow consecutive dashes", fun s -> s.Contains "--") ]
             |> validate "Storage resource names" name
             |> Result.map (ResourceName >> StorageResourceName)
 
@@ -648,12 +655,11 @@ module Sql =
     type SqlAccountName =
         private | SqlAccountName of ResourceName
         static member Create name =
-            [ isNonEmpty
-              lengthBetween 1 63
-              cannotStartWith "a dash" ((=) '-')
-              cannotEndWith "a dash" ((=) '-')
-              containsOnly "lowercase letters" lowercaseOnly
-              Rules.containsOnlyLettersNumbersOrDash ]
+            [ nonEmptyLengthBetween 1 63
+              cannotStartWith aDash 
+              cannotEndWith aDash
+              containsOnlyM [ lowercaseLetters; lettersNumbersOrDash ]
+            ]
             |> validate "SQL account names" name
             |> Result.map (ResourceName >> SqlAccountName)
 
