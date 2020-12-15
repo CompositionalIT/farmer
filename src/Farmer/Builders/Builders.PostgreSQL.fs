@@ -167,7 +167,6 @@ type PostgreSQLDbBuilder() =
 let postgreSQLDb = PostgreSQLDbBuilder()
 
 type PostgreSQLBuilder() =
-    interface ITaggable<PostgreSQLConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     member _.Yield _ : PostgreSQLConfig =
         { Name = ResourceName ""
           AdministratorCredentials = {| UserName = ""; Password = SecureParameter "" |}
@@ -288,5 +287,6 @@ type PostgreSQLBuilder() =
     [<CustomOperation "enable_azure_firewall">]
     member this.EnableAzureFirewall(state:PostgreSQLConfig) =
         this.AddFirewallWall(state, "allow-azure-services", "0.0.0.0", "0.0.0.0")
+    interface ITaggable<PostgreSQLConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let postgreSQL = PostgreSQLBuilder()

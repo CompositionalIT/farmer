@@ -216,7 +216,6 @@ type KeyVaultBuilderState =
       Tags: Map<string,string> }
 
 type KeyVaultBuilder() =
-    interface ITaggable<KeyVaultConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     member __.Yield (_:unit) =
         { Name = ResourceName.Empty
           TenantId = Subscription.TenantId
@@ -326,11 +325,9 @@ type KeyVaultBuilder() =
     member this.AddSecrets(state:KeyVaultBuilderState, keys) = keys |> Seq.fold(fun state (key:SecretConfig) -> this.AddSecret(state, key)) state
     member this.AddSecrets(state:KeyVaultBuilderState, keys) = this.AddSecrets(state, keys |> Seq.map SecretConfig.create)
     member this.AddSecrets(state:KeyVaultBuilderState, items) = this.AddSecrets(state, items |> Seq.map(fun (key, value) -> SecretConfig.create (key, value)))
-
+    interface ITaggable<KeyVaultConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 type SecretBuilder() =
-    interface ITaggable<SecretConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
-    interface IDependsOn<SecretConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
     member __.Run(state:SecretConfig) =
         SecretConfig.isValid state.Key
         state
@@ -349,6 +346,8 @@ type SecretBuilder() =
     member __.ActivationDate(state:SecretConfig, activationDate) = { state with ActivationDate = Some activationDate }
     [<CustomOperation "expiration_date">]
     member __.ExpirationDate(state:SecretConfig, expirationDate) = { state with ExpirationDate = Some expirationDate }
+    interface ITaggable<SecretConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
+    interface IDependsOn<SecretConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
 let secret = SecretBuilder()
 let keyVault = KeyVaultBuilder()

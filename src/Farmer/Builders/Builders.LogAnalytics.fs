@@ -29,7 +29,6 @@ type WorkspaceConfig =
         ]
 
 type WorkspaceBuilder() =
-    interface ITaggable<WorkspaceConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     member _.Yield _ =
         { Name = ResourceName.Empty
           RetentionPeriod = None
@@ -71,6 +70,7 @@ type WorkspaceBuilder() =
     [<CustomOperation "daily_cap">]
     member _.DailyCap(state: WorkspaceConfig, cap) = { state with DailyCap = Some cap }
 
+    interface ITaggable<WorkspaceConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let logAnalytics = WorkspaceBuilder()
 

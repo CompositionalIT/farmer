@@ -369,8 +369,6 @@ type WebAppConfig =
         ]
 
 type WebAppBuilder() =
-    interface ITaggable<WebAppConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
-    interface IDependsOn<WebAppConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
     member __.Yield _ =
         { Name = ResourceName.Empty
           ServicePlan = derived (fun config -> serverFarms.resourceId (config.Name-"farm"))
@@ -590,6 +588,8 @@ type WebAppBuilder() =
         { state with SiteExtensions = state.SiteExtensions.Add extension }
     member this.AddExtension(state, name) =
         this.AddExtension(state, ExtensionName name)
+    interface ITaggable<WebAppConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
+    interface IDependsOn<WebAppConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
 let webApp = WebAppBuilder()
 

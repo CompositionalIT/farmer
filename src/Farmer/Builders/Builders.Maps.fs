@@ -20,7 +20,6 @@ type MapsConfig =
         ]
 
 type MapsBuilder() =
-    interface ITaggable<MapsConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     member _.Yield _ =
         { Name = ResourceName.Empty
           Sku = S0
@@ -34,4 +33,6 @@ type MapsBuilder() =
     /// Sets the SKU of the Azure Maps instance.
     [<CustomOperation("sku")>]
     member _.Sku(state:MapsConfig, sku) = { state with Sku = sku }
+    interface ITaggable<MapsConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
+
 let maps = MapsBuilder()

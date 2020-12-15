@@ -57,7 +57,6 @@ type IotHubConfig =
         ]
 
 type IotHubBuilder() =
-    interface ITaggable<IotHubConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     member _.Yield _ =
         { Name = ResourceName.Empty
           Sku = F1
@@ -97,5 +96,6 @@ type IotHubBuilder() =
     [<CustomOperation "enable_device_provisioning">]
     /// Sets the name of the SKU/Tier for the IOT Hub instance.
     member _.DeviceProvisioning (state:IotHubConfig) = { state with DeviceProvisioning = Enabled }
+    interface ITaggable<IotHubConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let iotHub = IotHubBuilder()

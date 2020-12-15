@@ -105,7 +105,6 @@ type ExpressRouteConfig =
         ]
 
 type ExpressRouteBuilder() =
-    interface ITaggable<ExpressRouteConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     member __.Yield _ =
       { Name = ResourceName.Empty
         Tier = Standard
@@ -140,4 +139,5 @@ type ExpressRouteBuilder() =
     /// Enables Global Reach on the circuit
     [<CustomOperation "enable_global_reach">]
     member __.EnableGlobalReach(state:ExpressRouteConfig) = { state with GlobalReachEnabled = true }
+    interface ITaggable<ExpressRouteConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 let expressRoute = ExpressRouteBuilder()

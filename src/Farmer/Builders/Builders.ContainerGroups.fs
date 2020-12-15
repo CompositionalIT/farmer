@@ -100,7 +100,6 @@ type ContainerGroupConfig =
         ]
 
 type ContainerGroupBuilder() =
-    interface ITaggable<ContainerGroupConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     member private _.AddPort (state, portType, port): ContainerGroupConfig =
         { state with IpAddress =
                         match state.IpAddress with
@@ -174,6 +173,7 @@ type ContainerGroupBuilder() =
     member this.AddIdentity(state, identity:UserAssignedIdentityConfig) = this.AddIdentity(state, identity.UserAssignedIdentity)
     [<CustomOperation "system_identity">]
     member _.SystemIdentity(state:ContainerGroupConfig) = { state with Identity = { state.Identity with SystemAssigned = Enabled } }
+    interface ITaggable<ContainerGroupConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 /// Creates an image registry credential with a generated SecureParameter for the password.
 let registry (server:string) (username:string) =
@@ -257,7 +257,6 @@ type NetworkProfileConfig =
         ]
 
 type NetworkProfileBuilder() =
-    interface ITaggable<NetworkProfileConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     member _.Yield _ =
         { Name = ResourceName.Empty
           ContainerNetworkInterfaceConfigurations = []
@@ -275,5 +274,6 @@ type NetworkProfileBuilder() =
     /// Sets the virtual network for the profile
     [<CustomOperation "vnet">]
     member _.VirtualNetwork(state:NetworkProfileConfig, vnet) = { state with VirtualNetwork = ResourceName vnet }
+    interface ITaggable<NetworkProfileConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let networkProfile = NetworkProfileBuilder ()

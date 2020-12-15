@@ -21,7 +21,6 @@ type DataLakeConfig =
         ]
 
 type DataLakeBuilder() =
-    interface ITaggable<DataLakeConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     member __.Yield _ =
         { Name = ResourceName ""
           EncryptionState = Disabled
@@ -30,13 +29,11 @@ type DataLakeBuilder() =
 
     /// Sets the name of the data lake.
     [<CustomOperation "name">]
-    member __.Name (state:DataLakeConfig, name) =
-        { state with Name = ResourceName name }
+    member __.Name (state:DataLakeConfig, name) = { state with Name = ResourceName name }
     [<CustomOperation "enable_encryption">]
-    member _.EncryptionState (state:DataLakeConfig) =
-        { state with EncryptionState = Enabled }
+    member _.EncryptionState (state:DataLakeConfig) = { state with EncryptionState = Enabled }
     [<CustomOperation "sku">]
-    member _.Sku (state:DataLakeConfig, sku) =
-        { state with Sku = sku }
+    member _.Sku (state:DataLakeConfig, sku) = { state with Sku = sku }
+    interface ITaggable<DataLakeConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let dataLake = DataLakeBuilder()

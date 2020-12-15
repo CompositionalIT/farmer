@@ -75,8 +75,6 @@ type DeploymentScriptConfig =
         ]
 
 type DeploymentScriptBuilder() =
-    interface ITaggable<DeploymentScriptConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
-    interface IDependsOn<DeploymentScriptConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
     member _.Yield _ =
         { Name = ResourceName.Empty
           Dependencies = Set.empty
@@ -147,5 +145,7 @@ type DeploymentScriptBuilder() =
     /// Timeout for script execution in ISO 8601 format, e.g. PT30M.
     member _.Timeout(state:DeploymentScriptConfig, timeout) =
         { state with Timeout = Some (Xml.XmlConvert.ToTimeSpan timeout) }
+    interface ITaggable<DeploymentScriptConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
+    interface IDependsOn<DeploymentScriptConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
 let deploymentScript = DeploymentScriptBuilder()

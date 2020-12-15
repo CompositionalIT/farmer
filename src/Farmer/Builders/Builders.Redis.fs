@@ -40,7 +40,6 @@ type RedisConfig =
         ]
 
 type RedisBuilder() =
-    interface ITaggable<RedisConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     member __.Yield _ =
         { Name = ResourceName.Empty
           Sku = Basic
@@ -92,5 +91,6 @@ type RedisBuilder() =
     member __.ShardCount(state:RedisConfig, shardCount) = { state with ShardCount = Some shardCount }
     [<CustomOperation "minimum_tls_version">]
     member __.MinimumTlsVersion(state:RedisConfig, tlsVersion) = { state with MinimumTlsVersion = Some tlsVersion }
+    interface ITaggable<RedisConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let redis = RedisBuilder()
