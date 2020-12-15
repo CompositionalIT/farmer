@@ -40,6 +40,7 @@ type RedisConfig =
         ]
 
 type RedisBuilder() =
+    interface ITaggable<RedisConfig> with member _.SetTags state mergeTags = { state with Tags = mergeTags state.Tags }
     member __.Yield _ =
         { Name = ResourceName.Empty
           Sku = Basic
@@ -91,11 +92,5 @@ type RedisBuilder() =
     member __.ShardCount(state:RedisConfig, shardCount) = { state with ShardCount = Some shardCount }
     [<CustomOperation "minimum_tls_version">]
     member __.MinimumTlsVersion(state:RedisConfig, tlsVersion) = { state with MinimumTlsVersion = Some tlsVersion }
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:RedisConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:RedisConfig, key, value) = this.Tags(state, [ (key,value) ])
 
 let redis = RedisBuilder()

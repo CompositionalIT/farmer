@@ -54,6 +54,7 @@ type CdnConfig =
         ]
 
 type CdnBuilder() =
+    interface ITaggable<CdnConfig> with member _.SetTags state mergeTags = { state with Tags = mergeTags state.Tags }
     member _.Yield _ =
         { Name = ResourceName.Empty
           Sku = Standard_Akamai
@@ -65,12 +66,6 @@ type CdnBuilder() =
     member _.Sku(state:CdnConfig, sku) = { state with Sku = sku }
     [<CustomOperation "add_endpoints">]
     member _.AddEndpoints(state:CdnConfig, endpoints) = { state with Endpoints = state.Endpoints @ endpoints }
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:CdnConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:CdnConfig, key, value) = this.Tags(state, [ (key,value) ])
 
 type EndpointBuilder() =
     member _.Yield _ : EndpointConfig =

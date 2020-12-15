@@ -137,6 +137,24 @@ type ResourceType with
                 |> Option.toObj
                tags = tags |> Option.map box |> Option.toObj |}
 
+type ITaggable<'TConfig> =
+    abstract member SetTags : state:'TConfig -> (Map<string, string> -> Map<string,string>) -> 'TConfig
+
+[<AutoOpen>]
+module Extensions =
+    type ITaggable<'T> with
+        /// Adds the provided set of tags to the builder.
+        [<CustomOperation "add_tags">]
+        member this.Tags(state:'T, pairs) =
+            let mergeTags currentTags =
+                (currentTags, pairs)
+                ||> List.fold (fun map (key, value) -> Map.add key value map)
+            this.SetTags state mergeTags
+
+            //this.AddTags state pairs
+        /// Adds the provided tag to the builder.
+        [<CustomOperation "add_tag">]
+        member this.Tag(state:'T, key, value) = this.Tags(state, [ key, value])
 
 /// A secure parameter to be captured in an ARM template.
 type SecureParameter =

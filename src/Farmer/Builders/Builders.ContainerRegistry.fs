@@ -23,6 +23,7 @@ type ContainerRegistryConfig =
               Tags = this.Tags }
         ]
 type ContainerRegistryBuilder() =
+    interface ITaggable<ContainerRegistryConfig> with member _.SetTags state mergeTags = { state with Tags = mergeTags state.Tags }
     member _.Yield _ =
         { Name = ResourceName.Empty
           Sku = Basic
@@ -40,11 +41,5 @@ type ContainerRegistryBuilder() =
     [<CustomOperation "enable_admin_user">]
     /// Enables the admin user on the Azure Container Registry.
     member _.EnableAdminUser (state:ContainerRegistryConfig) = { state with AdminUserEnabled = true }
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:ContainerRegistryConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:ContainerRegistryConfig, key, value) = this.Tags(state, [ (key,value) ])
 
 let containerRegistry = ContainerRegistryBuilder()

@@ -100,14 +100,13 @@ type ContainerGroupConfig =
         ]
 
 type ContainerGroupBuilder() =
+    interface ITaggable<ContainerGroupConfig> with member _.SetTags state mergeTags = { state with Tags = mergeTags state.Tags }
     member private _.AddPort (state, portType, port): ContainerGroupConfig =
-        {
-            state with IpAddress =
+        { state with IpAddress =
                         match state.IpAddress with
                         | Some ipAddresses ->
                             { ipAddresses with Ports = ipAddresses.Ports.Add {| Protocol = portType; Port = port |} } |> Some
-                        | None -> { Type = IpAddressType.PublicAddress; Ports = [ {| Protocol = portType; Port = port |} ] |> Set.ofList } |> Some
-        }
+                        | None -> { Type = IpAddressType.PublicAddress; Ports = [ {| Protocol = portType; Port = port |} ] |> Set.ofList } |> Some }
 
     member _.Yield _ =
         { Name = ResourceName.Empty
@@ -175,12 +174,6 @@ type ContainerGroupBuilder() =
     member this.AddIdentity(state, identity:UserAssignedIdentityConfig) = this.AddIdentity(state, identity.UserAssignedIdentity)
     [<CustomOperation "system_identity">]
     member _.SystemIdentity(state:ContainerGroupConfig) = { state with Identity = { state.Identity with SystemAssigned = Enabled } }
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:ContainerGroupConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:ContainerGroupConfig, key, value) = this.Tags(state, [ (key,value) ])
 
 /// Creates an image registry credential with a generated SecureParameter for the password.
 let registry (server:string) (username:string) =
@@ -264,6 +257,7 @@ type NetworkProfileConfig =
         ]
 
 type NetworkProfileBuilder() =
+    interface ITaggable<NetworkProfileConfig> with member _.SetTags state mergeTags = { state with Tags = mergeTags state.Tags }
     member _.Yield _ =
         { Name = ResourceName.Empty
           ContainerNetworkInterfaceConfigurations = []
@@ -281,11 +275,5 @@ type NetworkProfileBuilder() =
     /// Sets the virtual network for the profile
     [<CustomOperation "vnet">]
     member _.VirtualNetwork(state:NetworkProfileConfig, vnet) = { state with VirtualNetwork = ResourceName vnet }
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:NetworkProfileConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:NetworkProfileConfig, key, value) = this.Tags(state, [ (key,value) ])
 
 let networkProfile = NetworkProfileBuilder ()

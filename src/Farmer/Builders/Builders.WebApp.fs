@@ -369,6 +369,7 @@ type WebAppConfig =
         ]
 
 type WebAppBuilder() =
+    interface ITaggable<WebAppConfig> with member _.SetTags state mergeTags = { state with Tags = mergeTags state.Tags }
     member __.Yield _ =
         { Name = ResourceName.Empty
           ServicePlan = derived (fun config -> serverFarms.resourceId (config.Name-"farm"))
@@ -580,12 +581,6 @@ type WebAppBuilder() =
     member this.EnableCi(state:WebAppConfig) = this.SourceControlCi(state, Enabled)
     [<CustomOperation "disable_source_control_ci">]
     member this.DisableCi(state:WebAppConfig) = this.SourceControlCi(state, Disabled)
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:WebAppConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:WebAppConfig, key, value) = this.Tags(state, [ (key,value) ])
     [<CustomOperation "use_keyvault">]
     member this.UseKeyVault(state:WebAppConfig) =
         let state = this.SystemIdentity (state)

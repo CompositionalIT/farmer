@@ -75,6 +75,7 @@ type DeploymentScriptConfig =
         ]
 
 type DeploymentScriptBuilder() =
+    interface ITaggable<DeploymentScriptConfig> with member _.SetTags state mergeTags = { state with Tags = mergeTags state.Tags }
     member _.Yield _ =
         { Name = ResourceName.Empty
           Dependencies = Set.empty
@@ -145,12 +146,6 @@ type DeploymentScriptBuilder() =
     /// Timeout for script execution in ISO 8601 format, e.g. PT30M.
     member _.Timeout(state:DeploymentScriptConfig, timeout) =
         { state with Timeout = Some (Xml.XmlConvert.ToTimeSpan timeout) }
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:DeploymentScriptConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:DeploymentScriptConfig, key, value) = this.Tags(state, [ (key,value) ])
 
     /// Sets a dependency for the deployment script. Use this if you want to ensure that the script runs only after another resource has been deployed.
     [<CustomOperation "depends_on">]

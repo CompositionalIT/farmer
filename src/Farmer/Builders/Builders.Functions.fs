@@ -160,6 +160,7 @@ type FunctionsConfig =
         ]
 
 type FunctionsBuilder() =
+    interface ITaggable<FunctionsConfig> with member _.SetTags state mergeTags = { state with Tags = mergeTags state.Tags }
     member _.Yield _ =
         { Name = ResourceName.Empty
           ServicePlan = derived (fun config -> serverFarms.resourceId (config.Name-"farm"))
@@ -268,12 +269,6 @@ type FunctionsBuilder() =
     [<CustomOperation "system_identity">]
     member _.SystemIdentity(state:FunctionsConfig) =
         { state with Identity = { state.Identity with SystemAssigned = Enabled } }
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:FunctionsConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:FunctionsConfig, key, value) = this.Tags(state, [ (key,value) ])
     [<CustomOperation "zip_deploy">]
     /// Specifies a folder path or a zip file containing the function app to install as a post-deployment task.
     member _.ZipDeploy(state:FunctionsConfig, path) = { state with ZipDeployPath = Some path }

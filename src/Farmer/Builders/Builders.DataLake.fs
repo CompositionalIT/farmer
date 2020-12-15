@@ -21,6 +21,7 @@ type DataLakeConfig =
         ]
 
 type DataLakeBuilder() =
+    interface ITaggable<DataLakeConfig> with member _.SetTags state mergeTags = { state with Tags = mergeTags state.Tags }
     member __.Yield _ =
         { Name = ResourceName ""
           EncryptionState = Disabled
@@ -37,11 +38,5 @@ type DataLakeBuilder() =
     [<CustomOperation "sku">]
     member _.Sku (state:DataLakeConfig, sku) =
         { state with Sku = sku }
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:DataLakeConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:DataLakeConfig, key, value) = this.Tags(state, [ (key,value) ])
 
 let dataLake = DataLakeBuilder()

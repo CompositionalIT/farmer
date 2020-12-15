@@ -216,6 +216,7 @@ type KeyVaultBuilderState =
       Tags: Map<string,string> }
 
 type KeyVaultBuilder() =
+    interface ITaggable<KeyVaultConfig> with member _.SetTags state mergeTags = { state with Tags = mergeTags state.Tags }
     member __.Yield (_:unit) =
         { Name = ResourceName.Empty
           TenantId = Subscription.TenantId
@@ -325,14 +326,10 @@ type KeyVaultBuilder() =
     member this.AddSecrets(state:KeyVaultBuilderState, keys) = keys |> Seq.fold(fun state (key:SecretConfig) -> this.AddSecret(state, key)) state
     member this.AddSecrets(state:KeyVaultBuilderState, keys) = this.AddSecrets(state, keys |> Seq.map SecretConfig.create)
     member this.AddSecrets(state:KeyVaultBuilderState, items) = this.AddSecrets(state, items |> Seq.map(fun (key, value) -> SecretConfig.create (key, value)))
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:KeyVaultBuilderState, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:KeyVaultBuilderState, key, value) = this.Tags(state, [ (key,value) ])
+
 
 type SecretBuilder() =
+    interface ITaggable<SecretConfig> with member _.SetTags state mergeTags = { state with Tags = mergeTags state.Tags }
     member __.Run(state:SecretConfig) =
         SecretConfig.isValid state.Key
         state
@@ -360,12 +357,6 @@ type SecretBuilder() =
     member this.DependsOn(state:SecretConfig, resources:IArmResource list) = this.DependsOn (state, resources |> List.map (fun x -> x.ResourceId))
     member _.DependsOn (state:SecretConfig, resourceId:ResourceId) = { state with Dependencies = resourceId :: state.Dependencies }
     member _.DependsOn (state:SecretConfig, resourceIds:ResourceId list) = { state with Dependencies = resourceIds @ state.Dependencies }
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:SecretConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:SecretConfig, key, value) = this.Tags(state, [ (key,value) ])
 
 let secret = SecretBuilder()
 let keyVault = KeyVaultBuilder()

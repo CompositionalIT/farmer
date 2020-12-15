@@ -137,6 +137,7 @@ type CosmosDbContainerBuilder() =
     member __.ExcludePath (state:CosmosDbContainerConfig, path) =
         { state with ExcludedPaths = path :: state.ExcludedPaths }
 type CosmosDbBuilder() =
+    interface ITaggable<CosmosDbConfig> with member _.SetTags state mergeTags = { state with Tags = mergeTags state.Tags }
     member __.Yield _ =
         { DbName = ResourceName.Empty
           AccountName = derived (fun config ->
@@ -188,12 +189,6 @@ type CosmosDbBuilder() =
     /// Enables the use of CosmosDB free tier (one per subscription).
     [<CustomOperation "free_tier">]
     member __.FreeTier(state:CosmosDbConfig) = { state with FreeTier = true }
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:CosmosDbConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:CosmosDbConfig, key, value) = this.Tags(state, [ (key,value) ])
 
 let cosmosDb = CosmosDbBuilder()
 let cosmosContainer = CosmosDbContainerBuilder()
