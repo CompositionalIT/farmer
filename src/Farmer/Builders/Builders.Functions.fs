@@ -16,6 +16,7 @@ type FunctionsConfig =
     { Name : ResourceName
       ServicePlan : ResourceRef<FunctionsConfig>
       HTTPSOnly : bool
+      AlwaysOn: bool
       AppInsights : ResourceRef<FunctionsConfig> option
       OperatingSystem : OS
       Settings : Map<string, Setting>
@@ -103,8 +104,8 @@ type FunctionsConfig =
                 | DependableResource this resourceId -> resourceId
                 | _ -> ()
               ]
-              AlwaysOn = false
               HTTPSOnly = this.HTTPSOnly
+              AlwaysOn = this.AlwaysOn
               HTTP20Enabled = None
               ClientAffinityEnabled = None
               WebSocketsEnabled = None
@@ -171,6 +172,7 @@ type FunctionsBuilder() =
           ExtensionVersion = V3
           Cors = None
           HTTPSOnly = false
+          AlwaysOn = false
           OperatingSystem = Windows
           Settings = Map.empty
           Dependencies = []
@@ -207,6 +209,8 @@ type FunctionsBuilder() =
     /// Disables http for this webapp so that only https is used.
     [<CustomOperation "https_only">]
     member _.HttpsOnly(state:FunctionsConfig) = { state with HTTPSOnly = true }
+    [<CustomOperation "always_on">]
+    member _.AlwaysOn(state:FunctionsConfig) = { state with AlwaysOn = true }
     /// Instead of creating a new AI instance, configure this webapp to point to another AI instance that you are managing
     /// yourself.
     [<CustomOperation "link_to_app_insights">]
