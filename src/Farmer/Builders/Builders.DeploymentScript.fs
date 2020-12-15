@@ -76,6 +76,7 @@ type DeploymentScriptConfig =
 
 type DeploymentScriptBuilder() =
     interface ITaggable<DeploymentScriptConfig> with member _.SetTags state mergeTags = { state with Tags = mergeTags state.Tags }
+    interface IDependsOn<DeploymentScriptConfig> with member _.SetDependencies state mergeDeps = { state with Dependencies = mergeDeps state.Dependencies }
     member _.Yield _ =
         { Name = ResourceName.Empty
           Dependencies = Set.empty
@@ -146,14 +147,5 @@ type DeploymentScriptBuilder() =
     /// Timeout for script execution in ISO 8601 format, e.g. PT30M.
     member _.Timeout(state:DeploymentScriptConfig, timeout) =
         { state with Timeout = Some (Xml.XmlConvert.ToTimeSpan timeout) }
-
-    /// Sets a dependency for the deployment script. Use this if you want to ensure that the script runs only after another resource has been deployed.
-    [<CustomOperation "depends_on">]
-    member this.DependsOn(state:DeploymentScriptConfig, builder:IBuilder) = this.DependsOn (state, builder.ResourceId)
-    member this.DependsOn(state:DeploymentScriptConfig, builders:IBuilder list) = this.DependsOn (state, builders |> List.map (fun x -> x.ResourceId))
-    member this.DependsOn(state:DeploymentScriptConfig, resource:IArmResource) = this.DependsOn (state, resource.ResourceId)
-    member this.DependsOn(state:DeploymentScriptConfig, resources:IArmResource list) = this.DependsOn (state, resources |> List.map (fun x -> x.ResourceId))
-    member _.DependsOn (state:DeploymentScriptConfig, resourceId:ResourceId) = { state with Dependencies = state.Dependencies.Add resourceId }
-    member _.DependsOn (state:DeploymentScriptConfig, resourceIds:ResourceId list) = { state with Dependencies = Set resourceIds + state.Dependencies }
 
 let deploymentScript = DeploymentScriptBuilder()

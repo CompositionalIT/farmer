@@ -20,7 +20,7 @@ type FunctionsConfig =
       OperatingSystem : OS
       Settings : Map<string, Setting>
       Tags : Map<string, string>
-      Dependencies : ResourceId list
+      Dependencies : ResourceId Set
       Cors : Cors option
       StorageAccount : ResourceRef<FunctionsConfig>
       Runtime : FunctionsRuntime
@@ -161,6 +161,7 @@ type FunctionsConfig =
 
 type FunctionsBuilder() =
     interface ITaggable<FunctionsConfig> with member _.SetTags state mergeTags = { state with Tags = mergeTags state.Tags }
+    interface IDependsOn<FunctionsConfig> with member _.SetDependencies state mergeDeps = { state with Dependencies = mergeDeps state.Dependencies }
     member _.Yield _ =
         { Name = ResourceName.Empty
           ServicePlan = derived (fun config -> serverFarms.resourceId (config.Name-"farm"))
@@ -174,7 +175,7 @@ type FunctionsBuilder() =
           HTTPSOnly = false
           OperatingSystem = Windows
           Settings = Map.empty
-          Dependencies = []
+          Dependencies = Set.empty
           Identity = ManagedIdentity.Empty
           Tags = Map.empty
           ZipDeployPath = None }
@@ -239,15 +240,6 @@ type FunctionsBuilder() =
     [<CustomOperation "secret_setting">]
     member _.AddSecret(state:FunctionsConfig, key) =
         { state with Settings = state.Settings.Add(key, ParameterSetting (SecureParameter key)) }
-
-    /// Sets a dependency for the web app.
-    [<CustomOperation "depends_on">]
-    member this.DependsOn(state:FunctionsConfig, builder:IBuilder) = this.DependsOn (state, builder.ResourceId)
-    member this.DependsOn(state:FunctionsConfig, builders:IBuilder list) = this.DependsOn (state, builders |> List.map (fun x -> x.ResourceId))
-    member this.DependsOn(state:FunctionsConfig, resource:IArmResource) = this.DependsOn (state, resource.ResourceId)
-    member this.DependsOn(state:FunctionsConfig, resources:IArmResource list) = this.DependsOn (state, resources |> List.map (fun x -> x.ResourceId))
-    member _.DependsOn (state:FunctionsConfig, resourceId:ResourceId) = { state with Dependencies = resourceId :: state.Dependencies }
-    member _.DependsOn (state:FunctionsConfig, resourceIds:ResourceId list) = { state with Dependencies = resourceIds @ state.Dependencies }
 
     /// sets the list of origins that should be allowed to make cross-origin calls. Use AllOrigins to allow all.
     [<CustomOperation "enable_cors">]

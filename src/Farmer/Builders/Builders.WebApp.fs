@@ -159,7 +159,7 @@ type WebAppConfig =
                                   ActivationDate = secret.ActivationDate
                                   ExpirationDate = secret.ExpirationDate
                                   Location = location
-                                  Dependencies = vaultName :: secret.Dependencies
+                                  Dependencies = secret.Dependencies.Add vaultName
                                   Tags = secret.Tags } :> IArmResource
                             | None ->
                                 ()
@@ -370,6 +370,7 @@ type WebAppConfig =
 
 type WebAppBuilder() =
     interface ITaggable<WebAppConfig> with member _.SetTags state mergeTags = { state with Tags = mergeTags state.Tags }
+    interface IDependsOn<WebAppConfig> with member _.SetDependencies state mergeDeps = { state with Dependencies = mergeDeps state.Dependencies }
     member __.Yield _ =
         { Name = ResourceName.Empty
           ServicePlan = derived (fun config -> serverFarms.resourceId (config.Name-"farm"))
@@ -493,15 +494,6 @@ type WebAppBuilder() =
     member this.AddConnectionStrings(state:WebAppConfig, connectionStrings) =
         connectionStrings
         |> List.fold (fun (state:WebAppConfig) (key:string) -> this.AddConnectionString(state, key)) state
-
-    /// Sets a dependency for the web app.
-    [<CustomOperation "depends_on">]
-    member this.DependsOn(state:WebAppConfig, builder:IBuilder) = this.DependsOn (state, builder.ResourceId)
-    member this.DependsOn(state:WebAppConfig, builders:IBuilder list) = this.DependsOn (state, builders |> List.map (fun x -> x.ResourceId))
-    member this.DependsOn(state:WebAppConfig, resource:IArmResource) = this.DependsOn (state, resource.ResourceId)
-    member this.DependsOn(state:WebAppConfig, resources:IArmResource list) = this.DependsOn (state, resources |> List.map (fun x -> x.ResourceId))
-    member this.DependsOn (state:WebAppConfig, resourceId:ResourceId) = { state with Dependencies = state.Dependencies.Add resourceId }
-    member this.DependsOn (state:WebAppConfig, resourceIds:ResourceId list) = { state with Dependencies = state.Dependencies + Set resourceIds }
 
     /// Sets "Always On" flag
     [<CustomOperation "always_on">]

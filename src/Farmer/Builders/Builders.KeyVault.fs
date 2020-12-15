@@ -45,7 +45,7 @@ type SecretConfig =
       Enabled : bool option
       ActivationDate : DateTime option
       ExpirationDate : DateTime option
-      Dependencies : ResourceId list
+      Dependencies : ResourceId Set
       Tags: Map<string,string> }
     static member internal createUnsafe key =
         { Key = key
@@ -54,7 +54,7 @@ type SecretConfig =
           Enabled = None
           ActivationDate = None
           ExpirationDate = None
-          Dependencies = []
+          Dependencies = Set.empty
           Tags = Map.empty }
 
     static member internal isValid key =
@@ -80,7 +80,7 @@ type SecretConfig =
             Value = ExpressionSecret expression
             Dependencies =
                 match expression.Owner with
-                | Some owner -> [ owner ]
+                | Some owner -> Set.ofList [ owner ]
                 | None -> failwithf "The supplied ARM expression ('%s') has no resource owner. You should explicitly set this using WithOwner(), supplying the Resource Name of the owner." expression.Value
         }
 
@@ -144,7 +144,7 @@ type KeyVaultConfig =
                   ActivationDate = secret.ActivationDate
                   ExpirationDate = secret.ExpirationDate
                   Location = location
-                  Dependencies = vaults.resourceId this.Name :: secret.Dependencies
+                  Dependencies = secret.Dependencies.Add (vaults.resourceId this.Name)
                   Tags = secret.Tags }
         ]
 
@@ -330,6 +330,7 @@ type KeyVaultBuilder() =
 
 type SecretBuilder() =
     interface ITaggable<SecretConfig> with member _.SetTags state mergeTags = { state with Tags = mergeTags state.Tags }
+    interface IDependsOn<SecretConfig> with member _.SetDependencies state mergeDeps = { state with Dependencies = mergeDeps state.Dependencies }
     member __.Run(state:SecretConfig) =
         SecretConfig.isValid state.Key
         state
@@ -348,15 +349,6 @@ type SecretBuilder() =
     member __.ActivationDate(state:SecretConfig, activationDate) = { state with ActivationDate = Some activationDate }
     [<CustomOperation "expiration_date">]
     member __.ExpirationDate(state:SecretConfig, expirationDate) = { state with ExpirationDate = Some expirationDate }
-
-    /// Sets a dependency for the web app.
-    [<CustomOperation "depends_on">]
-    member this.DependsOn(state:SecretConfig, builder:IBuilder) = this.DependsOn (state, builder.ResourceId)
-    member this.DependsOn(state:SecretConfig, builders:IBuilder list) = this.DependsOn (state, builders |> List.map (fun x -> x.ResourceId))
-    member this.DependsOn(state:SecretConfig, resource:IArmResource) = this.DependsOn (state, resource.ResourceId)
-    member this.DependsOn(state:SecretConfig, resources:IArmResource list) = this.DependsOn (state, resources |> List.map (fun x -> x.ResourceId))
-    member _.DependsOn (state:SecretConfig, resourceId:ResourceId) = { state with Dependencies = resourceId :: state.Dependencies }
-    member _.DependsOn (state:SecretConfig, resourceIds:ResourceId list) = { state with Dependencies = resourceIds @ state.Dependencies }
 
 let secret = SecretBuilder()
 let keyVault = KeyVaultBuilder()
