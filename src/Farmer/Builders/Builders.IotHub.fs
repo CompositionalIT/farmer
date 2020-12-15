@@ -57,7 +57,7 @@ type IotHubConfig =
         ]
 
 type IotHubBuilder() =
-    interface ITaggable<IotHubConfig> with member _.SetTags state mergeTags = { state with Tags = mergeTags state.Tags }
+    interface ITaggable<IotHubConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     member _.Yield _ =
         { Name = ResourceName.Empty
           Sku = F1

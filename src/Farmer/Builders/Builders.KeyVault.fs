@@ -216,7 +216,7 @@ type KeyVaultBuilderState =
       Tags: Map<string,string> }
 
 type KeyVaultBuilder() =
-    interface ITaggable<KeyVaultConfig> with member _.SetTags state mergeTags = { state with Tags = mergeTags state.Tags }
+    interface ITaggable<KeyVaultConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     member __.Yield (_:unit) =
         { Name = ResourceName.Empty
           TenantId = Subscription.TenantId
@@ -329,8 +329,8 @@ type KeyVaultBuilder() =
 
 
 type SecretBuilder() =
-    interface ITaggable<SecretConfig> with member _.SetTags state mergeTags = { state with Tags = mergeTags state.Tags }
-    interface IDependsOn<SecretConfig> with member _.SetDependencies state mergeDeps = { state with Dependencies = mergeDeps state.Dependencies }
+    interface ITaggable<SecretConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
+    interface IDependsOn<SecretConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
     member __.Run(state:SecretConfig) =
         SecretConfig.isValid state.Key
         state

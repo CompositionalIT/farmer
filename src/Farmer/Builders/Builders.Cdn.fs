@@ -54,7 +54,7 @@ type CdnConfig =
         ]
 
 type CdnBuilder() =
-    interface ITaggable<CdnConfig> with member _.SetTags state mergeTags = { state with Tags = mergeTags state.Tags }
+    interface ITaggable<CdnConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     member _.Yield _ =
         { Name = ResourceName.Empty
           Sku = Standard_Akamai
@@ -68,7 +68,7 @@ type CdnBuilder() =
     member _.AddEndpoints(state:CdnConfig, endpoints) = { state with Endpoints = state.Endpoints @ endpoints }
 
 type EndpointBuilder() =
-    interface IDependsOn<EndpointConfig> with member _.SetDependencies state mergeDeps = { state with Dependencies = mergeDeps state.Dependencies }
+    interface IDependsOn<EndpointConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
     member _.Yield _ : EndpointConfig =
         { Name = ResourceName.Empty
           Dependencies = Set.empty

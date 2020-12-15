@@ -111,7 +111,7 @@ type NsgConfig =
                 buildNsgRule securityGroup rule ((priority + 1) * 100)
         ]
 type NsgBuilder() =
-    interface ITaggable<NsgConfig> with member _.SetTags state mergeTags = { state with Tags = mergeTags state.Tags }
+    interface ITaggable<NsgConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     member __.Yield _ =
         { Name = ResourceName.Empty
           SecurityRules = []

@@ -100,7 +100,7 @@ type ContainerGroupConfig =
         ]
 
 type ContainerGroupBuilder() =
-    interface ITaggable<ContainerGroupConfig> with member _.SetTags state mergeTags = { state with Tags = mergeTags state.Tags }
+    interface ITaggable<ContainerGroupConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     member private _.AddPort (state, portType, port): ContainerGroupConfig =
         { state with IpAddress =
                         match state.IpAddress with
@@ -257,7 +257,7 @@ type NetworkProfileConfig =
         ]
 
 type NetworkProfileBuilder() =
-    interface ITaggable<NetworkProfileConfig> with member _.SetTags state mergeTags = { state with Tags = mergeTags state.Tags }
+    interface ITaggable<NetworkProfileConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     member _.Yield _ =
         { Name = ResourceName.Empty
           ContainerNetworkInterfaceConfigurations = []

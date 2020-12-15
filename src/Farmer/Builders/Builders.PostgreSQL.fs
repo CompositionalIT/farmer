@@ -167,7 +167,7 @@ type PostgreSQLDbBuilder() =
 let postgreSQLDb = PostgreSQLDbBuilder()
 
 type PostgreSQLBuilder() =
-    interface ITaggable<PostgreSQLConfig> with member _.SetTags state mergeTags = { state with Tags = mergeTags state.Tags }
+    interface ITaggable<PostgreSQLConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     member _.Yield _ : PostgreSQLConfig =
         { Name = ResourceName ""
           AdministratorCredentials = {| UserName = ""; Password = SecureParameter "" |}

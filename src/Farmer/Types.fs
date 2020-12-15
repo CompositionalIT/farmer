@@ -138,25 +138,26 @@ type ResourceType with
                tags = tags |> Option.map box |> Option.toObj |}
 
 type ITaggable<'TConfig> =
-    abstract member SetTags : 'TConfig -> (Map<string, string> -> Map<string,string>) -> 'TConfig
+    abstract member Add : 'TConfig -> list<string * string> -> 'TConfig
 type IDependsOn<'TConfig> =
-    abstract member SetDependencies : 'TConfig -> (ResourceId Set -> ResourceId Set) -> 'TConfig
+    abstract member Add : 'TConfig -> ResourceId Set -> 'TConfig
 
 [<AutoOpen>]
 module Extensions =
+    module Map =
+        let merge newValues map =
+            (map, newValues)
+            ||> List.fold (fun map (key, value) -> Map.add key value map)
+
     type ITaggable<'T> with
         /// Adds the provided set of tags to the builder.
         [<CustomOperation "add_tags">]
         member this.Tags(state:'T, pairs) =
-            let mergeTags currentTags =
-                (currentTags, pairs)
-                ||> List.fold (fun map (key, value) -> Map.add key value map)
-            this.SetTags state mergeTags
+            this.Add state pairs
 
-            //this.AddTags state pairs
         /// Adds the provided tag to the builder.
         [<CustomOperation "add_tag">]
-        member this.Tag(state:'T, key, value) = this.Tags(state, [ key, value])
+        member this.Tag(state:'T, key, value) = this.Tags(state, [ key, value ])
 
     type IDependsOn<'TConfig> with
         [<CustomOperation "depends_on">]
@@ -165,9 +166,7 @@ module Extensions =
         member this.DependsOn(state:'TConfig, resource:IArmResource) = this.DependsOn (state, resource.ResourceId)
         member this.DependsOn(state:'TConfig, resources:IArmResource list) = this.DependsOn (state, resources |> List.map (fun x -> x.ResourceId))
         member this.DependsOn (state:'TConfig, resourceId:ResourceId) = this.DependsOn(state, [ resourceId ])
-        member this.DependsOn (state:'TConfig, resourceIds:ResourceId list) =
-            let mergeDependencies (currentDependencies:ResourceId Set) = currentDependencies + Set resourceIds
-            this.SetDependencies state mergeDependencies
+        member this.DependsOn (state:'TConfig, resourceIds:ResourceId list) = this.Add state (Set resourceIds)
 
 /// A secure parameter to be captured in an ARM template.
 type SecureParameter =

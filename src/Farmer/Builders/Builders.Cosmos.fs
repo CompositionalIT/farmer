@@ -137,7 +137,7 @@ type CosmosDbContainerBuilder() =
     member __.ExcludePath (state:CosmosDbContainerConfig, path) =
         { state with ExcludedPaths = path :: state.ExcludedPaths }
 type CosmosDbBuilder() =
-    interface ITaggable<CosmosDbConfig> with member _.SetTags state mergeTags = { state with Tags = mergeTags state.Tags }
+    interface ITaggable<CosmosDbConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     member __.Yield _ =
         { DbName = ResourceName.Empty
           AccountName = derived (fun config ->

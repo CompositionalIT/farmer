@@ -40,7 +40,7 @@ type RedisConfig =
         ]
 
 type RedisBuilder() =
-    interface ITaggable<RedisConfig> with member _.SetTags state mergeTags = { state with Tags = mergeTags state.Tags }
+    interface ITaggable<RedisConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     member __.Yield _ =
         { Name = ResourceName.Empty
           Sku = Basic

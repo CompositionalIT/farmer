@@ -105,7 +105,7 @@ type ExpressRouteConfig =
         ]
 
 type ExpressRouteBuilder() =
-    interface ITaggable<ExpressRouteConfig> with member _.SetTags state mergeTags = { state with Tags = mergeTags state.Tags }
+    interface ITaggable<ExpressRouteConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     member __.Yield _ =
       { Name = ResourceName.Empty
         Tier = Standard

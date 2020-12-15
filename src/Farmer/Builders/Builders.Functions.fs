@@ -160,8 +160,8 @@ type FunctionsConfig =
         ]
 
 type FunctionsBuilder() =
-    interface ITaggable<FunctionsConfig> with member _.SetTags state mergeTags = { state with Tags = mergeTags state.Tags }
-    interface IDependsOn<FunctionsConfig> with member _.SetDependencies state mergeDeps = { state with Dependencies = mergeDeps state.Dependencies }
+    interface ITaggable<FunctionsConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
+    interface IDependsOn<FunctionsConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
     member _.Yield _ =
         { Name = ResourceName.Empty
           ServicePlan = derived (fun config -> serverFarms.resourceId (config.Name-"farm"))

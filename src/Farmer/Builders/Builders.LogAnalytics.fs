@@ -29,7 +29,7 @@ type WorkspaceConfig =
         ]
 
 type WorkspaceBuilder() =
-    interface ITaggable<WorkspaceConfig> with member _.SetTags state mergeTags = { state with Tags = mergeTags state.Tags }
+    interface ITaggable<WorkspaceConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     member _.Yield _ =
         { Name = ResourceName.Empty
           RetentionPeriod = None

@@ -21,7 +21,7 @@ type DataLakeConfig =
         ]
 
 type DataLakeBuilder() =
-    interface ITaggable<DataLakeConfig> with member _.SetTags state mergeTags = { state with Tags = mergeTags state.Tags }
+    interface ITaggable<DataLakeConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     member __.Yield _ =
         { Name = ResourceName ""
           EncryptionState = Disabled

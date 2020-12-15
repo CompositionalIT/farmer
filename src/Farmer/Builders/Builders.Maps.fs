@@ -20,7 +20,7 @@ type MapsConfig =
         ]
 
 type MapsBuilder() =
-    interface ITaggable<MapsConfig> with member _.SetTags state mergeTags = { state with Tags = mergeTags state.Tags }
+    interface ITaggable<MapsConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     member _.Yield _ =
         { Name = ResourceName.Empty
           Sku = S0

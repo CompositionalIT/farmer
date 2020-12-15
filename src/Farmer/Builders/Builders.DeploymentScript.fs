@@ -75,8 +75,8 @@ type DeploymentScriptConfig =
         ]
 
 type DeploymentScriptBuilder() =
-    interface ITaggable<DeploymentScriptConfig> with member _.SetTags state mergeTags = { state with Tags = mergeTags state.Tags }
-    interface IDependsOn<DeploymentScriptConfig> with member _.SetDependencies state mergeDeps = { state with Dependencies = mergeDeps state.Dependencies }
+    interface ITaggable<DeploymentScriptConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
+    interface IDependsOn<DeploymentScriptConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
     member _.Yield _ =
         { Name = ResourceName.Empty
           Dependencies = Set.empty

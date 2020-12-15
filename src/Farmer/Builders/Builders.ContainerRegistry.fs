@@ -23,7 +23,7 @@ type ContainerRegistryConfig =
               Tags = this.Tags }
         ]
 type ContainerRegistryBuilder() =
-    interface ITaggable<ContainerRegistryConfig> with member _.SetTags state mergeTags = { state with Tags = mergeTags state.Tags }
+    interface ITaggable<ContainerRegistryConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     member _.Yield _ =
         { Name = ResourceName.Empty
           Sku = Basic
