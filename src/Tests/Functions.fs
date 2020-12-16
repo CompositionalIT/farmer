@@ -58,4 +58,14 @@ let tests = testList "Functions tests" [
         Expect.sequenceEqual (f.Identity.UserAssignedIdentities |> Seq.map(fun r -> r.Key)) [ "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test2')]"; "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test')]" ] "Should have two user assigned identities"
 
     }
+
+    test "Default always on false" {
+        let f = functions { name "testDefault" }
+        Expect.equal f.AlwaysOn false "always on property set to true when it should be false by default"
+    }
+
+    test "Always on true" {
+        let f = functions { name "testAlwaysOn"; always_on }
+        Expect.equal f.AlwaysOn true "always on property set to false when it should be true"
+    }
 ]
