@@ -1096,7 +1096,7 @@ module Dns =
         | MX of {| Preference : int; Exchange : string |} list
 
 module Databricks = 
-    type PricingTier =
+    type Sku =
         | StandardTier
         | PremiumTier
         static member Standard = StandardTier
