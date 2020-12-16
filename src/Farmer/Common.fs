@@ -1096,15 +1096,12 @@ module Dns =
         | MX of {| Preference : int; Exchange : string |} list
 
 module MachineLearning =
-    type Sku = Basic | Enterprise
-    type StorageAccountOption = New | Existing
-    type KeyVaultOption = New | Existing
-    type ApplicationInsightsOption = New | Existing
-    type ContainerRegistryOption = New | Existing
-    type VnetOption = New | Existing | None // Look into whether None should be here or change name
-    type SubnetOption = New | Existing | None // Look into whether None should be here or change name
-    type EncryptionStatus = Enabled | Disabled
-    type PrivateEndpointType = AutoApproval | ManualApproval | None // Look into whether None should be here or change name
-    type CmkId = CmkId of string
-    type ResourceCmkUri =  ResourceCmkUri of Uri
-    
+
+    type WorkspaceProperties = {
+        Description: string
+        FriendlyName: string
+        KeyVault: ResourceId
+        ApplicationInsights: ResourceId
+        ContainerRegistry: ResourceId
+        StorageAccount: ResourceId
+    }
