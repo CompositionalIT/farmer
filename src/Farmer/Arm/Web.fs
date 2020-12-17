@@ -10,6 +10,7 @@ let sites = ResourceType ("Microsoft.Web/sites", "2016-08-01")
 let config = ResourceType ("Microsoft.Web/sites/config", "2016-08-01")
 let sourceControls = ResourceType ("Microsoft.Web/sites/sourcecontrols", "2019-08-01")
 let staticSites = ResourceType("Microsoft.Web/staticSites", "2019-12-01-preview")
+let siteExtensions = ResourceType("Microsoft.Web/sites/siteextensions", "2020-06-01")
 
 type ServerFarm =
     { Name : ResourceName
@@ -30,7 +31,7 @@ type ServerFarm =
     member this.Kind =
         match this.OperatingSystem with
         | Linux -> Some "linux"
-        | _ -> None
+        | Windows -> None
     member this.Tier =
         match this.Sku with
         | Free -> "Free"
@@ -153,8 +154,8 @@ type Site =
                         failwithf "Path '%s' must either be a folder to be zipped, or an existing zip." path)
                 printfn "Running ZIP deploy for %s" path.Value
                 Some (match target with
-                        | ZipDeploy.ZipDeployTarget.WebApp -> Deploy.Az.zipDeployWebApp name.Value path.GetZipPath resourceGroupName
-                        | ZipDeploy.ZipDeployTarget.FunctionApp -> Deploy.Az.zipDeployFunctionApp name.Value path.GetZipPath resourceGroupName)
+                      | ZipDeploy.WebApp -> Deploy.Az.zipDeployWebApp name.Value path.GetZipPath resourceGroupName
+                      | ZipDeploy.FunctionApp -> Deploy.Az.zipDeployFunctionApp name.Value path.GetZipPath resourceGroupName)
             | _ ->
                 None
     interface IArmResource with
@@ -245,3 +246,13 @@ type StaticSite =
             this.RepositoryToken
         ]
 
+[<AutoOpen>]
+module SiteExtensions =
+    type SiteExtension =
+        { Name : ResourceName
+          SiteName : ResourceName
+          Location : Location }
+        interface IArmResource with
+            member this.ResourceId = siteExtensions.resourceId(this.SiteName/this.Name)
+            member this.JsonModel =
+                siteExtensions.Create(this.SiteName/this.Name, this.Location, [ sites.resourceId this.SiteName ]) :> _

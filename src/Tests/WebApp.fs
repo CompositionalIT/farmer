@@ -184,10 +184,41 @@ let tests = testList "Web App Tests" [
         Expect.equal wa.Identity.Type (Nullable ManagedServiceIdentityType.SystemAssignedUserAssigned) "Should have system identity"
         Expect.sequenceEqual (wa.Identity.UserAssignedIdentities |> Seq.map(fun r -> r.Key)) [ "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test2')]"; "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test')]" ] "Should have two user assigned identities"
     }
-    
+
     test "Unmanaged server farm is fully qualified in ARM" {
         let farm = ResourceId.create(serverFarms, ResourceName "my-asp-name", "my-asp-resource-group")
         let wa : Site = webApp { name "test"; link_to_unmanaged_service_plan farm } |> getResourceAtIndex 0
         Expect.equal wa.ServerFarmId "[resourceId('my-asp-resource-group', 'Microsoft.Web/serverfarms', 'my-asp-name')]" ""
+    }
+
+    test "Handles add_extension correctly" {
+        let wa = webApp { name "siteX"; add_extension "extensionA"; }
+        let resources = wa |> getResources
+        let sx = resources |> getResource<SiteExtension> |> List.head
+        let r  = sx :> IArmResource
+
+        Expect.equal sx.SiteName (ResourceName "siteX") "Extension knows the site name"
+        Expect.equal sx.Location Location.WestEurope "Location is correct"
+        Expect.equal sx.Name (ResourceName "extensionA") "Extension name is correct"
+        Expect.equal r.ResourceId.ArmExpression.Value "resourceId('Microsoft.Web/sites/siteextensions', 'siteX/extensionA')" "Resource name composed of site name and extension name"
+    }
+
+    test "Handles multiple add_extension correctly" {
+        let wa = webApp { name "siteX"; add_extension "extensionA"; add_extension "extensionB"; add_extension "extensionB" }
+        let resources = wa |> getResources |> getResource<SiteExtension>
+
+        let actual = List.sort resources
+        let expected = [
+            { Location = Location.WestEurope; Name = ResourceName "extensionA"; SiteName = ResourceName "siteX" }
+            { Location = Location.WestEurope; Name = ResourceName "extensionB"; SiteName = ResourceName "siteX" }
+        ]
+        Expect.sequenceEqual actual expected "Both extensions defined"
+    }
+
+    test "SiteExtension ResourceId constructed correctly" {
+        let siteName = ResourceName "siteX"
+        let resourceId = siteExtensions.resourceId siteName
+
+        Expect.equal resourceId.ArmExpression.Value "resourceId('Microsoft.Web/sites/siteextensions', 'siteX')" ""
     }
 ]

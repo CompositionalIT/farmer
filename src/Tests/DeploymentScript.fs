@@ -67,6 +67,19 @@ let tests = testList "deploymentScripts" [
         Expect.equal (s.Outputs.["test"].Eval()) "[reference(resourceId('Microsoft.Resources/deploymentScripts', 'thing'), '2019-10-01-preview').outputs.test]" ""
     }
 
+    test "Secure parameters are generated correctly" {
+        let s = deploymentScript {
+            name "thing"
+            env_vars [
+                EnvVar.createSecure "foo" "secret-foo"
+            ]
+        }
+        let deployment = arm {
+            add_resource s
+        }
+        Expect.hasLength deployment.Template.Parameters 1 "Should have a secure parameter"
+        Expect.equal (deployment.Template.Parameters.Head.ArmExpression.Eval()) "[parameters('secret-foo')]" "Generated incorrect secure parameter."
+    }
     test "Script runs after dependency is created" {
         let storage = storageAccount {
             name "storagewithstuff"
