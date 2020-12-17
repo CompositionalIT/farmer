@@ -7,7 +7,7 @@ open System.Reflection
 
 module TemplateGeneration =
     let processTemplate (template:ArmTemplate) = {|
-        ``$schema`` = "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#"
+        ``$schema`` = template.Schema
         contentVersion = "1.0.0.0"
         resources = template.Resources |> List.map(fun r -> r.JsonModel)
         parameters =

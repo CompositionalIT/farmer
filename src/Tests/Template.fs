@@ -16,10 +16,10 @@ open System.IO
 [<AutoOpen>]
 module TestHelpers =
     let createSimpleDeployment parameters =
-        { Schema = Arm.ResourceGroup.schema
-          Location = Location.NorthEurope
+        { Location = Location.NorthEurope
           PostDeployTasks = []
           Template = {
+              Schema = Arm.ResourceGroup.schema
               Outputs = []
               Parameters = parameters |> List.map SecureParameter
               Resources = []

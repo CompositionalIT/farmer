@@ -74,11 +74,12 @@ let tests = testList "deploymentScripts" [
                 EnvVar.createSecure "foo" "secret-foo"
             ]
         }
-        let deployment = arm {
-            add_resource s
-        }
-        Expect.hasLength deployment.Template.Parameters 1 "Should have a secure parameter"
-        Expect.equal (deployment.Template.Parameters.Head.ArmExpression.Eval()) "[parameters('secret-foo')]" "Generated incorrect secure parameter."
+        let template =
+            arm { add_resource s }
+            |> Deployment.getTemplate "farmer-deploy"
+            
+        Expect.hasLength template.Parameters 1 "Should have a secure parameter"
+        Expect.equal (template.Parameters.Head.ArmExpression.Eval()) "[parameters('secret-foo')]" "Generated incorrect secure parameter."
     }
     test "Script runs after dependency is created" {
         let storage = storageAccount {

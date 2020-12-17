@@ -254,13 +254,13 @@ type Setting =
     static member AsLiteral (a,b) = a, LiteralSetting b
 
 type ArmTemplate =
-    { Parameters : SecureParameter list
+    { Schema: string
+      Parameters : SecureParameter list
       Outputs : (string * string) list
       Resources : IArmResource list }
 
 type Deployment =
-    { Schema : string
-      Location : Location
+    { Location : Location
       Template : ArmTemplate
       PostDeployTasks : (unit -> Result<string ,string> list) list}
     interface IDeploymentBuilder with

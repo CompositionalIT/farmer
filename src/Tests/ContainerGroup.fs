@@ -234,11 +234,11 @@ let tests = testList "Container Group" [
                 }
             ]
         }
-        let deployment = arm {
-            add_resource cg
-        }
-        Expect.hasLength deployment.Template.Parameters 1 "Should have a secure parameter for environment variable"
-        Expect.equal (deployment.Template.Parameters.Head.ArmExpression.Eval()) "[parameters('secret-foo')]" "Generated incorrect secure parameter."
+        let template = 
+            arm {add_resource cg}
+            |> Deployment.getTemplate "farmer-deploy"
+        Expect.hasLength template.Parameters 1 "Should have a secure parameter for environment variable"
+        Expect.equal (template.Parameters.Head.ArmExpression.Eval()) "[parameters('secret-foo')]" "Generated incorrect secure parameter."
     }
     test "Secure parameters for secret volume is generated correctly" {
         let cg = containerGroup {
@@ -254,11 +254,14 @@ let tests = testList "Container Group" [
                 volume_mount.secret_parameter "secrets" "foo" "secret-foo"
             ]
         }
-        let deployment = arm {
-            location Location.EastUS
-            add_resource cg
-        }
-        Expect.hasLength deployment.Template.Parameters 1 "Should have a secure parameter for secret volume"
-        Expect.equal (deployment.Template.Parameters.Head.ArmExpression.Eval()) "[parameters('secret-foo')]" "Generated incorrect secure parameter."
+        let template = 
+            arm {
+                location Location.EastUS
+                add_resource cg
+            }
+            |> Deployment.getTemplate "farmer-deploy"
+            
+        Expect.hasLength template.Parameters 1 "Should have a secure parameter for secret volume"
+        Expect.equal (template.Parameters.Head.ArmExpression.Eval()) "[parameters('secret-foo')]" "Generated incorrect secure parameter."
     }
 ]

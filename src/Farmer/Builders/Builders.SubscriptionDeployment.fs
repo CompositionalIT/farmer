@@ -27,7 +27,8 @@ type SubscriptionDeployment=
                 |> List.fold (fun acc (k,v) -> Map.add k v acc) Map.empty
 
             let template =
-                { Parameters = [
+                { Schema = "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#"
+                  Parameters = [
                     for resource in this.Resources do
                         match resource with
                         | :? IParameters as p -> yield! p.SecureParameters
@@ -39,8 +40,7 @@ type SubscriptionDeployment=
                 this.Resources 
                 |> List.map (fun x-> x.RunPostDeployTasks) 
 
-            { Schema = "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#"
-              Location = this.Location
+            { Location = this.Location
               Template = template
               PostDeployTasks = postDeploy }
 

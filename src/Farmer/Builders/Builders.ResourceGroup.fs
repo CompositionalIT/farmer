@@ -72,7 +72,7 @@ type ResourceGroupConfig =
             
     interface IDeploymentBuilder with
         member this.BuildDeployment name sfx =
-            let resolvedName = Option.orElse (Some (ResourceName name)) this.Name
+            let resolvedName = this.Name |> Option.orElse (Some (ResourceName name)) 
             subscriptionDeployment {
                 location this.Location
                 add_resource {this with Name = resolvedName }

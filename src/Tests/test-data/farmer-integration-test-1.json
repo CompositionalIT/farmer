@@ -1,5 +1,5 @@
 {
-  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "outputs": {},
   "parameters": {
@@ -219,6 +219,15 @@
               "type": "Microsoft.Web/serverfarms"
             },
             {
+              "apiVersion": "2020-06-01",
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', 'farmerwebapp1979')]"
+              ],
+              "location": "northeurope",
+              "name": "farmerwebapp1979/Microsoft.AspNetCore.AzureAppServices.SiteExtension",
+              "type": "Microsoft.Web/sites/siteextensions"
+            },
+            {
               "apiVersion": "2016-08-01",
               "dependsOn": [
                 "[resourceId('Microsoft.Insights/components', 'farmerfuncs1979-ai')]",
@@ -405,6 +414,66 @@
               },
               "tags": {},
               "type": "Microsoft.Cdn/profiles/endpoints"
+            },
+            {
+              "apiVersion": "2018-10-01",
+              "dependsOn": [],
+              "identity": {
+                "type": "None"
+              },
+              "location": "northeurope",
+              "name": "farmeraci1979",
+              "properties": {
+                "containers": [
+                  {
+                    "name": "webserver",
+                    "properties": {
+                      "command": [],
+                      "environmentVariables": [],
+                      "image": "nginx:latest",
+                      "ports": [
+                        {
+                          "port": 80
+                        }
+                      ],
+                      "resources": {
+                        "requests": {
+                          "cpu": 1.0,
+                          "memoryInGB": 1.5
+                        }
+                      },
+                      "volumeMounts": [
+                        {
+                          "mountPath": "/src/farmer",
+                          "name": "source-code"
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "imageRegistryCredentials": [],
+                "ipAddress": {
+                  "ports": [
+                    {
+                      "port": 80,
+                      "protocol": "TCP"
+                    }
+                  ],
+                  "type": "Public"
+                },
+                "osType": "Linux",
+                "restartPolicy": "Always",
+                "volumes": [
+                  {
+                    "gitRepo": {
+                      "repository": "https://github.com/CompositionalIT/farmer"
+                    },
+                    "name": "source-code"
+                  }
+                ]
+              },
+              "tags": {},
+              "type": "Microsoft.ContainerInstance/containerGroups"
             }
           ],
           "variables": {}
