@@ -37,8 +37,6 @@ type ContainerRegistryBuilder() =
     [<CustomOperation "enable_admin_user">]
     /// Enables the admin user on the Azure Container Registry.
     member _.EnableAdminUser (state:ContainerRegistryConfig) = { state with AdminUserEnabled = true }
-
-let containerRegistry = ContainerRegistryBuilder()
 ```
 
 Each keyword has a similar set of steps required:
@@ -49,7 +47,23 @@ Each keyword has a similar set of steps required:
 
 Now you can create members on the builder that appear as custom operators in your resource CE. In each member you build up the state of the resource configuration you created in the previous step.
 
-> Don't forget to assign an instance of the builder to a value so it is available for consumers!
+### Step 4.2 Consuming builders
+Firstly, create a single static instance of the `ContainerRegistryBuilder` class that you just made:
+
+```fsharp
+let containerRegistry = ContainerRegistryBuilder()
+```
+
+Now, you can create Container Registries anywhere using the keyword syntax:
+
+```fsharp
+/// myRegistry is of type ContainerRegistryConfig
+let myRegistry = containerRegistry {
+    name "my-registry"
+    sku Basic
+    enable_admin_user
+}
+```
 
 #### Parameterless keywords
 You can create parameterless keywords by simply only taking in the state argument e.g. `enable_admin_user` above.
