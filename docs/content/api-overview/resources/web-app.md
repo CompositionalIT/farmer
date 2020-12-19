@@ -46,6 +46,7 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Web App | disable_source_control_ci | Disables continuous integration from source control on push |
 | Web App | enable_source_control_ci | Enables continuous integration from source control on push |
 | Web App | add_extension | Adds the named extension to the Web App |
+| Web App | automatic_logging_extension | Enables or disables automatically adding the ASP .NET logging extension for netcore apps (defaults to on). |
 | Service Plan | service_plan_name | Sets the name of the service plan. If not set, uses the name of the web app postfixed with "-plan". |
 | Service Plan | always_on | Sets "Always On" flag. |
 | Service Plan | runtime_stack | Sets the runtime stack. |
