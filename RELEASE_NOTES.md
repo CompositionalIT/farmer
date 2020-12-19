@@ -1,6 +1,7 @@
 Release Notes
 =============
 ## vNext
+* Web App: Automatically add Logging extension for ASP.NET Core apps.
 * SQL Azure: Validation and fail fast on account names instead of silently fixing them.
 
 ## 1.3.0
