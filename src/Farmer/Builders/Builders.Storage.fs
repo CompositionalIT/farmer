@@ -191,6 +191,15 @@ type StorageAccountBuilder() =
         this.GrantAccess(state, identity.PrincipalId, role)
     member this.GrantAccess(state:StorageAccountConfig, identity:Identity.SystemIdentity, role) =
         this.GrantAccess(state, identity.PrincipalId, role)
+    [<CustomOperation "default_blob_access_tier">]
+    member _.SetDefaultAccessTier(state:StorageAccountConfig, tier) =
+        { state with
+            Sku =
+                match state.Sku with
+                | Blobs (replication, _) -> Blobs(replication, Some tier)
+                | GeneralPurpose (V2 (replication, _)) -> GeneralPurpose (V2 (replication, Some tier))
+                | other -> failwithf "You can only set the default access tier for Blobs or General Purpose V2 storage accounts. This account is %A" other
+        }
 
 /// Allow adding storage accounts directly to CDNs
 type EndpointBuilder with
