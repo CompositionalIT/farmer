@@ -769,6 +769,7 @@ module KeyVault =
     type Secret = Get | List | Set | Delete | Backup | Restore | Recover | Purge static member All = makeAll<Secret> static member ReadSecrets = [ Get; List ]
     type Certificate = Get | List | Delete | Create | Import | Update | ManageContacts | GetIssuers | ListIssuers | SetIssuers | DeleteIssuers | ManageIssuers | Recover | Purge | Backup | Restore static member All = makeAll<Certificate>
     type Storage = Get | List | Delete | Set | Update | RegenerateKey | Recover | Purge | Backup | Restore | SetSas | ListSas | GetSas | DeleteSas static member All = makeAll<Storage>
+    type KeySource = Default | MicrosoftKeyVaults
 
     type Sku =
     | Standard
@@ -1126,3 +1127,5 @@ module Databricks =
         | PremiumTier
         static member Standard = StandardTier
         static member Premium = PremiumTier
+
+    type KeySource

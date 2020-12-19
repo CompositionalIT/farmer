@@ -14,7 +14,7 @@ type ByovConfig =
       PrivateSubnet: ResourceName }
 
 type EncryptionConfig =
-    { KeySource: string
+    { KeySource: KeySource
       KeyName: string
       KeyVersion: string
       KeyVault: ResourceName }

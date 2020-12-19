@@ -57,7 +57,7 @@ type WorkspaceBuilder() =
         { state with EnablePublicIp = flag}
     /// Sets the key vault for the encryption key
     [<CustomOperation "key_vault">]
-    member _.KeyVault (state:WorkspaceConfig, keyVault) =
+    member _.KeyVault (state:WorkspaceConfig, keyVault, KeySource:KeySource) =
         let encryption =
             state.Encryption
             |> Option.map(fun encryptionConfig -> { encryptionConfig with KeyVault = keyVault })
@@ -65,11 +65,14 @@ type WorkspaceBuilder() =
                 (Some { KeyVault = keyVault
                         KeyName = ""
                         KeyVersion = ""
-                        KeySource = "Microsoft.Keyvault" })
+                        KeySource = KeySource })
         { state with Encryption = encryption }
-    member this.KeyVault(state:WorkspaceConfig, keyVault) = this.KeyVault(state, ResourceName keyVault)
-    member this.KeyVault(state:WorkspaceConfig, keyVault:Arm.KeyVault.Vault) = this.KeyVault(state, keyVault.Name)
-    member this.KeyVault(state:WorkspaceConfig, keyVaultConfig:KeyVaultConfig) = this.KeyVault(state, keyVaultConfig.Name)
+    member this.KeyVault(state:WorkspaceConfig, keyVault, keySource:KeySource) = 
+        this.KeyVault(state, ResourceName keyVault, keySource)
+    member this.KeyVault(state:WorkspaceConfig, keyVault:Arm.KeyVault.Vault, keySource:KeySource) = 
+        this.KeyVault(state, keyVault.Name, keySource)
+    member this.KeyVault(state:WorkspaceConfig, keyVaultConfig:KeyVaultConfig, keySource:KeySource) = 
+        this.KeyVault(state, keyVaultConfig.Name, keySource)
     /// Sets the encryption key configuration
     [<CustomOperation "encryption_key">]
     member _.EncryptionKey (state:WorkspaceConfig, keyName, ?keyVersion) =
