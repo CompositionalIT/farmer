@@ -8,7 +8,7 @@ open System
 
 let tests = testList "Databricks Tests" [
     test "Creates a basic workspace" {
-        let workspace = databricksWorkspace { 
+        let workspace = databricksWorkspace {
             name "databricks-workspace"
             managed_resource_group_id "databricks-rg"
             sku Databricks.Sku.Standard
@@ -18,29 +18,26 @@ let tests = testList "Databricks Tests" [
         Expect.equal (workspace.Sku.ToString()) "StandardTier" "Wrong pricing tier"
     }
     test "Handles use_public_ip feature flag" {
-        let workspace = databricksWorkspace { 
-            name "databricks-workspace"
-            managed_resource_group_id "databricks-rg"
-            sku Databricks.Sku.Standard
+        let workspace = databricksWorkspace {
             use_public_ip Enabled
         }
         Expect.equal workspace.EnablePublicIp Enabled "Enable public IP not set correctly"
     }
     test "Sets BYOV configuration" {
-        let workspace = databricksWorkspace { 
+        let workspace = databricksWorkspace {
             name "databricks-workspace"
             managed_resource_group_id "databricks-rg"
             sku Databricks.Sku.Standard
             byov_vnet "databricks-vnet"
             byov_public_subnet "databricks-pub-snet"
-            byov_private_subnet "databricks-priv-snet"           
+            byov_private_subnet "databricks-priv-snet"
         }
         Expect.equal (workspace.ByovConfig.Value.Vnet.resourceId(workspace.ByovConfig.Value).Name.Value) "databricks-vnet" "BYOV vnet is not set correctly"
         Expect.equal workspace.ByovConfig.Value.PublicSubnet.Value "databricks-pub-snet" "BYOV public subnet not set correctly"
         Expect.equal workspace.ByovConfig.Value.PrivateSubnet.Value "databricks-priv-snet" "BYOV private subnet not set correctly"
     }
     test "Sets encryption configuration" {
-        let workspace = databricksWorkspace { 
+        let workspace = databricksWorkspace {
             name "databricks-workspace"
             managed_resource_group_id "databricks-rg"
             sku Databricks.Sku.Standard

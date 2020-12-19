@@ -27,45 +27,37 @@ type WorkspaceConfig =
               Encryption = this.Encryption
               ByovConfig = this.ByovConfig
               Tags = this.Tags  }
-        ]        
+        ]
 
 type WorkspaceBuilder() =
     member __.Yield _ =
-      { ///Name of the workspace
-        Name = ResourceName.Empty
-        ///Azure managed resource group name
+      { Name = ResourceName.Empty
         ManagedResourceGroupId = ResourceName.Empty
-        ///Workspace pricing tier
         Sku = StandardTier
-        ///Should public IPs be used
         EnablePublicIp = Enabled
-        ///Prepare workspace for encryption
         PrepareEncryption = Disabled
-        ///Encryption configuration
         Encryption = None
-        ///Bring Your Own VNet configuration
         ByovConfig = None
-        ///List of tags
         Tags = Map.empty }
-    ///Set workspace name  
+    /// Sets the name of the workspace
     [<CustomOperation "name">]
     member _.Name (state:WorkspaceConfig, name) =
         { state with Name = ResourceName name }
-    ///Set managed resource group
+    /// Sets the managed resource group
     [<CustomOperation "managed_resource_group_id">]
     member _.ManagedResourceGroupId (state:WorkspaceConfig, resourceGroupName) =
         { state with ManagedResourceGroupId = ResourceName resourceGroupName}
-    ///Set workspace pricing tier
+    /// Sets the workspace pricing tier
     [<CustomOperation "sku">]
     member _.PricingTier (state:WorkspaceConfig, sku) =
         { state with Sku = sku }
-    ///Set public IP enablement
+    /// Enabled Public IP
     [<CustomOperation "use_public_ip">]
-    member _.DisablePublicIp(state:WorkspaceConfig, flag) =
+    member _.DisablePublicIp (state:WorkspaceConfig, flag) =
         { state with EnablePublicIp = flag}
-    ///Set the key vault for encryption key
+    /// Sets the key vault for the encryption key
     [<CustomOperation "key_vault">]
-    member _.KeyVault(state:WorkspaceConfig, keyVault:ResourceName) =
+    member _.KeyVault (state:WorkspaceConfig, keyVault) =
         let encryption =
             state.Encryption
             |> Option.map(fun encryptionConfig -> { encryptionConfig with KeyVault = keyVault })
@@ -78,11 +70,11 @@ type WorkspaceBuilder() =
     member this.KeyVault(state:WorkspaceConfig, keyVault) = this.KeyVault(state, ResourceName keyVault)
     member this.KeyVault(state:WorkspaceConfig, keyVault:Arm.KeyVault.Vault) = this.KeyVault(state, keyVault.Name.Value)
     member this.KeyVault(state:WorkspaceConfig, keyVaultConfig:KeyVaultConfig) = this.KeyVault(state, keyVaultConfig.Name.Value)
-    ///Set encryption key configuration
+    /// Sets the encryption key configuration
     [<CustomOperation "encryption_key">]
-    member _.EncryptionKey(state:WorkspaceConfig, keyName, ?keyVersion) =
+    member _.EncryptionKey (state:WorkspaceConfig, keyName, ?keyVersion) =
         let keyVersion = defaultArg keyVersion "latest"
-        let encryption = 
+        let encryption =
             state.Encryption
             |> Option.map(fun encryptionConfig ->
                 { encryptionConfig with
@@ -90,20 +82,19 @@ type WorkspaceBuilder() =
                     KeyVersion = keyVersion})
             |> Option.orElse
                 (Some { KeyVault = ResourceName.Empty
-                        KeyName = keyName 
+                        KeyName = keyName
                         KeyVersion = keyVersion
                         KeySource = "Microsoft.Keyvault" })
-        { state with 
+        { state with
             PrepareEncryption = Enabled
             Encryption = encryption }
-    ///Set existing vnet
+
+    /// Sets the vnet
     [<CustomOperation "byov_vnet">]
     member _.ByovVnet (state:WorkspaceConfig, vnet:ResourceName) =
         let config =
             state.ByovConfig
-            |> Option.map(fun vnetConfig -> 
-                    { vnetConfig with 
-                        Vnet = External(Unmanaged(virtualNetworks.resourceId vnet)) })
+            |> Option.map(fun vnetConfig -> { vnetConfig with Vnet = External(Unmanaged(virtualNetworks.resourceId vnet)) })
             |> Option.orElse
                 (Some { Vnet = External(Unmanaged(virtualNetworks.resourceId vnet))
                         PublicSubnet = ResourceName.Empty
@@ -112,7 +103,8 @@ type WorkspaceBuilder() =
     member this.ByovVnet(state:WorkspaceConfig, name:string) = this.ByovVnet(state, ResourceName name)
     member this.ByovVnet(state:WorkspaceConfig, vnet:Arm.Network.VirtualNetwork) = this.ByovVnet(state, vnet.Name)
     member this.ByovVnet(state:WorkspaceConfig, vnet:VirtualNetworkConfig) = this.ByovVnet(state, vnet.Name)
-    ///Set existing public subnet
+
+    /// Set the existing public subnet
     [<CustomOperation "byov_public_subnet">]
     member _.ByovPublicSubnet (state:WorkspaceConfig, publicSubnet:ResourceName) =
         let config =
@@ -123,8 +115,9 @@ type WorkspaceBuilder() =
                         PublicSubnet = publicSubnet
                         PrivateSubnet = ResourceName.Empty })
         { state with ByovConfig = config}
-    member this.ByovPublicSubnet(state:WorkspaceConfig, publicSubnet) = this.ByovPublicSubnet(state, ResourceName publicSubnet)        
-    ///Set existing private subnet
+    member this.ByovPublicSubnet(state:WorkspaceConfig, publicSubnet) = this.ByovPublicSubnet(state, ResourceName publicSubnet)
+
+    /// Sets the existing private subnet
     [<CustomOperation "byov_private_subnet">]
     member _.ByovPrivateSubnet (state:WorkspaceConfig, privateSubnet:ResourceName) =
         let config =
@@ -136,12 +129,14 @@ type WorkspaceBuilder() =
                         PrivateSubnet = privateSubnet })
         { state with ByovConfig = config }
     member this.ByovPrivateSubnet(state:WorkspaceConfig, privateSubnet) = this.ByovPrivateSubnet(state, ResourceName privateSubnet)
-    ///Add list of tags to workspace resource
+
+    /// Add the list of tags
     [<CustomOperation "add_tags">]
     member _.Tags(state:WorkspaceConfig, pairs) =
         { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    ///Add single tag to workspace resource
+
+    /// Adds a single tag
     [<CustomOperation "add_tag">]
     member this.Tag(state:WorkspaceConfig, key, value) = this.Tags(state, [ (key,value) ])
 

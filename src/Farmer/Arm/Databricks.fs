@@ -29,53 +29,37 @@ type Databricks =
       Encryption: EncryptionConfig option
       ByovConfig: ByovConfig option
       Tags: Map<string,string> }
-    member internal this.toProperty value = box {| value = value |}
-    interface IArmResource with 
-      member this.ResourceId = workspaces.resourceId this.Name
-      member this.JsonModel = 
+    interface IArmResource with
+        member this.ResourceId = workspaces.resourceId this.Name
+        member this.JsonModel =
             {| workspaces.Create(this.Name, this.Location, tags = this.Tags) with
-                sku = {| name =
-                            match this.Sku with
-                            | StandardTier -> "standard"
-                            | PremiumTier -> "premium" |}
-                properties = 
-                    {| managedResourceGroupId = 
-                        let expr = 
-                            sprintf
-                                "concat(subscription().id, '/resourceGroups/', '%s')"
-                                this.ManagedResourceGroupId.Value
+                sku =
+                    {| name =
+                        match this.Sku with
+                        | StandardTier -> "standard"
+                        | PremiumTier -> "premium" |}
+                properties =
+                    {| managedResourceGroupId =
+                        let expr = sprintf "concat(subscription().id, '/resourceGroups/', '%s')" this.ManagedResourceGroupId.Value
                         ArmExpression.create(expr).Eval()
-                       parameters = 
-                        {| customVirtualNetworkId = 
-                                this.ByovConfig
-                                |> Option.map(fun config -> 
-                                    this.toProperty(config.Vnet.resourceId(config).Eval()))
-                                |> Option.toObj
-                           customPublicSubnetName = 
-                                this.ByovConfig
-                                |> Option.map(fun config -> this.toProperty(config.PublicSubnet.Value))
-                                |> Option.toObj
-                           customPrivateSubnetName =
-                                this.ByovConfig
-                                |> Option.map(fun config -> this.toProperty(config.PrivateSubnet.Value))
-                                |> Option.toObj
-                           enableNoPublicIp = 
-                                match this.EnablePublicIp with
-                                | Enabled -> this.toProperty false
-                                | Disabled -> this.toProperty true
-                           prepareEncryption = 
-                                match this.PrepareEncryption with
-                                | Enabled -> this.toProperty true
-                                | Disabled -> this.toProperty false
-                           encryption =
-                                this.Encryption
-                                |> Option.map(fun config ->
+                       parameters = Map [
+                        "enableNoPublicIp", box this.EnablePublicIp.AsBoolean
+                        "prepareEncryption", box this.PrepareEncryption.AsBoolean
+                        match this.ByovConfig with
+                        | Some config ->
+                            "customVirtualNetworkId", box {| value = config.Vnet.resourceId(config).Eval() |}
+                            "customPublicSubnetName", box {| value = config.PublicSubnet.Value |}
+                            "customPrivateSubnetName", box {| value = config.PrivateSubnet.Value |}
+                        | None ->
+                            ()
+                        "encryption",
+                            this.Encryption
+                            |> Option.mapBoxed(fun config ->
+                                {| value =
                                     {| keySource = config.KeySource
                                        keyName = config.KeyName
-                                       Keyversion = config.KeyVersion
-                                       keyvaultiri = sprintf "https://%s.vault.azure.net" config.KeyVault.Value |}
-                                    |> this.toProperty)
-                                |> Option.toObj
-                        |}
+                                       keyversion = config.KeyVersion
+                                       keyvaulturi = sprintf "https://%s.vault.azure.net" config.KeyVault.Value |} |})
+                        ]
                     |}
             |} :> _
