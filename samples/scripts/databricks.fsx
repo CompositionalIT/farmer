@@ -7,16 +7,13 @@ open Farmer.Databricks
 
 let workspace = databricksWorkspace {
     name "my-databricks-workspace"
-    pricing_tier Databricks.PricingTier.Standard
+    sku Databricks.Sku.Standard
     
-    disable_public_ip
+    use_public_ip Enabled
     
-    enable_encryption
     key_vault "databricks-kv"
-    key_name "workspace-encryption-key"
-    key_version "latest"
+    encryption_key "workspace-encryption-key" "latest"
     
-    enable_byov_mode
     byov_vnet "databricks-vnet"
     byov_public_subnet "databricks-pub-snet"
     byov_private_subnet "databricks-priv-snet"
