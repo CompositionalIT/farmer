@@ -36,8 +36,8 @@ type Databricks =
             {| workspaces.Create(this.Name, this.Location, tags = this.Tags) with
                 sku = {| name =
                             match this.Sku with
-                                | StandardTier -> "standard"
-                                | PremiumTier -> "premium" |}
+                            | StandardTier -> "standard"
+                            | PremiumTier -> "premium" |}
                 properties = 
                     {| managedResourceGroupId = 
                         let expr = 
