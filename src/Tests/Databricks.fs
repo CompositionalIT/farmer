@@ -4,27 +4,32 @@ open Expecto
 open Farmer
 open Farmer.Builders
 open Farmer.Databricks
+open Farmer.Arm.Databricks
 open System
 
 let tests = testList "Databricks Tests" [
     test "Creates a basic workspace" {
-        let workspace = databricksWorkspace {
+        let db = dataBricks {
             name "databricks-workspace"
             managed_resource_group_id "databricks-rg"
             sku Databricks.Sku.Standard
         }
+
+        let builder = db :> IBuilder
+        let workspace = builder.BuildResources Location.NorthEurope |> List.head :?> Workspace
+
         Expect.equal workspace.Name (ResourceName "databricks-workspace") "Wrong workspace name"
         Expect.equal workspace.ManagedResourceGroupId (ResourceName "databricks-rg") "Wrong managed resource group name"
         Expect.equal (workspace.Sku.ToString()) "StandardTier" "Wrong pricing tier"
     }
     test "Handles use_public_ip feature flag" {
-        let workspace = databricksWorkspace {
+        let workspace = dataBricks {
             use_public_ip Enabled
         }
         Expect.equal workspace.EnablePublicIp Enabled "Enable public IP not set correctly"
     }
     test "Sets BYOV configuration" {
-        let workspace = databricksWorkspace {
+        let workspace = dataBricks {
             name "databricks-workspace"
             managed_resource_group_id "databricks-rg"
             sku Databricks.Sku.Standard
@@ -37,7 +42,7 @@ let tests = testList "Databricks Tests" [
         Expect.equal workspace.ByovConfig.Value.PrivateSubnet.Value "databricks-priv-snet" "BYOV private subnet not set correctly"
     }
     test "Sets encryption configuration" {
-        let workspace = databricksWorkspace {
+        let workspace = dataBricks {
             name "databricks-workspace"
             managed_resource_group_id "databricks-rg"
             sku Databricks.Sku.Standard

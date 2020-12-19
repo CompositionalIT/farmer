@@ -19,7 +19,7 @@ type EncryptionConfig =
       KeyVersion: string
       KeyVault: ResourceName }
 
-type Databricks =
+type Workspace =
     { Name: ResourceName
       Location: Location
       ManagedResourceGroupId: ResourceName

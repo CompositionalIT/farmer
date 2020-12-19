@@ -68,8 +68,8 @@ type WorkspaceBuilder() =
                         KeySource = "Microsoft.Keyvault" })
         { state with Encryption = encryption }
     member this.KeyVault(state:WorkspaceConfig, keyVault) = this.KeyVault(state, ResourceName keyVault)
-    member this.KeyVault(state:WorkspaceConfig, keyVault:Arm.KeyVault.Vault) = this.KeyVault(state, keyVault.Name.Value)
-    member this.KeyVault(state:WorkspaceConfig, keyVaultConfig:KeyVaultConfig) = this.KeyVault(state, keyVaultConfig.Name.Value)
+    member this.KeyVault(state:WorkspaceConfig, keyVault:Arm.KeyVault.Vault) = this.KeyVault(state, keyVault.Name)
+    member this.KeyVault(state:WorkspaceConfig, keyVaultConfig:KeyVaultConfig) = this.KeyVault(state, keyVaultConfig.Name)
     /// Sets the encryption key configuration
     [<CustomOperation "encryption_key">]
     member _.EncryptionKey (state:WorkspaceConfig, keyName, ?keyVersion) =
@@ -140,4 +140,4 @@ type WorkspaceBuilder() =
     [<CustomOperation "add_tag">]
     member this.Tag(state:WorkspaceConfig, key, value) = this.Tags(state, [ (key,value) ])
 
-let databricksWorkspace = WorkspaceBuilder()
+let dataBricks = WorkspaceBuilder()
