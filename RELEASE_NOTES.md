@@ -2,6 +2,9 @@ Release Notes
 =============
 ## vNext
 * Databricks Workspace: Support for creating Databricks Workspaces
+* Storage: Support for setting default blob access tier at account level with "default_blob_access_tier"
+* Web App: Automatically add Logging extension for ASP.NET Core apps.
+* SQL Azure: Validation and fail fast on account names instead of silently fixing them.
 
 ## 1.3.0
 * ARM generation: Smarter emitting of "raw" ARM expressions.
