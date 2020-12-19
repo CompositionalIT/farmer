@@ -67,15 +67,13 @@ type WorkspaceBuilder() =
     [<CustomOperation "key_vault">]
     member _.KeyVault(state:WorkspaceConfig, keyVault:ResourceName) =
         let encryption =
-            match state.Encryption with
-            | Some _ -> 
-                state.Encryption
-                |> Option.map(fun encryptionConfig -> { encryptionConfig with KeyVault = keyVault })
-            | None ->
-                Some({ KeyVault = keyVault
-                       KeyName = ""
-                       KeyVersion = ""
-                       KeySource = "Microsoft.Keyvault" })
+            state.Encryption
+            |> Option.map(fun encryptionConfig -> { encryptionConfig with KeyVault = keyVault })
+            |> Option.orElse
+                (Some { KeyVault = keyVault
+                        KeyName = ""
+                        KeyVersion = ""
+                        KeySource = "Microsoft.Keyvault" })
         { state with Encryption = encryption }
     member this.KeyVault(state:WorkspaceConfig, keyVault) = this.KeyVault(state, ResourceName keyVault)
     member this.KeyVault(state:WorkspaceConfig, keyVault:Arm.KeyVault.Vault) = this.KeyVault(state, keyVault.Name.Value)
@@ -85,19 +83,16 @@ type WorkspaceBuilder() =
     member _.EncryptionKey(state:WorkspaceConfig, keyName, ?keyVersion) =
         let keyVersion = defaultArg keyVersion "latest"
         let encryption = 
-            match state.Encryption with
-            | Some _ ->
-                state.Encryption
-                |> Option.map(fun encryptionConfig ->
-                    { encryptionConfig with
-                        KeyName = keyName
-                        KeyVersion = keyVersion})
-            | None ->
-                Some({ KeyVault = ResourceName.Empty
-                       KeyName = keyName 
-                       KeyVersion = keyVersion
-                       KeySource = "Microsoft.Keyvault" })
-        
+            state.Encryption
+            |> Option.map(fun encryptionConfig ->
+                { encryptionConfig with
+                    KeyName = keyName
+                    KeyVersion = keyVersion})
+            |> Option.orElse
+                (Some { KeyVault = ResourceName.Empty
+                        KeyName = keyName 
+                        KeyVersion = keyVersion
+                        KeySource = "Microsoft.Keyvault" })
         { state with 
             PrepareEncryption = Enabled
             Encryption = encryption }
@@ -105,16 +100,14 @@ type WorkspaceBuilder() =
     [<CustomOperation "byov_vnet">]
     member _.ByovVnet (state:WorkspaceConfig, vnet:ResourceName) =
         let config =
-            match state.ByovConfig with
-            | Some config ->
-                state.ByovConfig
-                |> Option.map(fun vnetConfig -> 
+            state.ByovConfig
+            |> Option.map(fun vnetConfig -> 
                     { vnetConfig with 
                         Vnet = External(Unmanaged(virtualNetworks.resourceId vnet)) })
-            | None -> 
-                Some({ Vnet = External(Unmanaged(virtualNetworks.resourceId vnet))
-                       PublicSubnet = ResourceName.Empty
-                       PrivateSubnet = ResourceName.Empty })
+            |> Option.orElse
+                (Some { Vnet = External(Unmanaged(virtualNetworks.resourceId vnet))
+                        PublicSubnet = ResourceName.Empty
+                        PrivateSubnet = ResourceName.Empty })
         { state with ByovConfig = config }
     member this.ByovVnet(state:WorkspaceConfig, name:string) = this.ByovVnet(state, ResourceName name)
     member this.ByovVnet(state:WorkspaceConfig, vnet:Arm.Network.VirtualNetwork) = this.ByovVnet(state, vnet.Name)
@@ -123,26 +116,24 @@ type WorkspaceBuilder() =
     [<CustomOperation "byov_public_subnet">]
     member _.ByovPublicSubnet (state:WorkspaceConfig, publicSubnet:ResourceName) =
         let config =
-            match state.ByovConfig with
-            | Some _ -> state.ByovConfig |> Option.map(fun vnetConfig -> { vnetConfig with PublicSubnet = publicSubnet })
-            | None ->
-                Some({ Vnet = External(Unmanaged(virtualNetworks.resourceId ResourceName.Empty))
-                       PublicSubnet = publicSubnet
-                       PrivateSubnet = ResourceName.Empty })
-
+            state.ByovConfig
+            |> Option.map(fun vnetConfig -> { vnetConfig with PublicSubnet = publicSubnet })
+            |> Option.orElse
+                (Some { Vnet = External(Unmanaged(virtualNetworks.resourceId ResourceName.Empty))
+                        PublicSubnet = publicSubnet
+                        PrivateSubnet = ResourceName.Empty })
         { state with ByovConfig = config}
     member this.ByovPublicSubnet(state:WorkspaceConfig, publicSubnet) = this.ByovPublicSubnet(state, ResourceName publicSubnet)        
     ///Set existing private subnet
     [<CustomOperation "byov_private_subnet">]
     member _.ByovPrivateSubnet (state:WorkspaceConfig, privateSubnet:ResourceName) =
         let config =
-            match state.ByovConfig with
-            | Some _ -> state.ByovConfig |> Option.map(fun vnetConfig -> { vnetConfig with PrivateSubnet = privateSubnet })
-            | None ->
-                Some({ Vnet = External(Unmanaged(virtualNetworks.resourceId ResourceName.Empty))
-                       PublicSubnet = ResourceName.Empty
-                       PrivateSubnet = privateSubnet })
-
+            state.ByovConfig
+            |> Option.map(fun vnetConfig -> { vnetConfig with PrivateSubnet = privateSubnet })
+            |> Option.orElse
+                (Some { Vnet = External(Unmanaged(virtualNetworks.resourceId ResourceName.Empty))
+                        PublicSubnet = ResourceName.Empty
+                        PrivateSubnet = privateSubnet })
         { state with ByovConfig = config }
     member this.ByovPrivateSubnet(state:WorkspaceConfig, privateSubnet) = this.ByovPrivateSubnet(state, ResourceName privateSubnet)
     ///Add list of tags to workspace resource
