@@ -102,7 +102,7 @@ let tests = testList "Storage Tests" [
         let longName = Array.init 64 (fun _ -> 'a') |> String
         check longName ("max length is 63, but here is 64 ('" + longName + "')") "Name too long"
         check "zzzT" "can only contain lowercase letters ('zzzT')" "Upper case character allowed"
-        check "zz!z" "can only contain letters, numbers, and the dash (-) character ('zz!z')" "Bad character allowed"
+        check "zz!z" "can only contain alphanumeric characters or the dash ('zz!z')" "Bad character allowed"
         check "zzz--z" "do not allow consecutive dashes ('zzz--z')" "Double dash allowed"
         check "-zz" "must start with an alphanumeric character ('-zz')" "Start with dash"
         check "zz-" "must end with an alphanumeric character ('zz-')" "End with dash"
