@@ -12,28 +12,26 @@ Technically this step is not necessary but it is the quickest way to get a worki
 
 Start by looking at [this sample](https://github.com/Azure/azure-quickstart-templates/blob/master/101-container-registry-geo-replication/azuredeploy.json) and identifying the section of JSON that relates to the resource we want - in our case, the `Microsoft.ContainerRegistry/registries` resource.
 
-> The use of `#r "nuget:..."` syntax can be enabled by going to `Settings > F# > Fsi Extra Parameters` and adding `--langversion:preview` to the `FSharp.fsiExtraParameters` list (.NET 5 only)
->
+> In VSCode, the use of `#r "nuget:..."` syntax can be enabled by going to `Settings > F# > Fsi Extra Parameters` and adding `--langversion:preview` to the `FSharp.fsiExtraParameters` list (.NET 5 only). VS2019 and Rider already support this feature natively.
 > If you are not using .NET 5, manually build Farmer and reference the dll manually - see the `samples` folder for examples.
 
 ```fsharp
 // container-registry-prototype.fsx
 #r "nuget: farmer"
-#r "nuget: Newtonsoft.Json"
 
 open Farmer
 
 // A function called "registries" that takes in a name, sku and boolean flag for whether to enable the admin user.
 let registries name sku adminUserEnabled =
-    sprintf """{
-        "name": "%s",
+    $"""{{
+        "name": "{name}",
         "type": "Microsoft.ContainerRegistry/registries",
         "apiVersion": "2019-05-01",
         "location": "westeurope",
-        "tags": { },
-        "sku": { "name": "%s" },
-        "properties": { "adminUserEnabled": %b }
-    }""" name sku adminUserEnabled
+        "tags": {{ }},
+        "sku": {{ "name": "{sku}" }},
+        "properties": {{ "adminUserEnabled": %b{adminUserEnabled} }}
+    }}"""
     |> Resource.ofJson
 
 let deployment = arm {
@@ -42,7 +40,7 @@ let deployment = arm {
 }
 
 deployment
-|> Writer.quickWrite "test-output"
+|> Writer.quickWrite "/test-output"
 
 // or push out for real to Azure!
 
@@ -56,10 +54,10 @@ Observe how we've pasted a minimal section of JSON and then tried to extract som
 Test out the JSON model you created and make sure it creates the resources in Azure you would expect. You can deploy with `execute` or you can use `whatIf` to see what the expected state would be.
 
 ### Step 1.2: Convert from JSON to an F# anonymous record
-For simple ARM resources, raw JSON may suffice, but normally you'll want a little more control in order to programmatically choose whether to add / remove fields etc. during the export phase. The best way to do this is to replace the raw string export with an anonymous record:
+For simple ARM resources, raw JSON may suffice, but normally you'll want a little more control in order to programmatically choose whether to add / remove fields etc. during the export phase. The best way to do this is to replace the raw string export with an [anonymous record](https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/anonymous-records):
 
 ```fsharp
-let registries name sku adminUserEnabled =
+let registries (name:string) (sku:string) (adminUserEnabled:bool) =
     {| name = name
        ``type`` = "Microsoft.ContainerRegistry/registries"
        apiVersion = "2019-05-01"
