@@ -1,6 +1,7 @@
 Release Notes
 =============
 ## vNext
+* SQL Azure: Validation and fail fast on account names instead of silently fixing them.
 
 ## 1.3.0
 * ARM generation: Smarter emitting of "raw" ARM expressions.
