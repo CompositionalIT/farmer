@@ -185,9 +185,9 @@ type WebAppConfig =
                 let literalSettings = [
                     if this.RunFromPackage then AppSettings.RunFromPackage
                     yield! this.WebsiteNodeDefaultVersion |> Option.mapList AppSettings.WebsiteNodeDefaultVersion
+                    yield! this.AppInsights |> Option.mapList (fun resource -> "APPINSIGHTS_INSTRUMENTATIONKEY", AppInsights.getInstrumentationKey(resource.resourceId this).Eval())
                     match this.OperatingSystem, this.AppInsights with
-                    | Windows, Some resource ->
-                        "APPINSIGHTS_INSTRUMENTATIONKEY", AppInsights.getInstrumentationKey(resource.resourceId this).Eval()
+                    | Windows, Some _ ->
                         "APPINSIGHTS_PROFILERFEATURE_VERSION", "1.0.0"
                         "APPINSIGHTS_SNAPSHOTFEATURE_VERSION", "1.0.0"
                         "ApplicationInsightsAgent_EXTENSION_VERSION", "~2"
@@ -196,9 +196,10 @@ type WebAppConfig =
                         "SnapshotDebugger_EXTENSION_VERSION", "~1"
                         "XDT_MicrosoftApplicationInsights_BaseExtensions", "~1"
                         "XDT_MicrosoftApplicationInsights_Mode", "recommended"
-                    | Windows, None
-                    | Linux, _ ->
+                    | Linux, Some _
+                    | _ , None ->
                         ()
+
                     if this.DockerCi then "DOCKER_ENABLE_CI", "true"
                 ]
 
