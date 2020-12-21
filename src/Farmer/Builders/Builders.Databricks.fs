@@ -68,8 +68,8 @@ type WorkspaceBuilder() =
         { state with Sku = sku }
     /// Enabled Public IP
     [<CustomOperation "use_public_ip">]
-    member _.DisablePublicIp (state:WorkspaceConfig, flag) =
-        { state with EnablePublicIp = flag}
+    member _.UsePublicIp (state:WorkspaceConfig, flag) =
+        { state with EnablePublicIp = flag }
     /// Sets the key vault for the encryption key
     [<CustomOperation "key_vault">]
     member _.KeyVault (state:WorkspaceConfig, keyVault, keySource:KeyVault.KeySource) =

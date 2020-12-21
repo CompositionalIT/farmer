@@ -43,7 +43,7 @@ type Workspace =
                         let expr = sprintf "concat(subscription().id, '/resourceGroups/', '%s')" this.ManagedResourceGroupId.Value
                         ArmExpression.create(expr).Eval()
                        parameters = Map [
-                        "enableNoPublicIp", box this.EnablePublicIp.AsBoolean
+                        "enableNoPublicIp", box (not this.EnablePublicIp.AsBoolean)
                         "prepareEncryption", box this.PrepareEncryption.AsBoolean
                         match this.ByovConfig with
                         | Some config ->
