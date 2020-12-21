@@ -1127,5 +1127,3 @@ module Databricks =
         | PremiumTier
         static member Standard = StandardTier
         static member Premium = PremiumTier
-
-    type KeySource

@@ -5,6 +5,7 @@ open Farmer
 open Farmer.Databricks
 open Farmer.Arm.Databricks
 open Farmer.Arm.Network
+open System
 
 type WorkspaceConfig =
     { Name: ResourceName
@@ -39,6 +40,23 @@ type WorkspaceBuilder() =
         Encryption = None
         ByovConfig = None
         Tags = Map.empty }
+    member _.Run(state:WorkspaceConfig) =
+        match state.Encryption with
+        | Some config ->
+            if System.String.IsNullOrEmpty(config.KeyName) then
+                failwithf "Encryption key name must not be empty when using encryption. Set with encryption_key operation"
+            if config.KeyVault = ResourceName.Empty then
+                failwithf "Key vault must be set when using encryption. Set with key_vault operation"
+            match config.KeyVersion with
+                | "latest" ->
+                    ()
+                | maybeGuid ->
+                    let isValidGuid, _ = Guid.TryParse(maybeGuid)
+                    if not isValidGuid then
+                        failwithf "Key version must either be latest or a valid guid"
+        | None ->
+            ()
+
     /// Sets the name of the workspace
     [<CustomOperation "name">]
     member _.Name (state:WorkspaceConfig, name) =
@@ -57,7 +75,8 @@ type WorkspaceBuilder() =
         { state with EnablePublicIp = flag}
     /// Sets the key vault for the encryption key
     [<CustomOperation "key_vault">]
-    member _.KeyVault (state:WorkspaceConfig, keyVault, KeySource:KeySource) =
+    member _.KeyVault (state:WorkspaceConfig, keyVault, ?keySource:KeyVault.KeySource) =
+        let keySource = defaultArg keySource KeyVault.KeySource.Default
         let encryption =
             state.Encryption
             |> Option.map(fun encryptionConfig -> { encryptionConfig with KeyVault = keyVault })
@@ -65,13 +84,13 @@ type WorkspaceBuilder() =
                 (Some { KeyVault = keyVault
                         KeyName = ""
                         KeyVersion = ""
-                        KeySource = KeySource })
+                        KeySource = keySource })
         { state with Encryption = encryption }
-    member this.KeyVault(state:WorkspaceConfig, keyVault, keySource:KeySource) = 
+    member this.KeyVault(state:WorkspaceConfig, keyVault, keySource:KeyVault.KeySource) = 
         this.KeyVault(state, ResourceName keyVault, keySource)
-    member this.KeyVault(state:WorkspaceConfig, keyVault:Arm.KeyVault.Vault, keySource:KeySource) = 
+    member this.KeyVault(state:WorkspaceConfig, keyVault:Arm.KeyVault.Vault, keySource:KeyVault.KeySource) = 
         this.KeyVault(state, keyVault.Name, keySource)
-    member this.KeyVault(state:WorkspaceConfig, keyVaultConfig:KeyVaultConfig, keySource:KeySource) = 
+    member this.KeyVault(state:WorkspaceConfig, keyVaultConfig:KeyVaultConfig, keySource:KeyVault.KeySource) = 
         this.KeyVault(state, keyVaultConfig.Name, keySource)
     /// Sets the encryption key configuration
     [<CustomOperation "encryption_key">]
@@ -87,7 +106,7 @@ type WorkspaceBuilder() =
                 (Some { KeyVault = ResourceName.Empty
                         KeyName = keyName
                         KeyVersion = keyVersion
-                        KeySource = "Microsoft.Keyvault" })
+                        KeySource = KeyVault.KeySource.Default })
         { state with
             PrepareEncryption = Enabled
             Encryption = encryption }
