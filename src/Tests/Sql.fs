@@ -120,4 +120,16 @@ let tests = testList "SQL Server" [
         Expect.equal model.StartIpAddress "0.0.0.0" "Incorrect start IP"
         Expect.equal model.EndIpAddress "255.255.255.255" "Incorrect end IP"
     }
+
+    test "Validation occurs on account name" {
+        let check (v:string) m = Expect.equal (SqlAccountName.Create v) (Error ("SQL account names " + m))
+
+        check "" "cannot be empty" "Name too short"
+        let longName = Array.init 64 (fun _ -> 'a') |> String
+        check longName ("max length is 63, but here is 64 ('" + longName + "')") "Name too long"
+        check "zzzT" "can only contain lowercase letters ('zzzT')" "Upper case character allowed"
+        check "zz!z" "can only contain alphanumeric characters or the dash ('zz!z')" "Bad character allowed"
+        check "-zz" "cannot start with a dash ('-zz')" "Start with dash"
+        check "zz-" "cannot end with a dash ('zz-')" "End with dash"
+    }
 ]
