@@ -235,4 +235,12 @@ let tests = testList "Web App Tests" [
 
         Expect.equal resourceId.ArmExpression.Value "resourceId('Microsoft.Web/sites/siteextensions', 'siteX')" ""
     }
+
+    test "Deploys AI configuration correctly" {
+        let wa : Site = webApp { name "" } |> getResourceAtIndex 0
+        Expect.isTrue (wa.SiteConfig.AppSettings |> Seq.exists(fun k -> k.Name = "APPINSIGHTS_INSTRUMENTATIONKEY")) "Missing Windows instrumentation key"
+
+        let wa : Site = webApp { name ""; operating_system Linux } |> getResourceAtIndex 0
+        Expect.isTrue (wa.SiteConfig.AppSettings |> Seq.exists(fun k -> k.Name = "APPINSIGHTS_INSTRUMENTATIONKEY")) "Missing Linux instrumentation key"
+    }
 ]
