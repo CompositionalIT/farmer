@@ -46,11 +46,11 @@ let tests = testList "Databricks Tests" [
             name "databricks-workspace"
             managed_resource_group_id "databricks-rg"
             sku Databricks.Sku.Standard
-            key_vault "databricks-kv"
+            key_vault "databricks-kv" KeyVault.KeySource.Default
             encryption_key "databricks-encryption-key" "latest"
         }
         Expect.equal workspace.PrepareEncryption Enabled "Prepare encryption not set correctly"
-        Expect.equal workspace.Encryption.Value.KeySource "Microsoft.Keyvault" "Key source not initialised correctly"
+        Expect.equal workspace.Encryption.Value.KeySource KeyVault.KeySource.Default "Key source not initialised correctly"
         Expect.equal workspace.Encryption.Value.KeyName "databricks-encryption-key" "Key name not initialised correctly"
         Expect.equal workspace.Encryption.Value.KeyVersion "latest" "Key version not initialised correctly"
         Expect.equal workspace.Encryption.Value.KeyVault.Value "databricks-kv" "Key vault uri not initialised correctly"

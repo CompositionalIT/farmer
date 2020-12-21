@@ -20,6 +20,12 @@ type ResourceName =
     static member (-) (a:ResourceName, b:string) = ResourceName(a.Value + "-" + b)
     static member (-) (a:ResourceName, b:ResourceName) = a - b.Value
 
+[<AutoOpen>]
+module ResourceName =
+    let (|EmptyResourceName|_|) (r:ResourceName) = if r = ResourceName.Empty then Some EmptyResourceName else None
+    let (|NullOrEmpty|_|) (text:string) = if System.String.IsNullOrEmpty text then Some NullOrEmpty else None
+    let (|Parsed|_|) parser (text:string) = match parser text with true, x -> Some (Parsed x) | false, _ -> None
+    let (|Unparsed|_|) parser (text:string) = match parser text with true, _ -> None | false, _ -> Some Unparsed
 type Location =
     | Location of string
     member this.ArmValue = match this with Location location -> location.ToLower()

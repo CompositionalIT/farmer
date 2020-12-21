@@ -40,31 +40,19 @@ type WorkspaceBuilder() =
         Encryption = None
         ByovConfig = None
         Tags = Map.empty }
+
     member _.Run(state:WorkspaceConfig) =
-        match state.ByovConfig with
-        | Some config ->
-            if config.PublicSubnet = ResourceName.Empty then
-                failwithf "Public subnet must be set. Use public_subnet to set it"
-            if config.PrivateSubnet = ResourceName.Empty then
-                failwithf "Private subnet must be set. Use private_subnet to set it"
-        | None ->
-            ()
-        
-        match state.Encryption with
-        | Some config ->
-            if System.String.IsNullOrEmpty(config.KeyName) then
-                failwithf "Encryption key name must not be empty when using encryption. Set with encryption_key operation"
-            if config.KeyVault = ResourceName.Empty then
-                failwithf "Key vault must be set when using encryption. Set with key_vault operation"
-            match config.KeyVersion with
-                | "latest" ->
-                    ()
-                | maybeGuid ->
-                    let isValidGuid, _ = Guid.TryParse(maybeGuid)
-                    if not isValidGuid then
-                        failwithf "Key version must either be latest or a valid guid"
-        | None ->
-            ()
+        match state with
+        | { ByovConfig = Some { PublicSubnet = EmptyResourceName } } -> failwithf "Public subnet must be set. Use public_subnet to set it"
+        | { ByovConfig = Some { PrivateSubnet = EmptyResourceName } } -> failwithf "Private subnet must be set. Use private_subnet to set it"
+        | { Encryption = Some { KeyName = NullOrEmpty } } -> failwithf "Encryption key name must not be empty when using encryption. Set with encryption_key operation"
+        | { Encryption = Some { KeyVault = EmptyResourceName } } -> failwithf "Key vault must be set when using encryption. Set with key_vault operation"
+        | { Encryption = Some { KeyVersion = "latest" } } -> ()
+        | { Encryption = Some { KeyVersion = Parsed Guid.TryParse _ } } -> ()
+        | { Encryption = Some { KeyVersion = Unparsed Guid.TryParse } } -> failwithf "Key version must either be latest or a valid guid"
+        | _ -> ()
+
+        state
 
     /// Sets the name of the workspace
     [<CustomOperation "name">]
@@ -84,8 +72,7 @@ type WorkspaceBuilder() =
         { state with EnablePublicIp = flag}
     /// Sets the key vault for the encryption key
     [<CustomOperation "key_vault">]
-    member _.KeyVault (state:WorkspaceConfig, keyVault, ?keySource:KeyVault.KeySource) =
-        let keySource = defaultArg keySource KeyVault.KeySource.Default
+    member _.KeyVault (state:WorkspaceConfig, keyVault, keySource:KeyVault.KeySource) =
         let encryption =
             state.Encryption
             |> Option.map(fun encryptionConfig -> { encryptionConfig with KeyVault = keyVault })
@@ -95,11 +82,11 @@ type WorkspaceBuilder() =
                         KeyVersion = ""
                         KeySource = keySource })
         { state with Encryption = encryption }
-    member this.KeyVault(state:WorkspaceConfig, keyVault, keySource:KeyVault.KeySource) = 
+    member this.KeyVault(state:WorkspaceConfig, keyVault, keySource:KeyVault.KeySource) =
         this.KeyVault(state, ResourceName keyVault, keySource)
-    member this.KeyVault(state:WorkspaceConfig, keyVault:Arm.KeyVault.Vault, keySource:KeyVault.KeySource) = 
+    member this.KeyVault(state:WorkspaceConfig, keyVault:Arm.KeyVault.Vault, keySource:KeyVault.KeySource) =
         this.KeyVault(state, keyVault.Name, keySource)
-    member this.KeyVault(state:WorkspaceConfig, keyVaultConfig:KeyVaultConfig, keySource:KeyVault.KeySource) = 
+    member this.KeyVault(state:WorkspaceConfig, keyVaultConfig:KeyVaultConfig, keySource:KeyVault.KeySource) =
         this.KeyVault(state, keyVaultConfig.Name, keySource)
     /// Sets the encryption key configuration
     [<CustomOperation "encryption_key">]
