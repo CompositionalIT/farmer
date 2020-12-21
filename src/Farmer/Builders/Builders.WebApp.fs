@@ -196,8 +196,9 @@ type WebAppConfig =
                         "SnapshotDebugger_EXTENSION_VERSION", "~1"
                         "XDT_MicrosoftApplicationInsights_BaseExtensions", "~1"
                         "XDT_MicrosoftApplicationInsights_Mode", "recommended"
-                    | Windows, None
-                    | Linux, _ ->
+                    | Linux, Some resource ->
+                        "APPINSIGHTS_INSTRUMENTATIONKEY", AppInsights.getInstrumentationKey(resource.resourceId this).Eval()
+                    | _, None ->
                         ()
                     if this.DockerCi then "DOCKER_ENABLE_CI", "true"
                 ]
