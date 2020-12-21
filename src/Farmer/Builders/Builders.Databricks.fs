@@ -41,6 +41,15 @@ type WorkspaceBuilder() =
         ByovConfig = None
         Tags = Map.empty }
     member _.Run(state:WorkspaceConfig) =
+        match state.ByovConfig with
+        | Some config ->
+            if config.PublicSubnet = ResourceName.Empty then
+                failwithf "Public subnet must be set. Use public_subnet to set it"
+            if config.PrivateSubnet = ResourceName.Empty then
+                failwithf "Private subnet must be set. Use private_subnet to set it"
+        | None ->
+            ()
+        
         match state.Encryption with
         | Some config ->
             if System.String.IsNullOrEmpty(config.KeyName) then
