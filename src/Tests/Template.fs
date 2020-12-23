@@ -199,10 +199,25 @@ let tests = testList "Template" [
             let svcBus = serviceBus { name ("farmerbus" + number); sku ServiceBus.Sku.Standard; add_queues [ queue { name "queue1" } ]; add_topics [ topic { name "topic1"; add_subscriptions [ subscription { name "sub1" } ] } ] }
             let cdn = cdn { name ("farmercdn" + number); add_endpoints [ endpoint { name ("farmercdnendpoint" + number); origin storage.WebsitePrimaryEndpointHost } ] }
             let containerGroup = containerGroup { name ("farmeraci" + number); add_instances [ containerInstance { name "webserver"; image "nginx:latest"; add_ports ContainerGroup.PublicPort [ 80us ]; add_volume_mount "source-code" "/src/farmer" } ]; add_volumes [ volume_mount.git_repo "source-code" (System.Uri "https://github.com/CompositionalIT/farmer") ] }
+            let cosmos = cosmosDb {
+                name "testdb"
+                account_name "testaccount"
+                throughput 400<CosmosDb.RU>
+                failover_policy CosmosDb.NoFailover
+                consistency_policy (CosmosDb.BoundedStaleness(500, 1000))
+                add_containers [
+                    cosmosContainer {
+                        name "myContainer"
+                        partition_key [ "/id" ] CosmosDb.Hash
+                        add_index "/path" [ CosmosDb.Number, CosmosDb.Hash ]
+                        exclude_path "/excluded/*"
+                    }
+                ]
+            }
 
             let deployment = arm {
                 location Location.NorthEurope
-                add_resources [ sql; storage; web; fns; svcBus; cdn; containerGroup ]
+                add_resources [ sql; storage; web; fns; svcBus; cdn; containerGroup; cosmos ]
             }
 
             let path = __SOURCE_DIRECTORY__ + "/test-data/farmer-integration-test-1.json"
