@@ -558,8 +558,7 @@ type WebAppBuilder() =
             Cors =
                 match origins with
                 | [ "*" ] -> Some AllOrigins
-                | origins -> Some (SpecificOrigins (List.map Uri origins, None))
-        }
+                | origins -> Some (SpecificOrigins (List.map Uri origins, None)) }
     member _.EnableCors (state:WebAppConfig, origins) = { state with Cors = Some origins }
     /// Allows CORS requests with credentials.
     [<CustomOperation "enable_cors_credentials">]
@@ -569,8 +568,7 @@ type WebAppBuilder() =
                 state.Cors
                 |> Option.map (function
                 | SpecificOrigins (origins, _) -> SpecificOrigins (origins, Some true)
-                | AllOrigins -> failwith "You cannot enable CORS Credentials if you have already set CORS to AllOrigins.")
-        }
+                | AllOrigins -> failwith "You cannot enable CORS Credentials if you have already set CORS to AllOrigins.") }
     [<CustomOperation "source_control">]
     member _.SourceControl(state:WebAppConfig, url, branch) =
         { state with
@@ -588,17 +586,17 @@ type WebAppBuilder() =
     [<CustomOperation "disable_source_control_ci">]
     member this.DisableCi(state:WebAppConfig) = this.SourceControlCi(state, Disabled)
     [<CustomOperation "add_tags">]
-    member _.Tags(state:WebAppConfig, pairs) =
+    member _.Tags (state:WebAppConfig, pairs) =
         { state with
             Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
     [<CustomOperation "add_tag">]
     member this.Tag(state:WebAppConfig, key, value) = this.Tags(state, [ (key,value) ])
     [<CustomOperation "use_keyvault">]
-    member this.UseKeyVault(state:WebAppConfig) =
+    member this.UseKeyVault (state:WebAppConfig) =
         let state = this.SystemIdentity (state)
         { state with SecretStore = KeyVault (derived(fun c -> vaults.resourceId (ResourceName (c.Name.Value + "vault")))) }
     [<CustomOperation "use_managed_keyvault">]
-    member this.LinkToKeyVault(state:WebAppConfig, name) =
+    member this.LinkToKeyVault (state:WebAppConfig, name) =
         let state = this.SystemIdentity (state)
         { state with SecretStore = KeyVault (External(Managed name)) }
     [<CustomOperation "use_external_keyvault">]
@@ -606,13 +604,13 @@ type WebAppBuilder() =
         let state = this.SystemIdentity (state)
         { state with SecretStore = KeyVault (External(Unmanaged name)) }
     [<CustomOperation "add_extension">]
-    member _.AddExtension(state:WebAppConfig, extension) =
+    member _.AddExtension (state:WebAppConfig, extension) =
         { state with SiteExtensions = state.SiteExtensions.Add extension }
     member this.AddExtension(state, name) =
-        this.AddExtension(state, ExtensionName name)
+        this.AddExtension (state, ExtensionName name)
     /// Automatically add the ASP.NET Core logging extension.
     [<CustomOperation "automatic_logging_extension">]
-    member _.DefaultLogging(state, setting) =
+    member _.DefaultLogging (state, setting) =
         { state with AutomaticLoggingExtension = setting }
 
 let webApp = WebAppBuilder()
