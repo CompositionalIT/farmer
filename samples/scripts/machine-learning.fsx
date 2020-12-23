@@ -17,6 +17,7 @@ type AzureMachineLearningWorkspace =
         member this.ResourceId = workspaces.resourceId this.Name
         member this.JsonModel = 
           {| workspaces.Create(this.Name, this.Location, tags = this.Tags) with 
+              identity = {| ``type``= "systemAssigned" |}
               properties = {||} 
           |} :> _
 
@@ -38,7 +39,6 @@ type WorkspaceConfig =
 type AzureMLWorkspaceBuilder() = 
   member _.Yield _ = 
     { Name= ResourceName.Empty
-      KeyVaultId = ResourceName.Empty
       Tags= Map.empty }
   
   [<CustomOperation "name">]
