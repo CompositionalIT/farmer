@@ -1,5 +1,8 @@
 Release Notes
 =============
+## 1.3.1
+* CosmosDB: Fix an issue whereby dependent resource paths were sometimes incorrectly generated.
+
 ## 1.3.0
 * ARM generation: Smarter emitting of "raw" ARM expressions.
 
