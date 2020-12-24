@@ -29,7 +29,7 @@ type StorageAccount =
                         let performanceTier =
                             match this.Sku with
                             | GeneralPurpose (V1 (V1Replication.LRS performanceTier))
-                            | GeneralPurpose (V2 (V2Replication.LRS performanceTier)) ->
+                            | GeneralPurpose (V2 (V2Replication.LRS performanceTier, _)) ->
                                 performanceTier.ToString()
                             | Files _
                             | BlockBlobs _ ->
@@ -40,9 +40,9 @@ type StorageAccount =
                         let replicationModel =
                             match this.Sku with
                             | GeneralPurpose (V1 (V1Replication.LRS _)) -> "LRS"
-                            | GeneralPurpose (V2 (V2Replication.LRS _)) -> "LRS"
+                            | GeneralPurpose (V2 (V2Replication.LRS _, _)) -> "LRS"
                             | GeneralPurpose (V1 replication) -> replication.ToString()
-                            | GeneralPurpose (V2 replication) -> replication.ToString()
+                            | GeneralPurpose (V2 (replication, _)) -> replication.ToString()
                             | Blobs (replication, _) -> replication.ToString()
                             | Files replication -> replication.ToString()
                             | BlockBlobs replication -> replication.ToString()
@@ -58,9 +58,14 @@ type StorageAccount =
                 properties =
                     {| isHnsEnabled = this.EnableHierarchicalNamespace |> Option.toNullable
                        accessTier =
-                           match this.Sku with
-                           | Blobs (_, accessTier) -> accessTier.ToString()
-                           | _ -> null
+                        match this.Sku with
+                        | Blobs (_, Some tier)
+                        | GeneralPurpose (V2 (_, Some tier)) ->
+                            match tier with
+                            | Hot -> "Hot"
+                            | Cool -> "Cool"
+                        | _ ->
+                            null
                     |}
             |} :> _
     interface IPostDeploy with

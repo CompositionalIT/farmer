@@ -100,7 +100,11 @@ type StorageAccountConfig =
                   RoleDefinitionId = roleAssignment.Role
                   PrincipalId = roleAssignment.Principal
                   PrincipalType = PrincipalType.ServicePrincipal
-                  Scope = SpecificResource (ResourceId.create(storageAccounts, this.Name.ResourceName)) }
+                  Scope = ResourceGroup
+                  Dependencies = Set [
+                      ResourceId.create(storageAccounts, this.Name.ResourceName)
+                      yield! roleAssignment.Owner |> Option.toList
+                  ] }
         ]
 
 type StorageAccountBuilder() =
@@ -177,13 +181,23 @@ type StorageAccountBuilder() =
               DeleteBlobAfter = actions |> List.tryPick(function DeleteAfter days -> Some days | _ -> None)
               DeleteSnapshotAfter = actions |> List.tryPick(function DeleteSnapshotAfter days -> Some days | _ -> None) }
         { state with Rules = state.Rules.Add (ResourceName ruleName, rule) }
+    static member private GrantAccess (state:StorageAccountConfig, assignment) = { state with RoleAssignments = state.RoleAssignments.Add assignment }
     [<CustomOperation "grant_access">]
-    member _.GrantAccess(state:StorageAccountConfig, principalId:PrincipalId, role) =
-        { state with RoleAssignments = state.RoleAssignments.Add { Principal = principalId; Role = role } }
-    member this.GrantAccess(state:StorageAccountConfig, identity:UserAssignedIdentityConfig, role) =
-        this.GrantAccess(state, identity.PrincipalId, role)
-    member this.GrantAccess(state:StorageAccountConfig, identity:Identity.SystemIdentity, role) =
-        this.GrantAccess(state, identity.PrincipalId, role)
+    member _.GrantAccess (state:StorageAccountConfig, principalId:PrincipalId, role) =
+        StorageAccountBuilder.GrantAccess (state, { Principal = principalId; Role = role; Owner = None })
+    member _.GrantAccess(state:StorageAccountConfig, identity:UserAssignedIdentityConfig, role) =
+        StorageAccountBuilder.GrantAccess (state, { Principal = identity.PrincipalId; Role = role; Owner = Some identity.ResourceId })
+    member _.GrantAccess(state:StorageAccountConfig, identity:Identity.SystemIdentity, role) =
+        StorageAccountBuilder.GrantAccess (state, { Principal = identity.PrincipalId; Role = role; Owner = Some identity.ResourceId })
+    [<CustomOperation "default_blob_access_tier">]
+    member _.SetDefaultAccessTier(state:StorageAccountConfig, tier) =
+        { state with
+            Sku =
+                match state.Sku with
+                | Blobs (replication, _) -> Blobs(replication, Some tier)
+                | GeneralPurpose (V2 (replication, _)) -> GeneralPurpose (V2 (replication, Some tier))
+                | other -> failwithf "You can only set the default access tier for Blobs or General Purpose V2 storage accounts. This account is %A" other
+        }
 
 /// Allow adding storage accounts directly to CDNs
 type EndpointBuilder with
