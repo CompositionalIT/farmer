@@ -4,9 +4,7 @@ module rec Farmer.Builders.WebApp
 open Farmer
 open Farmer.Arm
 open Farmer.WebApp
-open Farmer.Arm.Web
 open Farmer.Arm.KeyVault.Vaults
-open Farmer.Arm.Insights
 open Sites
 open System
 open Farmer.Identity
@@ -105,6 +103,7 @@ type WebAppConfig =
 
       SecretStore : SecretStore
 
+      AutomaticLoggingExtension : bool
       SiteExtensions : ExtensionName Set
     }
     /// Gets the ARM expression path to the publishing password of this web app.
@@ -186,9 +185,9 @@ type WebAppConfig =
                 let literalSettings = [
                     if this.RunFromPackage then AppSettings.RunFromPackage
                     yield! this.WebsiteNodeDefaultVersion |> Option.mapList AppSettings.WebsiteNodeDefaultVersion
+                    yield! this.AppInsights |> Option.mapList (fun resource -> "APPINSIGHTS_INSTRUMENTATIONKEY", AppInsights.getInstrumentationKey(resource.resourceId this).Eval())
                     match this.OperatingSystem, this.AppInsights with
-                    | Windows, Some resource ->
-                        "APPINSIGHTS_INSTRUMENTATIONKEY", AppInsights.getInstrumentationKey(resource.resourceId this).Eval()
+                    | Windows, Some _ ->
                         "APPINSIGHTS_PROFILERFEATURE_VERSION", "1.0.0"
                         "APPINSIGHTS_SNAPSHOTFEATURE_VERSION", "1.0.0"
                         "ApplicationInsightsAgent_EXTENSION_VERSION", "~2"
@@ -197,9 +196,10 @@ type WebAppConfig =
                         "SnapshotDebugger_EXTENSION_VERSION", "~1"
                         "XDT_MicrosoftApplicationInsights_BaseExtensions", "~1"
                         "XDT_MicrosoftApplicationInsights_Mode", "recommended"
-                    | Windows, None
-                    | Linux, _ ->
+                    | Linux, Some _
+                    | _ , None ->
                         ()
+
                     if this.DockerCi then "DOCKER_ENABLE_CI", "true"
                 ]
 
@@ -397,6 +397,7 @@ type WebAppBuilder() =
           SourceControlSettings = None
           DockerAcrCredentials = None
           SecretStore = AppService
+          AutomaticLoggingExtension = true
           SiteExtensions = Set.empty }
     member __.Run(state:WebAppConfig) =
         let operatingSystem =
@@ -405,6 +406,12 @@ type WebAppBuilder() =
             | Some _ -> Linux
         { state with
             OperatingSystem = operatingSystem
+            SiteExtensions =
+                match state with
+                | { Runtime = Runtime.DotNetCore _; AutomaticLoggingExtension = true } ->
+                    state.SiteExtensions.Add WebApp.Extensions.Logging
+                | _ ->
+                    state.SiteExtensions
             DockerImage =
                 match state.DockerImage, state.DockerAcrCredentials with
                 | Some (image, tag), Some credentials when not (image.Contains "azurecr.io") ->
@@ -416,7 +423,7 @@ type WebAppBuilder() =
         }
     /// Sets the name of the web app.
     [<CustomOperation "name">]
-    member __.Name(state:WebAppConfig, name) = { state with Name = name }
+    member _.Name(state:WebAppConfig, name) = { state with Name = name }
     member this.Name(state:WebAppConfig, name:string) = this.Name(state, ResourceName name)
     /// Sets the name of the service plan.
     [<CustomOperation "service_plan_name">]
@@ -425,48 +432,48 @@ type WebAppBuilder() =
     /// Instead of creating a new service plan instance, configure this webapp to point to another Farmer-managed service plan instance.
     /// A dependency will automatically be set for this instance.
     [<CustomOperation "link_to_service_plan">]
-    member __.LinkToServicePlan(state:WebAppConfig, name) = { state with ServicePlan = managed serverFarms name }
+    member _.LinkToServicePlan(state:WebAppConfig, name) = { state with ServicePlan = managed serverFarms name }
     member this.LinkToServicePlan(state:WebAppConfig, name:string) = this.LinkToServicePlan (state, ResourceName name)
     member this.LinkToServicePlan(state:WebAppConfig, config:ServicePlanConfig) = this.LinkToServicePlan (state, config.Name)
     /// Instead of creating a new service plan instance, configure this webapp to point to another unmanaged service plan instance.
     /// A dependency will automatically be set for this instance.
     [<CustomOperation "link_to_unmanaged_service_plan">]
-    member __.LinkToUnmanagedServicePlan(state:WebAppConfig, resourceId) = { state with ServicePlan = External (Unmanaged resourceId) }
+    member _.LinkToUnmanagedServicePlan(state:WebAppConfig, resourceId) = { state with ServicePlan = External (Unmanaged resourceId) }
     [<CustomOperation "sku">]
-    member __.Sku(state:WebAppConfig, sku) = { state with Sku = sku }
+    member _.Sku(state:WebAppConfig, sku) = { state with Sku = sku }
     /// Sets the size of the service plan worker.
     [<CustomOperation "worker_size">]
-    member __.WorkerSize(state:WebAppConfig, workerSize) = { state with WorkerSize = workerSize }
+    member _.WorkerSize(state:WebAppConfig, workerSize) = { state with WorkerSize = workerSize }
     /// Sets the number of instances on the service plan.
     [<CustomOperation "number_of_workers">]
-    member __.NumberOfWorkers(state:WebAppConfig, workerCount) = { state with WorkerCount = workerCount }
+    member _.NumberOfWorkers(state:WebAppConfig, workerCount) = { state with WorkerCount = workerCount }
     /// Sets the name of the automatically-created app insights instance.
     [<CustomOperation "app_insights_name">]
-    member __.UseAppInsights(state:WebAppConfig, name) = { state with AppInsights = Some (named components name) }
+    member _.UseAppInsights(state:WebAppConfig, name) = { state with AppInsights = Some (named components name) }
     member this.UseAppInsights(state:WebAppConfig, name:string) = this.UseAppInsights(state, ResourceName name)
     /// Removes any automatic app insights creation, configuration and settings for this webapp.
     [<CustomOperation "app_insights_off">]
-    member __.DeactivateAppInsights(state:WebAppConfig) = { state with AppInsights = None }
+    member _.DeactivateAppInsights(state:WebAppConfig) = { state with AppInsights = None }
     /// Instead of creating a new AI instance, configure this webapp to point to another Farmer-managed AI instance.
     /// A dependency will automatically be set for this instance.
     [<CustomOperation "link_to_app_insights">]
-    member __.LinkToAi(state:WebAppConfig, name) = { state with AppInsights = Some (managed components name) }
+    member _.LinkToAi(state:WebAppConfig, name) = { state with AppInsights = Some (managed components name) }
     member this.LinkToAi(state:WebAppConfig, name) = this.LinkToAi (state, ResourceName name)
     member this.LinkToAi(state:WebAppConfig, name:ResourceName option) = match name with Some name -> this.LinkToAi (state, name) | None -> state
     member this.LinkToAi(state:WebAppConfig, config:AppInsightsConfig) = this.LinkToAi (state, config.Name)
     /// Instead of creating a new AI instance, configure this webapp to point to an unmanaged AI instance.
     /// A dependency will not be set for this instance.
     [<CustomOperation "link_to_unmanaged_app_insights">]
-    member __.LinkUnmanagedAppInsights(state:WebAppConfig, resourceId) = { state with AppInsights = Some (External(Unmanaged resourceId)) }
+    member _.LinkUnmanagedAppInsights(state:WebAppConfig, resourceId) = { state with AppInsights = Some (External(Unmanaged resourceId)) }
     /// Sets the web app to use "run from package" deployment capabilities.
     [<CustomOperation "run_from_package">]
-    member __.RunFromPackage(state:WebAppConfig) = { state with RunFromPackage = true }
+    member _.RunFromPackage(state:WebAppConfig) = { state with RunFromPackage = true }
     /// Sets the node version of the web app.
     [<CustomOperation "website_node_default_version">]
-    member __.NodeVersion(state:WebAppConfig, version) = { state with WebsiteNodeDefaultVersion = Some version }
+    member _.NodeVersion(state:WebAppConfig, version) = { state with WebsiteNodeDefaultVersion = Some version }
     /// Sets an app setting of the web app in the form "key" "value".
     [<CustomOperation "setting">]
-    member __.AddSetting(state:WebAppConfig, key, value) = { state with Settings = state.Settings.Add(key, LiteralSetting value) }
+    member _.AddSetting(state:WebAppConfig, key, value) = { state with Settings = state.Settings.Add(key, LiteralSetting value) }
     member this.AddSetting(state:WebAppConfig, key, resourceName:ResourceName) = this.AddSetting(state, key, resourceName.Value)
     member _.AddSetting(state:WebAppConfig, key, value:ArmExpression) = { state with Settings = state.Settings.Add(key, ExpressionSetting value) }
     /// Sets a list of app setting of the web app in the form "key" "value".
@@ -479,7 +486,7 @@ type WebAppBuilder() =
         |> List.fold (fun state (key, value:ArmExpression) -> this.AddSetting(state, key, value)) state
     /// Creates an app setting of the web app whose value will be supplied as a secret parameter.
     [<CustomOperation "secret_setting">]
-    member __.AddSecret(state:WebAppConfig, key) =
+    member _.AddSecret(state:WebAppConfig, key) =
         { state with Settings = state.Settings.Add(key, ParameterSetting (SecureParameter key)) }
     /// Creates a set of connection strings of the web app whose values will be supplied as secret parameters.
     [<CustomOperation "connection_string">]
@@ -531,7 +538,10 @@ type WebAppBuilder() =
                 Some {| RegistryName = registryName
                         Password = SecureParameter (sprintf "docker-password-for-%s" registryName) |} }
     [<CustomOperation "add_identity">]
-    member _.AddIdentity(state:WebAppConfig, identity:UserAssignedIdentity) = { state with Identity = state.Identity + identity }
+    member _.AddIdentity(state:WebAppConfig, identity:UserAssignedIdentity) =
+        { state with
+            Identity = state.Identity + identity
+            Settings = state.Settings.Add("AZURE_CLIENT_ID", Setting.ExpressionSetting identity.ClientId) }
     member this.AddIdentity(state, identity:UserAssignedIdentityConfig) = this.AddIdentity(state, identity.UserAssignedIdentity)
     [<CustomOperation "system_identity">]
     member _.SystemIdentity(state:WebAppConfig) = { state with Identity = { state.Identity with SystemAssigned = Enabled } }
@@ -542,8 +552,7 @@ type WebAppBuilder() =
             Cors =
                 match origins with
                 | [ "*" ] -> Some AllOrigins
-                | origins -> Some (SpecificOrigins (List.map Uri origins, None))
-        }
+                | origins -> Some (SpecificOrigins (List.map Uri origins, None)) }
     member _.EnableCors (state:WebAppConfig, origins) = { state with Cors = Some origins }
     /// Allows CORS requests with credentials.
     [<CustomOperation "enable_cors_credentials">]
@@ -553,8 +562,7 @@ type WebAppBuilder() =
                 state.Cors
                 |> Option.map (function
                 | SpecificOrigins (origins, _) -> SpecificOrigins (origins, Some true)
-                | AllOrigins -> failwith "You cannot enable CORS Credentials if you have already set CORS to AllOrigins.")
-        }
+                | AllOrigins -> failwith "You cannot enable CORS Credentials if you have already set CORS to AllOrigins.") }
     [<CustomOperation "source_control">]
     member _.SourceControl(state:WebAppConfig, url, branch) =
         { state with
@@ -572,11 +580,11 @@ type WebAppBuilder() =
     [<CustomOperation "disable_source_control_ci">]
     member this.DisableCi(state:WebAppConfig) = this.SourceControlCi(state, Disabled)
     [<CustomOperation "use_keyvault">]
-    member this.UseKeyVault(state:WebAppConfig) =
+    member this.UseKeyVault (state:WebAppConfig) =
         let state = this.SystemIdentity (state)
         { state with SecretStore = KeyVault (derived(fun c -> vaults.resourceId (ResourceName (c.Name.Value + "vault")))) }
     [<CustomOperation "use_managed_keyvault">]
-    member this.LinkToKeyVault(state:WebAppConfig, name) =
+    member this.LinkToKeyVault (state:WebAppConfig, name) =
         let state = this.SystemIdentity (state)
         { state with SecretStore = KeyVault (External(Managed name)) }
     [<CustomOperation "use_external_keyvault">]
@@ -584,10 +592,14 @@ type WebAppBuilder() =
         let state = this.SystemIdentity (state)
         { state with SecretStore = KeyVault (External(Unmanaged name)) }
     [<CustomOperation "add_extension">]
-    member _.AddExtension(state:WebAppConfig, extension) =
+    member _.AddExtension (state:WebAppConfig, extension) =
         { state with SiteExtensions = state.SiteExtensions.Add extension }
     member this.AddExtension(state, name) =
-        this.AddExtension(state, ExtensionName name)
+        this.AddExtension (state, ExtensionName name)
+    /// Automatically add the ASP.NET Core logging extension.
+    [<CustomOperation "automatic_logging_extension">]
+    member _.DefaultLogging(state, setting) =
+        { state with AutomaticLoggingExtension = setting }
     interface ITaggable<WebAppConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     interface IDependsOn<WebAppConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 

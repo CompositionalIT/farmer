@@ -16,7 +16,7 @@ type SqlAzureDbConfig =
       Encryption : FeatureFlag }
 
 type SqlAzureConfig =
-    { Name : ResourceName
+    { Name : SqlAccountName
       AdministratorCredentials : {| UserName : string; Password : SecureParameter |}
       FirewallRules : {| Name : ResourceName; Start : IPAddress; End : IPAddress |} list
       ElasticPoolSettings :
@@ -32,13 +32,13 @@ type SqlAzureConfig =
             ArmExpression.concat [
                 ArmExpression.literal
                     (sprintf "Server=tcp:%s.database.windows.net,1433;Initial Catalog=%s;Persist Security Info=False;User ID=%s;Password="
-                        this.Name.Value
+                        this.Name.ResourceName.Value
                         database.Name.Value
                         this.AdministratorCredentials.UserName)
                 this.AdministratorCredentials.Password.ArmExpression
                 ArmExpression.literal ";MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
             ]
-        expr.WithOwner (databases.resourceId (this.Name, database.Name))
+        expr.WithOwner (databases.resourceId (this.Name.ResourceName, database.Name))
     member this.ConnectionString databaseName =
         this.Databases
         |> List.tryFind(fun db -> db.Name = databaseName)
@@ -46,14 +46,14 @@ type SqlAzureConfig =
         |> Option.defaultWith(fun _ -> failwithf "Unknown database name %s" databaseName.Value)
     member this.ConnectionString databaseName = this.ConnectionString (ResourceName databaseName)
     /// The key of the parameter that is required by Farmer for the SQL password.
-    member this.PasswordParameter = sprintf "password-for-%s" this.Name.Value
+    member this.PasswordParameter = sprintf "password-for-%s" this.Name.ResourceName.Value
 
     interface IBuilder with
-        member this.ResourceId = servers.resourceId this.Name
+        member this.ResourceId = servers.resourceId this.Name.ResourceName
         member this.BuildResources location = [
             let elasticPoolName =
                 this.ElasticPoolSettings.Name
-                |> Option.defaultValue (this.Name.Map (sprintf "%s-pool"))
+                |> Option.defaultValue (this.Name.ResourceName-"pool")
 
             { ServerName = this.Name
               Location = location
@@ -146,7 +146,7 @@ type SqlDbBuilder() =
 type SqlServerBuilder() =
     let makeIp = IPAddress.Parse
     member __.Yield _ =
-        { Name = ResourceName ""
+        { Name = (SqlAccountName.Create "defaultvalue").OkValue
           AdministratorCredentials = {| UserName = ""; Password = SecureParameter "" |}
           ElasticPoolSettings =
             {| Name = None
@@ -156,19 +156,16 @@ type SqlServerBuilder() =
           Databases = []
           FirewallRules = []
           Tags = Map.empty  }
-    member __.Run(state) : SqlAzureConfig =
+    member __.Run state : SqlAzureConfig =
         { state with
-            Name =
-                if state.Name = ResourceName.Empty then failwith "You must set a server name"
-                else state.Name |> Helpers.sanitiseDb |> ResourceName
             AdministratorCredentials =
-                if System.String.IsNullOrWhiteSpace state.AdministratorCredentials.UserName then failwithf "You must specify the admin_username for SQL Server instance %s" state.Name.Value
+                if System.String.IsNullOrWhiteSpace state.AdministratorCredentials.UserName then failwithf "You must specify the admin_username for SQL Server instance %s" state.Name.ResourceName.Value
                 {| state.AdministratorCredentials with
                     Password = SecureParameter state.PasswordParameter |} }
     /// Sets the name of the SQL server.
     [<CustomOperation "name">]
     member _.ServerName(state:SqlAzureConfig, serverName) = { state with Name = serverName }
-    member this.ServerName(state:SqlAzureConfig, serverName:string) = this.ServerName(state, ResourceName serverName)
+    member this.ServerName(state:SqlAzureConfig, serverName:string) = this.ServerName(state, SqlAccountName.Create(serverName).OkValue)
     /// Sets the name of the elastic pool. If not set, the name will be generated based off the server name.
     [<CustomOperation "elastic_pool_name">]
     member _.Name(state:SqlAzureConfig, name) = { state with ElasticPoolSettings = {| state.ElasticPoolSettings with Name = Some name |} }

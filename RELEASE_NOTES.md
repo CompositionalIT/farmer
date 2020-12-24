@@ -1,5 +1,19 @@
 Release Notes
 =============
+## vNext
+* Storage: Support for setting default blob access tier at account level with "default_blob_access_tier"
+* Web App: Automatically add Logging extension for ASP.NET Core apps.
+* Web App: Added Instrumentation Key Setting for Linux WebApp.
+* Web App: Automatically add Client Id setting for user assigned identities.
+* SQL Azure: Validation and fail fast on account names instead of silently fixing them.
+
+## 1.3.2
+* Storage: Revert User Assigned Identity scope to ResourceGroup
+* User Assigned Identity: Allow explicitly setting dependencies
+
+## 1.3.1
+* CosmosDB: Fix an issue whereby dependent resource paths were sometimes incorrectly generated.
+
 ## 1.3.0
 * ARM generation: Smarter emitting of "raw" ARM expressions.
 

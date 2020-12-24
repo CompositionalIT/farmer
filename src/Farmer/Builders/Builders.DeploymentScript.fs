@@ -56,7 +56,8 @@ type DeploymentScriptConfig =
               RoleDefinitionId = Roles.Contributor
               PrincipalId = identity.PrincipalId
               PrincipalType = PrincipalType.ServicePrincipal
-              Scope = ResourceGroup }
+              Scope = ResourceGroup
+              Dependencies = Set.empty }
 
             // Deployment Script
             { Location = location
