@@ -43,25 +43,25 @@ type RoleAssignment =
       /// The type of principal being assigned - should be set to ServicePrincipal for managed identities to avoid
       /// the role assignment being created before Active Directory can replicate the principal.
       PrincipalType : PrincipalType
-      /// Resource this role applies to.
-      Scope : AssignmentScope }
-
-    member private this.Dependencies = [
-        match this.Scope with
-        | SpecificResource resourceId -> resourceId
-        | ResourceGroup -> ()
-    ]
+      /// Resource this role applies to. If this is set to a specific resource, it will automatically be set as a dependency for you.
+      Scope : AssignmentScope
+      Dependencies : ResourceId Set }
     interface IArmResource with
         member this.ResourceId = roleAssignments.resourceId this.Name
         member this.JsonModel =
-            {| roleAssignments.Create(this.Name, dependsOn = this.Dependencies) with
+            let dependencies = this.Dependencies + Set [
+                match this.Scope with
+                | SpecificResource resourceId -> resourceId
+                | ResourceGroup -> ()
+            ]
+
+            {| roleAssignments.Create(this.Name, dependsOn = dependencies) with
                 properties =
                     {| roleDefinitionId = this.RoleDefinitionId.ArmValue.Eval()
                        principalId = this.PrincipalId.ArmExpression.Eval()
                        scope =
-                        match this.Scope with
-                        | SpecificResource resourceId -> resourceId.Eval()
-                        | ResourceGroup -> null
-                       principalType = this.PrincipalType.ArmValue
-                    |}
+                        match this with
+                        | { Scope = ResourceGroup } -> null
+                        | { Scope = SpecificResource resourceId } -> resourceId.Eval()
+                       principalType = this.PrincipalType.ArmValue |}
             |}:> _
