@@ -547,7 +547,10 @@ type WebAppBuilder() =
                 Some {| RegistryName = registryName
                         Password = SecureParameter (sprintf "docker-password-for-%s" registryName) |} }
     [<CustomOperation "add_identity">]
-    member _.AddIdentity(state:WebAppConfig, identity:UserAssignedIdentity) = { state with Identity = state.Identity + identity }
+    member _.AddIdentity(state:WebAppConfig, identity:UserAssignedIdentity) =
+        { state with
+            Identity = state.Identity + identity
+            Settings = state.Settings.Add("AZURE_CLIENT_ID", Setting.ExpressionSetting identity.ClientId) }
     member this.AddIdentity(state, identity:UserAssignedIdentityConfig) = this.AddIdentity(state, identity.UserAssignedIdentity)
     [<CustomOperation "system_identity">]
     member _.SystemIdentity(state:WebAppConfig) = { state with Identity = { state.Identity with SystemAssigned = Enabled } }
