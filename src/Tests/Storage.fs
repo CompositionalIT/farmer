@@ -141,15 +141,16 @@ let tests = testList "Storage Tests" [
     test "Creates Role Assignment correctly" {
         let uai = UserAssignedIdentity.createUserAssignedIdentity "user"
         let builder = storageAccount { name "foo"; grant_access uai Roles.StorageBlobDataOwner } :> IBuilder
+
         let roleAssignment = builder.BuildResources Location.NorthEurope |> List.last :?> Farmer.Arm.RoleAssignment.RoleAssignment
         Expect.equal roleAssignment.PrincipalId uai.PrincipalId "PrincipalId"
         Expect.equal roleAssignment.RoleDefinitionId Roles.StorageBlobDataOwner "RoleId"
-        let expectedRoleAssignmentName = "efad7c9d-881a-5ca8-9177-eb1c95550036" // Deterministic guid for this input.
-        Expect.equal roleAssignment.Name.Value expectedRoleAssignmentName "Storage Account Name"
+        Expect.equal roleAssignment.Name.Value "efad7c9d-881a-5ca8-9177-eb1c95550036" "Storage Account Name"
+        Expect.equal roleAssignment.Scope Farmer.Arm.RoleAssignment.AssignmentScope.ResourceGroup "Scope"
+        Expect.sequenceEqual roleAssignment.Dependencies [ uai.ResourceId; builder.ResourceId ] "Role Assignment Dependencies"
 
         let storage = builder.BuildResources Location.NorthEurope |> List.head :?> Farmer.Arm.Storage.StorageAccount
-
-        Expect.sequenceEqual storage.Dependencies [ uai.ResourceId ] "ResourceId"
+        Expect.sequenceEqual storage.Dependencies [ uai.ResourceId ] "Storage Dependencies"
     }
     test "WebsitePrimaryEndpoint creation" {
         let builder = storageAccount { name "foo" }
