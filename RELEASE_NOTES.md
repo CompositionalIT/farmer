@@ -6,6 +6,10 @@ Release Notes
 * Web App: Added Instrumentation Key Setting for Linux WebApp.
 * SQL Azure: Validation and fail fast on account names instead of silently fixing them.
 
+## 1.3.2
+* Storage: Revert User Assigned Identity scope to ResourceGroup
+* User Assigned Identity: Allow explicitly setting dependencies
+
 ## 1.3.1
 * CosmosDB: Fix an issue whereby dependent resource paths were sometimes incorrectly generated.
 
