@@ -119,7 +119,7 @@ module Deploy =
         let whatIf resourceGroup deploymentName templateFilename parameters = deployOrValidate WhatIf resourceGroup deploymentName templateFilename parameters
         /// Generic function for ZipDeploy using custom command (based on application type)
         let private zipDeploy command appName getZipPath resourceGroup =
-            let packageFilename = getZipPath deployFolder
+	    let packageFilename = getZipPath deployFolder |> sprintf "\"%s\""
             az (sprintf """%s deployment source config-zip --resource-group "%s" --name "%s" --src %s""" command resourceGroup appName packageFilename)
         /// Deploys a zip file to a web app using the Zip Deploy mechanism.
         let zipDeployWebApp = zipDeploy "webapp"

@@ -3,7 +3,6 @@
 
 open Farmer
 open Farmer.Builders
-open Farmer.CoreTypes
 
 let myFunctions = functions {
     name "isaacsuperfun"

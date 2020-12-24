@@ -195,6 +195,15 @@
       "type": "Microsoft.Web/serverfarms"
     },
     {
+      "apiVersion": "2020-06-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', 'farmerwebapp1979')]"
+      ],
+      "location": "northeurope",
+      "name": "farmerwebapp1979/Microsoft.AspNetCore.AzureAppServices.SiteExtension",
+      "type": "Microsoft.Web/sites/siteextensions"
+    },
+    {
       "apiVersion": "2016-08-01",
       "dependsOn": [
         "[resourceId('Microsoft.Insights/components', 'farmerfuncs1979-ai')]",
@@ -381,6 +390,142 @@
       },
       "tags": {},
       "type": "Microsoft.Cdn/profiles/endpoints"
+    },
+    {
+      "apiVersion": "2018-10-01",
+      "dependsOn": [],
+      "identity": {
+        "type": "None"
+      },
+      "location": "northeurope",
+      "name": "farmeraci1979",
+      "properties": {
+        "containers": [
+          {
+            "name": "webserver",
+            "properties": {
+              "command": [],
+              "environmentVariables": [],
+              "image": "nginx:latest",
+              "ports": [
+                {
+                  "port": 80
+                }
+              ],
+              "resources": {
+                "requests": {
+                  "cpu": 1.0,
+                  "memoryInGB": 1.5
+                }
+              },
+              "volumeMounts": [
+                {
+                  "mountPath": "/src/farmer",
+                  "name": "source-code"
+                }
+              ]
+            }
+          }
+        ],
+        "imageRegistryCredentials": [],
+        "ipAddress": {
+          "ports": [
+            {
+              "port": 80,
+              "protocol": "TCP"
+            }
+          ],
+          "type": "Public"
+        },
+        "osType": "Linux",
+        "restartPolicy": "Always",
+        "volumes": [
+          {
+            "gitRepo": {
+              "repository": "https://github.com/CompositionalIT/farmer"
+            },
+            "name": "source-code"
+          }
+        ]
+      },
+      "tags": {},
+      "type": "Microsoft.ContainerInstance/containerGroups"
+    },
+    {
+      "apiVersion": "2020-03-01",
+      "kind": "GlobalDocumentDB",
+      "location": "northeurope",
+      "name": "testaccount",
+      "properties": {
+        "consistencyPolicy": {
+          "defaultConsistencyLevel": "BoundedStaleness",
+          "maxIntervalInSeconds": 1000,
+          "maxStalenessPrefix": 500
+        },
+        "databaseAccountOfferType": "Standard",
+        "enableFreeTier": false,
+        "publicNetworkAccess": "Enabled"
+      },
+      "tags": {},
+      "type": "Microsoft.DocumentDb/databaseAccounts"
+    },
+    {
+      "apiVersion": "2020-03-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.DocumentDb/databaseAccounts', 'testaccount')]"
+      ],
+      "name": "testaccount/testdb",
+      "properties": {
+        "options": {
+          "throughput": "400"
+        },
+        "resource": {
+          "id": "testdb"
+        }
+      },
+      "type": "Microsoft.DocumentDb/databaseAccounts/sqlDatabases"
+    },
+    {
+      "apiVersion": "2020-03-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.DocumentDb/databaseAccounts/sqlDatabases', 'testaccount', 'testdb')]"
+      ],
+      "name": "testaccount/testdb/myContainer",
+      "properties": {
+        "resource": {
+          "id": "myContainer",
+          "indexingPolicy": {
+            "excludedPaths": [
+              {
+                "path": "/excluded/*"
+              }
+            ],
+            "includedPaths": [
+              {
+                "indexes": [
+                  {
+                    "dataType": "number",
+                    "kind": "Hash",
+                    "precision": -1
+                  }
+                ],
+                "path": "/path"
+              }
+            ],
+            "indexingMode": "consistent"
+          },
+          "partitionKey": {
+            "kind": "Hash",
+            "paths": [
+              "/id"
+            ]
+          },
+          "uniqueKeyPolicy": {
+            "uniqueKeys": []
+          }
+        }
+      },
+      "type": "Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers"
     }
   ]
 }

@@ -10,6 +10,9 @@ let createFileScript = deploymentScript {
     force_update
     retention_interval 1<Hours>
     script_content """printf "{'date':'%s' }" "`date`" > $AZ_SCRIPTS_OUTPUT_PATH """
+    env_vars [
+        EnvVar.createSecureParameter "foo" "secret-foo"
+    ]
 }
 
 let template = arm {

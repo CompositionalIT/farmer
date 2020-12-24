@@ -3,7 +3,6 @@
 
 open Farmer
 open Farmer.Builders
-open Farmer.CoreTypes
 open Farmer.KeyVault
 open System
 

@@ -5,6 +5,7 @@ open Farmer
 open Farmer.Builders
 open Farmer.Arm
 open Newtonsoft.Json
+open System.IO
 
 [<AutoOpen>]
 module TestHelpers =
@@ -193,18 +194,34 @@ let tests = testList "Template" [
 
             let sql = sqlServer { name ("farmersql" + number); admin_username "farmersqladmin"; add_databases [ sqlDb { name "farmertestdb"; use_encryption } ]; enable_azure_firewall }
             let storage = storageAccount { name ("farmerstorage" + number) }
-            let web = webApp { name ("farmerwebapp" + number) }
+            let web = webApp { name ("farmerwebapp" + number); add_extension WebApp.Extensions.Logging }
             let fns = functions { name ("farmerfuncs" + number) }
             let svcBus = serviceBus { name ("farmerbus" + number); sku ServiceBus.Sku.Standard; add_queues [ queue { name "queue1" } ]; add_topics [ topic { name "topic1"; add_subscriptions [ subscription { name "sub1" } ] } ] }
             let cdn = cdn { name ("farmercdn" + number); add_endpoints [ endpoint { name ("farmercdnendpoint" + number); origin storage.WebsitePrimaryEndpointHost } ] }
+            let containerGroup = containerGroup { name ("farmeraci" + number); add_instances [ containerInstance { name "webserver"; image "nginx:latest"; add_ports ContainerGroup.PublicPort [ 80us ]; add_volume_mount "source-code" "/src/farmer" } ]; add_volumes [ volume_mount.git_repo "source-code" (System.Uri "https://github.com/CompositionalIT/farmer") ] }
+            let cosmos = cosmosDb {
+                name "testdb"
+                account_name "testaccount"
+                throughput 400<CosmosDb.RU>
+                failover_policy CosmosDb.NoFailover
+                consistency_policy (CosmosDb.BoundedStaleness(500, 1000))
+                add_containers [
+                    cosmosContainer {
+                        name "myContainer"
+                        partition_key [ "/id" ] CosmosDb.Hash
+                        add_index "/path" [ CosmosDb.Number, CosmosDb.Hash ]
+                        exclude_path "/excluded/*"
+                    }
+                ]
+            }
 
             let deployment = arm {
                 location Location.NorthEurope
-                add_resources [ sql; storage; web; fns; svcBus; cdn ]
+                add_resources [ sql; storage; web; fns; svcBus; cdn; containerGroup; cosmos ]
             }
 
-            let path = "./test-data/farmer-integration-test-1.json"
-            let expected = System.IO.File.ReadAllText path
+            let path = __SOURCE_DIRECTORY__ + "/test-data/farmer-integration-test-1.json"
+            let expected = File.ReadAllText path
             let actual = deployment.ToJson()
 
             Expect.equal expected actual (sprintf "ARM template generation has changed! Either fix the writer, or update the contents of the generated file (%s)" path)
