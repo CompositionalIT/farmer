@@ -30,5 +30,4 @@ let deployment = arm {
     output "DefaultSharedAccessPolicyPrimaryKey" myServiceBus.DefaultSharedAccessPolicyPrimaryKey
 }
 
-deployment
-|> Deploy.execute "service-bus-test" []
+deployment.Deploy "service-bus-test"

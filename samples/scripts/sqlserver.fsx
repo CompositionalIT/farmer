@@ -32,4 +32,4 @@ let template = arm {
     add_resource myDatabases
 }
 
-template |> Writer.quickWrite "sql-example"
+template.ToFile "sql-example"

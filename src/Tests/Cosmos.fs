@@ -37,10 +37,7 @@ let tests = testList "Cosmos" [
     }
     test "Correctly serializes to JSON" {
         let t = arm { add_resource (cosmosDb { name "test" }) }
-
-        t.Template
-        |> Writer.toJson
-        |> ignore
+        t.ToJson() |> ignore
     }
     test "Creates connection string and keys with resource groups" {
         let conn = CosmosDb.getConnectionString(ResourceId.create(Arm.DocumentDb.databaseAccounts, ResourceName "db", "group"), PrimaryConnectionString).Eval()

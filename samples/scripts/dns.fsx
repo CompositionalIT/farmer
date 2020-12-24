@@ -40,5 +40,4 @@ let deployment = arm {
     add_resource dns
 }
 
-deployment
-|> Writer.quickWrite "dns-example"
+deployment.ToFile "dns-example"

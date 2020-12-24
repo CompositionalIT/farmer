@@ -5,9 +5,9 @@ open Farmer
 open System
 open Farmer.Builders
 
-let deployTo resourceGroupName parameters deployment =
+let deployTo resourceGroupName parameters (deployment:Deployment) =
     printfn "Creating resource group %s..." resourceGroupName
-    let deployResponse = deployment |> Deploy.tryExecute resourceGroupName parameters
+    let deployResponse = deployment.TryDeploy(resourceGroupName, parameters)
     let deleteResponse = Deploy.Az.delete resourceGroupName
     match deployResponse, deleteResponse with
     | Ok _, Ok _ -> ()
@@ -23,7 +23,7 @@ let tests = testList "Azure CLI" [
     }
     test "If parameters are missing, deployment is immediately rejected" {
         let deployment = Template.TestHelpers.createSimpleDeployment [ "p1" ]
-        let result = deployment |> Deploy.tryExecute "sample-rg" []
+        let result = deployment.TryDeploy "sample-rg"
         Expect.equal result (Error "The following parameters are missing: p1. Please add them.") ""
     }
 

@@ -34,5 +34,4 @@ let deployment = arm {
 }
 
 // Generate the ARM template here...
-deployment
-|> Writer.quickWrite "farmer-deploy"
+deployment.ToFile "farmer-deploy"

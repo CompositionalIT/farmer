@@ -32,5 +32,5 @@ let makeSafeApp (environment:string) theLocation storageSku webAppSku =
         output "webAppPassword" myWebApp.PublishingPassword
     }
 
-makeSafeApp "dev" Location.NorthEurope Storage.Standard_LRS WebApp.Sku.F1
-|> Deploy.execute "my-resource-group-name" Deploy.NoParameters
+let template = makeSafeApp "dev" Location.NorthEurope Storage.Standard_LRS WebApp.Sku.F1
+template.Deploy "my-resource-group-name"

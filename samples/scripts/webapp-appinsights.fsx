@@ -15,5 +15,4 @@ let template =
         add_resource myWebApp
     }
 
-template
-|> Deploy.execute "my-resource-group-name" Deploy.NoParameters
+template.Deploy "my-resource-group-name"

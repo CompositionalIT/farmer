@@ -16,14 +16,14 @@ let privateNet = vnet {
                 build_subnet "corporate-east" 18
                 build_subnet "GatewaySubnet" 29
                 build_subnet_delegations "containers" 27 [ SubnetDelegationService.ContainerGroups ]
-            ]                
+            ]
         }
         address_space {
             space "10.30.0.0/16"
             subnets [
                 build_subnet "stuff" 23
                 build_subnet "more-stuff" 28
-            ]                
+            ]
         }
     ]
 }
@@ -33,6 +33,5 @@ let deployment = arm {
     add_resource privateNet
 }
 
-deployment
-|> Writer.quickWrite "output"
+deployment.ToFile "output"
 

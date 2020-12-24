@@ -19,5 +19,4 @@ let template = arm {
     add_resource myFunctions
 }
 
-template
-|> Deploy.execute "deleteme" Deploy.NoParameters
+template.Deploy "deleteme"

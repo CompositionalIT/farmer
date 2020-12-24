@@ -222,7 +222,7 @@ let tests = testList "Template" [
 
             let path = __SOURCE_DIRECTORY__ + "/test-data/farmer-integration-test-1.json"
             let expected = File.ReadAllText path
-            let actual = deployment.Template |> Writer.toJson
+            let actual = deployment.ToJson()
 
             Expect.equal expected actual (sprintf "ARM template generation has changed! Either fix the writer, or update the contents of the generated file (%s)" path)
         }

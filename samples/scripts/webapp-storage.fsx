@@ -26,5 +26,4 @@ let deployment = arm {
     output "web_password" myWebApp.PublishingPassword
 }
 
-deployment
-|> Deploy.execute "my-resource-group-name" Deploy.NoParameters
+deployment.Deploy "my-resource-group-name"
