@@ -242,12 +242,7 @@ type ServiceBusBuilder() =
                 (state.Topics, topics)
                 ||> List.fold(fun state (topic:ServiceBusTopicConfig) -> state.Add(topic.Name, topic))
         }
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:ServiceBusConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:ServiceBusConfig, key, value) = this.Tags(state, [ (key,value) ])
+    interface ITaggable<ServiceBusConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let serviceBus = ServiceBusBuilder()
 let topic = ServiceBusTopicBuilder()
