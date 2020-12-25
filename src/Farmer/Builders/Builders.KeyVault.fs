@@ -347,7 +347,7 @@ type SecretBuilder() =
     [<CustomOperation "expiration_date">]
     member __.ExpirationDate(state:SecretConfig, expirationDate) = { state with ExpirationDate = Some expirationDate }
     interface ITaggable<SecretConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
-    interface IDependsOn<SecretConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
+    interface IDependable<SecretConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
 let secret = SecretBuilder()
 let keyVault = KeyVaultBuilder()

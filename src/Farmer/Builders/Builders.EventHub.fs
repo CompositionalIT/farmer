@@ -145,7 +145,7 @@ type EventHubBuilder() =
     member this.CaptureToStorage(state:EventHubConfig, storageAccount:StorageAccountConfig, container) =
         this.CaptureToStorage(state, storageAccount.Name.ResourceName, container)
 
-    interface IDependsOn<EventHubConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
+    interface IDependable<EventHubConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
     interface ITaggable<EventHubConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let eventHub = EventHubBuilder()

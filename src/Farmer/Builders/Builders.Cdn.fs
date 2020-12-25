@@ -68,7 +68,7 @@ type CdnBuilder() =
     interface ITaggable<CdnConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 type EndpointBuilder() =
-    interface IDependsOn<EndpointConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
+    interface IDependable<EndpointConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
     member _.Yield _ : EndpointConfig =
         { Name = ResourceName.Empty
           Dependencies = Set.empty

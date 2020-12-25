@@ -147,6 +147,6 @@ type DeploymentScriptBuilder() =
     member _.Timeout(state:DeploymentScriptConfig, timeout) =
         { state with Timeout = Some (Xml.XmlConvert.ToTimeSpan timeout) }
     interface ITaggable<DeploymentScriptConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
-    interface IDependsOn<DeploymentScriptConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
+    interface IDependable<DeploymentScriptConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
 let deploymentScript = DeploymentScriptBuilder()

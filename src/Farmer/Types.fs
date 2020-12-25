@@ -139,7 +139,7 @@ type ResourceType with
 
 type ITaggable<'TConfig> =
     abstract member Add : 'TConfig -> list<string * string> -> 'TConfig
-type IDependsOn<'TConfig> =
+type IDependable<'TConfig> =
     abstract member Add : 'TConfig -> ResourceId Set -> 'TConfig
 
 [<AutoOpen>]
@@ -159,7 +159,7 @@ module Extensions =
         [<CustomOperation "add_tag">]
         member this.Tag(state:'T, key, value) = this.Tags(state, [ key, value ])
 
-    type IDependsOn<'TConfig> with
+    type IDependable<'TConfig> with
         [<CustomOperation "depends_on">]
         member this.DependsOn(state:'TConfig, builder:IBuilder) = this.DependsOn (state, builder.ResourceId)
         member this.DependsOn(state:'TConfig, builders:IBuilder list) = this.DependsOn (state, builders |> List.map (fun x -> x.ResourceId))

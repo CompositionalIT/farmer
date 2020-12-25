@@ -201,7 +201,7 @@ type ServiceBusConfig =
         ]
 
 type ServiceBusBuilder() =
-    interface IDependsOn<ServiceBusConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
+    interface IDependable<ServiceBusConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
     member _.Yield _ =
         { Name = ResourceName.Empty
           Sku = Basic

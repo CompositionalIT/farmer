@@ -263,6 +263,6 @@ type FunctionsBuilder() =
     /// Specifies a folder path or a zip file containing the function app to install as a post-deployment task.
     member _.ZipDeploy(state:FunctionsConfig, path) = { state with ZipDeployPath = Some path }
     interface ITaggable<FunctionsConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
-    interface IDependsOn<FunctionsConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
+    interface IDependable<FunctionsConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
 let functions = FunctionsBuilder()

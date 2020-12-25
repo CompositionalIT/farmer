@@ -601,7 +601,7 @@ type WebAppBuilder() =
     member _.DefaultLogging(state, setting) =
         { state with AutomaticLoggingExtension = setting }
     interface ITaggable<WebAppConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
-    interface IDependsOn<WebAppConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
+    interface IDependable<WebAppConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
 let webApp = WebAppBuilder()
 
