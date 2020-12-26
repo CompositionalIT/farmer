@@ -45,7 +45,7 @@ module Az =
                 let azProcess =
                     ProcessStartInfo(
                         FileName = azCliPath.Value,
-                        Arguments = arguments,
+                        Arguments = sprintf "%s --output json" arguments,
                         UseShellExecute = false,
                         RedirectStandardOutput = true,
                         RedirectStandardError = true)
@@ -91,7 +91,6 @@ module Az =
     let searchUsers filter = az ("ad user list --filter " + filter)
     /// Searches for groups in AD using the supplied filter.
     let searchGroups filter = az ("ad group list --filter " + filter)
-
 
     type DeploymentCommand =
     | Create
