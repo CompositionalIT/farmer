@@ -248,4 +248,15 @@ let tests = testList "Web App Tests" [
         let wa : Site = webApp { name ""; app_insights_off } |> getResourceAtIndex 0
         Expect.isEmpty wa.SiteConfig.AppSettings "Should be no settings"
     }
+    
+    test "Miscellaneous properties work correctly" {
+        let w : Site = webApp { name "w" } |> getResourceAtIndex 0
+        Expect.equal w.SiteConfig.Use32BitWorkerProcess (Nullable()) "Default worker process" 
+
+        let w : Site = webApp { worker_process Bits32 } |> getResourceAtIndex 0
+        Expect.equal w.SiteConfig.Use32BitWorkerProcess (Nullable true) "32 Bit worker process" 
+
+        let w : Site = webApp { worker_process Bits64 } |> getResourceAtIndex 0
+        Expect.equal w.SiteConfig.Use32BitWorkerProcess (Nullable false) "64 Bit worker process" 
+    }
 ]
