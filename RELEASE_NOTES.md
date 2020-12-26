@@ -7,6 +7,8 @@ Release Notes
 * Web App: Automatically add Client Id setting for user assigned identities.
 * SQL Azure: Validation and fail fast on account names instead of silently fixing them.
 
+* Framework: Extension methods for Taggable and Dependable to simplify boilerplate keywords. 
+
 ## 1.3.2
 * Storage: Revert User Assigned Identity scope to ResourceGroup
 * User Assigned Identity: Allow explicitly setting dependencies
