@@ -7,6 +7,7 @@ Release Notes
 * Web App: Automatically add Client Id setting for user assigned identities.
 * Web App: Support for 64 bits.  
 * SQL Azure: Validation and fail fast on account names instead of silently fixing them.
+* Azure CLI: Ensure JSON output.
 
 ## 1.3.2
 * Storage: Revert User Assigned Identity scope to ResourceGroup
