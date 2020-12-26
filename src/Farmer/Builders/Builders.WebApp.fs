@@ -105,6 +105,8 @@ type WebAppConfig =
 
       AutomaticLoggingExtension : bool
       SiteExtensions : ExtensionName Set
+      
+      WorkerProcess : Bitness option
     }
     /// Gets the ARM expression path to the publishing password of this web app.
     member this.PublishingPassword = publishingPassword (this.Name)
@@ -181,6 +183,7 @@ type WebAppConfig =
               Cors = this.Cors
               Tags = this.Tags
               ConnectionStrings = this.ConnectionStrings
+              WorkerProcess = this.WorkerProcess
               AppSettings =
                 let literalSettings = [
                     if this.RunFromPackage then AppSettings.RunFromPackage
@@ -398,7 +401,8 @@ type WebAppBuilder() =
           DockerAcrCredentials = None
           SecretStore = AppService
           AutomaticLoggingExtension = true
-          SiteExtensions = Set.empty }
+          SiteExtensions = Set.empty
+          WorkerProcess = None }
     member __.Run(state:WebAppConfig) =
         let operatingSystem =
             match state.DockerImage with
@@ -607,14 +611,13 @@ type WebAppBuilder() =
         let state = this.SystemIdentity (state)
         { state with SecretStore = KeyVault (External(Unmanaged name)) }
     [<CustomOperation "add_extension">]
-    member _.AddExtension (state:WebAppConfig, extension) =
-        { state with SiteExtensions = state.SiteExtensions.Add extension }
-    member this.AddExtension(state, name) =
-        this.AddExtension (state, ExtensionName name)
+    member _.AddExtension (state:WebAppConfig, extension) = { state with SiteExtensions = state.SiteExtensions.Add extension }
+    member this.AddExtension (state:WebAppConfig, name) = this.AddExtension (state, ExtensionName name)
     /// Automatically add the ASP.NET Core logging extension.
     [<CustomOperation "automatic_logging_extension">]
-    member _.DefaultLogging(state, setting) =
-        { state with AutomaticLoggingExtension = setting }
+    member _.DefaultLogging (state:WebAppConfig, setting) = { state with AutomaticLoggingExtension = setting }
+    [<CustomOperation "worker_process">]
+    member _.WorkerProcess (state:WebAppConfig, bitness) = { state with WorkerProcess = Some bitness }
 
 let webApp = WebAppBuilder()
 

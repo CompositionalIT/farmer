@@ -5,6 +5,7 @@ Release Notes
 * Web App: Automatically add Logging extension for ASP.NET Core apps.
 * Web App: Added Instrumentation Key Setting for Linux WebApp.
 * Web App: Automatically add Client Id setting for user assigned identities.
+* Web App: Support for 64 bits.  
 * SQL Azure: Validation and fail fast on account names instead of silently fixing them.
 
 ## 1.3.2
