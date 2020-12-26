@@ -83,7 +83,7 @@ module Az =
     let loginWithCredentials appId secret tenantId = az (sprintf "login --service-principal --username %s --password %s --tenant %s" appId secret tenantId)
     let version() = az "--version"
     /// Lists all subscriptions
-    let listSubscriptions() = az "account list"
+    let listSubscriptions() = az "account list --all"
     let setSubscription subscriptionId = az (sprintf "account set --subscription %s" subscriptionId)
     /// Creates a resource group.
     let createResourceGroup location resourceGroup = az (sprintf "group create -l %s -n %s" location resourceGroup) |> Result.ignore
