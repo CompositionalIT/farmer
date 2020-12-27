@@ -20,6 +20,7 @@ The Functions builder is used to create Azure Functions accounts. It abstracts t
 | name | Sets the name of the functions instance. |
 | service_plan_name | Sets the name of the service plan hosting the function instance. |
 | link_to_service_plan | Instructs Farmer to link this webapp to an existing service plan rather than creating a new one. |
+| link_to_unmanaged_service_plan | Instructs Farmer to link this webapp to an existing service plan that is externally managed, rather than creating a new one. |
 | link_to_storage_account | Do not create an automatic storage account; instead, link to a storage account that is created outside of this Functions instance but within this Farmer template. |
 | link_to_unmanaged_storage_account | Do not create an automatic storage account; instead, link to an existing storage account that was created external to Farmer. |
 | https_only | Disables http for this functions app so that only HTTPS is used. |

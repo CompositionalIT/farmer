@@ -15,9 +15,10 @@ let dummyClient = new WebSiteManagementClient (Uri "http://management.azure.com"
 let getResourceAtIndex o = o |> getResourceAtIndex dummyClient.SerializationSettings
 
 let tests = testList "Functions tests" [
+    let getResources (f:FunctionsConfig) = (f :> IBuilder).BuildResources Location.WestEurope
     test "Renames storage account correctly" {
         let f = functions { name "test"; storage_account_name "foo" }
-        let resources = (f :> IBuilder).BuildResources Location.WestEurope
+        let resources = f |> getResources
         let site = resources.[0] :?> Web.Site
         let storage = resources.[2] :?> Storage.StorageAccount
 
@@ -35,8 +36,7 @@ let tests = testList "Functions tests" [
     test "Works with unmanaged storage account" {
         let externalStorageAccount = ResourceId.create(storageAccounts, ResourceName "foo", "group")
         let functionsBuilder = functions { name "test"; link_to_unmanaged_storage_account externalStorageAccount }
-        let f = functionsBuilder :> IBuilder
-        let resources = f.BuildResources Location.WestEurope
+        let resources = functionsBuilder |> getResources
         let site = resources |> List.head :?> Web.Site
 
         Expect.isFalse (resources |> List.exists (fun r -> r.ResourceId.Type = storageAccounts)) "Storage Account should not exist"
@@ -57,5 +57,11 @@ let tests = testList "Functions tests" [
         Expect.equal f.Identity.Type (Nullable ManagedServiceIdentityType.SystemAssignedUserAssigned) "Should have system identity"
         Expect.sequenceEqual (f.Identity.UserAssignedIdentities |> Seq.map(fun r -> r.Key)) [ "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test2')]"; "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test')]" ] "Should have two user assigned identities"
 
+    }
+
+    test "Unmanaged server farm is fully qualified in ARM" {
+        let farm = ResourceId.create(serverFarms, ResourceName "my-asp-name", "my-asp-resource-group")
+        let f : Site = functions { name "test"; link_to_unmanaged_service_plan farm } |> getResourceAtIndex 0
+        Expect.equal f.ServerFarmId "[resourceId('my-asp-resource-group', 'Microsoft.Web/serverfarms', 'my-asp-name')]" ""
     }
 ]

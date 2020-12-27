@@ -188,6 +188,10 @@ type FunctionsBuilder() =
     member _.LinkToServicePlan(state:FunctionsConfig, name) = { state with ServicePlan = managed serverFarms name }
     member this.LinkToServicePlan(state:FunctionsConfig, name:string) = this.LinkToServicePlan (state, ResourceName name)
     member this.LinkToServicePlan(state:FunctionsConfig, config:ServicePlanConfig) = this.LinkToServicePlan (state, config.Name)
+    /// Instead of creating a new service plan instance, configure this Functions instance to point to another unmanaged service plan instance.
+    /// A dependency will automatically be set for this instance.
+    [<CustomOperation("link_to_unmanaged_service_plan")>]
+    member __.LinkToUnmanagedServicePlan (state:FunctionsConfig, servicePlanId) = {state with ServicePlan = External (Unmanaged servicePlanId)}
     /// Do not create an automatic storage account; instead, link to a storage account that is created outside of this Functions instance.
     [<CustomOperation "link_to_storage_account">]
     member _.LinkToStorageAccount(state:FunctionsConfig, name) = { state with StorageAccount = managed storageAccounts name }
