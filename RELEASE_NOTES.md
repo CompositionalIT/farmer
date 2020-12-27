@@ -16,6 +16,7 @@ Release Notes
 
 * Functions: Support for external unmanaged storage accounts.
 * Functions: Support for user-assigned managed identity.
+* Functions: Support for linking external unmanaged service plans
 
 * Key Vault: Support for setting tags on key vault secrets.
 
