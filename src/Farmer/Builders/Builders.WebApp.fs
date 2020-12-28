@@ -550,7 +550,7 @@ type EndpointBuilder with
     member this.Origin(state:EndpointConfig, webApp:WebAppConfig) =
         let state = this.Origin(state, webApp.Endpoint)
         this.DependsOn(state, webApp.ResourceId)
-
+        
 type IServicePlanApp<'T> =
     abstract member Get : 'T -> CommonWebConfig
     abstract member Wrap : 'T -> CommonWebConfig -> 'T
