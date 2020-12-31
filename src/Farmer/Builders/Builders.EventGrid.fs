@@ -91,7 +91,7 @@ type EventGridConfig<'T> =
       Tags: Map<string,string>
     }
     interface IBuilder with
-        member this.DependencyName = this.TopicName
+        member this.ResourceId = systemTopics.resourceId this.TopicName
         member this.BuildResources location = [
             { Name = this.TopicName
               Location = location
@@ -124,7 +124,7 @@ type EventGridBuilder() =
         }
     member _.Yield _ =
         { TopicName = ResourceName.Empty
-          Source = ResourceName.Empty, TopicType(CoreTypes.ResourceType("", ""), "")
+          Source = ResourceName.Empty, TopicType(ResourceType("", ""), "")
           Subscriptions = []
           Tags = Map.empty  }
     [<CustomOperation "topic_name">]

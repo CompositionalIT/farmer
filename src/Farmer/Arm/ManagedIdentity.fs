@@ -1,8 +1,8 @@
+[<AutoOpen>]
 module Farmer.Arm.ManagedIdentity
 
 open Farmer
 open Farmer.Identity
-open Farmer.CoreTypes
 
 let userAssignedIdentities = ResourceType ("Microsoft.ManagedIdentity/userAssignedIdentities", "2018-11-30")
 
@@ -12,7 +12,7 @@ type UserAssignedIdentity =
       Tags: Map<string,string>  }
 
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = userAssignedIdentities.resourceId this.Name
         member this.JsonModel = userAssignedIdentities.Create(this.Name, this.Location, [], this.Tags) :> _
 
 /// Builds the JSON ARM value for a resource's identity.

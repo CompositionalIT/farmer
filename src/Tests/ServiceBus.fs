@@ -230,7 +230,6 @@ let tests = testList "Service Bus Tests" [
             Expect.equal genSubscription.Rules.[2] (Rule.CreateCorrelationFilter("FailedStatus", ["Status", "Fail"])) "Rule 2 is incorrect"
             Expect.equal genSubscription.Rules.[3] (Rule.CreateSqlFilter("OtherSqlThing", "Status = Failed")) "Rule 3 is incorrect"
         }
-
         test "Same subscription in different topic is ok" {
             let myServiceBus =
                 let makeTopic topicName = topic {
@@ -250,6 +249,7 @@ let tests = testList "Service Bus Tests" [
                 |> findAzureResources<SBSubscription> dummyClient.SerializationSettings
                 |> List.filter(fun s -> s.Name.Contains "debug")
 
+            Expect.hasLength subscriptions 2 "Subscription length"
             Expect.hasLength subscriptions 2 "Subscription length"
         }
     ]

@@ -96,7 +96,7 @@ type NsgConfig =
       SecurityRules : SecurityRuleConfig list
       Tags: Map<string,string>  }
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.ResourceId = networkSecurityGroups.resourceId this.Name
         member this.BuildResources location = [
             let securityGroup =
                 { Name = this.Name
@@ -105,6 +105,7 @@ type NsgConfig =
 
             // NSG
             securityGroup
+
             // Policy Rules
             for priority, rule in List.indexed this.SecurityRules do
                 buildNsgRule securityGroup rule ((priority + 1) * 100)

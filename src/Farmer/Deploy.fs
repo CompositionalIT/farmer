@@ -1,6 +1,5 @@
 ﻿module Farmer.Deploy
 
-open Farmer.CoreTypes
 open Newtonsoft.Json
 open System
 open System.Diagnostics
@@ -46,7 +45,7 @@ module Az =
                 let azProcess =
                     ProcessStartInfo(
                         FileName = azCliPath.Value,
-                        Arguments = arguments,
+                        Arguments = sprintf "%s --output json" arguments,
                         UseShellExecute = false,
                         RedirectStandardOutput = true,
                         RedirectStandardError = true)
@@ -84,7 +83,7 @@ module Az =
     let loginWithCredentials appId secret tenantId = az (sprintf "login --service-principal --username %s --password %s --tenant %s" appId secret tenantId)
     let version() = az "--version"
     /// Lists all subscriptions
-    let listSubscriptions() = az "account list"
+    let listSubscriptions() = az "account list --all"
     let setSubscription subscriptionId = az (sprintf "account set --subscription %s" subscriptionId)
     /// Creates a resource group.
     let createResourceGroup location resourceGroup = az (sprintf "group create -l %s -n %s" location resourceGroup) |> Result.ignore
@@ -92,7 +91,6 @@ module Az =
     let searchUsers filter = az ("ad user list --filter " + filter)
     /// Searches for groups in AD using the supplied filter.
     let searchGroups filter = az ("ad group list --filter " + filter)
-
 
     type DeploymentCommand =
     | Create
@@ -119,7 +117,7 @@ module Az =
     let whatIf resourceGroup deploymentName templateFilename parameters = deployOrValidate WhatIf resourceGroup deploymentName templateFilename parameters
     /// Generic function for ZipDeploy using custom command (based on application type)
     let private zipDeploy command appName getZipPath resourceGroup =
-        let packageFilename = getZipPath deployFolder
+        let packageFilename = getZipPath deployFolder |> sprintf "\"%s\""
         az (sprintf """%s deployment source config-zip --resource-group "%s" --name "%s" --src %s""" command resourceGroup appName packageFilename)
     /// Deploys a zip file to a web app using the Zip Deploy mechanism.
     let zipDeployWebApp = zipDeploy "webapp"
@@ -129,9 +127,7 @@ module Az =
         az (sprintf "group delete --name %s --yes --no-wait" resourceGroup)
     let enableStaticWebsite name indexDoc errorDoc =
         [ sprintf "storage blob service-properties update --account-name %s --static-website --index-document %s" name indexDoc
-          match errorDoc with
-          | Some errorDoc -> sprintf "--404-document %s" errorDoc
-          | None -> () ]
+          yield! errorDoc |> Option.mapList (sprintf "--404-document %s") ]
         |> String.concat " "
         |> az
     let batchUploadStaticWebsite name path =

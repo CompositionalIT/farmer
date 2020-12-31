@@ -24,7 +24,7 @@ The secret builder allows you to store secrets into key vault. Values for a secr
 | disable_secret | Disables the secret. |
 | activation_date | Sets the activation date of the secret. |
 | expiration_date | Sets the expiration date of the secret. |
-| depends_on | Provides dependencies of the key vault. |
+| depends_on | [Sets the dependencies of the key vault.](../../dependencies/) |
 | add_tag | Adds a tag to the secret. |
 | add_tags | Adds multiple tags to the secret. |
 

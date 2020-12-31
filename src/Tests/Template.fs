@@ -3,8 +3,9 @@ module Template
 open Expecto
 open Farmer
 open Farmer.Builders
-open Farmer.CoreTypes
+open Farmer.Arm
 open Newtonsoft.Json
+open System.IO
 
 [<AutoOpen>]
 module TestHelpers =
@@ -129,44 +130,29 @@ let tests = testList "Template" [
         Expect.hasLength template.Template.Resources 2 "Should be two resources added"
     }
 
-    test "Can add dependency through Resource Name" {
-        let a = storageAccount { name "aaa" }
-        let b = webApp { name "b"; depends_on a.Name.ResourceName }
-
-        Expect.equal b.Dependencies [ ResourceId.create (ResourceName "aaa") ] "Dependency should have been set"
-    }
-
     test "Can add dependency through IBuilder" {
         let a = storageAccount { name "aaa" }
         let b = webApp { name "b"; depends_on a }
 
-        Expect.equal b.Dependencies [ ResourceId.create (ResourceName "aaa") ] "Dependency should have been set"
-    }
-
-    test "Can add dependencies through Resource Name" {
-        let a = storageAccount { name "aaa" }
-        let b = storageAccount { name "bbb" }
-        let b = webApp { name "b"; depends_on [ a.Name.ResourceName; b.Name.ResourceName ] }
-
-        Expect.equal b.Dependencies [ ResourceId.create (ResourceName "aaa"); ResourceId.create (ResourceName "bbb") ] "Dependencies should have been set"
+        Expect.equal b.Dependencies (Set [ storageAccounts.resourceId "aaa" ]) "Dependency should have been set"
     }
 
     test "Can add dependencies through IBuilder" {
-        let a = storageAccount { name "aaa" }
-        let b = storageAccount { name "bbb" }
-        let b = webApp { name "b"; depends_on [ a :> IBuilder; b :> IBuilder ] }
+        let a = storageAccount { name "aaa" } :> IBuilder
+        let b = storageAccount { name "bbb" } :> IBuilder
+        let b = webApp { name "b"; depends_on [ a; b ] }
 
-        Expect.equal b.Dependencies [ ResourceId.create (ResourceName "aaa"); ResourceId.create (ResourceName "bbb") ] "Dependencies should have been set"
+        Expect.equal b.Dependencies (Set [ storageAccounts.resourceId "aaa"; storageAccounts.resourceId "bbb" ]) "Dependencies should have been set"
     }
 
     test "Generates untyped Resource Id" {
-        let rid = ResourceId.create (ResourceName "test")
+        let rid = ResourceId.create (ResourceType.ResourceType("", ""), ResourceName "test")
         let id = rid.Eval()
         Expect.equal id "test" "resourceId template function should match"
     }
 
     test "Generates typed Resource Id" {
-        let rid = ResourceId.create (Arm.Network.connections, ResourceName "test")
+        let rid = connections.resourceId "test"
         let id = rid.Eval()
         Expect.equal id "[resourceId('Microsoft.Network/connections', 'test')]" "resourceId template function should match"
     }
@@ -184,11 +170,15 @@ let tests = testList "Template" [
     }
 
     test "Fails if ARM expression is already quoted" {
-        Expect.throws(fun () -> ArmExpression.create "[test]" |> ignore ) "Should fail on quoted ARM expression"
+        Expect.throws(fun () -> ArmExpression.create "[test]" |> ignore ) ""
+    }
+
+    test "Correctly strips a literal expression" {
+        Expect.equal ((ArmExpression.literal "test").Eval()) "test" ""
     }
 
     test "Does not fail if ARM expression contains an inner quote" {
-        Expect.equal "[foo[test]]" ((ArmExpression.create "foo[test]").Eval()) "Failed on quoted ARM expression"
+        Expect.equal "[foo[test]]" ((ArmExpression.create "foo[test]").Eval()) ""
     }
     test "Does not create empty nodes for core resource fields when nothing is supplied" {
         let createdResource = ResourceType("Test", "2017-01-01").Create(ResourceName "Name")
@@ -197,4 +187,44 @@ let tests = testList "Template" [
             {| name = "Name"; ``type`` = "Test"; apiVersion = "2017-01-01"; dependsOn = null; location = null; tags = null |}
             "Default values don't match"
     }
+
+    testList "ARM Writer Regression Tests" [
+        test "Generates lots of resources" {
+            let number = string 1979
+
+            let sql = sqlServer { name ("farmersql" + number); admin_username "farmersqladmin"; add_databases [ sqlDb { name "farmertestdb"; use_encryption } ]; enable_azure_firewall }
+            let storage = storageAccount { name ("farmerstorage" + number) }
+            let web = webApp { name ("farmerwebapp" + number); add_extension WebApp.Extensions.Logging }
+            let fns = functions { name ("farmerfuncs" + number) }
+            let svcBus = serviceBus { name ("farmerbus" + number); sku ServiceBus.Sku.Standard; add_queues [ queue { name "queue1" } ]; add_topics [ topic { name "topic1"; add_subscriptions [ subscription { name "sub1" } ] } ] }
+            let cdn = cdn { name ("farmercdn" + number); add_endpoints [ endpoint { name ("farmercdnendpoint" + number); origin storage.WebsitePrimaryEndpointHost } ] }
+            let containerGroup = containerGroup { name ("farmeraci" + number); add_instances [ containerInstance { name "webserver"; image "nginx:latest"; add_ports ContainerGroup.PublicPort [ 80us ]; add_volume_mount "source-code" "/src/farmer" } ]; add_volumes [ volume_mount.git_repo "source-code" (System.Uri "https://github.com/CompositionalIT/farmer") ] }
+            let cosmos = cosmosDb {
+                name "testdb"
+                account_name "testaccount"
+                throughput 400<CosmosDb.RU>
+                failover_policy CosmosDb.NoFailover
+                consistency_policy (CosmosDb.BoundedStaleness(500, 1000))
+                add_containers [
+                    cosmosContainer {
+                        name "myContainer"
+                        partition_key [ "/id" ] CosmosDb.Hash
+                        add_index "/path" [ CosmosDb.Number, CosmosDb.Hash ]
+                        exclude_path "/excluded/*"
+                    }
+                ]
+            }
+
+            let deployment = arm {
+                location Location.NorthEurope
+                add_resources [ sql; storage; web; fns; svcBus; cdn; containerGroup; cosmos ]
+            }
+
+            let path = __SOURCE_DIRECTORY__ + "/test-data/farmer-integration-test-1.json"
+            let expected = File.ReadAllText path
+            let actual = deployment.Template |> Writer.toJson
+
+            Expect.equal expected actual (sprintf "ARM template generation has changed! Either fix the writer, or update the contents of the generated file (%s)" path)
+        }
+    ]
 ]

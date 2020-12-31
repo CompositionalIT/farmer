@@ -8,7 +8,6 @@ open Microsoft.Azure.Management.Storage
 open Microsoft.Azure.Management.Storage.Models
 open Microsoft.Rest
 open System
-open Farmer.CoreTypes
 
 let tests = testList "Cosmos" [
     test "Cosmos container should ignore duplicate unique keys" {
@@ -44,10 +43,33 @@ let tests = testList "Cosmos" [
         |> ignore
     }
     test "Creates connection string and keys with resource groups" {
-        let conn = CosmosDb.getConnectionString(ResourceId.create("db", "group"), PrimaryConnectionString).Eval()
-        let key = CosmosDb.getKey(ResourceId.create("db", "group"), PrimaryKey, ReadWrite).Eval()
+        let conn = CosmosDb.getConnectionString(ResourceId.create(Arm.DocumentDb.databaseAccounts, ResourceName "db", "group"), PrimaryConnectionString).Eval()
+        let key = CosmosDb.getKey(ResourceId.create(Arm.DocumentDb.databaseAccounts, ResourceName "db", "group"), PrimaryKey, ReadWrite).Eval()
 
         Expect.equal key "[listKeys(resourceId('group', 'Microsoft.DocumentDb/databaseAccounts', 'db'), providers('Microsoft.DocumentDb','databaseAccounts').apiVersions[0]).primaryMasterKey]" "Primary Key is incorrect"
         Expect.equal conn "[listConnectionStrings(resourceId('group', 'Microsoft.DocumentDb/databaseAccounts', 'db'), providers('Microsoft.DocumentDb','databaseAccounts').apiVersions[0]).connectionStrings[0].connectionString]" "Primary Connection String is incorrect"
     }
+    testList "Account Name Validation tests" [
+        let invalidAccountNameCases = [
+            "Empty Account", "", "cannot be empty", "Name too short"
+            "Min Length", "zz", "min length is 3, but here is 2 ('zz')", "Name too short"
+            "Max Length", "abcdefghij1234567890abcde12345678901234567890", "max length is 44, but here is 45 ('abcdefghij1234567890abcde12345678901234567890')", "Name too long"
+            "Lowercase Only", "zzzT", "can only contain lowercase letters ('zzzT')", "Upper case character allowed"
+            "Alphanumeric or dash", "zzz!", "can only contain alphanumeric characters or the dash ('zzz!')", "Non alpha numeric (except dash) character allowed"
+        ]
+
+        for testName, accountName, error, why in invalidAccountNameCases ->
+            test testName {
+                Expect.equal (CosmosDbValidation.CosmosDbName.Create accountName) (Error ("CosmosDb account names " + error)) why
+            }
+
+        let validAccountNameCases = [
+            "Valid Name 1", "abcdefghij1234567890abcd", "Should have created a valid CosmosDb account name"
+            "Valid Name 2", "a-b-c-d-e-12-3-4", "Should have created a valid CosmosDb account name"
+        ]
+        for testName, accountName, why in validAccountNameCases ->
+            test testName {
+                Expect.equal (StorageResourceName.Create(accountName).OkValue.ResourceName) (ResourceName accountName) why
+            }
+    ]
 ]

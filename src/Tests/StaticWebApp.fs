@@ -6,7 +6,6 @@ open Farmer.Builders
 open Farmer.WebApp
 open Farmer.Arm
 open System
-open Farmer.CoreTypes
 
 let tests = testList "Static Web App Tests" [
     test "Creates a basic static web app" {
