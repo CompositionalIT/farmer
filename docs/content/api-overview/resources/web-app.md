@@ -38,7 +38,7 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Web App | docker_image | Sets the docker image to be pulled down from Docker Hub, and the command to execute as a second argument. Automatically sets the OS to Linux. |
 | Web App | docker_ci | Turns on continuous integration of the web app from the Docker source repository using a webhook.
 | Web App | docker_use_azure_registry | Uses the supplied Azure Container Registry name as the source of the Docker image, instead of Docker Hub. You do not need to specify the full url, but just the name of the registry itself.
-| Web App | add_identity | Adds a managed identity to the the Web App. |
+| Web App | add_identity | Adds a managed identity to the the Web App. Farmer will automatically set the AZURE_CLIENT_ID application setting to the Client Id of the supplied identity. |
 | Web App | system_identity | Activates the system identity of the Web App. |
 | Web App | enable_cors | Enables CORS support for the app. Either specify `WebApp.AllOrigins` or a list of valid URIs as strings. |
 | Web App | enable_cors_credentials | Allows CORS requests with credentials. |
@@ -47,8 +47,9 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Web App | enable_source_control_ci | Enables continuous integration from source control on push |
 | Web App | add_extension | Adds the named extension to the Web App |
 | Web App | automatic_logging_extension | Enables or disables automatically adding the ASP .NET logging extension for netcore apps (defaults to on). |
+| Web App | worker_process | Specifies whether to set the web app to 32 or 64 Bitness. |
+| Web App | always_on | Sets the "Always On" flag. |
 | Service Plan | service_plan_name | Sets the name of the service plan. If not set, uses the name of the web app postfixed with "-plan". |
-| Service Plan | always_on | Sets "Always On" flag. |
 | Service Plan | runtime_stack | Sets the runtime stack. |
 | Service Plan | operating_system | Sets the operating system. If Linux, App Insights configuration settings will be omitted as they are not supported by Azure App Service. |
 | Service Plan | sku | Sets the sku of the service plan. |

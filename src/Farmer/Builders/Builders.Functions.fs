@@ -14,19 +14,20 @@ type FunctionsRuntime = DotNet | Node | Java | Python
 type FunctionsExtensionVersion = V1 | V2 | V3
 type FunctionsConfig =
     { Name : ResourceName
-      ServicePlan : ResourceRef<FunctionsConfig>
+      ServicePlan : ResourceRef<ResourceName>
       HTTPSOnly : bool
-      AppInsights : ResourceRef<FunctionsConfig> option
+      AppInsights : ResourceRef<ResourceName> option
       OperatingSystem : OS
       Settings : Map<string, Setting>
       Tags : Map<string, string>
-      Dependencies : ResourceId list
+      Dependencies : ResourceId Set
       Cors : Cors option
       StorageAccount : ResourceRef<FunctionsConfig>
       Runtime : FunctionsRuntime
       ExtensionVersion : FunctionsExtensionVersion
       Identity : ManagedIdentity
-      ZipDeployPath : string option }
+      ZipDeployPath : string option
+      AlwaysOn : bool }
 
     /// Gets the system-created managed principal for the functions instance. It must have been enabled using enable_managed_identity.
     member this.SystemIdentity = SystemIdentity (sites.resourceId this.Name)
@@ -45,11 +46,11 @@ type FunctionsConfig =
         sprintf "listkeys(concat(resourceId('Microsoft.Web/sites', '%s'), '/host/default/'),'2016-08-01').masterKey" this.Name.Value
         |> ArmExpression.create
     /// Gets this web app's Server Plan's full resource ID.
-    member this.ServicePlanId = this.ServicePlan.resourceId this
+    member this.ServicePlanId = this.ServicePlan.resourceId this.Name
     /// Gets the Service Plan name for this web app.
     member this.ServicePlanName = this.ServicePlanId.Name
     /// Gets the App Insights name for this functions app, if it exists.
-    member this.AppInsightsName : ResourceName option = this.AppInsights |> Option.map (fun ai -> ai.resourceId(this).Name)
+    member this.AppInsightsName : ResourceName option = this.AppInsights |> Option.map (fun ai -> ai.resourceId(this.Name).Name)
     /// Gets the Storage Account name for this functions app.
     member this.StorageAccountName : Storage.StorageAccountName = this.StorageAccount.resourceId(this).Name |> Storage.StorageAccountName.Create |> Result.get
     interface IBuilder with
@@ -87,7 +88,7 @@ type FunctionsConfig =
                 yield! this.Dependencies
 
                 match this.AppInsights with
-                | Some (DependableResource this resourceId) -> resourceId
+                | Some (DependableResource this.Name resourceId) -> resourceId
                 | _ -> ()
 
                 for setting in this.Settings do
@@ -96,15 +97,15 @@ type FunctionsConfig =
                     | ParameterSetting _ | LiteralSetting _ -> ()
 
                 match this.ServicePlan with
-                | DependableResource this resourceId -> resourceId
+                | DependableResource this.Name resourceId -> resourceId
                 | _ -> ()
 
                 match this.StorageAccount with
                 | DependableResource this resourceId -> resourceId
                 | _ -> ()
               ]
-              AlwaysOn = false
               HTTPSOnly = this.HTTPSOnly
+              AlwaysOn = this.AlwaysOn
               HTTP20Enabled = None
               ClientAffinityEnabled = None
               WebSocketsEnabled = None
@@ -118,9 +119,9 @@ type FunctionsConfig =
               Metadata = []
               ZipDeployPath = this.ZipDeployPath |> Option.map (fun x -> x, ZipDeploy.ZipDeployTarget.FunctionApp)
               AppCommandLine = None
-            }
+              WorkerProcess = None }
             match this.ServicePlan with
-            | DeployableResource this resourceId ->
+            | DeployableResource this.Name resourceId ->
                 { Name = resourceId.Name
                   Location = location
                   Sku = Sku.Y1
@@ -144,7 +145,7 @@ type FunctionsConfig =
                 ()
 
             match this.AppInsights with
-            | Some (DeployableResource this resourceId) ->
+            | Some (DeployableResource this.Name resourceId) ->
                 { Name = resourceId.Name
                   Location = location
                   DisableIpMasking = false
@@ -162,8 +163,8 @@ type FunctionsConfig =
 type FunctionsBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
-          ServicePlan = derived (fun config -> serverFarms.resourceId (config.Name-"farm"))
-          AppInsights = Some (derived (fun config -> components.resourceId (config.Name-"ai")))
+          ServicePlan = derived (fun name -> serverFarms.resourceId (name-"farm"))
+          AppInsights = Some (derived (fun name -> components.resourceId (name-"ai")))
           StorageAccount = derived (fun config ->
             let storage = config.Name.Map (sprintf "%sstorage") |> sanitiseStorage |> ResourceName
             storageAccounts.resourceId storage)
@@ -171,23 +172,13 @@ type FunctionsBuilder() =
           ExtensionVersion = V3
           Cors = None
           HTTPSOnly = false
+          AlwaysOn = false
           OperatingSystem = Windows
           Settings = Map.empty
-          Dependencies = []
+          Dependencies = Set.empty
           Identity = ManagedIdentity.Empty
           Tags = Map.empty
           ZipDeployPath = None }
-    /// Sets the name of the functions instance.
-    [<CustomOperation "name">]
-    member _.Name(state:FunctionsConfig, name) = { state with Name = ResourceName name }
-    /// Sets the name of the service plan hosting the function instance.
-    [<CustomOperation "service_plan_name">]
-    member _.ServicePlanName(state:FunctionsConfig, name) = { state with ServicePlan = named serverFarms (ResourceName name) }
-    /// Do not create an automatic service plan; instead, link to a service plan that is created outside of this Functions instance.
-    [<CustomOperation "link_to_service_plan">]
-    member _.LinkToServicePlan(state:FunctionsConfig, name) = { state with ServicePlan = managed serverFarms name }
-    member this.LinkToServicePlan(state:FunctionsConfig, name:string) = this.LinkToServicePlan (state, ResourceName name)
-    member this.LinkToServicePlan(state:FunctionsConfig, config:ServicePlanConfig) = this.LinkToServicePlan (state, config.Name)
     /// Do not create an automatic storage account; instead, link to a storage account that is created outside of this Functions instance.
     [<CustomOperation "link_to_storage_account">]
     member _.LinkToStorageAccount(state:FunctionsConfig, name) = { state with StorageAccount = managed storageAccounts name }
@@ -197,85 +188,38 @@ type FunctionsBuilder() =
     /// Set the name of the storage account instead of using an auto-generated one based on the function instance name.
     [<CustomOperation "storage_account_name">]
     member _.StorageAccountName(state:FunctionsConfig, name) = { state with StorageAccount = named storageAccounts (ResourceName name) }
-    /// Sets the name of the automatically-created app insights instance.
-    [<CustomOperation "app_insights_name">]
-    member _.AppInsightsName(state:FunctionsConfig, name) = { state with AppInsights = Some (named components name) }
-    member this.AppInsightsName(state:FunctionsConfig, name:string) = this.AppInsightsName(state, ResourceName name)
-    /// Removes any automatic app insights creation, configuration and settings for this webapp.
-    [<CustomOperation "app_insights_off">]
-    member _.DeactivateAppInsights(state:FunctionsConfig) = { state with AppInsights = None }
     /// Disables http for this webapp so that only https is used.
     [<CustomOperation "https_only">]
     member _.HttpsOnly(state:FunctionsConfig) = { state with HTTPSOnly = true }
-    /// Instead of creating a new AI instance, configure this webapp to point to another AI instance that you are managing
-    /// yourself.
-    [<CustomOperation "link_to_app_insights">]
-    member _.LinkToAppInsights(state:FunctionsConfig, name) = { state with AppInsights = Some(managed components name) }
-    member _.LinkToAppInsights(state:FunctionsConfig, name) = { state with AppInsights = name |> Option.map (managed components)  }
     /// Sets the runtime of the Functions host.
     [<CustomOperation "use_runtime">]
     member _.Runtime(state:FunctionsConfig, runtime) = { state with Runtime = runtime }
     [<CustomOperation "use_extension_version">]
     member _.ExtensionVersion(state:FunctionsConfig, version) = { state with ExtensionVersion = version }
-    /// Sets the operating system of the Functions host.
-    [<CustomOperation "operating_system">]
-    member _.OperatingSystem(state:FunctionsConfig, os) = { state with OperatingSystem = os }
-    /// Sets an app setting of the web app in the form "key" "value".
-    [<CustomOperation "setting">]
-    member _.AddSetting(state:FunctionsConfig, key, value) = { state with Settings = state.Settings.Add(key, LiteralSetting value) }
-    member _.AddSetting(state:FunctionsConfig, key, value:ArmExpression) = { state with Settings = state.Settings.Add(key, ExpressionSetting value) }
-    member this.AddSetting(state:FunctionsConfig, key, resourceName:ResourceName) = this.AddSetting(state, key, resourceName.Value)
-    /// Sets a list of app setting of the web app in the form "key" "value".
-    [<CustomOperation "settings">]
-    member this.AddSettings(state:FunctionsConfig, settings: (string * string) list) =
-        settings
-        |> List.fold (fun state (key,value: string) -> this.AddSetting(state, key, value)) state
-    member this.AddSettings(state:FunctionsConfig, settings) =
-        settings
-        |> List.fold (fun state (key,value: ArmExpression) -> this.AddSetting(state, key, value)) state
-    /// Sets a dependency for the functions app.
-    /// Creates an app setting of the web app whose value will be supplied as a secret parameter.
-    [<CustomOperation "secret_setting">]
-    member _.AddSecret(state:FunctionsConfig, key) =
-        { state with Settings = state.Settings.Add(key, ParameterSetting (SecureParameter key)) }
 
-    /// Sets a dependency for the web app.
-    [<CustomOperation "depends_on">]
-    member this.DependsOn(state:FunctionsConfig, builder:IBuilder) = this.DependsOn (state, builder.ResourceId)
-    member this.DependsOn(state:FunctionsConfig, builders:IBuilder list) = this.DependsOn (state, builders |> List.map (fun x -> x.ResourceId))
-    member this.DependsOn(state:FunctionsConfig, resource:IArmResource) = this.DependsOn (state, resource.ResourceId)
-    member this.DependsOn(state:FunctionsConfig, resources:IArmResource list) = this.DependsOn (state, resources |> List.map (fun x -> x.ResourceId))
-    member _.DependsOn (state:FunctionsConfig, resourceId:ResourceId) = { state with Dependencies = resourceId :: state.Dependencies }
-    member _.DependsOn (state:FunctionsConfig, resourceIds:ResourceId list) = { state with Dependencies = resourceIds @ state.Dependencies }
-
-    /// sets the list of origins that should be allowed to make cross-origin calls. Use AllOrigins to allow all.
-    [<CustomOperation "enable_cors">]
-    member _.EnableCors (state:FunctionsConfig, origins) = { state with Cors = Some (SpecificOrigins (List.map Uri origins, None)) }
-    member _.EnableCors (state:FunctionsConfig, origins) = { state with Cors = Some origins }
-    /// Allows CORS requests with credentials.
-    [<CustomOperation "enable_cors_credentials">]
-    member _.EnableCorsCredentials (state:FunctionsConfig) =
-        { state with
-            Cors =
-                state.Cors
-                |> Option.map (function
-                | SpecificOrigins (origins, _) -> SpecificOrigins (origins, Some true)
-                | AllOrigins -> failwith "You cannot enable CORS Credentials if you have already set CORS to AllOrigins.")
-        }
-    [<CustomOperation "add_identity">]
-    member _.AddIdentity(state:FunctionsConfig, identity:UserAssignedIdentity) = { state with Identity = state.Identity + identity }
-    member this.AddIdentity(state, identity:UserAssignedIdentityConfig) = this.AddIdentity(state, identity.UserAssignedIdentity)
-    [<CustomOperation "system_identity">]
-    member _.SystemIdentity(state:FunctionsConfig) =
-        { state with Identity = { state.Identity with SystemAssigned = Enabled } }
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:FunctionsConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:FunctionsConfig, key, value) = this.Tags(state, [ (key,value) ])
-    [<CustomOperation "zip_deploy">]
-    /// Specifies a folder path or a zip file containing the function app to install as a post-deployment task.
-    member _.ZipDeploy(state:FunctionsConfig, path) = { state with ZipDeployPath = Some path }
-
+    interface ITaggable<FunctionsConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
+    interface IDependable<FunctionsConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
+    interface IServicePlanApp<FunctionsConfig> with
+        member _.Get state =
+            { Name = state.Name
+              ServicePlan = state.ServicePlan
+              AppInsights = state.AppInsights
+              OperatingSystem = state.OperatingSystem
+              Settings = state.Settings
+              Cors = state.Cors
+              Identity = state.Identity
+              ZipDeployPath = state.ZipDeployPath
+              AlwaysOn = state.AlwaysOn }
+        member _.Wrap state config =
+            { state with
+                AlwaysOn = config.AlwaysOn
+                Name = config.Name
+                ServicePlan = config.ServicePlan
+                AppInsights = config.AppInsights
+                OperatingSystem = config.OperatingSystem
+                Settings = config.Settings
+                Cors = config.Cors
+                Identity = config.Identity
+                ZipDeployPath = config.ZipDeployPath }
+        
 let functions = FunctionsBuilder()

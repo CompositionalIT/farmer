@@ -48,7 +48,7 @@ module Namespaces =
           Location : Location
           MessageRetentionDays : int option
           Partitions : int
-          Dependencies : ResourceId list
+          Dependencies : ResourceId Set
           CaptureDestination : CaptureDestination option
           Tags: Map<string,string>  }
         interface IArmResource with

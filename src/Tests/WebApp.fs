@@ -174,7 +174,7 @@ let tests = testList "Web App Tests" [
     test "Handles identity correctly" {
         let wa : Site = webApp { name "" } |> getResourceAtIndex 0
         Expect.equal wa.Identity.Type (Nullable ManagedServiceIdentityType.None) "Incorrect default managed identity"
-        Expect.isNull wa.Identity.UserAssignedIdentities "Incorrect default managed identity"
+        Expect.isNull wa.Identity.UserAssignedIdentities "Should be no user assigned identities"
 
         let wa : Site = webApp { system_identity } |> getResourceAtIndex 0
         Expect.equal wa.Identity.Type (Nullable ManagedServiceIdentityType.SystemAssigned) "Should have system identity"
@@ -183,6 +183,7 @@ let tests = testList "Web App Tests" [
         let wa : Site = webApp { system_identity; add_identity (createUserAssignedIdentity "test"); add_identity (createUserAssignedIdentity "test2") } |> getResourceAtIndex 0
         Expect.equal wa.Identity.Type (Nullable ManagedServiceIdentityType.SystemAssignedUserAssigned) "Should have system identity"
         Expect.sequenceEqual (wa.Identity.UserAssignedIdentities |> Seq.map(fun r -> r.Key)) [ "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test2')]"; "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test')]" ] "Should have two user assigned identities"
+        Expect.contains (wa.SiteConfig.AppSettings |> Seq.map(fun s -> s.Name, s.Value)) ("AZURE_CLIENT_ID", "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test2')).clientId]") "Missing AZURE_CLIENT_ID"
     }
 
     test "Unmanaged server farm is fully qualified in ARM" {
@@ -246,5 +247,16 @@ let tests = testList "Web App Tests" [
 
         let wa : Site = webApp { name ""; app_insights_off } |> getResourceAtIndex 0
         Expect.isEmpty wa.SiteConfig.AppSettings "Should be no settings"
+    }
+    
+    test "Miscellaneous properties work correctly" {
+        let w : Site = webApp { name "w" } |> getResourceAtIndex 0
+        Expect.equal w.SiteConfig.Use32BitWorkerProcess (Nullable()) "Default worker process" 
+
+        let w : Site = webApp { worker_process Bits32 } |> getResourceAtIndex 0
+        Expect.equal w.SiteConfig.Use32BitWorkerProcess (Nullable true) "32 Bit worker process" 
+
+        let w : Site = webApp { worker_process Bits64 } |> getResourceAtIndex 0
+        Expect.equal w.SiteConfig.Use32BitWorkerProcess (Nullable false) "64 Bit worker process" 
     }
 ]
