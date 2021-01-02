@@ -39,6 +39,7 @@ The Functions builder is used to create Azure Functions accounts. It abstracts t
 | enable_cors_credentials | Allows CORS requests with credentials. |
 | add_identity | Adds a managed identity to the the Function App. |
 | system_identity | Activates the system identity of the Function App. |
+| always_on | Stops the app from sleeping if idle for a few minutes of inactivity |
 
 #### Post-deployment Builder Keywords
 The Functions builder contains special commands that are executed *after* the ARM deployment is completed.

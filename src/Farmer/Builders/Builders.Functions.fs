@@ -26,7 +26,8 @@ type FunctionsConfig =
       Runtime : FunctionsRuntime
       ExtensionVersion : FunctionsExtensionVersion
       Identity : ManagedIdentity
-      ZipDeployPath : string option }
+      ZipDeployPath : string option
+      AlwaysOn : bool }
 
     /// Gets the system-created managed principal for the functions instance. It must have been enabled using enable_managed_identity.
     member this.SystemIdentity = SystemIdentity (sites.resourceId this.Name)
@@ -103,8 +104,8 @@ type FunctionsConfig =
                 | DependableResource this resourceId -> resourceId
                 | _ -> ()
               ]
-              AlwaysOn = false
               HTTPSOnly = this.HTTPSOnly
+              AlwaysOn = this.AlwaysOn
               HTTP20Enabled = None
               ClientAffinityEnabled = None
               WebSocketsEnabled = None
@@ -171,6 +172,7 @@ type FunctionsBuilder() =
           ExtensionVersion = V3
           Cors = None
           HTTPSOnly = false
+          AlwaysOn = false
           OperatingSystem = Windows
           Settings = Map.empty
           Dependencies = Set.empty
@@ -198,7 +200,7 @@ type FunctionsBuilder() =
     interface ITaggable<FunctionsConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     interface IDependable<FunctionsConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
     interface IServicePlanApp<FunctionsConfig> with
-        member this.Get state =
+        member _.Get state =
             { Name = state.Name
               ServicePlan = state.ServicePlan
               AppInsights = state.AppInsights
@@ -206,9 +208,11 @@ type FunctionsBuilder() =
               Settings = state.Settings
               Cors = state.Cors
               Identity = state.Identity
-              ZipDeployPath = state.ZipDeployPath }
-        member this.Wrap state config =
+              ZipDeployPath = state.ZipDeployPath
+              AlwaysOn = state.AlwaysOn }
+        member _.Wrap state config =
             { state with
+                AlwaysOn = config.AlwaysOn
                 Name = config.Name
                 ServicePlan = config.ServicePlan
                 AppInsights = config.AppInsights

@@ -69,6 +69,7 @@ type SecretStore =
     | AppService
     | KeyVault of ResourceRef<WebAppConfig>
 
+/// Common fields between WebApp and Functions
 type CommonWebConfig =
     { Name : ResourceName
       ServicePlan : ResourceRef<ResourceName>
@@ -77,7 +78,8 @@ type CommonWebConfig =
       Settings : Map<string, Setting>
       Cors : Cors option
       Identity : Identity.ManagedIdentity
-      ZipDeployPath : string option }
+      ZipDeployPath : string option
+      AlwaysOn : bool }
 
 type WebAppConfig =
     { Name : ResourceName
@@ -449,9 +451,6 @@ type WebAppBuilder() =
         connectionStrings
         |> List.fold (fun (state:WebAppConfig) (key:string) -> this.AddConnectionString(state, key)) state
 
-    /// Sets "Always On" flag
-    [<CustomOperation "always_on">]
-    member __.AlwaysOn(state:WebAppConfig) = { state with AlwaysOn = true }
     /// Disables http for this webapp so that only https is used.
     [<CustomOperation "https_only">]
     member __.HttpsOnly(state:WebAppConfig) = { state with HTTPSOnly = true }
@@ -533,7 +532,8 @@ type WebAppBuilder() =
               Settings = state.Settings
               Cors = state.Cors
               Identity = state.Identity
-              ZipDeployPath = state.ZipDeployPath }
+              ZipDeployPath = state.ZipDeployPath
+              AlwaysOn = state.AlwaysOn }
         member _.Wrap state config =
             { state with
                 Name = config.Name
@@ -543,7 +543,8 @@ type WebAppBuilder() =
                 Settings = config.Settings
                 Cors = config.Cors
                 Identity = config.Identity
-                ZipDeployPath = config.ZipDeployPath }
+                ZipDeployPath = config.ZipDeployPath
+                AlwaysOn = state.AlwaysOn }
 
 let webApp = WebAppBuilder()
 
@@ -668,3 +669,6 @@ module Extensions =
             let current = this.Get state
             { current with Settings = current.Settings.Add(key, ParameterSetting (SecureParameter key)) }
             |> this.Wrap state
+        /// Sets "Always On" flag
+        [<CustomOperation "always_on">]
+        member this.AlwaysOn(state:'T) = { this.Get state with AlwaysOn = true } |> this.Wrap state
