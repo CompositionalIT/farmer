@@ -438,6 +438,7 @@ module WebApp =
         static member Y1 = Dynamic
     type ConnectionStringKind = MySql | SQLServer | SQLAzure | Custom | NotificationHub | ServiceBus | EventHub | ApiHub | DocDb | RedisCache | PostgreSQL
     type ExtensionName = ExtensionName of string
+    type Bitness = Bits32 | Bits64
     module Extensions =
         /// The Microsoft.AspNetCore.AzureAppServices logging extension.
         let Logging = ExtensionName "Microsoft.AspNetCore.AzureAppServices.SiteExtension"

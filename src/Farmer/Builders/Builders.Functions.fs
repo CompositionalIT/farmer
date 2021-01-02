@@ -118,7 +118,7 @@ type FunctionsConfig =
               Metadata = []
               ZipDeployPath = this.ZipDeployPath |> Option.map (fun x -> x, ZipDeploy.ZipDeployTarget.FunctionApp)
               AppCommandLine = None
-            }
+              WorkerProcess = None }
             match this.ServicePlan with
             | DeployableResource this.Name resourceId ->
                 { Name = resourceId.Name

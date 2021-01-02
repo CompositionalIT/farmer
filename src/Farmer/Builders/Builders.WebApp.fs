@@ -109,6 +109,8 @@ type WebAppConfig =
       SecretStore : SecretStore
       AutomaticLoggingExtension : bool
       SiteExtensions : ExtensionName Set }
+      
+      WorkerProcess : Bitness option
     /// Gets this web app's Server Plan's full resource ID.
     member this.ServicePlanId = this.ServicePlan.resourceId this.Name
     /// Gets the Service Plan name for this web app.
@@ -184,6 +186,7 @@ type WebAppConfig =
               Cors = this.Cors
               Tags = this.Tags
               ConnectionStrings = this.ConnectionStrings
+              WorkerProcess = this.WorkerProcess
               AppSettings =
                 let literalSettings = [
                     if this.RunFromPackage then AppSettings.RunFromPackage
@@ -401,7 +404,8 @@ type WebAppBuilder() =
           DockerAcrCredentials = None
           SecretStore = AppService
           AutomaticLoggingExtension = true
-          SiteExtensions = Set.empty }
+          SiteExtensions = Set.empty
+          WorkerProcess = None }
     member __.Run(state:WebAppConfig) =
         { state with
             SiteExtensions =
@@ -512,14 +516,13 @@ type WebAppBuilder() =
             Identity = { state.Identity with SystemAssigned = Enabled }
             SecretStore = KeyVault (External(Unmanaged name)) }
     [<CustomOperation "add_extension">]
-    member _.AddExtension (state:WebAppConfig, extension) =
-        { state with SiteExtensions = state.SiteExtensions.Add extension }
-    member this.AddExtension(state, name) =
-        this.AddExtension (state, ExtensionName name)
+    member _.AddExtension (state:WebAppConfig, extension) = { state with SiteExtensions = state.SiteExtensions.Add extension }
+    member this.AddExtension (state:WebAppConfig, name) = this.AddExtension (state, ExtensionName name)
     /// Automatically add the ASP.NET Core logging extension.
     [<CustomOperation "automatic_logging_extension">]
-    member _.DefaultLogging(state, setting) =
-        { state with AutomaticLoggingExtension = setting }
+    member _.DefaultLogging (state:WebAppConfig, setting) = { state with AutomaticLoggingExtension = setting }
+    [<CustomOperation "worker_process">]
+    member _.WorkerProcess (state:WebAppConfig, bitness) = { state with WorkerProcess = Some bitness }
     interface ITaggable<WebAppConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     interface IDependable<WebAppConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
     interface IServicePlanApp<WebAppConfig> with
