@@ -53,5 +53,6 @@ type AppInsightsBuilder() =
         if state.SamplingPercentage > 100  then failwith "Sampling Percentage cannot be higher than 100%"
         elif state.SamplingPercentage <= 0 then failwith "Sampling Percentage cannot be lower than or equal to 0%"
         state
+    interface ITaggable<AppInsightsConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let appInsights = AppInsightsBuilder()

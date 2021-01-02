@@ -40,11 +40,6 @@ type CognitiveServicesBuilder() =
     member _.Sku (state:CognitiveServicesConfig, sku) = { state with Sku = (CognitiveServices.CognitiveServicesSku.Create state.Api sku).OkValue.Sku }
     [<CustomOperation "api">]
     member _.Api (state:CognitiveServicesConfig, api) = { state with Api = api }
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:CognitiveServicesConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:CognitiveServicesConfig, key, value) = this.Tags(state, [ (key,value) ])
+    interface ITaggable<CognitiveServicesConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let cognitiveServices = CognitiveServicesBuilder()
