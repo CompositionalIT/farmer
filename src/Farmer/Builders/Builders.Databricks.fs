@@ -59,8 +59,8 @@ type WorkspaceBuilder() =
     member _.PricingTier (state:WorkspaceConfig, sku) =
         { state with Sku = sku }
     /// Enabled Public IP
-    [<CustomOperation "use_public_ip">]
-    member _.UsePublicIp (state:WorkspaceConfig, flag) =
+    [<CustomOperation "allow_public_ip">]
+    member _.AllowPublicIp (state:WorkspaceConfig, flag) =
         { state with EnablePublicIp = flag }
     /// Use Azure Key Vault for the secret scope on the workspace.
     [<CustomOperation "key_vault_secret_scope">]
@@ -87,46 +87,16 @@ type WorkspaceBuilder() =
     /// Specify the secret scope of the workspace programmatically.
     [<CustomOperation "secret_scope">]
     member _.SecretScope (state:WorkspaceConfig, scope) = { state with SecretScope = Some scope }
-    /// Sets the vnet
-    [<CustomOperation "byov_vnet">]
-    member _.ByovVnet (state:WorkspaceConfig, vnet:ResourceName) =
-        let config =
-            state.ByovConfig
-            |> Option.map(fun vnetConfig -> { vnetConfig with Vnet = External(Unmanaged(virtualNetworks.resourceId vnet)) })
-            |> Option.orElse
-                (Some { Vnet = External(Unmanaged(virtualNetworks.resourceId vnet))
-                        PublicSubnet = ResourceName.Empty
-                        PrivateSubnet = ResourceName.Empty })
-        { state with ByovConfig = config }
-    member this.ByovVnet (state:WorkspaceConfig, name:string) = this.ByovVnet (state, ResourceName name)
-    member this.ByovVnet (state:WorkspaceConfig, vnet:Arm.Network.VirtualNetwork) = this.ByovVnet (state, vnet.Name)
-    member this.ByovVnet (state:WorkspaceConfig, vnet:VirtualNetworkConfig) = this.ByovVnet (state, vnet.Name)
-
-    /// Set the existing public subnet
-    [<CustomOperation "byov_public_subnet">]
-    member _.ByovPublicSubnet (state:WorkspaceConfig, publicSubnet:ResourceName) =
-        let config =
-            state.ByovConfig
-            |> Option.map(fun vnetConfig -> { vnetConfig with PublicSubnet = publicSubnet })
-            |> Option.orElse
-                (Some { Vnet = External(Unmanaged(virtualNetworks.resourceId ResourceName.Empty))
-                        PublicSubnet = publicSubnet
-                        PrivateSubnet = ResourceName.Empty })
-        { state with ByovConfig = config}
-    member this.ByovPublicSubnet(state:WorkspaceConfig, publicSubnet) = this.ByovPublicSubnet(state, ResourceName publicSubnet)
-
-    /// Sets the existing private subnet
-    [<CustomOperation "byov_private_subnet">]
-    member _.ByovPrivateSubnet (state:WorkspaceConfig, privateSubnet:ResourceName) =
-        let config =
-            state.ByovConfig
-            |> Option.map(fun vnetConfig -> { vnetConfig with PrivateSubnet = privateSubnet })
-            |> Option.orElse
-                (Some { Vnet = External(Unmanaged(virtualNetworks.resourceId ResourceName.Empty))
-                        PublicSubnet = ResourceName.Empty
-                        PrivateSubnet = privateSubnet })
-        { state with ByovConfig = config }
-    member this.ByovPrivateSubnet(state:WorkspaceConfig, privateSubnet) = this.ByovPrivateSubnet(state, ResourceName privateSubnet)
+    [<CustomOperation "attach_to_vnet">]
+    member _.Byovnet (state:WorkspaceConfig, vnet:ResourceId, publicSubnet, privateSubnet) =
+        { state with
+            ByovConfig =
+                Some { Vnet = vnet
+                       PublicSubnet = publicSubnet
+                       PrivateSubnet = privateSubnet } }
+    member this.Byovnet (state, vnet:ResourceName, publicSubnet:SubnetBuildSpec, privateSubnet:SubnetBuildSpec) = this.Byovnet(state, virtualNetworks.resourceId vnet, ResourceName publicSubnet.Name, ResourceName privateSubnet.Name)
+    member this.Byovnet (state, vnet:VirtualNetworkConfig, publicSubnet, privateSubnet) = this.Byovnet(state, vnet.Name, publicSubnet, privateSubnet)
+    member this.Byovnet (state, vnet:string, publicSubnet, privateSubnet) = this.Byovnet(state, virtualNetworks.resourceId vnet, ResourceName publicSubnet, ResourceName privateSubnet)
 
     /// Add the list of tags
     [<CustomOperation "add_tags">]

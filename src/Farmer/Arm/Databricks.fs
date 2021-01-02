@@ -9,7 +9,7 @@ open System
 let workspaces = ResourceType ("Microsoft.Databricks/workspaces", "2018-04-01")
 
 type ByovConfig =
-    { Vnet : ResourceRef<ByovConfig>
+    { Vnet : ResourceId
       PublicSubnet : ResourceName
       PrivateSubnet : ResourceName }
 
@@ -41,7 +41,7 @@ type Workspace =
                         "prepareEncryption", this.SecretScope |> Option.isSome |> box
                         match this.ByovConfig with
                         | Some config ->
-                            "customVirtualNetworkId", box {| value = config.Vnet.resourceId(config).Eval() |}
+                            "customVirtualNetworkId", box {| value = config.Vnet.Eval() |}
                             "customPublicSubnetName", box {| value = config.PublicSubnet.Value |}
                             "customPrivateSubnetName", box {| value = config.PrivateSubnet.Value |}
                         | None ->
