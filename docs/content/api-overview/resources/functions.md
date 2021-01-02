@@ -20,16 +20,19 @@ The Functions builder is used to create Azure Functions accounts. It abstracts t
 | name | Sets the name of the functions instance. |
 | service_plan_name | Sets the name of the service plan hosting the function instance. |
 | link_to_service_plan | Instructs Farmer to link this webapp to an existing service plan rather than creating a new one. |
+| link_to_unmanaged_service_plan | Instructs Farmer to link this Functions instance to an existing service plan that is externally managed, rather than creating a new one. |
 | link_to_storage_account | Do not create an automatic storage account; instead, link to a storage account that is created outside of this Functions instance but within this Farmer template. |
 | link_to_unmanaged_storage_account | Do not create an automatic storage account; instead, link to an existing storage account that was created external to Farmer. |
 | https_only | Disables http for this functions app so that only HTTPS is used. |
-| app_insights_auto_name | Sets the name of the automatically-created app insights instance. |
+| app_insights_name | Sets the name of the automatically-created app insights instance. |
 | app_insights_off | Removes any automatic app insights creation, configuration and settings for this webapp. |
 | link_to_app_insights | Instead of creating a new AI instance, configure this webapp to point to another AI instance that you are managing yourself. |
+| link_to_unmanaged_app_insights | Instructs Farmer to link this functions instance to an existing app insights instance that is externally managed, rather than creating a new one. |
 | use_runtime | Sets the runtime of the Functions host. |
 | use_extension_version | Sets the extension version of the functions host. |
 | operating_system | Sets the operating system of the Functions host. |
 | setting | Sets an app setting of the web app in the form "key" "value". |
+| secret_setting | Sets a "secret" app setting of the function. You must supply the "key", whilst the value will be supplied as a secure parameter or an ARM expression. |
 | settings | Sets a list of app setting of the web app as tuples in the form of ("key", "value"). |
 | depends_on | [Sets dependencies for the web app.](../../dependencies/) |
 | enable_cors | Enables CORS support for the app. Either specify AllOrigins or a list of valid URIs. |
