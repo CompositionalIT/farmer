@@ -171,13 +171,6 @@ type StorageAccountBuilder() =
     [<CustomOperation "enable_data_lake">]
     member _.UseHns(state:StorageAccountConfig, value) = { state with EnableDataLake = Some value }
     /// Adds tags to the storage account
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:StorageAccountConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    /// Adds a tag to the storage account
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:StorageAccountConfig, key, value) = this.Tags(state, [ (key,value) ])
     /// Adds a lifecycle rule
     [<CustomOperation "add_lifecycle_rule">]
     member _.AddLifecycleRule(state:StorageAccountConfig, ruleName, actions, filters) =
@@ -205,6 +198,7 @@ type StorageAccountBuilder() =
                 | GeneralPurpose (V2 (replication, _)) -> GeneralPurpose (V2 (replication, Some tier))
                 | other -> failwithf "You can only set the default access tier for Blobs or General Purpose V2 storage accounts. This account is %A" other
         }
+    interface ITaggable<StorageAccountConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 /// Allow adding storage accounts directly to CDNs
 type EndpointBuilder with
