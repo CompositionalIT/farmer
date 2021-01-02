@@ -525,7 +525,7 @@ type WebAppBuilder() =
     interface ITaggable<WebAppConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     interface IDependable<WebAppConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
     interface IServicePlanApp<WebAppConfig> with
-        member this.Get state =
+        member _.Get state =
             { Name = state.Name
               ServicePlan = state.ServicePlan
               AppInsights = state.AppInsights
@@ -534,7 +534,7 @@ type WebAppBuilder() =
               Cors = state.Cors
               Identity = state.Identity
               ZipDeployPath = state.ZipDeployPath }
-        member this.Wrap state config =
+        member _.Wrap state config =
             { state with
                 Name = config.Name
                 ServicePlan = config.ServicePlan
@@ -553,10 +553,13 @@ type EndpointBuilder with
         let state = this.Origin(state, webApp.Endpoint)
         this.DependsOn(state, webApp.ResourceId)
 
+/// An interface for shared capabilities between builders that work with Service Plan-style apps.
+/// In other words, Web Apps or Functions.
 type IServicePlanApp<'T> =
     abstract member Get : 'T -> CommonWebConfig
     abstract member Wrap : 'T -> CommonWebConfig -> 'T
 
+// Common keywords for IServicePlanApp live here.
 [<AutoOpen>]
 module Extensions =
     type IServicePlanApp<'T> with
