@@ -25,12 +25,13 @@ type Workspace =
       EnablePublicIp : FeatureFlag
       SecretScope : SecretScope option
       ByovConfig : ByovConfig option
-      Tags : Map<string,string> }
+      Tags : Map<string,string>
+      Dependencies : ResourceId Set }
 
     interface IArmResource with
         member this.ResourceId = workspaces.resourceId this.Name
         member this.JsonModel =
-            {| workspaces.Create(this.Name, this.Location, tags = this.Tags) with
+            {| workspaces.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
                 sku = {| name = this.Sku.ArmValue |}
                 properties =
                     {| managedResourceGroupId =
