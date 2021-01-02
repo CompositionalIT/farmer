@@ -195,7 +195,7 @@ type StorageAccountBuilder() =
             Sku =
                 match state.Sku with
                 | Blobs (replication, _) -> Blobs(replication, Some tier)
-                | GeneralPurpose (V2 replication) -> GeneralPurpose (V2 replication)
+                | GeneralPurpose (V2 (replication, _)) -> GeneralPurpose (V2 (replication, Some tier))
                 | other -> failwithf "You can only set the default access tier for Blobs or General Purpose V2 storage accounts. This account is %A" other
         }
     interface ITaggable<StorageAccountConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
