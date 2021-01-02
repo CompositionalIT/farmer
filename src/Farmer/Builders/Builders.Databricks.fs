@@ -8,14 +8,13 @@ open Farmer.Arm.Network
 open System
 
 type WorkspaceConfig =
-    { Name: ResourceName
-      ManagedResourceGroupId: ResourceName
-      Sku: Sku
-      EnablePublicIp: FeatureFlag
-      PrepareEncryption: FeatureFlag
-      Encryption: EncryptionConfig option
-      ByovConfig: ByovConfig option
-      Tags: Map<string,string> }
+    { Name : ResourceName
+      ManagedResourceGroupId : ResourceName
+      Sku : Sku
+      EnablePublicIp : FeatureFlag
+      EncryptionMode : EncryptionMode option
+      ByovConfig : ByovConfig option
+      Tags : Map<string,string> }
     interface IBuilder with
         member this.ResourceId = workspaces.resourceId this.Name
         member this.BuildResources location = [
@@ -24,8 +23,7 @@ type WorkspaceConfig =
               ManagedResourceGroupId = this.ManagedResourceGroupId
               Sku = this.Sku
               EnablePublicIp = this.EnablePublicIp
-              PrepareEncryption = this.PrepareEncryption
-              Encryption = this.Encryption
+              EncryptionMode = this.EncryptionMode
               ByovConfig = this.ByovConfig
               Tags = this.Tags  }
         ]
@@ -34,10 +32,9 @@ type WorkspaceBuilder() =
     member __.Yield _ =
       { Name = ResourceName.Empty
         ManagedResourceGroupId = ResourceName.Empty
-        Sku = StandardTier
+        Sku = Standard
         EnablePublicIp = Enabled
-        PrepareEncryption = Disabled
-        Encryption = None
+        EncryptionMode = None
         ByovConfig = None
         Tags = Map.empty }
 
@@ -45,11 +42,6 @@ type WorkspaceBuilder() =
         match state with
         | { ByovConfig = Some { PublicSubnet = EmptyResourceName } } -> failwithf "Public subnet must be set. Use public_subnet to set it"
         | { ByovConfig = Some { PrivateSubnet = EmptyResourceName } } -> failwithf "Private subnet must be set. Use private_subnet to set it"
-        | { Encryption = Some { KeyName = NullOrEmpty } } -> failwithf "Encryption key name must not be empty when using encryption. Set with encryption_key operation"
-        | { Encryption = Some { KeyVault = EmptyResourceName } } -> failwithf "Key vault must be set when using encryption. Set with key_vault operation"
-        | { Encryption = Some { KeyVersion = "latest" } } -> ()
-        | { Encryption = Some { KeyVersion = Parsed Guid.TryParse _ } } -> ()
-        | { Encryption = Some { KeyVersion = Unparsed Guid.TryParse } } -> failwithf "Key version must either be latest or a valid guid"
         | _ -> ()
 
         state
@@ -70,42 +62,25 @@ type WorkspaceBuilder() =
     [<CustomOperation "use_public_ip">]
     member _.UsePublicIp (state:WorkspaceConfig, flag) =
         { state with EnablePublicIp = flag }
-    /// Sets the key vault for the encryption key
-    [<CustomOperation "key_vault">]
-    member _.KeyVault (state:WorkspaceConfig, keyVault, keySource:KeyVault.KeySource) =
-        let encryption =
-            state.Encryption
-            |> Option.map(fun encryptionConfig -> { encryptionConfig with KeyVault = keyVault })
-            |> Option.orElse
-                (Some { KeyVault = keyVault
-                        KeyName = ""
-                        KeyVersion = ""
-                        KeySource = keySource })
-        { state with Encryption = encryption }
-    member this.KeyVault(state:WorkspaceConfig, keyVault, keySource:KeyVault.KeySource) =
-        this.KeyVault(state, ResourceName keyVault, keySource)
-    member this.KeyVault(state:WorkspaceConfig, keyVault:Arm.KeyVault.Vault, keySource:KeyVault.KeySource) =
-        this.KeyVault(state, keyVault.Name, keySource)
-    member this.KeyVault(state:WorkspaceConfig, keyVaultConfig:KeyVaultConfig, keySource:KeyVault.KeySource) =
-        this.KeyVault(state, keyVaultConfig.Name, keySource)
-    /// Sets the encryption key configuration
-    [<CustomOperation "encryption_key">]
-    member _.EncryptionKey (state:WorkspaceConfig, keyName, ?keyVersion) =
-        let keyVersion = defaultArg keyVersion "latest"
-        let encryption =
-            state.Encryption
-            |> Option.map(fun encryptionConfig ->
-                { encryptionConfig with
-                    KeyName = keyName
-                    KeyVersion = keyVersion})
-            |> Option.orElse
-                (Some { KeyVault = ResourceName.Empty
-                        KeyName = keyName
-                        KeyVersion = keyVersion
-                        KeySource = KeyVault.KeySource.Default })
+    /// Use key vault for storing and retrieving databricks secrets using the specified key vault and key.
+    [<CustomOperation "key_vault_secret_management">]
+    member _.KeyVault (state:WorkspaceConfig, keyVault, keyName) =
         { state with
-            PrepareEncryption = Enabled
-            Encryption = encryption }
+            EncryptionMode =
+                Some (KeyVaultEncryption {| Vault = keyVault
+                                            Key = keyName
+                                            KeyVersion = None |}) }
+    member this.KeyVault (state:WorkspaceConfig, config:KeyVaultConfig, keyName:string) = this.KeyVault (state, config.Name, keyName)
+    member this.KeyVault (state:WorkspaceConfig, vaultName, keyName) = this.KeyVault (state, ResourceName vaultName, keyName)
+    /// Specifies the version of the key vault key to use; if this is not specified, the latest version of the key is used.
+    [<CustomOperation "key_vault_key_version">]
+    member _.KeyVaultKeyVersion (state:WorkspaceConfig, keyVersion) =
+        { state with
+            EncryptionMode =
+                match state.EncryptionMode with
+                | Some (KeyVaultEncryption config) -> Some (KeyVaultEncryption {| config with KeyVersion = Some keyVersion |})
+                | Some DataBricksEncryption -> failwith "You cannot set the key vault key version if you have specified DataBricks internal encryption."
+                | None -> failwith "No key vault has been specified. First activate keyvault secret integration using key_vault_secret_management." }
 
     /// Sets the vnet
     [<CustomOperation "byov_vnet">]
@@ -158,4 +133,4 @@ type WorkspaceBuilder() =
     [<CustomOperation "add_tag">]
     member this.Tag(state:WorkspaceConfig, key, value) = this.Tags(state, [ (key,value) ])
 
-let dataBricks = WorkspaceBuilder()
+let databricks = WorkspaceBuilder()

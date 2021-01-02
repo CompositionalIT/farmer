@@ -5,15 +5,16 @@ open Farmer
 open Farmer.Builders
 open Farmer.Databricks
 
-let workspace = databricksWorkspace {
+let myVault = keyVault { name "my-vault" }
+
+let workspace = databricks {
     name "my-databricks-workspace"
     sku Databricks.Sku.Standard
-    
+
     use_public_ip Enabled
-    
-    key_vault "databricks-kv"
-    encryption_key "workspace-encryption-key" "latest"
-    
+
+    key_vault_secret_management myVault "workspace-encryption-key"
+
     byov_vnet "databricks-vnet"
     byov_public_subnet "databricks-pub-snet"
     byov_private_subnet "databricks-priv-snet"
