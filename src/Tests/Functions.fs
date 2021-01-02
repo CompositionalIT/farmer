@@ -60,12 +60,12 @@ let tests = testList "Functions tests" [
     }
 
     test "Default always on false" {
-        let f = functions { name "testDefault" }
-        Expect.isFalse f.AlwaysOn "always on property should be false by default"
+        let f:Site = functions { name "testDefault" } |> getResourceAtIndex 0
+        Expect.equal f.SiteConfig.AlwaysOn (Nullable false) "always on should be false by default"
     }
 
     test "Always on true" {
-        let f = functions { name "testAlwaysOn"; always_on }
-        Expect.isTrue f.AlwaysOn "always on property should be true"
+        let f:Site = functions { name "testDefault"; always_on } |> getResourceAtIndex 0
+        Expect.equal f.SiteConfig.AlwaysOn (Nullable true) "always on should be true"
     }
 ]

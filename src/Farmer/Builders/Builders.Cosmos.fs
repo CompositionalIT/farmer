@@ -188,12 +188,7 @@ type CosmosDbBuilder() =
     /// Enables the use of CosmosDB free tier (one per subscription).
     [<CustomOperation "free_tier">]
     member __.FreeTier(state:CosmosDbConfig) = { state with FreeTier = true }
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:CosmosDbConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:CosmosDbConfig, key, value) = this.Tags(state, [ (key,value) ])
+    interface ITaggable<CosmosDbConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let cosmosDb = CosmosDbBuilder()
 let cosmosContainer = CosmosDbContainerBuilder()

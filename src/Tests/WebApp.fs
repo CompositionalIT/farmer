@@ -174,7 +174,7 @@ let tests = testList "Web App Tests" [
     test "Handles identity correctly" {
         let wa : Site = webApp { name "" } |> getResourceAtIndex 0
         Expect.equal wa.Identity.Type (Nullable ManagedServiceIdentityType.None) "Incorrect default managed identity"
-        Expect.isNull wa.Identity.UserAssignedIdentities "Incorrect default managed identity"
+        Expect.isNull wa.Identity.UserAssignedIdentities "Should be no user assigned identities"
 
         let wa : Site = webApp { system_identity } |> getResourceAtIndex 0
         Expect.equal wa.Identity.Type (Nullable ManagedServiceIdentityType.SystemAssigned) "Should have system identity"
@@ -183,6 +183,7 @@ let tests = testList "Web App Tests" [
         let wa : Site = webApp { system_identity; add_identity (createUserAssignedIdentity "test"); add_identity (createUserAssignedIdentity "test2") } |> getResourceAtIndex 0
         Expect.equal wa.Identity.Type (Nullable ManagedServiceIdentityType.SystemAssignedUserAssigned) "Should have system identity"
         Expect.sequenceEqual (wa.Identity.UserAssignedIdentities |> Seq.map(fun r -> r.Key)) [ "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test2')]"; "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test')]" ] "Should have two user assigned identities"
+        Expect.contains (wa.SiteConfig.AppSettings |> Seq.map(fun s -> s.Name, s.Value)) ("AZURE_CLIENT_ID", "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test2')).clientId]") "Missing AZURE_CLIENT_ID"
     }
 
     test "Unmanaged server farm is fully qualified in ARM" {
@@ -191,8 +192,22 @@ let tests = testList "Web App Tests" [
         Expect.equal wa.ServerFarmId "[resourceId('my-asp-resource-group', 'Microsoft.Web/serverfarms', 'my-asp-name')]" ""
     }
 
+    test "Adds the Logging extension automatically for .NET Core apps" {
+        let wa = webApp { name "siteX" }
+        let extension = wa |> getResources |> getResource<SiteExtension> |> List.head
+        Expect.equal extension.Name.Value "Microsoft.AspNetCore.AzureAppServices.SiteExtension" "Wrong extension"
+
+        let wa = webApp { name "siteX"; runtime_stack Runtime.Java11 }
+        let extensions = wa |> getResources |> getResource<SiteExtension>
+        Expect.isEmpty extensions "Shouldn't be any extensions"
+
+        let wa = webApp { name "siteX"; automatic_logging_extension false }
+        let extensions = wa |> getResources |> getResource<SiteExtension>
+        Expect.isEmpty extensions "Shouldn't be any extensions"
+    }
+
     test "Handles add_extension correctly" {
-        let wa = webApp { name "siteX"; add_extension "extensionA"; }
+        let wa = webApp { name "siteX"; add_extension "extensionA"; runtime_stack Runtime.Java11 }
         let resources = wa |> getResources
         let sx = resources |> getResource<SiteExtension> |> List.head
         let r  = sx :> IArmResource
@@ -204,7 +219,7 @@ let tests = testList "Web App Tests" [
     }
 
     test "Handles multiple add_extension correctly" {
-        let wa = webApp { name "siteX"; add_extension "extensionA"; add_extension "extensionB"; add_extension "extensionB" }
+        let wa = webApp { name "siteX"; add_extension "extensionA"; add_extension "extensionB"; add_extension "extensionB"; runtime_stack Runtime.Java11 }
         let resources = wa |> getResources |> getResource<SiteExtension>
 
         let actual = List.sort resources
@@ -220,5 +235,28 @@ let tests = testList "Web App Tests" [
         let resourceId = siteExtensions.resourceId siteName
 
         Expect.equal resourceId.ArmExpression.Value "resourceId('Microsoft.Web/sites/siteextensions', 'siteX')" ""
+    }
+
+    test "Deploys AI configuration correctly" {
+        let hasSetting key message (wa:Site) = Expect.isTrue (wa.SiteConfig.AppSettings |> Seq.exists(fun k -> k.Name = key)) message
+        let wa : Site = webApp { name "" } |> getResourceAtIndex 0
+        wa |> hasSetting "APPINSIGHTS_INSTRUMENTATIONKEY" "Missing Windows instrumentation key"
+
+        let wa : Site = webApp { name ""; operating_system Linux } |> getResourceAtIndex 0
+        wa |> hasSetting "APPINSIGHTS_INSTRUMENTATIONKEY" "Missing Linux instrumentation key"
+
+        let wa : Site = webApp { name ""; app_insights_off } |> getResourceAtIndex 0
+        Expect.isEmpty wa.SiteConfig.AppSettings "Should be no settings"
+    }
+    
+    test "Miscellaneous properties work correctly" {
+        let w : Site = webApp { name "w" } |> getResourceAtIndex 0
+        Expect.equal w.SiteConfig.Use32BitWorkerProcess (Nullable()) "Default worker process" 
+
+        let w : Site = webApp { worker_process Bits32 } |> getResourceAtIndex 0
+        Expect.equal w.SiteConfig.Use32BitWorkerProcess (Nullable true) "32 Bit worker process" 
+
+        let w : Site = webApp { worker_process Bits64 } |> getResourceAtIndex 0
+        Expect.equal w.SiteConfig.Use32BitWorkerProcess (Nullable false) "64 Bit worker process" 
     }
 ]

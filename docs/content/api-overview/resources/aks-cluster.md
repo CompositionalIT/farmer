@@ -8,7 +8,7 @@ weight: 1
 #### Overview
 The AKS Cluster builder is used to create AKS clusters.
 
-* Container Group (`Microsoft.ContainerService/managedClusters`)
+* Container Service (`Microsoft.ContainerService/managedClusters`)
 
 #### AKS Builder Keywords
 The AKS Builder constructs AKS clusters.

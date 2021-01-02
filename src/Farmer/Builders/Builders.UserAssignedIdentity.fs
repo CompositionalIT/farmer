@@ -28,13 +28,7 @@ type UserAssignedIdentityBuilder() =
     [<CustomOperation "name">]
     member __.Name(state:UserAssignedIdentityConfig, name) = { state with Name = ResourceName name }
     /// Adds tags to the user assigned identity.
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:UserAssignedIdentityConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key, value) -> Map.add key value map) state.Tags }
-    /// Adds a tag to the user assigned identity.
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:UserAssignedIdentityConfig, key, value) = this.Tags(state, [ (key,value) ])
+    interface ITaggable<UserAssignedIdentityConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 /// Builds a user assigned identity.
 let userAssignedIdentity = UserAssignedIdentityBuilder()
