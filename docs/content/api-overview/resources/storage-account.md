@@ -19,7 +19,8 @@ The Storage Account builder creates storage accounts and their associated contai
 | Keyword | Purpose |
 |-|-|
 | name | Specifies the name of the storage account |
-| sku | Sets the SKU of the storage account |
+| sku | Sets the SKU of the storage account. A set of predefined SKU values are available as members in `Storage.Sku`, but you can create the full range of combinations of Kind and SKU as needed. |
+| default_blob_access_tier | Sets the default access tier for blob containers |
 | add_public_container | Adds a general-purpose public storage container |
 | add_private_container | Adds a general-purpose private storage container |
 | add_blob_container | Adds a general-purpose private blob container |
@@ -38,7 +39,8 @@ The Storage Account builder creates storage accounts and their associated contai
 | Member | Purpose |
 |-|-|
 | Key | Returns an ARM expression to retrieve the storage account's primary connection string. Useful for e.g. supplying the connection string to another resource e.g. KeyVault or an app setting in the App Service. |
-| WebsitePrimaryEndpoint | Returns the Primary endpoint for static website (if enabled). |
+| WebsitePrimaryEndpoint | Returns an ARM Expression for the Primary endpoint for static website (if enabled). |
+| WebsitePrimaryEndpointHost | Returns an ARM Expression for the Host of the Primary endpoint for static website (if enabled). Use this for e.g. Azure CDN integration. |
 
 #### Helpers
 The `StorageAccount` type contains helper methods to quickly create ARM expressions for Storage Account connection strings.

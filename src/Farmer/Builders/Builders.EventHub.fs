@@ -2,9 +2,9 @@
 module Farmer.Builders.EventHub
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.EventHub
 open Farmer.Arm.EventHub
+open Farmer.Arm.Storage
 open Namespaces
 open EventHubs
 
@@ -23,24 +23,24 @@ type EventHubConfig =
       ConsumerGroups : ResourceName Set
       CaptureDestination : CaptureDestination option
       AuthorizationRules : Map<ResourceName, AuthorizationRuleRight Set>
-      Dependencies : ResourceId list
+      Dependencies : ResourceId Set
       Tags: Map<string,string>  }
     member private this.CreateKeyExpression (resourceId:ResourceId) =
         ArmExpression
             .create(sprintf "listkeys(%s, '2017-04-01').primaryConnectionString" resourceId.ArmExpression.Value)
-            .WithOwner(ResourceId.create(eventHubs, this.Name))
-    member this.EventHubNamespaceName = this.EventHubNamespace.CreateResourceId(this).Name
+            .WithOwner(eventHubs.resourceId this.Name)
+    member this.EventHubNamespaceName = this.EventHubNamespace.resourceId(this).Name
     /// Gets an ARM expression for the path to the key of a specific authorization rule for this event hub.
     member this.GetKey (ruleName:string) =
-        let ruleResource = ResourceId.create(authorizationRules, this.EventHubNamespaceName, this.Name, ResourceName ruleName)
+        let ruleResource = authorizationRules.resourceId(this.EventHubNamespaceName, this.Name, ResourceName ruleName)
         this.CreateKeyExpression ruleResource
 
     /// Gets an ARM expression for the path to the key of the default RootManageSharedAccessKey for the entire namespace.
     member this.DefaultKey =
-        let ruleResource = ResourceId.create(authorizationRules, this.EventHubNamespaceName, ResourceName "RootManageSharedAccessKey")
+        let ruleResource = authorizationRules.resourceId(this.EventHubNamespaceName, ResourceName "RootManageSharedAccessKey")
         this.CreateKeyExpression ruleResource
     interface IBuilder with
-        member this.DependencyName = this.EventHubNamespaceName
+        member this.ResourceId = namespaces.resourceId this.EventHubNamespaceName
         member this.BuildResources location = [
             let eventHubName = this.Name.Map(fun hubName -> sprintf "%s/%s" this.EventHubNamespaceName.Value hubName)
 
@@ -64,11 +64,9 @@ type EventHubConfig =
               MessageRetentionDays = this.MessageRetentionInDays
               Partitions = this.Partitions
               CaptureDestination = this.CaptureDestination
-              Dependencies = [
-                  ResourceId.create this.EventHubNamespaceName
-                  match this.CaptureDestination with
-                  | Some (StorageAccount(name, _)) -> ResourceId.create name
-                  | None -> ()
+              Dependencies = Set [
+                  namespaces.resourceId this.EventHubNamespaceName
+                  yield! this.CaptureDestination |> Option.mapList (fun (StorageAccount (name, _)) -> storageAccounts.resourceId name)
                   yield! this.Dependencies
               ]
               Tags = this.Tags  }
@@ -79,8 +77,8 @@ type EventHubConfig =
                 EventHub = eventHubName
                 Location = location
                 Dependencies = [
-                    ResourceId.create(namespaces, this.EventHubNamespaceName)
-                    ResourceId.create(eventHubs, this.EventHubNamespaceName, this.Name)
+                    namespaces.resourceId this.EventHubNamespaceName
+                    eventHubs.resourceId (this.EventHubNamespaceName, this.Name)
                 ] }
 
             // Auth rules
@@ -88,8 +86,8 @@ type EventHubConfig =
                 { Name = rule.Key.Map(fun rule -> sprintf "%s/%s/%s" this.EventHubNamespaceName.Value this.Name.Value rule)
                   Location = location
                   Dependencies = [
-                      ResourceId.create(namespaces, this.EventHubNamespaceName)
-                      ResourceId.create(eventHubs, this.EventHubNamespaceName, this.Name)
+                      namespaces.resourceId this.EventHubNamespaceName
+                      eventHubs.resourceId (this.EventHubNamespaceName, this.Name)
                   ]
                   Rights = rule.Value }
         ]
@@ -97,7 +95,7 @@ type EventHubConfig =
 type EventHubBuilder() =
     member __.Yield _ =
         { Name = ResourceName "hub"
-          EventHubNamespace = derived (fun config -> config.Name.Map(sprintf "%s-ns"))
+          EventHubNamespace = derived (fun config -> namespaces.resourceId (config.Name-"ns"))
           Sku = Standard
           Capacity = 1
           ZoneRedundant = None
@@ -107,7 +105,7 @@ type EventHubBuilder() =
           CaptureDestination = None
           ConsumerGroups = Set [ ResourceName "$Default" ]
           AuthorizationRules = Map.empty
-          Dependencies = []
+          Dependencies = Set.empty
           Tags = Map.empty }
     /// Sets the name of the Event Hub instance.
     [<CustomOperation "name">]
@@ -115,11 +113,11 @@ type EventHubBuilder() =
     member this.Name(state:EventHubConfig, name) = this.Name(state, ResourceName name)
     /// Sets the name of the Event Hub namespace.
     [<CustomOperation "namespace_name">]
-    member __.NamespaceName(state:EventHubConfig, name) = { state with EventHubNamespace = AutoCreate(Named name) }
+    member __.NamespaceName(state:EventHubConfig, name) = { state with EventHubNamespace = named namespaces name }
     member this.NamespaceName(state:EventHubConfig, name) = this.NamespaceName(state, ResourceName name)
     /// Sets the name of the Event Hub namespace.
     [<CustomOperation "link_to_namespace">]
-    member __.LinkToNamespaceName(state:EventHubConfig, name) = { state with EventHubNamespace = External (Managed name) }
+    member __.LinkToNamespaceName(state:EventHubConfig, name) = { state with EventHubNamespace = managed namespaces name }
     member this.LinkToNamespaceName(state:EventHubConfig, name) = this.LinkToNamespaceName(state, ResourceName name)
     /// Sets the sku of the Event Hub instance.
     [<CustomOperation "sku">]
@@ -147,22 +145,7 @@ type EventHubBuilder() =
     member this.CaptureToStorage(state:EventHubConfig, storageAccount:StorageAccountConfig, container) =
         this.CaptureToStorage(state, storageAccount.Name.ResourceName, container)
 
-    member private _.AddDependency (state:EventHubConfig, resourceName:ResourceName) = { state with Dependencies = ResourceId.create resourceName :: state.Dependencies }
-    member private _.AddDependencies (state:EventHubConfig, resourceNames:ResourceName list) = { state with Dependencies = (resourceNames |> List.map ResourceId.create) @ state.Dependencies }
-    /// Sets a dependency for the web app.
-    [<CustomOperation "depends_on">]
-    member this.DependsOn(state:EventHubConfig, resourceName) = this.AddDependency(state, resourceName)
-    member this.DependsOn(state:EventHubConfig, resources) = this.AddDependencies(state, resources)
-    member this.DependsOn(state:EventHubConfig, builder:IBuilder) = this.AddDependency(state, builder.DependencyName)
-    member this.DependsOn(state:EventHubConfig, builders:IBuilder list) = this.AddDependencies(state, builders |> List.map (fun x -> x.DependencyName))
-    member this.DependsOn(state:EventHubConfig, resource:IArmResource) = this.AddDependency(state, resource.ResourceName)
-    member this.DependsOn(state:EventHubConfig, resources:IArmResource list) = this.AddDependencies(state, resources |> List.map (fun x -> x.ResourceName))
-
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:EventHubConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:EventHubConfig, key, value) = this.Tags(state, [ (key,value) ])
+    interface IDependable<EventHubConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
+    interface ITaggable<EventHubConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let eventHub = EventHubBuilder()

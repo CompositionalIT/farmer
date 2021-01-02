@@ -2,7 +2,6 @@
 module Farmer.Builders.ExpressRoute
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.ExpressRoute
 open System.Net
 open Farmer.Arm.Network
@@ -81,7 +80,7 @@ type ExpressRouteConfig =
     Tags: Map<string,string>  }
 
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.ResourceId = expressRouteCircuits.resourceId this.Name
         member this.BuildResources location = [
             { Name = this.Name
               Location = location
@@ -114,7 +113,7 @@ type ExpressRouteBuilder() =
         PeeringLocation = ""
         Bandwidth = 50<Mbps>
         GlobalReachEnabled = false
-        Peerings = [] 
+        Peerings = []
         Tags = Map.empty}
     /// Sets the name of the circuit
     [<CustomOperation "name">]
@@ -140,10 +139,5 @@ type ExpressRouteBuilder() =
     /// Enables Global Reach on the circuit
     [<CustomOperation "enable_global_reach">]
     member __.EnableGlobalReach(state:ExpressRouteConfig) = { state with GlobalReachEnabled = true }
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:ExpressRouteConfig, pairs) = 
-        { state with 
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:ExpressRouteConfig, key, value) = this.Tags(state, [ (key,value) ])
+    interface ITaggable<ExpressRouteConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 let expressRoute = ExpressRouteBuilder()

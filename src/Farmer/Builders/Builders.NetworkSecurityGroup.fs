@@ -96,7 +96,7 @@ type NsgConfig =
       SecurityRules : SecurityRuleConfig list
       Tags: Map<string,string>  }
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.ResourceId = networkSecurityGroups.resourceId this.Name
         member this.BuildResources location = [
             let securityGroup =
                 { Name = this.Name
@@ -105,6 +105,7 @@ type NsgConfig =
 
             // NSG
             securityGroup
+
             // Policy Rules
             for priority, rule in List.indexed this.SecurityRules do
                 buildNsgRule securityGroup rule ((priority + 1) * 100)
@@ -120,10 +121,6 @@ type NsgBuilder() =
     /// Adds rules to this NSG.
     [<CustomOperation "add_rules">]
     member _.AddSecurityRules (state:NsgConfig, rules) = { state with SecurityRules = state.SecurityRules @ rules }
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:NsgConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:NsgConfig, key, value) = this.Tags(state, [ (key,value) ])
+    interface ITaggable<NsgConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
+
 let nsg = NsgBuilder()

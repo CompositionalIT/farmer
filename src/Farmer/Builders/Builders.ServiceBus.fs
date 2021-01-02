@@ -2,7 +2,6 @@
 module Farmer.Builders.ServiceBus
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.ServiceBus
 open Farmer.Arm.ServiceBus
 open Namespaces
@@ -139,7 +138,7 @@ type ServiceBusTopicBuilder() =
 type ServiceBusConfig =
     { Name : ResourceName
       Sku : Sku
-      Dependencies : ResourceId list
+      Dependencies : ResourceId Set
       Queues : Map<ResourceName, ServiceBusQueueConfig>
       Topics : Map<ResourceName, ServiceBusTopicConfig>
       Tags: Map<string,string>  }
@@ -149,11 +148,11 @@ type ServiceBusConfig =
                 "listkeys(resourceId('Microsoft.ServiceBus/namespaces/authorizationRules', '%s', 'RootManageSharedAccessKey'), '2017-04-01').%s"
                 this.Name.Value
                 property
-        ArmExpression.create(expr, ResourceId.create this.Name)
+        ArmExpression.create(expr, namespaces.resourceId this.Name)
     member this.NamespaceDefaultConnectionString = this.GetKeyPath "primaryConnectionString"
     member this.DefaultSharedAccessPolicyPrimaryKey = this.GetKeyPath "primaryKey"
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.ResourceId = namespaces.resourceId this.Name
         member this.BuildResources location = [
             { Name = this.Name
               Location = location
@@ -202,12 +201,13 @@ type ServiceBusConfig =
         ]
 
 type ServiceBusBuilder() =
+    interface IDependable<ServiceBusConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
     member _.Yield _ =
         { Name = ResourceName.Empty
           Sku = Basic
           Queues = Map.empty
           Topics = Map.empty
-          Dependencies = List.empty
+          Dependencies = Set.empty
           Tags = Map.empty  }
     member _.Run (state:ServiceBusConfig) =
         let isBetween min max v = v >= min && v <= max
@@ -228,17 +228,6 @@ type ServiceBusBuilder() =
     [<CustomOperation "sku">]
     member _.Sku(state:ServiceBusConfig, sku) = { state with Sku = sku }
 
-    member private _.AddDependency (state:ServiceBusConfig, resourceName:ResourceName) = { state with Dependencies = ResourceId.create resourceName :: state.Dependencies }
-    member private _.AddDependencies (state:ServiceBusConfig, resourceNames:ResourceName list) = { state with Dependencies = (resourceNames |> List.map ResourceId.create) @ state.Dependencies }
-    /// Sets a dependency for the web app.
-    [<CustomOperation "depends_on">]
-    member this.DependsOn(state:ServiceBusConfig, resourceName) = this.AddDependency(state, resourceName)
-    member this.DependsOn(state:ServiceBusConfig, resources) = this.AddDependencies(state, resources)
-    member this.DependsOn(state:ServiceBusConfig, builder:IBuilder) = this.AddDependency(state, builder.DependencyName)
-    member this.DependsOn(state:ServiceBusConfig, builders:IBuilder list) = this.AddDependencies(state, builders |> List.map (fun x -> x.DependencyName))
-    member this.DependsOn(state:ServiceBusConfig, resource:IArmResource) = this.AddDependency(state, resource.ResourceName)
-    member this.DependsOn(state:ServiceBusConfig, resources:IArmResource list) = this.AddDependencies(state, resources |> List.map (fun x -> x.ResourceName))
-
     [<CustomOperation "add_queues">]
     member _.AddQueues(state:ServiceBusConfig, queues) =
         { state with
@@ -253,12 +242,7 @@ type ServiceBusBuilder() =
                 (state.Topics, topics)
                 ||> List.fold(fun state (topic:ServiceBusTopicConfig) -> state.Add(topic.Name, topic))
         }
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:ServiceBusConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:ServiceBusConfig, key, value) = this.Tags(state, [ (key,value) ])
+    interface ITaggable<ServiceBusConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let serviceBus = ServiceBusBuilder()
 let topic = ServiceBusTopicBuilder()

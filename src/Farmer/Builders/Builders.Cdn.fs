@@ -5,29 +5,28 @@ open Farmer
 open Farmer.Arm.Cdn
 open Profiles
 open Endpoints
-open Farmer.CoreTypes
 open Farmer.Cdn
 open System
 
 type EndpointConfig =
     { Name : ResourceName
-      Dependencies : ResourceId list
+      Dependencies : ResourceId Set
       CompressedContentTypes : string Set
       QueryStringCachingBehaviour : QueryStringCachingBehaviour
       Http : FeatureFlag
       Https : FeatureFlag
       Compression : FeatureFlag
-      Origin : string
-      CustomDomain : Uri option
+      Origin : ArmExpression
+      CustomDomain : string option
       OptimizationType : OptimizationType }
 
 type CdnConfig =
     { Name : ResourceName
       Sku : Sku
       Endpoints : EndpointConfig list
-      Tags: Map<string,string>  }
+      Tags: Map<string,string> }
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.ResourceId = profiles.resourceId this.Name
         member this.BuildResources _ = [
             { Name = this.Name
               Sku = this.Sku
@@ -47,6 +46,7 @@ type CdnConfig =
                 match endpoint.CustomDomain with
                 | Some customDomain ->
                     { Name = endpoint.Name.Map(sprintf "%sdomain")
+                      Profile = this.Name
                       Endpoint = endpoint.Name
                       Hostname = customDomain }
                 | None ->
@@ -65,23 +65,19 @@ type CdnBuilder() =
     member _.Sku(state:CdnConfig, sku) = { state with Sku = sku }
     [<CustomOperation "add_endpoints">]
     member _.AddEndpoints(state:CdnConfig, endpoints) = { state with Endpoints = state.Endpoints @ endpoints }
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:CdnConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:CdnConfig, key, value) = this.Tags(state, [ (key,value) ])
+    interface ITaggable<CdnConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 type EndpointBuilder() =
+    interface IDependable<EndpointConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
     member _.Yield _ : EndpointConfig =
         { Name = ResourceName.Empty
-          Dependencies = []
+          Dependencies = Set.empty
           CompressedContentTypes = Set.empty
           QueryStringCachingBehaviour = UseQueryString
           Http = Enabled
           Https = Enabled
           Compression = Disabled
-          Origin = ""
+          Origin = ArmExpression.Empty
           CustomDomain = None
           OptimizationType = GeneralWebDelivery }
 
@@ -91,21 +87,12 @@ type EndpointBuilder() =
     member this.Name(state:EndpointConfig, name) = this.Name(state, ResourceName name)
     /// The address of the origin.
     [<CustomOperation "origin">]
-    member _.Origin(state:EndpointConfig, name) =
+    member _.Origin(state:EndpointConfig, name:ArmExpression) =
       { state with
-          Name = state.Name.IfEmpty ((name |> Seq.filter Char.IsLetterOrDigit |> Seq.toArray |> String) + "-endpoint")
+          Name = state.Name.IfEmpty ((name.Value |> Seq.filter Char.IsLetterOrDigit |> Seq.toArray |> String) + "-endpoint")
           Origin = name }
-
-    member private _.AddDependency (state:EndpointConfig, resourceName:ResourceName) = { state with Dependencies = ResourceId.create resourceName :: state.Dependencies }
-    member private _.AddDependencies (state:EndpointConfig, resourceNames:ResourceName list) = { state with Dependencies = (resourceNames |> List.map ResourceId.create) @ state.Dependencies }
-    /// Sets a dependency for the web app.
-    [<CustomOperation "depends_on">]
-    member this.DependsOn(state:EndpointConfig, resourceName) = this.AddDependency(state, resourceName)
-    member this.DependsOn(state:EndpointConfig, resources) = this.AddDependencies(state, resources)
-    member this.DependsOn(state:EndpointConfig, builder:IBuilder) = this.AddDependency(state, builder.DependencyName)
-    member this.DependsOn(state:EndpointConfig, builders:IBuilder list) = this.AddDependencies(state, builders |> List.map (fun x -> x.DependencyName))
-    member this.DependsOn(state:EndpointConfig, resource:IArmResource) = this.AddDependency(state, resource.ResourceName)
-    member this.DependsOn(state:EndpointConfig, resources:IArmResource list) = this.AddDependencies(state, resources |> List.map (fun x -> x.ResourceName))
+    member this.Origin(state:EndpointConfig, name) = this.Origin(state, ArmExpression.literal name)
+    member this.Origin(state:EndpointConfig, name:Uri) = this.Origin(state, ArmExpression.literal name.Host)
 
     /// Adds a list of MIME content types on which compression applies.
     [<CustomOperation "add_compressed_content">]
@@ -124,7 +111,7 @@ type EndpointBuilder() =
     member _.DisableHttps(state:EndpointConfig) = { state with Https = Disabled }
     /// Name of the custom domain hostname.
     [<CustomOperation "custom_domain_name">]
-    member _.CustomDomain(state:EndpointConfig, hostname) = { state with CustomDomain = Some (System.Uri hostname) }
+    member _.CustomDomain(state:EndpointConfig, hostname) = { state with CustomDomain = Some hostname }
     /// Specifies what scenario the customer wants this CDN endpoint to optimise for.
     [<CustomOperation "optimise_for">]
     member _.OptimiseFor(state:EndpointConfig, optimizationType) = { state with OptimizationType = optimizationType }

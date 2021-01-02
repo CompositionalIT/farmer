@@ -2,7 +2,6 @@
 module Farmer.Builders.Search
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.Search
 open Farmer.Helpers
 open Farmer.Arm.Search
@@ -16,13 +15,14 @@ type SearchConfig =
     /// Gets an ARM expression for the admin key of the search instance.
     member this.AdminKey =
         let expr = sprintf "listAdminKeys('Microsoft.Search/searchServices/%s', '2015-08-19').primaryKey" this.Name.Value
-        ArmExpression.create(expr, (ResourceId.create this.Name))
+        ArmExpression.create(expr, this.ResourceId)
     /// Gets an ARM expression for the query key of the search instance.
     member this.QueryKey =
         let expr = sprintf "listQueryKeys('Microsoft.Search/searchServices/%s', '2015-08-19').value[0].key" this.Name.Value
-        ArmExpression.create(expr, (ResourceId.create this.Name))
+        ArmExpression.create(expr, this.ResourceId)
+    member this.ResourceId = searchServices.resourceId this.Name
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.ResourceId = this.ResourceId
         member this.BuildResources location = [
             { Name = this.Name
               Location = location
@@ -54,11 +54,6 @@ type SearchBuilder() =
     /// Sets the number of partitions of the Azure Search instance.
     [<CustomOperation "partitions">]
     member __.PartitionCount(state:SearchConfig, partitions:int) = { state with Partitions = partitions }
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:SearchConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:SearchConfig, key, value) = this.Tags(state, [ (key,value) ])
+    interface ITaggable<SearchConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let search = SearchBuilder()

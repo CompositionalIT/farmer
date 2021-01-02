@@ -15,6 +15,7 @@ The Container Group builder is used to create Azure Container Group instances.
 |-|-|-|
 | containerInstance | name | Sets the name of the Container Group instance. |
 | containerInstance | image | Sets the container image. |
+| containerInstance | command | Sets the commands to execute within the container instance in exec form. |
 | containerInstance | add_ports | Sets the ports the container exposes. |
 | containerInstance | cpu_cores | Sets the maximum CPU cores the container may use. |
 | containerInstance | memory | Sets the maximum gigabytes of memory the container may use. |
@@ -123,3 +124,33 @@ let group = containerGroup {
     private_ip [TCP, 80us]
 }
 ```
+
+#### Execute container command example
+
+Modified from azure-cli example here: https://docs.microsoft.com/en-us/azure/container-instances/container-instances-start-command
+
+```fsharp
+open Farmer
+open Farmer.Builders
+open Farmer.ContainerGroup
+
+let wordcount = containerInstance {
+    name "mycontainer1"
+    image "mcr.microsoft.com/azuredocs/aci-wordcount:latest"
+    memory 0.5<Gb>
+    cpu_cores 1
+    env_vars [
+        env_var "NumWords" "3"
+        env_var "MinLength" "5"
+    ]
+    command_line [ "python"; "wordcount.py"; "http://shakespeare.mit.edu/romeo_juliet/full.html" ]
+}
+
+let group = containerGroup {
+    name "wordcount"
+    operating_system Linux
+    restart_policy RestartOnFailure
+    add_instances [ wordcount ]
+}
+```
+

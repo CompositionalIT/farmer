@@ -3,7 +3,6 @@ module Farmer.Builders.SignalR
 
 open Farmer
 open Farmer.Arm.SignalRService
-open Farmer.CoreTypes
 open Farmer.Helpers
 open Farmer.SignalR
 
@@ -12,9 +11,10 @@ type SignalRConfig =
       Sku : Sku
       Capacity : int option
       AllowedOrigins : string list
-      Tags: Map<string,string>  }
+      Tags: Map<string,string> }
+    member this.ResourceId = signalR.resourceId this.Name
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.ResourceId = this.ResourceId
         member this.BuildResources location = [
             { Name = this.Name
               Location = location
@@ -25,7 +25,7 @@ type SignalRConfig =
         ]
     member this.Key =
         let expr = sprintf "listKeys(resourceId('Microsoft.SignalRService/SignalR', '%s'), providers('Microsoft.SignalRService', 'SignalR').apiVersions[0]).primaryConnectionString" this.Name.Value
-        ArmExpression.create(expr, ResourceId.create this.Name)
+        ArmExpression.create(expr, this.ResourceId)
 
 type SignalRBuilder() =
     member _.Yield _ =
@@ -50,12 +50,7 @@ type SignalRBuilder() =
     /// Sets the allowed origins of the Azure SignalR instance.
     [<CustomOperation("allowed_origins")>]
     member _.AllowedOrigins(state:SignalRConfig, allowedOrigins) = { state with AllowedOrigins = allowedOrigins}
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:SignalRConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:SignalRConfig, key, value) = this.Tags(state, [ (key,value) ])
+    interface ITaggable<SignalRConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let signalR = SignalRBuilder()
 

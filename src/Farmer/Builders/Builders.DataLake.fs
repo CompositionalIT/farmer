@@ -2,7 +2,6 @@
 module Farmer.Builders.DataLake
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.DataLake
 open Farmer.Arm.DataLakeStore
 
@@ -12,7 +11,7 @@ type DataLakeConfig =
       Sku : Sku
       Tags: Map<string,string>  }
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.ResourceId = accounts.resourceId this.Name
         member this.BuildResources location = [
             { Name = this.Name
               Location = location
@@ -30,19 +29,11 @@ type DataLakeBuilder() =
 
     /// Sets the name of the data lake.
     [<CustomOperation "name">]
-    member __.Name (state:DataLakeConfig, name) =
-        { state with Name = ResourceName name }
+    member __.Name (state:DataLakeConfig, name) = { state with Name = ResourceName name }
     [<CustomOperation "enable_encryption">]
-    member _.EncryptionState (state:DataLakeConfig) =
-        { state with EncryptionState = Enabled }
+    member _.EncryptionState (state:DataLakeConfig) = { state with EncryptionState = Enabled }
     [<CustomOperation "sku">]
-    member _.Sku (state:DataLakeConfig, sku) =
-        { state with Sku = sku }
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:DataLakeConfig, pairs) = 
-        { state with 
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:DataLakeConfig, key, value) = this.Tags(state, [ (key,value) ])
+    member _.Sku (state:DataLakeConfig, sku) = { state with Sku = sku }
+    interface ITaggable<DataLakeConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let dataLake = DataLakeBuilder()

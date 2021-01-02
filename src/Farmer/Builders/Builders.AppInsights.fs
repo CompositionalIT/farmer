@@ -2,18 +2,16 @@
 module Farmer.Builders.AppInsights
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.Arm.Insights
 
 type AppInsights =
     static member getInstrumentationKey (resourceId:ResourceId) =
-        let resourceId = resourceId.WithType components
         ArmExpression
             .reference(components, resourceId)
             .Map(fun r -> r + ".InstrumentationKey")
             .WithOwner(resourceId)
     static member getInstrumentationKey (name:ResourceName, ?resourceGroup) =
-        AppInsights.getInstrumentationKey(ResourceId.create (name, ?group = resourceGroup))
+        AppInsights.getInstrumentationKey(ResourceId.create (components, name, ?group = resourceGroup))
 
 type AppInsightsConfig =
     { Name : ResourceName
@@ -23,7 +21,7 @@ type AppInsightsConfig =
     /// Gets the ARM expression path to the instrumentation key of this App Insights instance.
     member this.InstrumentationKey = AppInsights.getInstrumentationKey this.Name
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.ResourceId = components.resourceId this.Name
         member this.BuildResources location = [
             { Name = this.Name
               Location = location
@@ -55,5 +53,6 @@ type AppInsightsBuilder() =
         if state.SamplingPercentage > 100  then failwith "Sampling Percentage cannot be higher than 100%"
         elif state.SamplingPercentage <= 0 then failwith "Sampling Percentage cannot be lower than or equal to 0%"
         state
+    interface ITaggable<AppInsightsConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let appInsights = AppInsightsBuilder()

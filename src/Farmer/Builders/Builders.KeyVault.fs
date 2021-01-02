@@ -2,7 +2,6 @@
 module Farmer.Builders.KeyVault
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.KeyVault
 open Farmer.Arm.KeyVault
 open System
@@ -46,7 +45,8 @@ type SecretConfig =
       Enabled : bool option
       ActivationDate : DateTime option
       ExpirationDate : DateTime option
-      Dependencies : ResourceId list }
+      Dependencies : ResourceId Set
+      Tags: Map<string,string> }
     static member internal createUnsafe key =
         { Key = key
           Value = ParameterSecret(SecureParameter key)
@@ -54,7 +54,8 @@ type SecretConfig =
           Enabled = None
           ActivationDate = None
           ExpirationDate = None
-          Dependencies = [] }
+          Dependencies = Set.empty
+          Tags = Map.empty }
 
     static member internal isValid key =
         let charRulesPassed =
@@ -79,7 +80,7 @@ type SecretConfig =
             Value = ExpressionSecret expression
             Dependencies =
                 match expression.Owner with
-                | Some owner -> [ owner ]
+                | Some owner -> Set.ofList [ owner ]
                 | None -> failwithf "The supplied ARM expression ('%s') has no resource owner. You should explicitly set this using WithOwner(), supplying the Resource Name of the owner." expression.Value
         }
 
@@ -94,7 +95,7 @@ type KeyVaultConfig =
       Secrets : SecretConfig list
       Tags: Map<string,string>  }
       interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.ResourceId = vaults.resourceId this.Name
         member this.BuildResources location = [
             let keyVault =
                 { Name = this.Name
@@ -143,7 +144,8 @@ type KeyVaultConfig =
                   ActivationDate = secret.ActivationDate
                   ExpirationDate = secret.ExpirationDate
                   Location = location
-                  Dependencies = ResourceId.create this.Name :: secret.Dependencies }
+                  Dependencies = secret.Dependencies.Add (vaults.resourceId this.Name)
+                  Tags = secret.Tags }
         ]
 
 type AccessPolicyBuilder() =
@@ -323,12 +325,7 @@ type KeyVaultBuilder() =
     member this.AddSecrets(state:KeyVaultBuilderState, keys) = keys |> Seq.fold(fun state (key:SecretConfig) -> this.AddSecret(state, key)) state
     member this.AddSecrets(state:KeyVaultBuilderState, keys) = this.AddSecrets(state, keys |> Seq.map SecretConfig.create)
     member this.AddSecrets(state:KeyVaultBuilderState, items) = this.AddSecrets(state, items |> Seq.map(fun (key, value) -> SecretConfig.create (key, value)))
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:KeyVaultBuilderState, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:KeyVaultBuilderState, key, value) = this.Tags(state, [ (key,value) ])
+    interface ITaggable<KeyVaultConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 type SecretBuilder() =
     member __.Run(state:SecretConfig) =
@@ -349,17 +346,8 @@ type SecretBuilder() =
     member __.ActivationDate(state:SecretConfig, activationDate) = { state with ActivationDate = Some activationDate }
     [<CustomOperation "expiration_date">]
     member __.ExpirationDate(state:SecretConfig, expirationDate) = { state with ExpirationDate = Some expirationDate }
-
-    member private _.AddDependency (state:SecretConfig, resourceName:ResourceName) = { state with Dependencies = ResourceId.create resourceName :: state.Dependencies }
-    member private _.AddDependencies (state:SecretConfig, resourceNames:ResourceName list) = { state with Dependencies = (resourceNames |> List.map ResourceId.create) @ state.Dependencies }
-    /// Sets a dependency for the web app.
-    [<CustomOperation "depends_on">]
-    member this.DependsOn(state:SecretConfig, resourceName) = this.AddDependency(state, resourceName)
-    member this.DependsOn(state:SecretConfig, resources) = this.AddDependencies(state, resources)
-    member this.DependsOn(state:SecretConfig, builder:IBuilder) = this.AddDependency(state, builder.DependencyName)
-    member this.DependsOn(state:SecretConfig, builders:IBuilder list) = this.AddDependencies(state, builders |> List.map (fun x -> x.DependencyName))
-    member this.DependsOn(state:SecretConfig, resource:IArmResource) = this.AddDependency(state, resource.ResourceName)
-    member this.DependsOn(state:SecretConfig, resources:IArmResource list) = this.AddDependencies(state, resources |> List.map (fun x -> x.ResourceName))
+    interface ITaggable<SecretConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
+    interface IDependable<SecretConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
 let secret = SecretBuilder()
 let keyVault = KeyVaultBuilder()

@@ -4,19 +4,18 @@ module Farmer.Builders.UserAssignedIdentity
 open Farmer
 open Farmer.Identity
 open Farmer.Arm.ManagedIdentity
-open Farmer.CoreTypes
 
 type UserAssignedIdentityConfig =
     { Name : ResourceName
       Tags : Map<string, string> }
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.ResourceId = this.ResourceId
         member this.BuildResources location = [
             { UserAssignedIdentity.Name = this.Name
               Location = location
               Tags = this.Tags }
         ]
-    member this.ResourceId = ResourceId.create (userAssignedIdentities, this.Name)
+    member this.ResourceId = userAssignedIdentities.resourceId this.Name
     member this.UserAssignedIdentity = UserAssignedIdentity this.ResourceId
     member this.ClientId = this.UserAssignedIdentity.ClientId
     member this.PrincipalId = this.UserAssignedIdentity.PrincipalId
@@ -29,13 +28,7 @@ type UserAssignedIdentityBuilder() =
     [<CustomOperation "name">]
     member __.Name(state:UserAssignedIdentityConfig, name) = { state with Name = ResourceName name }
     /// Adds tags to the user assigned identity.
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:UserAssignedIdentityConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key, value) -> Map.add key value map) state.Tags }
-    /// Adds a tag to the user assigned identity.
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:UserAssignedIdentityConfig, key, value) = this.Tags(state, [ (key,value) ])
+    interface ITaggable<UserAssignedIdentityConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 /// Builds a user assigned identity.
 let userAssignedIdentity = UserAssignedIdentityBuilder()

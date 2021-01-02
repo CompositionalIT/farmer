@@ -6,8 +6,11 @@ open Farmer.ContainerGroup
 open Farmer.Identity
 open Farmer.Arm.ContainerInstance
 open Farmer.Arm.Network
-open Farmer.CoreTypes
+open System.Text
 
+//TODO: I think we should rename these to standard F# naming conventioned e.g. VolumeMount, EmptyDir etc.
+//TODO: Indeed, this should either be made into a module with let-bound functions, or make use of static
+//members by using e.g. optional parameters or overloading.
 type volume_mount =
     static member empty_dir volumeName =
         volumeName, Volume.EmptyDirectory
@@ -17,14 +20,16 @@ type volume_mount =
         volumeName, Volume.GitRepo (repository, None, None)
     static member git_repo_directory volumeName  repository directory =
         volumeName, Volume.GitRepo (repository, Some directory, None)
-    static member git_repo_directory_revision volumeName  repository directory revision =
+    static member git_repo_directory_revision volumeName repository directory revision =
         volumeName, Volume.GitRepo (repository, Some directory, Some revision)
     static member secret volumeName  (file:string) (secret:byte array) =
-        volumeName, Volume.Secret [ SecretFile (file, secret) ]
+        volumeName, Volume.Secret [ SecretFileContents (file, secret) ]
     static member secrets volumeName  (secrets:(string * byte array) list) =
-        volumeName, secrets |> List.map SecretFile |> Volume.Secret
+        volumeName, secrets |> List.map SecretFileContents |> Volume.Secret
     static member secret_string volumeName  (file:string) (secret:string) =
-        volumeName, Volume.Secret [ SecretFile (file, secret |> System.Text.Encoding.UTF8.GetBytes) ]
+        volumeName, Volume.Secret [ SecretFileContents (file, Encoding.UTF8.GetBytes secret) ]
+    static member secret_parameter volumeName  (file:string) (secretParameterName:string) =
+        volumeName, Volume.Secret [ SecretFileParameter (file, SecureParameter secretParameterName) ]
 
 /// Represents configuration for a single Container.
 type ContainerInstanceConfig =
@@ -32,6 +37,8 @@ type ContainerInstanceConfig =
       Name : ResourceName
       /// The container instance image
       Image : string
+      /// The commands to execute within the container instance in exec form
+      Command : string list
       /// List of ports the container instance listens on
       Ports : Map<uint16, PortAccess>
       /// Max number of CPU cores the container instance may use
@@ -39,7 +46,7 @@ type ContainerInstanceConfig =
       /// Max gigabytes of memory the container instance may use
       Memory : float<Gb>
       /// Environment variables for the container
-      EnvironmentVariables : Map<string, EnvVarValue>
+      EnvironmentVariables : Map<string, EnvVar>
       /// Volume mounts for the container
       VolumeMounts : Map<string, string> }
 
@@ -64,9 +71,10 @@ type ContainerGroupConfig =
       Identity : ManagedIdentity
       /// Tags for the container group.
       Tags: Map<string,string> }
-    member this.SystemIdentity = SystemIdentity (ResourceId.create(containerGroups, this.Name))
+    member private this.ResourceId = containerGroups.resourceId this.Name
+    member this.SystemIdentity = SystemIdentity this.ResourceId
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.ResourceId = this.ResourceId
         member this.BuildResources location = [
             { Location = location
               Name = this.Name
@@ -74,6 +82,7 @@ type ContainerGroupConfig =
                 for instance in this.Instances do
                     {| Name = instance.Name
                        Image = instance.Image
+                       Command = instance.Command
                        Ports = instance.Ports |> Map.toSeq |> Seq.map fst |> Set
                        Cpu = instance.Cpu
                        Memory = instance.Memory
@@ -91,16 +100,14 @@ type ContainerGroupConfig =
         ]
 
 type ContainerGroupBuilder() =
-    member private __.AddPort (state, portType, port): ContainerGroupConfig =
-        {
-            state with IpAddress =
+    member private _.AddPort (state, portType, port): ContainerGroupConfig =
+        { state with IpAddress =
                         match state.IpAddress with
                         | Some ipAddresses ->
                             { ipAddresses with Ports = ipAddresses.Ports.Add {| Protocol = portType; Port = port |} } |> Some
-                        | None -> { Type = IpAddressType.PublicAddress; Ports = [ {| Protocol = portType; Port = port |} ] |> Set.ofList } |> Some
-        }
+                        | None -> { Type = IpAddressType.PublicAddress; Ports = [ {| Protocol = portType; Port = port |} ] |> Set.ofList } |> Some }
 
-    member __.Yield _ =
+    member _.Yield _ =
         { Name = ResourceName.Empty
           OperatingSystem = Linux
           RestartPolicy = AlwaysRestart
@@ -143,20 +150,20 @@ type ContainerGroupBuilder() =
     member this.PrivateIp(state:ContainerGroupConfig, ports) = this.SetIpAddress(state, PrivateAddress, ports)
     /// Sets a network profile for the container's group.
     [<CustomOperation "network_profile">]
-    member __.NetworkProfile(state:ContainerGroupConfig, networkProfileName:string) = { state with NetworkProfile = Some (ResourceName networkProfileName) }
+    member _.NetworkProfile(state:ContainerGroupConfig, networkProfileName:string) = { state with NetworkProfile = Some (ResourceName networkProfileName) }
     /// Adds a UDP port to be externally accessible
     [<CustomOperation "add_udp_port">]
-    member __.AddUdpPort(state:ContainerGroupConfig, port) = __.AddPort (state, UDP, port)
+    member this.AddUdpPort(state:ContainerGroupConfig, port) = this.AddPort (state, UDP, port)
     /// Adds container image registry credentials for images in this container group.
     [<CustomOperation "add_registry_credentials">]
     member _.AddRegistryCredentials(state:ContainerGroupConfig, credentials) =
         { state with ImageRegistryCredentials = state.ImageRegistryCredentials @ credentials }
     /// Adds a collection of container instances to this group
     [<CustomOperation "add_instances">]
-    member __.AddInstances(state:ContainerGroupConfig, instances) = { state with Instances = state.Instances @ (Seq.toList instances) }
+    member _.AddInstances(state:ContainerGroupConfig, instances) = { state with Instances = state.Instances @ (Seq.toList instances) }
     [<CustomOperation "add_volumes">]
     /// Adds volumes to the container group so they can be mounted on containers.
-    member __.AddVolumes(state:ContainerGroupConfig, volumes) =
+    member _.AddVolumes(state:ContainerGroupConfig, volumes) =
         let newVolumes = volumes |> Map.ofSeq
         let updatedVolumes = state.Volumes |> Map.fold (fun current key vol -> Map.add key vol current) newVolumes
         { state with Volumes = updatedVolumes }
@@ -166,12 +173,7 @@ type ContainerGroupBuilder() =
     member this.AddIdentity(state, identity:UserAssignedIdentityConfig) = this.AddIdentity(state, identity.UserAssignedIdentity)
     [<CustomOperation "system_identity">]
     member _.SystemIdentity(state:ContainerGroupConfig) = { state with Identity = { state.Identity with SystemAssigned = Enabled } }
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:ContainerGroupConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:ContainerGroupConfig, key, value) = this.Tags(state, [ (key,value) ])
+    interface ITaggable<ContainerGroupConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 /// Creates an image registry credential with a generated SecureParameter for the password.
 let registry (server:string) (username:string) =
@@ -180,9 +182,10 @@ let registry (server:string) (username:string) =
       Password = SecureParameter (sprintf "%s-password" server) }
 
 type ContainerInstanceBuilder() =
-    member __.Yield _ =
+    member _.Yield _ =
         { Name = ResourceName.Empty
           Image = ""
+          Command = List.empty
           Ports = Map.empty
           Cpu = 1.0
           Memory = 1.5<Gb>
@@ -190,11 +193,11 @@ type ContainerInstanceBuilder() =
           VolumeMounts = Map.empty }
     /// Sets the name of the container instance.
     [<CustomOperation "name">]
-    member __.Name(state:ContainerInstanceConfig, name) = { state with Name = name }
+    member _.Name(state:ContainerInstanceConfig, name) = { state with Name = name }
     member this.Name(state:ContainerInstanceConfig, name) = this.Name(state, ResourceName name)
     /// Sets the image of the container instance.
     [<CustomOperation "image">]
-    member __.Image (state:ContainerInstanceConfig, image) = { state with Image = image }
+    member _.Image (state:ContainerInstanceConfig, image) = { state with Image = image }
     static member private AddPorts (state:ContainerInstanceConfig, accessibility, ports) =
         { state with
             Ports =
@@ -202,30 +205,33 @@ type ContainerInstanceBuilder() =
                 |> Seq.fold(fun all port -> all.Add(port, accessibility) ) state.Ports }
     /// Sets the ports the container instance exposes. These will automatically be applied to the container group.
     [<CustomOperation "add_public_ports">]
-    member __.PublicPorts (state:ContainerInstanceConfig, ports) = ContainerInstanceBuilder.AddPorts(state, PublicPort, ports)
+    member _.PublicPorts (state:ContainerInstanceConfig, ports) = ContainerInstanceBuilder.AddPorts(state, PublicPort, ports)
     /// Sets the ports the container instance exposes. These will automatically be applied to the container group.
     [<CustomOperation "add_internal_ports">]
-    member __.InternalPorts (state:ContainerInstanceConfig, ports) = ContainerInstanceBuilder.AddPorts(state, InternalPort, ports)
+    member _.InternalPorts (state:ContainerInstanceConfig, ports) = ContainerInstanceBuilder.AddPorts(state, InternalPort, ports)
     /// Sets the ports the container instance exposes. These will automatically be applied to the container group.
     [<CustomOperation "add_ports">]
-    member __.Ports (state:ContainerInstanceConfig, accessibility, ports) = ContainerInstanceBuilder.AddPorts(state, accessibility, ports)
+    member _.Ports (state:ContainerInstanceConfig, accessibility, ports) = ContainerInstanceBuilder.AddPorts(state, accessibility, ports)
     /// Sets the maximum CPU cores the container instance may use
     [<CustomOperationAttribute "cpu_cores">]
-    member __.CpuCount (state:ContainerInstanceConfig, cpuCount:float) = { state with Cpu = cpuCount }
-    member __.CpuCount (state:ContainerInstanceConfig, cpuCount:int) = { state with Cpu = float(cpuCount) }
+    member _.CpuCount (state:ContainerInstanceConfig, cpuCount:float) = { state with Cpu = cpuCount }
+    member _.CpuCount (state:ContainerInstanceConfig, cpuCount:int) = { state with Cpu = float(cpuCount) }
     /// Sets the maximum gigabytes of memory the container instance may use
     [<CustomOperationAttribute "memory">]
-    member __.Memory (state:ContainerInstanceConfig, memory) = { state with Memory = memory }
+    member _.Memory (state:ContainerInstanceConfig, memory) = { state with Memory = memory }
     [<CustomOperation "env_vars">]
-    member __.EnvironmentVariables(state:ContainerInstanceConfig, envVars) =
-        { state with EnvironmentVariables=Map.ofList envVars }
+    member _.EnvironmentVariables(state:ContainerInstanceConfig, envVars) =
+        { state with EnvironmentVariables = Map.ofList envVars }
+    member this.EnvironmentVariables(state, envVars) =
+        this.EnvironmentVariables(state, envVars |> List.map(fun (k,v) -> k, EnvValue v))
     /// Adds a volume mount to the container
     [<CustomOperation "add_volume_mount">]
-    member __.AddVolumeMount (state:ContainerInstanceConfig, volumeName, mountPath) =
+    member _.AddVolumeMount (state:ContainerInstanceConfig, volumeName, mountPath) =
         { state with VolumeMounts = state.VolumeMounts |> Map.add volumeName mountPath }
-
-let env_var (name:string) (value:string) = name, EnvValue value
-let secure_env_var (name:string) (value:string) = name, EnvSecureValue value
+    /// Adds commands to execute within the container instance
+    [<CustomOperation "command_line">]
+    member _.CommandLine (state:ContainerInstanceConfig, command) =
+        { state with Command = state.Command @ command }
 
 let containerGroup = ContainerGroupBuilder()
 let containerInstance = ContainerInstanceBuilder()
@@ -239,7 +245,7 @@ type NetworkProfileConfig =
       VirtualNetwork : ResourceName
       Tags: Map<string,string>  }
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.ResourceId = networkProfiles.resourceId this.Name
         member this.BuildResources location = [
             { Name = this.Name
               Location = location
@@ -251,28 +257,23 @@ type NetworkProfileConfig =
         ]
 
 type NetworkProfileBuilder() =
-    member __.Yield _ =
+    member _.Yield _ =
         { Name = ResourceName.Empty
           ContainerNetworkInterfaceConfigurations = []
           VirtualNetwork = ResourceName.Empty
           Tags = Map.empty }
     /// Sets the name of the network profile instance
     [<CustomOperation "name">]
-    member __.Name(state:NetworkProfileConfig, name) = { state with Name = ResourceName name }
+    member _.Name(state:NetworkProfileConfig, name) = { state with Name = ResourceName name }
     /// Sets a single target subnet for the network profile (typical case of single subnet)
     [<CustomOperation "subnet">]
-    member __.SubnetName(state:NetworkProfileConfig, subnet) = { state with ContainerNetworkInterfaceConfigurations = [ { IpConfigs = [ { Subnet = subnet } ] } ] }
+    member _.SubnetName(state:NetworkProfileConfig, subnet) = { state with ContainerNetworkInterfaceConfigurations = [ { IpConfigs = [ { Subnet = subnet } ] } ] }
     /// Sets a single target subnet for the network profile (typical case of single subnet)
     [<CustomOperation "add_ip_configs">]
-    member __.AddIpConfigs(state:NetworkProfileConfig, configs) = { state with ContainerNetworkInterfaceConfigurations = state.ContainerNetworkInterfaceConfigurations @ configs }
+    member _.AddIpConfigs(state:NetworkProfileConfig, configs) = { state with ContainerNetworkInterfaceConfigurations = state.ContainerNetworkInterfaceConfigurations @ configs }
     /// Sets the virtual network for the profile
     [<CustomOperation "vnet">]
-    member __.VirtualNetwork(state:NetworkProfileConfig, vnet) = { state with VirtualNetwork = ResourceName vnet }
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:NetworkProfileConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:NetworkProfileConfig, key, value) = this.Tags(state, [ (key,value) ])
+    member _.VirtualNetwork(state:NetworkProfileConfig, vnet) = { state with VirtualNetwork = ResourceName vnet }
+    interface ITaggable<NetworkProfileConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let networkProfile = NetworkProfileBuilder ()

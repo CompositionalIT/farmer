@@ -2,7 +2,6 @@
 module Farmer.Arm.SignalRService
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.SignalR
 
 let signalR = ResourceType ("Microsoft.SignalRService/signalR", "2018-10-01")
@@ -15,7 +14,7 @@ type SignalR =
       AllowedOrigins : string list
       Tags: Map<string,string>  }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = signalR.resourceId this.Name
         member this.JsonModel =
             {| signalR.Create(this.Name, this.Location, tags = this.Tags) with
                 sku =

@@ -59,6 +59,7 @@ type OS = Windows | Linux
 type [<Measure>] Gb
 type [<Measure>] Mb
 type [<Measure>] Mbps
+type [<Measure>] Hours
 type [<Measure>] Days
 type [<Measure>] VCores
 type IsoDateTime =
@@ -67,178 +68,185 @@ type IsoDateTime =
     member this.Value = match this with IsoDateTime value -> value
 type TransmissionProtocol = TCP | UDP
 type TlsVersion = Tls10 | Tls11 | Tls12
+type EnvVar =
+    /// Use for non-secret environment variables to be surfaced in the container. These will be stored in cleartext in the ARM template.
+    | EnvValue of string
+    /// Use for secret environment variables to be surfaced in the container securely. These will be provided as secure parameters to the ARM template.
+    | SecureEnvValue of SecureParameter
+    static member create (name:string) (value:string) = name, EnvValue value
+    static member createSecure (name:string) (paramName:string) = name, SecureEnvValue (SecureParameter paramName)
 
 module Mb =
     let toBytes (mb:int<Mb>) = int64 mb * 1024L * 1024L
 module Vm =
     type VMSize =
-    | Basic_A0
-    | Basic_A1
-    | Basic_A2
-    | Basic_A3
-    | Basic_A4
-    | Standard_A0
-    | Standard_A1
-    | Standard_A2
-    | Standard_A3
-    | Standard_A4
-    | Standard_A5
-    | Standard_A6
-    | Standard_A7
-    | Standard_A8
-    | Standard_A9
-    | Standard_A10
-    | Standard_A11
-    | Standard_A1_v2
-    | Standard_A2_v2
-    | Standard_A4_v2
-    | Standard_A8_v2
-    | Standard_A2m_v2
-    | Standard_A4m_v2
-    | Standard_A8m_v2
-    | Standard_B1s
-    | Standard_B1ms
-    | Standard_B2s
-    | Standard_B2ms
-    | Standard_B4ms
-    | Standard_B8ms
-    | Standard_D1
-    | Standard_D2
-    | Standard_D3
-    | Standard_D4
-    | Standard_D11
-    | Standard_D12
-    | Standard_D13
-    | Standard_D14
-    | Standard_D1_v2
-    | Standard_D2_v2
-    | Standard_D3_v2
-    | Standard_D4_v2
-    | Standard_D5_v2
-    | Standard_D2_v3
-    | Standard_D4_v3
-    | Standard_D8_v3
-    | Standard_D16_v3
-    | Standard_D32_v3
-    | Standard_D64_v3
-    | Standard_D2s_v3
-    | Standard_D4s_v3
-    | Standard_D8s_v3
-    | Standard_D16s_v3
-    | Standard_D32s_v3
-    | Standard_D64s_v3
-    | Standard_D11_v2
-    | Standard_D12_v2
-    | Standard_D13_v2
-    | Standard_D14_v2
-    | Standard_D15_v2
-    | Standard_DS1
-    | Standard_DS2
-    | Standard_DS3
-    | Standard_DS4
-    | Standard_DS11
-    | Standard_DS12
-    | Standard_DS13
-    | Standard_DS14
-    | Standard_DS1_v2
-    | Standard_DS2_v2
-    | Standard_DS3_v2
-    | Standard_DS4_v2
-    | Standard_DS5_v2
-    | Standard_DS11_v2
-    | Standard_DS12_v2
-    | Standard_DS13_v2
-    | Standard_DS14_v2
-    | Standard_DS15_v2
-    | Standard_DS13_4_v2
-    | Standard_DS13_2_v2
-    | Standard_DS14_8_v2
-    | Standard_DS14_4_v2
-    | Standard_E2_v3_v3
-    | Standard_E4_v3
-    | Standard_E8_v3
-    | Standard_E16_v3
-    | Standard_E32_v3
-    | Standard_E64_v3
-    | Standard_E2s_v3
-    | Standard_E4s_v3
-    | Standard_E8s_v3
-    | Standard_E16s_v3
-    | Standard_E32s_v3
-    | Standard_E64s_v3
-    | Standard_E32_16_v3
-    | Standard_E32_8s_v3
-    | Standard_E64_32s_v3
-    | Standard_E64_16s_v3
-    | Standard_F1
-    | Standard_F2
-    | Standard_F4
-    | Standard_F8
-    | Standard_F16
-    | Standard_F1s
-    | Standard_F2s
-    | Standard_F4s
-    | Standard_F8s
-    | Standard_F16s
-    | Standard_F2s_v2
-    | Standard_F4s_v2
-    | Standard_F8s_v2
-    | Standard_F16s_v2
-    | Standard_F32s_v2
-    | Standard_F64s_v2
-    | Standard_F72s_v2
-    | Standard_G1
-    | Standard_G2
-    | Standard_G3
-    | Standard_G4
-    | Standard_G5
-    | Standard_GS1
-    | Standard_GS2
-    | Standard_GS3
-    | Standard_GS4
-    | Standard_GS5
-    | Standard_GS4_8
-    | Standard_GS4_4
-    | Standard_GS5_16
-    | Standard_GS5_8
-    | Standard_H8
-    | Standard_H16
-    | Standard_H8m
-    | Standard_H16m
-    | Standard_H16r
-    | Standard_H16mr
-    | Standard_L4s
-    | Standard_L8s
-    | Standard_L16s
-    | Standard_L32s
-    | Standard_M64s
-    | Standard_M64ms
-    | Standard_M128s
-    | Standard_M128ms
-    | Standard_M64_32ms
-    | Standard_M64_16ms
-    | Standard_M128_64ms
-    | Standard_M128_32ms
-    | Standard_NC6
-    | Standard_NC12
-    | Standard_NC24
-    | Standard_NC24r
-    | Standard_NC6s_v2
-    | Standard_NC12s_v2
-    | Standard_NC24s_v2
-    | Standard_NC24rs_v2
-    | Standard_NC6s_v3
-    | Standard_NC12s_v3
-    | Standard_NC24s_v3
-    | Standard_NC24rs_v3
-    | Standard_ND6s
-    | Standard_ND12s
-    | Standard_ND24s
-    | Standard_ND24rs
-    | Standard_NV6
-    | Standard_NV12
-    | Standard_NV24
-    | CustomImage of string
+        | Basic_A0
+        | Basic_A1
+        | Basic_A2
+        | Basic_A3
+        | Basic_A4
+        | Standard_A0
+        | Standard_A1
+        | Standard_A2
+        | Standard_A3
+        | Standard_A4
+        | Standard_A5
+        | Standard_A6
+        | Standard_A7
+        | Standard_A8
+        | Standard_A9
+        | Standard_A10
+        | Standard_A11
+        | Standard_A1_v2
+        | Standard_A2_v2
+        | Standard_A4_v2
+        | Standard_A8_v2
+        | Standard_A2m_v2
+        | Standard_A4m_v2
+        | Standard_A8m_v2
+        | Standard_B1s
+        | Standard_B1ms
+        | Standard_B2s
+        | Standard_B2ms
+        | Standard_B4ms
+        | Standard_B8ms
+        | Standard_D1
+        | Standard_D2
+        | Standard_D3
+        | Standard_D4
+        | Standard_D11
+        | Standard_D12
+        | Standard_D13
+        | Standard_D14
+        | Standard_D1_v2
+        | Standard_D2_v2
+        | Standard_D3_v2
+        | Standard_D4_v2
+        | Standard_D5_v2
+        | Standard_D2_v3
+        | Standard_D4_v3
+        | Standard_D8_v3
+        | Standard_D16_v3
+        | Standard_D32_v3
+        | Standard_D64_v3
+        | Standard_D2s_v3
+        | Standard_D4s_v3
+        | Standard_D8s_v3
+        | Standard_D16s_v3
+        | Standard_D32s_v3
+        | Standard_D64s_v3
+        | Standard_D11_v2
+        | Standard_D12_v2
+        | Standard_D13_v2
+        | Standard_D14_v2
+        | Standard_D15_v2
+        | Standard_DS1
+        | Standard_DS2
+        | Standard_DS3
+        | Standard_DS4
+        | Standard_DS11
+        | Standard_DS12
+        | Standard_DS13
+        | Standard_DS14
+        | Standard_DS1_v2
+        | Standard_DS2_v2
+        | Standard_DS3_v2
+        | Standard_DS4_v2
+        | Standard_DS5_v2
+        | Standard_DS11_v2
+        | Standard_DS12_v2
+        | Standard_DS13_v2
+        | Standard_DS14_v2
+        | Standard_DS15_v2
+        | Standard_DS13_4_v2
+        | Standard_DS13_2_v2
+        | Standard_DS14_8_v2
+        | Standard_DS14_4_v2
+        | Standard_E2_v3_v3
+        | Standard_E4_v3
+        | Standard_E8_v3
+        | Standard_E16_v3
+        | Standard_E32_v3
+        | Standard_E64_v3
+        | Standard_E2s_v3
+        | Standard_E4s_v3
+        | Standard_E8s_v3
+        | Standard_E16s_v3
+        | Standard_E32s_v3
+        | Standard_E64s_v3
+        | Standard_E32_16_v3
+        | Standard_E32_8s_v3
+        | Standard_E64_32s_v3
+        | Standard_E64_16s_v3
+        | Standard_F1
+        | Standard_F2
+        | Standard_F4
+        | Standard_F8
+        | Standard_F16
+        | Standard_F1s
+        | Standard_F2s
+        | Standard_F4s
+        | Standard_F8s
+        | Standard_F16s
+        | Standard_F2s_v2
+        | Standard_F4s_v2
+        | Standard_F8s_v2
+        | Standard_F16s_v2
+        | Standard_F32s_v2
+        | Standard_F64s_v2
+        | Standard_F72s_v2
+        | Standard_G1
+        | Standard_G2
+        | Standard_G3
+        | Standard_G4
+        | Standard_G5
+        | Standard_GS1
+        | Standard_GS2
+        | Standard_GS3
+        | Standard_GS4
+        | Standard_GS5
+        | Standard_GS4_8
+        | Standard_GS4_4
+        | Standard_GS5_16
+        | Standard_GS5_8
+        | Standard_H8
+        | Standard_H16
+        | Standard_H8m
+        | Standard_H16m
+        | Standard_H16r
+        | Standard_H16mr
+        | Standard_L4s
+        | Standard_L8s
+        | Standard_L16s
+        | Standard_L32s
+        | Standard_M64s
+        | Standard_M64ms
+        | Standard_M128s
+        | Standard_M128ms
+        | Standard_M64_32ms
+        | Standard_M64_16ms
+        | Standard_M128_64ms
+        | Standard_M128_32ms
+        | Standard_NC6
+        | Standard_NC12
+        | Standard_NC24
+        | Standard_NC24r
+        | Standard_NC6s_v2
+        | Standard_NC12s_v2
+        | Standard_NC24s_v2
+        | Standard_NC24rs_v2
+        | Standard_NC6s_v3
+        | Standard_NC12s_v3
+        | Standard_NC24s_v3
+        | Standard_NC24rs_v3
+        | Standard_ND6s
+        | Standard_ND12s
+        | Standard_ND24s
+        | Standard_ND24rs
+        | Standard_NV6
+        | Standard_NV12
+        | Standard_NV24
+        | CustomImage of string
         member this.ArmValue = match this with CustomImage c -> c | _ -> this.ToString()
     type Offer = Offer of string member this.ArmValue = match this with Offer o -> o
     type Publisher = Publisher of string member this.ArmValue = match this with Publisher p -> p
@@ -267,30 +275,44 @@ module Vm =
     let WindowsServer_2008R2SP1 = makeWindowsVm "2008-R2-SP1"
     /// The type of disk to use.
     type DiskType =
-    | StandardSSD_LRS
-    | Standard_LRS
-    | Premium_LRS
+        | StandardSSD_LRS
+        | Standard_LRS
+        | Premium_LRS
         member this.ArmValue = match this with x -> x.ToString()
 
     /// Represents a disk in a VM.
     type DiskInfo = { Size : int; DiskType : DiskType }
 
 module internal Validation =
+    let (<+>) a b v = a v && b v
+    let (<|>) a b v = a v || b v
+    let (<!>) a b e s =
+        match a e s, b e s with
+        | Ok _, Ok _ -> Ok ()
+        | Error x, _
+        | _, Error x -> Error x
+
     let isNonEmpty entity s = if String.IsNullOrWhiteSpace s then Error (sprintf "%s cannot be empty" entity) else Ok()
     let notLongerThan max entity (s:string) = if s.Length > max then Error (sprintf "%s max length is %d, but here is %d ('%s')" entity max s.Length s) else Ok()
     let notShorterThan min entity (s:string) = if s.Length < min then Error (sprintf "%s min length is %d, but here is %d ('%s')" entity min s.Length s) else Ok()
     let lengthBetween min max entity (s:string) = s |> notLongerThan max entity |> Result.bind (fun _ -> s |> notShorterThan min entity)
-    let containsOnly message predicate entity (s:string) = if s |> Seq.exists (predicate >> not) then Error (sprintf "%s can only contain %s ('%s')" entity message s) else Ok()
-    let cannotContain message predicate entity (s:string) = if s |> Seq.exists predicate then Error (sprintf "%s do not allow %s ('%s')" entity message s) else Ok()
-    let startsWith message predicate entity (s:string) = if not (predicate s.[0]) then Error (sprintf "%s must start with %s ('%s')" entity message s) else Ok()
-    let endsWith message predicate entity (s:string) = if not (predicate s.[s.Length - 1]) then Error (sprintf "%s must end with %s ('%s')" entity message s) else Ok()
-    let cannotStartWith message predicate entity (s:string) = if predicate s.[0] then Error (sprintf "%s cannot start with %s ('%s')" entity message s) else Ok()
-    let cannotEndWith message predicate entity (s:string) = if predicate s.[s.Length - 1] then Error (sprintf "%s cannot end with %s ('%s')" entity message s) else Ok()
-    let arb message predicate entity (s:string) = if predicate s then Error (sprintf "%s %s ('%s')" entity message s) else Ok()
-    let (<+>) a b v = a v && b v
-    let (<|>) a b v = a v || b v
-    let lowercaseOnly = Char.IsLetter >> not <|> Char.IsLower
-
+    let containsOnly (message, predicate) entity (s:string) = if s |> Seq.exists (predicate >> not) then Error (sprintf "%s can only contain %s ('%s')" entity message s) else Ok()
+    let cannotContain (message, predicate) entity (s:string) = if s |> Seq.exists predicate then Error (sprintf "%s do not allow %s ('%s')" entity message s) else Ok()
+    let startsWith (message, predicate) entity (s:string) = if not (predicate s.[0]) then Error (sprintf "%s must start with %s ('%s')" entity message s) else Ok()
+    let endsWith (message, predicate) entity (s:string) = if not (predicate s.[s.Length - 1]) then Error (sprintf "%s must end with %s ('%s')" entity message s) else Ok()
+    let cannotStartWith (message, predicate) entity (s:string) = if predicate s.[0] then Error (sprintf "%s cannot start with %s ('%s')" entity message s) else Ok()
+    let cannotEndWith (message, predicate) entity (s:string) = if predicate s.[s.Length - 1] then Error (sprintf "%s cannot end with %s ('%s')" entity message s) else Ok()
+    let arb (message, predicate) entity (s:string) = if predicate s then Error (sprintf "%s %s ('%s')" entity message s) else Ok()
+    let containsOnlyM containers =
+        containers
+        |> List.map containsOnly
+        |> List.reduce (<!>)
+    let lowercaseLetters = "lowercase letters", Char.IsLetter >> not <|> Char.IsLower
+    let aLetterOrNumber = "an alphanumeric character", Char.IsLetterOrDigit
+    let lettersOrNumbers = "alphanumeric characters", Char.IsLetterOrDigit
+    let aDash = "a dash", ((=) '-')
+    let lettersNumbersOrDash = "alphanumeric characters or the dash", Char.IsLetterOrDigit <|> (snd aDash)
+    let nonEmptyLengthBetween a b = isNonEmpty <!> lengthBetween a b
     let validate entity text rules =
         rules
         |> Seq.choose (fun v ->
@@ -300,15 +322,28 @@ module internal Validation =
         |> Seq.tryHead
         |> Option.defaultValue (Ok text)
 
+module CosmosDbValidation =
+    open Validation
+    type CosmosDbName =
+        private | CosmosDbName of ResourceName
+        static member Create name =
+            [ nonEmptyLengthBetween 3 44
+              containsOnlyM [ lowercaseLetters; lettersNumbersOrDash ]
+            ]
+            |> validate "CosmosDb account names" name
+            |> Result.map (ResourceName >> CosmosDbName)
+
+        static member Create (ResourceName name) = CosmosDbName.Create name
+        member this.ResourceName = match this with CosmosDbName name -> name
+
 module Storage =
     open Validation
     type StorageAccountName =
         private | StorageAccountName of ResourceName
         static member Create name =
-            [ isNonEmpty
-              lengthBetween 3 24
-              containsOnly "lowercase letters" lowercaseOnly
-              containsOnly "alphanumeric characters" Char.IsLetterOrDigit ]
+            [ nonEmptyLengthBetween 3 24
+              containsOnlyM [ lowercaseLetters; lettersOrNumbers ]
+            ]
             |> validate "Storage account names" name
             |> Result.map (ResourceName >> StorageAccountName)
 
@@ -318,41 +353,55 @@ module Storage =
     type StorageResourceName =
         private | StorageResourceName of ResourceName
         static member Create name =
-            [ isNonEmpty
-              lengthBetween 3 63
-              startsWith "an alphanumeric character" Char.IsLetterOrDigit
-              endsWith "an alphanumeric character" Char.IsLetterOrDigit
-              containsOnly "letters, numbers, and the dash (-) character" (fun c -> Char.IsLetterOrDigit c || c = '-')
-              containsOnly "lowercase letters" lowercaseOnly
-              arb "do not allow consecutive dashes" (fun s -> s.Contains "--") ]
+            [ nonEmptyLengthBetween 3 63
+              startsWith aLetterOrNumber
+              endsWith aLetterOrNumber
+              containsOnlyM [ lettersNumbersOrDash; lowercaseLetters ]
+              arb ("do not allow consecutive dashes", fun s -> s.Contains "--") ]
             |> validate "Storage resource names" name
             |> Result.map (ResourceName >> StorageResourceName)
 
         static member Create (ResourceName name) = StorageResourceName.Create name
         member this.ResourceName = match this with StorageResourceName name -> name
 
+    type DefaultAccessTier = Hot | Cool
+    type StoragePerformance = Standard | Premium
+    type BasicReplication = LRS | ZRS
+    type BlobReplication = LRS | GRS | RAGRS
+    type V1Replication = LRS of StoragePerformance | GRS | RAGRS
+    type V2Replication = LRS of StoragePerformance | GRS | ZRS | GZRS | RAGRS | RAGZRS
+    type GeneralPurpose = V1 of V1Replication | V2 of V2Replication * DefaultAccessTier option
     type Sku =
-        | Standard_LRS
-        | Standard_GRS
-        | Standard_RAGRS
-        | Standard_ZRS
-        | Standard_GZRS
-        | Standard_RAGZRS
-        | Premium_LRS
-        | Premium_ZRS
-        member this.ArmValue = this.ToString()
+        | GeneralPurpose of GeneralPurpose
+        | Blobs of BlobReplication * DefaultAccessTier option
+        | BlockBlobs of BasicReplication
+        | Files of BasicReplication
+        /// General Purpose V2 Standard LRS with no default access tier.
+        static member Standard_LRS = GeneralPurpose (V2 (LRS Standard, None))
+        /// General Purpose V2 Premium LRS with no default access tier.
+        static member Premium_LRS = GeneralPurpose (V2 (LRS Premium, None))
+        /// General Purpose V2 Standard GRS with no default access tier.
+        static member Standard_GRS = GeneralPurpose (V2 (GRS, None))
+        /// General Purpose V2 Standard RAGRS with no default access tier.
+        static member Standard_RAGRS = GeneralPurpose (V2 (RAGRS, None))
+        /// General Purpose V2 Standard ZRS with no default access tier.
+        static member Standard_ZRS = GeneralPurpose (V2 (ZRS, None))
+        /// General Purpose V2 Standard GZRS with no default access tier.
+        static member Standard_GZRS = GeneralPurpose (V2 (GZRS, None))
+        /// General Purpose V2 Standard RAGZRS with no default access tier.
+        static member Standard_RAGZRS = GeneralPurpose (V2 (RAGZRS, None))
 
     type StorageContainerAccess =
-    | Private
-    | Container
-    | Blob
+        | Private
+        | Container
+        | Blob
 
     /// The type of action to take when defining a lifecycle policy.
     type LifecyclePolicyAction =
-    | CoolAfter of int<Days>
-    | ArchiveAfter of int<Days>
-    | DeleteAfter of int<Days>
-    | DeleteSnapshotAfter of int<Days>
+        | CoolAfter of int<Days>
+        | ArchiveAfter of int<Days>
+        | DeleteAfter of int<Days>
+        | DeleteSnapshotAfter of int<Days>
 
     /// Represents no filters for a lifecycle rule
     let NoRuleFilters : string list = []
@@ -392,6 +441,11 @@ module WebApp =
         static member I3 = Isolated "I3"
         static member Y1 = Dynamic
     type ConnectionStringKind = MySql | SQLServer | SQLAzure | Custom | NotificationHub | ServiceBus | EventHub | ApiHub | DocDb | RedisCache | PostgreSQL
+    type ExtensionName = ExtensionName of string
+    type Bitness = Bits32 | Bits64
+    module Extensions =
+        /// The Microsoft.AspNetCore.AzureAppServices logging extension.
+        let Logging = ExtensionName "Microsoft.AspNetCore.AzureAppServices.SiteExtension"
 
 module CognitiveServices =
     /// Type of SKU. See https://github.com/Azure/azure-quickstart-templates/tree/master/101-cognitive-services-translate
@@ -602,6 +656,21 @@ module Sql =
             | StandardPool c
             | PremiumPool c ->
                 c
+    open Validation
+    type SqlAccountName =
+        private | SqlAccountName of ResourceName
+        static member Create name =
+            [ nonEmptyLengthBetween 1 63
+              cannotStartWith aDash 
+              cannotEndWith aDash
+              containsOnlyM [ lowercaseLetters; lettersNumbersOrDash ]
+            ]
+            |> validate "SQL account names" name
+            |> Result.map (ResourceName >> SqlAccountName)
+
+        static member Create (ResourceName name) = SqlAccountName.Create name
+        member this.ResourceName = match this with SqlAccountName name -> name
+
 
 /// Represents a role that can be granted to an identity.
 type RoleId =
@@ -610,12 +679,11 @@ type RoleId =
         match this with
         | RoleId roleId ->
             sprintf "concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', '%O')" roleId.Id
-            |> Farmer.CoreTypes.ArmExpression.create
+            |> ArmExpression.create
     member this.Name = match this with (RoleId v) -> v.Name
     member this.Id = match this with (RoleId v) -> v.Id
 
 module Identity =
-    open Farmer.CoreTypes
 
     /// Represents a User Assigned Identity, and the ability to create a Principal Id from it.
     type UserAssignedIdentity =
@@ -631,18 +699,14 @@ module Identity =
 
     type SystemIdentity =
         | SystemIdentity of ResourceId
+        member this.ResourceId = match this with SystemIdentity r -> r
         member private this.CreateExpression field =
-            match this.ResourceId.Type with
-            | None ->
-                failwith "Resource Id must have a type in order to generate a Prinicipal ID"
-            | Some resourceType ->
-                let identity = this.ResourceId.ArmExpression.Value
-                ArmExpression
-                    .create(sprintf "reference(%s, '%s', 'full').identity.%s" identity resourceType.ApiVersion field)
-                    .WithOwner(this.ResourceId)
+            let identity = this.ResourceId.ArmExpression.Value
+            ArmExpression
+                .create(sprintf "reference(%s, '%s', 'full').identity.%s" identity this.ResourceId.Type.ApiVersion field)
+                .WithOwner(this.ResourceId)
         member this.PrincipalId = this.CreateExpression "principalId" |> PrincipalId
         member this.ClientId = this.CreateExpression "clientId"
-        member this.ResourceId = match this with SystemIdentity r -> r
 
     /// Represents an identity that can be assigned to a resource for impersonation.
     type ManagedIdentity =
@@ -663,8 +727,12 @@ module ContainerGroup =
         | PublicAddress
         | PublicAddressWithDns of DnsName:string
         | PrivateAddress
-    /// A secret file which will be encoded as base64 and attached to a container group.
-    type SecretFile = SecretFile of Name:string * Secret:byte array
+    /// A secret file that will be attached to a container group.
+    type SecretFile =
+        /// A secret file which will be encoded as base64 data.
+        | SecretFileContents of Name:string * Secret:byte array
+        /// A secret file which will provided by an ARM parameter at runtime.
+        | SecretFileParameter of Name:string * Secret:SecureParameter
     /// A container group volume.
     [<RequireQualifiedAccess>]
     type Volume =

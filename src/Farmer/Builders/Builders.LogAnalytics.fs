@@ -3,7 +3,6 @@ module Farmer.Builders.LogAnalytics
 
 open Farmer
 open Farmer.Arm
-open Farmer.CoreTypes
 
 let private (|InBounds|OutOfBounds|) days =
     if days < 30<Days> then OutOfBounds days
@@ -18,7 +17,7 @@ type WorkspaceConfig =
       DailyCap : int<Gb> option
       Tags: Map<string,string> }
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.ResourceId = workspaces.resourceId this.Name
         member this.BuildResources location = [
             { Name = this.Name
               Location = location
@@ -71,15 +70,7 @@ type WorkspaceBuilder() =
     [<CustomOperation "daily_cap">]
     member _.DailyCap(state: WorkspaceConfig, cap) = { state with DailyCap = Some cap }
 
-    /// Adds a set of tags to the resource
-    [<CustomOperation "add_tags">]
-        member _.Tags(state:WorkspaceConfig, pairs) =
-            { state with
-                Tags = pairs |> List.fold (fun map (key, value) -> Map.add key value map) state.Tags }
-
-    /// Adds a tag to the resource
-    [<CustomOperation "add_tag">]
-        member this.Tag(state:WorkspaceConfig, key, value) = this.Tags(state, [ key, value ])
+    interface ITaggable<WorkspaceConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let logAnalytics = WorkspaceBuilder()
 

@@ -2,8 +2,8 @@
 module Farmer.Builders.Storage
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.Storage
+open Farmer.Arm.RoleAssignment
 open Farmer.Arm.Storage
 open BlobServices
 open FileShares
@@ -11,7 +11,6 @@ open FileShares
 type StorageAccount =
     /// Gets an ARM Expression connection string for any Storage Account.
     static member getConnectionString (storageAccount:ResourceId) =
-        let storageAccount = storageAccount.WithType storageAccounts
         let expr =
             sprintf
                 "concat('DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=', listKeys(%s, '2017-10-01').keys[0].value)"
@@ -20,7 +19,7 @@ type StorageAccount =
         ArmExpression.create(expr, storageAccount)
     /// Gets an ARM Expression connection string for any Storage Account.
     static member getConnectionString (storageAccountName:StorageAccountName, ?group) =
-        StorageAccount.getConnectionString(ResourceId.create(storageAccountName.ResourceName, ?group = group))
+        StorageAccount.getConnectionString (ResourceId.create (storageAccounts, storageAccountName.ResourceName, ?group = group))
 
 type StoragePolicy =
     { CoolBlobAfter : int<Days> option
@@ -54,11 +53,15 @@ type StorageAccountConfig =
     /// Gets the Primary endpoint for static website (if enabled)
     member this.WebsitePrimaryEndpoint =
         ArmExpression
-            .reference(storageAccounts, ResourceId.create(storageAccounts, this.Name.ResourceName))
+            .reference(storageAccounts, this.ResourceId)
             .Map(sprintf "%s.primaryEndpoints.web")
+    member this.WebsitePrimaryEndpointHost =
+        this.WebsitePrimaryEndpoint
+            .Map(fun uri -> sprintf "replace(replace(%s, 'https://', ''), '/', '')" uri)
     member this.Endpoint = sprintf "%s.blob.core.windows.net" this.Name.ResourceName.Value
+    member this.ResourceId = storageAccounts.resourceId this.Name.ResourceName
     interface IBuilder with
-        member this.DependencyName = this.Name.ResourceName
+        member this.ResourceId = this.ResourceId
         member this.BuildResources location = [
             { Name = this.Name
               Location = location
@@ -92,15 +95,29 @@ type StorageAccountConfig =
                   ]
                 }
             for roleAssignment in this.RoleAssignments do
-                { Providers.StorageAccount = this.Name
-                  Providers.RoleDefinitionId = roleAssignment.Role
-                  Providers.PrincipalId = roleAssignment.Principal }
+                let uniqueName =
+                    sprintf "%s%s%O"
+                        this.Name.ResourceName.Value
+                        roleAssignment.Principal.ArmExpression.Value
+                        roleAssignment.Role.Id
+                    |> DeterministicGuid.create
+                    |> string
+                    |> ResourceName
+                { Name = uniqueName
+                  RoleDefinitionId = roleAssignment.Role
+                  PrincipalId = roleAssignment.Principal
+                  PrincipalType = PrincipalType.ServicePrincipal
+                  Scope = ResourceGroup
+                  Dependencies = Set [
+                      ResourceId.create(storageAccounts, this.Name.ResourceName)
+                      yield! roleAssignment.Owner |> Option.toList
+                  ] }
         ]
 
 type StorageAccountBuilder() =
     member _.Yield _ = {
         Name = StorageAccountName.Create("default").OkValue
-        Sku = Standard_LRS
+        Sku = Sku.Standard_LRS
         EnableDataLake = None
         Containers = []
         FileShares = []
@@ -154,13 +171,6 @@ type StorageAccountBuilder() =
     [<CustomOperation "enable_data_lake">]
     member _.UseHns(state:StorageAccountConfig, value) = { state with EnableDataLake = Some value }
     /// Adds tags to the storage account
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:StorageAccountConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    /// Adds a tag to the storage account
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:StorageAccountConfig, key, value) = this.Tags(state, [ (key,value) ])
     /// Adds a lifecycle rule
     [<CustomOperation "add_lifecycle_rule">]
     member _.AddLifecycleRule(state:StorageAccountConfig, ruleName, actions, filters) =
@@ -171,18 +181,29 @@ type StorageAccountBuilder() =
               DeleteBlobAfter = actions |> List.tryPick(function DeleteAfter days -> Some days | _ -> None)
               DeleteSnapshotAfter = actions |> List.tryPick(function DeleteSnapshotAfter days -> Some days | _ -> None) }
         { state with Rules = state.Rules.Add (ResourceName ruleName, rule) }
+    static member private GrantAccess (state:StorageAccountConfig, assignment) = { state with RoleAssignments = state.RoleAssignments.Add assignment }
     [<CustomOperation "grant_access">]
-    member _.GrantAccess(state:StorageAccountConfig, principalId:PrincipalId, role) =
-        { state with RoleAssignments = state.RoleAssignments.Add { Principal = principalId; Role = role } }
-    member this.GrantAccess(state:StorageAccountConfig, identity:UserAssignedIdentityConfig, role) =
-        this.GrantAccess(state, identity.PrincipalId, role)
-    member this.GrantAccess(state:StorageAccountConfig, identity:Identity.SystemIdentity, role) =
-        this.GrantAccess(state, identity.PrincipalId, role)
+    member _.GrantAccess (state:StorageAccountConfig, principalId:PrincipalId, role) =
+        StorageAccountBuilder.GrantAccess (state, { Principal = principalId; Role = role; Owner = None })
+    member _.GrantAccess(state:StorageAccountConfig, identity:UserAssignedIdentityConfig, role) =
+        StorageAccountBuilder.GrantAccess (state, { Principal = identity.PrincipalId; Role = role; Owner = Some identity.ResourceId })
+    member _.GrantAccess(state:StorageAccountConfig, identity:Identity.SystemIdentity, role) =
+        StorageAccountBuilder.GrantAccess (state, { Principal = identity.PrincipalId; Role = role; Owner = Some identity.ResourceId })
+    [<CustomOperation "default_blob_access_tier">]
+    member _.SetDefaultAccessTier(state:StorageAccountConfig, tier) =
+        { state with
+            Sku =
+                match state.Sku with
+                | Blobs (replication, _) -> Blobs(replication, Some tier)
+                | GeneralPurpose (V2 (replication, _)) -> GeneralPurpose (V2 (replication, Some tier))
+                | other -> failwithf "You can only set the default access tier for Blobs or General Purpose V2 storage accounts. This account is %A" other
+        }
+    interface ITaggable<StorageAccountConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 /// Allow adding storage accounts directly to CDNs
 type EndpointBuilder with
     member this.Origin(state:EndpointConfig, storage:StorageAccountConfig) =
         let state = this.Origin(state, storage.Endpoint)
-        this.DependsOn(state, storage.Name.ResourceName)
+        this.DependsOn(state, storage.ResourceId)
 
 let storageAccount = StorageAccountBuilder()

@@ -2,7 +2,6 @@
 module Farmer.Arm.Web
 
 open Farmer
-open Farmer.CoreTypes
 open Farmer.WebApp
 open System
 
@@ -11,6 +10,7 @@ let sites = ResourceType ("Microsoft.Web/sites", "2016-08-01")
 let config = ResourceType ("Microsoft.Web/sites/config", "2016-08-01")
 let sourceControls = ResourceType ("Microsoft.Web/sites/sourcecontrols", "2019-08-01")
 let staticSites = ResourceType("Microsoft.Web/staticSites", "2019-12-01-preview")
+let siteExtensions = ResourceType("Microsoft.Web/sites/siteextensions", "2020-06-01")
 
 type ServerFarm =
     { Name : ResourceName
@@ -31,7 +31,7 @@ type ServerFarm =
     member this.Kind =
         match this.OperatingSystem with
         | Linux -> Some "linux"
-        | _ -> None
+        | Windows -> None
     member this.Tier =
         match this.Sku with
         | Free -> "Free"
@@ -44,7 +44,7 @@ type ServerFarm =
         | Dynamic -> "Dynamic"
         | Isolated _ -> "Isolated"
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = serverFarms.resourceId this.Name
         member this.JsonModel =
             {| serverFarms.Create(this.Name, this.Location, tags = this.Tags) with
                  sku =
@@ -111,20 +111,20 @@ module ZipDeploy =
                 packageFilename
             | DeployZip zipFilePath ->
                 zipFilePath
-
 type Site =
     { Name : ResourceName
       Location : Location
-      ServicePlan : ResourceName
+      ServicePlan : ResourceId
       AppSettings : Map<string, Setting>
       ConnectionStrings : Map<string, (Setting * ConnectionStringKind)>
       AlwaysOn : bool
+      WorkerProcess : Bitness option 
       HTTPSOnly : bool
       HTTP20Enabled : bool option
       ClientAffinityEnabled : bool option
       WebSocketsEnabled : bool option
       Cors : Cors option
-      Dependencies : ResourceId list
+      Dependencies : ResourceId Set
       Kind : string
       Identity : Identity.ManagedIdentity
       LinuxFxVersion : string option
@@ -156,19 +156,19 @@ type Site =
                         failwithf "Path '%s' must either be a folder to be zipped, or an existing zip." path)
                 printfn "Running ZIP deploy for %s" path.Value
                 Some (match target with
-                        | ZipDeploy.ZipDeployTarget.WebApp -> Deploy.Az.zipDeployWebApp name.Value path.GetZipPath resourceGroupName
-                        | ZipDeploy.ZipDeployTarget.FunctionApp -> Deploy.Az.zipDeployFunctionApp name.Value path.GetZipPath resourceGroupName)
+                      | ZipDeploy.WebApp -> Deploy.Az.zipDeployWebApp name.Value path.GetZipPath resourceGroupName
+                      | ZipDeploy.FunctionApp -> Deploy.Az.zipDeployFunctionApp name.Value path.GetZipPath resourceGroupName)
             | _ ->
                 None
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = sites.resourceId this.Name
         member this.JsonModel =
-            let dependencies = this.Dependencies @ this.Identity.Dependencies
+            let dependencies = this.Dependencies + (Set this.Identity.Dependencies)
             {| sites.Create(this.Name, this.Location, dependencies, this.Tags) with
                  kind = this.Kind
                  identity = this.Identity |> ManagedIdentity.toArmJson
                  properties =
-                    {| serverFarmId = this.ServicePlan.Value
+                    {| serverFarmId = this.ServicePlan.Eval()
                        httpsOnly = this.HTTPSOnly
                        clientAffinityEnabled = match this.ClientAffinityEnabled with Some v -> box v | None -> null
                        siteConfig =
@@ -178,6 +178,7 @@ type Site =
                            linuxFxVersion = this.LinuxFxVersion |> Option.toObj
                            appCommandLine = this.AppCommandLine |> Option.toObj
                            netFrameworkVersion = this.NetFrameworkVersion |> Option.toObj
+                           use32BitWorkerProcess = this.WorkerProcess |> Option.map (function Bits32 -> true | Bits64 -> false) |> Option.toNullable
                            javaVersion = this.JavaVersion |> Option.toObj
                            javaContainer = this.JavaContainer |> Option.toObj
                            javaContainerVersion = this.JavaContainerVersion |> Option.toObj
@@ -208,9 +209,9 @@ module Sites =
           ContinuousIntegration : FeatureFlag }
         member this.Name = this.Website.Map(sprintf "%s/web")
         interface IArmResource with
-            member this.ResourceName = this.Name
+            member this.ResourceId = sourceControls.resourceId this.Name
             member this.JsonModel =
-                {| sourceControls.Create(this.Name, this.Location, [ ResourceId.create this.Website ]) with
+                {| sourceControls.Create(this.Name, this.Location, [ sites.resourceId this.Website ]) with
                     properties =
                         {| repoUrl = this.Repository.ToString()
                            branch = this.Branch
@@ -227,7 +228,7 @@ type StaticSite =
       ApiLocation : string option
       AppArtifactLocation : string option }
     interface IArmResource with
-        member this.ResourceName = this.Name
+        member this.ResourceId = staticSites.resourceId this.Name
         member this.JsonModel =
             {| staticSites.Create(this.Name, this.Location) with
                 properties =
@@ -248,3 +249,13 @@ type StaticSite =
             this.RepositoryToken
         ]
 
+[<AutoOpen>]
+module SiteExtensions =
+    type SiteExtension =
+        { Name : ResourceName
+          SiteName : ResourceName
+          Location : Location }
+        interface IArmResource with
+            member this.ResourceId = siteExtensions.resourceId(this.SiteName/this.Name)
+            member this.JsonModel =
+                siteExtensions.Create(this.SiteName/this.Name, this.Location, [ sites.resourceId this.SiteName ]) :> _

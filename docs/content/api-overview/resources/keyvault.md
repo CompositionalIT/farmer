@@ -24,7 +24,9 @@ The secret builder allows you to store secrets into key vault. Values for a secr
 | disable_secret | Disables the secret. |
 | activation_date | Sets the activation date of the secret. |
 | expiration_date | Sets the expiration date of the secret. |
-| depends_on | Provides dependencies of the key vault. |
+| depends_on | [Sets the dependencies of the key vault.](../../dependencies/) |
+| add_tag | Adds a tag to the secret. |
+| add_tags | Adds multiple tags to the secret. |
 
 #### Access Policy Builder
 The Access Policy builder allows you to create access policies for key vault.
@@ -67,6 +69,8 @@ The Key Vault builder contains access policies, secrets, and configuration infor
 | add_vnet_rule | Adds a virtual network rule. This is the full resource id of a vnet subnet, such as '/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/virtualNetworks/test-vnet/subnets/subnet1'. |
 | add_secret | Adds a secret to the vault. This can either be a "full" secret config created using the Secret Builder, a string literal value which represents the parameter name, or a string literal with a resource and an expression based on that resource e.g. a storage account and the Key member. |
 | add_secrets | Adds multiple secrets to the vault. This can either be "full" secret configs created using the Secret Builder, string literal values which represents the parameter name. |
+| add_tag | Adds a tag to the key vault. |
+| add_tags | Adds multiple tags to the key vault. |
 
 #### Utilities
 * The KeyVault module comes with a set of utility functions to quickly create access policies if you do not wish to use the `AccessPolicy` builder, in the `Farmer.KeyVault.AccessPolicy` module which enable creating an access policy for a `PrincipalId` or an `ObjectId` which will have the GET Secret permission.
