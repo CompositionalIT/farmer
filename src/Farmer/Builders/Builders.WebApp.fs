@@ -108,9 +108,8 @@ type WebAppConfig =
       DockerAcrCredentials : {| RegistryName : string; Password : SecureParameter |} option
       SecretStore : SecretStore
       AutomaticLoggingExtension : bool
-      SiteExtensions : ExtensionName Set }
-      
-      WorkerProcess : Bitness option
+      SiteExtensions : ExtensionName Set
+      WorkerProcess : Bitness option }
     /// Gets this web app's Server Plan's full resource ID.
     member this.ServicePlanId = this.ServicePlan.resourceId this.Name
     /// Gets the Service Plan name for this web app.
@@ -553,11 +552,11 @@ type EndpointBuilder with
     member this.Origin(state:EndpointConfig, webApp:WebAppConfig) =
         let state = this.Origin(state, webApp.Endpoint)
         this.DependsOn(state, webApp.ResourceId)
-        
+
 type IServicePlanApp<'T> =
     abstract member Get : 'T -> CommonWebConfig
     abstract member Wrap : 'T -> CommonWebConfig -> 'T
-    
+
 [<AutoOpen>]
 module Extensions =
     type IServicePlanApp<'T> with
@@ -585,7 +584,7 @@ module Extensions =
         member this.UseAppInsights (state:'T, name:string) = this.UseAppInsights(state, ResourceName name)
         /// Removes any automatic app insights creation, configuration and settings for this webapp.
         [<CustomOperation "app_insights_off">]
-        member this.DeactivateAppInsights (state:'T) = { this.Get state with AppInsights = None } |> this.Wrap state        
+        member this.DeactivateAppInsights (state:'T) = { this.Get state with AppInsights = None } |> this.Wrap state
         /// Instead of creating a new AI instance, configure this webapp to point to another Farmer-managed AI instance.
         /// A dependency will automatically be set for this instance.
         [<CustomOperation "link_to_app_insights">]
@@ -632,7 +631,7 @@ module Extensions =
         member this.SystemIdentity (state:'T) =
             let current = this.Get state
             { current with Identity = { current.Identity with SystemAssigned = Enabled } }
-            |> this.Wrap state        
+            |> this.Wrap state
         /// sets the list of origins that should be allowed to make cross-origin calls. Use AllOrigins to allow all.
         [<CustomOperation "enable_cors">]
         member this.EnableCors (state:'T, origins) =
