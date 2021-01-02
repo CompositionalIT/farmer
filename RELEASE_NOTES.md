@@ -1,17 +1,16 @@
 Release Notes
 =============
-## vNext
+## 1.4.0-beta1
 * Storage: Support for setting default blob access tier at account level with "default_blob_access_tier"
 
 * Functions: Added some extra keywords which were already present on Web App.
-* Functions: Support for user-assigned "Always on" setting.
 
-* Web App: Automatically add Logging extension for ASP.NET Core apps.
+* Web App: Automatically add Logging extension for ASP.NET Core apps (additive change to ARM).
 * Web App: Added Instrumentation Key Setting for Linux WebApp.
 * Web App: Automatically add Client Id setting for user assigned identities.
 * Web App: Support for 64 bits.
 
-* SQL Azure: Validation and fail fast on account names instead of silently fixing them.
+* SQL Azure: Validation and fail fast on account names instead of silently fixing them (breaking run-time change).
 
 * Azure CLI: Ensure JSON output.
 
