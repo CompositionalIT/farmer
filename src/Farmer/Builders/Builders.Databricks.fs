@@ -13,7 +13,7 @@ type DatabricksConfig =
       ManagedResourceGroupId : ResourceName option
       Sku : Sku
       EnablePublicIp : FeatureFlag
-      SecretScope : SecretScope option
+      KeyEncryption : KeyEncryption option
       ByovConfig : ByovConfig option
       Tags : Map<string,string> }
     interface IBuilder with
@@ -24,13 +24,13 @@ type DatabricksConfig =
               ManagedResourceGroupId = this.ManagedResourceGroupId |> Option.defaultWith (fun () -> this.Name-"rg")
               Sku = this.Sku
               EnablePublicIp = this.EnablePublicIp
-              SecretScope = this.SecretScope
+              KeyEncryption = this.KeyEncryption
               ByovConfig = this.ByovConfig
               Tags = this.Tags
               Dependencies = Set [
-                  match this.SecretScope with
-                  | Some (KeyVaultSecretScope config) -> config.Vault
-                  | Some DataBricksSecretScope | None -> ()
+                  match this.KeyEncryption with
+                  | Some (CustomerManagedEncryption config) -> config.Vault
+                  | Some InfrastructureEncryption | None -> ()
 
                   yield! this.ByovConfig |> Option.mapList(fun vnet -> vnet.Vnet)
               ] }
@@ -42,14 +42,15 @@ type WorkspaceBuilder() =
         ManagedResourceGroupId = None
         Sku = Standard
         EnablePublicIp = Enabled
-        SecretScope = None
+        KeyEncryption = None
         ByovConfig = None
         Tags = Map.empty }
 
     member _.Run(state:DatabricksConfig) =
         match state with
-        | { ByovConfig = Some { PublicSubnet = EmptyResourceName } } -> failwithf "Public subnet must be set. Use public_subnet to set it"
-        | { ByovConfig = Some { PrivateSubnet = EmptyResourceName } } -> failwithf "Private subnet must be set. Use private_subnet to set it"
+        | { ByovConfig = Some { PublicSubnet = EmptyResourceName } } -> failwithf "Public subnet must be set. Use public_subnet to set it."
+        | { ByovConfig = Some { PrivateSubnet = EmptyResourceName } } -> failwithf "Private subnet must be set. Use private_subnet to set it."
+        | { KeyEncryption = Some _; Sku = Standard } -> failwith "Infrastructure or Customer-managed Key Encryption is only available with the Premium SKU."
         | _ -> ()
 
         state
@@ -71,10 +72,10 @@ type WorkspaceBuilder() =
     [<CustomOperation "key_vault_secret_scope">]
     member _.KeyVault (state:DatabricksConfig, keyVault:ResourceId, keyName:string) =
         { state with
-            SecretScope =
-                Some (KeyVaultSecretScope {| Vault = keyVault
-                                             Key = keyName
-                                             KeyVersion = None |}) }
+            KeyEncryption =
+                Some (CustomerManagedEncryption {| Vault = keyVault
+                                                   Key = keyName
+                                                   KeyVersion = None |}) }
     member this.KeyVault (state, config:KeyVaultConfig, keyName) =
         this.KeyVault (state, vaults.resourceId config.Name, keyName)
     member this.KeyVault (state, vaultName:string, keyName) =
@@ -83,17 +84,17 @@ type WorkspaceBuilder() =
     [<CustomOperation "key_vault_key_version">]
     member _.KeyVaultKeyVersion (state:DatabricksConfig, keyVersion) =
         { state with
-            SecretScope =
-                match state.SecretScope with
-                | Some (KeyVaultSecretScope config) -> Some (KeyVaultSecretScope {| config with KeyVersion = Some keyVersion |})
-                | Some DataBricksSecretScope -> failwith "You cannot set the key vault key version if you have specified DataBricks internal encryption."
+            KeyEncryption =
+                match state.KeyEncryption with
+                | Some (CustomerManagedEncryption config) -> Some (CustomerManagedEncryption {| config with KeyVersion = Some keyVersion |})
+                | Some InfrastructureEncryption -> failwith "You cannot set the key vault key version if you have specified DataBricks internal encryption."
                 | None -> failwith "No key vault has been specified. First activate keyvault secret integration using key_vault_secret_management." }
     /// Use Databricks itself for the secret scope on the workspace.
     [<CustomOperation "databricks_secret_scope">]
-    member _.DatabricksSecretScope (state:DatabricksConfig) = { state with SecretScope = Some DataBricksSecretScope }
+    member _.DatabricksSecretScope (state:DatabricksConfig) = { state with KeyEncryption = Some InfrastructureEncryption }
     /// Specify the secret scope of the workspace programmatically.
     [<CustomOperation "secret_scope">]
-    member _.SecretScope (state:DatabricksConfig, scope) = { state with SecretScope = Some scope }
+    member _.SecretScope (state:DatabricksConfig, scope) = { state with KeyEncryption = Some scope }
     [<CustomOperation "attach_to_vnet">]
     member _.AttachToVnet (state:DatabricksConfig, vnet:ResourceId, publicSubnet, privateSubnet) =
         { state with
