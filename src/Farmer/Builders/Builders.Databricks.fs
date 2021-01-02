@@ -12,7 +12,7 @@ type WorkspaceConfig =
       ManagedResourceGroupId : ResourceName
       Sku : Sku
       EnablePublicIp : FeatureFlag
-      EncryptionMode : EncryptionMode option
+      SecretScope : SecretScope option
       ByovConfig : ByovConfig option
       Tags : Map<string,string> }
     interface IBuilder with
@@ -23,7 +23,7 @@ type WorkspaceConfig =
               ManagedResourceGroupId = this.ManagedResourceGroupId
               Sku = this.Sku
               EnablePublicIp = this.EnablePublicIp
-              EncryptionMode = this.EncryptionMode
+              SecretScope = this.SecretScope
               ByovConfig = this.ByovConfig
               Tags = this.Tags  }
         ]
@@ -34,7 +34,7 @@ type WorkspaceBuilder() =
         ManagedResourceGroupId = ResourceName.Empty
         Sku = Standard
         EnablePublicIp = Enabled
-        EncryptionMode = None
+        SecretScope = None
         ByovConfig = None
         Tags = Map.empty }
 
@@ -62,26 +62,31 @@ type WorkspaceBuilder() =
     [<CustomOperation "use_public_ip">]
     member _.UsePublicIp (state:WorkspaceConfig, flag) =
         { state with EnablePublicIp = flag }
-    /// Use key vault for storing and retrieving databricks secrets using the specified key vault and key.
-    [<CustomOperation "key_vault_secret_management">]
+    /// Use Azure Key Vault for the secret scope on the workspace.
+    [<CustomOperation "key_vault_secret_scope">]
     member _.KeyVault (state:WorkspaceConfig, keyVault, keyName) =
         { state with
-            EncryptionMode =
-                Some (KeyVaultEncryption {| Vault = keyVault
-                                            Key = keyName
-                                            KeyVersion = None |}) }
+            SecretScope =
+                Some (KeyVaultSecretScope {| Vault = keyVault
+                                             Key = keyName
+                                             KeyVersion = None |}) }
     member this.KeyVault (state:WorkspaceConfig, config:KeyVaultConfig, keyName:string) = this.KeyVault (state, config.Name, keyName)
     member this.KeyVault (state:WorkspaceConfig, vaultName, keyName) = this.KeyVault (state, ResourceName vaultName, keyName)
     /// Specifies the version of the key vault key to use; if this is not specified, the latest version of the key is used.
     [<CustomOperation "key_vault_key_version">]
     member _.KeyVaultKeyVersion (state:WorkspaceConfig, keyVersion) =
         { state with
-            EncryptionMode =
-                match state.EncryptionMode with
-                | Some (KeyVaultEncryption config) -> Some (KeyVaultEncryption {| config with KeyVersion = Some keyVersion |})
-                | Some DataBricksEncryption -> failwith "You cannot set the key vault key version if you have specified DataBricks internal encryption."
+            SecretScope =
+                match state.SecretScope with
+                | Some (KeyVaultSecretScope config) -> Some (KeyVaultSecretScope {| config with KeyVersion = Some keyVersion |})
+                | Some DataBricksSecretScope -> failwith "You cannot set the key vault key version if you have specified DataBricks internal encryption."
                 | None -> failwith "No key vault has been specified. First activate keyvault secret integration using key_vault_secret_management." }
-
+    /// Use Databricks itself for the secret scope on the workspace.
+    [<CustomOperation "databricks_secret_scope">]
+    member _.DatabricksSecretScope (state:WorkspaceConfig) = { state with SecretScope = Some DataBricksSecretScope }
+    /// Specify the secret scope of the workspace programmatically.
+    [<CustomOperation "secret_scope">]
+    member _.SecretScope (state:WorkspaceConfig, scope) = { state with SecretScope = Some scope }
     /// Sets the vnet
     [<CustomOperation "byov_vnet">]
     member _.ByovVnet (state:WorkspaceConfig, vnet:ResourceName) =
@@ -93,9 +98,9 @@ type WorkspaceBuilder() =
                         PublicSubnet = ResourceName.Empty
                         PrivateSubnet = ResourceName.Empty })
         { state with ByovConfig = config }
-    member this.ByovVnet(state:WorkspaceConfig, name:string) = this.ByovVnet(state, ResourceName name)
-    member this.ByovVnet(state:WorkspaceConfig, vnet:Arm.Network.VirtualNetwork) = this.ByovVnet(state, vnet.Name)
-    member this.ByovVnet(state:WorkspaceConfig, vnet:VirtualNetworkConfig) = this.ByovVnet(state, vnet.Name)
+    member this.ByovVnet (state:WorkspaceConfig, name:string) = this.ByovVnet (state, ResourceName name)
+    member this.ByovVnet (state:WorkspaceConfig, vnet:Arm.Network.VirtualNetwork) = this.ByovVnet (state, vnet.Name)
+    member this.ByovVnet (state:WorkspaceConfig, vnet:VirtualNetworkConfig) = this.ByovVnet (state, vnet.Name)
 
     /// Set the existing public subnet
     [<CustomOperation "byov_public_subnet">]

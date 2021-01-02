@@ -13,9 +13,9 @@ type ByovConfig =
       PublicSubnet : ResourceName
       PrivateSubnet : ResourceName }
 
-type EncryptionMode =
-    | DataBricksEncryption
-    | KeyVaultEncryption of {| Vault : ResourceName; Key : string; KeyVersion : Guid option |}
+type SecretScope =
+    | DataBricksSecretScope
+    | KeyVaultSecretScope of {| Vault : ResourceName; Key : string; KeyVersion : Guid option |}
 
 type Workspace =
     { Name : ResourceName
@@ -23,7 +23,7 @@ type Workspace =
       ManagedResourceGroupId : ResourceName
       Sku : Sku
       EnablePublicIp : FeatureFlag
-      EncryptionMode : EncryptionMode option
+      SecretScope : SecretScope option
       ByovConfig : ByovConfig option
       Tags : Map<string,string> }
 
@@ -38,7 +38,7 @@ type Workspace =
                         ArmExpression.create(expr).Eval()
                        parameters = Map [
                         "enableNoPublicIp", box (not this.EnablePublicIp.AsBoolean)
-                        "prepareEncryption", this.EncryptionMode |> Option.isSome |> box
+                        "prepareEncryption", this.SecretScope |> Option.isSome |> box
                         match this.ByovConfig with
                         | Some config ->
                             "customVirtualNetworkId", box {| value = config.Vnet.resourceId(config).Eval() |}
@@ -47,16 +47,16 @@ type Workspace =
                         | None ->
                             ()
                         "encryption",
-                            this.EncryptionMode
+                            this.SecretScope
                             |> Option.mapBoxed(fun config ->
                                 {| value =
                                     match config with
-                                    | KeyVaultEncryption config ->
+                                    | KeyVaultSecretScope config ->
                                         {| keySource = "MicrosoftKeyVault"
                                            keyName = config.Key
                                            keyversion = config.KeyVersion |> Option.map string |> Option.defaultValue "latest"
                                            keyvaulturi = sprintf "https://%s.vault.azure.net" config.Vault.Value |}
-                                    | DataBricksEncryption ->
+                                    | DataBricksSecretScope ->
                                         {| keySource = "Default"
                                            keyName = null
                                            keyversion = null

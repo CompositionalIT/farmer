@@ -40,11 +40,11 @@ let tests = testList "Databricks Tests" [
     }
 
     let getKeyVaultConfig : Workspace -> _ = function
-        | { EncryptionMode = Some (KeyVaultEncryption c) } -> c
-        | { EncryptionMode = Some DataBricksEncryption | None } -> failwith "Incorrect encryption mode specified"
+        | { SecretScope = Some (KeyVaultSecretScope c) } -> c
+        | { SecretScope = Some DataBricksSecretScope | None } -> failwith "Incorrect encryption mode specified"
 
     test "Sets encryption configuration correctly" {
-        let workspace = databricks { key_vault_secret_management "databricks-kv" "databricks-encryption-key" } |> getWorkspaceArm
+        let workspace = databricks { key_vault_secret_scope "databricks-kv" "databricks-encryption-key" } |> getWorkspaceArm
         let config = getKeyVaultConfig workspace
         Expect.equal config.Key "databricks-encryption-key" "Key name not initialised correctly"
         Expect.isNone config.KeyVersion  "Key version not initialised correctly"
@@ -52,11 +52,14 @@ let tests = testList "Databricks Tests" [
 
         let workspace =
             databricks {
-                key_vault_secret_management "databricks-kv" "databricks-encryption-key"
+                key_vault_secret_scope "databricks-kv" "databricks-encryption-key"
                 key_vault_key_version Guid.Empty
             } |> getWorkspaceArm
         Expect.equal (getKeyVaultConfig workspace).KeyVersion (Some Guid.Empty) "Key vault version not set correctly"
 
         Expect.throws (fun () -> databricks { key_vault_key_version Guid.Empty } |> ignore) "Should not be able to set key version without vault config"
+
+        let workspace = databricks { databricks_secret_scope }
+        Expect.equal workspace.SecretScope (Some DataBricksSecretScope) "encryption mode should be databricks"
     }
 ]
