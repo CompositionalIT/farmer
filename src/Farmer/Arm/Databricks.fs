@@ -38,8 +38,8 @@ type Workspace =
                         let expr = sprintf "concat(subscription().id, '/resourceGroups/', '%s')" this.ManagedResourceGroupId.Value
                         ArmExpression.create(expr).Eval()
                        parameters = Map [
-                        "enableNoPublicIp", box (not this.EnablePublicIp.AsBoolean)
-                        "prepareEncryption", this.SecretScope |> Option.isSome |> box
+                        "enableNoPublicIp", box {| value = (not this.EnablePublicIp.AsBoolean) |}
+                        "prepareEncryption", box {| value = this.SecretScope |> Option.isSome |}
                         match this.ByovConfig with
                         | Some config ->
                             "customVirtualNetworkId", box {| value = config.Vnet.Eval() |}
@@ -47,9 +47,9 @@ type Workspace =
                             "customPrivateSubnetName", box {| value = config.PrivateSubnet.Value |}
                         | None ->
                             ()
-                        "encryption",
-                            this.SecretScope
-                            |> Option.mapBoxed(fun config ->
+                        match this.SecretScope with
+                        | Some config ->
+                            "encryption",
                                 {| value =
                                     match config with
                                     | KeyVaultSecretScope config ->
@@ -62,7 +62,9 @@ type Workspace =
                                            keyName = null
                                            keyversion = null
                                            keyvaulturi = null |}
-                                |})
+                                |} |> box
+                        | None ->
+                            ()
                         ]
                     |}
             |} :> _
