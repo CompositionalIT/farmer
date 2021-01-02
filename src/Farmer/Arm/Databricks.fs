@@ -15,7 +15,7 @@ type ByovConfig =
 
 type SecretScope =
     | DataBricksSecretScope
-    | KeyVaultSecretScope of {| Vault : ResourceName; Key : string; KeyVersion : Guid option |}
+    | KeyVaultSecretScope of {| Vault : ResourceId; Key : string; KeyVersion : Guid option |}
 
 type Workspace =
     { Name : ResourceName
@@ -56,7 +56,7 @@ type Workspace =
                                         {| keySource = "MicrosoftKeyVault"
                                            keyName = config.Key
                                            keyversion = config.KeyVersion |> Option.map string |> Option.defaultValue "latest"
-                                           keyvaulturi = sprintf "https://%s.vault.azure.net" config.Vault.Value |}
+                                           keyvaulturi = sprintf "https://%s.vault.azure.net" config.Vault.Name.Value |}
                                     | DataBricksSecretScope ->
                                         {| keySource = "Default"
                                            keyName = null

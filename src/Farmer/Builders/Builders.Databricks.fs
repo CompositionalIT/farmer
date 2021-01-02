@@ -5,6 +5,7 @@ open Farmer
 open Farmer.Databricks
 open Farmer.Arm.Databricks
 open Farmer.Arm.Network
+open Farmer.Arm.KeyVault
 open System
 
 type DatabricksConfig =
@@ -14,8 +15,7 @@ type DatabricksConfig =
       EnablePublicIp : FeatureFlag
       SecretScope : SecretScope option
       ByovConfig : ByovConfig option
-      Tags : Map<string,string>
-      Dependencies : ResourceId Set }
+      Tags : Map<string,string> }
     interface IBuilder with
         member this.ResourceId = workspaces.resourceId this.Name
         member this.BuildResources location = [
@@ -27,7 +27,13 @@ type DatabricksConfig =
               SecretScope = this.SecretScope
               ByovConfig = this.ByovConfig
               Tags = this.Tags
-              Dependencies = this.Dependencies }
+              Dependencies = Set [
+                  match this.SecretScope with
+                  | Some (KeyVaultSecretScope config) -> config.Vault
+                  | Some DataBricksSecretScope | None -> ()
+
+                  yield! this.ByovConfig |> Option.mapList(fun vnet -> vnet.Vnet)
+              ] }
         ]
 
 type WorkspaceBuilder() =
@@ -38,8 +44,7 @@ type WorkspaceBuilder() =
         EnablePublicIp = Enabled
         SecretScope = None
         ByovConfig = None
-        Tags = Map.empty
-        Dependencies = Set.empty }
+        Tags = Map.empty }
 
     member _.Run(state:DatabricksConfig) =
         match state with
@@ -64,16 +69,16 @@ type WorkspaceBuilder() =
     member _.AllowPublicIp (state:DatabricksConfig, flag) = { state with EnablePublicIp = flag }
     /// Use Azure Key Vault for the secret scope on the workspace.
     [<CustomOperation "key_vault_secret_scope">]
-    member _.KeyVault (state:DatabricksConfig, keyVault, keyName) =
+    member _.KeyVault (state:DatabricksConfig, keyVault:ResourceId, keyName:string) =
         { state with
             SecretScope =
                 Some (KeyVaultSecretScope {| Vault = keyVault
                                              Key = keyName
                                              KeyVersion = None |}) }
-    member this.KeyVault (state:DatabricksConfig, config:KeyVaultConfig, keyName:string) =
-        this.KeyVault (state, config.Name, keyName)
-    member this.KeyVault (state:DatabricksConfig, vaultName, keyName) =
-        this.KeyVault (state, ResourceName vaultName, keyName)
+    member this.KeyVault (state, config:KeyVaultConfig, keyName) =
+        this.KeyVault (state, vaults.resourceId config.Name, keyName)
+    member this.KeyVault (state, vaultName:string, keyName) =
+        this.KeyVault (state, vaults.resourceId vaultName, keyName)
     /// Specifies the version of the key vault key to use; if this is not specified, the latest version of the key is used.
     [<CustomOperation "key_vault_key_version">]
     member _.KeyVaultKeyVersion (state:DatabricksConfig, keyVersion) =
@@ -92,7 +97,6 @@ type WorkspaceBuilder() =
     [<CustomOperation "attach_to_vnet">]
     member _.AttachToVnet (state:DatabricksConfig, vnet:ResourceId, publicSubnet, privateSubnet) =
         { state with
-            Dependencies = state.Dependencies.Add vnet
             ByovConfig =
                 Some { Vnet = vnet
                        PublicSubnet = publicSubnet
@@ -102,5 +106,4 @@ type WorkspaceBuilder() =
     member this.AttachToVnet (state, vnet:string, publicSubnet, privateSubnet) = this.AttachToVnet(state, virtualNetworks.resourceId vnet, ResourceName publicSubnet, ResourceName privateSubnet)
 
     interface ITaggable<DatabricksConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
-    interface IDependable<DatabricksConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 let databricks = WorkspaceBuilder()

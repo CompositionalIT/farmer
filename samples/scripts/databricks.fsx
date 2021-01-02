@@ -10,14 +10,12 @@ let myVault = keyVault { name "my-vault" }
 let workspace = databricks {
     name "my-databricks-workspace"
 
-    use_public_ip Enabled
+    allow_public_ip Enabled
 
-    key_vault_secret_management myVault "workspace-encryption-key"
+    key_vault_secret_scope myVault "workspace-encryption-key"
     key_vault_key_version Guid.Empty
 
-    byov_vnet "databricks-vnet"
-    byov_public_subnet "databricks-pub-snet"
-    byov_private_subnet "databricks-priv-snet"
+    attach_to_vnet "databricks-vnet" "databricks-pub-snet" "databricks-priv-snet"
 }
 
 let deployment = arm {
