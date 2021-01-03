@@ -25,7 +25,7 @@ module Profiles =
     type Endpoint =
         { Name : ResourceName
           Profile : ResourceName
-          Dependencies : ResourceId list
+          Dependencies : ResourceId Set
           CompressedContentTypes : string Set
           QueryStringCachingBehaviour : QueryStringCachingBehaviour
           Http : FeatureFlag

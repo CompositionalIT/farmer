@@ -370,27 +370,26 @@ module Storage =
     type BlobReplication = LRS | GRS | RAGRS
     type V1Replication = LRS of StoragePerformance | GRS | RAGRS
     type V2Replication = LRS of StoragePerformance | GRS | ZRS | GZRS | RAGRS | RAGZRS
-    type GeneralPurpose = V1 of V1Replication | V2 of V2Replication
-    type BlobAccessTier = Hot | Cool
+    type GeneralPurpose = V1 of V1Replication | V2 of V2Replication * DefaultAccessTier option
     type Sku =
         | GeneralPurpose of GeneralPurpose
         | Blobs of BlobReplication * DefaultAccessTier option
         | BlockBlobs of BasicReplication
         | Files of BasicReplication
         /// General Purpose V2 Standard LRS with no default access tier.
-        static member Standard_LRS = GeneralPurpose (V2 (LRS Standard))
+        static member Standard_LRS = GeneralPurpose (V2 (LRS Standard, None))
         /// General Purpose V2 Premium LRS with no default access tier.
-        static member Premium_LRS = GeneralPurpose (V2 (LRS Premium))
+        static member Premium_LRS = GeneralPurpose (V2 (LRS Premium, None))
         /// General Purpose V2 Standard GRS with no default access tier.
-        static member Standard_GRS = GeneralPurpose (V2 (GRS))
+        static member Standard_GRS = GeneralPurpose (V2 (GRS, None))
         /// General Purpose V2 Standard RAGRS with no default access tier.
-        static member Standard_RAGRS = GeneralPurpose (V2 (RAGRS))
+        static member Standard_RAGRS = GeneralPurpose (V2 (RAGRS, None))
         /// General Purpose V2 Standard ZRS with no default access tier.
-        static member Standard_ZRS = GeneralPurpose (V2 (ZRS))
+        static member Standard_ZRS = GeneralPurpose (V2 (ZRS, None))
         /// General Purpose V2 Standard GZRS with no default access tier.
-        static member Standard_GZRS = GeneralPurpose (V2 (GZRS))
+        static member Standard_GZRS = GeneralPurpose (V2 (GZRS, None))
         /// General Purpose V2 Standard RAGZRS with no default access tier.
-        static member Standard_RAGZRS = GeneralPurpose (V2 (RAGZRS))
+        static member Standard_RAGZRS = GeneralPurpose (V2 (RAGZRS, None))
 
     type StorageContainerAccess =
         | Private
