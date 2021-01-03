@@ -70,7 +70,7 @@ let tests = ftestList "Databricks Tests" [
     }
 
     test "Encryption works correctly" {
-        let bricks = databricks { sku Premium; key_vault_managed_keys "databricks-kv" "databricks-encryption-key" } |> fromJson
+        let bricks = databricks { sku Premium; encrypt_with_key_vault "databricks-kv" "databricks-encryption-key" } |> fromJson
         let parameters = bricks.properties.parameters
         Expect.isTrue parameters.prepareEncryption.value "Encryption off by default"
         Expect.equal parameters.encryption.value.keySource "Microsoft.Keyvault" "Incorrect source"
@@ -83,16 +83,16 @@ let tests = ftestList "Databricks Tests" [
         let bricks =
             databricks {
                 sku Premium
-                key_vault_managed_keys "databricks-kv" "databricks-encryption-key"
+                encrypt_with_key_vault "databricks-kv" "databricks-encryption-key"
                 key_vault_key_version (Guid.Parse "74135499-7a08-45fa-9ebd-94670097b04a") // arbitrary for test
             } |> fromJson
 
         Expect.equal bricks.properties.parameters.encryption.value.keyversion "74135499-7a08-45fa-9ebd-94670097b04a" "Key vault version not set correctly"
         Expect.throws (fun () -> databricks { key_vault_key_version Guid.Empty } |> ignore) "Should not be able to set key version without vault config"
 
-        let bricks = databricks { sku Premium; databricks_managed_keys } |> fromJson
+        let bricks = databricks { sku Premium; encrypt_with_databricks } |> fromJson
         Expect.equal bricks.properties.parameters.encryption.value.keySource "Default" "encryption mode should be databricks"
 
-        Expect.throws (fun () -> databricks { key_vault_managed_keys "test" "test" } |> ignore) "Should not be able to set key vault without Premium set"
+        Expect.throws (fun () -> databricks { encrypt_with_key_vault "test" "test" } |> ignore) "Should not be able to set key vault without Premium set"
     }
 ]

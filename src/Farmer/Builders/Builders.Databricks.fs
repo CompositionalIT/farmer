@@ -69,17 +69,17 @@ type WorkspaceBuilder() =
     [<CustomOperation "allow_public_ip">]
     member _.AllowPublicIp (state:DatabricksConfig, flag) = { state with EnablePublicIp = flag }
     /// Use Azure Key Vault for the key store.
-    [<CustomOperation "key_vault_managed_keys">]
-    member _.KeyVault (state:DatabricksConfig, keyVault:ResourceId, keyName:string) =
-        { state with
-            KeyEncryption =
-                Some (CustomerManaged {| Vault = keyVault
-                                                 Key = keyName
-                                                 KeyVersion = None |}) }
-    member this.KeyVault (state, config:KeyVaultConfig, keyName) =
-        this.KeyVault (state, vaults.resourceId config.Name, keyName)
-    member this.KeyVault (state, vaultName:string, keyName) =
-        this.KeyVault (state, vaults.resourceId vaultName, keyName)
+    [<CustomOperation "encrypt_with_key_vault">]
+    member this.KeyVaultEncryption (state:DatabricksConfig, keyVault:ResourceId, keyName:string) =
+        let encryption =
+            CustomerManaged {| Vault = keyVault
+                               Key = keyName
+                               KeyVersion = None |}
+        this.Encrypt(state, encryption)
+    member this.KeyVaultEncryption (state, config:KeyVaultConfig, keyName) =
+        this.KeyVaultEncryption (state, vaults.resourceId config.Name, keyName)
+    member this.KeyVaultEncryption (state, vaultName:string, keyName) =
+        this.KeyVaultEncryption (state, vaults.resourceId vaultName, keyName)
     /// Specifies the version of the key vault key to use; if this is not specified, the latest version of the key is used.
     [<CustomOperation "key_vault_key_version">]
     member _.KeyVaultKeyVersion (state:DatabricksConfig, keyVersion) =
@@ -90,11 +90,11 @@ type WorkspaceBuilder() =
                 | Some InfrastructureManaged -> failwith "You cannot set the key vault key version if you have specified DataBricks internal encryption."
                 | None -> failwith "No key vault has been specified. First activate keyvault secret integration using key_vault_secret_management." }
     /// Use Databricks itself for the key store.
-    [<CustomOperation "databricks_managed_keys">]
-    member _.DatabricksSecretScope (state:DatabricksConfig) = { state with KeyEncryption = Some InfrastructureManaged }
+    [<CustomOperation "encrypt_with_databricks">]
+    member this.DatabricksEncryption (state:DatabricksConfig) = this.Encrypt (state, InfrastructureManaged)
     /// Specify the secret scope of the workspace programmatically.
-    [<CustomOperation "secret_scope">]
-    member _.SecretScope (state:DatabricksConfig, scope) = { state with KeyEncryption = Some scope }
+    [<CustomOperation "encrypt_with">]
+    member _.Encrypt (state:DatabricksConfig, encryption) = { state with KeyEncryption = Some encryption }
     [<CustomOperation "attach_to_vnet">]
     member _.AttachToVnet (state:DatabricksConfig, vnet:ResourceId, publicSubnet, privateSubnet) =
         { state with
