@@ -445,7 +445,6 @@ module WebApp =
         let Logging = ExtensionName "Microsoft.AspNetCore.AzureAppServices.SiteExtension"
 
 module CognitiveServices =
-    open Validation
     /// Type of SKU. See https://docs.microsoft.com/en-us/rest/api/cognitiveservices/accountmanagement/resourceskus/list
     type Sku =
         /// Free Tier
@@ -455,15 +454,10 @@ module CognitiveServices =
         | S2
         | S3
         | S4
-        | S5
-        | S6
-        | S7
-        | S8
 
     type Kind =
         | AllInOne
         | AnomalyDetector
-        | Bing_Autosuggest_v7 | Bing_CustomSearch | Bing_EntitySearch | Bing_Search_v7 | Bing_SpellCheck_v7
         | CognitiveServices
         | ComputerVision
         | ContentModerator
@@ -480,25 +474,28 @@ module CognitiveServices =
         | TextAnalytics
         | TextTranslation
 
-    type CognitiveServicesSku =
-        private | CognitiveServicesSku of Sku
-        static member Create kind sku =
-            [
-                (fun kind sku ->
-                    match kind with
-                    | Bing_Search_v7 -> Ok ()
-                    | _ ->
-                        match sku with
-                        | S5 | S6 | S7 | S8 ->
-                            Error (sprintf "Cognitive services sku (%A) is not available for this kind (%A)" sku kind)
-                        | _ -> Ok ()
-                )
-            ]
-            |> Seq.ofList
-            |> validate kind sku
-            |> Result.map CognitiveServicesSku
+module BingSearch =
+    /// Type of SKU. See https://www.microsoft.com/en-us/bing/apis/pricing
+    type Sku =
+        /// Free Tier
+        | F0
+        | S0
+        | S1
+        | S2
+        | S3
+        | S4
+        | S5
+        | S6
+        | S7
+        | S8
+        | S9
 
-        member this.Sku = match this with CognitiveServicesSku sku -> sku
+    type Kind =
+        | Auto_Suggest
+        | Custom_Search
+        | Entity_Search
+        | Spell_Check
+        | Web_Search
 
 module ContainerRegistry =
     /// Container Registry SKU
