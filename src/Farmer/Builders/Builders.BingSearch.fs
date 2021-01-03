@@ -7,14 +7,13 @@ open Farmer.BingSearch
 
 type BingSearch =
     /// Gets an ARM Expression key for any Bing Search instance.
-    static member getKey (resourceId:ResourceId) =
+    static member getKey (resourceId: ResourceId) =
         ArmExpression.create(sprintf "listKeys(%s, '%s').key1" resourceId.ArmExpression.Value accounts.ApiVersion, resourceId)
-    static member getKey (name:ResourceName) = BingSearch.getKey (accounts.resourceId name)
+    static member getKey (name: ResourceName) = BingSearch.getKey (accounts.resourceId name)
 
 type BingSearchConfig =
     { Name: ResourceName
       Sku: Sku
-      Api: Kind
       Tags: Map<string,string>
       StatisticsEnabled: bool }
     /// Gets an ARM expression to the key of this Bing Search instance.
@@ -25,24 +24,20 @@ type BingSearchConfig =
             { Name = this.Name
               Location = location
               Sku = this.Sku
-              Kind = this.Api
               Tags = this.Tags
-              Properties = {| StatisticsEnabled = this.StatisticsEnabled |} }
+              Properties = {| statisticsEnabled = this.StatisticsEnabled |} }
         ]
 
 type BingSearchBuilder () =
     member _.Yield _ =
         { Name = ResourceName.Empty
-          Sku = F0
-          Api = Custom_Search
+          Sku = F1
           Tags = Map.empty
           StatisticsEnabled = false }
     [<CustomOperation "name">]
     member _.Name (state:BingSearchConfig, name) = { state with Name = ResourceName name }
     [<CustomOperation "sku">]
     member _.Sku (state:BingSearchConfig, sku) = { state with Sku = sku }
-    [<CustomOperation "api">]
-    member _.Api (state:BingSearchConfig, api) = { state with Api = api }
     [<CustomOperation "enable_statistics">]
     member _.EnableStatistics (state:BingSearchConfig) = { state with StatisticsEnabled = true }
     [<CustomOperation "add_tags">]

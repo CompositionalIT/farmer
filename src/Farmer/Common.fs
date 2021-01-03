@@ -477,7 +477,7 @@ module BingSearch =
     /// Type of SKU. See https://www.microsoft.com/en-us/bing/apis/pricing
     type Sku =
         /// Free Tier
-        | F0
+        | F1
         | S0
         | S1
         | S2
@@ -488,13 +488,6 @@ module BingSearch =
         | S7
         | S8
         | S9
-
-    type Kind =
-        | Auto_Suggest
-        | Custom_Search
-        | Entity_Search
-        | Spell_Check
-        | Web_Search
 
 module ContainerRegistry =
     /// Container Registry SKU
