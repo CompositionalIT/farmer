@@ -1,7 +1,8 @@
 Release Notes
 =============
 ## vNext
-* CognitiveServices: Add S5/S6/S7/S8 Skus and add validation to kind & sku selection.
+* CognitiveServices: remove BingSearch options,
+* BingSearch: add bingSearch resource.
 
 ## 1.4.0-beta1
 * Storage: Support for setting default blob access tier at account level with "default_blob_access_tier"
