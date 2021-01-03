@@ -8,14 +8,14 @@ open System
 
 let workspaces = ResourceType ("Microsoft.Databricks/workspaces", "2018-04-01")
 
-type ByovConfig =
+type VnetConfig =
     { Vnet : ResourceId
       PublicSubnet : ResourceName
       PrivateSubnet : ResourceName }
 
 type KeyEncryption =
-    | InfrastructureEncryption
-    | CustomerManagedEncryption of {| Vault : ResourceId; Key : string; KeyVersion : Guid option |}
+    | InfrastructureManaged
+    | CustomerManaged of {| Vault : ResourceId; Key : string; KeyVersion : Guid option |}
 
 type Workspace =
     { Name : ResourceName
@@ -24,7 +24,7 @@ type Workspace =
       Sku : Sku
       EnablePublicIp : FeatureFlag
       KeyEncryption : KeyEncryption option
-      ByovConfig : ByovConfig option
+      VnetConfig : VnetConfig option
       Tags : Map<string,string>
       Dependencies : ResourceId Set }
 
@@ -39,8 +39,8 @@ type Workspace =
                         ArmExpression.create(expr).Eval()
                        parameters = Map [
                         "enableNoPublicIp", box {| value = (not this.EnablePublicIp.AsBoolean) |}
-                        "prepareEncryption", box {| value = this.KeyEncryption |> Option.isSome |}
-                        match this.ByovConfig with
+                        "prepareEncryption", box {| value = Option.isSome this.KeyEncryption |}
+                        match this.VnetConfig with
                         | Some config ->
                             "customVirtualNetworkId", box {| value = config.Vnet.Eval() |}
                             "customPublicSubnetName", box {| value = config.PublicSubnet.Value |}
@@ -52,12 +52,12 @@ type Workspace =
                             "encryption",
                                 {| value =
                                     match config with
-                                    | CustomerManagedEncryption config ->
+                                    | CustomerManaged config ->
                                         {| keySource = "MicrosoftKeyVault"
                                            keyName = config.Key
                                            keyversion = config.KeyVersion |> Option.map string |> Option.defaultValue "latest"
                                            keyvaulturi = sprintf "https://%s.vault.azure.net" config.Vault.Name.Value |}
-                                    | InfrastructureEncryption ->
+                                    | InfrastructureManaged ->
                                         {| keySource = "Default"
                                            keyName = null
                                            keyversion = null

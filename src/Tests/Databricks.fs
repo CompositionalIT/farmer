@@ -2,12 +2,12 @@ module Databricks
 
 open Expecto
 open Farmer
-open Farmer.Builders.Databricks
-open Farmer.Builders.VirtualNetwork
-open Farmer.Databricks
 open Farmer.Arm.Databricks
 open Farmer.Arm.KeyVault
 open Farmer.Arm.Network
+open Farmer.Builders.Databricks
+open Farmer.Builders.VirtualNetwork
+open Farmer.Databricks
 open System
 
 let tests = testList "Databricks Tests" [
@@ -35,23 +35,23 @@ let tests = testList "Databricks Tests" [
 
     test "Sets BYOV configuration" {
         let bricks = databricks { attach_to_vnet "databricks-vnet" "databricks-pub-snet" "databricks-priv-snet" } |> getWorkspaceArm
-        Expect.equal (bricks.ByovConfig.Value.Vnet.Name.Value) "databricks-vnet" "BYOV vnet is not set correctly"
-        Expect.equal bricks.ByovConfig.Value.PublicSubnet.Value "databricks-pub-snet" "BYOV public subnet not set correctly"
-        Expect.equal bricks.ByovConfig.Value.PrivateSubnet.Value "databricks-priv-snet" "BYOV private subnet not set correctly"
+        Expect.equal (bricks.VnetConfig.Value.Vnet.Name.Value) "databricks-vnet" "BYOV vnet is not set correctly"
+        Expect.equal bricks.VnetConfig.Value.PublicSubnet.Value "databricks-pub-snet" "BYOV public subnet not set correctly"
+        Expect.equal bricks.VnetConfig.Value.PrivateSubnet.Value "databricks-priv-snet" "BYOV private subnet not set correctly"
 
         let vn = vnet { name "test" }
         let pubSubnet = buildSubnet "public" 26
         let privSubnet = buildSubnet "private" 24
         let bricks = databricks { attach_to_vnet vn pubSubnet privSubnet } |> getWorkspaceArm
-        Expect.equal bricks.ByovConfig.Value.Vnet.Name.Value "test" "BYOV vnet is not set correctly"
-        Expect.equal bricks.ByovConfig.Value.PublicSubnet.Value "public" "BYOV public subnet not set correctly"
-        Expect.equal bricks.ByovConfig.Value.PrivateSubnet.Value "private" "BYOV private subnet not set correctly"
+        Expect.equal bricks.VnetConfig.Value.Vnet.Name.Value "test" "BYOV vnet is not set correctly"
+        Expect.equal bricks.VnetConfig.Value.PublicSubnet.Value "public" "BYOV public subnet not set correctly"
+        Expect.equal bricks.VnetConfig.Value.PrivateSubnet.Value "private" "BYOV private subnet not set correctly"
         Expect.contains bricks.Dependencies (virtualNetworks.resourceId "test") "Incorrect dependency"
     }
 
     let getKeyVaultConfig : Workspace -> _ = function
-        | { KeyEncryption = Some (CustomerManagedEncryption c) } -> c
-        | { KeyEncryption = Some InfrastructureEncryption | None } -> failwith "Incorrect encryption mode specified"
+        | { KeyEncryption = Some (CustomerManaged c) } -> c
+        | { KeyEncryption = Some InfrastructureManaged | None } -> failwith "Incorrect encryption mode specified"
 
     test "Secret scope works correctly" {
         let bricks = databricks { sku Premium; key_vault_secret_scope "databricks-kv" "databricks-encryption-key" } |> getWorkspaceArm
@@ -72,6 +72,6 @@ let tests = testList "Databricks Tests" [
         Expect.throws (fun () -> databricks { key_vault_key_version Guid.Empty } |> ignore) "Should not be able to set key version without vault config"
 
         let bricks = databricks { sku Premium; databricks_secret_scope } |> getWorkspaceArm
-        Expect.equal bricks.KeyEncryption (Some InfrastructureEncryption) "encryption mode should be databricks"
+        Expect.equal bricks.KeyEncryption (Some InfrastructureManaged) "encryption mode should be databricks"
     }
 ]
