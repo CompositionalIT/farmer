@@ -53,9 +53,9 @@ type Workspace =
                                 {| value =
                                     match config with
                                     | CustomerManaged config ->
-                                        {| keySource = "MicrosoftKeyVault"
+                                        {| keySource = "Microsoft.Keyvault"
                                            keyName = config.Key
-                                           keyversion = config.KeyVersion |> Option.map string |> Option.defaultValue "latest"
+                                           keyversion = config.KeyVersion |> Option.map string |> Option.toObj
                                            keyvaulturi = sprintf "https://%s.vault.azure.net" config.Vault.Name.Value |}
                                     | InfrastructureManaged ->
                                         {| keySource = "Default"

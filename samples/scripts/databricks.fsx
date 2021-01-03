@@ -8,13 +8,9 @@ open System
 let myVault = keyVault { name "my-vault" }
 
 let workspace = databricks {
-    name "my-databricks-workspace"
-
-    allow_public_ip Enabled
-
-    key_vault_secret_scope myVault "workspace-encryption-key"
+    name "isaac-databricks"
+    key_vault_managed_keys myVault "workspace-encryption-key"
     key_vault_key_version Guid.Empty
-
     attach_to_vnet "databricks-vnet" "databricks-pub-snet" "databricks-priv-snet"
 }
 
@@ -25,4 +21,4 @@ let deployment = arm {
 
 // Generate the ARM template here...
 deployment
-|> Writer.quickWrite "farmer-deploy"
+|> Deploy.execute "my-resource-group" []

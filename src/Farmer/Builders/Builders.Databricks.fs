@@ -68,8 +68,8 @@ type WorkspaceBuilder() =
     /// Enabled Public IP
     [<CustomOperation "allow_public_ip">]
     member _.AllowPublicIp (state:DatabricksConfig, flag) = { state with EnablePublicIp = flag }
-    /// Use Azure Key Vault for the secret scope on the workspace.
-    [<CustomOperation "key_vault_secret_scope">]
+    /// Use Azure Key Vault for the key store.
+    [<CustomOperation "key_vault_managed_keys">]
     member _.KeyVault (state:DatabricksConfig, keyVault:ResourceId, keyName:string) =
         { state with
             KeyEncryption =
@@ -89,8 +89,8 @@ type WorkspaceBuilder() =
                 | Some (CustomerManaged config) -> Some (CustomerManaged {| config with KeyVersion = Some keyVersion |})
                 | Some InfrastructureManaged -> failwith "You cannot set the key vault key version if you have specified DataBricks internal encryption."
                 | None -> failwith "No key vault has been specified. First activate keyvault secret integration using key_vault_secret_management." }
-    /// Use Databricks itself for the secret scope on the workspace.
-    [<CustomOperation "databricks_secret_scope">]
+    /// Use Databricks itself for the key store.
+    [<CustomOperation "databricks_managed_keys">]
     member _.DatabricksSecretScope (state:DatabricksConfig) = { state with KeyEncryption = Some InfrastructureManaged }
     /// Specify the secret scope of the workspace programmatically.
     [<CustomOperation "secret_scope">]
