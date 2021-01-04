@@ -12,12 +12,12 @@ type Accounts =
       Location: Location
       Sku: BingSearch.Sku
       Tags: Map<string,string>
-      Properties: {| statisticsEnabled: bool |} }
+      Statistics: FeatureFlag }
     interface IArmResource with
         member this.ResourceId = accounts.resourceId this.Name
         member this.JsonModel =
             {| accounts.Create(this.Name, this.Location, tags = this.Tags) with
                 sku = {| name = string this.Sku |}
                 kind = kind
-                properties = this.Properties
+                properties = {| statisticsEnabled = this.Statistics.AsBoolean |}
             |} :> _
