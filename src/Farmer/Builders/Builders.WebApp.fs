@@ -111,7 +111,7 @@ type WebAppConfig =
       DockerAcrCredentials : {| RegistryName : string; Password : SecureParameter |} option
       SecretStore : SecretStore
       AutomaticLoggingExtension : bool
-      SiteExtensions : ExtensionName Set
+      SiteExtensions : ExtensionName Set 
       WorkerProcess : Bitness option }
     /// Gets this web app's Server Plan's full resource ID.
     member this.ServicePlanId = this.ServicePlan.resourceId this.Name
