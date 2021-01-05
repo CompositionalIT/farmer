@@ -533,7 +533,7 @@ type WebAppBuilder() =
               Identity = state.Identity
               ZipDeployPath = state.ZipDeployPath
               AlwaysOn = state.AlwaysOn 
-              WorkerProcess = state.WorkerProcess}
+              WorkerProcess = state.WorkerProcess }
         member _.Wrap state config =
             { state with
                 Name = config.Name
@@ -545,7 +545,7 @@ type WebAppBuilder() =
                 Identity = config.Identity
                 ZipDeployPath = config.ZipDeployPath
                 AlwaysOn = config.AlwaysOn 
-                WorkerProcess = config.WorkerProcess}
+                WorkerProcess = config.WorkerProcess }
 
 let webApp = WebAppBuilder()
 
@@ -673,6 +673,6 @@ module Extensions =
         /// Sets "Always On" flag
         [<CustomOperation "always_on">]
         member this.AlwaysOn(state:'T) = { this.Get state with AlwaysOn = true } |> this.Wrap state
-        //Chooses the bitness (32 or 64) of the worker process
+        ///Chooses the bitness (32 or 64) of the worker process
         [<CustomOperation "worker_process">]
         member this.WorkerProcess (state:'T, bitness) = { this.Get state with WorkerProcess = Some bitness } |> this.Wrap state
