@@ -305,4 +305,14 @@ let tests = testList "Web App Tests" [
         let w:Site = webApp { name "testDefault"; always_on } |> getResourceAtIndex 0
         Expect.equal w.SiteConfig.AlwaysOn (Nullable true) "always on should be true"
     }
+
+    test "Default always on false" {
+        let w:Site = webApp { name "testDefault" } |> getResourceAtIndex 0
+        Expect.equal w.SiteConfig.AlwaysOn (Nullable false) "always on should be false by default"
+    }
+
+    test "Always on true" {
+        let w:Site = webApp { name "testDefault"; always_on } |> getResourceAtIndex 0
+        Expect.equal w.SiteConfig.AlwaysOn (Nullable true) "always on should be true"
+    }
 ]
