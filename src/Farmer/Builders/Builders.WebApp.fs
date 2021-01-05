@@ -544,7 +544,7 @@ type WebAppBuilder() =
                 Cors = config.Cors
                 Identity = config.Identity
                 ZipDeployPath = config.ZipDeployPath
-                AlwaysOn = state.AlwaysOn }
+                AlwaysOn = config.AlwaysOn }
 
 let webApp = WebAppBuilder()
 
