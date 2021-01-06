@@ -1,5 +1,5 @@
 {
-  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "outputs": {},
   "parameters": {
@@ -9,150 +9,182 @@
   },
   "resources": [
     {
-      "apiVersion": "2018-10-01",
-      "dependsOn": [
-        "[resourceId('Microsoft.Network/networkInterfaces', 'isaacsVM-nic')]",
-        "[resourceId('Microsoft.Storage/storageAccounts', 'isaacsvmstorage')]"
-      ],
+      "apiVersion": "2020-06-01",
       "location": "northeurope",
-      "name": "isaacsVM",
+      "name": "farmer-deploy",
+      "tags": {},
+      "type": "Microsoft.Resources/resourceGroups"
+    },
+    {
+      "apiVersion": "2020-06-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/resourceGroups', 'farmer-deploy')]"
+      ],
+      "name": "farmer-deploy",
       "properties": {
-        "diagnosticsProfile": {
-          "bootDiagnostics": {
-            "enabled": true,
-            "storageUri": "[reference('isaacsvmstorage').primaryEndpoints.blob]"
-          }
+        "expressionEvaluationOptions": {
+          "scope": "inner"
         },
-        "hardwareProfile": {
-          "vmSize": "Standard_A2"
-        },
-        "networkProfile": {
-          "networkInterfaces": [
+        "mode": "Incremental",
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "outputs": {},
+          "parameters": {},
+          "resources": [
             {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces', 'isaacsVM-nic')]"
-            }
-          ]
-        },
-        "osProfile": {
-          "adminPassword": "[parameters('password-for-isaacsVM')]",
-          "adminUsername": "isaac",
-          "computerName": "isaacsVM"
-        },
-        "storageProfile": {
-          "dataDisks": [
-            {
-              "createOption": "Empty",
-              "diskSizeGB": 512,
-              "lun": 0,
-              "managedDisk": {
-                "storageAccountType": "Standard_LRS"
+              "apiVersion": "2018-10-01",
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', 'isaacsVM-nic')]",
+                "[resourceId('Microsoft.Storage/storageAccounts', 'isaacsvmstorage')]"
+              ],
+              "location": "northeurope",
+              "name": "isaacsVM",
+              "properties": {
+                "diagnosticsProfile": {
+                  "bootDiagnostics": {
+                    "enabled": true,
+                    "storageUri": "[reference('isaacsvmstorage').primaryEndpoints.blob]"
+                  }
+                },
+                "hardwareProfile": {
+                  "vmSize": "Standard_A2"
+                },
+                "networkProfile": {
+                  "networkInterfaces": [
+                    {
+                      "id": "[resourceId('Microsoft.Network/networkInterfaces', 'isaacsVM-nic')]"
+                    }
+                  ]
+                },
+                "osProfile": {
+                  "adminPassword": "[parameters('password-for-isaacsVM')]",
+                  "adminUsername": "isaac",
+                  "computerName": "isaacsVM"
+                },
+                "storageProfile": {
+                  "dataDisks": [
+                    {
+                      "createOption": "Empty",
+                      "diskSizeGB": 512,
+                      "lun": 0,
+                      "managedDisk": {
+                        "storageAccountType": "Standard_LRS"
+                      },
+                      "name": "isaacsvm-datadisk-0"
+                    },
+                    {
+                      "createOption": "Empty",
+                      "diskSizeGB": 128,
+                      "lun": 1,
+                      "managedDisk": {
+                        "storageAccountType": "StandardSSD_LRS"
+                      },
+                      "name": "isaacsvm-datadisk-1"
+                    }
+                  ],
+                  "imageReference": {
+                    "offer": "WindowsServer",
+                    "publisher": "MicrosoftWindowsServer",
+                    "sku": "2012-Datacenter",
+                    "version": "latest"
+                  },
+                  "osDisk": {
+                    "createOption": "FromImage",
+                    "diskSizeGB": 128,
+                    "managedDisk": {
+                      "storageAccountType": "StandardSSD_LRS"
+                    },
+                    "name": "isaacsvm-osdisk"
+                  }
+                }
               },
-              "name": "isaacsvm-datadisk-0"
+              "tags": {},
+              "type": "Microsoft.Compute/virtualMachines"
             },
             {
-              "createOption": "Empty",
-              "diskSizeGB": 128,
-              "lun": 1,
-              "managedDisk": {
-                "storageAccountType": "StandardSSD_LRS"
+              "apiVersion": "2018-11-01",
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', 'isaacsVM-vnet')]",
+                "[resourceId('Microsoft.Network/publicIPAddresses', 'isaacsVM-ip')]"
+              ],
+              "location": "northeurope",
+              "name": "isaacsVM-nic",
+              "properties": {
+                "ipConfigurations": [
+                  {
+                    "name": "ipconfig1",
+                    "properties": {
+                      "privateIPAllocationMethod": "Dynamic",
+                      "publicIPAddress": {
+                        "id": "[resourceId('Microsoft.Network/publicIPAddresses', 'isaacsVM-ip')]"
+                      },
+                      "subnet": {
+                        "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'isaacsVM-vnet', 'isaacsVM-subnet')]"
+                      }
+                    }
+                  }
+                ]
               },
-              "name": "isaacsvm-datadisk-1"
+              "tags": {},
+              "type": "Microsoft.Network/networkInterfaces"
+            },
+            {
+              "apiVersion": "2018-11-01",
+              "location": "northeurope",
+              "name": "isaacsVM-vnet",
+              "properties": {
+                "addressSpace": {
+                  "addressPrefixes": [
+                    "10.0.0.0/16"
+                  ]
+                },
+                "subnets": [
+                  {
+                    "name": "isaacsVM-subnet",
+                    "properties": {
+                      "addressPrefix": "10.0.0.0/24",
+                      "delegations": []
+                    }
+                  }
+                ]
+              },
+              "tags": {},
+              "type": "Microsoft.Network/virtualNetworks"
+            },
+            {
+              "apiVersion": "2018-11-01",
+              "location": "northeurope",
+              "name": "isaacsVM-ip",
+              "properties": {
+                "publicIPAllocationMethod": "Dynamic"
+              },
+              "sku": {
+                "name": "Basic"
+              },
+              "tags": {},
+              "type": "Microsoft.Network/publicIPAddresses"
+            },
+            {
+              "apiVersion": "2019-06-01",
+              "dependsOn": [],
+              "kind": "StorageV2",
+              "location": "northeurope",
+              "name": "isaacsvmstorage",
+              "properties": {},
+              "sku": {
+                "name": "Standard_LRS"
+              },
+              "tags": {},
+              "type": "Microsoft.Storage/storageAccounts"
             }
           ],
-          "imageReference": {
-            "offer": "WindowsServer",
-            "publisher": "MicrosoftWindowsServer",
-            "sku": "2012-Datacenter",
-            "version": "latest"
-          },
-          "osDisk": {
-            "createOption": "FromImage",
-            "diskSizeGB": 128,
-            "managedDisk": {
-              "storageAccountType": "StandardSSD_LRS"
-            },
-            "name": "isaacsvm-osdisk"
-          }
+          "variables": {}
         }
       },
+      "resourceGroup": "farmer-deploy",
       "tags": {},
-      "type": "Microsoft.Compute/virtualMachines"
-    },
-    {
-      "apiVersion": "2018-11-01",
-      "dependsOn": [
-        "[resourceId('Microsoft.Network/virtualNetworks', 'isaacsVM-vnet')]",
-        "[resourceId('Microsoft.Network/publicIPAddresses', 'isaacsVM-ip')]"
-      ],
-      "location": "northeurope",
-      "name": "isaacsVM-nic",
-      "properties": {
-        "ipConfigurations": [
-          {
-            "name": "ipconfig1",
-            "properties": {
-              "privateIPAllocationMethod": "Dynamic",
-              "publicIPAddress": {
-                "id": "[resourceId('Microsoft.Network/publicIPAddresses', 'isaacsVM-ip')]"
-              },
-              "subnet": {
-                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'isaacsVM-vnet', 'isaacsVM-subnet')]"
-              }
-            }
-          }
-        ]
-      },
-      "tags": {},
-      "type": "Microsoft.Network/networkInterfaces"
-    },
-    {
-      "apiVersion": "2018-11-01",
-      "location": "northeurope",
-      "name": "isaacsVM-vnet",
-      "properties": {
-        "addressSpace": {
-          "addressPrefixes": [
-            "10.0.0.0/16"
-          ]
-        },
-        "subnets": [
-          {
-            "name": "isaacsVM-subnet",
-            "properties": {
-              "addressPrefix": "10.0.0.0/24",
-              "delegations": []
-            }
-          }
-        ]
-      },
-      "tags": {},
-      "type": "Microsoft.Network/virtualNetworks"
-    },
-    {
-      "apiVersion": "2018-11-01",
-      "location": "northeurope",
-      "name": "isaacsVM-ip",
-      "properties": {
-        "publicIPAllocationMethod": "Dynamic"
-      },
-      "sku": {
-        "name": "Basic"
-      },
-      "tags": {},
-      "type": "Microsoft.Network/publicIPAddresses"
-    },
-    {
-      "apiVersion": "2019-06-01",
-      "dependsOn": [],
-      "kind": "StorageV2",
-      "location": "northeurope",
-      "name": "isaacsvmstorage",
-      "properties": {},
-      "sku": {
-        "name": "Standard_LRS"
-      },
-      "tags": {},
-      "type": "Microsoft.Storage/storageAccounts"
+      "type": "Microsoft.Resources/deployments"
     }
   ]
 }

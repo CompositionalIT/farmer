@@ -46,7 +46,7 @@ type ResourceGroupConfig =
         member this.BuildResources key = 
             let deploymentName = 
                 match key with
-                | Some sfx -> sprintf "%s-%s" this.ResourceName.Value sfx
+                | Some suffix -> sprintf "%s-%s" this.ResourceName.Value suffix
                 | None -> this.ResourceName.Value
             {| DeploymentName = deploymentName
                Resources = 

@@ -302,9 +302,9 @@ and IDeploymentBuilder =
 module Deployment =
     let uniqueSuffix () = Some <| System.DateTime.UtcNow.ToString "yyyyMMddTHHmm" // ISO 8601 Date Time format to minute resolution
     let buildWithSuffix defaultName deploymentSuffix (builder:#IDeploymentBuilder) = builder.BuildDeployment defaultName deploymentSuffix
-    let build defaultName (builder:#IDeploymentBuilder) = builder.BuildDeployment defaultName (uniqueSuffix ())
-    let getTemplate defaultName (builder:#IDeploymentBuilder) = (builder |> build defaultName).Template
+    let build defaultName (builder:#IDeploymentBuilder) = buildWithSuffix defaultName (uniqueSuffix ()) builder
     let getTemplateWithSuffix defaultName deploymentSuffix (builder:#IDeploymentBuilder) = (builder |> buildWithSuffix defaultName deploymentSuffix).Template
+    let getTemplate defaultName (builder:#IDeploymentBuilder) = getTemplateWithSuffix defaultName (uniqueSuffix ()) builder
 
 module internal DeterministicGuid =
     open System

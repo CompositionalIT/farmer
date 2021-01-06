@@ -16,7 +16,7 @@ let tests =
 
             let path = __SOURCE_DIRECTORY__ + "/test-data/" + jsonFile
             let expected = File.ReadAllText path
-            let actual = template.Template |> Writer.toJson
+            let actual = template |> Deployment.getTemplateWithSuffix "farmer-deploy" None |> Writer.toJson
             Expect.equal expected actual (sprintf "ARM template generation has changed! Either fix the writer, or update the contents of the generated file (%s)" path)
 
         test "Generates lots of resources" {
