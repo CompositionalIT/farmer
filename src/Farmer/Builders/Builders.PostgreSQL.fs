@@ -287,12 +287,6 @@ type PostgreSQLBuilder() =
     [<CustomOperation "enable_azure_firewall">]
     member this.EnableAzureFirewall(state:PostgreSQLConfig) =
         this.AddFirewallWall(state, "allow-azure-services", "0.0.0.0", "0.0.0.0")
-
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:PostgreSQLConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:PostgreSQLConfig, key, value) = this.Tags(state, [ (key,value) ])
+    interface ITaggable<PostgreSQLConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let postgreSQL = PostgreSQLBuilder()

@@ -113,7 +113,7 @@ type Namespace =
     { Name : ResourceName
       Location : Location
       Sku : Sku
-      Dependencies : ResourceId list
+      Dependencies : ResourceId Set
       Tags: Map<string,string>  }
     member this.Capacity =
         match this.Sku with

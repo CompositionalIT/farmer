@@ -138,7 +138,7 @@ type ServiceBusTopicBuilder() =
 type ServiceBusConfig =
     { Name : ResourceName
       Sku : Sku
-      Dependencies : ResourceId list
+      Dependencies : ResourceId Set
       Queues : Map<ResourceName, ServiceBusQueueConfig>
       Topics : Map<ResourceName, ServiceBusTopicConfig>
       Tags: Map<string,string>  }
@@ -201,12 +201,13 @@ type ServiceBusConfig =
         ]
 
 type ServiceBusBuilder() =
+    interface IDependable<ServiceBusConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
     member _.Yield _ =
         { Name = ResourceName.Empty
           Sku = Basic
           Queues = Map.empty
           Topics = Map.empty
-          Dependencies = List.empty
+          Dependencies = Set.empty
           Tags = Map.empty  }
     member _.Run (state:ServiceBusConfig) =
         let isBetween min max v = v >= min && v <= max
@@ -227,15 +228,6 @@ type ServiceBusBuilder() =
     [<CustomOperation "sku">]
     member _.Sku(state:ServiceBusConfig, sku) = { state with Sku = sku }
 
-    /// Sets a dependency for the web app.
-    [<CustomOperation "depends_on">]
-    member this.DependsOn(state:ServiceBusConfig, builder:IBuilder) = this.DependsOn (state, builder.ResourceId)
-    member this.DependsOn(state:ServiceBusConfig, builders:IBuilder list) = this.DependsOn (state, builders |> List.map (fun x -> x.ResourceId))
-    member this.DependsOn(state:ServiceBusConfig, resource:IArmResource) = this.DependsOn (state, resource.ResourceId)
-    member this.DependsOn(state:ServiceBusConfig, resources:IArmResource list) = this.DependsOn (state, resources |> List.map (fun x -> x.ResourceId))
-    member this.DependsOn (state:ServiceBusConfig, resourceId:ResourceId) = { state with Dependencies = resourceId :: state.Dependencies }
-    member this.DependsOn (state:ServiceBusConfig, resourceIds:ResourceId list) = { state with Dependencies = resourceIds @ state.Dependencies }
-
     [<CustomOperation "add_queues">]
     member _.AddQueues(state:ServiceBusConfig, queues) =
         { state with
@@ -250,12 +242,7 @@ type ServiceBusBuilder() =
                 (state.Topics, topics)
                 ||> List.fold(fun state (topic:ServiceBusTopicConfig) -> state.Add(topic.Name, topic))
         }
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:ServiceBusConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:ServiceBusConfig, key, value) = this.Tags(state, [ (key,value) ])
+    interface ITaggable<ServiceBusConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let serviceBus = ServiceBusBuilder()
 let topic = ServiceBusTopicBuilder()

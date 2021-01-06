@@ -54,11 +54,6 @@ type SearchBuilder() =
     /// Sets the number of partitions of the Azure Search instance.
     [<CustomOperation "partitions">]
     member __.PartitionCount(state:SearchConfig, partitions:int) = { state with Partitions = partitions }
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:SearchConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:SearchConfig, key, value) = this.Tags(state, [ (key,value) ])
+    interface ITaggable<SearchConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let search = SearchBuilder()

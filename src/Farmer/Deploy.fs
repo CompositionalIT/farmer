@@ -45,7 +45,7 @@ module Az =
                 let azProcess =
                     ProcessStartInfo(
                         FileName = azCliPath.Value,
-                        Arguments = arguments,
+                        Arguments = sprintf "%s --output json" arguments,
                         UseShellExecute = false,
                         RedirectStandardOutput = true,
                         RedirectStandardError = true)
@@ -83,7 +83,7 @@ module Az =
     let loginWithCredentials appId secret tenantId = az (sprintf "login --service-principal --username %s --password %s --tenant %s" appId secret tenantId)
     let version() = az "--version"
     /// Lists all subscriptions
-    let listSubscriptions() = az "account list"
+    let listSubscriptions() = az "account list --all"
     let setSubscription subscriptionId = az (sprintf "account set --subscription %s" subscriptionId)
     /// Creates a resource group.
     let createResourceGroup location resourceGroup = az (sprintf "group create -l %s -n %s" location resourceGroup) |> Result.ignore
@@ -91,7 +91,6 @@ module Az =
     let searchUsers filter = az ("ad user list --filter " + filter)
     /// Searches for groups in AD using the supplied filter.
     let searchGroups filter = az ("ad group list --filter " + filter)
-
 
     type DeploymentCommand =
     | Create

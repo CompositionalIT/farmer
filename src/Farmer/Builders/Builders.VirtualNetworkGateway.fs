@@ -168,12 +168,7 @@ type VnetGatewayBuilder() =
     /// Sets the VPN Client configuration.
     member _.SetVpnClient(state:VNetGatewayConfig, vpnClientConfig) =
         { state with VpnClientConfiguration = Some vpnClientConfig }
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:VNetGatewayConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:VNetGatewayConfig, key, value) = this.Tags(state, [ (key,value) ])
+    interface ITaggable<VNetGatewayConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let gateway = VnetGatewayBuilder()
 
@@ -228,11 +223,6 @@ type ConnectionBuilder() =
     /// Sets the first vnet gateway
     [<CustomOperation "auth_key">]
     member _.Authorization(state:ConnectionConfig, auth) = { state with AuthorizationKey = Some auth }
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:ConnectionConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:ConnectionConfig, key, value) = this.Tags(state, [ (key,value) ])
+    interface ITaggable<ConnectionConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let connection = ConnectionBuilder()

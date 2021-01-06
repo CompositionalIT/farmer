@@ -55,7 +55,7 @@ let tests = testList "Cosmos" [
             "Min Length", "zz", "min length is 3, but here is 2 ('zz')", "Name too short"
             "Max Length", "abcdefghij1234567890abcde12345678901234567890", "max length is 44, but here is 45 ('abcdefghij1234567890abcde12345678901234567890')", "Name too long"
             "Lowercase Only", "zzzT", "can only contain lowercase letters ('zzzT')", "Upper case character allowed"
-            "Alphanumeric or dash", "zzz!", "can only contain alphanumeric characters or dash ('zzz!')", "Non alpha numeric (except dash) character allowed"
+            "Alphanumeric or dash", "zzz!", "can only contain alphanumeric characters or the dash ('zzz!')", "Non alpha numeric (except dash) character allowed"
         ]
 
         for testName, accountName, error, why in invalidAccountNameCases ->

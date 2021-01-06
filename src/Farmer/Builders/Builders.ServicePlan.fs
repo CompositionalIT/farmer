@@ -50,10 +50,6 @@ type ServicePlanBuilder() =
     [<CustomOperation "serverless">]
     /// Configures this server farm to host serverless functions, not web apps.
     member __.Serverless(state:ServicePlanConfig) = { state with Sku = Dynamic; WorkerSize = Serverless }
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:ServicePlanConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:ServicePlanConfig, key, value) = this.Tags(state, [ (key,value) ])
+    interface ITaggable<ServicePlanConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
+
 let servicePlan = ServicePlanBuilder()

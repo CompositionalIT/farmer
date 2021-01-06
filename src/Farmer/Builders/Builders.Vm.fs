@@ -218,11 +218,6 @@ type VirtualMachineBuilder() =
     member _.CustomScript(state:VmConfig, script:string) = { state with CustomScript = Some script }
     [<CustomOperation "custom_script_files">]
     member _.CustomScriptFiles(state:VmConfig, uris:string list) = { state with CustomScriptFiles = uris |> List.map Uri }
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:VmConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:VmConfig, key, value) = this.Tags(state, [ (key,value) ])
+    interface ITaggable<VmConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let vm = VirtualMachineBuilder()

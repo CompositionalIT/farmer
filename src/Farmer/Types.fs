@@ -43,7 +43,7 @@ type ResourceId =
 type ResourceType with
     member this.resourceId name = ResourceId.create (this, name)
     member this.resourceId name = this.resourceId (ResourceName name)
-    member this.resourceId (name, [<ParamArray>] resourceSegments:ResourceName []) = ResourceId.create (this, name, resourceSegments)
+    member this.resourceId (firstSegment, [<ParamArray>] remainingSegments:ResourceName []) = ResourceId.create (this, firstSegment, remainingSegments)
 
 /// An Azure ARM resource value which can be mapped into an ARM template.
 type IArmResource =
@@ -146,6 +146,36 @@ type ResourceType with
                 |> Option.toObj
                tags = tags |> Option.map box |> Option.toObj |}
 
+type ITaggable<'TConfig> =
+    abstract member Add : 'TConfig -> list<string * string> -> 'TConfig
+type IDependable<'TConfig> =
+    abstract member Add : 'TConfig -> ResourceId Set -> 'TConfig
+
+[<AutoOpen>]
+module Extensions =
+    module Map =
+        let merge newValues map =
+            (map, newValues)
+            ||> List.fold (fun map (key, value) -> Map.add key value map)
+
+    type ITaggable<'T> with
+        /// Adds the provided set of tags to the builder.
+        [<CustomOperation "add_tags">]
+        member this.Tags(state:'T, pairs) =
+            this.Add state pairs
+
+        /// Adds the provided tag to the builder.
+        [<CustomOperation "add_tag">]
+        member this.Tag(state:'T, key, value) = this.Tags(state, [ key, value ])
+
+    type IDependable<'TConfig> with
+        [<CustomOperation "depends_on">]
+        member this.DependsOn(state:'TConfig, builder:IBuilder) = this.DependsOn (state, builder.ResourceId)
+        member this.DependsOn(state:'TConfig, builders:IBuilder list) = this.DependsOn (state, builders |> List.map (fun x -> x.ResourceId))
+        member this.DependsOn(state:'TConfig, resource:IArmResource) = this.DependsOn (state, resource.ResourceId)
+        member this.DependsOn(state:'TConfig, resources:IArmResource list) = this.DependsOn (state, resources |> List.map (fun x -> x.ResourceId))
+        member this.DependsOn (state:'TConfig, resourceId:ResourceId) = this.DependsOn(state, [ resourceId ])
+        member this.DependsOn (state:'TConfig, resourceIds:ResourceId list) = this.Add state (Set resourceIds)
 
 /// A secure parameter to be captured in an ARM template.
 type SecureParameter =

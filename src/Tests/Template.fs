@@ -230,29 +230,4 @@ let tests = testList "Template" [
             {| name = "Name"; ``type`` = "Test"; apiVersion = "2017-01-01"; dependsOn = null; location = null; tags = null |}
             "Default values don't match"
     }
-
-    testList "ARM Writer Regression Tests" [
-        test "Generates lots of resources" {
-            let number = string 1979
-
-            let sql = sqlServer { name ("farmersql" + number); admin_username "farmersqladmin"; add_databases [ sqlDb { name "farmertestdb"; use_encryption } ]; enable_azure_firewall }
-            let storage = storageAccount { name ("farmerstorage" + number) }
-            let web = webApp { name ("farmerwebapp" + number); add_extension WebApp.Extensions.Logging }
-            let fns = functions { name ("farmerfuncs" + number) }
-            let svcBus = serviceBus { name ("farmerbus" + number); sku ServiceBus.Sku.Standard; add_queues [ queue { name "queue1" } ]; add_topics [ topic { name "topic1"; add_subscriptions [ subscription { name "sub1" } ] } ] }
-            let cdn = cdn { name ("farmercdn" + number); add_endpoints [ endpoint { name ("farmercdnendpoint" + number); origin storage.WebsitePrimaryEndpointHost } ] }
-            let containerGroup = containerGroup { name ("farmeraci" + number); add_instances [ containerInstance { name "webserver"; image "nginx:latest"; add_ports ContainerGroup.PublicPort [ 80us ]; add_volume_mount "source-code" "/src/farmer" } ]; add_volumes [ volume_mount.git_repo "source-code" (System.Uri "https://github.com/CompositionalIT/farmer") ] }
-
-            let deployment = arm {
-                location Location.NorthEurope
-                add_resources [ sql; storage; web; fns; svcBus; cdn; containerGroup ]
-            }
-
-            let path = __SOURCE_DIRECTORY__ + "/test-data/farmer-integration-test-1.json"
-            let expected = File.ReadAllText path
-            let actual = deployment |> Deployment.getTemplateWithSuffix "farmer-resources" Option.None |> Writer.toJson
-
-            Expect.equal expected actual (sprintf "ARM template generation has changed! Either fix the writer, or update the contents of the generated file (%s)" path)
-        }
-    ]
 ]

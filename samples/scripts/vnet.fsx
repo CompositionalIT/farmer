@@ -7,23 +7,23 @@ open Farmer.Builders
 let privateNet = vnet {
     name "my-vnet"
     build_address_spaces [
-        address_space {
+        addressSpace {
             space "10.28.0.0/16"
             subnets [
-                build_subnet "vms" 26
-                build_subnet "services" 24
-                build_subnet "corporate-west" 18
-                build_subnet "corporate-east" 18
-                build_subnet "GatewaySubnet" 29
-                build_subnet_delegations "containers" 27 [ SubnetDelegationService.ContainerGroups ]
-            ]                
+                buildSubnet "vms" 26
+                buildSubnet "services" 24
+                buildSubnet "corporate-west" 18
+                buildSubnet "corporate-east" 18
+                buildSubnet "GatewaySubnet" 29
+                buildSubnetDelegations "containers" 27 [ SubnetDelegationService.ContainerGroups ]
+            ]
         }
-        address_space {
+        addressSpace {
             space "10.30.0.0/16"
             subnets [
-                build_subnet "stuff" 23
-                build_subnet "more-stuff" 28
-            ]                
+                buildSubnet "stuff" 23
+                buildSubnet "more-stuff" 28
+            ]
         }
     ]
 }
