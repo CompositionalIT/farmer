@@ -9,6 +9,7 @@ let storageAccounts = ResourceType ("Microsoft.Storage/storageAccounts", "2019-0
 let containers = ResourceType ("Microsoft.Storage/storageAccounts/blobServices/containers", "2018-03-01-preview")
 let fileShares = ResourceType ("Microsoft.Storage/storageAccounts/fileServices/shares", "2019-06-01")
 let queues = ResourceType ("Microsoft.Storage/storageAccounts/queueServices/queues", "2019-06-01")
+let tables = ResourceType ("Microsoft.Storage/storageAccounts/tableServices/tables", "2019-06-01")
 let managementPolicies = ResourceType ("Microsoft.Storage/storageAccounts/managementPolicies", "2019-06-01")
 let roleAssignments = ResourceType ("Microsoft.Storage/storageAccounts/providers/roleAssignments", "2018-09-01-preview")
 
@@ -106,6 +107,16 @@ module FileShares =
                 {| fileShares.Create(this.StorageAccount/"default"/this.Name.ResourceName, dependsOn = [ storageAccounts.resourceId this.StorageAccount ]) with
                     properties = {| shareQuota = this.ShareQuota |> Option.defaultValue 5120<Gb> |}
                 |} :> _
+
+module Tables =
+    type Table =
+        { Name : StorageResourceName
+          StorageAccount : ResourceName }
+        interface IArmResource with
+            member this.ResourceId = tables.resourceId (this.StorageAccount/"default"/this.Name.ResourceName)
+            member this.JsonModel =
+                tables.Create(this.StorageAccount/"default"/this.Name.ResourceName, dependsOn = [ storageAccounts.resourceId this.StorageAccount ]) :> _
+
 
 module Queues =
     type Queue =
