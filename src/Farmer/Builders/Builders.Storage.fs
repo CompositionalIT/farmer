@@ -168,7 +168,7 @@ type StorageAccountBuilder() =
     /// Adds a single table to the storage account.
     [<CustomOperation "add_table">]
     member _.AddTable(state:StorageAccountConfig, name:string) = { state with Tables = state.Tables.Add (StorageResourceName.Create(name).OkValue) }
-    /// Adds a set of queues to the storage account.
+    /// Adds a set of tables to the storage account.
     [<CustomOperation "add_tables">]
     member this.AddTables(state:StorageAccountConfig, names) =
         (state, names) ||> Seq.fold(fun state name -> this.AddTable(state, name))
