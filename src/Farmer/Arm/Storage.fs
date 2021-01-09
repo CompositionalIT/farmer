@@ -117,7 +117,6 @@ module Tables =
             member this.JsonModel =
                 tables.Create(this.StorageAccount/"default"/this.Name.ResourceName, dependsOn = [ storageAccounts.resourceId this.StorageAccount ]) :> _
 
-
 module Queues =
     type Queue =
         { Name : StorageResourceName
