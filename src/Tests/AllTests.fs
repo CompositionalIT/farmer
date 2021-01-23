@@ -24,6 +24,7 @@ let allTests =
                 ContainerRegistry.tests
                 ExpressRoute.tests
                 KeyVault.tests
+                Network.tests
                 NetworkSecurityGroup.tests
                 ServiceBus.tests
                 VirtualMachine.tests

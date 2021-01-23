@@ -14,20 +14,25 @@ The Virtual Network builder (`vnet`) is used to create Azure Virtual Network ins
 
 #### Builder Keywords
 
-| Resource       | Keyword              | Purpose                                                            |
-| -------------- | -------------------- | ------------------------------------------------------------------ |
-| vnet           | name                 | Sets the name of the virtual network.                              |
-| vnet           | add_address_spaces   | Adds address spaces to the virtual network.                        |
-| vnet           | add_subnets          | Adds subnets to the virtual network.                               |
-| vnet           | build_address_spaces | Automatically builds address spaces for subnet names and sizes.    |
-| vnet           | add_tags             | Adds a set of tags to the resource                                 |
-| vnet           | add_tag              | Adds a tag to the resource                                         |
-| subnet         | name                 | Name of the subnet resource                                        |
-| subnet         | prefix               | Subnet prefix in CIDR notation (e.g. 192.168.100.0/24)             |
-| subnet         | add_delegations      | Adds one or more delegations to this subnet.                       |
-| addressSpace   | space                | When using `build_address_space` this specifies the address space. |
-| addressSpace   | subnets              | Specifies the subnets to build automatically.                      |
-| addressSpace   | build_subnet         | Specifies the name, size, and service delegations for the subnet.  |
+| Resource       | Keyword                                 | Purpose                                                              |
+| -------------- | --------------------------------------- | -------------------------------------------------------------------- |
+| vnet           | name                                    | Sets the name of the virtual network.                                |
+| vnet           | add_address_spaces                      | Adds address spaces to the virtual network.                          |
+| vnet           | add_subnets                             | Adds subnets to the virtual network.                                 |
+| vnet           | build_address_spaces                    | Automatically builds address spaces for subnet names and sizes.      |
+| vnet           | add_tags                                | Adds a set of tags to the resource                                   |
+| vnet           | add_tag                                 | Adds a tag to the resource                                           |
+| subnet         | name                                    | Name of the subnet resource                                          |
+| subnet         | prefix                                  | Subnet prefix in CIDR notation (e.g. 192.168.100.0/24)               |
+| subnet         | add_delegations                         | Adds one or more delegations to this subnet.                         |
+| subnet         | add_service_endpoints                   | Adds one or more service endpoints to this subnet.                   |
+| subnet         | associate_service_endpoint_policies     | Associates a subnet with an existing service policy.                 |
+| addressSpace   | space                                   | When using `build_address_space` this specifies the address space.   |
+| addressSpace   | subnets                                 | Specifies the subnets to build automatically.                        |
+| addressSpace   | build_subnet                            | Specifies the name, size, and service delegations for the subnet.    |
+| addressSpace   | build_subnet_delegated_service_endpoints| Specifies the name, size, service delegations and endpoints.         |
+| addressSpace   | build_subnet_service_endpoints          | Specifies the name, size, and service endpoints for the subnet.      |
+| addressSpace   | build_subnet_service_endpoint_policies  | Specifies the name, size, service delegations, and endpoint policies.|
 
 #### Example - Manual Subnets
 
@@ -52,6 +57,9 @@ let myVnet = vnet {
             prefix "192.168.201.0/24"
             add_delegations [
                 SubnetDelegationService.ContainerGroups
+            ]
+            add_service_endpoints [
+                EndpointServiceType.Storage, [Location.NorthEurope; Location.WestEurope]
             ]
         }
         subnet {
@@ -91,13 +99,16 @@ let myVnet = vnet {
                 buildSubnet "corporate-west" 18
                 buildSubnet "corporate-east" 18
                 buildSubnet "GatewaySubnet" 28
-                buildSubnetDelegations "containers" 27 [ SubnetDelegationService.ContainerGroups ]
+                build_subnet_delegated_service_endpoints "containers" 27
+                    [SubnetDelegationService.ContainerGroups]
+                    [EndpointServiceType.Storage, [Location.NorthEurope; Location.WestEurope]]
             ]
         }
         addressSpace {
             space "10.30.0.0/16"
             subnets [
                 buildSubnet "remote-office" 23
+                build_subnet_service_endpoints "applications" 24 [EndpointServiceType.Storage, [Location.NorthEurope]]
                 buildSubnet "reserved" 24
                 buildSubnet "GatewaySubnet" 28
             ]

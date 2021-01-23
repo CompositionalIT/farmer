@@ -81,9 +81,11 @@ type VmConfig =
                   Location = location
                   AddressSpacePrefixes = [ this.AddressPrefix ]
                   Subnets = [
-                      {| Name = subnetName.Name
-                         Prefix = this.SubnetPrefix
-                         Delegations = [] |}
+                      { Name = subnetName.Name
+                        Prefix = this.SubnetPrefix
+                        Delegations = []
+                        ServiceEndpoints = []
+                        AssociatedServiceEndpointPolicies = [] }
                   ]
                   Tags = this.Tags
                 }
@@ -105,6 +107,7 @@ type VmConfig =
                   Location = location
                   Dependencies = []
                   Sku = Storage.Sku.Standard_LRS
+                  NetworkAcls = None
                   StaticWebsite = None
                   EnableHierarchicalNamespace = None
                   Tags = this.Tags }

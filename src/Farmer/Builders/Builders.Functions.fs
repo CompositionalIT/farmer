@@ -138,6 +138,7 @@ type FunctionsConfig =
                   Location = location
                   Sku = Storage.Sku.Standard_LRS
                   Dependencies = []
+                  NetworkAcls = None
                   StaticWebsite = None
                   EnableHierarchicalNamespace = None
                   Tags = this.Tags }

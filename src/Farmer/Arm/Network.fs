@@ -10,8 +10,9 @@ let expressRouteCircuits = ResourceType ("Microsoft.Network/expressRouteCircuits
 let networkInterfaces = ResourceType ("Microsoft.Network/networkInterfaces", "2018-11-01")
 let networkProfiles = ResourceType ("Microsoft.Network/networkProfiles", "2020-04-01")
 let publicIPAddresses = ResourceType ("Microsoft.Network/publicIPAddresses", "2018-11-01")
+let serviceEndpointPolicies = ResourceType ("Microsoft.Network/serviceEndpointPolicies", "2020-07-01")
 let subnets = ResourceType ("Microsoft.Network/virtualNetworks/subnets", "")
-let virtualNetworks = ResourceType ("Microsoft.Network/virtualNetworks", "2018-11-01")
+let virtualNetworks = ResourceType ("Microsoft.Network/virtualNetworks", "2020-07-01")
 let virtualNetworkGateways = ResourceType ("Microsoft.Network/virtualNetworkGateways", "2020-05-01")
 let localNetworkGateways = ResourceType ("Microsoft.Network/localNetworkGateways", "")
 
@@ -35,11 +36,22 @@ type PublicIpAddress =
                         | None -> null |}
             |} :> _
 
+type SubnetDelegation =
+    { Name : ResourceName
+      ServiceName : string }
+
+type Subnet =
+    { Name : ResourceName
+      Prefix : string
+      Delegations : SubnetDelegation list
+      ServiceEndpoints : (Network.EndpointServiceType * Location list) list
+      AssociatedServiceEndpointPolicies : ResourceId list }
+
 type VirtualNetwork =
     { Name : ResourceName
       Location : Location
       AddressSpacePrefixes : string list
-      Subnets : {| Name : ResourceName; Prefix : string; Delegations: {| Name: ResourceName; ServiceName: string |} list |} list;
+      Subnets : Subnet list;
       Tags: Map<string,string>  }
     interface IArmResource with
         member this.ResourceId = virtualNetworks.resourceId this.Name
@@ -53,11 +65,20 @@ type VirtualNetwork =
                             {| name = subnet.Name.Value
                                properties =
                                 {| addressPrefix = subnet.Prefix
-                                   delegations = subnet.Delegations
-                                   |> List.map (fun delegation ->
-                                    {| name = delegation.Name.Value
-                                       properties = {| serviceName = delegation.ServiceName |}
-                                    |})
+                                   delegations =
+                                       subnet.Delegations
+                                       |> List.map (fun delegation ->
+                                           {| name = delegation.Name.Value
+                                              properties = {| serviceName = delegation.ServiceName |}
+                                           |})
+                                   serviceEndpoints =
+                                       subnet.ServiceEndpoints
+                                       |> List.map (fun (Network.EndpointServiceType(serviceEndpoint), locations) ->
+                                           {| service = serviceEndpoint
+                                              locations = locations |> List.map (fun location ->location.ArmValue) |})
+                                   serviceEndpointPolicies =
+                                       subnet.AssociatedServiceEndpointPolicies
+                                       |> List.map (fun policyId -> {| id = policyId.ArmExpression.Eval() |})
                                 |}
                             |})
                     |}

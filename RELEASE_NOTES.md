@@ -1,5 +1,10 @@
 Release Notes
 =============
+## 1.4.0-beta2
+* Storage: Support for firewall to restrict storage account network access to virtual network subnets, IP addresses, and CIDR prefixes.
+* Virtual Network: Support for creating service endpoints on subnets.
+* Virtual Network: Support for assigning existing service endpoint policies to subnets.
+
 ## 1.4.0-beta1
 * Storage: Support for setting default blob access tier at account level with "default_blob_access_tier"
 
