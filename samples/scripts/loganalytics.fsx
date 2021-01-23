@@ -1,4 +1,4 @@
-#r "nuget:Farmer.dll"
+#r "nuget:Farmer"
 
 open Farmer
 open Farmer.Builders
