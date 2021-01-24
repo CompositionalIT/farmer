@@ -1,5 +1,8 @@
 Release Notes
 =============
+## 1.4.0-beta2
+* Container Groups: Support for init containers.
+
 ## 1.4.0-beta1
 * Storage: Support for setting default blob access tier at account level with "default_blob_access_tier"
 
