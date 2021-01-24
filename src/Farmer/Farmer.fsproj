@@ -9,7 +9,7 @@
     <Authors>Isaac Abraham and contributors</Authors>
 
     <!-- Build settings -->
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks>net50;netstandard2.0</TargetFrameworks>
     <DebugType>portable</DebugType>
     <OutputType>Library</OutputType>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -32,7 +32,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="4.7.1" />
+    <PackageReference Update="FSharp.Core" Version="5.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
   </ItemGroup>
 
@@ -81,6 +81,13 @@
     <Compile Include="Arm/SignalR.fs" />
     <Compile Include="Arm/EventGrid.fs" />
     <Compile Include="Arm\NetworkSecurityGroup.fs" />
+    <Compile Include="Arm/ExpressRouteConnection.fs" />
+    <Compile Include="Arm/VirtualWAN.fs" />
+    <Compile Include="Arm/VirtualHub.fs" />
+    <Compile Include="Arm/Firewall.fs" />
+    <Compile Include="Arm/ExpressRouteGateway.fs" />
+    <Compile Include="Arm/VirtualHubRouteTable.fs" />
+    <Compile Include="Arm/VirtualHubVnetConnection.fs" />
     <Compile Include="Arm\DeploymentScript.fs" />
 
     <Compile Include="IdentityExtensions.fs" />
