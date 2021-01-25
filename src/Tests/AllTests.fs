@@ -36,7 +36,9 @@ let allTests =
                 WebApp.tests
                 Functions.tests
                 StaticWebApp.tests
+                //VirtualHub.tests
                 VirtualNetworkGateway.tests
+                VirtualWAN.tests
                 JsonRegression.tests
                 AzCli.tests
             ]

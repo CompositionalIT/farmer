@@ -31,6 +31,8 @@ type VirtualWAN =
     { /// It's recommended to use resource group + -vwan.
       /// e.g. "name": "[concat(resourceGroup().name,'-vwan')]"
       Name : ResourceName
+      /// The Azure Region where this resource should be deployed.
+      Location : Location
       /// Set boolean for whether you want to allow branch to branch traffic through VWAN
       AllowBranchToBranchTraffic : bool option
       /// Property on VWAN either true or false for VPN Encrpytion
@@ -42,8 +44,7 @@ type VirtualWAN =
     interface IArmResource with
         member this.ResourceId = virtualWans.resourceId this.Name
         member this.JsonModel =
-            {| virtualWans.Create(this.Name) with
-                location = "[resourceGroup().location]"
+            {| virtualWans.Create(this.Name, this.Location) with
                 properties =
                     {|
                        allowBranchToBranchTraffic = this.AllowBranchToBranchTraffic |> Option.defaultValue false
