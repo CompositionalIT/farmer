@@ -1,4 +1,4 @@
-#r @"..\..\src\Farmer\bin\Debug\netstandard2.0\Farmer.dll"
+#r "nuget:Farmer"
 
 open Farmer
 open Farmer.Builders
