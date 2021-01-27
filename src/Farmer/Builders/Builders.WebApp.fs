@@ -509,10 +509,10 @@ type WebAppBuilder() =
             SecretStore = KeyVault (External(Managed (vaults.resourceId vaultName))) }
     /// Links your application to an existing key vault instance. All secret settings will automatically be mapped into key vault.
     [<CustomOperation "link_to_unmanaged_keyvault">]
-    member _.LinkToExternalKeyVault(state:WebAppConfig, name) =
+    member _.LinkToExternalKeyVault(state:WebAppConfig, resourceId) =
         { state with
             Identity = { state.Identity with SystemAssigned = Enabled }
-            SecretStore = KeyVault (External(Unmanaged name)) }
+            SecretStore = KeyVault (External(Unmanaged resourceId)) }
     [<CustomOperation "add_extension">]
     member _.AddExtension (state:WebAppConfig, extension) = { state with SiteExtensions = state.SiteExtensions.Add extension }
     member this.AddExtension (state:WebAppConfig, name) = this.AddExtension (state, ExtensionName name)
