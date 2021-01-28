@@ -970,12 +970,11 @@ module IPAddressCidr =
         let first, last = ipRangeNums cidr
         seq { for i in first..last do ofNum i }
     /// Carve a subnet out of an address space.
-    let carveAddressSpace (addressSpace:IPAddressCidr) (subnetSizes:int list) =
+    let carveAddressSpace (addressSpace:IPAddressCidr) (subnetSizes:int list) = [
         let addressSpaceStart, addressSpaceEnd = addressSpace |> ipRangeNums
         let mutable startAddress = addressSpaceStart |> ofNum
         let mutable index = 0
-        seq {
-            for size in subnetSizes do
+        for size in subnetSizes do
                 index <- index + 1
                 let cidr = { Address = startAddress; Prefix = size }
                 let first, last = cidr |> ipRangeNums
@@ -992,7 +991,8 @@ module IPAddressCidr =
                     cidr
                 else
                     raise (IndexOutOfRangeException (sprintf "Unable to create subnet %d of /%d" index size))
-        }
+        ]
+
     /// The first two addresses are the network address and gateway address
     /// so not assignable.
     let assignable (cidr:IPAddressCidr) =

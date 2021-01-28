@@ -13,6 +13,7 @@
     <DebugType>portable</DebugType>
     <OutputType>Library</OutputType>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 
     <!-- NuGet Pack settings -->
     <PackageId>Farmer</PackageId>

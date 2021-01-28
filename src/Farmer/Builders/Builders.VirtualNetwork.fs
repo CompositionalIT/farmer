@@ -111,28 +111,25 @@ type VirtualNetworkBuilder() =
     [<CustomOperation "build_address_spaces">]
     member _.BuildAddressSpaces(state:VirtualNetworkConfig, addressSpaces:AddressSpaceSpec list) =
         let newSubnets =
-            addressSpaces |> List.map (
-                fun addressSpaceConfig ->
-                    let addressSpace = addressSpaceConfig.Space |> IPAddressCidr.parse
-                    let subnetCidrs =
-                        IPAddressCidr.carveAddressSpace addressSpace
-                            (addressSpaceConfig.Subnets
-                            |> Seq.map (fun subnet ->
-                                if subnet.Size > 29 then
-                                    invalidArg "size" (sprintf "Subnet must be of /29 or larger, cannot carve subnet %s of /%d" subnet.Name subnet.Size)
-                                subnet.Size)
-                            |> List.ofSeq)
-                    Seq.zip (addressSpaceConfig.Subnets |> Seq.map (fun s -> s.Name, s.Delegations)) subnetCidrs
-                    |> Seq.map (fun ((name, delegations), cidr) ->
-                        { Name = ResourceName name
-                          Prefix = cidr
-                          Delegations = delegations }
-                    )
-                ) |> Seq.concat
-        let newAddressSpaces = addressSpaces |> Seq.map (fun addressSpace -> addressSpace.Space)
-        { state
-          with Subnets = state.Subnets |> Seq.append newSubnets |> List.ofSeq
-               AddressSpacePrefixes = state.AddressSpacePrefixes |> Seq.append newAddressSpaces |> List.ofSeq }
+            addressSpaces
+            |> List.collect (fun addressSpaceConfig ->
+                let addressSpace = IPAddressCidr.parse addressSpaceConfig.Space
+                let sizes = [
+                    for subnet in addressSpaceConfig.Subnets do
+                        if subnet.Size > 29 then invalidArg "size" (sprintf "Subnet must be of /29 or larger, cannot carve subnet %s of /%d" subnet.Name subnet.Size)
+                        subnet.Size
+                ]
+                IPAddressCidr.carveAddressSpace addressSpace sizes
+                |> List.zip (addressSpaceConfig.Subnets |> List.map (fun s -> s.Name, s.Delegations))
+                |> List.map (fun ((name, delegations), cidr) ->
+                    { Name = ResourceName name
+                      Prefix = cidr
+                      Delegations = delegations }
+                ))
+        let newAddressSpaces = addressSpaces |> List.map (fun addressSpace -> addressSpace.Space)
+        { state with
+            Subnets = state.Subnets @ newSubnets
+            AddressSpacePrefixes = state.AddressSpacePrefixes @ newAddressSpaces }
     interface ITaggable<VirtualNetworkConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let vnet = VirtualNetworkBuilder ()
