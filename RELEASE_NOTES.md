@@ -1,8 +1,10 @@
 Release Notes
 =============
-## vNext
-* CognitiveServices: remove BingSearch options,
-* BingSearch: add bingSearch resource.
+## 1.4.0-beta2
+* Cognitive Services: Remove BingSearch options.
+* Bing Search: Add bingSearch resource.
+* Web App: Improved KeyVault integration.
+
 
 ## 1.4.0-beta1
 * Storage: Support for setting default blob access tier at account level with "default_blob_access_tier"
@@ -19,6 +21,8 @@ Release Notes
 * Azure CLI: Ensure JSON output.
 * Framework: Extension methods for Taggable and Dependable to simplify boilerplate keywords.
 * Framework: Common keywords between Functions and Web Apps factored out.
+
+* Container Registry: Added ARM expressions for admin account credentials
 
 ## 1.3.2
 * Storage: Revert User Assigned Identity scope to ResourceGroup
