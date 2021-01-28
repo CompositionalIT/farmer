@@ -20,6 +20,8 @@ Release Notes
 * Framework: Extension methods for Taggable and Dependable to simplify boilerplate keywords.
 * Framework: Common keywords between Functions and Web Apps factored out.
 
+* Container Registry: Added ARM expressions for admin account credentials
+
 ## 1.3.2
 * Storage: Revert User Assigned Identity scope to ResourceGroup
 * User Assigned Identity: Allow explicitly setting dependencies
