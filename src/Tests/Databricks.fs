@@ -30,7 +30,7 @@ type WorkspaceJson =
                    keyvaulturi : string |} ValueObj |} |} }
 let fromJson (db:DatabricksConfig) = toTypedTemplate<WorkspaceJson> Location.NorthEurope db
 
-let tests = ftestList "Databricks Tests" [
+let tests = testList "Databricks Tests" [
     let getWorkspaceArm (db:DatabricksConfig) = (db :> IBuilder).BuildResources Location.NorthEurope |> List.head :?> Workspace
     test "Creates a basic workspace" {
         let bricks =
