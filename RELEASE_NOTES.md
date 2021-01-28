@@ -1,7 +1,10 @@
 Release Notes
 =============
 ## 1.4.0-beta2
+* Container Registry: Added ARM expressions for admin account credentials
+
 * Web App: Improved KeyVault integration.
+* Web App: Add PremiumV3 SKU.
 
 ## 1.4.0-beta1
 * Storage: Support for setting default blob access tier at account level with "default_blob_access_tier"
@@ -19,8 +22,6 @@ Release Notes
 
 * Framework: Extension methods for Taggable and Dependable to simplify boilerplate keywords.
 * Framework: Common keywords between Functions and Web Apps factored out.
-
-* Container Registry: Added ARM expressions for admin account credentials
 
 ## 1.3.2
 * Storage: Revert User Assigned Identity scope to ResourceGroup
@@ -74,7 +75,6 @@ Release Notes
 * Web App: Ability to add multiple ARM Expressions as settings.
 * Web App: Full support for Managed Identity (minor breaking change).
 * Web App: Easy Key Vault integration.
-* Web App: Add PremiumV3 SKU.
 
 * Storage Account: WebsitePrimaryEndpoint is now a generated ARM expression.
 * Storage Account: Upgrade API version to 2019-04-01 to support RA-GZRS.
