@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="test-data\farmer-integration-test-1.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="test-data\*.json" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="Helpers.fs" />
     <Compile Include="AppInsights.fs" />
     <Compile Include="Common.fs" />
@@ -42,6 +42,7 @@
     <Compile Include="Identity.fs" />
     <Compile Include="DeploymentScript.fs" />
     <Compile Include="Databricks.fs" />
+    <Compile Include="JsonRegression.fs" />
     <Compile Include="AllTests.fs" />
   </ItemGroup>
 

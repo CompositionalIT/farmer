@@ -13,6 +13,18 @@ type ContainerRegistryConfig =
     member this.LoginServer =
         (sprintf "reference(resourceId('Microsoft.ContainerRegistry/registries', '%s'),'2019-05-01').loginServer" this.Name.Value)
         |> ArmExpression.create
+    /// Returns first Admin password if AdminUserEnabled
+    member this.Password =
+        (sprintf "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries','%s'),'2019-05-01').passwords[0].value]" this.Name.Value)
+        |> ArmExpression.create
+    /// Returns second Admin password if AdminUserEnabled
+    member this.Password2 =
+        (sprintf "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries','%s'),'2019-05-01').passwords[1].value]" this.Name.Value)
+        |> ArmExpression.create
+    /// Returns Admin username if AdminUserEnabled
+    member this.Username =
+        (sprintf "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries','%s'),'2019-05-01').username]" this.Name.Value)
+        |> ArmExpression.create
     interface IBuilder with
         member this.ResourceId = registries.resourceId this.Name
         member this.BuildResources location = [

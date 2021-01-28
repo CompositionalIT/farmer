@@ -1,7 +1,10 @@
 Release Notes
 =============
-## vNext
+## 1.4.0-beta2
+* Container Registry: Added ARM expressions for admin account credentials
 * Databricks Workspace: Support for creating Databricks Workspaces
+* Web App: Improved KeyVault integration.
+* Web App: Add PremiumV3 SKU.
 
 ## 1.4.0-beta1
 * Storage: Support for setting default blob access tier at account level with "default_blob_access_tier"

@@ -192,7 +192,7 @@ type IPostDeploy =
 /// A functional equivalent of the IBuilder's BuildResources method.
 type Builder = Location -> IArmResource list
 
-/// A resource that will automatically be created by Farmer.
+/// A related resource that will automatically be created by Farmer as part of another resource.
 type AutoCreationKind<'TConfig> =
     /// A resource that will automatically be created by Farmer with an explicit (user-defined) name.
     | Named of ResourceId
@@ -203,11 +203,12 @@ type AutoCreationKind<'TConfig> =
         | Named r -> r
         | Derived f -> f config
 
-/// A related resource that is created externally to this Farmer resource.
+/// A related resource that is created externally to this Farmer resource. It may be created elsewhere in the Farmer template,
+/// or it may already exist in Azure.
 type ExternalKind =
-    /// The name of the resource that will be created by Farmer, but is explicitly linked by the user.
+    /// The id of a resource that will be created by Farmer, but is explicitly linked by the user.
     | Managed of ResourceId
-    /// A Resource Id that is created externally from Farmer and already exists in Azure.
+    /// A id of a resource that is created externally from Farmer and already exists in Azure.
     | Unmanaged of ResourceId
 
 /// A reference to another Azure resource that may or may not be created by Farmer.

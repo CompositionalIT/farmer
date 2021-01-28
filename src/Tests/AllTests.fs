@@ -38,6 +38,7 @@ let allTests =
                 StaticWebApp.tests
                 VirtualNetworkGateway.tests
                 Databricks.tests
+                JsonRegression.tests
                 AzCli.tests
             ]
             testList "Control" [

@@ -416,6 +416,7 @@ module WebApp =
         | Standard of string
         | Premium of string
         | PremiumV2 of string
+        | PremiumV3 of string
         | Isolated of string
         | Dynamic
         static member D1 = Shared
@@ -432,6 +433,9 @@ module WebApp =
         static member P1V2 = PremiumV2 "P1V2"
         static member P2V2 = PremiumV2 "P2V2"
         static member P3V2 = PremiumV2 "P3V2"
+        static member P1V3 = PremiumV3 "P1V3"
+        static member P2V3 = PremiumV3 "P2V3"
+        static member P3V3 = PremiumV3 "P3V3"
         static member I1 = Isolated "I1"
         static member I2 = Isolated "I2"
         static member I3 = Isolated "I3"
