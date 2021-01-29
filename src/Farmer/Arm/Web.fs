@@ -40,6 +40,7 @@ type ServerFarm =
         | Standard _ -> "Standard"
         | Premium _ -> "Premium"
         | PremiumV2 _ -> "PremiumV2"
+        | PremiumV3 _ -> "PremiumV3"
         | Dynamic -> "Dynamic"
         | Isolated _ -> "Isolated"
     interface IArmResource with
@@ -57,6 +58,7 @@ type ServerFarm =
                         | Standard sku
                         | Premium sku
                         | PremiumV2 sku
+                        | PremiumV3 sku
                         | Isolated sku ->
                             sku
                         | Dynamic ->

@@ -416,6 +416,7 @@ module WebApp =
         | Standard of string
         | Premium of string
         | PremiumV2 of string
+        | PremiumV3 of string
         | Isolated of string
         | Dynamic
         static member D1 = Shared
@@ -432,6 +433,9 @@ module WebApp =
         static member P1V2 = PremiumV2 "P1V2"
         static member P2V2 = PremiumV2 "P2V2"
         static member P3V2 = PremiumV2 "P3V2"
+        static member P1V3 = PremiumV3 "P1V3"
+        static member P2V3 = PremiumV3 "P2V3"
+        static member P3V3 = PremiumV3 "P3V3"
         static member I1 = Isolated "I1"
         static member I2 = Isolated "I2"
         static member I3 = Isolated "I3"
@@ -981,12 +985,11 @@ module IPAddressCidr =
         let first, last = ipRangeNums cidr
         seq { for i in first..last do ofNum i }
     /// Carve a subnet out of an address space.
-    let carveAddressSpace (addressSpace:IPAddressCidr) (subnetSizes:int list) =
+    let carveAddressSpace (addressSpace:IPAddressCidr) (subnetSizes:int list) = [
         let addressSpaceStart, addressSpaceEnd = addressSpace |> ipRangeNums
         let mutable startAddress = addressSpaceStart |> ofNum
         let mutable index = 0
-        seq {
-            for size in subnetSizes do
+        for size in subnetSizes do
                 index <- index + 1
                 let cidr = { Address = startAddress; Prefix = size }
                 let first, last = cidr |> ipRangeNums
@@ -1003,7 +1006,8 @@ module IPAddressCidr =
                     cidr
                 else
                     raise (IndexOutOfRangeException (sprintf "Unable to create subnet %d of /%d" index size))
-        }
+        ]
+
     /// The first two addresses are the network address and gateway address
     /// so not assignable.
     let assignable (cidr:IPAddressCidr) =
