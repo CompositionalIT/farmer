@@ -149,12 +149,9 @@ type WebAppConfig =
                         for setting in this.Settings do
                             let secret =
                                 match setting.Value with
-                                | LiteralSetting _ ->
-                                    None
-                                | ParameterSetting _ ->
-                                    SecretConfig.create (setting.Key) |> Some
-                                | ExpressionSetting expr ->
-                                    SecretConfig.create (setting.Key, expr) |> Some
+                                | LiteralSetting _ -> None
+                                | ParameterSetting _ -> SecretConfig.create setting.Key |> Some
+                                | ExpressionSetting expr -> SecretConfig.create (setting.Key, expr) |> Some
                             match secret with
                             | Some secret ->
                                 { Secret.Name = vaultName.Name/secret.Key
@@ -328,7 +325,7 @@ type WebAppConfig =
             match keyVault with
             | Some keyVault ->
                 let builder = keyVault :> IBuilder
-                yield! builder.BuildResources(location)
+                yield! builder.BuildResources location
             | None ->
                 ()
 
@@ -498,21 +495,24 @@ type WebAppBuilder() =
     member this.EnableCi(state:WebAppConfig) = this.SourceControlCi(state, Enabled)
     [<CustomOperation "disable_source_control_ci">]
     member this.DisableCi(state:WebAppConfig) = this.SourceControlCi(state, Disabled)
+    /// Creates a key vault instance. All secret settings will automatically be mapped into key vault.
     [<CustomOperation "use_keyvault">]
-    member this.UseKeyVault (state:WebAppConfig) =
+    member _.UseKeyVault (state:WebAppConfig) =
         { state with
             Identity = { state.Identity with SystemAssigned = Enabled }
             SecretStore = KeyVault (derived(fun c -> vaults.resourceId (ResourceName (c.Name.Value + "vault")))) }
-    [<CustomOperation "use_managed_keyvault">]
-    member this.LinkToKeyVault (state:WebAppConfig, name) =
+    /// Links your application to a Farmer-managed key vault instance. All secret settings will automatically be mapped into key vault.
+    [<CustomOperation "link_to_keyvault">]
+    member _.LinkToKeyVault (state:WebAppConfig, vaultName:ResourceName) =
         { state with
             Identity = { state.Identity with SystemAssigned = Enabled }
-            SecretStore = KeyVault (External(Managed name)) }
-    [<CustomOperation "use_external_keyvault">]
-    member this.LinkToExternalKeyVault(state:WebAppConfig, name) =
+            SecretStore = KeyVault (External(Managed (vaults.resourceId vaultName))) }
+    /// Links your application to an existing key vault instance. All secret settings will automatically be mapped into key vault.
+    [<CustomOperation "link_to_unmanaged_keyvault">]
+    member _.LinkToExternalKeyVault(state:WebAppConfig, resourceId) =
         { state with
             Identity = { state.Identity with SystemAssigned = Enabled }
-            SecretStore = KeyVault (External(Unmanaged name)) }
+            SecretStore = KeyVault (External(Unmanaged resourceId)) }
     [<CustomOperation "add_extension">]
     member _.AddExtension (state:WebAppConfig, extension) = { state with SiteExtensions = state.SiteExtensions.Add extension }
     member this.AddExtension (state:WebAppConfig, name) = this.AddExtension (state, ExtensionName name)
@@ -544,7 +544,7 @@ type WebAppBuilder() =
                 Cors = config.Cors
                 Identity = config.Identity
                 ZipDeployPath = config.ZipDeployPath
-                AlwaysOn = state.AlwaysOn }
+                AlwaysOn = config.AlwaysOn }
 
 let webApp = WebAppBuilder()
 

@@ -16,6 +16,9 @@ let deployment = arm {
     add_resource myRegistry
     output "registry" myRegistry.Name
     output "loginServer" myRegistry.LoginServer
+    output "user" myRegistry.Username
+    output "pwd" myRegistry.Password
+    output "pwd2" myRegistry.Password2
 }
 
 deployment
