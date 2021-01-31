@@ -58,14 +58,14 @@ type StorageAccount =
                 properties =
                     {| isHnsEnabled = this.EnableHierarchicalNamespace |> Option.toNullable
                        accessTier =
-                            match this.Sku with
-                            | Blobs (_, Some tier)
-                            | GeneralPurpose (V2 (_, Some tier)) ->
-                                match tier with
-                                | Hot -> "Hot"
-                                | Cool -> "Cool"
-                            | _ ->
-                                null
+                        match this.Sku with
+                        | Blobs (_, Some tier)
+                        | GeneralPurpose (V2 (_, Some tier)) ->
+                            match tier with
+                            | Hot -> "Hot"
+                            | Cool -> "Cool"
+                        | _ ->
+                            null
                     |}
             |} :> _
     interface IPostDeploy with
