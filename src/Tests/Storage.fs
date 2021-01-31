@@ -184,7 +184,7 @@ let tests = testList "Storage Tests" [
         Expect.equal builder.WebsitePrimaryEndpoint.Value "reference(resourceId('Microsoft.Storage/storageAccounts', 'foo'), '2019-06-01').primaryEndpoints.web" "Zone names are not fixed and should be related to a storage account name"
     }
     test "Creates different SKU kinds correctly" {
-        let account = storageAccount { sku (Blobs (BlobReplication.LRS, Some Hot)) }
+        let account = storageAccount { sku (Blobs (BlobReplication.LRS, Some DefaultAccessTier.Hot)) }
         let resource = arm { add_resource account } |> getStorageResource
         Expect.equal resource.Kind "BlobStorage" "Kind"
         Expect.equal resource.AccessTier (Nullable AccessTier.Hot) "Access Tier"
@@ -211,7 +211,7 @@ let tests = testList "Storage Tests" [
         Expect.equal resource.Sku.Name "Premium_LRS" "Sku Name"
     }
     test "Sets blob access tier correctly different SKU kinds correctly" {
-        let account = storageAccount { default_blob_access_tier Cool }
+        let account = storageAccount { default_blob_access_tier DefaultAccessTier.Cool }
         let resource = arm { add_resource account } |> getStorageResource
         Expect.equal resource.AccessTier (Nullable AccessTier.Cool) "Access Tier"
 

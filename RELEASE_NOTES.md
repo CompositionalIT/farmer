@@ -1,11 +1,10 @@
 Release Notes
 =============
-
 ## 1.4.0-beta2
+* Bing Search: Migrate support from Cognitive Services into a dedicated Bing Search builder.
 * Container Registry: Added ARM expressions for admin account credentials
-
+* Databricks Workspace: Support for creating Databricks Workspaces
 * Storage: Add support for tables
-
 * Web App: Improved KeyVault integration.
 * Web App: Add PremiumV3 SKU.
 
@@ -22,7 +21,6 @@ Release Notes
 * SQL Azure: Validation and fail fast on account names instead of silently fixing them (breaking run-time change).
 
 * Azure CLI: Ensure JSON output.
-
 * Framework: Extension methods for Taggable and Dependable to simplify boilerplate keywords.
 * Framework: Common keywords between Functions and Web Apps factored out.
 
