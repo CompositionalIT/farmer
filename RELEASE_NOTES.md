@@ -1,9 +1,9 @@
 Release Notes
 =============
 ## 1.4.0-beta2
-* Bing Search: Add bingSearch resource.
-* Cognitive Services: Remove BingSearch options.
+* Bing Search: Migrate support from Cognitive Services into a dedicated Bing Search builder.
 * Container Registry: Added ARM expressions for admin account credentials
+* Databricks Workspace: Support for creating Databricks Workspaces
 * Web App: Improved KeyVault integration.
 * Web App: Add PremiumV3 SKU.
 
