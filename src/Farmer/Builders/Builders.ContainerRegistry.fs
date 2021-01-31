@@ -13,6 +13,18 @@ type ContainerRegistryConfig =
     member this.LoginServer =
         (sprintf "reference(resourceId('Microsoft.ContainerRegistry/registries', '%s'),'2019-05-01').loginServer" this.Name.Value)
         |> ArmExpression.create
+    /// Returns first Admin password if AdminUserEnabled
+    member this.Password =
+        (sprintf "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries','%s'),'2019-05-01').passwords[0].value]" this.Name.Value)
+        |> ArmExpression.create
+    /// Returns second Admin password if AdminUserEnabled
+    member this.Password2 =
+        (sprintf "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries','%s'),'2019-05-01').passwords[1].value]" this.Name.Value)
+        |> ArmExpression.create
+    /// Returns Admin username if AdminUserEnabled
+    member this.Username =
+        (sprintf "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries','%s'),'2019-05-01').username]" this.Name.Value)
+        |> ArmExpression.create
     interface IBuilder with
         member this.ResourceId = registries.resourceId this.Name
         member this.BuildResources location = [
@@ -40,11 +52,6 @@ type ContainerRegistryBuilder() =
     [<CustomOperation "enable_admin_user">]
     /// Enables the admin user on the Azure Container Registry.
     member _.EnableAdminUser (state:ContainerRegistryConfig) = { state with AdminUserEnabled = true }
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:ContainerRegistryConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:ContainerRegistryConfig, key, value) = this.Tags(state, [ (key,value) ])
+    interface ITaggable<ContainerRegistryConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let containerRegistry = ContainerRegistryBuilder()

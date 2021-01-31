@@ -6,7 +6,11 @@ open Farmer.ContainerGroup
 open Farmer.Identity
 open Farmer.Arm.ContainerInstance
 open Farmer.Arm.Network
+open System.Text
 
+//TODO: I think we should rename these to standard F# naming conventioned e.g. VolumeMount, EmptyDir etc.
+//TODO: Indeed, this should either be made into a module with let-bound functions, or make use of static
+//members by using e.g. optional parameters or overloading.
 type volume_mount =
     static member empty_dir volumeName =
         volumeName, Volume.EmptyDirectory
@@ -16,14 +20,16 @@ type volume_mount =
         volumeName, Volume.GitRepo (repository, None, None)
     static member git_repo_directory volumeName  repository directory =
         volumeName, Volume.GitRepo (repository, Some directory, None)
-    static member git_repo_directory_revision volumeName  repository directory revision =
+    static member git_repo_directory_revision volumeName repository directory revision =
         volumeName, Volume.GitRepo (repository, Some directory, Some revision)
     static member secret volumeName  (file:string) (secret:byte array) =
-        volumeName, Volume.Secret [ SecretFile (file, secret) ]
+        volumeName, Volume.Secret [ SecretFileContents (file, secret) ]
     static member secrets volumeName  (secrets:(string * byte array) list) =
-        volumeName, secrets |> List.map SecretFile |> Volume.Secret
+        volumeName, secrets |> List.map SecretFileContents |> Volume.Secret
     static member secret_string volumeName  (file:string) (secret:string) =
-        volumeName, Volume.Secret [ SecretFile (file, secret |> System.Text.Encoding.UTF8.GetBytes) ]
+        volumeName, Volume.Secret [ SecretFileContents (file, Encoding.UTF8.GetBytes secret) ]
+    static member secret_parameter volumeName  (file:string) (secretParameterName:string) =
+        volumeName, Volume.Secret [ SecretFileParameter (file, SecureParameter secretParameterName) ]
 
 /// Represents configuration for a single Container.
 type ContainerInstanceConfig =
@@ -95,13 +101,11 @@ type ContainerGroupConfig =
 
 type ContainerGroupBuilder() =
     member private _.AddPort (state, portType, port): ContainerGroupConfig =
-        {
-            state with IpAddress =
+        { state with IpAddress =
                         match state.IpAddress with
                         | Some ipAddresses ->
                             { ipAddresses with Ports = ipAddresses.Ports.Add {| Protocol = portType; Port = port |} } |> Some
-                        | None -> { Type = IpAddressType.PublicAddress; Ports = [ {| Protocol = portType; Port = port |} ] |> Set.ofList } |> Some
-        }
+                        | None -> { Type = IpAddressType.PublicAddress; Ports = [ {| Protocol = portType; Port = port |} ] |> Set.ofList } |> Some }
 
     member _.Yield _ =
         { Name = ResourceName.Empty
@@ -169,12 +173,7 @@ type ContainerGroupBuilder() =
     member this.AddIdentity(state, identity:UserAssignedIdentityConfig) = this.AddIdentity(state, identity.UserAssignedIdentity)
     [<CustomOperation "system_identity">]
     member _.SystemIdentity(state:ContainerGroupConfig) = { state with Identity = { state.Identity with SystemAssigned = Enabled } }
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:ContainerGroupConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:ContainerGroupConfig, key, value) = this.Tags(state, [ (key,value) ])
+    interface ITaggable<ContainerGroupConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 /// Creates an image registry credential with a generated SecureParameter for the password.
 let registry (server:string) (username:string) =
@@ -275,11 +274,6 @@ type NetworkProfileBuilder() =
     /// Sets the virtual network for the profile
     [<CustomOperation "vnet">]
     member _.VirtualNetwork(state:NetworkProfileConfig, vnet) = { state with VirtualNetwork = ResourceName vnet }
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:NetworkProfileConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:NetworkProfileConfig, key, value) = this.Tags(state, [ (key,value) ])
+    interface ITaggable<NetworkProfileConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let networkProfile = NetworkProfileBuilder ()

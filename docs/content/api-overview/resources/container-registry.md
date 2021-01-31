@@ -17,6 +17,14 @@ The Container Registry builder is used to create Azure Container Registry (ACR) 
 | sku | Sets the SKU of the instance. Defaults to Basic. |
 | enable_admin_user | The value that indicates whether the admin user is enabled. |
 
+#### Configuration Members
+
+| Member | Purpose |
+|-|-|
+| Password | Gets the ARM expression path to the first admin password of this container registry if admin user was enabled. |
+| Password2 | Gets the ARM expression path to the second admin password of this container registry if admin user was enabled. |
+| Username | Gets the ARM expression path to the admin username of this container registry if admin user was enabled. |
+
 #### Example
 ```fsharp
 open Farmer

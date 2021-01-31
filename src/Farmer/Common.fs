@@ -69,10 +69,12 @@ type IsoDateTime =
 type TransmissionProtocol = TCP | UDP
 type TlsVersion = Tls10 | Tls11 | Tls12
 type EnvVar =
+    /// Use for non-secret environment variables to be surfaced in the container. These will be stored in cleartext in the ARM template.
     | EnvValue of string
-    | SecureEnvValue of string
+    /// Use for secret environment variables to be surfaced in the container securely. These will be provided as secure parameters to the ARM template.
+    | SecureEnvValue of SecureParameter
     static member create (name:string) (value:string) = name, EnvValue value
-    static member createSecure (name:string) (value:string) = name, SecureEnvValue value
+    static member createSecure (name:string) (paramName:string) = name, SecureEnvValue (SecureParameter paramName)
 
 module Mb =
     let toBytes (mb:int<Mb>) = int64 mb * 1024L * 1024L
@@ -282,21 +284,35 @@ module Vm =
     type DiskInfo = { Size : int; DiskType : DiskType }
 
 module internal Validation =
+    let (<+>) a b v = a v && b v
+    let (<|>) a b v = a v || b v
+    let (<!>) a b e s =
+        match a e s, b e s with
+        | Ok _, Ok _ -> Ok ()
+        | Error x, _
+        | _, Error x -> Error x
+
     let isNonEmpty entity s = if String.IsNullOrWhiteSpace s then Error (sprintf "%s cannot be empty" entity) else Ok()
     let notLongerThan max entity (s:string) = if s.Length > max then Error (sprintf "%s max length is %d, but here is %d ('%s')" entity max s.Length s) else Ok()
     let notShorterThan min entity (s:string) = if s.Length < min then Error (sprintf "%s min length is %d, but here is %d ('%s')" entity min s.Length s) else Ok()
     let lengthBetween min max entity (s:string) = s |> notLongerThan max entity |> Result.bind (fun _ -> s |> notShorterThan min entity)
-    let containsOnly message predicate entity (s:string) = if s |> Seq.exists (predicate >> not) then Error (sprintf "%s can only contain %s ('%s')" entity message s) else Ok()
-    let cannotContain message predicate entity (s:string) = if s |> Seq.exists predicate then Error (sprintf "%s do not allow %s ('%s')" entity message s) else Ok()
-    let startsWith message predicate entity (s:string) = if not (predicate s.[0]) then Error (sprintf "%s must start with %s ('%s')" entity message s) else Ok()
-    let endsWith message predicate entity (s:string) = if not (predicate s.[s.Length - 1]) then Error (sprintf "%s must end with %s ('%s')" entity message s) else Ok()
-    let cannotStartWith message predicate entity (s:string) = if predicate s.[0] then Error (sprintf "%s cannot start with %s ('%s')" entity message s) else Ok()
-    let cannotEndWith message predicate entity (s:string) = if predicate s.[s.Length - 1] then Error (sprintf "%s cannot end with %s ('%s')" entity message s) else Ok()
-    let arb message predicate entity (s:string) = if predicate s then Error (sprintf "%s %s ('%s')" entity message s) else Ok()
-    let (<+>) a b v = a v && b v
-    let (<|>) a b v = a v || b v
-    let lowercaseOnly = Char.IsLetter >> not <|> Char.IsLower
-
+    let containsOnly (message, predicate) entity (s:string) = if s |> Seq.exists (predicate >> not) then Error (sprintf "%s can only contain %s ('%s')" entity message s) else Ok()
+    let cannotContain (message, predicate) entity (s:string) = if s |> Seq.exists predicate then Error (sprintf "%s do not allow %s ('%s')" entity message s) else Ok()
+    let startsWith (message, predicate) entity (s:string) = if not (predicate s.[0]) then Error (sprintf "%s must start with %s ('%s')" entity message s) else Ok()
+    let endsWith (message, predicate) entity (s:string) = if not (predicate s.[s.Length - 1]) then Error (sprintf "%s must end with %s ('%s')" entity message s) else Ok()
+    let cannotStartWith (message, predicate) entity (s:string) = if predicate s.[0] then Error (sprintf "%s cannot start with %s ('%s')" entity message s) else Ok()
+    let cannotEndWith (message, predicate) entity (s:string) = if predicate s.[s.Length - 1] then Error (sprintf "%s cannot end with %s ('%s')" entity message s) else Ok()
+    let arb (message, predicate) entity (s:string) = if predicate s then Error (sprintf "%s %s ('%s')" entity message s) else Ok()
+    let containsOnlyM containers =
+        containers
+        |> List.map containsOnly
+        |> List.reduce (<!>)
+    let lowercaseLetters = "lowercase letters", Char.IsLetter >> not <|> Char.IsLower
+    let aLetterOrNumber = "an alphanumeric character", Char.IsLetterOrDigit
+    let lettersOrNumbers = "alphanumeric characters", Char.IsLetterOrDigit
+    let aDash = "a dash", ((=) '-')
+    let lettersNumbersOrDash = "alphanumeric characters or the dash", Char.IsLetterOrDigit <|> (snd aDash)
+    let nonEmptyLengthBetween a b = isNonEmpty <!> lengthBetween a b
     let validate entity text rules =
         rules
         |> Seq.choose (fun v ->
@@ -306,15 +322,28 @@ module internal Validation =
         |> Seq.tryHead
         |> Option.defaultValue (Ok text)
 
+module CosmosDbValidation =
+    open Validation
+    type CosmosDbName =
+        private | CosmosDbName of ResourceName
+        static member Create name =
+            [ nonEmptyLengthBetween 3 44
+              containsOnlyM [ lowercaseLetters; lettersNumbersOrDash ]
+            ]
+            |> validate "CosmosDb account names" name
+            |> Result.map (ResourceName >> CosmosDbName)
+
+        static member Create (ResourceName name) = CosmosDbName.Create name
+        member this.ResourceName = match this with CosmosDbName name -> name
+
 module Storage =
     open Validation
     type StorageAccountName =
         private | StorageAccountName of ResourceName
         static member Create name =
-            [ isNonEmpty
-              lengthBetween 3 24
-              containsOnly "lowercase letters" lowercaseOnly
-              containsOnly "alphanumeric characters" Char.IsLetterOrDigit ]
+            [ nonEmptyLengthBetween 3 24
+              containsOnlyM [ lowercaseLetters; lettersOrNumbers ]
+            ]
             |> validate "Storage account names" name
             |> Result.map (ResourceName >> StorageAccountName)
 
@@ -324,45 +353,43 @@ module Storage =
     type StorageResourceName =
         private | StorageResourceName of ResourceName
         static member Create name =
-            [ isNonEmpty
-              lengthBetween 3 63
-              startsWith "an alphanumeric character" Char.IsLetterOrDigit
-              endsWith "an alphanumeric character" Char.IsLetterOrDigit
-              containsOnly "letters, numbers, and the dash (-) character" (fun c -> Char.IsLetterOrDigit c || c = '-')
-              containsOnly "lowercase letters" lowercaseOnly
-              arb "do not allow consecutive dashes" (fun s -> s.Contains "--") ]
+            [ nonEmptyLengthBetween 3 63
+              startsWith aLetterOrNumber
+              endsWith aLetterOrNumber
+              containsOnlyM [ lettersNumbersOrDash; lowercaseLetters ]
+              arb ("do not allow consecutive dashes", fun s -> s.Contains "--") ]
             |> validate "Storage resource names" name
             |> Result.map (ResourceName >> StorageResourceName)
 
         static member Create (ResourceName name) = StorageResourceName.Create name
         member this.ResourceName = match this with StorageResourceName name -> name
 
+    type DefaultAccessTier = Hot | Cool
     type StoragePerformance = Standard | Premium
     type BasicReplication = LRS | ZRS
     type BlobReplication = LRS | GRS | RAGRS
     type V1Replication = LRS of StoragePerformance | GRS | RAGRS
     type V2Replication = LRS of StoragePerformance | GRS | ZRS | GZRS | RAGRS | RAGZRS
-    type GeneralPurpose = V1 of V1Replication | V2 of V2Replication
-    type BlobAccessTier = Hot | Cool
+    type GeneralPurpose = V1 of V1Replication | V2 of V2Replication * DefaultAccessTier option
     type Sku =
         | GeneralPurpose of GeneralPurpose
-        | Blobs of BlobReplication * BlobAccessTier
+        | Blobs of BlobReplication * DefaultAccessTier option
         | BlockBlobs of BasicReplication
         | Files of BasicReplication
-        /// General Purpose V2 Standard LRS.
-        static member Standard_LRS = GeneralPurpose (V2 (LRS Standard))
-        /// General Purpose V2 Premium LRS.
-        static member Premium_LRS = GeneralPurpose (V2 (LRS Premium))
-        /// General Purpose V2 Standard GRS.
-        static member Standard_GRS = GeneralPurpose (V2 GRS)
-        /// General Purpose V2 Standard RAGRS.
-        static member Standard_RAGRS = GeneralPurpose (V2 RAGRS)
-        /// General Purpose V2 Standard ZRS.
-        static member Standard_ZRS = GeneralPurpose (V2 ZRS)
-        /// General Purpose V2 Standard GZRS.
-        static member Standard_GZRS = GeneralPurpose (V2 GZRS)
-        /// General Purpose V2 Standard RAGZRS.
-        static member Standard_RAGZRS = GeneralPurpose (V2 RAGZRS)
+        /// General Purpose V2 Standard LRS with no default access tier.
+        static member Standard_LRS = GeneralPurpose (V2 (LRS Standard, None))
+        /// General Purpose V2 Premium LRS with no default access tier.
+        static member Premium_LRS = GeneralPurpose (V2 (LRS Premium, None))
+        /// General Purpose V2 Standard GRS with no default access tier.
+        static member Standard_GRS = GeneralPurpose (V2 (GRS, None))
+        /// General Purpose V2 Standard RAGRS with no default access tier.
+        static member Standard_RAGRS = GeneralPurpose (V2 (RAGRS, None))
+        /// General Purpose V2 Standard ZRS with no default access tier.
+        static member Standard_ZRS = GeneralPurpose (V2 (ZRS, None))
+        /// General Purpose V2 Standard GZRS with no default access tier.
+        static member Standard_GZRS = GeneralPurpose (V2 (GZRS, None))
+        /// General Purpose V2 Standard RAGZRS with no default access tier.
+        static member Standard_RAGZRS = GeneralPurpose (V2 (RAGZRS, None))
 
     type StorageContainerAccess =
         | Private
@@ -389,6 +416,7 @@ module WebApp =
         | Standard of string
         | Premium of string
         | PremiumV2 of string
+        | PremiumV3 of string
         | Isolated of string
         | Dynamic
         static member D1 = Shared
@@ -405,14 +433,19 @@ module WebApp =
         static member P1V2 = PremiumV2 "P1V2"
         static member P2V2 = PremiumV2 "P2V2"
         static member P3V2 = PremiumV2 "P3V2"
+        static member P1V3 = PremiumV3 "P1V3"
+        static member P2V3 = PremiumV3 "P2V3"
+        static member P3V3 = PremiumV3 "P3V3"
         static member I1 = Isolated "I1"
         static member I2 = Isolated "I2"
         static member I3 = Isolated "I3"
         static member Y1 = Dynamic
     type ConnectionStringKind = MySql | SQLServer | SQLAzure | Custom | NotificationHub | ServiceBus | EventHub | ApiHub | DocDb | RedisCache | PostgreSQL
-    type Extensions =
+    type ExtensionName = ExtensionName of string
+    type Bitness = Bits32 | Bits64
+    module Extensions =
         /// The Microsoft.AspNetCore.AzureAppServices logging extension.
-        static member Logging = "Microsoft.AspNetCore.AzureAppServices.SiteExtension"
+        let Logging = ExtensionName "Microsoft.AspNetCore.AzureAppServices.SiteExtension"
 
 module CognitiveServices =
     /// Type of SKU. See https://github.com/Azure/azure-quickstart-templates/tree/master/101-cognitive-services-translate
@@ -623,6 +656,21 @@ module Sql =
             | StandardPool c
             | PremiumPool c ->
                 c
+    open Validation
+    type SqlAccountName =
+        private | SqlAccountName of ResourceName
+        static member Create name =
+            [ nonEmptyLengthBetween 1 63
+              cannotStartWith aDash
+              cannotEndWith aDash
+              containsOnlyM [ lowercaseLetters; lettersNumbersOrDash ]
+            ]
+            |> validate "SQL account names" name
+            |> Result.map (ResourceName >> SqlAccountName)
+
+        static member Create (ResourceName name) = SqlAccountName.Create name
+        member this.ResourceName = match this with SqlAccountName name -> name
+
 
 /// Represents a role that can be granted to an identity.
 type RoleId =
@@ -679,8 +727,12 @@ module ContainerGroup =
         | PublicAddress
         | PublicAddressWithDns of DnsName:string
         | PrivateAddress
-    /// A secret file which will be encoded as base64 and attached to a container group.
-    type SecretFile = SecretFile of Name:string * Secret:byte array
+    /// A secret file that will be attached to a container group.
+    type SecretFile =
+        /// A secret file which will be encoded as base64 data.
+        | SecretFileContents of Name:string * Secret:byte array
+        /// A secret file which will provided by an ARM parameter at runtime.
+        | SecretFileParameter of Name:string * Secret:SecureParameter
     /// A container group volume.
     [<RequireQualifiedAccess>]
     type Volume =
@@ -918,12 +970,11 @@ module IPAddressCidr =
         let first, last = ipRangeNums cidr
         seq { for i in first..last do ofNum i }
     /// Carve a subnet out of an address space.
-    let carveAddressSpace (addressSpace:IPAddressCidr) (subnetSizes:int list) =
+    let carveAddressSpace (addressSpace:IPAddressCidr) (subnetSizes:int list) = [
         let addressSpaceStart, addressSpaceEnd = addressSpace |> ipRangeNums
         let mutable startAddress = addressSpaceStart |> ofNum
         let mutable index = 0
-        seq {
-            for size in subnetSizes do
+        for size in subnetSizes do
                 index <- index + 1
                 let cidr = { Address = startAddress; Prefix = size }
                 let first, last = cidr |> ipRangeNums
@@ -940,7 +991,8 @@ module IPAddressCidr =
                     cidr
                 else
                     raise (IndexOutOfRangeException (sprintf "Unable to create subnet %d of /%d" index size))
-        }
+        ]
+
     /// The first two addresses are the network address and gateway address
     /// so not assignable.
     let assignable (cidr:IPAddressCidr) =
@@ -1072,3 +1124,7 @@ module Dns =
         | PTR of PtrRecords : string list
         | TXT of TxtRecords : string list
         | MX of {| Preference : int; Exchange : string |} list
+
+module Databricks =
+    type KeySource = Databricks | KeyVault member this.ArmValue = match this with Databricks -> "Default" | KeyVault -> "MicrosoftKeyVault"
+    type Sku = Standard | Premium member this.ArmValue = match this with Standard -> "standard" | Premium -> "premium"

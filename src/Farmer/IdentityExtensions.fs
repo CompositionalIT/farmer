@@ -16,7 +16,7 @@ module ManagedIdentityExtensions =
             userAssignedIdentities.resourceId name |> ManagedIdentity.create
 
 module Roles =
-    type RoleAssignment = { Role : RoleId; Principal : PrincipalId }
+    type RoleAssignment = { Role : RoleId; Principal : PrincipalId; Owner : ResourceId option }
     let private makeRoleId name roleId = RoleId {| Name = name; Id = Guid.Parse roleId |}
 
     /// acr push

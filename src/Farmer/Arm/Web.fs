@@ -40,6 +40,7 @@ type ServerFarm =
         | Standard _ -> "Standard"
         | Premium _ -> "Premium"
         | PremiumV2 _ -> "PremiumV2"
+        | PremiumV3 _ -> "PremiumV3"
         | Dynamic -> "Dynamic"
         | Isolated _ -> "Isolated"
     interface IArmResource with
@@ -57,6 +58,7 @@ type ServerFarm =
                         | Standard sku
                         | Premium sku
                         | PremiumV2 sku
+                        | PremiumV3 sku
                         | Isolated sku ->
                             sku
                         | Dynamic ->
@@ -109,7 +111,6 @@ module ZipDeploy =
                 packageFilename
             | DeployZip zipFilePath ->
                 zipFilePath
-
 type Site =
     { Name : ResourceName
       Location : Location
@@ -117,6 +118,7 @@ type Site =
       AppSettings : Map<string, Setting>
       ConnectionStrings : Map<string, (Setting * ConnectionStringKind)>
       AlwaysOn : bool
+      WorkerProcess : Bitness option 
       HTTPSOnly : bool
       HTTP20Enabled : bool option
       ClientAffinityEnabled : bool option
@@ -154,8 +156,8 @@ type Site =
                         failwithf "Path '%s' must either be a folder to be zipped, or an existing zip." path)
                 printfn "Running ZIP deploy for %s" path.Value
                 Some (match target with
-                        | ZipDeploy.ZipDeployTarget.WebApp -> Deploy.Az.zipDeployWebApp name.Value path.GetZipPath resourceGroupName
-                        | ZipDeploy.ZipDeployTarget.FunctionApp -> Deploy.Az.zipDeployFunctionApp name.Value path.GetZipPath resourceGroupName)
+                      | ZipDeploy.WebApp -> Deploy.Az.zipDeployWebApp name.Value path.GetZipPath resourceGroupName
+                      | ZipDeploy.FunctionApp -> Deploy.Az.zipDeployFunctionApp name.Value path.GetZipPath resourceGroupName)
             | _ ->
                 None
     interface IArmResource with
@@ -176,6 +178,7 @@ type Site =
                            linuxFxVersion = this.LinuxFxVersion |> Option.toObj
                            appCommandLine = this.AppCommandLine |> Option.toObj
                            netFrameworkVersion = this.NetFrameworkVersion |> Option.toObj
+                           use32BitWorkerProcess = this.WorkerProcess |> Option.map (function Bits32 -> true | Bits64 -> false) |> Option.toNullable
                            javaVersion = this.JavaVersion |> Option.toObj
                            javaContainer = this.JavaContainer |> Option.toObj
                            javaContainerVersion = this.JavaContainerVersion |> Option.toObj

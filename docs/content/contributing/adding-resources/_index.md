@@ -1,12 +1,12 @@
 ---
-title: "Adding A Resource"
+title: "Supporting a new ARM Resource"
 date: 2020-06-15T03:57:42+02:00
 draft: false
 chapter: false
 weight: 10
 ---
 
-This set of guided exercises shows the different steps required to create new ARM resources in Farmer. We'll create a basic resource that can hook into the Farmer pipeline, by adding support to Farmer for the `ContainerRegistry` Azure resource. This will involve:
+This set of guided exercises shows the different steps required to design new ARM resources that can be consumed in Farmer. This tutorial will show you the steps to take create a resource that can hook into the Farmer pipeline, by adding support to Farmer for the `ContainerRegistry` Azure resource. This will involve:
 
 * Defining an type that implements `IArmResource` that maps directly to the ARM template output.
 * Defining any domain types required to capture details on the resource.
@@ -22,7 +22,7 @@ let myRegistry = containerRegistry {
 }
 
 let deployment = arm {
-    location NorthEurope
+    location Location.WestCentralUS
     add_resource myRegistry
 }
 ```
@@ -31,18 +31,24 @@ which generates JSON looking something like this:
 
 ```json
 {
-  "name": "devonRegistry",
-  "type": "Microsoft.ContainerRegistry/registries",
-  "apiVersion": "2019-05-01",
-  "location": "northeurope",
-  "tags": {},
-  "sku": {
-    "name": "Basic"
-  },
-  "properties": {
-    "adminUserEnabled": true,
-  },
-  "resources": []
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "outputs": {},
+  "parameters": {},
+  "resources": [
+    {
+      "apiVersion": "2019-05-01",
+      "location": "westcentralus",
+      "name": "my-registry",
+      "properties": {
+        "adminUserEnabled": true
+      },
+      "sku": {
+        "name": "Basic"
+      },
+      "type": "Microsoft.ContainerRegistry/registries"
+    }
+  ]
 }
 ```
 

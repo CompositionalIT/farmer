@@ -121,10 +121,6 @@ type NsgBuilder() =
     /// Adds rules to this NSG.
     [<CustomOperation "add_rules">]
     member _.AddSecurityRules (state:NsgConfig, rules) = { state with SecurityRules = state.SecurityRules @ rules }
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:NsgConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:NsgConfig, key, value) = this.Tags(state, [ (key,value) ])
+    interface ITaggable<NsgConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
+
 let nsg = NsgBuilder()

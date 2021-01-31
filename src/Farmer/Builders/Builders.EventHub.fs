@@ -23,7 +23,7 @@ type EventHubConfig =
       ConsumerGroups : ResourceName Set
       CaptureDestination : CaptureDestination option
       AuthorizationRules : Map<ResourceName, AuthorizationRuleRight Set>
-      Dependencies : ResourceId list
+      Dependencies : ResourceId Set
       Tags: Map<string,string>  }
     member private this.CreateKeyExpression (resourceId:ResourceId) =
         ArmExpression
@@ -64,7 +64,7 @@ type EventHubConfig =
               MessageRetentionDays = this.MessageRetentionInDays
               Partitions = this.Partitions
               CaptureDestination = this.CaptureDestination
-              Dependencies = [
+              Dependencies = Set [
                   namespaces.resourceId this.EventHubNamespaceName
                   yield! this.CaptureDestination |> Option.mapList (fun (StorageAccount (name, _)) -> storageAccounts.resourceId name)
                   yield! this.Dependencies
@@ -105,7 +105,7 @@ type EventHubBuilder() =
           CaptureDestination = None
           ConsumerGroups = Set [ ResourceName "$Default" ]
           AuthorizationRules = Map.empty
-          Dependencies = []
+          Dependencies = Set.empty
           Tags = Map.empty }
     /// Sets the name of the Event Hub instance.
     [<CustomOperation "name">]
@@ -145,20 +145,7 @@ type EventHubBuilder() =
     member this.CaptureToStorage(state:EventHubConfig, storageAccount:StorageAccountConfig, container) =
         this.CaptureToStorage(state, storageAccount.Name.ResourceName, container)
 
-    /// Sets a dependency for the web app.
-    [<CustomOperation "depends_on">]
-    member this.DependsOn(state:EventHubConfig, builder:IBuilder) = this.DependsOn (state, builder.ResourceId)
-    member this.DependsOn(state:EventHubConfig, builders:IBuilder list) = this.DependsOn (state, builders |> List.map (fun x -> x.ResourceId))
-    member this.DependsOn(state:EventHubConfig, resource:IArmResource) = this.DependsOn (state, resource.ResourceId)
-    member this.DependsOn(state:EventHubConfig, resources:IArmResource list) = this.DependsOn (state, resources |> List.map (fun x -> x.ResourceId))
-    member _.DependsOn (state:EventHubConfig, resourceId:ResourceId) = { state with Dependencies = resourceId :: state.Dependencies }
-    member _.DependsOn (state:EventHubConfig, resourceIds:ResourceId list) = { state with Dependencies = resourceIds @ state.Dependencies }
-
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:EventHubConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:EventHubConfig, key, value) = this.Tags(state, [ (key,value) ])
+    interface IDependable<EventHubConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
+    interface ITaggable<EventHubConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let eventHub = EventHubBuilder()

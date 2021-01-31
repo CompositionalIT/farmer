@@ -1,26 +1,59 @@
 Release Notes
 =============
-## Next release
-* Web App: Support for adding site extensions with "use_extension"
-* Functions: Support for external unmanaged storage accounts.
+## 1.4.0-beta2
+* Container Registry: Added ARM expressions for admin account credentials
+* Databricks Workspace: Support for creating Databricks Workspaces
+* Web App: Improved KeyVault integration.
+* Web App: Add PremiumV3 SKU.
 
-## 1.3.0-beta2
+## 1.4.0-beta1
+* Storage: Support for setting default blob access tier at account level with "default_blob_access_tier"
+
+* Functions: Added some extra keywords which were already present on Web App.
+
+* Web App: Automatically add Logging extension for ASP.NET Core apps (additive change to ARM).
+* Web App: Added Instrumentation Key Setting for Linux WebApp.
+* Web App: Automatically add Client Id setting for user assigned identities.
+* Web App: Support for 64 bits.
+
+* SQL Azure: Validation and fail fast on account names instead of silently fixing them (breaking run-time change).
+
+* Azure CLI: Ensure JSON output.
+
+* Framework: Extension methods for Taggable and Dependable to simplify boilerplate keywords.
+* Framework: Common keywords between Functions and Web Apps factored out.
+
+## 1.3.2
+* Storage: Revert User Assigned Identity scope to ResourceGroup
+* User Assigned Identity: Allow explicitly setting dependencies
+
+## 1.3.1
+* CosmosDB: Fix an issue whereby dependent resource paths were sometimes incorrectly generated.
+
+## 1.3.0
+* ARM generation: Smarter emitting of "raw" ARM expressions.
+
+* CDN: Fix issues around custom domain host names.
+* CDN: Improved integration with Storage Accounts.
+
+* Container Instance: Support for secure parameters for environment variables and secret volumes.
+* Container Instance: Support for command line arguments.
+
+* Deployment Scripts: Support for secure parameters for environment variables (minor breaking change).
 * Deployment Scripts: Specifies cleanup on expiration when retention interval is set, and enables cleanup on success only.
 * Deployment Scripts: Support for running the script after other resources are deployed.
-* Web App: Unmanaged Server Farm uses Resource Id for fully-qualified path.
-
-## 1.3.0-beta1
-* Container Instance: Support for command line arguments.
-* Key Vault: Support for setting tags on key vault secrets.
 * Deployment Scripts: Run Azure CLI commands as part of an ARM deployment (PowerShell or AzCli).
+
+* Functions: Support for external unmanaged storage accounts.
+* Functions: Support for user-assigned managed identity.
+
+* Key Vault: Support for setting tags on key vault secrets.
 
 * Storage Account: Support for the full set of Storage Account Kind and SKUs (minor breaking change).
 * Storage Account: Improved integration with CDN.
 
-* CDN: Improved integration with Storage Accounts.
-* CDN: Fixed an issue where custom domains did not generate the correct ARM name path.
-
-* ARM generation: Smarter emitting of "raw" ARM expressions.
+* Web App: Support for site extensions.
+* Web App: Unmanaged Server Farm uses Resource Id for fully-qualified path.
 
 ## 1.2.0
 * Log Analytics: Initial release.

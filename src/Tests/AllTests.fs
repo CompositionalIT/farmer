@@ -38,12 +38,15 @@ let allTests =
                 Functions.tests
                 StaticWebApp.tests
                 VirtualNetworkGateway.tests
+                Databricks.tests
+                JsonRegression.tests
+                AzCli.tests
             ]
             testList "Control" [
                 Template.tests
                 Identity.tests
                 Common.tests
-                if Environment.GetEnvironmentVariable "TF_BUILD" = "True" then AzCli.tests
+                if Environment.GetEnvironmentVariable "TF_BUILD" = "True" then AzCli.endToEndTests
             ]
         ]
 
