@@ -41,6 +41,7 @@
     <Compile Include="VirtualNetworkGateway.fs" />
     <Compile Include="Identity.fs" />
     <Compile Include="DeploymentScript.fs" />
+    <Compile Include="Databricks.fs" />
     <Compile Include="JsonRegression.fs" />
     <Compile Include="AllTests.fs" />
   </ItemGroup>

@@ -661,7 +661,7 @@ module Sql =
         private | SqlAccountName of ResourceName
         static member Create name =
             [ nonEmptyLengthBetween 1 63
-              cannotStartWith aDash 
+              cannotStartWith aDash
               cannotEndWith aDash
               containsOnlyM [ lowercaseLetters; lettersNumbersOrDash ]
             ]
@@ -1124,3 +1124,7 @@ module Dns =
         | PTR of PtrRecords : string list
         | TXT of TxtRecords : string list
         | MX of {| Preference : int; Exchange : string |} list
+
+module Databricks =
+    type KeySource = Databricks | KeyVault member this.ArmValue = match this with Databricks -> "Default" | KeyVault -> "MicrosoftKeyVault"
+    type Sku = Standard | Premium member this.ArmValue = match this with Standard -> "standard" | Premium -> "premium"
