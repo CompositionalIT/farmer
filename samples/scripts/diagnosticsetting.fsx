@@ -13,16 +13,19 @@ let logicAppResource = ResourceId.create(ResourceType ("Microsoft.Logic/workflow
 
 let mydiagnosticSetting = diagnosticSettings {
     name "myDiagnosticSetting"
-    parent_resource logicAppResource
-    storage_account_id storageAccountResource
-    work_space_id logAnalyticsResource
+    metrics_source logicAppResource
+
+    storage_account storageAccountResource
+    log_analytics_workspace logAnalyticsResource
+    enable_dedicated_loganalytics
+
     metrics [
         MetricSetting.Create("AllMetrics", retentionPeriod = 2<Days>, timeGrain = TimeSpan.FromMinutes 1.)
     ]
+
     logs [
         LogSetting.Create("WorkflowRuntime", retentionPeriod = 1<Days>)
     ]
-    enable_dedicated_loganalytics
 }
 
 let deployment = arm {
@@ -31,5 +34,5 @@ let deployment = arm {
 }
 
 deployment
-|> Deploy.execute "test-resource-group" Deploy.NoParameters
+|> Writer.quickWrite "diagnostics"
 |> printfn "%A"
