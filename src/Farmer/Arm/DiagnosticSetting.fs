@@ -45,29 +45,37 @@ let diagnosticSettingsType (parent:ResourceType) =
 
 type DiagnosticSettings =
     { Name : ResourceName
-      ParentResource : ResourceId
       Location : Location
-      StorageAccountId : ResourceId option
-      ServiceBusRuleId: ResourceId option
-      EventHubAuthorizationRuleId: ResourceId option
-      EventHubName : string option
+      MetricsSource : ResourceId
+
+      Sinks :
+        {| StorageAccount : ResourceId option
+           EventHub : {| AuthorizationRuleId : ResourceId; EventHubName : ResourceName option |} option
+           LogAnalyticsWorkspace : ResourceId option
+           //TODO: Find out which "way" Dedicated goes (see https://docs.microsoft.com/en-us/azure/templates/microsoft.insights/diagnosticsettings#subscriptiondiagnosticsettings-object)
+           DedicatedLogAnalyticsDestination : FeatureFlag option |}
+
       Metrics : MetricSetting list
       Logs : LogSetting list
-      WorkspaceId : ResourceId option
-      DedicatedLogAnalyticsDestination : string option
+
       Dependencies : ResourceId Set
       Tags : Map<string, string> }
 
     interface IArmResource with
-        member this.ResourceId = diagnosticSettingsType(this.ParentResource.Type).resourceId this.Name
+        member this.ResourceId = diagnosticSettingsType(this.MetricsSource.Type).resourceId this.Name
         member this.JsonModel =
-            {| diagnosticSettingsType(this.ParentResource.Type).Create(this.ParentResource.Name/"Microsoft.Insights"/this.Name,this.Location, tags = this.Tags,dependsOn = this.Dependencies) with
+            {| diagnosticSettingsType(this.MetricsSource.Type).Create(this.MetricsSource.Name/"Microsoft.Insights"/this.Name,this.Location, tags = this.Tags,dependsOn = this.Dependencies) with
                 properties =
-                    {| serviceBusRuleId = this.ServiceBusRuleId
-                       LogAnalyticsDestinationType = this.DedicatedLogAnalyticsDestination |> Option.toObj
-                       eventHubName = this.EventHubName |> Option.toObj
-                       eventHubAuthorizationRuleId = this.EventHubAuthorizationRuleId |> Option.map(fun x -> x.Eval()) |> Option.toObj
-                       storageAccountId = this.StorageAccountId |> Option.map( fun x -> x.Eval()) |> Option.toObj
+                    {| LogAnalyticsDestinationType = match this.Sinks.DedicatedLogAnalyticsDestination with | Some Enabled -> "Dedicated" | None | Some Disabled -> null
+                       eventHubName =
+                        this.Sinks.EventHub
+                        |> Option.bind(fun hub -> hub.EventHubName |> Option.map(fun r -> r.Value))
+                        |> Option.toObj
+                       eventHubAuthorizationRuleId =
+                        this.Sinks.EventHub
+                        |> Option.map(fun hub -> hub.AuthorizationRuleId.Eval())
+                        |> Option.toObj
+                       storageAccountId = this.Sinks.StorageAccount |> Option.map( fun x -> x.Eval()) |> Option.toObj
                        metrics = [|
                            for metric in this.Metrics do
                             {| category = metric.Category
@@ -87,5 +95,5 @@ type DiagnosticSettings =
                                 |> Option.map(fun policy -> box {| enabled = policy.Enabled; days = policy.RetentionPeriod |})
                                 |> Option.toObj |}
                        |]
-                       workspaceId = this.WorkspaceId |> Option.map( fun x -> x.Eval()) |> Option.toObj |}
+                       workspaceId = this.Sinks.LogAnalyticsWorkspace |> Option.map( fun x -> x.Eval()) |> Option.toObj |}
             |} :> _

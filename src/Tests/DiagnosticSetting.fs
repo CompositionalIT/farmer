@@ -27,9 +27,9 @@ let tests = testList "Diagnostic Settings" [
         let config =
             diagnosticSettings {
                 name "myDiagnosticSetting"
-                parent_resource logicAppResource
-                storage_account_id storageAccountResourceId
-                work_space_id workspaceResourceId
+                metrics_source logicAppResource
+                storage_account storageAccountResourceId
+                log_analytics_workspace workspaceResourceId
                 metrics [ MetricSetting.Create("AllMetrics", 2<Days>, TimeSpan.FromMinutes 1.) ]
                 logs [ LogSetting.Create("WorkflowRuntime", 1<Days>) ]
             }
@@ -48,7 +48,7 @@ let tests = testList "Diagnostic Settings" [
        Expect.throws (fun _ ->
            diagnosticSettings {
                name "myDiagnosticSetting"
-               parent_resource logicAppResource
+               metrics_source logicAppResource
                event_hub_name "myeventhubname"
            } |> ignore) (sprintf "Should have thrown an exception for not specifying Event Hub authorization rule id")
     }
@@ -56,7 +56,7 @@ let tests = testList "Diagnostic Settings" [
        Expect.throws (fun _ ->
            diagnosticSettings {
                name "myDiagnosticSetting"
-               parent_resource logicAppResource
+               metrics_source logicAppResource
                logs [ LogSetting.Create "WorkflowRuntime" ]
            } |> ignore) (sprintf "Should have thrown an exception for not specifying at least on data sink")
     }
