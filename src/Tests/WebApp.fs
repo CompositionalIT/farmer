@@ -292,7 +292,7 @@ let tests = testList "Web App Tests" [
     }
     
     test "Can specify AlwaysOn" {
-        let template = webApp {name "web"; always_on}
+        let template = webApp { name "web"; always_on }
         Expect.equal template.AlwaysOn true "AlwaysOn should be true"
     }
 
