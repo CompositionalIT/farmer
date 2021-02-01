@@ -53,19 +53,20 @@
     <Compile Include="Deploy.fs" />
     <Compile Include="Arm\DiagnosticSetting.fs" />
 
-    <Compile Include="Arm\ManagedIdentity.fs" />
-    <Compile Include="Arm\LogAnalytics.fs" />
+    <Compile Include="Arm/ManagedIdentity.fs" />
+    <Compile Include="Arm/LogAnalytics.fs" />
     <Compile Include="Arm/Storage.fs" />
     <Compile Include="Arm/Cache.fs" />
     <Compile Include="Arm/Cdn.fs" />
     <Compile Include="Arm/CognitiveServices.fs" />
+    <Compile Include="Arm/BingSearch.fs" />
     <Compile Include="Arm/Dns.fs" />
     <Compile Include="Arm/Network.fs" />
-    <Compile Include="Arm\Bastion.fs" />
+    <Compile Include="Arm/Bastion.fs" />
     <Compile Include="Arm/Compute.fs" />
     <Compile Include="Arm/ContainerInstance.fs" />
     <Compile Include="Arm/ContainerRegistry.fs" />
-    <Compile Include="Arm\ContainerService.fs" />
+    <Compile Include="Arm/ContainerService.fs" />
     <Compile Include="Arm/DataLakeStore.fs" />
     <Compile Include="Arm/DBforPostgreSQL.fs" />
     <Compile Include="Arm/Devices.fs" />
@@ -73,7 +74,7 @@
     <Compile Include="Arm/EventHub.fs" />
     <Compile Include="Arm/Insights.fs" />
     <Compile Include="Arm/KeyVault.fs" />
-    <Compile Include="Arm\RoleAssignment.fs" />
+    <Compile Include="Arm/RoleAssignment.fs" />
     <Compile Include="Arm/Search.fs" />
     <Compile Include="Arm/ServiceBus.fs" />
     <Compile Include="Arm/Sql.fs" />
@@ -81,28 +82,25 @@
     <Compile Include="Arm/Maps.fs" />
     <Compile Include="Arm/SignalR.fs" />
     <Compile Include="Arm/EventGrid.fs" />
-    <Compile Include="Arm\NetworkSecurityGroup.fs" />
-    <Compile Include="Arm\DeploymentScript.fs" />
+    <Compile Include="Arm/NetworkSecurityGroup.fs" />
+    <Compile Include="Arm/DeploymentScript.fs" />
     <Compile Include="Arm/Databricks.fs" />
-
     <Compile Include="IdentityExtensions.fs" />
-
-    <Compile Include="Builders\Builders.DiagnosticSetting.fs" />
-
-    <Compile Include="Builders\Builders.LogAnalytics.fs" />
+    <Compile Include="Builders/Builders.DiagnosticSetting.fs" />
+    <Compile Include="Builders/Builders.LogAnalytics.fs" />
     <Compile Include="Builders/Builders.Helpers.fs" />
     <Compile Include="Builders/Builders.UserAssignedIdentity.fs" />
     <Compile Include="Builders/Builders.PostgreSQL.fs" />
     <Compile Include="Builders/Builders.Cdn.fs" />
-    <Compile Include="Builders\Builders.ContainerGroups.fs" />
-    <Compile Include="Builders\Builders.ContainerService.fs" />
+    <Compile Include="Builders/Builders.ContainerGroups.fs" />
+    <Compile Include="Builders/Builders.ContainerService.fs" />
     <Compile Include="Builders/Builders.DataLake.fs" />
-    <Compile Include="Builders\Builders.DeploymentScript.fs" />
+    <Compile Include="Builders/Builders.DeploymentScript.fs" />
     <Compile Include="Builders/Builders.Dns.fs" />
     <Compile Include="Builders/Builders.Storage.fs" />
     <Compile Include="Builders/Builders.Redis.fs" />
     <Compile Include="Builders/Builders.KeyVault.fs" />
-    <Compile Include="Builders\Builders.Bastion.fs" />
+    <Compile Include="Builders/Builders.Bastion.fs" />
     <Compile Include="Builders/Builders.VirtualNetwork.fs" />
     <Compile Include="Builders/Builders.Vm.fs" />
     <Compile Include="Builders/Builders.ServicePlan.fs" />
@@ -115,6 +113,7 @@
     <Compile Include="Builders/Builders.EventHub.fs" />
     <Compile Include="Builders/Builders.ExpressRoute.fs" />
     <Compile Include="Builders/Builders.CognitiveServices.fs" />
+    <Compile Include="Builders/Builders.BingSearch.fs" />
     <Compile Include="Builders/Builders.ContainerRegistry.fs" />
     <Compile Include="Builders/Builders.ServiceBus.fs" />
     <Compile Include="Builders/Builders.IotHub.fs" />
@@ -123,7 +122,7 @@
     <Compile Include="Builders/Builders.VirtualNetworkGateway.fs" />
     <Compile Include="Builders/Builders.EventGrid.fs" />
     <Compile Include="Builders/Builders.StaticWebApp.fs" />
-    <Compile Include="Builders\Builders.NetworkSecurityGroup.fs" />
+    <Compile Include="Builders/Builders.NetworkSecurityGroup.fs" />
     <Compile Include="Builders/Builders.Databricks.fs" />
   </ItemGroup>
 </Project>

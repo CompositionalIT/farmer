@@ -15,6 +15,7 @@
     <Compile Include="Functions.fs" />
     <Compile Include="LogAnalytics.fs" />
     <Compile Include="Bastion.fs" />
+    <Compile Include="BingSearch.fs" />
     <Compile Include="Cdn.fs" />
     <Compile Include="ContainerGroup.fs" />
     <Compile Include="ContainerService.fs" />
