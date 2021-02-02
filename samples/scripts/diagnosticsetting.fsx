@@ -15,15 +15,13 @@ let mydiagnosticSetting = diagnosticSettings {
     name "myDiagnosticSetting"
     metrics_source logicAppResource
 
-    storage_account storageAccountResource
-    log_analytics_workspace logAnalyticsResource
+    add_destination storageAccountResource
+    add_destination logAnalyticsResource
     enable_dedicated_loganalytics
-
-    metrics [
+    capture_metrics [
         MetricSetting.Create("AllMetrics", retentionPeriod = 2<Days>, timeGrain = TimeSpan.FromMinutes 1.)
     ]
-
-    logs [
+    capture_logs [
         LogSetting.Create("WorkflowRuntime", retentionPeriod = 1<Days>)
     ]
 }

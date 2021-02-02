@@ -4,6 +4,7 @@ module Farmer.Builders.DiagnosticSetting
 open Farmer
 open Farmer.Builders.Storage
 open Farmer.Arm.Storage
+open Farmer.Arm.EventHub
 open Farmer.Arm.LogAnalytics
 open Farmer.Arm.DiagnosticSetting
 
@@ -68,12 +69,21 @@ type DiagnosticSettingsBuilder() =
     member _.ParentResource(state:DiagnosticSettingsConfig, metricsSource:ResourceId) =
        { state with MetricsSource = metricsSource }
 
-    /// Sets the storage Account.
-    [<CustomOperation "storage_account_destination">]
-    member _.StorageAccount (state:DiagnosticSettingsConfig, storageAccount) =
-        { state with Sinks = {| state.Sinks with StorageAccount = Some storageAccount |} }
-    member this.StorageAccount (state, storageAccount:StorageAccountConfig) =
-        this.StorageAccount (state, storageAccounts.resourceId storageAccount.Name.ResourceName)
+    /// Adds a destination sink (either a storage account, log analytics workspace or event hub authorization rule)
+    [<CustomOperation "add_destination">]
+    member _.AddDestination(state:DiagnosticSettingsConfig, resourceId:ResourceId) =
+        { state with
+            Sinks =
+                match resourceId.Type.Type with
+                | t when t = storageAccounts.Type -> {| state.Sinks with StorageAccount = Some resourceId |}
+                | t when t = workspaces.Type -> {| state.Sinks with LogAnalyticsWorkspace = Some resourceId |}
+                | _ -> failwith "Unsupported resource type."
+        }
+
+    member this.AddDestination(state:DiagnosticSettingsConfig, storageAccount:StorageAccountConfig) =
+        this.AddDestination (state, storageAccounts.resourceId storageAccount.Name.ResourceName)
+    member this.AddDestination(state, workspace:WorkspaceConfig) =
+        this.AddDestination (state, workspaces.resourceId workspace.Name)
 
     /// Sets the authorization rule Id for the event hub.
     [<CustomOperation "event_hub_destination_authorization_rule_id">]
@@ -93,16 +103,9 @@ type DiagnosticSettingsBuilder() =
         }
     member this.EventHubName(state, eventHubName) = this.EventHubName(state, ResourceName eventHubName)
 
-    /// Sets the log analytics workspace id.
-    [<CustomOperation "log_analytics_destination">]
-    member _.WorkspaceId(state: DiagnosticSettingsConfig, workspaceId) =
-        { state with Sinks = {| state.Sinks with LogAnalyticsWorkspace = Some workspaceId |} }
-    member this.WorkspaceId(state, workspace:WorkspaceConfig) =
-        this.WorkspaceId(state, workspaces.resourceId workspace.Name)
-
     /// Enable dedicated log analytics."
     [<CustomOperation "enable_dedicated_loganalytics">]
-    member _.DedicatedLogAnalyticssent_to(state: DiagnosticSettingsConfig) =
+    member _.DedicatedLogAnalyticsDestination(state: DiagnosticSettingsConfig) =
         { state with Sinks = {| state.Sinks with DedicatedLogAnalyticsDestination = Some Enabled |} }
 
     /// Add metric settings to the resource.

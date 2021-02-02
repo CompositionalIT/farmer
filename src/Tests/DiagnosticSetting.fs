@@ -28,8 +28,8 @@ let tests = testList "Diagnostic Settings" [
             diagnosticSettings {
                 name "myDiagnosticSetting"
                 metrics_source logicAppResource
-                storage_account_destination storageAccountResourceId
-                log_analytics_destination workspaceResourceId
+                add_destination storageAccountResourceId
+                add_destination workspaceResourceId
                 capture_metrics [ MetricSetting.Create("AllMetrics", 2<Days>, TimeSpan.FromMinutes 1.) ]
                 capture_logs [ LogSetting.Create("WorkflowRuntime", 1<Days>) ]
             }
