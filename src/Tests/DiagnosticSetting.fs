@@ -28,10 +28,10 @@ let tests = testList "Diagnostic Settings" [
             diagnosticSettings {
                 name "myDiagnosticSetting"
                 metrics_source logicAppResource
-                storage_account storageAccountResourceId
-                log_analytics_workspace workspaceResourceId
-                metrics [ MetricSetting.Create("AllMetrics", 2<Days>, TimeSpan.FromMinutes 1.) ]
-                logs [ LogSetting.Create("WorkflowRuntime", 1<Days>) ]
+                storage_account_destination storageAccountResourceId
+                log_analytics_destination workspaceResourceId
+                capture_metrics [ MetricSetting.Create("AllMetrics", 2<Days>, TimeSpan.FromMinutes 1.) ]
+                capture_logs [ LogSetting.Create("WorkflowRuntime", 1<Days>) ]
             }
         let result = asAzureResource config
 
@@ -49,7 +49,7 @@ let tests = testList "Diagnostic Settings" [
            diagnosticSettings {
                name "myDiagnosticSetting"
                metrics_source logicAppResource
-               event_hub_name "myeventhubname"
+               event_hub_destination_name "myeventhubname"
            } |> ignore) (sprintf "Should have thrown an exception for not specifying Event Hub authorization rule id")
     }
     test "Can't create Diagnostic Settings without at least one data sink " {
@@ -57,7 +57,7 @@ let tests = testList "Diagnostic Settings" [
            diagnosticSettings {
                name "myDiagnosticSetting"
                metrics_source logicAppResource
-               logs [ LogSetting.Create "WorkflowRuntime" ]
+               capture_logs [ LogSetting.Create "WorkflowRuntime" ]
            } |> ignore) (sprintf "Should have thrown an exception for not specifying at least on data sink")
     }
 

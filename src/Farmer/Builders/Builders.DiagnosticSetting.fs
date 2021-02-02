@@ -69,19 +69,19 @@ type DiagnosticSettingsBuilder() =
        { state with MetricsSource = metricsSource }
 
     /// Sets the storage Account.
-    [<CustomOperation "storage_account">]
+    [<CustomOperation "storage_account_destination">]
     member _.StorageAccount (state:DiagnosticSettingsConfig, storageAccount) =
         { state with Sinks = {| state.Sinks with StorageAccount = Some storageAccount |} }
     member this.StorageAccount (state, storageAccount:StorageAccountConfig) =
         this.StorageAccount (state, storageAccounts.resourceId storageAccount.Name.ResourceName)
 
     /// Sets the authorization rule Id for the event hub.
-    [<CustomOperation "event_hub_authorization_rule_id">]
+    [<CustomOperation "event_hub_destination_authorization_rule_id">]
     member _.EventHubAuthorizationRuleId(state: DiagnosticSettingsConfig, eventHubAuthorizationRuleId) =
         { state with Sinks = {| state.Sinks with EventHub = Some {| AuthorizationRuleId = eventHubAuthorizationRuleId; EventHubName = None |} |} }
 
     /// The name of the event hub. If none is specified, the default event hub will be selected.
-    [<CustomOperation "event_hub_name">]
+    [<CustomOperation "event_hub_destination_name">]
     member _.EventHubName(state: DiagnosticSettingsConfig, eventHubName) =
         { state with
             Sinks =
@@ -94,7 +94,7 @@ type DiagnosticSettingsBuilder() =
     member this.EventHubName(state, eventHubName) = this.EventHubName(state, ResourceName eventHubName)
 
     /// Sets the log analytics workspace id.
-    [<CustomOperation "log_analytics_workspace">]
+    [<CustomOperation "log_analytics_destination">]
     member _.WorkspaceId(state: DiagnosticSettingsConfig, workspaceId) =
         { state with Sinks = {| state.Sinks with LogAnalyticsWorkspace = Some workspaceId |} }
     member this.WorkspaceId(state, workspace:WorkspaceConfig) =
@@ -102,16 +102,16 @@ type DiagnosticSettingsBuilder() =
 
     /// Enable dedicated log analytics."
     [<CustomOperation "enable_dedicated_loganalytics">]
-    member _.DedicatedLogAnalyticsDestination(state: DiagnosticSettingsConfig) =
+    member _.DedicatedLogAnalyticssent_to(state: DiagnosticSettingsConfig) =
         { state with Sinks = {| state.Sinks with DedicatedLogAnalyticsDestination = Some Enabled |} }
 
     /// Add metric settings to the resource.
-    [<CustomOperation "metrics">]
+    [<CustomOperation "capture_metrics">]
     member _.Metrics(state: DiagnosticSettingsConfig, metrics) =
         { state with Metrics = List.append metrics state.Metrics }
 
     /// Add Log settings to the resource.
-    [<CustomOperation "logs">]
+    [<CustomOperation "capture_logs">]
     member _.Logs(state:DiagnosticSettingsConfig, logs) =
         { state with Logs = List.append logs state.Logs }
 
