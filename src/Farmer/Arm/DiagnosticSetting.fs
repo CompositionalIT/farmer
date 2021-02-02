@@ -1,83 +1,99 @@
 ﻿[<AutoOpen>]
 module Farmer.Arm.DiagnosticSetting
+
 open System
 open Farmer
 
+let private (|InBounds|OutOfBounds|) days =
+    if days > 365<Days> then OutOfBounds days
+    elif days < 1<Days> then OutOfBounds days
+    else InBounds days
 
-type RetentionPolicy = {
-    Enabled:bool
-    Retention_period:int<Days> }
+type RetentionPolicy =
+    { Enabled : bool
+      RetentionPeriod : int<Days> }
+    static member Create (retentionPeriod, ?enabled) =
+        match retentionPeriod with
+        | OutOfBounds days ->
+            failwithf "The retention period must be between 1 and 365 days. It is currently %d." days
+        | InBounds _ ->
+            { Enabled = defaultArg enabled true
+              RetentionPeriod = retentionPeriod }
 
-type MetricSettings =
-    { Category:string
-      TimeGrain: TimeSpan  option
-      Enabled:bool
-      RetentionPolicy:RetentionPolicy option }
+type MetricSetting =
+    { Category : string
+      TimeGrain : TimeSpan option
+      Enabled : bool
+      RetentionPolicy : RetentionPolicy option }
+    static member Create(category, ?retentionPeriod, ?timeGrain) =
+        { Category = category
+          TimeGrain = timeGrain
+          Enabled = true
+          RetentionPolicy = retentionPeriod |> Option.map(fun days -> RetentionPolicy.Create(days, true)) }
 
-type LogSettings =
-    { Category:string
-      Enabled:bool
-      RetentionPolicy:RetentionPolicy option }
+type LogSetting =
+    { Category : string
+      Enabled : bool
+      RetentionPolicy : RetentionPolicy option }
+    static member Create(category, ?retentionPeriod) =
+        { Category = category
+          Enabled = true
+          RetentionPolicy = retentionPeriod |> Option.map(fun days -> RetentionPolicy.Create(days, true)) }
 
-let private tryGetIso (v:IsoDateTime option) = v |> Option.map(fun v -> v.Value) |> Option.toObj
-
-let diagnosticSettingsType parentResourceType  = 
-    ResourceType(parentResourceType + "providers/diagnosticSettings", "2017-05-01-preview")
-
-let metricSettingsBuilder (state: MetricSettings) =
-    {| category = state.Category
-       enabled = state.Enabled
-       timeGrain = tryGetIso (state.TimeGrain |> Option.map IsoDateTime.OfTimeSpan )
-       retentionPolicy =
-       match state.RetentionPolicy with
-       | None -> null
-       | Some x ->
-           box
-             {| enabled = x.Enabled
-                days = x.Retention_period
-             |}
-    
-    |}
-let logSettingsBuilder (statex:LogSettings) =
-        {| category = statex.Category
-           enabled = statex.Enabled
-           retentionPolicy =
-           match statex.RetentionPolicy with
-           | None -> null
-           | Some x ->
-               box
-                 {| enabled = x.Enabled
-                    days = x.Retention_period
-                 |} 
-        
-        |}
+let diagnosticSettingsType (parent:ResourceType) =
+    ResourceType(parent.Type + "/providers/diagnosticSettings", "2017-05-01-preview")
 
 type DiagnosticSettings =
     { Name : ResourceName
-      ParentResourceType : string
       Location : Location
-      Dependencies : ResourceId List
-      StorageAccountId : ResourceId option 
-      ServiceBusRuleId: ResourceId option 
-      EventHubAuthorizationRuleId: ResourceId option
-      EventHubName : string option
-      Metrics : MetricSettings array
-      Logs : LogSettings array
-      WorkspaceId : ResourceId option
-      DedicatedLogAnalyticsDestination : string option
+      MetricsSource : ResourceId
+
+      Sinks :
+        {| StorageAccount : ResourceId option
+           EventHub : {| AuthorizationRuleId : ResourceId; EventHubName : ResourceName option |} option
+           LogAnalyticsWorkspace : ResourceId option
+           //TODO: Find out which "way" Dedicated goes (see https://docs.microsoft.com/en-us/azure/templates/microsoft.insights/diagnosticsettings#subscriptiondiagnosticsettings-object)
+           DedicatedLogAnalyticsDestination : FeatureFlag option |}
+
+      Metrics : MetricSetting list
+      Logs : LogSetting list
+
+      Dependencies : ResourceId Set
       Tags : Map<string, string> }
 
     interface IArmResource with
-        member this.ResourceId = diagnosticSettingsType(this.ParentResourceType).resourceId this.Name
+        member this.ResourceId = diagnosticSettingsType(this.MetricsSource.Type).resourceId this.Name
         member this.JsonModel =
-            {| diagnosticSettingsType(this.ParentResourceType).Create(this.Name,this.Location, tags = this.Tags,dependsOn = this.Dependencies) with
+            {| diagnosticSettingsType(this.MetricsSource.Type).Create(this.MetricsSource.Name/"Microsoft.Insights"/this.Name,this.Location, tags = this.Tags,dependsOn = this.Dependencies) with
                 properties =
-                    {| serviceBusRuleId = this.ServiceBusRuleId
-                       LogAnalyticsDestinationType = this.DedicatedLogAnalyticsDestination |> Option.toObj 
-                       eventHubName = this.EventHubName |> Option.toObj
-                       eventHubAuthorizationRuleId = this.EventHubAuthorizationRuleId |> Option.map(fun x -> x.Eval()) |> Option.toObj 
-                       storageAccountId = this.StorageAccountId |> Option.map( fun x -> x.Eval()) |> Option.toObj
-                       metrics = this.Metrics |> Array.map  metricSettingsBuilder  
-                       logs = this.Logs |> Array.map  logSettingsBuilder
-                       workspaceId = this.WorkspaceId |> Option.map( fun x -> x.Eval()) |> Option.toObj  |}
+                    {| LogAnalyticsDestinationType = match this.Sinks.DedicatedLogAnalyticsDestination with | Some Enabled -> "Dedicated" | None | Some Disabled -> null
+                       eventHubName =
+                        this.Sinks.EventHub
+                        |> Option.bind(fun hub -> hub.EventHubName |> Option.map(fun r -> r.Value))
+                        |> Option.toObj
+                       eventHubAuthorizationRuleId =
+                        this.Sinks.EventHub
+                        |> Option.map(fun hub -> hub.AuthorizationRuleId.Eval())
+                        |> Option.toObj
+                       storageAccountId = this.Sinks.StorageAccount |> Option.map( fun x -> x.Eval()) |> Option.toObj
+                       metrics = [|
+                           for metric in this.Metrics do
+                            {| category = metric.Category
+                               enabled = metric.Enabled
+                               timeGrain = metric.TimeGrain |> Option.map (IsoDateTime.OfTimeSpan >> fun v -> v.Value) |> Option.toObj
+                               retentionPolicy =
+                                metric.RetentionPolicy
+                                |> Option.map(fun policy -> box {| enabled = policy.Enabled; days = policy.RetentionPeriod |})
+                                |> Option.toObj |}
+                       |]
+                       logs = [|
+                           for log in this.Logs do
+                            {| category = log.Category
+                               enabled = log.Enabled
+                               retentionPolicy =
+                                log.RetentionPolicy
+                                |> Option.map(fun policy -> box {| enabled = policy.Enabled; days = policy.RetentionPeriod |})
+                                |> Option.toObj |}
+                       |]
+                       workspaceId = this.Sinks.LogAnalyticsWorkspace |> Option.map( fun x -> x.Eval()) |> Option.toObj |}
             |} :> _

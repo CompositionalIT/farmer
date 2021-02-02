@@ -3,34 +3,27 @@
 open Farmer
 open Farmer.Arm.Storage
 open Farmer.Arm.LogAnalytics
-open Farmer.Arm.EventHub
+open Farmer.Arm.DiagnosticSetting
 open Farmer.Builders
 open System
-let storageAccountName = ResourceName ("bccrmintegration")
-let storageAccountResourceId = ResourceId.create(storageAccounts,storageAccountName,"BC_CRM_Integration_POC")
-let workspaceName = ResourceName("tryw")
-let workspaceResourceId = ResourceId.create(workspaces,workspaceName)
-let parentresourceId = ResourceId.create(ResourceType ("Microsoft.Logic/workflows",""),ResourceName ("Logicapp"))
 
-let myLog = log { 
-    category "WorkflowRuntime"
-    retention_period 1<Days>
-}
-
-let myMetric = metric { 
-    category "AllMetrics" 
-    retention_period 2<Days>
-    time_grain (TimeSpan(0,1,0))
-}
+let storageAccountResource = { storageAccounts.resourceId("bccrmintegration") with ResourceGroup  = Some "BC_CRM_Integration_POC" }
+let logAnalyticsResource = workspaces.resourceId "tryw"
+let logicAppResource = ResourceId.create(ResourceType ("Microsoft.Logic/workflows",""),ResourceName ("Logicapp"))
 
 let mydiagnosticSetting = diagnosticSettings {
-    name  "myDiagnosticSetting"
-    parent_resource parentresourceId
-    storage_account_id storageAccountResourceId
-    work_space_id workspaceResourceId
-    metrics [myMetric]
-    logs [myLog]
+    name "myDiagnosticSetting"
+    metrics_source logicAppResource
+
+    add_destination storageAccountResource
+    add_destination logAnalyticsResource
     enable_dedicated_loganalytics
+    capture_metrics [
+        MetricSetting.Create("AllMetrics", retentionPeriod = 2<Days>, timeGrain = TimeSpan.FromMinutes 1.)
+    ]
+    capture_logs [
+        LogSetting.Create("WorkflowRuntime", retentionPeriod = 1<Days>)
+    ]
 }
 
 let deployment = arm {
@@ -39,5 +32,5 @@ let deployment = arm {
 }
 
 deployment
-|> Deploy.execute "test-resource-group" Deploy.NoParameters
+|> Writer.quickWrite "diagnostics"
 |> printfn "%A"
