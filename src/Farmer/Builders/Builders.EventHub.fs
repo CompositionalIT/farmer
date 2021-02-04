@@ -34,7 +34,6 @@ type EventHubConfig =
     member this.GetKey (ruleName:string) =
         let ruleResource = authorizationRules.resourceId(this.EventHubNamespaceName, this.Name, ResourceName ruleName)
         this.CreateKeyExpression ruleResource
-
     /// Gets an ARM expression for the path to the key of the default RootManageSharedAccessKey for the entire namespace.
     member this.DefaultKey =
         let ruleResource = authorizationRules.resourceId(this.EventHubNamespaceName, ResourceName "RootManageSharedAccessKey")
