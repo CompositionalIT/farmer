@@ -222,5 +222,5 @@ type FunctionsBuilder() =
                 Cors = config.Cors
                 Identity = config.Identity
                 ZipDeployPath = config.ZipDeployPath }
-        
+
 let functions = FunctionsBuilder()

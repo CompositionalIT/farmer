@@ -38,6 +38,7 @@ let allTests =
                 Functions.tests
                 StaticWebApp.tests
                 VirtualNetworkGateway.tests
+                Databricks.tests
                 JsonRegression.tests
                 AzCli.tests
             ]
