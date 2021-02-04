@@ -25,23 +25,25 @@ type MetricSetting =
       TimeGrain : TimeSpan option
       Enabled : bool
       RetentionPolicy : RetentionPolicy option }
-    static member Create(category, ?retentionPeriod, ?timeGrain) =
+    static member Create (category, ?retentionPeriod, ?timeGrain) =
         { Category = category
           TimeGrain = timeGrain
           Enabled = true
-          RetentionPolicy = retentionPeriod |> Option.map(fun days -> RetentionPolicy.Create(days, true)) }
+          RetentionPolicy = retentionPeriod |> Option.map (fun days -> RetentionPolicy.Create (days, true)) }
 
 type LogSetting =
     { Category : string
       Enabled : bool
       RetentionPolicy : RetentionPolicy option }
-    static member Create(category, ?retentionPeriod) =
+    static member Create (category, ?retentionPeriod) =
         { Category = category
           Enabled = true
-          RetentionPolicy = retentionPeriod |> Option.map(fun days -> RetentionPolicy.Create(days, true)) }
+          RetentionPolicy = retentionPeriod |> Option.map (fun days -> RetentionPolicy.Create (days, true)) }
 
 let diagnosticSettingsType (parent:ResourceType) =
-    ResourceType(parent.Type + "/providers/diagnosticSettings", "2017-05-01-preview")
+    ResourceType (parent.Type + "/providers/diagnosticSettings", "2017-05-01-preview")
+
+type DestinationType = AzureDiagnostics | Dedicated
 
 type DiagnosticSettings =
     { Name : ResourceName
@@ -51,12 +53,10 @@ type DiagnosticSettings =
       Sinks :
         {| StorageAccount : ResourceId option
            EventHub : {| AuthorizationRuleId : ResourceId; EventHubName : ResourceName option |} option
-           LogAnalyticsWorkspace : ResourceId option
-           //TODO: Find out which "way" Dedicated goes (see https://docs.microsoft.com/en-us/azure/templates/microsoft.insights/diagnosticsettings#subscriptiondiagnosticsettings-object)
-           DedicatedLogAnalyticsDestination : FeatureFlag option |}
+           LogAnalyticsWorkspace : (ResourceId * DestinationType) option |}
 
-      Metrics : MetricSetting list
-      Logs : LogSetting list
+      Metrics : MetricSetting Set
+      Logs : LogSetting Set
 
       Dependencies : ResourceId Set
       Tags : Map<string, string> }
@@ -64,9 +64,13 @@ type DiagnosticSettings =
     interface IArmResource with
         member this.ResourceId = diagnosticSettingsType(this.MetricsSource.Type).resourceId this.Name
         member this.JsonModel =
-            {| diagnosticSettingsType(this.MetricsSource.Type).Create(this.MetricsSource.Name/"Microsoft.Insights"/this.Name,this.Location, tags = this.Tags,dependsOn = this.Dependencies) with
+            {| diagnosticSettingsType(this.MetricsSource.Type)
+                .Create(this.MetricsSource.Name/"Microsoft.Insights"/this.Name,this.Location, this.Dependencies, this.Tags) with
                 properties =
-                    {| LogAnalyticsDestinationType = match this.Sinks.DedicatedLogAnalyticsDestination with | Some Enabled -> "Dedicated" | None | Some Disabled -> null
+                    {| LogAnalyticsDestinationType =
+                        match this.Sinks.LogAnalyticsWorkspace with
+                        | Some (_, Dedicated) -> "Dedicated"
+                        | None | Some (_, AzureDiagnostics) -> null
                        eventHubName =
                         this.Sinks.EventHub
                         |> Option.bind(fun hub -> hub.EventHubName |> Option.map(fun r -> r.Value))
@@ -87,7 +91,7 @@ type DiagnosticSettings =
                                 |> Option.toObj |}
                        |]
                        logs = [|
-                           for log in this.Logs do
+                        for log in this.Logs do
                             {| category = log.Category
                                enabled = log.Enabled
                                retentionPolicy =
@@ -95,5 +99,8 @@ type DiagnosticSettings =
                                 |> Option.map(fun policy -> box {| enabled = policy.Enabled; days = policy.RetentionPeriod |})
                                 |> Option.toObj |}
                        |]
-                       workspaceId = this.Sinks.LogAnalyticsWorkspace |> Option.map( fun x -> x.Eval()) |> Option.toObj |}
+                       workspaceId =
+                        this.Sinks.LogAnalyticsWorkspace
+                        |> Option.map (fun (resource,_) -> resource.Eval())
+                        |> Option.toObj |}
             |} :> _

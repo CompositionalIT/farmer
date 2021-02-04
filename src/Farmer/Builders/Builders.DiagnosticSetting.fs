@@ -15,12 +15,10 @@ type DiagnosticSettingsConfig =
       Sinks :
         {| StorageAccount : ResourceId option
            EventHub : {| AuthorizationRuleId : ResourceId; EventHubName : ResourceName option |} option
-           LogAnalyticsWorkspace : ResourceId option
-           //TODO: Find out which "way" Dedicated goes (see https://docs.microsoft.com/en-us/azure/templates/microsoft.insights/diagnosticsettings#subscriptiondiagnosticsettings-object)
-           DedicatedLogAnalyticsDestination : FeatureFlag option |}
+           LogAnalyticsWorkspace : (ResourceId * DestinationType) option |}
 
-      Metrics : MetricSetting list
-      Logs : LogSetting list
+      Metrics : MetricSetting Set
+      Logs : LogSetting Set
 
       Dependencies : ResourceId Set
       Tags : Map<string, string> }
@@ -43,16 +41,16 @@ type DiagnosticSettingsBuilder() =
            Sinks =
             {| StorageAccount = None
                EventHub = None
-               LogAnalyticsWorkspace = None
-               DedicatedLogAnalyticsDestination = None |}
-           Metrics = []
-           Logs = []
+               LogAnalyticsWorkspace = None |}
+           Metrics = Set.empty
+           Logs = Set.empty
            MetricsSource = ResourceId.create(ResourceType("", ""), ResourceName "")
            Dependencies = Set.empty
            Tags = Map.empty }
     member _.Run(state:DiagnosticSettingsConfig) =
+        let (|EmptySet|_|) theSet = if Set.isEmpty theSet then Some EmptySet else None
         match state with
-        | { Metrics = []; Logs = [] } ->
+        | { Metrics = EmptySet; Logs = EmptySet } ->
             failwith "You must specify at least one metric or log setting."
         | _ when state.Sinks.EventHub = None && state.Sinks.StorageAccount = None && state.Sinks.LogAnalyticsWorkspace = None ->
             failwith "You must specify at least one data sink."
@@ -66,29 +64,35 @@ type DiagnosticSettingsBuilder() =
 
     /// The source resource of diagnostic metrics.
     [<CustomOperation "metrics_source">]
-    member _.ParentResource(state:DiagnosticSettingsConfig, metricsSource:ResourceId) =
-       { state with MetricsSource = metricsSource }
+    member _.MetricsSource(state:DiagnosticSettingsConfig, metricsSource:ResourceId) =
+       { state with
+            MetricsSource = metricsSource
+            Dependencies = state.Dependencies.Add metricsSource }
+    member this.MetricsSource(state:DiagnosticSettingsConfig, builder:IBuilder) =
+        this.MetricsSource(state, builder.ResourceId)
+
+    static member AddDestinationPrivate (state:DiagnosticSettingsConfig, resourceId, ?dependency) =
+        let dependency = defaultArg dependency resourceId
+        { state with
+            Sinks =
+                match resourceId with
+                | HasResourceType storageAccounts -> {| state.Sinks with StorageAccount = Some resourceId |}
+                | HasResourceType workspaces -> {| state.Sinks with LogAnalyticsWorkspace = Some (resourceId, AzureDiagnostics) |}
+                | HasResourceType Namespaces.authorizationRules -> {| state.Sinks with EventHub = Some {| AuthorizationRuleId = resourceId; EventHubName = None |} |}
+                | _ -> failwithf "Unsupported resource type '%O'. Supported types are %O" resourceId.Type [ storageAccounts; workspaces ]
+            Dependencies = state.Dependencies.Add dependency }
 
     /// Adds a destination sink (either a storage account, log analytics workspace or event hub authorization rule)
     [<CustomOperation "add_destination">]
     member _.AddDestination(state:DiagnosticSettingsConfig, resourceId:ResourceId) =
-        { state with
-            Sinks =
-                match resourceId.Type.Type with
-                | t when t = storageAccounts.Type -> {| state.Sinks with StorageAccount = Some resourceId |}
-                | t when t = workspaces.Type -> {| state.Sinks with LogAnalyticsWorkspace = Some resourceId |}
-                | _ -> failwith "Unsupported resource type."
-        }
-
-    member this.AddDestination(state:DiagnosticSettingsConfig, storageAccount:StorageAccountConfig) =
-        this.AddDestination (state, storageAccounts.resourceId storageAccount.Name.ResourceName)
-    member this.AddDestination(state, workspace:WorkspaceConfig) =
-        this.AddDestination (state, workspaces.resourceId workspace.Name)
-
-    /// Sets the authorization rule Id for the event hub.
-    [<CustomOperation "event_hub_destination_authorization_rule_id">]
-    member _.EventHubAuthorizationRuleId(state: DiagnosticSettingsConfig, eventHubAuthorizationRuleId) =
-        { state with Sinks = {| state.Sinks with EventHub = Some {| AuthorizationRuleId = eventHubAuthorizationRuleId; EventHubName = None |} |} }
+        DiagnosticSettingsBuilder.AddDestinationPrivate (state, resourceId )
+    member _.AddDestination(state:DiagnosticSettingsConfig, storageAccount:StorageAccountConfig) =
+        DiagnosticSettingsBuilder.AddDestinationPrivate (state, storageAccounts.resourceId storageAccount.Name.ResourceName)
+    member _.AddDestination(state, workspace:WorkspaceConfig) =
+        DiagnosticSettingsBuilder.AddDestinationPrivate (state, (workspace :> IBuilder).ResourceId)
+    member _.AddDestination(state:DiagnosticSettingsConfig, hub:EventHubConfig) : DiagnosticSettingsConfig =
+        let ruleId = Namespaces.authorizationRules.resourceId(hub.EventHubNamespaceName, ResourceName "RootManageSharedAccessKey")
+        DiagnosticSettingsBuilder.AddDestinationPrivate (state, ruleId, (hub :> IBuilder).ResourceId)
 
     /// The name of the event hub. If none is specified, the default event hub will be selected.
     [<CustomOperation "event_hub_destination_name">]
@@ -101,22 +105,25 @@ type DiagnosticSettingsBuilder() =
                         | Some hub -> Some {| hub with EventHubName = Some eventHubName |}
                         | None -> failwith "You must set the Authorization Rule Id before setting the event hub name" |}
         }
-    member this.EventHubName(state, eventHubName) = this.EventHubName(state, ResourceName eventHubName)
+    member this.EventHubName(state, eventHubName:string) =
+        this.EventHubName(state, ResourceName eventHubName)
 
-    /// Enable dedicated log analytics."
-    [<CustomOperation "enable_dedicated_loganalytics">]
-    member _.DedicatedLogAnalyticsDestination(state: DiagnosticSettingsConfig) =
-        { state with Sinks = {| state.Sinks with DedicatedLogAnalyticsDestination = Some Enabled |} }
+    /// Enable or disable dedicated log analytics category output.
+    [<CustomOperation "loganalytics_output_type">]
+    member _.DedicatedLogAnalyticsDestination(state: DiagnosticSettingsConfig, outputType) =
+        match state.Sinks.LogAnalyticsWorkspace with
+        | Some (resourceId, _) ->
+            { state with Sinks = {| state.Sinks with LogAnalyticsWorkspace = Some (resourceId, outputType) |} }
+        | None ->
+            failwith "You must first specify a Log Analytics sink before enabling dedicated outputs."
 
     /// Add metric settings to the resource.
     [<CustomOperation "capture_metrics">]
-    member _.Metrics(state: DiagnosticSettingsConfig, metrics) =
-        { state with Metrics = List.append metrics state.Metrics }
+    member _.Metrics(state: DiagnosticSettingsConfig, metrics) = { state with Metrics = Set metrics }
 
     /// Add Log settings to the resource.
     [<CustomOperation "capture_logs">]
-    member _.Logs(state:DiagnosticSettingsConfig, logs) =
-        { state with Logs = List.append logs state.Logs }
+    member _.Logs(state:DiagnosticSettingsConfig, logs) = { state with Logs = Set logs }
 
     interface IDependable<DiagnosticSettingsConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
     interface ITaggable<DiagnosticSettingsConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
