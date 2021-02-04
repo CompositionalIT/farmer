@@ -10,7 +10,7 @@
     <Content Include="test-data\*.json" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="Helpers.fs" />
     <Compile Include="AppInsights.fs" />
-    <Compile Include="DiagnosticSetting.fs" />
+    <Compile Include="DiagnosticSettings.fs" />
     <Compile Include="Common.fs" />
     <Compile Include="Functions.fs" />
     <Compile Include="LogAnalytics.fs" />

@@ -1,8 +1,8 @@
 #r "./libs/Newtonsoft.Json.dll"
 #r "../../src/Farmer/bin/Debug/netstandard2.0/Farmer.dll"
 open Farmer
-open Farmer.Arm.DiagnosticSetting
 open Farmer.Builders
+open Farmer.DiagnosticSettings
 
 let data = storageAccount { name "isaacsuperdata" }
 let hub = eventHub { name "isaacsuperhub" }

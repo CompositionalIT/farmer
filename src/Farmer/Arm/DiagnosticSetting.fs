@@ -1,63 +1,24 @@
 ﻿[<AutoOpen>]
 module Farmer.Arm.DiagnosticSetting
 
-open System
 open Farmer
-
-let private (|InBounds|OutOfBounds|) days =
-    if days > 365<Days> then OutOfBounds days
-    elif days < 1<Days> then OutOfBounds days
-    else InBounds days
-
-type RetentionPolicy =
-    { Enabled : bool
-      RetentionPeriod : int<Days> }
-    static member Create (retentionPeriod, ?enabled) =
-        match retentionPeriod with
-        | OutOfBounds days ->
-            failwithf "The retention period must be between 1 and 365 days. It is currently %d." days
-        | InBounds _ ->
-            { Enabled = defaultArg enabled true
-              RetentionPeriod = retentionPeriod }
-
-type MetricSetting =
-    { Category : string
-      TimeGrain : TimeSpan option
-      Enabled : bool
-      RetentionPolicy : RetentionPolicy option }
-    static member Create (category, ?retentionPeriod, ?timeGrain) =
-        { Category = category
-          TimeGrain = timeGrain
-          Enabled = true
-          RetentionPolicy = retentionPeriod |> Option.map (fun days -> RetentionPolicy.Create (days, true)) }
-
-type LogSetting =
-    { Category : string
-      Enabled : bool
-      RetentionPolicy : RetentionPolicy option }
-    static member Create (category, ?retentionPeriod) =
-        { Category = category
-          Enabled = true
-          RetentionPolicy = retentionPeriod |> Option.map (fun days -> RetentionPolicy.Create (days, true)) }
+open Farmer.DiagnosticSettings
 
 let diagnosticSettingsType (parent:ResourceType) =
     ResourceType (parent.Type + "/providers/diagnosticSettings", "2017-05-01-preview")
 
-type DestinationType = AzureDiagnostics | Dedicated
+type SinkInformation =
+    { StorageAccount : ResourceId option
+      EventHub : {| AuthorizationRuleId : ResourceId; EventHubName : ResourceName option |} option
+      LogAnalyticsWorkspace : (ResourceId * LogAnalyticsDestination) option }
 
 type DiagnosticSettings =
     { Name : ResourceName
       Location : Location
       MetricsSource : ResourceId
-
-      Sinks :
-        {| StorageAccount : ResourceId option
-           EventHub : {| AuthorizationRuleId : ResourceId; EventHubName : ResourceName option |} option
-           LogAnalyticsWorkspace : (ResourceId * DestinationType) option |}
-
+      Sinks : SinkInformation
       Metrics : MetricSetting Set
       Logs : LogSetting Set
-
       Dependencies : ResourceId Set
       Tags : Map<string, string> }
 

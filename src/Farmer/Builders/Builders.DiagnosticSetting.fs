@@ -2,21 +2,17 @@
 module Farmer.Builders.DiagnosticSetting
 
 open Farmer
-open Farmer.Builders.Storage
 open Farmer.Arm.Storage
 open Farmer.Arm.EventHub
 open Farmer.Arm.LogAnalytics
 open Farmer.Arm.DiagnosticSetting
+open Farmer.Builders.Storage
+open Farmer.DiagnosticSettings
 
 type DiagnosticSettingsConfig =
     { Name : ResourceName
       MetricsSource: ResourceId
-
-      Sinks :
-        {| StorageAccount : ResourceId option
-           EventHub : {| AuthorizationRuleId : ResourceId; EventHubName : ResourceName option |} option
-           LogAnalyticsWorkspace : (ResourceId * DestinationType) option |}
-
+      Sinks : SinkInformation
       Metrics : MetricSetting Set
       Logs : LogSetting Set
 
@@ -39,14 +35,15 @@ type DiagnosticSettingsBuilder() =
     member _.Yield _ =
          { Name = ResourceName.Empty
            Sinks =
-            {| StorageAccount = None
-               EventHub = None
-               LogAnalyticsWorkspace = None |}
+            { StorageAccount = None
+              EventHub = None
+              LogAnalyticsWorkspace = None }
            Metrics = Set.empty
            Logs = Set.empty
            MetricsSource = ResourceId.create(ResourceType("", ""), ResourceName "")
            Dependencies = Set.empty
            Tags = Map.empty }
+
     member _.Run(state:DiagnosticSettingsConfig) =
         let (|EmptySet|_|) theSet = if Set.isEmpty theSet then Some EmptySet else None
         match state with
@@ -76,9 +73,9 @@ type DiagnosticSettingsBuilder() =
         { state with
             Sinks =
                 match resourceId with
-                | HasResourceType storageAccounts -> {| state.Sinks with StorageAccount = Some resourceId |}
-                | HasResourceType workspaces -> {| state.Sinks with LogAnalyticsWorkspace = Some (resourceId, AzureDiagnostics) |}
-                | HasResourceType Namespaces.authorizationRules -> {| state.Sinks with EventHub = Some {| AuthorizationRuleId = resourceId; EventHubName = None |} |}
+                | HasResourceType storageAccounts -> { state.Sinks with StorageAccount = Some resourceId }
+                | HasResourceType workspaces -> { state.Sinks with LogAnalyticsWorkspace = Some (resourceId, AzureDiagnostics) }
+                | HasResourceType Namespaces.authorizationRules -> { state.Sinks with EventHub = Some {| AuthorizationRuleId = resourceId; EventHubName = None |} }
                 | _ -> failwithf "Unsupported resource type '%O'. Supported types are %O" resourceId.Type [ storageAccounts; workspaces ]
             Dependencies = state.Dependencies.Add dependency }
 
@@ -99,11 +96,11 @@ type DiagnosticSettingsBuilder() =
     member _.EventHubName(state: DiagnosticSettingsConfig, eventHubName) =
         { state with
             Sinks =
-                {| state.Sinks with
-                    EventHub =
-                        match state.Sinks.EventHub with
-                        | Some hub -> Some {| hub with EventHubName = Some eventHubName |}
-                        | None -> failwith "You must set the Authorization Rule Id before setting the event hub name" |}
+                { state.Sinks with
+                   EventHub =
+                       match state.Sinks.EventHub with
+                       | Some hub -> Some {| hub with EventHubName = Some eventHubName |}
+                       | None -> failwith "You must set the Authorization Rule Id before setting the event hub name" }
         }
     member this.EventHubName(state, eventHubName:string) =
         this.EventHubName(state, ResourceName eventHubName)
@@ -113,7 +110,7 @@ type DiagnosticSettingsBuilder() =
     member _.DedicatedLogAnalyticsDestination(state: DiagnosticSettingsConfig, outputType) =
         match state.Sinks.LogAnalyticsWorkspace with
         | Some (resourceId, _) ->
-            { state with Sinks = {| state.Sinks with LogAnalyticsWorkspace = Some (resourceId, outputType) |} }
+            { state with Sinks = { state.Sinks with LogAnalyticsWorkspace = Some (resourceId, outputType) } }
         | None ->
             failwith "You must first specify a Log Analytics sink before enabling dedicated outputs."
 

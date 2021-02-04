@@ -1,11 +1,11 @@
-﻿module DiagnosticSetting
+﻿module DiagnosticSettings
 
 open Expecto
 open Farmer
 open Farmer.Arm.Storage
 open Farmer.Arm.LogAnalytics
-open Farmer.Arm.DiagnosticSetting
 open Farmer.Arm.EventHub
+open Farmer.DiagnosticSettings
 open Farmer.Builders
 open Microsoft.Azure.Management.OperationalInsights
 open Microsoft.Azure.Management.Monitor.Models
