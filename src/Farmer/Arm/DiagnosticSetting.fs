@@ -52,7 +52,7 @@ type DiagnosticSettings =
 
       Sinks :
         {| StorageAccount : ResourceId option
-           EventHub : {| AuthorizationRuleId : ArmExpression; EventHubName : ResourceName option |} option
+           EventHub : {| AuthorizationRuleId : ResourceId; EventHubName : ResourceName option |} option
            LogAnalyticsWorkspace : (ResourceId * DestinationType) option |}
 
       Metrics : MetricSetting Set
