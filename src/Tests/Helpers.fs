@@ -3,9 +3,23 @@ module TestHelpers
 
 open Farmer
 open Microsoft.Rest.Serialization
-open Farmer.Builders
+open Newtonsoft.Json
 open Newtonsoft.Json.Linq
 open Farmer.Arm.ResourceGroup
+
+[<AutoOpen>]
+module TestHelpers =
+    let createSimpleDeployment parameters =
+        { Location = Location.NorthEurope
+          PostDeployTasks = []
+          Template = {
+              Schema = Arm.ResourceGroup.schema
+              Outputs = []
+              Parameters = parameters |> List.map SecureParameter
+              Resources = []
+          }
+        }
+    let convertTo<'T> = JsonConvert.SerializeObject >> JsonConvert.DeserializeObject<'T>
 
 let farmerToMs<'T when 'T : null> (serializationSettings:Newtonsoft.Json.JsonSerializerSettings) data =
     data

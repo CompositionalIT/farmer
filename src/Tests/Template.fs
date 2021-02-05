@@ -12,20 +12,7 @@ open Microsoft.Azure.Management.ResourceManager.Models
 open Microsoft.Azure.Management.Resources.Models
 open Newtonsoft.Json
 open System.IO
-
-[<AutoOpen>]
-module TestHelpers =
-    let createSimpleDeployment parameters =
-        { Location = Location.NorthEurope
-          PostDeployTasks = []
-          Template = {
-              Schema = Arm.ResourceGroup.schema
-              Outputs = []
-              Parameters = parameters |> List.map SecureParameter
-              Resources = []
-          }
-        }
-    let convertTo<'T> = JsonConvert.SerializeObject >> JsonConvert.DeserializeObject<'T>
+open Newtonsoft.Json.Linq
 
 let dummyClient = new ResourceManagementClient (Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
 
@@ -229,5 +216,26 @@ let tests = testList "Template" [
             createdResource
             {| name = "Name"; ``type`` = "Test"; apiVersion = "2017-01-01"; dependsOn = null; location = null; tags = null |}
             "Default values don't match"
+    }
+    test "Nested ResourceGroup deployment has no dependency" {
+        let resources = 
+            resourceGroup { 
+                name "outer" 
+                add_resource 
+                    (resourceGroup { 
+                        name "inner"
+                        add_resource (storageAccount{name "storage"})
+                    })
+            } |> toTemplate |> JObject.FromObject
+        
+        let nestedResources = 
+            resources.SelectTokens("$.resources[1].properties.template.resources[*].dependsOn")
+            |> Seq.collect id
+            |> Seq.map string
+
+        let badDependencies = 
+            nestedResources
+            |> Seq.filter (fun x -> x.Contains("'Microsoft.Resources/resourceGroups'") && x.Contains("'inner'"))
+        Expect.isEmpty badDependencies "Nothing should depend on the resource group"
     }
 ]

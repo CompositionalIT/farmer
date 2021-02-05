@@ -31,10 +31,12 @@ type ResourceGroupDeployment =
       Resources: IArmResource list
       Outputs: Map<string,string>
       Tags: Map<string,string>
-      DeploymentMode: DeploymentMode}
+      DeploymentMode: DeploymentMode
+      DeployingAlongsideResourceGroup: bool }
     member this.ResourceName = this.Name
     member this.DependsOn = [
-        ResourceId.create (resourceGroups, this.ResourceGroupName)
+        if this.DeployingAlongsideResourceGroup then
+            ResourceId.create (resourceGroups, this.ResourceGroupName)
     ]
     interface IArmResource with
         member this.ResourceId = resourceGroupDeployments.resourceId this.Name

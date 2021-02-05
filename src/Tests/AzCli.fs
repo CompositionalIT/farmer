@@ -4,6 +4,7 @@ open Expecto
 open Farmer
 open System
 open Farmer.Builders
+open TestHelpers
 
 let deployTo resourceGroupName parameters deployment =
     printfn "Creating resource group %s..." resourceGroupName
@@ -21,7 +22,7 @@ let endToEndTests = testList "End to end tests" [
     }
 
     test "If parameters are missing, deployment is immediately rejected" {
-        let deployment = Template.TestHelpers.createSimpleDeployment [ "p1" ]
+        let deployment = createSimpleDeployment [ "p1" ]
         let result = deployment |> Deploy.tryExecute "sample-rg" []
         Expect.equal result (Error "The following parameters are missing: p1. Please add them.") ""
     }

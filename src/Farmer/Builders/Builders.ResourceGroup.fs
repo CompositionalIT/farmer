@@ -25,7 +25,8 @@ type ResourceGroupConfig =
                     Resources = this.Resources
                     Outputs = this.Outputs
                     Tags = this.Tags
-                    DeploymentMode = this.DeploymentMode}]
+                    DeploymentMode = this.DeploymentMode
+                    DeployingAlongsideResourceGroup = false}]
     interface IParameters with
         member this.SecureParameters =
             let nestedParams = 
@@ -61,7 +62,8 @@ type ResourceGroupConfig =
                           Resources = this.Resources
                           Outputs = this.Outputs
                           Tags = this.Tags
-                          DeploymentMode = this.DeploymentMode}
+                          DeploymentMode = this.DeploymentMode
+                          DeployingAlongsideResourceGroup = true}
                 ]|}
         member this.RunPostDeployTasks () =
             this.Resources

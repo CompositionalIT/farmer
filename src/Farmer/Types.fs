@@ -20,6 +20,12 @@ type ResourceName =
     static member (-) (a:ResourceName, b:string) = ResourceName(a.Value + "-" + b)
     static member (-) (a:ResourceName, b:ResourceName) = a - b.Value
 
+[<AutoOpen>]
+module ResourceName =
+    let (|EmptyResourceName|_|) (r:ResourceName) = if r = ResourceName.Empty then Some EmptyResourceName else None
+    let (|NullOrEmpty|_|) (text:string) = if System.String.IsNullOrEmpty text then Some NullOrEmpty else None
+    let (|Parsed|_|) parser (text:string) = match parser text with true, x -> Some (Parsed x) | false, _ -> None
+    let (|Unparsed|_|) parser (text:string) = match parser text with true, _ -> None | false, _ -> Some Unparsed
 type Location =
     | Location of string
     member this.ArmValue = match this with Location location -> location.ToLower()
@@ -195,7 +201,7 @@ type IPostDeploy =
 /// A functional equivalent of the IBuilder's BuildResources method.
 type Builder = Location -> IArmResource list
 
-/// A resource that will automatically be created by Farmer.
+/// A related resource that will automatically be created by Farmer as part of another resource.
 type AutoCreationKind<'TConfig> =
     /// A resource that will automatically be created by Farmer with an explicit (user-defined) name.
     | Named of ResourceId
@@ -206,11 +212,12 @@ type AutoCreationKind<'TConfig> =
         | Named r -> r
         | Derived f -> f config
 
-/// A related resource that is created externally to this Farmer resource.
+/// A related resource that is created externally to this Farmer resource. It may be created elsewhere in the Farmer template,
+/// or it may already exist in Azure.
 type ExternalKind =
-    /// The name of the resource that will be created by Farmer, but is explicitly linked by the user.
+    /// The id of a resource that will be created by Farmer, but is explicitly linked by the user.
     | Managed of ResourceId
-    /// A Resource Id that is created externally from Farmer and already exists in Azure.
+    /// A id of a resource that is created externally from Farmer and already exists in Azure.
     | Unmanaged of ResourceId
 
 /// A reference to another Azure resource that may or may not be created by Farmer.
