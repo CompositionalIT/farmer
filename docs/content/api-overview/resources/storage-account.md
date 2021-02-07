@@ -13,6 +13,7 @@ The Storage Account builder creates storage accounts and their associated contai
 * Storage Containers (`blobServices/containers`)
 * File Shares (`fileServices/shares`)
 * Queues (`Microsoft.Storage/storageAccounts/queueServices/queues`)
+* Tables (`Microsoft.Storage/storageAccounts/tableServices/tables`)
 
 #### Builder Keywords
 
@@ -28,6 +29,8 @@ The Storage Account builder creates storage accounts and their associated contai
 | add_file_share_with_quota | Adds a file share to storage account with a share quota in Gb |
 | add_queue | Adds a queue to the storage account |
 | add_queues | Adds a list of queues to the storage account |
+| add_table | Adds a table to the storage account |
+| add_tables | Adds a list of tables to the storage account |
 | use_static_website | Activates static website host, and uploads the provided local content as a post-deployment task to the storage with the specified index page |
 | static_website_error_page | Specifies the 404 page to display for static website hosting |
 | enable_data_lake | Enables Azure Data Lake Gen2 support on the storage account |
@@ -59,6 +62,8 @@ let storage = storageAccount {
     add_blob_container "myblobcontainer"
     add_file_share "share1"
     add_file_share_with_quota "share2" 1024<Gb>
+    add_queue "myqueue"
+    add_table "mytable"
     use_static_website "local/path/to/folder/content" "index.html"
     static_website_error_page "error.html"
     enable_data_lake true

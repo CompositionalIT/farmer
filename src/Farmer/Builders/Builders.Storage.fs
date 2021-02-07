@@ -41,6 +41,8 @@ type StorageAccountConfig =
       FileShares: (StorageResourceName * int<Gb> option) list
       /// Queues
       Queues : StorageResourceName Set
+      /// Tables
+      Tables : StorageResourceName Set
       /// Rules
       Rules : Map<ResourceName, StoragePolicy>
       RoleAssignments : Roles.RoleAssignment Set
@@ -84,6 +86,9 @@ type StorageAccountConfig =
             for queue in this.Queues do
                 { Queues.Queue.Name = queue
                   Queues.Queue.StorageAccount = this.Name.ResourceName }
+            for table in this.Tables do
+                { Tables.Table.Name = table
+                  Tables.Table.StorageAccount = this.Name.ResourceName }
             match this.Rules |> Map.toList with
             | [] ->
                 ()
@@ -123,6 +128,7 @@ type StorageAccountBuilder() =
         FileShares = []
         Rules = Map.empty
         Queues = Set.empty
+        Tables = Set.empty
         RoleAssignments = Set.empty
         StaticWebsite = None
         Tags = Map.empty
@@ -159,6 +165,13 @@ type StorageAccountBuilder() =
     [<CustomOperation "add_queues">]
     member this.AddQueues(state:StorageAccountConfig, names) =
         (state, names) ||> Seq.fold(fun state name -> this.AddQueue(state, name))
+    /// Adds a single table to the storage account.
+    [<CustomOperation "add_table">]
+    member _.AddTable(state:StorageAccountConfig, name:string) = { state with Tables = state.Tables.Add (StorageResourceName.Create(name).OkValue) }
+    /// Adds a set of tables to the storage account.
+    [<CustomOperation "add_tables">]
+    member this.AddTables(state:StorageAccountConfig, names) =
+        (state, names) ||> Seq.fold(fun state name -> this.AddTable(state, name))
     /// Enable static website support, using the supplied local content path to the storage account's $web folder as a post-deployment task, and setting the index page as supplied.
     [<CustomOperation "use_static_website">]
     member _.StaticWebsite(state:StorageAccountConfig, contentPath, indexPage) =

@@ -56,7 +56,7 @@ type Subscription =
         member this.JsonModel =
             let destinationResourceId =
                 match this.DestinationEndpoint with
-                | EventHub hubName -> Some (eventHubs.resourceId (this.Destination, hubName))
+                | EventHub hubName -> Some (Namespaces.eventHubs.resourceId (this.Destination, hubName))
                 | StorageQueue _ -> Some (storageAccounts.resourceId this.Destination)
                 | WebHook _ -> None
 
@@ -70,7 +70,7 @@ type Subscription =
                             |} |> box
                           | EventHub hubName ->
                             {| endpointType = "EventHub"
-                               properties = {| resourceId = eventHubs.resourceId(this.Destination, hubName).Eval() |}
+                               properties = {| resourceId = Namespaces.eventHubs.resourceId(this.Destination, hubName).Eval() |}
                             |} :> _
                           | StorageQueue queueName ->
                             {| endpointType = "StorageQueue"
