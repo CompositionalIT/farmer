@@ -1126,7 +1126,7 @@ module Cdn =
     | DynamicSiteAcceleration
 
 module EventGrid =
-    type EventGridEvent = EventGridEvent of string member this.Value = match this with EventGridEvent s -> s
+    [<Struct>] type EventGridEvent<'T> = EventGridEvent of string member this.Value = match this with EventGridEvent s -> s
 
 /// Built in Azure roles (https://docs.microsoft.com/en-us/azure/role-based-access-control/built-in-roles)
 module Dns =

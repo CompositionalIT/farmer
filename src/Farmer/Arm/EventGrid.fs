@@ -2,7 +2,7 @@
 module Farmer.Arm.EventGrid
 
 open Farmer
-open Farmer.EventGrid
+open EventGrid
 
 let systemTopics = ResourceType ("Microsoft.EventGrid/systemTopics", "2020-04-01-preview")
 let eventSubscriptions = ResourceType ("Microsoft.EventGrid/systemTopics/eventSubscriptions", "2020-04-01-preview")
@@ -45,12 +45,12 @@ type Topic =
                        topicType = this.TopicType.Value |}
              |} :> _
 
-type Subscription =
+type Subscription<'T> =
     { Name : ResourceName
       Topic : ResourceName
       Destination : ResourceName
       DestinationEndpoint : EndpointType
-      Events : EventGridEvent list }
+      Events : EventGridEvent<'T> list }
     interface IArmResource with
         member this.ResourceId = eventSubscriptions.resourceId (this.Topic/this.Name)
         member this.JsonModel =
