@@ -144,7 +144,7 @@ type SqlDbBuilder() =
         state
 
 type SqlServerBuilder() =
-    let makeIp = IPAddress.Parse
+    let makeIp (text:string) = IPAddress.Parse text
     member __.Yield _ =
         { Name = (SqlAccountName.Create "defaultvalue").OkValue
           AdministratorCredentials = {| UserName = ""; Password = SecureParameter "" |}

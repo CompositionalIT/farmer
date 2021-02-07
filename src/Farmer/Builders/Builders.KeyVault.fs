@@ -254,7 +254,7 @@ type KeyVaultBuilder() =
     [<CustomOperation "tenant_id">]
     member __.SetTenantId(state:KeyVaultBuilderState, tenantId) = { state with TenantId = tenantId }
     member this.SetTenantId(state:KeyVaultBuilderState, tenantId) = this.SetTenantId(state, ArmExpression.create (sprintf "string('%O')" tenantId))
-    member this.SetTenantId(state:KeyVaultBuilderState, tenantId) = this.SetTenantId(state, Guid.Parse tenantId)
+    member this.SetTenantId(state:KeyVaultBuilderState, tenantId:string) = this.SetTenantId(state, Guid.Parse tenantId)
     /// Allows VM access to the vault.
     [<CustomOperation "enable_vm_access">]
     member __.EnableVmAccess(state:KeyVaultBuilderState) = { state with Access = { state.Access with VirtualMachineAccess = Some Enabled } }

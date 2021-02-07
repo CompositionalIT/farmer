@@ -147,7 +147,7 @@ type AzureCniBuilder() =
     member _.DockerBridge(state:NetworkProfileConfig, dockerBridge) = { state with DockerBridgeCidr = IPAddressCidr.parse dockerBridge }
     /// Sets the DNS service IP - must be within the service CIDR, default is the second address in the service CIDR.
     [<CustomOperation "dns_service">]
-    member _.DnsServiceIP(state:NetworkProfileConfig, dnsIp) = { state with DnsServiceIP = System.Net.IPAddress.Parse dnsIp |> Some }
+    member _.DnsServiceIP(state:NetworkProfileConfig, dnsIp:string) = { state with DnsServiceIP = System.Net.IPAddress.Parse dnsIp |> Some }
     /// Sets the service cidr to a network other than the default 10.224.0.0/16.
     [<CustomOperation "service_cidr">]
     member _.ServiceCidr(state:NetworkProfileConfig, serviceCidr) = { state with ServiceCidr = IPAddressCidr.parse serviceCidr }

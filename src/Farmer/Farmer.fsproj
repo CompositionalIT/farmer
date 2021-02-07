@@ -9,7 +9,7 @@
     <Authors>Isaac Abraham and contributors</Authors>
 
     <!-- Build settings -->
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks>netstandard2.0; net5.0</TargetFrameworks>
     <DebugType>portable</DebugType>
     <OutputType>Library</OutputType>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -32,7 +32,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="4.7.1" />
+    <PackageReference Update="FSharp.Core" Version="5.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
   </ItemGroup>
 
