@@ -2,6 +2,7 @@ Release Notes
 =============
 ## vNext
 * Storage: Add support for tables
+* Functions: Support for 64 bits.
 
 ## 1.4.0
 * Bing Search: Support for Bing Search (migrated from Cognitive Services).
@@ -18,7 +19,7 @@ Release Notes
 * Web App: Automatically add Logging extension for ASP.NET Core apps (additive change to ARM).
 * Web App: Added Instrumentation Key Setting for Linux WebApp.
 * Web App: Automatically add Client Id setting for user assigned identities.
-* Web App + Functions: Support for 64 bits via IServicePlanApp Interface.
+* Web App: Support for 64 bits.
 
 * Azure CLI: Ensure JSON output.
 * Framework: Extension methods for Taggable and Dependable to simplify boilerplate keywords.

@@ -60,23 +60,19 @@ let tests = testList "Functions tests" [
 
     }
 
-    test "Default always on false" {
-        let f:Site = functions { name "testDefault" } |> getResourceAtIndex 0
+    test "Supports always on" {
+        let f:Site = functions { name "" } |> getResourceAtIndex 0
         Expect.equal f.SiteConfig.AlwaysOn (Nullable false) "always on should be false by default"
-    }
 
-    test "Always on true" {
-        let f:Site = functions { name "testDefault"; always_on } |> getResourceAtIndex 0
+        let f:Site = functions { always_on } |> getResourceAtIndex 0
         Expect.equal f.SiteConfig.AlwaysOn (Nullable true) "always on should be true"
     }
 
-    test "Should use 32 bit worker process" {
-        let f:Site = functions { name "testDefault"; worker_process Bitness.Bits32 } |> getResourceAtIndex 0
+    test "Supports 32 and 64 bit worker processes" {
+        let f:Site = functions { worker_process Bitness.Bits32 } |> getResourceAtIndex 0
         Expect.equal f.SiteConfig.Use32BitWorkerProcess (Nullable true) "Should use 32 bit worker process"
-    }
 
-    test "Should NOT use 32 bit worker process" {
-        let f:Site = functions { name "testDefault"; worker_process Bitness.Bits64 } |> getResourceAtIndex 0
+        let f:Site = functions { worker_process Bitness.Bits64 } |> getResourceAtIndex 0
         Expect.equal f.SiteConfig.Use32BitWorkerProcess (Nullable false) "Should not use 32 bit worker process"
     }
 ]
