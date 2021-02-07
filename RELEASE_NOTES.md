@@ -4,6 +4,7 @@ Release Notes
 * Bing Search: Migrate support from Cognitive Services into a dedicated Bing Search builder.
 * Container Registry: Added ARM expressions for admin account credentials
 * Databricks Workspace: Support for creating Databricks Workspaces
+* Diagnostic Settings: Support for creating Diagnostic Settings on other resources.
 * Web App: Improved KeyVault integration.
 * Web App: Add PremiumV3 SKU.
 
