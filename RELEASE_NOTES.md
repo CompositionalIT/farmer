@@ -2,6 +2,7 @@ Release Notes
 =============
 ## vNext
 * Storage: Add support for tables
+* Framework: Add support for NET5, upgrade to F#5
 
 ## 1.4.0
 * Bing Search: Support for Bing Search (migrated from Cognitive Services).
