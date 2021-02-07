@@ -40,6 +40,7 @@ The Functions builder is used to create Azure Functions accounts. It abstracts t
 | add_identity | Adds a managed identity to the the Function App. |
 | system_identity | Activates the system identity of the Function App. |
 | always_on | Stops the app from sleeping if idle for a few minutes of inactivity. |
+| worker_process | Specifies whether to set the app to 32 or 64 Bitness. |
 
 #### Post-deployment Builder Keywords
 The Functions builder contains special commands that are executed *after* the ARM deployment is completed.

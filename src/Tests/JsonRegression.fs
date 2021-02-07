@@ -64,4 +64,29 @@ let tests =
 
             compareResourcesToJson [ myVm ] "vm.json"
         }
+
+        test "Storage, Event Hub, Log Analytics and Diagnostics" {
+            let data = storageAccount { name "isaacsuperdata" }
+            let hub = eventHub { name "isaacsuperhub" }
+            let logs = logAnalytics { name "isaacsuperlogs" }
+            let web = webApp { name "isaacdiagsuperweb"; app_insights_off }
+
+            let mydiagnosticSetting = diagnosticSettings {
+                name "myDiagnosticSetting"
+                metrics_source web
+
+                add_destination data
+                add_destination logs
+                add_destination hub
+                loganalytics_output_type Farmer.DiagnosticSettings.Dedicated
+                capture_metrics [ "AllMetrics" ]
+                capture_logs [
+                    Farmer.DiagnosticSettings.Logging.Web.Sites.AppServicePlatformLogs
+                    Farmer.DiagnosticSettings.Logging.Web.Sites.AppServiceAntivirusScanAuditLogs
+                    Farmer.DiagnosticSettings.Logging.Web.Sites.AppServiceAppLogs
+                    Farmer.DiagnosticSettings.Logging.Web.Sites.AppServiceHTTPLogs
+                ]
+            }
+            compareResourcesToJson [ data; web; hub; logs; mydiagnosticSetting ] "diagnostics.json"
+        }
     ]

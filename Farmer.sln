@@ -15,6 +15,7 @@ ProjectSection(SolutionItems) = preProject
 	samples\scripts\container-registry.fsx = samples\scripts\container-registry.fsx
 	samples\scripts\cosmos.fsx = samples\scripts\cosmos.fsx
 	samples\scripts\loganalytics.fsx = samples\scripts\loganalytics.fsx
+	samples\scripts\diagnosticsetting.fsx = samples\scripts\diagnosticsetting.fsx
 	samples\scripts\eventhubs.fsx = samples\scripts\eventhubs.fsx
 	samples\scripts\functions.fsx = samples\scripts\functions.fsx
 	samples\scripts\keyvault.fsx = samples\scripts\keyvault.fsx

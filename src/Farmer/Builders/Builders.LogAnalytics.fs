@@ -2,7 +2,7 @@
 module Farmer.Builders.LogAnalytics
 
 open Farmer
-open Farmer.Arm
+open Farmer.Arm.LogAnalytics
 
 let private (|InBounds|OutOfBounds|) days =
     if days < 30<Days> then OutOfBounds days

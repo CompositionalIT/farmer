@@ -5,9 +5,6 @@ open Farmer
 open Farmer.EventHub
 
 let namespaces = ResourceType ("Microsoft.EventHub/namespaces", "2017-04-01")
-let eventHubs = ResourceType ("Microsoft.EventHub/namespaces/eventhubs", "2017-04-01")
-let consumerGroups = ResourceType ("Microsoft.EventHub/namespaces/eventhubs/consumergroups", "2017-04-01")
-let authorizationRules = ResourceType ("Microsoft.EventHub/namespaces/eventhubs/AuthorizationRules", "2017-04-01")
 
 type CaptureDestination =
     | StorageAccount of ResourceName * containerName:string
@@ -43,6 +40,8 @@ type Namespace =
                         maximumThroughputUnits = this.MaxThroughputUnits |> Option.toNullable |}
             |} :> _
 module Namespaces =
+    let eventHubs = ResourceType ("Microsoft.EventHub/namespaces/eventhubs", "2017-04-01")
+    let authorizationRules = ResourceType ("Microsoft.EventHub/namespaces/AuthorizationRules", "2017-04-01")
     type EventHub =
         { Name : ResourceName
           Location : Location
@@ -77,6 +76,8 @@ module Namespaces =
                         |}
                |} :> _
     module EventHubs =
+        let authorizationRules = ResourceType ("Microsoft.EventHub/namespaces/eventhubs/AuthorizationRules", "2017-04-01")
+        let consumerGroups = ResourceType ("Microsoft.EventHub/namespaces/eventhubs/consumergroups", "2017-04-01")
         type ConsumerGroup =
             { ConsumerGroupName : ResourceName
               EventHub : ResourceName
