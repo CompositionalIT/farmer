@@ -1,5 +1,7 @@
 Release Notes
 =============
+## vNext
+
 ## 1.4.0
 * Bing Search: Support for Bing Search (migrated from Cognitive Services).
 * Container Registry: Added ARM expressions for admin account credentials
