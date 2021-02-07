@@ -10,6 +10,7 @@
     <Content Include="test-data\*.json" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="Helpers.fs" />
     <Compile Include="AppInsights.fs" />
+    <Compile Include="DiagnosticSettings.fs" />
     <Compile Include="Common.fs" />
     <Compile Include="Functions.fs" />
     <Compile Include="LogAnalytics.fs" />
@@ -47,8 +48,6 @@
     <Compile Include="AllTests.fs" />
   </ItemGroup>
 
-  <ItemGroup />
-
   <ItemGroup>
     <PackageReference Include="expecto" Version="9.0.0" />
     <PackageReference Include="Microsoft.Azure.Management.Cdn" Version="2.1.0" />
@@ -60,6 +59,7 @@
     <PackageReference Include="Microsoft.Azure.Management.DeviceProvisioningServices" Version="1.0.0" />
     <PackageReference Include="Microsoft.Azure.Management.IotHub" Version="2.10.0-preview" />
     <PackageReference Include="Microsoft.Azure.Management.Maps" Version="1.0.2" />
+    <PackageReference Include="Microsoft.Azure.Management.Monitor" Version="0.25.3-preview" />
     <PackageReference Include="Microsoft.Azure.Management.Network" Version="19.20.0-preview" />
     <PackageReference Include="Microsoft.Azure.Management.OperationalInsights" Version="0.21.0-preview" />
     <PackageReference Include="Microsoft.Azure.Management.ServiceBus" Version="2.1.0" />

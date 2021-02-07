@@ -51,6 +51,13 @@ type ResourceType with
     member this.resourceId name = this.resourceId (ResourceName name)
     member this.resourceId (firstSegment, [<ParamArray>] remainingSegments:ResourceName []) = ResourceId.create (this, firstSegment, remainingSegments)
 
+[<AutoOpen>]
+module internal Patterns =
+    let (|HasResourceType|_|) (expected:ResourceType) (actual:ResourceId) =
+        match actual.Type with
+        | t when t = expected -> Some (HasResourceType())
+        | _ -> None
+
 /// An Azure ARM resource value which can be mapped into an ARM template.
 type IArmResource =
     /// The name of the resource, to uniquely identify against other resources in the template.

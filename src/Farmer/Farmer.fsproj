@@ -2,7 +2,7 @@
   <PropertyGroup>
     <!-- General -->
     <AssemblyName>Farmer</AssemblyName>
-    <Version>1.4.0-beta1</Version>
+    <Version>1.5.0-beta1</Version>
     <Description>Farmer makes authoring ARM templates easy!</Description>
     <Copyright>Copyright 2019, 2020 Compositional IT Ltd.</Copyright>
     <Company>Compositional IT</Company>
@@ -47,11 +47,13 @@
     <Compile Include="Result.fs" />
     <Compile Include="Types.fs" />
     <Compile Include="Common.fs" />
+    <Compile Include="DiagnosticLogCategories.fs" />
     <Compile Include="ArmBuilder.fs" />
 
     <Compile Include="Writer.fs" />
     <Compile Include="Deploy.fs" />
 
+    <Compile Include="Arm/DiagnosticSetting.fs" />
     <Compile Include="Arm/ManagedIdentity.fs" />
     <Compile Include="Arm/LogAnalytics.fs" />
     <Compile Include="Arm/Storage.fs" />
@@ -84,9 +86,7 @@
     <Compile Include="Arm/NetworkSecurityGroup.fs" />
     <Compile Include="Arm/DeploymentScript.fs" />
     <Compile Include="Arm/Databricks.fs" />
-
     <Compile Include="IdentityExtensions.fs" />
-
     <Compile Include="Builders/Builders.LogAnalytics.fs" />
     <Compile Include="Builders/Builders.Helpers.fs" />
     <Compile Include="Builders/Builders.UserAssignedIdentity.fs" />
@@ -124,5 +124,6 @@
     <Compile Include="Builders/Builders.StaticWebApp.fs" />
     <Compile Include="Builders/Builders.NetworkSecurityGroup.fs" />
     <Compile Include="Builders/Builders.Databricks.fs" />
+    <Compile Include="Builders\Builders.DiagnosticSetting.fs" />
   </ItemGroup>
 </Project>
