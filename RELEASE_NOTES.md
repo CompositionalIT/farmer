@@ -2,6 +2,7 @@ Release Notes
 =============
 ## vNext
 * Storage: Add support for tables
+* Functions: Support for 64 bits.
 
 ## 1.4.0
 * Bing Search: Support for Bing Search (migrated from Cognitive Services).
