@@ -2,6 +2,7 @@ Release Notes
 =============
 ## vNext
 * Storage: Add support for tables
+* Functions: Support for 64 bits.
 * Framework: Add support for NET5, upgrade to F#5
 
 ## 1.4.0

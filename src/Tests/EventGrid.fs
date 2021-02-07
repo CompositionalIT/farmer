@@ -27,7 +27,7 @@ let tests = testList "Event Grid" [
         Expect.equal sub.Name (ResourceName "test-thequeue-queue") "Incorrect subscription name"
         Expect.equal sub.Endpoint (EndpointType.StorageQueue "thequeue") "Incorrect endpoint type"
         Expect.equal sub.Destination (ResourceName "test") "Incorrect destination"
-        Expect.equal sub.SystemEvents [ (SystemEvents.Storage.BlobCreated :> IEventGridEvent).ToEvent ] "Incorrect system events"
+        Expect.equal sub.SystemEvents [ SystemEvents.Storage.BlobCreated ] "Incorrect system events"
     }
     test "Creates a webhook subscriber correctly" {
         let app = webApp { name "test" }
