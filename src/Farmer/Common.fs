@@ -1144,42 +1144,53 @@ module Databricks =
     type KeySource = Databricks | KeyVault member this.ArmValue = match this with Databricks -> "Default" | KeyVault -> "MicrosoftKeyVault"
     type Sku = Standard | Premium member this.ArmValue = match this with Standard -> "standard" | Premium -> "premium"
 
-module DiagnosticSettings =
-    let private (|InBounds|OutOfBounds|) days =
+namespace Farmer.DiagnosticSettings
+
+open Farmer
+open System
+
+[<AutoOpen>]
+module private Helpers =
+    let (|InBounds|OutOfBounds|) days =
         if days > 365<Days> then OutOfBounds days
         elif days < 1<Days> then OutOfBounds days
         else InBounds days
 
-    type RetentionPolicy =
-        { Enabled : bool
-          RetentionPeriod : int<Days> }
-        static member Create (retentionPeriod, ?enabled) =
-            match retentionPeriod with
-            | OutOfBounds days ->
-                failwithf "The retention period must be between 1 and 365 days. It is currently %d." days
-            | InBounds _ ->
-                { Enabled = defaultArg enabled true
-                  RetentionPeriod = retentionPeriod }
+[<Struct>]
+type LogCategory = LogCategory of string member this.Value = match this with LogCategory v -> v
 
-    type MetricSetting =
-        { Category : string
-          TimeGrain : TimeSpan option
-          Enabled : bool
-          RetentionPolicy : RetentionPolicy option }
-        static member Create (category, ?retentionPeriod, ?timeGrain) =
-            { Category = category
-              TimeGrain = timeGrain
-              Enabled = true
-              RetentionPolicy = retentionPeriod |> Option.map (fun days -> RetentionPolicy.Create (days, true)) }
+type RetentionPolicy =
+    { Enabled : bool
+      RetentionPeriod : int<Days> }
+    static member Create (retentionPeriod, ?enabled) =
+        match retentionPeriod with
+        | OutOfBounds days ->
+            failwithf "The retention period must be between 1 and 365 days. It is currently %d." days
+        | InBounds _ ->
+            { Enabled = defaultArg enabled true
+              RetentionPeriod = retentionPeriod }
 
-    type LogSetting =
-        { Category : string
-          Enabled : bool
-          RetentionPolicy : RetentionPolicy option }
-        static member Create (category, ?retentionPeriod) =
-            { Category = category
-              Enabled = true
-              RetentionPolicy = retentionPeriod |> Option.map (fun days -> RetentionPolicy.Create (days, true)) }
+type MetricSetting =
+    { Category : string
+      TimeGrain : TimeSpan option
+      Enabled : bool
+      RetentionPolicy : RetentionPolicy option }
+    static member Create (category, ?retentionPeriod, ?timeGrain) =
+        { Category = category
+          TimeGrain = timeGrain
+          Enabled = true
+          RetentionPolicy = retentionPeriod |> Option.map (fun days -> RetentionPolicy.Create (days, true)) }
 
-    /// Represents the kind of destination for log analytics
-    type LogAnalyticsDestination = AzureDiagnostics | Dedicated
+type LogSetting =
+    { Category : LogCategory
+      Enabled : bool
+      RetentionPolicy : RetentionPolicy option }
+    static member Create (category, ?retentionPeriod) =
+        { Category = category
+          Enabled = true
+          RetentionPolicy = retentionPeriod |> Option.map (fun days -> RetentionPolicy.Create (days, true)) }
+    static member Create (category, ?retentionPeriod) =
+        LogSetting.Create(LogCategory category, ?retentionPeriod = retentionPeriod)
+
+/// Represents the kind of destination for log analytics
+type LogAnalyticsDestination = AzureDiagnostics | Dedicated

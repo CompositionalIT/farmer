@@ -47,6 +47,7 @@
     <Compile Include="Result.fs" />
     <Compile Include="Types.fs" />
     <Compile Include="Common.fs" />
+    <Compile Include="DiagnosticLogCategories.fs" />
     <Compile Include="ArmBuilder.fs" />
 
     <Compile Include="Writer.fs" />

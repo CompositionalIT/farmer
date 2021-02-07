@@ -89,7 +89,11 @@ type DiagnosticSettingsBuilder() =
         DiagnosticSettingsBuilder.AddDestinationPrivate (state, (workspace :> IBuilder).ResourceId)
     member _.AddDestination(state:DiagnosticSettingsConfig, hub:EventHubConfig) : DiagnosticSettingsConfig =
         let ruleId = Namespaces.authorizationRules.resourceId(hub.EventHubNamespaceName, ResourceName "RootManageSharedAccessKey")
-        DiagnosticSettingsBuilder.AddDestinationPrivate (state, ruleId, (hub :> IBuilder).ResourceId)
+        let state = DiagnosticSettingsBuilder.AddDestinationPrivate (state, ruleId, (hub :> IBuilder).ResourceId)
+        { state with
+            Sinks =
+                { state.Sinks with
+                    EventHub = state.Sinks.EventHub |> Option.map(fun h -> {| h with EventHubName = Some hub.Name |}) } }
 
     /// The name of the event hub. If none is specified, the default event hub will be selected.
     [<CustomOperation "event_hub_destination_name">]
@@ -117,10 +121,13 @@ type DiagnosticSettingsBuilder() =
     /// Add metric settings to the resource.
     [<CustomOperation "capture_metrics">]
     member _.Metrics(state: DiagnosticSettingsConfig, metrics) = { state with Metrics = Set metrics }
+    member this.Metrics(state, metrics) = this.Metrics(state, metrics |> Seq.map MetricSetting.Create)
 
     /// Add Log settings to the resource.
     [<CustomOperation "capture_logs">]
     member _.Logs(state:DiagnosticSettingsConfig, logs) = { state with Logs = Set logs }
+    member this.Logs(state, logs:seq<string>) = this.Logs(state, logs |> Seq.map LogSetting.Create)
+    member this.Logs(state, logs:seq<LogCategory>) = this.Logs(state, logs |> Seq.map LogSetting.Create)
 
     interface IDependable<DiagnosticSettingsConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
     interface ITaggable<DiagnosticSettingsConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }

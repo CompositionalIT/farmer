@@ -17,17 +17,18 @@ let mydiagnosticSetting = diagnosticSettings {
     add_destination logs
     add_destination hub
     loganalytics_output_type Dedicated
-    capture_metrics [ MetricSetting.Create "AllMetrics" ]
+    capture_metrics [ "AllMetrics" ]
+    capture_logs [
+        Logging.Web.Sites.AppServicePlatformLogs
+        Logging.Web.Sites.AppServiceAntivirusScanAuditLogs
+        Logging.Web.Sites.AppServiceAppLogs
+        Logging.Web.Sites.AppServiceHTTPLogs
+    ]
+    add_tag "sample" "isaac"
 }
 
 let deployment = arm {
-    add_resources [
-        data
-        web
-        hub
-        logs
-        mydiagnosticSetting
-    ]
+    add_resources [ data; web; hub; logs; mydiagnosticSetting ]
 }
 
 deployment

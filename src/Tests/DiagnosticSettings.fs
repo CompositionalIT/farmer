@@ -49,7 +49,7 @@ let tests = testList "Diagnostic Settings" [
         Expect.equal result.Logs.[0].RetentionPolicy.Days 1 "Incorrect LogRetentionPeriod"
     }
 
-    test "Event hub name can't be specified without the Event hub authorization rule id  " {
+    test "Event hub name can't be specified without the Event hub authorization rule id" {
        Expect.throws (fun _ ->
             diagnosticSettings {
                 metrics_source logicAppResource
@@ -83,9 +83,10 @@ let tests = testList "Diagnostic Settings" [
         Expect.equal result.StorageAccountId (storageAccount.ResourceId.Eval()) "Incorrect StorageAccount ResourceId"
         Expect.equal result.WorkspaceId ((workspace :> IBuilder).ResourceId.Eval()) "Incorrect Workspace ResourceId"
         Expect.equal result.EventHubAuthorizationRuleId (eventHub.DefaultAuthorizationRule.Eval()) "Incorrect Event Hub Auth Rule"
+        Expect.equal result.EventHubName eventHub.Name.Value "Incorrect Event Hub Name"
     }
 
-    test "Can't create Diagnostic Settings without at least one data sink " {
+    test "Can't create Diagnostic Settings without at least one data sink" {
        Expect.throws (fun _ ->
             diagnosticSettings {
                 name "myDiagnosticSetting"
@@ -94,7 +95,7 @@ let tests = testList "Diagnostic Settings" [
             } |> ignore) (sprintf "Should have thrown an exception for not specifying at least on data sink")
     }
 
-    test "Can't create test with retention period outside 1 and 365 " {
+    test "Can't create test with retention period outside 1 and 365" {
         for days in [ 0<Days>; 366<Days> ] do
             Expect.throws (fun _ -> LogSetting.Create("", days) |> ignore) (sprintf "Should have thrown for %d" days)
             Expect.throws (fun _ -> MetricSetting.Create("", days) |> ignore) (sprintf "Should have thrown for %d" days)

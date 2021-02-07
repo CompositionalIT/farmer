@@ -53,7 +53,7 @@ type DiagnosticSettings =
                        |]
                        logs = [|
                         for log in this.Logs do
-                            {| category = log.Category
+                            {| category = log.Category.Value
                                enabled = log.Enabled
                                retentionPolicy =
                                 log.RetentionPolicy
