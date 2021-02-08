@@ -1,9 +1,10 @@
 Release Notes
 =============
 ## vNext
-* Storage: Add support for tables
-* Functions: Support for 64 bits.
 * Container Groups: Support for init containers.
+* Framework: Add support for NET5, upgrade to F#5
+* Functions: Support for 64 bits.
+* Storage: Add support for tables
 
 ## 1.4.0
 * Bing Search: Support for Bing Search (migrated from Cognitive Services).
