@@ -14,7 +14,7 @@ ProjectSection(SolutionItems) = preProject
 	samples\scripts\appinsights.fsx = samples\scripts\appinsights.fsx
 	samples\scripts\container-registry.fsx = samples\scripts\container-registry.fsx
 	samples\scripts\cosmos.fsx = samples\scripts\cosmos.fsx
-	samples\scripts\loganalytics.fsx=samples\scripts\loganalytics.fsx
+	samples\scripts\loganalytics.fsx = samples\scripts\loganalytics.fsx
 	samples\scripts\diagnosticsetting.fsx = samples\scripts\diagnosticsetting.fsx
 	samples\scripts\eventhubs.fsx = samples\scripts\eventhubs.fsx
 	samples\scripts\functions.fsx = samples\scripts\functions.fsx
@@ -28,6 +28,7 @@ ProjectSection(SolutionItems) = preProject
 	samples\scripts\postgresql.fsx = samples\scripts\postgresql.fsx
 	samples\scripts\aks.fsx = samples\scripts\aks.fsx
 	samples\scripts\bastion.fsx = samples\scripts\bastion.fsx
+	samples\scripts\container-instance.fsx = samples\scripts\container-instance.fsx
 EndProjectSection
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "SampleApp", "samples\SampleApp\SampleApp.fsproj", "{2F230746-189D-4AFD-9B60-D49BB23C98DA}"

@@ -50,6 +50,19 @@ type ContainerInstanceConfig =
       /// Volume mounts for the container
       VolumeMounts : Map<string, string> }
 
+/// Represents configuration for an init container that runs on container group startup.
+type InitContainerConfig =
+    { /// The name of the container instance
+      Name : ResourceName
+      /// The container instance image
+      Image : string
+      /// The commands to execute within the container instance in exec form
+      Command : string list
+      /// Environment variables for the container
+      EnvironmentVariables : Map<string, EnvVar>
+      /// Volume mounts for the container
+      VolumeMounts : Map<string, string> }
+
 type ContainerGroupConfig =
     { /// The name of the container group.
       Name : ResourceName
@@ -63,6 +76,8 @@ type ContainerGroupConfig =
       IpAddress : ContainerGroupIpAddress option
       /// Name of the network profile for this container's group.
       NetworkProfile : ResourceName option
+      /// The init containers in this container group.
+      InitContainers : InitContainerConfig list
       /// The instances in this container group.
       Instances : ContainerInstanceConfig list
       /// Volumes to mount on the container group.
@@ -93,6 +108,14 @@ type ContainerGroupConfig =
               RestartPolicy = this.RestartPolicy
               Identity = this.Identity
               ImageRegistryCredentials = this.ImageRegistryCredentials
+              InitContainers = [
+                  for initContainer in this.InitContainers do
+                      {| Name = initContainer.Name
+                         Image = initContainer.Image
+                         Command = initContainer.Command
+                         EnvironmentVariables = initContainer.EnvironmentVariables
+                         VolumeMounts = initContainer.VolumeMounts |}
+              ]
               IpAddress = this.IpAddress
               NetworkProfile = this.NetworkProfile
               Volumes = this.Volumes
@@ -113,6 +136,7 @@ type ContainerGroupBuilder() =
           RestartPolicy = AlwaysRestart
           Identity = ManagedIdentity.Empty
           ImageRegistryCredentials = []
+          InitContainers = []
           IpAddress = None
           NetworkProfile = None
           Instances = []
@@ -158,6 +182,9 @@ type ContainerGroupBuilder() =
     [<CustomOperation "add_registry_credentials">]
     member _.AddRegistryCredentials(state:ContainerGroupConfig, credentials) =
         { state with ImageRegistryCredentials = state.ImageRegistryCredentials @ credentials }
+    /// Adds a collection of init containers to this group that run once on startup before other containers in the group.
+    [<CustomOperation "add_init_containers">]
+    member _.AddInitContainers(state:ContainerGroupConfig, initContainers) = { state with InitContainers = state.InitContainers @ (Seq.toList initContainers) }
     /// Adds a collection of container instances to this group
     [<CustomOperation "add_instances">]
     member _.AddInstances(state:ContainerGroupConfig, instances) = { state with Instances = state.Instances @ (Seq.toList instances) }
@@ -233,8 +260,38 @@ type ContainerInstanceBuilder() =
     member _.CommandLine (state:ContainerInstanceConfig, command) =
         { state with Command = state.Command @ command }
 
+type InitContainerBuilder() =
+    member _.Yield _ =
+        { Name = ResourceName.Empty
+          Image = ""
+          Command = List.empty
+          EnvironmentVariables = Map.empty
+          VolumeMounts = Map.empty }
+    /// Sets the name of the init container.
+    [<CustomOperation "name">]
+    member _.Name(state:InitContainerConfig, name) = { state with Name = name }
+    member this.Name(state:InitContainerConfig, name) = this.Name(state, ResourceName name)
+    /// Sets the image of the init container.
+    [<CustomOperation "image">]
+    member _.Image (state:InitContainerConfig, image) = { state with Image = image }
+    /// Sets the environment variables for the init container.
+    [<CustomOperation "env_vars">]
+    member _.EnvironmentVariables(state:InitContainerConfig, envVars) =
+        { state with EnvironmentVariables = Map.ofList envVars }
+    member this.EnvironmentVariables(state, envVars) =
+        this.EnvironmentVariables(state, envVars |> List.map(fun (k,v) -> k, EnvValue v))
+    /// Adds a volume mount to the init container
+    [<CustomOperation "add_volume_mount">]
+    member _.AddVolumeMount (state:InitContainerConfig, volumeName, mountPath) =
+        { state with VolumeMounts = state.VolumeMounts |> Map.add volumeName mountPath }
+    /// Adds commands to execute within the init container
+    [<CustomOperation "command_line">]
+    member _.CommandLine (state:InitContainerConfig, command) =
+        { state with Command = state.Command @ command }
+
 let containerGroup = ContainerGroupBuilder()
 let containerInstance = ContainerInstanceBuilder()
+let initContainer = InitContainerBuilder()
 
 type ContainerNetworkInterfaceIpConfig = { Subnet : string }
 type ContainerNetworkInterfaceConfiguration = { IpConfigs : ContainerNetworkInterfaceIpConfig list }
