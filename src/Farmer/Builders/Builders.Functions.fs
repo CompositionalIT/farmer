@@ -27,7 +27,8 @@ type FunctionsConfig =
       ExtensionVersion : FunctionsExtensionVersion
       Identity : ManagedIdentity
       ZipDeployPath : string option
-      AlwaysOn : bool }
+      AlwaysOn : bool 
+      WorkerProcess : Bitness option }
 
     /// Gets the system-created managed principal for the functions instance. It must have been enabled using enable_managed_identity.
     member this.SystemIdentity = SystemIdentity (sites.resourceId this.Name)
@@ -119,7 +120,7 @@ type FunctionsConfig =
               Metadata = []
               ZipDeployPath = this.ZipDeployPath |> Option.map (fun x -> x, ZipDeploy.ZipDeployTarget.FunctionApp)
               AppCommandLine = None
-              WorkerProcess = None }
+              WorkerProcess = this.WorkerProcess }
             match this.ServicePlan with
             | DeployableResource this.Name resourceId ->
                 { Name = resourceId.Name
@@ -179,7 +180,8 @@ type FunctionsBuilder() =
           Dependencies = Set.empty
           Identity = ManagedIdentity.Empty
           Tags = Map.empty
-          ZipDeployPath = None }
+          ZipDeployPath = None
+          WorkerProcess = None }
     /// Do not create an automatic storage account; instead, link to a storage account that is created outside of this Functions instance.
     [<CustomOperation "link_to_storage_account">]
     member _.LinkToStorageAccount(state:FunctionsConfig, name) = { state with StorageAccount = managed storageAccounts name }
@@ -210,7 +212,8 @@ type FunctionsBuilder() =
               Cors = state.Cors
               Identity = state.Identity
               ZipDeployPath = state.ZipDeployPath
-              AlwaysOn = state.AlwaysOn }
+              AlwaysOn = state.AlwaysOn 
+              WorkerProcess = state.WorkerProcess }
         member _.Wrap state config =
             { state with
                 AlwaysOn = config.AlwaysOn
@@ -221,6 +224,7 @@ type FunctionsBuilder() =
                 Settings = config.Settings
                 Cors = config.Cors
                 Identity = config.Identity
-                ZipDeployPath = config.ZipDeployPath }
-
+                ZipDeployPath = config.ZipDeployPath 
+                WorkerProcess = config.WorkerProcess }
+        
 let functions = FunctionsBuilder()

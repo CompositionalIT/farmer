@@ -1,26 +1,30 @@
 Release Notes
 =============
-## 1.4.0-beta2
-* Bing Search: Migrate support from Cognitive Services into a dedicated Bing Search builder.
-* Container Registry: Added ARM expressions for admin account credentials
-* Databricks Workspace: Support for creating Databricks Workspaces
+## vNext
+* Container Groups: Support for init containers.
+* Framework: Add support for NET5, upgrade to F#5
+* Functions: Support for 64 bits.
+* Storage: Add support for tables
 * Storage: Support for firewall to restrict storage account network access to virtual network subnets, IP addresses, and CIDR prefixes.
 * Virtual Network: Support for creating service endpoints on subnets.
 * Virtual Network: Support for assigning existing service endpoint policies to subnets.
+
+## 1.4.0
+* Bing Search: Support for Bing Search (migrated from Cognitive Services).
+* Container Registry: Added ARM expressions for admin account credentials
+* Databricks Workspace: Support for creating Databricks Workspaces
+* Diagnostic Settings: Support for creating Diagnostic Settings on other resources.
+* Event Hub: Update built-in expression paths for default key.
+* Functions: Added some extra keywords which were already present on Web App.
+* Storage: Support for setting default blob access tier at account level with "default_blob_access_tier"
+* SQL Azure: Validation and fail fast on account names instead of silently fixing them (breaking run-time change).
+
 * Web App: Improved KeyVault integration.
 * Web App: Add PremiumV3 SKU.
-
-## 1.4.0-beta1
-* Storage: Support for setting default blob access tier at account level with "default_blob_access_tier"
-
-* Functions: Added some extra keywords which were already present on Web App.
-
 * Web App: Automatically add Logging extension for ASP.NET Core apps (additive change to ARM).
 * Web App: Added Instrumentation Key Setting for Linux WebApp.
 * Web App: Automatically add Client Id setting for user assigned identities.
 * Web App: Support for 64 bits.
-
-* SQL Azure: Validation and fail fast on account names instead of silently fixing them (breaking run-time change).
 
 * Azure CLI: Ensure JSON output.
 * Framework: Extension methods for Taggable and Dependable to simplify boilerplate keywords.

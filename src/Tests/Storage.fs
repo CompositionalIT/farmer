@@ -85,6 +85,32 @@ let tests = testList "Storage Tests" [
         Expect.equal resources.[1].Name "storage/default/share2" "file share name for 'share2' is wrong"
         Expect.equal resources.[1].ShareQuota (Nullable 1024) "file share quota for 'share2' is wrong"
     }
+    test "Creates tables correctly" {
+        let resources : Table list =
+            let account = storageAccount {
+                name "storage"
+                add_table "table1"
+                add_tables ["table2"; "table3"]
+            }
+            [ for i in 1 .. 3 do account |> getResourceAtIndex client.SerializationSettings i ]
+        
+        Expect.equal resources.[0].Name "storage/default/table1" "table name for 'table1' is wrong"
+        Expect.equal resources.[1].Name "storage/default/table2" "table name for 'table2' is wrong"
+        Expect.equal resources.[2].Name "storage/default/table3" "table name for 'table3' is wrong"        
+    }
+    test "Creates queues correctly" {
+        let resources : StorageQueue list =
+            let account = storageAccount {
+                name "storage"
+                add_queue "queue1"
+                add_queues ["queue2"; "queue3"]
+            }
+            [ for i in 1 .. 3 do account |> getResourceAtIndex client.SerializationSettings i ]
+        
+        Expect.equal resources.[0].Name "storage/default/queue1" "queue name for 'queue1' is wrong"
+        Expect.equal resources.[1].Name "storage/default/queue2" "queue name for 'queue2' is wrong"
+        Expect.equal resources.[2].Name "storage/default/queue3" "queue name for 'queue3' is wrong"        
+    }
     test "Rejects invalid storage accounts" {
         let check (v:string) m = Expect.equal (StorageAccountName.Create v) (Error ("Storage account names " + m))
 

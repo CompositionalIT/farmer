@@ -69,6 +69,47 @@ let tests = testList "Container Group" [
         Expect.equal ports [ 80; 443; 9090 ] "Incorrect ports on container"
     }
 
+    test "Container group with init containers" {
+        let group =
+            let emptyDir1 = "emptyDir1"
+            containerGroup {
+                name "appWithInitContainers"
+                add_volumes [
+                    volume_mount.empty_dir emptyDir1
+                ]
+                add_init_containers [
+                    initContainer {
+                        name "init"
+                        image "busybox"
+                        command_line [
+                            "/bin/sh"
+                            "-c"
+                            "sleep 60; echo python wordcount.py http://shakespeare.mit.edu/romeo_juliet/full.html > /mnt/emptydir/command_line.txt"
+                        ]
+                        add_volume_mount emptyDir1 "/mnt/emptydir"
+                    }
+                ]
+                add_instances [
+                    containerInstance {
+                        name "hamlet"
+                        image "mcr.microsoft.com/azuredocs/aci-wordcount"
+                        add_volume_mount emptyDir1 "/mnt/emptydir"
+                        env_vars [
+                            "NumWords", "3"
+                            "MinLength", "5"
+                        ]
+                    }
+                ]
+            } |> asAzureResource
+
+        let containerInstance = group.Containers.[0]
+        Expect.equal containerInstance.Image "mcr.microsoft.com/azuredocs/aci-wordcount" "Incorrect containerInstance image"
+        Expect.equal containerInstance.Name "hamlet" "Incorrect containerInstance name"
+        let initContainer = group.InitContainers.[0]
+        Expect.equal initContainer.Image "busybox" "Incorrect initContainer image"
+        Expect.equal initContainer.Name "init" "Incorrect initContainer name"
+    }
+
     test "Group without public ip" {
         let group = containerGroup {
             name "myGroup"

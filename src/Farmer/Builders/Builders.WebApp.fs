@@ -79,7 +79,8 @@ type CommonWebConfig =
       Cors : Cors option
       Identity : Identity.ManagedIdentity
       ZipDeployPath : string option
-      AlwaysOn : bool }
+      AlwaysOn : bool 
+      WorkerProcess : Bitness option }
 
 type WebAppConfig =
     { Name : ResourceName
@@ -519,8 +520,6 @@ type WebAppBuilder() =
     /// Automatically add the ASP.NET Core logging extension.
     [<CustomOperation "automatic_logging_extension">]
     member _.DefaultLogging (state:WebAppConfig, setting) = { state with AutomaticLoggingExtension = setting }
-    [<CustomOperation "worker_process">]
-    member _.WorkerProcess (state:WebAppConfig, bitness) = { state with WorkerProcess = Some bitness }
     interface ITaggable<WebAppConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     interface IDependable<WebAppConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
     interface IServicePlanApp<WebAppConfig> with
@@ -533,7 +532,8 @@ type WebAppBuilder() =
               Cors = state.Cors
               Identity = state.Identity
               ZipDeployPath = state.ZipDeployPath
-              AlwaysOn = state.AlwaysOn }
+              AlwaysOn = state.AlwaysOn 
+              WorkerProcess = state.WorkerProcess }
         member _.Wrap state config =
             { state with
                 Name = config.Name
@@ -544,7 +544,8 @@ type WebAppBuilder() =
                 Cors = config.Cors
                 Identity = config.Identity
                 ZipDeployPath = config.ZipDeployPath
-                AlwaysOn = config.AlwaysOn }
+                AlwaysOn = config.AlwaysOn 
+                WorkerProcess = config.WorkerProcess }
 
 let webApp = WebAppBuilder()
 
@@ -672,3 +673,6 @@ module Extensions =
         /// Sets "Always On" flag
         [<CustomOperation "always_on">]
         member this.AlwaysOn(state:'T) = { this.Get state with AlwaysOn = true } |> this.Wrap state
+        ///Chooses the bitness (32 or 64) of the worker process
+        [<CustomOperation "worker_process">]
+        member this.WorkerProcess (state:'T, bitness) = { this.Get state with WorkerProcess = Some bitness } |> this.Wrap state
