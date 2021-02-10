@@ -3,7 +3,6 @@ module AzCli
 open Expecto
 open Farmer
 open System
-open Farmer.Builders
 open TestHelpers
 
 let deployTo resourceGroupName parameters deployment =
@@ -38,7 +37,7 @@ let tests = testList "Azure CLI" [
     test "Az output is always JSON" {
         // account list always defaults to table, regardless of defaults?
         Deploy.Az.az "account list --all"
-        |> Result.map Newtonsoft.Json.JsonConvert.DeserializeObject<{| id : Guid; tenantId : Guid; isDefault : bool; |} array>
+        |> Result.map Serialization.ofJson<{| id : Guid; tenantId : Guid; isDefault : bool; |} array>
         |> ignore
     }
 ]
