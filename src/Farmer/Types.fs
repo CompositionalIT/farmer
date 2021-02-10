@@ -303,9 +303,6 @@ module internal DeterministicGuid =
     open System.Security.Cryptography
     open System.Text
 
-    let namespaceGuid = Guid.Parse "92f3929f-622a-4149-8f39-83a4bcd385c8"
-    let namespaceBytes = namespaceGuid.ToByteArray()
-
     let private swapBytes(guid:byte array, left, right) =
         let temp = guid.[left]
         guid.[left] <- guid.[right]
@@ -316,6 +313,10 @@ module internal DeterministicGuid =
         swapBytes(guid, 1, 2)
         swapBytes(guid, 4, 5)
         swapBytes(guid, 6, 7)
+
+    let namespaceGuid = Guid.Parse "92f3929f-622a-4149-8f39-83a4bcd385c8"
+    let namespaceBytes = namespaceGuid.ToByteArray()
+    swapByteOrder namespaceBytes
 
     let create(source:string) =
         let source = Encoding.UTF8.GetBytes source
