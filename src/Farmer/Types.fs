@@ -299,7 +299,6 @@ type Deployment =
       PostDeployTasks : IPostDeploy list }
 
 module internal DeterministicGuid =
-    open System
     open System.Security.Cryptography
     open System.Text
 
@@ -314,8 +313,7 @@ module internal DeterministicGuid =
         swapBytes(guid, 4, 5)
         swapBytes(guid, 6, 7)
 
-    let namespaceGuid = Guid.Parse "92f3929f-622a-4149-8f39-83a4bcd385c8"
-    let namespaceBytes = namespaceGuid.ToByteArray()
+    let namespaceBytes = Guid.Parse("92f3929f-622a-4149-8f39-83a4bcd385c8").ToByteArray()
     swapByteOrder namespaceBytes
 
     let create(source:string) =
@@ -335,3 +333,8 @@ module internal DeterministicGuid =
 
         swapByteOrder newGuid
         Guid newGuid
+
+module internal AssemblyInfo =
+    open System.Runtime.CompilerServices
+    [<assembly: InternalsVisibleTo "Tests">]
+    do()
