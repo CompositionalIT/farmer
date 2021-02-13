@@ -62,12 +62,10 @@ module Az =
                 azProcess, sb.ToString()
             with
             | :? System.ComponentModel.Win32Exception as e when e.Message.Contains("No such file or directory") ->
-                let message = sprintf "Could not find Azure CLI tools on %s. Make sure you've setup the Azure CLI tools.  Go to https://compositionalit.github.io/farmer/quickstarts/quickstart-3/#install-the-azure-cli for more information." azCliPath.Value
+                let message = sprintf "Could not find Azure CLI tools on %s. Make sure you've setup the Azure CLI tools. Go to https://compositionalit.github.io/farmer/quickstarts/quickstart-3/#install-the-azure-cli for more information." azCliPath.Value
                 AzureCLIToolsNotFound(message, e) |> raise
             | _ ->
                 reraise()
-
-
         let processToResult (p:Process, response) =
             match p.ExitCode with
             | 0 -> Ok response
@@ -132,6 +130,20 @@ module Az =
         |> az
     let batchUploadStaticWebsite name path =
         az (sprintf "storage blob upload-batch --account-name %s --destination $web --source %s" name path)
+
+    type AzureErrorCode = { Code : string; Message : string }
+    type AzureError = { Error : AzureErrorCode }
+    let tryGetError (error:string) =
+        try
+            let skip = "Deployment failed. Correlation ID: 3c51a527-c6e2-42a9-acee-7d9c796a626f. ".Length
+            match JsonConvert.DeserializeObject<AzureError> error.[skip..] with
+            | { Error = { Code = "RoleAssignmentExists"; Message = "The role assignment already exists." } } ->
+                "A role assignment defined in this template already exists in Azure, but with a different GUID. If you have recently upgraded to Farmer 1.5, please be aware of a breaking change in the generation of role assignment GUIDs. To resolve this, view the resource group in the Azure portal, remove the existing role assignment from IAM and redeploy your Farmer template."
+            | _ ->
+                error
+        with _ ->
+            printfn "BAD"
+            error
 
 /// Represents an Azure subscription
 type Subscription = { ID : Guid; Name : string; IsDefault : bool }
@@ -256,8 +268,11 @@ let tryExecute resourceGroupName parameters deployment = result {
 /// If successful, returns a Map of the output keys and values, otherwise returns any error as an exception.
 let execute resourceGroupName parameters deployment =
     match tryExecute resourceGroupName parameters deployment with
-    | Ok output -> output
-    | Error message -> failwith message
+    | Ok output ->
+        output
+    | Error message ->
+        Az.tryGetError message
+        |> failwith
 
 let whatIf resourceGroupName parameters deployment =
     match tryWhatIf resourceGroupName parameters deployment with
