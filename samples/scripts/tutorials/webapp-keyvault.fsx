@@ -15,18 +15,14 @@ let datastore = storageAccount {
 let webapplication = webApp {
     name "isaacsuperweb"
     system_identity
-    app_insights_off
     use_managed_keyvault (Arm.KeyVault.vaults.resourceId vaultName)
     secret_setting secretName
 }
-
-let isaac = AccessPolicy.findUsers [ "isaac@compositional-it.com" ] |> Array.head
 
 let secretsvault = keyVault {
     name vaultName
     add_secret (secretName, datastore.Key)
     add_access_policy (AccessPolicy.create webapplication.SystemIdentity)
-    add_access_policy (AccessPolicy.create isaac.ObjectId)
 }
 
 let template = arm {
