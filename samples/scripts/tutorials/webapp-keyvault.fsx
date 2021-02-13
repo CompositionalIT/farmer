@@ -32,11 +32,11 @@ let template = arm {
     ]
 }
 
-// // Generate the ARM template here...
+// Generate the ARM template here...
 template
 |> Writer.quickWrite (__SOURCE_DIRECTORY__ + @"/generated-template")
 
-// // Or deploy it directly to Azure here... (required Azure CLI installed!)
+// Or deploy it directly to Azure here... (required Azure CLI installed!)
 // template
 // |> Deploy.execute "my-resource-group" Deploy.NoParameters
 // |> printfn "%A"
