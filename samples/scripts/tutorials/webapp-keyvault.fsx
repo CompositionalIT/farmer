@@ -1,7 +1,5 @@
 #r "nuget:Farmer"
 
-fsi.ShowDeclarationValues <- false
-
 open Farmer
 open Farmer.Builders
 
