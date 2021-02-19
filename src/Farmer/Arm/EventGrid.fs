@@ -27,7 +27,7 @@ module Topics =
 type EndpointType =
     | WebHook of System.Uri
     | EventHub of eventHub:ResourceName
-    | StorageQueue of queue:string
+    | StorageQueue of queue:ResourceName
 
 type Topic =
     { Name : ResourceName
@@ -57,7 +57,7 @@ type Subscription<'T> =
             let destinationResourceId =
                 match this.DestinationEndpoint with
                 | EventHub hubName -> Some (Namespaces.eventHubs.resourceId (this.Destination, hubName))
-                | StorageQueue _ -> Some (storageAccounts.resourceId this.Destination)
+                | StorageQueue queue -> Some (Storage.queues.resourceId (this.Destination, ResourceName "default", queue))
                 | WebHook _ -> None
 
             {| eventSubscriptions.Create(this.Topic/this.Name, dependsOn = [ systemTopics.resourceId this.Topic; yield! Option.toList destinationResourceId ]) with
@@ -76,7 +76,7 @@ type Subscription<'T> =
                             {| endpointType = "StorageQueue"
                                properties =
                                 {| resourceId = (storageAccounts.resourceId this.Destination).Eval()
-                                   queueName = queueName |}
+                                   queueName = queueName.Value |}
                             |} :> _
                       filter = {| includedEventTypes = [ for event in this.Events do event.Value ] |}
                    |}
