@@ -89,4 +89,20 @@ let tests =
             }
             compareResourcesToJson [ data; web; hub; logs; mydiagnosticSetting ] "diagnostics.json"
         }
+
+        test "Event Grid" {
+            let storageSource = storageAccount {
+                name "isaacgriddevprac"
+                add_private_container "data"
+                add_queue "todo"
+            }
+
+            let eventHubGrid = eventGrid {
+                topic_name "newblobscreated"
+                source storageSource
+                add_queue_subscriber storageSource "todo" [ SystemEvents.Storage.BlobCreated ]
+            }
+
+            compareResourcesToJson [ storageSource; eventHubGrid ] "event-grid.json"
+        }
     ]
