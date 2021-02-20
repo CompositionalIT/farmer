@@ -5,6 +5,7 @@ Release Notes
 * Framework: Add support for NET5, upgrade to F#5
 * Functions: Support for 64 bits.
 * Storage: Add support for tables
+* Event Grid: Ensure destination Queues are created as a dependency
 
 ## 1.4.0
 * Bing Search: Support for Bing Search (migrated from Cognitive Services).
