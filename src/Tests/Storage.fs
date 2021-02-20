@@ -92,10 +92,10 @@ let tests = testList "Storage Tests" [
                 add_tables ["table2"; "table3"]
             }
             [ for i in 1 .. 3 do account |> getResourceAtIndex client.SerializationSettings i ]
-        
+
         Expect.equal resources.[0].Name "storage/default/table1" "table name for 'table1' is wrong"
         Expect.equal resources.[1].Name "storage/default/table2" "table name for 'table2' is wrong"
-        Expect.equal resources.[2].Name "storage/default/table3" "table name for 'table3' is wrong"        
+        Expect.equal resources.[2].Name "storage/default/table3" "table name for 'table3' is wrong"
     }
     test "Creates queues correctly" {
         let resources : StorageQueue list =
@@ -105,10 +105,10 @@ let tests = testList "Storage Tests" [
                 add_queues ["queue2"; "queue3"]
             }
             [ for i in 1 .. 3 do account |> getResourceAtIndex client.SerializationSettings i ]
-        
+
         Expect.equal resources.[0].Name "storage/default/queue1" "queue name for 'queue1' is wrong"
         Expect.equal resources.[1].Name "storage/default/queue2" "queue name for 'queue2' is wrong"
-        Expect.equal resources.[2].Name "storage/default/queue3" "queue name for 'queue3' is wrong"        
+        Expect.equal resources.[2].Name "storage/default/queue3" "queue name for 'queue3' is wrong"
     }
     test "Rejects invalid storage accounts" {
         let check (v:string) m = Expect.equal (StorageAccountName.Create v) (Error ("Storage account names " + m))
@@ -171,7 +171,7 @@ let tests = testList "Storage Tests" [
         let roleAssignment = builder.BuildResources Location.NorthEurope |> List.last :?> Farmer.Arm.RoleAssignment.RoleAssignment
         Expect.equal roleAssignment.PrincipalId uai.PrincipalId "PrincipalId"
         Expect.equal roleAssignment.RoleDefinitionId Roles.StorageBlobDataOwner "RoleId"
-        Expect.equal roleAssignment.Name.Value "efad7c9d-881a-5ca8-9177-eb1c95550036" "Storage Account Name"
+        Expect.equal roleAssignment.Name.Value "105eb550-eb9f-56b6-955d-1def9d3139ec" "Storage Account Name"
         Expect.equal roleAssignment.Scope Farmer.Arm.RoleAssignment.AssignmentScope.ResourceGroup "Scope"
         Expect.sequenceEqual roleAssignment.Dependencies [ uai.ResourceId; builder.ResourceId ] "Role Assignment Dependencies"
 
