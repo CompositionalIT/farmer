@@ -48,8 +48,8 @@ type WorkspaceBuilder() =
 
     member _.Run(state:DatabricksConfig) =
         match state with
-        | { VnetConfig = Some { PublicSubnet = EmptyResourceName } } -> failwithf "Public subnet must be set. Use public_subnet to set it."
-        | { VnetConfig = Some { PrivateSubnet = EmptyResourceName } } -> failwithf "Private subnet must be set. Use private_subnet to set it."
+        | { VnetConfig = Some { PublicSubnet = EmptyResourceName } } -> failwith "Public subnet must be set. Use public_subnet to set it."
+        | { VnetConfig = Some { PrivateSubnet = EmptyResourceName } } -> failwith "Private subnet must be set. Use private_subnet to set it."
         | { KeyEncryption = Some _; Sku = Standard } -> failwith "Infrastructure or Customer-managed Key Encryption is only available with the Premium SKU."
         | _ -> ()
 

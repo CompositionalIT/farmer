@@ -76,7 +76,7 @@ type DiagnosticSettingsBuilder() =
                 | HasResourceType storageAccounts -> { state.Sinks with StorageAccount = Some resourceId }
                 | HasResourceType workspaces -> { state.Sinks with LogAnalyticsWorkspace = Some (resourceId, AzureDiagnostics) }
                 | HasResourceType Namespaces.authorizationRules -> { state.Sinks with EventHub = Some {| AuthorizationRuleId = resourceId; EventHubName = None |} }
-                | _ -> failwithf "Unsupported resource type '%O'. Supported types are %O" resourceId.Type [ storageAccounts; workspaces ]
+                | _ -> failwith $"Unsupported resource type '{resourceId.Type}'. Supported types are {[ storageAccounts; workspaces ]}"
             Dependencies = state.Dependencies.Add dependency }
 
     /// Adds a destination sink (either a storage account, log analytics workspace or event hub authorization rule)

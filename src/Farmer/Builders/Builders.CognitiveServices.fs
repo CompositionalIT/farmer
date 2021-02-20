@@ -8,7 +8,7 @@ open Farmer.CognitiveServices
 type CognitiveServices =
     /// Gets an ARM Expression key for any Cognitives Services instance.
     static member getKey (resourceId:ResourceId) =
-        ArmExpression.create(sprintf "listKeys(%s, '%s').key1" resourceId.ArmExpression.Value accounts.ApiVersion, resourceId)
+        ArmExpression.create($"listKeys({resourceId.ArmExpression.Value}, '{accounts.ApiVersion}').key1", resourceId)
     static member getKey (name:ResourceName) = CognitiveServices.getKey (accounts.resourceId name)
 
 type CognitiveServicesConfig =

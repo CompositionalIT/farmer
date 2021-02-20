@@ -29,7 +29,7 @@ type StaticWebAppConfig =
             | _ ->
                 failwith "You must set the repository URI."
         ]
-    member this.RepositoryParameter = sprintf "repositorytoken-for-%s" this.Name.Value
+    member this.RepositoryParameter = $"repositorytoken-for-{this.Name.Value}"
 
 type StaticWebAppBuilder() =
     member _.Yield _ =

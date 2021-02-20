@@ -14,11 +14,11 @@ type ConnectionStringKind = PrimaryConnectionString | SecondaryConnectionString 
 type CosmosDb =
     static member private providerPath = "providers('Microsoft.DocumentDb','databaseAccounts').apiVersions[0]"
     static member getKey (resourceId:ResourceId, keyType:KeyType, keyAccess:KeyAccess) =
-        let expr = sprintf "listKeys(%s, %s).%s%sMasterKey" resourceId.ArmExpression.Value CosmosDb.providerPath keyType.ArmValue keyAccess.ArmValue
+        let expr = $"listKeys({resourceId.ArmExpression.Value}, {CosmosDb.providerPath}).{keyType.ArmValue}{keyAccess.ArmValue}MasterKey"
         ArmExpression.create(expr).WithOwner(resourceId)
     static member getKey (name:ResourceName, keyType, keyAccess) = CosmosDb.getKey(databaseAccounts.resourceId name, keyType, keyAccess)
     static member getConnectionString (resourceId:ResourceId, connectionStringKind:ConnectionStringKind) =
-        let expr = sprintf "listConnectionStrings(%s, %s).connectionStrings[%i].connectionString" resourceId.ArmExpression.Value CosmosDb.providerPath connectionStringKind.KeyIndex
+        let expr = $"listConnectionStrings({resourceId.ArmExpression.Value}, {CosmosDb.providerPath}).connectionStrings[{connectionStringKind.KeyIndex}].connectionString"
         ArmExpression.create(expr).WithOwner(resourceId)
     static member getConnectionString (name:ResourceName, connectionStringKind) = CosmosDb.getConnectionString (databaseAccounts.resourceId name, connectionStringKind)
 
@@ -103,7 +103,7 @@ type CosmosDbContainerBuilder() =
           ExcludedPaths = [] }
     member _.Run state =
         match state.PartitionKey with
-        | [], _ -> failwithf "You must set a partition key on CosmosDB container '%s'." state.Name.Value
+        | [], _ -> failwith $"You must set a partition key on CosmosDB container '{state.Name.Value}'."
         | partitions, indexKind ->
             { state with
                 PartitionKey =

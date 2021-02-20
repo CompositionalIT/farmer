@@ -146,7 +146,7 @@ type EventGridBuilder() =
     member _.AddWebSubscription(state:EventGridConfig<'T>, webAppName:ResourceName, webHookEndpoint:Uri, events) =
         EventGridBuilder.AddSub(state, webHookEndpoint.LocalPath + "-webhook", webAppName, WebHook webHookEndpoint, events)
     member this.AddWebSubscription(state:EventGridConfig<_>, webApp:WebAppConfig, route, events) =
-        this.AddWebSubscription(state, webApp.Name, Uri (sprintf "https://%s/%s" webApp.Endpoint route), events)
+        this.AddWebSubscription(state, webApp.Name, Uri $"https://{webApp.Endpoint}/%s{route}", events)
     [<CustomOperation "add_eventhub_subscriber">]
     member _.AddEventHubSubscription(state:EventGridConfig<'T>, eventHub:EventHubConfig, events:EventGridEvent<_> list) =
         EventGridBuilder.AddSub(state, eventHub.Name.Value + "-eventhub", eventHub.EventHubNamespaceName, EventHub eventHub.Name, events)

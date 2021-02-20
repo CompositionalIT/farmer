@@ -14,16 +14,12 @@ type IotHubConfig =
       DeviceProvisioning : FeatureFlag
       Tags: Map<string,string>  }
     member private this.BuildKey (policy:Policy) =
-        sprintf "listKeys('%s','2019-03-22').value[%d].primaryKey" this.Name.Value policy.Index
+        $"listKeys('{this.Name.Value}','2019-03-22').value[{policy.Index}].primaryKey"
     member this.GetKey policy =
         ArmExpression.create(this.BuildKey policy, this.ResourceId)
     member this.GetConnectionString policy =
-        let endpoint = sprintf "reference('%s').eventHubEndpoints.events.endpoint" this.Name.Value
-        let expr =
-            sprintf "concat('Endpoint=',%s,';SharedAccessKeyName=%s;SharedAccessKey=',%s)"
-                endpoint
-                (policy.ToString().ToLower())
-                (this.BuildKey policy)
+        let endpoint = $"reference('{this.Name.Value}').eventHubEndpoints.events.endpoint"
+        let expr = $"concat('Endpoint=',{endpoint},';SharedAccessKeyName={policy.ToString().ToLower()};SharedAccessKey=',{this.BuildKey policy})"
         ArmExpression.create(expr, this.ResourceId)
     member private this.ResourceId = iotHubs.resourceId this.Name
     interface IBuilder with
@@ -68,7 +64,7 @@ type IotHubBuilder() =
     member _.Run state =
         match state.PartitionCount with
         | Some partitionCount when partitionCount < 2 || partitionCount > 128 ->
-            failwithf "Invalid PartitionCount %d - value must be between 2 and 128" partitionCount
+            failwith $"Invalid PartitionCount {partitionCount} - value must be between 2 and 128"
         | Some _
         | None ->
             state
