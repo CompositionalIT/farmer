@@ -7,6 +7,8 @@ Release Notes
 * Storage: Add support for tables
 * Event Grid: Ensure destination Queues are created as a dependency
 
+* Framework: Updated DeterministicGuid for RFC 4122 compatibility
+
 ## 1.4.0
 * Bing Search: Support for Bing Search (migrated from Cognitive Services).
 * Container Registry: Added ARM expressions for admin account credentials
