@@ -2,7 +2,6 @@
 title: "Cosmos-backed Web App"
 date: 2020-10-24
 draft: false
-weight: 5
 ---
 
 #### Introduction

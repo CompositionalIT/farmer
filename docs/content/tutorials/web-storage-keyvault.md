@@ -2,7 +2,6 @@
 title: "Web App Secrets with KeyVault"
 date: 2020-10-24
 draft: false
-weight: 5
 ---
 
 #### Introduction

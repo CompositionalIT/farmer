@@ -2,7 +2,6 @@
 title: "Create your own Minecraft Server"
 date: 2021-02-13
 draft: false
-weight: 5
 ---
 
 #### Introduction
@@ -20,7 +19,7 @@ We will need a few dependencies here, so first let's reference the packages and 
 
 * Farmer - for building that Azure resources and deployment template.
 * MinecraftConfig - for building the server configuration files.
-* FSharp.Data - for scraping the server download page for the current version of the server .jar file. 
+* FSharp.Data - for scraping the server download page for the current version of the server .jar file.
 
 ```fsharp
 #r "nuget: Farmer"
@@ -150,11 +149,11 @@ First we will tackle the configuration files. We are going use F# to generate th
 ```fsharp
 /// A deployment script to create the config in the file share.
 let deployConfig =
-    // Helper function to base64 encode the files for embedding them in the 
+    // Helper function to base64 encode the files for embedding them in the
     // deployment script.
     let b64 (s:string) =
         s |> System.Text.Encoding.UTF8.GetBytes |> Convert.ToBase64String
-    
+
     // Build a script that embeds the content of these files, writes to the
     // deploymentScript instance and then copies
     // to the storageAccount file share. We will include the contents of these
@@ -210,7 +209,7 @@ We concat those lines together with a semicolon `; ` to break up our commands, a
         uploadServerJar :: uploadConfig
         |> List.rev // do the server upload last so it won't start until the configs are in place.
         |> String.concat "; "
-    
+
     deploymentScript {
         name "deployMinecraftConfig"
         // Depend on the storage account so this won't run until it's there.

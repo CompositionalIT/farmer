@@ -2,7 +2,6 @@
 title: "F# Script in a Container Group"
 date: 2021-02-10
 draft: false
-weight: 5
 ---
 
 #### Introduction
