@@ -32,6 +32,7 @@ type Runtime =
     static member Php56 = Php "5.6"
     static member DotNetCore21 = DotNetCore "2.1"
     static member DotNetCore31 = DotNetCore "3.1"
+    static member DotNet50 = DotNetCore "5.0"
     static member DotNetCoreLts = DotNetCore "LTS"
     static member DotNetCoreLatest = DotNetCore "Latest"
     static member Node6 = Node "6-lts"
@@ -286,8 +287,11 @@ type WebAppConfig =
                         | _ -> None
               NetFrameworkVersion =
                 match this.Runtime with
-                | AspNet version -> Some $"v{version}"
-                | _ -> None
+                | AspNet version
+                | DotNetCore ("5.0" as version) ->
+                    Some $"v{version}"
+                | _ ->
+                    None
               JavaVersion =
                 match this.Runtime, this.OperatingSystem with
                 | Java (Java11, Tomcat _), Windows -> Some "11"
@@ -314,11 +318,10 @@ type WebAppConfig =
                 | Java (_, Tomcat _), Windows -> Some "java"
                 | Php _, _ -> Some "php"
                 | Python _, Windows -> Some "python"
+                | AspNet _, _ | DotNetCore "5.0", Windows -> Some "dotnet"
                 | DotNetCore _, Windows -> Some "dotnetcore"
-                | AspNet _, _ -> Some "dotnet"
                 | _ -> None
-                |> Option.map(fun stack -> "CURRENT_STACK", stack)
-                |> Option.toList
+                |> Option.mapList(fun stack -> "CURRENT_STACK", stack)
               AppCommandLine = this.DockerImage |> Option.map snd
               ZipDeployPath = this.ZipDeployPath |> Option.map (fun x -> x, ZipDeploy.ZipDeployTarget.WebApp)
             }
