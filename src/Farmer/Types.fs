@@ -91,7 +91,7 @@ type ArmExpression =
         let specialCases = [ @"string\(\'[^\']*\'\)", 8, 10; @"^'\w*'$", 1, 2 ]
         match specialCases |> List.tryFind(fun (case, _, _) -> System.Text.RegularExpressions.Regex.IsMatch(this.Value, case)) with
         | Some (_, start, finish) -> this.Value.Substring(start, this.Value.Length - finish)
-        | None -> sprintf "[%s]" this.Value
+        | None -> $"[{this.Value}]"
     /// Sets the owning resource on this ARM Expression.
     member this.WithOwner(owner:ResourceId) = match this with ArmExpression (e, _) -> ArmExpression(e, Some owner)
     // /// Sets the owning resource on this ARM Expression.
@@ -116,7 +116,7 @@ type ResourceId with
     member this.ArmExpression =
         match this.Type.Type with
         | "" ->
-            sprintf "string('%s')" this.Name.Value
+            $"string('{this.Name.Value}')"
             |> ArmExpression.create
         | _ ->
             [ yield! Option.toList this.ResourceGroup
@@ -133,7 +133,7 @@ type ResourceId with
 
 type ArmExpression with
     static member reference (resourceType:ResourceType, resourceId:ResourceId) =
-        ArmExpression.create(sprintf "reference(%s, '%s')" resourceId.ArmExpression.Value resourceType.ApiVersion)
+        ArmExpression.create($"reference({resourceId.ArmExpression.Value}, '{resourceType.ApiVersion}')")
                      .WithOwner(resourceId)
 
 type ResourceType with
@@ -186,7 +186,7 @@ type SecureParameter =
     | SecureParameter of name:string
     member this.Value = match this with SecureParameter value -> value
     /// Gets an ARM expression reference to the parameter e.g. parameters('my-password')
-    member this.ArmExpression = sprintf "parameters('%s')" this.Value |> ArmExpression.create
+    member this.ArmExpression = $"parameters('{this.Value}')" |> ArmExpression.create
 
 /// Exposes parameters which are required by a specific IArmResource.
 type IParameters =
