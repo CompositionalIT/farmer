@@ -138,7 +138,7 @@ module Az =
             let skip = "Deployment failed. Correlation ID: 3c51a527-c6e2-42a9-acee-7d9c796a626f. ".Length
             match JsonConvert.DeserializeObject<AzureError> error.[skip..] with
             | { Error = { Code = "RoleAssignmentExists"; Message = "The role assignment already exists." } } ->
-                "A role assignment defined in this template already exists in Azure, but with a different GUID. If you have recently upgraded to Farmer 1.5, please be aware of a breaking change in the generation of role assignment GUIDs. To resolve this, view the resource group in the Azure portal, remove the existing role assignment from IAM and redeploy your Farmer template."
+                "A role assignment defined in this template already exists in Azure, but with a different GUID. If you have recently upgraded to Farmer 1.5, please be aware of a breaking change in the generation of role assignment GUIDs. To resolve this, locate the resource group in the Azure portal, remove the existing role assignment from IAM and then redeploy your Farmer template."
             | _ ->
                 error
         with _ ->
@@ -268,11 +268,8 @@ let tryExecute resourceGroupName parameters deployment = result {
 /// If successful, returns a Map of the output keys and values, otherwise returns any error as an exception.
 let execute resourceGroupName parameters deployment =
     match tryExecute resourceGroupName parameters deployment with
-    | Ok output ->
-        output
-    | Error message ->
-        Az.tryGetError message
-        |> failwith
+    | Ok output -> output
+    | Error message -> failwith (Az.tryGetError message)
 
 let whatIf resourceGroupName parameters deployment =
     match tryWhatIf resourceGroupName parameters deployment with
