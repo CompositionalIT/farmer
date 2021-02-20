@@ -39,7 +39,7 @@ module Az =
                 | OperatingSystem OSPlatform.OSX ->
                     "az"
                 | _ ->
-                    failwithf "OSPlatform: %s not supported" RuntimeInformation.OSDescription
+                    failwith $"OSPlatform: {RuntimeInformation.OSDescription} not supported"
         let executeAz arguments =
             try
                 let azProcess =
