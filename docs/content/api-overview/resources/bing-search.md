@@ -2,7 +2,7 @@
 title: "Bing Search"
 date: 2021-01-29T07:33:46+01:00
 chapter: false
-weight: 4
+weight: 2
 ---
 
 #### Overview

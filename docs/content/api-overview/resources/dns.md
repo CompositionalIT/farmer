@@ -2,7 +2,7 @@
 title: "DNS Zone"
 date: 2020-09-14T18:53:46+01:00
 chapter: false
-weight: 8
+weight: 4
 ---
 
 #### Overview

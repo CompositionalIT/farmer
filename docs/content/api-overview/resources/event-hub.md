@@ -2,7 +2,7 @@
 title: "Event Hub"
 date: 2020-02-23T20:00:00+01:00
 chapter: false
-weight: 10
+weight: 5
 ---
 
 #### Overview

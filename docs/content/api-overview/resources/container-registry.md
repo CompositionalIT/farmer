@@ -2,7 +2,7 @@
 title: "Container Registry"
 date: 2020-04-30T19:10:46+02:00
 chapter: false
-weight: 6
+weight: 3
 ---
 
 #### Overview

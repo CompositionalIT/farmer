@@ -2,7 +2,7 @@
 title: "Cognitive Services"
 date: 2020-04-10T08:53:46+01:00
 chapter: false
-weight: 4
+weight: 3
 ---
 
 #### Overview
