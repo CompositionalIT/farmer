@@ -118,7 +118,7 @@ type Site =
       AppSettings : Map<string, Setting>
       ConnectionStrings : Map<string, (Setting * ConnectionStringKind)>
       AlwaysOn : bool
-      WorkerProcess : Bitness option 
+      WorkerProcess : Bitness option
       HTTPSOnly : bool
       HTTP20Enabled : bool option
       ClientAffinityEnabled : bool option
@@ -153,7 +153,7 @@ type Site =
                 let path =
                     ZipDeploy.ZipDeployKind.TryParse path
                     |> Option.defaultWith (fun () ->
-                        failwithf "Path '%s' must either be a folder to be zipped, or an existing zip." path)
+                        failwith $"Path '{path}' must either be a folder to be zipped, or an existing zip.")
                 printfn "Running ZIP deploy for %s" path.Value
                 Some (match target with
                       | ZipDeploy.WebApp -> Deploy.Az.zipDeployWebApp name.Value path.GetZipPath resourceGroupName

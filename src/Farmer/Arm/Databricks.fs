@@ -35,8 +35,8 @@ type Workspace =
                 sku = {| name = this.Sku.ArmValue |}
                 properties =
                     {| managedResourceGroupId =
-                        let expr = sprintf "concat(subscription().id, '/resourceGroups/', '%s')" this.ManagedResourceGroupId.Value
-                        ArmExpression.create(expr).Eval()
+                        ArmExpression.create($"concat(subscription().id, '/resourceGroups/', '{this.ManagedResourceGroupId.Value}')")
+                                     .Eval()
                        parameters = Map [
                         "enableNoPublicIp", box {| value = (not this.EnablePublicIp.AsBoolean) |}
                         "prepareEncryption", box {| value = Option.isSome this.KeyEncryption |}
@@ -56,7 +56,7 @@ type Workspace =
                                         {| keySource = "Microsoft.Keyvault"
                                            keyName = config.Key
                                            keyversion = config.KeyVersion |> Option.map string |> Option.toObj
-                                           keyvaulturi = sprintf "https://%s.vault.azure.net" config.Vault.Name.Value |}
+                                           keyvaulturi = $"https://{config.Vault.Name.Value}.vault.azure.net" |}
                                     | InfrastructureManaged ->
                                         {| keySource = "Default"
                                            keyName = null
