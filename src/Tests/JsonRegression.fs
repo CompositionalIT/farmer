@@ -17,7 +17,7 @@ let tests =
             let path = __SOURCE_DIRECTORY__ + "/test-data/" + jsonFile
             let expected = File.ReadAllText path
             let actual = template |> Deployment.getTemplateWithSuffix "farmer-deploy" None |> Writer.toJson
-            Expect.equal expected actual $"ARM template generation has changed! Either fix the writer, or update the contents of the generated file ({path}).")
+            Expect.equal expected actual $"ARM template generation has changed! Either fix the writer, or update the contents of the generated file ({path})."
 
         test "Generates lots of resources" {
             let number = string 1979
