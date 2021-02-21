@@ -2,7 +2,7 @@
 module Farmer.Builders.LogAnalytics
 
 open Farmer
-open Farmer.Arm
+open Farmer.Arm.LogAnalytics
 
 let private (|InBounds|OutOfBounds|) days =
     if days < 30<Days> then OutOfBounds days
@@ -40,7 +40,7 @@ type WorkspaceBuilder() =
     member _.Run (state:WorkspaceConfig) =
         match state.RetentionPeriod with
         | Some (OutOfBounds days) ->
-            failwithf "The retention period must be between 30 and 730 days. It is currently %d" days
+            failwith $"The retention period must be between 30 and 730 days. It is currently {days}."
         | None
         | Some (InBounds _) ->
             ()

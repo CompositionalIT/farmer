@@ -2,7 +2,6 @@
 title: "Serverless ETL"
 date: 2020-10-24
 draft: false
-weight: 5
 ---
 
 #### Introduction
@@ -13,7 +12,7 @@ This tutorial shows how to create the infrastructure required to implement a com
 1. Configuring the Functions instance to have connection settings required to connect to both Storage and SQL instances.
 1. Safely providing a SQL Server password to Farmer at deployment time.
 
-{{< figure src="../../images/quickstarts/serverless-etl.png" caption="[Full code available here](https://github.com/CompositionalIT/farmer/blob/master/samples/scripts/tutorials/serverless-etl.fsx)">}}
+{{< figure src="../../images/tutorials/serverless-etl.png" caption="[Full code available here](https://github.com/CompositionalIT/farmer/blob/master/samples/scripts/tutorials/serverless-etl.fsx)">}}
 
 #### Create the SQL instance
 Create a SQL Server and database using the `sqlServer` builder. This server would be used for processed data at the end of the ETL pipeline.

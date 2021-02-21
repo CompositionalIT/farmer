@@ -51,6 +51,13 @@ type ResourceType with
     member this.resourceId name = this.resourceId (ResourceName name)
     member this.resourceId (firstSegment, [<ParamArray>] remainingSegments:ResourceName []) = ResourceId.create (this, firstSegment, remainingSegments)
 
+[<AutoOpen>]
+module internal Patterns =
+    let (|HasResourceType|_|) (expected:ResourceType) (actual:ResourceId) =
+        match actual.Type with
+        | t when t = expected -> Some (HasResourceType())
+        | _ -> None
+
 /// An Azure ARM resource value which can be mapped into an ARM template.
 type IArmResource =
     /// The name of the resource, to uniquely identify against other resources in the template.
@@ -79,7 +86,7 @@ type ArmExpression =
     private | ArmExpression of expression:string * owner:ResourceId option
     static member create (rawText:string, ?owner) =
         if System.Text.RegularExpressions.Regex.IsMatch(rawText, @"^\[.*\]$") then
-            failwithf "ARM Expressions should not be wrapped in [ ]; these will automatically be added when the expression is evaluated. Please remove them from '%s'." rawText
+            failwith $"ARM Expressions should not be wrapped in [ ]; these will automatically be added when the expression is evaluated. Please remove them from '{rawText}'."
         else
             ArmExpression(rawText, owner)
     /// Gets the raw value of this expression.
@@ -93,7 +100,7 @@ type ArmExpression =
         let specialCases = [ @"string\(\'[^\']*\'\)", 8, 10; @"^'\w*'$", 1, 2 ]
         match specialCases |> List.tryFind(fun (case, _, _) -> System.Text.RegularExpressions.Regex.IsMatch(this.Value, case)) with
         | Some (_, start, finish) -> this.Value.Substring(start, this.Value.Length - finish)
-        | None -> sprintf "[%s]" this.Value
+        | None -> $"[{this.Value}]"
     /// Sets the owning resource on this ARM Expression.
     member this.WithOwner(owner:ResourceId) = match this with ArmExpression (e, _) -> ArmExpression(e, Some owner)
     // /// Sets the owning resource on this ARM Expression.
@@ -118,7 +125,7 @@ type ResourceId with
     member this.ArmExpression =
         match this.Type.Type with
         | "" ->
-            sprintf "string('%s')" this.Name.Value
+            $"string('{this.Name.Value}')"
             |> ArmExpression.create
         | _ ->
             [ yield! Option.toList this.ResourceGroup
@@ -135,7 +142,7 @@ type ResourceId with
 
 type ArmExpression with
     static member reference (resourceType:ResourceType, resourceId:ResourceId) =
-        ArmExpression.create(sprintf "reference(%s, '%s')" resourceId.ArmExpression.Value resourceType.ApiVersion)
+        ArmExpression.create($"reference({resourceId.ArmExpression.Value}, '{resourceType.ApiVersion}')")
                      .WithOwner(resourceId)
 
 type ResourceType with
@@ -188,7 +195,7 @@ type SecureParameter =
     | SecureParameter of name:string
     member this.Value = match this with SecureParameter value -> value
     /// Gets an ARM expression reference to the parameter e.g. parameters('my-password')
-    member this.ArmExpression = sprintf "parameters('%s')" this.Value |> ArmExpression.create
+    member this.ArmExpression = $"parameters('{this.Value}')" |> ArmExpression.create
 
 /// Exposes parameters which are required by a specific IArmResource.
 type IParameters =
@@ -314,12 +321,8 @@ module Deployment =
     let getTemplate defaultName (builder:#IDeploymentBuilder) = getTemplateWithSuffix defaultName (uniqueSuffix ()) builder
 
 module internal DeterministicGuid =
-    open System
     open System.Security.Cryptography
     open System.Text
-
-    let namespaceGuid = Guid.Parse "92f3929f-622a-4149-8f39-83a4bcd385c8"
-    let namespaceBytes = namespaceGuid.ToByteArray()
 
     let private swapBytes(guid:byte array, left, right) =
         let temp = guid.[left]
@@ -331,6 +334,9 @@ module internal DeterministicGuid =
         swapBytes(guid, 1, 2)
         swapBytes(guid, 4, 5)
         swapBytes(guid, 6, 7)
+
+    let namespaceBytes = Guid.Parse("92f3929f-622a-4149-8f39-83a4bcd385c8").ToByteArray()
+    swapByteOrder namespaceBytes
 
     let create(source:string) =
         let source = Encoding.UTF8.GetBytes source
@@ -349,3 +355,8 @@ module internal DeterministicGuid =
 
         swapByteOrder newGuid
         Guid newGuid
+
+module internal AssemblyInfo =
+    open System.Runtime.CompilerServices
+    [<assembly: InternalsVisibleTo "Tests">]
+    do()

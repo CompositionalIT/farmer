@@ -67,7 +67,7 @@ type SecretConfig =
             |> Seq.forall(fun r -> r key)
 
         if not (charRulesPassed && stringRulesPassed) then
-            failwithf "Key Vault key names must be a 1-127 character string, starting with a letter and containing only 0-9, a-z, A-Z, and -. '%s' is invalid." key
+            failwith $"Key Vault key names must be a 1-127 character string, starting with a letter and containing only 0-9, a-z, A-Z, and -. '{key}' is invalid."
         else
             ()
 
@@ -81,7 +81,7 @@ type SecretConfig =
             Dependencies =
                 match expression.Owner with
                 | Some owner -> Set.ofList [ owner ]
-                | None -> failwithf "The supplied ARM expression ('%s') has no resource owner. You should explicitly set this using WithOwner(), supplying the Resource Name of the owner." expression.Value
+                | None -> failwith $"The supplied ARM expression ('{expression.Value}') has no resource owner. You should explicitly set this using WithOwner(), supplying the Resource Name of the owner."
         }
 
 type KeyVaultConfig =
@@ -137,7 +137,7 @@ type KeyVaultConfig =
             keyVault
 
             for secret in this.Secrets do
-                { Name = sprintf "%s/%s" this.Name.Value secret.Key |> ResourceName
+                { Name = ResourceName $"{this.Name.Value}/{secret.Key}"
                   Value = secret.Value
                   ContentType = secret.ContentType
                   Enabled = secret.Enabled
@@ -156,7 +156,7 @@ type AccessPolicyBuilder() =
     /// Sets the Object ID of the permission set.
     [<CustomOperation "object_id">]
     member __.ObjectId(state:AccessPolicyConfig, objectId:ArmExpression) = { state with ObjectId = objectId }
-    member this.ObjectId(state:AccessPolicyConfig, objectId:Guid) = this.ObjectId(state, ArmExpression.create (sprintf "string('%O')" objectId))
+    member this.ObjectId(state:AccessPolicyConfig, objectId:Guid) = this.ObjectId(state, ArmExpression.create $"string('{objectId}')")
     member this.ObjectId(state:AccessPolicyConfig, (ObjectId objectId)) = this.ObjectId(state, objectId)
     member this.ObjectId(state:AccessPolicyConfig, objectId:string) = this.ObjectId(state, Guid.Parse objectId)
     member this.ObjectId(state:AccessPolicyConfig, PrincipalId expression) = this.ObjectId(state, expression)
@@ -253,8 +253,8 @@ type KeyVaultBuilder() =
     /// Sets the Tenant ID of the vault.
     [<CustomOperation "tenant_id">]
     member __.SetTenantId(state:KeyVaultBuilderState, tenantId) = { state with TenantId = tenantId }
-    member this.SetTenantId(state:KeyVaultBuilderState, tenantId) = this.SetTenantId(state, ArmExpression.create (sprintf "string('%O')" tenantId))
-    member this.SetTenantId(state:KeyVaultBuilderState, tenantId) = this.SetTenantId(state, Guid.Parse tenantId)
+    member this.SetTenantId(state:KeyVaultBuilderState, tenantId) = this.SetTenantId(state, ArmExpression.create $"string('{tenantId}')")
+    member this.SetTenantId(state:KeyVaultBuilderState, tenantId:string) = this.SetTenantId(state, Guid.Parse tenantId)
     /// Allows VM access to the vault.
     [<CustomOperation "enable_vm_access">]
     member __.EnableVmAccess(state:KeyVaultBuilderState) = { state with Access = { state.Access with VirtualMachineAccess = Some Enabled } }

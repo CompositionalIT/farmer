@@ -35,7 +35,7 @@ type DeploymentScriptConfig =
         member this.ResourceId = deploymentScripts.resourceId this.Name
         member this.BuildResources location = [
             let generatedIdentityId =
-                let generatedIdentityName = sprintf "%s-identity" this.Name.Value |> ResourceName
+                let generatedIdentityName = ResourceName $"{this.Name.Value}-identity"
                 ResourceId.create (userAssignedIdentities, generatedIdentityName)
 
             // User Assigned Identity - create one if none was supplied.
@@ -50,8 +50,8 @@ type DeploymentScriptConfig =
 
             // Assignment
             { Name =
-                (sprintf "guid(concat(resourceGroup().id, '%O'))" Roles.Contributor.Id
-                |> ArmExpression.create).Eval()
+                ArmExpression.create($"guid(concat(resourceGroup().id, '{Roles.Contributor.Id}'))")
+                             .Eval()
                 |> ResourceName
               RoleDefinitionId = Roles.Contributor
               PrincipalId = identity.PrincipalId
@@ -133,7 +133,7 @@ type DeploymentScriptBuilder() =
     /// Time to retain the container instance that runs the script - 1 to 26 hours.
     [<CustomOperation "retention_interval">]
     member _.RetentionInterval(state:DeploymentScriptConfig, retentionInterval) =
-        if retentionInterval > 26<Hours> then failwithf "Max retention interval is 26 hours, but was set as %i" retentionInterval
+        if retentionInterval > 26<Hours> then failwith $"Max retention interval is 26 hours, but was set as {retentionInterval}"
         { state with CleanupPreference = Cleanup.OnExpiration (TimeSpan.FromHours (float retentionInterval)) }
     /// Additional URIs to download scripts that the primary script relies on.
     [<CustomOperation "supporting_script_uris">]

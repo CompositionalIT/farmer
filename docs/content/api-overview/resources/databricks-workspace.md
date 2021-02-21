@@ -2,7 +2,7 @@
 title: "Databricks Workspace"
 date: 2021-01-31T15:43:30+00:00
 chapter: false
-weight: 8
+weight: 4
 ---
 
 #### Overview

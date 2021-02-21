@@ -9,7 +9,7 @@ type ResourceGroupConfig =
     { Name: Option<ResourceName>
       Parameters : string Set
       Outputs : Map<string, string>
-      Location : Location 
+      Location : Location
       Resources : IArmResource list
       Tags: Map<string,string>
       DeploymentMode: DeploymentMode}
@@ -17,7 +17,7 @@ type ResourceGroupConfig =
     member private this.IncludeDeployment = not (this.Resources.IsEmpty && this.Outputs.IsEmpty)
     interface IBuilder with
         member this.ResourceId = resourceGroups.resourceId this.ResourceName
-        member this.BuildResources location = 
+        member this.BuildResources location =
             [ if this.IncludeDeployment then
                   { Name = this.ResourceName.Value |> ResourceName
                     ResourceGroupName = this.ResourceName
@@ -29,28 +29,28 @@ type ResourceGroupConfig =
                     DeployingAlongsideResourceGroup = false}]
     interface IParameters with
         member this.SecureParameters =
-            let nestedParams = 
+            let nestedParams =
                 this.Resources
-                |> List.choose 
-                    (function 
+                |> List.choose
+                    (function
                      | :? IParameters as p -> Some p.SecureParameters
                      | _ -> None)
-            let thisParams = 
-                this.Parameters 
-                |> Set.map SecureParameter 
+            let thisParams =
+                this.Parameters
+                |> Set.map SecureParameter
                 |> Set.toList
             thisParams::nestedParams
             |> List.collect id
-        
+
     interface ISubscriptionResourceBuilder with
         member this.Outputs = this.Outputs
-        member this.BuildResources key = 
-            let deploymentName = 
+        member this.BuildResources key =
+            let deploymentName =
                 match key with
                 | Some suffix -> sprintf "%s-%s" this.ResourceName.Value suffix
                 | None -> this.ResourceName.Value
             {| DeploymentName = deploymentName
-               Resources = 
+               Resources =
                 [
                     { Name = this.ResourceName
                       Location = this.Location
@@ -67,14 +67,14 @@ type ResourceGroupConfig =
                 ]|}
         member this.RunPostDeployTasks () =
             this.Resources
-            |> List.choose 
+            |> List.choose
                 (function
                 | :? IPostDeploy as pd -> pd.Run this.ResourceName.Value
-                | _ -> None)   
-            
+                | _ -> None)
+
     interface IDeploymentBuilder with
         member this.BuildDeployment name sfx =
-            let resolvedName = this.Name |> Option.orElse (Some (ResourceName name)) 
+            let resolvedName = this.Name |> Option.orElse (Some (ResourceName name))
             subscriptionDeployment {
                 location this.Location
                 add_resource {this with Name = resolvedName }
@@ -89,7 +89,7 @@ type ResourceGroupBuilder() =
           Resources = List.empty
           Location = Location.WestEurope
           Tags = Map.empty
-          DeploymentMode = DeploymentMode.Incremental}
+          DeploymentMode = DeploymentMode.Incremental }
 
     /// Sets the name of the resource group
     [<CustomOperation "name">]
@@ -130,13 +130,13 @@ type ResourceGroupBuilder() =
     member this.AddResources(state:ResourceGroupConfig, input:IBuilder list) =
         let resources = input |> List.collect(fun i -> i.BuildResources state.Location)
         ResourceGroupBuilder.AddResources(state, resources)
-        
+
     /// Adds a set of tags to the resource
     [<CustomOperation "add_tags">]
         member _.AddTags(state:ResourceGroupConfig, pairs) =
             { state with
                 Tags = pairs |> List.fold (fun map (key, value) -> Map.add key value map) state.Tags }
-        
+
     /// Adds a tag to the resource
     [<CustomOperation "add_tag">]
         member this.AddTag(state:ResourceGroupConfig, key, value) = this.AddTags(state, [ key, value ])

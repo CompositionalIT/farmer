@@ -13,7 +13,7 @@ type BastionConfig =
     interface IBuilder with
         member this.ResourceId = bastionHosts.resourceId this.Name
         member this.BuildResources location =
-            let publicIpName = sprintf "%s-ip" this.Name.Value |> ResourceName
+            let publicIpName = ResourceName $"{this.Name.Value}-ip"
             [
                 // IP Address
                 { Name = publicIpName

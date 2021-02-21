@@ -16,6 +16,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scripts", "scripts", "{F54A
 		samples\scripts\bastion.fsx = samples\scripts\bastion.fsx
 		samples\scripts\container-registry.fsx = samples\scripts\container-registry.fsx
 		samples\scripts\cosmos.fsx = samples\scripts\cosmos.fsx
+		samples\scripts\loganalytics.fsx = samples\scripts\loganalytics.fsx
+		samples\scripts\diagnosticsetting.fsx = samples\scripts\diagnosticsetting.fsx
 		samples\scripts\eventhubs.fsx = samples\scripts\eventhubs.fsx
 		samples\scripts\functions.fsx = samples\scripts\functions.fsx
 		samples\scripts\keyvault.fsx = samples\scripts\keyvault.fsx
@@ -28,6 +30,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scripts", "scripts", "{F54A
 		samples\scripts\vm.fsx = samples\scripts\vm.fsx
 		samples\scripts\webapp-appinsights.fsx = samples\scripts\webapp-appinsights.fsx
 		samples\scripts\webapp-storage.fsx = samples\scripts\webapp-storage.fsx
+	samples\scripts\container-instance.fsx = samples\scripts\container-instance.fsx
 	EndProjectSection
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "SampleApp", "samples\SampleApp\SampleApp.fsproj", "{2F230746-189D-4AFD-9B60-D49BB23C98DA}"

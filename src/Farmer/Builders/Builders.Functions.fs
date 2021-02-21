@@ -27,7 +27,8 @@ type FunctionsConfig =
       ExtensionVersion : FunctionsExtensionVersion
       Identity : ManagedIdentity
       ZipDeployPath : string option
-      AlwaysOn : bool }
+      AlwaysOn : bool
+      WorkerProcess : Bitness option }
 
     /// Gets the system-created managed principal for the functions instance. It must have been enabled using enable_managed_identity.
     member this.SystemIdentity = SystemIdentity (sites.resourceId this.Name)
@@ -39,11 +40,11 @@ type FunctionsConfig =
     member this.AppInsightsKey = this.AppInsightsName |> Option.map AppInsights.getInstrumentationKey
     /// Gets the default key for the functions site
     member this.DefaultKey =
-        sprintf "listkeys(concat(resourceId('Microsoft.Web/sites', '%s'), '/host/default/'),'2016-08-01').functionKeys.default" this.Name.Value
+        $"listkeys(concat(resourceId('Microsoft.Web/sites', '{this.Name.Value}'), '/host/default/'),'2016-08-01').functionKeys.default"
         |> ArmExpression.create
     /// Gets the master key for the functions site
     member this.MasterKey =
-        sprintf "listkeys(concat(resourceId('Microsoft.Web/sites', '%s'), '/host/default/'),'2016-08-01').masterKey" this.Name.Value
+        $"listkeys(concat(resourceId('Microsoft.Web/sites', '{this.Name.Value}'), '/host/default/'),'2016-08-01').masterKey"
         |> ArmExpression.create
     /// Gets this web app's Server Plan's full resource ID.
     member this.ServicePlanId = this.ServicePlan.resourceId this.Name
@@ -119,7 +120,7 @@ type FunctionsConfig =
               Metadata = []
               ZipDeployPath = this.ZipDeployPath |> Option.map (fun x -> x, ZipDeploy.ZipDeployTarget.FunctionApp)
               AppCommandLine = None
-              WorkerProcess = None }
+              WorkerProcess = this.WorkerProcess }
             match this.ServicePlan with
             | DeployableResource this.Name resourceId ->
                 { Name = resourceId.Name
@@ -178,7 +179,8 @@ type FunctionsBuilder() =
           Dependencies = Set.empty
           Identity = ManagedIdentity.Empty
           Tags = Map.empty
-          ZipDeployPath = None }
+          ZipDeployPath = None
+          WorkerProcess = None }
     /// Do not create an automatic storage account; instead, link to a storage account that is created outside of this Functions instance.
     [<CustomOperation "link_to_storage_account">]
     member _.LinkToStorageAccount(state:FunctionsConfig, name) = { state with StorageAccount = managed storageAccounts name }
@@ -209,7 +211,8 @@ type FunctionsBuilder() =
               Cors = state.Cors
               Identity = state.Identity
               ZipDeployPath = state.ZipDeployPath
-              AlwaysOn = state.AlwaysOn }
+              AlwaysOn = state.AlwaysOn
+              WorkerProcess = state.WorkerProcess }
         member _.Wrap state config =
             { state with
                 AlwaysOn = config.AlwaysOn
@@ -220,6 +223,7 @@ type FunctionsBuilder() =
                 Settings = config.Settings
                 Cors = config.Cors
                 Identity = config.Identity
-                ZipDeployPath = config.ZipDeployPath }
+                ZipDeployPath = config.ZipDeployPath
+                WorkerProcess = config.WorkerProcess }
 
 let functions = FunctionsBuilder()
