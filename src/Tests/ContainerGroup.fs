@@ -4,6 +4,7 @@ open Expecto
 open Farmer
 open Farmer.Identity
 open Farmer.ContainerGroup
+open Farmer.Arm.ContainerInstance
 open Farmer.Builders
 open Microsoft.Azure.Management.ContainerInstance
 open Microsoft.Azure.Management.ContainerInstance.Models
@@ -301,5 +302,44 @@ let tests = testList "Container Group" [
         }
         Expect.hasLength deployment.Template.Parameters 1 "Should have a secure parameter for secret volume"
         Expect.equal (deployment.Template.Parameters.Head.ArmExpression.Eval()) "[parameters('secret-foo')]" "Generated incorrect secure parameter."
+    }
+    test "Container with liveliness and readiness probes" {
+
+        let cg =
+            containerGroup {
+                name "myapp"
+                add_instances [
+                    containerInstance {
+                        name "nginx"
+                        image "nginx:1.17.6-alpine"
+                        probes [
+                            liveliness {
+                                http "https://whatever.com:8080/healthcheck"
+                                period_seconds 30 // Wait 30 seconds between each liveliness check
+                                failure_threshold 10 // After 10 tries, consider this unhealthy
+                            }
+                            readiness {
+                                http "https://whatever.com:8080/healthcheck"
+                                initial_delay_seconds 30 // Wait 30 seconds after the container is started before a readiness check
+                                failure_threshold 5 // Let it retry 5 times, giving another 50 seconds to try to start
+                            }
+                        ]
+                    }
+                ]
+            } |> asAzureResource
+        let livelinessProbe = cg.Containers.[0].LivenessProbe
+        Expect.isNotNull livelinessProbe "Resulting container should have a liveliness probe"
+        Expect.equal livelinessProbe.HttpGet.Path "/healthcheck" "Incorrect path on liveliness http probe"
+        Expect.equal livelinessProbe.HttpGet.Port 8080 "Incorrect port on liveliness http probe"
+        Expect.equal livelinessProbe.HttpGet.Scheme "https" "Incorrect scheme on liveliness http probe"
+        Expect.equal livelinessProbe.PeriodSeconds.Value 30 "Incorrect period on liveliness probe"
+        Expect.equal livelinessProbe.FailureThreshold.Value 10 "Incorrect failure threshold on liveliness probe"
+        let readinessProbe = cg.Containers.[0].ReadinessProbe
+        Expect.isNotNull readinessProbe "Resulting container should have a readiness probe"
+        Expect.equal readinessProbe.HttpGet.Path "/healthcheck" "Incorrect path on readiness http probe"
+        Expect.equal readinessProbe.HttpGet.Port 8080 "Incorrect port on readiness http probe"
+        Expect.equal readinessProbe.HttpGet.Scheme "https" "Incorrect scheme on readiness http probe"
+        Expect.equal readinessProbe.InitialDelaySeconds.Value 30 "Incorrect initial delay threshold on readiness probe"
+        Expect.equal readinessProbe.FailureThreshold.Value 5 "Incorrect failure threshold on readiness probe"
     }
 ]

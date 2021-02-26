@@ -2,6 +2,7 @@ Release Notes
 =============
 ## vNext
 * Container Groups: Support for init containers.
+* Container Groups: Support for liveliness and readiness probes on containers.
 * Framework: Add support for NET5, upgrade to F#5
 * Functions: Support for 64 bits.
 * Storage: Add support for tables

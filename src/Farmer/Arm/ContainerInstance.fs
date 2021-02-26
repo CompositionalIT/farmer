@@ -19,6 +19,38 @@ type ImageRegistryCredential =
       Username : string
       Password : SecureParameter }
 
+/// Defines a command or HTTP request to get the status of a container.
+type ContainerProbe =
+    { Exec : string list
+      HttpGet : Uri option
+      /// The probe will not run until this delay after container startup. Default is 0 - runs immediately.
+      InitialDelaySeconds : int option
+      /// How often to execute the probe against the container - default is 10 seconds.
+      PeriodSeconds : int option
+      /// Number of failures before this container is considered unhealthy - default is 3.
+      FailureThreshold : int option
+      /// Number of successes before this container is considered healthy - default is 1.
+      SuccessThreshold : int option
+      /// Number of seconds for the probe to run - default is 1 second.
+      TimeoutSeconds : int option }
+    member internal this.JsonModel =
+        {|
+            exec = 
+                if this.Exec.Length > 0 then
+                    {| command = this.Exec |} |> box
+                else
+                    null
+            httpGet = 
+                this.HttpGet
+                |> Option.map (fun (uri:Uri) -> {| path=uri.AbsolutePath; port=uri.Port; scheme=uri.Scheme |} |> box)
+                |> Option.defaultValue null
+            initialDelaySeconds = this.InitialDelaySeconds |> Option.map box |> Option.defaultValue null
+            periodSeconds = this.PeriodSeconds |> Option.map box |> Option.defaultValue null
+            failureThreshold = this.FailureThreshold |> Option.map box |> Option.defaultValue null
+            successThreshold = this.SuccessThreshold |> Option.map box |> Option.defaultValue null
+            timeoutSeconds = this.TimeoutSeconds |> Option.map box |> Option.defaultValue null
+        |}
+
 type ContainerGroup =
     { Name : ResourceName
       Location : Location
@@ -31,6 +63,8 @@ type ContainerGroup =
            Memory : float<Gb>
            EnvironmentVariables: Map<string, EnvVar>
            VolumeMounts : Map<string,string>
+           LivelinessProbe : ContainerProbe option
+           ReadinessProbe : ContainerProbe option
         |} list
       OperatingSystem : OS
       RestartPolicy : RestartPolicy
@@ -108,6 +142,8 @@ type ContainerGroup =
                                               | SecureEnvValue value ->
                                                 {| name = key; value = null; secureValue = value.ArmExpression.Eval() |}
                                       ]
+                                      livenessProbe = container.LivelinessProbe |> Option.map (fun p -> p.JsonModel |> box) |> Option.defaultValue null
+                                      readinessProbe = container.ReadinessProbe |> Option.map (fun p -> p.JsonModel |> box) |> Option.defaultValue null
                                       resources =
                                        {| requests =
                                            {| cpu = container.Cpu
