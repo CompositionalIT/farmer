@@ -37,12 +37,28 @@ let tests = testList "Event Grid" [
         Expect.equal sub.Endpoint (EndpointType.WebHook (Uri "https://test.azurewebsites.net/api/events")) "Incorrect endpoint type"
         Expect.equal sub.Destination (ResourceName "test") "Incorrect destination"
     }
-    test "Creates a eventhub subscriber correctly" {
+    test "Creates an eventhub subscriber correctly" {
         let hub = eventHub { name "hub"; namespace_name "ns" }
         let grid = eventGrid { add_eventhub_subscriber hub [] }
         let sub = grid.Subscriptions.[0]
         Expect.equal sub.Name (ResourceName "ns-hub-eventhub") "Incorrect subscription name"
         Expect.equal sub.Endpoint (EndpointType.EventHub hub.Name) "Incorrect endpoint type"
         Expect.equal sub.Destination hub.EventHubNamespaceName "Incorrect destination"
+    }
+    test "Creates a service bus queue subscriber correctly" {
+        let bus = serviceBus { name "busbus"; add_queues [ queue { name "queue" } ] }
+        let grid = eventGrid { add_servicebus_subscriber ServiceBusSubscriptionType.Queue  bus [] }
+        let sub = grid.Subscriptions.[0]
+        Expect.equal sub.Name (ResourceName "busbus-busbus-servicebus-queue") "Incorrect subscription name"
+        Expect.equal sub.Endpoint (EndpointType.ServiceBus (ServiceBusEndpointType.Queue bus.Name)) "Incorrect endpoint type"
+        Expect.equal sub.Destination bus.Name "Incorrect destination"
+    }
+    test "Creates a service bus topic subscriber correctly" {
+        let bus = serviceBus { name "busbus"; add_queues [ queue { name "queue" } ] }
+        let grid = eventGrid { add_servicebus_subscriber ServiceBusSubscriptionType.Topic  bus [] }
+        let sub = grid.Subscriptions.[0]
+        Expect.equal sub.Name (ResourceName "busbus-busbus-servicebus-topic") "Incorrect subscription name"
+        Expect.equal sub.Endpoint (EndpointType.ServiceBus (ServiceBusEndpointType.Topic bus.Name)) "Incorrect endpoint type"
+        Expect.equal sub.Destination bus.Name "Incorrect destination"
     }
 ]
