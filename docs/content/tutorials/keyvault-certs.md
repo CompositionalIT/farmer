@@ -1,5 +1,5 @@
 ---
-title: "Declarative Steps in ARM Deployment"
+title: "Declarative Steps in an ARM Deployment"
 date: 2021-02-25
 draft: false
 ---
@@ -22,7 +22,7 @@ In this tutorial, we will handle the third case, running an ARM operation to cre
 1. Run an imperative script to create a certificate in the key vault and copy it to the storage account.
 1. Create a web application in a container group that attaches to the storage account to uses the certificate.
 
-{{< figure src="../images/tutorials/imperative-resource.png" caption="[Full code available here](https://github.com/CompositionalIT/farmer/blob/master/samples/scripts/tutorials/keyvault-certs.fsx)">}}
+{{< figure src="../../images/tutorials/imperative-resource.png" caption="[Full code available here](https://github.com/CompositionalIT/farmer/blob/master/samples/scripts/tutorials/keyvault-certs.fsx)">}}
 
 #### Create a user assigned identity
 
