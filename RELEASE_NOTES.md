@@ -6,6 +6,7 @@ Release Notes
 * Functions: Support for 64 bits.
 * Storage: Add support for tables
 * Event Grid: Ensure destination Queues are created as a dependency
+* WebApp: add dotnet 5.0 runtime option
 
 * Framework: Updated DeterministicGuid for RFC 4122 compatibility
 
