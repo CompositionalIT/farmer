@@ -4,7 +4,7 @@ date: 2020-06-27T17:57:05+02:00
 weight: 7
 ---
 
-The creators of Farmer, [Compositional IT](https://compositional-it.com), offer a professional **fully managed support package** which we strongly recommend for any organisations using Farmer on a commercial basis. It includes:
+The creators of Farmer, [Compositional IT](https://compositional-it.com), offer a professional **fully managed support package**(https://www.compositional-it.com/consultancy/farmer/) which we strongly recommend for any organisations using Farmer on a commercial basis. It includes:
 
 * **Prioritised resolution** of any bugs. If you find a bug that's blocking you, we'll prioritise it and release a hot fix as soon as it's ready.
 * **Prioritised resolution** and escalation of issues. If there's a possible issue or question, we'll prioritise dealing with it.
