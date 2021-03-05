@@ -236,6 +236,12 @@ let tests = testList "Web App Tests" [
         let extensions = wa |> getResources |> getResource<SiteExtension>
         Expect.isEmpty extensions "Shouldn't be any extensions"
     }
+    
+    test "Does not add the logging extension for apps using a docker image" {
+        let wa = webApp { name "siteX" ; docker_image "someImage" "someCommand" }
+        let extensions = wa |> getResources |> getResource<SiteExtension>
+        Expect.isEmpty extensions "Shouldn't be any extensions"                
+    }
 
     test "Handles add_extension correctly" {
         let wa = webApp { name "siteX"; add_extension "extensionA"; runtime_stack Runtime.Java11 }
