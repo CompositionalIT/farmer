@@ -67,14 +67,28 @@ Now, we use Farmer's Web App / Keyvault integration to seamlessly provide access
 ```fsharp
 let webapplication = webApp {
     ...
-    use_managed_keyvault (Arm.KeyVault.vaults.resourceId "<key vault name goes here>")
+    link_to_keyvault (ResourceName "<key vault name goes here>")
+    secret_setting "storagekey"
+}
+```
+
+or
+
+```fsharp
+let kv = keyVault {
+    name "keyvault"
+}
+
+let webapplication = webApp {
+    ...
+    link_to_keyvault kv
     secret_setting "storagekey"
 }
 ```
 
 The first keyword "links" the vault with the web app, and tells Farmer that all "secret" settings should now be read from this vault. We cannot reference the keyvault directly in this case because it's declared *after* the web application, so we construct a `ResourceId` reference ourselves.
 
-The second keyword actually adds the secret to the web app. If you hadn't added the `use_managed_keyvault` keyword, this would be rendered into ARM as a secret parameter, but in this case because we've linked the vault in, it gets redirected to point there instead.
+The second keyword actually adds the secret to the web app. If you hadn't added the `link_to_keyvault` keyword, this would be rendered into ARM as a secret parameter, but in this case because we've linked the vault in, it gets redirected to point there instead.
 
 #### Adding extra type safety for sharing resources
 To prevent accidentally mistyping the secret or vault names, you should bind the magic strings into symbols at the top of the template and replace usages in the template.
