@@ -293,6 +293,11 @@ module internal Validation =
         | _, Error x -> Error x
 
     let isNonEmpty entity s = if String.IsNullOrWhiteSpace s then Error $"%s{entity} cannot be empty" else Ok()
+    let isNotAGuid entity (s: string) =
+        let success, _ = Guid.TryParse s
+        if success then
+            Error $"%s{entity} cannot be a GUID"
+        else Ok()
     let notLongerThan max entity (s:string) = if s.Length > max then Error $"%s{entity} max length is %d{max}, but here is {s.Length} ('{s}')" else Ok()
     let notShorterThan min entity (s:string) = if s.Length < min then Error $"%s{entity} min length is %d{min}, but here is {s.Length} ('{s}')" else Ok()
     let lengthBetween min max entity (s:string) = s |> notLongerThan max entity |> Result.bind (fun _ -> s |> notShorterThan min entity)
@@ -302,6 +307,17 @@ module internal Validation =
     let endsWith (message, predicate) entity (s:string) = if not (predicate s.[s.Length - 1]) then Error $"%s{entity} must end with %s{message} ('{s}')" else Ok()
     let cannotStartWith (message, predicate) entity (s:string) = if predicate s.[0] then Error $"%s{entity} cannot start with %s{message} ('{s}')" else Ok()
     let cannotEndWith (message, predicate) entity (s:string) = if predicate s.[s.Length - 1] then Error $"%s{entity} cannot end with %s{message} ('{s}')" else Ok()
+    let cannotEndsWith (predicate: (string * string) seq) entity (s:string) =
+        let matches =
+            predicate
+            |> Seq.filter (fun (_, postfix) -> s.EndsWith(postfix, StringComparison.Ordinal))
+            |> Seq.map fst
+            |> Seq.toList
+        match matches with
+        | [] -> Ok()
+        | predicatesThatFailes ->
+            let message = System.String.Join(", ", predicatesThatFailes)
+            Error $"%s{entity} cannot end with %s{message} ('{s}')"
     let arb (message, predicate) entity s = if predicate s then Error $"%s{entity} %s{message} ('%s{s}')" else Ok()
     let containsOnlyM containers =
         containers
@@ -310,6 +326,7 @@ module internal Validation =
     let lowercaseLetters = "lowercase letters", Char.IsLetter >> not <|> Char.IsLower
     let aLetterOrNumber = "an alphanumeric character", Char.IsLetterOrDigit
     let lettersOrNumbers = "alphanumeric characters", Char.IsLetterOrDigit
+    let letters = "letters", Char.IsLetter
     let aDash = "a dash", ((=) '-')
     let lettersNumbersOrDash = "alphanumeric characters or the dash", Char.IsLetterOrDigit <|> (snd aDash)
     let nonEmptyLengthBetween a b = isNonEmpty <!> lengthBetween a b
@@ -335,6 +352,23 @@ module CosmosDbValidation =
 
         static member Create (ResourceName name) = CosmosDbName.Create name
         member this.ResourceName = match this with CosmosDbName name -> name
+
+// https://docs.microsoft.com/en-us/rest/api/servicebus/create-namespace
+module ServiceBusValidation =
+    open Validation
+    type ServiceBusName =
+        private | ServiceBusName of ResourceName
+        static member Create (name: string) =
+            [ nonEmptyLengthBetween 6 50
+              containsOnlyM [ lettersNumbersOrDash ]
+              startsWith letters
+              isNotAGuid
+              cannotEndsWith [ ("a dash", "-"); ("a sb postfix", "-sb"); ("a management postfix", "-mgmt") ]
+            ]
+            |> validate "ServiceBus namespace" name
+            |> Result.map (ResourceName >> ServiceBusName)
+
+        member this.ResourceName = match this with ServiceBusName name -> name
 
 module Storage =
     open Validation
