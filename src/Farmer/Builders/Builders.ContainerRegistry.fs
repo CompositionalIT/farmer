@@ -15,15 +15,15 @@ type ContainerRegistryConfig =
         |> ArmExpression.create
     /// Returns first Admin password if AdminUserEnabled
     member this.Password =
-        $"[listCredentials(resourceId('Microsoft.ContainerRegistry/registries','{this.Name.Value}'),'2019-05-01').passwords[0].value]"
+        $"listCredentials(resourceId('Microsoft.ContainerRegistry/registries','{this.Name.Value}'),'2019-05-01').passwords[0].value"
         |> ArmExpression.create
     /// Returns second Admin password if AdminUserEnabled
     member this.Password2 =
-        $"[listCredentials(resourceId('Microsoft.ContainerRegistry/registries','{this.Name.Value}'),'2019-05-01').passwords[1].value]"
+        $"listCredentials(resourceId('Microsoft.ContainerRegistry/registries','{this.Name.Value}'),'2019-05-01').passwords[1].value"
         |> ArmExpression.create
     /// Returns Admin username if AdminUserEnabled
     member this.Username =
-        $"[listCredentials(resourceId('Microsoft.ContainerRegistry/registries','{this.Name.Value}'),'2019-05-01').username]"
+        $"listCredentials(resourceId('Microsoft.ContainerRegistry/registries','{this.Name.Value}'),'2019-05-01').username"
         |> ArmExpression.create
     interface IBuilder with
         member this.ResourceId = registries.resourceId this.Name

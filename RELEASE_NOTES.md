@@ -3,12 +3,14 @@ Release Notes
 ## vNext
 * Container Groups: Support for init containers.
 * Container Groups: Support for liveliness and readiness probes on containers.
-* Framework: Add support for NET5, upgrade to F#5
+* Container Groups: Bugfix for outputs.
 * Functions: Support for 64 bits.
 * Storage: Add support for tables
 * Event Grid: Ensure destination Queues are created as a dependency
 
 * Framework: Updated DeterministicGuid for RFC 4122 compatibility
+* Framework: Add support for NET5, upgrade to F#5.
+* Framework: Simplify Event Grid builder
 
 ## 1.4.0
 * Bing Search: Support for Bing Search (migrated from Cognitive Services).
