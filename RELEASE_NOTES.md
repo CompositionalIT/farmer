@@ -2,7 +2,8 @@ Release Notes
 =============
 ## vNext
 * Container Groups: Support for init containers.
-* Container Groups: bugfix for outputs.
+* Container Groups: Support for liveliness and readiness probes on containers.
+* Container Groups: Bugfix for outputs.
 * Functions: Support for 64 bits.
 * Storage: Add support for tables
 * Event Grid: Ensure destination Queues are created as a dependency
