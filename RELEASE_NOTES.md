@@ -6,6 +6,7 @@ Release Notes
 * Functions: Support for 64 bits.
 * Storage: Add support for tables
 * Event Grid: Ensure destination Queues are created as a dependency
+* Web App: Disables the automatic addition of the logging site extension when `docker_image` is used
 
 * Framework: Updated DeterministicGuid for RFC 4122 compatibility
 
