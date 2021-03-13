@@ -215,11 +215,10 @@ type ServiceBusBuilder() =
             | _ -> ()
             queue.LockDuration |> Option.iter(fun lockDuration -> if lockDuration > TimeSpan(0,5,0) then failwith "Lock duration name must not be more than 5 minutes.")
 
-        if state.Name.Value.Length |> isBetween 6 50 |> not then failwith "Namespace name must be between 6 and 50 characters long"
         state
     /// The name of the namespace that holds the queue.
     [<CustomOperation "name">]
-    member _.NamespaceName(state:ServiceBusConfig, name) = { state with Name = ResourceName name }
+    member _.NamespaceName(state:ServiceBusConfig, name) = { state with Name = ServiceBusValidation.ServiceBusName.Create(name).OkValue.ResourceName }
     /// The SKU of the namespace.
     [<CustomOperation "sku">]
     member _.Sku(state:ServiceBusConfig, sku) = { state with Sku = sku }
