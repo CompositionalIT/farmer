@@ -409,7 +409,10 @@ type WebAppBuilder() =
         { state with
             SiteExtensions =
                 match state with
-                | { Runtime = Runtime.DotNetCore _; AutomaticLoggingExtension = true } ->
+                // its important to only add this extension if we're not using Web App for Containers - if we are
+                // then this will generate an error during deployment:
+                // No route registered for '/api/siteextensions/Microsoft.AspNetCore.AzureAppServices.SiteExtension'
+                | { Runtime = Runtime.DotNetCore _; AutomaticLoggingExtension = true ; DockerImage = None } ->
                     state.SiteExtensions.Add WebApp.Extensions.Logging
                 | _ ->
                     state.SiteExtensions

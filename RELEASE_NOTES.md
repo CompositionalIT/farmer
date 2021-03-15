@@ -2,13 +2,18 @@ Release Notes
 =============
 ## vNext
 * Container Groups: Support for init containers.
-* Framework: Add support for NET5, upgrade to F#5
+* Container Groups: Support for liveliness and readiness probes on containers.
+* Container Groups: Bugfix for outputs.
 * Functions: Support for 64 bits.
 * Storage: Add support for tables
 * Event Grid: Ensure destination Queues are created as a dependency
 * Event Grid: Add ServiceBus Queue and Topic as supported destinations
+* Web App: Disables the automatic addition of the logging site extension when `docker_image` is used
+* ServiceBus: update namespace validation rules to follow [Microsoft documentation](https://docs.microsoft.com/en-us/azure/azure-resource-manager/management/resource-name-rules#microsoftservicebus)
 
 * Framework: Updated DeterministicGuid for RFC 4122 compatibility
+* Framework: Add support for NET5, upgrade to F#5.
+* Framework: Simplify Event Grid builder
 
 
 ## 1.4.0
