@@ -150,6 +150,22 @@ type EventGridBuilder() =
     [<CustomOperation "add_eventhub_subscriber">]
     member _.AddEventHubSubscription(state:EventGridConfig<'T>, eventHub:EventHubConfig, events:EventGridEvent<_> list) =
         EventGridBuilder.AddSub(state, eventHub.Name.Value + "-eventhub", eventHub.EventHubNamespaceName, EventHub eventHub.Name, events)
+    [<CustomOperation "add_servicebus_queue_subscriber">]
+    member _.AddServiceBusQueueSubscription(state:EventGridConfig<'T>, bus:ServiceBusConfig, queue:ServiceBusQueueConfig, events:EventGridEvent<_> list) =
+        let endpoint =
+            { Queue = queue.Name; Bus = bus.Name}
+            |> ServiceBusEndpointType.Queue
+            |> ServiceBus
+        let name = $"%s{bus.Name.Value}-servicebus-queue"
+        EventGridBuilder.AddSub(state, name, queue.Name, endpoint, events)
+    [<CustomOperation "add_servicebus_topic_subscriber">]
+    member _.AddServiceBusTopicSubscription(state:EventGridConfig<'T>, bus:ServiceBusConfig, topic:ServiceBusTopicConfig, events:EventGridEvent<_> list) =
+        let endpoint =
+            { Topic = topic.Name; Bus = bus.Name}
+            |> ServiceBusEndpointType.Topic
+            |> ServiceBus
+        let name = sprintf $"%s{bus.Name.Value}-servicebus-topic"
+        EventGridBuilder.AddSub(state, name, topic.Name, endpoint, events)
 
     [<CustomOperation "add_tags">]
     member _.Tags(state:EventGridConfig<'T>, pairs) =
