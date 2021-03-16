@@ -17,7 +17,7 @@ let tests =
             let path = __SOURCE_DIRECTORY__ + "/test-data/" + jsonFile
             let expected = File.ReadAllText path
             let actual = template.Template |> Writer.toJson
-            Expect.equal actual expected (sprintf "ARM template generation has changed! Either fix the writer, or update the contents of the generated file (%s)" path)
+            Expect.equal (actual.Trim()) (expected.Trim()) (sprintf "ARM template generation has changed! Either fix the writer, or update the contents of the generated file (%s)" path)
 
         test "Generates lots of resources" {
             let number = string 1979
