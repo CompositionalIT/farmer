@@ -375,17 +375,25 @@ type ContainerNetworkInterfaceConfiguration = { IpConfigs : ContainerNetworkInte
 type NetworkProfileConfig =
     { Name : ResourceName
       ContainerNetworkInterfaceConfigurations : ContainerNetworkInterfaceConfiguration list
-      VirtualNetwork : ResourceName
+      VirtualNetwork : ExternalKind
       Tags: Map<string,string>  }
     interface IBuilder with
         member this.ResourceId = networkProfiles.resourceId this.Name
         member this.BuildResources location = [
             { Name = this.Name
               Location = location
+              Dependencies = [
+                  match this.VirtualNetwork with
+                  | Managed resId -> resId // Only generate dependency if this is managed by Farmer (same template)
+                  | _ -> ()
+              ] |> Set.ofList
               ContainerNetworkInterfaceConfigurations =
-                this.ContainerNetworkInterfaceConfigurations
-                |> List.map (fun ifconfig -> {| IpConfigs = (ifconfig.IpConfigs |> List.map (fun ipConfig -> {| SubnetName = ResourceName ipConfig.Subnet |})) |})
-              VirtualNetwork = this.VirtualNetwork
+                  this.ContainerNetworkInterfaceConfigurations
+                  |> List.map (fun ifconfig -> {| IpConfigs = (ifconfig.IpConfigs |> List.map (fun ipConfig -> {| SubnetName = ResourceName ipConfig.Subnet |})) |})
+              VirtualNetwork =
+                  match this.VirtualNetwork with
+                  | Managed resId
+                  | Unmanaged resId -> resId
               Tags = this.Tags }
         ]
 
@@ -393,7 +401,7 @@ type NetworkProfileBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
           ContainerNetworkInterfaceConfigurations = []
-          VirtualNetwork = ResourceName.Empty
+          VirtualNetwork = Managed (virtualNetworks.resourceId ResourceName.Empty)
           Tags = Map.empty }
     /// Sets the name of the network profile instance
     [<CustomOperation "name">]
@@ -406,7 +414,12 @@ type NetworkProfileBuilder() =
     member _.AddIpConfigs(state:NetworkProfileConfig, configs) = { state with ContainerNetworkInterfaceConfigurations = state.ContainerNetworkInterfaceConfigurations @ configs }
     /// Sets the virtual network for the profile
     [<CustomOperation "vnet">]
-    member _.VirtualNetwork(state:NetworkProfileConfig, vnet) = { state with VirtualNetwork = ResourceName vnet }
+    member _.VirtualNetwork(state:NetworkProfileConfig, vnet) = 
+        { state with VirtualNetwork = Managed(virtualNetworks.resourceId(ResourceName vnet)) }
+    /// Links to an existing vnet.
+    [<CustomOperation "link_to_vnet">]
+    member _.LinkToVirtualNetwork(state:NetworkProfileConfig, vnet) =
+        { state with VirtualNetwork = Unmanaged(virtualNetworks.resourceId(ResourceName vnet)) }
     interface ITaggable<NetworkProfileConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let networkProfile = NetworkProfileBuilder ()

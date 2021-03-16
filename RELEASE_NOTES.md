@@ -3,6 +3,7 @@ Release Notes
 ## vNext
 * Container Groups: Support for init containers.
 * Container Groups: Support for liveliness and readiness probes on containers.
+* Container Groups: Connect network profile to an existing virtual network.
 * Container Groups: Bugfix for outputs.
 * Functions: Support for 64 bits.
 * Storage: Add support for tables
