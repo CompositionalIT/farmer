@@ -9,6 +9,7 @@ weight: 3
 The Container Group builder is used to create Azure Container Group instances.
 
 * Container Group (`Microsoft.ContainerInstance/containerGroups`)
+* Network Profile (`Microsoft.Network/networkProfiles`)
 
 #### Builder Keywords
 | Applies To        | Keyword | Purpose |
@@ -54,6 +55,10 @@ The Container Group builder is used to create Azure Container Group instances.
 | readiness | failure_threshold | Sets the number of times a check can fail before the container is considered unhealthy and will be restarted - default is 3. |
 | readiness | success_threshold | Sets the number of times a check must succeed before the container is considered healthy - default is 1. |
 | readiness | timeout_seconds | Sets the number of seconds a check is allowed to run before considering the check a failure - default is 1 second. |
+| networkProfile | name | Name of the container network profile for connecting a container group to a virtual network. |
+| networkProfile | vnet | Resource name of the virtual network to connect (if created in the same deployment). |
+| networkProfile | link_to_vnet | Resource name of an existing virtual network to connect. |
+| networkProfile | subnet | Name of the subnet in the virtual network where the container group should attach. |
 
 #### Example
 ```fsharp

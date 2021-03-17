@@ -342,4 +342,77 @@ let tests = testList "Container Group" [
         Expect.equal readinessProbe.InitialDelaySeconds.Value 30 "Incorrect initial delay threshold on readiness probe"
         Expect.equal readinessProbe.FailureThreshold.Value 5 "Incorrect failure threshold on readiness probe"
     }
+    test "Container network profile with vnet has expected dependsOn" {
+        let template =
+            arm {
+                add_resources [
+                    vnet {
+                        name "containernet"
+                        add_address_spaces [
+                            "10.30.40.0/20"
+                        ]
+                        add_subnets [
+                            subnet {
+                                name "ContainerSubnet"
+                                prefix "10.40.41.0/24"
+                                add_delegations [ SubnetDelegationService.ContainerGroups ]
+                            }
+                        ]
+                    }
+                    networkProfile {
+                        name "netprofile"
+                        vnet "containernet"
+                        subnet "ContainerSubnet"
+                    }
+                    containerGroup {
+                        name "appWithHttpFrontend"
+                        operating_system Linux
+                        restart_policy AlwaysRestart
+                        add_instances [ nginx ]
+                        network_profile "netprofile"
+                    }
+                ]
+            }
+        let json = template.Template |> Writer.toJson
+        let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+        let expectedContainerNetDeps = "[resourceId('Microsoft.Network/virtualNetworks', 'containernet')]"
+        let dependsOn = jobj.SelectToken("resources[?(@.name=='netprofile')].dependsOn")
+        Expect.hasLength dependsOn 1 "netprofile has wrong number of dependencies"
+        let actualContainerNetDeps =
+            (dependsOn :?> Newtonsoft.Json.Linq.JArray).First.ToString()
+        Expect.equal actualContainerNetDeps expectedContainerNetDeps "Dependencies didn't match"
+    }
+    test "Container network profile with linked vnet has empty dependsOn" {
+        let template =
+            arm {
+                add_resources [
+                    networkProfile {
+                        name "netprofile"
+                        link_to_vnet "containernet"
+                        subnet "ContainerSubnet"
+                    }
+                    containerGroup {
+                        name "appWithHttpFrontend"
+                        operating_system Linux
+                        restart_policy AlwaysRestart
+                        add_instances [ nginx ]
+                        network_profile "netprofile"
+                    }
+                ]
+            }
+        let json = template.Template |> Writer.toJson
+        let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+        let dependsOn = jobj.SelectToken("resources[?(@.name=='netprofile')].dependsOn")
+        Expect.hasLength dependsOn 0 "network profile had dependencies when existing vnet was linked"
+    }
+    test "Can link a network profile directly to a container group" {
+        let profile = networkProfile { name "netprofile" }
+        let template =
+            containerGroup {
+                name "appWithHttpFrontend"
+                network_profile profile
+            } |> asAzureResource
+
+        Expect.equal "[resourceId('Microsoft.Network/networkProfiles', 'netprofile')]" template.NetworkProfile.Id "Incorrect profile name"
+    }
 ]

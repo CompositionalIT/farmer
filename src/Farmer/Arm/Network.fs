@@ -236,16 +236,16 @@ type NetworkInterface =
 type NetworkProfile =
     { Name : ResourceName
       Location : Location
+      Dependencies : ResourceId Set
       ContainerNetworkInterfaceConfigurations :
         {| IpConfigs : {| SubnetName : ResourceName |} list
         |} list
-      VirtualNetwork : ResourceName
+      VirtualNetwork : ResourceId
       Tags: Map<string,string> }
     interface IArmResource with
         member this.ResourceId = networkProfiles.resourceId this.Name
         member this.JsonModel =
-            let dependsOn = [ virtualNetworks.resourceId this.VirtualNetwork ]
-            {| networkProfiles.Create(this.Name, this.Location, dependsOn, this.Tags) with
+            {| networkProfiles.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
                 properties =
                     {| containerNetworkInterfaceConfigurations =
                         this.ContainerNetworkInterfaceConfigurations
@@ -258,7 +258,7 @@ type NetworkProfile =
                                     {| name = $"ipconfig{index + 1}"
                                        properties =
                                         {| subnet =
-                                            {| id = subnets.resourceId(this.VirtualNetwork, ipConfig.SubnetName).Eval() |}
+                                            {| id = subnets.resourceId(this.VirtualNetwork.Name, ipConfig.SubnetName).Eval() |}
                                         |}
                                     |})
                                 |}
