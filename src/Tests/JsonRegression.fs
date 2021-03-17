@@ -17,7 +17,7 @@ let tests =
             let path = __SOURCE_DIRECTORY__ + "/test-data/" + jsonFile
             let expected = File.ReadAllText path
             let actual = template.Template |> Writer.toJson
-            Expect.equal expected actual (sprintf "ARM template generation has changed! Either fix the writer, or update the contents of the generated file (%s)" path)
+            Expect.equal (actual.Trim()) (expected.Trim()) (sprintf "ARM template generation has changed! Either fix the writer, or update the contents of the generated file (%s)" path)
 
         test "Generates lots of resources" {
             let number = string 1979
@@ -97,12 +97,19 @@ let tests =
                 add_queue "todo"
             }
 
+            let eventQueue = queue { name "events" }
+            let sb = serviceBus {
+                name "farmereventpubservicebusns"
+                add_queues [ eventQueue ]
+            }
+
             let eventHubGrid = eventGrid {
                 topic_name "newblobscreated"
                 source storageSource
                 add_queue_subscriber storageSource "todo" [ SystemEvents.Storage.BlobCreated ]
+                add_servicebus_queue_subscriber sb eventQueue [ SystemEvents.Storage.BlobCreated ]
             }
 
-            compareResourcesToJson [ storageSource; eventHubGrid ] "event-grid.json"
+            compareResourcesToJson [ storageSource; sb; eventHubGrid ] "event-grid.json"
         }
     ]

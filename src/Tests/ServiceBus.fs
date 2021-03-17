@@ -35,9 +35,15 @@ let tests = testList "Service Bus Tests" [
         Expect.equal sbNs.Sku.Name SkuName.Standard "Invalid Sku"
     }
 
-    test "Namespace name length is respected" {
+    test "Namespace validation is respected" {
         Expect.throws(fun _ -> serviceBus { name "myns" } |> ignore) "Namespace length is too small"
         Expect.throws(fun _ -> serviceBus { name (String.replicate 51 "x") } |> ignore) "Namespace length is too long"
+        Expect.throws(fun _ -> serviceBus { name "-abcdefghijk" } |> ignore) "Namespace starts with a dash"
+        Expect.throws(fun _ -> serviceBus { name "abcdefghijk-" } |> ignore) "Namespace ends with a dash"
+        Expect.throws(fun _ -> serviceBus { name "1abcdefghijk" } |> ignore) "Namespace starts with a number"
+        Expect.throws(fun _ -> serviceBus { name "abcdefghijk-sb" } |> ignore) "Namespace ends with -sb"
+        Expect.throws(fun _ -> serviceBus { name "abcdefghijk-mgmt" } |> ignore) "Namespace ends with management postifx"
+        Expect.throws(fun _ -> serviceBus { name "c347834e-3f04-409c-b26b-c5ed702dea0b" } |> ignore) "Namespace is a guid"
     }
 
     testList "Queue Tests" [

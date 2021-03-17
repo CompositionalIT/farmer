@@ -42,6 +42,12 @@ let template = arm {
 
                     memory 0.5<Gb>
                     cpu_cores 0.2
+                    probes [
+                        liveliness {
+                            http "http://localhost:80/index.html"
+                            initial_delay_seconds 15
+                        }
+                    ]
                 }
             ]
         }
