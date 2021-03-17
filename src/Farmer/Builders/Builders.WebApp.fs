@@ -19,6 +19,7 @@ type JavaRuntime =
     member this.Jre = match this with Java8 -> "jre8" | Java11 -> "java11"
 type Runtime =
     | DotNetCore of string
+    | DotNet of version:string
     | Node of string
     | Php of string
     | Ruby of string
@@ -50,6 +51,7 @@ type Runtime =
     static member Java8WildFly14 = Java (Java8, WildFly14)
     static member Java8Tomcat90 = Java (Java8, JavaHost.Tomcat90)
     static member Java8Tomcat85 = Java (Java8, JavaHost.Tomcat85)
+    static member DotNet50 = DotNet "5.0"
     static member AspNet47 = AspNet "4.0"
     static member AspNet35 = AspNet "2.0"
     static member Python27 = Python ("2.7", "2.7")
@@ -275,10 +277,10 @@ type WebAppConfig =
                         Some ("DOCKER|" + image)
                     | None ->
                         match this.Runtime with
-                        | DotNetCore version -> Some ("DOTNETCORE|" + version)
-                        | Node version -> Some ("NODE|" + version)
-                        | Php version -> Some ("PHP|" + version)
-                        | Ruby version -> Some ("RUBY|" + version)
+                        | DotNetCore version -> Some ($"DOTNETCORE|{version}")
+                        | Node version -> Some ($"NODE|{version}")
+                        | Php version -> Some ($"PHP|{version}")
+                        | Ruby version -> Some ($"RUBY|{version}")
                         | Java (runtime, JavaSE) -> Some $"JAVA|{runtime.Version}-{runtime.Jre}"
                         | Java (runtime, (Tomcat version)) -> Some $"TOMCAT|{version}-{runtime.Jre}"
                         | Java (Java8, WildFly14) -> Some $"WILDFLY|14-{Java8.Jre}"
@@ -286,7 +288,8 @@ type WebAppConfig =
                         | _ -> None
               NetFrameworkVersion =
                 match this.Runtime with
-                | AspNet version -> Some $"v{version}"
+                | AspNet version
+                | DotNet version -> Some $"v{version}"
                 | _ -> None
               JavaVersion =
                 match this.Runtime, this.OperatingSystem with
@@ -315,7 +318,8 @@ type WebAppConfig =
                 | Php _, _ -> Some "php"
                 | Python _, Windows -> Some "python"
                 | DotNetCore _, Windows -> Some "dotnetcore"
-                | AspNet _, _ -> Some "dotnet"
+                | AspNet _, _
+                | DotNet _, _ -> Some "dotnet"
                 | _ -> None
                 |> Option.map(fun stack -> "CURRENT_STACK", stack)
                 |> Option.toList
