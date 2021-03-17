@@ -405,4 +405,14 @@ let tests = testList "Container Group" [
         let dependsOn = jobj.SelectToken("resources[?(@.name=='netprofile')].dependsOn")
         Expect.hasLength dependsOn 0 "network profile had dependencies when existing vnet was linked"
     }
+    test "Can link a network profile directly to a container group" {
+        let profile = networkProfile { name "netprofile" }
+        let template =
+            containerGroup {
+                name "appWithHttpFrontend"
+                network_profile profile
+            } |> asAzureResource
+
+        Expect.equal "[resourceId('Microsoft.Network/networkProfiles', 'netprofile')]" template.NetworkProfile.Id "Incorrect profile name"
+    }
 ]
