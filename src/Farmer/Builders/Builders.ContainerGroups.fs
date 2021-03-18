@@ -139,7 +139,7 @@ type ContainerNetworkInterfaceConfiguration = { IpConfigs : ContainerNetworkInte
 type NetworkProfileConfig =
     { Name : ResourceName
       ContainerNetworkInterfaceConfigurations : ContainerNetworkInterfaceConfiguration list
-      VirtualNetwork : ExternalKind
+      VirtualNetwork : LinkedResource
       Tags: Map<string,string>  }
     interface IBuilder with
         member this.ResourceId = networkProfiles.resourceId this.Name
