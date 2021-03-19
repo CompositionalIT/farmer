@@ -93,7 +93,7 @@
       "type": "Microsoft.Storage/storageAccounts"
     },
     {
-      "apiVersion": "2016-08-01",
+      "apiVersion": "2020-06-01",
       "dependsOn": [
         "[resourceId('Microsoft.Insights/components', 'farmerwebapp1979-ai')]",
         "[resourceId('Microsoft.Web/serverfarms', 'farmerwebapp1979-farm')]"
@@ -204,7 +204,7 @@
       "type": "Microsoft.Web/sites/siteextensions"
     },
     {
-      "apiVersion": "2016-08-01",
+      "apiVersion": "2020-06-01",
       "dependsOn": [
         "[resourceId('Microsoft.Insights/components', 'farmerfuncs1979-ai')]",
         "[resourceId('Microsoft.Storage/storageAccounts', 'farmerfuncs1979storage')]",
