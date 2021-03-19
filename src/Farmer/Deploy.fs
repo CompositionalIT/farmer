@@ -134,7 +134,7 @@ module Az =
     let tryGetError (error:string) =
         try
             let skip = "Deployment failed. Correlation ID: 3c51a527-c6e2-42a9-acee-7d9c796a626f. ".Length
-            match JsonConvert.DeserializeObject<AzureError> error.[skip..] with
+            match Serialization.ofJson<AzureError> error.[skip..] with
             | { Error = { Code = "RoleAssignmentExists"; Message = "The role assignment already exists." } } ->
                 "A role assignment defined in this template already exists in Azure, but with a different GUID. If you have recently upgraded to Farmer 1.5, please be aware of a breaking change in the generation of role assignment GUIDs. To resolve this, locate the resource group in the Azure portal, remove the existing role assignment from IAM and then redeploy your Farmer template."
             | _ ->
