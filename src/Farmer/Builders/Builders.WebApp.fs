@@ -71,6 +71,49 @@ type SecretStore =
     | AppService
     | KeyVault of ResourceRef<WebAppConfig>
 
+type SlotConfig = 
+    { Name: string
+      AppSettings: Map<string,Setting>
+      ConnectionStrings: Map<string,(Setting*ConnectionStringKind)> }
+
+type SlotBuilder() =
+    member this.Yield _ =
+        { Name = "staging"
+          AppSettings = Map.empty
+          ConnectionStrings = Map.empty }
+
+    [<CustomOperation "name">]
+    member this.Name (state,name) : SlotConfig = {state with Name = name}
+
+    [<CustomOperation "setting">]
+    /// Adds an AppSetting to this deployment slot
+    member this.AddSetting (state, key, value):SlotConfig =
+        { state with AppSettings = state.AppSettings.Add(key, value) }
+    member this.AddSetting (state, key, value) = this.AddSetting(state, key, LiteralSetting value)
+    member this.AddSetting (state, key, resourceName:ResourceName) = this.AddSetting(state, key, resourceName.Value)
+    member this.AddSetting (state, key, value:ArmExpression) = this.AddSetting(state, key, ExpressionSetting value)
+
+    /// Sets a list of app setting of the web app in the form "key" "value".
+    [<CustomOperation "settings">]
+    member this.AddSettings(state, settings: (string*Setting) list):SlotConfig =
+        {state with AppSettings = Map.merge settings state.AppSettings }
+    member this.AddSettings(state, settings: (string*string) list) = 
+        this.AddSettings( state, List.map(fun (k,v) -> k,LiteralSetting v) settings)
+
+    /// Creates a set of connection strings of the web app whose values will be supplied as secret parameters.
+    [<CustomOperation "connection_string">]
+    member _.AddConnectionString(state, key) :SlotConfig=
+        { state with ConnectionStrings = state.ConnectionStrings.Add(key, (ParameterSetting (SecureParameter key), Custom)) }
+    member _.AddConnectionString(state, (key, value:ArmExpression)) :SlotConfig =
+        { state with ConnectionStrings = state.ConnectionStrings.Add(key, (ExpressionSetting value, Custom)) }
+
+    /// Creates a set of connection strings of the web app whose values will be supplied as secret parameters.
+    [<CustomOperation "connection_strings">]
+    member this.AddConnectionStrings(state, connectionStrings:string list) :SlotConfig =
+        connectionStrings
+        |> List.fold (fun state key -> this.AddConnectionString(state, key)) state
+let appSlot = SlotBuilder()
+
 /// Common fields between WebApp and Functions
 type CommonWebConfig =
     { Name : ResourceName
@@ -80,9 +123,10 @@ type CommonWebConfig =
       Settings : Map<string, Setting>
       Cors : Cors option
       Identity : Identity.ManagedIdentity
-      ZipDeployPath : string option
+      ZipDeployPath : (string*ZipDeploy.ZipDeploySlot) option
       AlwaysOn : bool
-      WorkerProcess : Bitness option }
+      WorkerProcess : Bitness option 
+      Slots : Map<string,SlotConfig> }
 
 type WebAppConfig =
     { Name : ResourceName
@@ -92,7 +136,7 @@ type WebAppConfig =
       Settings : Map<string, Setting>
       Cors : Cors option
       Identity : Identity.ManagedIdentity
-      ZipDeployPath : string option
+      ZipDeployPath : (string*ZipDeploy.ZipDeploySlot) option 
       HTTPSOnly : bool
       HTTP20Enabled : bool option
       ClientAffinityEnabled : bool option
@@ -114,7 +158,8 @@ type WebAppConfig =
       SecretStore : SecretStore
       AutomaticLoggingExtension : bool
       SiteExtensions : ExtensionName Set
-      WorkerProcess : Bitness option }
+      WorkerProcess : Bitness option
+      Slots : Map<string,SlotConfig> }
     /// Gets this web app's Server Plan's full resource ID.
     member this.ServicePlanId = this.ServicePlan.resourceId this.Name
     /// Gets the Service Plan name for this web app.
@@ -324,7 +369,7 @@ type WebAppConfig =
                 |> Option.map(fun stack -> "CURRENT_STACK", stack)
                 |> Option.toList
               AppCommandLine = this.DockerImage |> Option.map snd
-              ZipDeployPath = this.ZipDeployPath |> Option.map (fun x -> x, ZipDeploy.ZipDeployTarget.WebApp)
+              ZipDeployPath = this.ZipDeployPath |> Option.map (fun (x,s) -> x, ZipDeploy.ZipDeployTarget.WebApp, s )
             }
 
             match keyVault with
@@ -375,6 +420,17 @@ type WebAppConfig =
                 { Name = ResourceName extension
                   SiteName = this.Name
                   Location = location }
+
+            for kvp in this.Slots do
+                let name,cfg = kvp.Key,kvp.Value
+                { SlotName = name 
+                  Location = location
+                  ServicePlan = this.ServicePlanId
+                  Site = this.ResourceId
+                  Tags = this.Tags
+                  AppSettings = cfg.AppSettings
+                  ConnectionStrings = cfg.ConnectionStrings
+                }
         ]
 
 type WebAppBuilder() =
@@ -408,7 +464,8 @@ type WebAppBuilder() =
           SecretStore = AppService
           AutomaticLoggingExtension = true
           SiteExtensions = Set.empty
-          WorkerProcess = None }
+          WorkerProcess = None 
+          Slots = Map.empty}
     member __.Run(state:WebAppConfig) =
         { state with
             SiteExtensions =
@@ -455,7 +512,6 @@ type WebAppBuilder() =
     member this.AddConnectionStrings(state:WebAppConfig, connectionStrings) =
         connectionStrings
         |> List.fold (fun (state:WebAppConfig) (key:string) -> this.AddConnectionString(state, key)) state
-
     /// Disables http for this webapp so that only https is used.
     [<CustomOperation "https_only">]
     member __.HttpsOnly(state:WebAppConfig) = { state with HTTPSOnly = true }
@@ -540,7 +596,8 @@ type WebAppBuilder() =
               Identity = state.Identity
               ZipDeployPath = state.ZipDeployPath
               AlwaysOn = state.AlwaysOn
-              WorkerProcess = state.WorkerProcess }
+              WorkerProcess = state.WorkerProcess 
+              Slots = state.Slots }
         member _.Wrap state config =
             { state with
                 Name = config.Name
@@ -552,7 +609,8 @@ type WebAppBuilder() =
                 Identity = config.Identity
                 ZipDeployPath = config.ZipDeployPath
                 AlwaysOn = config.AlwaysOn
-                WorkerProcess = config.WorkerProcess }
+                WorkerProcess = config.WorkerProcess
+                Slots = config.Slots}
 
 let webApp = WebAppBuilder()
 
@@ -631,6 +689,7 @@ module Extensions =
             settings
             |> List.fold (fun (state:CommonWebConfig) (key, value:ArmExpression) -> { state with Settings = state.Settings.Add(key, ExpressionSetting value) }) current
             |> this.Wrap state
+        /// Sets an app setting of the web app in the form "key" "value".
         [<CustomOperation "add_identity">]
         member this.AddIdentity (state:'T, identity:UserAssignedIdentity) =
             let current = this.Get state
@@ -665,12 +724,15 @@ module Extensions =
                     | SpecificOrigins (origins, _) -> SpecificOrigins (origins, Some true)
                     | AllOrigins -> failwith "You cannot enable CORS Credentials if you have already set CORS to AllOrigins.") }
             |> this.Wrap state
-        [<CustomOperation "operating_system">]
         /// Sets the operating system
+        [<CustomOperation "operating_system">]
         member this.OperatingSystem (state:'T, os) = { this.Get state with OperatingSystem = os } |> this.Wrap state
-        [<CustomOperation "zip_deploy">]
         /// Specifies a folder path or a zip file containing the web application to install as a post-deployment task.
-        member this.ZipDeploy (state:'T, path) = { this.Get state with ZipDeployPath = Some path } |> this.Wrap state
+        [<CustomOperation "zip_deploy">]
+        member this.ZipDeploy (state:'T, path) = { this.Get state with ZipDeployPath = Some (path,ZipDeploy.ProductionSlot) } |> this.Wrap state
+        /// Specifies a folder path or a zip file containing the web application to install as a post-deployment task.
+        [<CustomOperation "zip_deploy_slot">]
+        member this.ZipDeploySlot (state:'T, slotName,path) = { this.Get state with ZipDeployPath = Some (path, ZipDeploy.NamedSlot slotName) } |> this.Wrap state
         /// Creates an app setting of the web app whose value will be supplied as a secret parameter.
         [<CustomOperation "secret_setting">]
         member this.AddSecret (state:'T, key) =
@@ -683,3 +745,10 @@ module Extensions =
         ///Chooses the bitness (32 or 64) of the worker process
         [<CustomOperation "worker_process">]
         member this.WorkerProcess (state:'T, bitness) = { this.Get state with WorkerProcess = Some bitness } |> this.Wrap state
+        /// Adds a deployment slot to the app
+        [<CustomOperation "add_slot">]
+        member this.AddSlot (state:'T, slot:SlotConfig) = 
+            let current = this.Get state
+            { current with Slots = current.Slots |> Map.add slot.Name slot}
+            |> this.Wrap state
+        member this.AddSlot (state:'T, slotName:string) = this.AddSlot(state, appSlot{ name slotName })

@@ -26,9 +26,10 @@ type FunctionsConfig =
       Runtime : FunctionsRuntime
       ExtensionVersion : FunctionsExtensionVersion
       Identity : ManagedIdentity
-      ZipDeployPath : string option
+      ZipDeployPath : (string * ZipDeploy.ZipDeploySlot) option 
       AlwaysOn : bool
-      WorkerProcess : Bitness option }
+      WorkerProcess : Bitness option 
+      Slots : Map<string,SlotConfig> }
 
     /// Gets the system-created managed principal for the functions instance. It must have been enabled using enable_managed_identity.
     member this.SystemIdentity = SystemIdentity (sites.resourceId this.Name)
@@ -54,6 +55,8 @@ type FunctionsConfig =
     member this.AppInsightsName : ResourceName option = this.AppInsights |> Option.map (fun ai -> ai.resourceId(this.Name).Name)
     /// Gets the Storage Account name for this functions app.
     member this.StorageAccountName : Storage.StorageAccountName = this.StorageAccount.resourceId(this).Name |> Storage.StorageAccountName.Create |> Result.get
+    /// Gets the Resource Id for this functions app
+    member this.ResourceId = sites.resourceId this.Name
     interface IBuilder with
         member this.ResourceId = sites.resourceId this.Name
         member this.BuildResources location = [
@@ -118,7 +121,7 @@ type FunctionsConfig =
               PhpVersion = None
               PythonVersion = None
               Metadata = []
-              ZipDeployPath = this.ZipDeployPath |> Option.map (fun x -> x, ZipDeploy.ZipDeployTarget.FunctionApp)
+              ZipDeployPath = this.ZipDeployPath |> Option.map (fun (x, s) -> x, ZipDeploy.ZipDeployTarget.FunctionApp, s)
               AppCommandLine = None
               WorkerProcess = this.WorkerProcess }
             match this.ServicePlan with
@@ -159,6 +162,17 @@ type FunctionsConfig =
             | Some _
             | None ->
                 ()
+                
+            for kvp in this.Slots do
+                let name,cfg = kvp.Key,kvp.Value
+                { SlotName = name 
+                  Location = location
+                  ServicePlan = this.ServicePlanId
+                  Site = this.ResourceId
+                  Tags = this.Tags
+                  AppSettings = cfg.AppSettings
+                  ConnectionStrings = cfg.ConnectionStrings
+                }
         ]
 
 type FunctionsBuilder() =
@@ -180,7 +194,8 @@ type FunctionsBuilder() =
           Identity = ManagedIdentity.Empty
           Tags = Map.empty
           ZipDeployPath = None
-          WorkerProcess = None }
+          WorkerProcess = None
+          Slots = Map.empty}
     /// Do not create an automatic storage account; instead, link to a storage account that is created outside of this Functions instance.
     [<CustomOperation "link_to_storage_account">]
     member _.LinkToStorageAccount(state:FunctionsConfig, name) = { state with StorageAccount = managed storageAccounts name }
@@ -212,7 +227,8 @@ type FunctionsBuilder() =
               Identity = state.Identity
               ZipDeployPath = state.ZipDeployPath
               AlwaysOn = state.AlwaysOn
-              WorkerProcess = state.WorkerProcess }
+              WorkerProcess = state.WorkerProcess
+              Slots = state.Slots}
         member _.Wrap state config =
             { state with
                 AlwaysOn = config.AlwaysOn
@@ -224,6 +240,7 @@ type FunctionsBuilder() =
                 Cors = config.Cors
                 Identity = config.Identity
                 ZipDeployPath = config.ZipDeployPath
-                WorkerProcess = config.WorkerProcess }
+                WorkerProcess = config.WorkerProcess
+                Slots = config.Slots}
 
 let functions = FunctionsBuilder()

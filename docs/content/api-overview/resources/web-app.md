@@ -49,6 +49,7 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Web App | automatic_logging_extension | Enables or disables automatically adding the ASP .NET logging extension for netcore apps (defaults to on unless docker_image is set). |
 | Web App | worker_process | Specifies whether to set the web app to 32 or 64 Bitness. |
 | Web App | always_on | Sets the "Always On" flag. |
+| Web App | add_slot | Adds a deployment slot to the configuration |
 | Service Plan | service_plan_name | Sets the name of the service plan. If not set, uses the name of the web app postfixed with "-plan". |
 | Service Plan | runtime_stack | Sets the runtime stack. |
 | Service Plan | operating_system | Sets the operating system. If Linux, App Insights configuration settings will be omitted as they are not supported by Azure App Service. |
@@ -66,6 +67,7 @@ The Web App builder contains special commands that are executed *after* the ARM 
 | Keyword | Purpose |
 |-|-|
 | zip_deploy | Supplying a folder or zip file will instruct Farmer to upload the contents directly to the App Service once the ARM deployment is complete. |
+| zip_deploy_slot | Supplying a folder or zip file will instruct Farmer to upload the contents directly to the named slot of the App Service once the ARM deployment is complete. |
 
 #### Configuration Members
 

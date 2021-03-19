@@ -312,4 +312,16 @@ let tests = testList "Web App Tests" [
         let site:Site = webApp { worker_process Bitness.Bits64 } |> getResourceAtIndex 0
         Expect.equal site.SiteConfig.Use32BitWorkerProcess (Nullable false) "Should not use 32 bit worker process"
     }
+    test "WebApp supports adding slots" {
+        let slot = appSlot { name "warm-up" }
+        let site:WebAppConfig = webApp { add_slot slot }
+        Expect.isTrue (site.Slots.ContainsKey "warm-up") "config should contain slot"
+
+        let slots = 
+            site 
+            |> getResources
+            |> getResource<Slot>
+
+        Expect.hasLength slots 1 "Should only be 1 slot"
+    }
 ]
