@@ -41,6 +41,8 @@ The Functions builder is used to create Azure Functions accounts. It abstracts t
 | system_identity | Activates the system identity of the Function App. |
 | always_on | Stops the app from sleeping if idle for a few minutes of inactivity. |
 | worker_process | Specifies whether to set the app to 32 or 64 Bitness. |
+| add_slot | Adds a deployment slot to the app |
+| add_slots | Adds multiple deployment slots to the app |
 
 #### Post-deployment Builder Keywords
 The Functions builder contains special commands that are executed *after* the ARM deployment is completed.
@@ -48,6 +50,7 @@ The Functions builder contains special commands that are executed *after* the AR
 | Keyword | Purpose |
 |-|-|
 | zip_deploy | Supplying a folder or zip file will instruct Farmer to upload the contents directly to the Azure Functions once the ARM deployment is complete. |
+| zip_deploy_slot | Supplying a folder or zip file will instruct Farmer to upload the contents directly to the named slot of the Azure Functions once the ARM deployment is complete. |
 
 
 #### Configuration Members

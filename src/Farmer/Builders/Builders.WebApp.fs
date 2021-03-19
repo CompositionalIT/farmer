@@ -752,3 +752,9 @@ module Extensions =
             { current with Slots = current.Slots |> Map.add slot.Name slot}
             |> this.Wrap state
         member this.AddSlot (state:'T, slotName:string) = this.AddSlot(state, appSlot{ name slotName })
+        /// Adds deployment slots to the app
+        [<CustomOperation "add_slots">]
+        member this.AddSlots (state:'T, slots:SlotConfig list) = 
+            let current = this.Get state
+            { current with Slots = slots |> List.fold (fun m s -> Map.add s.Name s m) current.Slots}
+            |> this.Wrap state 
