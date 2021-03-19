@@ -296,7 +296,7 @@ type Slot =
                 this.ResourceName
             )
         member this.JsonModel =
-            {| slots.Create(this.ResourceName, dependsOn = [this.Site; this.ServicePlan], tags = this.Tags) with
+            {| slots.Create(this.ResourceName, this.Location, [this.Site], this.Tags) with
                  properties = 
                     {| serverFarmId = this.ServicePlan.ArmExpression.Eval()
                        appSettings = this.AppSettings |> Map.toList |> List.map(fun (k,v) -> {| name = k; value = v.Value |})
