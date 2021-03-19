@@ -19,6 +19,7 @@ type JavaRuntime =
     member this.Jre = match this with Java8 -> "jre8" | Java11 -> "java11"
 type Runtime =
     | DotNetCore of string
+    | DotNet of version:string
     | Node of string
     | Php of string
     | Ruby of string
@@ -50,6 +51,7 @@ type Runtime =
     static member Java8WildFly14 = Java (Java8, WildFly14)
     static member Java8Tomcat90 = Java (Java8, JavaHost.Tomcat90)
     static member Java8Tomcat85 = Java (Java8, JavaHost.Tomcat85)
+    static member DotNet50 = DotNet "5.0"
     static member AspNet47 = AspNet "4.0"
     static member AspNet35 = AspNet "2.0"
     static member Python27 = Python ("2.7", "2.7")
@@ -303,10 +305,10 @@ type WebAppConfig =
                         Some ("DOCKER|" + image)
                     | None ->
                         match this.Runtime with
-                        | DotNetCore version -> Some ("DOTNETCORE|" + version)
-                        | Node version -> Some ("NODE|" + version)
-                        | Php version -> Some ("PHP|" + version)
-                        | Ruby version -> Some ("RUBY|" + version)
+                        | DotNetCore version -> Some ($"DOTNETCORE|{version}")
+                        | Node version -> Some ($"NODE|{version}")
+                        | Php version -> Some ($"PHP|{version}")
+                        | Ruby version -> Some ($"RUBY|{version}")
                         | Java (runtime, JavaSE) -> Some $"JAVA|{runtime.Version}-{runtime.Jre}"
                         | Java (runtime, (Tomcat version)) -> Some $"TOMCAT|{version}-{runtime.Jre}"
                         | Java (Java8, WildFly14) -> Some $"WILDFLY|14-{Java8.Jre}"
@@ -314,7 +316,8 @@ type WebAppConfig =
                         | _ -> None
               NetFrameworkVersion =
                 match this.Runtime with
-                | AspNet version -> Some $"v{version}"
+                | AspNet version
+                | DotNet version -> Some $"v{version}"
                 | _ -> None
               JavaVersion =
                 match this.Runtime, this.OperatingSystem with
@@ -343,7 +346,8 @@ type WebAppConfig =
                 | Php _, _ -> Some "php"
                 | Python _, Windows -> Some "python"
                 | DotNetCore _, Windows -> Some "dotnetcore"
-                | AspNet _, _ -> Some "dotnet"
+                | AspNet _, _
+                | DotNet _, _ -> Some "dotnet"
                 | _ -> None
                 |> Option.map(fun stack -> "CURRENT_STACK", stack)
                 |> Option.toList
@@ -437,7 +441,10 @@ type WebAppBuilder() =
         { state with
             SiteExtensions =
                 match state with
-                | { Runtime = Runtime.DotNetCore _; AutomaticLoggingExtension = true } ->
+                // its important to only add this extension if we're not using Web App for Containers - if we are
+                // then this will generate an error during deployment:
+                // No route registered for '/api/siteextensions/Microsoft.AspNetCore.AzureAppServices.SiteExtension'
+                | { Runtime = Runtime.DotNetCore _; AutomaticLoggingExtension = true ; DockerImage = None } ->
                     state.SiteExtensions.Add WebApp.Extensions.Logging
                 | _ ->
                     state.SiteExtensions
@@ -571,7 +578,7 @@ module Extensions =
         /// Instead of creating a new service plan instance, configure this webapp to point to another unmanaged service plan instance.
         /// A dependency will automatically be set for this instance.
         [<CustomOperation "link_to_unmanaged_service_plan">]
-        member this.LinkToUnmanagedServicePlan (state:'T, resourceId) = { this.Get state with ServicePlan = External (Unmanaged resourceId) } |> this.Wrap state
+        member this.LinkToUnmanagedServicePlan (state:'T, resourceId) = { this.Get state with ServicePlan = unmanaged resourceId } |> this.Wrap state
         /// Sets the name of the automatically-created app insights instance.
         [<CustomOperation "app_insights_name">]
         member this.UseAppInsights (state:'T, name) = { this.Get state with AppInsights = Some (named components name) } |> this.Wrap state
@@ -589,7 +596,7 @@ module Extensions =
         /// Instead of creating a new AI instance, configure this webapp to point to an unmanaged AI instance.
         /// A dependency will not be set for this instance.
         [<CustomOperation "link_to_unmanaged_app_insights">]
-        member this.LinkUnmanagedAppInsights (state:'T, resourceId) = { this.Get state with AppInsights = Some (External(Unmanaged resourceId)) } |> this.Wrap state
+        member this.LinkUnmanagedAppInsights (state:'T, resourceId) = { this.Get state with AppInsights = Some (unmanaged resourceId) } |> this.Wrap state
         /// Sets an app setting of the web app in the form "key" "value".
         [<CustomOperation "setting">]
         member this.AddSetting (state:'T, key, value) =
@@ -679,7 +686,7 @@ module Extensions =
             let current = this.Get state
             { current with
                 Identity = { current.Identity with SystemAssigned = Enabled }
-                SecretStore = KeyVault (External(Managed (vaults.resourceId vaultName))) }
+                SecretStore = KeyVault (managed vaults vaultName) }
             |> this.Wrap state
         /// Links your application to an existing key vault instance. All secret settings will automatically be mapped into key vault.
         [<CustomOperation "link_to_unmanaged_keyvault">]
@@ -687,5 +694,5 @@ module Extensions =
             let current = this.Get state
             { current with
                 Identity = { current.Identity with SystemAssigned = Enabled }
-                SecretStore = KeyVault (External(Unmanaged resourceId)) }
+                SecretStore = KeyVault (unmanaged resourceId) }
             |> this.Wrap state
