@@ -6,6 +6,7 @@ Release Notes
 * Functions: Support for 64 bits.
 * Storage: Add support for tables
 * Event Grid: Ensure destination Queues are created as a dependency
+* Functions add option to use managed keyvault
 
 * Framework: Updated DeterministicGuid for RFC 4122 compatibility
 
