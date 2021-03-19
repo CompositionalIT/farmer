@@ -162,7 +162,6 @@ type FunctionsConfig =
                     "WEBSITE_CONTENTSHARE", this.Name.Value.ToLower()
               ]
               |> List.map Setting.AsLiteral
-              |> List.append (this.Settings |> Map.toList)
               |> List.append (
                     (match this.SecretStore with
                      | AppService ->
