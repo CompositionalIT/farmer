@@ -1,5 +1,5 @@
 Release Notes
-
+=============
 ##  v-Next
 * Functions add option to use managed keyvault
 ##  1.5.0-beta
