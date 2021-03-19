@@ -514,13 +514,13 @@ type WebAppBuilder() =
     member _.LinkToKeyVault (state:WebAppConfig, vaultName:ResourceName) =
         { state with
             Identity = { state.Identity with SystemAssigned = Enabled }
-            SecretStore = KeyVault (External(Managed (vaults.resourceId vaultName))) }
+            SecretStore = KeyVault (managed vaults vaultName) }
     /// Links your application to an existing key vault instance. All secret settings will automatically be mapped into key vault.
     [<CustomOperation "link_to_unmanaged_keyvault">]
     member _.LinkToExternalKeyVault(state:WebAppConfig, resourceId) =
         { state with
             Identity = { state.Identity with SystemAssigned = Enabled }
-            SecretStore = KeyVault (External(Unmanaged resourceId)) }
+            SecretStore = KeyVault (unmanaged resourceId) }
     [<CustomOperation "add_extension">]
     member _.AddExtension (state:WebAppConfig, extension) = { state with SiteExtensions = state.SiteExtensions.Add extension }
     member this.AddExtension (state:WebAppConfig, name) = this.AddExtension (state, ExtensionName name)
@@ -589,7 +589,7 @@ module Extensions =
         /// Instead of creating a new service plan instance, configure this webapp to point to another unmanaged service plan instance.
         /// A dependency will automatically be set for this instance.
         [<CustomOperation "link_to_unmanaged_service_plan">]
-        member this.LinkToUnmanagedServicePlan (state:'T, resourceId) = { this.Get state with ServicePlan = External (Unmanaged resourceId) } |> this.Wrap state
+        member this.LinkToUnmanagedServicePlan (state:'T, resourceId) = { this.Get state with ServicePlan = unmanaged resourceId } |> this.Wrap state
         /// Sets the name of the automatically-created app insights instance.
         [<CustomOperation "app_insights_name">]
         member this.UseAppInsights (state:'T, name) = { this.Get state with AppInsights = Some (named components name) } |> this.Wrap state
@@ -607,7 +607,7 @@ module Extensions =
         /// Instead of creating a new AI instance, configure this webapp to point to an unmanaged AI instance.
         /// A dependency will not be set for this instance.
         [<CustomOperation "link_to_unmanaged_app_insights">]
-        member this.LinkUnmanagedAppInsights (state:'T, resourceId) = { this.Get state with AppInsights = Some (External(Unmanaged resourceId)) } |> this.Wrap state
+        member this.LinkUnmanagedAppInsights (state:'T, resourceId) = { this.Get state with AppInsights = Some (unmanaged resourceId) } |> this.Wrap state
         /// Sets an app setting of the web app in the form "key" "value".
         [<CustomOperation "setting">]
         member this.AddSetting (state:'T, key, value) =
