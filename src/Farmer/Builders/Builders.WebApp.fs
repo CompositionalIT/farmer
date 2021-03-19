@@ -277,10 +277,10 @@ type WebAppConfig =
                         Some ("DOCKER|" + image)
                     | None ->
                         match this.Runtime with
-                        | DotNetCore version -> Some ($"DOTNETCORE|{version}")
-                        | Node version -> Some ($"NODE|{version}")
-                        | Php version -> Some ($"PHP|{version}")
-                        | Ruby version -> Some ($"RUBY|{version}")
+                        | DotNetCore version -> Some $"DOTNETCORE|{version}"
+                        | Node version -> Some $"NODE|{version}"
+                        | Php version -> Some $"PHP|{version}"
+                        | Ruby version -> Some $"RUBY|{version}"
                         | Java (runtime, JavaSE) -> Some $"JAVA|{runtime.Version}-{runtime.Jre}"
                         | Java (runtime, (Tomcat version)) -> Some $"TOMCAT|{version}-{runtime.Jre}"
                         | Java (Java8, WildFly14) -> Some $"WILDFLY|14-{Java8.Jre}"
@@ -289,8 +289,10 @@ type WebAppConfig =
               NetFrameworkVersion =
                 match this.Runtime with
                 | AspNet version
-                | DotNet version -> Some $"v{version}"
-                | _ -> None
+                | DotNet ("5.0" as version) ->
+                    Some $"v{version}"
+                | _ ->
+                    None
               JavaVersion =
                 match this.Runtime, this.OperatingSystem with
                 | Java (Java11, Tomcat _), Windows -> Some "11"
@@ -318,8 +320,7 @@ type WebAppConfig =
                 | Php _, _ -> Some "php"
                 | Python _, Windows -> Some "python"
                 | DotNetCore _, Windows -> Some "dotnetcore"
-                | AspNet _, _
-                | DotNet _, _ -> Some "dotnet"
+                | AspNet _, _ | DotNet "5.0", Windows -> Some "dotnet"
                 | _ -> None
                 |> Option.map(fun stack -> "CURRENT_STACK", stack)
                 |> Option.toList

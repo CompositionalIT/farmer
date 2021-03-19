@@ -58,7 +58,7 @@ You should notice that the template now contains a storage account. Also observe
 {
   "resources": [
     {
-      "apiVersion": "2016-08-01",
+      "apiVersion": "2020-06-01",
       "dependsOn": [
         "[resourceId('Microsoft.Storage/storageAccounts', 'yourfirststorage')]"
       ],
