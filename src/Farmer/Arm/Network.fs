@@ -258,7 +258,10 @@ type NetworkProfile =
                                     {| name = $"ipconfig{index + 1}"
                                        properties =
                                         {| subnet =
-                                            {| id = subnets.resourceId(this.VirtualNetwork.Name, ipConfig.SubnetName).Eval() |}
+                                            {| id =
+                                                { subnets.resourceId(this.VirtualNetwork.Name, ipConfig.SubnetName)
+                                                     with ResourceGroup = this.VirtualNetwork.ResourceGroup }.Eval()
+                                             |}
                                         |}
                                     |})
                                 |}
