@@ -143,11 +143,7 @@ type ServiceBusConfig =
       Topics : Map<ResourceName, ServiceBusTopicConfig>
       Tags: Map<string,string>  }
     member private this.GetKeyPath property =
-        let expr =
-            sprintf
-                "listkeys(resourceId('Microsoft.ServiceBus/namespaces/authorizationRules', '%s', 'RootManageSharedAccessKey'), '2017-04-01').%s"
-                this.Name.Value
-                property
+        let expr = $"listkeys(resourceId('Microsoft.ServiceBus/namespaces/authorizationRules', '{this.Name.Value}', 'RootManageSharedAccessKey'), '2017-04-01').{property}"
         ArmExpression.create(expr, namespaces.resourceId this.Name)
     member this.NamespaceDefaultConnectionString = this.GetKeyPath "primaryConnectionString"
     member this.DefaultSharedAccessPolicyPrimaryKey = this.GetKeyPath "primaryKey"
@@ -215,15 +211,14 @@ type ServiceBusBuilder() =
             let queue = queue.Value
 
             match queue.DuplicateDetection, state.Sku with
-            | Some _, Basic -> failwithf "Duplicate Detection cannot be set when creating a queue using the Basic tier (queue '%s' fails this check)." queue.Name.Value
+            | Some _, Basic -> failwith $"Duplicate Detection cannot be set when creating a queue using the Basic tier (queue '{queue.Name.Value}' fails this check)."
             | _ -> ()
             queue.LockDuration |> Option.iter(fun lockDuration -> if lockDuration > TimeSpan(0,5,0) then failwith "Lock duration name must not be more than 5 minutes.")
 
-        if state.Name.Value.Length |> isBetween 6 50 |> not then failwith "Namespace name must be between 6 and 50 characters long"
         state
     /// The name of the namespace that holds the queue.
     [<CustomOperation "name">]
-    member _.NamespaceName(state:ServiceBusConfig, name) = { state with Name = ResourceName name }
+    member _.NamespaceName(state:ServiceBusConfig, name) = { state with Name = ServiceBusValidation.ServiceBusName.Create(name).OkValue.ResourceName }
     /// The SKU of the namespace.
     [<CustomOperation "sku">]
     member _.Sku(state:ServiceBusConfig, sku) = { state with Sku = sku }

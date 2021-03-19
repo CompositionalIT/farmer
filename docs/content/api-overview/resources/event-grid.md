@@ -2,7 +2,7 @@
 title: "Event Grid"
 date: 2020-07-06T20:00:00+01:00
 chapter: false
-weight: 9
+weight: 5
 ---
 
 ## Overview
@@ -34,6 +34,14 @@ Farmer supports the following Event Grid sources using Farmer builders:
 | [ServiceBus](service-bus) | SystemEvents.ServiceBus |
 | [IotHub](iot-hub) | SystemEvents.IotHub |
 | [EventHub](eventhub) | SystemEvents.EventHub |
+
+### Suported Destinations
+
+* EventHub (`add_eventhub_subscriber`),
+* StorageQueue (`add_queue_subscriber`),
+* WebHook (`add_webhook_subscriber`),
+* ServiceBus Queue (`add_servicebus_queue_subscriber`),
+* ServiceBus Topic (`add_servicebus_topic_subscriber`).
 
 #### Example
 The following sample creates a source storage account that emits events on the event grid topic, whilst two destinations are created: an event hub and a storage queue, each listening for different events.

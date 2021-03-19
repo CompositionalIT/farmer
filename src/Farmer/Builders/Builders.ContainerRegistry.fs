@@ -11,19 +11,19 @@ type ContainerRegistryConfig =
       AdminUserEnabled : bool
       Tags: Map<string,string>  }
     member this.LoginServer =
-        (sprintf "reference(resourceId('Microsoft.ContainerRegistry/registries', '%s'),'2019-05-01').loginServer" this.Name.Value)
+        $"reference(resourceId('Microsoft.ContainerRegistry/registries', '{this.Name.Value}'),'2019-05-01').loginServer"
         |> ArmExpression.create
     /// Returns first Admin password if AdminUserEnabled
     member this.Password =
-        (sprintf "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries','%s'),'2019-05-01').passwords[0].value]" this.Name.Value)
+        $"listCredentials(resourceId('Microsoft.ContainerRegistry/registries','{this.Name.Value}'),'2019-05-01').passwords[0].value"
         |> ArmExpression.create
     /// Returns second Admin password if AdminUserEnabled
     member this.Password2 =
-        (sprintf "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries','%s'),'2019-05-01').passwords[1].value]" this.Name.Value)
+        $"listCredentials(resourceId('Microsoft.ContainerRegistry/registries','{this.Name.Value}'),'2019-05-01').passwords[1].value"
         |> ArmExpression.create
     /// Returns Admin username if AdminUserEnabled
     member this.Username =
-        (sprintf "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries','%s'),'2019-05-01').username]" this.Name.Value)
+        $"listCredentials(resourceId('Microsoft.ContainerRegistry/registries','{this.Name.Value}'),'2019-05-01').username"
         |> ArmExpression.create
     interface IBuilder with
         member this.ResourceId = registries.resourceId this.Name

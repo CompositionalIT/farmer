@@ -44,7 +44,7 @@ type VNetGatewayConfig =
         member this.BuildResources location = [
             if this.GatewayPublicIpName = ResourceName.Empty then
                 { // No public IP set, so generate one named after the gateway
-                    Name = ResourceName (sprintf "%s-ip" this.Name.Value)
+                    Name = ResourceName $"{this.Name.Value}-ip"
                     AllocationMethod = AllocationMethod.Dynamic
                     Location = location
                     Sku = PublicIpAddress.Sku.Basic
@@ -55,7 +55,7 @@ type VNetGatewayConfig =
               IpConfigs = [
                 {| Name = ResourceName "default"
                    PrivateIpAllocationMethod = this.GatewayPrivateIpAllocationMethod
-                   PublicIpName = this.GatewayPublicIpName.IfEmpty (sprintf "%s-ip" this.Name.Value) |}
+                   PublicIpName = this.GatewayPublicIpName.IfEmpty $"{this.Name.Value}-ip" |}
                 if this.ActiveActivePublicIpName.IsSome then
                     {| Name = ResourceName "redundant"; PrivateIpAllocationMethod = this.ActiveActivePrivateIpAllocationMethod; PublicIpName = this.ActiveActivePublicIpName.Value |}
               ]

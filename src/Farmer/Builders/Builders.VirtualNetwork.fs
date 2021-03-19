@@ -116,7 +116,7 @@ type VirtualNetworkBuilder() =
                 let addressSpace = IPAddressCidr.parse addressSpaceConfig.Space
                 let sizes = [
                     for subnet in addressSpaceConfig.Subnets do
-                        if subnet.Size > 29 then invalidArg "size" (sprintf "Subnet must be of /29 or larger, cannot carve subnet %s of /%d" subnet.Name subnet.Size)
+                        if subnet.Size > 29 then invalidArg "size" $"Subnet must be of /29 or larger, cannot carve subnet {subnet.Name} of /{subnet.Size}"
                         subnet.Size
                 ]
                 IPAddressCidr.carveAddressSpace addressSpace sizes

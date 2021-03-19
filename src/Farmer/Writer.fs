@@ -40,7 +40,7 @@ let toJson =
 /// Writes the provided JSON to a file based on the supplied template name. The postfix ".json" will automatically be added to the filename.
 let toFile folder templateName json =
     let filename =
-        let filename = sprintf "%s.json" templateName
+        let filename = $"{templateName}.json"
         Path.Combine(folder, filename)
     let directory = Path.GetDirectoryName filename
     if not (Directory.Exists directory) then

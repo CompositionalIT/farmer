@@ -19,6 +19,7 @@ type JavaRuntime =
     member this.Jre = match this with Java8 -> "jre8" | Java11 -> "java11"
 type Runtime =
     | DotNetCore of string
+    | DotNet of version:string
     | Node of string
     | Php of string
     | Ruby of string
@@ -50,6 +51,7 @@ type Runtime =
     static member Java8WildFly14 = Java (Java8, WildFly14)
     static member Java8Tomcat90 = Java (Java8, JavaHost.Tomcat90)
     static member Java8Tomcat85 = Java (Java8, JavaHost.Tomcat85)
+    static member DotNet50 = DotNet "5.0"
     static member AspNet47 = AspNet "4.0"
     static member AspNet35 = AspNet "2.0"
     static member Python27 = Python ("2.7", "2.7")
@@ -62,7 +64,7 @@ module AppSettings =
 
 let publishingPassword (name:ResourceName) =
     let resourceId = config.resourceId (name, ResourceName "publishingCredentials")
-    let expr = sprintf "list(%s, '2014-06-01').properties.publishingPassword" resourceId.ArmExpression.Value
+    let expr = $"list({resourceId.ArmExpression.Value}, '2014-06-01').properties.publishingPassword"
     ArmExpression.create(expr, resourceId)
 
 type SecretStore =
@@ -79,7 +81,7 @@ type CommonWebConfig =
       Cors : Cors option
       Identity : Identity.ManagedIdentity
       ZipDeployPath : string option
-      AlwaysOn : bool 
+      AlwaysOn : bool
       WorkerProcess : Bitness option }
 
 type WebAppConfig =
@@ -121,7 +123,7 @@ type WebAppConfig =
     member this.AppInsightsName = this.AppInsights |> Option.map (fun ai -> ai.resourceId(this.Name).Name)
     /// Gets the ARM expression path to the publishing password of this web app.
     member this.PublishingPassword = publishingPassword (this.Name)
-    member this.Endpoint = sprintf "%s.azurewebsites.net" this.Name.Value
+    member this.Endpoint = $"{this.Name.Value}.azurewebsites.net"
     member this.SystemIdentity = SystemIdentity this.ResourceId
     member this.ResourceId = sites.resourceId this.Name
     interface IBuilder with
@@ -212,7 +214,7 @@ type WebAppConfig =
                     match this.DockerAcrCredentials with
                     | Some credentials ->
                         "DOCKER_REGISTRY_SERVER_PASSWORD", ParameterSetting credentials.Password
-                        Setting.AsLiteral ("DOCKER_REGISTRY_SERVER_URL", sprintf "https://%s.azurecr.io" credentials.RegistryName)
+                        Setting.AsLiteral ("DOCKER_REGISTRY_SERVER_URL", $"https://{credentials.RegistryName}.azurecr.io")
                         Setting.AsLiteral ("DOCKER_REGISTRY_SERVER_USERNAME", credentials.RegistryName)
                     | None ->
                         ()
@@ -232,7 +234,7 @@ type WebAppConfig =
                                 setting.Key, setting.Value
                             | ParameterSetting _
                             | ExpressionSetting _ ->
-                                setting.Key, LiteralSetting (sprintf "@Microsoft.KeyVault(SecretUri=https://%s.vault.azure.net/secrets/%s)" name.Name.Value setting.Key)
+                                setting.Key, LiteralSetting $"@Microsoft.KeyVault(SecretUri=https://{name.Name.Value}.vault.azure.net/secrets/{setting.Key})"
                         ] |> Map.ofList
                     ) |> Map.toList)
                 |> Map
@@ -275,18 +277,19 @@ type WebAppConfig =
                         Some ("DOCKER|" + image)
                     | None ->
                         match this.Runtime with
-                        | DotNetCore version -> Some ("DOTNETCORE|" + version)
-                        | Node version -> Some ("NODE|" + version)
-                        | Php version -> Some ("PHP|" + version)
-                        | Ruby version -> Some ("RUBY|" + version)
-                        | Java (runtime, JavaSE) -> Some (sprintf "JAVA|%d-%s" runtime.Version runtime.Jre)
-                        | Java (runtime, (Tomcat version)) -> Some (sprintf "TOMCAT|%s-%s" version runtime.Jre)
-                        | Java (Java8, WildFly14) -> Some (sprintf "WILDFLY|14-%s" Java8.Jre)
-                        | Python (linuxVersion, _) -> Some (sprintf "PYTHON|%s" linuxVersion)
+                        | DotNetCore version -> Some ($"DOTNETCORE|{version}")
+                        | Node version -> Some ($"NODE|{version}")
+                        | Php version -> Some ($"PHP|{version}")
+                        | Ruby version -> Some ($"RUBY|{version}")
+                        | Java (runtime, JavaSE) -> Some $"JAVA|{runtime.Version}-{runtime.Jre}"
+                        | Java (runtime, (Tomcat version)) -> Some $"TOMCAT|{version}-{runtime.Jre}"
+                        | Java (Java8, WildFly14) -> Some $"WILDFLY|14-{Java8.Jre}"
+                        | Python (linuxVersion, _) -> Some $"PYTHON|{linuxVersion}"
                         | _ -> None
               NetFrameworkVersion =
                 match this.Runtime with
-                | AspNet version -> Some (sprintf "v%s" version)
+                | AspNet version
+                | DotNet version -> Some $"v{version}"
                 | _ -> None
               JavaVersion =
                 match this.Runtime, this.OperatingSystem with
@@ -315,7 +318,8 @@ type WebAppConfig =
                 | Php _, _ -> Some "php"
                 | Python _, Windows -> Some "python"
                 | DotNetCore _, Windows -> Some "dotnetcore"
-                | AspNet _, _ -> Some "dotnet"
+                | AspNet _, _
+                | DotNet _, _ -> Some "dotnet"
                 | _ -> None
                 |> Option.map(fun stack -> "CURRENT_STACK", stack)
                 |> Option.toList
@@ -409,14 +413,17 @@ type WebAppBuilder() =
         { state with
             SiteExtensions =
                 match state with
-                | { Runtime = Runtime.DotNetCore _; AutomaticLoggingExtension = true } ->
+                // its important to only add this extension if we're not using Web App for Containers - if we are
+                // then this will generate an error during deployment:
+                // No route registered for '/api/siteextensions/Microsoft.AspNetCore.AzureAppServices.SiteExtension'
+                | { Runtime = Runtime.DotNetCore _; AutomaticLoggingExtension = true ; DockerImage = None } ->
                     state.SiteExtensions.Add WebApp.Extensions.Logging
                 | _ ->
                     state.SiteExtensions
             DockerImage =
                 match state.DockerImage, state.DockerAcrCredentials with
                 | Some (image, tag), Some credentials when not (image.Contains "azurecr.io") ->
-                    Some (sprintf "%s.azurecr.io/%s" credentials.RegistryName image, tag)
+                    Some ($"{credentials.RegistryName}.azurecr.io/{image}", tag)
                 | Some x, _ ->
                     Some x
                 | None, _ ->
@@ -479,7 +486,7 @@ type WebAppBuilder() =
         { state with
             DockerAcrCredentials =
                 Some {| RegistryName = registryName
-                        Password = SecureParameter (sprintf "docker-password-for-%s" registryName) |} }
+                        Password = SecureParameter $"docker-password-for-{registryName}" |} }
     [<CustomOperation "source_control">]
     member _.SourceControl(state:WebAppConfig, url, branch) =
         { state with
@@ -507,13 +514,13 @@ type WebAppBuilder() =
     member _.LinkToKeyVault (state:WebAppConfig, vaultName:ResourceName) =
         { state with
             Identity = { state.Identity with SystemAssigned = Enabled }
-            SecretStore = KeyVault (External(Managed (vaults.resourceId vaultName))) }
+            SecretStore = KeyVault (managed vaults vaultName) }
     /// Links your application to an existing key vault instance. All secret settings will automatically be mapped into key vault.
     [<CustomOperation "link_to_unmanaged_keyvault">]
     member _.LinkToExternalKeyVault(state:WebAppConfig, resourceId) =
         { state with
             Identity = { state.Identity with SystemAssigned = Enabled }
-            SecretStore = KeyVault (External(Unmanaged resourceId)) }
+            SecretStore = KeyVault (unmanaged resourceId) }
     [<CustomOperation "add_extension">]
     member _.AddExtension (state:WebAppConfig, extension) = { state with SiteExtensions = state.SiteExtensions.Add extension }
     member this.AddExtension (state:WebAppConfig, name) = this.AddExtension (state, ExtensionName name)
@@ -532,7 +539,7 @@ type WebAppBuilder() =
               Cors = state.Cors
               Identity = state.Identity
               ZipDeployPath = state.ZipDeployPath
-              AlwaysOn = state.AlwaysOn 
+              AlwaysOn = state.AlwaysOn
               WorkerProcess = state.WorkerProcess }
         member _.Wrap state config =
             { state with
@@ -544,7 +551,7 @@ type WebAppBuilder() =
                 Cors = config.Cors
                 Identity = config.Identity
                 ZipDeployPath = config.ZipDeployPath
-                AlwaysOn = config.AlwaysOn 
+                AlwaysOn = config.AlwaysOn
                 WorkerProcess = config.WorkerProcess }
 
 let webApp = WebAppBuilder()
@@ -582,7 +589,7 @@ module Extensions =
         /// Instead of creating a new service plan instance, configure this webapp to point to another unmanaged service plan instance.
         /// A dependency will automatically be set for this instance.
         [<CustomOperation "link_to_unmanaged_service_plan">]
-        member this.LinkToUnmanagedServicePlan (state:'T, resourceId) = { this.Get state with ServicePlan = External (Unmanaged resourceId) } |> this.Wrap state
+        member this.LinkToUnmanagedServicePlan (state:'T, resourceId) = { this.Get state with ServicePlan = unmanaged resourceId } |> this.Wrap state
         /// Sets the name of the automatically-created app insights instance.
         [<CustomOperation "app_insights_name">]
         member this.UseAppInsights (state:'T, name) = { this.Get state with AppInsights = Some (named components name) } |> this.Wrap state
@@ -600,7 +607,7 @@ module Extensions =
         /// Instead of creating a new AI instance, configure this webapp to point to an unmanaged AI instance.
         /// A dependency will not be set for this instance.
         [<CustomOperation "link_to_unmanaged_app_insights">]
-        member this.LinkUnmanagedAppInsights (state:'T, resourceId) = { this.Get state with AppInsights = Some (External(Unmanaged resourceId)) } |> this.Wrap state
+        member this.LinkUnmanagedAppInsights (state:'T, resourceId) = { this.Get state with AppInsights = Some (unmanaged resourceId) } |> this.Wrap state
         /// Sets an app setting of the web app in the form "key" "value".
         [<CustomOperation "setting">]
         member this.AddSetting (state:'T, key, value) =

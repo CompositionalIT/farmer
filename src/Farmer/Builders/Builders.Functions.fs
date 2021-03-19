@@ -27,7 +27,7 @@ type FunctionsConfig =
       ExtensionVersion : FunctionsExtensionVersion
       Identity : ManagedIdentity
       ZipDeployPath : string option
-      AlwaysOn : bool 
+      AlwaysOn : bool
       WorkerProcess : Bitness option }
 
     /// Gets the system-created managed principal for the functions instance. It must have been enabled using enable_managed_identity.
@@ -40,11 +40,11 @@ type FunctionsConfig =
     member this.AppInsightsKey = this.AppInsightsName |> Option.map AppInsights.getInstrumentationKey
     /// Gets the default key for the functions site
     member this.DefaultKey =
-        sprintf "listkeys(concat(resourceId('Microsoft.Web/sites', '%s'), '/host/default/'),'2016-08-01').functionKeys.default" this.Name.Value
+        $"listkeys(concat(resourceId('Microsoft.Web/sites', '{this.Name.Value}'), '/host/default/'),'2016-08-01').functionKeys.default"
         |> ArmExpression.create
     /// Gets the master key for the functions site
     member this.MasterKey =
-        sprintf "listkeys(concat(resourceId('Microsoft.Web/sites', '%s'), '/host/default/'),'2016-08-01').masterKey" this.Name.Value
+        $"listkeys(concat(resourceId('Microsoft.Web/sites', '{this.Name.Value}'), '/host/default/'),'2016-08-01').masterKey"
         |> ArmExpression.create
     /// Gets this web app's Server Plan's full resource ID.
     member this.ServicePlanId = this.ServicePlan.resourceId this.Name
@@ -186,7 +186,7 @@ type FunctionsBuilder() =
     member _.LinkToStorageAccount(state:FunctionsConfig, name) = { state with StorageAccount = managed storageAccounts name }
     member this.LinkToStorageAccount(state:FunctionsConfig, name) = this.LinkToStorageAccount(state, ResourceName name)
     [<CustomOperation "link_to_unmanaged_storage_account">]
-    member _.LinkToUnmanagedStorageAccount(state:FunctionsConfig, resourceId) = { state with StorageAccount = External(Unmanaged resourceId) }
+    member _.LinkToUnmanagedStorageAccount(state:FunctionsConfig, resourceId) = { state with StorageAccount = unmanaged resourceId }
     /// Set the name of the storage account instead of using an auto-generated one based on the function instance name.
     [<CustomOperation "storage_account_name">]
     member _.StorageAccountName(state:FunctionsConfig, name) = { state with StorageAccount = named storageAccounts (ResourceName name) }
@@ -211,7 +211,7 @@ type FunctionsBuilder() =
               Cors = state.Cors
               Identity = state.Identity
               ZipDeployPath = state.ZipDeployPath
-              AlwaysOn = state.AlwaysOn 
+              AlwaysOn = state.AlwaysOn
               WorkerProcess = state.WorkerProcess }
         member _.Wrap state config =
             { state with
@@ -223,7 +223,7 @@ type FunctionsBuilder() =
                 Settings = config.Settings
                 Cors = config.Cors
                 Identity = config.Identity
-                ZipDeployPath = config.ZipDeployPath 
+                ZipDeployPath = config.ZipDeployPath
                 WorkerProcess = config.WorkerProcess }
-        
+
 let functions = FunctionsBuilder()

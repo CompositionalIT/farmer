@@ -2,7 +2,7 @@
 title: "Cosmos DB"
 date: 2020-02-05T08:53:46+01:00
 chapter: false
-weight: 7
+weight: 3
 ---
 
 #### Overview

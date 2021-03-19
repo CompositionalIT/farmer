@@ -109,7 +109,7 @@ type VirtualNetworkGateway =
                      {| ipConfigurations =
                             this.IpConfigs
                             |> List.mapi(fun index ipConfig ->
-                                {| name = sprintf "ipconfig%i" (index + 1)
+                                {| name = $"ipconfig{index + 1}"
                                    properties =
                                     let allocationMethod, ip =
                                         match ipConfig.PrivateIpAllocationMethod with
@@ -224,7 +224,7 @@ type NetworkInterface =
                     {| ipConfigurations =
                         this.IpConfigs
                         |> List.mapi(fun index ipConfig ->
-                            {| name = sprintf "ipconfig%i" (index + 1)
+                            {| name = $"ipconfig{index + 1}"
                                properties =
                                 {| privateIPAllocationMethod = "Dynamic"
                                    publicIPAddress = {| id = publicIPAddresses.resourceId(ipConfig.PublicIpName).Eval() |}
@@ -236,29 +236,29 @@ type NetworkInterface =
 type NetworkProfile =
     { Name : ResourceName
       Location : Location
+      Dependencies : ResourceId Set
       ContainerNetworkInterfaceConfigurations :
         {| IpConfigs : {| SubnetName : ResourceName |} list
         |} list
-      VirtualNetwork : ResourceName
+      VirtualNetwork : ResourceId
       Tags: Map<string,string> }
     interface IArmResource with
         member this.ResourceId = networkProfiles.resourceId this.Name
         member this.JsonModel =
-            let dependsOn = [ virtualNetworks.resourceId this.VirtualNetwork ]
-            {| networkProfiles.Create(this.Name, this.Location, dependsOn, this.Tags) with
+            {| networkProfiles.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
                 properties =
                     {| containerNetworkInterfaceConfigurations =
                         this.ContainerNetworkInterfaceConfigurations
                         |> List.mapi (fun index containerIfConfig ->
-                            {| name = sprintf "eth%i" index
+                            {| name = $"eth{index}"
                                properties =
                                 {| ipConfigurations =
                                    containerIfConfig.IpConfigs
                                    |> List.mapi (fun index ipConfig ->
-                                    {| name = sprintf "ipconfig%i" (index + 1)
+                                    {| name = $"ipconfig{index + 1}"
                                        properties =
                                         {| subnet =
-                                            {| id = subnets.resourceId(this.VirtualNetwork, ipConfig.SubnetName).Eval() |}
+                                            {| id = subnets.resourceId(this.VirtualNetwork.Name, ipConfig.SubnetName).Eval() |}
                                         |}
                                     |})
                                 |}
@@ -291,7 +291,7 @@ type ExpressRouteCircuit =
         member this.JsonModel =
             {| expressRouteCircuits.Create(this.Name, this.Location, tags = this.Tags) with
                 sku =
-                 {| name = sprintf "%O_%O" this.Tier this.Family
+                 {| name = $"{this.Tier}_{this.Family}"
                     tier = string this.Tier
                     family = string this.Family |}
                 properties =

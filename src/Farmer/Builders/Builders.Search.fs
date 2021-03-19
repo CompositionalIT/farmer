@@ -14,11 +14,11 @@ type SearchConfig =
       Tags: Map<string,string>  }
     /// Gets an ARM expression for the admin key of the search instance.
     member this.AdminKey =
-        let expr = sprintf "listAdminKeys('Microsoft.Search/searchServices/%s', '2015-08-19').primaryKey" this.Name.Value
+        let expr = $"listAdminKeys('Microsoft.Search/searchServices/{this.Name.Value}', '2015-08-19').primaryKey"
         ArmExpression.create(expr, this.ResourceId)
     /// Gets an ARM expression for the query key of the search instance.
     member this.QueryKey =
-        let expr = sprintf "listQueryKeys('Microsoft.Search/searchServices/%s', '2015-08-19').value[0].key" this.Name.Value
+        let expr = $"listQueryKeys('Microsoft.Search/searchServices/{this.Name.Value}', '2015-08-19').value[0].key"
         ArmExpression.create(expr, this.ResourceId)
     member this.ResourceId = searchServices.resourceId this.Name
     interface IBuilder with

@@ -47,6 +47,10 @@ type ContainerInstanceConfig =
       Memory : float<Gb>
       /// Environment variables for the container
       EnvironmentVariables : Map<string, EnvVar>
+      /// Liveliness probe for checking the container's health.
+      LivelinessProbe : ContainerProbe option
+      /// Readiness probe to wait for the container to be ready to accept requests.
+      ReadinessProbe : ContainerProbe option
       /// Volume mounts for the container
       VolumeMounts : Map<string, string> }
 
@@ -102,6 +106,8 @@ type ContainerGroupConfig =
                        Cpu = instance.Cpu
                        Memory = instance.Memory
                        EnvironmentVariables = instance.EnvironmentVariables
+                       LivelinessProbe = instance.LivelinessProbe
+                       ReadinessProbe = instance.ReadinessProbe
                        VolumeMounts = instance.VolumeMounts |}
               ]
               OperatingSystem = this.OperatingSystem
@@ -119,6 +125,39 @@ type ContainerGroupConfig =
               IpAddress = this.IpAddress
               NetworkProfile = this.NetworkProfile
               Volumes = this.Volumes
+              Tags = this.Tags }
+        ]
+
+type ContainerProbeType = LivelinessProbe | ReadinessProbe
+type ContainerProbeConfig =
+    { ProbeType : ContainerProbeType
+      Probe : ContainerProbe }
+
+type ContainerNetworkInterfaceIpConfig = { Subnet : string }
+type ContainerNetworkInterfaceConfiguration = { IpConfigs : ContainerNetworkInterfaceIpConfig list }
+
+type NetworkProfileConfig =
+    { Name : ResourceName
+      ContainerNetworkInterfaceConfigurations : ContainerNetworkInterfaceConfiguration list
+      VirtualNetwork : LinkedResource
+      Tags: Map<string,string>  }
+    interface IBuilder with
+        member this.ResourceId = networkProfiles.resourceId this.Name
+        member this.BuildResources location = [
+            { Name = this.Name
+              Location = location
+              Dependencies = [
+                  match this.VirtualNetwork with
+                  | Managed resId -> resId // Only generate dependency if this is managed by Farmer (same template)
+                  | _ -> ()
+              ] |> Set.ofList
+              ContainerNetworkInterfaceConfigurations =
+                  this.ContainerNetworkInterfaceConfigurations
+                  |> List.map (fun ifconfig -> {| IpConfigs = (ifconfig.IpConfigs |> List.map (fun ipConfig -> {| SubnetName = ResourceName ipConfig.Subnet |})) |})
+              VirtualNetwork =
+                  match this.VirtualNetwork with
+                  | Managed resId
+                  | Unmanaged resId -> resId
               Tags = this.Tags }
         ]
 
@@ -175,6 +214,7 @@ type ContainerGroupBuilder() =
     /// Sets a network profile for the container's group.
     [<CustomOperation "network_profile">]
     member _.NetworkProfile(state:ContainerGroupConfig, networkProfileName:string) = { state with NetworkProfile = Some (ResourceName networkProfileName) }
+    member _.NetworkProfile(state:ContainerGroupConfig, networkProfile:NetworkProfileConfig) = { state with NetworkProfile = Some networkProfile.Name }
     /// Adds a UDP port to be externally accessible
     [<CustomOperation "add_udp_port">]
     member this.AddUdpPort(state:ContainerGroupConfig, port) = this.AddPort (state, UDP, port)
@@ -206,7 +246,7 @@ type ContainerGroupBuilder() =
 let registry (server:string) (username:string) =
     { Server = server
       Username = username
-      Password = SecureParameter (sprintf "%s-password" server) }
+      Password = SecureParameter $"{server}-password" }
 
 type ContainerInstanceBuilder() =
     member _.Yield _ =
@@ -217,6 +257,8 @@ type ContainerInstanceBuilder() =
           Cpu = 1.0
           Memory = 1.5<Gb>
           EnvironmentVariables = Map.empty
+          LivelinessProbe = None
+          ReadinessProbe = None
           VolumeMounts = Map.empty }
     /// Sets the name of the container instance.
     [<CustomOperation "name">]
@@ -259,6 +301,67 @@ type ContainerInstanceBuilder() =
     [<CustomOperation "command_line">]
     member _.CommandLine (state:ContainerInstanceConfig, command) =
         { state with Command = state.Command @ command }
+    /// Set readiness and liveliness probes on the container.
+    [<CustomOperation "probes">]
+    member _.Probes (state:ContainerInstanceConfig, probes:(ContainerProbeConfig) seq) =
+        { state with
+            LivelinessProbe =
+                probes
+                |> Seq.tryFind(fun p -> p.ProbeType = ContainerProbeType.LivelinessProbe)
+                |> Option.map (fun p -> p.Probe)
+            ReadinessProbe =
+                probes
+                |> Seq.tryFind(fun p -> p.ProbeType = ContainerProbeType.ReadinessProbe)
+                |> Option.map (fun p -> p.Probe)
+        }
+
+type ProbeBuilder (probeType:ContainerProbeType) =
+    member _.Yield _ =
+        {
+            ProbeType = probeType
+            Probe = {
+                Exec = []
+                HttpGet = None
+                InitialDelaySeconds = None
+                PeriodSeconds = None
+                FailureThreshold = None
+                SuccessThreshold = None
+                TimeoutSeconds = None
+            }
+        }
+    /// The URI for a GET request for a health or readiness check on this container. The hostname in the URI is ignored.
+    [<CustomOperation "http">]
+    member _.HttpGet (state:(ContainerProbeConfig), uri:string) =
+        { state with Probe = { state.Probe with HttpGet = uri |> System.Uri |> Some } }
+    /// A command to execute on this container to check its health or readiness.
+    [<CustomOperation "exec">]
+    member _.Exec (state:(ContainerProbeConfig), commands:string list) =
+        { state with Probe = { state.Probe with Exec = commands } }
+    member _.Exec (state:(ContainerProbeConfig), command:string) =
+        { state with Probe = { state.Probe with Exec = [ command ] } }
+    /// The probe will not run until this delay after container startup. Default is 0 - runs immediately.
+    [<CustomOperation "initial_delay_seconds">]
+    member _.InitialDelay (state:(ContainerProbeConfig), delay:int) =
+        { state with Probe = { state.Probe with InitialDelaySeconds = delay |> Some } }
+    /// How often to execute the probe against the container - default is 10 seconds.
+    [<CustomOperation "period_seconds">]
+    member _.PeriodSeconds (state:(ContainerProbeConfig), delay:int) =
+        { state with Probe = { state.Probe with PeriodSeconds = delay |> Some } }
+    /// Number of failures before this container is considered unhealthy - default is 3.
+    [<CustomOperation "failure_threshold">]
+    member _.FailureThreshold (state:(ContainerProbeConfig), delay:int) =
+        { state with Probe = { state.Probe with FailureThreshold = delay |> Some } }
+    /// Number of successes before this container is considered healthy - default is 1.
+    [<CustomOperation "success_threshold">]
+    member _.SuccessThreshold (state:(ContainerProbeConfig), delay:int) =
+        { state with Probe = { state.Probe with SuccessThreshold = delay |> Some } }
+    /// Number of seconds for the probe to run before failing due to a timeout - default is 1 second.
+    [<CustomOperation "timeout_seconds">]
+    member _.TimeoutSeconds (state:(ContainerProbeConfig), delay:int) =
+        { state with Probe = { state.Probe with TimeoutSeconds = delay |> Some } }
+
+let liveliness = ProbeBuilder(LivelinessProbe)
+let readiness = ProbeBuilder(ReadinessProbe)
 
 type InitContainerBuilder() =
     member _.Yield _ =
@@ -293,31 +396,11 @@ let containerGroup = ContainerGroupBuilder()
 let containerInstance = ContainerInstanceBuilder()
 let initContainer = InitContainerBuilder()
 
-type ContainerNetworkInterfaceIpConfig = { Subnet : string }
-type ContainerNetworkInterfaceConfiguration = { IpConfigs : ContainerNetworkInterfaceIpConfig list }
-
-type NetworkProfileConfig =
-    { Name : ResourceName
-      ContainerNetworkInterfaceConfigurations : ContainerNetworkInterfaceConfiguration list
-      VirtualNetwork : ResourceName
-      Tags: Map<string,string>  }
-    interface IBuilder with
-        member this.ResourceId = networkProfiles.resourceId this.Name
-        member this.BuildResources location = [
-            { Name = this.Name
-              Location = location
-              ContainerNetworkInterfaceConfigurations =
-                this.ContainerNetworkInterfaceConfigurations
-                |> List.map (fun ifconfig -> {| IpConfigs = (ifconfig.IpConfigs |> List.map (fun ipConfig -> {| SubnetName = ResourceName ipConfig.Subnet |})) |})
-              VirtualNetwork = this.VirtualNetwork
-              Tags = this.Tags }
-        ]
-
 type NetworkProfileBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
           ContainerNetworkInterfaceConfigurations = []
-          VirtualNetwork = ResourceName.Empty
+          VirtualNetwork = Managed (virtualNetworks.resourceId ResourceName.Empty)
           Tags = Map.empty }
     /// Sets the name of the network profile instance
     [<CustomOperation "name">]
@@ -330,7 +413,12 @@ type NetworkProfileBuilder() =
     member _.AddIpConfigs(state:NetworkProfileConfig, configs) = { state with ContainerNetworkInterfaceConfigurations = state.ContainerNetworkInterfaceConfigurations @ configs }
     /// Sets the virtual network for the profile
     [<CustomOperation "vnet">]
-    member _.VirtualNetwork(state:NetworkProfileConfig, vnet) = { state with VirtualNetwork = ResourceName vnet }
+    member _.VirtualNetwork(state:NetworkProfileConfig, vnet) =
+        { state with VirtualNetwork = Managed(virtualNetworks.resourceId(ResourceName vnet)) }
+    /// Links to an existing vnet.
+    [<CustomOperation "link_to_vnet">]
+    member _.LinkToVirtualNetwork(state:NetworkProfileConfig, vnet) =
+        { state with VirtualNetwork = Unmanaged(virtualNetworks.resourceId(ResourceName vnet)) }
     interface ITaggable<NetworkProfileConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let networkProfile = NetworkProfileBuilder ()

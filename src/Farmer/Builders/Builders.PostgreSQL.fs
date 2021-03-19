@@ -80,35 +80,35 @@ module Validate =
 
     let username (paramName : string) (candidate : string) =
         if String.IsNullOrWhiteSpace candidate then
-            failwithf "%s can not be null, empty, or blank" paramName
+            failwith $"{paramName} can not be null, empty, or blank"
         if candidate.Length > 63 then
-            failwithf "%s must have a length between 1 and 63, was %d" paramName candidate.Length
+            failwith $"{paramName} must have a length between 1 and 63, was {candidate.Length}"
         if isAsciiDigit candidate.[0] then
-            failwithf "%s can not begin with a digit" paramName
+            failwith $"{paramName} can not begin with a digit"
         if not (Seq.forall isAsciiLetterOrDigit candidate) then
-            failwithf "%s can only consist of ASCII letters and digits, was '%s'" paramName candidate
+            failwith $"{paramName} can only consist of ASCII letters and digits, was '{candidate}'"
         if candidate.StartsWith "pg_" then
-            failwithf "%s must not start with 'pg_'" paramName
+            failwith $"{paramName} must not start with 'pg_'"
         if Seq.contains candidate reservedUsernames then
-            failwithf "%s can not be one of %A" paramName reservedUsernames
+            failwith $"{paramName} can not be one of %A{reservedUsernames}"
 
     let servername (name : string) =
         if String.IsNullOrWhiteSpace name then
             failwith "Server name can not be null, empty, or blank"
         if name.Length > 63 || name.Length < 3 then
-            failwithf "Server name must have a length between 3 and 63, was %d" name.Length
+            failwith $"Server name must have a length between 3 and 63, was {name.Length}"
         if name.[0] = '-' || name.[name.Length-1] = '-' then
             failwith "Server name must not start or end with a hyphen ('-')"
         if isAsciiDigit name.[0] then
             failwith "Server name must not start with a digit"
         if not (Seq.forall isLegalServernameChar name) then
-            failwithf "Server name can only consist of ASCII lowercase letters, digits, or hyphens. Was '%s'" name
+            failwith $"Server name can only consist of ASCII lowercase letters, digits, or hyphens. Was '{name}'"
 
     let dbname (name : string) =
         if String.IsNullOrWhiteSpace name then
             failwith "Database name can not be null, empty, or blank"
         if name.Length > 63 then
-            failwithf "Database name must have a length between 1 and 63, was %d" name.Length
+            failwith $"Database name must have a length between 1 and 63, was {name.Length}"
         if isAsciiDigit name.[0] then
             failwith "Server name must not start with a digit"
 
@@ -116,26 +116,22 @@ module Validate =
     let maxBackupRetention = 35<Days>
     let backupRetention (days: int<Days>) =
         if days < minBackupRetention || days > maxBackupRetention then
-            failwithf "Backup retention must be between %d and %d days, was %d"
-                minBackupRetention maxBackupRetention days
-
+            failwith $"Backup retention must be between {minBackupRetention} and {maxBackupRetention} days, but was {days}"
     let minStorageSize = 5<Gb>
     let maxStorageSize = 1024<Gb>
     let storageSize (size : int<Gb>) =
         if size < minStorageSize || size > maxStorageSize then
-            failwithf "Storage space must between %d and %d GB, was %d"
-                minStorageSize maxStorageSize size
+            failwith $"Storage space must between {minStorageSize} and {maxStorageSize} GB, but was {size}"
 
     let minCapacity = 1<VCores>
     let maxCapacity = 64<VCores>
     let capacity (capacity:int<VCores>) =
         if capacity < minCapacity || capacity > maxCapacity then
-            failwithf "Capacity must be between %d and %d cores, was %d"
-                minCapacity maxCapacity capacity
+            failwith $"Capacity must be between {minCapacity} and {maxCapacity} cores, was {capacity}"
+
         let c = int capacity
         if ((c &&& (c - 1)) <> 0) then
-            failwithf "Capacity must be a power of two, was %d" capacity
-
+            failwith $"Capacity must be a power of two, was {capacity}"
 
 type PostgreSQLDbBuilder() =
     member _.Yield _ : PostgreSQLDbConfig =
@@ -187,7 +183,7 @@ type PostgreSQLBuilder() =
         { state with
             AdministratorCredentials =
                 {| state.AdministratorCredentials with
-                    Password = sprintf "password-for-%s" state.Name.Value |> SecureParameter |}  }
+                    Password = SecureParameter $"password-for-{state.Name.Value}" |} }
 
     /// Sets the name of the PostgreSQL server
     [<CustomOperation "name">]

@@ -168,7 +168,7 @@ let tests = testList "Storage Tests" [
         let roleAssignment = builder.BuildResources Location.NorthEurope |> List.last :?> Farmer.Arm.RoleAssignment.RoleAssignment
         Expect.equal roleAssignment.PrincipalId uai.PrincipalId "PrincipalId"
         Expect.equal roleAssignment.RoleDefinitionId Roles.StorageBlobDataOwner "RoleId"
-        Expect.equal roleAssignment.Name.Value "efad7c9d-881a-5ca8-9177-eb1c95550036" "Storage Account Name"
+        Expect.equal roleAssignment.Name.Value "105eb550-eb9f-56b6-955d-1def9d3139ec" "Storage Account Name"
         Expect.equal roleAssignment.Scope Farmer.Arm.RoleAssignment.AssignmentScope.ResourceGroup "Scope"
         Expect.sequenceEqual roleAssignment.Dependencies [ uai.ResourceId; builder.ResourceId ] "Role Assignment Dependencies"
 

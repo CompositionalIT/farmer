@@ -55,7 +55,7 @@ You can also supply multiple dependencies at once as a list; this is useful if y
 let storageAccounts : IBuilder list = [
     for letter in [ 'a' .. 'e' ] do
         storageAccount {
-            name (sprintf "mystorage%c" letter)
+            name $"mystorage{letter}"
         }
 ]
 
@@ -73,7 +73,7 @@ You can also use the `:>` (safe upcast) operator when declaring the StorageAccou
 let storageAccounts = [ // inferred as IBuilder list
     for letter in [ 'a' .. 'e' ] do
         storageAccount {
-            name (sprintf "mystorage%c" letter)
+            name $"mystorage%c" letter)
         } :> IBuilder
 ]
 ```
