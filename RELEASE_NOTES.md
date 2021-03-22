@@ -1,5 +1,7 @@
 Release Notes
 =============
+##  v-Next
+* Functions add option to use managed keyvault
 ##  1.5.0-beta
 * Container Groups: Support for init containers.
 * Container Groups: Support for liveliness and readiness probes on containers.
