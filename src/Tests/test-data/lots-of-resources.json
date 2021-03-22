@@ -99,7 +99,7 @@
         "[resourceId('Microsoft.Web/serverfarms', 'farmerwebapp1979-farm')]"
       ],
       "identity": {
-        "type": "None"
+        "type": "SystemAssigned"
       },
       "kind": "app",
       "location": "northeurope",
@@ -211,7 +211,7 @@
         "[resourceId('Microsoft.Web/serverfarms', 'farmerfuncs1979-farm')]"
       ],
       "identity": {
-        "type": "None"
+        "type": "SystemAssigned"
       },
       "kind": "functionapp",
       "location": "northeurope",
@@ -395,7 +395,7 @@
       "apiVersion": "2019-12-01",
       "dependsOn": [],
       "identity": {
-        "type": "None"
+        "type": "SystemAssigned"
       },
       "location": "northeurope",
       "name": "farmeraci1979",

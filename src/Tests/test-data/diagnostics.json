@@ -23,7 +23,7 @@
         "[resourceId('Microsoft.Web/serverfarms', 'isaacdiagsuperweb-farm')]"
       ],
       "identity": {
-        "type": "None"
+        "type": "SystemAssigned"
       },
       "kind": "app",
       "location": "northeurope",

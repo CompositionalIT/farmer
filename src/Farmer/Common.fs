@@ -763,6 +763,7 @@ module Identity =
           UserAssigned : UserAssignedIdentity list }
         member this.Dependencies = this.UserAssigned |> List.map(fun u -> u.ResourceId)
         static member Empty = { SystemAssigned = Disabled; UserAssigned = [] }
+        static member AssignedOnly = { ManagedIdentity.Empty with SystemAssigned = Enabled }
         static member (+) (a, b) =
             { SystemAssigned = (a.SystemAssigned.AsBoolean || b.SystemAssigned.AsBoolean) |> FeatureFlag.ofBool
               UserAssigned = a.UserAssigned @ b.UserAssigned |> List.distinct }
