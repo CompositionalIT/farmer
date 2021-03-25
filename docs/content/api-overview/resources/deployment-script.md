@@ -2,7 +2,7 @@
 title: "Deployment Script"
 date: 2020-10-22T15:19:14.3221080-04:00
 chapter: false
-weight: 5
+weight: 4
 ---
 
 #### Overview

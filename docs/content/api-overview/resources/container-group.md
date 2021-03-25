@@ -2,7 +2,7 @@
 title: "Container Group"
 date: 2020-04-30T19:30:59+02:00
 chapter: false
-weight: 5
+weight: 3
 ---
 
 #### Overview
@@ -11,16 +11,22 @@ The Container Group builder is used to create Azure Container Group instances.
 * Container Group (`Microsoft.ContainerInstance/containerGroups`)
 
 #### Builder Keywords
-| Applies To | Keyword | Purpose |
-|-|-|-|
-| containerInstance | name | Sets the name of the Container Group instance. |
-| containerInstance | image | Sets the container image. |
+| Applies To        | Keyword | Purpose |
+|-------------------|---------|------------------------------------------|
+| containerInstance | name    | Sets the name of the container instance. |
+| containerInstance | image   | Sets the container image. |
 | containerInstance | command | Sets the commands to execute within the container instance in exec form. |
 | containerInstance | add_ports | Sets the ports the container exposes. |
 | containerInstance | cpu_cores | Sets the maximum CPU cores the container may use. |
 | containerInstance | memory | Sets the maximum gigabytes of memory the container may use. |
 | containerInstance | env_vars | Sets a list of environment variables for the container. |
 | containerInstance | add_volume_mount | Adds a volume mount on a container from a volume in the container group. |
+| initContainer | name | Sets the name of the init container. |
+| initContainer | image | Sets the init container image. |
+| initContainer | command | Sets the commands to execute within the init container in exec form. |
+| initContainer | env_vars | Sets a list of environment variables for the init container. |
+| initContainer | add_volume_mount | Adds a volume mount on an init container from a volume in the container group. |
+| containerGroup | name | Sets the name of the container group. |
 | containerGroup | add_instances | Adds container instances to the group. |
 | containerGroup | operating_system | Sets the OS type (default Linux). |
 | containerGroup | restart_policy | Sets the restart policy (default Always) |
@@ -153,4 +159,52 @@ let group = containerGroup {
     add_instances [ wordcount ]
 }
 ```
+#### Using an initContainer on startup
 
+An initContainer will run on container group startup before any of the containers are executed.
+
+If there are any issues with the initContainer, it will remain in a 'Creating' state indefinitely. Check
+for issues by viewing the logs for the init container(s):
+
+`az container logs -g resource-group-name -n container-group-name --container-name init-container-name`
+
+The example below creates a volume mount that is shared between the initContainer and the container
+instances. It writes to a file so that the nginx container can serve that file once the group is running.
+
+```fsharp
+arm {
+    location Location.WestEurope
+    add_resources [
+        containerGroup {
+            name "container-group-with-init"
+            operating_system Linux
+            restart_policy ContainerGroup.AlwaysRestart
+            add_volumes [
+                volume_mount.empty_dir "html"
+            ]
+            add_init_containers [
+                initContainer {
+                    name "write-index-file"
+                    image "debian"
+                    add_volume_mount "html" "/usr/share/nginx/html"
+                    command_line [
+                        "/bin/sh"
+                        "-c"
+                        "mkdir -p /usr/share/nginx/html && echo 'hello there' >> /usr/share/nginx/html/index.html"
+                    ]
+                }
+            ]
+            add_instances [
+                containerInstance {
+                    name "nginx"
+                    image "nginx:alpine"
+                    add_volume_mount "html" "/usr/share/nginx/html"
+                    add_public_ports [ 80us; 443us ]
+                    memory 0.5<Gb>
+                    cpu_cores 0.2
+                }
+            ]
+        }
+    ]
+}
+```

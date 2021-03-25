@@ -62,7 +62,7 @@ module AppSettings =
 
 let publishingPassword (name:ResourceName) =
     let resourceId = config.resourceId (name, ResourceName "publishingCredentials")
-    let expr = sprintf "list(%s, '2014-06-01').properties.publishingPassword" resourceId.ArmExpression.Value
+    let expr = $"list({resourceId.ArmExpression.Value}, '2014-06-01').properties.publishingPassword"
     ArmExpression.create(expr, resourceId)
 
 type SecretStore =
@@ -79,7 +79,8 @@ type CommonWebConfig =
       Cors : Cors option
       Identity : Identity.ManagedIdentity
       ZipDeployPath : string option
-      AlwaysOn : bool }
+      AlwaysOn : bool
+      WorkerProcess : Bitness option }
 
 type WebAppConfig =
     { Name : ResourceName
@@ -120,7 +121,7 @@ type WebAppConfig =
     member this.AppInsightsName = this.AppInsights |> Option.map (fun ai -> ai.resourceId(this.Name).Name)
     /// Gets the ARM expression path to the publishing password of this web app.
     member this.PublishingPassword = publishingPassword (this.Name)
-    member this.Endpoint = sprintf "%s.azurewebsites.net" this.Name.Value
+    member this.Endpoint = $"{this.Name.Value}.azurewebsites.net"
     member this.SystemIdentity = SystemIdentity this.ResourceId
     member this.ResourceId = sites.resourceId this.Name
     interface IBuilder with
@@ -211,7 +212,7 @@ type WebAppConfig =
                     match this.DockerAcrCredentials with
                     | Some credentials ->
                         "DOCKER_REGISTRY_SERVER_PASSWORD", ParameterSetting credentials.Password
-                        Setting.AsLiteral ("DOCKER_REGISTRY_SERVER_URL", sprintf "https://%s.azurecr.io" credentials.RegistryName)
+                        Setting.AsLiteral ("DOCKER_REGISTRY_SERVER_URL", $"https://{credentials.RegistryName}.azurecr.io")
                         Setting.AsLiteral ("DOCKER_REGISTRY_SERVER_USERNAME", credentials.RegistryName)
                     | None ->
                         ()
@@ -231,7 +232,7 @@ type WebAppConfig =
                                 setting.Key, setting.Value
                             | ParameterSetting _
                             | ExpressionSetting _ ->
-                                setting.Key, LiteralSetting (sprintf "@Microsoft.KeyVault(SecretUri=https://%s.vault.azure.net/secrets/%s)" name.Name.Value setting.Key)
+                                setting.Key, LiteralSetting $"@Microsoft.KeyVault(SecretUri=https://{name.Name.Value}.vault.azure.net/secrets/{setting.Key})"
                         ] |> Map.ofList
                     ) |> Map.toList)
                 |> Map
@@ -278,14 +279,14 @@ type WebAppConfig =
                         | Node version -> Some ("NODE|" + version)
                         | Php version -> Some ("PHP|" + version)
                         | Ruby version -> Some ("RUBY|" + version)
-                        | Java (runtime, JavaSE) -> Some (sprintf "JAVA|%d-%s" runtime.Version runtime.Jre)
-                        | Java (runtime, (Tomcat version)) -> Some (sprintf "TOMCAT|%s-%s" version runtime.Jre)
-                        | Java (Java8, WildFly14) -> Some (sprintf "WILDFLY|14-%s" Java8.Jre)
-                        | Python (linuxVersion, _) -> Some (sprintf "PYTHON|%s" linuxVersion)
+                        | Java (runtime, JavaSE) -> Some $"JAVA|{runtime.Version}-{runtime.Jre}"
+                        | Java (runtime, (Tomcat version)) -> Some $"TOMCAT|{version}-{runtime.Jre}"
+                        | Java (Java8, WildFly14) -> Some $"WILDFLY|14-{Java8.Jre}"
+                        | Python (linuxVersion, _) -> Some $"PYTHON|{linuxVersion}"
                         | _ -> None
               NetFrameworkVersion =
                 match this.Runtime with
-                | AspNet version -> Some (sprintf "v%s" version)
+                | AspNet version -> Some $"v{version}"
                 | _ -> None
               JavaVersion =
                 match this.Runtime, this.OperatingSystem with
@@ -415,7 +416,7 @@ type WebAppBuilder() =
             DockerImage =
                 match state.DockerImage, state.DockerAcrCredentials with
                 | Some (image, tag), Some credentials when not (image.Contains "azurecr.io") ->
-                    Some (sprintf "%s.azurecr.io/%s" credentials.RegistryName image, tag)
+                    Some ($"{credentials.RegistryName}.azurecr.io/{image}", tag)
                 | Some x, _ ->
                     Some x
                 | None, _ ->
@@ -478,7 +479,7 @@ type WebAppBuilder() =
         { state with
             DockerAcrCredentials =
                 Some {| RegistryName = registryName
-                        Password = SecureParameter (sprintf "docker-password-for-%s" registryName) |} }
+                        Password = SecureParameter $"docker-password-for-{registryName}" |} }
     [<CustomOperation "source_control">]
     member _.SourceControl(state:WebAppConfig, url, branch) =
         { state with
@@ -519,8 +520,6 @@ type WebAppBuilder() =
     /// Automatically add the ASP.NET Core logging extension.
     [<CustomOperation "automatic_logging_extension">]
     member _.DefaultLogging (state:WebAppConfig, setting) = { state with AutomaticLoggingExtension = setting }
-    [<CustomOperation "worker_process">]
-    member _.WorkerProcess (state:WebAppConfig, bitness) = { state with WorkerProcess = Some bitness }
     interface ITaggable<WebAppConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     interface IDependable<WebAppConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
     interface IServicePlanApp<WebAppConfig> with
@@ -533,7 +532,8 @@ type WebAppBuilder() =
               Cors = state.Cors
               Identity = state.Identity
               ZipDeployPath = state.ZipDeployPath
-              AlwaysOn = state.AlwaysOn }
+              AlwaysOn = state.AlwaysOn
+              WorkerProcess = state.WorkerProcess }
         member _.Wrap state config =
             { state with
                 Name = config.Name
@@ -544,7 +544,8 @@ type WebAppBuilder() =
                 Cors = config.Cors
                 Identity = config.Identity
                 ZipDeployPath = config.ZipDeployPath
-                AlwaysOn = config.AlwaysOn }
+                AlwaysOn = config.AlwaysOn
+                WorkerProcess = config.WorkerProcess }
 
 let webApp = WebAppBuilder()
 
@@ -672,3 +673,6 @@ module Extensions =
         /// Sets "Always On" flag
         [<CustomOperation "always_on">]
         member this.AlwaysOn(state:'T) = { this.Get state with AlwaysOn = true } |> this.Wrap state
+        ///Chooses the bitness (32 or 64) of the worker process
+        [<CustomOperation "worker_process">]
+        member this.WorkerProcess (state:'T, bitness) = { this.Get state with WorkerProcess = Some bitness } |> this.Wrap state

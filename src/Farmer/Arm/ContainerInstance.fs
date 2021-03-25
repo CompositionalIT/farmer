@@ -6,7 +6,7 @@ open Farmer.ContainerGroup
 open Farmer.Identity
 open System
 
-let containerGroups = ResourceType ("Microsoft.ContainerInstance/containerGroups", "2018-10-01")
+let containerGroups = ResourceType ("Microsoft.ContainerInstance/containerGroups", "2019-12-01")
 
 type ContainerGroupIpAddress =
     { Type : IpAddressType
@@ -36,6 +36,13 @@ type ContainerGroup =
       RestartPolicy : RestartPolicy
       Identity : ManagedIdentity
       ImageRegistryCredentials : ImageRegistryCredential list
+      InitContainers :
+        {| Name : ResourceName
+           Image : string
+           Command : string list
+           EnvironmentVariables: Map<string, EnvVar>
+           VolumeMounts : Map<string,string>
+        |} list
       IpAddress : ContainerGroupIpAddress option
       NetworkProfile : ResourceName option
       Volumes : Map<string, Volume>
@@ -111,6 +118,26 @@ type ContainerGroup =
                                           |> Seq.map (fun kvp -> {| name=kvp.Key; mountPath=kvp.Value |}) |> List.ofSeq
                                    |}
                                |})
+                          initContainers =
+                           this.InitContainers
+                           |> List.map (fun container ->
+                               {| name = container.Name.Value.ToLowerInvariant ()
+                                  properties =
+                                   {| image = container.Image
+                                      command = container.Command
+                                      environmentVariables = [
+                                          for key, value in Map.toSeq container.EnvironmentVariables do
+                                              match value with
+                                              | EnvValue value ->
+                                                {| name = key; value = value; secureValue = null |}
+                                              | SecureEnvValue value ->
+                                                {| name = key; value = null; secureValue = value.ArmExpression.Eval() |}
+                                      ]
+                                      volumeMounts =
+                                          container.VolumeMounts
+                                          |> Seq.map (fun kvp -> {| name=kvp.Key; mountPath=kvp.Value |}) |> List.ofSeq
+                                   |}
+                               |})
                           osType = string this.OperatingSystem
                           restartPolicy =
                             match this.RestartPolicy with
@@ -153,7 +180,7 @@ type ContainerGroup =
                                        azureFile =
                                            {| shareName = shareName.Value
                                               storageAccountName = accountName.ResourceName.Value
-                                              storageAccountKey = sprintf "[listKeys('Microsoft.Storage/storageAccounts/%s', '2018-07-01').keys[0].value]" accountName.ResourceName.Value |}
+                                              storageAccountKey = $"[listKeys('Microsoft.Storage/storageAccounts/{accountName.ResourceName.Value}', '2018-07-01').keys[0].value]" |}
                                        emptyDir = null
                                        gitRepo = Unchecked.defaultof<_>
                                        secret = Unchecked.defaultof<_> |}

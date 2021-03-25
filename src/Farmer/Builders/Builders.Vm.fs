@@ -10,7 +10,7 @@ open Farmer.Arm.Network
 open Farmer.Arm.Storage
 open System
 
-let makeName (vmName:ResourceName) elementType = sprintf "%s-%s" vmName.Value elementType |> ResourceName
+let makeName (vmName:ResourceName) elementType = ResourceName $"{vmName.Value}-%s{elementType}"
 
 type VmConfig =
     { Name : ResourceName
@@ -54,9 +54,9 @@ type VmConfig =
                 match this.Username with
                 | Some username ->
                     {| Username = username
-                       Password = SecureParameter (sprintf "password-for-%s" this.Name.Value) |}
+                       Password = SecureParameter $"password-for-{this.Name.Value}" |}
                 | None ->
-                    failwithf "You must specify a username for virtual machine %s" this.Name.Value
+                    failwith $"You must specify a username for virtual machine {this.Name.Value}"
               Image = this.Image
               OsDisk = this.OsDisk
               DataDisks = this.DataDisks
@@ -125,7 +125,7 @@ type VmConfig =
             | None, [] ->
                 ()
             | None, _ ->
-                failwithf "You have supplied custom script files %A but no script. Custom script files are not automatically executed; you must provide an inline script which acts as a bootstrapper using the custom_script keyword." this.CustomScriptFiles
+                failwith $"You have supplied custom script files {this.CustomScriptFiles} but no script. Custom script files are not automatically executed; you must provide an inline script which acts as a bootstrapper using the custom_script keyword."
         ]
 
 type VirtualMachineBuilder() =

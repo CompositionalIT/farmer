@@ -32,15 +32,15 @@ let getResourceAtIndex serializationSettings index (builder:#IBuilder) =
 
 let private flattenResourcesQuery = sprintf "$..resources.[?(@.type != '%s')]" Arm.ResourceGroup.resourceGroupDeployments.Type
 let getResourceTokens deployment =
-    let template = 
-        Deployment.getTemplate "farmer-resources" deployment 
+    let template =
+        Deployment.getTemplate "farmer-resources" deployment
         |> Writer.TemplateGeneration.processTemplate
     let jobj = JObject.FromObject template
     jobj.SelectTokens flattenResourcesQuery
 
 let getResources (deployment:IDeploymentBuilder) =
-    let rec flatten (resList:IArmResource list) = 
-        resList |> 
+    let rec flatten (resList:IArmResource list) =
+        resList |>
         List.collect
             (function
              | :? ResourceGroupDeployment as rg -> flatten rg.Resources
@@ -48,10 +48,10 @@ let getResources (deployment:IDeploymentBuilder) =
             )
     let depl = deployment.BuildDeployment "" Option.None
     flatten depl.Template.Resources
-    
+
 let getResourcesByName<'a when 'a:>IArmResource > name (deployment:IDeploymentBuilder) : 'a list =
     getResources deployment
-    |> List.choose 
+    |> List.choose
         (function
             | :? 'a as x when x.ResourceId.Name.Value = name -> Some x
             | _ -> None)
@@ -64,11 +64,11 @@ let getResourceByName<'a when 'a:>IArmResource > name (deployment:IDeploymentBui
        | x -> failwithf "More than one matching resource found: %A" x
 
 let getResourceGroupDeploymentFromTemplate<'a> (template:ArmTemplate) =
-    let template = Writer.TemplateGeneration.processTemplate template 
+    let template = Writer.TemplateGeneration.processTemplate template
     let jobj = JArray.FromObject template.resources
     let rgd = jobj.SelectToken (sprintf "$.[?(@.type == '%s')].properties.template" Arm.ResourceGroup.resourceGroupDeployments.Type)
     rgd.ToObject<'a>()
-    
+
 let findAzureResources<'T when 'T : null> (serializationSettings:Newtonsoft.Json.JsonSerializerSettings) deployment =
     let tokens = getResourceTokens deployment
     let jsons =  tokens |> Seq.map string
@@ -93,8 +93,8 @@ let toTemplate loc (d : IBuilder) =
     arm {
         location loc
         add_resource d
-    } 
-    |> Deployment.getTemplate "farmer-resources" 
+    }
+    |> Deployment.getTemplate "farmer-resources"
 
 let toTypedTemplate<'ResourceType> loc =
     toTemplate loc

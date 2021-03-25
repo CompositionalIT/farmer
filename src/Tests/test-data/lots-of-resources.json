@@ -416,7 +416,7 @@
               "type": "Microsoft.Cdn/profiles/endpoints"
             },
             {
-              "apiVersion": "2018-10-01",
+              "apiVersion": "2019-12-01",
               "dependsOn": [],
               "identity": {
                 "type": "None"
@@ -452,6 +452,7 @@
                   }
                 ],
                 "imageRegistryCredentials": [],
+                "initContainers": [],
                 "ipAddress": {
                   "ports": [
                     {

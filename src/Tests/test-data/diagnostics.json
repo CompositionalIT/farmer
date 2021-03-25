@@ -1,0 +1,202 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "outputs": {},
+  "parameters": {},
+  "resources": [
+    {
+      "apiVersion": "2020-06-01",
+      "location": "northeurope",
+      "name": "farmer-deploy",
+      "tags": {},
+      "type": "Microsoft.Resources/resourceGroups"
+    },
+    {
+      "apiVersion": "2020-06-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/resourceGroups', 'farmer-deploy')]"
+      ],
+      "name": "farmer-deploy",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "outputs": {},
+          "parameters": {},
+          "resources": [
+            {
+              "apiVersion": "2019-06-01",
+              "dependsOn": [],
+              "kind": "StorageV2",
+              "location": "northeurope",
+              "name": "isaacsuperdata",
+              "properties": {},
+              "sku": {
+                "name": "Standard_LRS"
+              },
+              "tags": {},
+              "type": "Microsoft.Storage/storageAccounts"
+            },
+            {
+              "apiVersion": "2016-08-01",
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/serverfarms', 'isaacdiagsuperweb-farm')]"
+              ],
+              "identity": {
+                "type": "None"
+              },
+              "kind": "app",
+              "location": "northeurope",
+              "name": "isaacdiagsuperweb",
+              "properties": {
+                "httpsOnly": false,
+                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', 'isaacdiagsuperweb-farm')]",
+                "siteConfig": {
+                  "alwaysOn": false,
+                  "appSettings": [],
+                  "connectionStrings": [],
+                  "metadata": [
+                    {
+                      "name": "CURRENT_STACK",
+                      "value": "dotnetcore"
+                    }
+                  ]
+                }
+              },
+              "tags": {},
+              "type": "Microsoft.Web/sites"
+            },
+            {
+              "apiVersion": "2018-02-01",
+              "location": "northeurope",
+              "name": "isaacdiagsuperweb-farm",
+              "properties": {
+                "name": "isaacdiagsuperweb-farm",
+                "perSiteScaling": false,
+                "reserved": false
+              },
+              "sku": {
+                "capacity": 1,
+                "name": "F1",
+                "size": "0",
+                "tier": "Free"
+              },
+              "tags": {},
+              "type": "Microsoft.Web/serverfarms"
+            },
+            {
+              "apiVersion": "2020-06-01",
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', 'isaacdiagsuperweb')]"
+              ],
+              "location": "northeurope",
+              "name": "isaacdiagsuperweb/Microsoft.AspNetCore.AzureAppServices.SiteExtension",
+              "type": "Microsoft.Web/sites/siteextensions"
+            },
+            {
+              "apiVersion": "2017-04-01",
+              "location": "northeurope",
+              "name": "isaacsuperhub-ns",
+              "properties": {},
+              "sku": {
+                "capacity": 1,
+                "name": "Standard",
+                "tier": "Standard"
+              },
+              "tags": {},
+              "type": "Microsoft.EventHub/namespaces"
+            },
+            {
+              "apiVersion": "2017-04-01",
+              "dependsOn": [
+                "[resourceId('Microsoft.EventHub/namespaces', 'isaacsuperhub-ns')]"
+              ],
+              "location": "northeurope",
+              "name": "isaacsuperhub-ns/isaacsuperhub",
+              "properties": {
+                "partitionCount": 1,
+                "status": "Active"
+              },
+              "tags": {},
+              "type": "Microsoft.EventHub/namespaces/eventhubs"
+            },
+            {
+              "apiVersion": "2017-04-01",
+              "dependsOn": [
+                "[resourceId('Microsoft.EventHub/namespaces', 'isaacsuperhub-ns')]",
+                "[resourceId('Microsoft.EventHub/namespaces/eventhubs', 'isaacsuperhub-ns', 'isaacsuperhub')]"
+              ],
+              "location": "northeurope",
+              "name": "isaacsuperhub-ns/isaacsuperhub/$Default",
+              "type": "Microsoft.EventHub/namespaces/eventhubs/consumergroups"
+            },
+            {
+              "apiVersion": "2020-03-01-preview",
+              "location": "northeurope",
+              "name": "isaacsuperlogs",
+              "properties": {
+                "sku": {
+                  "name": "PerGB2018"
+                }
+              },
+              "tags": {},
+              "type": "Microsoft.OperationalInsights/workspaces"
+            },
+            {
+              "apiVersion": "2017-05-01-preview",
+              "dependsOn": [
+                "[resourceId('Microsoft.EventHub/namespaces', 'isaacsuperhub-ns')]",
+                "[resourceId('Microsoft.OperationalInsights/workspaces', 'isaacsuperlogs')]",
+                "[resourceId('Microsoft.Storage/storageAccounts', 'isaacsuperdata')]",
+                "[resourceId('Microsoft.Web/sites', 'isaacdiagsuperweb')]"
+              ],
+              "location": "northeurope",
+              "name": "isaacdiagsuperweb/Microsoft.Insights/myDiagnosticSetting",
+              "properties": {
+                "LogAnalyticsDestinationType": "Dedicated",
+                "eventHubAuthorizationRuleId": "[resourceId('Microsoft.EventHub/namespaces/AuthorizationRules', 'isaacsuperhub-ns', 'RootManageSharedAccessKey')]",
+                "eventHubName": "isaacsuperhub",
+                "logs": [
+                  {
+                    "category": "AppServiceAntivirusScanAuditLogs",
+                    "enabled": true
+                  },
+                  {
+                    "category": "AppServiceAppLogs",
+                    "enabled": true
+                  },
+                  {
+                    "category": "AppServiceHTTPLogs",
+                    "enabled": true
+                  },
+                  {
+                    "category": "AppServicePlatformLogs",
+                    "enabled": true
+                  }
+                ],
+                "metrics": [
+                  {
+                    "category": "AllMetrics",
+                    "enabled": true
+                  }
+                ],
+                "storageAccountId": "[resourceId('Microsoft.Storage/storageAccounts', 'isaacsuperdata')]",
+                "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces', 'isaacsuperlogs')]"
+              },
+              "tags": {},
+              "type": "Microsoft.Web/sites/providers/diagnosticSettings"
+            }
+          ],
+          "variables": {}
+        }
+      },
+      "resourceGroup": "farmer-deploy",
+      "tags": {},
+      "type": "Microsoft.Resources/deployments"
+    }
+  ]
+}

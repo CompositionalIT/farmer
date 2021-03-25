@@ -2,7 +2,6 @@
 title: "Multiple web apps"
 date: 2020-10-24
 draft: false
-weight: 5
 ---
 
 #### Introduction
@@ -12,7 +11,7 @@ This tutorial walks you through creating multiple web applications that will sha
 1. Creating multiple web apps and "sharing" the first web app's service plan and Application Insights instances.
 1. How to use F#'s list comprehensions to rapidly creating multiple websites.
 
-{{< figure src="../../images/quickstarts/multiple-web-apps.png" caption="[Full code available here](https://github.com/CompositionalIT/farmer/blob/master/samples/scripts/tutorials/multiple-web-apps.fsx)">}}
+{{< figure src="../../images/tutorials/multiple-web-apps.png" caption="[Full code available here](https://github.com/CompositionalIT/farmer/blob/master/samples/scripts/tutorials/multiple-web-apps.fsx)">}}
 
 
 #### Creating a single web app

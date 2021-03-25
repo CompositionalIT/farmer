@@ -2,7 +2,7 @@
 title: "Virtual Network Gateway"
 date: 2020-06-19T10:40:00-04:00
 chapter: false
-weight: 25
+weight: 21
 ---
 
 #### Overview

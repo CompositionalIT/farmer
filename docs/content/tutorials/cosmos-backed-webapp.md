@@ -2,7 +2,6 @@
 title: "Cosmos-backed Web App"
 date: 2020-10-24
 draft: false
-weight: 5
 ---
 
 #### Introduction
@@ -12,7 +11,7 @@ This tutorial walks you through creating a web application which is backed by a 
 1. Creating a web application with an automatically configured app insights instance.
 1. Configuring the web application to have the connection settings required to connect to the Cosmos DB instance.
 
-{{< figure src="../../images/quickstarts/webapp-cosmos.png" caption="[Full code available here](https://github.com/CompositionalIT/farmer/blob/master/samples/scripts/tutorials/cosmos-backed-webapp.fsx)">}}
+{{< figure src="../../images/tutorials/webapp-cosmos.png" caption="[Full code available here](https://github.com/CompositionalIT/farmer/blob/master/samples/scripts/tutorials/cosmos-backed-webapp.fsx)">}}
 
 #### Create the CosmosDB instance
 Create a CosmosDB instance using the `cosmosDb` builder:
