@@ -63,7 +63,7 @@ stages:
 - stage: "Release"
   displayName: "Release to NuGet"
   dependsOn: ["Prepare"]
-  condition:  and(succeeded(), eq(variables['build.sourceBranch'], 'refs/tags/')) #optional, only publish nuget pkg for new tags
+  condition:  and(succeeded(), startsWith(variables['build.sourceBranch'], 'refs/tags/')) #optional, only publish nuget pkg for new tags
   jobs:
   - deployment: "NugetPublish"
     displayName: "Publish to NuGet"
