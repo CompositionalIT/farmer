@@ -2,6 +2,10 @@ trigger:
   paths:
     exclude:
     - 'docs/'
+  branches:
+  - master
+  pr:
+  - master
   tags:
     include:
     - '*'
