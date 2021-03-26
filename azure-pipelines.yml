@@ -3,9 +3,12 @@ trigger:
     exclude:
     - 'docs/'
   branches:
-  - master
+    include:
+    - master
   pr:
-  - master
+    branches:
+      include:
+      - master
   tags:
     include:
     - '*'
