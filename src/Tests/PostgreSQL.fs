@@ -6,7 +6,6 @@ open Expecto
 open Farmer
 open Farmer.PostgreSQL
 open Farmer.Builders
-open Newtonsoft.Json.Linq
 open Farmer.Arm
 
 type PostgresSku =
@@ -14,7 +13,7 @@ type PostgresSku =
       family : string
       capacity : int
       tier : string
-      size : int }
+      size : string }
 
 
 type StorageProfile =
@@ -37,7 +36,7 @@ type PostgresTemplate =
       sku : PostgresSku
       location : string
       geoRedundantBackup : string
-      resources : JToken list
+      resources : obj array
       properties : Properties }
 
 type Dependencies = string array
@@ -47,13 +46,13 @@ type DatabaseResource =
       ``type`` : string
       apiVersion : string
       properties : {| collation: string; charset: string |}
-      dependsOn : string list }
+      dependsOn : string array }
 
 type FirewallResource =
     {   name: string
         apiVersion: string
         ``type`` : string
-        dependsOn : string list
+        dependsOn : string array
         properties: {| endIpAddress: string; startIpAddress: string |}
         location: string }
 
@@ -93,7 +92,7 @@ let tests = testList "PostgreSQL Database Service" [
         Expect.equal actual.sku.family "Gen5" "sku family"
         Expect.equal actual.sku.capacity 4 "sku capacity"
         Expect.equal actual.sku.tier "GeneralPurpose" "sku tier"
-        Expect.equal actual.sku.size 51200 "sku size"
+        Expect.equal actual.sku.size "51200" "sku size"
         Expect.equal actual.properties.administratorLogin "myadminuser" "Admin user prop"
         Expect.equal actual.properties.administratorLoginPassword "[parameters('password-for-testdb')]" "Admin password prop"
         Expect.equal actual.properties.version "10" "server version"
@@ -117,7 +116,7 @@ let tests = testList "PostgreSQL Database Service" [
             actual
             |> toTemplate Location.NorthEurope
             |> Writer.toJson
-            |> Microsoft.Rest.Serialization.SafeJsonConvert.DeserializeObject<TypedArmTemplate<DatabaseResource>>
+            |> Serialization.ofJson<TypedArmTemplate<DatabaseResource>>
             |> fun r -> r.Resources
             |> Seq.find(fun r -> r.name = "testdb/my_db")
 
@@ -126,7 +125,7 @@ let tests = testList "PostgreSQL Database Service" [
             apiVersion = "2017-12-01"
             ``type`` = "Microsoft.DBforPostgreSQL/servers/databases"
             properties = {| collation = "de_DE"; charset = "ASCII" |}
-            dependsOn = [ "[resourceId('Microsoft.DBforPostgreSQL/servers', 'testdb')]" ]
+            dependsOn = [| "[resourceId('Microsoft.DBforPostgreSQL/servers', 'testdb')]" |]
         }
 
         Expect.equal actual expectedDbRes "database resource"
@@ -142,14 +141,14 @@ let tests = testList "PostgreSQL Database Service" [
             actual
             |> toTemplate Location.NorthEurope
             |> Writer.toJson
-            |> Microsoft.Rest.Serialization.SafeJsonConvert.DeserializeObject<TypedArmTemplate<FirewallResource>>
+            |> Serialization.ofJson<TypedArmTemplate<FirewallResource>>
             |> fun r -> r.Resources
             |> Seq.find(fun r -> r.name = "testdb/allow-azure-services")
         let expectedFwRuleRes =
             { name = "testdb/allow-azure-services"
               ``type`` = "Microsoft.DBforPostgreSQL/servers/firewallrules"
               apiVersion = "2017-12-01"
-              dependsOn = [ "[resourceId('Microsoft.DBforPostgreSQL/servers', 'testdb')]" ]
+              dependsOn = [| "[resourceId('Microsoft.DBforPostgreSQL/servers', 'testdb')]" |]
               location = "northeurope"
               properties = {| startIpAddress = "0.0.0.0"; endIpAddress = "0.0.0.0" |} }
         Expect.equal actual expectedFwRuleRes "Firewall is incorrect"

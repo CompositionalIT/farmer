@@ -16,11 +16,8 @@ let getStorageResource = findAzureResources<StorageAccount> client.Serialization
 let tests = testList "Storage Tests" [
     test "Can create a basic storage account" {
         let resource =
-            let account = storageAccount {
-                name "mystorage123"
-            }
-            arm { add_resource account }
-            |> getStorageResource
+            let account = storageAccount { name "mystorage123" }
+            arm { add_resource account } |> getStorageResource
 
         resource.Validate()
         Expect.equal resource.Name "mystorage123" "Account name is wrong"
