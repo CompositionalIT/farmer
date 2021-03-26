@@ -18,6 +18,7 @@ Release Notes
 * Framework: Updated DeterministicGuid for RFC 4122 compatibility
 * Framework: Add support for NET5, upgrade to F#5.
 * Framework: Simplify Event Grid builder
+* Framework: Use System.Text.Json instead of Newtonsoft.Json
 
 ## 1.4.0
 * Bing Search: Support for Bing Search (migrated from Cognitive Services).
