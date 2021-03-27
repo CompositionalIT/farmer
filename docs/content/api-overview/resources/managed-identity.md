@@ -88,7 +88,6 @@ open Farmer.Builders
 
 let wa = webApp {
     name "myApp"
-    system_identity // turn on the system identity of the web app
 }
 
 let vault = keyVault {

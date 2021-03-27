@@ -39,7 +39,7 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Web App | docker_ci | Turns on continuous integration of the web app from the Docker source repository using a webhook.
 | Web App | docker_use_azure_registry | Uses the supplied Azure Container Registry name as the source of the Docker image, instead of Docker Hub. You do not need to specify the full url, but just the name of the registry itself.
 | Web App | add_identity | Adds a managed identity to the the Web App. Farmer will automatically set the AZURE_CLIENT_ID application setting to the Client Id of the supplied identity. |
-| Web App | system_identity | Activates the system identity of the Web App. |
+| Web App | system_identity | Turns the system identity of the web app on or off (on by default). |
 | Web App | enable_cors | Enables CORS support for the app. Either specify `WebApp.AllOrigins` or a list of valid URIs as strings. |
 | Web App | enable_cors_credentials | Allows CORS requests with credentials. |
 | Web App | source_control | Given a github repository URI and branch name, configures the web app to automatically deploy those files to the web app |
@@ -74,7 +74,7 @@ The Web App builder contains special commands that are executed *after* the ARM 
 | PublishingPassword | Gets the ARM expression path to the publishing password of this web app. |
 | ServicePlan | Gets the Resource Name of the service plan for this web app. |
 | AppInsights | Gets the Resource Name of the service plan for the AI resource linked to this web app. |
-| SystemIdentity | Gets the system-created managed principal for the web app. It must have been enabled using the system_identity keyword. |
+| SystemIdentity | Gets the system-created managed principal for the web app. |
 
 #### Key Vault integration
 The Web App builder comes with special integration into KeyVault. By activating KeyVault integration, the web app builder can automatically link to, or even create, a full KeyVault instance. All Secret or ARM Expression-based Settings (e.g. a setting that links to the Key of a Storage Account) will automatically be redirected to KeyVault. The value will be stored in KeyVault and the system identity will be activated and provided into the KeyVault with GET permissions. Lastly, Web App app settings will remain in place, using the Azure App Service built-in KeyVault redirection capabilities.
@@ -106,7 +106,6 @@ let myWebApp = webApp {
     worker_size Medium
     number_of_workers 3
     run_from_package
-    system_identity
 }
 ```
 

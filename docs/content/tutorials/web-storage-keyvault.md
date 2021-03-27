@@ -48,11 +48,6 @@ let secretsvault = keyVault {
 Now we have KeyVault grant permission to the web app:
 
 ```fsharp
-let webapplication = webApp {
-    ...
-    system_identity
-}
-
 let secretsvault = keyVault {
     ...
     add_access_policy (AccessPolicy.create webapplication.SystemIdentity)
