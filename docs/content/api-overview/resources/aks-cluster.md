@@ -21,7 +21,7 @@ The AKS Builder constructs AKS clusters.
 | add_agent_pools | Adds agent pools to the AKS cluster. |
 | add_agent_pool | Adds an agent pool to the AKS cluster. |
 | add_identity | Adds a managed identity to the the AKS cluster. |
-| system_identity | Activates the system identity of the AKS cluster. |
+| system_identity | Turns the system identity of the AKS cluster on or off (on by default). |
 | network_profile | Sets the network profile for the AKS cluster. |
 | linux_profile | Sets the linux profile for the AKS cluster. |
 | service_principal_client_id | Sets the client id of the service principal for the AKS cluster. |
