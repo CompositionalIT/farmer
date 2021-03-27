@@ -258,6 +258,7 @@ module ResourceRef =
 type FeatureFlag =
     | Enabled | Disabled
     member this.AsBoolean = match this with Enabled -> true | Disabled -> false
+    static member OfBoolean = function true -> Enabled | false -> Disabled
     member this.ArmValue = match this with Enabled -> "Enabled" | Disabled -> "Disabled"
 
 module FeatureFlag =

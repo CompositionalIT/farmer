@@ -173,7 +173,7 @@ type ContainerGroupBuilder() =
         { Name = ResourceName.Empty
           OperatingSystem = Linux
           RestartPolicy = AlwaysRestart
-          Identity = ManagedIdentity.Empty
+          Identity = ManagedIdentity.AssignedOnly
           ImageRegistryCredentials = []
           InitContainers = []
           IpAddress = None
@@ -239,7 +239,7 @@ type ContainerGroupBuilder() =
     member _.AddIdentity(state:ContainerGroupConfig, identity:UserAssignedIdentity) = { state with Identity = state.Identity + identity }
     member this.AddIdentity(state, identity:UserAssignedIdentityConfig) = this.AddIdentity(state, identity.UserAssignedIdentity)
     [<CustomOperation "system_identity">]
-    member _.SystemIdentity(state:ContainerGroupConfig) = { state with Identity = { state.Identity with SystemAssigned = Enabled } }
+    member _.SystemIdentity(state:ContainerGroupConfig, on) = { state with Identity = { state.Identity with SystemAssigned = FeatureFlag.ofBool on } }
     interface ITaggable<ContainerGroupConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 /// Creates an image registry credential with a generated SecureParameter for the password.

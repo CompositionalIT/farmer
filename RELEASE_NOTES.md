@@ -5,8 +5,11 @@ Release Notes
 * Container Groups: Support for liveliness and readiness probes on containers.
 * Container Groups: Connect network profile to an existing virtual network.
 * Container Groups: Bugfix for outputs.
+* Container Groups: System Identity now on by default.
+* AKS: System Identity now on by default.
 * Event Grid: Ensure destination Queues are created as a dependency
 * Event Grid: Add ServiceBus Queue and Topic as supported destinations
+* Functions: System Identity now on by default.
 * Functions: Support for 64 bits.
 * Functions: Add option to use managed Key Vault
 * KeyVault: Fix an issue with adding tags on main KeyVault builder.
@@ -14,6 +17,7 @@ Release Notes
 * Storage: Add support for tables
 * Web App: Disables the automatic addition of the logging site extension when `docker_image` is used
 * Web App: Add dotnet 5.0 runtime option
+* Web App: System Identity now on by default.
 
 * Framework: Updated DeterministicGuid for RFC 4122 compatibility
 * Framework: Add support for NET5, upgrade to F#5.

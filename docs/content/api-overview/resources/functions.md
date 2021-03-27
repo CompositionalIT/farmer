@@ -38,7 +38,7 @@ The Functions builder is used to create Azure Functions accounts. It abstracts t
 | enable_cors | Enables CORS support for the app. Either specify AllOrigins or a list of valid URIs. |
 | enable_cors_credentials | Allows CORS requests with credentials. |
 | add_identity | Adds a managed identity to the the Function App. |
-| system_identity | Activates the system identity of the Function App. |
+| system_identity | Turns the system identity of the functions app on or off (on by default). |
 | always_on | Stops the app from sleeping if idle for a few minutes of inactivity. |
 | worker_process | Specifies whether to set the app to 32 or 64 Bitness. |
 

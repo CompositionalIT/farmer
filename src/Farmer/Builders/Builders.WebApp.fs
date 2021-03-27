@@ -412,7 +412,7 @@ type WebAppBuilder() =
           ServicePlan = derived (fun name -> serverFarms.resourceId (name-"farm"))
           AppInsights = Some (derived (fun name -> components.resourceId (name-"ai")))
           Settings = Map.empty
-          Identity = ManagedIdentity.Empty
+          Identity = ManagedIdentity.AssignedOnly
           Cors = None
           OperatingSystem = Windows
           ZipDeployPath = None
@@ -630,9 +630,10 @@ module Extensions =
             |> this.Wrap state
         member this.AddIdentity (state, identity:UserAssignedIdentityConfig) = this.AddIdentity(state, identity.UserAssignedIdentity)
         [<CustomOperation "system_identity">]
-        member this.SystemIdentity (state:'T) =
+        member this.SystemIdentity (state:'T, on) =
             let current = this.Get state
-            { current with Identity = { current.Identity with SystemAssigned = Enabled } }
+            { current with
+                Identity = { current.Identity with SystemAssigned = FeatureFlag.OfBoolean on } }
             |> this.Wrap state
         /// sets the list of origins that should be allowed to make cross-origin calls. Use AllOrigins to allow all.
         [<CustomOperation "enable_cors">]

@@ -163,7 +163,7 @@ type AksBuilder() =
           AgentPools = []
           DnsPrefix = ""
           EnableRBAC = false
-          Identity = ManagedIdentity.Empty
+          Identity = ManagedIdentity.AssignedOnly
           LinuxProfile = None
           NetworkProfile = None
           ServicePrincipalClientID = None
@@ -181,6 +181,8 @@ type AksBuilder() =
     [<CustomOperation "add_identity">]
     member _.AddIdentity(state:AksConfig, identity:UserAssignedIdentity) = { state with Identity = state.Identity + identity }
     member this.AddIdentity(state, identity:UserAssignedIdentityConfig) = this.AddIdentity(state, identity.UserAssignedIdentity)
+    [<CustomOperation "system_identity">]
+    member _.SystemIdentity(state:AksConfig, on) = { state with Identity = { state.Identity with SystemAssigned = FeatureFlag.ofBool on } }
     /// Adds agent pools to the AKS cluster.
     [<CustomOperation "add_agent_pools">]
     member _.AddAgentPools(state:AksConfig, pools) = { state with AgentPools = state.AgentPools @ pools }

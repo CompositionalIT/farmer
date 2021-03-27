@@ -47,15 +47,15 @@ let tests = testList "Functions tests" [
         Expect.stringContains site.AppSettings.["AzureWebJobsDashboard"].Value "foo" "Web Jobs Dashboard setting should have storage account name"
     }
     test "Handles identity correctly" {
-        let f : Site = functions { name "" } |> getResourceAtIndex 0
+        let f : Site = functions { system_identity false } |> getResourceAtIndex 0
         Expect.equal f.Identity.Type (Nullable ManagedServiceIdentityType.None) "Incorrect default managed identity"
         Expect.isNull f.Identity.UserAssignedIdentities "Incorrect default managed identity"
 
-        let f : Site = functions { system_identity } |> getResourceAtIndex 0
+        let f : Site = functions { name "" } |> getResourceAtIndex 0
         Expect.equal f.Identity.Type (Nullable ManagedServiceIdentityType.SystemAssigned) "Should have system identity"
         Expect.isNull f.Identity.UserAssignedIdentities "Should have no user assigned identities"
 
-        let f : Site = functions { system_identity; add_identity (createUserAssignedIdentity "test"); add_identity (createUserAssignedIdentity "test2") } |> getResourceAtIndex 0
+        let f : Site = functions { name ""; add_identity (createUserAssignedIdentity "test"); add_identity (createUserAssignedIdentity "test2") } |> getResourceAtIndex 0
         Expect.equal f.Identity.Type (Nullable ManagedServiceIdentityType.SystemAssignedUserAssigned) "Should have system identity"
         Expect.sequenceEqual (f.Identity.UserAssignedIdentities |> Seq.map(fun r -> r.Key)) [ "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test2')]"; "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test')]" ] "Should have two user assigned identities"
 

@@ -12,7 +12,6 @@ let datastore = storageAccount {
 
 let webapplication = webApp {
     name "isaacsuperweb"
-    system_identity
     link_to_keyvault (ResourceName vaultName)
     secret_setting secretName
 }
