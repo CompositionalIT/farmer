@@ -4,6 +4,8 @@ open Expecto
 open System
 open Farmer
 
+let hasEnv a b = Environment.GetEnvironmentVariable a = b
+
 [<Tests>]
 let allTests =
     testSequencedGroup "" <|
@@ -47,7 +49,7 @@ let allTests =
                 Template.tests
                 Identity.tests
                 Common.tests
-                if Environment.GetEnvironmentVariable "TF_BUILD" = "True" then AzCli.endToEndTests
+                if hasEnv "TF_BUILD" "True" || hasEnv "FARMER_E2E" "True" then AzCli.endToEndTests
             ]
         ]
 

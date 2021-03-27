@@ -192,7 +192,7 @@ type AccessPolicy =
         |> String.concat " or "
         |> sprintf "\"%s\""
         |> searcher
-        |> Result.map (Newtonsoft.Json.JsonConvert.DeserializeObject<{| DisplayName : string; ObjectId : Guid|} array>)
+        |> Result.map (Serialization.ofJson<{| DisplayName : string; ObjectId : Guid|} array>)
         |> Result.toOption
         |> Option.map(Array.map(fun r -> {| r with ObjectId = ObjectId r.ObjectId |}))
         |> Option.defaultValue Array.empty
