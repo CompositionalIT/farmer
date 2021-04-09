@@ -9,6 +9,7 @@ Release Notes
 * Event Grid: Add ServiceBus Queue and Topic as supported destinations
 * Functions: Support for 64 bits.
 * Functions: Add option to use managed Key Vault
+* Functions: Add support for dotnet-isolated runtime (NET5)
 * KeyVault: Fix an issue with adding tags on main KeyVault builder.
 * ServiceBus: update namespace validation rules to follow [Microsoft documentation](https://docs.microsoft.com/en-us/azure/azure-resource-manager/management/resource-name-rules#microsoftservicebus)
 * Storage: Add support for tables
