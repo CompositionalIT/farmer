@@ -1,19 +1,43 @@
 Release Notes
 =============
-## 1.4.0-beta1
-* Storage: Support for setting default blob access tier at account level with "default_blob_access_tier"
+##  1.5.0-beta
+* Container Groups: Support for init containers.
+* Container Groups: Support for liveliness and readiness probes on containers.
+* Container Groups: Connect network profile to an existing virtual network.
+* Container Groups: Bugfix for outputs.
+* Event Grid: Ensure destination Queues are created as a dependency
+* Event Grid: Add ServiceBus Queue and Topic as supported destinations
+* Functions: Support for 64 bits.
+* Functions: Add option to use managed Key Vault
+* KeyVault: Fix an issue with adding tags on main KeyVault builder.
+* ServiceBus: update namespace validation rules to follow [Microsoft documentation](https://docs.microsoft.com/en-us/azure/azure-resource-manager/management/resource-name-rules#microsoftservicebus)
+* Storage: Add support for tables
+* Web App: Disables the automatic addition of the logging site extension when `docker_image` is used
+* Web App: Add dotnet 5.0 runtime option
 
+* Framework: Updated DeterministicGuid for RFC 4122 compatibility
+* Framework: Add support for NET5, upgrade to F#5.
+* Framework: Simplify Event Grid builder
+* Framework: Use System.Text.Json instead of Newtonsoft.Json
+
+## 1.4.0
+* Bing Search: Support for Bing Search (migrated from Cognitive Services).
+* Container Registry: Added ARM expressions for admin account credentials
+* Databricks Workspace: Support for creating Databricks Workspaces
+* Diagnostic Settings: Support for creating Diagnostic Settings on other resources.
+* Event Hub: Update built-in expression paths for default key.
 * Functions: Added some extra keywords which were already present on Web App.
+* Storage: Support for setting default blob access tier at account level with "default_blob_access_tier"
+* SQL Azure: Validation and fail fast on account names instead of silently fixing them (breaking run-time change).
 
+* Web App: Improved KeyVault integration.
+* Web App: Add PremiumV3 SKU.
 * Web App: Automatically add Logging extension for ASP.NET Core apps (additive change to ARM).
 * Web App: Added Instrumentation Key Setting for Linux WebApp.
 * Web App: Automatically add Client Id setting for user assigned identities.
 * Web App: Support for 64 bits.
 
-* SQL Azure: Validation and fail fast on account names instead of silently fixing them (breaking run-time change).
-
 * Azure CLI: Ensure JSON output.
-
 * Framework: Extension methods for Taggable and Dependable to simplify boilerplate keywords.
 * Framework: Common keywords between Functions and Web Apps factored out.
 

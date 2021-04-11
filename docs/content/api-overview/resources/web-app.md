@@ -2,7 +2,7 @@
 title: "Web App"
 date: 2020-02-05T08:53:46+01:00
 chapter: false
-weight: 26
+weight: 22
 ---
 
 #### Overview
@@ -46,7 +46,7 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Web App | disable_source_control_ci | Disables continuous integration from source control on push |
 | Web App | enable_source_control_ci | Enables continuous integration from source control on push |
 | Web App | add_extension | Adds the named extension to the Web App |
-| Web App | automatic_logging_extension | Enables or disables automatically adding the ASP .NET logging extension for netcore apps (defaults to on). |
+| Web App | automatic_logging_extension | Enables or disables automatically adding the ASP .NET logging extension for netcore apps (defaults to on unless docker_image is set). |
 | Web App | worker_process | Specifies whether to set the web app to 32 or 64 Bitness. |
 | Web App | always_on | Sets the "Always On" flag. |
 | Service Plan | service_plan_name | Sets the name of the service plan. If not set, uses the name of the web app postfixed with "-plan". |
@@ -84,10 +84,12 @@ The following keywords exist on the web app:
 | Member | Purpose |
 |-|-|
 | use_keyvault | Tells the web app to create a brand new KeyVault for this App Service's secrets. |
-| use_managed_keyvault | Tells the web app to use an existing Farmer-managed KeyVault which you have defined elsewhere. |
-| use_external_keyvault | Tells the web app to use an existing non-Farmer managed KeyVault which you have defined elsewhere. |
+| link_to_keyvault | Tells the web app to use an existing Farmer-managed KeyVault which you have defined elsewhere. All secret settings will automatically be mapped into KeyVault. |
+| link_to_unmanaged_keyvault | Tells the web app to use an existing non-Farmer managed KeyVault which you have defined elsewhere.  All secret settings will automatically be mapped into KeyVault. |
 
-#### Example
+#### Examples
+
+A basic web application.
 
 ```fsharp
 open Farmer
@@ -105,5 +107,32 @@ let myWebApp = webApp {
     number_of_workers 3
     run_from_package
     system_identity
+}
+```
+
+Using a managed Key Vault instance with automatic secret mapping.
+
+```fsharp
+open Farmer
+open Farmer.Builders
+
+// Create a basic storage account
+let data = storageAccount {
+    name "mystorage"
+}
+
+// Create a web application with a sensitive setting of storage key and an explicit "secret" setting
+// which will be passed through by ARM parameter.
+let wa = webApp {
+    name "isaac"
+    setting "key" "value"
+    setting "storagekey" data.Key
+    link_to_keyvault (ResourceName "isaacvault")
+}
+
+// Create a key vault instance and explicitly grant the web application access to it.
+let v = keyVault {
+    name "isaacvault"
+    add_access_policy (AccessPolicy.create (wa.SystemIdentity.PrincipalId, [ KeyVault.Secret.Get; KeyVault.Secret.List ]))
 }
 ```

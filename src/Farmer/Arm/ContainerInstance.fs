@@ -6,7 +6,7 @@ open Farmer.ContainerGroup
 open Farmer.Identity
 open System
 
-let containerGroups = ResourceType ("Microsoft.ContainerInstance/containerGroups", "2018-10-01")
+let containerGroups = ResourceType ("Microsoft.ContainerInstance/containerGroups", "2019-12-01")
 
 type ContainerGroupIpAddress =
     { Type : IpAddressType
@@ -18,6 +18,38 @@ type ImageRegistryCredential =
     { Server : string
       Username : string
       Password : SecureParameter }
+
+/// Defines a command or HTTP request to get the status of a container.
+type ContainerProbe =
+    { Exec : string list
+      HttpGet : Uri option
+      /// The probe will not run until this delay after container startup. Default is 0 - runs immediately.
+      InitialDelaySeconds : int option
+      /// How often to execute the probe against the container - default is 10 seconds.
+      PeriodSeconds : int option
+      /// Number of failures before this container is considered unhealthy - default is 3.
+      FailureThreshold : int option
+      /// Number of successes before this container is considered healthy - default is 1.
+      SuccessThreshold : int option
+      /// Number of seconds for the probe to run - default is 1 second.
+      TimeoutSeconds : int option }
+    member internal this.JsonModel =
+        {|
+            exec = 
+                if this.Exec.Length > 0 then
+                    {| command = this.Exec |} |> box
+                else
+                    null
+            httpGet = 
+                this.HttpGet
+                |> Option.map (fun (uri:Uri) -> {| path=uri.AbsolutePath; port=uri.Port; scheme=uri.Scheme |} |> box)
+                |> Option.defaultValue null
+            initialDelaySeconds = this.InitialDelaySeconds |> Option.map box |> Option.defaultValue null
+            periodSeconds = this.PeriodSeconds |> Option.map box |> Option.defaultValue null
+            failureThreshold = this.FailureThreshold |> Option.map box |> Option.defaultValue null
+            successThreshold = this.SuccessThreshold |> Option.map box |> Option.defaultValue null
+            timeoutSeconds = this.TimeoutSeconds |> Option.map box |> Option.defaultValue null
+        |}
 
 type ContainerGroup =
     { Name : ResourceName
@@ -31,11 +63,20 @@ type ContainerGroup =
            Memory : float<Gb>
            EnvironmentVariables: Map<string, EnvVar>
            VolumeMounts : Map<string,string>
+           LivelinessProbe : ContainerProbe option
+           ReadinessProbe : ContainerProbe option
         |} list
       OperatingSystem : OS
       RestartPolicy : RestartPolicy
       Identity : ManagedIdentity
       ImageRegistryCredentials : ImageRegistryCredential list
+      InitContainers :
+        {| Name : ResourceName
+           Image : string
+           Command : string list
+           EnvironmentVariables: Map<string, EnvVar>
+           VolumeMounts : Map<string,string>
+        |} list
       IpAddress : ContainerGroupIpAddress option
       NetworkProfile : ResourceName option
       Volumes : Map<string, Volume>
@@ -101,11 +142,33 @@ type ContainerGroup =
                                               | SecureEnvValue value ->
                                                 {| name = key; value = null; secureValue = value.ArmExpression.Eval() |}
                                       ]
+                                      livenessProbe = container.LivelinessProbe |> Option.map (fun p -> p.JsonModel |> box) |> Option.defaultValue null
+                                      readinessProbe = container.ReadinessProbe |> Option.map (fun p -> p.JsonModel |> box) |> Option.defaultValue null
                                       resources =
                                        {| requests =
                                            {| cpu = container.Cpu
                                               memoryInGB = container.Memory |}
                                        |}
+                                      volumeMounts =
+                                          container.VolumeMounts
+                                          |> Seq.map (fun kvp -> {| name=kvp.Key; mountPath=kvp.Value |}) |> List.ofSeq
+                                   |}
+                               |})
+                          initContainers =
+                           this.InitContainers
+                           |> List.map (fun container ->
+                               {| name = container.Name.Value.ToLowerInvariant ()
+                                  properties =
+                                   {| image = container.Image
+                                      command = container.Command
+                                      environmentVariables = [
+                                          for key, value in Map.toSeq container.EnvironmentVariables do
+                                              match value with
+                                              | EnvValue value ->
+                                                {| name = key; value = value; secureValue = null |}
+                                              | SecureEnvValue value ->
+                                                {| name = key; value = null; secureValue = value.ArmExpression.Eval() |}
+                                      ]
                                       volumeMounts =
                                           container.VolumeMounts
                                           |> Seq.map (fun kvp -> {| name=kvp.Key; mountPath=kvp.Value |}) |> List.ofSeq
@@ -153,7 +216,7 @@ type ContainerGroup =
                                        azureFile =
                                            {| shareName = shareName.Value
                                               storageAccountName = accountName.ResourceName.Value
-                                              storageAccountKey = sprintf "[listKeys('Microsoft.Storage/storageAccounts/%s', '2018-07-01').keys[0].value]" accountName.ResourceName.Value |}
+                                              storageAccountKey = $"[listKeys('Microsoft.Storage/storageAccounts/{accountName.ResourceName.Value}', '2018-07-01').keys[0].value]" |}
                                        emptyDir = null
                                        gitRepo = Unchecked.defaultof<_>
                                        secret = Unchecked.defaultof<_> |}

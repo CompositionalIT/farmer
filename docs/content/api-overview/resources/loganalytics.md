@@ -2,7 +2,7 @@
 title: "Log Analytics"
 date: 2020-10-7T19:10:46+02:00
 chapter: false
-weight: 14
+weight: 12
 ---
 
 #### Overview

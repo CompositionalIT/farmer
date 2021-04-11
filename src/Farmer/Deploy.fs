@@ -1,7 +1,7 @@
 ﻿module Farmer.Deploy
 
-open Newtonsoft.Json
 open System
+open System.Collections.Generic
 open System.Diagnostics
 open System.IO
 
@@ -39,13 +39,13 @@ module Az =
                 | OperatingSystem OSPlatform.OSX ->
                     "az"
                 | _ ->
-                    failwithf "OSPlatform: %s not supported" RuntimeInformation.OSDescription
+                    failwith $"OSPlatform: {RuntimeInformation.OSDescription} not supported"
         let executeAz arguments =
             try
                 let azProcess =
                     ProcessStartInfo(
                         FileName = azCliPath.Value,
-                        Arguments = sprintf "%s --output json" arguments,
+                        Arguments = $"%s{arguments} --output json",
                         UseShellExecute = false,
                         RedirectStandardOutput = true,
                         RedirectStandardError = true)
@@ -62,12 +62,10 @@ module Az =
                 azProcess, sb.ToString()
             with
             | :? System.ComponentModel.Win32Exception as e when e.Message.Contains("No such file or directory") ->
-                let message = sprintf "Could not find Azure CLI tools on %s. Make sure you've setup the Azure CLI tools.  Go to https://compositionalit.github.io/farmer/quickstarts/quickstart-3/#install-the-azure-cli for more information." azCliPath.Value
+                let message = $"Could not find Azure CLI tools on {azCliPath.Value}. Make sure you've setup the Azure CLI tools. Go to https://compositionalit.github.io/farmer/quickstarts/quickstart-3/#install-the-azure-cli for more information."
                 AzureCLIToolsNotFound(message, e) |> raise
             | _ ->
                 reraise()
-
-
         let processToResult (p:Process, response) =
             match p.ExitCode with
             | 0 -> Ok response
@@ -80,17 +78,17 @@ module Az =
     /// Logs you into Az CLI interactively.
     let login() = az "login" |> Result.ignore
     /// Logs you into the Az CLI using the supplied service principal credentials.
-    let loginWithCredentials appId secret tenantId = az (sprintf "login --service-principal --username %s --password %s --tenant %s" appId secret tenantId)
+    let loginWithCredentials appId secret tenantId = az $"login --service-principal --username %s{appId} --password %s{secret} --tenant %s{tenantId}"
     let version() = az "--version"
     /// Lists all subscriptions
     let listSubscriptions() = az "account list --all"
-    let setSubscription subscriptionId = az (sprintf "account set --subscription %s" subscriptionId)
+    let setSubscription subscriptionId = az $"account set --subscription %s{subscriptionId}"
     /// Creates a resource group.
-    let createResourceGroup location resourceGroup = az (sprintf "group create -l %s -n %s" location resourceGroup) |> Result.ignore
+    let createResourceGroup location resourceGroup = az $"group create -l %s{location} -n %s{resourceGroup}" |> Result.ignore
     /// Searches for users in AD using the supplied filter.
-    let searchUsers filter = az ("ad user list --filter " + filter)
+    let searchUsers filter = az $"ad user list --filter %s{filter}"
     /// Searches for groups in AD using the supplied filter.
-    let searchGroups filter = az ("ad group list --filter " + filter)
+    let searchGroups filter = az $"ad group list --filter %s{filter}"
 
     type DeploymentCommand =
     | Create
@@ -106,9 +104,8 @@ module Az =
         let parametersArgument =
             match parameters with
             | [] -> ""
-            | parameters -> sprintf "--parameters %s" (parameters |> List.map(fun (a,b) -> sprintf "%s=%s" a b) |> String.concat " ")
-        let cmd = sprintf """deployment group %s -g %s -n %s --template-file %s %s""" deploymentCommand.Description resourceGroup deploymentName templateFilename parametersArgument
-        az cmd
+            | parameters -> sprintf "--parameters %s" (parameters |> List.map(fun (a, b) -> $"%s{a}=%s{b}") |> String.concat " ")
+        az $"""deployment group {deploymentCommand.Description} -g {resourceGroup} -n {deploymentName} --template-file {templateFilename} {parametersArgument}"""
     /// Deploys an ARM template to an existing resource group.
     let deploy resourceGroup deploymentName templateFilename parameters = deployOrValidate Create resourceGroup deploymentName templateFilename parameters
     /// Validates whether the specified template is syntactically correct and will be accepted by Azure Resource Manager.
@@ -118,20 +115,33 @@ module Az =
     /// Generic function for ZipDeploy using custom command (based on application type)
     let private zipDeploy command appName getZipPath resourceGroup =
         let packageFilename = getZipPath deployFolder |> sprintf "\"%s\""
-        az (sprintf """%s deployment source config-zip --resource-group "%s" --name "%s" --src %s""" command resourceGroup appName packageFilename)
+        az $"""%s{command} deployment source config-zip --resource-group "%s{resourceGroup}" --name "%s{appName}" --src %s{packageFilename}"""
     /// Deploys a zip file to a web app using the Zip Deploy mechanism.
     let zipDeployWebApp = zipDeploy "webapp"
     /// Deploys a zip file to a function app using the Zip Deploy mechanism.
     let zipDeployFunctionApp = zipDeploy "functionapp"
-    let delete resourceGroup =
-        az (sprintf "group delete --name %s --yes --no-wait" resourceGroup)
+    let delete resourceGroup = az $"group delete --name %s{resourceGroup} --yes --no-wait"
     let enableStaticWebsite name indexDoc errorDoc =
-        [ sprintf "storage blob service-properties update --account-name %s --static-website --index-document %s" name indexDoc
+        [ $"storage blob service-properties update --account-name %s{name} --static-website --index-document %s{indexDoc}"
           yield! errorDoc |> Option.mapList (sprintf "--404-document %s") ]
         |> String.concat " "
         |> az
     let batchUploadStaticWebsite name path =
-        az (sprintf "storage blob upload-batch --account-name %s --destination $web --source %s" name path)
+        az $"storage blob upload-batch --account-name %s{name} --destination $web --source %s{path}"
+
+    type AzureErrorCode = { Code : string; Message : string }
+    type AzureError = { Error : AzureErrorCode }
+    let tryGetError (error:string) =
+        try
+            let skip = "Deployment failed. Correlation ID: 3c51a527-c6e2-42a9-acee-7d9c796a626f. ".Length
+            match Serialization.ofJson<AzureError> error.[skip..] with
+            | { Error = { Code = "RoleAssignmentExists"; Message = "The role assignment already exists." } } ->
+                "A role assignment defined in this template already exists in Azure, but with a different GUID. If you have recently upgraded to Farmer 1.5, please be aware of a breaking change in the generation of role assignment GUIDs. To resolve this, locate the resource group in the Azure portal, remove the existing role assignment from IAM and then redeploy your Farmer template."
+            | _ ->
+                error
+        with _ ->
+            printfn "BAD"
+            error
 
 /// Represents an Azure subscription
 type Subscription = { ID : Guid; Name : string; IsDefault : bool }
@@ -140,12 +150,12 @@ type Subscription = { ID : Guid; Name : string; IsDefault : bool }
 /// Returns the list of subscriptions, including which one the default is.
 let authenticate appId secret tenantId =
     Az.loginWithCredentials appId secret tenantId
-    |> Result.map (JsonConvert.DeserializeObject<Subscription []>)
+    |> Result.map (Serialization.ofJson<Subscription []>)
 
 /// Lists all subscriptions that the logged in identity has access to.
 let listSubscriptions() = result {
     let! response = Az.listSubscriptions()
-    return response |> JsonConvert.DeserializeObject<Subscription array>
+    return response |> Serialization.ofJson<Subscription array>
 }
 
 
@@ -165,9 +175,9 @@ let checkVersion minimum = result {
         |> Option.bind(fun versionText ->
             try Some(Version versionText)
             with _ -> None)
-        |> Result.ofOption (sprintf "Unable to determine Azure CLI version. You need to have at least %O installed. Output was: %s" minimum versionOutput)
+        |> Result.ofOption $"Unable to determine Azure CLI version. You need to have at least {minimum} installed. Output was: %s{versionOutput}"
     return!
-        if version < minimum then Error (sprintf "You have %O of the Azure CLI installed, but the minimum version is %O. Please upgrade." version minimum)
+        if version < minimum then Error $"You have {version} of the Azure CLI installed, but the minimum version is {minimum}. Please upgrade."
         else Ok version
 }
 
@@ -207,14 +217,14 @@ let private prepareForDeployment parameters resourceGroupName deployment = resul
             Az.login()
             |> Result.bind(fun _ -> Az.showAccount())
 
-    let subscriptionDetails = subscriptionDetails |> JsonConvert.DeserializeObject<{| id : Guid; name : string |}>
+    let subscriptionDetails = subscriptionDetails |> Serialization.ofJson<{| id : Guid; name : string |}>
     printfn "Using subscription '%s' (%O)." subscriptionDetails.name subscriptionDetails.id
 
     printfn "Creating resource group %s..." resourceGroupName
     do! Az.createResourceGroup deployment.Location.ArmValue resourceGroupName
 
     return
-        {| DeploymentName = sprintf "farmer-deploy-%d" (generateDeployNumber())
+        {| DeploymentName = $"farmer-deploy-{generateDeployNumber()}"
            TemplateFilename = deployment.Template |> Writer.toJson |> Writer.toFile deployFolder "farmer-deploy" |}
 }
 
@@ -247,9 +257,12 @@ let tryExecute resourceGroupName parameters deployment = result {
     printfn "All done, now parsing ARM response to get any outputs..."
     let! response =
         response
-        |> Result.ofExn JsonConvert.DeserializeObject<{| properties : {| outputs : Map<string, {| value : string |}> |} |}>
+        |> Result.ofExn Serialization.ofJson<{| properties : {| outputs : IDictionary<string, {| value : string |}> |} |}>
         |> Result.mapError(fun _ -> response)
-    return response.properties.outputs |> Map.map (fun _ value -> value.value)
+    return
+        response.properties.outputs
+        |> Seq.map(fun r -> r.Key, r.Value.value)
+        |> Map.ofSeq
 }
 
 /// Executes the supplied Deployment against a resource group using the Azure CLI.
@@ -257,7 +270,7 @@ let tryExecute resourceGroupName parameters deployment = result {
 let execute resourceGroupName parameters deployment =
     match tryExecute resourceGroupName parameters deployment with
     | Ok output -> output
-    | Error message -> failwith message
+    | Error message -> failwith (Az.tryGetError message)
 
 let whatIf resourceGroupName parameters deployment =
     match tryWhatIf resourceGroupName parameters deployment with

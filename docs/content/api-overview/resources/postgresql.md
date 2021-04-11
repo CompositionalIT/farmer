@@ -2,14 +2,14 @@
 title: "PostgreSQL"
 date: 2020-05-22T07:14:00+02:00
 chapter: false
-weight: 17
+weight: 15
 ---
 
 #### Overview
-The PostgreSQL module contains two builders - `postgreSQL`, used to create 
-PostgreSQL Azure servers, and `postgreSQLDb`, used to create individual databases. 
-It supports features such as firewall, autogrow and version selection. 
-Every PostgreSQL Azure server you create will automatically create a SecureString 
+The PostgreSQL module contains two builders - `postgreSQL`, used to create
+PostgreSQL Azure servers, and `postgreSQLDb`, used to create individual databases.
+It supports features such as firewall, autogrow and version selection.
+Every PostgreSQL Azure server you create will automatically create a SecureString
 parameter for the admin account password.
 
 * PostgreSQL server (`Microsoft.DBforPostgreSQL/servers`)

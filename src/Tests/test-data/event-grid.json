@@ -1,0 +1,123 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "outputs": {},
+  "parameters": {},
+  "resources": [
+    {
+      "apiVersion": "2019-06-01",
+      "dependsOn": [],
+      "kind": "StorageV2",
+      "location": "northeurope",
+      "name": "isaacgriddevprac",
+      "properties": {},
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "tags": {},
+      "type": "Microsoft.Storage/storageAccounts"
+    },
+    {
+      "apiVersion": "2018-03-01-preview",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', 'isaacgriddevprac')]"
+      ],
+      "name": "isaacgriddevprac/default/data",
+      "properties": {
+        "publicAccess": "None"
+      },
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers"
+    },
+    {
+      "apiVersion": "2019-06-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', 'isaacgriddevprac')]"
+      ],
+      "name": "isaacgriddevprac/default/todo",
+      "type": "Microsoft.Storage/storageAccounts/queueServices/queues"
+    },
+    {
+      "apiVersion": "2017-04-01",
+      "dependsOn": [],
+      "location": "northeurope",
+      "name": "farmereventpubservicebusns",
+      "sku": {
+        "name": "Basic",
+        "tier": "Basic"
+      },
+      "tags": {},
+      "type": "Microsoft.ServiceBus/namespaces"
+    },
+    {
+      "apiVersion": "2017-04-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces', 'farmereventpubservicebusns')]"
+      ],
+      "name": "farmereventpubservicebusns/events",
+      "properties": {
+        "defaultMessageTimeToLive": "P14D"
+      },
+      "type": "Microsoft.ServiceBus/namespaces/queues"
+    },
+    {
+      "apiVersion": "2020-04-01-preview",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', 'isaacgriddevprac')]"
+      ],
+      "location": "northeurope",
+      "name": "newblobscreated",
+      "properties": {
+        "source": "[resourceId('Microsoft.Storage/storageAccounts', 'isaacgriddevprac')]",
+        "topicType": "Microsoft.Storage.StorageAccounts"
+      },
+      "tags": {},
+      "type": "Microsoft.EventGrid/systemTopics"
+    },
+    {
+      "apiVersion": "2020-04-01-preview",
+      "dependsOn": [
+        "[resourceId('Microsoft.EventGrid/systemTopics', 'newblobscreated')]",
+        "[resourceId('Microsoft.ServiceBus/namespaces/queues', 'farmereventpubservicebusns', 'events')]"
+      ],
+      "name": "newblobscreated/events-farmereventpubservicebusns-servicebus-queue",
+      "properties": {
+        "destination": {
+          "endpointType": "ServiceBusQueue",
+          "properties": {
+            "queueName": "events",
+            "resourceId": "[resourceId('Microsoft.ServiceBus/namespaces/queues', 'farmereventpubservicebusns', 'events')]"
+          }
+        },
+        "filter": {
+          "includedEventTypes": [
+            "Microsoft.Storage.BlobCreated"
+          ]
+        }
+      },
+      "type": "Microsoft.EventGrid/systemTopics/eventSubscriptions"
+    },
+    {
+      "apiVersion": "2020-04-01-preview",
+      "dependsOn": [
+        "[resourceId('Microsoft.EventGrid/systemTopics', 'newblobscreated')]",
+        "[resourceId('Microsoft.Storage/storageAccounts/queueServices/queues', 'isaacgriddevprac', 'default', 'todo')]"
+      ],
+      "name": "newblobscreated/isaacgriddevprac-todo-queue",
+      "properties": {
+        "destination": {
+          "endpointType": "StorageQueue",
+          "properties": {
+            "queueName": "todo",
+            "resourceId": "[resourceId('Microsoft.Storage/storageAccounts', 'isaacgriddevprac')]"
+          }
+        },
+        "filter": {
+          "includedEventTypes": [
+            "Microsoft.Storage.BlobCreated"
+          ]
+        }
+      },
+      "type": "Microsoft.EventGrid/systemTopics/eventSubscriptions"
+    }
+  ]
+}

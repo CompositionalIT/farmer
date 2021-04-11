@@ -2,7 +2,7 @@
 module Farmer.Arm.EventGrid
 
 open Farmer
-open Farmer.EventGrid
+open EventGrid
 
 let systemTopics = ResourceType ("Microsoft.EventGrid/systemTopics", "2020-04-01-preview")
 let eventSubscriptions = ResourceType ("Microsoft.EventGrid/systemTopics/eventSubscriptions", "2020-04-01-preview")
@@ -24,10 +24,21 @@ module Topics =
     let AppServicePlan = TopicType (serverFarms, "Microsoft.Web.ServerFarms")
     let SignalR = TopicType (signalR, "Microsoft.SignalRService.SignalR")
 
+type ServiceBusQueueEndpointType =
+    { Bus: ResourceName; Queue: ResourceName }
+
+type ServiceBusTopicEndpointType =
+    { Bus: ResourceName; Topic: ResourceName }
+
+type ServiceBusEndpointType =
+    | Queue of Queue:ServiceBusQueueEndpointType
+    | Topic of Topic:ServiceBusTopicEndpointType
+
 type EndpointType =
     | WebHook of System.Uri
     | EventHub of eventHub:ResourceName
-    | StorageQueue of queue:string
+    | StorageQueue of queue:ResourceName
+    | ServiceBus of bus:ServiceBusEndpointType
 
 type Topic =
     { Name : ResourceName
@@ -45,20 +56,22 @@ type Topic =
                        topicType = this.TopicType.Value |}
              |} :> _
 
-type Subscription =
+type Subscription<'T> =
     { Name : ResourceName
       Topic : ResourceName
       Destination : ResourceName
       DestinationEndpoint : EndpointType
-      Events : EventGridEvent list }
+      Events : EventGridEvent<'T> list }
     interface IArmResource with
         member this.ResourceId = eventSubscriptions.resourceId (this.Topic/this.Name)
         member this.JsonModel =
             let destinationResourceId =
                 match this.DestinationEndpoint with
-                | EventHub hubName -> Some (eventHubs.resourceId (this.Destination, hubName))
-                | StorageQueue _ -> Some (storageAccounts.resourceId this.Destination)
+                | EventHub hubName -> Some (Namespaces.eventHubs.resourceId (this.Destination, hubName))
+                | StorageQueue queue -> Some (Storage.queues.resourceId (this.Destination, ResourceName "default", queue))
                 | WebHook _ -> None
+                | ServiceBus (Queue { Queue = queue; Bus = bus }) -> Some (ServiceBus.queues.resourceId (bus, queue))
+                | ServiceBus (Topic { Topic = topic; Bus = bus }) -> Some (ServiceBus.topics.resourceId (bus, topic))
 
             {| eventSubscriptions.Create(this.Topic/this.Name, dependsOn = [ systemTopics.resourceId this.Topic; yield! Option.toList destinationResourceId ]) with
                  properties =
@@ -70,13 +83,25 @@ type Subscription =
                             |} |> box
                           | EventHub hubName ->
                             {| endpointType = "EventHub"
-                               properties = {| resourceId = eventHubs.resourceId(this.Destination, hubName).Eval() |}
+                               properties = {| resourceId = Namespaces.eventHubs.resourceId(this.Destination, hubName).Eval() |}
                             |} :> _
                           | StorageQueue queueName ->
                             {| endpointType = "StorageQueue"
                                properties =
                                 {| resourceId = (storageAccounts.resourceId this.Destination).Eval()
-                                   queueName = queueName |}
+                                   queueName = queueName.Value |}
+                            |} :> _
+                          | ServiceBus (Queue { Queue = queue; Bus = bus}) ->
+                            {| endpointType = "ServiceBusQueue"
+                               properties =
+                                {| resourceId = (ServiceBus.queues.resourceId (bus, queue)).Eval()
+                                   queueName = queue.Value |}
+                            |} :> _
+                          | ServiceBus (Topic { Topic = topic; Bus = bus}) ->
+                            {| endpointType = "ServiceBusTopic"
+                               properties =
+                                {| resourceId = (ServiceBus.topics.resourceId (bus, topic)).Eval()
+                                   queueName = topic.Value |}
                             |} :> _
                       filter = {| includedEventTypes = [ for event in this.Events do event.Value ] |}
                    |}

@@ -17,7 +17,7 @@ let tests =
             let path = __SOURCE_DIRECTORY__ + "/test-data/" + jsonFile
             let expected = File.ReadAllText path
             let actual = template.Template |> Writer.toJson
-            Expect.equal expected actual (sprintf "ARM template generation has changed! Either fix the writer, or update the contents of the generated file (%s)" path)
+            Expect.equal (actual.Trim()) (expected.Trim()) (sprintf "ARM template generation has changed! Either fix the writer, or update the contents of the generated file (%s)" path)
 
         test "Generates lots of resources" {
             let number = string 1979
@@ -63,5 +63,76 @@ let tests =
             }
 
             compareResourcesToJson [ myVm ] "vm.json"
+        }
+
+        test "Storage, Event Hub, Log Analytics and Diagnostics" {
+            let data = storageAccount { name "isaacsuperdata" }
+            let hub = eventHub { name "isaacsuperhub" }
+            let logs = logAnalytics { name "isaacsuperlogs" }
+            let web = webApp { name "isaacdiagsuperweb"; app_insights_off }
+
+            let mydiagnosticSetting = diagnosticSettings {
+                name "myDiagnosticSetting"
+                metrics_source web
+
+                add_destination data
+                add_destination logs
+                add_destination hub
+                loganalytics_output_type Farmer.DiagnosticSettings.Dedicated
+                capture_metrics [ "AllMetrics" ]
+                capture_logs [
+                    Farmer.DiagnosticSettings.Logging.Web.Sites.AppServicePlatformLogs
+                    Farmer.DiagnosticSettings.Logging.Web.Sites.AppServiceAntivirusScanAuditLogs
+                    Farmer.DiagnosticSettings.Logging.Web.Sites.AppServiceAppLogs
+                    Farmer.DiagnosticSettings.Logging.Web.Sites.AppServiceHTTPLogs
+                ]
+            }
+            compareResourcesToJson [ data; web; hub; logs; mydiagnosticSetting ] "diagnostics.json"
+        }
+
+        test "Event Grid" {
+            let storageSource = storageAccount {
+                name "isaacgriddevprac"
+                add_private_container "data"
+                add_queue "todo"
+            }
+
+            let eventQueue = queue { name "events" }
+            let sb = serviceBus {
+                name "farmereventpubservicebusns"
+                add_queues [ eventQueue ]
+            }
+
+            let eventHubGrid = eventGrid {
+                topic_name "newblobscreated"
+                source storageSource
+                add_queue_subscriber storageSource "todo" [ SystemEvents.Storage.BlobCreated ]
+                add_servicebus_queue_subscriber sb eventQueue [ SystemEvents.Storage.BlobCreated ]
+            }
+
+            compareResourcesToJson [ storageSource; sb; eventHubGrid ] "event-grid.json"
+        }
+
+        test "Can parse JSON into an ARM template" {
+            let json = """    {
+      "apiVersion": "2019-06-01",
+      "dependsOn": [],
+      "kind": "StorageV2",
+      "location": "northeurope",
+      "name": "jsontest",
+      "properties": {},
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "tags": {},
+      "type": "Microsoft.Storage/storageAccounts"
+    }
+"""
+            let resource = arm { add_resource (Resource.ofJson json) } |> Storage.getStorageResource
+            printfn "%A" resource
+
+            Expect.equal resource.Name "jsontest" "Account name is wrong"
+            Expect.equal resource.Sku.Name "Standard_LRS" "SKU is wrong"
+            Expect.equal resource.Kind "StorageV2" "Kind"
         }
     ]

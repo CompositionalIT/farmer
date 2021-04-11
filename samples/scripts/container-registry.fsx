@@ -1,5 +1,4 @@
-#r @"./libs/Newtonsoft.Json.dll"
-#r @"../../src/Farmer/bin/Debug/netstandard2.0/Farmer.dll"
+#r "nuget:Farmer"
 
 open Farmer
 open Farmer.Builders
@@ -16,6 +15,9 @@ let deployment = arm {
     add_resource myRegistry
     output "registry" myRegistry.Name
     output "loginServer" myRegistry.LoginServer
+    output "user" myRegistry.Username
+    output "pwd" myRegistry.Password
+    output "pwd2" myRegistry.Password2
 }
 
 deployment

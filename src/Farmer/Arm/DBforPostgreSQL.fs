@@ -61,7 +61,7 @@ type Server =
       Tags: Map<string,string>  }
 
     member this.Sku =
-        {| name = sprintf "%s_%s_%d" this.Tier.Name this.Family.AsArmValue this.Capacity
+        {| name = $"{this.Tier.Name}_{this.Family.AsArmValue}_{this.Capacity}"
            tier = string this.Tier
            capacity = this.Capacity
            family = string this.Family

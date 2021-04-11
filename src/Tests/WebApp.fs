@@ -16,8 +16,9 @@ let getResource<'T when 'T :> IArmResource> (data:IArmResource list) = data |> L
 let dummyClient = new WebSiteManagementClient (Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
 let getResourceAtIndex o = o |> getResourceAtIndex dummyClient.SerializationSettings
 
+let getResources (v:IBuilder) = v.BuildResources Location.WestEurope
+
 let tests = testList "Web App Tests" [
-    let getResources (wa:WebAppConfig) = (wa :> IBuilder).BuildResources Location.WestEurope
     test "Basic Web App has service plan and AI dependencies set" {
         let resources = webApp { name "test" } |> getResources
         let wa = resources |> getResource<Web.Site> |> List.head
@@ -135,7 +136,7 @@ let tests = testList "Web App Tests" [
         Expect.contains wa.Dependencies (ResourceId.create(storageAccounts, sa.Name.ResourceName)) "Storage Account is missing"
     }
 
-    test "Key Vault support works correctly" {
+    test "Automatic Key Vault integration works correctly" {
         let sa = storageAccount { name "teststorage" }
         let wa = webApp { name "testweb"; setting "storage" sa.Key; secret_setting "secret"; setting "literal" "value"; use_keyvault }
         let kv = wa |> getResources |> getResource<Vault> |> List.head
@@ -171,6 +172,36 @@ let tests = testList "Web App Tests" [
         Expect.sequenceEqual vault.AccessPolicies.[0].Permissions.Secrets [ KeyVault.Secret.Get ] "Incorrect permissions"
     }
 
+    test "Managed KV integration works correctly" {
+        let sa = storageAccount { name "teststorage" }
+        let wa = webApp { name "testweb"; setting "storage" sa.Key; secret_setting "secret"; setting "literal" "value"; link_to_keyvault (ResourceName "testwebvault") }
+        let vault = keyVault { name "testwebvault"; add_access_policy (AccessPolicy.create (wa.SystemIdentity.PrincipalId, [ KeyVault.Secret.Get ])) }
+        let vault = vault |> getResources |> getResource<Vault> |> List.head
+        let secrets = wa |> getResources |> getResource<Vaults.Secret>
+        let site = wa |> getResources |> getResource<Web.Site> |> List.head
+
+        let expectedSettings = Map [
+            "storage", LiteralSetting "@Microsoft.KeyVault(SecretUri=https://testwebvault.vault.azure.net/secrets/storage)"
+            "secret", LiteralSetting "@Microsoft.KeyVault(SecretUri=https://testwebvault.vault.azure.net/secrets/secret)"
+            "literal", LiteralSetting "value"
+        ]
+
+        Expect.equal site.Identity.SystemAssigned Enabled "System Identity should be enabled"
+        Expect.containsAll site.AppSettings expectedSettings "Incorrect settings"
+
+        Expect.equal wa.Identity.SystemAssigned Enabled "System Identity should be turned on"
+
+        Expect.hasLength secrets 2 "Incorrect number of KV secrets"
+
+        Expect.equal secrets.[0].Name.Value "testwebvault/secret" "Incorrect secret name"
+        Expect.equal secrets.[0].Value (ParameterSecret (SecureParameter "secret")) "Incorrect secret value"
+        Expect.sequenceEqual secrets.[0].Dependencies [ vaults.resourceId "testwebvault" ] "Incorrect secret dependencies"
+
+        Expect.equal secrets.[1].Name.Value "testwebvault/storage" "Incorrect secret name"
+        Expect.equal secrets.[1].Value (ExpressionSecret sa.Key) "Incorrect secret value"
+        Expect.sequenceEqual secrets.[1].Dependencies [ vaults.resourceId "testwebvault"; storageAccounts.resourceId "teststorage" ] "Incorrect secret dependencies"
+    }
+
     test "Handles identity correctly" {
         let wa : Site = webApp { name "" } |> getResourceAtIndex 0
         Expect.equal wa.Identity.Type (Nullable ManagedServiceIdentityType.None) "Incorrect default managed identity"
@@ -202,6 +233,12 @@ let tests = testList "Web App Tests" [
         Expect.isEmpty extensions "Shouldn't be any extensions"
 
         let wa = webApp { name "siteX"; automatic_logging_extension false }
+        let extensions = wa |> getResources |> getResource<SiteExtension>
+        Expect.isEmpty extensions "Shouldn't be any extensions"
+    }
+
+    test "Does not add the logging extension for apps using a docker image" {
+        let wa = webApp { name "siteX" ; docker_image "someImage" "someCommand" }
         let extensions = wa |> getResources |> getResource<SiteExtension>
         Expect.isEmpty extensions "Shouldn't be any extensions"
     }
@@ -248,15 +285,28 @@ let tests = testList "Web App Tests" [
         let wa : Site = webApp { name ""; app_insights_off } |> getResourceAtIndex 0
         Expect.isEmpty wa.SiteConfig.AppSettings "Should be no settings"
     }
-    
-    test "Miscellaneous properties work correctly" {
-        let w : Site = webApp { name "w" } |> getResourceAtIndex 0
-        Expect.equal w.SiteConfig.Use32BitWorkerProcess (Nullable()) "Default worker process" 
 
-        let w : Site = webApp { worker_process Bits32 } |> getResourceAtIndex 0
-        Expect.equal w.SiteConfig.Use32BitWorkerProcess (Nullable true) "32 Bit worker process" 
+    test "Supports always on" {
+        let template = webApp { name "web"; always_on }
+        Expect.equal template.AlwaysOn true "AlwaysOn should be true"
 
-        let w : Site = webApp { worker_process Bits64 } |> getResourceAtIndex 0
-        Expect.equal w.SiteConfig.Use32BitWorkerProcess (Nullable false) "64 Bit worker process" 
+        let w:Site = webApp { name "testDefault" } |> getResourceAtIndex 0
+        Expect.equal w.SiteConfig.AlwaysOn (Nullable false) "always on should be false by default"
+    }
+
+    test "Supports 32 and 64 bit worker processes" {
+        let site : Site = webApp { name "w" } |> getResourceAtIndex 0
+        Expect.equal site.SiteConfig.Use32BitWorkerProcess (Nullable()) "Default worker process"
+
+        let site:Site = webApp { worker_process Bits32 } |> getResourceAtIndex 0
+        Expect.equal site.SiteConfig.Use32BitWorkerProcess (Nullable true) "Should use 32 bit worker process"
+
+        let site:Site = webApp { worker_process Bits64 } |> getResourceAtIndex 0
+        Expect.equal site.SiteConfig.Use32BitWorkerProcess (Nullable false) "Should not use 32 bit worker process"
+    }
+    test "Supports .NET 5 EAP" {
+        let app = webApp { runtime_stack Runtime.DotNet50 }
+        let site:Site = app |> getResourceAtIndex 0
+        Expect.equal site.SiteConfig.NetFrameworkVersion "v5.0" "Wrong dotnet version"
     }
 ]

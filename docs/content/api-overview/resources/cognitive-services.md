@@ -2,7 +2,7 @@
 title: "Cognitive Services"
 date: 2020-04-10T08:53:46+01:00
 chapter: false
-weight: 4
+weight: 3
 ---
 
 #### Overview
@@ -36,3 +36,7 @@ let translator = cognitiveServices {
 
 let key : ArmExpression = translator.Key
 ```
+
+### BingSearch (obsolete)
+
+Starting from 1.4.0 BingSearch api is available as a part of `bingSearch` builder instead of `cognitiveServices`.

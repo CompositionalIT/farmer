@@ -1,5 +1,4 @@
-#r @"./libs/Newtonsoft.Json.dll"
-#r @"../../src/Farmer/bin/Debug/netstandard2.0/Farmer.dll"
+#r "../../src/Farmer/bin/Debug/net5.0/Farmer.dll"
 
 open Farmer
 open Farmer.Builders
@@ -52,6 +51,7 @@ let vault =
         add_secret "simpleSecret"
         add_secrets ["firstSecret"; "secondSecret"]
         add_secret ("thirdSecret", store.Key)
+        add_tag "test" "test"
     }
 
 vault.Policies

@@ -10,10 +10,12 @@
     <Content Include="test-data\*.json" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="Helpers.fs" />
     <Compile Include="AppInsights.fs" />
+    <Compile Include="DiagnosticSettings.fs" />
     <Compile Include="Common.fs" />
     <Compile Include="Functions.fs" />
     <Compile Include="LogAnalytics.fs" />
     <Compile Include="Bastion.fs" />
+    <Compile Include="BingSearch.fs" />
     <Compile Include="Cdn.fs" />
     <Compile Include="ContainerGroup.fs" />
     <Compile Include="ContainerService.fs" />
@@ -42,11 +44,11 @@
     <Compile Include="VirtualWAN.fs" />
     <Compile Include="Identity.fs" />
     <Compile Include="DeploymentScript.fs" />
+    <Compile Include="Databricks.fs" />
     <Compile Include="JsonRegression.fs" />
+    <Compile Include="Types.fs" />
     <Compile Include="AllTests.fs" />
   </ItemGroup>
-
-  <ItemGroup />
 
   <ItemGroup>
     <PackageReference Include="expecto" Version="9.0.0" />
@@ -54,17 +56,18 @@
     <PackageReference Include="Microsoft.Azure.Management.Dns" Version="3.0.1" />
     <PackageReference Include="Microsoft.Azure.Management.CognitiveServices" Version="7.0.0" />
     <PackageReference Include="Microsoft.Azure.Management.Compute" Version="35.2.0" />
-    <PackageReference Include="Microsoft.Azure.Management.ContainerInstance" Version="2.0.0" />
+    <PackageReference Include="Microsoft.Azure.Management.ContainerInstance" Version="3.0.0" />
     <PackageReference Include="Microsoft.Azure.Management.ContainerService" Version="1.0.0" />
     <PackageReference Include="Microsoft.Azure.Management.DeviceProvisioningServices" Version="1.0.0" />
     <PackageReference Include="Microsoft.Azure.Management.IotHub" Version="2.10.0-preview" />
     <PackageReference Include="Microsoft.Azure.Management.Maps" Version="1.0.2" />
-    <PackageReference Include="Microsoft.Azure.Management.Network" Version="20.3.0" />
+    <PackageReference Include="Microsoft.Azure.Management.Monitor" Version="0.25.3-preview" />
+    <PackageReference Include="Microsoft.Azure.Management.Network" Version="20.4.0" />
     <PackageReference Include="Microsoft.Azure.Management.OperationalInsights" Version="0.21.0-preview" />
     <PackageReference Include="Microsoft.Azure.Management.ServiceBus" Version="2.1.0" />
     <PackageReference Include="Microsoft.Azure.Management.SignalR" Version="1.0.1" />
     <PackageReference Include="Microsoft.Azure.Management.Sql" Version="1.43.0-preview" />
-    <PackageReference Include="Microsoft.Azure.Management.Storage" Version="16.0.0" />
+    <PackageReference Include="Microsoft.Azure.Management.Storage" Version="17.2.0" />
     <PackageReference Include="Microsoft.Azure.Management.WebSites" Version="3.1.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.2.0" />
     <PackageReference Include="coverlet.collector" Version="1.2.0" />

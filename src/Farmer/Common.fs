@@ -292,17 +292,33 @@ module internal Validation =
         | Error x, _
         | _, Error x -> Error x
 
-    let isNonEmpty entity s = if String.IsNullOrWhiteSpace s then Error (sprintf "%s cannot be empty" entity) else Ok()
-    let notLongerThan max entity (s:string) = if s.Length > max then Error (sprintf "%s max length is %d, but here is %d ('%s')" entity max s.Length s) else Ok()
-    let notShorterThan min entity (s:string) = if s.Length < min then Error (sprintf "%s min length is %d, but here is %d ('%s')" entity min s.Length s) else Ok()
+    let isNonEmpty entity s = if String.IsNullOrWhiteSpace s then Error $"%s{entity} cannot be empty" else Ok()
+    let isNotAGuid entity (s: string) =
+        let success, _ = Guid.TryParse s
+        if success then
+            Error $"%s{entity} cannot be a GUID"
+        else Ok()
+    let notLongerThan max entity (s:string) = if s.Length > max then Error $"%s{entity} max length is %d{max}, but here is {s.Length} ('{s}')" else Ok()
+    let notShorterThan min entity (s:string) = if s.Length < min then Error $"%s{entity} min length is %d{min}, but here is {s.Length} ('{s}')" else Ok()
     let lengthBetween min max entity (s:string) = s |> notLongerThan max entity |> Result.bind (fun _ -> s |> notShorterThan min entity)
-    let containsOnly (message, predicate) entity (s:string) = if s |> Seq.exists (predicate >> not) then Error (sprintf "%s can only contain %s ('%s')" entity message s) else Ok()
-    let cannotContain (message, predicate) entity (s:string) = if s |> Seq.exists predicate then Error (sprintf "%s do not allow %s ('%s')" entity message s) else Ok()
-    let startsWith (message, predicate) entity (s:string) = if not (predicate s.[0]) then Error (sprintf "%s must start with %s ('%s')" entity message s) else Ok()
-    let endsWith (message, predicate) entity (s:string) = if not (predicate s.[s.Length - 1]) then Error (sprintf "%s must end with %s ('%s')" entity message s) else Ok()
-    let cannotStartWith (message, predicate) entity (s:string) = if predicate s.[0] then Error (sprintf "%s cannot start with %s ('%s')" entity message s) else Ok()
-    let cannotEndWith (message, predicate) entity (s:string) = if predicate s.[s.Length - 1] then Error (sprintf "%s cannot end with %s ('%s')" entity message s) else Ok()
-    let arb (message, predicate) entity (s:string) = if predicate s then Error (sprintf "%s %s ('%s')" entity message s) else Ok()
+    let containsOnly (message, predicate) entity (s:string) = if s |> Seq.exists (predicate >> not) then Error $"%s{entity} can only contain %s{message} ('{s}')" else Ok()
+    let cannotContain (message, predicate) entity (s:string) = if s |> Seq.exists predicate then Error $"%s{entity} do not allow %s{message} ('{s}')" else Ok()
+    let startsWith (message, predicate) entity (s:string) = if not (predicate s.[0]) then Error $"%s{entity} must start with %s{message} ('{s}')" else Ok()
+    let endsWith (message, predicate) entity (s:string) = if not (predicate s.[s.Length - 1]) then Error $"%s{entity} must end with %s{message} ('{s}')" else Ok()
+    let cannotStartWith (message, predicate) entity (s:string) = if predicate s.[0] then Error $"%s{entity} cannot start with %s{message} ('{s}')" else Ok()
+    let cannotEndWith (message, predicate) entity (s:string) = if predicate s.[s.Length - 1] then Error $"%s{entity} cannot end with %s{message} ('{s}')" else Ok()
+    let cannotEndsWith (predicate: (string * string) seq) entity (s:string) =
+        let matches =
+            predicate
+            |> Seq.filter (fun (_, postfix) -> s.EndsWith(postfix, StringComparison.Ordinal))
+            |> Seq.map fst
+            |> Seq.toList
+        match matches with
+        | [] -> Ok()
+        | predicatesThatFailes ->
+            let message = System.String.Join(", ", predicatesThatFailes)
+            Error $"%s{entity} cannot end with %s{message} ('{s}')"
+    let arb (message, predicate) entity s = if predicate s then Error $"%s{entity} %s{message} ('%s{s}')" else Ok()
     let containsOnlyM containers =
         containers
         |> List.map containsOnly
@@ -310,6 +326,7 @@ module internal Validation =
     let lowercaseLetters = "lowercase letters", Char.IsLetter >> not <|> Char.IsLower
     let aLetterOrNumber = "an alphanumeric character", Char.IsLetterOrDigit
     let lettersOrNumbers = "alphanumeric characters", Char.IsLetterOrDigit
+    let letters = "letters", Char.IsLetter
     let aDash = "a dash", ((=) '-')
     let lettersNumbersOrDash = "alphanumeric characters or the dash", Char.IsLetterOrDigit <|> (snd aDash)
     let nonEmptyLengthBetween a b = isNonEmpty <!> lengthBetween a b
@@ -335,6 +352,23 @@ module CosmosDbValidation =
 
         static member Create (ResourceName name) = CosmosDbName.Create name
         member this.ResourceName = match this with CosmosDbName name -> name
+
+// https://docs.microsoft.com/en-us/rest/api/servicebus/create-namespace
+module ServiceBusValidation =
+    open Validation
+    type ServiceBusName =
+        private | ServiceBusName of ResourceName
+        static member Create (name: string) =
+            [ nonEmptyLengthBetween 6 50
+              containsOnlyM [ lettersNumbersOrDash ]
+              startsWith letters
+              isNotAGuid
+              cannotEndsWith [ ("a dash", "-"); ("a sb postfix", "-sb"); ("a management postfix", "-mgmt") ]
+            ]
+            |> validate "ServiceBus namespace" name
+            |> Result.map (ResourceName >> ServiceBusName)
+
+        member this.ResourceName = match this with ServiceBusName name -> name
 
 module Storage =
     open Validation
@@ -416,6 +450,7 @@ module WebApp =
         | Standard of string
         | Premium of string
         | PremiumV2 of string
+        | PremiumV3 of string
         | Isolated of string
         | Dynamic
         static member D1 = Shared
@@ -432,6 +467,9 @@ module WebApp =
         static member P1V2 = PremiumV2 "P1V2"
         static member P2V2 = PremiumV2 "P2V2"
         static member P3V2 = PremiumV2 "P3V2"
+        static member P1V3 = PremiumV3 "P1V3"
+        static member P2V3 = PremiumV3 "P2V3"
+        static member P3V3 = PremiumV3 "P3V3"
         static member I1 = Isolated "I1"
         static member I2 = Isolated "I2"
         static member I3 = Isolated "I3"
@@ -444,7 +482,7 @@ module WebApp =
         let Logging = ExtensionName "Microsoft.AspNetCore.AzureAppServices.SiteExtension"
 
 module CognitiveServices =
-    /// Type of SKU. See https://github.com/Azure/azure-quickstart-templates/tree/master/101-cognitive-services-translate
+    /// Type of SKU. See https://docs.microsoft.com/en-us/rest/api/cognitiveservices/accountmanagement/resourceskus/list
     type Sku =
         /// Free Tier
         | F0
@@ -457,7 +495,6 @@ module CognitiveServices =
     type Kind =
         | AllInOne
         | AnomalyDetector
-        | Bing_Autosuggest_v7 | Bing_CustomSearch | Bing_EntitySearch | Bing_Search_v7 | Bing_SpellCheck_v7
         | CognitiveServices
         | ComputerVision
         | ContentModerator
@@ -473,6 +510,22 @@ module CognitiveServices =
         | SpeechServices
         | TextAnalytics
         | TextTranslation
+
+module BingSearch =
+    /// Type of SKU. See https://www.microsoft.com/en-us/bing/apis/pricing
+    type Sku =
+        /// Free Tier
+        | F1
+        | S0
+        | S1
+        | S2
+        | S3
+        | S4
+        | S5
+        | S6
+        | S7
+        | S8
+        | S9
 
 module ContainerRegistry =
     /// Container Registry SKU
@@ -657,7 +710,7 @@ module Sql =
         private | SqlAccountName of ResourceName
         static member Create name =
             [ nonEmptyLengthBetween 1 63
-              cannotStartWith aDash 
+              cannotStartWith aDash
               cannotEndWith aDash
               containsOnlyM [ lowercaseLetters; lettersNumbersOrDash ]
             ]
@@ -674,7 +727,7 @@ type RoleId =
     member this.ArmValue =
         match this with
         | RoleId roleId ->
-            sprintf "concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', '%O')" roleId.Id
+            $"concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', '{roleId.Id}')"
             |> ArmExpression.create
     member this.Name = match this with (RoleId v) -> v.Name
     member this.Id = match this with (RoleId v) -> v.Id
@@ -687,7 +740,7 @@ module Identity =
         member private this.CreateExpression field =
             let (UserAssignedIdentity resourceId) = this
             ArmExpression
-                .create(sprintf "reference(%s).%s" resourceId.ArmExpression.Value field)
+                .create($"reference({resourceId.ArmExpression.Value}).%s{field}")
                 .WithOwner(resourceId)
         member this.PrincipalId = this.CreateExpression "principalId" |> PrincipalId
         member this.ClientId = this.CreateExpression "clientId"
@@ -699,7 +752,7 @@ module Identity =
         member private this.CreateExpression field =
             let identity = this.ResourceId.ArmExpression.Value
             ArmExpression
-                .create(sprintf "reference(%s, '%s', 'full').identity.%s" identity this.ResourceId.Type.ApiVersion field)
+                .create($"reference({identity}, '{this.ResourceId.Type.ApiVersion}', 'full').identity.%s{field}")
                 .WithOwner(this.ResourceId)
         member this.PrincipalId = this.CreateExpression "principalId" |> PrincipalId
         member this.ClientId = this.CreateExpression "clientId"
@@ -940,7 +993,7 @@ module IPAddressCidr =
     let safeParse (s:string) : Result<IPAddressCidr, System.Exception> =
         try parse s |> Ok
         with ex -> Error ex
-    let format (cidr:IPAddressCidr) = sprintf "%O/%d" cidr.Address cidr.Prefix
+    let format (cidr:IPAddressCidr) = $"{cidr.Address}/{cidr.Prefix}"
     /// Gets uint32 representation of an IP address.
     let private num (ip:System.Net.IPAddress) =
         ip.GetAddressBytes() |> Array.rev |> fun bytes -> BitConverter.ToUInt32 (bytes, 0)
@@ -986,7 +1039,7 @@ module IPAddressCidr =
                     startAddress <- (last + 1u) |> ofNum
                     cidr
                 else
-                    raise (IndexOutOfRangeException (sprintf "Unable to create subnet %d of /%d" index size))
+                    raise (IndexOutOfRangeException $"Unable to create subnet {index} of /{size}")
         ]
 
     /// The first two addresses are the network address and gateway address
@@ -1040,7 +1093,7 @@ module NetworkSecurity =
         member this.ArmValue =
             match this with
             | Port num -> num |> string
-            | Range (first,last) -> sprintf "%d-%d" first last
+            | Range (first,last) -> $"{first}-{last}"
             | AnyPort -> "*"
     module Port =
         let ArmValue (port:Port) = port.ArmValue
@@ -1107,7 +1160,7 @@ module Cdn =
     | DynamicSiteAcceleration
 
 module EventGrid =
-    type EventGridEvent = EventGridEvent of string member this.Value = match this with EventGridEvent s -> s
+    [<Struct>] type EventGridEvent<'T> = EventGridEvent of string member this.Value = match this with EventGridEvent s -> s
 
 /// Built in Azure roles (https://docs.microsoft.com/en-us/azure/role-based-access-control/built-in-roles)
 module Dns =
@@ -1120,3 +1173,58 @@ module Dns =
         | PTR of PtrRecords : string list
         | TXT of TxtRecords : string list
         | MX of {| Preference : int; Exchange : string |} list
+
+module Databricks =
+    type KeySource = Databricks | KeyVault member this.ArmValue = match this with Databricks -> "Default" | KeyVault -> "MicrosoftKeyVault"
+    type Sku = Standard | Premium member this.ArmValue = match this with Standard -> "standard" | Premium -> "premium"
+
+namespace Farmer.DiagnosticSettings
+
+open Farmer
+open System
+
+[<AutoOpen>]
+module private Helpers =
+    let (|InBounds|OutOfBounds|) days =
+        if days > 365<Days> then OutOfBounds days
+        elif days < 1<Days> then OutOfBounds days
+        else InBounds days
+
+[<Struct>]
+type LogCategory = LogCategory of string member this.Value = match this with LogCategory v -> v
+
+type RetentionPolicy =
+    { Enabled : bool
+      RetentionPeriod : int<Days> }
+    static member Create (retentionPeriod, ?enabled) =
+        match retentionPeriod with
+        | OutOfBounds days ->
+            failwith $"The retention period must be between 1 and 365 days. It is currently {days}."
+        | InBounds _ ->
+            { Enabled = defaultArg enabled true
+              RetentionPeriod = retentionPeriod }
+
+type MetricSetting =
+    { Category : string
+      TimeGrain : TimeSpan option
+      Enabled : bool
+      RetentionPolicy : RetentionPolicy option }
+    static member Create (category, ?retentionPeriod, ?timeGrain) =
+        { Category = category
+          TimeGrain = timeGrain
+          Enabled = true
+          RetentionPolicy = retentionPeriod |> Option.map (fun days -> RetentionPolicy.Create (days, true)) }
+
+type LogSetting =
+    { Category : LogCategory
+      Enabled : bool
+      RetentionPolicy : RetentionPolicy option }
+    static member Create (category, ?retentionPeriod) =
+        { Category = category
+          Enabled = true
+          RetentionPolicy = retentionPeriod |> Option.map (fun days -> RetentionPolicy.Create (days, true)) }
+    static member Create (category, ?retentionPeriod) =
+        LogSetting.Create(LogCategory category, ?retentionPeriod = retentionPeriod)
+
+/// Represents the kind of destination for log analytics
+type LogAnalyticsDestination = AzureDiagnostics | Dedicated

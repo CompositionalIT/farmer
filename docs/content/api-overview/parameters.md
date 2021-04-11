@@ -72,7 +72,7 @@ In F#, you have access to the full power of .NET, rather than a limited set of w
 let first = "Hello"
 let second = "World"
 let serverName = first + " " + second + "!"
-let dbName = sprintf "%s %s!" first second
+let dbName = $"{first} {second}!"
 
 let db = sql {
     server_name serverName
@@ -89,8 +89,8 @@ You can also use F# *list comprehensions* to rapidly create several resources of
 let myDatabases =
     [ for i in 1 .. 5 ->
         sql {
-            server_name (sprintf "server%d" i)
-            db_name (sprintf "database%d" i)
+            server_name $"server{i}"
+            db_name $"database{i}"
             admin_username "mradmin"
         }
     ]

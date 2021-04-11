@@ -11,11 +11,7 @@ open FileShares
 type StorageAccount =
     /// Gets an ARM Expression connection string for any Storage Account.
     static member getConnectionString (storageAccount:ResourceId) =
-        let expr =
-            sprintf
-                "concat('DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=', listKeys(%s, '2017-10-01').keys[0].value)"
-                storageAccount.Name.Value
-                storageAccount.ArmExpression.Value
+        let expr = $"concat('DefaultEndpointsProtocol=https;AccountName={storageAccount.Name.Value};AccountKey=', listKeys({storageAccount.ArmExpression.Value}, '2017-10-01').keys[0].value)"
         ArmExpression.create(expr, storageAccount)
     /// Gets an ARM Expression connection string for any Storage Account.
     static member getConnectionString (storageAccountName:StorageAccountName, ?group) =
@@ -41,6 +37,8 @@ type StorageAccountConfig =
       FileShares: (StorageResourceName * int<Gb> option) list
       /// Queues
       Queues : StorageResourceName Set
+      /// Tables
+      Tables : StorageResourceName Set
       /// Rules
       Rules : Map<ResourceName, StoragePolicy>
       RoleAssignments : Roles.RoleAssignment Set
@@ -57,8 +55,8 @@ type StorageAccountConfig =
             .Map(sprintf "%s.primaryEndpoints.web")
     member this.WebsitePrimaryEndpointHost =
         this.WebsitePrimaryEndpoint
-            .Map(fun uri -> sprintf "replace(replace(%s, 'https://', ''), '/', '')" uri)
-    member this.Endpoint = sprintf "%s.blob.core.windows.net" this.Name.ResourceName.Value
+            .Map(fun uri -> $"replace(replace({uri}, 'https://', ''), '/', '')")
+    member this.Endpoint = $"{this.Name.ResourceName.Value}.blob.core.windows.net"
     member this.ResourceId = storageAccounts.resourceId this.Name.ResourceName
     interface IBuilder with
         member this.ResourceId = this.ResourceId
@@ -84,6 +82,9 @@ type StorageAccountConfig =
             for queue in this.Queues do
                 { Queues.Queue.Name = queue
                   Queues.Queue.StorageAccount = this.Name.ResourceName }
+            for table in this.Tables do
+                { Tables.Table.Name = table
+                  Tables.Table.StorageAccount = this.Name.ResourceName }
             match this.Rules |> Map.toList with
             | [] ->
                 ()
@@ -96,10 +97,7 @@ type StorageAccountConfig =
                 }
             for roleAssignment in this.RoleAssignments do
                 let uniqueName =
-                    sprintf "%s%s%O"
-                        this.Name.ResourceName.Value
-                        roleAssignment.Principal.ArmExpression.Value
-                        roleAssignment.Role.Id
+                    $"{this.Name.ResourceName.Value}{roleAssignment.Principal.ArmExpression.Value}{roleAssignment.Role.Id}"
                     |> DeterministicGuid.create
                     |> string
                     |> ResourceName
@@ -123,6 +121,7 @@ type StorageAccountBuilder() =
         FileShares = []
         Rules = Map.empty
         Queues = Set.empty
+        Tables = Set.empty
         RoleAssignments = Set.empty
         StaticWebsite = None
         Tags = Map.empty
@@ -159,6 +158,13 @@ type StorageAccountBuilder() =
     [<CustomOperation "add_queues">]
     member this.AddQueues(state:StorageAccountConfig, names) =
         (state, names) ||> Seq.fold(fun state name -> this.AddQueue(state, name))
+    /// Adds a single table to the storage account.
+    [<CustomOperation "add_table">]
+    member _.AddTable(state:StorageAccountConfig, name:string) = { state with Tables = state.Tables.Add (StorageResourceName.Create(name).OkValue) }
+    /// Adds a set of tables to the storage account.
+    [<CustomOperation "add_tables">]
+    member this.AddTables(state:StorageAccountConfig, names) =
+        (state, names) ||> Seq.fold(fun state name -> this.AddTable(state, name))
     /// Enable static website support, using the supplied local content path to the storage account's $web folder as a post-deployment task, and setting the index page as supplied.
     [<CustomOperation "use_static_website">]
     member _.StaticWebsite(state:StorageAccountConfig, contentPath, indexPage) =
@@ -196,7 +202,7 @@ type StorageAccountBuilder() =
                 match state.Sku with
                 | Blobs (replication, _) -> Blobs(replication, Some tier)
                 | GeneralPurpose (V2 (replication, _)) -> GeneralPurpose (V2 (replication, Some tier))
-                | other -> failwithf "You can only set the default access tier for Blobs or General Purpose V2 storage accounts. This account is %A" other
+                | other -> failwith $"You can only set the default access tier for Blobs or General Purpose V2 storage accounts. This account is %A{other}."
         }
     interface ITaggable<StorageAccountConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 

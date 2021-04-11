@@ -1,5 +1,5 @@
 [<AutoOpen>]
-module Farmer.Builders.Functions
+module rec Farmer.Builders.Functions
 
 open Farmer
 open Farmer.Helpers
@@ -8,10 +8,40 @@ open Farmer.WebApp
 open Farmer.Arm.Web
 open Farmer.Arm.Insights
 open Farmer.Arm.Storage
+open Farmer.Arm.KeyVault
+open Farmer.Arm.KeyVault.Vaults
 open System
 
 type FunctionsRuntime = DotNet | Node | Java | Python
 type FunctionsExtensionVersion = V1 | V2 | V3
+
+module private FunctionsConfig =
+    let ToCommon state =
+        { Name = state.Name
+          ServicePlan = state.ServicePlan
+          AppInsights = state.AppInsights
+          OperatingSystem = state.OperatingSystem
+          Settings = state.Settings
+          Cors = state.Cors
+          Identity = state.Identity
+          SecretStore = state.SecretStore
+          ZipDeployPath = state.ZipDeployPath
+          AlwaysOn = state.AlwaysOn
+          WorkerProcess = state.WorkerProcess }
+    let FromCommon state (config: CommonWebConfig): FunctionsConfig =
+        { state with
+            AlwaysOn = config.AlwaysOn
+            Name = config.Name
+            ServicePlan = config.ServicePlan
+            AppInsights = config.AppInsights
+            OperatingSystem = config.OperatingSystem
+            Settings = config.Settings
+            Cors = config.Cors
+            Identity = config.Identity
+            SecretStore = config.SecretStore
+            ZipDeployPath = config.ZipDeployPath
+            WorkerProcess = config.WorkerProcess }
+
 type FunctionsConfig =
     { Name : ResourceName
       ServicePlan : ResourceRef<ResourceName>
@@ -26,8 +56,10 @@ type FunctionsConfig =
       Runtime : FunctionsRuntime
       ExtensionVersion : FunctionsExtensionVersion
       Identity : ManagedIdentity
+      SecretStore : SecretStore
       ZipDeployPath : string option
-      AlwaysOn : bool }
+      AlwaysOn : bool
+      WorkerProcess : Bitness option }
 
     /// Gets the system-created managed principal for the functions instance. It must have been enabled using enable_managed_identity.
     member this.SystemIdentity = SystemIdentity (sites.resourceId this.Name)
@@ -39,11 +71,11 @@ type FunctionsConfig =
     member this.AppInsightsKey = this.AppInsightsName |> Option.map AppInsights.getInstrumentationKey
     /// Gets the default key for the functions site
     member this.DefaultKey =
-        sprintf "listkeys(concat(resourceId('Microsoft.Web/sites', '%s'), '/host/default/'),'2016-08-01').functionKeys.default" this.Name.Value
+        $"listkeys(concat(resourceId('Microsoft.Web/sites', '{this.Name.Value}'), '/host/default/'),'2016-08-01').functionKeys.default"
         |> ArmExpression.create
     /// Gets the master key for the functions site
     member this.MasterKey =
-        sprintf "listkeys(concat(resourceId('Microsoft.Web/sites', '%s'), '/host/default/'),'2016-08-01').masterKey" this.Name.Value
+        $"listkeys(concat(resourceId('Microsoft.Web/sites', '{this.Name.Value}'), '/host/default/'),'2016-08-01').masterKey"
         |> ArmExpression.create
     /// Gets this web app's Server Plan's full resource ID.
     member this.ServicePlanId = this.ServicePlan.resourceId this.Name
@@ -56,6 +88,60 @@ type FunctionsConfig =
     interface IBuilder with
         member this.ResourceId = sites.resourceId this.Name
         member this.BuildResources location = [
+            let keyVault, secrets =
+                match this.SecretStore with
+                | KeyVault (DeployableResource (FunctionsConfig.ToCommon this) vaultName) ->
+                    let store = keyVault {
+                        name vaultName.Name
+                        add_access_policy (AccessPolicy.create (this.SystemIdentity.PrincipalId, [ KeyVault.Secret.Get ]))
+                        add_secrets [
+                            for setting in this.Settings do
+                                match setting.Value with
+                                | LiteralSetting _ ->
+                                    ()
+                                | ParameterSetting _ ->
+                                    SecretConfig.create (setting.Key)
+                                | ExpressionSetting expr ->
+                                    SecretConfig.create (setting.Key, expr)
+                        ]
+                    }
+                    Some store, []
+                | KeyVault (ExternalResource vaultName) ->
+                    let secrets = [
+                        for setting in this.Settings do
+                            let secret =
+                                match setting.Value with
+                                | LiteralSetting _ -> None
+                                | ParameterSetting _ -> SecretConfig.create setting.Key |> Some
+                                | ExpressionSetting expr -> SecretConfig.create (setting.Key, expr) |> Some
+                            match secret with
+                            | Some secret ->
+                                { Secret.Name = vaultName.Name/secret.Key
+                                  Value = secret.Value
+                                  ContentType = secret.ContentType
+                                  Enabled = secret.Enabled
+                                  ActivationDate = secret.ActivationDate
+                                  ExpirationDate = secret.ExpirationDate
+                                  Location = location
+                                  Dependencies = secret.Dependencies.Add vaultName
+                                  Tags = secret.Tags } :> IArmResource
+                            | None ->
+                                ()
+                    ]
+                    None, secrets
+                | KeyVault _
+                | AppService ->
+                    None, []
+
+            yield! secrets
+
+            match keyVault with
+            | Some keyVault ->
+                let builder = keyVault :> IBuilder
+                yield! builder.BuildResources location
+            | None ->
+                ()
+
             { Name = this.Name
               ServicePlan = this.ServicePlanId
               Location = location
@@ -76,7 +162,21 @@ type FunctionsConfig =
                     "WEBSITE_CONTENTSHARE", this.Name.Value.ToLower()
               ]
               |> List.map Setting.AsLiteral
-              |> List.append (this.Settings |> Map.toList)
+              |> List.append (
+                    (match this.SecretStore with
+                     | AppService ->
+                         this.Settings
+                     | KeyVault r ->
+                        let name = r.resourceId (FunctionsConfig.ToCommon this)
+                        [ for setting in this.Settings do
+                            match setting.Value with
+                            | LiteralSetting _ ->
+                                setting.Key, setting.Value
+                            | ParameterSetting _
+                            | ExpressionSetting _ ->
+                                setting.Key, LiteralSetting $"@Microsoft.KeyVault(SecretUri=https://{name.Name.Value}.vault.azure.net/secrets/{setting.Key})"
+                        ] |> Map.ofList
+                    ) |> Map.toList)
               |> Map
 
               Identity = this.Identity
@@ -103,6 +203,18 @@ type FunctionsConfig =
                 match this.StorageAccount with
                 | DependableResource this resourceId -> resourceId
                 | _ -> ()
+
+                match this.SecretStore with
+                | AppService ->
+                    for setting in this.Settings do
+                        match setting.Value with
+                        | ExpressionSetting expr ->
+                            yield! Option.toList expr.Owner
+                        | ParameterSetting _
+                        | LiteralSetting _ ->
+                            ()
+                | KeyVault _ ->
+                    ()
               ]
               HTTPSOnly = this.HTTPSOnly
               AlwaysOn = this.AlwaysOn
@@ -119,7 +231,7 @@ type FunctionsConfig =
               Metadata = []
               ZipDeployPath = this.ZipDeployPath |> Option.map (fun x -> x, ZipDeploy.ZipDeployTarget.FunctionApp)
               AppCommandLine = None
-              WorkerProcess = None }
+              WorkerProcess = this.WorkerProcess }
             match this.ServicePlan with
             | DeployableResource this.Name resourceId ->
                 { Name = resourceId.Name
@@ -177,14 +289,16 @@ type FunctionsBuilder() =
           Settings = Map.empty
           Dependencies = Set.empty
           Identity = ManagedIdentity.Empty
+          SecretStore = AppService
           Tags = Map.empty
-          ZipDeployPath = None }
+          ZipDeployPath = None
+          WorkerProcess = None }
     /// Do not create an automatic storage account; instead, link to a storage account that is created outside of this Functions instance.
     [<CustomOperation "link_to_storage_account">]
     member _.LinkToStorageAccount(state:FunctionsConfig, name) = { state with StorageAccount = managed storageAccounts name }
     member this.LinkToStorageAccount(state:FunctionsConfig, name) = this.LinkToStorageAccount(state, ResourceName name)
     [<CustomOperation "link_to_unmanaged_storage_account">]
-    member _.LinkToUnmanagedStorageAccount(state:FunctionsConfig, resourceId) = { state with StorageAccount = External(Unmanaged resourceId) }
+    member _.LinkToUnmanagedStorageAccount(state:FunctionsConfig, resourceId) = { state with StorageAccount = unmanaged resourceId }
     /// Set the name of the storage account instead of using an auto-generated one based on the function instance name.
     [<CustomOperation "storage_account_name">]
     member _.StorageAccountName(state:FunctionsConfig, name) = { state with StorageAccount = named storageAccounts (ResourceName name) }
@@ -200,26 +314,7 @@ type FunctionsBuilder() =
     interface ITaggable<FunctionsConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     interface IDependable<FunctionsConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
     interface IServicePlanApp<FunctionsConfig> with
-        member _.Get state =
-            { Name = state.Name
-              ServicePlan = state.ServicePlan
-              AppInsights = state.AppInsights
-              OperatingSystem = state.OperatingSystem
-              Settings = state.Settings
-              Cors = state.Cors
-              Identity = state.Identity
-              ZipDeployPath = state.ZipDeployPath
-              AlwaysOn = state.AlwaysOn }
-        member _.Wrap state config =
-            { state with
-                AlwaysOn = config.AlwaysOn
-                Name = config.Name
-                ServicePlan = config.ServicePlan
-                AppInsights = config.AppInsights
-                OperatingSystem = config.OperatingSystem
-                Settings = config.Settings
-                Cors = config.Cors
-                Identity = config.Identity
-                ZipDeployPath = config.ZipDeployPath }
-        
+        member _.Get state = FunctionsConfig.ToCommon state
+        member _.Wrap state config = FunctionsConfig.FromCommon state config
+
 let functions = FunctionsBuilder()

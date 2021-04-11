@@ -4,22 +4,7 @@ open Expecto
 open Farmer
 open Farmer.Builders
 open Farmer.Arm
-open Newtonsoft.Json
-open System.IO
-
-[<AutoOpen>]
-module TestHelpers =
-    let createSimpleDeployment parameters =
-        { Location = Location.NorthEurope
-          PostDeployTasks = []
-          Template = {
-              Outputs = []
-              Parameters = parameters |> List.map SecureParameter
-              Resources = []
-          }
-        }
-    let convertTo<'T> = JsonConvert.SerializeObject >> JsonConvert.DeserializeObject<'T>
-
+open TestHelpers
 
 let toTemplate (deployment:Deployment) =
     deployment.Template

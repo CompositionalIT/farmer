@@ -2,7 +2,7 @@
 title: "Network Security Group"
 date: 2020-07-19T16:44:00-04:00
 chapter: false
-weight: 16
+weight: 14
 ---
 
 #### Overview

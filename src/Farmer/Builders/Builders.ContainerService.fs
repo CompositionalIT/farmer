@@ -78,10 +78,10 @@ type AksConfig =
                            ServiceCidr = netProfile.ServiceCidr |})
               ServicePrincipalProfile =
                   this.ServicePrincipalClientID
-                  |> Option.map (fun clientId -> {| ClientId = clientId; ClientSecret = SecureParameter (sprintf "client-secret-for-%s" this.Name.Value) |})
+                  |> Option.map (fun clientId -> {| ClientId = clientId; ClientSecret = SecureParameter $"client-secret-for-{this.Name.Value}" |})
               WindowsProfile =
                   this.WindowsProfileAdminUserName
-                  |> Option.map (fun username -> {| AdminUserName = username; AdminPassword = SecureParameter (sprintf "admin-password-for-%s" this.Name.Value) |})
+                  |> Option.map (fun username -> {| AdminUserName = username; AdminPassword = SecureParameter $"admin-password-for-{this.Name.Value}" |})
             }
         ]
 
