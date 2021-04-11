@@ -84,7 +84,6 @@
     <Compile Include="Arm/Maps.fs" />
     <Compile Include="Arm/SignalR.fs" />
     <Compile Include="Arm/EventGrid.fs" />
-    <Compile Include="Arm\NetworkSecurityGroup.fs" />
     <Compile Include="Arm/ExpressRouteConnection.fs" />
     <Compile Include="Arm/VirtualWAN.fs" />
     <Compile Include="Arm/VirtualHub.fs" />
@@ -92,8 +91,6 @@
     <Compile Include="Arm/ExpressRouteGateway.fs" />
     <Compile Include="Arm/VirtualHubRouteTable.fs" />
     <Compile Include="Arm/VirtualHubVnetConnection.fs" />
-    <Compile Include="Arm\DeploymentScript.fs" />
-
     <Compile Include="Arm/NetworkSecurityGroup.fs" />
     <Compile Include="Arm/DeploymentScript.fs" />
     <Compile Include="Arm/Databricks.fs" />
