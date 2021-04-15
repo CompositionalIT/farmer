@@ -88,9 +88,8 @@ module ZipDeploy =
     type ZipDeploySlot = 
         | ProductionSlot
         | NamedSlot of name: string
-    module ZipDeploySlot = 
-        let toOption = 
-            function
+        member this.ToOption = 
+            match this with
             | ProductionSlot -> None
             | NamedSlot n -> Some n
 
@@ -165,7 +164,7 @@ type Site =
                     |> Option.defaultWith (fun () ->
                         failwith $"Path '{path}' must either be a folder to be zipped, or an existing zip.")
                 printfn "Running ZIP deploy for %s" path.Value
-                let slotName = (ZipDeploy.ZipDeploySlot.toOption slot)
+                let slotName = slot.ToOption
                 Some (match target with
                       | ZipDeploy.WebApp -> Deploy.Az.zipDeployWebApp name.Value path.GetZipPath resourceGroupName slotName
                       | ZipDeploy.FunctionApp -> Deploy.Az.zipDeployFunctionApp name.Value path.GetZipPath resourceGroupName slotName)
@@ -272,29 +271,24 @@ module SiteExtensions =
                 siteExtensions.Create(this.SiteName/this.Name, this.Location, [ sites.resourceId this.SiteName ]) :> _
 
 type Slot =
-    { 
-      SlotName: string
+    { SlotName: string
       Location : Location
       ServicePlan: ResourceId
       Site: ResourceId
       Tags: Map<string,string>
       AppSettings: Map<string,Setting>
-      ConnectionStrings: Map<string,Setting*ConnectionStringKind>
-    }
+      ConnectionStrings: Map<string,Setting*ConnectionStringKind> }
     member this.ResourceName = this.Site.Name / this.SlotName
     interface IParameters with
         member this.SecureParameters =
-            Map.toList this.AppSettings
+            (this.AppSettings
+            |> Map.toList)
             @ (Map.toList this.ConnectionStrings |> List.map(fun (k, (v,_)) -> k, v))
             |> List.choose(snd >> function
                 | ParameterSetting s -> Some s
                 | ExpressionSetting _ | LiteralSetting _ -> None)
     interface IArmResource with
-        member this.ResourceId = 
-            ResourceId.create (
-                slots, 
-                this.ResourceName
-            )
+        member this.ResourceId = ResourceId.create (slots, this.ResourceName)
         member this.JsonModel =
             {| slots.Create(this.ResourceName, this.Location, [this.Site], this.Tags) with
                  properties = 

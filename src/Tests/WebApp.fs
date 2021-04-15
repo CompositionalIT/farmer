@@ -321,7 +321,7 @@ let tests = testList "Web App Tests" [
             site 
             |> getResources
             |> getResource<Slot>
-
+        // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
     }
 ]

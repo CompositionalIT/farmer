@@ -74,7 +74,7 @@ type SecretStore =
 type SlotConfig = 
     { Name: string
       AppSettings: Map<string,Setting>
-      ConnectionStrings: Map<string,(Setting*ConnectionStringKind)> }
+      ConnectionStrings: Map<string,(Setting * ConnectionStringKind)> }
 
 type SlotBuilder() =
     member this.Yield _ =
@@ -136,7 +136,7 @@ type WebAppConfig =
       Settings : Map<string, Setting>
       Cors : Cors option
       Identity : Identity.ManagedIdentity
-      ZipDeployPath : (string*ZipDeploy.ZipDeploySlot) option 
+      ZipDeployPath : (string * ZipDeploy.ZipDeploySlot) option 
       HTTPSOnly : bool
       HTTP20Enabled : bool option
       ClientAffinityEnabled : bool option
@@ -369,7 +369,7 @@ type WebAppConfig =
                 |> Option.map(fun stack -> "CURRENT_STACK", stack)
                 |> Option.toList
               AppCommandLine = this.DockerImage |> Option.map snd
-              ZipDeployPath = this.ZipDeployPath |> Option.map (fun (x,s) -> x, ZipDeploy.ZipDeployTarget.WebApp, s )
+              ZipDeployPath = this.ZipDeployPath |> Option.map (fun (path,slot) -> path, ZipDeploy.ZipDeployTarget.WebApp, slot )
             }
 
             match keyVault with
@@ -429,8 +429,7 @@ type WebAppConfig =
                   Site = this.ResourceId
                   Tags = this.Tags
                   AppSettings = cfg.AppSettings
-                  ConnectionStrings = cfg.ConnectionStrings
-                }
+                  ConnectionStrings = cfg.ConnectionStrings }
         ]
 
 type WebAppBuilder() =
@@ -465,7 +464,7 @@ type WebAppBuilder() =
           AutomaticLoggingExtension = true
           SiteExtensions = Set.empty
           WorkerProcess = None 
-          Slots = Map.empty}
+          Slots = Map.empty }
     member __.Run(state:WebAppConfig) =
         { state with
             SiteExtensions =
@@ -610,7 +609,7 @@ type WebAppBuilder() =
                 ZipDeployPath = config.ZipDeployPath
                 AlwaysOn = config.AlwaysOn
                 WorkerProcess = config.WorkerProcess
-                Slots = config.Slots}
+                Slots = config.Slots }
 
 let webApp = WebAppBuilder()
 

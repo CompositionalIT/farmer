@@ -121,7 +121,7 @@ type FunctionsConfig =
               PhpVersion = None
               PythonVersion = None
               Metadata = []
-              ZipDeployPath = this.ZipDeployPath |> Option.map (fun (x, s) -> x, ZipDeploy.ZipDeployTarget.FunctionApp, s)
+              ZipDeployPath = this.ZipDeployPath |> Option.map (fun (path, slot) -> path, ZipDeploy.ZipDeployTarget.FunctionApp, slot)
               AppCommandLine = None
               WorkerProcess = this.WorkerProcess }
             match this.ServicePlan with
@@ -171,8 +171,7 @@ type FunctionsConfig =
                   Site = this.ResourceId
                   Tags = this.Tags
                   AppSettings = cfg.AppSettings
-                  ConnectionStrings = cfg.ConnectionStrings
-                }
+                  ConnectionStrings = cfg.ConnectionStrings }
         ]
 
 type FunctionsBuilder() =
@@ -195,7 +194,7 @@ type FunctionsBuilder() =
           Tags = Map.empty
           ZipDeployPath = None
           WorkerProcess = None
-          Slots = Map.empty}
+          Slots = Map.empty }
     /// Do not create an automatic storage account; instead, link to a storage account that is created outside of this Functions instance.
     [<CustomOperation "link_to_storage_account">]
     member _.LinkToStorageAccount(state:FunctionsConfig, name) = { state with StorageAccount = managed storageAccounts name }
@@ -228,7 +227,7 @@ type FunctionsBuilder() =
               ZipDeployPath = state.ZipDeployPath
               AlwaysOn = state.AlwaysOn
               WorkerProcess = state.WorkerProcess
-              Slots = state.Slots}
+              Slots = state.Slots }
         member _.Wrap state config =
             { state with
                 AlwaysOn = config.AlwaysOn
@@ -241,6 +240,6 @@ type FunctionsBuilder() =
                 Identity = config.Identity
                 ZipDeployPath = config.ZipDeployPath
                 WorkerProcess = config.WorkerProcess
-                Slots = config.Slots}
+                Slots = config.Slots }
 
 let functions = FunctionsBuilder()
