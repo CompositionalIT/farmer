@@ -192,7 +192,7 @@ type AccessPolicy =
         |> String.concat " or "
         |> sprintf "\"%s\""
         |> searcher
-        |> Result.map (Newtonsoft.Json.JsonConvert.DeserializeObject<{| DisplayName : string; ObjectId : Guid|} array>)
+        |> Result.map (Serialization.ofJson<{| DisplayName : string; ObjectId : Guid|} array>)
         |> Result.toOption
         |> Option.map(Array.map(fun r -> {| r with ObjectId = ObjectId r.ObjectId |}))
         |> Option.defaultValue Array.empty
@@ -325,7 +325,7 @@ type KeyVaultBuilder() =
     member this.AddSecrets(state:KeyVaultBuilderState, keys) = keys |> Seq.fold(fun state (key:SecretConfig) -> this.AddSecret(state, key)) state
     member this.AddSecrets(state:KeyVaultBuilderState, keys) = this.AddSecrets(state, keys |> Seq.map SecretConfig.create)
     member this.AddSecrets(state:KeyVaultBuilderState, items) = this.AddSecrets(state, items |> Seq.map(fun (key, value) -> SecretConfig.create (key, value)))
-    interface ITaggable<KeyVaultConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
+    interface ITaggable<KeyVaultBuilderState> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 type SecretBuilder() =
     member __.Run(state:SecretConfig) =

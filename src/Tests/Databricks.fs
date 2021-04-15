@@ -13,7 +13,7 @@ open System
 type ValueObj<'T> = {| value : 'T |}
 type WorkspaceJson =
     { name : string
-      dependsOn : string list
+      dependsOn : string array
       sku : {| name : string |}
       properties :
         {| managedResourceGroupId : string

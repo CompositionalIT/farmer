@@ -139,7 +139,7 @@ type ContainerNetworkInterfaceConfiguration = { IpConfigs : ContainerNetworkInte
 type NetworkProfileConfig =
     { Name : ResourceName
       ContainerNetworkInterfaceConfigurations : ContainerNetworkInterfaceConfiguration list
-      VirtualNetwork : ExternalKind
+      VirtualNetwork : LinkedResource
       Tags: Map<string,string>  }
     interface IBuilder with
         member this.ResourceId = networkProfiles.resourceId this.Name
@@ -419,6 +419,8 @@ type NetworkProfileBuilder() =
     [<CustomOperation "link_to_vnet">]
     member _.LinkToVirtualNetwork(state:NetworkProfileConfig, vnet) =
         { state with VirtualNetwork = Unmanaged(virtualNetworks.resourceId(ResourceName vnet)) }
+    member _.LinkToVirtualNetwork(state:NetworkProfileConfig, resourceId) =
+        { state with VirtualNetwork = Unmanaged resourceId }
     interface ITaggable<NetworkProfileConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let networkProfile = NetworkProfileBuilder ()

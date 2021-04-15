@@ -4,8 +4,7 @@ open Expecto
 open Farmer
 open Farmer.ContainerRegistry
 open Farmer.Builders
-open Microsoft.Rest.Serialization
-open Newtonsoft.Json.Linq
+open System.Collections.Generic
 
 type RegistryJson =
     { resources :
@@ -14,7 +13,7 @@ type RegistryJson =
            apiVersion : string
            sku : {| name : string |}
            location : string
-           properties : JObject
+           properties : IDictionary<string, System.Text.Json.JsonElement>
         |} array
     }
 
@@ -24,9 +23,9 @@ let toTemplate loc (d : ContainerRegistryConfig) =
         add_resource d
     }
     a.Template
-let fromJson = SafeJsonConvert.DeserializeObject<RegistryJson>
+let ofJson = Serialization.ofJson<RegistryJson>
 let resource (r : RegistryJson) = r.resources.[0]
-let whenWritten deploy = deploy |> toTemplate Location.NorthEurope |> Writer.toJson |> fromJson
+let whenWritten deploy = deploy |> toTemplate Location.NorthEurope |> Writer.toJson |> ofJson
 // resource assertions
 let shouldHaveName name (r : RegistryJson) = Expect.equal name (resource(r).name) "Resource names do not match"; r
 let shouldHaveSku (sku : Sku) (r : RegistryJson) = Expect.equal (sku.ToString()) (resource(r).sku.name) "SKUs do not match"; r
@@ -36,11 +35,11 @@ let shouldHaveALocation (r : RegistryJson) = Expect.isNotEmpty (resource(r).loca
 // property assertions
 // admin user
 let shouldHaveAdminUserEnabled (r : RegistryJson) =
-    let b = resource(r).properties.Value<bool> "adminUserEnabled"
+    let b = resource(r).properties.["adminUserEnabled"].GetBoolean()
     Expect.isTrue b "adminUserEnabled was expected to be enabled"
     r
 let shouldHaveAdminUserDisabled (r : RegistryJson) =
-    let b = resource(r).properties.Value<bool> "adminUserEnabled"
+    let b = resource(r).properties.["adminUserEnabled"].GetBoolean()
     Expect.isFalse b "adminUserEnabled was expected to be disabled"
     r
 

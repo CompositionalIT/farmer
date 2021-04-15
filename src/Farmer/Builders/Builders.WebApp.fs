@@ -69,7 +69,36 @@ let publishingPassword (name:ResourceName) =
 
 type SecretStore =
     | AppService
-    | KeyVault of ResourceRef<WebAppConfig>
+    | KeyVault of ResourceRef<CommonWebConfig>
+
+module private WebAppConfig =
+    let ToCommon state =
+        { Name = state.Name
+          ServicePlan = state.ServicePlan
+          AppInsights = state.AppInsights
+          OperatingSystem = state.OperatingSystem
+          Settings = state.Settings
+          Cors = state.Cors
+          Identity = state.Identity
+          SecretStore = state.SecretStore
+          ZipDeployPath = state.ZipDeployPath
+          AlwaysOn = state.AlwaysOn
+          WorkerProcess = state.WorkerProcess 
+          Slots = state.Slots }
+    let FromCommon state (config: CommonWebConfig): WebAppConfig =
+        { state with
+            Name = config.Name
+            ServicePlan = config.ServicePlan
+            AppInsights = config.AppInsights
+            OperatingSystem = config.OperatingSystem
+            Settings = config.Settings
+            Cors = config.Cors
+            Identity = config.Identity
+            SecretStore = config.SecretStore
+            ZipDeployPath = config.ZipDeployPath
+            AlwaysOn = config.AlwaysOn
+            WorkerProcess = config.WorkerProcess 
+            Slots = config.Slots }
 
 type SlotConfig = 
     { Name: string
@@ -123,6 +152,7 @@ type CommonWebConfig =
       Settings : Map<string, Setting>
       Cors : Cors option
       Identity : Identity.ManagedIdentity
+      SecretStore : SecretStore
       ZipDeployPath : (string*ZipDeploy.ZipDeploySlot) option
       AlwaysOn : bool
       WorkerProcess : Bitness option 
@@ -176,7 +206,7 @@ type WebAppConfig =
         member this.BuildResources location = [
             let keyVault, secrets =
                 match this.SecretStore with
-                | KeyVault (DeployableResource this vaultName) ->
+                | KeyVault (DeployableResource (WebAppConfig.ToCommon this) vaultName) ->
                     let store = keyVault {
                         name vaultName.Name
                         add_access_policy (AccessPolicy.create (this.SystemIdentity.PrincipalId, [ KeyVault.Secret.Get ]))
@@ -272,7 +302,7 @@ type WebAppConfig =
                      | AppService ->
                          this.Settings
                      | KeyVault r ->
-                        let name = r.resourceId this
+                        let name = r.resourceId (WebAppConfig.ToCommon this)
                         [ for setting in this.Settings do
                             match setting.Value with
                             | LiteralSetting _ ->
@@ -322,10 +352,10 @@ type WebAppConfig =
                         Some ("DOCKER|" + image)
                     | None ->
                         match this.Runtime with
-                        | DotNetCore version -> Some ($"DOTNETCORE|{version}")
-                        | Node version -> Some ($"NODE|{version}")
-                        | Php version -> Some ($"PHP|{version}")
-                        | Ruby version -> Some ($"RUBY|{version}")
+                        | DotNetCore version -> Some $"DOTNETCORE|{version}"
+                        | Node version -> Some $"NODE|{version}"
+                        | Php version -> Some $"PHP|{version}"
+                        | Ruby version -> Some $"RUBY|{version}"
                         | Java (runtime, JavaSE) -> Some $"JAVA|{runtime.Version}-{runtime.Jre}"
                         | Java (runtime, (Tomcat version)) -> Some $"TOMCAT|{version}-{runtime.Jre}"
                         | Java (Java8, WildFly14) -> Some $"WILDFLY|14-{Java8.Jre}"
@@ -334,8 +364,10 @@ type WebAppConfig =
               NetFrameworkVersion =
                 match this.Runtime with
                 | AspNet version
-                | DotNet version -> Some $"v{version}"
-                | _ -> None
+                | DotNet ("5.0" as version) ->
+                    Some $"v{version}"
+                | _ ->
+                    None
               JavaVersion =
                 match this.Runtime, this.OperatingSystem with
                 | Java (Java11, Tomcat _), Windows -> Some "11"
@@ -363,8 +395,7 @@ type WebAppConfig =
                 | Php _, _ -> Some "php"
                 | Python _, Windows -> Some "python"
                 | DotNetCore _, Windows -> Some "dotnetcore"
-                | AspNet _, _
-                | DotNet _, _ -> Some "dotnet"
+                | AspNet _, _ | DotNet "5.0", Windows -> Some "dotnet"
                 | _ -> None
                 |> Option.map(fun stack -> "CURRENT_STACK", stack)
                 |> Option.toList
@@ -558,24 +589,6 @@ type WebAppBuilder() =
     member this.EnableCi(state:WebAppConfig) = this.SourceControlCi(state, Enabled)
     [<CustomOperation "disable_source_control_ci">]
     member this.DisableCi(state:WebAppConfig) = this.SourceControlCi(state, Disabled)
-    /// Creates a key vault instance. All secret settings will automatically be mapped into key vault.
-    [<CustomOperation "use_keyvault">]
-    member _.UseKeyVault (state:WebAppConfig) =
-        { state with
-            Identity = { state.Identity with SystemAssigned = Enabled }
-            SecretStore = KeyVault (derived(fun c -> vaults.resourceId (ResourceName (c.Name.Value + "vault")))) }
-    /// Links your application to a Farmer-managed key vault instance. All secret settings will automatically be mapped into key vault.
-    [<CustomOperation "link_to_keyvault">]
-    member _.LinkToKeyVault (state:WebAppConfig, vaultName:ResourceName) =
-        { state with
-            Identity = { state.Identity with SystemAssigned = Enabled }
-            SecretStore = KeyVault (External(Managed (vaults.resourceId vaultName))) }
-    /// Links your application to an existing key vault instance. All secret settings will automatically be mapped into key vault.
-    [<CustomOperation "link_to_unmanaged_keyvault">]
-    member _.LinkToExternalKeyVault(state:WebAppConfig, resourceId) =
-        { state with
-            Identity = { state.Identity with SystemAssigned = Enabled }
-            SecretStore = KeyVault (External(Unmanaged resourceId)) }
     [<CustomOperation "add_extension">]
     member _.AddExtension (state:WebAppConfig, extension) = { state with SiteExtensions = state.SiteExtensions.Add extension }
     member this.AddExtension (state:WebAppConfig, name) = this.AddExtension (state, ExtensionName name)
@@ -585,31 +598,8 @@ type WebAppBuilder() =
     interface ITaggable<WebAppConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     interface IDependable<WebAppConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
     interface IServicePlanApp<WebAppConfig> with
-        member _.Get state =
-            { Name = state.Name
-              ServicePlan = state.ServicePlan
-              AppInsights = state.AppInsights
-              OperatingSystem = state.OperatingSystem
-              Settings = state.Settings
-              Cors = state.Cors
-              Identity = state.Identity
-              ZipDeployPath = state.ZipDeployPath
-              AlwaysOn = state.AlwaysOn
-              WorkerProcess = state.WorkerProcess 
-              Slots = state.Slots }
-        member _.Wrap state config =
-            { state with
-                Name = config.Name
-                ServicePlan = config.ServicePlan
-                AppInsights = config.AppInsights
-                OperatingSystem = config.OperatingSystem
-                Settings = config.Settings
-                Cors = config.Cors
-                Identity = config.Identity
-                ZipDeployPath = config.ZipDeployPath
-                AlwaysOn = config.AlwaysOn
-                WorkerProcess = config.WorkerProcess
-                Slots = config.Slots }
+        member _.Get state = WebAppConfig.ToCommon state
+        member _.Wrap state config = WebAppConfig.FromCommon state config
 
 let webApp = WebAppBuilder()
 
@@ -646,7 +636,7 @@ module Extensions =
         /// Instead of creating a new service plan instance, configure this webapp to point to another unmanaged service plan instance.
         /// A dependency will automatically be set for this instance.
         [<CustomOperation "link_to_unmanaged_service_plan">]
-        member this.LinkToUnmanagedServicePlan (state:'T, resourceId) = { this.Get state with ServicePlan = External (Unmanaged resourceId) } |> this.Wrap state
+        member this.LinkToUnmanagedServicePlan (state:'T, resourceId) = { this.Get state with ServicePlan = unmanaged resourceId } |> this.Wrap state
         /// Sets the name of the automatically-created app insights instance.
         [<CustomOperation "app_insights_name">]
         member this.UseAppInsights (state:'T, name) = { this.Get state with AppInsights = Some (named components name) } |> this.Wrap state
@@ -664,7 +654,7 @@ module Extensions =
         /// Instead of creating a new AI instance, configure this webapp to point to an unmanaged AI instance.
         /// A dependency will not be set for this instance.
         [<CustomOperation "link_to_unmanaged_app_insights">]
-        member this.LinkUnmanagedAppInsights (state:'T, resourceId) = { this.Get state with AppInsights = Some (External(Unmanaged resourceId)) } |> this.Wrap state
+        member this.LinkUnmanagedAppInsights (state:'T, resourceId) = { this.Get state with AppInsights = Some (unmanaged resourceId) } |> this.Wrap state
         /// Sets an app setting of the web app in the form "key" "value".
         [<CustomOperation "setting">]
         member this.AddSetting (state:'T, key, value) =
@@ -744,6 +734,30 @@ module Extensions =
         ///Chooses the bitness (32 or 64) of the worker process
         [<CustomOperation "worker_process">]
         member this.WorkerProcess (state:'T, bitness) = { this.Get state with WorkerProcess = Some bitness } |> this.Wrap state
+        /// Creates a key vault instance. All secret settings will automatically be mapped into key vault.
+        [<CustomOperation "use_keyvault">]
+        member this.UseKeyVault (state:'T) =
+            let current = this.Get state
+            { current with
+                Identity = { current.Identity with SystemAssigned = Enabled }
+                SecretStore = KeyVault (derived(fun c -> vaults.resourceId (ResourceName (c.Name.Value + "vault")))) }
+            |> this.Wrap state
+        /// Links your application to a Farmer-managed key vault instance. All secret settings will automatically be mapped into key vault.
+        [<CustomOperation "link_to_keyvault">]
+        member this.LinkToKeyVault (state:'T, vaultName:ResourceName) =
+            let current = this.Get state
+            { current with
+                Identity = { current.Identity with SystemAssigned = Enabled }
+                SecretStore = KeyVault (managed vaults vaultName) }
+            |> this.Wrap state
+        /// Links your application to an existing key vault instance. All secret settings will automatically be mapped into key vault.
+        [<CustomOperation "link_to_unmanaged_keyvault">]
+        member this.LinkToExternalKeyVault(state:'T, resourceId) =
+            let current = this.Get state
+            { current with
+                Identity = { current.Identity with SystemAssigned = Enabled }
+                SecretStore = KeyVault (unmanaged resourceId) }
+            |> this.Wrap state
         /// Adds a deployment slot to the app
         [<CustomOperation "add_slot">]
         member this.AddSlot (state:'T, slot:SlotConfig) = 

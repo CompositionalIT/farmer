@@ -48,7 +48,7 @@ let tests = testList "IOT Hub" [
             let deployment = arm { add_resource hub }
 
             deployment.Template.Resources.[1].JsonModel
-            |> SafeJsonConvert.SerializeObject
+            |> Serialization.toJson
             |> fun json -> SafeJsonConvert.DeserializeObject<ProvisioningServiceDescription>(json, provisioningClient.SerializationSettings)
 
         Expect.equal resource.Sku.Capacity (Nullable 1L) "Sku capacity is incorrect"
