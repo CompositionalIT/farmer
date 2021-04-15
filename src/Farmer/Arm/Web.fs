@@ -293,7 +293,15 @@ type Slot =
             {| slots.Create(this.ResourceName, this.Location, [this.Site], this.Tags) with
                  properties = 
                     {| serverFarmId = this.ServicePlan.ArmExpression.Eval()
-                       appSettings = this.AppSettings |> Map.toList |> List.map(fun (k,v) -> {| name = k; value = v.Value |})
-                       connectionStrings = this.ConnectionStrings |> Map.toList |> List.map(fun (k,(v, t)) -> {| name = k; connectionString = v.Value; ``type`` = t.ToString() |})
+                       siteConfig = 
+                        {| appSettings = 
+                                this.AppSettings 
+                                |> Map.toList 
+                                |> List.map(fun (k,v) -> {| name = k; value = v.Value |})
+                           connectionStrings = 
+                                this.ConnectionStrings 
+                                |> Map.toList 
+                                |> List.map(fun (k,(v, t)) -> {| name = k; connectionString = v.Value; ``type`` = t.ToString() |})
+                        |}
                     |}
             |} :> _
