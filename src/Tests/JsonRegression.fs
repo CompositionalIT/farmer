@@ -44,9 +44,17 @@ let tests =
                     }
                 ]
             }
+            let cosmosMongo = cosmosDb {
+                name "testdbmongo"
+                account_name "testaccountmongo"
+                kind Mongo
+                throughput 400<CosmosDb.RU>
+                failover_policy CosmosDb.NoFailover
+                consistency_policy (CosmosDb.BoundedStaleness(500, 1000))
+            }
 
             compareResourcesToJson
-                [ sql; storage; web; fns; svcBus; cdn; containerGroup; cosmos ]
+                [ sql; storage; web; fns; svcBus; cdn; containerGroup; cosmos; cosmosMongo ]
                 "lots-of-resources.json"
         }
 

@@ -1,5 +1,8 @@
 Release Notes
 =============
+
+## v-Next
+* CosmosDb: Add support for MongoDB as a database kind.
 ##  1.5.0-beta
 * Container Groups: Support for init containers.
 * Container Groups: Support for liveliness and readiness probes on containers.
