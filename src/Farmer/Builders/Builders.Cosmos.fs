@@ -180,7 +180,7 @@ type CosmosDbBuilder() =
     /// Sets the throughput of the server.
     [<CustomOperation "throughput">]
     member __.Throughput(state:CosmosDbConfig, throughput) = { state with DbThroughput = throughput }
-    /// Sets the storage type
+    /// Sets the storage kind
     [<CustomOperation "kind">]
     member __.StorageKind(state:CosmosDbConfig, kind) = { state with Kind = kind }
     /// Adds a list of containers to the database.
