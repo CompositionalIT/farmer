@@ -7,30 +7,31 @@ Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Farmer", "src\Farmer\Farmer
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{2172A656-578A-48D4-81A2-126CBE1EF993}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Tests", "src\Tests\Tests.fsproj", "{D68F5B81-6F18-4FC7-B9FD-2113EE7614CE}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Tests", "src\Tests\Tests.fsproj", "{D68F5B81-6F18-4FC7-B9FD-2113EE7614CE}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scripts", "scripts", "{F54A1E1C-9069-4771-ABFB-5A7D9EA0F2D0}"
-ProjectSection(SolutionItems) = preProject
-	samples\scripts\appinsights.fsx = samples\scripts\appinsights.fsx
-	samples\scripts\container-registry.fsx = samples\scripts\container-registry.fsx
-	samples\scripts\cosmos.fsx = samples\scripts\cosmos.fsx
-	samples\scripts\loganalytics.fsx=samples\scripts\loganalytics.fsx
-	samples\scripts\diagnosticsetting.fsx = samples\scripts\diagnosticsetting.fsx
-	samples\scripts\eventhubs.fsx = samples\scripts\eventhubs.fsx
-	samples\scripts\functions.fsx = samples\scripts\functions.fsx
-	samples\scripts\keyvault.fsx = samples\scripts\keyvault.fsx
-	samples\scripts\redis.fsx = samples\scripts\redis.fsx
-	samples\scripts\safe-template.fsx = samples\scripts\safe-template.fsx
-	samples\scripts\search.fsx = samples\scripts\search.fsx
-	samples\scripts\vm.fsx = samples\scripts\vm.fsx
-	samples\scripts\webapp-appinsights.fsx = samples\scripts\webapp-appinsights.fsx
-	samples\scripts\webapp-storage.fsx = samples\scripts\webapp-storage.fsx
-	samples\scripts\postgresql.fsx = samples\scripts\postgresql.fsx
-	samples\scripts\aks.fsx = samples\scripts\aks.fsx
-	samples\scripts\bastion.fsx = samples\scripts\bastion.fsx
-EndProjectSection
+	ProjectSection(SolutionItems) = preProject
+		samples\scripts\aks.fsx = samples\scripts\aks.fsx
+		samples\scripts\appinsights.fsx = samples\scripts\appinsights.fsx
+		samples\scripts\bastion.fsx = samples\scripts\bastion.fsx
+		samples\scripts\container-registry.fsx = samples\scripts\container-registry.fsx
+		samples\scripts\cosmos.fsx = samples\scripts\cosmos.fsx
+		samples\scripts\diagnosticsetting.fsx = samples\scripts\diagnosticsetting.fsx
+		samples\scripts\eventhubs.fsx = samples\scripts\eventhubs.fsx
+		samples\scripts\functions.fsx = samples\scripts\functions.fsx
+		samples\scripts\keyvault.fsx = samples\scripts\keyvault.fsx
+		samples\scripts\loganalytics.fsx = samples\scripts\loganalytics.fsx
+		samples\scripts\postgresql.fsx = samples\scripts\postgresql.fsx
+		samples\scripts\redis.fsx = samples\scripts\redis.fsx
+		samples\scripts\safe-template.fsx = samples\scripts\safe-template.fsx
+		samples\scripts\search.fsx = samples\scripts\search.fsx
+		solution.fsx = solution.fsx
+		samples\scripts\vm.fsx = samples\scripts\vm.fsx
+		samples\scripts\webapp-appinsights.fsx = samples\scripts\webapp-appinsights.fsx
+		samples\scripts\webapp-storage.fsx = samples\scripts\webapp-storage.fsx
+	EndProjectSection
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "SampleApp", "samples\SampleApp\SampleApp.fsproj", "{2F230746-189D-4AFD-9B60-D49BB23C98DA}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "SampleApp", "samples\SampleApp\SampleApp.fsproj", "{2F230746-189D-4AFD-9B60-D49BB23C98DA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -54,11 +55,11 @@ Global
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
-	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {63B0361D-FC8A-40CF-B988-5BE797ADD2CE}
-	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{F54A1E1C-9069-4771-ABFB-5A7D9EA0F2D0} = {2172A656-578A-48D4-81A2-126CBE1EF993}
 		{2F230746-189D-4AFD-9B60-D49BB23C98DA} = {2172A656-578A-48D4-81A2-126CBE1EF993}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {63B0361D-FC8A-40CF-B988-5BE797ADD2CE}
 	EndGlobalSection
 EndGlobal
