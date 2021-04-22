@@ -24,7 +24,7 @@ let tests = testList "Cosmos" [
     }
     test "DB properties are correctly evaluated" {
         let db = cosmosDb { name "test" }
-        Expect.equal (db.Endpoint.Eval()) "[reference(resourceId('Microsoft.DocumentDb/databaseAccounts', 'test-account'), '2021-03-01-preview').documentEndpoint]" "Endpoint is incorrect"
+        Expect.equal (db.Endpoint.Eval()) "[reference(resourceId('Microsoft.DocumentDb/databaseAccounts', 'test-account'), '2021-01-15').documentEndpoint]" "Endpoint is incorrect"
         Expect.equal (db.PrimaryKey.Eval()) "[listKeys(resourceId('Microsoft.DocumentDb/databaseAccounts', 'test-account'), providers('Microsoft.DocumentDb','databaseAccounts').apiVersions[0]).primaryMasterKey]" "Primary Key is incorrect"
         Expect.equal (db.SecondaryKey.Eval()) "[listKeys(resourceId('Microsoft.DocumentDb/databaseAccounts', 'test-account'), providers('Microsoft.DocumentDb','databaseAccounts').apiVersions[0]).secondaryMasterKey]" "Secondary Key is incorrect"
         Expect.equal (db.PrimaryReadonlyKey.Eval()) "[listKeys(resourceId('Microsoft.DocumentDb/databaseAccounts', 'test-account'), providers('Microsoft.DocumentDb','databaseAccounts').apiVersions[0]).primaryreadonlyMasterKey]" "Primary Readonly Key is incorrect"
