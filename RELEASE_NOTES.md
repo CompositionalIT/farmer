@@ -1,13 +1,12 @@
 Release Notes
 =============
 
-## v-Next
-* CosmosDb: Add support for MongoDB as a database kind.
 ##  1.5.0-beta
 * Container Groups: Support for init containers.
 * Container Groups: Support for liveliness and readiness probes on containers.
 * Container Groups: Connect network profile to an existing virtual network.
 * Container Groups: Bugfix for outputs.
+* CosmosDb: Add support for MongoDB as a database kind.
 * Event Grid: Ensure destination Queues are created as a dependency
 * Event Grid: Add ServiceBus Queue and Topic as supported destinations
 * Functions: Support for 64 bits.
