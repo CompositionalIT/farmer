@@ -10,6 +10,7 @@ Release Notes
 * Functions: Support for 64 bits.
 * Functions: Add option to use managed Key Vault
 * KeyVault: Fix an issue with adding tags on main KeyVault builder.
+* KeyVault: Support Azure RBAC for data plane access.
 * ServiceBus: update namespace validation rules to follow [Microsoft documentation](https://docs.microsoft.com/en-us/azure/azure-resource-manager/management/resource-name-rules#microsoftservicebus)
 * Storage: Add support for tables
 * Web App: Disables the automatic addition of the logging site extension when `docker_image` is used
