@@ -4,9 +4,14 @@ module Farmer.Arm.DocumentDb
 open Farmer
 open Farmer.CosmosDb
 
-let containers = ResourceType ("Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers", "2020-03-01")
-let sqlDatabases = ResourceType ("Microsoft.DocumentDb/databaseAccounts/sqlDatabases", "2020-03-01")
-let databaseAccounts = ResourceType ("Microsoft.DocumentDb/databaseAccounts", "2020-03-01")
+let containers = ResourceType ("Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers", "2021-01-15")
+let sqlDatabases = ResourceType ("Microsoft.DocumentDb/databaseAccounts/sqlDatabases", "2021-01-15")
+let mongoDatabases = ResourceType ("Microsoft.DocumentDb/databaseAccounts/mongodbDatabases", "2021-01-15")
+let databaseAccounts = ResourceType ("Microsoft.DocumentDb/databaseAccounts", "2021-01-15")
+
+type DatabaseKind =
+    | Document
+    | Mongo
 
 module DatabaseAccounts =
     module SqlDatabases =
@@ -65,11 +70,16 @@ module DatabaseAccounts =
     type SqlDatabase =
         { Name : ResourceName
           Account : ResourceName
-          Throughput : int<RU> }
+          Throughput : int<RU>
+          Kind: DatabaseKind }
         interface IArmResource with
             member this.ResourceId = sqlDatabases.resourceId (this.Account/this.Name)
             member this.JsonModel =
-                {| sqlDatabases.Create(this.Account/this.Name, dependsOn = [ databaseAccounts.resourceId this.Account ]) with
+                let resource =
+                    match this.Kind with
+                    | Document -> sqlDatabases
+                    | Mongo -> mongoDatabases
+                {| resource.Create(this.Account/this.Name, dependsOn = [ databaseAccounts.resourceId this.Account ]) with
                        properties =
                            {| resource = {| id = this.Name.Value |}
                               options = {| throughput = string this.Throughput |} |}
@@ -82,6 +92,7 @@ type DatabaseAccount =
       FailoverPolicy : FailoverPolicy
       PublicNetworkAccess : FeatureFlag
       FreeTier : bool
+      Kind : DatabaseKind
       Tags: Map<string,string>  }
     member this.MaxStatelessPrefix =
         match this.ConsistencyPolicy with
@@ -113,7 +124,10 @@ type DatabaseAccount =
         member this.ResourceId = databaseAccounts.resourceId this.Name
         member this.JsonModel =
             {| databaseAccounts.Create(this.Name, this.Location, tags = this.Tags) with
-                   kind = "GlobalDocumentDB"
+                   kind =
+                    match this.Kind with
+                    | Document -> "GlobalDocumentDB"
+                    | Mongo -> "MongoDB"
                    properties =
                        {| consistencyPolicy =
                             {| defaultConsistencyLevel =
