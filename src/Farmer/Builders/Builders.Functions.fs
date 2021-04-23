@@ -12,10 +12,7 @@ open Farmer.Arm.KeyVault
 open Farmer.Arm.KeyVault.Vaults
 open System
 
-type RuntimeKind =
-    | Isolated
-    | InProcess
-type FunctionsRuntime = DotNet of RuntimeKind | Node | Java | Python
+type FunctionsRuntime = DotNet | DotNetIsolated | Node | Java | Python
 type FunctionsExtensionVersion = V1 | V2 | V3
 
 module private FunctionsConfig =
@@ -147,8 +144,8 @@ type FunctionsConfig =
 
             let functionsRuntime =
                 match this.Runtime with
-                | DotNet Isolated -> "dotnet-isolated"
-                | DotNet InProcess -> "dotnet"
+                | DotNetIsolated -> "dotnet-isolated"
+                | DotNet -> "dotnet"
                 | other -> (string other).ToLower()
             { Name = this.Name
               ServicePlan = this.ServicePlanId
@@ -288,7 +285,7 @@ type FunctionsBuilder() =
           StorageAccount = derived (fun config ->
             let storage = config.Name.Map (sprintf "%sstorage") |> sanitiseStorage |> ResourceName
             storageAccounts.resourceId storage)
-          Runtime = DotNet InProcess
+          Runtime = DotNet
           ExtensionVersion = V3
           Cors = None
           HTTPSOnly = false

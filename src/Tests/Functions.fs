@@ -108,7 +108,7 @@ let tests = testList "Functions tests" [
     }
 
     test "Supports dotnet-isolated runtime" {
-        let f = functions { use_runtime (FunctionsRuntime.DotNet RuntimeKind.Isolated) }
+        let f = functions { use_runtime (FunctionsRuntime.DotNetIsolated) }
         let resources = (f :> IBuilder).BuildResources Location.WestEurope
         let site = resources.[0] :?> Web.Site
         Expect.equal site.AppSettings.["FUNCTIONS_WORKER_RUNTIME"] (LiteralSetting "dotnet-isolated") "Should use dotnet-isolated functions runtime"
