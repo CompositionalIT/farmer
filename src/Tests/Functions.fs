@@ -106,4 +106,11 @@ let tests = testList "Functions tests" [
         Expect.equal secrets.[1].Value (ExpressionSecret sa.Key) "Incorrect secret value"
         Expect.sequenceEqual secrets.[1].Dependencies [ vaults.resourceId "testfuncvault"; storageAccounts.resourceId "teststorage" ] "Incorrect secret dependencies"
     }
+
+    test "Supports dotnet-isolated runtime" {
+        let f = functions { use_runtime (FunctionsRuntime.DotNetIsolated) }
+        let resources = (f :> IBuilder).BuildResources Location.WestEurope
+        let site = resources.[0] :?> Web.Site
+        Expect.equal site.AppSettings.["FUNCTIONS_WORKER_RUNTIME"] (LiteralSetting "dotnet-isolated") "Should use dotnet-isolated functions runtime"
+    }
 ]
