@@ -54,6 +54,8 @@ The Key Vault builder contains access policies, secrets, and configuration infor
 | disable_resource_manager_access | Disallows Resource Manager access to the vault. |
 | enable_disk_encryption_access | Allows Azure Disk Encyption service access to the vault. |
 | disable_disk_encryption_access | Disallows Azure Disk Encyption service access to the vault. |
+| enable_rbac | Enables Azure role based access control for data access.
+| disable_rbac | Disables Azure role based access control for data access.
 | enable_soft_delete | Enables VM access to the vault. |
 | enable_soft_delete_with_purge_protection | Disables VM access to the vault. |
 | uri | Sets the URI of the vault. |

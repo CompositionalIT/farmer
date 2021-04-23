@@ -5,8 +5,8 @@ open Farmer
 open Farmer.KeyVault
 open System
 
-let secrets = ResourceType ("Microsoft.KeyVault/vaults/secrets", "2018-02-14")
-let vaults = ResourceType ("Microsoft.KeyVault/vaults", "2018-02-14")
+let secrets = ResourceType ("Microsoft.KeyVault/vaults/secrets", "2019-09-01")
+let vaults = ResourceType ("Microsoft.KeyVault/vaults", "2019-09-01")
 
 module Vaults =
     type Secret =
@@ -50,6 +50,7 @@ type Vault =
       Uri : Uri option
       Deployment : FeatureFlag option
       DiskEncryption : FeatureFlag option
+      RbacAuthorization : FeatureFlag option
       TemplateDeployment : FeatureFlag option
       SoftDelete : SoftDeletionMode option
       CreateMode : CreateMode option
@@ -89,6 +90,7 @@ type Vault =
                        enabledForDeployment = this.Deployment |> Option.map(fun f -> f.AsBoolean) |> Option.toNullable
                        enabledForDiskEncryption = this.DiskEncryption |> Option.map(fun f -> f.AsBoolean) |> Option.toNullable
                        enabledForTemplateDeployment = this.TemplateDeployment |> Option.map(fun f -> f.AsBoolean) |> Option.toNullable
+                       enableRbacAuthorization = this.RbacAuthorization |> Option.map(fun f -> f.AsBoolean) |> Option.toNullable
                        enableSoftDelete =
                         match this.SoftDelete with
                         | None ->

@@ -3,8 +3,10 @@ module KeyVault
 open Expecto
 open Farmer.Builders
 open Farmer.KeyVault
+open Farmer.Arm.RoleAssignment
 open System
 open Farmer
+open Newtonsoft.Json.Linq
 
 let tests = testList "KeyVault" [
     test "Can create secrets without popping" {
@@ -65,5 +67,49 @@ let tests = testList "KeyVault" [
         let v = keyVault { add_access_policy (AccessPolicy.create a.SystemIdentity.PrincipalId) } :> IBuilder
         let vault = v.BuildResources Location.NorthEurope |> List.head :?> Farmer.Arm.KeyVault.Vault
         Expect.sequenceEqual vault.Dependencies [ ResourceId.create(Arm.Web.sites, a.Name) ] "Web App dependency"
+    }
+    
+    test "Create a basic key vault" {
+        let kv = keyVault {
+            name "my-test-kv-9876abcd"
+        }
+        let json =
+            let template = 
+                arm {
+                    add_resource kv
+                }
+            template.Template |> Writer.toJson
+        let jobj = JObject.Parse(json)
+        let kvName = jobj.SelectToken("resources[0].name")
+        Expect.equal kvName (JValue.CreateString "my-test-kv-9876abcd" :> JToken) "Incorrect name set on key vault"
+    }
+    
+    test "Create a key vault with RBAC enabled" {
+        let kv = keyVault {
+            name "my-test-kv-9876rbac"
+            enable_rbac
+        }
+        let msi = createUserAssignedIdentity "kvUser"
+        let roleAssignment = 
+            { Name =
+                ArmExpression.create($"guid(concat(resourceGroup().id, '{Roles.KeyVaultReader.Id}'))")
+                             .Eval()
+                |> ResourceName
+              RoleDefinitionId = Roles.KeyVaultReader
+              PrincipalId = msi.PrincipalId
+              PrincipalType = PrincipalType.ServicePrincipal
+              Scope = ResourceGroup
+              Dependencies = Set.empty }
+        let json =
+            let template = 
+                arm {
+                    add_resource kv
+                    add_resource msi
+                    add_resource roleAssignment
+                }
+            template.Template |> Writer.toJson
+        let jobj = JObject.Parse(json)
+        let enableRbac = jobj.SelectToken("resources[0].properties.enableRbacAuthorization")
+        Expect.isTrue (enableRbac.Value<bool>()) "RBAC was not enabled on the key vault"
     }
 ]
