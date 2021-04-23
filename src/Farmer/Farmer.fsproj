@@ -84,6 +84,13 @@
     <Compile Include="Arm/Maps.fs" />
     <Compile Include="Arm/SignalR.fs" />
     <Compile Include="Arm/EventGrid.fs" />
+    <Compile Include="Arm/ExpressRouteConnection.fs" />
+    <Compile Include="Arm/VirtualWAN.fs" />
+    <Compile Include="Arm/VirtualHub.fs" />
+    <Compile Include="Arm/Firewall.fs" />
+    <Compile Include="Arm/ExpressRouteGateway.fs" />
+    <Compile Include="Arm/VirtualHubRouteTable.fs" />
+    <Compile Include="Arm/VirtualHubVnetConnection.fs" />
     <Compile Include="Arm/NetworkSecurityGroup.fs" />
     <Compile Include="Arm/DeploymentScript.fs" />
     <Compile Include="Arm/Databricks.fs" />
@@ -120,6 +127,7 @@
     <Compile Include="Builders/Builders.IotHub.fs" />
     <Compile Include="Builders/Builders.Maps.fs" />
     <Compile Include="Builders/Builders.SignalR.fs" />
+    <Compile Include="Builders\Builders.VirtualWAN.fs" />
     <Compile Include="Builders/Builders.VirtualNetworkGateway.fs" />
     <Compile Include="Builders/Builders.EventGrid.fs" />
     <Compile Include="Builders/Builders.StaticWebApp.fs" />
