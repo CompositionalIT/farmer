@@ -1,7 +1,7 @@
 Release Notes
 =============
 
-##  1.5.0-beta
+##  1.5.0
 * Container Groups: Support for init containers.
 * Container Groups: Support for liveliness and readiness probes on containers.
 * Container Groups: Connect network profile to an existing virtual network.
