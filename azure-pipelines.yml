@@ -2,6 +2,12 @@ trigger:
   paths:
     exclude:
     - 'docs/'
+  branches:
+    include:
+    - master
+  tags:
+    include:
+    - '*'
 stages:
 - stage: "Prepare"
   displayName: "Build, test and pack"
@@ -57,7 +63,7 @@ stages:
 - stage: "Release"
   displayName: "Release to NuGet"
   dependsOn: ["Prepare"]
-  condition:  and(succeeded(), eq(variables['build.sourceBranch'], 'refs/heads/master')) #optional, only trigger for master
+  condition:  and(succeeded(), startsWith(variables['build.sourceBranch'], 'refs/tags/')) #optional, only publish nuget pkg for new tags
   jobs:
   - deployment: "NugetPublish"
     displayName: "Publish to NuGet"

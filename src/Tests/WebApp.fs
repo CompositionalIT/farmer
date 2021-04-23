@@ -237,6 +237,12 @@ let tests = testList "Web App Tests" [
         Expect.isEmpty extensions "Shouldn't be any extensions"
     }
 
+    test "Does not add the logging extension for apps using a docker image" {
+        let wa = webApp { name "siteX" ; docker_image "someImage" "someCommand" }
+        let extensions = wa |> getResources |> getResource<SiteExtension>
+        Expect.isEmpty extensions "Shouldn't be any extensions"
+    }
+
     test "Handles add_extension correctly" {
         let wa = webApp { name "siteX"; add_extension "extensionA"; runtime_stack Runtime.Java11 }
         let resources = wa |> getResources
@@ -280,17 +286,6 @@ let tests = testList "Web App Tests" [
         Expect.isEmpty wa.SiteConfig.AppSettings "Should be no settings"
     }
 
-    test "Miscellaneous properties work correctly" {
-        let w : Site = webApp { name "w" } |> getResourceAtIndex 0
-        Expect.equal w.SiteConfig.Use32BitWorkerProcess (Nullable()) "Default worker process"
-
-        let w : Site = webApp { worker_process Bits32 } |> getResourceAtIndex 0
-        Expect.equal w.SiteConfig.Use32BitWorkerProcess (Nullable true) "32 Bit worker process"
-
-        let w : Site = webApp { worker_process Bits64 } |> getResourceAtIndex 0
-        Expect.equal w.SiteConfig.Use32BitWorkerProcess (Nullable false) "64 Bit worker process"
-    }
-
     test "Supports always on" {
         let template = webApp { name "web"; always_on }
         Expect.equal template.AlwaysOn true "AlwaysOn should be true"
@@ -300,10 +295,18 @@ let tests = testList "Web App Tests" [
     }
 
     test "Supports 32 and 64 bit worker processes" {
-        let site:Site = webApp { worker_process Bitness.Bits32 } |> getResourceAtIndex 0
+        let site : Site = webApp { name "w" } |> getResourceAtIndex 0
+        Expect.equal site.SiteConfig.Use32BitWorkerProcess (Nullable()) "Default worker process"
+
+        let site:Site = webApp { worker_process Bits32 } |> getResourceAtIndex 0
         Expect.equal site.SiteConfig.Use32BitWorkerProcess (Nullable true) "Should use 32 bit worker process"
 
-        let site:Site = webApp { worker_process Bitness.Bits64 } |> getResourceAtIndex 0
+        let site:Site = webApp { worker_process Bits64 } |> getResourceAtIndex 0
         Expect.equal site.SiteConfig.Use32BitWorkerProcess (Nullable false) "Should not use 32 bit worker process"
+    }
+    test "Supports .NET 5 EAP" {
+        let app = webApp { runtime_stack Runtime.DotNet50 }
+        let site:Site = app |> getResourceAtIndex 0
+        Expect.equal site.SiteConfig.NetFrameworkVersion "v5.0" "Wrong dotnet version"
     }
 ]

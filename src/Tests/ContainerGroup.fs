@@ -4,6 +4,7 @@ open Expecto
 open Farmer
 open Farmer.Identity
 open Farmer.ContainerGroup
+open Farmer.Arm.ContainerInstance
 open Farmer.Builders
 open Microsoft.Azure.Management.ContainerInstance
 open Microsoft.Azure.Management.ContainerInstance.Models
@@ -301,5 +302,134 @@ let tests = testList "Container Group" [
         }
         Expect.hasLength deployment.Template.Parameters 1 "Should have a secure parameter for secret volume"
         Expect.equal (deployment.Template.Parameters.Head.ArmExpression.Eval()) "[parameters('secret-foo')]" "Generated incorrect secure parameter."
+    }
+    test "Container with liveliness and readiness probes" {
+
+        let cg =
+            containerGroup {
+                name "myapp"
+                add_instances [
+                    containerInstance {
+                        name "nginx"
+                        image "nginx:1.17.6-alpine"
+                        probes [
+                            liveliness {
+                                http "https://whatever.com:8080/healthcheck"
+                                period_seconds 30 // Wait 30 seconds between each liveliness check
+                                failure_threshold 10 // After 10 tries, consider this unhealthy
+                            }
+                            readiness {
+                                http "https://whatever.com:8080/healthcheck"
+                                initial_delay_seconds 30 // Wait 30 seconds after the container is started before a readiness check
+                                failure_threshold 5 // Let it retry 5 times, giving another 50 seconds to try to start
+                            }
+                        ]
+                    }
+                ]
+            } |> asAzureResource
+        let livelinessProbe = cg.Containers.[0].LivenessProbe
+        Expect.isNotNull livelinessProbe "Resulting container should have a liveliness probe"
+        Expect.equal livelinessProbe.HttpGet.Path "/healthcheck" "Incorrect path on liveliness http probe"
+        Expect.equal livelinessProbe.HttpGet.Port 8080 "Incorrect port on liveliness http probe"
+        Expect.equal livelinessProbe.HttpGet.Scheme "https" "Incorrect scheme on liveliness http probe"
+        Expect.equal livelinessProbe.PeriodSeconds.Value 30 "Incorrect period on liveliness probe"
+        Expect.equal livelinessProbe.FailureThreshold.Value 10 "Incorrect failure threshold on liveliness probe"
+        let readinessProbe = cg.Containers.[0].ReadinessProbe
+        Expect.isNotNull readinessProbe "Resulting container should have a readiness probe"
+        Expect.equal readinessProbe.HttpGet.Path "/healthcheck" "Incorrect path on readiness http probe"
+        Expect.equal readinessProbe.HttpGet.Port 8080 "Incorrect port on readiness http probe"
+        Expect.equal readinessProbe.HttpGet.Scheme "https" "Incorrect scheme on readiness http probe"
+        Expect.equal readinessProbe.InitialDelaySeconds.Value 30 "Incorrect initial delay threshold on readiness probe"
+        Expect.equal readinessProbe.FailureThreshold.Value 5 "Incorrect failure threshold on readiness probe"
+    }
+    test "Container network profile with vnet has expected dependsOn" {
+        let template =
+            arm {
+                add_resources [
+                    vnet {
+                        name "containernet"
+                        add_address_spaces [
+                            "10.30.40.0/20"
+                        ]
+                        add_subnets [
+                            subnet {
+                                name "ContainerSubnet"
+                                prefix "10.40.41.0/24"
+                                add_delegations [ SubnetDelegationService.ContainerGroups ]
+                            }
+                        ]
+                    }
+                    networkProfile {
+                        name "netprofile"
+                        vnet "containernet"
+                        subnet "ContainerSubnet"
+                    }
+                    containerGroup {
+                        name "appWithHttpFrontend"
+                        operating_system Linux
+                        restart_policy AlwaysRestart
+                        add_instances [ nginx ]
+                        network_profile "netprofile"
+                    }
+                ]
+            }
+        let json = template.Template |> Writer.toJson
+        let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+        let expectedContainerNetDeps = "[resourceId('Microsoft.Network/virtualNetworks', 'containernet')]"
+        let dependsOn = jobj.SelectToken("resources[?(@.name=='netprofile')].dependsOn")
+        Expect.hasLength dependsOn 1 "netprofile has wrong number of dependencies"
+        let actualContainerNetDeps =
+            (dependsOn :?> Newtonsoft.Json.Linq.JArray).First.ToString()
+        Expect.equal actualContainerNetDeps expectedContainerNetDeps "Dependencies didn't match"
+    }
+    test "Container network profile with linked vnet has empty dependsOn" {
+        let template =
+            arm {
+                add_resources [
+                    networkProfile {
+                        name "netprofile"
+                        link_to_vnet "containernet"
+                        subnet "ContainerSubnet"
+                    }
+                    containerGroup {
+                        name "appWithHttpFrontend"
+                        operating_system Linux
+                        restart_policy AlwaysRestart
+                        add_instances [ nginx ]
+                        network_profile "netprofile"
+                    }
+                ]
+            }
+        let json = template.Template |> Writer.toJson
+        let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+        let dependsOn = jobj.SelectToken("resources[?(@.name=='netprofile')].dependsOn")
+        Expect.hasLength dependsOn 0 "network profile had dependencies when existing vnet was linked"
+    }
+    test "Container network profile with linked vnet in another resource group has empty dependsOn" {
+        let template =
+            arm {
+                add_resources [
+                    networkProfile {
+                        name "netprofile"
+                        link_to_vnet (ResourceId.create(Arm.Network.virtualNetworks, (ResourceName "containerNet"), group="other-res-group"))
+                        subnet "ContainerSubnet"
+                    }
+                ]
+            }
+        let json = template.Template |> Writer.toJson
+        let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+        let subnetId = jobj.SelectToken("..subnet.id") |> string
+        let expectedSubnetId = "[resourceId('other-res-group', 'Microsoft.Network/virtualNetworks/subnets', 'containerNet', 'ContainerSubnet')]"
+        Expect.equal subnetId expectedSubnetId "Generated incorrect subnet ID." 
+    }
+    test "Can link a network profile directly to a container group" {
+        let profile = networkProfile { name "netprofile" }
+        let template =
+            containerGroup {
+                name "appWithHttpFrontend"
+                network_profile profile
+            } |> asAzureResource
+
+        Expect.equal "[resourceId('Microsoft.Network/networkProfiles', 'netprofile')]" template.NetworkProfile.Id "Incorrect profile name"
     }
 ]

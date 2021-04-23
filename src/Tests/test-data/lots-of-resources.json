@@ -93,7 +93,7 @@
       "type": "Microsoft.Storage/storageAccounts"
     },
     {
-      "apiVersion": "2016-08-01",
+      "apiVersion": "2020-06-01",
       "dependsOn": [
         "[resourceId('Microsoft.Insights/components', 'farmerwebapp1979-ai')]",
         "[resourceId('Microsoft.Web/serverfarms', 'farmerwebapp1979-farm')]"
@@ -204,7 +204,7 @@
       "type": "Microsoft.Web/sites/siteextensions"
     },
     {
-      "apiVersion": "2016-08-01",
+      "apiVersion": "2020-06-01",
       "dependsOn": [
         "[resourceId('Microsoft.Insights/components', 'farmerfuncs1979-ai')]",
         "[resourceId('Microsoft.Storage/storageAccounts', 'farmerfuncs1979storage')]",
@@ -414,7 +414,7 @@
               ],
               "resources": {
                 "requests": {
-                  "cpu": 1.0,
+                  "cpu": 1,
                   "memoryInGB": 1.5
                 }
               },
@@ -453,7 +453,7 @@
       "type": "Microsoft.ContainerInstance/containerGroups"
     },
     {
-      "apiVersion": "2020-03-01",
+      "apiVersion": "2021-01-15",
       "kind": "GlobalDocumentDB",
       "location": "northeurope",
       "name": "testaccount",
@@ -471,7 +471,7 @@
       "type": "Microsoft.DocumentDb/databaseAccounts"
     },
     {
-      "apiVersion": "2020-03-01",
+      "apiVersion": "2021-01-15",
       "dependsOn": [
         "[resourceId('Microsoft.DocumentDb/databaseAccounts', 'testaccount')]"
       ],
@@ -487,7 +487,7 @@
       "type": "Microsoft.DocumentDb/databaseAccounts/sqlDatabases"
     },
     {
-      "apiVersion": "2020-03-01",
+      "apiVersion": "2021-01-15",
       "dependsOn": [
         "[resourceId('Microsoft.DocumentDb/databaseAccounts/sqlDatabases', 'testaccount', 'testdb')]"
       ],
@@ -527,6 +527,40 @@
         }
       },
       "type": "Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers"
+    },
+    {
+      "apiVersion": "2021-01-15",
+      "kind": "MongoDB",
+      "location": "northeurope",
+      "name": "testaccountmongo",
+      "properties": {
+        "consistencyPolicy": {
+          "defaultConsistencyLevel": "BoundedStaleness",
+          "maxIntervalInSeconds": 1000,
+          "maxStalenessPrefix": 500
+        },
+        "databaseAccountOfferType": "Standard",
+        "enableFreeTier": false,
+        "publicNetworkAccess": "Enabled"
+      },
+      "tags": {},
+      "type": "Microsoft.DocumentDb/databaseAccounts"
+    },
+    {
+      "apiVersion": "2021-01-15",
+      "dependsOn": [
+        "[resourceId('Microsoft.DocumentDb/databaseAccounts', 'testaccountmongo')]"
+      ],
+      "name": "testaccountmongo/testdbmongo",
+      "properties": {
+        "options": {
+          "throughput": "400"
+        },
+        "resource": {
+          "id": "testdbmongo"
+        }
+      },
+      "type": "Microsoft.DocumentDb/databaseAccounts/mongodbDatabases"
     }
   ]
 }

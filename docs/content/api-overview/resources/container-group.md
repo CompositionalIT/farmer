@@ -2,13 +2,14 @@
 title: "Container Group"
 date: 2020-04-30T19:30:59+02:00
 chapter: false
-weight: 5
+weight: 3
 ---
 
 #### Overview
 The Container Group builder is used to create Azure Container Group instances.
 
 * Container Group (`Microsoft.ContainerInstance/containerGroups`)
+* Network Profile (`Microsoft.Network/networkProfiles`)
 
 #### Builder Keywords
 | Applies To        | Keyword | Purpose |
@@ -21,6 +22,7 @@ The Container Group builder is used to create Azure Container Group instances.
 | containerInstance | memory | Sets the maximum gigabytes of memory the container may use. |
 | containerInstance | env_vars | Sets a list of environment variables for the container. |
 | containerInstance | add_volume_mount | Adds a volume mount on a container from a volume in the container group. |
+| containerInstance | probes | Adds liveliness and readiness probes to a container. |
 | initContainer | name | Sets the name of the init container. |
 | initContainer | image | Sets the init container image. |
 | initContainer | command | Sets the commands to execute within the init container in exec form. |
@@ -39,6 +41,24 @@ The Container Group builder is used to create Azure Container Group instances.
 | containerGroup | add_tcp_port | Adds a TCP port to be externally accessible. |
 | containerGroup | add_udp_port | Adds a UDP port to be externally accessible. |
 | containerGroup | add_volumes | Adds volumes to a container group so they are accessible to containers. |
+| liveliness | http | Sets the http GET URI on a container liveliness check. |
+| liveliness | exec | Sets a command to execute on a container liveliness check. |
+| liveliness | initial_delay_seconds | Sets a delay after container startup before the first check - default is 0 seconds. |
+| liveliness | period_seconds | Sets the period between running checks - default is 10 seconds. |
+| liveliness | failure_threshold | Sets the number of times a check can fail before the container is considered unhealthy and will be restarted - default is 3. |
+| liveliness | success_threshold | Sets the number of times a check must succeed before the container is considered healthy - default is 1. |
+| liveliness | timeout_seconds | Sets the number of seconds a check is allowed to run before considering the check a failure - default is 1 second. |
+| readiness | http | Sets the http GET URI on a container readiness check. |
+| readiness | exec | Sets a command to execute on a container readiness check. |
+| readiness | initial_delay_seconds | Sets a delay after container startup before the readiness check - default is 0 seconds. |
+| readiness | period_seconds | Sets the period between running checks - default is 10 seconds. |
+| readiness | failure_threshold | Sets the number of times a check can fail before the container is considered unhealthy and will be restarted - default is 3. |
+| readiness | success_threshold | Sets the number of times a check must succeed before the container is considered healthy - default is 1. |
+| readiness | timeout_seconds | Sets the number of seconds a check is allowed to run before considering the check a failure - default is 1 second. |
+| networkProfile | name | Name of the container network profile for connecting a container group to a virtual network. |
+| networkProfile | vnet | Resource name of the virtual network to connect (if created in the same deployment). |
+| networkProfile | link_to_vnet | Resource name of an existing virtual network to connect. |
+| networkProfile | subnet | Name of the subnet in the virtual network where the container group should attach. |
 
 #### Example
 ```fsharp
@@ -59,6 +79,12 @@ let nginx = containerInstance {
     ]
     add_volume_mount "secret-files" "/config/secrets"
     add_volume_mount "source-code" "/src/farmer"
+    probes [
+        liveliness {
+            http "http://localhost:80/"
+            initial_delay_seconds 15
+        }
+    ]
 }
 
 let containerGroupUser = userAssignedIdentity {

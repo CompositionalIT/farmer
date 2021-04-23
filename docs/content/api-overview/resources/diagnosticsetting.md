@@ -2,7 +2,7 @@
 title: " Diagnostic Settings "
 date: 2020-12-02T12:10:03 +00:00
 chapter: false
-weight: 14
+weight: 4
 ---
 
 #### Overview

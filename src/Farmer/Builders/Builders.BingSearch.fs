@@ -8,7 +8,7 @@ open Farmer.BingSearch
 type BingSearch =
     /// Gets an ARM Expression key for any Bing Search instance.
     static member getKey (resourceId: ResourceId) =
-        ArmExpression.create(sprintf "listKeys(%s, '%s').key1" resourceId.ArmExpression.Value accounts.ApiVersion, resourceId)
+        ArmExpression.create($"listKeys({resourceId.ArmExpression.Value}, '{accounts.ApiVersion}').key1", resourceId)
     static member getKey (name: ResourceName) = BingSearch.getKey (accounts.resourceId name)
 
 type BingSearchConfig =

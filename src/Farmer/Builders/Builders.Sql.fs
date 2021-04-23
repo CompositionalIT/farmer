@@ -30,11 +30,7 @@ type SqlAzureConfig =
     member this.ConnectionString (database:SqlAzureDbConfig) =
         let expr =
             ArmExpression.concat [
-                ArmExpression.literal
-                    (sprintf "Server=tcp:%s.database.windows.net,1433;Initial Catalog=%s;Persist Security Info=False;User ID=%s;Password="
-                        this.Name.ResourceName.Value
-                        database.Name.Value
-                        this.AdministratorCredentials.UserName)
+                ArmExpression.literal $"Server=tcp:{this.Name.ResourceName.Value}.database.windows.net,1433;Initial Catalog={database.Name.Value};Persist Security Info=False;User ID={this.AdministratorCredentials.UserName};Password="
                 this.AdministratorCredentials.Password.ArmExpression
                 ArmExpression.literal ";MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
             ]
@@ -43,10 +39,10 @@ type SqlAzureConfig =
         this.Databases
         |> List.tryFind(fun db -> db.Name = databaseName)
         |> Option.map this.ConnectionString
-        |> Option.defaultWith(fun _ -> failwithf "Unknown database name %s" databaseName.Value)
+        |> Option.defaultWith(fun _ -> failwith $"Unknown database name {databaseName.Value}")
     member this.ConnectionString databaseName = this.ConnectionString (ResourceName databaseName)
     /// The key of the parameter that is required by Farmer for the SQL password.
-    member this.PasswordParameter = sprintf "password-for-%s" this.Name.ResourceName.Value
+    member this.PasswordParameter = $"password-for-{this.Name.ResourceName.Value}"
 
     interface IBuilder with
         member this.ResourceId = servers.resourceId this.Name.ResourceName
@@ -159,7 +155,7 @@ type SqlServerBuilder() =
     member __.Run state : SqlAzureConfig =
         { state with
             AdministratorCredentials =
-                if System.String.IsNullOrWhiteSpace state.AdministratorCredentials.UserName then failwithf "You must specify the admin_username for SQL Server instance %s" state.Name.ResourceName.Value
+                if System.String.IsNullOrWhiteSpace state.AdministratorCredentials.UserName then failwith $"You must specify the admin_username for SQL Server instance {state.Name.ResourceName.Value}"
                 {| state.AdministratorCredentials with
                     Password = SecureParameter state.PasswordParameter |} }
     /// Sets the name of the SQL server.

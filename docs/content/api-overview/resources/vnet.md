@@ -2,7 +2,7 @@
 title: "Virtual Network"
 date: 2021-01-09T11:22:17-05:00
 chapter: false
-weight: 25
+weight: 21
 ---
 
 #### Overview
@@ -36,7 +36,7 @@ The Virtual Network builder (`vnet`) is used to create Azure Virtual Network ins
 
 #### Example - Manual Subnets
 
-A virtual network is defined with the `vnet` builder. Address spaces and 
+A virtual network is defined with the `vnet` builder. Address spaces and
 subnets should be added, taking care to ensure the subnets are contained
 within an address space on the virtual network.
 

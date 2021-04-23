@@ -1,6 +1,5 @@
 module Farmer.Writer
 
-open Newtonsoft.Json
 open System.IO
 open System
 open System.Reflection
@@ -22,9 +21,6 @@ module TemplateGeneration =
             |> Map.ofList
     |}
 
-    let serialize data =
-        JsonConvert.SerializeObject(data, Formatting.Indented, JsonSerializerSettings(NullValueHandling = NullValueHandling.Ignore))
-
 let branding () =
     let version =
         Assembly
@@ -39,12 +35,12 @@ let branding () =
 
 /// Returns a JSON string representing the supplied ARMTemplate.
 let toJson =
-    TemplateGeneration.processTemplate >> TemplateGeneration.serialize
+    TemplateGeneration.processTemplate >> Serialization.toJson
 
 /// Writes the provided JSON to a file based on the supplied template name. The postfix ".json" will automatically be added to the filename.
 let toFile folder templateName json =
     let filename =
-        let filename = sprintf "%s.json" templateName
+        let filename = $"{templateName}.json"
         Path.Combine(folder, filename)
     let directory = Path.GetDirectoryName filename
     if not (Directory.Exists directory) then

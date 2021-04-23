@@ -4,8 +4,6 @@ open Expecto
 open Farmer
 open Farmer.Builders
 open Farmer.Arm
-open Newtonsoft.Json
-open System.IO
 open TestHelpers
 
 let toTemplate (deployment:Deployment) =

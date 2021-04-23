@@ -6,7 +6,7 @@ open Farmer.WebApp
 open System
 
 let serverFarms = ResourceType ("Microsoft.Web/serverfarms", "2018-02-01")
-let sites = ResourceType ("Microsoft.Web/sites", "2016-08-01")
+let sites = ResourceType ("Microsoft.Web/sites", "2020-06-01")
 let config = ResourceType ("Microsoft.Web/sites/config", "2016-08-01")
 let sourceControls = ResourceType ("Microsoft.Web/sites/sourcecontrols", "2019-08-01")
 let staticSites = ResourceType("Microsoft.Web/staticSites", "2019-12-01-preview")
@@ -118,7 +118,7 @@ type Site =
       AppSettings : Map<string, Setting>
       ConnectionStrings : Map<string, (Setting * ConnectionStringKind)>
       AlwaysOn : bool
-      WorkerProcess : Bitness option 
+      WorkerProcess : Bitness option
       HTTPSOnly : bool
       HTTP20Enabled : bool option
       ClientAffinityEnabled : bool option
@@ -153,7 +153,7 @@ type Site =
                 let path =
                     ZipDeploy.ZipDeployKind.TryParse path
                     |> Option.defaultWith (fun () ->
-                        failwithf "Path '%s' must either be a folder to be zipped, or an existing zip." path)
+                        failwith $"Path '{path}' must either be a folder to be zipped, or an existing zip.")
                 printfn "Running ZIP deploy for %s" path.Value
                 Some (match target with
                       | ZipDeploy.WebApp -> Deploy.Az.zipDeployWebApp name.Value path.GetZipPath resourceGroupName
@@ -186,7 +186,10 @@ type Site =
                            pythonVersion = this.PythonVersion |> Option.toObj
                            http20Enabled = this.HTTP20Enabled |> Option.toNullable
                            webSocketsEnabled = this.WebSocketsEnabled |> Option.toNullable
-                           metadata = this.Metadata |> List.map(fun (k,v) -> {| name = k; value = v |})
+                           metadata = [
+                            for key, value in this.Metadata do
+                                {| name = key; value = value |}
+                           ]
                            cors =
                             this.Cors
                             |> Option.map (function

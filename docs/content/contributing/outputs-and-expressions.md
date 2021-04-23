@@ -16,10 +16,7 @@ Farmer ARM expressions are in reality just wrapped strings, and are easy to crea
 let buildKey accountName : ArmExpression =
     // Create the raw string of the expression
     let rawValue =
-        sprintf
-            "concat('DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=', listKeys('%s', '2017-10-01').keys[0].value)"
-            accountName
-            accountName
+        $"concat('DefaultEndpointsProtocol=https;AccountName={accountName};AccountKey=', listKeys('{accountName}', '2017-10-01').keys[0].value)"
 
     // Wrap the raw value in an ARM Expression and return it
     ArmExpression rawValue

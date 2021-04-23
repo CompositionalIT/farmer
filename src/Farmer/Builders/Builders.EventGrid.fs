@@ -141,15 +141,31 @@ type EventGridBuilder() =
 
     [<CustomOperation "add_queue_subscriber">]
     member _.AddQueueSubscription(state:EventGridConfig<'T>, storageAccount:StorageAccountConfig, queueName, events) =
-        EventGridBuilder.AddSub(state, queueName + "-queue", storageAccount.Name.ResourceName, StorageQueue queueName, events)
+        EventGridBuilder.AddSub(state, queueName + "-queue", storageAccount.Name.ResourceName, StorageQueue (ResourceName queueName), events)
     [<CustomOperation "add_webhook_subscriber">]
     member _.AddWebSubscription(state:EventGridConfig<'T>, webAppName:ResourceName, webHookEndpoint:Uri, events) =
         EventGridBuilder.AddSub(state, webHookEndpoint.LocalPath + "-webhook", webAppName, WebHook webHookEndpoint, events)
     member this.AddWebSubscription(state:EventGridConfig<_>, webApp:WebAppConfig, route, events) =
-        this.AddWebSubscription(state, webApp.Name, Uri (sprintf "https://%s/%s" webApp.Endpoint route), events)
+        this.AddWebSubscription(state, webApp.Name, Uri $"https://{webApp.Endpoint}/%s{route}", events)
     [<CustomOperation "add_eventhub_subscriber">]
     member _.AddEventHubSubscription(state:EventGridConfig<'T>, eventHub:EventHubConfig, events:EventGridEvent<_> list) =
         EventGridBuilder.AddSub(state, eventHub.Name.Value + "-eventhub", eventHub.EventHubNamespaceName, EventHub eventHub.Name, events)
+    [<CustomOperation "add_servicebus_queue_subscriber">]
+    member _.AddServiceBusQueueSubscription(state:EventGridConfig<'T>, bus:ServiceBusConfig, queue:ServiceBusQueueConfig, events:EventGridEvent<_> list) =
+        let endpoint =
+            { Queue = queue.Name; Bus = bus.Name}
+            |> ServiceBusEndpointType.Queue
+            |> ServiceBus
+        let name = $"%s{bus.Name.Value}-servicebus-queue"
+        EventGridBuilder.AddSub(state, name, queue.Name, endpoint, events)
+    [<CustomOperation "add_servicebus_topic_subscriber">]
+    member _.AddServiceBusTopicSubscription(state:EventGridConfig<'T>, bus:ServiceBusConfig, topic:ServiceBusTopicConfig, events:EventGridEvent<_> list) =
+        let endpoint =
+            { Topic = topic.Name; Bus = bus.Name}
+            |> ServiceBusEndpointType.Topic
+            |> ServiceBus
+        let name = sprintf $"%s{bus.Name.Value}-servicebus-topic"
+        EventGridBuilder.AddSub(state, name, topic.Name, endpoint, events)
 
     [<CustomOperation "add_tags">]
     member _.Tags(state:EventGridConfig<'T>, pairs) =

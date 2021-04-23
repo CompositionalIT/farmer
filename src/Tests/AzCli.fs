@@ -3,7 +3,6 @@ module AzCli
 open Expecto
 open Farmer
 open System
-open Farmer.Builders
 open TestHelpers
 
 let deployTo resourceGroupName parameters deployment =
@@ -12,8 +11,8 @@ let deployTo resourceGroupName parameters deployment =
     let deleteResponse = Deploy.Az.delete resourceGroupName
     match deployResponse, deleteResponse with
     | Ok _, Ok _ -> ()
-    | Error e, _ -> failwithf "Something went wrong during the deployment: %s" e
-    | _, Error e -> failwithf "Something went wrong during the delete: %s" e
+    | Error e, _ -> failwith $"Something went wrong during the deployment: {e}"
+    | _, Error e -> failwith $"Something went wrong during the delete: {e}"
 
 let endToEndTests = testList "End to end tests" [
     test "Deploys and deletes a resource group" {
@@ -32,13 +31,13 @@ let tests = testList "Azure CLI" [
     test "Can connect to Az CLI" {
         match Deploy.checkVersion Deploy.Az.MinimumVersion with
         | Ok _ -> ()
-        | Error x -> failwithf "Version check failed: %s" x
+        | Error msg -> failwith $"Version check failed: {msg}"
     }
 
     test "Az output is always JSON" {
         // account list always defaults to table, regardless of defaults?
         Deploy.Az.az "account list --all"
-        |> Result.map Newtonsoft.Json.JsonConvert.DeserializeObject<{| id : Guid; tenantId : Guid; isDefault : bool; |} array>
+        |> Result.map Serialization.ofJson<{| id : Guid; tenantId : Guid; isDefault : bool; |} array>
         |> ignore
     }
 ]
