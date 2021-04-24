@@ -113,13 +113,24 @@ type StorageAccountConfig =
                       yield! roleAssignment.Owner |> Option.toList
                   ] }
 
-            for rule in this.CorsRules |> List.groupBy fst do
-                match rule with
-                | StorageService.Blobs, rules ->
-                    { StorageAccount = StorageResourceName.Create(this.Name.ResourceName).OkValue
-                      CorsRules = rules |> List.map snd }
-                | _ ->
-                    ()                    
+            let storageResourceName = StorageResourceName.Create(this.Name.ResourceName).OkValue
+
+            let rules =
+                this.CorsRules
+                |> List.groupBy fst
+                |> List.map(fun (svc, rules) ->
+                    svc, {| StorageAccount = storageResourceName
+                            CorsRules = rules |> List.map snd |}
+                )
+            for svc, rulesForService in this.CorsRules |> List.groupBy fst do
+                { ResourceType =
+                    match svc with
+                    | StorageService.Blobs -> blobServices
+                    | StorageService.Queues -> queueServices
+                    | StorageService.Tables -> tableServices
+                    | StorageService.Files -> fileServices
+                  StorageAccount = storageResourceName
+                  CorsRules = rulesForService |> List.map snd }
         ]
 
 type StorageAccountBuilder() =

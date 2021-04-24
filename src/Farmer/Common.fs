@@ -458,19 +458,19 @@ module Storage =
     type CorsRule =
         { AllowedOrigins : AllOrSpecific<Uri>
           AllowedMethods : HttpMethod NonEmptyList
-          MaxAgeInSeconds : uint
+          MaxAgeInSeconds : int
           ExposedHeaders : AllOrSpecific<string>
           AllowedHeaders : AllOrSpecific<string> }
         static member AllowAll =
             { AllowedOrigins = All
               AllowedMethods = HttpMethod.All
-              MaxAgeInSeconds = 0u
+              MaxAgeInSeconds = 0
               ExposedHeaders = All
               AllowedHeaders = All }
         static member create (?allowedOrigins, ?allowedMethods, ?maxAgeInSeconds, ?exposedHeaders, ?allowedHeaders) =
             { AllowedOrigins = Specific (defaultArg allowedOrigins [] |> List.map Uri)
               AllowedMethods = defaultArg (allowedMethods |> Option.map NonEmptyList.create) HttpMethod.All
-              MaxAgeInSeconds = defaultArg maxAgeInSeconds 0u
+              MaxAgeInSeconds = defaultArg maxAgeInSeconds 0
               ExposedHeaders = Specific (defaultArg exposedHeaders [])
               AllowedHeaders = Specific (defaultArg allowedHeaders []) }
     [<RequireQualifiedAccess>]

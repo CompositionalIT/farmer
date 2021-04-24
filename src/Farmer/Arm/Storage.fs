@@ -5,11 +5,19 @@ open Farmer
 open Farmer.Storage
 
 let storageAccounts = ResourceType ("Microsoft.Storage/storageAccounts", "2019-06-01")
-let containers = ResourceType ("Microsoft.Storage/storageAccounts/blobServices/containers", "2018-03-01-preview")
+
 let blobServices = ResourceType ("Microsoft.Storage/storageAccounts/blobServices", "2019-06-01")
+let containers = ResourceType ("Microsoft.Storage/storageAccounts/blobServices/containers", "2018-03-01-preview")
+
+let fileServices = ResourceType ("Microsoft.Storage/storageAccounts/fileServices", "2019-06-01")
 let fileShares = ResourceType ("Microsoft.Storage/storageAccounts/fileServices/shares", "2019-06-01")
+
+let queueServices = ResourceType ("Microsoft.Storage/storageAccounts/queueServices", "2019-06-01")
 let queues = ResourceType ("Microsoft.Storage/storageAccounts/queueServices/queues", "2019-06-01")
+
+let tableServices = ResourceType ("Microsoft.Storage/storageAccounts/tableServices", "2019-06-01")
 let tables = ResourceType ("Microsoft.Storage/storageAccounts/tableServices/tables", "2019-06-01")
+
 let managementPolicies = ResourceType ("Microsoft.Storage/storageAccounts/managementPolicies", "2019-06-01")
 let roleAssignments = ResourceType ("Microsoft.Storage/storageAccounts/providers/roleAssignments", "2018-09-01-preview")
 
@@ -92,14 +100,16 @@ module Extensions =
                         specificItemMapper item
                 ]
 
-type BlobServices =
+/// A generic storage service that can be used for Blob, Table, Queue or FileServices
+type StorageService =
     { StorageAccount : StorageResourceName
-      CorsRules : CorsRule list }
+      CorsRules : CorsRule list
+      ResourceType : ResourceType }
     interface IArmResource with
         member this.ResourceId =
-            blobServices.resourceId (this.StorageAccount.ResourceName/"default")
+            this.ResourceType.resourceId (this.StorageAccount.ResourceName/"default")
         member this.JsonModel =
-            {| blobServices.Create(this.StorageAccount.ResourceName/"default", dependsOn = [ storageAccounts.resourceId this.StorageAccount.ResourceName ]) with
+            {| this.ResourceType.Create(this.StorageAccount.ResourceName/"default", dependsOn = [ storageAccounts.resourceId this.StorageAccount.ResourceName ]) with
                 properties =
                     {| cors =
                         {| corsRules =
