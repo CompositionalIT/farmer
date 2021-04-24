@@ -7,7 +7,6 @@ open Farmer.Arm.KeyVault
 open System
 open Vaults
 
-type NonEmptyList<'T> = 'T * 'T List
 type AccessPolicyConfig =
     { ObjectId : ArmExpression
       ApplicationId : Guid option
@@ -121,14 +120,14 @@ type KeyVaultConfig =
                         | Recover(policy, secondaryPolicies) -> policy :: secondaryPolicies
                         | Default policies -> policies
                     [ for policy in policies do
-                       {| ObjectId = policy.ObjectId
-                          ApplicationId = policy.ApplicationId
-                          Permissions =
-                           {| Certificates = policy.Permissions.Certificates
-                              Storage = policy.Permissions.Storage
-                              Keys = policy.Permissions.Keys
-                              Secrets = policy.Permissions.Secrets |}
-                       |}
+                        {| ObjectId = policy.ObjectId
+                           ApplicationId = policy.ApplicationId
+                           Permissions =
+                            {| Certificates = policy.Permissions.Certificates
+                               Storage = policy.Permissions.Storage
+                               Keys = policy.Permissions.Keys
+                               Secrets = policy.Permissions.Secrets |}
+                        |}
                     ]
                   Uri = this.Uri
                   DefaultAction = this.NetworkAcl.DefaultAction

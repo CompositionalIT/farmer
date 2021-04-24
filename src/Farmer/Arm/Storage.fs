@@ -1,12 +1,12 @@
 [<AutoOpen>]
 module Farmer.Arm.Storage
 
-open System
 open Farmer
 open Farmer.Storage
 
 let storageAccounts = ResourceType ("Microsoft.Storage/storageAccounts", "2019-06-01")
 let containers = ResourceType ("Microsoft.Storage/storageAccounts/blobServices/containers", "2018-03-01-preview")
+let blobServices = ResourceType ("Microsoft.Storage/storageAccounts/blobServices", "2019-06-01")
 let fileShares = ResourceType ("Microsoft.Storage/storageAccounts/fileServices/shares", "2019-06-01")
 let queues = ResourceType ("Microsoft.Storage/storageAccounts/queueServices/queues", "2019-06-01")
 let tables = ResourceType ("Microsoft.Storage/storageAccounts/tableServices/tables", "2019-06-01")
@@ -78,6 +78,47 @@ type StorageAccount =
                 let! uploadResponse = Deploy.Az.batchUploadStaticWebsite this.Name.ResourceName.Value staticWebsite.ContentPath
                 return enableStaticResponse + ", " + uploadResponse
             })
+
+[<AutoOpen>]
+module Extensions =
+    type AllOrSpecific<'T> with
+        member this.Emit (specificItemMapper:'T -> string) =
+            match this with
+            | All ->
+                [ "*" ]
+            | Specific items ->
+                [
+                    for item in items do
+                        specificItemMapper item
+                ]
+
+type BlobServices =
+    { StorageAccount : StorageResourceName
+      CorsRules : CorsRule list }
+    interface IArmResource with
+        member this.ResourceId =
+            blobServices.resourceId (this.StorageAccount.ResourceName/"default")
+        member this.JsonModel =
+            {| blobServices.Create(this.StorageAccount.ResourceName/"default", dependsOn = [ storageAccounts.resourceId this.StorageAccount.ResourceName ]) with
+                properties =
+                    {| cors =
+                        {| corsRules =
+                            [
+                                for rule in this.CorsRules do
+                                    {| allowedOrigins = rule.AllowedOrigins.Emit (fun r -> r.AbsoluteUri)
+                                       allowedMethods = [
+                                           let head, tail = rule.AllowedMethods
+                                           string head
+                                           for httpMethod in tail do
+                                               string httpMethod
+                                       ]
+                                       maxAgeInSeconds = rule.MaxAgeInSeconds
+                                       exposedHeaders = rule.ExposedHeaders.Emit id
+                                       allowedHeaders = rule.AllowedHeaders.Emit id |}
+                            ]
+                        |}
+                    |}
+            |} :> _
 
 module BlobServices =
     type Container =

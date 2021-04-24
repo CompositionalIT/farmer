@@ -2,6 +2,14 @@
 
 open System
 
+type NonEmptyList<'T> =
+    'T * 'T List
+module NonEmptyList =
+    let create l =
+        match l with
+        | [] -> failwith "Not allowed!"
+        | h :: t -> NonEmptyList (h, t)
+
 [<AutoOpen>]
 module internal DuHelpers =
     let makeAll<'TUnion> =
@@ -439,6 +447,34 @@ module Storage =
 
     /// Represents no filters for a lifecycle rule
     let NoRuleFilters : string list = []
+
+    type AllOrSpecific<'T> =
+        | All
+        | Specific of 'T list
+
+    type HttpMethod =
+        | DELETE | GET | HEAD | MERGE | POST | OPTIONS | PUT | PATCH
+        static member All = NonEmptyList.create [ DELETE; GET; HEAD; MERGE; POST; OPTIONS; PUT; PATCH ]
+    type CorsRule =
+        { AllowedOrigins : AllOrSpecific<Uri>
+          AllowedMethods : HttpMethod NonEmptyList
+          MaxAgeInSeconds : uint
+          ExposedHeaders : AllOrSpecific<string>
+          AllowedHeaders : AllOrSpecific<string> }
+        static member AllowAll =
+            { AllowedOrigins = All
+              AllowedMethods = HttpMethod.All
+              MaxAgeInSeconds = 0u
+              ExposedHeaders = All
+              AllowedHeaders = All }
+        static member create (?allowedOrigins, ?allowedMethods, ?maxAgeInSeconds, ?exposedHeaders, ?allowedHeaders) =
+            { AllowedOrigins = Specific (defaultArg allowedOrigins [] |> List.map Uri)
+              AllowedMethods = defaultArg (allowedMethods |> Option.map NonEmptyList.create) HttpMethod.All
+              MaxAgeInSeconds = defaultArg maxAgeInSeconds 0u
+              ExposedHeaders = Specific (defaultArg exposedHeaders [])
+              AllowedHeaders = Specific (defaultArg allowedHeaders []) }
+    [<RequireQualifiedAccess>]
+    type StorageService = Blobs | Tables | Files | Queues
 
 module WebApp =
     type WorkerSize = Small | Medium | Large | Serverless
