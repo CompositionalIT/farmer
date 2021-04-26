@@ -467,12 +467,14 @@ module Storage =
               MaxAgeInSeconds = 0
               ExposedHeaders = All
               AllowedHeaders = All }
+        /// Creates a new CORS rule with 
         static member create (?allowedOrigins, ?allowedMethods, ?maxAgeInSeconds, ?exposedHeaders, ?allowedHeaders) =
-            { AllowedOrigins = Specific (defaultArg allowedOrigins [] |> List.map Uri)
-              AllowedMethods = defaultArg (allowedMethods |> Option.map NonEmptyList.create) HttpMethod.All
-              MaxAgeInSeconds = defaultArg maxAgeInSeconds 0
-              ExposedHeaders = Specific (defaultArg exposedHeaders [])
-              AllowedHeaders = Specific (defaultArg allowedHeaders []) }
+            let mapDefault mapper defaultValue = Option.map mapper >> Option.defaultValue defaultValue 
+            { AllowedOrigins = allowedOrigins |> mapDefault (List.map Uri >> Specific) CorsRule.AllowAll.AllowedOrigins
+              AllowedMethods = allowedMethods |> mapDefault NonEmptyList.create CorsRule.AllowAll.AllowedMethods
+              MaxAgeInSeconds = defaultArg maxAgeInSeconds CorsRule.AllowAll.MaxAgeInSeconds
+              ExposedHeaders = exposedHeaders |> mapDefault Specific CorsRule.AllowAll.ExposedHeaders
+              AllowedHeaders = allowedHeaders |> mapDefault Specific CorsRule.AllowAll.AllowedHeaders }
     [<RequireQualifiedAccess>]
     type StorageService = Blobs | Tables | Files | Queues
 
