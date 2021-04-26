@@ -1,5 +1,7 @@
 Release Notes
 =============
+## vNext
+* Storage Accounts: Support for CORS.
 
 ##  1.5.0
 * Container Groups: Support for init containers.

@@ -31,11 +31,13 @@ The Storage Account builder creates storage accounts and their associated contai
 | add_queues | Adds a list of queues to the storage account |
 | add_table | Adds a table to the storage account |
 | add_tables | Adds a list of tables to the storage account |
+| add_cors_rules | Adds a list of CORS rules to the different storage services |
 | use_static_website | Activates static website host, and uploads the provided local content as a post-deployment task to the storage with the specified index page |
 | static_website_error_page | Specifies the 404 page to display for static website hosting |
 | enable_data_lake | Enables Azure Data Lake Gen2 support on the storage account |
 | add_lifecycle_policy | Given a rule name, a list of PolicyActions and a list of string filters, creates a lifecycle policy for the storage account |
 | grant_access | Given a managed identity (can be either user- or system- assigned), and a specific RoleId from the Roles module, grants access to the identity for the provided role. |
+
 
 #### Configuration Members
 
@@ -70,5 +72,11 @@ let storage = storageAccount {
     add_lifecycle_rule "moveToCool" [ Storage.CoolAfter 30<Days>; Storage.ArchiveAfter 90<Days> ] Storage.NoRuleFilters
     add_lifecycle_rule "cleanup" [ Storage.DeleteAfter 7<Days> ] [ "data/recyclebin" ]
     grant_access myWebApp.SystemIdentity Roles.StorageBlobDataReader
+    add_cors_rules [        
+        StorageService.Blobs, CorsRule.AllowAll
+        StorageService.Tables, CorsRule.create [ "https://compositional-it.com" ]
+        StorageService.Files, { CorsRule.AllowAll with MaxAgeInSeconds = 10 }
+        StorageService.Queues, CorsRule.create ([ "https://compositional-it.com" ], [ GET ])
+    ]    
 }
 ```
