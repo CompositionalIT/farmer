@@ -9,6 +9,7 @@ module NonEmptyList =
         match l with
         | [] -> failwith "Not allowed!"
         | h :: t -> NonEmptyList (h, t)
+    let toList (h, t) = h :: t       
 
 [<AutoOpen>]
 module internal DuHelpers =

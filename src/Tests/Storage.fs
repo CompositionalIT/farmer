@@ -12,6 +12,8 @@ open System
 /// Client instance needed to get the serializer settings.
 let client = new StorageManagementClient(Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
 let getStorageResource = findAzureResources<StorageAccount> client.SerializationSettings >> List.head
+type CorsResource = {| ``type`` : string; properties : {| cors : {| corsRules : {| allowedHeaders : string array; allowedMethods : string array; allowedOrigins : string array; exposedHeaders : string array; maxAgeInSeconds : int |} array |} |} |}
+let findCorsResource typeName x = x |> toTemplate Location.NorthEurope |> Writer.toJson |> Serialization.ofJson<TypedArmTemplate<CorsResource>> |> fun r -> r.Resources |> Seq.find(fun r -> r.``type`` = $"Microsoft.Storage/storageAccounts/%s{typeName}")
 
 let tests = testList "Storage Tests" [
     test "Can create a basic storage account" {
@@ -32,7 +34,7 @@ let tests = testList "Storage Tests" [
                 sku Sku.Premium_LRS
                 enable_data_lake true
             }
-            arm { add_resource account }
+            arm { add_resource account }            
             |> getStorageResource
 
         resource.Validate()
@@ -146,12 +148,12 @@ let tests = testList "Storage Tests" [
 
         let rule = resource.Policy.Rules.[0]
         Expect.equal rule.Name "cleanup" "rule name is wrong"
-        Expect.equal rule.Definition.Actions.BaseBlob.Delete.DaysAfterModificationGreaterThan 7. "Incorrect policy action"
+        Expect.equal rule.Definition.Actions.BaseBlob.Delete.DaysAfterModificationGreaterThan (Nullable 7.) "Incorrect policy action"
         Expect.isEmpty rule.Definition.Filters.PrefixMatch "should be no filters"
 
         let rule = resource.Policy.Rules.[1]
-        Expect.equal rule.Definition.Actions.BaseBlob.Delete.DaysAfterModificationGreaterThan 1. "should ignore duplicate actions"
-        Expect.equal rule.Definition.Actions.BaseBlob.TierToArchive.DaysAfterModificationGreaterThan 2. "should add multiple actions to a rule"
+        Expect.equal rule.Definition.Actions.BaseBlob.Delete.DaysAfterModificationGreaterThan (Nullable 1.) "should ignore duplicate actions"
+        Expect.equal rule.Definition.Actions.BaseBlob.TierToArchive.DaysAfterModificationGreaterThan (Nullable 2.) "should add multiple actions to a rule"
         Expect.equal (rule.Definition.Filters.PrefixMatch |> Seq.toList) [ "foo/bar" ] "incorrect filter"
     }
     test "Creates connection strings correctly" {
@@ -232,5 +234,34 @@ let tests = testList "Storage Tests" [
                     default_blob_access_tier Cool
                 } |> ignore)
             "Can't set default tier for  Block Blobs"
+    }
+    test "Sets CORS correctly" {
+        let account = storageAccount {
+            add_cors_rules [
+                StorageService.Blobs, CorsRule.AllowAll
+                StorageService.Blobs, { CorsRule.AllowAll with AllowedOrigins = Specific [ Uri "https://compositional-it.com" ] }
+                StorageService.Queues, CorsRule.create([ "https://compositional-it.com" ], [ GET ], 15, [ "exposed1"; "exposed2" ], [ "ALLOWED1"; "ALLOWED2" ] )
+            ]
+        }
+
+        let rules = (account |> findCorsResource "blobServices").properties.cors.corsRules
+        Expect.equal 2 rules.Length "Incorrect number of CORS rules"
+        
+        let rule = rules.[0]
+        Expect.equal [| "*" |] rule.allowedHeaders "Incorrect default headers"
+        Expect.equal (HttpMethod.All |> NonEmptyList.toList |> List.map string |> List.toArray) rule.allowedMethods "Incorrect default methods"    
+        Expect.equal [| "*" |] rule.allowedOrigins "Incorrect default origin"
+        Expect.equal [| "*" |] rule.exposedHeaders "Incorrect default exposed headers"    
+        Expect.equal 0 rule.maxAgeInSeconds "Incorrect default max age is seconds"
+        
+        let rule = rules.[1]
+        Expect.equal [| "https://compositional-it.com/" |] rule.allowedOrigins "Incorrect custom allowed origin"
+        
+        let rule = (account |> findCorsResource "queueServices").properties.cors.corsRules |> Seq.exactlyOne
+        Expect.equal [| "ALLOWED1"; "ALLOWED2" |] rule.allowedHeaders "Incorrect factory headers"
+        Expect.equal [| string GET |] rule.allowedMethods "Incorrect factory methods"    
+        Expect.equal [| "https://compositional-it.com/" |] rule.allowedOrigins "Incorrect factory origin"
+        Expect.equal [| "exposed1"; "exposed2" |] rule.exposedHeaders "Incorrect factory exposed headers"    
+        Expect.equal 15 rule.maxAgeInSeconds "Incorrect factory max age is seconds"         
     }
 ]
