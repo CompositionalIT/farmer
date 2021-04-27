@@ -3,6 +3,7 @@ module Farmer.Writer
 open System.IO
 open System
 open System.Reflection
+open Farmer
 
 module TemplateGeneration =
     let processTemplate (template:ArmTemplate) = {|

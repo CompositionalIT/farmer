@@ -1,47 +1,10 @@
 [<AutoOpen>]
-module Farmer.ArmBuilder
+module Farmer.Builders.ResourceGroup
 
 open Farmer
+open Farmer.DiagnosticSettings
 
-module Serialization =
-    open System.Text.Json
-    open System.Text.Encodings.Web
-
-    let jsonSerializerOptions =
-        JsonSerializerOptions(
-            WriteIndented = true,
-            IgnoreNullValues = true,
-            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-            PropertyNameCaseInsensitive = true)
-    let toJson x = JsonSerializer.Serialize(x, jsonSerializerOptions)
-    let ofJson<'T> (x:string) = JsonSerializer.Deserialize<'T>(x, jsonSerializerOptions)
-
-module Resource =
-    /// Creates a unique IArmResource from an arbitrary object.
-    let ofObj armObject =
-        { new IArmResource with
-             member _.ResourceId = ResourceId.create (ResourceType("", ""), ResourceName (System.Guid.NewGuid().ToString()))
-             member _.JsonModel = armObject }
-
-    /// Creates a unique IArmResource from a JSON string containing the output you want.
-    let ofJson = Serialization.ofJson >> ofObj
-
-module Json =
-    /// Creates a unique IArmResource from a JSON string containing the output you want.
-    let toIArmResource = Resource.ofJson
-
-module Subscription =
-    /// Gets an ARM expression pointing to the tenant id of the current subscription.
-    let TenantId = ArmExpression.create "subscription().tenantid"
-
-/// Represents all configuration information to generate an ARM template.
-type ArmConfig =
-    { Parameters : string Set
-      Outputs : Map<string, string>
-      Location : Location
-      Resources : IArmResource list }
-
-type ArmBuilder() =
+type ResourceGroupBuilder() =
     member __.Yield _ =
         { Parameters = Set.empty
           Outputs = Map.empty
@@ -97,13 +60,13 @@ type ArmBuilder() =
 
     /// Adds a builder's ARM resources to the ARM template.
     [<CustomOperation "add_resource">]
-    member _.AddResource (state:ArmConfig, input:IBuilder) = ArmBuilder.AddResources(state, input.BuildResources state.Location)
-    member _.AddResource (state:ArmConfig, input:Builder) = ArmBuilder.AddResources(state, input state.Location)
-    member _.AddResource (state:ArmConfig, input:IArmResource) = ArmBuilder.AddResources(state, [ input ])
+    member _.AddResource (state:ArmConfig, input:IBuilder) = ResourceGroupBuilder.AddResources(state, input.BuildResources state.Location)
+    member _.AddResource (state:ArmConfig, input:Builder) = ResourceGroupBuilder.AddResources(state, input state.Location)
+    member _.AddResource (state:ArmConfig, input:IArmResource) = ResourceGroupBuilder.AddResources(state, [ input ])
 
     [<CustomOperation "add_resources">]
     member this.AddResources(state:ArmConfig, input:IBuilder list) =
         let resources = input |> List.collect(fun i -> i.BuildResources state.Location)
-        ArmBuilder.AddResources(state, resources)
+        ResourceGroupBuilder.AddResources(state, resources)
 
-let arm = ArmBuilder()
+let resourceGroup = ResourceGroupBuilder()
