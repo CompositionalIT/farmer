@@ -1,12 +1,12 @@
 ---
-title: "ARM Deployment"
+title: "Resource Group"
 date: 2020-02-05T08:53:46+01:00
 weight: 1
 chapter: false
 ---
 
 #### Overview
-The ARM deployment builder is always the top-level element of your deployment. It contains the manifest of all Farmer resources that you create.
+The Resource Group builder is always the top-level element of your deployment. It contains the manifest of all Farmer resources that you create.
 
 #### Builder Keywords
 | Keyword | Purpose |
@@ -19,7 +19,7 @@ The ARM deployment builder is always the top-level element of your deployment. I
 #### Example
 ```fsharp
 let deployment =
-    arm {
+    resourceGroup { // note you can also use `arm` as the keyword here
         // All resources will share this location
         location Location.NorthEurope
 
