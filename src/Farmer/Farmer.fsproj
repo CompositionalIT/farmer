@@ -52,6 +52,7 @@
 
 		<Compile Include="Writer.fs" />
 		<Compile Include="Deploy.fs" />
+		<Compile Include="Arm\ResourceGroup.fs" />
 
 		<Compile Include="Arm/DiagnosticSetting.fs" />
 		<Compile Include="Arm/ManagedIdentity.fs" />
