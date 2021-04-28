@@ -34,7 +34,7 @@ let tests = testList "Storage Tests" [
                 sku Sku.Premium_LRS
                 enable_data_lake true
             }
-            arm { add_resource account }            
+            arm { add_resource account }
             |> getStorageResource
 
         resource.Validate()
@@ -246,22 +246,22 @@ let tests = testList "Storage Tests" [
 
         let rules = (account |> findCorsResource "blobServices").properties.cors.corsRules
         Expect.equal 2 rules.Length "Incorrect number of CORS rules"
-        
-        let rule = rules.[0]
-        Expect.equal [| "*" |] rule.allowedHeaders "Incorrect default headers"
-        Expect.equal (HttpMethod.All |> NonEmptyList.toList |> List.map string |> List.toArray) rule.allowedMethods "Incorrect default methods"    
-        Expect.equal [| "*" |] rule.allowedOrigins "Incorrect default origin"
-        Expect.equal [| "*" |] rule.exposedHeaders "Incorrect default exposed headers"    
-        Expect.equal 0 rule.maxAgeInSeconds "Incorrect default max age is seconds"
-        
-        let rule = rules.[1]
-        Expect.equal [| "https://compositional-it.com/" |] rule.allowedOrigins "Incorrect custom allowed origin"
-        
-        let rule = (account |> findCorsResource "queueServices").properties.cors.corsRules |> Seq.exactlyOne
-        Expect.equal [| "ALLOWED1"; "ALLOWED2" |] rule.allowedHeaders "Incorrect factory headers"
-        Expect.equal [| string GET |] rule.allowedMethods "Incorrect factory methods"    
-        Expect.equal [| "https://compositional-it.com/" |] rule.allowedOrigins "Incorrect factory origin"
-        Expect.equal [| "exposed1"; "exposed2" |] rule.exposedHeaders "Incorrect factory exposed headers"    
-        Expect.equal 15 rule.maxAgeInSeconds "Incorrect factory max age is seconds"         
+
+        let blobAllowAllRule = rules.[0]
+        Expect.equal [| "*" |] blobAllowAllRule.allowedHeaders "Incorrect default headers"
+        Expect.equal (HttpMethod.All.Value |> List.map string |> List.toArray) blobAllowAllRule.allowedMethods "Incorrect default methods"
+        Expect.equal [| "*" |] blobAllowAllRule.allowedOrigins "Incorrect default origin"
+        Expect.equal [| "*" |] blobAllowAllRule.exposedHeaders "Incorrect default exposed headers"
+        Expect.equal 0 blobAllowAllRule.maxAgeInSeconds "Incorrect default max age is seconds"
+
+        let blobSpecificRule = rules.[1]
+        Expect.equal [| "https://compositional-it.com/" |] blobSpecificRule.allowedOrigins "Incorrect custom allowed origin"
+
+        let queueRule = (account |> findCorsResource "queueServices").properties.cors.corsRules |> Seq.exactlyOne
+        Expect.equal [| "ALLOWED1"; "ALLOWED2" |] queueRule.allowedHeaders "Incorrect factory headers"
+        Expect.equal [| string GET |] queueRule.allowedMethods "Incorrect factory methods"
+        Expect.equal [| "https://compositional-it.com/" |] queueRule.allowedOrigins "Incorrect factory origin"
+        Expect.equal [| "exposed1"; "exposed2" |] queueRule.exposedHeaders "Incorrect factory exposed headers"
+        Expect.equal 15 queueRule.maxAgeInSeconds "Incorrect factory max age is seconds"
     }
 ]

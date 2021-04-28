@@ -200,7 +200,7 @@ type ContainerGroupBuilder() =
     [<CustomOperation "restart_policy">]
     member _.RestartPolicy(state:ContainerGroupConfig, restartPolicy) = { state with RestartPolicy = restartPolicy }
     member private _.SetIpAddress(state:ContainerGroupConfig, ipAddressType, ports) =
-        { state with        
+        { state with
             IpAddress =
                 { Type = ipAddressType
                   Ports = ports |> Seq.map(fun (protocol, port) -> {| Protocol = protocol; Port = port |}) |> Set } |> Some }

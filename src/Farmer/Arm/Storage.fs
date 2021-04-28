@@ -39,7 +39,7 @@ type StorageAccount =
                             match this.Sku with
                             | GeneralPurpose (V1 (V1Replication.LRS performanceTier))
                             | GeneralPurpose (V2 (V2Replication.LRS performanceTier, _)) ->
-                                performanceTier.ToString()
+                                performanceTier.ArmValue
                             | Files _
                             | BlockBlobs _ ->
                                 "Premium"
@@ -48,13 +48,10 @@ type StorageAccount =
                                 "Standard"
                         let replicationModel =
                             match this.Sku with
-                            | GeneralPurpose (V1 (V1Replication.LRS _)) -> "LRS"
-                            | GeneralPurpose (V2 (V2Replication.LRS _, _)) -> "LRS"
-                            | GeneralPurpose (V1 replication) -> replication.ToString()
-                            | GeneralPurpose (V2 (replication, _)) -> replication.ToString()
-                            | Blobs (replication, _) -> replication.ToString()
-                            | Files replication -> replication.ToString()
-                            | BlockBlobs replication -> replication.ToString()
+                            | GeneralPurpose (V1 replication) -> replication.ReplicationModelDescription
+                            | GeneralPurpose (V2 (replication, _)) -> replication.ReplicationModelDescription
+                            | Blobs (replication, _) -> replication.ReplicationModelDescription
+                            | Files replication | BlockBlobs replication -> replication.ReplicationModelDescription
                         $"{performanceTier}_{replicationModel}"
                     |}
                 kind =
@@ -82,7 +79,7 @@ type StorageAccount =
             this.StaticWebsite
             |> Option.map(fun staticWebsite -> result {
                 let! enableStaticResponse = Deploy.Az.enableStaticWebsite this.Name.ResourceName.Value staticWebsite.IndexPage staticWebsite.ErrorPage
-                printfn "Deploying content of %s folder to $web container for storage account %s" staticWebsite.ContentPath this.Name.ResourceName.Value
+                printfn $"Deploying content of %s{staticWebsite.ContentPath} folder to $web container for storage account %s{this.Name.ResourceName.Value}"
                 let! uploadResponse = Deploy.Az.batchUploadStaticWebsite this.Name.ResourceName.Value staticWebsite.ContentPath
                 return enableStaticResponse + ", " + uploadResponse
             })
@@ -117,10 +114,8 @@ type StorageService =
                                 for rule in this.CorsRules do
                                     {| allowedOrigins = rule.AllowedOrigins.Emit (fun r -> r.AbsoluteUri)
                                        allowedMethods = [
-                                           let head, tail = rule.AllowedMethods
-                                           string head
-                                           for httpMethod in tail do
-                                               string httpMethod
+                                           for httpMethod in rule.AllowedMethods.Value do
+                                               httpMethod.ArmValue
                                        ]
                                        maxAgeInSeconds = rule.MaxAgeInSeconds
                                        exposedHeaders = rule.ExposedHeaders.Emit id

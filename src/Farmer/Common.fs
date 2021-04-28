@@ -3,13 +3,14 @@
 open System
 
 type NonEmptyList<'T> =
-    'T * 'T List
+    private | NonEmptyList of List<'T>
+    /// Unwraps the inner List contents.
+    member this.Value = match this with NonEmptyList list -> list
 module NonEmptyList =
-    let create l =
-        match l with
-        | [] -> failwith "Not allowed!"
-        | h :: t -> NonEmptyList (h, t)
-    let toList (h, t) = h :: t       
+    let create list =
+        match list with
+        | [] -> failwith "This list must always have at least one item in it."
+        | list -> NonEmptyList list
 
 [<AutoOpen>]
 module internal DuHelpers =
@@ -408,11 +409,40 @@ module Storage =
         member this.ResourceName = match this with StorageResourceName name -> name
 
     type DefaultAccessTier = Hot | Cool
-    type StoragePerformance = Standard | Premium
-    type BasicReplication = LRS | ZRS
-    type BlobReplication = LRS | GRS | RAGRS
-    type V1Replication = LRS of StoragePerformance | GRS | RAGRS
-    type V2Replication = LRS of StoragePerformance | GRS | ZRS | GZRS | RAGRS | RAGZRS
+    type StoragePerformance =
+        | Standard | Premium
+        member this.ArmValue = match this with Standard -> "Standard" | Premium -> "Premium"
+    type BasicReplication =
+        | LRS | ZRS
+        member this.ReplicationModelDescription =
+            match this with
+            | LRS -> "LRS"
+            | ZRS -> "ZRS"
+    type BlobReplication =
+        | LRS | GRS | RAGRS
+        member this.ReplicationModelDescription =
+            match this with
+            | LRS -> "LRS"
+            | GRS -> "GRS"
+            | RAGRS -> "RAGRS"
+    type V1Replication =
+        | LRS of StoragePerformance | GRS | RAGRS
+        member this.ReplicationModelDescription =
+            match this with
+            | LRS _ -> "LRS"
+            | GRS -> "GRS"
+            | RAGRS -> "RAGRS"
+    type V2Replication =
+        | LRS of StoragePerformance | GRS | ZRS | GZRS | RAGRS | RAGZRS
+        member this.ReplicationModelDescription =
+            match this with
+            | LRS _ -> "LRS"
+            | GRS -> "GRS"
+            | ZRS -> "ZRS"
+            | GZRS -> "GZRS"
+            | RAGRS -> "RAGRS"
+            | RAGZRS -> "RAGZRS"
+
     type GeneralPurpose = V1 of V1Replication | V2 of V2Replication * DefaultAccessTier option
     type Sku =
         | GeneralPurpose of GeneralPurpose
@@ -456,6 +486,10 @@ module Storage =
     type HttpMethod =
         | DELETE | GET | HEAD | MERGE | POST | OPTIONS | PUT | PATCH
         static member All = NonEmptyList.create [ DELETE; GET; HEAD; MERGE; POST; OPTIONS; PUT; PATCH ]
+        member this.ArmValue =
+            match this with
+            | DELETE -> "DELETE" | GET -> "GET" | HEAD -> "HEAD" | MERGE -> "MERGE"
+            | POST -> "POST" | OPTIONS -> "OPTIONS" | PUT -> "PUT" | PATCH -> "PATCH"
     type CorsRule =
         { AllowedOrigins : AllOrSpecific<Uri>
           AllowedMethods : HttpMethod NonEmptyList
@@ -468,9 +502,9 @@ module Storage =
               MaxAgeInSeconds = 0
               ExposedHeaders = All
               AllowedHeaders = All }
-        /// Creates a new CORS rule with 
+        /// Creates a new CORS rule with
         static member create (?allowedOrigins, ?allowedMethods, ?maxAgeInSeconds, ?exposedHeaders, ?allowedHeaders) =
-            let mapDefault mapper defaultValue = Option.map mapper >> Option.defaultValue defaultValue 
+            let mapDefault mapper defaultValue = Option.map mapper >> Option.defaultValue defaultValue
             { AllowedOrigins = allowedOrigins |> mapDefault (List.map Uri >> Specific) CorsRule.AllowAll.AllowedOrigins
               AllowedMethods = allowedMethods |> mapDefault NonEmptyList.create CorsRule.AllowAll.AllowedMethods
               MaxAgeInSeconds = defaultArg maxAgeInSeconds CorsRule.AllowAll.MaxAgeInSeconds

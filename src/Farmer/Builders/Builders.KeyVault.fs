@@ -117,7 +117,7 @@ type KeyVaultConfig =
                     let policies =
                         match this.Policies with
                         | Unspecified policies -> policies
-                        | Recover(policy, secondaryPolicies) -> policy :: secondaryPolicies
+                        | Recover list -> list.Value
                         | Default policies -> policies
                     [ for policy in policies do
                         {| ObjectId = policy.ObjectId
@@ -246,8 +246,8 @@ type KeyVaultBuilder() =
             match state.CreateMode, state.Policies with
             | None, policies -> Unspecified policies
             | Some SimpleCreateMode.Default, policies -> Default policies
-            | Some SimpleCreateMode.Recover, primary :: secondary -> Recover(primary, secondary)
             | Some SimpleCreateMode.Recover, [] -> failwith "Setting the creation mode to Recover requires at least one access policy. Use the accessPolicy builder to create a policy, and add it to the vault configuration using add_access_policy."
+            | Some SimpleCreateMode.Recover, policies -> Recover (NonEmptyList.create policies)
           Secrets = state.Secrets
           Uri = state.Uri
           Tags = state.Tags  }
