@@ -14,7 +14,7 @@ let tests = testList "Communication Services" [
             data_location Location.NorthEurope
         }
         let baseArm = (swa :> IBuilder).BuildResources(Location.WestEurope).[0]
-        let bsArm = baseArm :?> CommunicationServices.Accounts
+        let bsArm = baseArm :?> CommunicationServices.Resource
         Expect.equal bsArm.Name (ResourceName "test") "Name"
         Expect.equal bsArm.Location Location.WestEurope "Location"
         Expect.equal bsArm.DataLocation Location.NorthEurope "Data Location"
@@ -27,7 +27,7 @@ let tests = testList "Communication Services" [
         }
 
         let baseArm = (swa :> IBuilder).BuildResources(Location.WestEurope).[0]
-        let bsArm = baseArm :?> CommunicationServices.Accounts
+        let bsArm = baseArm :?> CommunicationServices.Resource
         Expect.equal bsArm.Name (ResourceName "test") "Name"
         Expect.equal bsArm.Location Location.WestEurope "Location"
         Expect.equal bsArm.DataLocation bsArm.Location "Data Location"

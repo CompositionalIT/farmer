@@ -7,17 +7,17 @@ open Farmer.Arm.CommunicationServices
 type CommunicationServices =
     /// Gets an ARM Expression key for any Bing Search instance.
     static member getKey (resourceId: ResourceId) =
-        ArmExpression.create($"listKeys({resourceId.ArmExpression.Value}, '{accounts.ApiVersion}').key1", resourceId)
-    static member getKey (name: ResourceName) = CommunicationServices.getKey (accounts.resourceId name)
+        ArmExpression.create($"listKeys({resourceId.ArmExpression.Value}, '{resource.ApiVersion}').key1", resourceId)
+    static member getKey (name: ResourceName) = CommunicationServices.getKey (resource.resourceId name)
 
 type CommunicationServicesConfig =
     { Name: ResourceName
       Tags: Map<string,string>
       DataLocation: Location option }
     /// Gets an ARM expression to the key of this Bing Search instance.
-    member this.Key = CommunicationServices.getKey (accounts.resourceId this.Name)
+    member this.Key = CommunicationServices.getKey (resource.resourceId this.Name)
     interface IBuilder with
-        member this.ResourceId = accounts.resourceId this.Name
+        member this.ResourceId = resource.resourceId this.Name
         member this.BuildResources location = [
             { Name = this.Name
               Location = location

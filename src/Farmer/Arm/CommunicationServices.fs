@@ -3,9 +3,9 @@ module Farmer.Arm.CommunicationServices
 
 open Farmer
 
-let accounts = ResourceType ("Microsoft.Communication/communicationServices", "2020-08-20-preview")
+let resource = ResourceType ("Microsoft.Communication/communicationServices", "2020-08-20-preview")
 
-type Accounts =
+type Resource =
     { Name: ResourceName
       Location: Location
       DataLocation: Location
