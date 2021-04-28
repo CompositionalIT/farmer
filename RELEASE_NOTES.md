@@ -1,6 +1,8 @@
 Release Notes
 =============
 
+## vNext
+* Communication Services: add builder.
 ##  1.5.0
 * Container Groups: Support for init containers.
 * Container Groups: Support for liveliness and readiness probes on containers.

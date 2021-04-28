@@ -11,44 +11,46 @@ let allTests =
     testSequencedGroup "" <|
         testList "All Tests" [
             testList "Builders" [
-                DiagnosticSettings.tests
-                LogAnalytics.tests
                 AppInsights.tests
+                DiagnosticSettings.tests
+                Functions.tests
+                LogAnalytics.tests
                 Bastion.tests
+                CommunicationServices.tests
+                BingSearch.tests
                 Cdn.tests
-                CognitiveServices.tests
                 ContainerGroup.tests
                 ContainerService.tests
-                DeploymentScript.tests
+                CognitiveServices.tests
                 Dns.tests
-                EventHub.tests
-                IotHub.tests
-                Storage.tests
-                ContainerRegistry.tests
                 ExpressRoute.tests
-                KeyVault.tests
+                EventHub.tests
                 NetworkSecurityGroup.tests
+                Storage.tests
                 ServiceBus.tests
-                VirtualMachine.tests
-                PostgreSQL.tests
+                IotHub.tests
+                AzCli.tests
                 Cosmos.tests
+                KeyVault.tests
+                VirtualMachine.tests
+                ContainerRegistry.tests
+                PostgreSQL.tests
                 Maps.tests
-                SignalR.tests
                 Sql.tests
+                SignalR.tests
                 EventGrid.tests
                 WebApp.tests
-                Functions.tests
                 StaticWebApp.tests
                 VirtualNetworkGateway.tests
+                DeploymentScript.tests
                 Databricks.tests
                 JsonRegression.tests
                 Types.tests
-                AzCli.tests
             ]
             testList "Control" [
+                Common.tests
                 Template.tests
                 Identity.tests
-                Common.tests
                 if hasEnv "TF_BUILD" "True" || hasEnv "FARMER_E2E" "True" then AzCli.endToEndTests
             ]
         ]
