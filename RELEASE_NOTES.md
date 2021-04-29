@@ -15,6 +15,8 @@ Release Notes
 * KeyVault: Fix an issue with adding tags on main KeyVault builder.
 * KeyVault: Support Azure RBAC for data plane access.
 * ServiceBus: update namespace validation rules to follow [Microsoft documentation](https://docs.microsoft.com/en-us/azure/azure-resource-manager/management/resource-name-rules#microsoftservicebus)
+* ServiceBus: Fix an issue with Premium Sku ARM Writer
+* ServiceBus: Fix an issue with Rules depends on ARM Writer
 * Storage: Add support for tables
 * Web App: Disables the automatic addition of the logging site extension when `docker_image` is used
 * Web App: Add dotnet 5.0 runtime option

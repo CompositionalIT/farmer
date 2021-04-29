@@ -44,7 +44,7 @@ module Namespaces =
                          |}
                         resources = [
                          for rule in this.Rules do
-                            {| rules.Create(rule.Name, dependsOn = [ subscriptions.resourceId this.Name ]) with
+                            {| rules.Create(rule.Name, dependsOn = [ ResourceId.create (ResourceType("", ""), this.Name)]) with
                                 properties =
                                  match rule with
                                  | SqlFilter (_, expression) ->
@@ -109,6 +109,14 @@ module Namespaces =
                            enablePartitioning = this.EnablePartitioning |> Option.toNullable |}
                 |} :> _
 
+module private Sku =
+    let name (sku:Sku) =
+        match sku with
+        | Basic -> "Basic"
+        | Standard -> "Standard"
+        | Premium OneUnit 
+        | Premium TwoUnits
+        | Premium FourUnits -> "Premium"
 type Namespace =
     { Name : ResourceName
       Location : Location
@@ -127,7 +135,7 @@ type Namespace =
         member this.JsonModel =
             {| namespaces.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
                 sku =
-                     {| name = string this.Sku
-                        tier = string this.Sku
+                     {| name = Sku.name this.Sku
+                        tier = Sku.name this.Sku
                         capacity = this.Capacity |> Option.toNullable |}
             |} :> _
