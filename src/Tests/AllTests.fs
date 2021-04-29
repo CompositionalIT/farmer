@@ -12,46 +12,46 @@ let allTests =
         testList "All Tests" [
             testList "Builders" [
                 AppInsights.tests
-                DiagnosticSettings.tests
-                Functions.tests
-                LogAnalytics.tests
+                AzCli.tests
                 Bastion.tests
-                CommunicationServices.tests
                 BingSearch.tests
                 Cdn.tests
-                ContainerGroup.tests
-                ContainerService.tests
                 CognitiveServices.tests
-                Dns.tests
-                ExpressRoute.tests
-                EventHub.tests
-                NetworkSecurityGroup.tests
-                Storage.tests
-                ServiceBus.tests
-                IotHub.tests
-                AzCli.tests
-                Cosmos.tests
-                KeyVault.tests
-                VirtualMachine.tests
+                CommunicationServices.tests
+                ContainerGroup.tests
                 ContainerRegistry.tests
-                PostgreSQL.tests
-                Maps.tests
-                Sql.tests
-                SignalR.tests
-                EventGrid.tests
-                WebApp.tests
-                StaticWebApp.tests
-                VirtualNetworkGateway.tests
-                DeploymentScript.tests
+                ContainerService.tests
+                Cosmos.tests
                 Databricks.tests
+                DeploymentScript.tests
+                DiagnosticSettings.tests
+                Dns.tests
+                EventGrid.tests
+                EventHub.tests
+                ExpressRoute.tests
+                Functions.tests
+                IotHub.tests
                 JsonRegression.tests
+                KeyVault.tests
+                LogAnalytics.tests
+                Maps.tests
+                NetworkSecurityGroup.tests
+                PostgreSQL.tests
+                ServiceBus.tests
+                SignalR.tests
+                Sql.tests
+                StaticWebApp.tests
+                Storage.tests
                 Types.tests
+                VirtualMachine.tests
+                VirtualNetworkGateway.tests
+                WebApp.tests
             ]
             testList "Control" [
-                Common.tests
-                Template.tests
-                Identity.tests
                 if hasEnv "TF_BUILD" "True" || hasEnv "FARMER_E2E" "True" then AzCli.endToEndTests
+                Common.tests
+                Identity.tests
+                Template.tests
             ]
         ]
 
