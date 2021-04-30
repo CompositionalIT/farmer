@@ -178,6 +178,7 @@ let tests = testList "Template" [
                 add_resource (resourceGroup {
                     name "inner"
                     add_resource (storageAccount { name "storage" })
+                    add_tag "deployment-tag" "inner-rg"
                 })
             }
 
