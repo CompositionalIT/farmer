@@ -53,8 +53,23 @@ let tests =
                 consistency_policy (CosmosDb.BoundedStaleness(500, 1000))
             }
 
+            let communicationServices = communicationServices {
+                name "test"
+                add_tags [ "a", "b" ]
+                data_location DataLocation.Australia
+            }
+
             compareResourcesToJson
-                [ sql; storage; web; fns; svcBus; cdn; containerGroup; cosmos; cosmosMongo ]
+                [   sql
+                    storage
+                    web
+                    fns
+                    svcBus
+                    cdn
+                    containerGroup
+                    cosmos
+                    cosmosMongo
+                    communicationServices ]
                 "lots-of-resources.json"
         }
 

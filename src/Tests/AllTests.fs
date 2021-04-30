@@ -11,45 +11,47 @@ let allTests =
     testSequencedGroup "" <|
         testList "All Tests" [
             testList "Builders" [
-                DiagnosticSettings.tests
-                LogAnalytics.tests
                 AppInsights.tests
+                AzCli.tests
                 Bastion.tests
+                BingSearch.tests
                 Cdn.tests
                 CognitiveServices.tests
+                CommunicationServices.tests
                 ContainerGroup.tests
-                ContainerService.tests
-                DeploymentScript.tests
-                Dns.tests
-                EventHub.tests
-                IotHub.tests
-                Storage.tests
                 ContainerRegistry.tests
-                ExpressRoute.tests
-                KeyVault.tests
-                NetworkSecurityGroup.tests
-                ServiceBus.tests
-                VirtualMachine.tests
-                PostgreSQL.tests
+                ContainerService.tests
                 Cosmos.tests
+                Databricks.tests
+                DeploymentScript.tests
+                DiagnosticSettings.tests
+                Dns.tests
+                EventGrid.tests
+                EventHub.tests
+                ExpressRoute.tests
+                Functions.tests
+                IotHub.tests
+                JsonRegression.tests
+                KeyVault.tests
+                LogAnalytics.tests
                 Maps.tests
+                NetworkSecurityGroup.tests
+                PostgreSQL.tests
+                ServiceBus.tests
                 SignalR.tests
                 Sql.tests
-                EventGrid.tests
-                WebApp.tests
-                Functions.tests
                 StaticWebApp.tests
-                VirtualNetworkGateway.tests
-                Databricks.tests
-                JsonRegression.tests
+                Storage.tests
                 Types.tests
-                AzCli.tests
+                VirtualMachine.tests
+                VirtualNetworkGateway.tests
+                WebApp.tests
             ]
             testList "Control" [
-                Template.tests
-                Identity.tests
-                Common.tests
                 if hasEnv "TF_BUILD" "True" || hasEnv "FARMER_E2E" "True" then AzCli.endToEndTests
+                Common.tests
+                Identity.tests
+                Template.tests
             ]
         ]
 

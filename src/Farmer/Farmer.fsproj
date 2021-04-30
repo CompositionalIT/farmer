@@ -61,6 +61,7 @@
     <Compile Include="Arm/Cache.fs" />
     <Compile Include="Arm/Cdn.fs" />
     <Compile Include="Arm/CognitiveServices.fs" />
+    <Compile Include="Arm/CommunicationServices.fs" />
     <Compile Include="Arm/BingSearch.fs" />
     <Compile Include="Arm/Dns.fs" />
     <Compile Include="Arm/Network.fs" />
@@ -114,6 +115,7 @@
     <Compile Include="Builders/Builders.EventHub.fs" />
     <Compile Include="Builders/Builders.ExpressRoute.fs" />
     <Compile Include="Builders/Builders.CognitiveServices.fs" />
+    <Compile Include="Builders/Builders.CommunicationServices.fs" />
     <Compile Include="Builders/Builders.BingSearch.fs" />
     <Compile Include="Builders/Builders.ContainerRegistry.fs" />
     <Compile Include="Builders/Builders.ServiceBus.fs" />

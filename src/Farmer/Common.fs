@@ -54,6 +54,15 @@ module LocationExtensions =
         static member NorwayEast = Location "NorwayEast"
         static member Global = Location "global"
 
+[<AutoOpen>]
+module DataLocationExtensions =
+    type DataLocation with
+        static member AsiaPacific = DataLocation "Asia Pacific"
+        static member Australia = DataLocation "Australia"
+        static member Europe = DataLocation "Europe"
+        static member UnitedKingdom = DataLocation "United Kingdom"
+        static member UnitedStates = DataLocation "United States"
+
 type OS = Windows | Linux
 
 type [<Measure>] Gb
