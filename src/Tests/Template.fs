@@ -6,8 +6,8 @@ open Farmer.Builders
 open Farmer.Arm
 open TestHelpers
 
-let toTemplate (deployment:Deployment) =
-    deployment.Template
+let toTemplate (deployment:#IDeploymentSource) =
+    deployment.Deployment.Template
     |> Writer.TemplateGeneration.processTemplate
 
 let tests = testList "Template" [
@@ -171,5 +171,47 @@ let tests = testList "Template" [
             createdResource
             {| name = "Name"; ``type`` = "Test"; apiVersion = "2017-01-01"; dependsOn = null; location = null; tags = null |}
             "Default values don't match"
+    }
+    test "Can nest resource groups" {
+        let template =
+            arm  {
+                add_resource (resourceGroup {
+                    name "inner"
+                    add_resource (storageAccount { name "storage" })
+                })
+            }
+
+        Expect.hasLength template.Template.Resources 1 "Outer template should contain only nested deployment"
+        Expect.isTrue (template.Template.Resources.[0] :? Arm.ResourceGroup.ResourceGroupDeployment) "The only resource should be a resourceGroupDeployment"
+        let innerDeployment = template.Template.Resources.[0] :?> Arm.ResourceGroup.ResourceGroupDeployment
+        Expect.hasLength innerDeployment.Resources 1 "Inner template should have 1 resource"
+        Expect.equal innerDeployment.Name.Value "inner" "Inner template name is incorrect"
+        Expect.isTrue (innerDeployment.Template.Resources.[0] :? Arm.Storage.StorageAccount) "The only resource in the inner deployment should be a storageAccount"
+    }
+    test "Nested resource group outputs are copied to outer deployments" {
+        let inner1 = resourceGroup { name "inner1"; output "foo" "bax" }
+        let inner2 = resourceGroup { name "inner2"; output "foo" "bay" }
+        let outer = arm  {
+            add_resource inner1
+            add_resource inner2
+            output "foo" "baz" 
+        }
+
+        Expect.hasLength outer.Template.Outputs 3 "inner outputs should copy to outer template"
+        Expect.equal outer.Template.Outputs.[0] ("foo","baz") "output expression was incorrect"
+        Expect.equal outer.Template.Outputs.[1] ("inner1.foo","[reference('inner1').outputs['foo'].value]") "output expression was incorrect"
+        Expect.equal outer.Template.Outputs.[2] ("inner2.foo","[reference('inner2').outputs['foo'].value]") "output expression was incorrect"
+    }
+    test "Nested resource group can accept parameters" {
+        let inner1 = resourceGroup { 
+            name "inner1"
+            add_resource (vm { name "vm"; username "foo" })
+        }
+        let outer = arm  {
+            add_resource inner1
+        }
+
+        Expect.hasLength outer.Template.Parameters 1 "inner parameters should copy to outer template"
+        Expect.equal outer.Template.Parameters.[0] (SecureParameter "password-for-vm") "Parameter specification was incorrect"
     }
 ]

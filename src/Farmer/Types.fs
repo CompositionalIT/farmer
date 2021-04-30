@@ -181,6 +181,9 @@ module Extensions =
         member this.DependsOn (state:'TConfig, resourceId:ResourceId) = this.DependsOn(state, [ resourceId ])
         member this.DependsOn (state:'TConfig, resourceIds:ResourceId list) = this.Add state (Set resourceIds)
 
+    module List = 
+        let prepend a b = List.append b a
+
 /// A secure parameter to be captured in an ARM template.
 type SecureParameter =
     | SecureParameter of name:string
@@ -293,11 +296,16 @@ type ArmTemplate =
     { Parameters : SecureParameter list
       Outputs : (string * string) list
       Resources : IArmResource list }
+      
 
 type Deployment =
     { Location : Location
       Template : ArmTemplate
       PostDeployTasks : IPostDeploy list }
+    interface IDeploymentSource with
+        member this.Deployment = this
+and IDeploymentSource = 
+    abstract member Deployment : Deployment
 
 module internal DeterministicGuid =
     open System.Security.Cryptography
