@@ -210,7 +210,7 @@ let tests = testList "Template" [
         let outer = arm  {
             add_resource inner1
         }
-
+        Expect.hasLength inner1.Template.Parameters 1 "inner template should have a parameter"
         Expect.hasLength outer.Template.Parameters 1 "inner parameters should copy to outer template"
         Expect.equal outer.Template.Parameters.[0] (SecureParameter "password-for-vm") "Parameter specification was incorrect"
     }

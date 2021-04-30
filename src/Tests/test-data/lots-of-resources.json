@@ -5,6 +5,9 @@
   "parameters": {
     "password-for-farmersql1979": {
       "type": "securestring"
+    },
+    "password-for-farmervm": {
+      "type": "securestring"
     }
   },
   "resources": [
@@ -453,114 +456,267 @@
       "type": "Microsoft.ContainerInstance/containerGroups"
     },
     {
-      "apiVersion": "2021-01-15",
-      "kind": "GlobalDocumentDB",
-      "location": "northeurope",
-      "name": "testaccount",
+      "apiVersion": "2020-10-01",
+      "location": "uksouth",
+      "name": "nested-resources",
       "properties": {
-        "consistencyPolicy": {
-          "defaultConsistencyLevel": "BoundedStaleness",
-          "maxIntervalInSeconds": 1000,
-          "maxStalenessPrefix": 500
+        "expressionEvaluationOptions": {
+          "scope": "Inner"
         },
-        "databaseAccountOfferType": "Standard",
-        "enableFreeTier": false,
-        "publicNetworkAccess": "Enabled"
-      },
-      "tags": {},
-      "type": "Microsoft.DocumentDb/databaseAccounts"
-    },
-    {
-      "apiVersion": "2021-01-15",
-      "dependsOn": [
-        "[resourceId('Microsoft.DocumentDb/databaseAccounts', 'testaccount')]"
-      ],
-      "name": "testaccount/testdb",
-      "properties": {
-        "options": {
-          "throughput": "400"
-        },
-        "resource": {
-          "id": "testdb"
-        }
-      },
-      "type": "Microsoft.DocumentDb/databaseAccounts/sqlDatabases"
-    },
-    {
-      "apiVersion": "2021-01-15",
-      "dependsOn": [
-        "[resourceId('Microsoft.DocumentDb/databaseAccounts/sqlDatabases', 'testaccount', 'testdb')]"
-      ],
-      "name": "testaccount/testdb/myContainer",
-      "properties": {
-        "resource": {
-          "id": "myContainer",
-          "indexingPolicy": {
-            "excludedPaths": [
-              {
-                "path": "/excluded/*"
-              }
-            ],
-            "includedPaths": [
-              {
-                "indexes": [
-                  {
-                    "dataType": "number",
-                    "kind": "Hash",
-                    "precision": -1
-                  }
-                ],
-                "path": "/path"
-              }
-            ],
-            "indexingMode": "consistent"
-          },
-          "partitionKey": {
-            "kind": "Hash",
-            "paths": [
-              "/id"
-            ]
-          },
-          "uniqueKeyPolicy": {
-            "uniqueKeys": []
+        "mode": "Incremental",
+        "parameters": {
+          "password-for-farmervm": {
+            "value": "[parameters('password-for-farmervm')]"
           }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "outputs": {},
+          "parameters": {
+            "password-for-farmervm": {
+              "type": "securestring"
+            }
+          },
+          "resources": [
+            {
+              "apiVersion": "2021-01-15",
+              "kind": "GlobalDocumentDB",
+              "location": "uksouth",
+              "name": "testaccount",
+              "properties": {
+                "consistencyPolicy": {
+                  "defaultConsistencyLevel": "BoundedStaleness",
+                  "maxIntervalInSeconds": 1000,
+                  "maxStalenessPrefix": 500
+                },
+                "databaseAccountOfferType": "Standard",
+                "enableFreeTier": false,
+                "publicNetworkAccess": "Enabled"
+              },
+              "tags": {},
+              "type": "Microsoft.DocumentDb/databaseAccounts"
+            },
+            {
+              "apiVersion": "2021-01-15",
+              "dependsOn": [
+                "[resourceId('Microsoft.DocumentDb/databaseAccounts', 'testaccount')]"
+              ],
+              "name": "testaccount/testdb",
+              "properties": {
+                "options": {
+                  "throughput": "400"
+                },
+                "resource": {
+                  "id": "testdb"
+                }
+              },
+              "type": "Microsoft.DocumentDb/databaseAccounts/sqlDatabases"
+            },
+            {
+              "apiVersion": "2021-01-15",
+              "dependsOn": [
+                "[resourceId('Microsoft.DocumentDb/databaseAccounts/sqlDatabases', 'testaccount', 'testdb')]"
+              ],
+              "name": "testaccount/testdb/myContainer",
+              "properties": {
+                "resource": {
+                  "id": "myContainer",
+                  "indexingPolicy": {
+                    "excludedPaths": [
+                      {
+                        "path": "/excluded/*"
+                      }
+                    ],
+                    "includedPaths": [
+                      {
+                        "indexes": [
+                          {
+                            "dataType": "number",
+                            "kind": "Hash",
+                            "precision": -1
+                          }
+                        ],
+                        "path": "/path"
+                      }
+                    ],
+                    "indexingMode": "consistent"
+                  },
+                  "partitionKey": {
+                    "kind": "Hash",
+                    "paths": [
+                      "/id"
+                    ]
+                  },
+                  "uniqueKeyPolicy": {
+                    "uniqueKeys": []
+                  }
+                }
+              },
+              "type": "Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers"
+            },
+            {
+              "apiVersion": "2021-01-15",
+              "kind": "MongoDB",
+              "location": "uksouth",
+              "name": "testaccountmongo",
+              "properties": {
+                "consistencyPolicy": {
+                  "defaultConsistencyLevel": "BoundedStaleness",
+                  "maxIntervalInSeconds": 1000,
+                  "maxStalenessPrefix": 500
+                },
+                "databaseAccountOfferType": "Standard",
+                "enableFreeTier": false,
+                "publicNetworkAccess": "Enabled"
+              },
+              "tags": {},
+              "type": "Microsoft.DocumentDb/databaseAccounts"
+            },
+            {
+              "apiVersion": "2021-01-15",
+              "dependsOn": [
+                "[resourceId('Microsoft.DocumentDb/databaseAccounts', 'testaccountmongo')]"
+              ],
+              "name": "testaccountmongo/testdbmongo",
+              "properties": {
+                "options": {
+                  "throughput": "400"
+                },
+                "resource": {
+                  "id": "testdbmongo"
+                }
+              },
+              "type": "Microsoft.DocumentDb/databaseAccounts/mongodbDatabases"
+            },
+            {
+              "apiVersion": "2018-10-01",
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', 'farmervm-nic')]"
+              ],
+              "location": "uksouth",
+              "name": "farmervm",
+              "properties": {
+                "diagnosticsProfile": {
+                  "bootDiagnostics": {
+                    "enabled": false
+                  }
+                },
+                "hardwareProfile": {
+                  "vmSize": "Basic_A0"
+                },
+                "networkProfile": {
+                  "networkInterfaces": [
+                    {
+                      "id": "[resourceId('Microsoft.Network/networkInterfaces', 'farmervm-nic')]"
+                    }
+                  ]
+                },
+                "osProfile": {
+                  "adminPassword": "[parameters('password-for-farmervm')]",
+                  "adminUsername": "farmer-admin",
+                  "computerName": "farmervm"
+                },
+                "storageProfile": {
+                  "dataDisks": [
+                    {
+                      "createOption": "Empty",
+                      "diskSizeGB": 1024,
+                      "lun": 0,
+                      "managedDisk": {
+                        "storageAccountType": "Standard_LRS"
+                      },
+                      "name": "farmervm-datadisk-0"
+                    }
+                  ],
+                  "imageReference": {
+                    "offer": "WindowsServer",
+                    "publisher": "MicrosoftWindowsServer",
+                    "sku": "2012-Datacenter",
+                    "version": "latest"
+                  },
+                  "osDisk": {
+                    "createOption": "FromImage",
+                    "diskSizeGB": 128,
+                    "managedDisk": {
+                      "storageAccountType": "Standard_LRS"
+                    },
+                    "name": "farmervm-osdisk"
+                  }
+                }
+              },
+              "tags": {},
+              "type": "Microsoft.Compute/virtualMachines"
+            },
+            {
+              "apiVersion": "2018-11-01",
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', 'farmervm-vnet')]",
+                "[resourceId('Microsoft.Network/publicIPAddresses', 'farmervm-ip')]"
+              ],
+              "location": "uksouth",
+              "name": "farmervm-nic",
+              "properties": {
+                "ipConfigurations": [
+                  {
+                    "name": "ipconfig1",
+                    "properties": {
+                      "privateIPAllocationMethod": "Dynamic",
+                      "publicIPAddress": {
+                        "id": "[resourceId('Microsoft.Network/publicIPAddresses', 'farmervm-ip')]"
+                      },
+                      "subnet": {
+                        "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'farmervm-vnet', 'farmervm-subnet')]"
+                      }
+                    }
+                  }
+                ]
+              },
+              "tags": {},
+              "type": "Microsoft.Network/networkInterfaces"
+            },
+            {
+              "apiVersion": "2018-11-01",
+              "location": "uksouth",
+              "name": "farmervm-vnet",
+              "properties": {
+                "addressSpace": {
+                  "addressPrefixes": [
+                    "10.0.0.0/16"
+                  ]
+                },
+                "subnets": [
+                  {
+                    "name": "farmervm-subnet",
+                    "properties": {
+                      "addressPrefix": "10.0.0.0/24",
+                      "delegations": []
+                    }
+                  }
+                ]
+              },
+              "tags": {},
+              "type": "Microsoft.Network/virtualNetworks"
+            },
+            {
+              "apiVersion": "2018-11-01",
+              "location": "uksouth",
+              "name": "farmervm-ip",
+              "properties": {
+                "publicIPAllocationMethod": "Dynamic"
+              },
+              "sku": {
+                "name": "Basic"
+              },
+              "tags": {},
+              "type": "Microsoft.Network/publicIPAddresses"
+            }
+          ]
         }
       },
-      "type": "Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers"
-    },
-    {
-      "apiVersion": "2021-01-15",
-      "kind": "MongoDB",
-      "location": "northeurope",
-      "name": "testaccountmongo",
-      "properties": {
-        "consistencyPolicy": {
-          "defaultConsistencyLevel": "BoundedStaleness",
-          "maxIntervalInSeconds": 1000,
-          "maxStalenessPrefix": 500
-        },
-        "databaseAccountOfferType": "Standard",
-        "enableFreeTier": false,
-        "publicNetworkAccess": "Enabled"
-      },
+      "resourceGroup": "nested-resources",
       "tags": {},
-      "type": "Microsoft.DocumentDb/databaseAccounts"
-    },
-    {
-      "apiVersion": "2021-01-15",
-      "dependsOn": [
-        "[resourceId('Microsoft.DocumentDb/databaseAccounts', 'testaccountmongo')]"
-      ],
-      "name": "testaccountmongo/testdbmongo",
-      "properties": {
-        "options": {
-          "throughput": "400"
-        },
-        "resource": {
-          "id": "testdbmongo"
-        }
-      },
-      "type": "Microsoft.DocumentDb/databaseAccounts/mongodbDatabases"
+      "type": "Microsoft.Resources/deployments"
     }
   ]
 }

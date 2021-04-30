@@ -30,7 +30,6 @@ type ResourceGroupConfig =
                 |> Map.ofList
                
             { ResourceGroupDeployment.Name = this.ResourceId.Name
-              Parameters = this.Parameters
               Outputs = Map.merge (Map.toList this.Outputs) innerOutputs // New values overwrite old values so supply this.Outputs as newValues
               Location  = this.Location
               Resources = this.Resources
