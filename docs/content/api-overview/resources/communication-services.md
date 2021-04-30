@@ -28,11 +28,11 @@ open Farmer
 open Farmer.Builders
 
 let tags = [ "a", "1"; "b", "2" ]
-let translator = communicationServices {
+let cs = communicationServices {
     name "test"
     add_tags tags
     data_location DataLocation.Australia
 }
 
-let key : ArmExpression = translator.Key
+let key : ArmExpression = cs.Key
 ```

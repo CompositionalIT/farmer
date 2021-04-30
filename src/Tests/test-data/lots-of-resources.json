@@ -561,6 +561,18 @@
         }
       },
       "type": "Microsoft.DocumentDb/databaseAccounts/mongodbDatabases"
+    },
+    {
+      "apiVersion": "2020-08-20-preview",
+      "location": "northeurope",
+      "name": "test",
+      "properties": {
+        "dataLocation": "Australia"
+      },
+      "tags": {
+        "a": "b"
+      },
+      "type": "Microsoft.Communication/communicationServices"
     }
   ]
 }
