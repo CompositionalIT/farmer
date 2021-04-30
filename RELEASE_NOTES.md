@@ -1,5 +1,7 @@
 Release Notes
 =============
+## vNext
+* Added support for nesting resource groups
 
 ##  1.5.0
 * Container Groups: Support for init containers.
