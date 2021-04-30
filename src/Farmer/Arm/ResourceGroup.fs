@@ -33,6 +33,7 @@ type ResourceGroupDeployment =
         member this.ResourceId = resourceGroupDeployment.resourceId this.Name
         member this.JsonModel = 
             {| resourceGroupDeployment.Create(this.Name, this.Location, tags = this.Tags ) with
+                location = null // location is not supported for nested resource groups
                 resourceGroup = this.Name.Value
                 properties = 
                     {|  template = TemplateGeneration.processTemplate this.Template
