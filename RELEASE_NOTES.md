@@ -3,6 +3,12 @@ Release Notes
 ## vNext
 * Added support for nesting resource groups
 
+## 1.5.1
+* Communication Services: add builder.
+* ServiceBus: Fix an issue with Premium Sku ARM Writer
+* ServiceBus: Fix an issue with Rules depends on ARM Writer
+* Storage Accounts: Support for CORS.
+
 ##  1.5.0
 * Container Groups: Support for init containers.
 * Container Groups: Support for liveliness and readiness probes on containers.

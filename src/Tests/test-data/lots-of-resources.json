@@ -456,8 +456,19 @@
       "type": "Microsoft.ContainerInstance/containerGroups"
     },
     {
+      "apiVersion": "2020-08-20-preview",
+      "location": "northeurope",
+      "name": "test",
+      "properties": {
+        "dataLocation": "Australia"
+      },
+      "tags": {
+        "a": "b"
+      },
+      "type": "Microsoft.Communication/communicationServices"
+    },
+    {
       "apiVersion": "2020-10-01",
-      "location": "uksouth",
       "name": "nested-resources",
       "properties": {
         "expressionEvaluationOptions": {

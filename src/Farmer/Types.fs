@@ -30,6 +30,10 @@ type Location =
     | Location of string
     member this.ArmValue = match this with Location location -> location.ToLower()
 
+type DataLocation =
+    | DataLocation of string
+    member this.ArmValue = match this with DataLocation dataLocation -> dataLocation
+
 type ResourceType =
     | ResourceType of path:string * version:string
     /// Returns the ARM resource type string value.

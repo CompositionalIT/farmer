@@ -203,12 +203,12 @@ type ContainerGroupBuilder() =
         { state with
             IpAddress =
                 { Type = ipAddressType
-                  Ports = ports |> Seq.map(fun (prot, port) -> {| Protocol = prot; Port = port |}) |> Set } |> Some }
+                  Ports = ports |> Seq.map(fun (protocol, port) -> {| Protocol = protocol; Port = port |}) |> Set } |> Some }
 
-    /// Sets the IP addresss to a public address with a DNS label
+    /// Sets the IP address to a public address with a DNS label
     [<CustomOperation "public_dns">]
     member this.PublicDns(state, dnsLabel, ports) = this.SetIpAddress(state, PublicAddressWithDns dnsLabel, ports)
-    /// Sets the IP addresss to a private address assigned by the vnet
+    /// Sets the IP address to a private address assigned by the vnet
     [<CustomOperation "private_ip">]
     member this.PrivateIp(state:ContainerGroupConfig, ports) = this.SetIpAddress(state, PrivateAddress, ports)
     /// Sets a network profile for the container's group.

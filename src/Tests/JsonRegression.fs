@@ -5,6 +5,7 @@ open Farmer
 open Farmer.Builders
 open Farmer.Arm
 open System.IO
+open Farmer.ServiceBus
 
 let tests =
     testList "ARM Writer Regression Tests" [
@@ -54,14 +55,28 @@ let tests =
                 failover_policy CosmosDb.NoFailover
                 consistency_policy (CosmosDb.BoundedStaleness(500, 1000))
             }
-            let cosmosResourceGroup = resourceGroup{
+            let nestedResourceGroup = resourceGroup{
                 name "nested-resources"
                 location Location.UKSouth
                 add_resources [cosmos; cosmosMongo; vm]
             }
 
+            let communicationServices = communicationServices {
+                name "test"
+                add_tags [ "a", "b" ]
+                data_location DataLocation.Australia
+            }
+
             compareResourcesToJson
-                [ sql; storage; web; fns; svcBus; cdn; containerGroup; cosmosResourceGroup ]
+                [   sql
+                    storage
+                    web
+                    fns
+                    svcBus
+                    cdn
+                    containerGroup
+                    communicationServices
+                    nestedResourceGroup ]
                 "lots-of-resources.json"
         }
 
@@ -149,5 +164,25 @@ let tests =
             Expect.equal resource.Name "jsontest" "Account name is wrong"
             Expect.equal resource.Sku.Name "Standard_LRS" "SKU is wrong"
             Expect.equal resource.Kind "StorageV2" "Kind"
+        }
+        
+        test "ServiceBus" {
+            let svcBus = serviceBus {
+                name "farmerbus"
+                sku (ServiceBus.Sku.Premium MessagingUnits.OneUnit)
+                add_queues [ queue { name "queue1" } ]
+                add_topics [
+                    topic {
+                        name "topic1"
+                        add_subscriptions [
+                            subscription {
+                                name "sub1"
+                                add_filters [Rule.CreateCorrelationFilter ("filter1", ["header1", "headervalue1"])]
+                            }
+                        ]
+                    }
+                ]
+            }
+            compareResourcesToJson [ svcBus ] "service-bus.json"
         }
     ]
