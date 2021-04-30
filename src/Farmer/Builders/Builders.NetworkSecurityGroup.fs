@@ -14,7 +14,8 @@ type SecurityRuleConfig =
       Services: NetworkService list
       Sources: (NetworkProtocol * Endpoint * Port) list
       Destinations : Endpoint list
-      Operation : Operation }
+      Operation : Operation
+      Direction : TrafficDirection }
 
 type SecurityRuleBuilder () =
     member __.Yield _ =
@@ -23,7 +24,8 @@ type SecurityRuleBuilder () =
           Services = []
           Sources = []
           Destinations = []
-          Operation = Allow }
+          Operation = Allow
+          Direction = TrafficDirection.Inbound }
     /// Sets the name of the security rule
     [<CustomOperation "name">]
     member _.Name(state:SecurityRuleConfig, name) = { state with Name = ResourceName name }
@@ -73,6 +75,9 @@ type SecurityRuleBuilder () =
     /// Sets the rule to deny this traffic.
     [<CustomOperation("deny_traffic")>]
     member _.Deny(state:SecurityRuleConfig) = { state with Operation = Deny }
+    /// Specify the direction of traffic this rule applies to (defaults to inbound).
+    [<CustomOperation("direction")>]
+    member _.Direction(state:SecurityRuleConfig, direction) = { state with Direction = direction }
 
 let securityRule = SecurityRuleBuilder()
 
@@ -85,10 +90,13 @@ let internal buildNsgRule (nsg:NetworkSecurityGroup) (rule:SecurityRuleConfig) (
         if protocols.Count > 1 then AnyProtocol else protocols |> Seq.head
       SourcePorts = rule.Sources |> List.map(fun (_, _, sourcePort) -> sourcePort) |> Set
       SourceAddresses = rule.Sources |> List.map(fun (_, sourceAddress, _) -> sourceAddress) |> List.distinct
-      DestinationPorts = rule.Services |> List.map(fun (NetworkService(_, port)) -> port) |> Set
+      DestinationPorts =
+          match rule.Services with
+          | [] -> Set [ AnyPort ]
+          | services -> services |> List.map(fun (NetworkService(_, port)) -> port) |> Set
       DestinationAddresses = rule.Destinations
       Access = rule.Operation
-      Direction = Inbound
+      Direction = rule.Direction
       Priority = priority }
 
 type NsgConfig =
