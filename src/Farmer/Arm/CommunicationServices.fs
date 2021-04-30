@@ -8,11 +8,11 @@ let resource = ResourceType ("Microsoft.Communication/communicationServices", "2
 type Resource =
     { Name: ResourceName
       Location: Location
-      DataLocation: Location
+      DataLocation: DataLocation
       Tags: Map<string,string> }
     interface IArmResource with
-        member this.ResourceId = accounts.resourceId this.Name
+        member this.ResourceId = resource.resourceId this.Name
         member this.JsonModel =
-            {| accounts.Create(this.Name, this.Location, tags = this.Tags) with
+            {| resource.Create(this.Name, this.Location, tags = this.Tags) with
                 properties = {| dataLocation = this.DataLocation.ArmValue |}
             |} :> _

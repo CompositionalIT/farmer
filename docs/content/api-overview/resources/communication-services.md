@@ -14,7 +14,7 @@ The Communication Services builder is used to create Azure Communication Service
 | Keyword | Purpose |
 |-|-|
 | name | Sets the name of the Bing Search instance. |
-| data_location | Sets the `dataLocation` property of the instance. Defaults to `location` |
+| data_location | Sets the `dataLocation` property of the instance. Defaults to `United States` |
 
 #### Configuration Members
 
@@ -31,7 +31,7 @@ let tags = [ "a", "1"; "b", "2" ]
 let translator = communicationServices {
     name "test"
     add_tags tags
-    data_location Location.NorthEurope
+    data_location DataLocation.Australia
 }
 
 let key : ArmExpression = translator.Key

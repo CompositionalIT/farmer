@@ -11,13 +11,13 @@ let tests = testList "Communication Services" [
         let swa = communicationServices {
             name "test"
             add_tags tags
-            data_location Location.NorthEurope
+            data_location DataLocation.Australia
         }
         let baseArm = (swa :> IBuilder).BuildResources(Location.WestEurope).[0]
         let bsArm = baseArm :?> CommunicationServices.Resource
         Expect.equal bsArm.Name (ResourceName "test") "Name"
         Expect.equal bsArm.Location Location.WestEurope "Location"
-        Expect.equal bsArm.DataLocation Location.NorthEurope "Data Location"
+        Expect.equal bsArm.DataLocation DataLocation.Australia "Data Location"
         Expect.equal bsArm.Tags (Map tags) "Tags"
     }
 
@@ -30,7 +30,7 @@ let tests = testList "Communication Services" [
         let bsArm = baseArm :?> CommunicationServices.Resource
         Expect.equal bsArm.Name (ResourceName "test") "Name"
         Expect.equal bsArm.Location Location.WestEurope "Location"
-        Expect.equal bsArm.DataLocation bsArm.Location "Data Location"
+        Expect.equal bsArm.DataLocation DataLocation.UnitedStates "Data Location"
         Expect.isEmpty bsArm.Tags "Tags"
     }
 ]

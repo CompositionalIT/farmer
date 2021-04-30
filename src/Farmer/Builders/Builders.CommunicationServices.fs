@@ -13,7 +13,7 @@ type CommunicationServices =
 type CommunicationServicesConfig =
     { Name: ResourceName
       Tags: Map<string,string>
-      DataLocation: Location option }
+      DataLocation: DataLocation }
     /// Gets an ARM expression to the key of this Bing Search instance.
     member this.Key = CommunicationServices.getKey (resource.resourceId this.Name)
     interface IBuilder with
@@ -22,18 +22,19 @@ type CommunicationServicesConfig =
             { Name = this.Name
               Location = location
               Tags = this.Tags
-              DataLocation = this.DataLocation |> Option.defaultValue location }
+              DataLocation = this.DataLocation }
         ]
 
 type CommunicationServicesBuilder () =
     member _.Yield _ =
         { Name = ResourceName.Empty
           Tags = Map.empty
-          DataLocation = None }
+          // We default to UnitedStates because all of the features are available there.
+          DataLocation = DataLocation.UnitedStates }
     [<CustomOperation "name">]
     member _.Name (state: CommunicationServicesConfig, name) = { state with Name = ResourceName name }
     [<CustomOperation "data_location">]
-    member _.Sku (state: CommunicationServicesConfig, dataLocation) = { state with DataLocation = Some dataLocation }
+    member _.Sku (state: CommunicationServicesConfig, dataLocation) = { state with DataLocation = dataLocation }
     interface ITaggable<CommunicationServicesConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let communicationServices = CommunicationServicesBuilder()
