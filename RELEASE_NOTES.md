@@ -1,5 +1,7 @@
 Release Notes
 =============
+## vNext
+* Storage Accounts: Support for CORS.
 
 ## vNext
 * Communication Services: add builder.
