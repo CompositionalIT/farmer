@@ -181,9 +181,6 @@ module Extensions =
         member this.DependsOn (state:'TConfig, resourceId:ResourceId) = this.DependsOn(state, [ resourceId ])
         member this.DependsOn (state:'TConfig, resourceIds:ResourceId list) = this.Add state (Set resourceIds)
 
-    module List = 
-        let prepend a b = List.append b a
-
 /// A secure parameter to be captured in an ARM template.
 type SecureParameter =
     | SecureParameter of name:string

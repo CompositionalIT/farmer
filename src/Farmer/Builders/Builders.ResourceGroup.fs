@@ -50,17 +50,15 @@ type ResourceGroupConfig =
               Template = this.Template
               PostDeployTasks = 
                     this.Resources 
-                    |> List.choose (function | :? IPostDeploy as pd -> Some pd |_ -> None)
-            }
+                    |> List.choose (function | :? IPostDeploy as pd -> Some pd |_ -> None) }
     interface ITaggable<ResourceGroupConfig> with
         member _.Add state tags = {state with Tags = state.Tags |> Map.merge tags}
     interface IBuilder with
         member this.ResourceId = this.ResourceId
         member this.BuildResources loc = 
-            [
-                match this.ContentDeployment with 
-                | Some x -> x
-                | None -> ()
+            [ match this.ContentDeployment with 
+              | Some x -> x
+              | None -> () 
             ]
 
 type ResourceGroupBuilder() =
