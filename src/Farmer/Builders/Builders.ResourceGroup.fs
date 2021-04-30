@@ -6,6 +6,7 @@ open Farmer.Arm.ResourceGroup
 
 type ResourceGroupConfig = 
     { Name: string Option
+      Dependencies: ResourceId Set
       Parameters : string Set
       Outputs : Map<string, string>
       Location : Location
@@ -30,6 +31,7 @@ type ResourceGroupConfig =
                 |> Map.ofList
                
             { ResourceGroupDeployment.Name = this.ResourceId.Name
+              Dependencies = this.Dependencies
               Outputs = Map.merge (Map.toList this.Outputs) innerOutputs // New values overwrite old values so supply this.Outputs as newValues
               Location  = this.Location
               Resources = this.Resources
@@ -51,8 +53,6 @@ type ResourceGroupConfig =
               PostDeployTasks = 
                     this.Resources 
                     |> List.choose (function | :? IPostDeploy as pd -> Some pd |_ -> None) }
-    interface ITaggable<ResourceGroupConfig> with
-        member _.Add state tags = {state with Tags = state.Tags |> Map.merge tags}
     interface IBuilder with
         member this.ResourceId = this.ResourceId
         member this.BuildResources loc = 
@@ -64,6 +64,7 @@ type ResourceGroupConfig =
 type ResourceGroupBuilder() =
     member __.Yield _ =
         { Name = None
+          Dependencies = Set.empty
           Parameters = Set.empty
           Outputs = Map.empty
           Resources = List.empty
@@ -109,5 +110,11 @@ type ResourceGroupBuilder() =
     member this.AddResources(state:ResourceGroupConfig, input:IBuilder list) =
         let resources = input |> List.collect(fun i -> i.BuildResources state.Location)
         ResourceGroupBuilder.AddResources(state, resources)
+
+    [<CustomOperation "depends_on">]
+    member this.AddDepenencies(state:ResourceGroupConfig, dependencies: ResourceId list) =
+        {state with Dependencies = Set.union state.Dependencies (Set.ofList dependencies) }
+    
+    interface ITaggable<ResourceGroupConfig> with member _.Add state tags = {state with Tags = state.Tags |> Map.merge tags}
 
 let resourceGroup = ResourceGroupBuilder()

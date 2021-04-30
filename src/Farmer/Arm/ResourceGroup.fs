@@ -11,6 +11,7 @@ type DeploymentMode = Incremental|Complete
 /// Represents all configuration information to generate an ARM template.
 type ResourceGroupDeployment =
     { Name: ResourceName
+      Dependencies: ResourceId Set
       Outputs : Map<string, string>
       Location : Location
       Resources : IArmResource list
@@ -32,7 +33,7 @@ type ResourceGroupDeployment =
     interface IArmResource with
         member this.ResourceId = resourceGroupDeployment.resourceId this.Name
         member this.JsonModel = 
-            {| resourceGroupDeployment.Create(this.Name, this.Location, tags = this.Tags ) with
+            {| resourceGroupDeployment.Create(this.Name, this.Location, dependsOn = this.Dependencies, tags = this.Tags ) with
                 location = null // location is not supported for nested resource groups
                 resourceGroup = this.Name.Value
                 properties = 
