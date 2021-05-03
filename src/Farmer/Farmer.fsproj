@@ -88,6 +88,7 @@
     <Compile Include="Arm/NetworkSecurityGroup.fs" />
     <Compile Include="Arm/DeploymentScript.fs" />
     <Compile Include="Arm/Databricks.fs" />
+    <Compile Include="Arm/VirtualWAN.fs" />
     <Compile Include="IdentityExtensions.fs" />
     <Compile Include="Builders/Builders.LogAnalytics.fs" />
     <Compile Include="Builders/Builders.Helpers.fs" />
@@ -128,5 +129,6 @@
     <Compile Include="Builders/Builders.NetworkSecurityGroup.fs" />
     <Compile Include="Builders/Builders.Databricks.fs" />
     <Compile Include="Builders\Builders.DiagnosticSetting.fs" />
+    <Compile Include="Builders/Builders.VirtualWAN.fs" />
   </ItemGroup>
 </Project>

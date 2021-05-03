@@ -45,6 +45,7 @@ let allTests =
                 Types.tests
                 VirtualMachine.tests
                 VirtualNetworkGateway.tests
+                VirtualWAN.tests
                 WebApp.tests
             ]
             testList "Control" [

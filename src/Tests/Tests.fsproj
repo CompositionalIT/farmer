@@ -45,6 +45,7 @@
     <Compile Include="Identity.fs" />
     <Compile Include="DeploymentScript.fs" />
     <Compile Include="Databricks.fs" />
+    <Compile Include="VirtualWAN.fs" />
     <Compile Include="JsonRegression.fs" />
     <Compile Include="Types.fs" />
     <Compile Include="AllTests.fs" />

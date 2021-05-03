@@ -179,4 +179,15 @@ let tests =
             }
             compareResourcesToJson [ svcBus ] "service-bus.json"
         }
+        
+        test "VirtualWAN" {
+            let vwan = vwan {
+                name "farmer-vwan"
+                disable_vpn_encryption
+                allow_branch_to_branch_traffic
+                office_365_local_breakout_category Office365LocalBreakoutCategory.None
+                standard_vwan
+            }
+            compareResourcesToJson [ vwan ] "virtual-wan.json"
+        }
     ]
