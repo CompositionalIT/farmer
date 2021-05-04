@@ -109,14 +109,6 @@ module Namespaces =
                            enablePartitioning = this.EnablePartitioning |> Option.toNullable |}
                 |} :> _
 
-module private Sku =
-    let name (sku:Sku) =
-        match sku with
-        | Basic -> "Basic"
-        | Standard -> "Standard"
-        | Premium OneUnit 
-        | Premium TwoUnits
-        | Premium FourUnits -> "Premium"
 type Namespace =
     { Name : ResourceName
       Location : Location
@@ -135,7 +127,7 @@ type Namespace =
         member this.JsonModel =
             {| namespaces.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
                 sku =
-                     {| name = Sku.name this.Sku
-                        tier = Sku.name this.Sku
+                     {| name = this.Sku.NameArmValue
+                        tier = this.Sku.TierArmValue
                         capacity = this.Capacity |> Option.toNullable |}
             |} :> _
