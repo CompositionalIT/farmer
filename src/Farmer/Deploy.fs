@@ -84,7 +84,12 @@ module Az =
     let listSubscriptions() = az "account list --all"
     let setSubscription subscriptionId = az $"account set --subscription %s{subscriptionId}"
     /// Creates a resource group.
-    let createResourceGroup location resourceGroup = az $"group create -l %s{location} -n %s{resourceGroup}" |> Result.ignore
+    let createResourceGroup location tags resourceGroup = 
+        let tagString = 
+            match Map.toList tags with 
+            | [] -> ""
+            | tagList -> tagList |> Seq.map (fun (key,value) -> $"{key}={value}") |> String.concat " " |> sprintf " --tags %s"
+        az $"group create -l %s{location} -n %s{resourceGroup}%s{tagString}" |> Result.ignore
     /// Searches for users in AD using the supplied filter.
     let searchUsers filter = az $"ad user list --filter %s{filter}"
     /// Searches for groups in AD using the supplied filter.
@@ -221,7 +226,7 @@ let private prepareForDeployment parameters resourceGroupName (deployment:#IDepl
     printfn "Using subscription '%s' (%O)." subscriptionDetails.name subscriptionDetails.id
 
     printfn "Creating resource group %s..." resourceGroupName
-    do! Az.createResourceGroup deployment.Deployment.Location.ArmValue resourceGroupName
+    do! Az.createResourceGroup deployment.Deployment.Location.ArmValue deployment.Deployment.Tags resourceGroupName
 
     return
         {| DeploymentName = $"farmer-deploy-{generateDeployNumber()}"

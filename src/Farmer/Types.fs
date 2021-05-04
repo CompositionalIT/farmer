@@ -302,7 +302,8 @@ type ArmTemplate =
 type Deployment =
     { Location : Location
       Template : ArmTemplate
-      PostDeployTasks : IPostDeploy list }
+      PostDeployTasks : IPostDeploy list
+      Tags: Map<string,string> }
     interface IDeploymentSource with
         member this.Deployment = this
 and IDeploymentSource = 

@@ -52,7 +52,8 @@ type ResourceGroupConfig =
               Template = this.Template
               PostDeployTasks = 
                     this.Resources 
-                    |> List.choose (function | :? IPostDeploy as pd -> Some pd |_ -> None) }
+                    |> List.choose (function | :? IPostDeploy as pd -> Some pd |_ -> None)
+              Tags = this.Tags }
     interface IBuilder with
         member this.ResourceId = this.ResourceId
         member this.BuildResources loc = 
