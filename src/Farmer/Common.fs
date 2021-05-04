@@ -994,6 +994,14 @@ module ServiceBus =
         | Basic
         | Standard
         | Premium of MessagingUnits
+        member this.NameArmValue =
+                match this with
+                | Basic -> "Basic"
+                | Standard -> "Standard"
+                | Premium OneUnit 
+                | Premium TwoUnits
+                | Premium FourUnits -> "Premium"
+        member this.TierArmValue = this.NameArmValue
     type Rule =
         | SqlFilter of ResourceName * SqlExpression : string
         | CorrelationFilter of Name : ResourceName * CorrelationId : string option * Properties : Map<string, string>
