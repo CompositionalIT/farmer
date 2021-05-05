@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.5.2
+* ServiceBus: TopicConfig implements IBuilder and supports link_to_unmanaged_namespace.
+
 ## 1.5.1
 * Communication Services: add builder.
 * ExpressRoute: Adds ServiceKey property to generate an expression for the service key on a new circuit.
