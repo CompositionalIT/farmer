@@ -167,7 +167,7 @@ type ServiceBusTopicBuilder() =
                 (state.Subscriptions, subscriptions)
                 ||> List.fold(fun state (subscription:ServiceBusSubscriptionConfig) -> state.Add(subscription.Name, subscription))
         }
-    /// Instead of creating a or modifying a namespace, configure this topic to point to another unmanaged namespace instance.
+    /// Instead of creating or modifying a namespace, configure this topic to point to another unmanaged namespace instance.
     [<CustomOperation "link_to_unmanaged_namespace">]
     member this.LinkToUnmanagedNamespace (state:ServiceBusTopicConfig, namespaceName:ResourceName) =
         { state with Namespace = Unmanaged(namespaces.resourceId namespaceName) }
