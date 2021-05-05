@@ -162,7 +162,7 @@ let tests =
         
         test "ServiceBus" {
             let svcBus = serviceBus {
-                name "farmerbus"
+                name "farmer-bus"
                 sku (ServiceBus.Sku.Premium MessagingUnits.OneUnit)
                 add_queues [ queue { name "queue1" } ]
                 add_topics [
@@ -177,7 +177,18 @@ let tests =
                     }
                 ]
             }
-            compareResourcesToJson [ svcBus ] "service-bus.json"
+            let topicWithUnmanagedNamespace =
+                topic {
+                    name "unmanaged-topic"
+                    link_to_unmanaged_namespace "farmer-bus"
+                    add_subscriptions [
+                        subscription {
+                            name "sub1"
+                            add_filters [Rule.CreateCorrelationFilter ("filter1", ["header1", "headervalue1"])]
+                        }
+                    ]
+                }
+            compareResourcesToJson [ svcBus; topicWithUnmanagedNamespace ] "service-bus.json"
         }
         
         test "VirtualWan" {

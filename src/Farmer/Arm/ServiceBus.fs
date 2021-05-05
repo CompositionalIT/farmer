@@ -91,14 +91,15 @@ module Namespaces =
 
     type Topic =
         { Name : ResourceName
-          Namespace : ResourceName
+          Dependencies : ResourceId Set
+          Namespace : ResourceId
           DuplicateDetectionHistoryTimeWindow : IsoDateTime option
           DefaultMessageTimeToLive : IsoDateTime option
           EnablePartitioning : bool option }
         interface IArmResource with
-            member this.ResourceId = topics.resourceId (this.Namespace/this.Name)
+            member this.ResourceId = topics.resourceId (this.Namespace.Name/this.Name)
             member this.JsonModel =
-                {| topics.Create(this.Namespace/this.Name, dependsOn = [ namespaces.resourceId this.Namespace ]) with
+                {| topics.Create(this.Namespace.Name/this.Name, dependsOn = this.Dependencies) with
                     properties =
                         {| defaultMessageTimeToLive = tryGetIso this.DefaultMessageTimeToLive
                            requiresDuplicateDetection =

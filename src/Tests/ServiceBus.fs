@@ -12,6 +12,29 @@ open Microsoft.Azure.Management.ServiceBus.Models
 open Microsoft.Rest
 open System
 
+open Expecto
+open Farmer
+open Farmer.Arm.ServiceBus
+open Farmer.Builders
+open Farmer.ServiceBus
+open Microsoft.Azure.Management.Network
+open Microsoft.Azure.Management.Network.Models
+open Microsoft.Rest
+open System
+open Microsoft.Rest.Serialization
+
+let getResource<'T when 'T :> IArmResource> (data:IArmResource list) = data |> List.choose(function :? 'T as x -> Some x | _ -> None)
+let getTopicResource = getResource<Topic>
+
+let getResources (v:IBuilder) = v.BuildResources Location.WestUS
+
+let getResourceDependsOnByName (template:Deployment) (resourceName:ResourceName) =
+    let json = template.Template |> Writer.toJson
+    let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+    let dependsOn = jobj.SelectToken($"resources[?(@.name=='{resourceName.Value}')].dependsOn")
+    let jarray = dependsOn :?> Newtonsoft.Json.Linq.JArray
+    [for jvalue in jarray do jvalue.ToString()]
+
 /// Client instance needed to get the serializer settings.
 let dummyClient = new ServiceBusManagementClient (Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
 let getResourceAtIndex o = o |> getResourceAtIndex dummyClient.SerializationSettings
@@ -257,6 +280,64 @@ let tests = testList "Service Bus Tests" [
 
             Expect.hasLength subscriptions 2 "Subscription length"
             Expect.hasLength subscriptions 2 "Subscription length"
+        }
+        test "Topic does not create dependencies for unmanaged linked resources" {
+            let resource =
+                topic {
+                    name "my-topic"
+                    link_to_unmanaged_namespace "my-bus"
+                }
+                |> getResources |> getTopicResource |> List.head
+            Expect.isEmpty resource.Dependencies ""
+        }
+        test "Topic creates dependencies for managed linked resources" {
+            let resource =
+                serviceBus {
+                    name "my-bus"
+                    add_topics [
+                        topic {
+                            name "my-topic"
+                            link_to_unmanaged_namespace "my-namespace"
+                        }        
+                    ]
+                }
+                |> getResources |> getTopicResource |> List.head
+            Expect.containsAll resource.Dependencies [
+                ResourceId.create(namespaces, ResourceName "my-bus");]
+                ""
+        }
+        test "Topic creates empty dependsOn in arm template json for unmanaged linked resources" {
+            let template =
+                arm {
+                    add_resources [
+                        topic {
+                            name "my-topic"
+                            link_to_unmanaged_namespace "my-bus"
+                        }
+                    ]
+                }
+            let dependsOn = getResourceDependsOnByName template (ResourceName "my-bus/my-topic")    
+            Expect.hasLength dependsOn 0 ""
+        }
+        test "Topic creates dependsOn in arm template json for managed linked resources" {
+            let template =
+                arm {
+                    add_resources [
+                        serviceBus {
+                            name "my-bus"
+                            add_topics [
+                                topic {
+                                    name "my-topic"
+                                    link_to_unmanaged_namespace "my-namespace"
+                                }        
+                            ]
+                        }
+                    ]
+                }
+            let dependsOn = getResourceDependsOnByName template (ResourceName "my-bus/my-topic")
+            Expect.hasLength dependsOn 1 ""
+            let expectedNamespaceDependency = "[resourceId('Microsoft.ServiceBus/namespaces', 'my-bus')]"
+            Expect.equal dependsOn.Head expectedNamespaceDependency "" 
         }
     ]
 ]
