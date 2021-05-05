@@ -8,7 +8,7 @@
       "apiVersion": "2017-04-01",
       "dependsOn": [],
       "location": "northeurope",
-      "name": "farmerbus",
+      "name": "farmer-bus",
       "sku": {
         "capacity": 1,
         "name": "Premium",
@@ -20,9 +20,9 @@
     {
       "apiVersion": "2017-04-01",
       "dependsOn": [
-        "[resourceId('Microsoft.ServiceBus/namespaces', 'farmerbus')]"
+        "[resourceId('Microsoft.ServiceBus/namespaces', 'farmer-bus')]"
       ],
-      "name": "farmerbus/queue1",
+      "name": "farmer-bus/queue1",
       "properties": {
         "defaultMessageTimeToLive": "P10675199DT2H48M5.4775807S"
       },
@@ -31,18 +31,52 @@
     {
       "apiVersion": "2017-04-01",
       "dependsOn": [
-        "[resourceId('Microsoft.ServiceBus/namespaces', 'farmerbus')]"
+        "[resourceId('Microsoft.ServiceBus/namespaces', 'farmer-bus')]"
       ],
-      "name": "farmerbus/topic1",
+      "name": "farmer-bus/topic1",
       "properties": {},
       "type": "Microsoft.ServiceBus/namespaces/topics"
     },
     {
       "apiVersion": "2017-04-01",
       "dependsOn": [
-        "[resourceId('Microsoft.ServiceBus/namespaces/topics', 'farmerbus', 'topic1')]"
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', 'farmer-bus', 'topic1')]"
       ],
-      "name": "farmerbus/topic1/sub1",
+      "name": "farmer-bus/topic1/sub1",
+      "properties": {},
+      "resources": [
+        {
+          "apiVersion": "2017-04-01",
+          "dependsOn": [
+            "sub1"
+          ],
+          "name": "filter1",
+          "properties": {
+            "correlationFilter": {
+              "properties": {
+                "header1": "headervalue1"
+              }
+            },
+            "filterType": "CorrelationFilter"
+          },
+          "type": "Rules"
+        }
+      ],
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions"
+    },
+    {
+      "apiVersion": "2017-04-01",
+      "dependsOn": [],
+      "name": "farmer-bus/unmanaged-topic",
+      "properties": {},
+      "type": "Microsoft.ServiceBus/namespaces/topics"
+    },
+    {
+      "apiVersion": "2017-04-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', 'farmer-bus', 'unmanaged-topic')]"
+      ],
+      "name": "farmer-bus/unmanaged-topic/sub1",
       "properties": {},
       "resources": [
         {

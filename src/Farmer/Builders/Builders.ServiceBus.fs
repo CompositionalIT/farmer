@@ -63,7 +63,6 @@ type ServiceBusSubscriptionConfig =
 type ServiceBusSubscriptionBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
-
           LockDuration = None
           DuplicateDetection = None
           DefaultMessageTimeToLive = None
@@ -103,14 +102,48 @@ type ServiceBusSubscriptionBuilder() =
 
 type ServiceBusTopicConfig =
     { Name : ResourceName
+      Namespace : LinkedResource
       DuplicateDetection : TimeSpan option
       DefaultMessageTimeToLive : TimeSpan option
       EnablePartitioning : bool option
       Subscriptions : Map<ResourceName, ServiceBusSubscriptionConfig> }
+    interface IBuilder with
+        member this.ResourceId = topics.resourceId this.Name
+        member this.BuildResources location = [
+            { Name = this.Name
+              Dependencies = [
+                match this.Namespace with
+                | Managed resId -> resId // Only generate dependency if this is managed by Farmer (same template)
+                | _ -> ()                  
+              ] |> Set.ofList
+              Namespace =
+                match this.Namespace with
+                | Managed resId
+                | Unmanaged resId -> resId
+              DuplicateDetectionHistoryTimeWindow = this.DuplicateDetection |> Option.map IsoDateTime.OfTimeSpan
+              DefaultMessageTimeToLive = this.DefaultMessageTimeToLive |> Option.map IsoDateTime.OfTimeSpan
+              EnablePartitioning = this.EnablePartitioning }
+            for subscription in this.Subscriptions do
+                let subscription = subscription.Value
+                { Name = subscription.Name
+                  Namespace =
+                        match this.Namespace with
+                        | Managed resId
+                        | Unmanaged resId -> resId.Name
+                  Topic = this.Name
+                  LockDuration = subscription.LockDuration |> Option.map IsoDateTime.OfTimeSpan
+                  DuplicateDetectionHistoryTimeWindow = subscription.DuplicateDetection |> Option.map IsoDateTime.OfTimeSpan
+                  DefaultMessageTimeToLive = subscription.DefaultMessageTimeToLive |> Option.map IsoDateTime.OfTimeSpan
+                  MaxDeliveryCount = subscription.MaxDeliveryCount
+                  Session = subscription.Session
+                  DeadLetteringOnMessageExpiration = subscription.DeadLetteringOnMessageExpiration
+                  Rules = subscription.Rules }
+        ]
 
 type ServiceBusTopicBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
+          Namespace = Managed (namespaces.resourceId ResourceName.Empty)
           DuplicateDetection = None
           DefaultMessageTimeToLive = None
           EnablePartitioning = None
@@ -134,6 +167,13 @@ type ServiceBusTopicBuilder() =
                 (state.Subscriptions, subscriptions)
                 ||> List.fold(fun state (subscription:ServiceBusSubscriptionConfig) -> state.Add(subscription.Name, subscription))
         }
+    /// Instead of creating a or modifying a namespace, configure this topic to point to another unmanaged namespace instance.
+    [<CustomOperation "link_to_unmanaged_namespace">]
+    member this.LinkToUnmanagedNamespace (state:ServiceBusTopicConfig, namespaceName:ResourceName) =
+        { state with Namespace = Unmanaged(namespaces.resourceId namespaceName) }
+    member this.LinkToUnmanagedNamespace (state:ServiceBusTopicConfig, namespaceName) =
+        { state with Namespace = Unmanaged(namespaces.resourceId(ResourceName namespaceName)) }
+    
 
 type ServiceBusConfig =
     { Name : ResourceName
@@ -174,26 +214,9 @@ type ServiceBusConfig =
                 EnablePartitioning = queue.EnablePartitioning }
 
             for topic in this.Topics do
-                let topic = topic.Value
-                { Name = topic.Name
-                  Namespace = this.Name
-                  DuplicateDetectionHistoryTimeWindow = topic.DuplicateDetection |> Option.map IsoDateTime.OfTimeSpan
-                  DefaultMessageTimeToLive = topic.DefaultMessageTimeToLive |> Option.map IsoDateTime.OfTimeSpan
-                  EnablePartitioning = topic.EnablePartitioning }
-
-                for subscription in topic.Subscriptions do
-                    let subscription = subscription.Value
-                    { Name = subscription.Name
-                      Namespace = this.Name
-                      Topic = topic.Name
-                      LockDuration = subscription.LockDuration |> Option.map IsoDateTime.OfTimeSpan
-                      DuplicateDetectionHistoryTimeWindow = subscription.DuplicateDetection |> Option.map IsoDateTime.OfTimeSpan
-                      DefaultMessageTimeToLive = subscription.DefaultMessageTimeToLive |> Option.map IsoDateTime.OfTimeSpan
-                      MaxDeliveryCount = subscription.MaxDeliveryCount
-                      Session = subscription.Session
-                      DeadLetteringOnMessageExpiration = subscription.DeadLetteringOnMessageExpiration
-                      Rules = subscription.Rules }
-
+                let topic = {topic.Value with Namespace = Managed(namespaces.resourceId this.Name)} :> IBuilder
+                for topicResource in topic.BuildResources location do
+                    topicResource
         ]
 
 type ServiceBusBuilder() =
