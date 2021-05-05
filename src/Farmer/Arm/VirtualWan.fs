@@ -28,18 +28,11 @@ type VwanType =
         | Basic -> "Basic"
 
 type VirtualWan =
-    { /// It's recommended to use resource group + -vwan.
-      /// e.g. "name": "[concat(resourceGroup().name,'-vwan')]"
-      Name : ResourceName
-      /// The Azure Region where this resource should be deployed.
+    { Name : ResourceName
       Location : Location
-      /// Set boolean for whether you want to allow branch to branch traffic through VWAN
       AllowBranchToBranchTraffic : bool option
-      /// Property on VWAN either true or false for VPN Encrpytion
       DisableVpnEncryption : bool option
-      /// The office local breakout category (enum) - allowed options are Optimize, OptimizeAndAllow, All and None
       Office365LocalBreakoutCategory : Office365LocalBreakoutCategory option
-      /// This is the type of VWAN deployment - only option is Basic or Standard
       VwanType : VwanType }
     interface IArmResource with
         member this.ResourceId = virtualWans.resourceId this.Name

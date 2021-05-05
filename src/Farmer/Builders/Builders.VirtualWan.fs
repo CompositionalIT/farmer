@@ -7,13 +7,9 @@ open Farmer.Arm.VirtualWan
 
 type VirtualWanConfig =
     { Name : ResourceName
-      /// Set boolean for whether you want to allow branch to branch traffic through VWAN
       AllowBranchToBranchTraffic : bool option
-      /// Property on VWAN either true or false for VPN Encrpytion
       DisableVpnEncryption : bool option
-      /// The office local breakout category (enum) - allowed options are Optimize, OptimizeAndAllow, All and None
       Office365LocalBreakoutCategory : Office365LocalBreakoutCategory option
-      /// This is the type of VWAN deployment - only option is Basic or Standard
       VwanType : VwanType }
     interface IBuilder with
         member this.ResourceId = virtualWans.resourceId this.Name

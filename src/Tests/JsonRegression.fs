@@ -180,7 +180,7 @@ let tests =
             compareResourcesToJson [ svcBus ] "service-bus.json"
         }
         
-        test "VirtualWAN" {
+        test "VirtualWan" {
             let vwan = vwan {
                 name "farmer-vwan"
                 disable_vpn_encryption
