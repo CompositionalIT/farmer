@@ -11,7 +11,7 @@ open Microsoft.Rest
 
 /// Client instance so we can get the JSON serialization settings.
 let client = new NetworkManagementClient(Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
-/// Helper for tests to get the virtual hub resource that is defined in the deployment.
+
 let getVirtualWanResource = findAzureResources<VirtualWAN> client.SerializationSettings >> List.head
 
 /// Collection of tests for the VirtualWan resource and builders. Needs to be included in AllTests.fs
