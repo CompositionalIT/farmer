@@ -1,4 +1,4 @@
-module VirtualWAN
+module VirtualWan
 
 open Expecto
 open Farmer
@@ -14,9 +14,9 @@ let client = new NetworkManagementClient(Uri "http://management.azure.com", Toke
 /// Helper for tests to get the virtual hub resource that is defined in the deployment.
 let getVirtualWanResource = findAzureResources<VirtualWAN> client.SerializationSettings >> List.head
 
-/// Collection of tests for the VirtualWAN resource and builders. Needs to be included in AllTests.fs
-let tests = testList "VirtualWAN" [
-    test "Can create a basic VirtualWAN" {
+/// Collection of tests for the VirtualWan resource and builders. Needs to be included in AllTests.fs
+let tests = testList "VirtualWan" [
+    test "Can create a basic VirtualWan" {
         let vwan =
             arm {
                 location Location.WestUS
@@ -33,7 +33,7 @@ let tests = testList "VirtualWAN" [
         Expect.isFalse vwan.DisableVpnEncryption.Value "DisableVpnEncryption should not have a value"
         Expect.equal vwan.Office365LocalBreakoutCategory "None" "Office365LocalBreakoutCategory should be 'None'"
     }
-    test "Can create a standard VirtualWAN" {
+    test "Can create a standard VirtualWan" {
         let vwan =
             arm {
                 location Location.WestUS
@@ -46,7 +46,7 @@ let tests = testList "VirtualWAN" [
             } |> getVirtualWanResource
         Expect.equal vwan.VirtualWANType "Standard" "" 
     }
-    test "Can create a VirtualWAN with DisableVpnEncryption" {
+    test "Can create a VirtualWan with DisableVpnEncryption" {
         let vwan =
             arm {
                 location Location.WestUS
@@ -59,7 +59,7 @@ let tests = testList "VirtualWAN" [
             } |> getVirtualWanResource
         Expect.equal vwan.DisableVpnEncryption (Nullable true) "" 
     }
-    test "Can create a VirtualWAN with AllowBranchToBranchTraffic" {
+    test "Can create a VirtualWan with AllowBranchToBranchTraffic" {
         let vwan =
             arm {
                 location Location.WestUS
@@ -72,7 +72,7 @@ let tests = testList "VirtualWAN" [
             } |> getVirtualWanResource
         Expect.equal vwan.AllowBranchToBranchTraffic (Nullable true) "" 
     }
-    test "Can create a VirtualWAN with Office365LocalBreakoutCategory.All" {
+    test "Can create a VirtualWan with Office365LocalBreakoutCategory.All" {
         let vwan =
             arm {
                 location Location.WestUS
@@ -85,7 +85,7 @@ let tests = testList "VirtualWAN" [
             } |> getVirtualWanResource
         Expect.equal vwan.Office365LocalBreakoutCategory "All" "" 
     }
-    test "Can create a VirtualWAN with Office365LocalBreakoutCategory.Optimize" {
+    test "Can create a VirtualWan with Office365LocalBreakoutCategory.Optimize" {
         let vwan =
             arm {
                 location Location.WestUS
@@ -98,7 +98,7 @@ let tests = testList "VirtualWAN" [
             } |> getVirtualWanResource
         Expect.equal vwan.Office365LocalBreakoutCategory "Optimize" "" 
     }
-    test "Can create a VirtualWAN with Office365LocalBreakoutCategory.OptimizeAndAllow" {
+    test "Can create a VirtualWan with Office365LocalBreakoutCategory.OptimizeAndAllow" {
         let vwan =
             arm {
                 location Location.WestUS

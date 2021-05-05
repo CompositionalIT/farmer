@@ -1,15 +1,12 @@
 [<AutoOpen>]
-module Farmer.Builders.VirtualWAN
+module Farmer.Builders.VirtualWan
 
 
 open Farmer
-open Farmer.Arm.VirtualWAN
+open Farmer.Arm.VirtualWan
 
-/// This is a thin abstraction over the VirtualHub resource that is
-/// made to support the `virtualHub` builder syntax.
 type VirtualWanConfig =
-    { /// Name of the VirtualWAN resource.
-      Name : ResourceName
+    { Name : ResourceName
       /// Set boolean for whether you want to allow branch to branch traffic through VWAN
       AllowBranchToBranchTraffic : bool option
       /// Property on VWAN either true or false for VPN Encrpytion
@@ -20,34 +17,23 @@ type VirtualWanConfig =
       VwanType : VwanType }
     interface IBuilder with
         member this.ResourceId = virtualWans.resourceId this.Name
-        /// This emits the resource or resources that should go in the template.
-        /// Depending on the configuration, it may make sense to emit multiple resources,
-        /// but at the very least, this will generate a VirtualWAN resource from this
-        /// VirtualWanConfig with the location set.
         member this.BuildResources location = [
-            // Emit a VirtualHub resource with the location
-            {
-                Name = this.Name
-                Location = location
-                AllowBranchToBranchTraffic = this.AllowBranchToBranchTraffic
-                DisableVpnEncryption = this.DisableVpnEncryption
-                Office365LocalBreakoutCategory = this.Office365LocalBreakoutCategory
-                VwanType = this.VwanType
-            }
+            { Name = this.Name
+              Location = location
+              AllowBranchToBranchTraffic = this.AllowBranchToBranchTraffic
+              DisableVpnEncryption = this.DisableVpnEncryption
+              Office365LocalBreakoutCategory = this.Office365LocalBreakoutCategory
+              VwanType = this.VwanType }
         ]
 
-/// The builder implements the DSL to simplify create and configure the VirtualHub resource.
-/// Custom operations define the builder DSL syntax.
 type VirtualWanBuilder() =
     /// Yield sets everything to sane defaults.
     member _.Yield _ : VirtualWanConfig =
-        {
-            Name = ResourceName.Empty
-            AllowBranchToBranchTraffic = None
-            DisableVpnEncryption = None
-            Office365LocalBreakoutCategory = None
-            VwanType = VwanType.Basic
-        }
+        { Name = ResourceName.Empty
+          AllowBranchToBranchTraffic = None
+          DisableVpnEncryption = None
+          Office365LocalBreakoutCategory = None
+          VwanType = VwanType.Basic }
     /// Sets the name to a ResourceName from the given string.
     [<CustomOperation "name">]
     member _.Name(state:VirtualWanConfig, name) = { state with Name = ResourceName name }

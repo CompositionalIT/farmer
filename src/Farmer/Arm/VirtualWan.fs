@@ -1,5 +1,5 @@
 [<AutoOpen>]
-module Farmer.Arm.VirtualWAN
+module Farmer.Arm.VirtualWan
 
 open Farmer
 
@@ -27,7 +27,7 @@ type VwanType =
         | Standard -> "Standard"
         | Basic -> "Basic"
 
-type VirtualWAN =
+type VirtualWan =
     { /// It's recommended to use resource group + -vwan.
       /// e.g. "name": "[concat(resourceGroup().name,'-vwan')]"
       Name : ResourceName
