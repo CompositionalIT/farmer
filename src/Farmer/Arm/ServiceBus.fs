@@ -97,7 +97,7 @@ module Namespaces =
           DefaultMessageTimeToLive : IsoDateTime option
           EnablePartitioning : bool option }
         interface IArmResource with
-            member this.ResourceId = topics.resourceId (this.Namespace.Name/this.Name)
+            member this.ResourceId = topics.resourceId (this.Namespace.Name, this.Name)
             member this.JsonModel =
                 {| topics.Create(this.Namespace.Name/this.Name, dependsOn = this.Dependencies) with
                     properties =

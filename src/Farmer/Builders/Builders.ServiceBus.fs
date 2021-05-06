@@ -108,7 +108,7 @@ type ServiceBusTopicConfig =
       EnablePartitioning : bool option
       Subscriptions : Map<ResourceName, ServiceBusSubscriptionConfig> }
     interface IBuilder with
-        member this.ResourceId = topics.resourceId this.Name
+        member this.ResourceId = topics.resourceId (this.Namespace.Name, this.Name)
         member this.BuildResources location = [
             { Name = this.Name
               Dependencies = [
@@ -258,7 +258,7 @@ type ServiceBusBuilder() =
         { state with
             Topics =
                 (state.Topics, topics)
-                ||> List.fold(fun state (topic:ServiceBusTopicConfig) -> state.Add(topic.Name, topic))
+                ||> List.fold(fun topics (topic:ServiceBusTopicConfig) -> topics.Add(topic.Name, {topic with Namespace = Managed(namespaces.resourceId state.Name)}))
         }
     interface ITaggable<ServiceBusConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
