@@ -12,16 +12,6 @@ open Microsoft.Azure.Management.ServiceBus.Models
 open Microsoft.Rest
 open System
 
-open Expecto
-open Farmer
-open Farmer.Arm.ServiceBus
-open Farmer.Builders
-open Farmer.ServiceBus
-open Microsoft.Azure.Management.Network
-open Microsoft.Azure.Management.Network.Models
-open Microsoft.Rest
-open System
-open Microsoft.Rest.Serialization
 
 let getResource<'T when 'T :> IArmResource> (data:IArmResource list) = data |> List.choose(function :? 'T as x -> Some x | _ -> None)
 let getTopicResource = getResource<Topic>
@@ -338,6 +328,53 @@ let tests = testList "Service Bus Tests" [
             Expect.hasLength dependsOn 1 ""
             let expectedNamespaceDependency = "[resourceId('Microsoft.ServiceBus/namespaces', 'my-bus')]"
             Expect.equal dependsOn.Head expectedNamespaceDependency "" 
+        }
+        test "Topic IBuilder has correct resourceId for unmanaged namespace" {
+            let resource = 
+                topic {
+                    name "my-topic"
+                    link_to_unmanaged_namespace "my-bus"
+                } :> IBuilder
+            Expect.equal (resource.ResourceId.Eval()) "[resourceId('Microsoft.ServiceBus/namespaces/topics', 'my-bus', 'my-topic')]" ""
+        }
+        test "Topic IArmResource has correct resourceId for unmanaged namespace" {
+            let resource = 
+                topic {
+                    name "my-topic"
+                    link_to_unmanaged_namespace "my-bus"
+                }
+                |> getResources |> getTopicResource |> List.head :> IArmResource
+            Expect.equal (resource.ResourceId.Eval()) "[resourceId('Microsoft.ServiceBus/namespaces/topics', 'my-bus', 'my-topic')]" ""
+        }
+        test "Topic IBuilder has correct resourceId for managed namespace" {
+            let topicName = "my-topic"
+            let svcBus =
+                serviceBus {
+                    name "my-bus"
+                    add_topics [
+                        topic {
+                            name topicName
+                            link_to_unmanaged_namespace "other-namespace"
+                        }        
+                    ]
+                }
+            let topicBuilder = svcBus.Topics |> Map.find (ResourceName topicName) :> IBuilder
+            Expect.equal (topicBuilder.ResourceId.Eval()) $"[resourceId('Microsoft.ServiceBus/namespaces/topics', 'my-bus', '{topicName}')]" ""
+        }
+        test "Topic IArmResource has correct resourceId for managed namespace" {
+            let topicName = "my-topic"
+            let resource =
+                serviceBus {
+                    name "my-bus"
+                    add_topics [
+                        topic {
+                            name topicName
+                            link_to_unmanaged_namespace "other-namespace"
+                        }        
+                    ]
+                }
+                |> getResources |> getTopicResource |> List.head :> IArmResource
+            Expect.equal (resource.ResourceId.Eval()) $"[resourceId('Microsoft.ServiceBus/namespaces/topics', 'my-bus', '{topicName}')]" ""
         }
     ]
 ]
