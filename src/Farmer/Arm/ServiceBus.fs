@@ -22,6 +22,7 @@ module Namespaces =
               LockDuration : IsoDateTime option
               DuplicateDetectionHistoryTimeWindow : IsoDateTime option
               DefaultMessageTimeToLive : IsoDateTime option
+              ForwardTo : ResourceName option
               MaxDeliveryCount : int option
               Session : bool option
               DeadLetteringOnMessageExpiration : bool option
@@ -38,6 +39,7 @@ module Namespaces =
                                 | None -> Nullable()
                             duplicateDetectionHistoryTimeWindow = tryGetIso this.DuplicateDetectionHistoryTimeWindow
                             deadLetteringOnMessageExpiration = this.DeadLetteringOnMessageExpiration |> Option.toNullable
+                            forwardTo = this.ForwardTo |> Option.map (fun n -> n.Value) |> Option.toObj
                             maxDeliveryCount = this.MaxDeliveryCount |> Option.toNullable
                             requiresSession = this.Session |> Option.toNullable
                             lockDuration = tryGetIso this.LockDuration

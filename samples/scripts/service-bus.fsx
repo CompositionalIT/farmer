@@ -1,4 +1,4 @@
-#r @"..\..\src\Farmer\bin\Debug\netstandard2.0\Farmer.dll"
+#r "nuget:Farmer"
 
 open Farmer
 open Farmer.Builders
@@ -17,6 +17,7 @@ let myServiceBus = serviceBus {
             add_subscriptions [
                 subscription {
                     name "thesub"
+                    forward_to "queuenumberone"
                 }
             ]
         }

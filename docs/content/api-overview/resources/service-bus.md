@@ -31,6 +31,7 @@ The Service Bus builder creates service bus namespaces and their associated queu
 | Subscription | enable_session | Enables session support. |
 | Subscription | enable_dead_letter_on_message_expiration | Enables dead lettering of messages that expire. |
 | Subscription | enable_partition | Enables partition support on the queue. |
+| Subscription | forward_to | Specifies a queue or topic to automatically forward messages delivered to this subscription. |
 | Subscription | link_to_namespace | Link this queue to an existing namespace instead of creating a new one. |
 | Subscription | add_filters | Adds multiple filters to a subscription |
 | Subscription | add_sql_filter | Adds a filter to a subscription using SQL syntax. |
