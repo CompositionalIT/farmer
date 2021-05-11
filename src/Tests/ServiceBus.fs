@@ -202,6 +202,27 @@ let tests = testList "Service Bus Tests" [
                 } |> getResourceAtIndex 2
             Expect.equal sub.Name "my-bus/my-topic/my-sub" "Name not set"
         }
+        test "Can create a forwarding subscription" {
+            let sub:SBSubscription =
+                serviceBus {
+                    name "my-bus"
+                    add_topics [
+                        topic {
+                            name "my-topic"
+                            add_subscriptions [
+                                subscription {
+                                    name "my-sub"
+                                    forward_to "my-other-topic"
+                                }
+                            ]
+                        }
+                        topic {
+                            name "my-other-topic"
+                        }
+                    ]
+                } |> getResourceAtIndex 3
+            Expect.equal sub.ForwardTo "my-other-topic" "ForwardTo not set"
+        }
         test "Creates a correlation filter rule" {
             let correlationRule =
                 ServiceBus.CorrelationFilter(

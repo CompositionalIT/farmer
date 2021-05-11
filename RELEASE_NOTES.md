@@ -3,6 +3,7 @@ Release Notes
 
 ## 1.5.2
 * ServiceBus: TopicConfig implements IBuilder and supports link_to_unmanaged_namespace.
+* ServiceBus: Support for forwarding messages delivered to a subscription.
 
 ## 1.5.1
 * Communication Services: add builder.

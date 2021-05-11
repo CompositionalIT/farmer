@@ -55,6 +55,7 @@ type ServiceBusSubscriptionConfig =
       LockDuration : TimeSpan option
       DuplicateDetection : TimeSpan option
       DefaultMessageTimeToLive : TimeSpan option
+      ForwardTo : ResourceName option
       MaxDeliveryCount : int option
       Session : bool option
       DeadLetteringOnMessageExpiration : bool option
@@ -66,6 +67,7 @@ type ServiceBusSubscriptionBuilder() =
           LockDuration = None
           DuplicateDetection = None
           DefaultMessageTimeToLive = None
+          ForwardTo = None
           MaxDeliveryCount = None
           Session = None
           DeadLetteringOnMessageExpiration = None
@@ -89,6 +91,9 @@ type ServiceBusSubscriptionBuilder() =
     /// Enables dead lettering of messages that expire.
     [<CustomOperation "enable_dead_letter_on_message_expiration">]
     member _.DeadLetteringOnMessageExpiration(state:ServiceBusSubscriptionConfig) = { state with DeadLetteringOnMessageExpiration = Some true }
+    /// Automatically forward to a queue or topic
+    [<CustomOperation "forward_to">]
+    member _.ForwardTo(state:ServiceBusSubscriptionConfig, target) = { state with ForwardTo = Some (ResourceName target) }
     /// Adds filtering rules for a subscription
     [<CustomOperation "add_filters">]
     member _.AddFilters(state:ServiceBusSubscriptionConfig, filters) = { state with Rules = state.Rules @ filters }
@@ -134,6 +139,7 @@ type ServiceBusTopicConfig =
                   LockDuration = subscription.LockDuration |> Option.map IsoDateTime.OfTimeSpan
                   DuplicateDetectionHistoryTimeWindow = subscription.DuplicateDetection |> Option.map IsoDateTime.OfTimeSpan
                   DefaultMessageTimeToLive = subscription.DefaultMessageTimeToLive |> Option.map IsoDateTime.OfTimeSpan
+                  ForwardTo = subscription.ForwardTo
                   MaxDeliveryCount = subscription.MaxDeliveryCount
                   Session = subscription.Session
                   DeadLetteringOnMessageExpiration = subscription.DeadLetteringOnMessageExpiration
