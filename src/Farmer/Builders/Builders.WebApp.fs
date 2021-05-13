@@ -102,17 +102,22 @@ module private WebAppConfig =
 
 type SlotConfig = 
     { Name: string
+      AutoSwapSlotName: string
       AppSettings: Map<string,Setting>
       ConnectionStrings: Map<string,(Setting * ConnectionStringKind)> }
 
 type SlotBuilder() =
     member this.Yield _ =
         { Name = "staging"
+          AutoSwapSlotName = ""
           AppSettings = Map.empty
           ConnectionStrings = Map.empty }
 
     [<CustomOperation "name">]
     member this.Name (state,name) : SlotConfig = {state with Name = name}
+
+    [<CustomOperation "autoSlotSwapName">]
+    member this.AutoSlotSwapName (state,autoSlotSwapName) : SlotConfig = {state with AutoSwapSlotName = autoSlotSwapName}
 
     [<CustomOperation "setting">]
     /// Adds an AppSetting to this deployment slot
@@ -459,6 +464,7 @@ type WebAppConfig =
                   ServicePlan = this.ServicePlanId
                   Site = this.ResourceId
                   Tags = this.Tags
+                  AutoSwapSlotName = kvp.Value.AutoSwapSlotName
                   AppSettings = cfg.AppSettings
                   ConnectionStrings = cfg.ConnectionStrings }
         ]

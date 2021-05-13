@@ -279,6 +279,7 @@ type Slot =
       ServicePlan: ResourceId
       Site: ResourceId
       Tags: Map<string,string>
+      AutoSwapSlotName: string
       AppSettings: Map<string,Setting>
       ConnectionStrings: Map<string,Setting*ConnectionStringKind> }
     member this.ResourceName = this.Site.Name / this.SlotName
@@ -297,7 +298,8 @@ type Slot =
                  properties = 
                     {| serverFarmId = this.ServicePlan.ArmExpression.Eval()
                        siteConfig = 
-                        {| appSettings = 
+                        {| autoSwapSlotName = this.AutoSwapSlotName
+                           appSettings = 
                                 this.AppSettings 
                                 |> Map.toList 
                                 |> List.map(fun (k,v) -> {| name = k; value = v.Value |})
