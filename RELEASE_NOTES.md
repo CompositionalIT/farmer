@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+## vNext
+* WebApp: Added support for deployment slots
+* Function: Added support for deployment slots
+
 ## 1.5.2
 * ServiceBus: TopicConfig implements IBuilder and supports link_to_unmanaged_namespace.
 * ServiceBus: Support for forwarding messages delivered to a subscription.
