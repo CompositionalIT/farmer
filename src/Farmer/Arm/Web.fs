@@ -11,6 +11,7 @@ let config = ResourceType ("Microsoft.Web/sites/config", "2016-08-01")
 let sourceControls = ResourceType ("Microsoft.Web/sites/sourcecontrols", "2019-08-01")
 let staticSites = ResourceType("Microsoft.Web/staticSites", "2019-12-01-preview")
 let siteExtensions = ResourceType("Microsoft.Web/sites/siteextensions", "2020-06-01")
+let slots = ResourceType ("Microsoft.Web/sites/slots", "2020-09-01")
 
 type ServerFarm =
     { Name : ResourceName
@@ -84,6 +85,14 @@ module ZipDeploy =
     open System.IO
     open System.IO.Compression
 
+    type ZipDeploySlot = 
+        | ProductionSlot
+        | NamedSlot of name: string
+        member this.ToOption = 
+            match this with
+            | ProductionSlot -> None
+            | NamedSlot n -> Some n
+
     type ZipDeployTarget =
         | WebApp
         | FunctionApp
@@ -137,7 +146,7 @@ type Site =
       PythonVersion : string option
       Tags : Map<string, string>
       Metadata : List<string * string>
-      ZipDeployPath : (string * ZipDeploy.ZipDeployTarget) option }
+      ZipDeployPath : (string * ZipDeploy.ZipDeployTarget * ZipDeploy.ZipDeploySlot) option }
     interface IParameters with
         member this.SecureParameters =
             Map.toList this.AppSettings
@@ -149,15 +158,16 @@ type Site =
     interface IPostDeploy with
         member this.Run resourceGroupName =
             match this with
-            | { ZipDeployPath = Some (path, target); Name = name } ->
+            | { ZipDeployPath = Some (path, target, slot); Name = name } ->
                 let path =
                     ZipDeploy.ZipDeployKind.TryParse path
                     |> Option.defaultWith (fun () ->
                         failwith $"Path '{path}' must either be a folder to be zipped, or an existing zip.")
                 printfn "Running ZIP deploy for %s" path.Value
+                let slotName = slot.ToOption
                 Some (match target with
-                      | ZipDeploy.WebApp -> Deploy.Az.zipDeployWebApp name.Value path.GetZipPath resourceGroupName
-                      | ZipDeploy.FunctionApp -> Deploy.Az.zipDeployFunctionApp name.Value path.GetZipPath resourceGroupName)
+                      | ZipDeploy.WebApp -> Deploy.Az.zipDeployWebApp name.Value path.GetZipPath resourceGroupName slotName
+                      | ZipDeploy.FunctionApp -> Deploy.Az.zipDeployFunctionApp name.Value path.GetZipPath resourceGroupName slotName)
             | _ ->
                 None
     interface IArmResource with
@@ -262,3 +272,39 @@ module SiteExtensions =
             member this.ResourceId = siteExtensions.resourceId(this.SiteName/this.Name)
             member this.JsonModel =
                 siteExtensions.Create(this.SiteName/this.Name, this.Location, [ sites.resourceId this.SiteName ]) :> _
+
+type Slot =
+    { SlotName: string
+      Location : Location
+      ServicePlan: ResourceId
+      Site: ResourceId
+      Tags: Map<string,string>
+      AppSettings: Map<string,Setting>
+      ConnectionStrings: Map<string,Setting*ConnectionStringKind> }
+    member this.ResourceName = this.Site.Name / this.SlotName
+    interface IParameters with
+        member this.SecureParameters =
+            (this.AppSettings
+            |> Map.toList)
+            @ (Map.toList this.ConnectionStrings |> List.map(fun (k, (v,_)) -> k, v))
+            |> List.choose(snd >> function
+                | ParameterSetting s -> Some s
+                | ExpressionSetting _ | LiteralSetting _ -> None)
+    interface IArmResource with
+        member this.ResourceId = ResourceId.create (slots, this.ResourceName)
+        member this.JsonModel =
+            {| slots.Create(this.ResourceName, this.Location, [this.Site], this.Tags) with
+                 properties = 
+                    {| serverFarmId = this.ServicePlan.ArmExpression.Eval()
+                       siteConfig = 
+                        {| appSettings = 
+                                this.AppSettings 
+                                |> Map.toList 
+                                |> List.map(fun (k,v) -> {| name = k; value = v.Value |})
+                           connectionStrings = 
+                                this.ConnectionStrings 
+                                |> Map.toList 
+                                |> List.map(fun (k,(v, t)) -> {| name = k; connectionString = v.Value; ``type`` = t.ToString() |})
+                        |}
+                    |}
+            |} :> _
