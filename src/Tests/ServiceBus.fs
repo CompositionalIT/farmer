@@ -18,8 +18,8 @@ let getTopicResource = getResource<Topic>
 
 let getResources (v:IBuilder) = v.BuildResources Location.WestUS
 
-let getResourceDependsOnByName (template:Deployment) (resourceName:ResourceName) =
-    let json = template.Template |> Writer.toJson
+let getResourceDependsOnByName (template:#IDeploymentSource) (resourceName:ResourceName) =
+    let json = template.Deployment.Template |> Writer.toJson
     let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
     let dependsOn = jobj.SelectToken($"resources[?(@.name=='{resourceName.Value}')].dependsOn")
     let jarray = dependsOn :?> Newtonsoft.Json.Linq.JArray
