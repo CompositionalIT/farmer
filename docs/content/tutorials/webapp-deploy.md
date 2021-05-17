@@ -14,7 +14,7 @@ This tutorial shows how to create the infrastructure required to host a ASP.NET 
 
 {{< figure src="../../images/tutorials/webapp.png" caption="[Full code available here](https://github.com/CompositionalIT/farmer/blob/master/samples/scripts/tutorials/webapp.fsx)">}}
 
-> Note: Your web application does can be a C# web application - it does not need to be written in F#!
+> Note: Your web application can be a C# web application - it does not need to be written in F#!
 
 #### Creating the ASP.NET web application
 Create a brand new ASP.NET web application:
