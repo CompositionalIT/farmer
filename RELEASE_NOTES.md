@@ -3,11 +3,18 @@ Release Notes
 ## vNext
 * Added support for nesting resource groups
 
+## 1.5.2
+* ServiceBus: TopicConfig implements IBuilder and supports link_to_unmanaged_namespace.
+* ServiceBus: Support for forwarding messages delivered to a subscription.
+
 ## 1.5.1
 * Communication Services: add builder.
+* ExpressRoute: Adds ServiceKey property to generate an expression for the service key on a new circuit.
+* Network Security Groups: Enable builder to create outbound rules.
 * ServiceBus: Fix an issue with Premium Sku ARM Writer
 * ServiceBus: Fix an issue with Rules depends on ARM Writer
 * Storage Accounts: Support for CORS.
+* Virtual WAN: add builder
 
 ##  1.5.0
 * Container Groups: Support for init containers.
