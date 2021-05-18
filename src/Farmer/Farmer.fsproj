@@ -57,6 +57,7 @@
     <Compile Include="Arm/DiagnosticSetting.fs" />
     <Compile Include="Arm/ManagedIdentity.fs" />
     <Compile Include="Arm/LogAnalytics.fs" />
+    <Compile Include="Arm/Solution.fs" />
     <Compile Include="Arm/Storage.fs" />
     <Compile Include="Arm/Cache.fs" />
     <Compile Include="Arm/Cdn.fs" />
@@ -92,6 +93,7 @@
     <Compile Include="IdentityExtensions.fs" />
     <Compile Include="Builders/Builders.LogAnalytics.fs" />
     <Compile Include="Builders/Builders.Helpers.fs" />
+    <Compile Include="Builders/Builders.Solution.fs" />
     <Compile Include="Builders/Builders.UserAssignedIdentity.fs" />
     <Compile Include="Builders/Builders.PostgreSQL.fs" />
     <Compile Include="Builders/Builders.Cdn.fs" />
@@ -128,7 +130,7 @@
     <Compile Include="Builders/Builders.StaticWebApp.fs" />
     <Compile Include="Builders/Builders.NetworkSecurityGroup.fs" />
     <Compile Include="Builders/Builders.Databricks.fs" />
-    <Compile Include="Builders\Builders.DiagnosticSetting.fs" />
+    <Compile Include="Builders/Builders.DiagnosticSetting.fs" />
     <Compile Include="Builders/Builders.VirtualWan.fs" />
   </ItemGroup>
 </Project>
