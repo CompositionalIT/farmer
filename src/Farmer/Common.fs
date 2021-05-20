@@ -918,8 +918,48 @@ module ExpressRoute =
     type Family = UnlimitedData | MeteredData
     type PeeringType = AzurePrivatePeering | MicrosoftPeering member this.Value = this.ToString()
 
+module PrivateIpAddress =
+    type AllocationMethod = DynamicPrivateIp | StaticPrivateIp of System.Net.IPAddress
+
+module LoadBalancer =
+    [<RequireQualifiedAccess>]
+    type Sku =
+        | Basic | Standard
+        member this.ArmValue =
+            match this with
+            | Basic -> "Basic"
+            | Standard -> "Standard"
+
+    [<RequireQualifiedAccess>]
+    type Tier =
+        | Regional | Global
+        member this.ArmValue =
+            match this with
+            | Regional -> "Regional"
+            | Global -> "Global"
+    type LoadBalancerSku = {
+        Name : Sku
+        Tier : Tier
+    }
+    [<RequireQualifiedAccess>]
+    type LoadDistributionPolicy =
+        | Default | SourceIP | SourceIPProtocol
+        member this.ArmValue =
+            match this with
+            | Default -> "Default"
+            | SourceIP -> "SourceIP"
+            | SourceIPProtocol -> "SourceIPProtocol"
+
+    [<RequireQualifiedAccess>]
+    type LoadBalancerProbeProtocol =
+        | TCP | HTTP | HTTPS
+        member this.ArmValue =
+            match this with
+            | TCP -> "Tcp"
+            | HTTP -> "Http"
+            | HTTPS -> "Https"
+
 module VirtualNetworkGateway =
-    type PrivateIpAllocationMethod = DynamicPrivateIp | StaticPrivateIp of System.Net.IPAddress
     [<RequireQualifiedAccess>]
     type ErGatewaySku =
         | Standard

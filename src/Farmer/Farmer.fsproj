@@ -77,6 +77,7 @@
     <Compile Include="Arm/EventHub.fs" />
     <Compile Include="Arm/Insights.fs" />
     <Compile Include="Arm/KeyVault.fs" />
+    <Compile Include="Arm\LoadBalancer.fs" />
     <Compile Include="Arm/RoleAssignment.fs" />
     <Compile Include="Arm/Search.fs" />
     <Compile Include="Arm/ServiceBus.fs" />
@@ -103,6 +104,7 @@
     <Compile Include="Builders/Builders.Storage.fs" />
     <Compile Include="Builders/Builders.Redis.fs" />
     <Compile Include="Builders/Builders.KeyVault.fs" />
+    <Compile Include="Builders\Builders.LoadBalancer.fs" />
     <Compile Include="Builders/Builders.Bastion.fs" />
     <Compile Include="Builders/Builders.VirtualNetwork.fs" />
     <Compile Include="Builders/Builders.Vm.fs" />

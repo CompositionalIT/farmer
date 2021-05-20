@@ -201,4 +201,66 @@ let tests =
             }
             compareResourcesToJson [ vwan ] "virtual-wan.json"
         }
+        
+        test "LoadBalancer" {
+            let myVnet =
+                vnet {
+                    name "my-vnet"
+                    add_address_spaces [ "10.0.1.0/24" ]
+                    add_subnets [
+                        subnet {
+                            name "my-services"
+                            prefix "10.0.1.0/24"
+                            add_delegations [
+                                SubnetDelegationService.ContainerGroups
+                            ]
+                        }
+                    ]
+                }
+            let lb =
+                loadBalancer {
+                    name "lb"
+                    sku Farmer.LoadBalancer.Sku.Standard
+                    add_frontends [
+                        frontend {
+                            name "lb-frontend"
+                            public_ip "lb-pip"
+                        }
+                    ]
+                    add_backend_pools [
+                        backendAddressPool {
+                            name "lb-backend"
+                            link_to_vnet "my-vnet"
+                            load_balancer "lb"
+                            add_ip_addresses [
+                                "10.0.1.4"
+                                "10.0.1.5"
+                            ]
+                        }
+                    ]
+                    add_probes [
+                        loadBalancerProbe {
+                            name "httpGet"
+                            protocol Farmer.LoadBalancer.LoadBalancerProbeProtocol.HTTP
+                            port 8080
+                            request_path "/"
+                        }
+                    ]
+                    add_rules [
+                        loadBalancingRule {
+                            name "rule1"
+                            frontend_ip_config "lb-frontend"
+                            backend_address_pool "lb-backend"
+                            frontend_port 80
+                            backend_port 8080
+                            protocol TransmissionProtocol.TCP
+                            probe "httpGet"
+                        }
+                    ]
+                    add_dependencies [
+                        Farmer.Arm.Network.virtualNetworks.resourceId "my-vnet"
+                    ]
+                }
+            compareResourcesToJson [ myVnet; lb ] "load-balancer.json"
+        }
     ]

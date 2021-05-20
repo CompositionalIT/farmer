@@ -1,5 +1,7 @@
 Release Notes
 =============
+## 1.5.3
+* LoadBalancer: Adds support for public and internal load balancers.
 
 ## 1.5.2
 * ServiceBus: TopicConfig implements IBuilder and supports link_to_unmanaged_namespace.

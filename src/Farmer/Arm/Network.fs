@@ -85,7 +85,7 @@ type VirtualNetworkGateway =
     { Name : ResourceName
       Location : Location
       IpConfigs : {| Name : ResourceName
-                     PrivateIpAllocationMethod : PrivateIpAllocationMethod
+                     PrivateIpAllocationMethod : PrivateIpAddress.AllocationMethod
                      PublicIpName : ResourceName |} list
       VirtualNetwork : ResourceName
       GatewayType : GatewayType
@@ -113,8 +113,8 @@ type VirtualNetworkGateway =
                                    properties =
                                     let allocationMethod, ip =
                                         match ipConfig.PrivateIpAllocationMethod with
-                                        | DynamicPrivateIp -> "Dynamic", null
-                                        | StaticPrivateIp ip -> "Static", string ip
+                                        | PrivateIpAddress.DynamicPrivateIp -> "Dynamic", null
+                                        | PrivateIpAddress.StaticPrivateIp ip -> "Static", string ip
                                     {| privateIpAllocationMethod = allocationMethod; privateIpAddress = ip
                                        publicIPAddress = {| id = publicIPAddresses.resourceId(ipConfig.PublicIpName).Eval() |}
                                        subnet = {| id = subnets.resourceId(this.VirtualNetwork, ResourceName "GatewaySubnet").Eval() |}

@@ -33,6 +33,7 @@ let allTests =
                 IotHub.tests
                 JsonRegression.tests
                 KeyVault.tests
+                LoadBalancer.tests
                 LogAnalytics.tests
                 Maps.tests
                 NetworkSecurityGroup.tests
