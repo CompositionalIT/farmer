@@ -5,10 +5,16 @@ open Farmer
 open Farmer.Builders
 open Farmer.Arm
 open TestHelpers
+open Microsoft.Azure.Management.ResourceManager
+open Microsoft.Rest
+open System
+open Newtonsoft.Json.Linq
 
 let toTemplate (deployment:#IDeploymentSource) =
     deployment.Deployment.Template
     |> Writer.TemplateGeneration.processTemplate
+
+let dummyClient = new ResourceManagementClient(Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
 
 let tests = testList "Template" [
     test "Can create a basic template" {
@@ -211,8 +217,27 @@ let tests = testList "Template" [
         let outer = arm  {
             add_resource inner1
         }
+
         Expect.hasLength inner1.Template.Parameters 1 "inner template should have a parameter"
         Expect.hasLength outer.Template.Parameters 1 "inner parameters should copy to outer template"
         Expect.equal outer.Template.Parameters.[0] (SecureParameter "password-for-vm") "Parameter specification was incorrect"
+    }
+    test "Parameter value are copied to nested resource group deployment" {
+        let inner1 = resourceGroup { 
+            name "inner1"
+            add_resource (vm { name "vm"; username "foo" })
+        }
+        let outer = arm  {
+            add_resource inner1
+        }
+        
+        let deployment = outer |> findAzureResources<Models.Deployment> dummyClient.SerializationSettings
+        let nestedParamsObj = deployment.[0].Properties.Parameters :?> JObject
+        let nestedParams = 
+            nestedParamsObj.Properties()
+            |> Seq.map (fun x -> x.Name, x.Value.SelectToken(".value").ToString())
+            |> Map.ofSeq
+
+        Expect.equal nestedParams.["password-for-vm"] "[parameters('password-for-vm')]" "Parameters not correctly proxied to nested template"
     }
 ]
