@@ -89,6 +89,7 @@
     <Compile Include="Arm/DeploymentScript.fs" />
     <Compile Include="Arm/Databricks.fs" />
     <Compile Include="Arm/VirtualWan.fs" />
+    <Compile Include="Arm/TrafficManager.fs" />
     <Compile Include="IdentityExtensions.fs" />
     <Compile Include="Builders/Builders.LogAnalytics.fs" />
     <Compile Include="Builders/Builders.Helpers.fs" />
@@ -128,7 +129,8 @@
     <Compile Include="Builders/Builders.StaticWebApp.fs" />
     <Compile Include="Builders/Builders.NetworkSecurityGroup.fs" />
     <Compile Include="Builders/Builders.Databricks.fs" />
-    <Compile Include="Builders\Builders.DiagnosticSetting.fs" />
+    <Compile Include="Builders/Builders.DiagnosticSetting.fs" />
     <Compile Include="Builders/Builders.VirtualWan.fs" />
+    <Compile Include="Builders/Builders.TrafficManager.fs" />
   </ItemGroup>
 </Project>
