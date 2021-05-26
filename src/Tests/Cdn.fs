@@ -4,10 +4,12 @@ open Expecto
 open Farmer
 open Farmer.Builders
 open Farmer.Cdn
+open Farmer.Arm.Cdn
 open Microsoft.Azure.Management.Cdn
 open Microsoft.Azure.Management.Cdn.Models
 open Microsoft.Rest
 open System
+open DeliveryPolicy
 
 
 /// Client instance needed to get the serializer settings.
@@ -58,7 +60,7 @@ let tests = testList "CDN tests" [
                 add_endpoints [ endpoint {
                     origin "origin"
                     add_compressed_content [ "a"; "b"; "c"; ]
-                    optimise_for OptimizationType.GeneralMediaStreaming
+                    optimise_for GeneralMediaStreaming
                     query_string_caching_behaviour QueryStringCachingBehaviour.BypassCaching
                     disable_http
                     disable_https
@@ -84,5 +86,21 @@ let tests = testList "CDN tests" [
             |> getResourceAtIndex 2
 
         Expect.equal domain.HostName "www.compositional-it.com" "Custom Domain name is wrong"
+    }
+    
+    test "Rules are correctly created" {
+        let endpoint : Endpoint =
+            cdn {
+                name "test"
+                add_endpoints [ endpoint {
+                    add_rules [ rule{ name "test-rule"; order 2; when_request_body Contains ["content"] ToLowercase; when_device_type EqualityOperator.Equals Mobile;  modify_response_header  Append "headerName" "headerValue" }]
+                } ]
+            }
+            |> getResourceAtIndex 1
+        let rule = endpoint.DeliveryPolicy.Rules.Item 0
+        Expect.equal rule.Name "test-rule" "Incorrect rule name"
+        Expect.equal rule.Order 2 "Incorrect rule order"
+        Expect.hasLength rule.Conditions 2 "Incorrect number of conditions"
+        Expect.hasLength rule.Actions 1 "Incorrect number of actions"
     }
 ]

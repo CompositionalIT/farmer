@@ -51,7 +51,7 @@
 
   <ItemGroup>
     <PackageReference Include="expecto" Version="9.0.0" />
-    <PackageReference Include="Microsoft.Azure.Management.Cdn" Version="2.1.0" />
+    <PackageReference Include="Microsoft.Azure.Management.Cdn" Version="6.1.0" />
     <PackageReference Include="Microsoft.Azure.Management.Dns" Version="3.0.1" />
     <PackageReference Include="Microsoft.Azure.Management.CognitiveServices" Version="7.0.0" />
     <PackageReference Include="Microsoft.Azure.Management.Compute" Version="35.2.0" />

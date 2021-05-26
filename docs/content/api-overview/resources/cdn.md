@@ -11,9 +11,10 @@ The CDN builder is used to create Azure Content Delivery Network instances.
 * CDN Endpoint (`Microsoft.Cdn/profiles/endpoints`)
 * CDN Custom Domain (`Microsoft.Cdn/profiles/endpoints/customDomains`)
 
-There are two builders available:
+There are three builders available:
 * The CDN builder, which maps to a CDN profile.
 * The Endpoint builder, which creates endpoints and custom domains. Endpoints are created within a CDN.
+* The Rule builder, which creates CDN rules with conditions and actions that can be added to an endpoint
 
 #### CDN Builder Keywords
 | Keyword | Purpose |
@@ -36,6 +37,34 @@ There are two builders available:
 | disable_https | Disables HTTPS delivery on the endpoint. |
 | custom_domain | Sets the custom domain name to use on the endpoint. |
 | optimise_for | Optimises delivery for a specific type of content. |
+| add_rule | Adds a single rule to the endpoint delivery policy.
+| add_rules | Adds multiple rule to the endpoint delivery policy.
+
+#### Rule Builder Keywords
+| Keyword | Purpose |
+|-|-|
+| name | Sets the name of the rule. |
+| order | Sets the order of rule. |
+| when_device_type | Adds device type condition. |
+| when_http_version | Adds http version condition.|
+| when_request_cookies | Adds request cookies condition. |
+| when_post_argument | Adds post argument condition. |
+| when_query_string | Adds query string condition. |
+| when_remote_address | Adds remote address condition. |
+| when_request_body | Adds request body condition. |
+| when_request_header | Adds request header condition. |
+| when_request_method | Adds request method condition. |
+| when_request_protocol | Adds request protocol condition. |
+| when_request_url |Adds request URL condition. |
+| when_url_file_extension | Adds URL file extension condition. |
+| when_url_file_name |Adds URL file name condition. |
+| when_url_path | Adds URL path condition. |
+| cache_expiration |Adds cache expiration action. |
+| cache_key_query_string | Adds cache key query string action. |
+| modify_request_header |Adds modify request header action. |
+| modify_response_header | Adds modify response header action. |
+| url_rewrite | Adds URL rewrite action. |
+| url_redirect |Adds URL redirect action. |
 
 > Storage Accounts and Web Apps have special support for CDN endpoints. You can supply a storage
 > account or web app builders directly as the origin.
@@ -49,6 +78,13 @@ let isaacWebApp = webApp {
 
 let isaacStorage = storageAccount {
     name "isaacsuperstore"
+}
+
+let isaacRule = rule {
+    name "isaacsuperrule"
+    order 1
+    when_request_header "issac" Contains ["great"] ToLowercase
+    modify_response_header Append "issac" "super"
 }
 
 let isaacCdn = cdn {
@@ -67,6 +103,7 @@ let isaacCdn = cdn {
             origin "mysite.com"
             add_compressed_content [ "text/plain"; "text/html"; "text/css" ]
             query_string_caching_behaviour Cdn.BypassCaching
+            add_rule isaacRule
         }
     ]
 }
