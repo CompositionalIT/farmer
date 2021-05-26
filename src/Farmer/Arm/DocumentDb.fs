@@ -4,10 +4,10 @@ module Farmer.Arm.DocumentDb
 open Farmer
 open Farmer.CosmosDb
 
-let containers = ResourceType ("Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers", "2021-01-15")
-let sqlDatabases = ResourceType ("Microsoft.DocumentDb/databaseAccounts/sqlDatabases", "2021-01-15")
-let mongoDatabases = ResourceType ("Microsoft.DocumentDb/databaseAccounts/mongodbDatabases", "2021-01-15")
-let databaseAccounts = ResourceType ("Microsoft.DocumentDb/databaseAccounts", "2021-01-15")
+let containers = ResourceType ("Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers", "2021-04-15")
+let sqlDatabases = ResourceType ("Microsoft.DocumentDb/databaseAccounts/sqlDatabases", "2021-04-15")
+let mongoDatabases = ResourceType ("Microsoft.DocumentDb/databaseAccounts/mongodbDatabases", "2021-04-15")
+let databaseAccounts = ResourceType ("Microsoft.DocumentDb/databaseAccounts", "2021-04-15")
 
 type DatabaseKind =
     | Document
