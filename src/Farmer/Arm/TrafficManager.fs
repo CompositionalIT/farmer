@@ -5,6 +5,7 @@ open Farmer
 
 let profiles = ResourceType ("Microsoft.Network/trafficManagerProfiles", "2018-04-01")
 let endpoints = ResourceType ("Microsoft.Network/trafficManagerProfiles/azureEndpoints", "2018-04-01")
+let externalEndpoints = ResourceType ("Microsoft.Network/trafficManagerProfiles/externalEndpoints", "2018-04-01")
 
 type RoutingMethod =
     | Performance
@@ -40,7 +41,13 @@ type Endpoint =
                 {| endpointStatus = this.Status.ToString()
                    weight = this.Weight
                    priority = this.Priority
-                   endpointLocation = this.Location |} |} :> _
+                   endpointLocation = this.Location.ArmValue
+                   targetResourceId = match this.Target with
+                                      | ExternalDomain _ -> null
+                                      | WebSite resource -> ArmExpression.resourceId(sites, resource).Eval()
+                   target = match this.Target with
+                            | ExternalDomain domain -> domain
+                            | WebSite resource -> resource.Value |} |} :> _
 
 type Profile =
     { Name : ResourceName
@@ -49,8 +56,9 @@ type Profile =
       RoutingMethod : RoutingMethod
       MonitorConfig : MonitorConfig
       TrafficViewEnrollmentStatus : FeatureFlag
+      Endpoints : Endpoint list
       DependsOn : ResourceName list
-      Tags: Map<string,string>  }
+      Tags: Map<string,string> }
     interface IArmResource with
         member this.ResourceId = profiles.resourceId (this.Name)
         member this.JsonModel =
@@ -59,8 +67,7 @@ type Profile =
                dependsOn = this.DependsOn |> List.map (fun r -> r.Value)
                tags = this.Tags
                properties =
-                   {|
-                      profileStatus = this.Status.ToString()
+                   {| profileStatus = this.Status.ToString()
                       trafficRoutingMethod = this.RoutingMethod.ToString()
                       trafficViewEnrollmentStatus = this.TrafficViewEnrollmentStatus.ToString()
                       dnsConfig = {| relativeName = this.Name.Value.ToString()
@@ -70,5 +77,7 @@ type Profile =
                                          path = this.MonitorConfig.Path
                                          intervalInSeconds = this.MonitorConfig.IntervalInSeconds
                                          toleratedNumberOfFailures = this.MonitorConfig.ToleratedNumberOfFailures
-                                         timeoutInSeconds = this.MonitorConfig.TimeoutInSeconds |} |}
+                                         timeoutInSeconds = this.MonitorConfig.TimeoutInSeconds |}
+
+                      endpoints = this.Endpoints |> List.map (fun e -> (e:>IArmResource).JsonModel) |}
             |} :> _
