@@ -70,7 +70,7 @@ module DatabaseAccounts =
     type SqlDatabase =
         { Name : ResourceName
           Account : ResourceName
-          Throughput : int<RU>
+          Throughput : int<RU> option
           Kind: DatabaseKind }
         interface IArmResource with
             member this.ResourceId = sqlDatabases.resourceId (this.Account/this.Name)
@@ -82,7 +82,8 @@ module DatabaseAccounts =
                 {| resource.Create(this.Account/this.Name, dependsOn = [ databaseAccounts.resourceId this.Account ]) with
                        properties =
                            {| resource = {| id = this.Name.Value |}
-                              options = {| throughput = string this.Throughput |} |}
+                              options = {| throughput = this.Throughput |> Option.map string |> Option.defaultValue null |} 
+                           |}
                 |} :> _
 
 type DatabaseAccount =
@@ -92,6 +93,7 @@ type DatabaseAccount =
       FailoverPolicy : FailoverPolicy
       PublicNetworkAccess : FeatureFlag
       FreeTier : bool
+      Serverless : bool
       Kind : DatabaseKind
       Tags: Map<string,string>  }
     member this.MaxStatelessPrefix =
@@ -146,5 +148,8 @@ type DatabaseAccount =
                             | locations -> box locations
                           publicNetworkAccess = string this.PublicNetworkAccess
                           enableFreeTier = this.FreeTier
+                          capabilities = [
+                            if this.Serverless then {| name = "EnableServerless" |}
+                          ]
                        |} |> box
             |} :> _

@@ -22,6 +22,18 @@ let tests = testList "Cosmos" [
         Expect.contains container.UniqueKeys ["/FirstName"] "UniqueKeys should contain /FirstName"
         Expect.contains container.UniqueKeys ["/LastName"] "UniqueKeys should contain /LastName"
     }
+    test "Serverless template should include 'EnableServerless' and exclude 'throughput'" {
+        let t = arm { add_resource (cosmosDb { name "foo"; serverless; }) }
+        let json = t.Template |> Writer.toJson
+        Expect.isTrue (json.Contains("EnableServerless")) "Serverless template should contain 'EnableServerless'."
+        Expect.isFalse (json.Contains("throughput")) "Serverless template should not contain 'throughput'."
+    }
+    test "Shared throughput should include 'throughput' and exclude 'EnableServerless'" {
+        let t = arm { add_resource (cosmosDb { name "foo"; throughput 400<CosmosDb.RU>; }) }
+        let json = t.Template |> Writer.toJson
+        Expect.isTrue (json.Contains("\"throughput\": \"400\"")) "Shared throughput template should contain 'throughput'."
+        Expect.isFalse (json.Contains("EnableServerless")) "Shared throughput template should not contain 'EnableServerless'."
+    }
     test "DB properties are correctly evaluated" {
         let db = cosmosDb { name "test" }
         Expect.equal (db.Endpoint.Eval()) "[reference(resourceId('Microsoft.DocumentDb/databaseAccounts', 'test-account'), '2021-01-15').documentEndpoint]" "Endpoint is incorrect"

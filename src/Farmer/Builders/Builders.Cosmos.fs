@@ -33,10 +33,11 @@ type CosmosDbConfig =
       AccountConsistencyPolicy : ConsistencyPolicy
       AccountFailoverPolicy : FailoverPolicy
       DbName : ResourceName
-      DbThroughput : int<RU>
+      DbThroughput : int<RU> option
       Containers : CosmosDbContainerConfig list
       PublicNetworkAccess : FeatureFlag
       FreeTier : bool
+      Serverless : bool
       Tags: Map<string,string>
       Kind: DatabaseKind }
     member private this.AccountResourceId = this.AccountName.resourceId this
@@ -63,6 +64,7 @@ type CosmosDbConfig =
                   PublicNetworkAccess = this.PublicNetworkAccess
                   FailoverPolicy = this.AccountFailoverPolicy
                   FreeTier = this.FreeTier
+                  Serverless = this.Serverless
                   Tags = this.Tags }
             | _ ->
                 ()
@@ -152,10 +154,11 @@ type CosmosDbBuilder() =
             |> databaseAccounts.resourceId)
           AccountConsistencyPolicy = Eventual
           AccountFailoverPolicy = NoFailover
-          DbThroughput = 400<RU>
+          DbThroughput = Some 400<RU>
           Containers = []
           PublicNetworkAccess = Enabled
           FreeTier = false
+          Serverless = false
           Tags = Map.empty
           Kind = DatabaseKind.Document }
 
@@ -177,9 +180,9 @@ type CosmosDbBuilder() =
     /// Sets the failover policy of the database.
     [<CustomOperation "failover_policy">]
     member _.FailoverPolicy(state:CosmosDbConfig, failoverPolicy:FailoverPolicy) = { state with AccountFailoverPolicy = failoverPolicy }
-    /// Sets the throughput of the server.
+    /// Sets the throughput of the server. NOTE: Setting this also disables 'serverless' mode.
     [<CustomOperation "throughput">]
-    member _.Throughput(state:CosmosDbConfig, throughput) = { state with DbThroughput = throughput }
+    member __.Throughput(state:CosmosDbConfig, throughput) = { state with DbThroughput = Some throughput; Serverless = false }
     /// Sets the storage kind
     [<CustomOperation "kind">]
     member _.StorageKind(state:CosmosDbConfig, kind) = { state with Kind = kind }
@@ -195,6 +198,10 @@ type CosmosDbBuilder() =
     /// Enables the use of CosmosDB free tier (one per subscription).
     [<CustomOperation "free_tier">]
     member _.FreeTier(state:CosmosDbConfig) = { state with FreeTier = true }
+    /// Enables the "serverless" consumption plan. NOTE: Setting this also disables 'throughput'.
+    [<CustomOperation "serverless">]
+    member __.Serverless(state:CosmosDbConfig) = { state with Serverless = true; DbThroughput = None }
+
     interface ITaggable<CosmosDbConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let cosmosDb = CosmosDbBuilder()
