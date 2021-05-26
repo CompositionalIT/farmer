@@ -373,6 +373,41 @@
       "name": "farmercdn1979/farmercdnendpoint1979",
       "properties": {
         "contentTypesToCompress": [],
+        "deliveryPolicy": {
+          "description": "",
+          "rules": [
+            {
+              "actions": [
+                {
+                  "name": "UrlRewrite",
+                  "parameters": {
+                    "@odata.type": "#Microsoft.Azure.Cdn.Models.DeliveryRuleUrlRewriteActionParameters",
+                    "destination": "/destination",
+                    "preserveUnmatchedPath": true,
+                    "sourcePattern": "/pattern"
+                  }
+                }
+              ],
+              "conditions": [
+                {
+                  "name": "IsDevice",
+                  "parameters": {
+                    "@odata.type": "#Microsoft.Azure.Cdn.Models.DeliveryRuleIsDeviceConditionParameters",
+                    "matchValues": [
+                      "Mobile"
+                    ],
+                    "negateCondition": false,
+                    "operator": "Equal",
+                    "selector": "",
+                    "transforms": []
+                  }
+                }
+              ],
+              "name": "farmerrule1979",
+              "order": 1
+            }
+          ]
+        },
         "isCompressionEnabled": false,
         "isHttpAllowed": true,
         "isHttpsAllowed": true,
