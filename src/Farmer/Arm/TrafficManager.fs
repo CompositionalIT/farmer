@@ -7,25 +7,6 @@ let profiles = ResourceType ("Microsoft.Network/trafficManagerProfiles", "2018-0
 let endpoints = ResourceType ("Microsoft.Network/trafficManagerProfiles/azureEndpoints", "2018-04-01")
 let externalEndpoints = ResourceType ("Microsoft.Network/trafficManagerProfiles/externalEndpoints", "2018-04-01")
 
-type RoutingMethod =
-    | Performance
-    | Weighted
-    | Priority
-    | Geographic
-    | Subnet
-
-type MonitorProtocol =
-    | Http
-    | Https
-
-type MonitorConfig =
-    { Protocol : MonitorProtocol
-      Port: int
-      Path: string
-      IntervalInSeconds: int
-      ToleratedNumberOfFailures: int
-      TimeoutInSeconds: int }
-
 type Endpoint =
     { Name : ResourceName
       Status: FeatureFlag
@@ -38,16 +19,14 @@ type Endpoint =
         member this.JsonModel =
             {| location = this.Location
                properties =
-                {| endpointStatus = this.Status.ToString()
+                {| endpointStatus = this.Status.ArmValue
                    weight = this.Weight
                    priority = this.Priority
                    endpointLocation = this.Location.ArmValue
                    targetResourceId = match this.Target with
                                       | ExternalDomain _ -> null
-                                      | WebSite resource -> ArmExpression.resourceId(sites, resource).Eval()
-                   target = match this.Target with
-                            | ExternalDomain domain -> domain
-                            | WebSite resource -> resource.Value |} |} :> _
+                                      | Website resource -> ArmExpression.resourceId(sites, resource).Eval()
+                   target = this.Target.ArmValue |} |} :> _
 
 type Profile =
     { Name : ResourceName
@@ -67,12 +46,13 @@ type Profile =
                dependsOn = this.DependsOn |> List.map (fun r -> r.Value)
                tags = this.Tags
                properties =
-                   {| profileStatus = this.Status.ToString()
-                      trafficRoutingMethod = this.RoutingMethod.ToString()
-                      trafficViewEnrollmentStatus = this.TrafficViewEnrollmentStatus.ToString()
-                      dnsConfig = {| relativeName = this.Name.Value.ToString()
+                   {| profileStatus = this.Status.ArmValue
+                      trafficRoutingMethod = this.RoutingMethod.ArmValue
+                      trafficViewEnrollmentStatus = this.TrafficViewEnrollmentStatus.ArmValue
+                      dependsOn = this.DependsOn |> List.map(fun p -> p.Value)
+                      dnsConfig = {| relativeName = this.Name.Value
                                      ttl = this.DnsTtl |}
-                      monitorConfig = {| protocol = this.MonitorConfig.Protocol.ToString().ToUpperInvariant()
+                      monitorConfig = {| protocol = this.MonitorConfig.Protocol.ArmValue
                                          port = this.MonitorConfig.Port
                                          path = this.MonitorConfig.Path
                                          intervalInSeconds = this.MonitorConfig.IntervalInSeconds

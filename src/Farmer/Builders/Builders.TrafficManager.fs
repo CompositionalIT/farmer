@@ -2,6 +2,7 @@
 module Farmer.Builders.TrafficManager
 
 open Farmer
+open Farmer.TrafficManager
 open Farmer.Arm.TrafficManager
 
 type EndpointConfig =
@@ -54,7 +55,7 @@ type EndpointBuilder() =
     member __.Yield _ =
         { Name = ResourceName.Empty
           Status = EndpointStatus.Enabled
-          Target = EndpointTarget.WebSite ResourceName.Empty
+          Target = EndpointTarget.Website ResourceName.Empty
           Weight = 1
           Priority = 1 }
 
@@ -78,13 +79,11 @@ type EndpointBuilder() =
     member __.Priority(state:EndpointConfig, priority) = { state with Priority = priority }
 
     [<CustomOperation "target_webapp">]
-    member __.TargetWebSite(state:EndpointConfig, name) = { state with Target = WebSite name }
+    member __.TargetWebSite(state:EndpointConfig, name) = { state with Target = Website name }
+    member __.TargetWebSite(state:EndpointConfig, (webApp: WebAppConfig)) = { state with Target = Website webApp.Name }
 
     [<CustomOperation "target_external_domain">]
     member __.TargetExternalDomain(state:EndpointConfig, domain) = { state with Target = ExternalDomain domain }
-
-let endpoint = EndpointBuilder()
-
 
 type TrafficManagerBuilder() =
     member __.Yield _ =
@@ -120,10 +119,8 @@ type TrafficManagerBuilder() =
     member this.Tag(state:TrafficManagerConfig, key, value) = this.Tags(state, [ (key,value) ])
 
     [<CustomOperation "add_endpoint">]
-    member __.AddEndpoint(state:TrafficManagerConfig, endpoint:EndpointConfig) = { state with Endpoints = endpoint :: state.Endpoints }
-
-    [<CustomOperation "monitor_config">]
-    member __.MonitorConfig(state:TrafficManagerConfig, monitorConfig:MonitorConfig) = { state with MonitorConfig = monitorConfig }
+    member __.AddEndpoint(state:TrafficManagerConfig, endpoint:EndpointConfig) =
+        { state with Endpoints = endpoint :: state.Endpoints }
 
     [<CustomOperation "dns_ttl">]
     member __.DnsTtl(state:TrafficManagerConfig, ttl) = { state with DnsTtl = ttl }
@@ -138,10 +135,37 @@ type TrafficManagerBuilder() =
     member __.RoutingMethod(state:TrafficManagerConfig, routingMethod) = { state with RoutingMethod = routingMethod }
 
     [<CustomOperation "enable_traffic_view">]
-    member __.EnableTrafficView(state:TrafficManagerConfig) = { state with TrafficViewEnrollmentStatus = TrafficViewEnrollmentStatus.Enabled }
+    member __.EnableTrafficView(state:TrafficManagerConfig) =
+        { state with TrafficViewEnrollmentStatus = TrafficViewEnrollmentStatus.Enabled }
 
     [<CustomOperation "disable_traffic_view">]
-    member __.DisableTrafficView(state:TrafficManagerConfig) = { state with TrafficViewEnrollmentStatus = TrafficViewEnrollmentStatus.Disabled }
+    member __.DisableTrafficView(state:TrafficManagerConfig) =
+        { state with TrafficViewEnrollmentStatus = TrafficViewEnrollmentStatus.Disabled }
 
+    [<CustomOperation "monitor_protocol">]
+    member __.MonitorProtocol(state:TrafficManagerConfig, protocol) =
+        { state with MonitorConfig = { state.MonitorConfig with Protocol = protocol } }
 
+    [<CustomOperation "monitor_port">]
+    member __.MonitorPort(state:TrafficManagerConfig, port) =
+        { state with MonitorConfig = { state.MonitorConfig with Port = port } }
+
+    [<CustomOperation "monitor_path">]
+    member __.MonitorPath(state:TrafficManagerConfig, path) =
+        { state with MonitorConfig = { state.MonitorConfig with Path = path } }
+
+    [<CustomOperation "monitor_interval">]
+    member __.MonitorInterval(state:TrafficManagerConfig, interval) =
+        { state with MonitorConfig = { state.MonitorConfig with IntervalInSeconds = interval } }
+
+    [<CustomOperation "monitor_timeout">]
+    member __.MonitorTimeout(state:TrafficManagerConfig, timeout) =
+        { state with MonitorConfig = { state.MonitorConfig with TimeoutInSeconds = timeout } }
+
+    [<CustomOperation "monitor_tolerated_failures">]
+    member __.MonitorToleratedFailures(state:TrafficManagerConfig, failures) =
+        { state with MonitorConfig = { state.MonitorConfig with ToleratedNumberOfFailures = failures } }
+
+// Expose Builders
+let endpoint = EndpointBuilder()
 let trafficManager = TrafficManagerBuilder()
