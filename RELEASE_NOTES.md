@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.6.0
+* CDN: Support for CDN rules
+
 ## 1.5.2
 * ServiceBus: TopicConfig implements IBuilder and supports link_to_unmanaged_namespace.
 * ServiceBus: Support for forwarding messages delivered to a subscription.
