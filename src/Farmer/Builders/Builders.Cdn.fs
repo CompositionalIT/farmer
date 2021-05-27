@@ -7,7 +7,7 @@ open Profiles
 open Endpoints
 open Farmer.Cdn
 open System
-open DeliveryPolicy
+open CdnRule
 
 type RuleConfig =
     { Name: ResourceName
