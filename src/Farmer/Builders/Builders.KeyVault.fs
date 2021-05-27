@@ -7,7 +7,6 @@ open Farmer.Arm.KeyVault
 open System
 open Vaults
 
-type NonEmptyList<'T> = 'T * 'T List
 type AccessPolicyConfig =
     { ObjectId : ArmExpression
       ApplicationId : Guid option
@@ -30,7 +29,9 @@ type KeyVaultConfigSettings =
       /// Specifies whether Azure Disk Encryption is permitted to retrieve secrets from the vault and unwrap keys.
       AzureDiskEncryptionAccess : FeatureFlag option
       /// Specifies whether Soft Deletion is enabled for the vault
-      SoftDelete : SoftDeletionMode option }
+      SoftDelete : SoftDeletionMode option
+      /// Specifies whether Azure role based authorization is used for data retrieval instead of any access policies on the key vault.
+      RbacAuthorization : FeatureFlag option }
 
 type NetworkAcl =
     { IpRules : string list
@@ -105,6 +106,7 @@ type KeyVaultConfig =
                   TemplateDeployment = this.Access.ResourceManagerAccess
                   DiskEncryption = this.Access.AzureDiskEncryptionAccess
                   Deployment = this.Access.VirtualMachineAccess
+                  RbacAuthorization = this.Access.RbacAuthorization
                   SoftDelete = this.Access.SoftDelete
                   CreateMode =
                     match this.Policies with
@@ -115,17 +117,17 @@ type KeyVaultConfig =
                     let policies =
                         match this.Policies with
                         | Unspecified policies -> policies
-                        | Recover(policy, secondaryPolicies) -> policy :: secondaryPolicies
+                        | Recover list -> list.Value
                         | Default policies -> policies
                     [ for policy in policies do
-                       {| ObjectId = policy.ObjectId
-                          ApplicationId = policy.ApplicationId
-                          Permissions =
-                           {| Certificates = policy.Permissions.Certificates
-                              Storage = policy.Permissions.Storage
-                              Keys = policy.Permissions.Keys
-                              Secrets = policy.Permissions.Secrets |}
-                       |}
+                        {| ObjectId = policy.ObjectId
+                           ApplicationId = policy.ApplicationId
+                           Permissions =
+                            {| Certificates = policy.Permissions.Certificates
+                               Storage = policy.Permissions.Storage
+                               Keys = policy.Permissions.Keys
+                               Secrets = policy.Permissions.Secrets |}
+                        |}
                     ]
                   Uri = this.Uri
                   DefaultAction = this.NetworkAcl.DefaultAction
@@ -219,7 +221,13 @@ type KeyVaultBuilder() =
     member __.Yield (_:unit) =
         { Name = ResourceName.Empty
           TenantId = Subscription.TenantId
-          Access = { VirtualMachineAccess = None; ResourceManagerAccess = Some Enabled; AzureDiskEncryptionAccess = None; SoftDelete = None }
+          Access = {
+            VirtualMachineAccess = None
+            RbacAuthorization = None
+            ResourceManagerAccess = Some Enabled
+            AzureDiskEncryptionAccess = None
+            SoftDelete = None
+          }
           Sku = Standard
           NetworkAcl = { IpRules = []; VnetRules = []; Bypass = None; DefaultAction = None }
           Policies = []
@@ -238,8 +246,8 @@ type KeyVaultBuilder() =
             match state.CreateMode, state.Policies with
             | None, policies -> Unspecified policies
             | Some SimpleCreateMode.Default, policies -> Default policies
-            | Some SimpleCreateMode.Recover, primary :: secondary -> Recover(primary, secondary)
             | Some SimpleCreateMode.Recover, [] -> failwith "Setting the creation mode to Recover requires at least one access policy. Use the accessPolicy builder to create a policy, and add it to the vault configuration using add_access_policy."
+            | Some SimpleCreateMode.Recover, policies -> Recover (NonEmptyList.create policies)
           Secrets = state.Secrets
           Uri = state.Uri
           Tags = state.Tags  }
@@ -273,6 +281,12 @@ type KeyVaultBuilder() =
     /// Disallows Azure Disk Encyption service access to the vault.
     [<CustomOperation "disable_disk_encryption_access">]
     member __.DisableDiskEncryptionAccess(state:KeyVaultBuilderState) = { state with Access = { state.Access with AzureDiskEncryptionAccess = Some Disabled } }
+    /// Enables Azure role based authentication for access to key vault data.
+    [<CustomOperation "enable_rbac">]
+    member __.EnableRbacAuthorization(state:KeyVaultBuilderState) = { state with Access = { state.Access with RbacAuthorization = Some Enabled } }
+    /// Disables Azure role based authentication for access to key vault data.
+    [<CustomOperation "disable_rbac">]
+    member __.DisableRbacAuthorization(state:KeyVaultBuilderState) = { state with Access = { state.Access with RbacAuthorization = Some Disabled } }
     /// Enables VM access to the vault.
     [<CustomOperation "enable_soft_delete">]
     member __.EnableSoftDeletion(state:KeyVaultBuilderState) = { state with Access = { state.Access with SoftDelete = Some SoftDeletionOnly } }

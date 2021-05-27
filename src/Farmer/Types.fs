@@ -30,6 +30,10 @@ type Location =
     | Location of string
     member this.ArmValue = match this with Location location -> location.ToLower()
 
+type DataLocation =
+    | DataLocation of string
+    member this.ArmValue = match this with DataLocation dataLocation -> dataLocation
+
 type ResourceType =
     | ResourceType of path:string * version:string
     /// Returns the ARM resource type string value.
@@ -217,6 +221,10 @@ type LinkedResource =
     | Managed of ResourceId
     /// A id of a resource that is created externally from Farmer and already exists in Azure.
     | Unmanaged of ResourceId
+    member this.Name =
+        match this with
+        | Managed resId
+        | Unmanaged resId -> resId.Name
 
 /// A reference to another Azure resource that may or may not be created by Farmer.
 type ResourceRef<'TConfig> =

@@ -488,7 +488,7 @@
       "type": "Microsoft.ContainerInstance/containerGroups"
     },
     {
-      "apiVersion": "2020-03-01",
+      "apiVersion": "2021-01-15",
       "kind": "GlobalDocumentDB",
       "location": "northeurope",
       "name": "testaccount",
@@ -506,7 +506,7 @@
       "type": "Microsoft.DocumentDb/databaseAccounts"
     },
     {
-      "apiVersion": "2020-03-01",
+      "apiVersion": "2021-01-15",
       "dependsOn": [
         "[resourceId('Microsoft.DocumentDb/databaseAccounts', 'testaccount')]"
       ],
@@ -522,7 +522,7 @@
       "type": "Microsoft.DocumentDb/databaseAccounts/sqlDatabases"
     },
     {
-      "apiVersion": "2020-03-01",
+      "apiVersion": "2021-01-15",
       "dependsOn": [
         "[resourceId('Microsoft.DocumentDb/databaseAccounts/sqlDatabases', 'testaccount', 'testdb')]"
       ],
@@ -562,6 +562,52 @@
         }
       },
       "type": "Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers"
+    },
+    {
+      "apiVersion": "2021-01-15",
+      "kind": "MongoDB",
+      "location": "northeurope",
+      "name": "testaccountmongo",
+      "properties": {
+        "consistencyPolicy": {
+          "defaultConsistencyLevel": "BoundedStaleness",
+          "maxIntervalInSeconds": 1000,
+          "maxStalenessPrefix": 500
+        },
+        "databaseAccountOfferType": "Standard",
+        "enableFreeTier": false,
+        "publicNetworkAccess": "Enabled"
+      },
+      "tags": {},
+      "type": "Microsoft.DocumentDb/databaseAccounts"
+    },
+    {
+      "apiVersion": "2021-01-15",
+      "dependsOn": [
+        "[resourceId('Microsoft.DocumentDb/databaseAccounts', 'testaccountmongo')]"
+      ],
+      "name": "testaccountmongo/testdbmongo",
+      "properties": {
+        "options": {
+          "throughput": "400"
+        },
+        "resource": {
+          "id": "testdbmongo"
+        }
+      },
+      "type": "Microsoft.DocumentDb/databaseAccounts/mongodbDatabases"
+    },
+    {
+      "apiVersion": "2020-08-20-preview",
+      "location": "northeurope",
+      "name": "test",
+      "properties": {
+        "dataLocation": "Australia"
+      },
+      "tags": {
+        "a": "b"
+      },
+      "type": "Microsoft.Communication/communicationServices"
     }
   ]
 }

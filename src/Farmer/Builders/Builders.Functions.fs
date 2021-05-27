@@ -12,7 +12,7 @@ open Farmer.Arm.KeyVault
 open Farmer.Arm.KeyVault.Vaults
 open System
 
-type FunctionsRuntime = DotNet | Node | Java | Python
+type FunctionsRuntime = DotNet | DotNetIsolated | Node | Java | Python
 type FunctionsExtensionVersion = V1 | V2 | V3
 
 module private FunctionsConfig =
@@ -142,6 +142,11 @@ type FunctionsConfig =
             | None ->
                 ()
 
+            let functionsRuntime =
+                match this.Runtime with
+                | DotNetIsolated -> "dotnet-isolated"
+                | DotNet -> "dotnet"
+                | other -> (string other).ToLower()
             { Name = this.Name
               ServicePlan = this.ServicePlanId
               Location = location
@@ -149,7 +154,7 @@ type FunctionsConfig =
               Tags = this.Tags
               ConnectionStrings = Map.empty
               AppSettings = [
-                "FUNCTIONS_WORKER_RUNTIME", (string this.Runtime).ToLower()
+                "FUNCTIONS_WORKER_RUNTIME", functionsRuntime
                 "WEBSITE_NODE_DEFAULT_VERSION", "10.14.1"
                 "FUNCTIONS_EXTENSION_VERSION", match this.ExtensionVersion with V1 -> "~1" | V2 -> "~2" | V3 -> "~3"
                 "AzureWebJobsStorage", StorageAccount.getConnectionString this.StorageAccountName |> ArmExpression.Eval

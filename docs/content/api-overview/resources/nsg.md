@@ -32,6 +32,7 @@ The Network Security Group builder creates network security groups with rules fo
 | securityRule | add_destination_tag | Specify access to a tagged destination such as "Internet", "VirtualNetwork", or "AzureLoadBalancer" |
 | securityRule | allow | Allows this traffic (the default) |
 | securityRule | deny | Denies this traffic |
+| securityRule | direction | Specify the direction of traffic controlled by the rule - inbound (the default) or outbound. |
 
 #### Basic Example
 

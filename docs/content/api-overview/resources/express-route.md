@@ -27,6 +27,12 @@ An ExpressRoute circuit is a dedicated link to Azure to provide communication wi
 | Peering | vlan | A unique VLAN ID for the peering |
 | Peering | shared_key | An optional shared key the service provider may specify for the peering |
 
+#### Configuration Members
+
+| Member | Purpose |
+|-|-|
+| ServiceKey | An ARM expression path to get the service key on the newly created circuit. |
+
 #### Example
 
 ```fsharp
@@ -35,21 +41,26 @@ open Farmer.Builders
 open Farmer.ExpressRoute
 
 let circuit = expressRoute {
-   name "my-express-route"
-   service_provider "Equinix"
-   peering_location "New York"
-   tier Premium
-   family MeteredData
-   bandwidth 1000<Mbps>
-   add_peering (
-       peering {
-           peering_type AzurePrivatePeering
-           peer_asn 55277L
-           azure_asn 12076
-           primary_prefix (IPAddressCidr.parse "10.254.12.0/30")
-           secondary_prefix (IPAddressCidr.parse "10.254.12.4/30")
-           vlan 2406
-       }
-   )
+    name "my-express-route"
+    service_provider "Equinix"
+    peering_location "New York"
+    tier Premium
+    family MeteredData
+    bandwidth 1000<Mbps>
+    add_peering (
+        peering {
+            peering_type AzurePrivatePeering
+            peer_asn 55277L
+            azure_asn 12076
+            primary_prefix (IPAddressCidr.parse "10.254.12.0/30")
+            secondary_prefix (IPAddressCidr.parse "10.254.12.4/30")
+            vlan 2406
+        }
+    )
+}
+
+arm {
+    add_resource circuit
+    output "er-service-key" circuit.ServiceKey
 }
 ```

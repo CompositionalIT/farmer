@@ -37,7 +37,8 @@ type CosmosDbConfig =
       Containers : CosmosDbContainerConfig list
       PublicNetworkAccess : FeatureFlag
       FreeTier : bool
-      Tags: Map<string,string> }
+      Tags: Map<string,string>
+      Kind: DatabaseKind }
     member private this.AccountResourceId = this.AccountName.resourceId this
     member this.PrimaryKey = CosmosDb.getKey(this.AccountResourceId, PrimaryKey, ReadWrite)
     member this.SecondaryKey = CosmosDb.getKey(this.AccountResourceId, SecondaryKey, ReadWrite)
@@ -57,6 +58,7 @@ type CosmosDbConfig =
             | DeployableResource this _ ->
                 { Name = this.AccountResourceId.Name
                   Location = location
+                  Kind = this.Kind
                   ConsistencyPolicy = this.AccountConsistencyPolicy
                   PublicNetworkAccess = this.PublicNetworkAccess
                   FailoverPolicy = this.AccountFailoverPolicy
@@ -68,7 +70,8 @@ type CosmosDbConfig =
             // Database
             { Name = this.DbName
               Account = this.AccountResourceId.Name
-              Throughput = this.DbThroughput }
+              Throughput = this.DbThroughput
+              Kind = this.Kind }
 
             // Containers
             for container in this.Containers do
@@ -153,7 +156,8 @@ type CosmosDbBuilder() =
           Containers = []
           PublicNetworkAccess = Enabled
           FreeTier = false
-          Tags = Map.empty }
+          Tags = Map.empty
+          Kind = DatabaseKind.Document }
 
     /// Sets the name of the CosmosDB server.
     [<CustomOperation "account_name">]
@@ -176,6 +180,9 @@ type CosmosDbBuilder() =
     /// Sets the throughput of the server.
     [<CustomOperation "throughput">]
     member __.Throughput(state:CosmosDbConfig, throughput) = { state with DbThroughput = throughput }
+    /// Sets the storage kind
+    [<CustomOperation "kind">]
+    member __.StorageKind(state:CosmosDbConfig, kind) = { state with Kind = kind }
     /// Adds a list of containers to the database.
     [<CustomOperation "add_containers">]
     member __.AddContainers(state:CosmosDbConfig, containers) = { state with Containers = state.Containers @ containers }

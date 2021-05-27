@@ -5,6 +5,7 @@ open Farmer
 open Farmer.Builders
 open Farmer.Arm
 open System.IO
+open Farmer.ServiceBus
 
 let tests =
     testList "ARM Writer Regression Tests" [
@@ -44,9 +45,32 @@ let tests =
                     }
                 ]
             }
+            let cosmosMongo = cosmosDb {
+                name "testdbmongo"
+                account_name "testaccountmongo"
+                kind Mongo
+                throughput 400<CosmosDb.RU>
+                failover_policy CosmosDb.NoFailover
+                consistency_policy (CosmosDb.BoundedStaleness(500, 1000))
+            }
+
+            let communicationServices = communicationServices {
+                name "test"
+                add_tags [ "a", "b" ]
+                data_location DataLocation.Australia
+            }
 
             compareResourcesToJson
-                [ sql; storage; web; fns; svcBus; cdn; containerGroup; cosmos ]
+                [   sql
+                    storage
+                    web
+                    fns
+                    svcBus
+                    cdn
+                    containerGroup
+                    cosmos
+                    cosmosMongo
+                    communicationServices ]
                 "lots-of-resources.json"
         }
 
@@ -134,5 +158,47 @@ let tests =
             Expect.equal resource.Name "jsontest" "Account name is wrong"
             Expect.equal resource.Sku.Name "Standard_LRS" "SKU is wrong"
             Expect.equal resource.Kind "StorageV2" "Kind"
+        }
+        
+        test "ServiceBus" {
+            let svcBus = serviceBus {
+                name "farmer-bus"
+                sku (ServiceBus.Sku.Premium MessagingUnits.OneUnit)
+                add_queues [ queue { name "queue1" } ]
+                add_topics [
+                    topic {
+                        name "topic1"
+                        add_subscriptions [
+                            subscription {
+                                name "sub1"
+                                add_filters [Rule.CreateCorrelationFilter ("filter1", ["header1", "headervalue1"])]
+                            }
+                        ]
+                    }
+                ]
+            }
+            let topicWithUnmanagedNamespace =
+                topic {
+                    name "unmanaged-topic"
+                    link_to_unmanaged_namespace "farmer-bus"
+                    add_subscriptions [
+                        subscription {
+                            name "sub1"
+                            add_filters [Rule.CreateCorrelationFilter ("filter1", ["header1", "headervalue1"])]
+                        }
+                    ]
+                }
+            compareResourcesToJson [ svcBus; topicWithUnmanagedNamespace ] "service-bus.json"
+        }
+        
+        test "VirtualWan" {
+            let vwan = vwan {
+                name "farmer-vwan"
+                disable_vpn_encryption
+                allow_branch_to_branch_traffic
+                office_365_local_breakout_category Office365LocalBreakoutCategory.None
+                standard_vwan
+            }
+            compareResourcesToJson [ vwan ] "virtual-wan.json"
         }
     ]
