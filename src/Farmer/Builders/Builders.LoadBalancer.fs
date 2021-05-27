@@ -5,7 +5,6 @@ open System
 open Farmer
 open Farmer.Arm.LoadBalancer
 open Farmer.Arm.Network
-open Farmer.Builders
 open Farmer.LoadBalancer
 open Farmer.PublicIpAddress
 
@@ -74,24 +73,22 @@ type BackendAddressPoolConfig =
     }
     interface IBuilder with
         member this.ResourceId = Farmer.Arm.LoadBalancer.loadBalancerBackendAddressPools.resourceId (this.LoadBalancer, this.Name)
-        member this.BuildResources location = [
-            { Name = this.Name
-              LoadBalancer = this.LoadBalancer
-              LoadBalancerBackendAddresses =
-                  this.LoadBalancerBackendAddresses |> List.mapi (fun idx addr ->
-                      {|
-                          Name = ResourceName $"addr{idx}"
-                          VirtualNetwork =
-                              this.VirtualNetwork
-                              |> Option.map (fun vnet ->
-                                  match vnet with
-                                  | Managed resId -> resId
-                                  | Unmanaged resId -> resId
-                              )
-                          IpAddress = addr
-                      |})
-              }
-        ]
+        member this.BuildResources _ =
+            if String.IsNullOrWhiteSpace (this.LoadBalancer.Value) then
+                failwith "Load balancer must be specified for backend address pool."
+            else
+                [
+                    { Name = this.Name
+                      LoadBalancer = this.LoadBalancer
+                      LoadBalancerBackendAddresses =
+                          this.LoadBalancerBackendAddresses |> List.mapi (fun idx addr ->
+                              {|
+                                  Name = ResourceName $"addr{idx}"
+                                  VirtualNetwork = this.VirtualNetwork
+                                  IpAddress = addr
+                              |})
+                      }
+                ]
 
 type BackendAddressPoolBuilder () =
     member _.Yield _ =
@@ -101,11 +98,6 @@ type BackendAddressPoolBuilder () =
             LoadBalancerBackendAddresses = []
             VirtualNetwork = None
         }
-    member _.Run (config:BackendAddressPoolConfig) =
-        if String.IsNullOrWhiteSpace config.LoadBalancer.Value then
-            failwith "Load balancer must be specified for backend address pool."
-        else
-            config
     /// Sets the name of the backend address pool.
     [<CustomOperation "name">]
     member _.Name(state:BackendAddressPoolConfig, name) = { state with Name = ResourceName name }
@@ -114,8 +106,20 @@ type BackendAddressPoolBuilder () =
     member _.LoadBalancer(state:BackendAddressPoolConfig, lb) = { state with LoadBalancer = ResourceName lb }
     /// Links to an existing vnet for addresses for this pool.
     [<CustomOperation "link_to_vnet">]
-    member _.VirtualNetwork(state:BackendAddressPoolConfig, vnet:string) = { state with VirtualNetwork = Some (Unmanaged (virtualNetworks.resourceId (ResourceName vnet))) }
-    member _.VirtualNetwork(state:BackendAddressPoolConfig, vnet:ResourceId) = { state with VirtualNetwork = Some (Unmanaged vnet) }
+    member _.LinkToVirtualNetwork(state:BackendAddressPoolConfig, vnet:string) =
+        { state with VirtualNetwork = Some (Unmanaged (virtualNetworks.resourceId (ResourceName vnet))) }
+    member _.LinkToVirtualNetwork(state:BackendAddressPoolConfig, vnet:ResourceId) =
+        { state with VirtualNetwork = Some (Unmanaged vnet) }
+    member _.LinkToVirtualNetwork(state:BackendAddressPoolConfig, vnetConfig:VirtualNetworkConfig) =
+        { state with VirtualNetwork = Some (Unmanaged (virtualNetworks.resourceId vnetConfig.Name)) }
+    /// Links to a vnet that is defined in this same deployment.
+    [<CustomOperation "vnet">]
+    member _.VirtualNetwork(state:BackendAddressPoolConfig, vnet:string) =
+        { state with VirtualNetwork = Some (Managed (virtualNetworks.resourceId (ResourceName vnet))) }
+    member _.VirtualNetwork(state:BackendAddressPoolConfig, vnet:ResourceId) =
+        { state with VirtualNetwork = Some (Managed vnet) }
+    member _.VirtualNetwork(state:BackendAddressPoolConfig, vnetConfig:VirtualNetworkConfig) =
+        { state with VirtualNetwork = Some (Managed (virtualNetworks.resourceId vnetConfig.Name)) }
     /// Adds IP addresses for this backend pool.
     [<CustomOperation "add_ip_addresses">]
     member _.IpAddresses(state:BackendAddressPoolConfig, backendAddresses:string list) =

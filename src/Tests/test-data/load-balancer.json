@@ -37,8 +37,7 @@
     {
       "apiVersion": "2020-11-01",
       "dependsOn": [
-        "[resourceId('Microsoft.Network/publicIPAddresses', 'lb-pip')]",
-        "[resourceId('Microsoft.Network/virtualNetworks', 'my-vnet')]"
+        "[resourceId('Microsoft.Network/publicIPAddresses', 'lb-pip')]"
       ],
       "location": "northeurope",
       "name": "lb",
@@ -108,7 +107,8 @@
     {
       "apiVersion": "2020-11-01",
       "dependsOn": [
-        "[resourceId('Microsoft.Network/loadBalancers', 'lb')]"
+        "[resourceId('Microsoft.Network/loadBalancers', 'lb')]",
+        "[resourceId('Microsoft.Network/virtualNetworks', 'my-vnet')]"
       ],
       "name": "lb/lb-backend",
       "properties": {

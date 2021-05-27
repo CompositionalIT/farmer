@@ -104,9 +104,9 @@
     <Compile Include="Builders/Builders.Storage.fs" />
     <Compile Include="Builders/Builders.Redis.fs" />
     <Compile Include="Builders/Builders.KeyVault.fs" />
-    <Compile Include="Builders\Builders.LoadBalancer.fs" />
     <Compile Include="Builders/Builders.Bastion.fs" />
     <Compile Include="Builders/Builders.VirtualNetwork.fs" />
+    <Compile Include="Builders\Builders.LoadBalancer.fs" />
     <Compile Include="Builders/Builders.Vm.fs" />
     <Compile Include="Builders/Builders.ServicePlan.fs" />
     <Compile Include="Builders/Builders.AppInsights.fs" />

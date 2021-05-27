@@ -87,7 +87,7 @@ let tests = testList "Load Balancers" [
         Expect.equal pip.Sku.Name "Standard" "Incorrect sku for generated public IP address"
     }
 
-    let completeLoadBalancer =
+    let completeLoadBalancer () =
         loadBalancer {
             name "lb"
             sku Sku.Standard
@@ -133,35 +133,63 @@ let tests = testList "Load Balancers" [
 
     test "Complete load balancer" {
         let found =
-            arm { add_resource completeLoadBalancer }
+            arm { add_resource (completeLoadBalancer ()) }
                 |> findAzureResources<Microsoft.Azure.Management.Network.Models.LoadBalancer> client.SerializationSettings
                 |> List.tryFind (fun r -> r.Name = "lb")
         let resource = Expect.wantSome found "No 'lb' resource found in template."
         Expect.hasLength resource.BackendAddressPools 1 "Incorrect number of backend address pools"
         Expect.equal resource.BackendAddressPools.[0].Name "lb-backend" "Incorrect name for backend address pool"
         Expect.hasLength resource.Probes 1 "Incorrect number of probes"
-        Expect.equal resource.Probes.[0].Name "httpGet" "Incorrect name for httpGet probe"
-        Expect.equal resource.Probes.[0].Protocol "Http" "Incorrect protocol for httpGet probe"
-        Expect.equal resource.Probes.[0].Protocol "Http" "Incorrect protocol for httpGet probe"
-        Expect.equal resource.Probes.[0].RequestPath "/" "Incorrect request path for httpGet probe"
-        Expect.equal resource.Probes.[0].Port 8080 "Incorrect port for httpGet probe"
-        Expect.equal resource.Probes.[0].IntervalInSeconds (Nullable 15) "Incorrect interval for httpGet probe"
-        Expect.equal resource.Probes.[0].NumberOfProbes (Nullable 2) "Incorrect number of probes for httpGet probe"
+        let probe = resource.Probes |> Seq.head
+        Expect.equal probe.Name "httpGet" "Incorrect name for httpGet probe"
+        Expect.equal probe.Protocol "Http" "Incorrect protocol for httpGet probe"
+        Expect.equal probe.Protocol "Http" "Incorrect protocol for httpGet probe"
+        Expect.equal probe.RequestPath "/" "Incorrect request path for httpGet probe"
+        Expect.equal probe.Port 8080 "Incorrect port for httpGet probe"
+        Expect.equal probe.IntervalInSeconds (Nullable 15) "Incorrect interval for httpGet probe"
+        Expect.equal probe.NumberOfProbes (Nullable 2) "Incorrect number of probes for httpGet probe"
         Expect.hasLength resource.LoadBalancingRules 1 "Incorrect number of load balancing rules"
-        Expect.equal resource.LoadBalancingRules.[0].Name "rule1" "Incorrect name for rule"
-        Expect.equal resource.LoadBalancingRules.[0].FrontendPort 80 "Incorrect frontend port for rule"
-        Expect.equal resource.LoadBalancingRules.[0].BackendPort (Nullable 8080) "Incorrect backend port for rule"
+        let rule = resource.LoadBalancingRules |> Seq.head
+        Expect.equal rule.Name "rule1" "Incorrect name for rule"
+        Expect.equal rule.FrontendPort 80 "Incorrect frontend port for rule"
+        Expect.equal rule.BackendPort (Nullable 8080) "Incorrect backend port for rule"
         let backendResourceId = "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', 'lb', 'lb-backend')]"
-        Expect.equal resource.LoadBalancingRules.[0].BackendAddressPool.Id backendResourceId "Incorrect backend address pool for rule"
+        Expect.equal rule.BackendAddressPool.Id backendResourceId "Incorrect backend address pool for rule"
     }
 
-    ftest "Complete load balancer backend pool" {
+    test "Complete load balancer backend pool" {
         let found =
-            arm { add_resource completeLoadBalancer }
+            arm { add_resource (completeLoadBalancer ()) }
                 |> findAzureResources<Microsoft.Azure.Management.Network.Models.BackendAddressPool> client.SerializationSettings
                 |> List.tryFind (fun r -> r.Name = "lb/lb-backend")
         let resource = Expect.wantSome found "No 'lb/lb-backend' resource found in template."
         Expect.equal resource.Name "lb/lb-backend" "Incorrect name for backend address pool"
+    }
+
+    test "Backend pool for existing vnet" {
+        let myVnet = vnet {
+            name "my-vnet"
+        }
+        let backendPool = backendAddressPool {
+            name "backend-services"
+            load_balancer "existing-lb"
+            link_to_vnet myVnet
+            add_ip_addresses [
+                "10.0.1.4"
+                "10.0.1.5"
+                "10.0.1.6"
+            ]
+        }
+        let template = arm {
+            add_resource backendPool
+        }
+        let pool = template.Template.Resources |> Seq.head :?> Farmer.Arm.LoadBalancer.BackendAddressPool
+        Expect.equal pool.LoadBalancer (ResourceName "existing-lb") "Pool had incorrect load balancer"
+        let expectedVnet = Unmanaged (Farmer.Arm.Network.virtualNetworks.resourceId (ResourceName "my-vnet"))
+        Expect.hasLength pool.LoadBalancerBackendAddresses 3 "Pool should have 3 addresses"
+        pool.LoadBalancerBackendAddresses |> List.iter (fun addr ->
+            Expect.equal addr.VirtualNetwork (Some expectedVnet) "Pool did not have expected vnet"
+        )
     }
 
 ]

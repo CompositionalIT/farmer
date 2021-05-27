@@ -129,7 +129,7 @@ type BackendAddressPool =
             {|  /// Unique name for the backend address
                 Name : ResourceName
                 /// Resource ID of a virtual network where the backend IP can be found.
-                VirtualNetwork : ResourceId option
+                VirtualNetwork : LinkedResource option
                 /// IP Address of the backend resource in the pool
                 IpAddress : System.Net.IPAddress
             |} list
@@ -137,7 +137,15 @@ type BackendAddressPool =
     interface IArmResource with
         member this.ResourceId = loadBalancerBackendAddressPools.resourceId (this.LoadBalancer, this.Name)
         member this.JsonModel =
-            {| loadBalancerBackendAddressPools.Create(this.Name, dependsOn=[loadBalancers.resourceId this.LoadBalancer]) with
+            let dependencies =
+                seq {
+                    yield loadBalancers.resourceId this.LoadBalancer
+                    for addr in this.LoadBalancerBackendAddresses do
+                        match addr.VirtualNetwork with
+                        | Some (Managed vnetId) -> yield vnetId
+                        | _ -> ()
+                } |> Set.ofSeq
+            {| loadBalancerBackendAddressPools.Create(this.Name, dependsOn=dependencies) with
                 name = $"{this.LoadBalancer.Value}/{this.Name.Value}"
                 properties =
                     {| loadBalancerBackendAddresses = this.LoadBalancerBackendAddresses |> List.map (fun addr ->
@@ -146,7 +154,8 @@ type BackendAddressPool =
                                 {| ipAddress = string addr.IpAddress
                                    virtualNetwork =
                                        match addr.VirtualNetwork with
-                                       | Some vnetId -> {| id = vnetId.Eval() |}
+                                       | Some (Managed vnetId) -> {| id = vnetId.Eval() |}
+                                       | Some (Unmanaged vnetId) -> {| id = vnetId.Eval() |}
                                        | None -> Unchecked.defaultof<_>
                                 |}
                             |}

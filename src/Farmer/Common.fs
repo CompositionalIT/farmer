@@ -918,6 +918,7 @@ module ExpressRoute =
     type Family = UnlimitedData | MeteredData
     type PeeringType = AzurePrivatePeering | MicrosoftPeering member this.Value = this.ToString()
 
+[<AutoOpen>]
 module PrivateIpAddress =
     type AllocationMethod = DynamicPrivateIp | StaticPrivateIp of System.Net.IPAddress
 

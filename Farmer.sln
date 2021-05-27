@@ -19,6 +19,7 @@ ProjectSection(SolutionItems) = preProject
 	samples\scripts\eventhubs.fsx = samples\scripts\eventhubs.fsx
 	samples\scripts\functions.fsx = samples\scripts\functions.fsx
 	samples\scripts\keyvault.fsx = samples\scripts\keyvault.fsx
+	samples\scripts\keyvault.fsx = samples\scripts\loadbalancer.fsx
 	samples\scripts\redis.fsx = samples\scripts\redis.fsx
 	samples\scripts\safe-template.fsx = samples\scripts\safe-template.fsx
 	samples\scripts\search.fsx = samples\scripts\search.fsx

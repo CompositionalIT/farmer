@@ -230,8 +230,7 @@ let tests =
                     add_backend_pools [
                         backendAddressPool {
                             name "lb-backend"
-                            link_to_vnet "my-vnet"
-                            load_balancer "lb"
+                            vnet "my-vnet"
                             add_ip_addresses [
                                 "10.0.1.4"
                                 "10.0.1.5"
@@ -256,9 +255,6 @@ let tests =
                             protocol TransmissionProtocol.TCP
                             probe "httpGet"
                         }
-                    ]
-                    add_dependencies [
-                        Farmer.Arm.Network.virtualNetworks.resourceId "my-vnet"
                     ]
                 }
             compareResourcesToJson [ myVnet; lb ] "load-balancer.json"
