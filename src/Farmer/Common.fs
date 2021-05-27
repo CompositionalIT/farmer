@@ -1292,11 +1292,11 @@ module TrafficManager =
 
     type EndpointTarget =
         | Website of ResourceName
-        | ExternalDomain of string
+        | External of (string * Location)
         member this.ArmValue =
             match this with
             | Website name -> name.Value
-            | ExternalDomain domain -> domain
+            | External (domain, _) -> domain
 
 namespace Farmer.DiagnosticSettings
 

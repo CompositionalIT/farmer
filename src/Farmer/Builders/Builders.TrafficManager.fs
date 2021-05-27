@@ -19,7 +19,10 @@ type EndpointConfig =
               Target = this.Target
               Weight = this.Weight
               Priority = this.Priority
-              Location = location }
+              Location = match this.Target with
+                         | External (_, l) -> Some l
+                         |_ -> None
+              }
         ]
 
 type TrafficManagerConfig =
@@ -48,7 +51,9 @@ type TrafficManagerConfig =
                                                   Target = e.Target
                                                   Weight = e.Weight
                                                   Priority = e.Priority
-                                                  Location = location })}
+                                                  Location = match e.Target with
+                                                             | External (_, l) -> Some l
+                                                             | _ -> None })}
         ]
 
 type EndpointBuilder() =
@@ -88,9 +93,10 @@ type EndpointBuilder() =
     member __.TargetWebSite(state:EndpointConfig, name) = { state with Target = Website name }
     member __.TargetWebSite(state:EndpointConfig, (webApp: WebAppConfig)) = { state with Target = Website webApp.Name }
 
-    /// Sets the target of the Endpoint to an external domain
-    [<CustomOperation "target_external_domain">]
-    member __.TargetExternalDomain(state:EndpointConfig, domain) = { state with Target = ExternalDomain domain }
+    /// Sets the target of the Endpoint to an external domain and location
+    [<CustomOperation "target_external">]
+    member __.TargetExternal(state:EndpointConfig, domain, location) =
+        { state with Target = External (domain, location) }
 
 type TrafficManagerBuilder() =
     member __.Yield _ =

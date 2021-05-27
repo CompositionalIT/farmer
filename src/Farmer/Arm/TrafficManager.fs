@@ -14,19 +14,19 @@ type Endpoint =
       Target : EndpointTarget
       Weight: int
       Priority: int
-      Location: Location }
+      Location: Location option }
     interface IArmResource with
         member this.ResourceId = azureEndpoints.resourceId (this.Name)
         member this.JsonModel =
-            {| location = this.Location
-               name = this.Name.Value
+            {| name = this.Name.Value
                properties =
                 {| endpointStatus = this.Status.ArmValue
                    weight = this.Weight
                    priority = this.Priority
-                   endpointLocation = this.Location.ArmValue
+                   endpointLocation = this.Location |> Option.map (fun l -> l.ArmValue)
+                                                    |> Option.defaultValue null
                    targetResourceId = match this.Target with
-                                      | ExternalDomain _ -> null
+                                      | External _ -> null
                                       | Website resourceName -> sites.resourceId(resourceName).Eval()
                    target = this.Target.ArmValue |} |} :> _
 
@@ -44,8 +44,6 @@ type Profile =
         member this.ResourceId = profiles.resourceId (this.Name)
         member this.JsonModel =
             {| profiles.Create(this.Name, Location.Global, this.Dependencies, tags = this.Tags) with
-                   name = this.Name.Value
-                   tags = this.Tags
                    properties =
                        {| profileStatus = this.Status.ArmValue
                           trafficRoutingMethod = this.RoutingMethod.ArmValue
