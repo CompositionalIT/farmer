@@ -1277,11 +1277,6 @@ module TrafficManager =
         | Subnet
         member this.ArmValue = this.ToString()
 
-    type ProfileStatus =
-        | Enabled
-        | Disabled
-        member this.ArmValue = this.ToString()
-
     type MonitorProtocol =
         | Http
         | Https
@@ -1294,16 +1289,6 @@ module TrafficManager =
           IntervalInSeconds: int
           ToleratedNumberOfFailures: int
           TimeoutInSeconds: int }
-
-    type TrafficViewEnrollmentStatus =
-        | Enabled
-        | Disabled
-        member this.ArmValue = this.ToString()
-
-    type EndpointStatus =
-        | Enabled
-        | Disabled
-        member this.ArmValue = this.ToString()
 
     type EndpointTarget =
         | Website of ResourceName

@@ -2,22 +2,24 @@
 module Farmer.Arm.TrafficManager
 
 open Farmer
+open Farmer.TrafficManager
 
 let profiles = ResourceType ("Microsoft.Network/trafficManagerProfiles", "2018-04-01")
-let endpoints = ResourceType ("Microsoft.Network/trafficManagerProfiles/azureEndpoints", "2018-04-01")
+let azureEndpoints = ResourceType ("Microsoft.Network/trafficManagerProfiles/azureEndpoints", "2018-04-01")
 let externalEndpoints = ResourceType ("Microsoft.Network/trafficManagerProfiles/externalEndpoints", "2018-04-01")
 
 type Endpoint =
     { Name : ResourceName
       Status: FeatureFlag
-      Target : string
+      Target : EndpointTarget
       Weight: int
       Priority: int
       Location: Location }
     interface IArmResource with
-        member this.ResourceId = endpoints.resourceId (this.Name)
+        member this.ResourceId = azureEndpoints.resourceId (this.Name)
         member this.JsonModel =
             {| location = this.Location
+               name = this.Name.Value
                properties =
                 {| endpointStatus = this.Status.ArmValue
                    weight = this.Weight
@@ -25,7 +27,7 @@ type Endpoint =
                    endpointLocation = this.Location.ArmValue
                    targetResourceId = match this.Target with
                                       | ExternalDomain _ -> null
-                                      | Website resource -> ArmExpression.resourceId(sites, resource).Eval()
+                                      | Website resourceName -> sites.resourceId(resourceName).Eval()
                    target = this.Target.ArmValue |} |} :> _
 
 type Profile =
@@ -36,28 +38,26 @@ type Profile =
       MonitorConfig : MonitorConfig
       TrafficViewEnrollmentStatus : FeatureFlag
       Endpoints : Endpoint list
-      DependsOn : ResourceName list
+      Dependencies : ResourceId Set
       Tags: Map<string,string> }
     interface IArmResource with
         member this.ResourceId = profiles.resourceId (this.Name)
         member this.JsonModel =
-            {| name = this.Name.Value
-               location = "global"
-               dependsOn = this.DependsOn |> List.map (fun r -> r.Value)
-               tags = this.Tags
-               properties =
-                   {| profileStatus = this.Status.ArmValue
-                      trafficRoutingMethod = this.RoutingMethod.ArmValue
-                      trafficViewEnrollmentStatus = this.TrafficViewEnrollmentStatus.ArmValue
-                      dependsOn = this.DependsOn |> List.map(fun p -> p.Value)
-                      dnsConfig = {| relativeName = this.Name.Value
-                                     ttl = this.DnsTtl |}
-                      monitorConfig = {| protocol = this.MonitorConfig.Protocol.ArmValue
-                                         port = this.MonitorConfig.Port
-                                         path = this.MonitorConfig.Path
-                                         intervalInSeconds = this.MonitorConfig.IntervalInSeconds
-                                         toleratedNumberOfFailures = this.MonitorConfig.ToleratedNumberOfFailures
-                                         timeoutInSeconds = this.MonitorConfig.TimeoutInSeconds |}
+            {| profiles.Create(this.Name, Location.Global, this.Dependencies, tags = this.Tags) with
+                   name = this.Name.Value
+                   tags = this.Tags
+                   properties =
+                       {| profileStatus = this.Status.ArmValue
+                          trafficRoutingMethod = this.RoutingMethod.ArmValue
+                          trafficViewEnrollmentStatus = this.TrafficViewEnrollmentStatus.ArmValue
+                          dnsConfig = {| relativeName = this.Name.Value
+                                         ttl = this.DnsTtl |}
+                          monitorConfig = {| protocol = this.MonitorConfig.Protocol.ArmValue
+                                             port = this.MonitorConfig.Port
+                                             path = this.MonitorConfig.Path
+                                             intervalInSeconds = this.MonitorConfig.IntervalInSeconds
+                                             toleratedNumberOfFailures = this.MonitorConfig.ToleratedNumberOfFailures
+                                             timeoutInSeconds = this.MonitorConfig.TimeoutInSeconds |}
 
-                      endpoints = this.Endpoints |> List.map (fun e -> (e:>IArmResource).JsonModel) |}
+                          endpoints = this.Endpoints |> List.map (fun e -> (e:>IArmResource).JsonModel) |}
             |} :> _

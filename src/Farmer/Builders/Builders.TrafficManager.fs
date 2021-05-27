@@ -7,12 +7,12 @@ open Farmer.Arm.TrafficManager
 
 type EndpointConfig =
     { Name : ResourceName
-      Status : EndpointStatus
+      Status : FeatureFlag
       Target : EndpointTarget
       Weight : int
       Priority : int }
     interface IBuilder with
-        member this.DependencyName = this.Name
+        member this.ResourceId = azureEndpoints.resourceId this.Name
         member this.BuildResources location = [
             { Name = this.Name
               Status = this.Status
@@ -33,14 +33,14 @@ type TrafficManagerConfig =
       Tags: Map<string,string> }
     interface IBuilder with
         member this.ResourceId = profiles.resourceId this.Name
-        member this.BuildResources _ = [
+        member this.BuildResources location = [
             { Name = this.Name
               Status = this.Status
               RoutingMethod = this.RoutingMethod
               DnsTtl = this.DnsTtl
               MonitorConfig = this.MonitorConfig
               TrafficViewEnrollmentStatus = this.TrafficViewEnrollmentStatus
-              DependsOn = []
+              Dependencies = Set.empty
               Tags = this.Tags
               Endpoints = this.Endpoints
                           |> List.map (fun e -> { Name = e.Name
@@ -54,7 +54,7 @@ type TrafficManagerConfig =
 type EndpointBuilder() =
     member __.Yield _ =
         { Name = ResourceName.Empty
-          Status = EndpointStatus.Enabled
+          Status = Enabled
           Target = EndpointTarget.Website ResourceName.Empty
           Weight = 1
           Priority = 1 }
@@ -70,10 +70,10 @@ type EndpointBuilder() =
     member __.Weight(state:EndpointConfig, weight) = { state with Weight = weight }
 
     [<CustomOperation "disable_endpoint">]
-    member __.DisableEndpoint(state:EndpointConfig) = { state with Status = EndpointStatus.Disabled }
+    member __.DisableEndpoint(state:EndpointConfig) = { state with Status = Disabled }
 
     [<CustomOperation "enable_endpoint">]
-    member __.EnableEndpoint(state:EndpointConfig) = { state with Status = EndpointStatus.Enabled }
+    member __.EnableEndpoint(state:EndpointConfig) = { state with Status = Enabled }
 
     [<CustomOperation "priority">]
     member __.Priority(state:EndpointConfig, priority) = { state with Priority = priority }
@@ -126,21 +126,21 @@ type TrafficManagerBuilder() =
     member __.DnsTtl(state:TrafficManagerConfig, ttl) = { state with DnsTtl = ttl }
 
     [<CustomOperation "disable_profile">]
-    member __.DisableProfileStatus(state:TrafficManagerConfig) = { state with Status = ProfileStatus.Disabled }
+    member __.DisableProfileStatus(state:TrafficManagerConfig) = { state with Status = Disabled }
 
     [<CustomOperation "enable_profile">]
-    member __.EnableProfileStatus(state:TrafficManagerConfig) = { state with Status = ProfileStatus.Enabled }
+    member __.EnableProfileStatus(state:TrafficManagerConfig) = { state with Status = Enabled }
 
     [<CustomOperation "routing_method">]
     member __.RoutingMethod(state:TrafficManagerConfig, routingMethod) = { state with RoutingMethod = routingMethod }
 
     [<CustomOperation "enable_traffic_view">]
     member __.EnableTrafficView(state:TrafficManagerConfig) =
-        { state with TrafficViewEnrollmentStatus = TrafficViewEnrollmentStatus.Enabled }
+        { state with TrafficViewEnrollmentStatus = Enabled }
 
     [<CustomOperation "disable_traffic_view">]
     member __.DisableTrafficView(state:TrafficManagerConfig) =
-        { state with TrafficViewEnrollmentStatus = TrafficViewEnrollmentStatus.Disabled }
+        { state with TrafficViewEnrollmentStatus = Disabled }
 
     [<CustomOperation "monitor_protocol">]
     member __.MonitorProtocol(state:TrafficManagerConfig, protocol) =
