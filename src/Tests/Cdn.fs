@@ -93,7 +93,7 @@ let tests = testList "CDN tests" [
             cdn {
                 name "test"
                 add_endpoints [ endpoint {
-                    add_rules [ rule{ name "test-rule"; order 2; when_request_body Contains ["content"] ToLowercase; when_device_type EqualityOperator.Equals Mobile;  modify_response_header  Append "headerName" "headerValue" }]
+                    add_rules [ cdnRule{ name "test-rule"; order 2; when_request_body Contains ["content"] ToLowercase; when_device_type EqualityOperator.Equals Mobile;  modify_response_header  Append "headerName" "headerValue" }]
                 } ]
             }
             |> getResourceAtIndex 1

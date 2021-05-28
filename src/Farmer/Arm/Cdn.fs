@@ -119,15 +119,9 @@ module CdnRule =
                 dataType,
                 operator,
                 [ matchValue ],
-                (match caseTransform with
-                 | Some t -> t
-                 | None -> CaseTransform.NoTransform),
-                (match selector with
-                 | Some s -> s
-                 | None -> string None),
-                match additionalParameters with
-                | Some p -> p
-                | None -> Map.empty<string, obj>
+                caseTransform |> Option.defaultValue NoTransform,
+                selector |> Option.defaultValue "",
+                additionalParameters |> Option.defaultValue Map.empty
             )
 
         member this.JsonModel =
@@ -279,11 +273,7 @@ module CdnRule =
                         .Add("headerName", modifyHeader.HttpHeaderName)
                         .Add ("value", modifyHeader.HttpHeaderValue))
 
-            let mapOption(value: string option) =
-                match value with
-                | Some p -> p
-                | None -> null
-
+          
             match this with
             | CacheExpiration a ->
                 map
@@ -292,14 +282,7 @@ module CdnRule =
                     (Map.empty<_, obj>
                         .Add("cacheBehavior", a.CacheBehaviour.ArmValue)
                         .Add("cacheType", "All")
-                        .Add (
-                            "cacheDuration",
-                            mapOption (
-                                match a.CacheDuration with
-                                | Some d -> Some (d.ToString "d\.hh\:mm\:ss")
-                                | None -> None
-                            )
-                        ))
+                        .Add("cacheDuration", a.CacheDuration |> Option.map (fun d -> d.ToString "d\.hh\:mm\:ss") |> Option.toObj ))
             | CacheKeyQueryString a ->
                 map
                     "CacheKeyQueryString"
@@ -324,10 +307,10 @@ module CdnRule =
                     (Map.empty<_, obj>
                         .Add("redirectType", a.RedirectType.ArmValue)
                         .Add("destinationProtocol", a.DestinationProtocol.ArmValue)
-                        .Add("customQueryString", mapOption a.QueryString)
-                        .Add("customPath", mapOption a.Path)
-                        .Add("customHostname", mapOption a.Hostname)
-                        .Add ("customFragment", mapOption a.Fragment))
+                        .Add("customQueryString", a.QueryString |> Option.toObj)
+                        .Add("customPath", a.Path |> Option.toObj)
+                        .Add("customHostname", a.Hostname |> Option.toObj)
+                        .Add ("customFragment", a.Fragment |> Option.toObj))
 
 type Rule =
     { Name: ResourceName

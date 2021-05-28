@@ -9,7 +9,7 @@ open Farmer.Cdn
 open System
 open CdnRule
 
-type RuleConfig =
+type CdnRuleConfig =
     { Name: ResourceName
       Order: int
       Conditions: Condition list
@@ -27,7 +27,7 @@ type EndpointConfig =
       CustomDomain : string option
       OptimizationType : OptimizationType
       DeliveryPolicyDescription: string
-      Rules: RuleConfig list }
+      Rules: CdnRuleConfig list }
 
 type CdnConfig =
     { Name : ResourceName
@@ -138,33 +138,33 @@ type EndpointBuilder() =
     [<CustomOperation "optimise_for">]
     member _.OptimiseFor(state:EndpointConfig, optimizationType) = { state with OptimizationType = optimizationType }
     [<CustomOperation "add_rule">]
-    member _.AddRule(state: EndpointConfig, rule: RuleConfig) = { state with Rules = state.Rules @ [ rule ] }
+    member _.AddRule(state: EndpointConfig, rule: CdnRuleConfig) = { state with Rules = state.Rules @ [ rule ] }
     [<CustomOperation "add_rules">]
-    member _.AddRules(state: EndpointConfig, rules: RuleConfig list) = { state with Rules = state.Rules @ rules }
+    member _.AddRules(state: EndpointConfig, rules: CdnRuleConfig list) = { state with Rules = state.Rules @ rules }
 
-type RuleBuilder () =
+type CdnRuleBuilder () =
     interface IDependable<EndpointConfig> with
         member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
-    member _.Yield _ : RuleConfig =
+    member _.Yield _ : CdnRuleConfig =
         { Name = ResourceName.Empty
           Order = 1
           Conditions = list.Empty
           Actions = list.Empty }
     [<CustomOperation "name">]
-    member _.Name(state: RuleConfig, name) = { state with Name = name }
-    member this.Name(state: RuleConfig, name) = this.Name (state, ResourceName name)
+    member _.Name(state: CdnRuleConfig, name) = { state with Name = name }
+    member this.Name(state: CdnRuleConfig, name) = this.Name (state, ResourceName name)
     [<CustomOperation "order">]
-    member _.Order(state: RuleConfig, order) = { state with Order = order }
+    member _.Order(state: CdnRuleConfig, order) = { state with Order = order }
     [<CustomOperation "when_device_type">]
-    member _.WhenDeviceType(state: RuleConfig, operator, deviceType) =
+    member _.WhenDeviceType(state: CdnRuleConfig, operator, deviceType) =
         { state with
               Conditions = state.Conditions @ [ IsDevice {| Operator = operator ; DeviceType = deviceType |} ] }
     [<CustomOperation "when_http_version">]
-    member _.WhenHttpVersion(state: RuleConfig, operator, httpVersions) =
+    member _.WhenHttpVersion(state: CdnRuleConfig, operator, httpVersions) =
         { state with
               Conditions = state.Conditions @ [ HttpVersion {| Operator = operator ; HttpVersions = httpVersions |} ] }
     [<CustomOperation "when_request_cookies">]
-    member _.WhenRequestCookies(state: RuleConfig, cookiesName, operator, cookiesValue, caseTransform) =
+    member _.WhenRequestCookies(state: CdnRuleConfig, cookiesName, operator, cookiesValue, caseTransform) =
         { state with
               Conditions =
                   state.Conditions
@@ -174,7 +174,7 @@ type RuleBuilder () =
                              CookiesValue = cookiesValue
                              CaseTransform = caseTransform |} ] }
     [<CustomOperation "when_post_argument">]
-    member _.WhenPostArgument(state: RuleConfig, argumentName, operator, argumentValue, caseTransform) =
+    member _.WhenPostArgument(state: CdnRuleConfig, argumentName, operator, argumentValue, caseTransform) =
         { state with
               Conditions =
                   state.Conditions
@@ -184,7 +184,7 @@ type RuleBuilder () =
                              ArgumentValue = argumentValue
                              CaseTransform = caseTransform |} ] }
     [<CustomOperation "when_query_string">]
-    member _.WhenQueryString(state: RuleConfig, operator, queryString, caseTransform) =
+    member _.WhenQueryString(state: CdnRuleConfig, operator, queryString, caseTransform) =
         { state with
               Conditions =
                   state.Conditions
@@ -193,11 +193,11 @@ type RuleBuilder () =
                              QueryString = queryString
                              CaseTransform = caseTransform |} ] }
     [<CustomOperation "when_remote_address">]
-    member _.WhenRemoteAddress(state: RuleConfig, operator, matchValues) =
+    member _.WhenRemoteAddress(state: CdnRuleConfig, operator, matchValues) =
         { state with
               Conditions = state.Conditions @ [ RemoteAddress {| Operator = operator ; MatchValues = matchValues |} ] }
     [<CustomOperation "when_request_body">]
-    member _.WhenRequestBody(state: RuleConfig, operator, requestBody, caseTransform) =
+    member _.WhenRequestBody(state: CdnRuleConfig, operator, requestBody, caseTransform) =
         { state with
               Conditions =
                   state.Conditions
@@ -206,7 +206,7 @@ type RuleBuilder () =
                              RequestBody = requestBody
                              CaseTransform = caseTransform |} ] }
     [<CustomOperation "when_request_header">]
-    member _.WhenRequestHeader(state: RuleConfig, headerName, operator, headerValue, caseTransform) =
+    member _.WhenRequestHeader(state: CdnRuleConfig, headerName, operator, headerValue, caseTransform) =
         { state with
               Conditions =
                   state.Conditions
@@ -216,15 +216,15 @@ type RuleBuilder () =
                              HeaderValue = headerValue
                              CaseTransform = caseTransform |} ] }
     [<CustomOperation "when_request_method">]
-    member _.WhenRequestMethod(state: RuleConfig, operator, requestMethod) =
+    member _.WhenRequestMethod(state: CdnRuleConfig, operator, requestMethod) =
         { state with
               Conditions = state.Conditions @ [ RequestMethod {| Operator = operator ; RequestMethod = requestMethod |} ] }
     [<CustomOperation "when_request_protocol">]
-    member _.WhenRequestProtocol(state: RuleConfig, operator, value) =
+    member _.WhenRequestProtocol(state: CdnRuleConfig, operator, value) =
         { state with
               Conditions = state.Conditions @ [ RequestProtocol {| Operator = operator ; Value = value |} ] }
     [<CustomOperation "when_request_url">]
-    member _.WhenRequestUrl(state: RuleConfig, operator, requestUrl, caseTransform) =
+    member _.WhenRequestUrl(state: CdnRuleConfig, operator, requestUrl, caseTransform) =
         { state with
               Conditions =
                   state.Conditions
@@ -233,7 +233,7 @@ type RuleBuilder () =
                              RequestUrl = requestUrl
                              CaseTransform = caseTransform |} ] }
     [<CustomOperation "when_url_file_extension">]
-    member _.WhenUrlFileExtension(state: RuleConfig, operator, extension, caseTransform) =
+    member _.WhenUrlFileExtension(state: CdnRuleConfig, operator, extension, caseTransform) =
         { state with
               Conditions =
                   state.Conditions
@@ -242,7 +242,7 @@ type RuleBuilder () =
                              Extension = extension
                              CaseTransform = caseTransform |} ] }
     [<CustomOperation "when_url_file_name">]
-    member _.WhenUrlFileName(state: RuleConfig, operator, fileName, caseTransform) =
+    member _.WhenUrlFileName(state: CdnRuleConfig, operator, fileName, caseTransform) =
         { state with
               Conditions =
                   state.Conditions
@@ -251,7 +251,7 @@ type RuleBuilder () =
                              FileName = fileName
                              CaseTransform = caseTransform |} ] }
     [<CustomOperation "when_url_path">]
-    member _.WhenUrlPath(state: RuleConfig, operator, value, caseTransform) =
+    member _.WhenUrlPath(state: CdnRuleConfig, operator, value, caseTransform) =
         { state with
               Conditions =
                   state.Conditions
@@ -261,15 +261,15 @@ type RuleBuilder () =
                              CaseTransform = caseTransform |} ] }
 
     [<CustomOperation "cache_expiration">]
-    member _.CacheExpiration(state: RuleConfig, cacheBehaviour, ?cacheDuration) =
+    member _.CacheExpiration(state: CdnRuleConfig, cacheBehaviour, ?cacheDuration) =
         { state with
               Actions = state.Actions @ [ CacheExpiration {| CacheBehaviour = cacheBehaviour ; CacheDuration = cacheDuration |} ] }
     [<CustomOperation "cache_key_query_string">]
-    member _.CacheKeyQueryString(state: RuleConfig, behaviour, parameters) =
+    member _.CacheKeyQueryString(state: CdnRuleConfig, behaviour, parameters) =
         { state with
               Actions = state.Actions @ [ CacheKeyQueryString {| Behaviour = behaviour ; Parameters = parameters |} ] }
     [<CustomOperation "modify_request_header">]
-    member _.ModifyRequestHeader(state: RuleConfig, action, httpHeaderName, httpHeaderValue) =
+    member _.ModifyRequestHeader(state: CdnRuleConfig, action, httpHeaderName, httpHeaderValue) =
         { state with
               Actions =
                   state.Actions
@@ -278,7 +278,7 @@ type RuleBuilder () =
                             HttpHeaderName = httpHeaderName
                             HttpHeaderValue = httpHeaderValue } ] }
     [<CustomOperation "modify_response_header">]
-    member _.ModifyResponseHeader(state: RuleConfig, action, httpHeaderName, httpHeaderValue) =
+    member _.ModifyResponseHeader(state: CdnRuleConfig, action, httpHeaderName, httpHeaderValue) =
         { state with
               Actions =
                   state.Actions
@@ -288,7 +288,7 @@ type RuleBuilder () =
                             HttpHeaderValue = httpHeaderValue } ] }
 
     [<CustomOperation "url_rewrite">]
-    member _.UrlRewrite(state: RuleConfig, sourcePattern, destination, preserveUnmatchedPath) =
+    member _.UrlRewrite(state: CdnRuleConfig, sourcePattern, destination, preserveUnmatchedPath) =
         { state with
               Actions =
                   state.Actions
@@ -299,7 +299,7 @@ type RuleBuilder () =
     [<CustomOperation "url_redirect">]
     member _.UrlRedirect
         (
-            state: RuleConfig,
+            state: CdnRuleConfig,
             redirectType,
             destinationProtocol,
             ?hostname,
@@ -322,4 +322,4 @@ let cdn = CdnBuilder()
 
 let endpoint = EndpointBuilder()
 
-let rule = RuleBuilder ()
+let cdnRule = CdnRuleBuilder()
