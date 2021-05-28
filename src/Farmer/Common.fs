@@ -1297,7 +1297,7 @@ module TrafficManager =
         member this.ArmValue =
             match this with
             | Website name -> name.Value
-            | External (domain, _) -> domain
+            | External (target, _) -> target
 
 namespace Farmer.DiagnosticSettings
 

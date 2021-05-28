@@ -5,6 +5,7 @@ open Farmer
 open Farmer.TrafficManager
 open Farmer.Arm.TrafficManager
 open System
+open System.Net
 
 type EndpointConfig =
     { Name : ResourceName
@@ -91,13 +92,17 @@ type EndpointBuilder() =
 
     /// Sets the target of the Endpoint to a web app
     [<CustomOperation "target_webapp">]
-    member __.TargetWebSite(state:EndpointConfig, name) = { state with Target = Website name }
-    member __.TargetWebSite(state:EndpointConfig, (webApp: WebAppConfig)) = { state with Target = Website webApp.Name }
+    member __.TargetWebApp(state:EndpointConfig, name) = { state with Target = Website name }
 
-    /// Sets the target of the Endpoint to an external domain and location
+    /// Sets the target of the Endpoint to a web app
+    member this.TargetWebApp(state:EndpointConfig, (webApp: WebAppConfig)) = { state with Target = Website webApp.Name }
+
+    /// Sets the target of the Endpoint to an external domain/IP and location
     [<CustomOperation "target_external">]
     member __.TargetExternal(state:EndpointConfig, domain, location) =
         { state with Target = External (domain, location) }
+    member __.TargetExternal(state:EndpointConfig, ipAddress: IPAddress, location) =
+        { state with Target = External (string ipAddress, location) }
 
 type TrafficManagerBuilder() =
     member __.Yield _ =
