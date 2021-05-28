@@ -32,7 +32,7 @@ type Endpoint =
 
 type Profile =
     { Name : ResourceName
-      DnsTtl: int
+      DnsTtl: int<Seconds>
       Status : FeatureFlag
       RoutingMethod : RoutingMethod
       MonitorConfig : MonitorConfig
@@ -53,9 +53,9 @@ type Profile =
                           monitorConfig = {| protocol = this.MonitorConfig.Protocol.ArmValue
                                              port = this.MonitorConfig.Port
                                              path = this.MonitorConfig.Path
-                                             intervalInSeconds = this.MonitorConfig.IntervalInSeconds
+                                             intervalInSeconds = int this.MonitorConfig.IntervalInSeconds
                                              toleratedNumberOfFailures = this.MonitorConfig.ToleratedNumberOfFailures
-                                             timeoutInSeconds = this.MonitorConfig.TimeoutInSeconds |}
+                                             timeoutInSeconds = int this.MonitorConfig.TimeoutInSeconds |}
 
                           endpoints = this.Endpoints |> List.map (fun e -> (e:>IArmResource).JsonModel) |}
             |} :> _

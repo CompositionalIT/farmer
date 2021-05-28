@@ -78,6 +78,7 @@ type OS = Windows | Linux
 type [<Measure>] Gb
 type [<Measure>] Mb
 type [<Measure>] Mbps
+type [<Measure>] Seconds
 type [<Measure>] Hours
 type [<Measure>] Days
 type [<Measure>] VCores
@@ -1286,9 +1287,9 @@ module TrafficManager =
         { Protocol : MonitorProtocol
           Port: int
           Path: string
-          IntervalInSeconds: int
+          IntervalInSeconds: int<Seconds>
           ToleratedNumberOfFailures: int
-          TimeoutInSeconds: int }
+          TimeoutInSeconds: int<Seconds> }
 
     type EndpointTarget =
         | Website of ResourceName

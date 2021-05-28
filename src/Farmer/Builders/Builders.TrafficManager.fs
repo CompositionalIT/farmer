@@ -4,6 +4,7 @@ module Farmer.Builders.TrafficManager
 open Farmer
 open Farmer.TrafficManager
 open Farmer.Arm.TrafficManager
+open System
 
 type EndpointConfig =
     { Name : ResourceName
@@ -27,7 +28,7 @@ type EndpointConfig =
 
 type TrafficManagerConfig =
     { Name : ResourceName
-      DnsTtl : int
+      DnsTtl : int<Seconds>
       Status : FeatureFlag
       RoutingMethod : RoutingMethod
       MonitorConfig : MonitorConfig
@@ -101,7 +102,7 @@ type EndpointBuilder() =
 type TrafficManagerBuilder() =
     member __.Yield _ =
         { Name = ResourceName.Empty
-          DnsTtl = 30
+          DnsTtl = 30<Seconds>
           Status = Enabled
           RoutingMethod = RoutingMethod.Performance
           TrafficViewEnrollmentStatus = Disabled
@@ -110,9 +111,9 @@ type TrafficManagerBuilder() =
             { Protocol = MonitorProtocol.Https
               Port = 443
               Path = "/"
-              IntervalInSeconds = 30
+              IntervalInSeconds = 30<Seconds>
               ToleratedNumberOfFailures = 3
-              TimeoutInSeconds = 10 }
+              TimeoutInSeconds = 10<Seconds> }
           Tags = Map.empty }
 
     member __.Run (state:TrafficManagerConfig) =
@@ -133,14 +134,17 @@ type TrafficManagerBuilder() =
     [<CustomOperation "add_tag">]
     member this.Tag(state:TrafficManagerConfig, key, value) = this.Tags(state, [ (key,value) ])
 
-    /// Adds an Endpoint to the Traffic Manager profile
-    [<CustomOperation "add_endpoint">]
-    member __.AddEndpoint(state:TrafficManagerConfig, endpoint:EndpointConfig) =
-        { state with Endpoints = endpoint :: state.Endpoints }
+    /// Adds Endpoints to the Traffic Manager profile
+    [<CustomOperation "add_endpoints">]
+    member _.AddEndpoints(state:TrafficManagerConfig, endpoints:EndpointConfig list) =
+        { state with Endpoints = state.Endpoints @ endpoints }
+    member this.AddEndpoints(state:TrafficManagerConfig, endpoint:EndpointConfig) =
+        this.AddEndpoints(state, [endpoint])
 
     /// Sets the DNS TTL of the Traffic Manager profile, in seconds (default 30)
     [<CustomOperation "dns_ttl">]
-    member __.DnsTtl(state:TrafficManagerConfig, ttl) = { state with DnsTtl = ttl }
+    member __.DnsTtl(state:TrafficManagerConfig, ttl: int<Seconds>) = { state with DnsTtl = ttl }
+    member this.DnsTtl(state:TrafficManagerConfig, ttl: TimeSpan) = { state with DnsTtl = (int ttl.TotalSeconds) * 1<Seconds> }
 
     /// Disables the Traffic Manager profile
     [<CustomOperation "disable_profile">]
@@ -183,11 +187,15 @@ type TrafficManagerBuilder() =
     [<CustomOperation "monitor_interval">]
     member __.MonitorInterval(state:TrafficManagerConfig, interval) =
         { state with MonitorConfig = { state.MonitorConfig with IntervalInSeconds = interval } }
+    member this.MonitorInterval(state:TrafficManagerConfig, interval: TimeSpan) =
+        this.MonitorInterval(state, (int interval.TotalSeconds) * 1<Seconds>)
 
     /// Sets the monitoring timeout, in seconds, of the Traffic Manager profile (default 10)
     [<CustomOperation "monitor_timeout">]
     member __.MonitorTimeout(state:TrafficManagerConfig, timeout) =
         { state with MonitorConfig = { state.MonitorConfig with TimeoutInSeconds = timeout } }
+    member this.MonitorTimeout(state:TrafficManagerConfig, timeout: TimeSpan) =
+        this.MonitorTimeout(state, (int timeout.TotalSeconds) * 1<Seconds>)
 
     /// Sets the monitoring tolerated number of failures, of the Traffic Manager profile (default 3)
     [<CustomOperation "monitor_tolerated_failures">]
