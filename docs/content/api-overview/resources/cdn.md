@@ -14,7 +14,7 @@ The CDN builder is used to create Azure Content Delivery Network instances.
 There are three builders available:
 * The CDN builder, which maps to a CDN profile.
 * The Endpoint builder, which creates endpoints and custom domains. Endpoints are created within a CDN.
-* The Rule builder, which creates CDN rules with conditions and actions that can be added to an endpoint
+* The CDN Rule builder, which creates CDN rules with conditions and actions that can be added to an endpoint
 
 #### CDN Builder Keywords
 | Keyword | Purpose |
@@ -40,7 +40,7 @@ There are three builders available:
 | add_rule | Adds a single rule to the endpoint delivery policy.
 | add_rules | Adds multiple rule to the endpoint delivery policy.
 
-#### Rule Builder Keywords
+#### CDN Rule Builder Keywords
 | Keyword | Purpose |
 |-|-|
 | name | Sets the name of the rule. |
@@ -80,7 +80,7 @@ let isaacStorage = storageAccount {
     name "isaacsuperstore"
 }
 
-let isaacRule = rule {
+let isaacRule = cdnRule {
     name "isaacsuperrule"
     order 1
     when_request_header "issac" Contains ["great"] ToLowercase

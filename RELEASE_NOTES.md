@@ -1,7 +1,7 @@
 Release Notes
 =============
 
-## 1.6.0
+## 1.5.3
 * CDN: Support for CDN rules
 
 ## 1.5.2

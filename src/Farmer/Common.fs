@@ -1386,8 +1386,8 @@ module DeliveryPolicy =
         | Https
         member this.ArmValue =
             match this with
-            | Http -> "Http"
-            | Https -> "Https"
+            | Http -> "HTTP"
+            | Https -> "HTTPS"
     
     type UrlRedirectProtocol =
         | Http
