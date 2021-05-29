@@ -5,7 +5,7 @@ open Farmer
 open Farmer.Identity
 open Farmer.Vm
 
-let managedClusters = ResourceType ("Microsoft.ContainerService/managedClusters", "2020-04-01")
+let managedClusters = ResourceType ("Microsoft.ContainerService/managedClusters", "2021-03-01")
 
 type AgentPoolMode = System | User
 
@@ -39,12 +39,12 @@ type ManagedCluster =
            AdminPassword : SecureParameter |} option
       ServicePrincipalProfile :
         {| ClientId : string
-           ClientSecret : SecureParameter |} option
+           ClientSecret : SecureParameter option |}
     }
 
     interface IParameters with
         member this.SecureParameters = [
-            yield! this.ServicePrincipalProfile |> Option.mapList(fun spp -> spp.ClientSecret)
+            yield! this.ServicePrincipalProfile.ClientSecret |> Option.mapList id
             yield! this.WindowsProfile |> Option.mapList (fun wp -> wp.AdminPassword)
         ]
     interface IArmResource with
@@ -93,11 +93,11 @@ type ManagedCluster =
                                        serviceCidr = networkProfile.ServiceCidr |> IPAddressCidr.format |}
                               | None -> Unchecked.defaultof<_>
                           servicePrincipalProfile =
-                                match this.ServicePrincipalProfile with
-                                | Some spProfile ->
-                                    {| clientId = spProfile.ClientId
-                                       secret = spProfile.ClientSecret.ArmExpression.Eval() |}
-                                | None -> Unchecked.defaultof<_>
+                              {| clientId = this.ServicePrincipalProfile.ClientId
+                                 secret =
+                                    this.ServicePrincipalProfile.ClientSecret
+                                    |> Option.map (fun clientSecret -> clientSecret.ArmExpression.Eval())
+                                    |> Option.toObj |}
                           windowsProfile =
                                 match this.WindowsProfile with
                                 | Some winProfile ->

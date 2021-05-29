@@ -1,5 +1,7 @@
 Release Notes
 =============
+## 1.5.3
+* Container Service (AKS): Support for using managed identity (msi) for the service principal.
 
 ## 1.5.3
 * CDN: Support for CDN rules

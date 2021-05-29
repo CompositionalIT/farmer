@@ -25,6 +25,7 @@ The AKS Builder constructs AKS clusters.
 | network_profile | Sets the network profile for the AKS cluster. |
 | linux_profile | Sets the linux profile for the AKS cluster. |
 | service_principal_client_id | Sets the client id of the service principal for the AKS cluster. |
+| service_principal_use_msi | Enables the AKS cluster to use the managed identity service principal instead of an external client secret. |
 | windows_username | Sets the windows admin username for the AKS cluster. |
 
 #### Agent Pool Builder keywords
