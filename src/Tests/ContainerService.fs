@@ -40,6 +40,24 @@ let tests = testList "AKS" [
         Expect.equal aks.ServicePrincipalProfile.ClientId "some-spn-client-id" ""
         Expect.equal aks.ServicePrincipalProfile.Secret "[parameters('client-secret-for-k8s-cluster')]" ""
     }
+    test "AKS cluster using MSI" {
+        let myAks = aks {
+            name "k8s-cluster"
+            dns_prefix "testaks"
+            add_agent_pools [
+                agentPool {
+                    name "linuxPool"
+                    count 3
+                }
+            ]
+            service_principal_use_msi
+        }
+        let aks =
+            arm { add_resource myAks }
+            |> findAzureResources<ContainerService> dummyClient.SerializationSettings
+            |> Seq.head
+        Expect.equal aks.ServicePrincipalProfile.ClientId "msi" "ClientId should be 'msi' for service principal."
+    }
     test "Calculates network profile DNS server" {
         let netProfile =
             azureCniNetworkProfile {
