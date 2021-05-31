@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## vNext
+* Functions: Support publishing as a docker container
+
 ## 1.5.3
 * CDN: Support for CDN rules
 

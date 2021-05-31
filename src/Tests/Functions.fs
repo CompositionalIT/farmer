@@ -113,4 +113,15 @@ let tests = testList "Functions tests" [
         let site = resources.[0] :?> Web.Site
         Expect.equal site.AppSettings.["FUNCTIONS_WORKER_RUNTIME"] (LiteralSetting "dotnet-isolated") "Should use dotnet-isolated functions runtime"
     }
+
+    test "Publish as docker container" {
+        let f = functions {
+            publish_as (DockerContainer { Url = new Uri("http://www.farmer.io"); User = "Robert Lewandowski"; Password = "41"; StartupCommand = "do it" }) }
+        let resources = (f :> IBuilder).BuildResources Location.WestEurope
+        let site = resources.[0] :?> Web.Site
+        Expect.equal site.AppSettings.["DOCKER_REGISTRY_SERVER_URL"] (LiteralSetting "http://www.farmer.io/") ""
+        Expect.equal site.AppSettings.["DOCKER_REGISTRY_SERVER_USERNAME"] (LiteralSetting "Robert Lewandowski") ""
+        Expect.equal site.AppSettings.["DOCKER_REGISTRY_SERVER_PASSWORD"] (LiteralSetting "41") ""
+        Expect.equal site.AppCommandLine (Some "do it") ""
+    }
 ]
