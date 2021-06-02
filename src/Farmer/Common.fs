@@ -1290,6 +1290,211 @@ module Cdn =
     | LargeFileDownload
     | DynamicSiteAcceleration
 
+module DeliveryPolicy =
+    type IOperator =
+            abstract member AsOperator : string
+            abstract member AsNegateCondition : bool
+    
+    type EqualityOperator =
+        | Equals
+        | NotEquals
+        interface IOperator with
+            member this.AsOperator = "Equal"
+    
+            member this.AsNegateCondition =
+                match this with
+                | Equals -> false
+                | NotEquals -> true
+    
+    type ComparisonOperator =
+        | Any
+        | Equals
+        | Contains
+        | BeginsWith
+        | EndsWith
+        | LessThan
+        | LessThanOrEquals
+        | GreaterThan
+        | GreaterThanOrEquals
+        | NotAny
+        | NotEquals
+        | NotContains
+        | NotBeginsWith
+        | NotEndsWith
+        | NotLessThan
+        | NotLessThanOrEquals
+        | NotGreaterThan
+        | NotGreaterThanOrEquals
+        interface IOperator with
+            member this.AsOperator =
+                match this with
+                | Any
+                | NotAny -> "Any"
+                | Equals
+                | NotEquals -> "Equal"
+                | Contains
+                | NotContains -> "Contains"
+                | BeginsWith
+                | NotBeginsWith -> "BeginsWith"
+                | EndsWith
+                | NotEndsWith -> "EndsWith"
+                | LessThan
+                | NotLessThan -> "LessThan"
+                | LessThanOrEquals
+                | NotLessThanOrEquals -> "LessThanOrEqual"
+                | GreaterThan
+                | NotGreaterThan -> "GreaterThan"
+                | GreaterThanOrEquals
+                | NotGreaterThanOrEquals -> "GreaterThanOrEqual"
+    
+            member this.AsNegateCondition =
+                match this with
+                | NotAny
+                | NotEquals
+                | NotContains
+                | NotBeginsWith
+                | NotEndsWith
+                | NotLessThan
+                | NotLessThanOrEquals
+                | NotGreaterThan
+                | NotGreaterThanOrEquals -> true
+                | _ -> false
+    
+    type RemoteAddressOperator =
+        | Any
+        | GeoMatch
+        | IPMatch
+        | NotAny
+        | NotGeoMatch
+        | NotIPMatch
+        interface IOperator with
+            member this.AsOperator =
+                match this with
+                | Any
+                | NotAny -> "Any"
+                | GeoMatch
+                | NotGeoMatch -> "GeoMatch"
+                | IPMatch
+                | NotIPMatch -> "IPMatch"
+    
+            member this.AsNegateCondition =
+                match this with
+                | NotAny
+                | NotGeoMatch
+                | NotIPMatch -> true
+                | _ -> false
+    
+    type DeviceType =
+        | Mobile
+        | Desktop
+        member this.ArmValue =
+            match this with
+            | Desktop -> "Desktop"
+            | Mobile -> "Mobile"
+    
+    type HttpVersion =
+        | Version20
+        | Version11
+        | Version10
+        | Version09
+        member this.ArmValue =
+            match this with
+            | Version20 -> "2.0"
+            | Version11 -> "1.1"
+            | Version10 -> "1.0"
+            | Version09 -> "0.9"
+    
+    type RequestMethod =
+        | Get
+        | Post
+        | Put
+        | Delete
+        | Head
+        | Options
+        | Trace
+        member this.ArmValue =
+            match this with
+            | Get -> "GET"
+            | Post -> "POST"
+            | Put -> "PUT"
+            | Delete -> "DELETE"
+            | Head -> "HEAD"
+            | Options -> "OPTIONS"
+            | Trace -> "TRACE"
+    
+    type Protocol =
+        | Http
+        | Https
+        member this.ArmValue =
+            match this with
+            | Http -> "HTTP"
+            | Https -> "HTTPS"
+    
+    type UrlRedirectProtocol =
+        | Http
+        | Https
+        | MatchRequest
+        member this.ArmValue =
+            match this with
+            | Http -> "Http"
+            | Https -> "Https"
+            | MatchRequest -> "MatchRequest"
+    
+    type CaseTransform =
+        | NoTransform
+        | ToLowercase
+        | ToUppercase
+        member this.ArmValue =
+            match this with
+            | NoTransform -> []
+            | ToLowercase -> [ "Lowercase" ]
+            | ToUppercase -> [ "Uppercase" ]
+            
+    type CacheBehaviour =
+        | Override
+        | BypassCache
+        | SetIfMissing
+        member this.ArmValue =
+            match this with
+            | Override -> "Override"
+            | BypassCache -> "BypassCache"
+            | SetIfMissing -> "SetIfMissing"
+
+    type QueryStringCacheBehavior =
+        | Include
+        | IncludeAll
+        | Exclude
+        | ExcludeAll
+        member this.ArmValue =
+            match this with
+            | Include -> "Include"
+            | IncludeAll -> "IncludeAll"
+            | Exclude -> "Exclude"
+            | ExcludeAll -> "ExcludeAll"
+
+    type ModifyHeaderAction =
+        | Append
+        | Overwrite
+        | Delete
+        member this.ArmValue =
+            match this with
+            | Append -> "Append"
+            | Overwrite -> "Overwrite"
+            | Delete -> "Delete"
+            
+    type RedirectType =
+        | Found
+        | Moved
+        | TemporaryRedirect
+        | PermanentRedirect
+        member this.ArmValue =
+            match this with
+            | Found -> "Found"
+            | Moved -> "Moved"
+            | TemporaryRedirect -> "TemporaryRedirect"
+            | PermanentRedirect -> "PermanentRedirect"
+
+
 module EventGrid =
     [<Struct>] type EventGridEvent<'T> = EventGridEvent of string member this.Value = match this with EventGridEvent s -> s
 

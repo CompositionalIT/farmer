@@ -35,7 +35,7 @@ type AksConfig =
       Identity : ManagedIdentity
       LinuxProfile : (string * string list) option
       NetworkProfile : NetworkProfileConfig option
-      ServicePrincipalClientID : string option
+      ServicePrincipalClientID : string
       WindowsProfileAdminUserName : string option }
     member private this.ResourceId = managedClusters.resourceId this.Name
     member this.SystemIdentity = SystemIdentity this.ResourceId
@@ -77,8 +77,11 @@ type AksConfig =
                            DockerBridgeCidr = netProfile.DockerBridgeCidr
                            ServiceCidr = netProfile.ServiceCidr |})
               ServicePrincipalProfile =
-                  this.ServicePrincipalClientID
-                  |> Option.map (fun clientId -> {| ClientId = clientId; ClientSecret = SecureParameter $"client-secret-for-{this.Name.Value}" |})
+                  {| ClientId = this.ServicePrincipalClientID
+                     ClientSecret =
+                         match this.ServicePrincipalClientID with
+                         | "msi" -> None
+                         | _ -> Some (SecureParameter $"client-secret-for-{this.Name.Value}") |}
               WindowsProfile =
                   this.WindowsProfileAdminUserName
                   |> Option.map (fun username -> {| AdminUserName = username; AdminPassword = SecureParameter $"admin-password-for-{this.Name.Value}" |})
@@ -166,8 +169,12 @@ type AksBuilder() =
           Identity = ManagedIdentity.Empty
           LinuxProfile = None
           NetworkProfile = None
-          ServicePrincipalClientID = None
+          ServicePrincipalClientID = ""
           WindowsProfileAdminUserName = None }
+    member _.Run (config:AksConfig) =
+        if System.String.IsNullOrWhiteSpace config.ServicePrincipalClientID then
+            failwith "Missing ServicePrincipalClientID on ManagedCluster."
+        config
     /// Sets the name of the AKS cluster.
     [<CustomOperation "name">]
     member _.Name(state:AksConfig, name) = { state with Name = ResourceName name }
@@ -196,7 +203,10 @@ type AksBuilder() =
     member this.LinuxProfile(state:AksConfig, username:string, sshKey:string) = this.LinuxProfile(state, username, [ sshKey ])
     /// Sets the client id of the service principal for the AKS cluster.
     [<CustomOperation "service_principal_client_id">]
-    member _.ServicePrincipalClientID(state:AksConfig, clientId) = { state with ServicePrincipalClientID = Some clientId }
+    member _.ServicePrincipalClientID(state:AksConfig, clientId) = { state with ServicePrincipalClientID = clientId }
+    /// Uses the managed identity of this resource for the service principal.
+    [<CustomOperation "service_principal_use_msi">]
+    member _.ServicePrincipalUseMsi(state:AksConfig) = { state with ServicePrincipalClientID = "msi" }
     /// Sets the windows admin username for the AKS cluster.
     [<CustomOperation "windows_username">]
     member _.WindowsUsername(state:AksConfig, username) = { state with WindowsProfileAdminUserName = Some username }
