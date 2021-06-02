@@ -21,11 +21,11 @@ type VNetGatewayConfig =
     { /// The name of the gateway
       Name : ResourceName
       /// Private IP allocation method for the gateway's primary interface
-      GatewayPrivateIpAllocationMethod : PrivateIpAllocationMethod
+      GatewayPrivateIpAllocationMethod : PrivateIpAddress.AllocationMethod
       /// Public IP for the gateway's interface
       GatewayPublicIpName: ResourceName
       /// Private IP allocation method for the gateway's secondary interface if Active-Active
-      ActiveActivePrivateIpAllocationMethod : PrivateIpAllocationMethod
+      ActiveActivePrivateIpAllocationMethod : PrivateIpAddress.AllocationMethod
       /// Public IP for the gateway's secondary interface if Active-Active
       ActiveActivePublicIpName: ResourceName option
       /// Virtual network where the gateway will be attached
@@ -123,9 +123,9 @@ let vpnclient = VpnClientConfigurationBuilder()
 type VnetGatewayBuilder() =
     member _.Yield _ =
       { Name = ResourceName.Empty
-        GatewayPrivateIpAllocationMethod = DynamicPrivateIp
+        GatewayPrivateIpAllocationMethod = PrivateIpAddress.DynamicPrivateIp
         GatewayPublicIpName = ResourceName.Empty
-        ActiveActivePrivateIpAllocationMethod = DynamicPrivateIp
+        ActiveActivePrivateIpAllocationMethod = PrivateIpAddress.DynamicPrivateIp
         ActiveActivePublicIpName = None
         VirtualNetwork = ResourceName.Empty
         GatewayType = GatewayType.Vpn VpnGatewaySku.VpnGw1
