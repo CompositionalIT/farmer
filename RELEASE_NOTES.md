@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.5.3
+* Traffic Manager: initial release.
+
 ## 1.5.2
 * ServiceBus: TopicConfig implements IBuilder and supports link_to_unmanaged_namespace.
 * ServiceBus: Support for forwarding messages delivered to a subscription.
