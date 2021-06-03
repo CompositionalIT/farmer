@@ -17,6 +17,9 @@ type Endpoint =
       Location: Location option }
     member this.JsonModel =
                             {| name = this.Name.Value
+                               ``type`` = match this.Target with
+                                          | External _ -> externalEndpoints.Type
+                                          | Website _ -> azureEndpoints.Type
                                properties =
                                     {| endpointStatus = this.Status.ArmValue
                                        weight = this.Weight
