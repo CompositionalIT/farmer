@@ -15,20 +15,18 @@ type Endpoint =
       Weight: int
       Priority: int
       Location: Location option }
-    interface IArmResource with
-        member this.ResourceId = azureEndpoints.resourceId (this.Name)
-        member this.JsonModel =
-            {| name = this.Name.Value
-               properties =
-                {| endpointStatus = this.Status.ArmValue
-                   weight = this.Weight
-                   priority = this.Priority
-                   endpointLocation = this.Location |> Option.map (fun l -> l.ArmValue)
-                                                    |> Option.defaultValue null
-                   targetResourceId = match this.Target with
-                                      | External _ -> null
-                                      | Website resourceName -> sites.resourceId(resourceName).Eval()
-                   target = this.Target.ArmValue |} |} :> _
+    member this.JsonModel =
+                            {| name = this.Name.Value
+                               properties =
+                                    {| endpointStatus = this.Status.ArmValue
+                                       weight = this.Weight
+                                       priority = this.Priority
+                                       endpointLocation = this.Location |> Option.map (fun l -> l.ArmValue)
+                                                                        |> Option.defaultValue null
+                                       targetResourceId = match this.Target with
+                                                          | External _ -> null
+                                                          | Website resourceName -> sites.resourceId(resourceName).Eval()
+                                       target = this.Target.ArmValue |} |}
 
 type Profile =
     { Name : ResourceName
@@ -57,5 +55,5 @@ type Profile =
                                              toleratedNumberOfFailures = this.MonitorConfig.ToleratedNumberOfFailures
                                              timeoutInSeconds = int this.MonitorConfig.TimeoutInSeconds |}
 
-                          endpoints = this.Endpoints |> List.map (fun e -> (e:>IArmResource).JsonModel) |}
+                          endpoints = this.Endpoints |> List.map (fun e -> e.JsonModel) |}
             |} :> _

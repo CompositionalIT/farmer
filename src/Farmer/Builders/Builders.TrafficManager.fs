@@ -6,26 +6,15 @@ open Farmer.TrafficManager
 open Farmer.Arm.TrafficManager
 open System
 open System.Net
+open Farmer.Arm
 
 type EndpointConfig =
     { Name : ResourceName
       Status : FeatureFlag
       Target : EndpointTarget
       Weight : int
-      Priority : int }
-    interface IBuilder with
-        member this.ResourceId = azureEndpoints.resourceId this.Name
-        member this.BuildResources location = [
-            { Name = this.Name
-              Status = this.Status
-              Target = this.Target
-              Weight = this.Weight
-              Priority = this.Priority
-              Location = match this.Target with
-                         | External (_, l) -> Some l
-                         |_ -> None
-              }
-        ]
+      Priority : int
+      Dependencies: Set<ResourceId> }
 
 type TrafficManagerConfig =
     { Name : ResourceName
@@ -33,30 +22,36 @@ type TrafficManagerConfig =
       Status : FeatureFlag
       RoutingMethod : RoutingMethod
       MonitorConfig : MonitorConfig
-      Endpoints : EndpointConfig list
+      EndpointConfigs : EndpointConfig list
       TrafficViewEnrollmentStatus : FeatureFlag
+      Dependencies: Set<ResourceId>
       Tags: Map<string,string> }
     interface IBuilder with
         member this.ResourceId = profiles.resourceId this.Name
-        member this.BuildResources location = [
-            { Name = this.Name
-              Status = this.Status
-              RoutingMethod = this.RoutingMethod
-              DnsTtl = this.DnsTtl
-              MonitorConfig = this.MonitorConfig
-              TrafficViewEnrollmentStatus = this.TrafficViewEnrollmentStatus
-              Dependencies = Set.empty
-              Tags = this.Tags
-              Endpoints = this.Endpoints
-                          |> List.map (fun e -> { Name = e.Name
-                                                  Status = e.Status
-                                                  Target = e.Target
-                                                  Weight = e.Weight
-                                                  Priority = e.Priority
-                                                  Location = match e.Target with
-                                                             | External (_, l) -> Some l
-                                                             | _ -> None })}
-        ]
+        member this.BuildResources location =
+            let dependencies = this.EndpointConfigs
+                               |> List.map (fun e -> e.Dependencies |> Set.toList)
+                               |> List.concat
+                               |> Set.ofList
+                               |> Set.union this.Dependencies
+
+            [ { Name = this.Name
+                Status = this.Status
+                RoutingMethod = this.RoutingMethod
+                DnsTtl = this.DnsTtl
+                MonitorConfig = this.MonitorConfig
+                TrafficViewEnrollmentStatus = this.TrafficViewEnrollmentStatus
+                Dependencies = dependencies
+                Tags = this.Tags
+                Endpoints = this.EndpointConfigs
+                            |> List.map (fun e -> { Name = e.Name
+                                                    Status = e.Status
+                                                    Target = e.Target
+                                                    Weight = e.Weight
+                                                    Priority = e.Priority
+                                                    Location = match e.Target with
+                                                                | External (_, l) -> Some l
+                                                                | _ -> None } : Endpoint) } ]
 
 type EndpointBuilder() =
     member __.Yield _ =
@@ -64,7 +59,8 @@ type EndpointBuilder() =
           Status = Enabled
           Target = EndpointTarget.Website ResourceName.Empty
           Weight = 1
-          Priority = 1 }
+          Priority = 1
+          Dependencies = Set.empty }
 
     member __.Run (state:EndpointConfig) =
         state
@@ -92,10 +88,14 @@ type EndpointBuilder() =
 
     /// Sets the target of the Endpoint to a web app
     [<CustomOperation "target_webapp">]
-    member __.TargetWebApp(state:EndpointConfig, name) = { state with Target = Website name }
-
-    /// Sets the target of the Endpoint to a web app
-    member this.TargetWebApp(state:EndpointConfig, (webApp: WebAppConfig)) = { state with Target = Website webApp.Name }
+    member __.TargetWebApp(state:EndpointConfig, name) =
+        { state with
+            Target = Website name
+            Dependencies = state.Dependencies |> Set.add (sites.resourceId(name)) }
+    member this.TargetWebApp(state:EndpointConfig, (webApp: WebAppConfig)) =
+        { state with
+            Target = Website webApp.Name
+            Dependencies = state.Dependencies |> Set.add webApp.ResourceId }
 
     /// Sets the target of the Endpoint to an external domain/IP and location
     [<CustomOperation "target_external">]
@@ -111,7 +111,7 @@ type TrafficManagerBuilder() =
           Status = Enabled
           RoutingMethod = RoutingMethod.Performance
           TrafficViewEnrollmentStatus = Disabled
-          Endpoints = []
+          EndpointConfigs = []
           MonitorConfig =
             { Protocol = MonitorProtocol.Https
               Port = 443
@@ -119,6 +119,7 @@ type TrafficManagerBuilder() =
               IntervalInSeconds = 30<Seconds>
               ToleratedNumberOfFailures = 3
               TimeoutInSeconds = 10<Seconds> }
+          Dependencies = Set.empty
           Tags = Map.empty }
 
     member __.Run (state:TrafficManagerConfig) =
@@ -129,20 +130,10 @@ type TrafficManagerBuilder() =
     member __.Name(state:TrafficManagerConfig, name) = { state with Name = name }
     member this.Name(state:TrafficManagerConfig, name) = this.Name(state, ResourceName name)
 
-    /// Adds tags to the Traffic Manager profile
-    [<CustomOperation "add_tags">]
-    member _.Tags(state:TrafficManagerConfig, pairs) =
-        { state with
-            Tags = pairs |> List.fold (fun map (key,value) -> Map.add key value map) state.Tags }
-
-    /// Adds a tag to the Traffic Manager profile
-    [<CustomOperation "add_tag">]
-    member this.Tag(state:TrafficManagerConfig, key, value) = this.Tags(state, [ (key,value) ])
-
     /// Adds Endpoints to the Traffic Manager profile
     [<CustomOperation "add_endpoints">]
     member _.AddEndpoints(state:TrafficManagerConfig, endpoints:EndpointConfig list) =
-        { state with Endpoints = state.Endpoints @ endpoints }
+        { state with EndpointConfigs = state.EndpointConfigs @ endpoints }
     member this.AddEndpoints(state:TrafficManagerConfig, endpoint:EndpointConfig) =
         this.AddEndpoints(state, [endpoint])
 
@@ -206,6 +197,13 @@ type TrafficManagerBuilder() =
     [<CustomOperation "monitor_tolerated_failures">]
     member __.MonitorToleratedFailures(state:TrafficManagerConfig, failures) =
         { state with MonitorConfig = { state.MonitorConfig with ToleratedNumberOfFailures = failures } }
+
+    interface ITaggable<TrafficManagerConfig> with
+        member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
+
+    interface IDependable<TrafficManagerConfig> with
+        member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
+
 
 // Expose Builders
 let endpoint = EndpointBuilder()
