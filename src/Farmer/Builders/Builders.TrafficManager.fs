@@ -113,8 +113,8 @@ type TrafficManagerBuilder() =
           TrafficViewEnrollmentStatus = Disabled
           EndpointConfigs = []
           MonitorConfig =
-            { Protocol = MonitorProtocol.Https
-              Port = 443
+            { Protocol = MonitorProtocol.Http
+              Port = 80
               Path = "/"
               IntervalInSeconds = 30<Seconds>
               ToleratedNumberOfFailures = 3
@@ -164,12 +164,12 @@ type TrafficManagerBuilder() =
     member __.DisableTrafficView(state:TrafficManagerConfig) =
         { state with TrafficViewEnrollmentStatus = Disabled }
 
-    /// Sets the monitoring protocol of the Traffic Manager profile (default Https)
+    /// Sets the monitoring protocol of the Traffic Manager profile (default Http)
     [<CustomOperation "monitor_protocol">]
     member __.MonitorProtocol(state:TrafficManagerConfig, protocol) =
         { state with MonitorConfig = { state.MonitorConfig with Protocol = protocol } }
 
-    /// Sets the monitoring port of the Traffic Manager profile (default 443)
+    /// Sets the monitoring port of the Traffic Manager profile (default 80)
     [<CustomOperation "monitor_port">]
     member __.MonitorPort(state:TrafficManagerConfig, port) =
         { state with MonitorConfig = { state.MonitorConfig with Port = port } }
