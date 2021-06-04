@@ -78,6 +78,7 @@ type OS = Windows | Linux
 type [<Measure>] Gb
 type [<Measure>] Mb
 type [<Measure>] Mbps
+type [<Measure>] Seconds
 type [<Measure>] Hours
 type [<Measure>] Days
 type [<Measure>] VCores
@@ -1039,7 +1040,7 @@ module ServiceBus =
                 match this with
                 | Basic -> "Basic"
                 | Standard -> "Standard"
-                | Premium OneUnit 
+                | Premium OneUnit
                 | Premium TwoUnits
                 | Premium FourUnits -> "Premium"
         member this.TierArmValue = this.NameArmValue
@@ -1514,6 +1515,36 @@ module Databricks =
     type KeySource = Databricks | KeyVault member this.ArmValue = match this with Databricks -> "Default" | KeyVault -> "MicrosoftKeyVault"
     type Sku = Standard | Premium member this.ArmValue = match this with Standard -> "standard" | Premium -> "premium"
 
+module TrafficManager =
+    type RoutingMethod =
+        | Performance
+        | Weighted
+        | Priority
+        | Geographic
+        | Subnet
+        member this.ArmValue = this.ToString()
+
+    type MonitorProtocol =
+        | Http
+        | Https
+        member this.ArmValue = this.ToString().ToUpperInvariant()
+
+    type MonitorConfig =
+        { Protocol : MonitorProtocol
+          Port: int
+          Path: string
+          IntervalInSeconds: int<Seconds>
+          ToleratedNumberOfFailures: int
+          TimeoutInSeconds: int<Seconds> }
+
+    type EndpointTarget =
+        | Website of ResourceName
+        | External of (string * Location)
+        member this.ArmValue =
+            match this with
+            | Website name -> name.Value
+            | External (target, _) -> target
+
 namespace Farmer.DiagnosticSettings
 
 open Farmer
@@ -1564,3 +1595,4 @@ type LogSetting =
 
 /// Represents the kind of destination for log analytics
 type LogAnalyticsDestination = AzureDiagnostics | Dedicated
+

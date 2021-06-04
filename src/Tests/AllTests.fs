@@ -43,6 +43,7 @@ let allTests =
                 Sql.tests
                 StaticWebApp.tests
                 Storage.tests
+                TrafficManager.tests
                 Types.tests
                 VirtualMachine.tests
                 VirtualNetworkGateway.tests

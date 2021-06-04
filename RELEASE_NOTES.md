@@ -5,6 +5,9 @@ Release Notes
 * Container Service (AKS): Support for using managed identity (msi) for the service principal.
 * LoadBalancer: Adds support for public and internal load balancers.
 
+## 1.5.3
+* Traffic Manager: initial release.
+
 ## 1.5.2
 * ServiceBus: TopicConfig implements IBuilder and supports link_to_unmanaged_namespace.
 * ServiceBus: Support for forwarding messages delivered to a subscription.
