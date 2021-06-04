@@ -4,8 +4,6 @@ Release Notes
 * CDN: Support for CDN rules
 * Container Service (AKS): Support for using managed identity (msi) for the service principal.
 * LoadBalancer: Adds support for public and internal load balancers.
-
-## 1.5.3
 * Traffic Manager: initial release.
 
 ## 1.5.2
