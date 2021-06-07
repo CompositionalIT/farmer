@@ -10,7 +10,7 @@ open Microsoft.Rest
 open System
 open Newtonsoft.Json.Linq
 
-let toTemplate (deployment:#IDeploymentSource) =
+let toTemplate (deployment:IDeploymentSource) =
     deployment.Deployment.Template
     |> Writer.TemplateGeneration.processTemplate
 

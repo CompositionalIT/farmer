@@ -50,7 +50,7 @@ let toFile folder templateName json =
     filename
 
 /// Converts the supplied ARMTemplate to JSON and then writes it out to the provided template name. The postfix ".json" will automatically be added to the filename.
-let quickWrite templateName (deployment:#IDeploymentSource) =
+let quickWrite templateName (deployment:IDeploymentSource) =
     deployment.Deployment.Template
     |> toJson
     |> toFile "." templateName

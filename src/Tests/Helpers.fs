@@ -25,7 +25,7 @@ let getResourceAtIndex serializationSettings index (builder:#IBuilder) =
     builder.BuildResources Location.WestEurope
     |> fun r -> r.[index].JsonModel |> farmerToMs serializationSettings
 
-let findAzureResources<'T when 'T : null> (serializationSettings:Newtonsoft.Json.JsonSerializerSettings) (deployment:#IDeploymentSource) = 
+let findAzureResources<'T when 'T : null> (serializationSettings:Newtonsoft.Json.JsonSerializerSettings) (deployment:IDeploymentSource) = 
     let template = deployment.Deployment.Template |> Writer.TemplateGeneration.processTemplate
 
     template.resources

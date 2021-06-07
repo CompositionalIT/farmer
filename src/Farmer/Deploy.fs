@@ -191,7 +191,7 @@ let setSubscription (subscriptionId:Guid) =
     Az.setSubscription (subscriptionId.ToString())
 
 /// Validates that the parameters supplied meet the deployment requirements.
-let validateParameters suppliedParameters (deployment:#IDeploymentSource) =
+let validateParameters suppliedParameters (deployment:IDeploymentSource) =
     let expected = deployment.Deployment.Template.Parameters |> List.map(fun (SecureParameter p) -> p) |> Set
     let supplied = suppliedParameters |> List.map fst |> Set
     let missing = Set.toList (expected - supplied)
@@ -203,7 +203,7 @@ let validateParameters suppliedParameters (deployment:#IDeploymentSource) =
 
 let NoParameters : (string * string) list = []
 
-let private prepareForDeployment parameters resourceGroupName (deployment:#IDeploymentSource) = result {
+let private prepareForDeployment parameters resourceGroupName (deployment:IDeploymentSource) = result {
     do! deployment |> validateParameters parameters
 
     let! version = checkVersion Az.MinimumVersion
@@ -234,20 +234,20 @@ let private prepareForDeployment parameters resourceGroupName (deployment:#IDepl
 }
 
 /// Validates a deployment against a resource group. If the resource group does not exist, it will be created automatically.
-let tryValidate resourceGroupName parameters (deployment:#IDeploymentSource) = result {
+let tryValidate resourceGroupName parameters (deployment:IDeploymentSource) = result {
     let! deploymentParameters = deployment |> prepareForDeployment parameters resourceGroupName
     return! Az.validate resourceGroupName deploymentParameters.DeploymentName deploymentParameters.TemplateFilename parameters
 }
 
 /// Validates a deployment against a resource group. If the resource group does not exist, it will be created automatically.
-let tryWhatIf resourceGroupName parameters (deployment:#IDeploymentSource) = result {
+let tryWhatIf resourceGroupName parameters (deployment:IDeploymentSource) = result {
     let! deploymentParameters = deployment |> prepareForDeployment parameters resourceGroupName
     return! Az.whatIf resourceGroupName deploymentParameters.DeploymentName deploymentParameters.TemplateFilename parameters
 }
 
 /// Executes the supplied Deployment against a resource group using the Azure CLI.
 /// If successful, returns a Map of the output keys and values.
-let tryExecute resourceGroupName parameters (deployment:#IDeploymentSource) = result {
+let tryExecute resourceGroupName parameters (deployment:IDeploymentSource) = result {
     let! deploymentParameters = deployment |> prepareForDeployment parameters resourceGroupName
 
     printfn "Deploying ARM template (please be patient, this can take a while)..."
@@ -272,12 +272,12 @@ let tryExecute resourceGroupName parameters (deployment:#IDeploymentSource) = re
 
 /// Executes the supplied Deployment against a resource group using the Azure CLI.
 /// If successful, returns a Map of the output keys and values, otherwise returns any error as an exception.
-let execute resourceGroupName parameters (deployment:#IDeploymentSource) =
+let execute resourceGroupName parameters (deployment:IDeploymentSource) =
     match tryExecute resourceGroupName parameters deployment with
     | Ok output -> output
     | Error message -> failwith (Az.tryGetError message)
 
-let whatIf resourceGroupName parameters (deployment:#IDeploymentSource) =
+let whatIf resourceGroupName parameters (deployment:IDeploymentSource) =
     match tryWhatIf resourceGroupName parameters deployment with
     | Ok output -> output
     | Error message -> failwith message
