@@ -1,7 +1,13 @@
 Release Notes
 =============
-## vNext
+## 1.6.0
 * Added support for nesting resource groups
+
+## 1.5.3
+* CDN: Support for CDN rules
+* Container Service (AKS): Support for using managed identity (msi) for the service principal.
+* LoadBalancer: Adds support for public and internal load balancers.
+* Traffic Manager: initial release.
 
 ## 1.5.2
 * ServiceBus: TopicConfig implements IBuilder and supports link_to_unmanaged_namespace.

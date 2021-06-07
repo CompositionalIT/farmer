@@ -24,6 +24,7 @@
     <Compile Include="Dns.fs" />
     <Compile Include="ExpressRoute.fs" />
     <Compile Include="EventHub.fs" />
+    <Compile Include="LoadBalancer.fs" />
     <Compile Include="NetworkSecurityGroup.fs" />
     <Compile Include="Storage.fs" />
     <Compile Include="ServiceBus.fs" />
@@ -48,12 +49,13 @@
     <Compile Include="VirtualWan.fs" />
     <Compile Include="JsonRegression.fs" />
     <Compile Include="Types.fs" />
+    <Compile Include="TrafficManager.fs" />
     <Compile Include="AllTests.fs" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="expecto" Version="9.0.0" />
-    <PackageReference Include="Microsoft.Azure.Management.Cdn" Version="2.1.0" />
+    <PackageReference Include="Microsoft.Azure.Management.Cdn" Version="6.1.0" />
     <PackageReference Include="Microsoft.Azure.Management.Dns" Version="3.0.1" />
     <PackageReference Include="Microsoft.Azure.Management.CognitiveServices" Version="7.0.0" />
     <PackageReference Include="Microsoft.Azure.Management.Compute" Version="35.2.0" />
@@ -70,6 +72,7 @@
     <PackageReference Include="Microsoft.Azure.Management.SignalR" Version="1.0.1" />
     <PackageReference Include="Microsoft.Azure.Management.Sql" Version="1.43.0-preview" />
     <PackageReference Include="Microsoft.Azure.Management.Storage" Version="21.0.0" />
+    <PackageReference Include="Microsoft.Azure.Management.TrafficManager" Version="2.5.3" />
     <PackageReference Include="Microsoft.Azure.Management.WebSites" Version="3.1.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.2.0" />
     <PackageReference Include="coverlet.collector" Version="1.2.0" />

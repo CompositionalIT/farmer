@@ -85,7 +85,7 @@ type VirtualNetworkGateway =
     { Name : ResourceName
       Location : Location
       IpConfigs : {| Name : ResourceName
-                     PrivateIpAllocationMethod : PrivateIpAllocationMethod
+                     PrivateIpAllocationMethod : PrivateIpAddress.AllocationMethod
                      PublicIpName : ResourceName |} list
       VirtualNetwork : ResourceName
       GatewayType : GatewayType

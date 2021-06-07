@@ -28,7 +28,7 @@ let tests =
             let web = webApp { name ("farmerwebapp" + number); add_extension WebApp.Extensions.Logging }
             let fns = functions { name ("farmerfuncs" + number) }
             let svcBus = serviceBus { name ("farmerbus" + number); sku ServiceBus.Sku.Standard; add_queues [ queue { name "queue1" } ]; add_topics [ topic { name "topic1"; add_subscriptions [ subscription { name "sub1" } ] } ] }
-            let cdn = cdn { name ("farmercdn" + number); add_endpoints [ endpoint { name ("farmercdnendpoint" + number); origin storage.WebsitePrimaryEndpointHost } ] }
+            let cdn = cdn { name ("farmercdn" + number); add_endpoints [ endpoint { name ("farmercdnendpoint" + number); origin storage.WebsitePrimaryEndpointHost; add_rule (cdnRule {name ("farmerrule" + number); order 1; when_device_type DeliveryPolicy.EqualityOperator.Equals DeliveryPolicy.DeviceType.Mobile; url_rewrite "/pattern" "/destination" true   }) } ] }
             let containerGroup = containerGroup { name ("farmeraci" + number); add_instances [ containerInstance { name "webserver"; image "nginx:latest"; add_ports ContainerGroup.PublicPort [ 80us ]; add_volume_mount "source-code" "/src/farmer" } ]; add_volumes [ volume_mount.git_repo "source-code" (System.Uri "https://github.com/CompositionalIT/farmer") ] }
             let vm = vm{ name "farmervm"; username "farmer-admin" }
             
@@ -206,5 +206,63 @@ let tests =
                 standard_vwan
             }
             compareResourcesToJson [ vwan ] "virtual-wan.json"
+        }
+        
+        test "LoadBalancer" {
+            let myVnet =
+                vnet {
+                    name "my-vnet"
+                    add_address_spaces [ "10.0.1.0/24" ]
+                    add_subnets [
+                        subnet {
+                            name "my-services"
+                            prefix "10.0.1.0/24"
+                            add_delegations [
+                                SubnetDelegationService.ContainerGroups
+                            ]
+                        }
+                    ]
+                }
+            let lb =
+                loadBalancer {
+                    name "lb"
+                    sku Farmer.LoadBalancer.Sku.Standard
+                    add_frontends [
+                        frontend {
+                            name "lb-frontend"
+                            public_ip "lb-pip"
+                        }
+                    ]
+                    add_backend_pools [
+                        backendAddressPool {
+                            name "lb-backend"
+                            vnet "my-vnet"
+                            add_ip_addresses [
+                                "10.0.1.4"
+                                "10.0.1.5"
+                            ]
+                        }
+                    ]
+                    add_probes [
+                        loadBalancerProbe {
+                            name "httpGet"
+                            protocol Farmer.LoadBalancer.LoadBalancerProbeProtocol.HTTP
+                            port 8080
+                            request_path "/"
+                        }
+                    ]
+                    add_rules [
+                        loadBalancingRule {
+                            name "rule1"
+                            frontend_ip_config "lb-frontend"
+                            backend_address_pool "lb-backend"
+                            frontend_port 80
+                            backend_port 8080
+                            protocol TransmissionProtocol.TCP
+                            probe "httpGet"
+                        }
+                    ]
+                }
+            compareResourcesToJson [ myVnet; lb ] "load-balancer.json"
         }
     ]

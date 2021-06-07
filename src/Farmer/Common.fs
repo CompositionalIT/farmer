@@ -78,6 +78,7 @@ type OS = Windows | Linux
 type [<Measure>] Gb
 type [<Measure>] Mb
 type [<Measure>] Mbps
+type [<Measure>] Seconds
 type [<Measure>] Hours
 type [<Measure>] Days
 type [<Measure>] VCores
@@ -918,8 +919,49 @@ module ExpressRoute =
     type Family = UnlimitedData | MeteredData
     type PeeringType = AzurePrivatePeering | MicrosoftPeering member this.Value = this.ToString()
 
+[<AutoOpen>]
+module PrivateIpAddress =
+    type AllocationMethod = DynamicPrivateIp | StaticPrivateIp of System.Net.IPAddress
+
+module LoadBalancer =
+    [<RequireQualifiedAccess>]
+    type Sku =
+        | Basic | Standard
+        member this.ArmValue =
+            match this with
+            | Basic -> "Basic"
+            | Standard -> "Standard"
+
+    [<RequireQualifiedAccess>]
+    type Tier =
+        | Regional | Global
+        member this.ArmValue =
+            match this with
+            | Regional -> "Regional"
+            | Global -> "Global"
+    type LoadBalancerSku = {
+        Name : Sku
+        Tier : Tier
+    }
+    [<RequireQualifiedAccess>]
+    type LoadDistributionPolicy =
+        | Default | SourceIP | SourceIPProtocol
+        member this.ArmValue =
+            match this with
+            | Default -> "Default"
+            | SourceIP -> "SourceIP"
+            | SourceIPProtocol -> "SourceIPProtocol"
+
+    [<RequireQualifiedAccess>]
+    type LoadBalancerProbeProtocol =
+        | TCP | HTTP | HTTPS
+        member this.ArmValue =
+            match this with
+            | TCP -> "Tcp"
+            | HTTP -> "Http"
+            | HTTPS -> "Https"
+
 module VirtualNetworkGateway =
-    type PrivateIpAllocationMethod = DynamicPrivateIp | StaticPrivateIp of System.Net.IPAddress
     [<RequireQualifiedAccess>]
     type ErGatewaySku =
         | Standard
@@ -998,7 +1040,7 @@ module ServiceBus =
                 match this with
                 | Basic -> "Basic"
                 | Standard -> "Standard"
-                | Premium OneUnit 
+                | Premium OneUnit
                 | Premium TwoUnits
                 | Premium FourUnits -> "Premium"
         member this.TierArmValue = this.NameArmValue
@@ -1249,6 +1291,211 @@ module Cdn =
     | LargeFileDownload
     | DynamicSiteAcceleration
 
+module DeliveryPolicy =
+    type IOperator =
+            abstract member AsOperator : string
+            abstract member AsNegateCondition : bool
+    
+    type EqualityOperator =
+        | Equals
+        | NotEquals
+        interface IOperator with
+            member this.AsOperator = "Equal"
+    
+            member this.AsNegateCondition =
+                match this with
+                | Equals -> false
+                | NotEquals -> true
+    
+    type ComparisonOperator =
+        | Any
+        | Equals
+        | Contains
+        | BeginsWith
+        | EndsWith
+        | LessThan
+        | LessThanOrEquals
+        | GreaterThan
+        | GreaterThanOrEquals
+        | NotAny
+        | NotEquals
+        | NotContains
+        | NotBeginsWith
+        | NotEndsWith
+        | NotLessThan
+        | NotLessThanOrEquals
+        | NotGreaterThan
+        | NotGreaterThanOrEquals
+        interface IOperator with
+            member this.AsOperator =
+                match this with
+                | Any
+                | NotAny -> "Any"
+                | Equals
+                | NotEquals -> "Equal"
+                | Contains
+                | NotContains -> "Contains"
+                | BeginsWith
+                | NotBeginsWith -> "BeginsWith"
+                | EndsWith
+                | NotEndsWith -> "EndsWith"
+                | LessThan
+                | NotLessThan -> "LessThan"
+                | LessThanOrEquals
+                | NotLessThanOrEquals -> "LessThanOrEqual"
+                | GreaterThan
+                | NotGreaterThan -> "GreaterThan"
+                | GreaterThanOrEquals
+                | NotGreaterThanOrEquals -> "GreaterThanOrEqual"
+    
+            member this.AsNegateCondition =
+                match this with
+                | NotAny
+                | NotEquals
+                | NotContains
+                | NotBeginsWith
+                | NotEndsWith
+                | NotLessThan
+                | NotLessThanOrEquals
+                | NotGreaterThan
+                | NotGreaterThanOrEquals -> true
+                | _ -> false
+    
+    type RemoteAddressOperator =
+        | Any
+        | GeoMatch
+        | IPMatch
+        | NotAny
+        | NotGeoMatch
+        | NotIPMatch
+        interface IOperator with
+            member this.AsOperator =
+                match this with
+                | Any
+                | NotAny -> "Any"
+                | GeoMatch
+                | NotGeoMatch -> "GeoMatch"
+                | IPMatch
+                | NotIPMatch -> "IPMatch"
+    
+            member this.AsNegateCondition =
+                match this with
+                | NotAny
+                | NotGeoMatch
+                | NotIPMatch -> true
+                | _ -> false
+    
+    type DeviceType =
+        | Mobile
+        | Desktop
+        member this.ArmValue =
+            match this with
+            | Desktop -> "Desktop"
+            | Mobile -> "Mobile"
+    
+    type HttpVersion =
+        | Version20
+        | Version11
+        | Version10
+        | Version09
+        member this.ArmValue =
+            match this with
+            | Version20 -> "2.0"
+            | Version11 -> "1.1"
+            | Version10 -> "1.0"
+            | Version09 -> "0.9"
+    
+    type RequestMethod =
+        | Get
+        | Post
+        | Put
+        | Delete
+        | Head
+        | Options
+        | Trace
+        member this.ArmValue =
+            match this with
+            | Get -> "GET"
+            | Post -> "POST"
+            | Put -> "PUT"
+            | Delete -> "DELETE"
+            | Head -> "HEAD"
+            | Options -> "OPTIONS"
+            | Trace -> "TRACE"
+    
+    type Protocol =
+        | Http
+        | Https
+        member this.ArmValue =
+            match this with
+            | Http -> "HTTP"
+            | Https -> "HTTPS"
+    
+    type UrlRedirectProtocol =
+        | Http
+        | Https
+        | MatchRequest
+        member this.ArmValue =
+            match this with
+            | Http -> "Http"
+            | Https -> "Https"
+            | MatchRequest -> "MatchRequest"
+    
+    type CaseTransform =
+        | NoTransform
+        | ToLowercase
+        | ToUppercase
+        member this.ArmValue =
+            match this with
+            | NoTransform -> []
+            | ToLowercase -> [ "Lowercase" ]
+            | ToUppercase -> [ "Uppercase" ]
+            
+    type CacheBehaviour =
+        | Override
+        | BypassCache
+        | SetIfMissing
+        member this.ArmValue =
+            match this with
+            | Override -> "Override"
+            | BypassCache -> "BypassCache"
+            | SetIfMissing -> "SetIfMissing"
+
+    type QueryStringCacheBehavior =
+        | Include
+        | IncludeAll
+        | Exclude
+        | ExcludeAll
+        member this.ArmValue =
+            match this with
+            | Include -> "Include"
+            | IncludeAll -> "IncludeAll"
+            | Exclude -> "Exclude"
+            | ExcludeAll -> "ExcludeAll"
+
+    type ModifyHeaderAction =
+        | Append
+        | Overwrite
+        | Delete
+        member this.ArmValue =
+            match this with
+            | Append -> "Append"
+            | Overwrite -> "Overwrite"
+            | Delete -> "Delete"
+            
+    type RedirectType =
+        | Found
+        | Moved
+        | TemporaryRedirect
+        | PermanentRedirect
+        member this.ArmValue =
+            match this with
+            | Found -> "Found"
+            | Moved -> "Moved"
+            | TemporaryRedirect -> "TemporaryRedirect"
+            | PermanentRedirect -> "PermanentRedirect"
+
+
 module EventGrid =
     [<Struct>] type EventGridEvent<'T> = EventGridEvent of string member this.Value = match this with EventGridEvent s -> s
 
@@ -1267,6 +1514,36 @@ module Dns =
 module Databricks =
     type KeySource = Databricks | KeyVault member this.ArmValue = match this with Databricks -> "Default" | KeyVault -> "MicrosoftKeyVault"
     type Sku = Standard | Premium member this.ArmValue = match this with Standard -> "standard" | Premium -> "premium"
+
+module TrafficManager =
+    type RoutingMethod =
+        | Performance
+        | Weighted
+        | Priority
+        | Geographic
+        | Subnet
+        member this.ArmValue = this.ToString()
+
+    type MonitorProtocol =
+        | Http
+        | Https
+        member this.ArmValue = this.ToString().ToUpperInvariant()
+
+    type MonitorConfig =
+        { Protocol : MonitorProtocol
+          Port: int
+          Path: string
+          IntervalInSeconds: int<Seconds>
+          ToleratedNumberOfFailures: int
+          TimeoutInSeconds: int<Seconds> }
+
+    type EndpointTarget =
+        | Website of ResourceName
+        | External of (string * Location)
+        member this.ArmValue =
+            match this with
+            | Website name -> name.Value
+            | External (target, _) -> target
 
 module Serialization =
     open System.Text.Json
@@ -1349,3 +1626,4 @@ type LogSetting =
 
 /// Represents the kind of destination for log analytics
 type LogAnalyticsDestination = AzureDiagnostics | Dedicated
+
