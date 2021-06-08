@@ -1,15 +1,23 @@
 [<AutoOpen>]
 module Farmer.Arm.Storage
 
-open System
 open Farmer
 open Farmer.Storage
 
 let storageAccounts = ResourceType ("Microsoft.Storage/storageAccounts", "2019-06-01")
+
+let blobServices = ResourceType ("Microsoft.Storage/storageAccounts/blobServices", "2019-06-01")
 let containers = ResourceType ("Microsoft.Storage/storageAccounts/blobServices/containers", "2018-03-01-preview")
+
+let fileServices = ResourceType ("Microsoft.Storage/storageAccounts/fileServices", "2019-06-01")
 let fileShares = ResourceType ("Microsoft.Storage/storageAccounts/fileServices/shares", "2019-06-01")
+
+let queueServices = ResourceType ("Microsoft.Storage/storageAccounts/queueServices", "2019-06-01")
 let queues = ResourceType ("Microsoft.Storage/storageAccounts/queueServices/queues", "2019-06-01")
+
+let tableServices = ResourceType ("Microsoft.Storage/storageAccounts/tableServices", "2019-06-01")
 let tables = ResourceType ("Microsoft.Storage/storageAccounts/tableServices/tables", "2019-06-01")
+
 let managementPolicies = ResourceType ("Microsoft.Storage/storageAccounts/managementPolicies", "2019-06-01")
 let roleAssignments = ResourceType ("Microsoft.Storage/storageAccounts/providers/roleAssignments", "2018-09-01-preview")
 
@@ -74,7 +82,7 @@ type StorageAccount =
                             match this.Sku with
                             | GeneralPurpose (V1 (V1Replication.LRS performanceTier))
                             | GeneralPurpose (V2 (V2Replication.LRS performanceTier, _)) ->
-                                performanceTier.ToString()
+                                performanceTier.ArmValue
                             | Files _
                             | BlockBlobs _ ->
                                 "Premium"
@@ -83,13 +91,10 @@ type StorageAccount =
                                 "Standard"
                         let replicationModel =
                             match this.Sku with
-                            | GeneralPurpose (V1 (V1Replication.LRS _)) -> "LRS"
-                            | GeneralPurpose (V2 (V2Replication.LRS _, _)) -> "LRS"
-                            | GeneralPurpose (V1 replication) -> replication.ToString()
-                            | GeneralPurpose (V2 (replication, _)) -> replication.ToString()
-                            | Blobs (replication, _) -> replication.ToString()
-                            | Files replication -> replication.ToString()
-                            | BlockBlobs replication -> replication.ToString()
+                            | GeneralPurpose (V1 replication) -> replication.ReplicationModelDescription
+                            | GeneralPurpose (V2 (replication, _)) -> replication.ReplicationModelDescription
+                            | Blobs (replication, _) -> replication.ReplicationModelDescription
+                            | Files replication | BlockBlobs replication -> replication.ReplicationModelDescription
                         $"{performanceTier}_{replicationModel}"
                     |}
                 kind =
@@ -131,10 +136,51 @@ type StorageAccount =
             this.StaticWebsite
             |> Option.map(fun staticWebsite -> result {
                 let! enableStaticResponse = Deploy.Az.enableStaticWebsite this.Name.ResourceName.Value staticWebsite.IndexPage staticWebsite.ErrorPage
-                printfn "Deploying content of %s folder to $web container for storage account %s" staticWebsite.ContentPath this.Name.ResourceName.Value
+                printfn $"Deploying content of %s{staticWebsite.ContentPath} folder to $web container for storage account %s{this.Name.ResourceName.Value}"
                 let! uploadResponse = Deploy.Az.batchUploadStaticWebsite this.Name.ResourceName.Value staticWebsite.ContentPath
                 return enableStaticResponse + ", " + uploadResponse
             })
+
+[<AutoOpen>]
+module Extensions =
+    type AllOrSpecific<'T> with
+        member this.Emit (specificItemMapper:'T -> string) =
+            match this with
+            | All ->
+                [ "*" ]
+            | Specific items ->
+                [
+                    for item in items do
+                        specificItemMapper item
+                ]
+
+/// A generic storage service that can be used for Blob, Table, Queue or FileServices
+type StorageService =
+    { StorageAccount : StorageResourceName
+      CorsRules : CorsRule list
+      ResourceType : ResourceType }
+    interface IArmResource with
+        member this.ResourceId =
+            this.ResourceType.resourceId (this.StorageAccount.ResourceName/"default")
+        member this.JsonModel =
+            {| this.ResourceType.Create(this.StorageAccount.ResourceName/"default", dependsOn = [ storageAccounts.resourceId this.StorageAccount.ResourceName ]) with
+                properties =
+                    {| cors =
+                        {| corsRules =
+                            [
+                                for rule in this.CorsRules do
+                                    {| allowedOrigins = rule.AllowedOrigins.Emit (fun r -> r.AbsoluteUri)
+                                       allowedMethods = [
+                                           for httpMethod in rule.AllowedMethods.Value do
+                                               httpMethod.ArmValue
+                                       ]
+                                       maxAgeInSeconds = rule.MaxAgeInSeconds
+                                       exposedHeaders = rule.ExposedHeaders.Emit id
+                                       allowedHeaders = rule.AllowedHeaders.Emit id |}
+                            ]
+                        |}
+                    |}
+            |} :> _
 
 module BlobServices =
     type Container =

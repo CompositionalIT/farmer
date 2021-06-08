@@ -1,7 +1,28 @@
 Release Notes
 =============
+## 1.6.0
+* Added support for nesting resource groups
 
-##  1.5.0-beta
+## 1.5.3
+* CDN: Support for CDN rules
+* Container Service (AKS): Support for using managed identity (msi) for the service principal.
+* LoadBalancer: Adds support for public and internal load balancers.
+* Traffic Manager: initial release.
+
+## 1.5.2
+* ServiceBus: TopicConfig implements IBuilder and supports link_to_unmanaged_namespace.
+* ServiceBus: Support for forwarding messages delivered to a subscription.
+
+## 1.5.1
+* Communication Services: add builder.
+* ExpressRoute: Adds ServiceKey property to generate an expression for the service key on a new circuit.
+* Network Security Groups: Enable builder to create outbound rules.
+* ServiceBus: Fix an issue with Premium Sku ARM Writer
+* ServiceBus: Fix an issue with Rules depends on ARM Writer
+* Storage Accounts: Support for CORS.
+* Virtual WAN: add builder
+
+##  1.5.0
 * Container Groups: Support for init containers.
 * Container Groups: Support for liveliness and readiness probes on containers.
 * Container Groups: Connect network profile to an existing virtual network.
@@ -11,7 +32,9 @@ Release Notes
 * Event Grid: Add ServiceBus Queue and Topic as supported destinations
 * Functions: Support for 64 bits.
 * Functions: Add option to use managed Key Vault
+* Functions: Add support for dotnet-isolated runtime (NET5)
 * KeyVault: Fix an issue with adding tags on main KeyVault builder.
+* KeyVault: Support Azure RBAC for data plane access.
 * ServiceBus: update namespace validation rules to follow [Microsoft documentation](https://docs.microsoft.com/en-us/azure/azure-resource-manager/management/resource-name-rules#microsoftservicebus)
 * Storage: Add support for tables
 * Storage: Support for firewall to restrict storage account network access to virtual network subnets, IP addresses, and CIDR prefixes.

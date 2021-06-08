@@ -34,3 +34,7 @@ weight: 7
 > "With Farmer we were finally able to organize our Azure infrastructure. No messy names of storageaccounts anymore. Thanks for this great tool!"
 >
 > **[Tim Forkmann](https://twitter.com/tforkmann), Head of EnergyData at Danpower**
+
+> "Farmer allows us to keep our infrastructure easy to deploy and maintain. If we use Azure, we use it with Farmer! Thanks for creating it! 
+>
+> **[Stefan Hausotte](https://twitter.com/_secana_), CEO of [Bitfalter](https://www.bitfalter.com)**

@@ -22,6 +22,7 @@ module Namespaces =
               LockDuration : IsoDateTime option
               DuplicateDetectionHistoryTimeWindow : IsoDateTime option
               DefaultMessageTimeToLive : IsoDateTime option
+              ForwardTo : ResourceName option
               MaxDeliveryCount : int option
               Session : bool option
               DeadLetteringOnMessageExpiration : bool option
@@ -38,13 +39,14 @@ module Namespaces =
                                 | None -> Nullable()
                             duplicateDetectionHistoryTimeWindow = tryGetIso this.DuplicateDetectionHistoryTimeWindow
                             deadLetteringOnMessageExpiration = this.DeadLetteringOnMessageExpiration |> Option.toNullable
+                            forwardTo = this.ForwardTo |> Option.map (fun n -> n.Value) |> Option.toObj
                             maxDeliveryCount = this.MaxDeliveryCount |> Option.toNullable
                             requiresSession = this.Session |> Option.toNullable
                             lockDuration = tryGetIso this.LockDuration
                          |}
                         resources = [
                          for rule in this.Rules do
-                            {| rules.Create(rule.Name, dependsOn = [ subscriptions.resourceId this.Name ]) with
+                            {| rules.Create(rule.Name, dependsOn = [ ResourceId.create (ResourceType("", ""), this.Name)]) with
                                 properties =
                                  match rule with
                                  | SqlFilter (_, expression) ->
@@ -91,14 +93,15 @@ module Namespaces =
 
     type Topic =
         { Name : ResourceName
-          Namespace : ResourceName
+          Dependencies : ResourceId Set
+          Namespace : ResourceId
           DuplicateDetectionHistoryTimeWindow : IsoDateTime option
           DefaultMessageTimeToLive : IsoDateTime option
           EnablePartitioning : bool option }
         interface IArmResource with
-            member this.ResourceId = topics.resourceId (this.Namespace/this.Name)
+            member this.ResourceId = topics.resourceId (this.Namespace.Name, this.Name)
             member this.JsonModel =
-                {| topics.Create(this.Namespace/this.Name, dependsOn = [ namespaces.resourceId this.Namespace ]) with
+                {| topics.Create(this.Namespace.Name/this.Name, dependsOn = this.Dependencies) with
                     properties =
                         {| defaultMessageTimeToLive = tryGetIso this.DefaultMessageTimeToLive
                            requiresDuplicateDetection =
@@ -127,7 +130,7 @@ type Namespace =
         member this.JsonModel =
             {| namespaces.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
                 sku =
-                     {| name = string this.Sku
-                        tier = string this.Sku
+                     {| name = this.Sku.NameArmValue
+                        tier = this.Sku.TierArmValue
                         capacity = this.Capacity |> Option.toNullable |}
             |} :> _

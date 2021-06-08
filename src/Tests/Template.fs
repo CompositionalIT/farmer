@@ -5,10 +5,16 @@ open Farmer
 open Farmer.Builders
 open Farmer.Arm
 open TestHelpers
+open Microsoft.Azure.Management.ResourceManager
+open Microsoft.Rest
+open System
+open Newtonsoft.Json.Linq
 
-let toTemplate (deployment:Deployment) =
-    deployment.Template
+let toTemplate (deployment:IDeploymentSource) =
+    deployment.Deployment.Template
     |> Writer.TemplateGeneration.processTemplate
+
+let dummyClient = new ResourceManagementClient(Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
 
 let tests = testList "Template" [
     test "Can create a basic template" {
@@ -171,5 +177,67 @@ let tests = testList "Template" [
             createdResource
             {| name = "Name"; ``type`` = "Test"; apiVersion = "2017-01-01"; dependsOn = null; location = null; tags = null |}
             "Default values don't match"
+    }
+    test "Can nest resource groups" {
+        let template =
+            arm  {
+                add_resource (resourceGroup {
+                    name "inner"
+                    add_resource (storageAccount { name "storage" })
+                    add_tag "deployment-tag" "inner-rg"
+                })
+            }
+
+        Expect.hasLength template.Template.Resources 1 "Outer template should contain only nested deployment"
+        Expect.isTrue (template.Template.Resources.[0] :? Arm.ResourceGroup.ResourceGroupDeployment) "The only resource should be a resourceGroupDeployment"
+        let innerDeployment = template.Template.Resources.[0] :?> Arm.ResourceGroup.ResourceGroupDeployment
+        Expect.hasLength innerDeployment.Resources 1 "Inner template should have 1 resource"
+        Expect.equal innerDeployment.Name.Value "inner" "Inner template name is incorrect"
+        Expect.isTrue (innerDeployment.Template.Resources.[0] :? Arm.Storage.StorageAccount) "The only resource in the inner deployment should be a storageAccount"
+    }
+    test "Nested resource group outputs are copied to outer deployments" {
+        let inner1 = resourceGroup { name "inner1"; output "foo" "bax" }
+        let inner2 = resourceGroup { name "inner2"; output "foo" "bay" }
+        let outer = arm  {
+            add_resource inner1
+            add_resource inner2
+            output "foo" "baz" 
+        }
+
+        Expect.hasLength outer.Template.Outputs 3 "inner outputs should copy to outer template"
+        Expect.equal outer.Template.Outputs.[0] ("foo","baz") "output expression was incorrect"
+        Expect.equal outer.Template.Outputs.[1] ("inner1.foo","[reference('inner1').outputs['foo'].value]") "output expression was incorrect"
+        Expect.equal outer.Template.Outputs.[2] ("inner2.foo","[reference('inner2').outputs['foo'].value]") "output expression was incorrect"
+    }
+    test "Nested resource group can accept parameters" {
+        let inner1 = resourceGroup { 
+            name "inner1"
+            add_resource (vm { name "vm"; username "foo" })
+        }
+        let outer = arm  {
+            add_resource inner1
+        }
+
+        Expect.hasLength inner1.Template.Parameters 1 "inner template should have a parameter"
+        Expect.hasLength outer.Template.Parameters 1 "inner parameters should copy to outer template"
+        Expect.equal outer.Template.Parameters.[0] (SecureParameter "password-for-vm") "Parameter specification was incorrect"
+    }
+    test "Parameter value are copied to nested resource group deployment" {
+        let inner1 = resourceGroup { 
+            name "inner1"
+            add_resource (vm { name "vm"; username "foo" })
+        }
+        let outer = arm  {
+            add_resource inner1
+        }
+        
+        let deployment = outer |> findAzureResources<Models.Deployment> dummyClient.SerializationSettings
+        let nestedParamsObj = deployment.[0].Properties.Parameters :?> JObject
+        let nestedParams = 
+            nestedParamsObj.Properties()
+            |> Seq.map (fun x -> x.Name, x.Value.SelectToken(".value").ToString())
+            |> Map.ofSeq
+
+        Expect.equal nestedParams.["password-for-vm"] "[parameters('password-for-vm')]" "Parameters not correctly proxied to nested template"
     }
 ]

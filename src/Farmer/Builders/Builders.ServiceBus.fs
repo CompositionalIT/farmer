@@ -55,6 +55,7 @@ type ServiceBusSubscriptionConfig =
       LockDuration : TimeSpan option
       DuplicateDetection : TimeSpan option
       DefaultMessageTimeToLive : TimeSpan option
+      ForwardTo : ResourceName option
       MaxDeliveryCount : int option
       Session : bool option
       DeadLetteringOnMessageExpiration : bool option
@@ -63,10 +64,10 @@ type ServiceBusSubscriptionConfig =
 type ServiceBusSubscriptionBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
-
           LockDuration = None
           DuplicateDetection = None
           DefaultMessageTimeToLive = None
+          ForwardTo = None
           MaxDeliveryCount = None
           Session = None
           DeadLetteringOnMessageExpiration = None
@@ -90,6 +91,9 @@ type ServiceBusSubscriptionBuilder() =
     /// Enables dead lettering of messages that expire.
     [<CustomOperation "enable_dead_letter_on_message_expiration">]
     member _.DeadLetteringOnMessageExpiration(state:ServiceBusSubscriptionConfig) = { state with DeadLetteringOnMessageExpiration = Some true }
+    /// Automatically forward to a queue or topic
+    [<CustomOperation "forward_to">]
+    member _.ForwardTo(state:ServiceBusSubscriptionConfig, target) = { state with ForwardTo = Some (ResourceName target) }
     /// Adds filtering rules for a subscription
     [<CustomOperation "add_filters">]
     member _.AddFilters(state:ServiceBusSubscriptionConfig, filters) = { state with Rules = state.Rules @ filters }
@@ -103,14 +107,49 @@ type ServiceBusSubscriptionBuilder() =
 
 type ServiceBusTopicConfig =
     { Name : ResourceName
+      Namespace : LinkedResource
       DuplicateDetection : TimeSpan option
       DefaultMessageTimeToLive : TimeSpan option
       EnablePartitioning : bool option
       Subscriptions : Map<ResourceName, ServiceBusSubscriptionConfig> }
+    interface IBuilder with
+        member this.ResourceId = topics.resourceId (this.Namespace.Name, this.Name)
+        member this.BuildResources location = [
+            { Name = this.Name
+              Dependencies = [
+                match this.Namespace with
+                | Managed resId -> resId // Only generate dependency if this is managed by Farmer (same template)
+                | _ -> ()                  
+              ] |> Set.ofList
+              Namespace =
+                match this.Namespace with
+                | Managed resId
+                | Unmanaged resId -> resId
+              DuplicateDetectionHistoryTimeWindow = this.DuplicateDetection |> Option.map IsoDateTime.OfTimeSpan
+              DefaultMessageTimeToLive = this.DefaultMessageTimeToLive |> Option.map IsoDateTime.OfTimeSpan
+              EnablePartitioning = this.EnablePartitioning }
+            for subscription in this.Subscriptions do
+                let subscription = subscription.Value
+                { Name = subscription.Name
+                  Namespace =
+                        match this.Namespace with
+                        | Managed resId
+                        | Unmanaged resId -> resId.Name
+                  Topic = this.Name
+                  LockDuration = subscription.LockDuration |> Option.map IsoDateTime.OfTimeSpan
+                  DuplicateDetectionHistoryTimeWindow = subscription.DuplicateDetection |> Option.map IsoDateTime.OfTimeSpan
+                  DefaultMessageTimeToLive = subscription.DefaultMessageTimeToLive |> Option.map IsoDateTime.OfTimeSpan
+                  ForwardTo = subscription.ForwardTo
+                  MaxDeliveryCount = subscription.MaxDeliveryCount
+                  Session = subscription.Session
+                  DeadLetteringOnMessageExpiration = subscription.DeadLetteringOnMessageExpiration
+                  Rules = subscription.Rules }
+        ]
 
 type ServiceBusTopicBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
+          Namespace = Managed (namespaces.resourceId ResourceName.Empty)
           DuplicateDetection = None
           DefaultMessageTimeToLive = None
           EnablePartitioning = None
@@ -134,6 +173,13 @@ type ServiceBusTopicBuilder() =
                 (state.Subscriptions, subscriptions)
                 ||> List.fold(fun state (subscription:ServiceBusSubscriptionConfig) -> state.Add(subscription.Name, subscription))
         }
+    /// Instead of creating or modifying a namespace, configure this topic to point to another unmanaged namespace instance.
+    [<CustomOperation "link_to_unmanaged_namespace">]
+    member this.LinkToUnmanagedNamespace (state:ServiceBusTopicConfig, namespaceName:ResourceName) =
+        { state with Namespace = Unmanaged(namespaces.resourceId namespaceName) }
+    member this.LinkToUnmanagedNamespace (state:ServiceBusTopicConfig, namespaceName) =
+        { state with Namespace = Unmanaged(namespaces.resourceId(ResourceName namespaceName)) }
+    
 
 type ServiceBusConfig =
     { Name : ResourceName
@@ -174,26 +220,9 @@ type ServiceBusConfig =
                 EnablePartitioning = queue.EnablePartitioning }
 
             for topic in this.Topics do
-                let topic = topic.Value
-                { Name = topic.Name
-                  Namespace = this.Name
-                  DuplicateDetectionHistoryTimeWindow = topic.DuplicateDetection |> Option.map IsoDateTime.OfTimeSpan
-                  DefaultMessageTimeToLive = topic.DefaultMessageTimeToLive |> Option.map IsoDateTime.OfTimeSpan
-                  EnablePartitioning = topic.EnablePartitioning }
-
-                for subscription in topic.Subscriptions do
-                    let subscription = subscription.Value
-                    { Name = subscription.Name
-                      Namespace = this.Name
-                      Topic = topic.Name
-                      LockDuration = subscription.LockDuration |> Option.map IsoDateTime.OfTimeSpan
-                      DuplicateDetectionHistoryTimeWindow = subscription.DuplicateDetection |> Option.map IsoDateTime.OfTimeSpan
-                      DefaultMessageTimeToLive = subscription.DefaultMessageTimeToLive |> Option.map IsoDateTime.OfTimeSpan
-                      MaxDeliveryCount = subscription.MaxDeliveryCount
-                      Session = subscription.Session
-                      DeadLetteringOnMessageExpiration = subscription.DeadLetteringOnMessageExpiration
-                      Rules = subscription.Rules }
-
+                let topic = {topic.Value with Namespace = Managed(namespaces.resourceId this.Name)} :> IBuilder
+                for topicResource in topic.BuildResources location do
+                    topicResource
         ]
 
 type ServiceBusBuilder() =
@@ -235,7 +264,7 @@ type ServiceBusBuilder() =
         { state with
             Topics =
                 (state.Topics, topics)
-                ||> List.fold(fun state (topic:ServiceBusTopicConfig) -> state.Add(topic.Name, topic))
+                ||> List.fold(fun topics (topic:ServiceBusTopicConfig) -> topics.Add(topic.Name, {topic with Namespace = Managed(namespaces.resourceId state.Name)}))
         }
     interface ITaggable<ServiceBusConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 

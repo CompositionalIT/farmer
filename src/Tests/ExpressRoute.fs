@@ -7,6 +7,7 @@ open Farmer.ExpressRoute
 open Microsoft.Azure.Management.Network
 open Microsoft.Azure.Management.Network.Models
 open Microsoft.Rest
+open Newtonsoft.Json.Linq
 open System
 
 let client = new NetworkManagementClient(Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
@@ -89,5 +90,25 @@ let tests = testList "ExpressRoute" [
         Expect.equal resource.Sku.Family "UnlimitedData" ""
         Expect.equal resource.Sku.Tier "Premium" ""
         Expect.equal resource.GlobalReachEnabled (Nullable true) ""
+    }
+    
+    test "ExR service key output expression" {
+        let er = expressRoute {
+            name "my-circuit"
+            service_provider "My ISP"
+            peering_location "My ISP's Location"
+        }
+        let deployment =
+            arm {
+                add_resource er
+                output "er-service-key" er.ServiceKey
+            }
+        let json = deployment.Template |> Writer.toJson
+        let jobj = JObject.Parse(json)
+        let serviceKey = jobj.SelectToken("outputs.er-service-key.value")
+        Expect.equal
+            serviceKey
+            (JValue.CreateString "[reference(resourceId('Microsoft.Network/expressRouteCircuits', 'my-circuit')).serviceKey]" :> JToken)
+            "Incorrect expression generated for serviceKey"
     }
 ]

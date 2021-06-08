@@ -2,6 +2,16 @@
 
 open System
 
+type NonEmptyList<'T> =
+    private | NonEmptyList of List<'T>
+    /// Unwraps the inner List contents.
+    member this.Value = match this with NonEmptyList list -> list
+module NonEmptyList =
+    let create list =
+        match list with
+        | [] -> failwith "This list must always have at least one item in it."
+        | list -> NonEmptyList list
+
 [<AutoOpen>]
 module internal DuHelpers =
     let makeAll<'TUnion> =
@@ -54,11 +64,21 @@ module LocationExtensions =
         static member NorwayEast = Location "NorwayEast"
         static member Global = Location "global"
 
+[<AutoOpen>]
+module DataLocationExtensions =
+    type DataLocation with
+        static member AsiaPacific = DataLocation "Asia Pacific"
+        static member Australia = DataLocation "Australia"
+        static member Europe = DataLocation "Europe"
+        static member UnitedKingdom = DataLocation "United Kingdom"
+        static member UnitedStates = DataLocation "United States"
+
 type OS = Windows | Linux
 
 type [<Measure>] Gb
 type [<Measure>] Mb
 type [<Measure>] Mbps
+type [<Measure>] Seconds
 type [<Measure>] Hours
 type [<Measure>] Days
 type [<Measure>] VCores
@@ -399,11 +419,40 @@ module Storage =
         member this.ResourceName = match this with StorageResourceName name -> name
 
     type DefaultAccessTier = Hot | Cool
-    type StoragePerformance = Standard | Premium
-    type BasicReplication = LRS | ZRS
-    type BlobReplication = LRS | GRS | RAGRS
-    type V1Replication = LRS of StoragePerformance | GRS | RAGRS
-    type V2Replication = LRS of StoragePerformance | GRS | ZRS | GZRS | RAGRS | RAGZRS
+    type StoragePerformance =
+        | Standard | Premium
+        member this.ArmValue = match this with Standard -> "Standard" | Premium -> "Premium"
+    type BasicReplication =
+        | LRS | ZRS
+        member this.ReplicationModelDescription =
+            match this with
+            | LRS -> "LRS"
+            | ZRS -> "ZRS"
+    type BlobReplication =
+        | LRS | GRS | RAGRS
+        member this.ReplicationModelDescription =
+            match this with
+            | LRS -> "LRS"
+            | GRS -> "GRS"
+            | RAGRS -> "RAGRS"
+    type V1Replication =
+        | LRS of StoragePerformance | GRS | RAGRS
+        member this.ReplicationModelDescription =
+            match this with
+            | LRS _ -> "LRS"
+            | GRS -> "GRS"
+            | RAGRS -> "RAGRS"
+    type V2Replication =
+        | LRS of StoragePerformance | GRS | ZRS | GZRS | RAGRS | RAGZRS
+        member this.ReplicationModelDescription =
+            match this with
+            | LRS _ -> "LRS"
+            | GRS -> "GRS"
+            | ZRS -> "ZRS"
+            | GZRS -> "GZRS"
+            | RAGRS -> "RAGRS"
+            | RAGZRS -> "RAGZRS"
+
     type GeneralPurpose = V1 of V1Replication | V2 of V2Replication * DefaultAccessTier option
     type Sku =
         | GeneralPurpose of GeneralPurpose
@@ -439,6 +488,40 @@ module Storage =
 
     /// Represents no filters for a lifecycle rule
     let NoRuleFilters : string list = []
+
+    type AllOrSpecific<'T> =
+        | All
+        | Specific of 'T list
+
+    type HttpMethod =
+        | DELETE | GET | HEAD | MERGE | POST | OPTIONS | PUT | PATCH
+        static member All = NonEmptyList.create [ DELETE; GET; HEAD; MERGE; POST; OPTIONS; PUT; PATCH ]
+        member this.ArmValue =
+            match this with
+            | DELETE -> "DELETE" | GET -> "GET" | HEAD -> "HEAD" | MERGE -> "MERGE"
+            | POST -> "POST" | OPTIONS -> "OPTIONS" | PUT -> "PUT" | PATCH -> "PATCH"
+    type CorsRule =
+        { AllowedOrigins : AllOrSpecific<Uri>
+          AllowedMethods : HttpMethod NonEmptyList
+          MaxAgeInSeconds : int
+          ExposedHeaders : AllOrSpecific<string>
+          AllowedHeaders : AllOrSpecific<string> }
+        static member AllowAll =
+            { AllowedOrigins = All
+              AllowedMethods = HttpMethod.All
+              MaxAgeInSeconds = 0
+              ExposedHeaders = All
+              AllowedHeaders = All }
+        /// Creates a new CORS rule with
+        static member create (?allowedOrigins, ?allowedMethods, ?maxAgeInSeconds, ?exposedHeaders, ?allowedHeaders) =
+            let mapDefault mapper defaultValue = Option.map mapper >> Option.defaultValue defaultValue
+            { AllowedOrigins = allowedOrigins |> mapDefault (List.map Uri >> Specific) CorsRule.AllowAll.AllowedOrigins
+              AllowedMethods = allowedMethods |> mapDefault NonEmptyList.create CorsRule.AllowAll.AllowedMethods
+              MaxAgeInSeconds = defaultArg maxAgeInSeconds CorsRule.AllowAll.MaxAgeInSeconds
+              ExposedHeaders = exposedHeaders |> mapDefault Specific CorsRule.AllowAll.ExposedHeaders
+              AllowedHeaders = allowedHeaders |> mapDefault Specific CorsRule.AllowAll.AllowedHeaders }
+    [<RequireQualifiedAccess>]
+    type StorageService = Blobs | Tables | Files | Queues
 
 module WebApp =
     type WorkerSize = Small | Medium | Large | Serverless
@@ -836,8 +919,49 @@ module ExpressRoute =
     type Family = UnlimitedData | MeteredData
     type PeeringType = AzurePrivatePeering | MicrosoftPeering member this.Value = this.ToString()
 
+[<AutoOpen>]
+module PrivateIpAddress =
+    type AllocationMethod = DynamicPrivateIp | StaticPrivateIp of System.Net.IPAddress
+
+module LoadBalancer =
+    [<RequireQualifiedAccess>]
+    type Sku =
+        | Basic | Standard
+        member this.ArmValue =
+            match this with
+            | Basic -> "Basic"
+            | Standard -> "Standard"
+
+    [<RequireQualifiedAccess>]
+    type Tier =
+        | Regional | Global
+        member this.ArmValue =
+            match this with
+            | Regional -> "Regional"
+            | Global -> "Global"
+    type LoadBalancerSku = {
+        Name : Sku
+        Tier : Tier
+    }
+    [<RequireQualifiedAccess>]
+    type LoadDistributionPolicy =
+        | Default | SourceIP | SourceIPProtocol
+        member this.ArmValue =
+            match this with
+            | Default -> "Default"
+            | SourceIP -> "SourceIP"
+            | SourceIPProtocol -> "SourceIPProtocol"
+
+    [<RequireQualifiedAccess>]
+    type LoadBalancerProbeProtocol =
+        | TCP | HTTP | HTTPS
+        member this.ArmValue =
+            match this with
+            | TCP -> "Tcp"
+            | HTTP -> "Http"
+            | HTTPS -> "Https"
+
 module VirtualNetworkGateway =
-    type PrivateIpAllocationMethod = DynamicPrivateIp | StaticPrivateIp of System.Net.IPAddress
     [<RequireQualifiedAccess>]
     type ErGatewaySku =
         | Standard
@@ -912,6 +1036,14 @@ module ServiceBus =
         | Basic
         | Standard
         | Premium of MessagingUnits
+        member this.NameArmValue =
+                match this with
+                | Basic -> "Basic"
+                | Standard -> "Standard"
+                | Premium OneUnit
+                | Premium TwoUnits
+                | Premium FourUnits -> "Premium"
+        member this.TierArmValue = this.NameArmValue
     type Rule =
         | SqlFilter of ResourceName * SqlExpression : string
         | CorrelationFilter of Name : ResourceName * CorrelationId : string option * Properties : Map<string, string>
@@ -1209,6 +1341,211 @@ module Cdn =
     | LargeFileDownload
     | DynamicSiteAcceleration
 
+module DeliveryPolicy =
+    type IOperator =
+            abstract member AsOperator : string
+            abstract member AsNegateCondition : bool
+    
+    type EqualityOperator =
+        | Equals
+        | NotEquals
+        interface IOperator with
+            member this.AsOperator = "Equal"
+    
+            member this.AsNegateCondition =
+                match this with
+                | Equals -> false
+                | NotEquals -> true
+    
+    type ComparisonOperator =
+        | Any
+        | Equals
+        | Contains
+        | BeginsWith
+        | EndsWith
+        | LessThan
+        | LessThanOrEquals
+        | GreaterThan
+        | GreaterThanOrEquals
+        | NotAny
+        | NotEquals
+        | NotContains
+        | NotBeginsWith
+        | NotEndsWith
+        | NotLessThan
+        | NotLessThanOrEquals
+        | NotGreaterThan
+        | NotGreaterThanOrEquals
+        interface IOperator with
+            member this.AsOperator =
+                match this with
+                | Any
+                | NotAny -> "Any"
+                | Equals
+                | NotEquals -> "Equal"
+                | Contains
+                | NotContains -> "Contains"
+                | BeginsWith
+                | NotBeginsWith -> "BeginsWith"
+                | EndsWith
+                | NotEndsWith -> "EndsWith"
+                | LessThan
+                | NotLessThan -> "LessThan"
+                | LessThanOrEquals
+                | NotLessThanOrEquals -> "LessThanOrEqual"
+                | GreaterThan
+                | NotGreaterThan -> "GreaterThan"
+                | GreaterThanOrEquals
+                | NotGreaterThanOrEquals -> "GreaterThanOrEqual"
+    
+            member this.AsNegateCondition =
+                match this with
+                | NotAny
+                | NotEquals
+                | NotContains
+                | NotBeginsWith
+                | NotEndsWith
+                | NotLessThan
+                | NotLessThanOrEquals
+                | NotGreaterThan
+                | NotGreaterThanOrEquals -> true
+                | _ -> false
+    
+    type RemoteAddressOperator =
+        | Any
+        | GeoMatch
+        | IPMatch
+        | NotAny
+        | NotGeoMatch
+        | NotIPMatch
+        interface IOperator with
+            member this.AsOperator =
+                match this with
+                | Any
+                | NotAny -> "Any"
+                | GeoMatch
+                | NotGeoMatch -> "GeoMatch"
+                | IPMatch
+                | NotIPMatch -> "IPMatch"
+    
+            member this.AsNegateCondition =
+                match this with
+                | NotAny
+                | NotGeoMatch
+                | NotIPMatch -> true
+                | _ -> false
+    
+    type DeviceType =
+        | Mobile
+        | Desktop
+        member this.ArmValue =
+            match this with
+            | Desktop -> "Desktop"
+            | Mobile -> "Mobile"
+    
+    type HttpVersion =
+        | Version20
+        | Version11
+        | Version10
+        | Version09
+        member this.ArmValue =
+            match this with
+            | Version20 -> "2.0"
+            | Version11 -> "1.1"
+            | Version10 -> "1.0"
+            | Version09 -> "0.9"
+    
+    type RequestMethod =
+        | Get
+        | Post
+        | Put
+        | Delete
+        | Head
+        | Options
+        | Trace
+        member this.ArmValue =
+            match this with
+            | Get -> "GET"
+            | Post -> "POST"
+            | Put -> "PUT"
+            | Delete -> "DELETE"
+            | Head -> "HEAD"
+            | Options -> "OPTIONS"
+            | Trace -> "TRACE"
+    
+    type Protocol =
+        | Http
+        | Https
+        member this.ArmValue =
+            match this with
+            | Http -> "HTTP"
+            | Https -> "HTTPS"
+    
+    type UrlRedirectProtocol =
+        | Http
+        | Https
+        | MatchRequest
+        member this.ArmValue =
+            match this with
+            | Http -> "Http"
+            | Https -> "Https"
+            | MatchRequest -> "MatchRequest"
+    
+    type CaseTransform =
+        | NoTransform
+        | ToLowercase
+        | ToUppercase
+        member this.ArmValue =
+            match this with
+            | NoTransform -> []
+            | ToLowercase -> [ "Lowercase" ]
+            | ToUppercase -> [ "Uppercase" ]
+            
+    type CacheBehaviour =
+        | Override
+        | BypassCache
+        | SetIfMissing
+        member this.ArmValue =
+            match this with
+            | Override -> "Override"
+            | BypassCache -> "BypassCache"
+            | SetIfMissing -> "SetIfMissing"
+
+    type QueryStringCacheBehavior =
+        | Include
+        | IncludeAll
+        | Exclude
+        | ExcludeAll
+        member this.ArmValue =
+            match this with
+            | Include -> "Include"
+            | IncludeAll -> "IncludeAll"
+            | Exclude -> "Exclude"
+            | ExcludeAll -> "ExcludeAll"
+
+    type ModifyHeaderAction =
+        | Append
+        | Overwrite
+        | Delete
+        member this.ArmValue =
+            match this with
+            | Append -> "Append"
+            | Overwrite -> "Overwrite"
+            | Delete -> "Delete"
+            
+    type RedirectType =
+        | Found
+        | Moved
+        | TemporaryRedirect
+        | PermanentRedirect
+        member this.ArmValue =
+            match this with
+            | Found -> "Found"
+            | Moved -> "Moved"
+            | TemporaryRedirect -> "TemporaryRedirect"
+            | PermanentRedirect -> "PermanentRedirect"
+
+
 module EventGrid =
     [<Struct>] type EventGridEvent<'T> = EventGridEvent of string member this.Value = match this with EventGridEvent s -> s
 
@@ -1228,6 +1565,67 @@ module Databricks =
     type KeySource = Databricks | KeyVault member this.ArmValue = match this with Databricks -> "Default" | KeyVault -> "MicrosoftKeyVault"
     type Sku = Standard | Premium member this.ArmValue = match this with Standard -> "standard" | Premium -> "premium"
 
+module TrafficManager =
+    type RoutingMethod =
+        | Performance
+        | Weighted
+        | Priority
+        | Geographic
+        | Subnet
+        member this.ArmValue = this.ToString()
+
+    type MonitorProtocol =
+        | Http
+        | Https
+        member this.ArmValue = this.ToString().ToUpperInvariant()
+
+    type MonitorConfig =
+        { Protocol : MonitorProtocol
+          Port: int
+          Path: string
+          IntervalInSeconds: int<Seconds>
+          ToleratedNumberOfFailures: int
+          TimeoutInSeconds: int<Seconds> }
+
+    type EndpointTarget =
+        | Website of ResourceName
+        | External of (string * Location)
+        member this.ArmValue =
+            match this with
+            | Website name -> name.Value
+            | External (target, _) -> target
+
+module Serialization =
+    open System.Text.Json
+    open System.Text.Encodings.Web
+
+    let jsonSerializerOptions =
+        JsonSerializerOptions(
+            WriteIndented = true,
+            IgnoreNullValues = true,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+            PropertyNameCaseInsensitive = true)
+    let toJson x = JsonSerializer.Serialize(x, jsonSerializerOptions)
+    let ofJson<'T> (x:string) = JsonSerializer.Deserialize<'T>(x, jsonSerializerOptions)
+    
+module Resource =
+    /// Creates a unique IArmResource from an arbitrary object.
+    let ofObj armObject =
+        { new IArmResource with
+                member _.ResourceId = ResourceId.create (ResourceType("", ""), ResourceName (System.Guid.NewGuid().ToString()))
+                member _.JsonModel = armObject }
+    
+    /// Creates a unique IArmResource from a JSON string containing the output you want.
+    let ofJson = Serialization.ofJson >> ofObj
+    
+module Json =
+    /// Creates a unique IArmResource from a JSON string containing the output you want.
+    let toIArmResource = Resource.ofJson
+    
+module Subscription =
+    /// Gets an ARM expression pointing to the tenant id of the current subscription.
+    let TenantId = ArmExpression.create "subscription().tenantid"
+    
 namespace Farmer.DiagnosticSettings
 
 open Farmer
@@ -1278,3 +1676,4 @@ type LogSetting =
 
 /// Represents the kind of destination for log analytics
 type LogAnalyticsDestination = AzureDiagnostics | Dedicated
+

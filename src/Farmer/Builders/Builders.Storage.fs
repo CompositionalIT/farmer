@@ -46,6 +46,8 @@ type StorageAccountConfig =
       RoleAssignments : Roles.RoleAssignment Set
       /// Static Website Settings
       StaticWebsite : {| IndexPage : string; ContentPath : string; ErrorPage : string option |} option
+      /// The CORS rules for a storage service
+      CorsRules : List<Storage.StorageService * CorsRule>
       /// Tags to apply to the storage account
       Tags: Map<string,string> }
     /// Gets the ARM expression path to the key of this storage account.
@@ -122,6 +124,25 @@ type StorageAccountConfig =
                       ResourceId.create(storageAccounts, this.Name.ResourceName)
                       yield! roleAssignment.Owner |> Option.toList
                   ] }
+
+            let storageResourceName = StorageResourceName.Create(this.Name.ResourceName).OkValue
+
+            let rules =
+                this.CorsRules
+                |> List.groupBy fst
+                |> List.map(fun (svc, rules) ->
+                    svc, {| StorageAccount = storageResourceName
+                            CorsRules = rules |> List.map snd |}
+                )
+            for svc, rulesForService in this.CorsRules |> List.groupBy fst do
+                { ResourceType =
+                    match svc with
+                    | StorageService.Blobs -> blobServices
+                    | StorageService.Queues -> queueServices
+                    | StorageService.Tables -> tableServices
+                    | StorageService.Files -> fileServices
+                  StorageAccount = storageResourceName
+                  CorsRules = rulesForService |> List.map snd }
         ]
 
 type StorageAccountBuilder() =
@@ -137,6 +158,7 @@ type StorageAccountBuilder() =
         Tables = Set.empty
         RoleAssignments = Set.empty
         StaticWebsite = None
+        CorsRules = []
         Tags = Map.empty
     }
     static member private AddContainer(state, access, name:string) = { state with Containers = state.Containers @ [ ((StorageResourceName.Create name).OkValue, access) ] }
@@ -280,6 +302,10 @@ type StorageAccountBuilder() =
                         IpRules = allowIp :: existingAcl.IpRules
                     } |> Some
             }
+    /// Adds a set of CORS rules to the storage account.
+    [<CustomOperation "add_cors_rules">]
+    member _.AddCorsRules(state:StorageAccountConfig, rules) =
+        { state with CorsRules = state.CorsRules @ rules }
     interface ITaggable<StorageAccountConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 /// Allow adding storage accounts directly to CDNs

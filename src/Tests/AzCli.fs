@@ -5,9 +5,9 @@ open Farmer
 open System
 open TestHelpers
 
-let deployTo resourceGroupName parameters deployment =
+let deployTo resourceGroupName parameters (deployment:IDeploymentSource) =
     printfn "Creating resource group %s..." resourceGroupName
-    let deployResponse = deployment |> Deploy.tryExecute resourceGroupName parameters
+    let deployResponse = deployment.Deployment |> Deploy.tryExecute resourceGroupName parameters
     let deleteResponse = Deploy.Az.delete resourceGroupName
     match deployResponse, deleteResponse with
     | Ok _, Ok _ -> ()

@@ -78,6 +78,11 @@ type ExpressRouteConfig =
     /// Peerings on this circuit
     Peerings : ExpressRouteCircuitPeeringConfig list
     Tags: Map<string,string>  }
+    /// Returns the service key on the newly created circuit.
+    member this.ServiceKey =
+        let erId = ResourceId.create(Arm.Network.expressRouteCircuits, this.Name)
+        $"reference({erId.ArmExpression.Value}).serviceKey"
+        |> ArmExpression.create
 
     interface IBuilder with
         member this.ResourceId = expressRouteCircuits.resourceId this.Name

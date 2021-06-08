@@ -97,6 +97,7 @@ let tests = testList "NetworkSecurityGroup" [
     }
     test "Multitier Policy converted to security rules" {
         let appNet = "10.100.31.0/24"
+        let dbNet = "10.100.32.0/24"
         let webPolicy = securityRule { // Web servers - accessible from anything
             name "web-servers"
             description "Public web server access"
@@ -117,7 +118,16 @@ let tests = testList "NetworkSecurityGroup" [
             description "Internal database server access"
             services [ "postgres", 5432 ]
             add_source_network TCP appNet
-            add_destination_network "10.100.32.0/24"
+            add_destination_network dbNet
+        }
+        let blockOutbound = securityRule {
+            name "no-internet"
+            description "Block traffic out to internet"
+            add_source_network AnyProtocol appNet
+            add_source_network AnyProtocol dbNet
+            add_destination_tag "Internet"
+            direction Outbound
+            deny_traffic
         }
         let myNsg = nsg {
             name "my-nsg"
@@ -125,11 +135,12 @@ let tests = testList "NetworkSecurityGroup" [
                 webPolicy
                 appPolicy
                 dbPolicy
+                blockOutbound
             ]
         }
         let rules = arm { add_resource myNsg } |> findAzureResources<SecurityRule> client.SerializationSettings
         match rules with
-        | [ _; rule1; rule2; rule3 ] ->
+        | [ _; rule1; rule2; rule3; rule4 ] ->
             // Web server access
             rule1.Validate()
             Expect.equal rule1.Name "my-nsg/web-servers" ""
@@ -154,7 +165,7 @@ let tests = testList "NetworkSecurityGroup" [
             Expect.equal rule2.Protocol "Tcp" ""
             Expect.equal rule2.Priority (Nullable 200) ""
             Expect.equal rule2.SourceAddressPrefixes.[0] "10.100.30.0/24" ""
-            Expect.equal rule1.SourcePortRanges.Count 0 ""
+            Expect.equal rule2.SourcePortRanges.Count 0 ""
             // DB server access
             rule3.Validate()
             Expect.equal rule3.Name "my-nsg/db-servers" ""
@@ -165,7 +176,17 @@ let tests = testList "NetworkSecurityGroup" [
             Expect.equal rule3.Protocol "Tcp" ""
             Expect.equal rule3.Priority (Nullable 300) ""
             Expect.equal rule3.SourceAddressPrefixes.[0] "10.100.31.0/24" ""
-            Expect.equal rule1.SourcePortRanges.Count 0 ""
+            Expect.equal rule3.SourcePortRanges.Count 0 ""
+            // Block Internet access
+            rule4.Validate()
+            Expect.equal rule4.Name "my-nsg/no-internet" ""
+            Expect.equal rule4.Access "Deny" ""
+            Expect.equal rule4.DestinationAddressPrefix "Internet" ""
+            Expect.equal rule4.DestinationPortRange "*" ""
+            Expect.equal rule4.Direction "Outbound" ""
+            Expect.equal rule4.Protocol "*" ""
+            Expect.equal rule4.Priority (Nullable 400) ""
+            Expect.containsAll rule4.SourceAddressPrefixes ["10.100.31.0/24"; "10.100.32.0/24"] ""
         | _ -> failwith "Unexpected number of resources in template."
     }
 ]
