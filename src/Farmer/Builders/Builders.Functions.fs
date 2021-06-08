@@ -152,13 +152,8 @@ type FunctionsConfig =
                 | DotNetIsolated -> "dotnet-isolated"
                 | DotNet -> "dotnet"
                 | other -> (string other).ToLower()
-            { Name = this.Name
-              ServicePlan = this.ServicePlanId
-              Location = location
-              Cors = this.Cors
-              Tags = this.Tags
-              ConnectionStrings = Map.empty
-              AppSettings = [
+
+            let basicSettings = [
                 "FUNCTIONS_WORKER_RUNTIME", functionsRuntime
                 "WEBSITE_NODE_DEFAULT_VERSION", "10.14.1"
                 "FUNCTIONS_EXTENSION_VERSION", match this.ExtensionVersion with V1 -> "~1" | V2 -> "~2" | V3 -> "~3"
@@ -169,14 +164,16 @@ type FunctionsConfig =
 
                 if this.OperatingSystem = Windows then
                     "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING", StorageAccount.getConnectionString this.StorageAccountName |> ArmExpression.Eval
-                    "WEBSITE_CONTENTSHARE", this.Name.Value.ToLower()
-              ]
-              |> List.map Setting.AsLiteral
-              |> List.append (
+                    "WEBSITE_CONTENTSHARE", this.Name.Value.ToLower() ]
+            
+            let functionsSettings = 
+                basicSettings
+                |> List.map Setting.AsLiteral
+                |> List.append (
                     (match this.SecretStore with
-                     | AppService ->
-                         this.Settings
-                     | KeyVault r ->
+                        | AppService ->
+                            this.Settings
+                        | KeyVault r ->
                         let name = r.resourceId (FunctionsConfig.ToCommon this)
                         [ for setting in this.Settings do
                             match setting.Value with
@@ -187,8 +184,15 @@ type FunctionsConfig =
                                 setting.Key, LiteralSetting $"@Microsoft.KeyVault(SecretUri=https://{name.Name.Value}.vault.azure.net/secrets/{setting.Key})"
                         ] |> Map.ofList
                     ) |> Map.toList)
-              |> Map
+                |> Map
 
+            { Name = this.Name
+              ServicePlan = this.ServicePlanId
+              Location = location
+              Cors = this.Cors
+              Tags = this.Tags
+              ConnectionStrings = Map.empty
+              AppSettings = if this.Slots.IsEmpty then functionsSettings else Map.empty
               Identity = this.Identity
               Kind =
                 match this.OperatingSystem with
@@ -283,14 +287,16 @@ type FunctionsConfig =
                 
             for kvp in this.Slots do
                 let name,cfg = kvp.Key,kvp.Value
+                let combinedSettings = Map.merge (this.Settings |> Map.toList) functionsSettings
                 { SlotName = name 
                   Location = location
                   ServicePlan = this.ServicePlanId
                   Site = this.ResourceId
                   Tags = this.Tags
                   AutoSwapSlotName = kvp.Value.AutoSwapSlotName
-                  AppSettings = cfg.AppSettings
-                  ConnectionStrings = cfg.ConnectionStrings }
+                  AppSettings = Map.merge (cfg.AppSettings |> Map.toList) combinedSettings
+                  ConnectionStrings = cfg.ConnectionStrings
+                  Identity = cfg.Identity }
         ]
 
 type FunctionsBuilder() =

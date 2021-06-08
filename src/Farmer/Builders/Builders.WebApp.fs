@@ -104,20 +104,28 @@ type SlotConfig =
     { Name: string
       AutoSwapSlotName: string
       AppSettings: Map<string,Setting>
-      ConnectionStrings: Map<string,(Setting * ConnectionStringKind)> }
+      ConnectionStrings: Map<string,(Setting * ConnectionStringKind)>
+      Identity: ManagedIdentity }
 
 type SlotBuilder() =
     member this.Yield _ =
         { Name = "staging"
           AutoSwapSlotName = ""
           AppSettings = Map.empty
-          ConnectionStrings = Map.empty }
+          ConnectionStrings = Map.empty
+          Identity = ManagedIdentity.Empty }
 
     [<CustomOperation "name">]
     member this.Name (state,name) : SlotConfig = {state with Name = name}
 
     [<CustomOperation "autoSlotSwapName">]
     member this.AutoSlotSwapName (state,autoSlotSwapName) : SlotConfig = {state with AutoSwapSlotName = autoSlotSwapName}
+
+    [<CustomOperation "identity">]
+    member this.Identity (state, identity) : SlotConfig = {state with Identity = identity}
+
+    [<CustomOperation "enable_system_assigned_identity">]
+    member this.EnableSystemAssignedIdentity (state) : SlotConfig = this.Identity(state, { SystemAssigned = Enabled; UserAssigned = [] })
 
     [<CustomOperation "setting">]
     /// Adds an AppSetting to this deployment slot
@@ -256,19 +264,7 @@ type WebAppConfig =
 
             yield! secrets
 
-            { Name = this.Name
-              Location = location
-              ServicePlan = this.ServicePlanId
-              HTTPSOnly = this.HTTPSOnly
-              HTTP20Enabled = this.HTTP20Enabled
-              ClientAffinityEnabled = this.ClientAffinityEnabled
-              WebSocketsEnabled = this.WebSocketsEnabled
-              Identity = this.Identity
-              Cors = this.Cors
-              Tags = this.Tags
-              ConnectionStrings = this.ConnectionStrings
-              WorkerProcess = this.WorkerProcess
-              AppSettings =
+            let siteSettings = 
                 let literalSettings = [
                     if this.RunFromPackage then AppSettings.RunFromPackage
                     yield! this.WebsiteNodeDefaultVersion |> Option.mapList AppSettings.WebsiteNodeDefaultVersion
@@ -318,6 +314,20 @@ type WebAppConfig =
                         ] |> Map.ofList
                     ) |> Map.toList)
                 |> Map
+
+            { Name = this.Name
+              Location = location
+              ServicePlan = this.ServicePlanId
+              HTTPSOnly = this.HTTPSOnly
+              HTTP20Enabled = this.HTTP20Enabled
+              ClientAffinityEnabled = this.ClientAffinityEnabled
+              WebSocketsEnabled = this.WebSocketsEnabled
+              Identity = this.Identity
+              Cors = this.Cors
+              Tags = this.Tags
+              ConnectionStrings = this.ConnectionStrings
+              WorkerProcess = this.WorkerProcess
+              AppSettings = if this.Slots.IsEmpty then siteSettings else Map.empty
               Kind = [
                 "app"
                 match this.OperatingSystem with Linux -> "linux" | Windows -> ()
@@ -459,14 +469,16 @@ type WebAppConfig =
 
             for kvp in this.Slots do
                 let name,cfg = kvp.Key,kvp.Value
+                let webAppSettings = Map.merge (this.Settings |> Map.toList) siteSettings
                 { SlotName = name 
                   Location = location
                   ServicePlan = this.ServicePlanId
                   Site = this.ResourceId
                   Tags = this.Tags
-                  AutoSwapSlotName = kvp.Value.AutoSwapSlotName
-                  AppSettings = cfg.AppSettings
-                  ConnectionStrings = cfg.ConnectionStrings }
+                  AutoSwapSlotName = cfg.AutoSwapSlotName
+                  AppSettings = Map.merge (cfg.AppSettings |> Map.toList) webAppSettings
+                  ConnectionStrings = Map.merge (cfg.ConnectionStrings |> Map.toList) this.ConnectionStrings 
+                  Identity = cfg.Identity }
         ]
 
 type WebAppBuilder() =
