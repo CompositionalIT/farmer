@@ -304,6 +304,18 @@ let tests = testList "Web App Tests" [
         let site:Site = webApp { worker_process Bits64 } |> getResourceAtIndex 0
         Expect.equal site.SiteConfig.Use32BitWorkerProcess (Nullable false) "Should not use 32 bit worker process"
     }
+    test "WebApp supports adding slots" {
+        let slot = appSlot { name "warm-up" }
+        let site:WebAppConfig = webApp { add_slot slot }
+        Expect.isTrue (site.Slots.ContainsKey "warm-up") "config should contain slot"
+
+        let slots = 
+            site 
+            |> getResources
+            |> getResource<Slot>
+        // Default "production" slot is not included as it is created automatically in Azure
+        Expect.hasLength slots 1 "Should only be 1 slot"
+    }
     test "Supports .NET 5 EAP" {
         let app = webApp { runtime_stack Runtime.DotNet50 }
         let site:Site = app |> getResourceAtIndex 0

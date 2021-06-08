@@ -14,12 +14,12 @@ let getResource<'T when 'T :> IArmResource> (data:IArmResource list) = data |> L
 /// Client instance needed to get the serializer settings.
 let dummyClient = new WebSiteManagementClient (Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
 let getResourceAtIndex o = o |> getResourceAtIndex dummyClient.SerializationSettings
-let getResources (v:IBuilder) = v.BuildResources Location.WestEurope
+let getResources (b:#IBuilder) = b.BuildResources Location.WestEurope
 
 let tests = testList "Functions tests" [
     test "Renames storage account correctly" {
         let f = functions { name "test"; storage_account_name "foo" }
-        let resources = (f :> IBuilder).BuildResources Location.WestEurope
+        let resources = getResources f
         let site = resources.[0] :?> Web.Site
         let storage = resources.[2] :?> Storage.StorageAccount
 
@@ -38,7 +38,7 @@ let tests = testList "Functions tests" [
         let externalStorageAccount = ResourceId.create(storageAccounts, ResourceName "foo", "group")
         let functionsBuilder = functions { name "test"; link_to_unmanaged_storage_account externalStorageAccount }
         let f = functionsBuilder :> IBuilder
-        let resources = f.BuildResources Location.WestEurope
+        let resources = getResources f
         let site = resources |> List.head :?> Web.Site
 
         Expect.isFalse (resources |> List.exists (fun r -> r.ResourceId.Type = storageAccounts)) "Storage Account should not exist"
@@ -76,7 +76,18 @@ let tests = testList "Functions tests" [
         let f:Site = functions { worker_process Bitness.Bits64 } |> getResourceAtIndex 0
         Expect.equal f.SiteConfig.Use32BitWorkerProcess (Nullable false) "Should not use 32 bit worker process"
     }
+    test "FunctionsApp supports adding slots" {
+        let slot = appSlot { name "warm-up" }
+        let site = functions { add_slot slot }
+        Expect.isTrue (site.Slots.ContainsKey "warm-up") "config should contain slot"
 
+        let slots = 
+            site 
+            |> getResources
+            |> getResource<Slot>
+
+        Expect.hasLength slots 1 "Should only be 1 slot"
+    }
     test "Managed KV integration works correctly" {
         let sa = storageAccount { name "teststorage" }
         let wa = functions { name "testfunc"; setting "storage" sa.Key; secret_setting "secret"; setting "literal" "value"; link_to_keyvault (ResourceName "testfuncvault") }
