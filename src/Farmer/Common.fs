@@ -1545,6 +1545,37 @@ module TrafficManager =
             | Website name -> name.Value
             | External (target, _) -> target
 
+module Serialization =
+    open System.Text.Json
+    open System.Text.Encodings.Web
+
+    let jsonSerializerOptions =
+        JsonSerializerOptions(
+            WriteIndented = true,
+            IgnoreNullValues = true,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+            PropertyNameCaseInsensitive = true)
+    let toJson x = JsonSerializer.Serialize(x, jsonSerializerOptions)
+    let ofJson<'T> (x:string) = JsonSerializer.Deserialize<'T>(x, jsonSerializerOptions)
+    
+module Resource =
+    /// Creates a unique IArmResource from an arbitrary object.
+    let ofObj armObject =
+        { new IArmResource with
+                member _.ResourceId = ResourceId.create (ResourceType("", ""), ResourceName (System.Guid.NewGuid().ToString()))
+                member _.JsonModel = armObject }
+    
+    /// Creates a unique IArmResource from a JSON string containing the output you want.
+    let ofJson = Serialization.ofJson >> ofObj
+    
+module Json =
+    /// Creates a unique IArmResource from a JSON string containing the output you want.
+    let toIArmResource = Resource.ofJson
+    
+module Subscription =
+    /// Gets an ARM expression pointing to the tenant id of the current subscription.
+    let TenantId = ArmExpression.create "subscription().tenantid"
+    
 namespace Farmer.DiagnosticSettings
 
 open Farmer

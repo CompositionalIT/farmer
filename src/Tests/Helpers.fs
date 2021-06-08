@@ -12,6 +12,7 @@ let createSimpleDeployment parameters =
           Parameters = parameters |> List.map SecureParameter
           Resources = []
       }
+      Tags = Map.empty
     }
 let convertTo<'T> = Serialization.toJson >> Serialization.ofJson<'T>
 
@@ -24,8 +25,8 @@ let getResourceAtIndex serializationSettings index (builder:#IBuilder) =
     builder.BuildResources Location.WestEurope
     |> fun r -> r.[index].JsonModel |> farmerToMs serializationSettings
 
-let findAzureResources<'T when 'T : null> (serializationSettings:Newtonsoft.Json.JsonSerializerSettings) (deployment:Deployment) =
-    let template = deployment.Template |> Writer.TemplateGeneration.processTemplate
+let findAzureResources<'T when 'T : null> (serializationSettings:Newtonsoft.Json.JsonSerializerSettings) (deployment:IDeploymentSource) = 
+    let template = deployment.Deployment.Template |> Writer.TemplateGeneration.processTemplate
 
     template.resources
     |> Seq.map Serialization.toJson

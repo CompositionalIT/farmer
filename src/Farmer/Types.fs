@@ -301,11 +301,17 @@ type ArmTemplate =
     { Parameters : SecureParameter list
       Outputs : (string * string) list
       Resources : IArmResource list }
+      
 
 type Deployment =
     { Location : Location
       Template : ArmTemplate
-      PostDeployTasks : IPostDeploy list }
+      PostDeployTasks : IPostDeploy list
+      Tags: Map<string,string> }
+    interface IDeploymentSource with
+        member this.Deployment = this
+and IDeploymentSource = 
+    abstract member Deployment : Deployment
 
 module internal DeterministicGuid =
     open System.Security.Cryptography

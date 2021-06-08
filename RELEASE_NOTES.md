@@ -1,5 +1,8 @@
 Release Notes
 =============
+## 1.6.0
+* Added support for nesting resource groups
+
 ## 1.5.3
 * CDN: Support for CDN rules
 * Container Service (AKS): Support for using managed identity (msi) for the service principal.

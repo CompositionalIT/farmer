@@ -35,7 +35,7 @@
     <PackageReference Update="FSharp.Core" Version="5.0.0" />
   </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
-      <PackageReference Include="System.Text.Json" Version="5.0.1" />
+    <PackageReference Include="System.Text.Json" Version="5.0.1" />
   </ItemGroup>
   <ItemGroup>
     <None Include="../../Icon.jpg">
@@ -49,10 +49,10 @@
     <Compile Include="Types.fs" />
     <Compile Include="Common.fs" />
     <Compile Include="DiagnosticLogCategories.fs" />
-    <Compile Include="ArmBuilder.fs" />
 
     <Compile Include="Writer.fs" />
     <Compile Include="Deploy.fs" />
+    <Compile Include="Arm\ResourceGroup.fs" />
 
     <Compile Include="Arm/DiagnosticSetting.fs" />
     <Compile Include="Arm/ManagedIdentity.fs" />
@@ -92,6 +92,7 @@
     <Compile Include="Arm/VirtualWan.fs" />
     <Compile Include="Arm/TrafficManager.fs" />
     <Compile Include="IdentityExtensions.fs" />
+    <Compile Include="Builders/Builders.ResourceGroup.fs" />
     <Compile Include="Builders/Builders.LogAnalytics.fs" />
     <Compile Include="Builders/Builders.Helpers.fs" />
     <Compile Include="Builders/Builders.UserAssignedIdentity.fs" />
@@ -134,5 +135,6 @@
     <Compile Include="Builders/Builders.DiagnosticSetting.fs" />
     <Compile Include="Builders/Builders.VirtualWan.fs" />
     <Compile Include="Builders/Builders.TrafficManager.fs" />
+    <Compile Include="Aliases.fs" />
   </ItemGroup>
 </Project>
