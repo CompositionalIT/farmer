@@ -6,6 +6,7 @@ open Farmer.Identity
 open Farmer.ContainerGroup
 open Farmer.Arm.ContainerInstance
 open Farmer.Builders
+open Farmer.Network
 open Microsoft.Azure.Management.ContainerInstance
 open Microsoft.Azure.Management.ContainerInstance.Models
 open Microsoft.Rest

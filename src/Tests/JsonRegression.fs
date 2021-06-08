@@ -4,6 +4,7 @@ open Expecto
 open Farmer
 open Farmer.Builders
 open Farmer.Arm
+open Farmer.Network
 open System.IO
 open Farmer.ServiceBus
 

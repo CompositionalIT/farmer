@@ -723,7 +723,7 @@
               "type": "Microsoft.Network/networkInterfaces"
             },
             {
-              "apiVersion": "2018-11-01",
+              "apiVersion": "2020-07-01",
               "location": "uksouth",
               "name": "farmervm-vnet",
               "properties": {
@@ -737,7 +737,9 @@
                     "name": "farmervm-subnet",
                     "properties": {
                       "addressPrefix": "10.0.0.0/24",
-                      "delegations": []
+                      "delegations": [],
+                      "serviceEndpointPolicies": [],
+                      "serviceEndpoints": []
                     }
                   }
                 ]
