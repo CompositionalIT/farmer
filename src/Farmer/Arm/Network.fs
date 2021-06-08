@@ -72,13 +72,19 @@ type VirtualNetwork =
                                               properties = {| serviceName = delegation.ServiceName |}
                                            |})
                                    serviceEndpoints =
-                                       subnet.ServiceEndpoints
-                                       |> List.map (fun (Network.EndpointServiceType(serviceEndpoint), locations) ->
-                                           {| service = serviceEndpoint
-                                              locations = locations |> List.map (fun location ->location.ArmValue) |})
+                                       if subnet.ServiceEndpoints.IsEmpty then
+                                           Unchecked.defaultof<_>
+                                       else
+                                           subnet.ServiceEndpoints
+                                           |> List.map (fun (Network.EndpointServiceType(serviceEndpoint), locations) ->
+                                               {| service = serviceEndpoint
+                                                  locations = locations |> List.map (fun location ->location.ArmValue) |})
                                    serviceEndpointPolicies =
-                                       subnet.AssociatedServiceEndpointPolicies
-                                       |> List.map (fun policyId -> {| id = policyId.ArmExpression.Eval() |})
+                                       if subnet.AssociatedServiceEndpointPolicies.IsEmpty then
+                                           Unchecked.defaultof<_>
+                                       else
+                                           subnet.AssociatedServiceEndpointPolicies
+                                           |> List.map (fun policyId -> {| id = policyId.ArmExpression.Eval() |})
                                 |}
                             |})
                     |}
