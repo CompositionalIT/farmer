@@ -2,6 +2,9 @@ Release Notes
 =============
 ## 1.6.0
 * Added support for nesting resource groups
+* Storage: Support for firewall to restrict storage account network access to virtual network subnets, IP addresses, and CIDR prefixes.
+* Virtual Network: Support for creating service endpoints on subnets.
+* Virtual Network: Support for assigning existing service endpoint policies to subnets.
 
 ## 1.5.3
 * CDN: Support for CDN rules
@@ -37,9 +40,6 @@ Release Notes
 * KeyVault: Support Azure RBAC for data plane access.
 * ServiceBus: update namespace validation rules to follow [Microsoft documentation](https://docs.microsoft.com/en-us/azure/azure-resource-manager/management/resource-name-rules#microsoftservicebus)
 * Storage: Add support for tables
-* Storage: Support for firewall to restrict storage account network access to virtual network subnets, IP addresses, and CIDR prefixes.
-* Virtual Network: Support for creating service endpoints on subnets.
-* Virtual Network: Support for assigning existing service endpoint policies to subnets.
 * Web App: Disables the automatic addition of the logging site extension when `docker_image` is used
 * Web App: Add dotnet 5.0 runtime option
 
