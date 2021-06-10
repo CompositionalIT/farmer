@@ -1,6 +1,6 @@
 ---
 title: "Virtual Network"
-date: 2021-01-09T11:22:17-05:00
+date: 2021-06-09T10:31:36-05:00
 chapter: false
 weight: 21
 ---
@@ -29,10 +29,11 @@ The Virtual Network builder (`vnet`) is used to create Azure Virtual Network ins
 | subnet         | associate_service_endpoint_policies     | Associates a subnet with an existing service policy.                 |
 | addressSpace   | space                                   | When using `build_address_space` this specifies the address space.   |
 | addressSpace   | subnets                                 | Specifies the subnets to build automatically.                        |
-| addressSpace   | build_subnet                            | Specifies the name, size, and service delegations for the subnet.    |
-| addressSpace   | build_subnet_delegated_service_endpoints| Specifies the name, size, service delegations and endpoints.         |
-| addressSpace   | build_subnet_service_endpoints          | Specifies the name, size, and service endpoints for the subnet.      |
-| addressSpace   | build_subnet_service_endpoint_policies  | Specifies the name, size, service delegations, and endpoint policies.|
+| subnetSpec     | name | Specifies the name of the subnet to build. |
+| subnetSpec     | size | Specifies the size of the subnet to build, default is /24. |
+| subnetSpec     | add_delegations | Adds service delegations for the subnet that will be generated. |
+| subnetSpec     | add_service_endpoints | Adds service endpoints for the subnet that will be generated. |
+| subnetSpec     | add_service_endpoint_policies | Associates the service endpoint policies with the subnet that will be generated. |
 
 #### Example - Manual Subnets
 
@@ -94,23 +95,68 @@ let myVnet = vnet {
         addressSpace {
             space "10.28.0.0/16"
             subnets [
-                buildSubnet "vms" 26
-                buildSubnet "services" 24
-                buildSubnet "corporate-west" 18
-                buildSubnet "corporate-east" 18
-                buildSubnet "GatewaySubnet" 28
-                build_subnet_delegated_service_endpoints "containers" 27
-                    [SubnetDelegationService.ContainerGroups]
-                    [EndpointServiceType.Storage, [Location.NorthEurope; Location.WestEurope]]
+                subnetSpec {
+                    name "vms"
+                    size 26
+                }
+                subnetSpec {
+                    name "services"
+                    size 24
+                }
+                subnetSpec {
+                    name "corporate-west"
+                    size 18
+                }
+                subnetSpec {
+                    name "corporate-east"
+                    size 18
+                }
+                subnetSpec {
+                    name "corporate-east"
+                    size 18
+                }
+                subnetSpec {
+                    name "GatewaySubnet"
+                    size 28
+                }
+                subnetSpec {
+                    name "containers"
+                    size 27
+                    add_delegations [SubnetDelegationService.ContainerGroups]
+                    add_service_endpoints [
+                        EndpointServiceType.Storage, [
+                            Location.NorthEurope
+                            Location.WestEurope
+                        ]
+                    ]
+                }
             ]
         }
         addressSpace {
             space "10.30.0.0/16"
             subnets [
-                buildSubnet "remote-office" 23
-                build_subnet_service_endpoints "applications" 24 [EndpointServiceType.Storage, [Location.NorthEurope]]
-                buildSubnet "reserved" 24
-                buildSubnet "GatewaySubnet" 28
+                subnetSpec {
+                    name "remote-office"
+                    size 23
+                }
+                subnetSpec {
+                    name "applications"
+                    size 24
+                    add_service_endpoints [
+                        EndpointServiceType.Storage, [
+                            Location.NorthEurope
+                            Location.WestEurope
+                        ]
+                    ]
+                }
+                subnetSpec {
+                    name "reserved"
+                    size 24
+                }
+                subnetSpec {
+                    name "GatewaySubnet"
+                    size 28
+                }
             ]
         }
     ]

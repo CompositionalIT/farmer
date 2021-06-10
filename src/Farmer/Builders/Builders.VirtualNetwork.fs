@@ -50,10 +50,43 @@ let buildSubnet name size =
 let buildSubnetDelegations name size delegations =
     { Name = name; Size = size; Delegations = delegations; ServiceEndpoints = []; AssociatedServiceEndpointPolicies = [] }
 
+type SubnetSpecBuilder () =
+    member _.Yield _ =
+        {
+            Name = ""
+            Size = 24
+            Delegations = []
+            ServiceEndpoints = []
+            AssociatedServiceEndpointPolicies = []
+        }
+    /// Sets the name of the subnet to build
+    [<CustomOperation "name">]
+    member _.Name(state:SubnetBuildSpec, name) =
+        { state with Name = name }
+    /// Sets the size for the network prefix to build
+    [<CustomOperation "size">]
+    member _.Size(state:SubnetBuildSpec, size) =
+        { state with Size = size }
+    /// Adds any services to delegate this subnet
+    [<CustomOperation "add_delegations">]
+    member _.AddDelegations(state:SubnetBuildSpec, delegations) =
+        { state with Delegations = state.Delegations @ delegations }
+    /// Adds service endpoints to build for this subnet
+    [<CustomOperation "add_service_endpoints">]
+    member _.AddServiceEndpoints(state:SubnetBuildSpec, serviceEndpoints) =
+        { state with ServiceEndpoints = state.ServiceEndpoints @ serviceEndpoints }
+    /// Associates the built subnet with service endpoint policies
+    [<CustomOperation "add_service_endpoint_policies">]
+    member _.AddAssociatedServiceEndpointPolicies(state:SubnetBuildSpec, policies) =
+        { state with AssociatedServiceEndpointPolicies = state.AssociatedServiceEndpointPolicies @ policies }
+
+let subnetSpec = SubnetSpecBuilder()
+
 /// A specification building an address space and subnets.
 type AddressSpaceSpec =
     { Space : string
       Subnets : SubnetBuildSpec list }
+open System.Runtime.InteropServices
 /// Builder for an address space with automatically carved subnets.
 type AddressSpaceBuilder() =
     member _.Yield _ = { Space = ""; Subnets = [] }
@@ -75,15 +108,6 @@ type AddressSpaceBuilder() =
     [<CustomOperation("build_subnet_delegated")>]
     member this.BuildSubnetDelegated(state:AddressSpaceSpec, name:string, size:int, delegations:SubnetDelegationService list) =
         this.buildSubnet(state, name, size, delegations=delegations)
-    [<CustomOperation("build_subnet_delegated_service_endpoints")>]
-    member this.BuildSubnetDelegatedServiceEndpoints(state:AddressSpaceSpec, name:string, size:int, delegations:SubnetDelegationService list, serviceEndpoints:(EndpointServiceType * Location list) list) =
-        this.buildSubnet(state, name, size, delegations=delegations, serviceEndpoints=serviceEndpoints)
-    [<CustomOperation("build_subnet_service_endpoints")>]
-    member this.BuildSubnetServiceEndpoints(state:AddressSpaceSpec, name:string, size:int, serviceEndpoints:(EndpointServiceType * Location list) list) =
-        this.buildSubnet(state, name, size, serviceEndpoints=serviceEndpoints)
-    [<CustomOperation("build_subnet_service_endpoint_policies")>]
-    member this.BuildSubnetServiceEndpointPolicies(state:AddressSpaceSpec, name:string, size:int, serviceEndpoints:(EndpointServiceType * Location list) list, associatedServiceEndpointPolicies:ResourceId list) =
-        this.buildSubnet(state, name, size, serviceEndpoints=serviceEndpoints, associatedServiceEndpointPolicies=associatedServiceEndpointPolicies)
 
 let addressSpace = AddressSpaceBuilder ()
 

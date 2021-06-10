@@ -76,8 +76,23 @@ let tests = testList "Network Tests" [
             build_address_spaces [
                 addressSpace {
                     space "10.28.0.0/16"
-                    build_subnet_service_endpoints servicesSubnet 24 [EndpointServiceType.Storage, [Location.EastUS]]
-                    build_subnet_delegated_service_endpoints containerSubnet 24 [SubnetDelegationService.ContainerGroups] [EndpointServiceType.Storage, [Location.EastUS]]
+                    subnets [
+                        subnetSpec {
+                            name servicesSubnet
+                            size 24
+                            add_service_endpoints [
+                                EndpointServiceType.Storage, [Location.EastUS]
+                            ]
+                        }
+                        subnetSpec {
+                            name containerSubnet
+                            size 24
+                            add_delegations [SubnetDelegationService.ContainerGroups]
+                            add_service_endpoints [
+                                EndpointServiceType.Storage, [Location.EastUS]
+                            ]
+                        }
+                    ]
                 }
             ]
         }
