@@ -15,7 +15,7 @@ open System
 type FunctionsRuntime = DotNet | DotNetIsolated | Node | Java | Python
 type DockerInfo = {
     User: string
-    Password: string
+    Password: SecureParameter
     Url: Uri
     StartupCommand: string
 }
@@ -180,7 +180,7 @@ type FunctionsConfig =
                     yield! [
                         "DOCKER_REGISTRY_SERVER_URL", url.ToString()
                         "DOCKER_REGISTRY_SERVER_USERNAME", us
-                        "DOCKER_REGISTRY_SERVER_PASSWORD", pass
+                        "DOCKER_REGISTRY_SERVER_PASSWORD", pass.ArmExpression.Eval()
                     ]
 
                 | _ -> ()
@@ -350,3 +350,8 @@ type FunctionsBuilder() =
         member _.Wrap state config = FunctionsConfig.FromCommon state config
 
 let functions = FunctionsBuilder()
+let docker (server: Uri) (user: string) (command: string): DockerInfo =
+    { User = user
+      Password = SecureParameter $"{user}-password"
+      Url = server
+      StartupCommand = command }
