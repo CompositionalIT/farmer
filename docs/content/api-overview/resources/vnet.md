@@ -7,33 +7,58 @@ weight: 21
 
 #### Overview
 
-The Virtual Network builder (`vnet`) is used to create Azure Virtual Network instances.
+The virtual network builder is used to deploy virtual networks and their subnets.
 
 - Virtual Network (`Microsoft.Network/virtualNetworks`)
 - Subnets (`Microsoft.Network/virtualNetworks/subnets`)
 
+The Virtual Network module contains four builders
+
+- The `vnet` builder is used to create Azure Virtual Network instances.
+- The `subnet` builder is used within the `vnet` builder to define subnets.
+- The `addressSpace` builder can be used to automatically generate subnets based on the sizes of networks needed within the address space.
+- The `subnetSpec` builder is used to define the automatically generated subnets, with the primary different from the `subnet` builder being that you define the `size` for the prefix, and not the address.
+
 #### Builder Keywords
 
-| Resource       | Keyword                                 | Purpose                                                              |
-| -------------- | --------------------------------------- | -------------------------------------------------------------------- |
-| vnet           | name                                    | Sets the name of the virtual network.                                |
-| vnet           | add_address_spaces                      | Adds address spaces to the virtual network.                          |
-| vnet           | add_subnets                             | Adds subnets to the virtual network.                                 |
-| vnet           | build_address_spaces                    | Automatically builds address spaces for subnet names and sizes.      |
-| vnet           | add_tags                                | Adds a set of tags to the resource                                   |
-| vnet           | add_tag                                 | Adds a tag to the resource                                           |
-| subnet         | name                                    | Name of the subnet resource                                          |
-| subnet         | prefix                                  | Subnet prefix in CIDR notation (e.g. 192.168.100.0/24)               |
-| subnet         | add_delegations                         | Adds one or more delegations to this subnet.                         |
-| subnet         | add_service_endpoints                   | Adds one or more service endpoints to this subnet.                   |
-| subnet         | associate_service_endpoint_policies     | Associates a subnet with an existing service policy.                 |
-| addressSpace   | space                                   | When using `build_address_space` this specifies the address space.   |
-| addressSpace   | subnets                                 | Specifies the subnets to build automatically.                        |
-| subnetSpec     | name | Specifies the name of the subnet to build. |
-| subnetSpec     | size | Specifies the size of the subnet to build, default is /24. |
-| subnetSpec     | add_delegations | Adds service delegations for the subnet that will be generated. |
-| subnetSpec     | add_service_endpoints | Adds service endpoints for the subnet that will be generated. |
-| subnetSpec     | add_service_endpoint_policies | Associates the service endpoint policies with the subnet that will be generated. |
+##### Virtual Network: `vnet`
+
+| Keyword                                 | Purpose                                                              |
+| --------------------------------------- | -------------------------------------------------------------------- |
+| name                                    | Sets the name of the virtual network.                                |
+| add_address_spaces                      | Adds address spaces to the virtual network.                          |
+| add_subnets                             | Adds subnets to the virtual network.                                 |
+| build_address_spaces                    | Automatically builds address spaces for subnet names and sizes.      |
+| add_tags                                | Adds a set of tags to the resource                                   |
+| add_tag                                 | Adds a tag to the resource                                           |
+
+##### Subnet: `subnet`
+
+| Keyword                                 | Purpose                                                              |
+| --------------------------------------- | -------------------------------------------------------------------- |
+| name                                    | Name of the subnet resource                                          |
+| prefix                                  | Subnet prefix in CIDR notation (e.g. 192.168.100.0/24)               |
+| add_delegations                         | Adds one or more delegations to this subnet.                         |
+| add_service_endpoints                   | Adds one or more service endpoints to this subnet.                   |
+| associate_service_endpoint_policies     | Associates a subnet with an existing service policy.                 |
+
+##### Automatically build out an address space: `addressSpace`
+
+| Keyword                                 | Purpose                                                              |
+| --------------------------------------- | -------------------------------------------------------------------- |
+| space                                   | When using `build_address_space` this specifies the address space.   |
+| subnets                                 | Specifies the subnets to build automatically.                        |
+
+
+##### Specify subnets in automatic address space: `subnetSpec`
+
+| Keyword                                 | Purpose                                                              |
+| --------------------------------------- | -------------------------------------------------------------------- |
+| name                                    | Specifies the name of the subnet to build.                           |
+| size                                    | Specifies the size of the subnet to build, default is /24.           |
+| add_delegations                         | Adds service delegations for the subnet.                             |
+| add_service_endpoints                   | Adds service endpoints for the subnet.                               |
+| add_service_endpoint_policies           | Associates the service endpoint policies with the subnet.            |
 
 #### Example - Manual Subnets
 
