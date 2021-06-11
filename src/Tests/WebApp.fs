@@ -83,7 +83,7 @@ let tests = testList "Web App Tests" [
                 enable_cors [ "https://bbc.co.uk" ]
                 enable_cors_credentials
             }
-            |> getResourceAtIndex 0
+            |> getResourceAtIndex 3
         Expect.sequenceEqual wa.SiteConfig.Cors.AllowedOrigins [ "https://bbc.co.uk" ] "Allowed Origins should be *"
         Expect.equal wa.SiteConfig.Cors.SupportCredentials (Nullable true) "Support Credentials"
     }
@@ -99,7 +99,7 @@ let tests = testList "Web App Tests" [
 
     test "Automatically converts from * to AllOrigins" {
         let wa : Site =
-            webApp { name "test"; enable_cors [ "*" ] } |> getResourceAtIndex 0
+            webApp { name "test"; enable_cors [ "*" ] } |> getResourceAtIndex 3
         Expect.sequenceEqual wa.SiteConfig.Cors.AllowedOrigins [ "*" ] "Allowed Origins should be *"
     }
 
@@ -110,7 +110,7 @@ let tests = testList "Web App Tests" [
 
     test "If CORS is not enabled, ignores enable credentials" {
         let wa : Site =
-            webApp { name "test"; enable_cors_credentials } |> getResourceAtIndex 0
+            webApp { name "test"; enable_cors_credentials } |> getResourceAtIndex 3
         Expect.isNull wa.SiteConfig.Cors "Should be no CORS settings"
     }
 
@@ -203,15 +203,15 @@ let tests = testList "Web App Tests" [
     }
 
     test "Handles identity correctly" {
-        let wa : Site = webApp { name "" } |> getResourceAtIndex 0
+        let wa : Site = webApp { name "" } |> getResourceAtIndex 3
         Expect.equal wa.Identity.Type (Nullable ManagedServiceIdentityType.None) "Incorrect default managed identity"
         Expect.isNull wa.Identity.UserAssignedIdentities "Should be no user assigned identities"
 
-        let wa : Site = webApp { system_identity } |> getResourceAtIndex 0
+        let wa : Site = webApp { system_identity } |> getResourceAtIndex 3
         Expect.equal wa.Identity.Type (Nullable ManagedServiceIdentityType.SystemAssigned) "Should have system identity"
         Expect.isNull wa.Identity.UserAssignedIdentities "Should have no user assigned identities"
 
-        let wa : Site = webApp { system_identity; add_identity (createUserAssignedIdentity "test"); add_identity (createUserAssignedIdentity "test2") } |> getResourceAtIndex 0
+        let wa : Site = webApp { system_identity; add_identity (createUserAssignedIdentity "test"); add_identity (createUserAssignedIdentity "test2") } |> getResourceAtIndex 3
         Expect.equal wa.Identity.Type (Nullable ManagedServiceIdentityType.SystemAssignedUserAssigned) "Should have system identity"
         Expect.sequenceEqual (wa.Identity.UserAssignedIdentities |> Seq.map(fun r -> r.Key)) [ "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test2')]"; "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test')]" ] "Should have two user assigned identities"
         Expect.contains (wa.SiteConfig.AppSettings |> Seq.map(fun s -> s.Name, s.Value)) ("AZURE_CLIENT_ID", "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test2')).clientId]") "Missing AZURE_CLIENT_ID"
@@ -219,7 +219,7 @@ let tests = testList "Web App Tests" [
 
     test "Unmanaged server farm is fully qualified in ARM" {
         let farm = ResourceId.create(serverFarms, ResourceName "my-asp-name", "my-asp-resource-group")
-        let wa : Site = webApp { name "test"; link_to_unmanaged_service_plan farm } |> getResourceAtIndex 0
+        let wa : Site = webApp { name "test"; link_to_unmanaged_service_plan farm } |> getResourceAtIndex 2
         Expect.equal wa.ServerFarmId "[resourceId('my-asp-resource-group', 'Microsoft.Web/serverfarms', 'my-asp-name')]" ""
     }
 
@@ -276,13 +276,13 @@ let tests = testList "Web App Tests" [
 
     test "Deploys AI configuration correctly" {
         let hasSetting key message (wa:Site) = Expect.isTrue (wa.SiteConfig.AppSettings |> Seq.exists(fun k -> k.Name = key)) message
-        let wa : Site = webApp { name "" } |> getResourceAtIndex 0
+        let wa : Site = webApp { name "" } |> getResourceAtIndex 3
         wa |> hasSetting "APPINSIGHTS_INSTRUMENTATIONKEY" "Missing Windows instrumentation key"
 
-        let wa : Site = webApp { name ""; operating_system Linux } |> getResourceAtIndex 0
+        let wa : Site = webApp { name ""; operating_system Linux } |> getResourceAtIndex 3
         wa |> hasSetting "APPINSIGHTS_INSTRUMENTATIONKEY" "Missing Linux instrumentation key"
 
-        let wa : Site = webApp { name ""; app_insights_off } |> getResourceAtIndex 0
+        let wa : Site = webApp { name ""; app_insights_off } |> getResourceAtIndex 2
         Expect.isEmpty wa.SiteConfig.AppSettings "Should be no settings"
     }
 
@@ -290,18 +290,18 @@ let tests = testList "Web App Tests" [
         let template = webApp { name "web"; always_on }
         Expect.equal template.AlwaysOn true "AlwaysOn should be true"
 
-        let w:Site = webApp { name "testDefault" } |> getResourceAtIndex 0
+        let w:Site = webApp { name "testDefault" } |> getResourceAtIndex 3
         Expect.equal w.SiteConfig.AlwaysOn (Nullable false) "always on should be false by default"
     }
 
     test "Supports 32 and 64 bit worker processes" {
-        let site : Site = webApp { name "w" } |> getResourceAtIndex 0
+        let site : Site = webApp { name "w" } |> getResourceAtIndex 3
         Expect.equal site.SiteConfig.Use32BitWorkerProcess (Nullable()) "Default worker process"
 
-        let site:Site = webApp { worker_process Bits32 } |> getResourceAtIndex 0
+        let site:Site = webApp { worker_process Bits32 } |> getResourceAtIndex 3
         Expect.equal site.SiteConfig.Use32BitWorkerProcess (Nullable true) "Should use 32 bit worker process"
 
-        let site:Site = webApp { worker_process Bits64 } |> getResourceAtIndex 0
+        let site:Site = webApp { worker_process Bits64 } |> getResourceAtIndex 3
         Expect.equal site.SiteConfig.Use32BitWorkerProcess (Nullable false) "Should not use 32 bit worker process"
     }
 
@@ -319,7 +319,8 @@ let tests = testList "Web App Tests" [
         let slots = 
             site 
             |> getResources
-            |> getResource<Slot>
+            |> getResource<Arm.Web.Site>
+            |> List.filter (fun x-> x.Type = Arm.Web.slots)
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
     }
@@ -334,12 +335,12 @@ let tests = testList "Web App Tests" [
         let slots = 
             site 
             |> getResources
-            |> getResource<Slot>
+            |> getResource<Arm.Web.Site>
         // Default "production" slot is not included as it is created automatically in Azure
-        Expect.hasLength slots 1 "Should only be 1 slot"
+        Expect.hasLength slots 2 "Should only be 1 slot and 1 site"
 
         let expected = { SystemAssigned = Enabled; UserAssigned = [] }
-        Expect.equal (slots.Item 0).Identity expected "Slot should have slot setting"
+        Expect.equal (slots.[1]).Identity expected "Slot should have slot setting"
     }
 
     test "WebApp with slot adds settings to slot" {
@@ -353,7 +354,8 @@ let tests = testList "Web App Tests" [
         let slots = 
             site 
             |> getResources
-            |> getResource<Slot>
+            |> getResource<Arm.Web.Site>
+            |> List.filter (fun x-> x.Type = Arm.Web.slots)
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
 
@@ -371,10 +373,11 @@ let tests = testList "Web App Tests" [
             config 
             |> getResources
             |> getResource<Farmer.Arm.Web.Site>
+
         // Default "production" slot is not included as it is created automatically in Azure
-        Expect.hasLength sites 1 "Should only be 1 slot"
+        Expect.hasLength sites 2 "Should only be 1 slot and 1 site"
         
-        Expect.isFalse ((sites.Item 0).AppSettings.ContainsKey("setting")) "App service should not have any settings"
+        Expect.isFalse ((sites.[0]).AppSettings.ContainsKey("setting")) "App service should not have any settings"
     }
     
     test "WebApp adds literal settings to slots" {
@@ -387,28 +390,27 @@ let tests = testList "Web App Tests" [
             docker_use_azure_registry "registry" }
         Expect.isTrue (site.Slots.ContainsKey "warm-up") "Config should contain slot"
 
-        let slots = 
-            site 
-            |> getResources
-            |> getResource<Slot>
+        let sites = site |> getResources |> getResource<Arm.Web.Site>
+        let slots = sites |> List.filter (fun x-> x.Type = Arm.Web.slots)
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
 
         let settings = (slots.Item 0).AppSettings
-        let expectation = [
-            "APPINSIGHTS_INSTRUMENTATIONKEY"
-            "APPINSIGHTS_PROFILERFEATURE_VERSION"
-            "APPINSIGHTS_SNAPSHOTFEATURE_VERSION"
-            "ApplicationInsightsAgent_EXTENSION_VERSION"
-            "DiagnosticServices_EXTENSION_VERSION"
-            "InstrumentationEngine_EXTENSION_VERSION"
-            "SnapshotDebugger_EXTENSION_VERSION"
-            "XDT_MicrosoftApplicationInsights_BaseExtensions"
-            "XDT_MicrosoftApplicationInsights_Mode"
-            "DOCKER_ENABLE_CI"
-            "DOCKER_REGISTRY_SERVER_PASSWORD"
-            "DOCKER_REGISTRY_SERVER_URL"
-            "DOCKER_REGISTRY_SERVER_USERNAME"] |> List.map(settings.ContainsKey)
+        let expectation = 
+            [ "APPINSIGHTS_INSTRUMENTATIONKEY"
+              "APPINSIGHTS_PROFILERFEATURE_VERSION"
+              "APPINSIGHTS_SNAPSHOTFEATURE_VERSION"
+              "ApplicationInsightsAgent_EXTENSION_VERSION"
+              "DiagnosticServices_EXTENSION_VERSION"
+              "InstrumentationEngine_EXTENSION_VERSION"
+              "SnapshotDebugger_EXTENSION_VERSION"
+              "XDT_MicrosoftApplicationInsights_BaseExtensions"
+              "XDT_MicrosoftApplicationInsights_Mode"
+              "DOCKER_ENABLE_CI"
+              "DOCKER_REGISTRY_SERVER_PASSWORD"
+              "DOCKER_REGISTRY_SERVER_URL"
+              "DOCKER_REGISTRY_SERVER_USERNAME"]
+            |> List.map(settings.ContainsKey)
         Expect.allEqual expectation true "Slot should have all literal settings"
     }
 
@@ -426,7 +428,8 @@ let tests = testList "Web App Tests" [
         let slots = 
             site 
             |> getResources
-            |> getResource<Slot>
+            |> getResource<Arm.Web.Site>
+            |> List.filter (fun x-> x.Type = Arm.Web.slots)
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
  
@@ -449,7 +452,8 @@ let tests = testList "Web App Tests" [
         let slots = 
             site 
             |> getResources
-            |> getResource<Slot>
+            |> getResource<Arm.Web.Site>
+            |> List.filter (fun x-> x.Type = Arm.Web.slots)
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
 
@@ -470,7 +474,8 @@ let tests = testList "Web App Tests" [
         let slots = 
             site 
             |> getResources
-            |> getResource<Slot>
+            |> getResource<Arm.Web.Site>
+            |> List.filter (fun x-> x.Type = Arm.Web.slots)
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
 
@@ -491,7 +496,8 @@ let tests = testList "Web App Tests" [
         let slots = 
             site 
             |> getResources
-            |> getResource<Slot>
+            |> getResource<Arm.Web.Site>
+            |> List.filter (fun x-> x.Type = Arm.Web.slots)
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
  
