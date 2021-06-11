@@ -21,12 +21,55 @@ let tables = ResourceType ("Microsoft.Storage/storageAccounts/tableServices/tabl
 let managementPolicies = ResourceType ("Microsoft.Storage/storageAccounts/managementPolicies", "2019-06-01")
 let roleAssignments = ResourceType ("Microsoft.Storage/storageAccounts/providers/roleAssignments", "2018-09-01-preview")
 
+[<RequireQualifiedAccess>]
+type NetworkRuleSetBypass =
+    | None
+    | AzureServices
+    | Logging
+    | Metrics
+    static member ArmValue = function
+        | None -> "None"
+        | AzureServices -> "AzureServices"
+        | Logging -> "Logging"
+        | Metrics -> "Metrics"
+[<RequireQualifiedAccess>]
+type RuleAction =
+    | Allow
+    | Deny
+    member this.ArmValue =
+        match this with
+        | Allow -> "Allow"
+        | Deny -> "Deny"
+type VirtualNetworkRule =
+    { Subnet : ResourceName
+      VirtualNetwork : ResourceName
+      Action : RuleAction }
+type IpRuleValue =
+    | IpRulePrefix of IPAddressCidr
+    | IpRuleAddress of System.Net.IPAddress
+    member this.ArmValue =
+        match this with
+        | IpRulePrefix (cidr) -> cidr |> IPAddressCidr.format
+        | IpRuleAddress (address) -> address.ToString()
+type IpRule =
+    { Value : IpRuleValue
+      Action : RuleAction }
+type NetworkRuleSet =
+    { Bypass : Set<NetworkRuleSetBypass>
+      VirtualNetworkRules : VirtualNetworkRule list
+      IpRules : IpRule list
+      DefaultAction : RuleAction }
+
+/// Needed to build subnet resource ids for ACLs.
+let private subnets = ResourceType ("Microsoft.Network/virtualNetworks/subnets", "")
+
 type StorageAccount =
     { Name : StorageAccountName
       Location : Location
       Sku : Sku
       Dependencies : ResourceId list
       EnableHierarchicalNamespace : bool option
+      NetworkAcls : NetworkRuleSet option
       StaticWebsite : {| IndexPage : string; ErrorPage : string option; ContentPath : string |} option
       Tags: Map<string,string>}
     interface IArmResource with
@@ -72,6 +115,20 @@ type StorageAccount =
                             | Cool -> "Cool"
                         | _ ->
                             null
+                       networkAcls = this.NetworkAcls |> Option.map (fun networkRuleSet ->
+                           {| bypass = networkRuleSet.Bypass |> Set.map NetworkRuleSetBypass.ArmValue |> Set.toSeq |> String.concat ","
+                              virtualNetworkRules =
+                                  networkRuleSet.VirtualNetworkRules
+                                  |> List.map (fun rule ->
+                                      {| id = subnets.resourceId(rule.VirtualNetwork, rule.Subnet).Eval()
+                                         action=rule.Action.ArmValue |})
+                              ipRules =
+                                  networkRuleSet.IpRules
+                                  |> List.map (fun rule ->
+                                      {| value = rule.Value.ArmValue
+                                         action=rule.Action.ArmValue |})
+                              defaultAction = networkRuleSet.DefaultAction.ArmValue |})
+                           |> Option.defaultValue Unchecked.defaultof<_>
                     |}
             |} :> _
     interface IPostDeploy with

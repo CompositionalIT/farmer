@@ -2,6 +2,9 @@ Release Notes
 =============
 ## 1.6.0
 * Added support for nesting resource groups
+* Storage: Support for firewall to restrict storage account network access to virtual network subnets, IP addresses, and CIDR prefixes.
+* Virtual Network: Support for creating service endpoints on subnets.
+* Virtual Network: Support for assigning existing service endpoint policies to subnets.
 
 ## 1.5.3
 * CDN: Support for CDN rules

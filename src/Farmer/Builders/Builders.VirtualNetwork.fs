@@ -2,39 +2,23 @@
 module Farmer.Builders.VirtualNetwork
 
 open Farmer
+open Farmer.Network
 open Farmer.Arm.Network
-
-type SubnetDelegationService =
-    /// Microsoft.ApiManagement/service
-    static member ApiManagementService = "Microsoft.ApiManagement/service"
-    /// Microsoft.AzureCosmosDB/clusters
-    static member CosmosDBClusters = "Microsoft.AzureCosmosDB/clusters"
-    /// Microsoft.BareMetal/AzureVMware
-    static member BareMetalVMware = "Microsoft.BareMetal/AzureVMware"
-    /// Microsoft.BareMetal/CrayServers
-    static member BareMetalCrayServers = "Microsoft.BareMetal/CrayServers"
-    /// Microsoft.Batch/batchAccounts
-    static member BatchAccounts = "Microsoft.Batch/batchAccounts"
-    /// Microsoft.ContainerInstance/containerGroups
-    static member ContainerGroups = "Microsoft.ContainerInstance/containerGroups"
-    /// Microsoft.Databricks/workspaces
-    static member DatabricksWorkspaces = "Microsoft.Databricks/workspaces"
-    /// Microsoft.MachineLearningServices/workspaces
-    static member MachineLearningWorkspaces = "Microsoft.MachineLearningServices/workspaces"
-    /// Microsoft.Netapp/volumes
-    static member NetappVolumes = "Microsoft.Netapp/volumes"
-    /// Microsoft.ServiceFabricMesh/networks
-    static member ServiceFabricMeshNetworks = "Microsoft.ServiceFabricMesh/networks"
-    /// Microsoft.Sql/managedInstances
-    static member SqlManagedInstances = "Microsoft.Sql/managedInstances"
 
 type SubnetConfig =
     { Name: ResourceName
       Prefix: IPAddressCidr
-      Delegations: string list }
+      Delegations:  SubnetDelegationService list
+      ServiceEndpoints: (EndpointServiceType * Location list) list
+      AssociatedServiceEndpointPolicies : ResourceId list }
 
 type SubnetBuilder() =
-    member _.Yield _ = { Name = ResourceName.Empty; Prefix = { Address = System.Net.IPAddress.Parse("10.100.0.0"); Prefix = 16 }; Delegations = [] }
+    member _.Yield _ =
+        { Name = ResourceName.Empty
+          Prefix = { Address = System.Net.IPAddress.Parse("10.100.0.0"); Prefix = 16 }
+          Delegations = []
+          ServiceEndpoints = []
+          AssociatedServiceEndpointPolicies = [] }
     /// Sets the name of the subnet
     [<CustomOperation "name">]
     member _.Name(state:SubnetConfig, name) = { state with Name = ResourceName name }
@@ -44,31 +28,86 @@ type SubnetBuilder() =
     /// Sets the network prefix in CIDR notation
     [<CustomOperation "add_delegations">]
     member _.AddDelegations(state:SubnetConfig, delegations) = { state with Delegations = state.Delegations @ delegations }
+    /// Add service endpoint types to this subnet
+    [<CustomOperation "add_service_endpoints">]
+    member _.AddServiceEndpoints(state:SubnetConfig, serviceEndpoints) = { state with ServiceEndpoints = state.ServiceEndpoints @ serviceEndpoints }
+    /// Associates service endpoint policies with this subnet
+    [<CustomOperation "associate_service_endpoint_policies">]
+    member _.AssociateServiceEndpointPolicies(state:SubnetConfig, servicePolicyIds) = { state with AssociatedServiceEndpointPolicies = state.AssociatedServiceEndpointPolicies @ servicePolicyIds }
 
 let subnet = SubnetBuilder ()
 /// Specification for a subnet to build from an address space.
 type SubnetBuildSpec =
     { Name: string
       Size: int
-      Delegations: string list }
+      Delegations: SubnetDelegationService list
+      ServiceEndpoints: (EndpointServiceType * Location list) list
+      AssociatedServiceEndpointPolicies : ResourceId list }
 /// Builds a subnet of a certain CIDR block size.
 let buildSubnet name size =
-    { Name = name; Size = size; Delegations = [] }
+    { Name = name; Size = size; Delegations = []; ServiceEndpoints = []; AssociatedServiceEndpointPolicies = [] }
 /// Builds a subnet of a certain CIDR block size with service delegations.
 let buildSubnetDelegations name size delegations =
-    { Name = name; Size = size; Delegations = delegations }
+    { Name = name; Size = size; Delegations = delegations; ServiceEndpoints = []; AssociatedServiceEndpointPolicies = [] }
+
+type SubnetSpecBuilder () =
+    member _.Yield _ =
+        {
+            Name = ""
+            Size = 24
+            Delegations = []
+            ServiceEndpoints = []
+            AssociatedServiceEndpointPolicies = []
+        }
+    /// Sets the name of the subnet to build
+    [<CustomOperation "name">]
+    member _.Name(state:SubnetBuildSpec, name) =
+        { state with Name = name }
+    /// Sets the size for the network prefix to build
+    [<CustomOperation "size">]
+    member _.Size(state:SubnetBuildSpec, size) =
+        { state with Size = size }
+    /// Adds any services to delegate this subnet
+    [<CustomOperation "add_delegations">]
+    member _.AddDelegations(state:SubnetBuildSpec, delegations) =
+        { state with Delegations = state.Delegations @ delegations }
+    /// Adds service endpoints to build for this subnet
+    [<CustomOperation "add_service_endpoints">]
+    member _.AddServiceEndpoints(state:SubnetBuildSpec, serviceEndpoints) =
+        { state with ServiceEndpoints = state.ServiceEndpoints @ serviceEndpoints }
+    /// Associates the built subnet with service endpoint policies
+    [<CustomOperation "add_service_endpoint_policies">]
+    member _.AddAssociatedServiceEndpointPolicies(state:SubnetBuildSpec, policies) =
+        { state with AssociatedServiceEndpointPolicies = state.AssociatedServiceEndpointPolicies @ policies }
+
+let subnetSpec = SubnetSpecBuilder()
 
 /// A specification building an address space and subnets.
 type AddressSpaceSpec =
     { Space : string
       Subnets : SubnetBuildSpec list }
+open System.Runtime.InteropServices
 /// Builder for an address space with automatically carved subnets.
 type AddressSpaceBuilder() =
     member _.Yield _ = { Space = ""; Subnets = [] }
     [<CustomOperation("space")>]
     member _.Space(state:AddressSpaceSpec, space) = { state with Space = space }
     [<CustomOperation("subnets")>]
-    member _.Subnets(state:AddressSpaceSpec, subnets) = { state with Subnets = subnets }
+    member _.Subnets(state:AddressSpaceSpec, subnets) = { state with Subnets = state.Subnets @ subnets }
+    member private _.buildSubnet(state:AddressSpaceSpec, name:string, size:int, ?delegations:SubnetDelegationService list, ?serviceEndpoints:(EndpointServiceType * Location list) list, ?associatedServiceEndpointPolicies:ResourceId list) =
+        let subnetBuildSpec =
+            { Name = name
+              Size = size
+              Delegations = delegations |> Option.defaultValue []
+              ServiceEndpoints = serviceEndpoints |> Option.defaultValue []
+              AssociatedServiceEndpointPolicies = associatedServiceEndpointPolicies |> Option.defaultValue [] }
+        { state with Subnets = state.Subnets @ [ subnetBuildSpec ] }
+    [<CustomOperation("build_subnet")>]
+    member this.BuildSubnet(state:AddressSpaceSpec, name:string, size:int) =
+        this.buildSubnet(state, name, size)
+    [<CustomOperation("build_subnet_delegated")>]
+    member this.BuildSubnetDelegated(state:AddressSpaceSpec, name:string, size:int, delegations:SubnetDelegationService list) =
+        this.buildSubnet(state, name, size, delegations=delegations)
 
 let addressSpace = AddressSpaceBuilder ()
 
@@ -84,11 +123,13 @@ type VirtualNetworkConfig =
               Location = location
               AddressSpacePrefixes = this.AddressSpacePrefixes
               Subnets = this.Subnets |> List.map (fun subnetConfig ->
-                  {| Name = subnetConfig.Name
-                     Prefix = IPAddressCidr.format subnetConfig.Prefix
-                     Delegations = subnetConfig.Delegations |> List.map (fun delegation ->
-                         {| Name = ResourceName delegation; ServiceName = delegation |})
-                  |})
+                  { Name = subnetConfig.Name
+                    Prefix = IPAddressCidr.format subnetConfig.Prefix
+                    Delegations = subnetConfig.Delegations |> List.map (fun (SubnetDelegationService(delegation)) ->
+                        { Name = ResourceName delegation; ServiceName = delegation })
+                    ServiceEndpoints = subnetConfig.ServiceEndpoints
+                    AssociatedServiceEndpointPolicies = subnetConfig.AssociatedServiceEndpointPolicies
+                  })
               Tags = this.Tags
             }
         ]
@@ -120,11 +161,13 @@ type VirtualNetworkBuilder() =
                         subnet.Size
                 ]
                 IPAddressCidr.carveAddressSpace addressSpace sizes
-                |> List.zip (addressSpaceConfig.Subnets |> List.map (fun s -> s.Name, s.Delegations))
-                |> List.map (fun ((name, delegations), cidr) ->
+                |> List.zip (addressSpaceConfig.Subnets |> List.map (fun s -> s.Name, s.Delegations, s.ServiceEndpoints, s.AssociatedServiceEndpointPolicies))
+                |> List.map (fun ((name, delegations, serviceEndpoints, serviceEndpointPolicies), cidr) ->
                     { Name = ResourceName name
                       Prefix = cidr
-                      Delegations = delegations }
+                      Delegations = delegations
+                      ServiceEndpoints = serviceEndpoints
+                      AssociatedServiceEndpointPolicies = serviceEndpointPolicies }
                 ))
         let newAddressSpaces = addressSpaces |> List.map (fun addressSpace -> addressSpace.Space)
         { state with

@@ -1182,6 +1182,56 @@ module IPAddressCidr =
         else
             Seq.empty
 
+module Network =
+    type SubnetDelegationService = SubnetDelegationService of string
+    with
+        /// Microsoft.ApiManagement/service
+        static member ApiManagementService = SubnetDelegationService "Microsoft.ApiManagement/service"
+        /// Microsoft.AzureCosmosDB/clusters
+        static member CosmosDBClusters = SubnetDelegationService "Microsoft.AzureCosmosDB/clusters"
+        /// Microsoft.BareMetal/AzureVMware
+        static member BareMetalVMware = SubnetDelegationService "Microsoft.BareMetal/AzureVMware"
+        /// Microsoft.BareMetal/CrayServers
+        static member BareMetalCrayServers = SubnetDelegationService "Microsoft.BareMetal/CrayServers"
+        /// Microsoft.Batch/batchAccounts
+        static member BatchAccounts = SubnetDelegationService "Microsoft.Batch/batchAccounts"
+        /// Microsoft.ContainerInstance/containerGroups
+        static member ContainerGroups = SubnetDelegationService "Microsoft.ContainerInstance/containerGroups"
+        /// Microsoft.Databricks/workspaces
+        static member DatabricksWorkspaces = SubnetDelegationService "Microsoft.Databricks/workspaces"
+        /// Microsoft.MachineLearningServices/workspaces
+        static member MachineLearningWorkspaces = SubnetDelegationService "Microsoft.MachineLearningServices/workspaces"
+        /// Microsoft.Netapp/volumes
+        static member NetappVolumes = SubnetDelegationService "Microsoft.Netapp/volumes"
+        /// Microsoft.ServiceFabricMesh/networks
+        static member ServiceFabricMeshNetworks = SubnetDelegationService "Microsoft.ServiceFabricMesh/networks"
+        /// Microsoft.Sql/managedInstances
+        static member SqlManagedInstances = SubnetDelegationService "Microsoft.Sql/managedInstances"
+
+    type EndpointServiceType = EndpointServiceType of string
+    with
+        /// Microsoft.AzureActiveDirectory
+        static member AzureActiveDirectory = EndpointServiceType "Microsoft.AzureActiveDirectory"
+        /// Microsoft.AzureCosmosDB
+        static member AzureCosmosDB = EndpointServiceType "Microsoft.AzureCosmosDB"
+        /// Microsoft.CognitiveServices
+        static member CognitiveServices = EndpointServiceType "Microsoft.CognitiveServices"
+        /// Microsoft.ContainerRegistry
+        static member ContainerRegistry = EndpointServiceType "Microsoft.ContainerRegistry"
+        /// Microsoft.EventHub
+        static member EventHub = EndpointServiceType "Microsoft.EventHub"
+        /// Microsoft.KeyVault 
+        static member KeyVault = EndpointServiceType "Microsoft.KeyVault"
+        /// Microsoft.ServiceBus
+        static member ServiceBus = EndpointServiceType "Microsoft.ServiceBus"
+        /// Microsoft.Sql
+        static member Sql = EndpointServiceType "Microsoft.Sql"
+        /// Microsoft.Storage
+        static member Storage = EndpointServiceType "Microsoft.Storage"
+        /// Microsoft.Web
+        static member Web = EndpointServiceType "Microsoft.Web"
+
+
 module NetworkSecurity =
     type Operation =
     | Allow

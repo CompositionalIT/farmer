@@ -37,6 +37,8 @@ type StorageAccountConfig =
       FileShares: (StorageResourceName * int<Gb> option) list
       /// Queues
       Queues : StorageResourceName Set
+      /// Network Access Control Lists
+      NetworkAcls : NetworkRuleSet option
       /// Tables
       Tables : StorageResourceName Set
       /// Rules
@@ -70,7 +72,17 @@ type StorageAccountConfig =
               Dependencies =
                 this.RoleAssignments
                 |> Seq.choose(fun roleAssignment -> roleAssignment.Principal.ArmExpression.Owner)
+                |> Seq.append (
+                    match this.NetworkAcls with
+                        | Some acl ->
+                            acl.VirtualNetworkRules
+                            |> Seq.map (fun r -> r.VirtualNetwork)
+                            |> Seq.distinct
+                            |> Seq.map Arm.Network.virtualNetworks.resourceId
+                        | None -> Seq.empty
+                    )
                 |> Seq.toList
+              NetworkAcls = this.NetworkAcls
               StaticWebsite = this.StaticWebsite
               Tags = this.Tags }
             for name, access in this.Containers do
@@ -142,6 +154,7 @@ type StorageAccountBuilder() =
         FileShares = []
         Rules = Map.empty
         Queues = Set.empty
+        NetworkAcls = None
         Tables = Set.empty
         RoleAssignments = Set.empty
         StaticWebsite = None
@@ -226,6 +239,69 @@ type StorageAccountBuilder() =
                 | GeneralPurpose (V2 (replication, _)) -> GeneralPurpose (V2 (replication, Some tier))
                 | other -> failwith $"You can only set the default access tier for Blobs or General Purpose V2 storage accounts. This account is %A{other}."
         }
+    /// Specify network access control lists for this storage account.
+    [<CustomOperation "set_network_acls">]
+    member _.SetNetworkAcls(state:StorageAccountConfig, networkAcls) = { state with NetworkAcls = Some networkAcls }
+    /// Restrict access to this storage account to a subnet on a virtual network.
+    [<CustomOperation "restrict_to_subnet">]
+    member _.RestrictToSubnet(state:StorageAccountConfig, vnet:string, subnet:string) =
+        let allowVnet = { Subnet = ResourceName subnet; VirtualNetwork = ResourceName vnet; Action = RuleAction.Allow }
+        match state.NetworkAcls with
+        | None ->
+            { state with
+                NetworkAcls =
+                    { Bypass = set [ NetworkRuleSetBypass.AzureServices ]
+                      VirtualNetworkRules = [ allowVnet ]
+                      IpRules = []
+                      DefaultAction = RuleAction.Deny } |> Some
+            }
+        | Some existingAcl ->
+            { state with
+                NetworkAcls =
+                    { existingAcl with
+                        VirtualNetworkRules = allowVnet :: existingAcl.VirtualNetworkRules
+                    } |> Some
+            }
+    /// Restrict access to this storage account to a IP address network prefix.
+    [<CustomOperation "restrict_to_prefix">]
+    member _.RestrictToPrefix(state:StorageAccountConfig, cidr:string) =
+        let allowIp = { Value = IpRulePrefix (IPAddressCidr.parse cidr); Action = RuleAction.Allow }
+        match state.NetworkAcls with
+        | None ->
+            { state with
+                NetworkAcls =
+                    { Bypass = set [ NetworkRuleSetBypass.AzureServices ]
+                      VirtualNetworkRules = []
+                      IpRules = [ allowIp ]
+                      DefaultAction = RuleAction.Deny } |> Some
+            }
+        | Some existingAcl ->
+            { state with
+                NetworkAcls =
+                    { existingAcl with
+                        IpRules = allowIp :: existingAcl.IpRules
+                    } |> Some
+            }
+    /// Restrict access to this storage account to an IP address.
+    [<CustomOperation "restrict_to_ip">]
+    member this.RestrictToIp(state:StorageAccountConfig, ip:string) =
+        let allowIp = { Value = IpRuleAddress (System.Net.IPAddress.Parse ip); Action = RuleAction.Allow }
+        match state.NetworkAcls with
+        | None ->
+            { state with
+                NetworkAcls =
+                    { Bypass = set [ NetworkRuleSetBypass.AzureServices ]
+                      VirtualNetworkRules = []
+                      IpRules = [ allowIp ]
+                      DefaultAction = RuleAction.Deny } |> Some
+            }
+        | Some existingAcl ->
+            { state with
+                NetworkAcls =
+                    { existingAcl with
+                        IpRules = allowIp :: existingAcl.IpRules
+                    } |> Some
+            }
     /// Adds a set of CORS rules to the storage account.
     [<CustomOperation "add_cors_rules">]
     member _.AddCorsRules(state:StorageAccountConfig, rules) =

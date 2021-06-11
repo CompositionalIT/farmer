@@ -29,6 +29,7 @@ ProjectSection(SolutionItems) = preProject
 	samples\scripts\postgresql.fsx = samples\scripts\postgresql.fsx
 	samples\scripts\aks.fsx = samples\scripts\aks.fsx
 	samples\scripts\bastion.fsx = samples\scripts\bastion.fsx
+	samples\scripts\vnet.fsx = samples\scripts\vnet.fsx
 	samples\scripts\container-instance.fsx = samples\scripts\container-instance.fsx
 EndProjectSection
 EndProject
