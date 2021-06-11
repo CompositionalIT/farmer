@@ -186,66 +186,70 @@ type FunctionsConfig =
                     ) |> Map.toList)
                 |> Map
 
-            { Name = this.Name
-              ServicePlan = this.ServicePlanId
-              Location = location
-              Cors = this.Cors
-              Tags = this.Tags
-              ConnectionStrings = Map.empty
-              AppSettings = if this.Slots.IsEmpty then functionsSettings else Map.empty
-              Identity = this.Identity
-              Kind =
-                match this.OperatingSystem with
-                | Windows -> "functionapp"
-                | Linux -> "functionapp,linux"
-              Dependencies = Set [
-                yield! this.Dependencies
+            let site =
+                { Type = Arm.Web.sites
+                  Name = this.Name
+                  ServicePlan = this.ServicePlanId
+                  Location = location
+                  Cors = this.Cors
+                  Tags = this.Tags
+                  ConnectionStrings = Map.empty
+                  AppSettings =functionsSettings
+                  Identity = this.Identity
+                  Kind =
+                    match this.OperatingSystem with
+                    | Windows -> "functionapp"
+                    | Linux -> "functionapp,linux"
+                  Dependencies = Set [
+                    yield! this.Dependencies
 
-                match this.AppInsights with
-                | Some (DependableResource this.Name resourceId) -> resourceId
-                | _ -> ()
+                    match this.AppInsights with
+                    | Some (DependableResource this.Name resourceId) -> resourceId
+                    | _ -> ()
 
-                for setting in this.Settings do
-                    match setting.Value with
-                    | ExpressionSetting e -> yield! Option.toList e.Owner
-                    | ParameterSetting _ | LiteralSetting _ -> ()
-
-                match this.ServicePlan with
-                | DependableResource this.Name resourceId -> resourceId
-                | _ -> ()
-
-                match this.StorageAccount with
-                | DependableResource this resourceId -> resourceId
-                | _ -> ()
-
-                match this.SecretStore with
-                | AppService ->
                     for setting in this.Settings do
                         match setting.Value with
-                        | ExpressionSetting expr ->
-                            yield! Option.toList expr.Owner
-                        | ParameterSetting _
-                        | LiteralSetting _ ->
-                            ()
-                | KeyVault _ ->
-                    ()
-              ]
-              HTTPSOnly = this.HTTPSOnly
-              AlwaysOn = this.AlwaysOn
-              HTTP20Enabled = None
-              ClientAffinityEnabled = None
-              WebSocketsEnabled = None
-              LinuxFxVersion = None
-              NetFrameworkVersion = None
-              JavaVersion = None
-              JavaContainer = None
-              JavaContainerVersion = None
-              PhpVersion = None
-              PythonVersion = None
-              Metadata = []
-              ZipDeployPath = this.ZipDeployPath |> Option.map (fun (path, slot) -> path, ZipDeploy.ZipDeployTarget.FunctionApp, slot)
-              AppCommandLine = None
-              WorkerProcess = this.WorkerProcess }
+                        | ExpressionSetting e -> yield! Option.toList e.Owner
+                        | ParameterSetting _ | LiteralSetting _ -> ()
+
+                    match this.ServicePlan with
+                    | DependableResource this.Name resourceId -> resourceId
+                    | _ -> ()
+
+                    match this.StorageAccount with
+                    | DependableResource this resourceId -> resourceId
+                    | _ -> ()
+
+                    match this.SecretStore with
+                    | AppService ->
+                        for setting in this.Settings do
+                            match setting.Value with
+                            | ExpressionSetting expr ->
+                                yield! Option.toList expr.Owner
+                            | ParameterSetting _
+                            | LiteralSetting _ ->
+                                ()
+                    | KeyVault _ ->
+                        ()
+                  ]
+                  HTTPSOnly = this.HTTPSOnly
+                  AlwaysOn = this.AlwaysOn
+                  HTTP20Enabled = None
+                  ClientAffinityEnabled = None
+                  WebSocketsEnabled = None
+                  LinuxFxVersion = None
+                  NetFrameworkVersion = None
+                  JavaVersion = None
+                  JavaContainer = None
+                  JavaContainerVersion = None
+                  PhpVersion = None
+                  PythonVersion = None
+                  Metadata = []
+                  AutoSwapSlotName = None
+                  ZipDeployPath = this.ZipDeployPath |> Option.map (fun (path, slot) -> path, ZipDeploy.ZipDeployTarget.FunctionApp, slot)
+                  AppCommandLine = None
+                  WorkerProcess = this.WorkerProcess }
+
             match this.ServicePlan with
             | DeployableResource this.Name resourceId ->
                 { Name = resourceId.Name
@@ -284,19 +288,13 @@ type FunctionsConfig =
             | Some _
             | None ->
                 ()
-                
-            for kvp in this.Slots do
-                let name,cfg = kvp.Key,kvp.Value
-                let combinedSettings = Map.merge (this.Settings |> Map.toList) functionsSettings
-                { SlotName = name 
-                  Location = location
-                  ServicePlan = this.ServicePlanId
-                  Site = this.ResourceId
-                  Tags = this.Tags
-                  AutoSwapSlotName = kvp.Value.AutoSwapSlotName
-                  AppSettings = Map.merge (cfg.AppSettings |> Map.toList) combinedSettings
-                  ConnectionStrings = cfg.ConnectionStrings
-                  Identity = cfg.Identity }
+            
+            if Map.isEmpty this.Slots then
+                site
+            else
+                {site with AppSettings = Map.empty}
+                for (_, slot) in this.Slots |> Map.toSeq do
+                    slot.ToArm site
         ]
 
 type FunctionsBuilder() =
