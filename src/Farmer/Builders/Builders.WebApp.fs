@@ -102,30 +102,49 @@ module private WebAppConfig =
 
 type SlotConfig = 
     { Name: string
-      AutoSwapSlotName: string
+      AutoSwapSlotName: string option
       AppSettings: Map<string,Setting>
       ConnectionStrings: Map<string,(Setting * ConnectionStringKind)>
-      Identity: ManagedIdentity }
+      Identity: ManagedIdentity 
+      Tags: Map<string,string>
+      Dependencies: ResourceId Set}
+    member this.ToArm (owner: Arm.Web.Site) = 
+        { owner with
+            Type = Arm.Web.slots
+            Name = owner.Name/this.Name
+            Dependencies = owner.Dependencies |> Set.add (owner.Type.resourceId owner.Name)
+            AutoSwapSlotName = this.AutoSwapSlotName
+            AppSettings = owner.AppSettings |> Map.merge ( this.AppSettings |> Map.toList)
+            ConnectionStrings = owner.ConnectionStrings |> Map.merge (this.ConnectionStrings |> Map.toList)
+            Identity = this.Identity }
 
 type SlotBuilder() =
     member this.Yield _ =
         { Name = "staging"
-          AutoSwapSlotName = ""
+          AutoSwapSlotName = None
           AppSettings = Map.empty
           ConnectionStrings = Map.empty
-          Identity = ManagedIdentity.Empty }
+          Identity = ManagedIdentity.Empty
+          Tags = Map.empty
+          Dependencies = Set.empty}
 
     [<CustomOperation "name">]
     member this.Name (state,name) : SlotConfig = {state with Name = name}
 
     [<CustomOperation "autoSlotSwapName">]
-    member this.AutoSlotSwapName (state,autoSlotSwapName) : SlotConfig = {state with AutoSwapSlotName = autoSlotSwapName}
+    member this.AutoSlotSwapName (state,autoSlotSwapName) : SlotConfig = {state with AutoSwapSlotName = Some autoSlotSwapName}
 
-    [<CustomOperation "identity">]
-    member this.Identity (state, identity) : SlotConfig = {state with Identity = identity}
+    /// Sets an app setting of the web app in the form "key" "value".
+    [<CustomOperation "add_identity">]
+    member this.AddIdentity (state: SlotConfig, identity:UserAssignedIdentity) =
+        { state with
+            Identity = state.Identity + identity
+            AppSettings = state.AppSettings.Add("AZURE_CLIENT_ID", Setting.ExpressionSetting identity.ClientId) }
+    member this.AddIdentity (state, identity:UserAssignedIdentityConfig) = this.AddIdentity(state, identity.UserAssignedIdentity)
 
-    [<CustomOperation "enable_system_assigned_identity">]
-    member this.EnableSystemAssignedIdentity (state) : SlotConfig = this.Identity(state, { SystemAssigned = Enabled; UserAssigned = [] })
+    [<CustomOperation "system_identity">]
+    member this.SystemIdentity (state: SlotConfig) =
+        { state with Identity = { state.Identity with SystemAssigned = Enabled } }
 
     [<CustomOperation "setting">]
     /// Adds an AppSetting to this deployment slot
@@ -154,6 +173,9 @@ type SlotBuilder() =
     member this.AddConnectionStrings(state, connectionStrings:string list) :SlotConfig =
         connectionStrings
         |> List.fold (fun state key -> this.AddConnectionString(state, key)) state
+    interface ITaggable<SlotConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
+    interface IDependable<SlotConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
+
 let appSlot = SlotBuilder()
 
 /// Common fields between WebApp and Functions
@@ -315,108 +337,111 @@ type WebAppConfig =
                     ) |> Map.toList)
                 |> Map
 
-            { Name = this.Name
-              Location = location
-              ServicePlan = this.ServicePlanId
-              HTTPSOnly = this.HTTPSOnly
-              HTTP20Enabled = this.HTTP20Enabled
-              ClientAffinityEnabled = this.ClientAffinityEnabled
-              WebSocketsEnabled = this.WebSocketsEnabled
-              Identity = this.Identity
-              Cors = this.Cors
-              Tags = this.Tags
-              ConnectionStrings = this.ConnectionStrings
-              WorkerProcess = this.WorkerProcess
-              AppSettings = if this.Slots.IsEmpty then siteSettings else Map.empty
-              Kind = [
-                "app"
-                match this.OperatingSystem with Linux -> "linux" | Windows -> ()
-                match this.DockerImage with Some _ -> "container" | _ -> ()
-              ] |> String.concat ","
-              Dependencies = Set [
-                match this.ServicePlan with
-                | DependableResource this.Name resourceId -> resourceId
-                | _ -> ()
+            let site = 
+                { Type = Arm.Web.sites
+                  Name = this.Name
+                  Location = location
+                  ServicePlan = this.ServicePlanId
+                  HTTPSOnly = this.HTTPSOnly
+                  HTTP20Enabled = this.HTTP20Enabled
+                  ClientAffinityEnabled = this.ClientAffinityEnabled
+                  WebSocketsEnabled = this.WebSocketsEnabled
+                  Identity = this.Identity
+                  Cors = this.Cors
+                  Tags = this.Tags
+                  ConnectionStrings = this.ConnectionStrings
+                  WorkerProcess = this.WorkerProcess
+                  AppSettings = siteSettings
+                  Kind = [
+                    "app"
+                    match this.OperatingSystem with Linux -> "linux" | Windows -> ()
+                    match this.DockerImage with Some _ -> "container" | _ -> ()
+                  ] |> String.concat ","
+                  Dependencies = Set [
+                    match this.ServicePlan with
+                    | DependableResource this.Name resourceId -> resourceId
+                    | _ -> ()
 
-                yield! this.Dependencies
+                    yield! this.Dependencies
 
-                match this.SecretStore with
-                | AppService ->
-                    for setting in this.Settings do
-                        match setting.Value with
-                        | ExpressionSetting expr ->
-                            yield! Option.toList expr.Owner
-                        | ParameterSetting _
-                        | LiteralSetting _ ->
-                            ()
-                | KeyVault _ ->
-                    ()
+                    match this.SecretStore with
+                    | AppService ->
+                        for setting in this.Settings do
+                            match setting.Value with
+                            | ExpressionSetting expr ->
+                                yield! Option.toList expr.Owner
+                            | ParameterSetting _
+                            | LiteralSetting _ ->
+                                ()
+                    | KeyVault _ ->
+                        ()
 
-                match this.AppInsights with
-                | Some (DependableResource this.Name resourceId) -> resourceId
-                | Some _ | None -> ()
-              ]
-              AlwaysOn = this.AlwaysOn
-              LinuxFxVersion =
-                match this.OperatingSystem with
-                | Windows ->
-                    None
-                | Linux ->
-                    match this.DockerImage with
-                    | Some (image, _) ->
-                        Some ("DOCKER|" + image)
-                    | None ->
-                        match this.Runtime with
-                        | DotNetCore version -> Some $"DOTNETCORE|{version}"
-                        | Node version -> Some $"NODE|{version}"
-                        | Php version -> Some $"PHP|{version}"
-                        | Ruby version -> Some $"RUBY|{version}"
-                        | Java (runtime, JavaSE) -> Some $"JAVA|{runtime.Version}-{runtime.Jre}"
-                        | Java (runtime, (Tomcat version)) -> Some $"TOMCAT|{version}-{runtime.Jre}"
-                        | Java (Java8, WildFly14) -> Some $"WILDFLY|14-{Java8.Jre}"
-                        | Python (linuxVersion, _) -> Some $"PYTHON|{linuxVersion}"
-                        | _ -> None
-              NetFrameworkVersion =
-                match this.Runtime with
-                | AspNet version
-                | DotNet ("5.0" as version) ->
-                    Some $"v{version}"
-                | _ ->
-                    None
-              JavaVersion =
-                match this.Runtime, this.OperatingSystem with
-                | Java (Java11, Tomcat _), Windows -> Some "11"
-                | Java (Java8, Tomcat _), Windows -> Some "1.8"
-                | _ -> None
-              JavaContainer =
-                match this.Runtime, this.OperatingSystem with
-                | Java (_, Tomcat _), Windows -> Some "Tomcat"
-                | _ -> None
-              JavaContainerVersion =
-                match this.Runtime, this.OperatingSystem with
-                | Java (_, Tomcat version), Windows -> Some version
-                | _ -> None
-              PhpVersion =
-                match this.Runtime, this.OperatingSystem with
-                | Php version, Windows -> Some version
-                | _ -> None
-              PythonVersion =
-                match this.Runtime, this.OperatingSystem with
-                | Python (_, windowsVersion), Windows -> Some windowsVersion
-                | _ -> None
-              Metadata =
-                match this.Runtime, this.OperatingSystem with
-                | Java (_, Tomcat _), Windows -> Some "java"
-                | Php _, _ -> Some "php"
-                | Python _, Windows -> Some "python"
-                | DotNetCore _, Windows -> Some "dotnetcore"
-                | AspNet _, _ | DotNet "5.0", Windows -> Some "dotnet"
-                | _ -> None
-                |> Option.map(fun stack -> "CURRENT_STACK", stack)
-                |> Option.toList
-              AppCommandLine = this.DockerImage |> Option.map snd
-              ZipDeployPath = this.ZipDeployPath |> Option.map (fun (path,slot) -> path, ZipDeploy.ZipDeployTarget.WebApp, slot )
-            }
+                    match this.AppInsights with
+                    | Some (DependableResource this.Name resourceId) -> resourceId
+                    | Some _ | None -> ()
+                  ]
+                  AlwaysOn = this.AlwaysOn
+                  LinuxFxVersion =
+                    match this.OperatingSystem with
+                    | Windows ->
+                        None
+                    | Linux ->
+                        match this.DockerImage with
+                        | Some (image, _) ->
+                            Some ("DOCKER|" + image)
+                        | None ->
+                            match this.Runtime with
+                            | DotNetCore version -> Some $"DOTNETCORE|{version}"
+                            | Node version -> Some $"NODE|{version}"
+                            | Php version -> Some $"PHP|{version}"
+                            | Ruby version -> Some $"RUBY|{version}"
+                            | Java (runtime, JavaSE) -> Some $"JAVA|{runtime.Version}-{runtime.Jre}"
+                            | Java (runtime, (Tomcat version)) -> Some $"TOMCAT|{version}-{runtime.Jre}"
+                            | Java (Java8, WildFly14) -> Some $"WILDFLY|14-{Java8.Jre}"
+                            | Python (linuxVersion, _) -> Some $"PYTHON|{linuxVersion}"
+                            | _ -> None
+                  NetFrameworkVersion =
+                    match this.Runtime with
+                    | AspNet version
+                    | DotNet ("5.0" as version) ->
+                        Some $"v{version}"
+                    | _ ->
+                        None
+                  JavaVersion =
+                    match this.Runtime, this.OperatingSystem with
+                    | Java (Java11, Tomcat _), Windows -> Some "11"
+                    | Java (Java8, Tomcat _), Windows -> Some "1.8"
+                    | _ -> None
+                  JavaContainer =
+                    match this.Runtime, this.OperatingSystem with
+                    | Java (_, Tomcat _), Windows -> Some "Tomcat"
+                    | _ -> None
+                  JavaContainerVersion =
+                    match this.Runtime, this.OperatingSystem with
+                    | Java (_, Tomcat version), Windows -> Some version
+                    | _ -> None
+                  PhpVersion =
+                    match this.Runtime, this.OperatingSystem with
+                    | Php version, Windows -> Some version
+                    | _ -> None
+                  PythonVersion =
+                    match this.Runtime, this.OperatingSystem with
+                    | Python (_, windowsVersion), Windows -> Some windowsVersion
+                    | _ -> None
+                  Metadata =
+                    match this.Runtime, this.OperatingSystem with
+                    | Java (_, Tomcat _), Windows -> Some "java"
+                    | Php _, _ -> Some "php"
+                    | Python _, Windows -> Some "python"
+                    | DotNetCore _, Windows -> Some "dotnetcore"
+                    | AspNet _, _ | DotNet "5.0", Windows -> Some "dotnet"
+                    | _ -> None
+                    |> Option.map(fun stack -> "CURRENT_STACK", stack)
+                    |> Option.toList
+                  AppCommandLine = this.DockerImage |> Option.map snd
+                  AutoSwapSlotName = None
+                  ZipDeployPath = this.ZipDeployPath |> Option.map (fun (path,slot) -> path, ZipDeploy.ZipDeployTarget.WebApp, slot )
+                }
 
             match keyVault with
             | Some keyVault ->
@@ -467,18 +492,13 @@ type WebAppConfig =
                   SiteName = this.Name
                   Location = location }
 
-            for kvp in this.Slots do
-                let name,cfg = kvp.Key,kvp.Value
-                let webAppSettings = Map.merge (this.Settings |> Map.toList) siteSettings
-                { SlotName = name 
-                  Location = location
-                  ServicePlan = this.ServicePlanId
-                  Site = this.ResourceId
-                  Tags = this.Tags
-                  AutoSwapSlotName = cfg.AutoSwapSlotName
-                  AppSettings = Map.merge (cfg.AppSettings |> Map.toList) webAppSettings
-                  ConnectionStrings = Map.merge (cfg.ConnectionStrings |> Map.toList) this.ConnectionStrings 
-                  Identity = cfg.Identity }
+            if Map.isEmpty this.Slots then
+                site
+            else
+                { site with AppSettings = Map.empty; ConnectionStrings = Map.empty }
+                for (_,slot) in this.Slots |> Map.toSeq do
+                    slot.ToArm site
+
         ]
 
 type WebAppBuilder() =

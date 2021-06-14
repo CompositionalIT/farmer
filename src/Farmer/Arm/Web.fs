@@ -122,7 +122,8 @@ module ZipDeploy =
             | DeployZip zipFilePath ->
                 zipFilePath
 type Site =
-    { Name : ResourceName
+    { Type: ResourceType
+      Name : ResourceName
       Location : Location
       ServicePlan : ResourceId
       AppSettings : Map<string, Setting>
@@ -147,6 +148,7 @@ type Site =
       PythonVersion : string option
       Tags : Map<string, string>
       Metadata : List<string * string>
+      AutoSwapSlotName: string option
       ZipDeployPath : (string * ZipDeploy.ZipDeployTarget * ZipDeploy.ZipDeploySlot) option }
     interface IParameters with
         member this.SecureParameters =
@@ -164,8 +166,8 @@ type Site =
                     ZipDeploy.ZipDeployKind.TryParse path
                     |> Option.defaultWith (fun () ->
                         failwith $"Path '{path}' must either be a folder to be zipped, or an existing zip.")
-                printfn "Running ZIP deploy for %s" path.Value
                 let slotName = slot.ToOption
+                printfn "Running ZIP deploy to %s for %s" (slotName |> Option.defaultValue "WebApp") path.Value
                 Some (match target with
                       | ZipDeploy.WebApp -> Deploy.Az.zipDeployWebApp name.Value path.GetZipPath resourceGroupName slotName
                       | ZipDeploy.FunctionApp -> Deploy.Az.zipDeployFunctionApp name.Value path.GetZipPath resourceGroupName slotName)
@@ -175,7 +177,7 @@ type Site =
         member this.ResourceId = sites.resourceId this.Name
         member this.JsonModel =
             let dependencies = this.Dependencies + (Set this.Identity.Dependencies)
-            {| sites.Create(this.Name, this.Location, dependencies, this.Tags) with
+            {| this.Type.Create(this.Name, this.Location, dependencies, this.Tags) with
                  kind = this.Kind
                  identity = this.Identity |> ManagedIdentity.toArmJson
                  properties =
@@ -273,43 +275,3 @@ module SiteExtensions =
             member this.ResourceId = siteExtensions.resourceId(this.SiteName/this.Name)
             member this.JsonModel =
                 siteExtensions.Create(this.SiteName/this.Name, this.Location, [ sites.resourceId this.SiteName ]) :> _
-
-type Slot =
-    { SlotName: string
-      Location : Location
-      ServicePlan: ResourceId
-      Site: ResourceId
-      Tags: Map<string,string>
-      AutoSwapSlotName: string
-      AppSettings: Map<string,Setting>
-      ConnectionStrings: Map<string,Setting*ConnectionStringKind>
-      Identity: ManagedIdentity }
-    member this.ResourceName = this.Site.Name / this.SlotName
-    interface IParameters with
-        member this.SecureParameters =
-            (this.AppSettings
-            |> Map.toList)
-            @ (Map.toList this.ConnectionStrings |> List.map(fun (k, (v,_)) -> k, v))
-            |> List.choose(snd >> function
-                | ParameterSetting s -> Some s
-                | ExpressionSetting _ | LiteralSetting _ -> None)
-    interface IArmResource with
-        member this.ResourceId = ResourceId.create (slots, this.ResourceName)
-        member this.JsonModel =
-            {| slots.Create(this.ResourceName, this.Location, [this.Site], this.Tags) with
-                 properties = 
-                    {| serverFarmId = this.ServicePlan.ArmExpression.Eval()
-                       siteConfig = 
-                        {| autoSwapSlotName = this.AutoSwapSlotName
-                           appSettings = 
-                                this.AppSettings 
-                                |> Map.toList 
-                                |> List.map(fun (k,v) -> {| name = k; value = v.Value |})
-                           connectionStrings = 
-                                this.ConnectionStrings 
-                                |> Map.toList 
-                                |> List.map(fun (k,(v, t)) -> {| name = k; connectionString = v.Value; ``type`` = t.ToString() |})
-                        |}
-                    |}
-                 identity = this.Identity |> ManagedIdentity.toArmJson
-            |} :> _
