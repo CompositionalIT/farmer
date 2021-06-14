@@ -134,11 +134,17 @@ type SlotBuilder() =
     [<CustomOperation "autoSlotSwapName">]
     member this.AutoSlotSwapName (state,autoSlotSwapName) : SlotConfig = {state with AutoSwapSlotName = Some autoSlotSwapName}
 
-    [<CustomOperation "identity">]
-    member this.Identity (state, identity) : SlotConfig = {state with Identity = identity}
+    /// Sets an app setting of the web app in the form "key" "value".
+    [<CustomOperation "add_identity">]
+    member this.AddIdentity (state: SlotConfig, identity:UserAssignedIdentity) =
+        { state with
+            Identity = state.Identity + identity
+            AppSettings = state.AppSettings.Add("AZURE_CLIENT_ID", Setting.ExpressionSetting identity.ClientId) }
+    member this.AddIdentity (state, identity:UserAssignedIdentityConfig) = this.AddIdentity(state, identity.UserAssignedIdentity)
 
-    [<CustomOperation "enable_system_assigned_identity">]
-    member this.EnableSystemAssignedIdentity (state) : SlotConfig = this.Identity(state, { SystemAssigned = Enabled; UserAssigned = [] })
+    [<CustomOperation "system_identity">]
+    member this.SystemIdentity (state: SlotConfig) =
+        { state with Identity = { state.Identity with SystemAssigned = Enabled } }
 
     [<CustomOperation "setting">]
     /// Adds an AppSetting to this deployment slot
