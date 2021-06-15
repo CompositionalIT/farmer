@@ -307,7 +307,7 @@ let tests = testList "Web App Tests" [
 
     test "Supports .NET 5 EAP" {
         let app = webApp { runtime_stack Runtime.DotNet50 }
-        let site:Site = app |> getResourceAtIndex 0
+        let site:Site = app |> getResourceAtIndex 2
         Expect.equal site.SiteConfig.NetFrameworkVersion "v5.0" "Wrong dotnet version"
     }
 
@@ -326,7 +326,7 @@ let tests = testList "Web App Tests" [
     }
 
     test "WebApp with slot that has system assigned identity adds identity to slot" {
-        let slot = appSlot { name "warm-up"; enable_system_assigned_identity }
+        let slot = appSlot { name "warm-up"; system_identity }
         let site:WebAppConfig = webApp { 
             add_slot slot
         }
