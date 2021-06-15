@@ -130,7 +130,7 @@ let tests = testList "Functions tests" [
     }
 
     test "Functions App with slot that has system assigned identity adds identity to slot" {
-        let slot = appSlot { name "warm-up"; enable_system_assigned_identity }
+        let slot = appSlot { name "warm-up"; system_identity }
         let site:FunctionsConfig = functions { 
             add_slot slot
         }

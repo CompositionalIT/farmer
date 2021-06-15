@@ -18,6 +18,33 @@
       "type": "Microsoft.Storage/storageAccounts"
     },
     {
+      "apiVersion": "2018-02-01",
+      "location": "northeurope",
+      "name": "isaacdiagsuperweb-farm",
+      "properties": {
+        "name": "isaacdiagsuperweb-farm",
+        "perSiteScaling": false,
+        "reserved": false
+      },
+      "sku": {
+        "capacity": 1,
+        "name": "F1",
+        "size": "0",
+        "tier": "Free"
+      },
+      "tags": {},
+      "type": "Microsoft.Web/serverfarms"
+    },
+    {
+      "apiVersion": "2020-06-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', 'isaacdiagsuperweb')]"
+      ],
+      "location": "northeurope",
+      "name": "isaacdiagsuperweb/Microsoft.AspNetCore.AzureAppServices.SiteExtension",
+      "type": "Microsoft.Web/sites/siteextensions"
+    },
+    {
       "apiVersion": "2020-06-01",
       "dependsOn": [
         "[resourceId('Microsoft.Web/serverfarms', 'isaacdiagsuperweb-farm')]"
@@ -45,33 +72,6 @@
       },
       "tags": {},
       "type": "Microsoft.Web/sites"
-    },
-    {
-      "apiVersion": "2018-02-01",
-      "location": "northeurope",
-      "name": "isaacdiagsuperweb-farm",
-      "properties": {
-        "name": "isaacdiagsuperweb-farm",
-        "perSiteScaling": false,
-        "reserved": false
-      },
-      "sku": {
-        "capacity": 1,
-        "name": "F1",
-        "size": "0",
-        "tier": "Free"
-      },
-      "tags": {},
-      "type": "Microsoft.Web/serverfarms"
-    },
-    {
-      "apiVersion": "2020-06-01",
-      "dependsOn": [
-        "[resourceId('Microsoft.Web/sites', 'isaacdiagsuperweb')]"
-      ],
-      "location": "northeurope",
-      "name": "isaacdiagsuperweb/Microsoft.AspNetCore.AzureAppServices.SiteExtension",
-      "type": "Microsoft.Web/sites/siteextensions"
     },
     {
       "apiVersion": "2017-04-01",
