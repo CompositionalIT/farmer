@@ -85,7 +85,8 @@ type VmConfig =
                         Prefix = this.SubnetPrefix
                         Delegations = []
                         ServiceEndpoints = []
-                        AssociatedServiceEndpointPolicies = [] }
+                        AssociatedServiceEndpointPolicies = []
+                        AllowPrivateEndpoints = false }
                   ]
                   Tags = this.Tags
                 }

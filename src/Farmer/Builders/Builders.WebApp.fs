@@ -142,7 +142,8 @@ type WebAppConfig =
       SecretStore : SecretStore
       AutomaticLoggingExtension : bool
       SiteExtensions : ExtensionName Set
-      WorkerProcess : Bitness option }
+      WorkerProcess : Bitness option
+      PrivateEndpointSubnets: LinkedResource Set }
     /// Gets this web app's Server Plan's full resource ID.
     member this.ServicePlanId = this.ServicePlan.resourceId this.Name
     /// Gets the Service Plan name for this web app.
@@ -404,6 +405,13 @@ type WebAppConfig =
                 { Name = ResourceName extension
                   SiteName = this.Name
                   Location = location }
+            
+            for subnet in this.PrivateEndpointSubnets do
+              { Name = ResourceName $"{this.Name.Value}-ep-{subnet.Name.Value}"
+                Location = location
+                Subnet = subnet
+                Resource = Managed this.ResourceId
+                GroupIds = ["sites"] }
         ]
 
 type WebAppBuilder() =
@@ -437,7 +445,8 @@ type WebAppBuilder() =
           SecretStore = AppService
           AutomaticLoggingExtension = true
           SiteExtensions = Set.empty
-          WorkerProcess = None }
+          WorkerProcess = None 
+          PrivateEndpointSubnets = Set.empty}
     member __.Run(state:WebAppConfig) =
         { state with
             SiteExtensions =
@@ -538,6 +547,11 @@ type WebAppBuilder() =
     /// Automatically add the ASP.NET Core logging extension.
     [<CustomOperation "automatic_logging_extension">]
     member _.DefaultLogging (state:WebAppConfig, setting) = { state with AutomaticLoggingExtension = setting }
+    [<CustomOperation "add_private_endpoints">]
+    member this.AddPrivateEndpoints (state:WebAppConfig, subnets: LinkedResource List) =
+      {state with PrivateEndpointSubnets = Set.union state.PrivateEndpointSubnets (Set.ofList subnets) }
+    [<CustomOperation "add_private_endpoint">]
+    member this.AddPrivateEndpoint (state:WebAppConfig, subnet: LinkedResource ) = this.AddPrivateEndpoints(state,[subnet])
     interface ITaggable<WebAppConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     interface IDependable<WebAppConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
     interface IServicePlanApp<WebAppConfig> with

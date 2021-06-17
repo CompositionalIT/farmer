@@ -11,10 +11,11 @@ let networkInterfaces = ResourceType ("Microsoft.Network/networkInterfaces", "20
 let networkProfiles = ResourceType ("Microsoft.Network/networkProfiles", "2020-04-01")
 let publicIPAddresses = ResourceType ("Microsoft.Network/publicIPAddresses", "2018-11-01")
 let serviceEndpointPolicies = ResourceType ("Microsoft.Network/serviceEndpointPolicies", "2020-07-01")
-let subnets = ResourceType ("Microsoft.Network/virtualNetworks/subnets", "")
+let subnets = ResourceType ("Microsoft.Network/virtualNetworks/subnets", "2020-07-01")
 let virtualNetworks = ResourceType ("Microsoft.Network/virtualNetworks", "2020-07-01")
 let virtualNetworkGateways = ResourceType ("Microsoft.Network/virtualNetworkGateways", "2020-05-01")
 let localNetworkGateways = ResourceType ("Microsoft.Network/localNetworkGateways", "")
+let privateEndpoints = ResourceType ("Microsoft.Network/privateEndpoints", "2020-07-01")
 
 type PublicIpAddress =
     { Name : ResourceName
@@ -45,7 +46,8 @@ type Subnet =
       Prefix : string
       Delegations : SubnetDelegation list
       ServiceEndpoints : (Network.EndpointServiceType * Location list) list
-      AssociatedServiceEndpointPolicies : ResourceId list }
+      AssociatedServiceEndpointPolicies : ResourceId list 
+      AllowPrivateEndpoints: bool }
 
 type VirtualNetwork =
     { Name : ResourceName
@@ -85,6 +87,7 @@ type VirtualNetwork =
                                        else
                                            subnet.AssociatedServiceEndpointPolicies
                                            |> List.map (fun policyId -> {| id = policyId.ArmExpression.Eval() |})
+                                   privateEndpointNetworkPolicies = if subnet.AllowPrivateEndpoints then "Disabled" else "Enabled"
                                 |}
                             |})
                     |}
@@ -344,3 +347,29 @@ type ExpressRouteCircuit =
                            bandwidthInMbps = this.Bandwidth |}
                        globalReachEnabled = this.GlobalReachEnabled |}
             |} :> _
+
+type PrivateEndpoint =
+  { Name: ResourceName
+    Location: Location
+    Subnet: LinkedResource
+    Resource: LinkedResource
+    GroupIds: string list}
+  interface IArmResource with
+    member this.ResourceId = privateEndpoints.resourceId this.Name
+    member this.JsonModel =
+      let dependencies = 
+        [ match this.Subnet with | Managed x -> x | _ -> ()
+          match this.Resource with | Managed x -> x | _ -> () ]
+      {| privateEndpoints.Create(this.Name, this.Location, dependencies) with
+          properties =
+             {| subnet =
+                    {| id = this.Subnet.ResourceId.Eval() |}
+                privateLinkServiceConnections = [
+                    {| name = this.Name.Value
+                       properties =
+                           {| privateLinkServiceId = this.Resource.ResourceId.Eval()
+                              groupIds = this.GroupIds |} 
+                    |} 
+                  ]
+             |}
+      |} :> _
