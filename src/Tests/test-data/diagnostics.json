@@ -22,9 +22,6 @@
       "dependsOn": [
         "[resourceId('Microsoft.Web/serverfarms', 'isaacdiagsuperweb-farm')]"
       ],
-      "identity": {
-        "type": "None"
-      },
       "kind": "app",
       "location": "northeurope",
       "name": "isaacdiagsuperweb",

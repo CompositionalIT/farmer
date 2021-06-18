@@ -204,8 +204,7 @@ let tests = testList "Web App Tests" [
 
     test "Handles identity correctly" {
         let wa : Site = webApp { name "" } |> getResourceAtIndex 0
-        Expect.equal wa.Identity.Type (Nullable ManagedServiceIdentityType.None) "Incorrect default managed identity"
-        Expect.isNull wa.Identity.UserAssignedIdentities "Should be no user assigned identities"
+        Expect.isNull wa.Identity  "Default managed identity should be null"
 
         let wa : Site = webApp { system_identity } |> getResourceAtIndex 0
         Expect.equal wa.Identity.Type (Nullable ManagedServiceIdentityType.SystemAssigned) "Should have system identity"

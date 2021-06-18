@@ -101,9 +101,6 @@
         "[resourceId('Microsoft.Insights/components', 'farmerwebapp1979-ai')]",
         "[resourceId('Microsoft.Web/serverfarms', 'farmerwebapp1979-farm')]"
       ],
-      "identity": {
-        "type": "None"
-      },
       "kind": "app",
       "location": "northeurope",
       "name": "farmerwebapp1979",
@@ -213,9 +210,6 @@
         "[resourceId('Microsoft.Storage/storageAccounts', 'farmerfuncs1979storage')]",
         "[resourceId('Microsoft.Web/serverfarms', 'farmerfuncs1979-farm')]"
       ],
-      "identity": {
-        "type": "None"
-      },
       "kind": "functionapp",
       "location": "northeurope",
       "name": "farmerfuncs1979",

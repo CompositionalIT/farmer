@@ -2,6 +2,7 @@
 module Farmer.Arm.Web
 
 open Farmer
+open Farmer.Identity
 open Farmer.WebApp
 open System
 
@@ -166,7 +167,9 @@ type Site =
             let dependencies = this.Dependencies + (Set this.Identity.Dependencies)
             {| sites.Create(this.Name, this.Location, dependencies, this.Tags) with
                  kind = this.Kind
-                 identity = this.Identity |> ManagedIdentity.toArmJson
+                 identity =
+                     if this.Identity = ManagedIdentity.Empty then Unchecked.defaultof<_>
+                     else this.Identity |> ManagedIdentity.toArmJson
                  properties =
                     {| serverFarmId = this.ServicePlan.Eval()
                        httpsOnly = this.HTTPSOnly
