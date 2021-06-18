@@ -121,7 +121,7 @@ let tests = testList "Network Tests" [
                 subnet {
                     name servicesSubnet
                     prefix "10.28.0.0/24"
-                    private_endpoints Enabled
+                    allow_private_endpoints Enabled
                 }
             ]
         }
@@ -143,7 +143,7 @@ let tests = testList "Network Tests" [
                         subnetSpec {
                             name servicesSubnet
                             size 24
-                            private_endpoints Enabled
+                            allow_private_endpoints Enabled
                         }
                     ]
                 }

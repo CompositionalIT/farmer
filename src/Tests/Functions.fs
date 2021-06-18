@@ -48,8 +48,7 @@ let tests = testList "Functions tests" [
     }
     test "Handles identity correctly" {
         let f : Site = functions { name "" } |> getResourceAtIndex 0
-        Expect.equal f.Identity.Type (Nullable ManagedServiceIdentityType.None) "Incorrect default managed identity"
-        Expect.isNull f.Identity.UserAssignedIdentities "Incorrect default managed identity"
+        Expect.isNull f.Identity "Default managed identity should be null"
 
         let f : Site = functions { system_identity } |> getResourceAtIndex 0
         Expect.equal f.Identity.Type (Nullable ManagedServiceIdentityType.SystemAssigned) "Should have system identity"
