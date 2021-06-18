@@ -1,5 +1,8 @@
 Release Notes
 =============
+## vNext
+* Added support for WebApp PrivateEndpoints
+
 ## 1.6.0
 * Added support for nesting resource groups
 * Storage: Support for firewall to restrict storage account network access to virtual network subnets, IP addresses, and CIDR prefixes.

@@ -37,6 +37,7 @@ let tests = testList "Network Tests" [
         Expect.equal builtVnet.Subnets.[0].AddressPrefix "10.100.200.0/24" "Incorrect prefix for web server subnet"
         Expect.equal builtVnet.Subnets.[1].Name databaseSubnet "Incorrect name for database server subnet"
         Expect.equal builtVnet.Subnets.[1].AddressPrefix "10.100.201.0/24" "Incorrect prefix for database server subnet"
+        Expect.equal builtVnet.Subnets.[1].PrivateEndpointNetworkPolicies "Enabled" "Incorrect PrivateEndpointNetworkPolicies"
     }
     test "Manually defined subnets with service endpoints" {
         let vnetName = "my-vnet"
@@ -105,5 +106,52 @@ let tests = testList "Network Tests" [
         Expect.equal generatedVNet.Subnets.[1].AddressPrefix "10.28.1.0/24" "Incorrect prefix for containers subnet"
         Expect.equal generatedVNet.Subnets.[1].ServiceEndpoints.[0].Service "Microsoft.Storage" "Incorrect MS.Storage service endpoint for containers subnet"
         Expect.equal generatedVNet.Subnets.[1].Delegations.[0].ServiceName "Microsoft.ContainerInstance/containerGroups" "Incorrect MS.ContainerGroups subnet delegation"
+        Expect.equal generatedVNet.Subnets.[1].PrivateEndpointNetworkPolicies "Enabled" "Incorrect PrivateEndpointNetworkPolicies"
+    }
+
+    
+    test "Manually defined subnets with private endpoint support" {
+        let vnetName = "my-vnet"
+        let servicesSubnet = "services"
+        let containerSubnet = "containers"
+        let myNet = vnet {
+            name vnetName
+            add_address_spaces [ "10.28.0.0/16" ]
+            add_subnets [
+                subnet {
+                    name servicesSubnet
+                    prefix "10.28.0.0/24"
+                    private_endpoints Enabled
+                }
+            ]
+        }
+        let builtVnet = arm { add_resource myNet; } |> getVnetResource
+        Expect.hasLength builtVnet.AddressSpace.AddressPrefixes 1 "Incorrect number of address spaces"
+        Expect.hasLength builtVnet.Subnets 1 "Incorrect number of subnets"
+        Expect.equal builtVnet.Subnets.[0].PrivateEndpointNetworkPolicies "Disabled" "Incorrect PrivateEndpointNetworkPolicies"
+    }
+    test "Automatically carved subnets with private endpoint support" {
+        let vnetName = "my-vnet"
+        let servicesSubnet = "services"
+        let containerSubnet = "containers"
+        let myNet = vnet {
+            name vnetName
+            build_address_spaces [
+                addressSpace {
+                    space "10.28.0.0/16"
+                    subnets [
+                        subnetSpec {
+                            name servicesSubnet
+                            size 24
+                            private_endpoints Enabled
+                        }
+                    ]
+                }
+            ]
+        }
+        let generatedVNet = arm { add_resource myNet; } |> getVnetResource
+        Expect.equal generatedVNet.Subnets.[0].Name servicesSubnet "Incorrect name for services subnet"
+        Expect.equal generatedVNet.Subnets.[0].AddressPrefix "10.28.0.0/24" "Incorrect prefix for services subnet"
+        Expect.equal generatedVNet.Subnets.[0].PrivateEndpointNetworkPolicies "Disabled" "Incorrect PrivateEndpointNetworkPolicies"
     }
 ]

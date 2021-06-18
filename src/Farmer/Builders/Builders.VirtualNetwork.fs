@@ -88,7 +88,7 @@ type SubnetSpecBuilder () =
         { state with AssociatedServiceEndpointPolicies = state.AssociatedServiceEndpointPolicies @ policies }
     /// Disable private endpoint netwokj security policies to enable use of private endpoints
     [<CustomOperation "private_endpoints">]
-    member _.AddAssociatedServiceEndpointPolicies(state:SubnetBuildSpec, flag:FeatureFlag ) =
+    member _.PrivateEndpoints(state:SubnetBuildSpec, flag:FeatureFlag ) =
         { state with AllowPrivateEndpoints = flag.AsBoolean }
 
 let subnetSpec = SubnetSpecBuilder()

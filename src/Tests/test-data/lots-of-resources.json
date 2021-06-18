@@ -737,7 +737,8 @@
                     "name": "farmervm-subnet",
                     "properties": {
                       "addressPrefix": "10.0.0.0/24",
-                      "delegations": []
+                      "delegations": [],
+                      "privateEndpointNetworkPolicies": "Enabled"
                     }
                   }
                 ]
