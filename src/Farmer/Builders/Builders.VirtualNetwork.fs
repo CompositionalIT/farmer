@@ -55,8 +55,8 @@ let buildSubnet name size =
 /// Builds a subnet of a certain CIDR block size with service delegations.
 let buildSubnetDelegations name size delegations =
     { Name = name; Size = size; Delegations = delegations; ServiceEndpoints = []; AssociatedServiceEndpointPolicies = []; AllowPrivateEndpoints = false}
-let buildSubnetAllowPrivateEndpoints name size delegations =
-    { Name = name; Size = size; Delegations = delegations; ServiceEndpoints = []; AssociatedServiceEndpointPolicies = []; AllowPrivateEndpoints = true }
+let buildSubnetAllowPrivateEndpoints name size =
+    { Name = name; Size = size; Delegations = []; ServiceEndpoints = []; AssociatedServiceEndpointPolicies = []; AllowPrivateEndpoints = true }
 
 type SubnetSpecBuilder () =
     member _.Yield _ =
