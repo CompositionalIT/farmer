@@ -354,6 +354,14 @@ type PrivateEndpoint =
     Subnet: LinkedResource
     Resource: LinkedResource
     GroupIds: string list}
+  static member create location (resourceId:ResourceId) groupIds =
+    Set.toSeq >> Seq.map
+      (fun (subnet: LinkedResource, epName:string option) ->
+        { Name = epName |> Option.defaultValue $"{resourceId.Name.Value}-ep-{subnet.Name.Value}" |> ResourceName
+          Location = location
+          Subnet = subnet
+          Resource = Managed resourceId
+          GroupIds = groupIds } :> IArmResource)
   interface IArmResource with
     member this.ResourceId = privateEndpoints.resourceId this.Name
     member this.JsonModel =
