@@ -1,5 +1,9 @@
 Release Notes
 =============
+
+## 1.6.2
+* Service bus: Add support for authorization rules.
+
 ## 1.6.1
 * Web App: Workaround ARM regression when Identity is set to "None".
 
