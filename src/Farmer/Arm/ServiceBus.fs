@@ -11,7 +11,7 @@ let subscriptions = ResourceType ("Microsoft.ServiceBus/namespaces/topics/subscr
 let queues = ResourceType ("Microsoft.ServiceBus/namespaces/queues", "2017-04-01")
 let topics = ResourceType ("Microsoft.ServiceBus/namespaces/topics", "2017-04-01")
 let namespaces = ResourceType ("Microsoft.ServiceBus/namespaces", "2017-04-01")
-let authorizationRules = ResourceType ("Microsoft.ServiceBus/namespaces/queues/AuthorizationRules", "2017-04-01")
+let authorizationRules = ResourceType ("Microsoft.ServiceBus/namespaces/queues/authorizationRules", "2017-04-01")
 
 module Namespaces =
     module Topics =
