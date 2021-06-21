@@ -227,7 +227,8 @@ type ServiceBusConfig =
                 { Name = rule.Key.Map(fun rule -> $"{this.Name.Value}/{queue.Name.Value}/%s{rule}")
                   Location = location
                   Dependencies = [
-                    queues.resourceId (queue.Name, this.Name)
+                    namespaces.resourceId this.Name
+                    queues.resourceId (this.Name, queue.Name)
                   ]
                   Rights = rule.Value }
 
