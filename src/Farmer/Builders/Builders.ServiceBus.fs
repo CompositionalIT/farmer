@@ -16,7 +16,8 @@ type ServiceBusQueueConfig =
       Session : bool option
       DeadLetteringOnMessageExpiration : bool option
       MaxDeliveryCount : int option
-      EnablePartitioning : bool option }
+      EnablePartitioning : bool option
+      AuthorizationRules : Map<ResourceName, AuthorizationRuleRight Set>}
 
 type ServiceBusQueueBuilder() =
     member _.Yield _ =
@@ -27,7 +28,8 @@ type ServiceBusQueueBuilder() =
           DeadLetteringOnMessageExpiration = None
           DefaultMessageTimeToLive = None
           MaxDeliveryCount = None
-          EnablePartitioning = None }
+          EnablePartitioning = None
+          AuthorizationRules = Map.empty }
 
     /// The name of the queue.
     [<CustomOperation "name">] member _.Name(state:ServiceBusQueueConfig, name) = { state with Name = ResourceName name }
@@ -48,6 +50,9 @@ type ServiceBusQueueBuilder() =
     [<CustomOperation "enable_dead_letter_on_message_expiration">] member _.DeadLetteringOnMessageExpiration(state:ServiceBusQueueConfig) = { state with DeadLetteringOnMessageExpiration = Some true }
     /// Enables partition support on the queue.
     [<CustomOperation "enable_partition">] member _.EnablePartition(state:ServiceBusQueueConfig) = { state with EnablePartitioning = Some true }
+    /// Add authorization rule on the queue.
+    [<CustomOperation "add_authorization_rule">]
+    member __.AddAuthorizationRule(state:ServiceBusQueueConfig, name, rights) = { state with AuthorizationRules = state.AuthorizationRules.Add(ResourceName name, Set rights) }
 
 type ServiceBusSubscriptionConfig =
     { Name : ResourceName
@@ -218,6 +223,14 @@ type ServiceBusConfig =
                     |> IsoDateTime.OfTimeSpan
                 MaxDeliveryCount = queue.MaxDeliveryCount
                 EnablePartitioning = queue.EnablePartitioning }
+              for rule in queue.AuthorizationRules do
+                { Name = rule.Key.Map(fun rule -> $"{this.Name.Value}/{queue.Name.Value}/%s{rule}")
+                  Location = location
+                  Dependencies = [
+                    queues.resourceId (queue.Name, this.Name)
+                  ]
+                  Rights = rule.Value }
+
 
             for topic in this.Topics do
                 let topic = {topic.Value with Namespace = Managed(namespaces.resourceId this.Name)} :> IBuilder

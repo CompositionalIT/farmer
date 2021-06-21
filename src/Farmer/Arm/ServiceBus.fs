@@ -11,6 +11,7 @@ let subscriptions = ResourceType ("Microsoft.ServiceBus/namespaces/topics/subscr
 let queues = ResourceType ("Microsoft.ServiceBus/namespaces/queues", "2017-04-01")
 let topics = ResourceType ("Microsoft.ServiceBus/namespaces/topics", "2017-04-01")
 let namespaces = ResourceType ("Microsoft.ServiceBus/namespaces", "2017-04-01")
+let authorizationRules = ResourceType ("Microsoft.ServiceBus/namespaces/queues/AuthorizationRules", "2017-04-01")
 
 module Namespaces =
     module Topics =
@@ -72,7 +73,7 @@ module Namespaces =
           DeadLetteringOnMessageExpiration : bool option
           DefaultMessageTimeToLive : IsoDateTime
           MaxDeliveryCount : int option
-          EnablePartitioning : bool option }
+          EnablePartitioning : bool option}
         interface IArmResource with
             member this.ResourceId = queues.resourceId (this.Namespace/this.Name)
             member this.JsonModel =
@@ -89,6 +90,17 @@ module Namespaces =
                         deadLetteringOnMessageExpiration = this.DeadLetteringOnMessageExpiration |> Option.toNullable
                         maxDeliveryCount = this.MaxDeliveryCount |> Option.toNullable
                         enablePartitioning = this.EnablePartitioning |> Option.toNullable |}
+                |} :> _
+    type AuthorizationRule =
+        { Name : ResourceName
+          Location : Location
+          Dependencies : ResourceId list
+          Rights : AuthorizationRuleRight Set }
+        interface IArmResource with
+            member this.ResourceId = authorizationRules.resourceId this.Name
+            member this.JsonModel =
+                {| authorizationRules.Create(this.Name, this.Location, this.Dependencies) with
+                    properties = {| rights = this.Rights |> Set.map string |> Set.toList |}
                 |} :> _
 
     type Topic =
