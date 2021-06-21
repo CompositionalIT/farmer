@@ -16,6 +16,7 @@ let virtualNetworks = ResourceType ("Microsoft.Network/virtualNetworks", "2020-0
 let virtualNetworkGateways = ResourceType ("Microsoft.Network/virtualNetworkGateways", "2020-05-01")
 let localNetworkGateways = ResourceType ("Microsoft.Network/localNetworkGateways", "")
 let privateEndpoints = ResourceType ("Microsoft.Network/privateEndpoints", "2020-07-01")
+let virtualNetworkPeering = ResourceType ("Microsoft.Network/virtualNetworks/virtualNetworkPeerings","2020-05-01")
 
 type PublicIpAddress =
     { Name : ResourceName
@@ -381,3 +382,24 @@ type PrivateEndpoint =
                   ]
              |}
       |} :> _
+type NetworkPeering = 
+    { Location: Location
+      OwningVNet: LinkedResource
+      RemoteVNet: LinkedResource}
+    member this.Name = this.OwningVNet.Name / $"peering-%s{this.RemoteVNet.Name.Value}"
+    interface IArmResource with
+        member this.ResourceId = virtualNetworkPeering.resourceId this.Name
+        member this.JsonModel = 
+            let deps = [
+                match this.OwningVNet with | Managed id -> id | _ -> ()
+                match this.RemoteVNet with | Managed id -> id | _ -> ()
+            ]
+            {| virtualNetworkPeering.Create(this.Name,this.Location,deps) with
+                properties = 
+                    {| allowVirtualNetworkAccess = true
+                       allowForwardedTraffic = true
+                       allowGatewayTransit = false
+                       useRemoteGateways = false
+                       remoteVirtualNetwork = {| id = match this.RemoteVNet with | Managed id | Unmanaged id -> id |}
+                    |}
+            |} :> _

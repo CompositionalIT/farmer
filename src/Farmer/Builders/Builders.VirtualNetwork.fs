@@ -5,6 +5,11 @@ open Farmer
 open Farmer.Network
 open Farmer.Arm.Network
 
+type PeeringMode = 
+    | TwoWay
+    | OneWayToPeer
+    | OneWayFromPeer
+
 type SubnetConfig =
     { Name: ResourceName
       Prefix: IPAddressCidr
@@ -105,18 +110,21 @@ type AddressSpaceBuilder() =
     member _.Space(state:AddressSpaceSpec, space) = { state with Space = space }
     [<CustomOperation("subnets")>]
     member _.Subnets(state:AddressSpaceSpec, subnets) = { state with Subnets = state.Subnets @ subnets }
-    member private _.buildSubnet(state:AddressSpaceSpec, name:string, size:int, ?delegations:SubnetDelegationService list, ?serviceEndpoints:(EndpointServiceType * Location list) list, ?associatedServiceEndpointPolicies:ResourceId list) =
+    member private _.buildSubnet(state:AddressSpaceSpec, name:string, size:int, ?delegations:SubnetDelegationService list, ?serviceEndpoints:(EndpointServiceType * Location list) list, ?associatedServiceEndpointPolicies:ResourceId list, ?allowPrivateEndpoints: FeatureFlag) =
         let subnetBuildSpec =
             { Name = name
               Size = size
               Delegations = delegations |> Option.defaultValue []
               ServiceEndpoints = serviceEndpoints |> Option.defaultValue []
               AssociatedServiceEndpointPolicies = associatedServiceEndpointPolicies |> Option.defaultValue [] 
-              AllowPrivateEndpoints = None }
+              AllowPrivateEndpoints = allowPrivateEndpoints }
         { state with Subnets = state.Subnets @ [ subnetBuildSpec ] }
     [<CustomOperation("build_subnet")>]
     member this.BuildSubnet(state:AddressSpaceSpec, name:string, size:int) =
         this.buildSubnet(state, name, size)
+    [<CustomOperation("build_subnet_allow_private_endpoints")>]
+    member this.BuildSubnetPrivateEndpoints(state:AddressSpaceSpec, name:string, size:int) =
+        this.buildSubnet(state, name, size, allowPrivateEndpoints=Enabled)
     [<CustomOperation("build_subnet_delegated")>]
     member this.BuildSubnetDelegated(state:AddressSpaceSpec, name:string, size:int, delegations:SubnetDelegationService list) =
         this.buildSubnet(state, name, size, delegations=delegations)
@@ -127,13 +135,15 @@ type VirtualNetworkConfig =
     { Name : ResourceName
       AddressSpacePrefixes : string list
       Subnets : SubnetConfig list
+      Peers: (LinkedResource * PeeringMode) list 
       Tags: Map<string,string> }
     member this.SubnetIds = 
       this.Subnets
       |> List.map (fun subnet -> subnet.Name.Value, subnets.resourceId(this.Name, subnet.Name) )
       |> Map.ofList
+    member this.ResourceId = virtualNetworks.resourceId this.Name
     interface IBuilder with
-        member this.ResourceId = virtualNetworks.resourceId this.Name
+        member this.ResourceId = this.ResourceId
         member this.BuildResources location = [
             { Name = this.Name
               Location = location
@@ -151,14 +161,28 @@ type VirtualNetworkConfig =
                     })
               Tags = this.Tags
             }
+            for (remote, mode) in this.Peers do
+                match mode with
+                | OneWayToPeer | TwoWay -> 
+                    { Location = location
+                      OwningVNet = Managed this.ResourceId
+                      RemoteVNet = remote } 
+                | _ -> ()
+                match mode with
+                | OneWayFromPeer | TwoWay -> 
+                    { Location = location
+                      OwningVNet = remote
+                      RemoteVNet = Managed this.ResourceId }
+                | _ -> ()
         ]
 
 type VirtualNetworkBuilder() =
     member _.Yield _ =
       { Name = ResourceName.Empty
         AddressSpacePrefixes = []
-        Subnets = []
-        Tags = Map.empty}
+        Subnets = List.empty
+        Peers = List.empty
+        Tags = Map.empty }
     /// Sets the name of the virtual network
     [<CustomOperation "name">]
     member _.Name(state:VirtualNetworkConfig, name) = { state with Name = ResourceName name }
@@ -168,6 +192,18 @@ type VirtualNetworkBuilder() =
     /// Adds subnets
     [<CustomOperation "add_subnets">]
     member _.AddSubnets(state:VirtualNetworkConfig, subnets) = { state with Subnets = state.Subnets @ subnets }
+    /// Peers this VNet with other VNets to allow communication between the VNets as if they were one
+    [<CustomOperation "add_peerings">]
+    member _.AddPeers(state:VirtualNetworkConfig, peers) = { state with Peers = state.Peers @ peers }
+    member this.AddPeers(state:VirtualNetworkConfig, peers:LinkedResource list) = this.AddPeers (state, peers |> List.map (fun peer -> (peer, TwoWay)) )
+    member this.AddPeers(state:VirtualNetworkConfig, peers:VirtualNetworkConfig list) = this.AddPeers (state, peers |> List.map (fun x -> Managed x.ResourceId, PeeringMode.TwoWay))
+    member this.AddPeers(state:VirtualNetworkConfig, peers:(VirtualNetworkConfig * PeeringMode) list) = this.AddPeers (state, peers |> List.map (fun (peer, mode) -> (Managed peer.ResourceId, mode)) )
+    /// Peers this VNet with another VNet to allow communication between the VNets as if they were one
+    [<CustomOperation "add_peering">]
+    member this.AddPeer(state:VirtualNetworkConfig, (peer,mode):LinkedResource*PeeringMode) = this.AddPeers(state, [peer,mode])
+    member this.AddPeer(state:VirtualNetworkConfig, peer:LinkedResource) = this.AddPeers(state, [peer])
+    member this.AddPeer(state:VirtualNetworkConfig, peer:VirtualNetworkConfig) = this.AddPeers(state, [peer])
+
     [<CustomOperation "build_address_spaces">]
     member _.BuildAddressSpaces(state:VirtualNetworkConfig, addressSpaces:AddressSpaceSpec list) =
         let newSubnets =
