@@ -236,7 +236,7 @@ type NetworkInterface =
       Location : Location
       IpConfigs :
         {| SubnetName : ResourceName
-           PublicIpName : ResourceName |} list
+           PublicIpName : ResourceName option |} list
       VirtualNetwork : ResourceName
       Tags: Map<string,string>  }
     interface IArmResource with
@@ -245,7 +245,10 @@ type NetworkInterface =
             let dependsOn = [
                 virtualNetworks.resourceId this.VirtualNetwork
                 for config in this.IpConfigs do
-                    publicIPAddresses.resourceId config.PublicIpName
+                    match config.PublicIpName with
+                    | Some ipName ->
+                        publicIPAddresses.resourceId ipName
+                    | _ -> ()
             ]
             {| networkInterfaces.Create(this.Name, this.Location, dependsOn, this.Tags) with
                 properties =
@@ -255,7 +258,10 @@ type NetworkInterface =
                             {| name = $"ipconfig{index + 1}"
                                properties =
                                 {| privateIPAllocationMethod = "Dynamic"
-                                   publicIPAddress = {| id = publicIPAddresses.resourceId(ipConfig.PublicIpName).Eval() |}
+                                   publicIPAddress = 
+                                       ipConfig.PublicIpName 
+                                       |> Option.map(fun name-> {| id = publicIPAddresses.resourceId(name).Eval() |}) 
+                                       |> Option.defaultValue Unchecked.defaultof<_> 
                                    subnet = {| id = subnets.resourceId(this.VirtualNetwork, ipConfig.SubnetName).Eval() |}
                                 |}
                             |})
@@ -363,6 +369,6 @@ type NetworkPeering =
                        allowForwardedTraffic = true
                        allowGatewayTransit = false
                        useRemoteGateways = false
-                       remoteVirtualNetwork = {| id = match this.RemoteVNet with | Managed id | Unmanaged id -> id |}
+                       remoteVirtualNetwork = {| id = match this.RemoteVNet with | Managed id | Unmanaged id -> id.ArmExpression.Eval() |}
                     |}
             |} :> _
