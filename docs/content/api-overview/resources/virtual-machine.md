@@ -35,7 +35,7 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 |subnet_prefix | Sets the subnet prefix of the VM. |
 |custom_script | Executes the supplied inline custom script on the VM. |
 |custom_script_files | Uploads the supplied set of files, specified by URI, to the VM on creation. |
-|custom_data | Sets the custom data field for the VM.
+|custom_data | Sets the custom data field for the VM. |
 
 #### Configuration Members
 
