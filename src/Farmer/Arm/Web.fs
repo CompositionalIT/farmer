@@ -19,6 +19,7 @@ type ServerFarm =
       Sku: Sku
       WorkerSize : WorkerSize
       WorkerCount : int
+      MaximumElasticWorkerCount : int option
       OperatingSystem : OS
       Tags: Map<string,string> }
     member this.IsDynamic =
@@ -30,9 +31,26 @@ type ServerFarm =
         | Linux -> true
         | Windows -> false
     member this.Kind =
-        match this.OperatingSystem with
-        | Linux -> Some "linux"
-        | Windows -> None
+        [
+            match this.Sku with
+            | Shared
+            | Free
+            | Basic _
+            | Standard _
+            | Premium _
+            | PremiumV2 _
+            | PremiumV3 _
+            | Isolated _
+            | Dynamic -> ()
+            | ElasticPremium _ -> "elastic"
+
+            match this.OperatingSystem with
+            | Linux -> "linux"
+            | Windows -> ()
+        ]
+        |> function
+            | [] -> None
+            | kinds -> kinds |> String.concat "," |> Some
     member this.Tier =
         match this.Sku with
         | Free -> "Free"
@@ -42,6 +60,7 @@ type ServerFarm =
         | Premium _ -> "Premium"
         | PremiumV2 _ -> "PremiumV2"
         | PremiumV3 _ -> "PremiumV3"
+        | ElasticPremium _ -> "ElasticPremium"
         | Dynamic -> "Dynamic"
         | Isolated _ -> "Isolated"
     interface IArmResource with
@@ -60,6 +79,7 @@ type ServerFarm =
                         | Premium sku
                         | PremiumV2 sku
                         | PremiumV3 sku
+                        | ElasticPremium sku
                         | Isolated sku ->
                             sku
                         | Dynamic ->
@@ -77,7 +97,8 @@ type ServerFarm =
                       {| name = this.Name.Value
                          computeMode = if this.IsDynamic then "Dynamic" else null
                          perSiteScaling = if this.IsDynamic then Nullable() else Nullable false
-                         reserved = this.Reserved |}
+                         reserved = this.Reserved
+                         maximumElasticWorkerCount = this.MaximumElasticWorkerCount |> Option.toNullable |}
                  kind = this.Kind |> Option.toObj
             |} :> _
 
