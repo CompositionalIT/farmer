@@ -49,7 +49,9 @@ type StorageAccountConfig =
       /// The CORS rules for a storage service
       CorsRules : List<Storage.StorageService * CorsRule>
       /// Tags to apply to the storage account
-      Tags: Map<string,string> }
+      Tags: Map<string,string>
+      /// Minimum TLS version
+      MinTlsVersion : TlsVersion option }
     /// Gets the ARM expression path to the key of this storage account.
     member this.Key = StorageAccount.getConnectionString this.Name
     /// Gets the Primary endpoint for static website (if enabled)
@@ -84,7 +86,8 @@ type StorageAccountConfig =
                 |> Seq.toList
               NetworkAcls = this.NetworkAcls
               StaticWebsite = this.StaticWebsite
-              Tags = this.Tags }
+              Tags = this.Tags
+              MinTlsVersion = this.MinTlsVersion }
             for name, access in this.Containers do
                 { Name = name
                   StorageAccount = this.Name.ResourceName
@@ -160,6 +163,7 @@ type StorageAccountBuilder() =
         StaticWebsite = None
         CorsRules = []
         Tags = Map.empty
+        MinTlsVersion = None
     }
     static member private AddContainer(state, access, name:string) = { state with Containers = state.Containers @ [ ((StorageResourceName.Create name).OkValue, access) ] }
     static member private AddFileShare(state:StorageAccountConfig, name:string, quota) = { state with FileShares = state.FileShares @ [ (StorageResourceName.Create(name).OkValue, quota) ] }
@@ -306,6 +310,10 @@ type StorageAccountBuilder() =
     [<CustomOperation "add_cors_rules">]
     member _.AddCorsRules(state:StorageAccountConfig, rules) =
         { state with CorsRules = state.CorsRules @ rules }
+    /// Set minimum TLS version
+    [<CustomOperation "min_tls_version">]
+    member _.SetMinTlsVersion(state:StorageAccountConfig, minTlsVersion) =
+        { state with MinTlsVersion = Some minTlsVersion }
     interface ITaggable<StorageAccountConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 /// Allow adding storage accounts directly to CDNs

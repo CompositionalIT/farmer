@@ -110,7 +110,8 @@ type VmConfig =
                   NetworkAcls = None
                   StaticWebsite = None
                   EnableHierarchicalNamespace = None
-                  Tags = this.Tags }
+                  Tags = this.Tags
+                  MinTlsVersion = None }
             | Some _
             | None ->
                 ()
