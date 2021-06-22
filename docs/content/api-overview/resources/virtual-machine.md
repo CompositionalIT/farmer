@@ -35,6 +35,7 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 |subnet_prefix | Sets the subnet prefix of the VM. |
 |custom_script | Executes the supplied inline custom script on the VM. |
 |custom_script_files | Uploads the supplied set of files, specified by URI, to the VM on creation. |
+|custom_data | Sets the custom data field for the VM. |
 
 #### Configuration Members
 
@@ -62,5 +63,6 @@ let myVm = vm {
     add_slow_disk 512
     custom_script "powershell setup-vm.ps1" // you have to actually *call* the script
     custom_script_files [ "https://foo.bar/foo/setup-vm.ps1" ]
+    custom_data "customData"
 }
 ```

@@ -56,4 +56,18 @@ let tests = testList "Virtual Machine" [
         arm { add_resource (vm { name "foo"; username "foo"; custom_script "foo"; custom_script_files [ "http://test.fsx" ] }) } |> ignore
         arm { add_resource (vm { name "foo"; username "foo"; custom_script "foo" }) } |> ignore
     }
+
+    test "CustomData is correctly encoded" {
+        let deployment =
+            arm {
+                add_resources
+                    [ vm { name "foo"; username "foo"; custom_data "foo"} ]
+            }
+        let json = deployment.Template |> Writer.toJson
+        let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+        let customData = jobj.SelectToken("resources[?(@.name=='foo')].properties.osProfile.customData")
+        let actualCustomData = (customData.ToString())
+        let expectedCustomData = "Zm9v"
+        Expect.equal actualCustomData expectedCustomData "customData was not correctly encoded"
+    }
 ]
