@@ -37,6 +37,7 @@ The Storage Account builder creates storage accounts and their associated contai
 | enable_data_lake | Enables Azure Data Lake Gen2 support on the storage account |
 | add_lifecycle_policy | Given a rule name, a list of PolicyActions and a list of string filters, creates a lifecycle policy for the storage account |
 | grant_access | Given a managed identity (can be either user- or system- assigned), and a specific RoleId from the Roles module, grants access to the identity for the provided role. |
+| min_tls_version | Sets the minimum TLS version for the storage account |
 
 
 #### Configuration Members
@@ -77,6 +78,7 @@ let storage = storageAccount {
         StorageService.Tables, CorsRule.create [ "https://compositional-it.com" ]
         StorageService.Files, { CorsRule.AllowAll with MaxAgeInSeconds = 10 }
         StorageService.Queues, CorsRule.create ([ "https://compositional-it.com" ], [ GET ])
-    ]    
+    ]
+    min_tls_version Tls12    
 }
 ```
