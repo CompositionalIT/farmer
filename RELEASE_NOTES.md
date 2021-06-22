@@ -1,5 +1,8 @@
 Release Notes
 =============
+## 1.6.2
+* Storage: Support for minimum TLS version.
+
 ## 1.6.1
 * Web App: Workaround ARM regression when Identity is set to "None".
 
