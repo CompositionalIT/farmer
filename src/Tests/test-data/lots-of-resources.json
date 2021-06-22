@@ -656,7 +656,8 @@
                 "osProfile": {
                   "adminPassword": "[parameters('password-for-farmervm')]",
                   "adminUsername": "farmer-admin",
-                  "computerName": "farmervm"
+                  "computerName": "farmervm",
+                  "customData": ""
                 },
                 "storageProfile": {
                   "dataDisks": [

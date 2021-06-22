@@ -9,6 +9,18 @@ open Microsoft.Azure.Management.Compute.Models
 open Microsoft.Rest
 open System
 
+
+let getResource<'T when 'T :> IArmResource> (data:IArmResource list) = data |> List.choose(function :? 'T as x -> Some x | _ -> None)
+let getResources (v:IBuilder) = v.BuildResources Location.WestUS
+let getVirtualMachineResource = getResource<Farmer.Arm.Compute.VirtualMachine>
+
+let getResourceCustomData (template:Deployment) (resourceName:ResourceName) =
+    let json = template.Template |> Writer.toJson
+    let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+    let customData = jobj.SelectToken("resources[?(@.name=='{resourceName.Value}')].osProfile.customData")
+    let jarray = customData :?> Newtonsoft.Json.Linq.JArray
+    [for jvalue in jarray do jvalue.ToString()]
+
 /// Client instance needed to get the serializer settings.
 let client = new ComputeManagementClient(Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
 
@@ -55,5 +67,18 @@ let tests = testList "Virtual Machine" [
     test "Does not throws an error if you provide a script" {
         arm { add_resource (vm { name "foo"; username "foo"; custom_script "foo"; custom_script_files [ "http://test.fsx" ] }) } |> ignore
         arm { add_resource (vm { name "foo"; username "foo"; custom_script "foo" }) } |> ignore
+    }
+
+    test "CustomData is correctly encoded" {
+        let deployment =
+            arm {
+                add_resources
+                    [ vm { name "foo"; username "foo"; custom_data "foo"} ]
+            }
+        let json = deployment.Template |> Writer.toJson
+        let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+        let customData = jobj.SelectToken("resources[?(@.name=='foo')].properties.osProfile.customData")
+        let actualCustomData = (customData.ToString())
+        Expect.equal actualCustomData "Zm9v" "customData was not correctly encoded"
     }
 ]

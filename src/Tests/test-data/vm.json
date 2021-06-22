@@ -36,7 +36,8 @@
         "osProfile": {
           "adminPassword": "[parameters('password-for-isaacsVM')]",
           "adminUsername": "isaac",
-          "computerName": "isaacsVM"
+          "computerName": "isaacsVM",
+          "customData": ""
         },
         "storageProfile": {
           "dataDisks": [
