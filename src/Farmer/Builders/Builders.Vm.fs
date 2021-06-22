@@ -27,6 +27,8 @@ type VmConfig =
 
       DomainNamePrefix : string option
 
+      CustomData : string option
+
       VNet : ResourceRef<VmConfig>
       AddressPrefix : string
       SubnetPrefix : string
@@ -57,6 +59,7 @@ type VmConfig =
                        Password = SecureParameter $"password-for-{this.Name.Value}" |}
                 | None ->
                     failwith $"You must specify a username for virtual machine {this.Name.Value}"
+              CustomData = this.CustomData 
               Image = this.Image
               OsDisk = this.OsDisk
               DataDisks = this.DataDisks
@@ -142,6 +145,7 @@ type VirtualMachineBuilder() =
           CustomScript = None
           CustomScriptFiles = []
           DomainNamePrefix = None
+          CustomData = None
           OsDisk = { Size = 128; DiskType = Standard_LRS }
           AddressPrefix = "10.0.0.0/16"
           SubnetPrefix = "10.0.0.0/24"
@@ -222,5 +226,8 @@ type VirtualMachineBuilder() =
     [<CustomOperation "custom_script_files">]
     member _.CustomScriptFiles(state:VmConfig, uris:string list) = { state with CustomScriptFiles = uris |> List.map Uri }
     interface ITaggable<VmConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
+
+    [<CustomOperation "custom_data">]
+    member _.CustomData(state:VmConfig, customData:string) = { state with CustomData = Some customData }
 
 let vm = VirtualMachineBuilder()
