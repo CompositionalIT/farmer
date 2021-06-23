@@ -2,6 +2,8 @@ Release Notes
 =============
 
 ## 1.6.2
+* Functions: Support Elastic Premium SKUs for Functions service plans.
+* Virtual Machine: Support for customData on osProfile Properties 
 * Service bus: Add support for authorization rules.
 
 ## 1.6.1

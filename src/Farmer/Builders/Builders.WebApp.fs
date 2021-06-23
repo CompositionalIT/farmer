@@ -131,6 +131,7 @@ type WebAppConfig =
       Sku : Sku
       WorkerSize : WorkerSize
       WorkerCount : int
+      MaximumElasticWorkerCount : int option
       RunFromPackage : bool
       WebsiteNodeDefaultVersion : string option
       AlwaysOn : bool
@@ -395,6 +396,7 @@ type WebAppConfig =
                   Sku = this.Sku
                   WorkerSize = this.WorkerSize
                   WorkerCount = this.WorkerCount
+                  MaximumElasticWorkerCount = this.MaximumElasticWorkerCount
                   OperatingSystem = this.OperatingSystem
                   Tags = this.Tags}
             | _ ->
@@ -419,6 +421,7 @@ type WebAppBuilder() =
           Sku = Sku.F1
           WorkerSize = Small
           WorkerCount = 1
+          MaximumElasticWorkerCount = None
           RunFromPackage = false
           WebsiteNodeDefaultVersion = None
           AlwaysOn = false
