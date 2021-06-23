@@ -27,6 +27,7 @@ let tests = testList "Storage Tests" [
         Expect.equal resource.Sku.Name "Standard_LRS" "SKU is wrong"
         Expect.equal resource.Kind "StorageV2" "Kind"
         Expect.equal resource.IsHnsEnabled (Nullable<bool>()) "Hierarchical namespace shouldn't be included"
+        Expect.equal resource.MinimumTlsVersion null "Minimum TLS version shouldn't be included"
     }
     test "Data lake is not enabled by default" {
         let resource =
@@ -291,5 +292,14 @@ let tests = testList "Storage Tests" [
         Expect.equal [| "https://compositional-it.com/" |] queueRule.allowedOrigins "Incorrect factory origin"
         Expect.equal [| "exposed1"; "exposed2" |] queueRule.exposedHeaders "Incorrect factory exposed headers"
         Expect.equal 15 queueRule.maxAgeInSeconds "Incorrect factory max age is seconds"
+    }
+    test "Sets Min TLS version correctly" {
+        let resource =
+            let account = storageAccount { 
+                name "mystorage123" 
+                min_tls_version Tls12
+            }
+            arm { add_resource account } |> getStorageResource
+        Expect.equal resource.MinimumTlsVersion "TLS1_2" "Min TLS version is wrong"
     }
 ]
