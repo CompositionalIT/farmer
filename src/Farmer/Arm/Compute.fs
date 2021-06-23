@@ -53,6 +53,7 @@ type VirtualMachine =
       StorageAccount : ResourceName option
       Size : VMSize
       Credentials : {| Username : string; Password : SecureParameter |}
+      CustomData : string option
       Image : ImageDefinition
       OsDisk : DiskInfo
       DataDisks : DiskInfo list
@@ -73,7 +74,8 @@ type VirtualMachine =
                     osProfile =
                      {| computerName = this.Name.Value
                         adminUsername = this.Credentials.Username
-                        adminPassword = this.Credentials.Password.ArmExpression.Eval() |}
+                        adminPassword = this.Credentials.Password.ArmExpression.Eval()
+                        customData = this.CustomData |> Option.map (System.Text.Encoding.UTF8.GetBytes >> Convert.ToBase64String) |> Option.toObj |}
                     storageProfile =
                         let vmNameLowerCase = this.Name.Value.ToLower()
                         {| imageReference =

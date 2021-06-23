@@ -244,6 +244,7 @@ type FunctionsConfig =
                   Sku = Sku.Y1
                   WorkerSize = Serverless
                   WorkerCount = 0
+                  MaximumElasticWorkerCount = None
                   OperatingSystem = this.OperatingSystem
                   Tags = this.Tags }
             | _ ->

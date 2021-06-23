@@ -83,3 +83,21 @@ let myFunctions = functions {
     app_insights_off
 }
 ```
+
+#### Example of a Premium Functions app
+```fsharp
+let servicePlan = servicePlan {
+    name "myServicePlan"
+    sku WebApp.Sku.EP1 // Elastic Premium 1
+    max_elastic_workers 25
+}
+
+let functionsApp = functions {
+    name "myFunctionsApp"
+    link_to_service_plan servicePlan
+}
+
+let deployment = arm {
+    add_resources [ servicePlan; functionsApp ]
+}
+```
