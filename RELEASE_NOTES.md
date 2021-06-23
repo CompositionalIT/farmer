@@ -4,6 +4,7 @@ Release Notes
 ## 1.6.2
 * Functions: Support Elastic Premium SKUs for Functions service plans.
 * Virtual Machine: Support for customData on osProfile Properties 
+* WebApp: Added support for PrivateEndpoints
 
 ## 1.6.1
 * Web App: Workaround ARM regression when Identity is set to "None".
