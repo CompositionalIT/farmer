@@ -10,6 +10,7 @@ type ServicePlanConfig =
       Sku : Sku
       WorkerSize : WorkerSize
       WorkerCount : int
+      MaximumElasticWorkerCount : int option
       OperatingSystem : OS
       Tags : Map<string,string> }
     interface IBuilder with
@@ -21,6 +22,7 @@ type ServicePlanConfig =
             WorkerSize = this.WorkerSize
             OperatingSystem = this.OperatingSystem
             WorkerCount = this.WorkerCount
+            MaximumElasticWorkerCount = this.MaximumElasticWorkerCount
             Tags = this.Tags }
         ]
 
@@ -30,6 +32,7 @@ type ServicePlanBuilder() =
           Sku = Free
           WorkerSize = Small
           WorkerCount = 1
+          MaximumElasticWorkerCount = None
           OperatingSystem = Windows
           Tags = Map.empty }
     [<CustomOperation "name">]
@@ -44,6 +47,9 @@ type ServicePlanBuilder() =
     /// Sets the number of instances on the service plan.
     [<CustomOperation "number_of_workers">]
     member __.NumberOfWorkers(state:ServicePlanConfig, workerCount) = { state with WorkerCount = workerCount }
+    /// Sets the maximum number of elastic workers
+    [<CustomOperation "max_elastic_workers">]
+    member __.MaximumElasticWorkerCount(state:ServicePlanConfig, maxElasticWorkerCount) = { state with MaximumElasticWorkerCount = Some maxElasticWorkerCount }
     [<CustomOperation "operating_system">]
     /// Sets the operating system
     member __.OperatingSystem(state:ServicePlanConfig, os) = { state with OperatingSystem = os }

@@ -24,7 +24,7 @@ let tests = testList "Functions tests" [
         let storage = resources.[2] :?> Storage.StorageAccount
 
         Expect.contains site.Dependencies (storageAccounts.resourceId "foo") "Storage account has not been added a dependency"
-        Expect.equal f.StorageAccountName.ResourceName.Value "foo" "Incorrect storage account  name on site"
+        Expect.equal f.StorageAccountName.ResourceName.Value "foo" "Incorrect storage account name on site"
         Expect.equal storage.Name.ResourceName.Value "foo" "Incorrect storage account name"
     }
     test "Implicitly sets dependency on connection string" {
@@ -111,5 +111,15 @@ let tests = testList "Functions tests" [
         let resources = (f :> IBuilder).BuildResources Location.WestEurope
         let site = resources.[0] :?> Web.Site
         Expect.equal site.AppSettings.["FUNCTIONS_WORKER_RUNTIME"] (LiteralSetting "dotnet-isolated") "Should use dotnet-isolated functions runtime"
+    }
+
+    test "Service plans support Elastic Premium functions" {
+        let sp = servicePlan { name "test"; sku WebApp.Sku.EP2; max_elastic_workers 25 }
+        let resources = (sp :> IBuilder).BuildResources Location.WestEurope
+        let serverFarm = resources.[0] :?> Web.ServerFarm
+
+        Expect.equal serverFarm.Sku (ElasticPremium "EP2") "Incorrect SKU"
+        Expect.equal serverFarm.Kind (Some "elastic") "Incorrect Kind"
+        Expect.equal serverFarm.MaximumElasticWorkerCount (Some 25) "Incorrect worker count"
     }
 ]
