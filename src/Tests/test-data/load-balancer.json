@@ -26,8 +26,7 @@
                     "serviceName": "Microsoft.ContainerInstance/containerGroups"
                   }
                 }
-              ],
-              "privateEndpointNetworkPolicies": "Enabled"
+              ]
             }
           }
         ]

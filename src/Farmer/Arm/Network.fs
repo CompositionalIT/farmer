@@ -47,7 +47,7 @@ type Subnet =
       Delegations : SubnetDelegation list
       ServiceEndpoints : (Network.EndpointServiceType * Location list) list
       AssociatedServiceEndpointPolicies : ResourceId list 
-      AllowPrivateEndpoints: bool }
+      PrivateEndpointNetworkPolicies: FeatureFlag option }
 
 type VirtualNetwork =
     { Name : ResourceName
@@ -87,7 +87,7 @@ type VirtualNetwork =
                                        else
                                            subnet.AssociatedServiceEndpointPolicies
                                            |> List.map (fun policyId -> {| id = policyId.ArmExpression.Eval() |})
-                                   privateEndpointNetworkPolicies = if subnet.AllowPrivateEndpoints then "Disabled" else "Enabled"
+                                   privateEndpointNetworkPolicies = subnet.PrivateEndpointNetworkPolicies |> Option.map (fun x->x.ArmValue) |> Option.defaultValue Unchecked.defaultof<_>
                                 |}
                             |})
                     |}

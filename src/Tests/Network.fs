@@ -37,7 +37,7 @@ let tests = testList "Network Tests" [
         Expect.equal builtVnet.Subnets.[0].AddressPrefix "10.100.200.0/24" "Incorrect prefix for web server subnet"
         Expect.equal builtVnet.Subnets.[1].Name databaseSubnet "Incorrect name for database server subnet"
         Expect.equal builtVnet.Subnets.[1].AddressPrefix "10.100.201.0/24" "Incorrect prefix for database server subnet"
-        Expect.equal builtVnet.Subnets.[1].PrivateEndpointNetworkPolicies "Enabled" "Incorrect PrivateEndpointNetworkPolicies"
+        Expect.isNull builtVnet.Subnets.[1].PrivateEndpointNetworkPolicies "Incorrect PrivateEndpointNetworkPolicies"
     }
     test "Manually defined subnets with service endpoints" {
         let vnetName = "my-vnet"
@@ -106,7 +106,7 @@ let tests = testList "Network Tests" [
         Expect.equal generatedVNet.Subnets.[1].AddressPrefix "10.28.1.0/24" "Incorrect prefix for containers subnet"
         Expect.equal generatedVNet.Subnets.[1].ServiceEndpoints.[0].Service "Microsoft.Storage" "Incorrect MS.Storage service endpoint for containers subnet"
         Expect.equal generatedVNet.Subnets.[1].Delegations.[0].ServiceName "Microsoft.ContainerInstance/containerGroups" "Incorrect MS.ContainerGroups subnet delegation"
-        Expect.equal generatedVNet.Subnets.[1].PrivateEndpointNetworkPolicies "Enabled" "Incorrect PrivateEndpointNetworkPolicies"
+        Expect.isNull generatedVNet.Subnets.[1].PrivateEndpointNetworkPolicies "Incorrect PrivateEndpointNetworkPolicies"
     }
 
     

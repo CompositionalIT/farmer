@@ -240,6 +240,7 @@ type FeatureFlag =
 
 module FeatureFlag =
     let ofBool enabled = if enabled then Enabled else Disabled
+    let invert flag = match flag with | Enabled -> Disabled | Disabled -> Enabled
 
 /// A Principal ID represents an Identity, typically either a system or user generated Identity.
 type PrincipalId =
