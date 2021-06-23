@@ -71,8 +71,8 @@ type StorageAccount =
       EnableHierarchicalNamespace : bool option
       NetworkAcls : NetworkRuleSet option
       StaticWebsite : {| IndexPage : string; ErrorPage : string option; ContentPath : string |} option
-      Tags: Map<string,string>
-      MinTlsVersion : TlsVersion option }
+      MinTlsVersion : TlsVersion option 
+      Tags: Map<string,string> }
     interface IArmResource with
         member this.ResourceId = storageAccounts.resourceId this.Name.ResourceName
         member this.JsonModel =

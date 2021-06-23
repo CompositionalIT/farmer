@@ -48,10 +48,10 @@ type StorageAccountConfig =
       StaticWebsite : {| IndexPage : string; ContentPath : string; ErrorPage : string option |} option
       /// The CORS rules for a storage service
       CorsRules : List<Storage.StorageService * CorsRule>
-      /// Tags to apply to the storage account
-      Tags: Map<string,string>
       /// Minimum TLS version
-      MinTlsVersion : TlsVersion option }
+      MinTlsVersion : TlsVersion option 
+      /// Tags to apply to the storage account
+      Tags: Map<string,string> }
     /// Gets the ARM expression path to the key of this storage account.
     member this.Key = StorageAccount.getConnectionString this.Name
     /// Gets the Primary endpoint for static website (if enabled)
@@ -86,8 +86,8 @@ type StorageAccountConfig =
                 |> Seq.toList
               NetworkAcls = this.NetworkAcls
               StaticWebsite = this.StaticWebsite
-              Tags = this.Tags
-              MinTlsVersion = this.MinTlsVersion }
+              MinTlsVersion = this.MinTlsVersion 
+              Tags = this.Tags }
             for name, access in this.Containers do
                 { Name = name
                   StorageAccount = this.Name.ResourceName
@@ -162,8 +162,8 @@ type StorageAccountBuilder() =
         RoleAssignments = Set.empty
         StaticWebsite = None
         CorsRules = []
-        Tags = Map.empty
         MinTlsVersion = None
+        Tags = Map.empty
     }
     static member private AddContainer(state, access, name:string) = { state with Containers = state.Containers @ [ ((StorageResourceName.Create name).OkValue, access) ] }
     static member private AddFileShare(state:StorageAccountConfig, name:string, quota) = { state with FileShares = state.FileShares @ [ (StorageResourceName.Create(name).OkValue, quota) ] }
