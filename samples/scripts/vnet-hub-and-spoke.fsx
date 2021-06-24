@@ -35,7 +35,7 @@ let spokes =
        PublicServices = spoke 3 "public" |}
 
 let jumpBoxes =
-    [ spokes.BuildAgents
+    [ hub
       spokes.InternalServices
       spokes.PublicServices ]
     |> List.map
