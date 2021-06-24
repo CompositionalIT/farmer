@@ -132,4 +132,21 @@ let tests = testList "SQL Server" [
         check "-zz" "cannot start with a dash ('-zz')" "Start with dash"
         check "zz-" "cannot end with a dash ('zz-')" "End with dash"
     }
+    test "Sets Min TLS version correctly" {
+        let sql = sqlServer {
+            name "server"
+            admin_username "isaac"
+            add_databases [
+                sqlDb {
+                    name "db"
+                    sku DtuSku.S0
+                }
+            ]
+            min_tls_version Tls12
+        }
+
+        let model : Models.Server = sql |> getResourceAtIndex client.SerializationSettings 0
+        Expect.equal model.Name "server" "Incorrect Server name"
+        Expect.equal model.MinimalTlsVersion "1.2" "Min TLS version is wrong"
+    }
 ]
