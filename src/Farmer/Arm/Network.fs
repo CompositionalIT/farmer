@@ -111,7 +111,6 @@ type VpnClientConfiguration =
       ClientProtocols : VPNClientProtocol list
     }
 
-
 type VirtualNetworkGateway =
     { Name : ResourceName
       Location : Location
@@ -234,6 +233,7 @@ type Connection =
                             | None -> null
                      |}
             |} :> _
+
 type NetworkInterface =
     { Name : ResourceName
       Location : Location
@@ -270,6 +270,7 @@ type NetworkInterface =
                             |})
                     |}
             |} :> _
+
 type NetworkProfile =
     { Name : ResourceName
       Location : Location
@@ -306,6 +307,7 @@ type NetworkProfile =
                         )
                     |}
             |} :> _
+
 type ExpressRouteCircuit =
     { Name : ResourceName
       Location : Location
