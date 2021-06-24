@@ -3,10 +3,10 @@ Release Notes
 
 ## 1.6.2
 * Functions: Support Elastic Premium SKUs for Functions service plans.
+* SQL Azure: Support for minimum TLS version.
 * Storage: Support for minimum TLS version.
 * Virtual Machine: Support for customData on osProfile Properties 
 * WebApp: Added support for PrivateEndpoints
-* SQL Azure: Support for minimum TLS version.
 
 ## 1.6.1
 * Web App: Workaround ARM regression when Identity is set to "None".
