@@ -203,13 +203,15 @@ type VirtualNetworkBuilder() =
     /// Peers this VNet with other VNets to allow communication between the VNets as if they were one
     [<CustomOperation "add_peerings">]
     member _.AddPeers(state:VirtualNetworkConfig, peers) = { state with Peers = state.Peers @ peers }
-    member this.AddPeers(state:VirtualNetworkConfig, peers:LinkedResource list) = this.AddPeers (state, peers |> List.map (fun peer -> (peer, TwoWay, AccessAndForward, UseRemoteGateway)) )
+    member this.AddPeers(state:VirtualNetworkConfig, peers:(LinkedResource * PeeringMode) list) = this.AddPeers (state, peers |> List.map (fun (peer, mode) -> (Managed peer.ResourceId, mode, AccessAndForward, UseRemoteGateway)) )
+    member this.AddPeers(state:VirtualNetworkConfig, peers:LinkedResource list) = this.AddPeers (state, peers |> List.map (fun peer -> (peer, TwoWay)) )
     member this.AddPeers(state:VirtualNetworkConfig, peers:VirtualNetworkConfig list) = this.AddPeers (state, peers |> List.map (fun x -> Managed x.ResourceId))
-    member this.AddPeers(state:VirtualNetworkConfig, peers:(VirtualNetworkConfig * PeeringMode) list) = this.AddPeers (state, peers |> List.map (fun (peer, mode) -> (Managed peer.ResourceId, mode, AccessAndForward, UseRemoteGateway)) )
+    member this.AddPeers(state:VirtualNetworkConfig, peers:(VirtualNetworkConfig * PeeringMode) list) = this.AddPeers (state, peers |> List.map (fun (peer, mode) -> (Managed peer.ResourceId, mode)) )
     /// Peers this VNet with another VNet to allow communication between the VNets as if they were one
     [<CustomOperation "add_peering">]
     member this.AddPeer(state:VirtualNetworkConfig, (peer,mode,access,transit):LinkedResource*PeeringMode*PeerAccess*GatewayTransit) = this.AddPeers(state, [peer,mode,access,transit])
     member this.AddPeer(state:VirtualNetworkConfig, peer:LinkedResource) = this.AddPeers(state, [peer])
+    member this.AddPeer(state:VirtualNetworkConfig, (peer,mode):LinkedResource*PeeringMode) = this.AddPeers(state, [peer,mode])
     member this.AddPeer(state:VirtualNetworkConfig, peer:VirtualNetworkConfig) = this.AddPeers(state, [peer])
     member this.AddPeer(state:VirtualNetworkConfig, (peer,mode):VirtualNetworkConfig*PeeringMode) = this.AddPeers(state, [peer,mode])
 
