@@ -245,6 +245,7 @@ type VirtualMachineBuilder() =
     [<CustomOperation "public_ip">]
     member _.PublicIp(state: VmConfig, ref: ResourceRef<_> Option) = { state with PublicIp = ref}
     member _.PublicIp(state: VmConfig, ref: ResourceRef<_>) = { state with PublicIp = Some ref}
+    member _.PublicIp(state: VmConfig, ref: LinkedResource) = { state with PublicIp = Some (LinkedResource ref)}
     member _.PublicIp(state: VmConfig, ref: Automatic) = { state with PublicIp = automaticPublicIp}
 
 let vm = VirtualMachineBuilder()
