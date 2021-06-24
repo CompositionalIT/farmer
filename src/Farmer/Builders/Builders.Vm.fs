@@ -75,7 +75,9 @@ type VmConfig =
               Location = location
               IpConfigs = [
                 {| SubnetName = subnetName.Name
-                   PublicIpName = this.PublicIpId |> Option.map (fun x -> x.Name) |} ]
+                   PublicIpAddress = 
+                        this.PublicIp 
+                        |> Option.map (fun x -> x.toLinkedResource this) |} ]
               VirtualNetwork = vnetName
               Tags = this.Tags }
 
@@ -100,8 +102,8 @@ type VmConfig =
 
             // IP Address
             match this.PublicIpId with
-            | Some ipName ->
-              { Name = ipName.Name
+            | Some resId ->
+              { Name = resId.Name
                 Location = location
                 AllocationMethod = AllocationMethod.Dynamic
                 Sku = PublicIpAddress.Sku.Basic
@@ -192,6 +194,7 @@ type VirtualMachineBuilder() =
     /// Sets the admin username of the VM (note: the password is supplied as a securestring parameter to the generated ARM template).
     [<CustomOperation "username">]
     member __.Username(state:VmConfig, username) = { state with Username = Some username }
+    /// Sets the name of the template parameter which will contain the admin password for this VM. defaults to "password-for-<vmName>"
     [<CustomOperation "password_parameter">]
     member __.PasswordParameter(state:VmConfig, parameterName) = { state with PasswordParameter = Some parameterName }
     /// Sets the operating system of the VM. A set of samples is provided in the `CommonImages` module.
@@ -243,9 +246,10 @@ type VirtualMachineBuilder() =
     member _.CustomData(state:VmConfig, customData:string) = { state with CustomData = Some customData }
 
     [<CustomOperation "public_ip">]
+    /// Set the public IP for this VM
     member _.PublicIp(state: VmConfig, ref: ResourceRef<_> Option) = { state with PublicIp = ref}
     member _.PublicIp(state: VmConfig, ref: ResourceRef<_>) = { state with PublicIp = Some ref}
     member _.PublicIp(state: VmConfig, ref: LinkedResource) = { state with PublicIp = Some (LinkedResource ref)}
-    member _.PublicIp(state: VmConfig, ref: Automatic) = { state with PublicIp = automaticPublicIp}
+    member _.PublicIp(state: VmConfig, _ : Automatic) = { state with PublicIp = automaticPublicIp}
 
 let vm = VirtualMachineBuilder()

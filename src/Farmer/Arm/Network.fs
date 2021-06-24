@@ -239,7 +239,7 @@ type NetworkInterface =
       Location : Location
       IpConfigs :
         {| SubnetName : ResourceName
-           PublicIpName : ResourceName option |} list
+           PublicIpAddress : LinkedResource option |} list
       VirtualNetwork : ResourceName
       Tags: Map<string,string>  }
     interface IArmResource with
@@ -248,9 +248,9 @@ type NetworkInterface =
             let dependsOn = [
                 virtualNetworks.resourceId this.VirtualNetwork
                 for config in this.IpConfigs do
-                    match config.PublicIpName with
+                    match config.PublicIpAddress with
                     | Some ipName ->
-                        publicIPAddresses.resourceId ipName
+                        ipName.ResourceId
                     | _ -> ()
             ]
             {| networkInterfaces.Create(this.Name, this.Location, dependsOn, this.Tags) with
@@ -262,8 +262,8 @@ type NetworkInterface =
                                properties =
                                 {| privateIPAllocationMethod = "Dynamic"
                                    publicIPAddress = 
-                                       ipConfig.PublicIpName 
-                                       |> Option.map(fun name-> {| id = publicIPAddresses.resourceId(name).Eval() |}) 
+                                       ipConfig.PublicIpAddress 
+                                       |> Option.map(fun pip -> {| id = pip.ResourceId.ArmExpression.Eval() |}) 
                                        |> Option.defaultValue Unchecked.defaultof<_> 
                                    subnet = {| id = subnets.resourceId(this.VirtualNetwork, ipConfig.SubnetName).Eval() |}
                                 |}
@@ -390,10 +390,25 @@ type PrivateEndpoint =
                   ]
              |}
       |} :> _
+
+type GatewayTransit = 
+    | UseRemoteGateway
+    | UseLocalGateway
+    | GatewayTransitDisabled
+
+type PeerAccess = 
+    | AccessDenied
+    | AccessOnly
+    | ForwardOnly
+    | AccessAndForward
+
 type NetworkPeering = 
     { Location: Location
       OwningVNet: LinkedResource
-      RemoteVNet: LinkedResource}
+      RemoteVNet: LinkedResource
+      RemoteAccess: PeerAccess
+      GatewayTransit: GatewayTransit
+    }
     member this.Name = this.OwningVNet.Name / $"peering-%s{this.RemoteVNet.Name.Value}"
     interface IArmResource with
         member this.ResourceId = virtualNetworkPeering.resourceId this.Name
@@ -404,10 +419,10 @@ type NetworkPeering =
             ]
             {| virtualNetworkPeering.Create(this.Name,this.Location,deps) with
                 properties = 
-                    {| allowVirtualNetworkAccess = true
-                       allowForwardedTraffic = true
-                       allowGatewayTransit = false
-                       useRemoteGateways = false
+                    {| allowVirtualNetworkAccess = match this.RemoteAccess with | AccessOnly | AccessAndForward -> true | _ -> false
+                       allowForwardedTraffic = match this.RemoteAccess with | ForwardOnly | AccessAndForward -> true | _ -> false
+                       allowGatewayTransit = match this.GatewayTransit with | UseLocalGateway| UseRemoteGateway -> true | _ -> false
+                       useRemoteGateways = match this.GatewayTransit with | UseRemoteGateway -> true | _ -> false
                        remoteVirtualNetwork = {| id = match this.RemoteVNet with | Managed id | Unmanaged id -> id.ArmExpression.Eval() |}
                     |}
             |} :> _

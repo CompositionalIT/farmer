@@ -135,7 +135,7 @@ type VirtualNetworkConfig =
     { Name : ResourceName
       AddressSpacePrefixes : string list
       Subnets : SubnetConfig list
-      Peers: (LinkedResource * PeeringMode) list 
+      Peers: (LinkedResource * PeeringMode * PeerAccess * GatewayTransit) list 
       Tags: Map<string,string> }
     member this.SubnetIds = 
       this.Subnets
@@ -161,18 +161,26 @@ type VirtualNetworkConfig =
                     })
               Tags = this.Tags
             }
-            for (remote, mode) in this.Peers do
+            for (remote, mode, access, transit) in this.Peers do
                 match mode with
                 | OneWayToPeer | TwoWay -> 
                     { Location = location
                       OwningVNet = Managed this.ResourceId
-                      RemoteVNet = remote } 
+                      RemoteVNet = remote
+                      RemoteAccess = access
+                      GatewayTransit = transit } 
                 | _ -> ()
                 match mode with
                 | OneWayFromPeer | TwoWay -> 
                     { Location = location
                       OwningVNet = remote
-                      RemoteVNet = Managed this.ResourceId }
+                      RemoteVNet = Managed this.ResourceId
+                      RemoteAccess = access
+                      GatewayTransit = 
+                        match transit with 
+                        | UseRemoteGateway -> UseLocalGateway 
+                        | UseLocalGateway -> UseRemoteGateway 
+                        | GatewayTransitDisabled -> GatewayTransitDisabled }
                 | _ -> ()
         ]
 
@@ -195,14 +203,15 @@ type VirtualNetworkBuilder() =
     /// Peers this VNet with other VNets to allow communication between the VNets as if they were one
     [<CustomOperation "add_peerings">]
     member _.AddPeers(state:VirtualNetworkConfig, peers) = { state with Peers = state.Peers @ peers }
-    member this.AddPeers(state:VirtualNetworkConfig, peers:LinkedResource list) = this.AddPeers (state, peers |> List.map (fun peer -> (peer, TwoWay)) )
-    member this.AddPeers(state:VirtualNetworkConfig, peers:VirtualNetworkConfig list) = this.AddPeers (state, peers |> List.map (fun x -> Managed x.ResourceId, PeeringMode.TwoWay))
-    member this.AddPeers(state:VirtualNetworkConfig, peers:(VirtualNetworkConfig * PeeringMode) list) = this.AddPeers (state, peers |> List.map (fun (peer, mode) -> (Managed peer.ResourceId, mode)) )
+    member this.AddPeers(state:VirtualNetworkConfig, peers:LinkedResource list) = this.AddPeers (state, peers |> List.map (fun peer -> (peer, TwoWay, AccessAndForward, UseRemoteGateway)) )
+    member this.AddPeers(state:VirtualNetworkConfig, peers:VirtualNetworkConfig list) = this.AddPeers (state, peers |> List.map (fun x -> Managed x.ResourceId))
+    member this.AddPeers(state:VirtualNetworkConfig, peers:(VirtualNetworkConfig * PeeringMode) list) = this.AddPeers (state, peers |> List.map (fun (peer, mode) -> (Managed peer.ResourceId, mode, AccessAndForward, UseRemoteGateway)) )
     /// Peers this VNet with another VNet to allow communication between the VNets as if they were one
     [<CustomOperation "add_peering">]
-    member this.AddPeer(state:VirtualNetworkConfig, (peer,mode):LinkedResource*PeeringMode) = this.AddPeers(state, [peer,mode])
+    member this.AddPeer(state:VirtualNetworkConfig, (peer,mode,access,transit):LinkedResource*PeeringMode*PeerAccess*GatewayTransit) = this.AddPeers(state, [peer,mode,access,transit])
     member this.AddPeer(state:VirtualNetworkConfig, peer:LinkedResource) = this.AddPeers(state, [peer])
     member this.AddPeer(state:VirtualNetworkConfig, peer:VirtualNetworkConfig) = this.AddPeers(state, [peer])
+    member this.AddPeer(state:VirtualNetworkConfig, (peer,mode):VirtualNetworkConfig*PeeringMode) = this.AddPeers(state, [peer,mode])
 
     [<CustomOperation "build_address_spaces">]
     member _.BuildAddressSpaces(state:VirtualNetworkConfig, addressSpaces:AddressSpaceSpec list) =
