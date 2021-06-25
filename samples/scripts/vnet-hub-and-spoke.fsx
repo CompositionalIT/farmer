@@ -2,6 +2,8 @@
 
 open Farmer
 open Farmer.Builders
+open Farmer.Arm.Network
+
 
 let hub =
     vnet {
@@ -30,7 +32,18 @@ let hub =
                                } ]
     }
 
+let gateway =
+    gateway {
+        name "vnet-gateway"
+        vnet hub.ResourceId.Name.Value
+    }
+
 let spokes =
+    let hubPeering = vnetPeering{
+        remote_vnet hub
+        transit UseRemoteGateway
+        depends_on gateway
+    }
     let spoke i vnetName =
         vnet {
             name $"vnet-%s{vnetName}"
@@ -49,7 +62,7 @@ let spokes =
                                                  } ]
                                    } ]
 
-            add_peering hub
+            add_peering hubPeering
         }
 
     {| BuildAgents = spoke 1 "buildagents"
@@ -72,12 +85,6 @@ let jumpBoxes =
             }
             :> IBuilder)
 
-let gateway =
-    gateway {
-        name "vnet-gateway"
-        vnet hub.ResourceId.Name.Value
-    }
-
 let bastion =
     bastion {
         name "bastion"
@@ -94,8 +101,8 @@ arm {
 
     add_resources jumpBoxes
 
-    //add_resource gateway
-    //add_resource bastion
+    add_resource gateway
+    add_resource bastion
 }
-|> Deploy.execute "hub-and-spoke-network" [ "jump-password", "Password1234!" ]
+|> Deploy.execute "hub-and-spoke-network" [ "jump-password", INSERT-VM-PASSWORD ]
 //|> Writer.quickWrite "hub-and-spoke"

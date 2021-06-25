@@ -139,6 +139,7 @@ type VnetGatewayBuilder() =
     /// Sets the virtual network where this gateway is attached.
     [<CustomOperation "vnet">]
     member _.VNet(state:VNetGatewayConfig, vnet) = { state with VirtualNetwork = ResourceName vnet }
+    member _.VNet(state:VNetGatewayConfig, vnet:VirtualNetworkConfig) = { state with VirtualNetwork = vnet.ResourceId.Name }
     /// Sets the ExpressRoute gateway type with an ExpressRoute SKU.
     [<CustomOperation "er_gateway_sku">]
     member _.ErGatewaySku(state:VNetGatewayConfig, sku ) = { state with GatewayType = GatewayType.ExpressRoute sku }
