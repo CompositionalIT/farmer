@@ -35,7 +35,7 @@ let hub =
 let gateway =
     gateway {
         name "vnet-gateway"
-        vnet hub.ResourceId.Name.Value
+        vnet hub
     }
 
 let spokes =
@@ -102,7 +102,7 @@ arm {
     add_resources jumpBoxes
 
     add_resource gateway
-    add_resource bastion
+    //add_resource bastion
 }
-|> Deploy.execute "hub-and-spoke-network" [ "jump-password", INSERT-VM-PASSWORD ]
+|> Deploy.execute "hub-and-spoke-network2" [ "jump-password", "Password1234!" ]
 //|> Writer.quickWrite "hub-and-spoke"
