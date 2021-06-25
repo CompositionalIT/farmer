@@ -7,8 +7,8 @@ open Farmer.Arm.Network
 
 type PeeringMode = 
     | TwoWay
-    | OneWayToPeer
-    | OneWayFromPeer
+    | OneWayToRemote
+    | OneWayFromRemote
 
 type SubnetConfig =
     { Name: ResourceName
@@ -130,24 +130,9 @@ let addressSpace = AddressSpaceBuilder ()
 
 type VNetPeeringSpec = 
     { RemoteVNet: LinkedResource
-      Mode : PeeringMode
+      Direction : PeeringMode
       Access: PeerAccess
       Transit: GatewayTransit }
-type VNetPeeringSpecBuilder() = 
-    member this.Yield _ =
-        { RemoteVNet = Unmanaged (virtualNetworks.resourceId "")
-          Mode = TwoWay
-          Access = AccessAndForward
-          Transit = GatewayTransitDisabled }
-    [<CustomOperation "vnet">]
-    member _.VNet(state:VNetPeeringSpec, vnet) = {state with RemoteVNet = vnet}
-    [<CustomOperation "mode">]
-    member _.Mode(state:VNetPeeringSpec, mode) = {state with Mode = mode}
-    [<CustomOperation "access">]
-    member _.Access(state:VNetPeeringSpec, access) = {state with Access = access}
-    [<CustomOperation "transit">]
-    member _.GatewayTransit(state:VNetPeeringSpec, transit) = {state with Transit = transit}
-let vnetPeering = VNetPeeringSpecBuilder ()
 
 type VirtualNetworkConfig =
     { Name : ResourceName
@@ -179,17 +164,17 @@ type VirtualNetworkConfig =
                     })
               Tags = this.Tags
             }
-            for {RemoteVNet=remote; Mode=mode; Access=access; Transit=transit} in this.Peers do
-                match mode with
-                | OneWayToPeer | TwoWay -> 
+            for {RemoteVNet=remote; Direction=direction; Access=access; Transit=transit} in this.Peers do
+                match direction with
+                | OneWayToRemote| TwoWay -> 
                     { Location = location
                       OwningVNet = Managed this.ResourceId
                       RemoteVNet = remote
                       RemoteAccess = access
                       GatewayTransit = transit } 
                 | _ -> ()
-                match mode with
-                | OneWayFromPeer | TwoWay -> 
+                match direction with
+                | OneWayFromRemote | TwoWay -> 
                     { Location = location
                       OwningVNet = remote
                       RemoteVNet = Managed this.ResourceId
@@ -201,7 +186,7 @@ type VirtualNetworkConfig =
                         | GatewayTransitDisabled -> GatewayTransitDisabled }
                 | _ -> ()
         ]
-
+        
 type VirtualNetworkBuilder() =
     member _.Yield _ =
       { Name = ResourceName.Empty
@@ -222,9 +207,9 @@ type VirtualNetworkBuilder() =
     [<CustomOperation "add_peerings">]
     member _.AddPeers(state:VirtualNetworkConfig, peers) = { state with Peers = state.Peers @ peers }
     member this.AddPeers(state:VirtualNetworkConfig, peers:(LinkedResource * PeeringMode) list) = 
-        let makeSpec (peer:LinkedResource, mode) = 
+        let makeSpec (peer:LinkedResource, direction) = 
             { RemoteVNet = Managed peer.ResourceId
-              Mode = mode
+              Direction = direction
               Access = AccessAndForward
               Transit = GatewayTransitDisabled }
         this.AddPeers (state, peers |> List.map makeSpec )
@@ -233,11 +218,11 @@ type VirtualNetworkBuilder() =
     member this.AddPeers(state:VirtualNetworkConfig, peers:(VirtualNetworkConfig * PeeringMode) list) = this.AddPeers (state, peers |> List.map (fun (peer, mode) -> (Managed peer.ResourceId, mode)) )
     /// Peers this VNet with another VNet to allow communication between the VNets as if they were one
     [<CustomOperation "add_peering">]
-    member this.AddPeer(state:VirtualNetworkConfig, peer:VNetPeeringSpec) = this.AddPeers(state, [peer])
+    member this.AddPeer(state:VirtualNetworkConfig, spec:VNetPeeringSpec) = this.AddPeers(state, [spec])
     member this.AddPeer(state:VirtualNetworkConfig, peer:LinkedResource) = this.AddPeers(state, [peer])
-    member this.AddPeer(state:VirtualNetworkConfig, (peer,mode):LinkedResource*PeeringMode) = this.AddPeers(state, [peer,mode])
+    member this.AddPeer(state:VirtualNetworkConfig, (peer,direction):LinkedResource*PeeringMode) = this.AddPeers(state, [peer,direction])
     member this.AddPeer(state:VirtualNetworkConfig, peer:VirtualNetworkConfig) = this.AddPeers(state, [peer])
-    member this.AddPeer(state:VirtualNetworkConfig, (peer,mode):VirtualNetworkConfig*PeeringMode) = this.AddPeers(state, [peer,mode])
+    member this.AddPeer(state:VirtualNetworkConfig, (peer,direction):VirtualNetworkConfig*PeeringMode) = this.AddPeers(state, [peer,direction])
 
     [<CustomOperation "build_address_spaces">]
     member _.BuildAddressSpaces(state:VirtualNetworkConfig, addressSpaces:AddressSpaceSpec list) =
@@ -267,3 +252,21 @@ type VirtualNetworkBuilder() =
     interface ITaggable<VirtualNetworkConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let vnet = VirtualNetworkBuilder ()
+
+type VNetPeeringSpecBuilder() = 
+    member _.Yield _ =
+        { RemoteVNet = Unmanaged (virtualNetworks.resourceId "")
+          Direction = TwoWay
+          Access = AccessAndForward
+          Transit = GatewayTransitDisabled }
+    [<CustomOperation "remote_vnet">]
+    member _.VNet(state:VNetPeeringSpec, vnet) = {state with RemoteVNet = vnet}
+    member _.VNet(state:VNetPeeringSpec, vnet:VirtualNetworkConfig) = {state with RemoteVNet = Managed vnet.ResourceId}
+    [<CustomOperation "direction">]
+    member _.Mode(state:VNetPeeringSpec, direction) = {state with Direction = direction}
+    [<CustomOperation "access">]
+    member _.Access(state:VNetPeeringSpec, access) = {state with Access = access}
+    [<CustomOperation "transit">]
+    member _.GatewayTransit(state:VNetPeeringSpec, transit) = {state with Transit = transit}
+
+let vnetPeering = VNetPeeringSpecBuilder ()
