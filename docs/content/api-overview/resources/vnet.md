@@ -31,6 +31,8 @@ The Virtual Network module contains four builders
 | build_address_spaces                    | Automatically builds address spaces for subnet names and sizes.        |
 | add_tags                                | Adds a set of tags to the resource                                     |
 | add_tag                                 | Adds a tag to the resource                                             |
+| add_peer                                | Adds VNet peering between this and another VNet (one/two-way)          |
+| add_peers                               | Adds VNet peering between this and other VNets (one/two-way)           |
 
 ##### Subnet: `subnet`
 

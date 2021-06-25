@@ -1,5 +1,8 @@
 Release Notes
 =============
+## vNext
+* Virtual Machine: Provide control over the public IP
+* VNet: Add support for vnet peering
 
 ## 1.6.2
 * Functions: Support Elastic Premium SKUs for Functions service plans.

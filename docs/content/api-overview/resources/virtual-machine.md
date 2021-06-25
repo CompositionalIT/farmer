@@ -25,6 +25,7 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 |diagnostics_support_external | Turns on diagnostics support using an existing storage account. |
 |vm_size | Sets the size of the VM. |
 |username | Sets the admin username of the VM (note: the password is supplied as a securestring parameter to the generated ARM template). |
+|password_parameter| Sets the name of the parameter which contains the admin password for this VM. defaults to "password-for-<VM-name>" |
 |operating_system | Sets the operating system of the VM. A set of samples is provided in the `CommonImages` module. |
 |os_disk | Sets the size and type of the OS disk for the VM. |
 |add_disk | Adds a data disk to the VM with a specific size and type. |
@@ -36,6 +37,7 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 |custom_script | Executes the supplied inline custom script on the VM. |
 |custom_script_files | Uploads the supplied set of files, specified by URI, to the VM on creation. |
 |custom_data | Sets the custom data field for the VM. |
+|public_ip| Specifies or removes the public IP for this VM |
 
 #### Configuration Members
 

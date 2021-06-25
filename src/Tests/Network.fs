@@ -6,9 +6,11 @@ open Farmer.Builders
 open Farmer.Network
 open Microsoft.Rest
 open System
+open Farmer.Arm
 
 let netClient = new Microsoft.Azure.Management.Network.NetworkManagementClient(Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
 let getVnetResource = findAzureResources<Microsoft.Azure.Management.Network.Models.VirtualNetwork> netClient.SerializationSettings >> List.head
+let getPeeringResource = findAzureResources<Microsoft.Azure.Management.Network.Models.VirtualNetworkPeering> netClient.SerializationSettings
 
 let tests = testList "Network Tests" [
     test "Basic vnet with subnets" {
@@ -153,5 +155,53 @@ let tests = testList "Network Tests" [
         Expect.equal generatedVNet.Subnets.[0].Name servicesSubnet "Incorrect name for services subnet"
         Expect.equal generatedVNet.Subnets.[0].AddressPrefix "10.28.0.0/24" "Incorrect prefix for services subnet"
         Expect.equal generatedVNet.Subnets.[0].PrivateEndpointNetworkPolicies "Disabled" "Incorrect PrivateEndpointNetworkPolicies"
+    }
+    test "Two VNets with bidirectional peering" {
+        let vnet1 = vnet { name "vnet1" }
+        let vnet2 = vnet { name "vnet2"; add_peering vnet1 }
+        let peerings = arm { add_resources [vnet1;vnet2] } |> getPeeringResource |> List.filter (fun x -> x.Name.Contains("/peering-"))
+
+        Expect.hasLength peerings 2 "Incorrect peering count"
+        Expect.equal peerings.[0].RemoteVirtualNetwork.Id ((virtualNetworks.resourceId (ResourceName "vnet1")).ArmExpression.Eval()) "remote VNet incorrect"
+        Expect.equal peerings.[1].RemoteVirtualNetwork.Id ((virtualNetworks.resourceId (ResourceName "vnet2")).ArmExpression.Eval()) "remote VNet incorrect"
+
+        Expect.equal (Nullable false) peerings.[0].AllowGatewayTransit "Gateway transit should be disabled by default"
+        Expect.equal (Nullable false) peerings.[1].AllowGatewayTransit "Gateway transit should be disabled by default"
+    }
+    test "Two VNets with one-directional peering" {
+        let vnet1 = vnet { name "vnet1" }
+        let peering = vnetPeering {
+            remote_vnet vnet1
+            direction OneWayToRemote
+            access AccessOnly
+            transit UseRemoteGateway
+        }
+        let vnet2 = vnet { name "vnet2"; add_peering peering }
+        let foundPeerings = arm { add_resources [vnet1;vnet2] } |> getPeeringResource |> List.filter (fun x -> x.Name.Contains("/peering-"))
+
+        Expect.hasLength foundPeerings 1 "Incorrect peering count"
+        Expect.equal foundPeerings.[0].RemoteVirtualNetwork.Id ((virtualNetworks.resourceId (ResourceName "vnet1")).ArmExpression.Eval()) "remote VNet incorrect"
+        Expect.equal foundPeerings.[0].AllowVirtualNetworkAccess (Nullable true) "incorrect network access"
+        Expect.equal foundPeerings.[0].AllowForwardedTraffic (Nullable false) "incorrect forwarding"
+        Expect.equal foundPeerings.[0].AllowGatewayTransit (Nullable true) "incorrect transit"
+        Expect.equal foundPeerings.[0].UseRemoteGateways (Nullable true) "incorrect gateway"
+    }
+    test "Two VNets with one-directional reverse peering" {
+        let vnet1 = vnet { name "vnet1" }
+        let peering = vnetPeering {
+            remote_vnet vnet1
+            direction OneWayFromRemote
+            access AccessOnly
+            transit UseRemoteGateway
+        }
+        let vnet2 = vnet { name "vnet2"; add_peering peering }
+        let foundPeerings = arm { add_resources [vnet1;vnet2] } |> getPeeringResource |> List.filter (fun x -> x.Name.Contains("/peering-"))
+
+        Expect.hasLength foundPeerings 1 "Incorrect peering count"
+        Expect.equal foundPeerings.[0].RemoteVirtualNetwork.Id ((virtualNetworks.resourceId (ResourceName "vnet2")).ArmExpression.Eval()) "remote VNet incorrect"
+        Expect.equal foundPeerings.[0].AllowVirtualNetworkAccess (Nullable true) "incorrect network access"
+        Expect.equal foundPeerings.[0].AllowForwardedTraffic (Nullable false) "incorrect forwarding"
+        Expect.equal foundPeerings.[0].AllowGatewayTransit (Nullable true) "incorrect transit"
+        Expect.equal foundPeerings.[0].UseRemoteGateways (Nullable false) "incorrect gateway"
     }
 ]
