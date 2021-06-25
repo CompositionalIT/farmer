@@ -104,5 +104,5 @@ arm {
     add_resource gateway
     //add_resource bastion
 }
-|> Deploy.execute "hub-and-spoke-network2" [ "jump-password", "Password1234!" ]
+|> Deploy.execute "hub-and-spoke-network" [ "jump-password", "Password1234!" ]
 //|> Writer.quickWrite "hub-and-spoke"
