@@ -24,6 +24,9 @@ type ResourceGroupDeployment =
                 | :? IParameters as p -> yield! p.SecureParameters
                 | _ -> ()
           ] |> List.distinct
+    member this.RequiredResourceGroups = 
+        this.Name.Value :: (this.Resources |> List.collect (function | :? ResourceGroupDeployment as rg -> rg.RequiredResourceGroups | _ ->  []))
+        |> List.distinct
     member this.Template = 
         { Parameters = this.Parameters
           Outputs = this.Outputs |> Map.toList

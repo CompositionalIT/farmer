@@ -225,8 +225,14 @@ let private prepareForDeployment parameters resourceGroupName (deployment:IDeplo
     let subscriptionDetails = subscriptionDetails |> Serialization.ofJson<{| id : Guid; name : string |}>
     printfn "Using subscription '%s' (%O)." subscriptionDetails.name subscriptionDetails.id
 
-    printfn "Creating resource group %s..." resourceGroupName
-    do! Az.createResourceGroup deployment.Deployment.Location.ArmValue deployment.Deployment.Tags resourceGroupName
+    let resourceGroups = 
+        (resourceGroupName::deployment.Deployment.RequiredResourceGroups) 
+        |> List.distinct
+        |> List.mapi (fun i x -> i,x)
+    for (i,rg) in resourceGroups do
+        let status = if resourceGroups.Tail.IsEmpty then "" else $" ({i+1}/{resourceGroups.Length})"
+        printfn "Creating resource group %s%s..." rg status
+        do! Az.createResourceGroup deployment.Deployment.Location.ArmValue deployment.Deployment.Tags rg
 
     return
         {| DeploymentName = $"farmer-deploy-{generateDeployNumber()}"
