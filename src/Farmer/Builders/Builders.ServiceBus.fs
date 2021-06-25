@@ -192,6 +192,7 @@ type ServiceBusConfig =
       Dependencies : ResourceId Set
       Queues : Map<ResourceName, ServiceBusQueueConfig>
       Topics : Map<ResourceName, ServiceBusTopicConfig>
+      AuthorizationRules : Map<ResourceName, AuthorizationRuleRight Set>
       Tags: Map<string,string>  }
     member private this.GetKeyPath property =
         let expr = $"listkeys(resourceId('Microsoft.ServiceBus/namespaces/authorizationRules', '{this.Name.Value}', 'RootManageSharedAccessKey'), '2017-04-01').{property}"
@@ -237,6 +238,14 @@ type ServiceBusConfig =
                 let topic = {topic.Value with Namespace = Managed(namespaces.resourceId this.Name)} :> IBuilder
                 for topicResource in topic.BuildResources location do
                     topicResource
+
+            for rule in this.AuthorizationRules do
+              { Name = rule.Key.Map(fun rule -> $"{this.Name.Value}/%s{rule}")
+                Location = location
+                Dependencies = [
+                  namespaces.resourceId this.Name
+                ]
+                Rights = rule.Value }
         ]
 
 type ServiceBusBuilder() =
@@ -247,7 +256,8 @@ type ServiceBusBuilder() =
           Queues = Map.empty
           Topics = Map.empty
           Dependencies = Set.empty
-          Tags = Map.empty  }
+          AuthorizationRules = Map.empty  
+          Tags = Map.empty }
     member _.Run (state:ServiceBusConfig) =
         let isBetween min max v = v >= min && v <= max
         for queue in state.Queues do
@@ -280,6 +290,9 @@ type ServiceBusBuilder() =
                 (state.Topics, topics)
                 ||> List.fold(fun topics (topic:ServiceBusTopicConfig) -> topics.Add(topic.Name, {topic with Namespace = Managed(namespaces.resourceId state.Name)}))
         }
+    /// Add authorization rule on the namespace.
+    [<CustomOperation "add_authorization_rule">]
+    member __.AddAuthorizationRule(state:ServiceBusConfig, name, rights) = { state with AuthorizationRules = state.AuthorizationRules.Add(ResourceName name, Set rights) }
     interface ITaggable<ServiceBusConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let serviceBus = ServiceBusBuilder()

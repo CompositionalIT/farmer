@@ -45,6 +45,7 @@ The Service Bus builder creates service bus namespaces and their associated queu
 | Namespace | sku | The ServiceBusNamespaceSku e.g. Standard |
 | Namespace | namespace_name | The name of the namespace that holds the queue. |
 | Namespace | depends_on | [Sets dependencies on the service bus namespace.](../../dependencies/) |
+| Namespace | add_authorization_rule | Adds an authorization rule to the namespace. |
 
 #### Configuration Members
 
