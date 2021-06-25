@@ -408,6 +408,7 @@ type NetworkPeering =
       RemoteVNet: LinkedResource
       RemoteAccess: PeerAccess
       GatewayTransit: GatewayTransit
+      DependsOn: ResourceId Set
     }
     member this.Name = this.OwningVNet.Name / $"peering-%s{this.RemoteVNet.Name.Value}"
     interface IArmResource with
@@ -416,6 +417,7 @@ type NetworkPeering =
             let deps = [
                 match this.OwningVNet with | Managed id -> id | _ -> ()
                 match this.RemoteVNet with | Managed id -> id | _ -> ()
+                yield! this.DependsOn
             ]
             {| virtualNetworkPeering.Create(this.Name,this.Location,deps) with
                 properties = 
