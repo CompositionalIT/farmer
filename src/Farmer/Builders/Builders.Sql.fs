@@ -18,6 +18,7 @@ type SqlAzureDbConfig =
 type SqlAzureConfig =
     { Name : SqlAccountName
       AdministratorCredentials : {| UserName : string; Password : SecureParameter |}
+      MinTlsVersion : TlsVersion option
       FirewallRules : {| Name : ResourceName; Start : IPAddress; End : IPAddress |} list
       ElasticPoolSettings :
         {| Name : ResourceName option
@@ -56,6 +57,7 @@ type SqlAzureConfig =
               Credentials =
                 {| Username = this.AdministratorCredentials.UserName
                    Password = this.AdministratorCredentials.Password |}
+              MinTlsVersion = this.MinTlsVersion
               Tags = this.Tags
             }
 
@@ -151,6 +153,7 @@ type SqlServerBuilder() =
                Capacity = None |}
           Databases = []
           FirewallRules = []
+          MinTlsVersion = None
           Tags = Map.empty  }
     member __.Run state : SqlAzureConfig =
         { state with
@@ -198,6 +201,11 @@ type SqlServerBuilder() =
             AdministratorCredentials =
                 {| state.AdministratorCredentials with
                     UserName = username |} }
+
+    /// Set minimum TLS version
+    [<CustomOperation "min_tls_version">]
+    member _.SetMinTlsVersion(state:SqlAzureConfig, minTlsVersion) =
+        { state with MinTlsVersion = Some minTlsVersion }
     interface ITaggable<SqlAzureConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let sqlServer = SqlServerBuilder()

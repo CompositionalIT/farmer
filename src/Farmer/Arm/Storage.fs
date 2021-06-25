@@ -71,7 +71,8 @@ type StorageAccount =
       EnableHierarchicalNamespace : bool option
       NetworkAcls : NetworkRuleSet option
       StaticWebsite : {| IndexPage : string; ErrorPage : string option; ContentPath : string |} option
-      Tags: Map<string,string>}
+      MinTlsVersion : TlsVersion option 
+      Tags: Map<string,string> }
     interface IArmResource with
         member this.ResourceId = storageAccounts.resourceId this.Name.ResourceName
         member this.JsonModel =
@@ -129,6 +130,12 @@ type StorageAccount =
                                          action=rule.Action.ArmValue |})
                               defaultAction = networkRuleSet.DefaultAction.ArmValue |})
                            |> Option.defaultValue Unchecked.defaultof<_>
+                       minimumTlsVersion = 
+                        match this.MinTlsVersion with
+                        | Some Tls10 -> "TLS1_0"
+                        | Some Tls11 -> "TLS1_1"
+                        | Some Tls12 -> "TLS1_2"
+                        | None -> null
                     |}
             |} :> _
     interface IPostDeploy with

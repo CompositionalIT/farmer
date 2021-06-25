@@ -259,6 +259,7 @@ type FunctionsConfig =
                   NetworkAcls = None
                   StaticWebsite = None
                   EnableHierarchicalNamespace = None
+                  MinTlsVersion = None 
                   Tags = this.Tags }
             | _ ->
                 ()

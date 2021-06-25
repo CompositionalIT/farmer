@@ -48,6 +48,8 @@ type StorageAccountConfig =
       StaticWebsite : {| IndexPage : string; ContentPath : string; ErrorPage : string option |} option
       /// The CORS rules for a storage service
       CorsRules : List<Storage.StorageService * CorsRule>
+      /// Minimum TLS version
+      MinTlsVersion : TlsVersion option 
       /// Tags to apply to the storage account
       Tags: Map<string,string> }
     /// Gets the ARM expression path to the key of this storage account.
@@ -84,6 +86,7 @@ type StorageAccountConfig =
                 |> Seq.toList
               NetworkAcls = this.NetworkAcls
               StaticWebsite = this.StaticWebsite
+              MinTlsVersion = this.MinTlsVersion 
               Tags = this.Tags }
             for name, access in this.Containers do
                 { Name = name
@@ -159,6 +162,7 @@ type StorageAccountBuilder() =
         RoleAssignments = Set.empty
         StaticWebsite = None
         CorsRules = []
+        MinTlsVersion = None
         Tags = Map.empty
     }
     static member private AddContainer(state, access, name:string) = { state with Containers = state.Containers @ [ ((StorageResourceName.Create name).OkValue, access) ] }
@@ -306,6 +310,10 @@ type StorageAccountBuilder() =
     [<CustomOperation "add_cors_rules">]
     member _.AddCorsRules(state:StorageAccountConfig, rules) =
         { state with CorsRules = state.CorsRules @ rules }
+    /// Set minimum TLS version
+    [<CustomOperation "min_tls_version">]
+    member _.SetMinTlsVersion(state:StorageAccountConfig, minTlsVersion) =
+        { state with MinTlsVersion = Some minTlsVersion }
     interface ITaggable<StorageAccountConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 /// Allow adding storage accounts directly to CDNs
