@@ -1,14 +1,13 @@
 Release Notes
 =============
-## vNext
-* Virtual Machine: Provide control over the public IP
-* VNet: Add support for vnet peering
 
 ## 1.6.2
 * Functions: Support Elastic Premium SKUs for Functions service plans.
 * SQL Azure: Support for minimum TLS version.
 * Storage: Support for minimum TLS version.
+* Virtual Machine: Provide control over the public IP
 * Virtual Machine: Support for customData on osProfile Properties 
+* Virtual Network: Add support for vnet peering
 * WebApp: Added support for PrivateEndpoints
 
 ## 1.6.1
