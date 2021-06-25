@@ -9,10 +9,24 @@ let hub =
 
         build_address_spaces [ addressSpace {
                                    space "10.0.0.0/16"
-                                   build_subnet "management" 24
-                                   build_subnet_allow_private_endpoints "workload" 20
-                                   build_subnet "AzureBastionSubnet" 24
-                                   build_subnet "GatewaySubnet" 24
+
+                                   subnets [ subnetSpec {
+                                                 name "management"
+                                                 size 24
+                                             }
+                                             subnetSpec {
+                                                 name "workload"
+                                                 size 18
+                                                 allow_private_endpoints Enabled
+                                             }
+                                             subnetSpec {
+                                                 name "AzureBastionSubnet"
+                                                 size 24
+                                             }
+                                             subnetSpec {
+                                                 name "GatewaySubnet"
+                                                 size 24
+                                             } ]
                                } ]
     }
 
@@ -23,8 +37,16 @@ let spokes =
 
             build_address_spaces [ addressSpace {
                                        space $"10.%i{i}.0.0/16"
-                                       build_subnet "management" 24
-                                       build_subnet "workload" 24
+
+                                       subnets [ subnetSpec {
+                                                     name "management"
+                                                     size 24
+                                                 }
+                                                 subnetSpec {
+                                                     name "workload"
+                                                     size 18
+                                                     allow_private_endpoints Enabled
+                                                 } ]
                                    } ]
 
             add_peering hub
@@ -41,7 +63,7 @@ let jumpBoxes =
     |> List.map
         (fun vnet ->
             vm {
-                name (vnet.Name.Value.Replace("vnet-","vm-"))
+                name (vnet.Name.Value.Replace("vnet-", "vm-"))
                 link_to_vnet vnet
                 subnet_name "management"
                 username "testadmin"
@@ -72,7 +94,8 @@ arm {
 
     add_resources jumpBoxes
 
-    add_resource gateway
-    add_resource bastion
+    //add_resource gateway
+    //add_resource bastion
 }
-|> Deploy.execute "hub-and-spoke-network" [ "jump-password", INSERT-VM-PASSWORD ]
+|> Deploy.execute "hub-and-spoke-network" [ "jump-password", "Password1234!" ]
+//|> Writer.quickWrite "hub-and-spoke"
