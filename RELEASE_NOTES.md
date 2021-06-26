@@ -1,6 +1,7 @@
 Release Notes
 =============
-
+## 1.6.3
+* Virtual Machine: Added linuxConfiguration to Virtual Machine
 ## 1.6.2
 * Functions: Support Elastic Premium SKUs for Functions service plans.
 * SQL Azure: Support for minimum TLS version.

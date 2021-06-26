@@ -54,6 +54,7 @@ type VirtualMachine =
       Size : VMSize
       Credentials : {| Username : string; Password : SecureParameter |}
       CustomData : string option
+      LinuxConfiguration : {| DisablePasswordAuthentication: bool; PublicKeys : {| path: string; keyData: string|} list |} option
       Image : ImageDefinition
       OsDisk : DiskInfo
       DataDisks : DiskInfo list
@@ -75,7 +76,13 @@ type VirtualMachine =
                      {| computerName = this.Name.Value
                         adminUsername = this.Credentials.Username
                         adminPassword = this.Credentials.Password.ArmExpression.Eval()
-                        customData = this.CustomData |> Option.map (System.Text.Encoding.UTF8.GetBytes >> Convert.ToBase64String) |> Option.toObj |}
+                        customData = this.CustomData |> Option.map (System.Text.Encoding.UTF8.GetBytes >> Convert.ToBase64String) |> Option.toObj 
+                        linuxConfiguration = 
+                            match this.LinuxConfiguration with
+                            | Some linuxConfiguration -> 
+                                {| disablePasswordAuthentication = linuxConfiguration.DisablePasswordAuthentication
+                                   ssh = {| publicKeys = linuxConfiguration.PublicKeys |> List.map (fun k -> {| path = k.path;keyData = k.keyData |}) |} |}
+                            | None -> Unchecked.defaultof<_> |}
                     storageProfile =
                         let vmNameLowerCase = this.Name.Value.ToLower()
                         {| imageReference =

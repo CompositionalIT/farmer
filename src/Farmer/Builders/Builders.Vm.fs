@@ -12,6 +12,10 @@ open System
 
 let makeName (vmName:ResourceName) elementType = ResourceName $"{vmName.Value}-%s{elementType}"
 
+type SshObject = {
+  Path: string option
+  KeyData: string option
+}
 type VmConfig =
     { Name : ResourceName
       DiagnosticsStorageAccount : ResourceRef<VmConfig> option
@@ -29,6 +33,7 @@ type VmConfig =
       DomainNamePrefix : string option
 
       CustomData : string option
+      LinuxConfiguration : (bool * SshObject list) option
 
       VNet : ResourceRef<VmConfig>
       AddressPrefix : string
@@ -62,6 +67,9 @@ type VmConfig =
                 | None ->
                     failwith $"You must specify a username for virtual machine {this.Name.Value}"
               CustomData = this.CustomData 
+              LinuxConfiguration = 
+                this.LinuxConfiguration 
+                |> Option.map (fun (disablePasswordAuthentication, sshObjects) -> {| DisablePasswordAuthentication = disablePasswordAuthentication; PublicKeys = sshObjects |> List.map (fun (sshObject)-> {| path=sshObject.Path |> Option.toObj; keyData=sshObject.KeyData |> Option.toObj  |} ) |})
               Image = this.Image
               OsDisk = this.OsDisk
               DataDisks = this.DataDisks
@@ -157,6 +165,7 @@ type VirtualMachineBuilder() =
           CustomScriptFiles = []
           DomainNamePrefix = None
           CustomData = None
+          LinuxConfiguration = None
           OsDisk = { Size = 128; DiskType = Standard_LRS }
           AddressPrefix = "10.0.0.0/16"
           SubnetPrefix = "10.0.0.0/24"
@@ -244,6 +253,10 @@ type VirtualMachineBuilder() =
 
     [<CustomOperation "custom_data">]
     member _.CustomData(state:VmConfig, customData:string) = { state with CustomData = Some customData }
+
+    [<CustomOperation "linux_configuration">]
+    member _.LinuxConfiguration(state: VmConfig, disablePasswordAuthentication: bool, sshKeys:SshObject list) = { state with LinuxConfiguration = Some (disablePasswordAuthentication, sshKeys) }
+    member this.LinuxConfiguration(state:VmConfig, disablePasswordAuthentication:bool, sshKey:SshObject) = this.LinuxConfiguration(state, disablePasswordAuthentication, [sshKey])
 
     [<CustomOperation "public_ip">]
     /// Set the public IP for this VM

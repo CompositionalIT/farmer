@@ -89,4 +89,19 @@ let tests = testList "Virtual Machine" [
         let nicPublicIp = jobj.SelectTokens("resources[?(@.type=='Microsoft.Network/networkInterfaces')].properties.publicIpAddress")
         Expect.isEmpty (nicPublicIp) "Network Interface should not link to any public IP"
     }
+
+    test "Public Keys is added" {
+        let deployment =
+            arm {
+                add_resources
+                    [ vm { name "foo"; username "foo"; linux_configuration true { KeyData = Some "foo";Path = Some "foopath"} } ]
+            }
+        let json = deployment.Template |> Writer.toJson
+        let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+        let linuxConfig = jobj.SelectToken("resources[?(@.name=='foo')].properties.osProfile.linuxConfiguration")
+        let keyData = jobj.SelectToken("resources[?(@.name=='foo')].properties.osProfile.linuxConfiguration.ssh.publicKeys[0].keyData").ToString()
+        let path = jobj.SelectToken("resources[?(@.name=='foo')].properties.osProfile.linuxConfiguration.ssh.publicKeys[0].path").ToString()
+        Expect.equal keyData "foo" "linuxConfig was not correctly encoded"
+        Expect.equal path "foopath" "linuxConfig was not correctly encoded"
+    }
 ]
