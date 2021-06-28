@@ -63,7 +63,8 @@ let tests = testList "AKS" [
             azureCniNetworkProfile {
                 service_cidr "10.250.0.0/16"
             }
-        Expect.equal (netProfile.ServiceCidr |> IPAddressCidr.format) "10.250.0.0/16" "Service CIDR set incorrectly."
+        let serviceCidr = Expect.wantSome netProfile.ServiceCidr "Service CIDR not set"
+        Expect.equal (serviceCidr |> IPAddressCidr.format) "10.250.0.0/16" "Service CIDR set incorrectly."
         Expect.isSome netProfile.DnsServiceIP "DNS service IP should have a value"
         Expect.equal (netProfile.DnsServiceIP.Value.ToString()) "10.250.0.2" "DNS service IP should be .2 in service_cidr"
     }
@@ -93,5 +94,48 @@ let tests = testList "AKS" [
             |> Seq.head
         Expect.hasLength aks.AgentPoolProfiles 1 ""
         Expect.equal aks.AgentPoolProfiles.[0].Name "linuxpool" ""
+    }
+    test "AKS with private API must use a standard load balancer." {
+        Expect.throws (fun () ->
+            let _ = aks {
+                name "k8s-cluster"
+                service_principal_client_id "some-spn-client-id"
+                dns_prefix "testaks"
+                add_agent_pools [
+                    agentPool {
+                        name "linuxPool"
+                        count 3
+                    }
+                ]
+                network_profile (
+                    kubenetNetworkProfile {
+                        load_balancer_sku LoadBalancer.Sku.Basic
+                    }
+                )
+                enable_private_cluster true
+            }
+            ()
+        ) "Should throw validation exception when trying to use a private cluster on a basic LB"
+    }
+    test "AKS API accessible to limited IP range." {
+        let myAks = aks {
+            name "k8s-cluster"
+            service_principal_client_id "some-spn-client-id"
+            dns_prefix "testaks"
+            add_agent_pools [
+                agentPool {
+                    name "linuxPool"
+                    count 3
+                }
+            ]
+            add_api_server_authorized_ip_ranges [ "88.77.66.0/24" ]
+        }
+        let template =
+            arm { add_resource myAks }
+        let json = template.Template |> Writer.toJson
+        let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+        let authIpRanges = jobj.SelectToken("resources[?(@.name=='k8s-cluster')].properties.apiServerAccessProfile.authorizedIPRanges")
+        Expect.hasLength authIpRanges 1 ""
+        Expect.equal (authIpRanges.[0].ToString()) "88.77.66.0/24" "Got incorrect value for authorized IP ranges."
     }
 ]

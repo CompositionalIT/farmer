@@ -1,6 +1,12 @@
 Release Notes
 =============
 
+## 1.6.3
+
+* Container Service (AKS): Support basic SKU for the cluster's load balancer (default is standard).
+* Container Service (AKS): Support for private Kubernetes API access.
+* Container Service (AKS): Support for restricting IP ranges for Kubernetes API access.
+
 ## 1.6.2
 * Functions: Support Elastic Premium SKUs for Functions service plans.
 * SQL Azure: Support for minimum TLS version.
