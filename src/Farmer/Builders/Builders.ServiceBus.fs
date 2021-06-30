@@ -16,7 +16,8 @@ type ServiceBusQueueConfig =
       Session : bool option
       DeadLetteringOnMessageExpiration : bool option
       MaxDeliveryCount : int option
-      EnablePartitioning : bool option }
+      EnablePartitioning : bool option
+      AuthorizationRules : Map<ResourceName, AuthorizationRuleRight Set>}
 
 type ServiceBusQueueBuilder() =
     member _.Yield _ =
@@ -27,7 +28,8 @@ type ServiceBusQueueBuilder() =
           DeadLetteringOnMessageExpiration = None
           DefaultMessageTimeToLive = None
           MaxDeliveryCount = None
-          EnablePartitioning = None }
+          EnablePartitioning = None
+          AuthorizationRules = Map.empty }
 
     /// The name of the queue.
     [<CustomOperation "name">] member _.Name(state:ServiceBusQueueConfig, name) = { state with Name = ResourceName name }
@@ -48,6 +50,9 @@ type ServiceBusQueueBuilder() =
     [<CustomOperation "enable_dead_letter_on_message_expiration">] member _.DeadLetteringOnMessageExpiration(state:ServiceBusQueueConfig) = { state with DeadLetteringOnMessageExpiration = Some true }
     /// Enables partition support on the queue.
     [<CustomOperation "enable_partition">] member _.EnablePartition(state:ServiceBusQueueConfig) = { state with EnablePartitioning = Some true }
+    /// Add authorization rule on the queue.
+    [<CustomOperation "add_authorization_rule">]
+    member __.AddAuthorizationRule(state:ServiceBusQueueConfig, name, rights) = { state with AuthorizationRules = state.AuthorizationRules.Add(ResourceName name, Set rights) }
 
 type ServiceBusSubscriptionConfig =
     { Name : ResourceName
@@ -187,6 +192,7 @@ type ServiceBusConfig =
       Dependencies : ResourceId Set
       Queues : Map<ResourceName, ServiceBusQueueConfig>
       Topics : Map<ResourceName, ServiceBusTopicConfig>
+      AuthorizationRules : Map<ResourceName, AuthorizationRuleRight Set>
       Tags: Map<string,string>  }
     member private this.GetKeyPath property =
         let expr = $"listkeys(resourceId('Microsoft.ServiceBus/namespaces/authorizationRules', '{this.Name.Value}', 'RootManageSharedAccessKey'), '2017-04-01').{property}"
@@ -218,11 +224,28 @@ type ServiceBusConfig =
                     |> IsoDateTime.OfTimeSpan
                 MaxDeliveryCount = queue.MaxDeliveryCount
                 EnablePartitioning = queue.EnablePartitioning }
+              for rule in queue.AuthorizationRules do
+                { QueueAuthorizationRule.Name = rule.Key.Map(fun rule -> $"{this.Name.Value}/{queue.Name.Value}/%s{rule}")
+                  Location = location
+                  Dependencies = [
+                    namespaces.resourceId this.Name
+                    queues.resourceId (this.Name, queue.Name)
+                  ]
+                  Rights = rule.Value }
+
 
             for topic in this.Topics do
                 let topic = {topic.Value with Namespace = Managed(namespaces.resourceId this.Name)} :> IBuilder
                 for topicResource in topic.BuildResources location do
                     topicResource
+
+            for rule in this.AuthorizationRules do
+              { Name = rule.Key.Map(fun rule -> $"{this.Name.Value}/%s{rule}")
+                Location = location
+                Dependencies = [
+                  namespaces.resourceId this.Name
+                ]
+                Rights = rule.Value }
         ]
 
 type ServiceBusBuilder() =
@@ -233,7 +256,8 @@ type ServiceBusBuilder() =
           Queues = Map.empty
           Topics = Map.empty
           Dependencies = Set.empty
-          Tags = Map.empty  }
+          AuthorizationRules = Map.empty  
+          Tags = Map.empty }
     member _.Run (state:ServiceBusConfig) =
         let isBetween min max v = v >= min && v <= max
         for queue in state.Queues do
@@ -266,6 +290,9 @@ type ServiceBusBuilder() =
                 (state.Topics, topics)
                 ||> List.fold(fun topics (topic:ServiceBusTopicConfig) -> topics.Add(topic.Name, {topic with Namespace = Managed(namespaces.resourceId state.Name)}))
         }
+    /// Add authorization rule on the namespace.
+    [<CustomOperation "add_authorization_rule">]
+    member __.AddAuthorizationRule(state:ServiceBusConfig, name, rights) = { state with AuthorizationRules = state.AuthorizationRules.Add(ResourceName name, Set rights) }
     interface ITaggable<ServiceBusConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let serviceBus = ServiceBusBuilder()
