@@ -94,7 +94,7 @@ let tests = testList "Virtual Machine" [
         let deployment =
             arm {
                 add_resources
-                    [ vm { name "foo"; username "foo"; disable_password_authentication true  } ]
+                    [ vm { name "foo"; username "foo"; disable_password_authentication true; add_authorized_key "fooPath" "fooKey" } ]
             }
         let json = deployment.Template |> Writer.toJson
         let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)

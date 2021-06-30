@@ -65,7 +65,11 @@ type VmConfig =
                     failwith $"You must specify a username for virtual machine {this.Name.Value}"
               CustomData = this.CustomData 
               DisablePasswordAuthentication = this.DisablePasswordAuthentication
-              PublicKeys = (this.SshPathAndPublicKeys)
+              PublicKeys = 
+                if this.DisablePasswordAuthentication.IsSome && this.DisablePasswordAuthentication.Value && this.SshPathAndPublicKeys.IsNone then
+                  failwith $"You must include at least one ssh key when Password Authentication is disabled"
+                else
+                  (this.SshPathAndPublicKeys)
               Image = this.Image
               OsDisk = this.OsDisk
               DataDisks = this.DataDisks
