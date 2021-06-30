@@ -1059,6 +1059,7 @@ module ServiceBus =
             CorrelationFilter (ResourceName name, correlationId, Map properties)
         static member CreateSqlFilter (name, expression) =
             SqlFilter (ResourceName name, expression)
+    type AuthorizationRuleRight = Manage | Send | Listen
 
 module CosmosDb =
     /// The consistency policy of a CosmosDB account.
