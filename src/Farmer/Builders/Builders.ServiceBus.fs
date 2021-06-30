@@ -225,7 +225,7 @@ type ServiceBusConfig =
                 MaxDeliveryCount = queue.MaxDeliveryCount
                 EnablePartitioning = queue.EnablePartitioning }
               for rule in queue.AuthorizationRules do
-                { Name = rule.Key.Map(fun rule -> $"{this.Name.Value}/{queue.Name.Value}/%s{rule}")
+                { QueueAuthorizationRule.Name = rule.Key.Map(fun rule -> $"{this.Name.Value}/{queue.Name.Value}/%s{rule}")
                   Location = location
                   Dependencies = [
                     namespaces.resourceId this.Name
