@@ -1,6 +1,8 @@
 Release Notes
 =============
-
+## 1.6.3
+* Virtual Machine: Added disable password authentication to Virtual Machine linux configuration
+* Virtual Machine: Added sshKeys and paths to Virtual Machine linux configuration
 ## 1.6.2
 * Functions: Support Elastic Premium SKUs for Functions service plans.
 * SQL Azure: Support for minimum TLS version.

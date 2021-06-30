@@ -38,6 +38,9 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 |custom_script_files | Uploads the supplied set of files, specified by URI, to the VM on creation. |
 |custom_data | Sets the custom data field for the VM. |
 |public_ip| Specifies or removes the public IP for this VM |
+|disable_password_authentication| Disables password authentication on the VM |
+|add_authorized_key| adds one authorized key |
+|add_authorized_keys| adds a list of authorized keys |
 
 #### Configuration Members
 
@@ -66,5 +69,8 @@ let myVm = vm {
     custom_script "powershell setup-vm.ps1" // you have to actually *call* the script
     custom_script_files [ "https://foo.bar/foo/setup-vm.ps1" ]
     custom_data "customData"
+    disable_password_authentication true
+    add_authorized_key "fooPath" "fooKey"
+    add_authorized_keys [("fooPath", "fooKey");("fooPath1", "fooKey1")]
 }
 ```

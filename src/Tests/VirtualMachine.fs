@@ -89,4 +89,51 @@ let tests = testList "Virtual Machine" [
         let nicPublicIp = jobj.SelectTokens("resources[?(@.type=='Microsoft.Network/networkInterfaces')].properties.publicIpAddress")
         Expect.isEmpty (nicPublicIp) "Network Interface should not link to any public IP"
     }
+
+    test "Disabled password auth" {
+        let deployment =
+            arm {
+                add_resources
+                    [ vm { name "foo"; username "foo"; disable_password_authentication true  } ]
+            }
+        let json = deployment.Template |> Writer.toJson
+        let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+        let linuxConfig = jobj.SelectToken("resources[?(@.name=='foo')].properties.osProfile.linuxConfiguration")
+        let passwordAuthentication = jobj.SelectToken("resources[?(@.name=='foo')].properties.osProfile.linuxConfiguration.disablePasswordAuthentication").ToString()
+        Expect.equal passwordAuthentication "True" "password authentication was not correctly added"
+    }
+
+    test "Public key and path added" {
+        let deployment =
+            arm {
+                add_resources
+                    [ vm { name "foo"; username "foo"; add_authorized_key "fooPath" "fooKey"  } ]
+            }
+        let json = deployment.Template |> Writer.toJson
+        let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+        let linuxConfig = jobj.SelectToken("resources[?(@.name=='foo')].properties.osProfile.linuxConfiguration")
+        let keyData = jobj.SelectToken("resources[?(@.name=='foo')].properties.osProfile.linuxConfiguration.ssh.publicKeys[0].keyData").ToString()
+        let path = jobj.SelectToken("resources[?(@.name=='foo')].properties.osProfile.linuxConfiguration.ssh.publicKeys[0].path").ToString()
+        Expect.equal keyData "fooKey" "public keys were not correctly added"
+        Expect.equal path "fooPath" "path was not correctly added"
+    }
+
+    test "Public keys and paths added" {
+        let deployment =
+            arm {
+                add_resources
+                    [ vm { name "foo"; username "foo"; add_authorized_keys [("fooPath","fooKey");("fooPath1","fooKey1") ]  } ]
+            }
+        let json = deployment.Template |> Writer.toJson
+        let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+        let linuxConfig = jobj.SelectToken("resources[?(@.name=='foo')].properties.osProfile.linuxConfiguration")
+        let keyData = jobj.SelectToken("resources[?(@.name=='foo')].properties.osProfile.linuxConfiguration.ssh.publicKeys[0].keyData").ToString()
+        let path = jobj.SelectToken("resources[?(@.name=='foo')].properties.osProfile.linuxConfiguration.ssh.publicKeys[0].path").ToString()
+        Expect.equal keyData "fooKey" "public keys were not correctly added"
+        Expect.equal path "fooPath" "path was not correctly added"
+        let keyData = jobj.SelectToken("resources[?(@.name=='foo')].properties.osProfile.linuxConfiguration.ssh.publicKeys[1].keyData").ToString()
+        let path = jobj.SelectToken("resources[?(@.name=='foo')].properties.osProfile.linuxConfiguration.ssh.publicKeys[1].path").ToString()
+        Expect.equal keyData "fooKey1" "public keys were not correctly added"
+        Expect.equal path "fooPath1" "path was not correctly added"
+    }
 ]

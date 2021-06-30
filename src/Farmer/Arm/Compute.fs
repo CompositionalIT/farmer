@@ -46,7 +46,6 @@ type CustomScriptExtension =
                                 |> Convert.ToBase64String |}
                         |} :> _
             |} :> _
-
 type VirtualMachine =
     { Name : ResourceName
       Location : Location
@@ -54,13 +53,19 @@ type VirtualMachine =
       Size : VMSize
       Credentials : {| Username : string; Password : SecureParameter |}
       CustomData : string option
+      DisablePasswordAuthentication: bool option
+      PublicKeys : (string  * string ) list option
       Image : ImageDefinition
       OsDisk : DiskInfo
       DataDisks : DiskInfo list
       NetworkInterfaceName : ResourceName
       Tags: Map<string,string>  }
     interface IParameters with
-        member this.SecureParameters = [ this.Credentials.Password ]
+        member this.SecureParameters = 
+            if this.DisablePasswordAuthentication.IsSome && this.DisablePasswordAuthentication.Value then
+                []
+            else
+                [ this.Credentials.Password ]
     interface IArmResource with
         member this.ResourceId = virtualMachines.resourceId this.Name
         member this.JsonModel =
@@ -74,8 +79,26 @@ type VirtualMachine =
                     osProfile =
                      {| computerName = this.Name.Value
                         adminUsername = this.Credentials.Username
-                        adminPassword = this.Credentials.Password.ArmExpression.Eval()
-                        customData = this.CustomData |> Option.map (System.Text.Encoding.UTF8.GetBytes >> Convert.ToBase64String) |> Option.toObj |}
+                        adminPassword = 
+                            if this.DisablePasswordAuthentication.IsSome && this.DisablePasswordAuthentication.Value then //If the disablePasswordAuthentication is set and the value is true then we don't need a password
+                                null 
+                            else 
+                                this.Credentials.Password.ArmExpression.Eval()
+                        customData = this.CustomData |> Option.map (System.Text.Encoding.UTF8.GetBytes >> Convert.ToBase64String) |> Option.toObj 
+                        linuxConfiguration =
+                            if this.DisablePasswordAuthentication.IsSome || this.PublicKeys.IsSome then
+                                {|
+                                    disablePasswordAuthentication = this.DisablePasswordAuthentication |> Option.map box |> Option.toObj
+                                    ssh = match this.PublicKeys with
+                                          | Some publicKeys -> 
+                                            {| 
+                                                publicKeys = publicKeys |> List.map (fun k -> {| path = fst k;keyData = snd k|}) 
+                                            |}
+                                          | None -> Unchecked.defaultof<_>          
+                                |}
+                            else
+                                Unchecked.defaultof<_>
+                        |}
                     storageProfile =
                         let vmNameLowerCase = this.Name.Value.ToLower()
                         {| imageReference =
