@@ -204,7 +204,7 @@ let tests = testList "Service Bus Tests" [
                 |> List.filter (fun x -> (=) x.Type queueAuthorizationRules.Type)
                 |> List.head
 
-            Expect.equal sbAuthorizationRule.Name "my-rule" "Name is wrong"
+            Expect.equal sbAuthorizationRule.Name "serviceBus/my-queue/my-rule" "Name is wrong"
             Expect.equal sbAuthorizationRule.Rights.Count 1 "Wrong number of rights"
             Expect.equal sbAuthorizationRule.Rights.[0] (Nullable AccessRights.Manage) "Wrong rights"
         }
