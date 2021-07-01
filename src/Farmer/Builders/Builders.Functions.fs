@@ -13,6 +13,15 @@ open Farmer.Arm.KeyVault.Vaults
 open System
 
 type FunctionsRuntime = DotNet | DotNetIsolated | Node | Java | Python
+type DockerInfo = {
+    User: string
+    Password: SecureParameter
+    Url: Uri
+    StartupCommand: string
+}
+type PublishAs =
+    | Code
+    | DockerContainer of DockerInfo
 type FunctionsExtensionVersion = V1 | V2 | V3
 
 module private FunctionsConfig =
@@ -54,6 +63,7 @@ type FunctionsConfig =
       Cors : Cors option
       StorageAccount : ResourceRef<FunctionsConfig>
       Runtime : FunctionsRuntime
+      PublishAs : PublishAs
       ExtensionVersion : FunctionsExtensionVersion
       Identity : ManagedIdentity
       SecretStore : SecretStore
@@ -165,6 +175,15 @@ type FunctionsConfig =
                 if this.OperatingSystem = Windows then
                     "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING", StorageAccount.getConnectionString this.StorageAccountName |> ArmExpression.Eval
                     "WEBSITE_CONTENTSHARE", this.Name.Value.ToLower()
+                match this.PublishAs with
+                | DockerContainer { User = us; Password = pass; Url = url } ->
+                    yield! [
+                        "DOCKER_REGISTRY_SERVER_URL", url.ToString()
+                        "DOCKER_REGISTRY_SERVER_USERNAME", us
+                        "DOCKER_REGISTRY_SERVER_PASSWORD", pass.ArmExpression.Eval()
+                    ]
+
+                | _ -> ()
               ]
               |> List.map Setting.AsLiteral
               |> List.append (
@@ -235,7 +254,11 @@ type FunctionsConfig =
               PythonVersion = None
               Metadata = []
               ZipDeployPath = this.ZipDeployPath |> Option.map (fun x -> x, ZipDeploy.ZipDeployTarget.FunctionApp)
-              AppCommandLine = None
+              AppCommandLine =
+                match this.PublishAs with
+                | DockerContainer { StartupCommand = sc } ->
+                    Some sc
+                | _ -> None
               WorkerProcess = this.WorkerProcess }
             match this.ServicePlan with
             | DeployableResource this.Name resourceId ->
@@ -297,6 +320,7 @@ type FunctionsBuilder() =
           Settings = Map.empty
           Dependencies = Set.empty
           Identity = ManagedIdentity.Empty
+          PublishAs = Code
           SecretStore = AppService
           Tags = Map.empty
           ZipDeployPath = None
@@ -316,6 +340,9 @@ type FunctionsBuilder() =
     /// Sets the runtime of the Functions host.
     [<CustomOperation "use_runtime">]
     member _.Runtime(state:FunctionsConfig, runtime) = { state with Runtime = runtime }
+    /// Sets the Publish as Code or Docker container information.
+    [<CustomOperation "publish_as">]
+    member _.PublishAs(state:FunctionsConfig, publishAs) = { state with PublishAs = publishAs }
     [<CustomOperation "use_extension_version">]
     member _.ExtensionVersion(state:FunctionsConfig, version) = { state with ExtensionVersion = version }
 
@@ -326,3 +353,8 @@ type FunctionsBuilder() =
         member _.Wrap state config = FunctionsConfig.FromCommon state config
 
 let functions = FunctionsBuilder()
+let docker (server: Uri) (user: string) (command: string): DockerInfo =
+    { User = user
+      Password = SecureParameter $"{user}-password"
+      Url = server
+      StartupCommand = command }
