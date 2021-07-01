@@ -21,6 +21,7 @@ The SQL Azure module contains two builders - `sqlServer`, used to create SQL Azu
 | elastic_pool_sku | Sets the sku of the elastic pool, if required. If not set, Farmer will default to Basic 50. |
 | elastic_pool_database_min_max | Sets the optional minimum and maximum DTUs for the elastic pool for each database. |
 | elastic_pool_capacity | Sets the optional disk size in MB for the elastic pool for each database. |
+| min_tls_version | Sets the minium TLS version for the SQL server |
 
 #### SQL Server Configuration Members
 | Member | Purpose |

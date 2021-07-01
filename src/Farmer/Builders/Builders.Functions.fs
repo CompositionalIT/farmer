@@ -267,6 +267,7 @@ type FunctionsConfig =
                   Sku = Sku.Y1
                   WorkerSize = Serverless
                   WorkerCount = 0
+                  MaximumElasticWorkerCount = None
                   OperatingSystem = this.OperatingSystem
                   Tags = this.Tags }
             | _ ->
@@ -278,8 +279,10 @@ type FunctionsConfig =
                   Location = location
                   Sku = Storage.Sku.Standard_LRS
                   Dependencies = []
+                  NetworkAcls = None
                   StaticWebsite = None
                   EnableHierarchicalNamespace = None
+                  MinTlsVersion = None 
                   Tags = this.Tags }
             | _ ->
                 ()

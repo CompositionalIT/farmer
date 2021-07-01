@@ -1,0 +1,187 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "outputs": {
+    "farmer-test-inner.foo": {
+      "type": "string",
+      "value": "[reference('farmer-test-inner').outputs['foo'].value]"
+    }
+  },
+  "parameters": {
+    "password-for-farmer-test-vm": {
+      "type": "securestring"
+    }
+  },
+  "resources": [
+    {
+      "apiVersion": "2020-10-01",
+      "name": "farmer-test-inner",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "Inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "password-for-farmer-test-vm": {
+            "value": "[parameters('password-for-farmer-test-vm')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "outputs": {
+            "foo": {
+              "type": "string",
+              "value": "bax"
+            }
+          },
+          "parameters": {
+            "password-for-farmer-test-vm": {
+              "type": "securestring"
+            }
+          },
+          "resources": [
+            {
+              "apiVersion": "2019-06-01",
+              "dependsOn": [],
+              "kind": "StorageV2",
+              "location": "westeurope",
+              "name": "myfarmerstorage",
+              "properties": {},
+              "sku": {
+                "name": "Standard_LRS"
+              },
+              "tags": {},
+              "type": "Microsoft.Storage/storageAccounts"
+            },
+            {
+              "apiVersion": "2018-10-01",
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', 'farmer-test-vm-nic')]"
+              ],
+              "location": "westeurope",
+              "name": "farmer-test-vm",
+              "properties": {
+                "diagnosticsProfile": {
+                  "bootDiagnostics": {
+                    "enabled": false
+                  }
+                },
+                "hardwareProfile": {
+                  "vmSize": "Basic_A0"
+                },
+                "networkProfile": {
+                  "networkInterfaces": [
+                    {
+                      "id": "[resourceId('Microsoft.Network/networkInterfaces', 'farmer-test-vm-nic')]"
+                    }
+                  ]
+                },
+                "osProfile": {
+                  "adminPassword": "[parameters('password-for-farmer-test-vm')]",
+                  "adminUsername": "codat",
+                  "computerName": "farmer-test-vm"
+                },
+                "storageProfile": {
+                  "dataDisks": [
+                    {
+                      "createOption": "Empty",
+                      "diskSizeGB": 1024,
+                      "lun": 0,
+                      "managedDisk": {
+                        "storageAccountType": "Standard_LRS"
+                      },
+                      "name": "farmer-test-vm-datadisk-0"
+                    }
+                  ],
+                  "imageReference": {
+                    "offer": "WindowsServer",
+                    "publisher": "MicrosoftWindowsServer",
+                    "sku": "2012-Datacenter",
+                    "version": "latest"
+                  },
+                  "osDisk": {
+                    "createOption": "FromImage",
+                    "diskSizeGB": 128,
+                    "managedDisk": {
+                      "storageAccountType": "Standard_LRS"
+                    },
+                    "name": "farmer-test-vm-osdisk"
+                  }
+                }
+              },
+              "tags": {},
+              "type": "Microsoft.Compute/virtualMachines"
+            },
+            {
+              "apiVersion": "2018-11-01",
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', 'farmer-test-vm-vnet')]",
+                "[resourceId('Microsoft.Network/publicIPAddresses', 'farmer-test-vm-ip')]"
+              ],
+              "location": "westeurope",
+              "name": "farmer-test-vm-nic",
+              "properties": {
+                "ipConfigurations": [
+                  {
+                    "name": "ipconfig1",
+                    "properties": {
+                      "privateIPAllocationMethod": "Dynamic",
+                      "publicIPAddress": {
+                        "id": "[resourceId('Microsoft.Network/publicIPAddresses', 'farmer-test-vm-ip')]"
+                      },
+                      "subnet": {
+                        "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'farmer-test-vm-vnet', 'farmer-test-vm-subnet')]"
+                      }
+                    }
+                  }
+                ]
+              },
+              "tags": {},
+              "type": "Microsoft.Network/networkInterfaces"
+            },
+            {
+              "apiVersion": "2018-11-01",
+              "location": "westeurope",
+              "name": "farmer-test-vm-vnet",
+              "properties": {
+                "addressSpace": {
+                  "addressPrefixes": [
+                    "10.0.0.0/16"
+                  ]
+                },
+                "subnets": [
+                  {
+                    "name": "farmer-test-vm-subnet",
+                    "properties": {
+                      "addressPrefix": "10.0.0.0/24",
+                      "delegations": []
+                    }
+                  }
+                ]
+              },
+              "tags": {},
+              "type": "Microsoft.Network/virtualNetworks"
+            },
+            {
+              "apiVersion": "2018-11-01",
+              "location": "westeurope",
+              "name": "farmer-test-vm-ip",
+              "properties": {
+                "publicIPAllocationMethod": "Dynamic"
+              },
+              "sku": {
+                "name": "Basic"
+              },
+              "tags": {},
+              "type": "Microsoft.Network/publicIPAddresses"
+            }
+          ]
+        }
+      },
+      "resourceGroup": "farmer-test-inner",
+      "tags": {},
+      "type": "Microsoft.Resources/deployments"
+    }
+  ]
+}

@@ -21,11 +21,11 @@ type VNetGatewayConfig =
     { /// The name of the gateway
       Name : ResourceName
       /// Private IP allocation method for the gateway's primary interface
-      GatewayPrivateIpAllocationMethod : PrivateIpAllocationMethod
+      GatewayPrivateIpAllocationMethod : PrivateIpAddress.AllocationMethod
       /// Public IP for the gateway's interface
       GatewayPublicIpName: ResourceName
       /// Private IP allocation method for the gateway's secondary interface if Active-Active
-      ActiveActivePrivateIpAllocationMethod : PrivateIpAllocationMethod
+      ActiveActivePrivateIpAllocationMethod : PrivateIpAddress.AllocationMethod
       /// Public IP for the gateway's secondary interface if Active-Active
       ActiveActivePublicIpName: ResourceName option
       /// Virtual network where the gateway will be attached
@@ -123,9 +123,9 @@ let vpnclient = VpnClientConfigurationBuilder()
 type VnetGatewayBuilder() =
     member _.Yield _ =
       { Name = ResourceName.Empty
-        GatewayPrivateIpAllocationMethod = DynamicPrivateIp
+        GatewayPrivateIpAllocationMethod = PrivateIpAddress.DynamicPrivateIp
         GatewayPublicIpName = ResourceName.Empty
-        ActiveActivePrivateIpAllocationMethod = DynamicPrivateIp
+        ActiveActivePrivateIpAllocationMethod = PrivateIpAddress.DynamicPrivateIp
         ActiveActivePublicIpName = None
         VirtualNetwork = ResourceName.Empty
         GatewayType = GatewayType.Vpn VpnGatewaySku.VpnGw1
@@ -139,6 +139,7 @@ type VnetGatewayBuilder() =
     /// Sets the virtual network where this gateway is attached.
     [<CustomOperation "vnet">]
     member _.VNet(state:VNetGatewayConfig, vnet) = { state with VirtualNetwork = ResourceName vnet }
+    member _.VNet(state:VNetGatewayConfig, vnet:VirtualNetworkConfig) = { state with VirtualNetwork = vnet.ResourceId.Name }
     /// Sets the ExpressRoute gateway type with an ExpressRoute SKU.
     [<CustomOperation "er_gateway_sku">]
     member _.ErGatewaySku(state:VNetGatewayConfig, sku ) = { state with GatewayType = GatewayType.ExpressRoute sku }

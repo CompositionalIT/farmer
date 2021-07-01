@@ -1,11 +1,33 @@
 Release Notes
 =============
 
-## vNext
+## 1.6.3
 * Functions: Support publishing as a docker container
+* Service bus: Add support for authorization rules.
+
+## 1.6.2
+* Functions: Support Elastic Premium SKUs for Functions service plans.
+* SQL Azure: Support for minimum TLS version.
+* Storage: Support for minimum TLS version.
+* Virtual Machine: Provide control over the public IP
+* Virtual Machine: Support for customData on osProfile Properties 
+* Virtual Network: Add support for vnet peering
+* WebApp: Added support for PrivateEndpoints
+
+## 1.6.1
+* Web App: Workaround ARM regression when Identity is set to "None".
+
+## 1.6.0
+* Added support for nesting resource groups
+* Storage: Support for firewall to restrict storage account network access to virtual network subnets, IP addresses, and CIDR prefixes.
+* Virtual Network: Support for creating service endpoints on subnets.
+* Virtual Network: Support for assigning existing service endpoint policies to subnets.
 
 ## 1.5.3
 * CDN: Support for CDN rules
+* Container Service (AKS): Support for using managed identity (msi) for the service principal.
+* LoadBalancer: Adds support for public and internal load balancers.
+* Traffic Manager: initial release.
 
 ## 1.5.2
 * ServiceBus: TopicConfig implements IBuilder and supports link_to_unmanaged_namespace.

@@ -131,6 +131,7 @@ type WebAppConfig =
       Sku : Sku
       WorkerSize : WorkerSize
       WorkerCount : int
+      MaximumElasticWorkerCount : int option
       RunFromPackage : bool
       WebsiteNodeDefaultVersion : string option
       AlwaysOn : bool
@@ -142,7 +143,8 @@ type WebAppConfig =
       SecretStore : SecretStore
       AutomaticLoggingExtension : bool
       SiteExtensions : ExtensionName Set
-      WorkerProcess : Bitness option }
+      WorkerProcess : Bitness option
+      PrivateEndpoints: (LinkedResource * string option) Set }
     /// Gets this web app's Server Plan's full resource ID.
     member this.ServicePlanId = this.ServicePlan.resourceId this.Name
     /// Gets the Service Plan name for this web app.
@@ -395,6 +397,7 @@ type WebAppConfig =
                   Sku = this.Sku
                   WorkerSize = this.WorkerSize
                   WorkerCount = this.WorkerCount
+                  MaximumElasticWorkerCount = this.MaximumElasticWorkerCount
                   OperatingSystem = this.OperatingSystem
                   Tags = this.Tags}
             | _ ->
@@ -404,6 +407,8 @@ type WebAppConfig =
                 { Name = ResourceName extension
                   SiteName = this.Name
                   Location = location }
+            
+            yield! (PrivateEndpoint.create location this.ResourceId ["sites"] this.PrivateEndpoints)
         ]
 
 type WebAppBuilder() =
@@ -419,6 +424,7 @@ type WebAppBuilder() =
           Sku = Sku.F1
           WorkerSize = Small
           WorkerCount = 1
+          MaximumElasticWorkerCount = None
           RunFromPackage = false
           WebsiteNodeDefaultVersion = None
           AlwaysOn = false
@@ -437,7 +443,8 @@ type WebAppBuilder() =
           SecretStore = AppService
           AutomaticLoggingExtension = true
           SiteExtensions = Set.empty
-          WorkerProcess = None }
+          WorkerProcess = None 
+          PrivateEndpoints = Set.empty}
     member __.Run(state:WebAppConfig) =
         { state with
             SiteExtensions =
@@ -538,6 +545,7 @@ type WebAppBuilder() =
     /// Automatically add the ASP.NET Core logging extension.
     [<CustomOperation "automatic_logging_extension">]
     member _.DefaultLogging (state:WebAppConfig, setting) = { state with AutomaticLoggingExtension = setting }
+    interface IPrivateEndpoints<WebAppConfig> with member _.Add state endpoints = { state with PrivateEndpoints = state.PrivateEndpoints |> Set.union endpoints}
     interface ITaggable<WebAppConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     interface IDependable<WebAppConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
     interface IServicePlanApp<WebAppConfig> with

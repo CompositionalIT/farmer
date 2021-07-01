@@ -3,6 +3,7 @@ module Storage
 open Expecto
 open Farmer
 open Farmer.Builders
+open Farmer.Network
 open Farmer.Storage
 open Microsoft.Azure.Management.Storage
 open Microsoft.Azure.Management.Storage.Models
@@ -26,6 +27,7 @@ let tests = testList "Storage Tests" [
         Expect.equal resource.Sku.Name "Standard_LRS" "SKU is wrong"
         Expect.equal resource.Kind "StorageV2" "Kind"
         Expect.equal resource.IsHnsEnabled (Nullable<bool>()) "Hierarchical namespace shouldn't be included"
+        Expect.equal resource.MinimumTlsVersion null "Minimum TLS version shouldn't be included"
     }
     test "Data lake is not enabled by default" {
         let resource =
@@ -235,6 +237,33 @@ let tests = testList "Storage Tests" [
                 } |> ignore)
             "Can't set default tier for  Block Blobs"
     }
+    test "Restrict by IP" {
+        let storage = storageAccount {
+            name "onlymyhouse24125"
+            restrict_to_ip "8.8.8.8"
+            restrict_to_prefix "8.8.8.0/24"
+        }
+        let generated = arm { add_resource storage; } |> getStorageResource
+        Expect.hasLength generated.NetworkRuleSet.IpRules 2 "Wrong number of IP rules"
+        Expect.containsAll (generated.NetworkRuleSet.IpRules |> Seq.map (fun rule -> rule.IPAddressOrRange)) [ "8.8.8.8"; "8.8.8.0/24" ] "Missing IP rules"
+    }
+    test "Restrict to vnet" {
+        let vnetName = "my-vnet"
+        let servicesSubnet = "services"
+        let containerSubnet = "containers"
+        let storage = storageAccount {
+            name "onlymynet"
+            restrict_to_subnet vnetName servicesSubnet
+            restrict_to_subnet vnetName containerSubnet
+        }
+        let generatedStorage = arm { add_resource storage; } |> getStorageResource
+        Expect.hasLength generatedStorage.NetworkRuleSet.VirtualNetworkRules 2 "Wrong number of vnet rules"
+        let allowedSubnets = [
+            (Arm.Network.subnets.resourceId (ResourceName vnetName, ResourceName servicesSubnet)).ArmExpression.Eval()
+            (Arm.Network.subnets.resourceId (ResourceName vnetName, ResourceName containerSubnet)).ArmExpression.Eval()
+        ]
+        Expect.containsAll allowedSubnets (generatedStorage.NetworkRuleSet.VirtualNetworkRules |> Seq.map (fun rule -> rule.VirtualNetworkResourceId)) "Missing subnet rules"
+    }
     test "Sets CORS correctly" {
         let account = storageAccount {
             add_cors_rules [
@@ -263,5 +292,14 @@ let tests = testList "Storage Tests" [
         Expect.equal [| "https://compositional-it.com/" |] queueRule.allowedOrigins "Incorrect factory origin"
         Expect.equal [| "exposed1"; "exposed2" |] queueRule.exposedHeaders "Incorrect factory exposed headers"
         Expect.equal 15 queueRule.maxAgeInSeconds "Incorrect factory max age is seconds"
+    }
+    test "Sets Min TLS version correctly" {
+        let resource =
+            let account = storageAccount { 
+                name "mystorage123" 
+                min_tls_version Tls12
+            }
+            arm { add_resource account } |> getStorageResource
+        Expect.equal resource.MinimumTlsVersion "TLS1_2" "Min TLS version is wrong"
     }
 ]

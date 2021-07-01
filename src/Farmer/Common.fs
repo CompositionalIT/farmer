@@ -78,6 +78,7 @@ type OS = Windows | Linux
 type [<Measure>] Gb
 type [<Measure>] Mb
 type [<Measure>] Mbps
+type [<Measure>] Seconds
 type [<Measure>] Hours
 type [<Measure>] Days
 type [<Measure>] VCores
@@ -533,6 +534,7 @@ module WebApp =
         | Premium of string
         | PremiumV2 of string
         | PremiumV3 of string
+        | ElasticPremium of string
         | Isolated of string
         | Dynamic
         static member D1 = Shared
@@ -552,6 +554,9 @@ module WebApp =
         static member P1V3 = PremiumV3 "P1V3"
         static member P2V3 = PremiumV3 "P2V3"
         static member P3V3 = PremiumV3 "P3V3"
+        static member EP1 = ElasticPremium "EP1"
+        static member EP2 = ElasticPremium "EP2"
+        static member EP3 = ElasticPremium "EP3"
         static member I1 = Isolated "I1"
         static member I2 = Isolated "I2"
         static member I3 = Isolated "I3"
@@ -918,8 +923,49 @@ module ExpressRoute =
     type Family = UnlimitedData | MeteredData
     type PeeringType = AzurePrivatePeering | MicrosoftPeering member this.Value = this.ToString()
 
+[<AutoOpen>]
+module PrivateIpAddress =
+    type AllocationMethod = DynamicPrivateIp | StaticPrivateIp of System.Net.IPAddress
+
+module LoadBalancer =
+    [<RequireQualifiedAccess>]
+    type Sku =
+        | Basic | Standard
+        member this.ArmValue =
+            match this with
+            | Basic -> "Basic"
+            | Standard -> "Standard"
+
+    [<RequireQualifiedAccess>]
+    type Tier =
+        | Regional | Global
+        member this.ArmValue =
+            match this with
+            | Regional -> "Regional"
+            | Global -> "Global"
+    type LoadBalancerSku = {
+        Name : Sku
+        Tier : Tier
+    }
+    [<RequireQualifiedAccess>]
+    type LoadDistributionPolicy =
+        | Default | SourceIP | SourceIPProtocol
+        member this.ArmValue =
+            match this with
+            | Default -> "Default"
+            | SourceIP -> "SourceIP"
+            | SourceIPProtocol -> "SourceIPProtocol"
+
+    [<RequireQualifiedAccess>]
+    type LoadBalancerProbeProtocol =
+        | TCP | HTTP | HTTPS
+        member this.ArmValue =
+            match this with
+            | TCP -> "Tcp"
+            | HTTP -> "Http"
+            | HTTPS -> "Https"
+
 module VirtualNetworkGateway =
-    type PrivateIpAllocationMethod = DynamicPrivateIp | StaticPrivateIp of System.Net.IPAddress
     [<RequireQualifiedAccess>]
     type ErGatewaySku =
         | Standard
@@ -998,7 +1044,7 @@ module ServiceBus =
                 match this with
                 | Basic -> "Basic"
                 | Standard -> "Standard"
-                | Premium OneUnit 
+                | Premium OneUnit
                 | Premium TwoUnits
                 | Premium FourUnits -> "Premium"
         member this.TierArmValue = this.NameArmValue
@@ -1013,6 +1059,7 @@ module ServiceBus =
             CorrelationFilter (ResourceName name, correlationId, Map properties)
         static member CreateSqlFilter (name, expression) =
             SqlFilter (ResourceName name, expression)
+    type AuthorizationRuleRight = Manage | Send | Listen
 
 module CosmosDb =
     /// The consistency policy of a CosmosDB account.
@@ -1139,6 +1186,56 @@ module IPAddressCidr =
             cidr |> addresses |> Seq.skip 2
         else
             Seq.empty
+
+module Network =
+    type SubnetDelegationService = SubnetDelegationService of string
+    with
+        /// Microsoft.ApiManagement/service
+        static member ApiManagementService = SubnetDelegationService "Microsoft.ApiManagement/service"
+        /// Microsoft.AzureCosmosDB/clusters
+        static member CosmosDBClusters = SubnetDelegationService "Microsoft.AzureCosmosDB/clusters"
+        /// Microsoft.BareMetal/AzureVMware
+        static member BareMetalVMware = SubnetDelegationService "Microsoft.BareMetal/AzureVMware"
+        /// Microsoft.BareMetal/CrayServers
+        static member BareMetalCrayServers = SubnetDelegationService "Microsoft.BareMetal/CrayServers"
+        /// Microsoft.Batch/batchAccounts
+        static member BatchAccounts = SubnetDelegationService "Microsoft.Batch/batchAccounts"
+        /// Microsoft.ContainerInstance/containerGroups
+        static member ContainerGroups = SubnetDelegationService "Microsoft.ContainerInstance/containerGroups"
+        /// Microsoft.Databricks/workspaces
+        static member DatabricksWorkspaces = SubnetDelegationService "Microsoft.Databricks/workspaces"
+        /// Microsoft.MachineLearningServices/workspaces
+        static member MachineLearningWorkspaces = SubnetDelegationService "Microsoft.MachineLearningServices/workspaces"
+        /// Microsoft.Netapp/volumes
+        static member NetappVolumes = SubnetDelegationService "Microsoft.Netapp/volumes"
+        /// Microsoft.ServiceFabricMesh/networks
+        static member ServiceFabricMeshNetworks = SubnetDelegationService "Microsoft.ServiceFabricMesh/networks"
+        /// Microsoft.Sql/managedInstances
+        static member SqlManagedInstances = SubnetDelegationService "Microsoft.Sql/managedInstances"
+
+    type EndpointServiceType = EndpointServiceType of string
+    with
+        /// Microsoft.AzureActiveDirectory
+        static member AzureActiveDirectory = EndpointServiceType "Microsoft.AzureActiveDirectory"
+        /// Microsoft.AzureCosmosDB
+        static member AzureCosmosDB = EndpointServiceType "Microsoft.AzureCosmosDB"
+        /// Microsoft.CognitiveServices
+        static member CognitiveServices = EndpointServiceType "Microsoft.CognitiveServices"
+        /// Microsoft.ContainerRegistry
+        static member ContainerRegistry = EndpointServiceType "Microsoft.ContainerRegistry"
+        /// Microsoft.EventHub
+        static member EventHub = EndpointServiceType "Microsoft.EventHub"
+        /// Microsoft.KeyVault 
+        static member KeyVault = EndpointServiceType "Microsoft.KeyVault"
+        /// Microsoft.ServiceBus
+        static member ServiceBus = EndpointServiceType "Microsoft.ServiceBus"
+        /// Microsoft.Sql
+        static member Sql = EndpointServiceType "Microsoft.Sql"
+        /// Microsoft.Storage
+        static member Storage = EndpointServiceType "Microsoft.Storage"
+        /// Microsoft.Web
+        static member Web = EndpointServiceType "Microsoft.Web"
+
 
 module NetworkSecurity =
     type Operation =
@@ -1473,6 +1570,67 @@ module Databricks =
     type KeySource = Databricks | KeyVault member this.ArmValue = match this with Databricks -> "Default" | KeyVault -> "MicrosoftKeyVault"
     type Sku = Standard | Premium member this.ArmValue = match this with Standard -> "standard" | Premium -> "premium"
 
+module TrafficManager =
+    type RoutingMethod =
+        | Performance
+        | Weighted
+        | Priority
+        | Geographic
+        | Subnet
+        member this.ArmValue = this.ToString()
+
+    type MonitorProtocol =
+        | Http
+        | Https
+        member this.ArmValue = this.ToString().ToUpperInvariant()
+
+    type MonitorConfig =
+        { Protocol : MonitorProtocol
+          Port: int
+          Path: string
+          IntervalInSeconds: int<Seconds>
+          ToleratedNumberOfFailures: int
+          TimeoutInSeconds: int<Seconds> }
+
+    type EndpointTarget =
+        | Website of ResourceName
+        | External of (string * Location)
+        member this.ArmValue =
+            match this with
+            | Website name -> name.Value
+            | External (target, _) -> target
+
+module Serialization =
+    open System.Text.Json
+    open System.Text.Encodings.Web
+
+    let jsonSerializerOptions =
+        JsonSerializerOptions(
+            WriteIndented = true,
+            IgnoreNullValues = true,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+            PropertyNameCaseInsensitive = true)
+    let toJson x = JsonSerializer.Serialize(x, jsonSerializerOptions)
+    let ofJson<'T> (x:string) = JsonSerializer.Deserialize<'T>(x, jsonSerializerOptions)
+    
+module Resource =
+    /// Creates a unique IArmResource from an arbitrary object.
+    let ofObj armObject =
+        { new IArmResource with
+                member _.ResourceId = ResourceId.create (ResourceType("", ""), ResourceName (System.Guid.NewGuid().ToString()))
+                member _.JsonModel = armObject }
+    
+    /// Creates a unique IArmResource from a JSON string containing the output you want.
+    let ofJson = Serialization.ofJson >> ofObj
+    
+module Json =
+    /// Creates a unique IArmResource from a JSON string containing the output you want.
+    let toIArmResource = Resource.ofJson
+    
+module Subscription =
+    /// Gets an ARM expression pointing to the tenant id of the current subscription.
+    let TenantId = ArmExpression.create "subscription().tenantid"
+    
 namespace Farmer.DiagnosticSettings
 
 open Farmer
@@ -1523,3 +1681,4 @@ type LogSetting =
 
 /// Represents the kind of destination for log analytics
 type LogAnalyticsDestination = AzureDiagnostics | Dedicated
+

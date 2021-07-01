@@ -204,8 +204,7 @@ let tests = testList "Web App Tests" [
 
     test "Handles identity correctly" {
         let wa : Site = webApp { name "" } |> getResourceAtIndex 0
-        Expect.equal wa.Identity.Type (Nullable ManagedServiceIdentityType.None) "Incorrect default managed identity"
-        Expect.isNull wa.Identity.UserAssignedIdentities "Should be no user assigned identities"
+        Expect.isNull wa.Identity  "Default managed identity should be null"
 
         let wa : Site = webApp { system_identity } |> getResourceAtIndex 0
         Expect.equal wa.Identity.Type (Nullable ManagedServiceIdentityType.SystemAssigned) "Should have system identity"
@@ -308,5 +307,15 @@ let tests = testList "Web App Tests" [
         let app = webApp { runtime_stack Runtime.DotNet50 }
         let site:Site = app |> getResourceAtIndex 0
         Expect.equal site.SiteConfig.NetFrameworkVersion "v5.0" "Wrong dotnet version"
+    }
+    test "Supports private endpoints" {
+        let subnet = ResourceId.create(Network.subnets,ResourceName "subnet")
+        let app = webApp { name "farmerWebApp"; add_private_endpoint (Managed subnet, "myWebApp-ep")}
+        let ep:Microsoft.Azure.Management.Network.Models.PrivateEndpoint = app |> getResourceAtIndex 4
+        Expect.equal ep.Name "myWebApp-ep" "Incorrect name"
+        Expect.hasLength ep.PrivateLinkServiceConnections.[0].GroupIds 1 "Incorrect group ids length"
+        Expect.equal ep.PrivateLinkServiceConnections.[0].GroupIds.[0] "sites" "Incorrect group ids"
+        Expect.equal ep.PrivateLinkServiceConnections.[0].PrivateLinkServiceId "[resourceId('Microsoft.Web/sites', 'farmerWebApp')]" "Incorrect PrivateLinkServiceId"
+        Expect.equal ep.Subnet.Id (subnet.ArmExpression.Eval()) "Incorrect subnet id"
     }
 ]

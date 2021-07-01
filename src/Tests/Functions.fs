@@ -24,7 +24,7 @@ let tests = testList "Functions tests" [
         let storage = resources.[2] :?> Storage.StorageAccount
 
         Expect.contains site.Dependencies (storageAccounts.resourceId "foo") "Storage account has not been added a dependency"
-        Expect.equal f.StorageAccountName.ResourceName.Value "foo" "Incorrect storage account  name on site"
+        Expect.equal f.StorageAccountName.ResourceName.Value "foo" "Incorrect storage account name on site"
         Expect.equal storage.Name.ResourceName.Value "foo" "Incorrect storage account name"
     }
     test "Implicitly sets dependency on connection string" {
@@ -48,8 +48,7 @@ let tests = testList "Functions tests" [
     }
     test "Handles identity correctly" {
         let f : Site = functions { name "" } |> getResourceAtIndex 0
-        Expect.equal f.Identity.Type (Nullable ManagedServiceIdentityType.None) "Incorrect default managed identity"
-        Expect.isNull f.Identity.UserAssignedIdentities "Incorrect default managed identity"
+        Expect.isNull f.Identity "Default managed identity should be null"
 
         let f : Site = functions { system_identity } |> getResourceAtIndex 0
         Expect.equal f.Identity.Type (Nullable ManagedServiceIdentityType.SystemAssigned) "Should have system identity"
@@ -123,5 +122,15 @@ let tests = testList "Functions tests" [
         Expect.equal site.AppSettings.["DOCKER_REGISTRY_SERVER_USERNAME"] (LiteralSetting "Robert Lewandowski") ""
         Expect.equal site.AppSettings.["DOCKER_REGISTRY_SERVER_PASSWORD"] (LiteralSetting "[parameters('Robert Lewandowski-password')]") ""
         Expect.equal site.AppCommandLine (Some "do it") ""
+    }
+
+    test "Service plans support Elastic Premium functions" {
+        let sp = servicePlan { name "test"; sku WebApp.Sku.EP2; max_elastic_workers 25 }
+        let resources = (sp :> IBuilder).BuildResources Location.WestEurope
+        let serverFarm = resources.[0] :?> Web.ServerFarm
+
+        Expect.equal serverFarm.Sku (ElasticPremium "EP2") "Incorrect SKU"
+        Expect.equal serverFarm.Kind (Some "elastic") "Incorrect Kind"
+        Expect.equal serverFarm.MaximumElasticWorkerCount (Some 25) "Incorrect worker count"
     }
 ]
