@@ -4,6 +4,7 @@ module Farmer.Builders.ContainerService
 open Farmer
 open Farmer.Arm.ContainerService
 open Farmer.Identity
+open Farmer.LoadBalancer
 open Farmer.Vm
 
 type AgentPoolConfig =
@@ -17,15 +18,21 @@ type AgentPoolConfig =
       VirtualNetworkName : ResourceName option
       SubnetName : ResourceName option }
 
+type ApiServerAccessProfileConfig =
+    { AuthorizedIPRanges : string list
+      EnablePrivateCluster : bool option }
+
 type NetworkProfileConfig =
-    { NetworkPlugin : ContainerService.NetworkPlugin
+    { NetworkPlugin : ContainerService.NetworkPlugin option
       /// If no address is specified, this will use the 2nd address in the service address CIDR
       DnsServiceIP : System.Net.IPAddress option
       /// Usually the default 172.17.0.1/16 is acceptable.
-      DockerBridgeCidr : IPAddressCidr
+      DockerBridgeCidr : IPAddressCidr option
+      /// Load balancer SKU (defaults to basic)
+      LoadBalancerSku : LoadBalancer.Sku option
       /// Private IP address CIDR for services in the cluster which should not overlap with the vnet
       /// for the cluster or peer vnets. Defaults to 10.244.0.0/16.
-      ServiceCidr : IPAddressCidr }
+      ServiceCidr : IPAddressCidr option }
 
 type AksConfig =
     { Name : ResourceName
@@ -33,6 +40,7 @@ type AksConfig =
       DnsPrefix : string
       EnableRBAC : bool
       Identity : ManagedIdentity
+      ApiServerAccessProfile : ApiServerAccessProfileConfig option
       LinuxProfile : (string * string list) option
       NetworkProfile : NetworkProfileConfig option
       ServicePrincipalClientID : string
@@ -60,6 +68,11 @@ type AksConfig =
                        SubnetName = agentPool.SubnetName
                        VmSize = agentPool.VmSize
                        VirtualNetworkName = agentPool.VirtualNetworkName |})
+              ApiServerAccessProfile =
+                  this.ApiServerAccessProfile
+                  |> Option.map (fun apiAccess ->
+                      {| AuthorizedIPRanges = apiAccess.AuthorizedIPRanges
+                         EnablePrivateCluster = apiAccess.EnablePrivateCluster |})
               LinuxProfile =
                   this.LinuxProfile
                   |> Option.map (fun (username, keys) -> {| AdminUserName = username; PublicKeys = keys |})
@@ -68,13 +81,13 @@ type AksConfig =
                   |> Option.map (fun netProfile ->
                         {| NetworkPlugin = netProfile.NetworkPlugin
                            DnsServiceIP =
-                               netProfile.DnsServiceIP
-                               |> Option.defaultWith (fun _ ->
-                                    netProfile.ServiceCidr
-                                    |> IPAddressCidr.addresses
-                                    |> Seq.skip 2
-                                    |> Seq.head)
+                               match netProfile.DnsServiceIP with
+                               | Some ip -> Some ip
+                               | None ->
+                                    netProfile.ServiceCidr |> Option.map
+                                        (IPAddressCidr.addresses >> Seq.skip 2 >> Seq.head)
                            DockerBridgeCidr = netProfile.DockerBridgeCidr
+                           LoadBalancerSku = netProfile.LoadBalancerSku
                            ServiceCidr = netProfile.ServiceCidr |})
               ServicePrincipalProfile =
                   {| ClientId = this.ServicePrincipalClientID
@@ -132,33 +145,72 @@ type AgentPoolBuilder() =
 /// Builds an AKS cluster agent pool ARM resource definition
 let agentPool = AgentPoolBuilder()
 
-type AzureCniBuilder() =
+type NetworkProfileBuilder () =
+    /// Sets the SKU to be used for the load balancer.
+    [<CustomOperation "load_balancer_sku">]
+    member _.LoadBalancerSku(state:NetworkProfileConfig, sku:LoadBalancer.Sku) = { state with LoadBalancerSku = Some sku }
+
+/// Builds a configuration for using the Azure CNI plugin.
+type KubenetBuilder() =
+    inherit NetworkProfileBuilder()
     member _.Yield _ =
-        { NetworkPlugin = ContainerService.NetworkPlugin.AzureCni
+        { NetworkPlugin = Some ContainerService.NetworkPlugin.Kubenet
+          LoadBalancerSku = None
           DnsServiceIP = None
-          DockerBridgeCidr = IPAddressCidr.parse "172.17.0.1/16"
-          ServiceCidr = IPAddressCidr.parse "10.224.0.0/16" }
+          DockerBridgeCidr = None
+          ServiceCidr = None }
+
+let kubenetNetworkProfile = KubenetBuilder()
+
+/// Builds a configuration for using the Azure CNI plugin.
+type AzureCniBuilder() =
+    inherit NetworkProfileBuilder()
+    member _.Yield _ =
+        { NetworkPlugin = Some ContainerService.NetworkPlugin.AzureCni
+          LoadBalancerSku = None
+          DnsServiceIP = None
+          DockerBridgeCidr = IPAddressCidr.parse "172.17.0.1/16" |> Some
+          ServiceCidr = IPAddressCidr.parse "10.224.0.0/16" |> Some }
     member _.Run (config:NetworkProfileConfig) =
         { config with
             DnsServiceIP =
-                config.DnsServiceIP
-                |> Option.defaultWith (fun _ -> config.ServiceCidr |> IPAddressCidr.addresses |> Seq.skip 2 |> Seq.head)
-                |> Some
+               match config.DnsServiceIP with
+               | Some ip -> Some ip
+               | None ->
+                    config.ServiceCidr |> Option.map
+                        (IPAddressCidr.addresses >> Seq.skip 2 >> Seq.head)
         }
     /// Sets the docker bridge CIDR to a network other than the default 17.17.0.1/16.
     [<CustomOperation "docker_bridge">]
-    member _.DockerBridge(state:NetworkProfileConfig, dockerBridge) = { state with DockerBridgeCidr = IPAddressCidr.parse dockerBridge }
+    member _.DockerBridge(state:NetworkProfileConfig, dockerBridge) = { state with DockerBridgeCidr = IPAddressCidr.parse dockerBridge |> Some }
     /// Sets the DNS service IP - must be within the service CIDR, default is the second address in the service CIDR.
     [<CustomOperation "dns_service">]
     member _.DnsServiceIP(state:NetworkProfileConfig, dnsIp:string) = { state with DnsServiceIP = System.Net.IPAddress.Parse dnsIp |> Some }
     /// Sets the service cidr to a network other than the default 10.224.0.0/16.
     [<CustomOperation "service_cidr">]
-    member _.ServiceCidr(state:NetworkProfileConfig, serviceCidr) = { state with ServiceCidr = IPAddressCidr.parse serviceCidr }
+    member _.ServiceCidr(state:NetworkProfileConfig, serviceCidr) = { state with ServiceCidr = IPAddressCidr.parse serviceCidr |> Some }
 
 let azureCniNetworkProfile = AzureCniBuilder()
 
 /// Builds a Linux Profile from a username and list of ssh public keys
 let makeLinuxProfile user sshKeys = user, sshKeys
+
+/// Match on type of load balancer for an AKS config's network profile.
+/// The default if nothing is specified is a Standard LB.  
+let private (|BasicLoadBalancer|StandardLoadBalancer|) = function
+    | Some netProfile ->
+        match netProfile.LoadBalancerSku with
+        | Some LoadBalancer.Sku.Basic -> BasicLoadBalancer
+        | _ -> StandardLoadBalancer
+    | _ -> StandardLoadBalancer
+
+/// Match when private cluster is enabled on an AKS config's API access profile.
+let private (|PrivateClusterEnabled|_|) =
+    Option.bind (fun apiAccess ->
+        match apiAccess.EnablePrivateCluster with
+        | Some true -> Some PrivateClusterEnabled
+        | _ -> None
+    )
 
 type AksBuilder() =
     member _.Yield _ =
@@ -167,11 +219,16 @@ type AksBuilder() =
           DnsPrefix = ""
           EnableRBAC = false
           Identity = ManagedIdentity.Empty
+          ApiServerAccessProfile = None
           LinuxProfile = None
           NetworkProfile = None
           ServicePrincipalClientID = ""
           WindowsProfileAdminUserName = None }
     member _.Run (config:AksConfig) =
+        match config.NetworkProfile, config.ApiServerAccessProfile with
+        | BasicLoadBalancer, PrivateClusterEnabled ->
+            invalidArg "sku" "Private cluster requires a standard SKU load balancer."
+        | _ -> ()
         if System.String.IsNullOrWhiteSpace config.ServicePrincipalClientID then
             failwith "Missing ServicePrincipalClientID on ManagedCluster."
         config
@@ -194,6 +251,22 @@ type AksBuilder() =
     /// Adds an agent pool to the AKS cluster.
     [<CustomOperation "add_agent_pool">]
     member _.AddAgentPool(state:AksConfig, pool) = { state with AgentPools = state.AgentPools @ [ pool ] }
+    /// Enables a private cluster so it is not publicly accessible - only accessed from a virtual network.
+    [<CustomOperation "enable_private_cluster">]
+    member _.EnablePrivateCluster(state:AksConfig, enabled:bool) =
+        let accessProfile =
+            match state.ApiServerAccessProfile with
+            | None -> { AuthorizedIPRanges = []; EnablePrivateCluster = Some true }
+            | Some profile -> { profile with EnablePrivateCluster = Some true }
+        { state with ApiServerAccessProfile = Some accessProfile }
+    /// Sets the range of Authorized IP addresses that can access the cluster's API server.
+    [<CustomOperation "add_api_server_authorized_ip_ranges">]
+    member _.AddApiServerAuthorizedIP(state:AksConfig, range:string list) =
+        let accessProfile =
+            match state.ApiServerAccessProfile with
+            | None -> { AuthorizedIPRanges = range; EnablePrivateCluster = None }
+            | Some profile -> { profile with AuthorizedIPRanges = profile.AuthorizedIPRanges @ range }
+        { state with ApiServerAccessProfile = Some accessProfile }
     /// Sets the network profile for the AKS cluster.
     [<CustomOperation "network_profile">]
     member _.NetworkProfile(state:AksConfig, networkProfile) = { state with NetworkProfile = Some networkProfile }

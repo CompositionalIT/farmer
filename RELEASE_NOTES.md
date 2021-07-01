@@ -2,6 +2,9 @@ Release Notes
 =============
 
 ## 1.6.3
+* Container Service (AKS): Support basic SKU for the cluster's load balancer (default is standard).
+* Container Service (AKS): Support for private Kubernetes API access.
+* Container Service (AKS): Support for restricting IP ranges for Kubernetes API access.
 * Functions: Support publishing as a docker container
 * Service bus: Add support for authorization rules.
 * Virtual Machine: Added disable password authentication to Virtual Machine linux configuration
