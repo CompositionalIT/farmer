@@ -2,6 +2,7 @@ Release Notes
 =============
 
 ## 1.6.3
+* Functions: Support publishing as a docker container
 * Service bus: Add support for authorization rules.
 * Virtual Machine: Added disable password authentication to Virtual Machine linux configuration
 * Virtual Machine: Added sshKeys and paths to Virtual Machine linux configuration

@@ -7,6 +7,7 @@ open Farmer.Arm
 open Farmer.Network
 open System.IO
 open Farmer.ServiceBus
+open System
 
 let tests =
     testList "ARM Writer Regression Tests" [
@@ -32,7 +33,18 @@ let tests =
             let cdn = cdn { name ("farmercdn" + number); add_endpoints [ endpoint { name ("farmercdnendpoint" + number); origin storage.WebsitePrimaryEndpointHost; add_rule (cdnRule {name ("farmerrule" + number); order 1; when_device_type DeliveryPolicy.EqualityOperator.Equals DeliveryPolicy.DeviceType.Mobile; url_rewrite "/pattern" "/destination" true   }) } ] }
             let containerGroup = containerGroup { name ("farmeraci" + number); add_instances [ containerInstance { name "webserver"; image "nginx:latest"; add_ports ContainerGroup.PublicPort [ 80us ]; add_volume_mount "source-code" "/src/farmer" } ]; add_volumes [ volume_mount.git_repo "source-code" (System.Uri "https://github.com/CompositionalIT/farmer") ] }
             let vm = vm{ name "farmervm"; username "farmer-admin" }
-            
+            let dockerFunction = functions {
+                name "docker_func"
+                publish_as (
+                    DockerContainer {
+                        Url = new Uri("http://www.farmer.io")
+                        User = "Robert Lewandowski"
+                        Password = SecureParameter "secure_pass_param"
+                        StartupCommand = "do it" }
+                )
+                app_insights_off
+                }
+
             let cosmos = cosmosDb {
                 name "testdb"
                 account_name "testaccount"
@@ -77,7 +89,8 @@ let tests =
                     cdn
                     containerGroup
                     communicationServices
-                    nestedResourceGroup ]
+                    nestedResourceGroup
+                    dockerFunction ]
                 "lots-of-resources.json"
         }
 
@@ -166,7 +179,7 @@ let tests =
             Expect.equal resource.Sku.Name "Standard_LRS" "SKU is wrong"
             Expect.equal resource.Kind "StorageV2" "Kind"
         }
-        
+
         test "ServiceBus" {
             let svcBus = serviceBus {
                 name "farmer-bus"
@@ -197,7 +210,7 @@ let tests =
                 }
             compareResourcesToJson [ svcBus; topicWithUnmanagedNamespace ] "service-bus.json"
         }
-        
+
         test "VirtualWan" {
             let vwan = vwan {
                 name "farmer-vwan"
@@ -208,7 +221,7 @@ let tests =
             }
             compareResourcesToJson [ vwan ] "virtual-wan.json"
         }
-        
+
         test "LoadBalancer" {
             let myVnet =
                 vnet {
