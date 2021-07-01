@@ -29,6 +29,8 @@ type VmConfig =
       DomainNamePrefix : string option
 
       CustomData : string option
+      DisablePasswordAuthentication : bool option
+      SshPathAndPublicKeys : (string * string ) list option
 
       VNet : ResourceRef<VmConfig>
       AddressPrefix : string
@@ -62,6 +64,12 @@ type VmConfig =
                 | None ->
                     failwith $"You must specify a username for virtual machine {this.Name.Value}"
               CustomData = this.CustomData 
+              DisablePasswordAuthentication = this.DisablePasswordAuthentication
+              PublicKeys = 
+                if this.DisablePasswordAuthentication.IsSome && this.DisablePasswordAuthentication.Value && this.SshPathAndPublicKeys.IsNone then
+                  failwith $"You must include at least one ssh key when Password Authentication is disabled"
+                else
+                  (this.SshPathAndPublicKeys)
               Image = this.Image
               OsDisk = this.OsDisk
               DataDisks = this.DataDisks
@@ -157,6 +165,8 @@ type VirtualMachineBuilder() =
           CustomScriptFiles = []
           DomainNamePrefix = None
           CustomData = None
+          DisablePasswordAuthentication = None
+          SshPathAndPublicKeys = None
           OsDisk = { Size = 128; DiskType = Standard_LRS }
           AddressPrefix = "10.0.0.0/16"
           SubnetPrefix = "10.0.0.0/24"
@@ -244,6 +254,14 @@ type VirtualMachineBuilder() =
 
     [<CustomOperation "custom_data">]
     member _.CustomData(state:VmConfig, customData:string) = { state with CustomData = Some customData }
+
+    [<CustomOperation "disable_password_authentication">]
+    member _.DisablePasswordAuthentication(state: VmConfig, disablePasswordAuthentication: bool) = { state with DisablePasswordAuthentication = Some disablePasswordAuthentication }
+
+    [<CustomOperation "add_authorized_keys">]
+    member _.AddAuthorizedKeys(state:VmConfig, sshObjects: (string * string) list) = { state with SshPathAndPublicKeys = Some sshObjects }    
+    [<CustomOperation "add_authorized_key">]
+    member this.AddAuthorizedKey(state:VmConfig, path: string, keyData: string) = this.AddAuthorizedKeys(state, [(path, keyData)])
 
     [<CustomOperation "public_ip">]
     /// Set the public IP for this VM
