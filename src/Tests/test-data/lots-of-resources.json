@@ -762,7 +762,6 @@
     {
       "apiVersion": "2020-06-01",
       "dependsOn": [
-        "[resourceId('Microsoft.Insights/components', 'docker_func-ai')]",
         "[resourceId('Microsoft.Storage/storageAccounts', 'dockerfuncstorage')]",
         "[resourceId('Microsoft.Web/serverfarms', 'docker_func-farm')]"
       ],
@@ -776,10 +775,6 @@
           "alwaysOn": false,
           "appCommandLine": "do it",
           "appSettings": [
-            {
-              "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
-              "value": "[reference(resourceId('Microsoft.Insights/components', 'docker_func-ai'), '2014-04-01').InstrumentationKey]"
-            },
             {
               "name": "AzureWebJobsDashboard",
               "value": "[concat('DefaultEndpointsProtocol=https;AccountName=dockerfuncstorage;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'dockerfuncstorage'), '2017-10-01').keys[0].value)]"
@@ -858,23 +853,6 @@
       },
       "tags": {},
       "type": "Microsoft.Storage/storageAccounts"
-    },
-    {
-      "apiVersion": "2014-04-01",
-      "kind": "web",
-      "location": "northeurope",
-      "name": "docker_func-ai",
-      "properties": {
-        "ApplicationId": "docker_func",
-        "Application_Type": "web",
-        "DisableIpMasking": false,
-        "SamplingPercentage": 100,
-        "name": "docker_func-ai"
-      },
-      "tags": {
-        "[concat('hidden-link:', resourceGroup().id, '/providers/Microsoft.Web/sites/', 'docker_func')]": "Resource"
-      },
-      "type": "Microsoft.Insights/components"
     }
   ]
 }

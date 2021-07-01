@@ -41,7 +41,9 @@ let tests =
                         User = "Robert Lewandowski"
                         Password = SecureParameter "secure_pass_param"
                         StartupCommand = "do it" }
-                )}
+                )
+                app_insights_off
+                }
 
             let cosmos = cosmosDb {
                 name "testdb"
