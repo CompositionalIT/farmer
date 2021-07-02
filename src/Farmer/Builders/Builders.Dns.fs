@@ -57,8 +57,8 @@ type DnsARecordBuilder() =
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
-    member _.RecordName(state:CNameRecordProperties, name) = { state with Name = name }
-    member this.RecordName(state:CNameRecordProperties, name:string) = this.RecordName(state, ResourceName name)
+    member _.RecordName(state:ARecordProperties, name) = { state with Name = name }
+    member this.RecordName(state:ARecordProperties, name:string) = this.RecordName(state, ResourceName name)
 
     /// Sets the ipv4 address.
     [<CustomOperation "add_ipv4_addresses">]
@@ -78,8 +78,8 @@ type DnsAaaaRecordBuilder() =
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
-    member _.RecordName(state:CNameRecordProperties, name) = { state with Name = name }
-    member this.RecordName(state:CNameRecordProperties, name:string) = this.RecordName(state, ResourceName name)
+    member _.RecordName(state:AaaaRecordProperties, name) = { state with Name = name }
+    member this.RecordName(state:AaaaRecordProperties, name:string) = this.RecordName(state, ResourceName name)
 
     /// Sets the ipv6 address.
     [<CustomOperation "add_ipv6_addresses">]
@@ -99,8 +99,8 @@ type DnsNsRecordBuilder() =
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
-    member _.RecordName(state:CNameRecordProperties, name) = { state with Name = name }
-    member this.RecordName(state:CNameRecordProperties, name:string) = this.RecordName(state, ResourceName name)
+    member _.RecordName(state:NsRecordProperties, name) = { state with Name = name }
+    member this.RecordName(state:NsRecordProperties, name:string) = this.RecordName(state, ResourceName name)
 
     /// Add NSD names
     [<CustomOperation "add_nsd_names">]
@@ -116,8 +116,8 @@ type DnsPtrRecordBuilder() =
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
-    member _.RecordName(state:CNameRecordProperties, name) = { state with Name = name }
-    member this.RecordName(state:CNameRecordProperties, name:string) = this.RecordName(state, ResourceName name)
+    member _.RecordName(state:PtrRecordProperties, name) = { state with Name = name }
+    member this.RecordName(state:PtrRecordProperties, name:string) = this.RecordName(state, ResourceName name)
 
     /// Add PTR names
     [<CustomOperation "add_ptrd_names">]
@@ -133,8 +133,8 @@ type DnsTxtRecordBuilder() =
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
-    member _.RecordName(state:CNameRecordProperties, name) = { state with Name = name }
-    member this.RecordName(state:CNameRecordProperties, name:string) = this.RecordName(state, ResourceName name)
+    member _.RecordName(state:TxtRecordProperties, name) = { state with Name = name }
+    member this.RecordName(state:TxtRecordProperties, name:string) = this.RecordName(state, ResourceName name)
 
     /// Add TXT values
     [<CustomOperation "add_values">]
@@ -150,8 +150,8 @@ type DnsMxRecordBuilder() =
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
-    member _.RecordName(state:CNameRecordProperties, name) = { state with Name = name }
-    member this.RecordName(state:CNameRecordProperties, name:string) = this.RecordName(state, ResourceName name)
+    member _.RecordName(state:MxRecordProperties, name) = { state with Name = name }
+    member this.RecordName(state:MxRecordProperties, name:string) = this.RecordName(state, ResourceName name)
 
     /// Add MX records.
     [<CustomOperation "add_values">]
@@ -169,8 +169,8 @@ type DnsSrvRecordBuilder() =
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
-    member _.RecordName(state:CNameRecordProperties, name) = { state with Name = name }
-    member this.RecordName(state:CNameRecordProperties, name:string) = this.RecordName(state, ResourceName name)
+    member _.RecordName(state:SrvRecordProperties, name) = { state with Name = name }
+    member this.RecordName(state:SrvRecordProperties, name:string) = this.RecordName(state, ResourceName name)
 
     /// Add SRV records.
     [<CustomOperation "add_values">]
@@ -187,8 +187,8 @@ type DnsSoaRecordBuilder() =
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
-    member _.RecordName(state:CNameRecordProperties, name) = { state with Name = name }
-    member this.RecordName(state:CNameRecordProperties, name:string) = this.RecordName(state, ResourceName name)
+    member _.RecordName(state:SoaRecordProperties, name) = { state with Name = name }
+    member this.RecordName(state:SoaRecordProperties, name:string) = this.RecordName(state, ResourceName name)
 
     /// Sets the value for this SOA record.
     [<CustomOperation "value">]
