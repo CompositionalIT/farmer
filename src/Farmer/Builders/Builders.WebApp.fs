@@ -407,7 +407,7 @@ type WebAppConfig =
                 { Name = ResourceName extension
                   SiteName = this.Name
                   Location = location }
-            
+
             yield! (PrivateEndpoint.create location this.ResourceId ["sites"] this.PrivateEndpoints)
         ]
 
@@ -443,7 +443,7 @@ type WebAppBuilder() =
           SecretStore = AppService
           AutomaticLoggingExtension = true
           SiteExtensions = Set.empty
-          WorkerProcess = None 
+          WorkerProcess = None
           PrivateEndpoints = Set.empty}
     member __.Run(state:WebAppConfig) =
         { state with
@@ -545,6 +545,7 @@ type WebAppBuilder() =
     /// Automatically add the ASP.NET Core logging extension.
     [<CustomOperation "automatic_logging_extension">]
     member _.DefaultLogging (state:WebAppConfig, setting) = { state with AutomaticLoggingExtension = setting }
+
     interface IPrivateEndpoints<WebAppConfig> with member _.Add state endpoints = { state with PrivateEndpoints = state.PrivateEndpoints |> Set.union endpoints}
     interface ITaggable<WebAppConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     interface IDependable<WebAppConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
@@ -642,6 +643,7 @@ module Extensions =
             let current = this.Get state
             { current with Identity = { current.Identity with SystemAssigned = Enabled } }
             |> this.Wrap state
+
         /// sets the list of origins that should be allowed to make cross-origin calls. Use AllOrigins to allow all.
         [<CustomOperation "enable_cors">]
         member this.EnableCors (state:'T, origins) =

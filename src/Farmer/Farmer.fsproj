@@ -92,10 +92,12 @@
     <Compile Include="Arm/VirtualWan.fs" />
     <Compile Include="Arm/TrafficManager.fs" />
     <Compile Include="IdentityExtensions.fs" />
+
+    <Compile Include="Builders/Extensions.fs" />
+    <Compile Include="Builders/Builders.UserAssignedIdentity.fs" />
     <Compile Include="Builders/Builders.ResourceGroup.fs" />
     <Compile Include="Builders/Builders.LogAnalytics.fs" />
     <Compile Include="Builders/Builders.Helpers.fs" />
-    <Compile Include="Builders/Builders.UserAssignedIdentity.fs" />
     <Compile Include="Builders/Builders.PostgreSQL.fs" />
     <Compile Include="Builders/Builders.Cdn.fs" />
     <Compile Include="Builders/Builders.ContainerGroups.fs" />

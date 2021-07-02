@@ -62,7 +62,7 @@ type ManagedCluster =
                 yield! this.Identity.Dependencies
             ]
             {| managedClusters.Create(this.Name, this.Location, dependencies) with
-                   identity = this.Identity |> ManagedIdentity.toArmJson
+                   identity = this.Identity.ToArmJson
                    properties =
                        {| agentPoolProfiles =
                            this.AgentPoolProfiles
