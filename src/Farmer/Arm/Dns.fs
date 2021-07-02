@@ -71,8 +71,7 @@ module DnsRecords =
                         | SRV records -> "SRVRecords", records |> List.map (fun srv -> {| priority = srv.Priority; weight = srv.Weight; port = srv.Port; target = srv.Target |}) |> box
                         | SOA record -> 
                             let record = 
-                                {| host = record.Host
-                                   email = record.Email
+                                {| email = record.Email
                                    serialNumber = record.SerialNumber
                                    refreshTime = record.RefreshTime
                                    retryTime = record.RetryTime

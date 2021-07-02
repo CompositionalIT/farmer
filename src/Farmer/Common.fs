@@ -1565,8 +1565,7 @@ module Dns =
           Target : string }
 
     type SoaRecord =
-        { Host : string
-          Email : string
+        { Email : string
           SerialNumber : int64
           RefreshTime : int64
           RetryTime : int64

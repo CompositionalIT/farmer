@@ -32,7 +32,6 @@ type MxRecordProperties =  { Name: ResourceName; MxValues : {| Preference : int;
 type SrvRecordProperties =  { Name: ResourceName; SrvValues : SrvRecord list; TTL: int option; }
 type SoaRecordProperties =  
     { Name: ResourceName
-      Host : string option
       Email : string option
       SerialNumber : int64 option
       RefreshTime : int64
@@ -195,7 +194,6 @@ type DnsSrvRecordBuilder() =
 type DnsSoaRecordBuilder() =
     member __.Yield _ = 
         { SoaRecordProperties.Name = ResourceName "@"
-          Host = None
           Email = None
           SerialNumber = None
           RefreshTime = 3600L
@@ -205,11 +203,10 @@ type DnsSoaRecordBuilder() =
           TTL = None }
 
     member __.Run(state : SoaRecordProperties) = 
-        match state.Host, state.Email, state.SerialNumber with
-        | Some host, Some email, Some serial -> 
+        match state.Email, state.SerialNumber with
+        | Some email, Some serial -> 
             let value = 
-                { Host = host
-                  Email = email
+                { Email = email
                   SerialNumber = serial
                   RefreshTime = state.RefreshTime
                   RetryTime = state.RetryTime
@@ -217,11 +214,6 @@ type DnsSoaRecordBuilder() =
                   MinimumTTL = state.MinimumTTL }
             DnsZoneRecordConfig.Create(state.Name, state.TTL, SOA value)
         | _ -> failwith "You must provide a host, email and serial_number property"
-        
-    /// Sets the name of the record set.
-    [<CustomOperation "name">]
-    member _.RecordName(state:SoaRecordProperties, name) = { state with Name = name }
-    member this.RecordName(state:SoaRecordProperties, name:string) = this.RecordName(state, ResourceName name)
 
     /// Sets the email for this SOA record (required).
     [<CustomOperation "email">]
@@ -231,10 +223,6 @@ type DnsSoaRecordBuilder() =
     /// Defaults to 2419200 (28 days).
     [<CustomOperation "expire_time">]
     member _.RecordExpireTime(state:SoaRecordProperties, expireTime : int64) = { state with ExpireTime = expireTime }
-
-    /// Sets the host for this SOA record (required).
-    [<CustomOperation "host">]
-    member _.RecordHost(state:SoaRecordProperties, host : string) = { state with Host = Some host }
 
     /// Sets the minimum time to live for this SOA record in seconds.
     /// Defaults to 300.

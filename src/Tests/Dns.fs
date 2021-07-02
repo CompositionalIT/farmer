@@ -33,7 +33,6 @@ let tests = testList "DNS Zone" [
                                 name "soaName"
                                 ttl 3600
                                 email "azuredns-hostmaster.microsoft.com"
-                                host "ns2-04.azure-dns.com."
                                 serial_number 1L 
                                 minimum_TTL 2L
                                 refresh_time 3L
@@ -86,7 +85,6 @@ let tests = testList "DNS Zone" [
 
         Expect.equal dnsRecords.[3].Name "farmer.com/soaName" "DNS SOA record name is wrong"
         Expect.equal dnsRecords.[3].SoaRecord.Email "azuredns-hostmaster.microsoft.com" "DNS SOA record email wrong"
-        Expect.equal dnsRecords.[3].SoaRecord.Host "ns2-04.azure-dns.com." "DNS SOA record host wrong"
         Expect.equal dnsRecords.[3].SoaRecord.SerialNumber (Nullable<int64>(1L)) "DNS SOA record serial number wrong"
         Expect.equal dnsRecords.[3].SoaRecord.MinimumTtl (Nullable<int64>(2L)) "DNS SOA record minimum ttl wrong"
         Expect.equal dnsRecords.[3].SoaRecord.RefreshTime (Nullable<int64>(3L)) "DNS SOA record refresh time wrong"
