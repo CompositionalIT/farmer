@@ -25,6 +25,7 @@ type DnsRecordType with
         | PTR _ -> ptrRecord
         | TXT _ -> txtRecord
         | MX _ -> mxRecord
+        | SRV _ -> srvRecord
 
 type DnsZone =
     { Name : ResourceName
@@ -66,6 +67,7 @@ module DnsRecords =
                         | PTR records -> "PTRRecords", records |> List.map (fun ptr -> {| ptrdname = ptr |}) |> box
                         | A (_, records) -> "ARecords", records |> List.map (fun a -> {| ipv4Address = a |}) |> box
                         | AAAA (_, records) -> "AAAARecords", records |> List.map (fun aaaa -> {| ipv6Address = aaaa |}) |> box
+                        | SRV records -> "SRVRecords", records |> List.map (fun srv -> {| priority = srv.Priority; weight = srv.Weight; port = srv.Port; target = srv.Target |}) |> box
                         | CName (_, None) -> ()
                     ] |> Map
                 |} :> _
