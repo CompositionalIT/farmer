@@ -2,7 +2,6 @@ namespace Farmer.Builders
 
 open Farmer
 open System
-open Farmer.Identity
 
 type ITaggable<'TConfig> =
     abstract member Add : 'TConfig -> list<string * string> -> 'TConfig

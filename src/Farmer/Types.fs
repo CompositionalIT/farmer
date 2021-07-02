@@ -272,8 +272,6 @@ type Setting =
         | ExpressionSetting expr -> expr.Eval()
     static member AsLiteral (a,b) = a, LiteralSetting b
 
-
-
 type ArmTemplate =
     { Parameters : SecureParameter list
       Outputs : (string * string) list

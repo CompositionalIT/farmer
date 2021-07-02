@@ -49,6 +49,7 @@ type VmConfig =
     member this.Hostname = this.PublicIpId |> Option.map (fun ip -> ip.ArmExpression.Map(sprintf "%s.dnsSettings.fqdn"))
     member this.SystemIdentity = SystemIdentity this.ResourceId
     member this.ResourceId = virtualMachines.resourceId this.Name
+    member this.PasswordParameterArm = this.PasswordParameter |> Option.defaultValue $"password-for-{this.Name.Value}"
 
     interface IBuilder with
         member this.ResourceId = this.ResourceId
@@ -65,7 +66,7 @@ type VmConfig =
                 match this.Username with
                 | Some username ->
                     {| Username = username
-                       Password = SecureParameter (this.PasswordParameter |> Option.defaultValue $"password-for-{this.Name.Value}") |}
+                       Password = SecureParameter this.PasswordParameterArm |}
                 | None ->
                     failwith $"You must specify a username for virtual machine {this.Name.Value}"
               CustomData = this.CustomData
