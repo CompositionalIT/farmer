@@ -1582,7 +1582,7 @@ module Dns =
         | TXT of TxtRecords : string list
         | MX of {| Preference : int; Exchange : string |} list
         | SRV of SrvRecord list
-        | SOA of SoaRecord option
+        | SOA of SoaRecord
 
 module Databricks =
     type KeySource = Databricks | KeyVault member this.ArmValue = match this with Databricks -> "Default" | KeyVault -> "MicrosoftKeyVault"

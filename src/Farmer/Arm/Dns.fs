@@ -69,7 +69,7 @@ module DnsRecords =
                         | A (_, records) -> "ARecords", records |> List.map (fun a -> {| ipv4Address = a |}) |> box
                         | AAAA (_, records) -> "AAAARecords", records |> List.map (fun aaaa -> {| ipv6Address = aaaa |}) |> box
                         | SRV records -> "SRVRecords", records |> List.map (fun srv -> {| priority = srv.Priority; weight = srv.Weight; port = srv.Port; target = srv.Target |}) |> box
-                        | SOA (Some record) -> 
+                        | SOA record -> 
                             let record = 
                                 {| host = record.Host
                                    email = record.Email
@@ -80,6 +80,5 @@ module DnsRecords =
                                    minimumTTL = record.MinimumTTL |}
                             "SOARecord", box record
                         | CName (_, None) -> ()
-                        | SOA None -> ()
                     ] |> Map
                 |} :> _
