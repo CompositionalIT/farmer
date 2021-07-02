@@ -26,6 +26,7 @@ type DnsRecordType with
         | TXT _ -> txtRecord
         | MX _ -> mxRecord
         | SRV _ -> srvRecord
+        | SOA _ -> soaRecord
 
 type DnsZone =
     { Name : ResourceName
@@ -68,6 +69,17 @@ module DnsRecords =
                         | A (_, records) -> "ARecords", records |> List.map (fun a -> {| ipv4Address = a |}) |> box
                         | AAAA (_, records) -> "AAAARecords", records |> List.map (fun aaaa -> {| ipv6Address = aaaa |}) |> box
                         | SRV records -> "SRVRecords", records |> List.map (fun srv -> {| priority = srv.Priority; weight = srv.Weight; port = srv.Port; target = srv.Target |}) |> box
+                        | SOA (Some record) -> 
+                            let record = 
+                                {| host = record.Host
+                                   email = record.Email
+                                   serialNumber = record.SerialNumber
+                                   refreshTime = record.RefreshTime
+                                   retryTime = record.RetryTime
+                                   expireTime = record.ExpireTime
+                                   minimumTTL = record.MinimumTTL |}
+                            "SOARecord", box record
                         | CName (_, None) -> ()
+                        | SOA None -> ()
                     ] |> Map
                 |} :> _

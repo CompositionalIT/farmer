@@ -28,7 +28,7 @@ type PtrRecordProperties =  { Name: ResourceName; PtrdNames : string list; TTL: 
 type TxtRecordProperties =  { Name: ResourceName; TxtValues : string list; TTL: int option; }
 type MxRecordProperties =  { Name: ResourceName; MxValues : {| Preference : int; Exchange : string |} list; TTL: int option; }
 type SrvRecordProperties =  { Name: ResourceName; SrvValues : SrvRecord list; TTL: int option; }
-
+type SoaRecordProperties =  { Name: ResourceName; SoaValue : SoaRecord option; TTL: int option; }
 
 type DnsCNameRecordBuilder() =
     member __.Yield _ = { CNameRecordProperties.CName = None; Name = ResourceName.Empty; TTL = None; TargetResource = None }
@@ -181,6 +181,23 @@ type DnsSrvRecordBuilder() =
     [<CustomOperation "ttl">]
     member _.RecordTTL(state:SrvRecordProperties, ttl) = { state with TTL = Some ttl }
 
+type DnsSoaRecordBuilder() =
+    member __.Yield _ = { SoaRecordProperties.Name = ResourceName "@"; SoaValue = None; TTL = None; }
+    member __.Run(state : SoaRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, SOA state.SoaValue)
+
+    /// Sets the name of the record set.
+    [<CustomOperation "name">]
+    member _.RecordName(state:CNameRecordProperties, name) = { state with Name = name }
+    member this.RecordName(state:CNameRecordProperties, name:string) = this.RecordName(state, ResourceName name)
+
+    /// Sets the value for this SOA record.
+    [<CustomOperation "value">]
+    member _.RecordCName(state:SoaRecordProperties, value : SoaRecord) = { state with SoaValue = Some value }
+
+    /// Sets the TTL of the record.
+    [<CustomOperation "ttl">]
+    member _.RecordTTL(state:SoaRecordProperties, ttl) = { state with TTL = Some ttl }
+
 type DnsZoneConfig =
     { Name : ResourceName
       ZoneType : DnsZoneType
@@ -231,3 +248,4 @@ let ptrRecord = DnsPtrRecordBuilder()
 let txtRecord = DnsTxtRecordBuilder()
 let mxRecord = DnsMxRecordBuilder()
 let srvRecord = DnsSrvRecordBuilder()
+let soaRecord = DnsSoaRecordBuilder()

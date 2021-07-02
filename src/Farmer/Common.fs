@@ -1564,6 +1564,15 @@ module Dns =
           Port : int
           Target : string }
 
+    type SoaRecord =
+        { Host : string
+          Email : string
+          SerialNumber : int
+          RefreshTime : int
+          RetryTime : int
+          ExpireTime : int
+          MinimumTTL : int }
+
     type DnsRecordType =
         | A of TargetResource : ResourceName option * ARecords : string list
         | AAAA of TargetResource : ResourceName option * AaaaRecords : string list
@@ -1573,6 +1582,7 @@ module Dns =
         | TXT of TxtRecords : string list
         | MX of {| Preference : int; Exchange : string |} list
         | SRV of SrvRecord list
+        | SOA of SoaRecord option
 
 module Databricks =
     type KeySource = Databricks | KeyVault member this.ArmValue = match this with Databricks -> "Default" | KeyVault -> "MicrosoftKeyVault"
