@@ -18,39 +18,41 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 
 #### Builder Keywords
 
-| Keyword | Purpose |
+|Keyword|Purpose|
 |-|-|
-|name | Sets the name of the VM. |
-|diagnostics_support | Turns on diagnostics support using an automatically created created storage account. |
-|diagnostics_support_external | Turns on diagnostics support using an existing storage account. |
-|vm_size | Sets the size of the VM. |
-|username | Sets the admin username of the VM (note: the password is supplied as a securestring parameter to the generated ARM template). |
-|password_parameter| Sets the name of the parameter which contains the admin password for this VM. defaults to "password-for-<VM-name>" |
-|operating_system | Sets the operating system of the VM. A set of samples is provided in the `CommonImages` module. |
-|os_disk | Sets the size and type of the OS disk for the VM. |
-|add_disk | Adds a data disk to the VM with a specific size and type. |
-|add_ssd_disk | Adds a SSD data disk to the VM with a specific size. |
-|add_slow_disk | Adds a conventional (non-SSD) data disk to the VM with a specific size. |
-|domain_name_prefix | Sets the prefix for the domain name of the VM. |
-|address_prefix | Sets the IP address prefix of the VM. |
-|subnet_prefix | Sets the subnet prefix of the VM. |
-|custom_script | Executes the supplied inline custom script on the VM. |
-|custom_script_files | Uploads the supplied set of files, specified by URI, to the VM on creation. |
-|custom_data | Sets the custom data field for the VM. |
-|public_ip| Specifies or removes the public IP for this VM |
-|disable_password_authentication| Disables password authentication on the VM. Must include at least one key if true |
-|add_authorized_key| adds one authorized key |
-|add_authorized_keys| adds a list of authorized keys |
+|name|Sets the name of the VM.|
+|diagnostics_support|Turns on diagnostics support using an automatically created created storage account.|
+|diagnostics_support_external|Turns on diagnostics support using an existing storage account.|
+|vm_size|Sets the size of the VM.|
+|username|Sets the admin username of the VM (note: the password is supplied as a securestring parameter to the generated ARM template).|
+|password_parameter|Sets the name of the parameter which contains the admin password for this VM. defaults to "password-for-<VM-name>"|
+|operating_system|Sets the operating system of the VM. A set of samples is provided in the `CommonImages` module.|
+|os_disk|Sets the size and type of the OS disk for the VM.|
+|add_disk|Adds a data disk to the VM with a specific size and type.|
+|add_ssd_disk|Adds a SSD data disk to the VM with a specific size.|
+|add_slow_disk|Adds a conventional (non-SSD) data disk to the VM with a specific size.|
+|domain_name_prefix|Sets the prefix for the domain name of the VM.|
+|address_prefix|Sets the IP address prefix of the VM.|
+|subnet_prefix|Sets the subnet prefix of the VM.|
+|custom_script|Executes the supplied inline custom script on the VM.|
+|custom_script_files|Uploads the supplied set of files, specified by URI, to the VM on creation.|
+|custom_data|Sets the custom data field for the VM.|
+|public_ip|Specifies or removes the public IP for this VM|
+|disable_password_authentication|Disables password authentication on the VM. Must include at least one key if true|
+|add_authorized_key|adds one authorized key|
+|add_authorized_keys|adds a list of authorized keys|
+|add_identity|Adds a managed identity to the the AKS cluster.|
+|system_identity|Activates the system identity of the AKS cluster.|
 
 #### Configuration Members
 
-| Member | Purpose |
+|Member|Purpose|
 |-|-|
-| NicName | Provides the resource name of the Network Interface Card (NIC) |
-| VnetName | Provides the resource name of the Virtual Network (VNet) |
-| SubnetName | Provides the resource name of the subnet |
-| IpName | Provides the resource name of the IP Address |
-| Hostname | Returns an ARM expression to retrieve the fully-qualified domain name from the virtual machine's DNS settings." |
+|NicName|Provides the resource name of the Network Interface Card (NIC)|
+|VnetName|Provides the resource name of the Virtual Network (VNet)|
+|SubnetName|Provides the resource name of the subnet|
+|IpName|Provides the resource name of the IP Address|
+|Hostname|Returns an ARM expression to retrieve the fully-qualified domain name from the virtual machine's DNS settings."|
 
 #### Example
 
