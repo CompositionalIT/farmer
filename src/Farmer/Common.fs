@@ -1567,11 +1567,11 @@ module Dns =
     type SoaRecord =
         { Host : string
           Email : string
-          SerialNumber : int
-          RefreshTime : int
-          RetryTime : int
-          ExpireTime : int
-          MinimumTTL : int }
+          SerialNumber : int64
+          RefreshTime : int64
+          RetryTime : int64
+          ExpireTime : int64
+          MinimumTTL : int64 }
 
     type DnsRecordType =
         | A of TargetResource : ResourceName option * ARecords : string list

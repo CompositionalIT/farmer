@@ -34,11 +34,11 @@ type SoaRecordProperties =
     { Name: ResourceName
       Host : string option
       Email : string option
-      SerialNumber : int option
-      RefreshTime : int
-      RetryTime : int
-      ExpireTime : int
-      MinimumTTL : int
+      SerialNumber : int64 option
+      RefreshTime : int64
+      RetryTime : int64
+      ExpireTime : int64
+      MinimumTTL : int64
       TTL: int option }
 
 type DnsCNameRecordBuilder() =
@@ -198,10 +198,10 @@ type DnsSoaRecordBuilder() =
           Host = None
           Email = None
           SerialNumber = None
-          RefreshTime = 3600
-          RetryTime = 300
-          ExpireTime = 2419200
-          MinimumTTL = 300
+          RefreshTime = 3600L
+          RetryTime = 300L
+          ExpireTime = 2419200L
+          MinimumTTL = 300L
           TTL = None }
 
     member __.Run(state : SoaRecordProperties) = 
@@ -230,7 +230,7 @@ type DnsSoaRecordBuilder() =
     /// Sets the expire time for this SOA record in seconds. 
     /// Defaults to 2419200 (28 days).
     [<CustomOperation "expire_time">]
-    member _.RecordExpireTime(state:SoaRecordProperties, expireTime : int) = { state with ExpireTime = expireTime }
+    member _.RecordExpireTime(state:SoaRecordProperties, expireTime : int64) = { state with ExpireTime = expireTime }
 
     /// Sets the host for this SOA record (required).
     [<CustomOperation "host">]
@@ -239,21 +239,21 @@ type DnsSoaRecordBuilder() =
     /// Sets the minimum time to live for this SOA record in seconds.
     /// Defaults to 300.
     [<CustomOperation "minimum_TTL">]
-    member _.RecordMinimumTTL(state:SoaRecordProperties, minTTL : int) = { state with MinimumTTL = minTTL }
+    member _.RecordMinimumTTL(state:SoaRecordProperties, minTTL : int64) = { state with MinimumTTL = minTTL }
 
     /// Sets the refresh time for this SOA record in seconds.
     /// Defaults to 3600 (1 hour)
     [<CustomOperation "refresh_time">]
-    member _.RecordRefreshTime(state:SoaRecordProperties, refreshTime : int) = { state with RefreshTime = refreshTime }
+    member _.RecordRefreshTime(state:SoaRecordProperties, refreshTime : int64) = { state with RefreshTime = refreshTime }
 
     /// Sets the retry time for this SOA record in seconds.
     /// Defaults to 300 seconds.
     [<CustomOperation "retry_time">]
-    member _.RetryTime(state:SoaRecordProperties, retryTime : int) = { state with RetryTime = retryTime }
+    member _.RetryTime(state:SoaRecordProperties, retryTime : int64) = { state with RetryTime = retryTime }
 
     /// Sets the serial number for this SOA record (required).
     [<CustomOperation "serial_number">]
-    member _.RecordSerialNumber(state:SoaRecordProperties, serialNo : int) = { state with SerialNumber = Some serialNo }
+    member _.RecordSerialNumber(state:SoaRecordProperties, serialNo : int64) = { state with SerialNumber = Some serialNo }
 
     /// Sets the TTL of the record.
     [<CustomOperation "ttl">]
