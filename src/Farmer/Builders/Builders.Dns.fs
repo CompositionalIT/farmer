@@ -27,6 +27,8 @@ type NsRecordProperties =  { Name: ResourceName; NsdNames : string list; TTL: in
 type PtrRecordProperties =  { Name: ResourceName; PtrdNames : string list; TTL: int option; }
 type TxtRecordProperties =  { Name: ResourceName; TxtValues : string list; TTL: int option; }
 type MxRecordProperties =  { Name: ResourceName; MxValues : {| Preference : int; Exchange : string |} list; TTL: int option; }
+type SrvRecordProperties =  { Name: ResourceName; SrvValues : SrvRecord list; TTL: int option; }
+
 
 type DnsCNameRecordBuilder() =
     member __.Yield _ = { CNameRecordProperties.CName = None; Name = ResourceName.Empty; TTL = None; TargetResource = None }
@@ -161,6 +163,24 @@ type DnsMxRecordBuilder() =
     [<CustomOperation "ttl">]
     member _.RecordTTL(state:MxRecordProperties, ttl) = { state with TTL = Some ttl }
 
+type DnsSrvRecordBuilder() =
+    member __.Yield _ = { SrvRecordProperties.Name = ResourceName "@"; SrvValues = []; TTL = None; }
+    member __.Run(state : SrvRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, SRV state.SrvValues)
+
+    /// Sets the name of the record set.
+    [<CustomOperation "name">]
+    member _.RecordName(state:CNameRecordProperties, name) = { state with Name = name }
+    member this.RecordName(state:CNameRecordProperties, name:string) = this.RecordName(state, ResourceName name)
+
+    /// Add SRV records.
+    [<CustomOperation "add_values">]
+    member _.RecordValue(state:SrvRecordProperties, srvValues : SrvRecord list) =
+        { state with SrvValues = state.SrvValues @ srvValues }
+
+    /// Sets the TTL of the record.
+    [<CustomOperation "ttl">]
+    member _.RecordTTL(state:SrvRecordProperties, ttl) = { state with TTL = Some ttl }
+
 type DnsZoneConfig =
     { Name : ResourceName
       ZoneType : DnsZoneType
@@ -210,3 +230,4 @@ let nsRecord = DnsNsRecordBuilder()
 let ptrRecord = DnsPtrRecordBuilder()
 let txtRecord = DnsTxtRecordBuilder()
 let mxRecord = DnsMxRecordBuilder()
+let srvRecord = DnsSrvRecordBuilder()
