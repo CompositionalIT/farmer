@@ -32,12 +32,13 @@ type MxRecordProperties =  { Name: ResourceName; MxValues : {| Preference : int;
 type SrvRecordProperties =  { Name: ResourceName; SrvValues : SrvRecord list; TTL: int option; }
 type SoaRecordProperties =  
     { Name: ResourceName
+      Host : string option
       Email : string option
       SerialNumber : int64 option
-      RefreshTime : int64
-      RetryTime : int64
-      ExpireTime : int64
-      MinimumTTL : int64
+      RefreshTime : int64 option
+      RetryTime : int64 option
+      ExpireTime : int64 option
+      MinimumTTL : int64 option
       TTL: int option }
 
 type DnsCNameRecordBuilder() =
@@ -194,26 +195,34 @@ type DnsSrvRecordBuilder() =
 type DnsSoaRecordBuilder() =
     member __.Yield _ = 
         { SoaRecordProperties.Name = ResourceName "@"
+          Host = None
           Email = None
           SerialNumber = None
-          RefreshTime = 3600L
-          RetryTime = 300L
-          ExpireTime = 2419200L
-          MinimumTTL = 300L
+          RefreshTime = None
+          RetryTime = None
+          ExpireTime = None
+          MinimumTTL = None
           TTL = None }
 
     member __.Run(state : SoaRecordProperties) = 
-        match state.Email, state.SerialNumber with
-        | Some email, Some serial -> 
-            let value = 
-                { Email = email
-                  SerialNumber = serial
-                  RefreshTime = state.RefreshTime
-                  RetryTime = state.RetryTime
-                  ExpireTime = state.ExpireTime
-                  MinimumTTL = state.MinimumTTL }
-            DnsZoneRecordConfig.Create(state.Name, state.TTL, SOA value)
-        | _ -> failwith "You must provide a host, email and serial_number property"
+        let value = 
+            { Host = state.Host
+              Email = state.Email
+              SerialNumber = state.SerialNumber
+              RefreshTime = state.RefreshTime
+              RetryTime = state.RetryTime
+              ExpireTime = state.ExpireTime
+              MinimumTTL = state.MinimumTTL }
+        DnsZoneRecordConfig.Create(state.Name, state.TTL, SOA value)
+
+    /// Sets the name of the record set.
+    [<CustomOperation "name">]
+    member _.RecordName(state:SoaRecordProperties, name) = { state with Name = name }
+    member this.RecordName(state:SoaRecordProperties, name:string) = this.RecordName(state, ResourceName name)
+
+    /// Sets the name of the record set.
+    [<CustomOperation "host">]
+    member _.RecordHost(state:SoaRecordProperties, host : string) = { state with Host = Some host }
 
     /// Sets the email for this SOA record (required).
     [<CustomOperation "email">]
@@ -222,22 +231,22 @@ type DnsSoaRecordBuilder() =
     /// Sets the expire time for this SOA record in seconds. 
     /// Defaults to 2419200 (28 days).
     [<CustomOperation "expire_time">]
-    member _.RecordExpireTime(state:SoaRecordProperties, expireTime : int64) = { state with ExpireTime = expireTime }
+    member _.RecordExpireTime(state:SoaRecordProperties, expireTime : int64) = { state with ExpireTime = Some expireTime }
 
     /// Sets the minimum time to live for this SOA record in seconds.
     /// Defaults to 300.
     [<CustomOperation "minimum_TTL">]
-    member _.RecordMinimumTTL(state:SoaRecordProperties, minTTL : int64) = { state with MinimumTTL = minTTL }
+    member _.RecordMinimumTTL(state:SoaRecordProperties, minTTL : int64) = { state with MinimumTTL = Some minTTL }
 
     /// Sets the refresh time for this SOA record in seconds.
     /// Defaults to 3600 (1 hour)
     [<CustomOperation "refresh_time">]
-    member _.RecordRefreshTime(state:SoaRecordProperties, refreshTime : int64) = { state with RefreshTime = refreshTime }
+    member _.RecordRefreshTime(state:SoaRecordProperties, refreshTime : int64) = { state with RefreshTime = Some refreshTime }
 
     /// Sets the retry time for this SOA record in seconds.
     /// Defaults to 300 seconds.
     [<CustomOperation "retry_time">]
-    member _.RetryTime(state:SoaRecordProperties, retryTime : int64) = { state with RetryTime = retryTime }
+    member _.RetryTime(state:SoaRecordProperties, retryTime : int64) = { state with RetryTime = Some retryTime }
 
     /// Sets the serial number for this SOA record (required).
     [<CustomOperation "serial_number">]

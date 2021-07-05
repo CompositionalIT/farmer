@@ -1559,18 +1559,19 @@ module Dns =
     type DnsZoneType = Public | Private
 
     type SrvRecord =  
-        { Priority : int
-          Weight : int
-          Port : int
-          Target : string }
+        { Priority : int option
+          Weight : int option
+          Port : int option
+          Target : string option }
 
     type SoaRecord =
-        { Email : string
-          SerialNumber : int64
-          RefreshTime : int64
-          RetryTime : int64
-          ExpireTime : int64
-          MinimumTTL : int64 }
+        { Host : string option
+          Email : string option
+          SerialNumber : int64 option
+          RefreshTime : int64 option
+          RetryTime : int64 option
+          ExpireTime : int64 option
+          MinimumTTL : int64 option }
 
     type DnsRecordType =
         | A of TargetResource : ResourceName option * ARecords : string list

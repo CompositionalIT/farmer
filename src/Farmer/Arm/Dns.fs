@@ -68,15 +68,33 @@ module DnsRecords =
                         | PTR records -> "PTRRecords", records |> List.map (fun ptr -> {| ptrdname = ptr |}) |> box
                         | A (_, records) -> "ARecords", records |> List.map (fun a -> {| ipv4Address = a |}) |> box
                         | AAAA (_, records) -> "AAAARecords", records |> List.map (fun aaaa -> {| ipv6Address = aaaa |}) |> box
-                        | SRV records -> "SRVRecords", records |> List.map (fun srv -> {| priority = srv.Priority; weight = srv.Weight; port = srv.Port; target = srv.Target |}) |> box
+                        | SRV records -> 
+                            let records = 
+                                records 
+                                |> List.map (fun srv ->
+                                    {| priority = srv.Priority |> Option.toNullable
+                                       weight = srv.Weight |> Option.toNullable
+                                       port = srv.Port |> Option.toNullable
+                                       target = 
+                                           match srv.Target with 
+                                           | Some target -> target
+                                           | None -> null |})
+                            "SRVRecords", box records
                         | SOA record -> 
                             let record = 
-                                {| email = record.Email
-                                   serialNumber = record.SerialNumber
-                                   refreshTime = record.RefreshTime
-                                   retryTime = record.RetryTime
-                                   expireTime = record.ExpireTime
-                                   minimumTTL = record.MinimumTTL |}
+                                {| host =
+                                    match record.Host with 
+                                    | Some email -> email
+                                    | None -> null
+                                   email = 
+                                    match record.Email with 
+                                    | Some email -> email
+                                    | None -> null
+                                   serialNumber = record.SerialNumber |> Option.toNullable
+                                   refreshTime = record.RefreshTime |> Option.toNullable
+                                   retryTime = record.RetryTime |> Option.toNullable
+                                   expireTime = record.ExpireTime |> Option.toNullable
+                                   minimumTTL = record.MinimumTTL |> Option.toNullable |}
                             "SOARecord", box record
                         | CName (_, None) -> ()
                     ] |> Map
