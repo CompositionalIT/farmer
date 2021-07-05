@@ -35,10 +35,10 @@ let tests = testList "DNS Zone" [
                                 ttl 3600
                                 email "azuredns-hostmaster.microsoft.com"
                                 serial_number 1L 
-                                minimum_TTL 2L
-                                refresh_time 3L
-                                retry_time 4L
-                                expire_time 5L
+                                minimum_TTL 300L
+                                refresh_time 3600L
+                                retry_time 300L
+                                expire_time 2419200L
                             }
                             srvRecord {
                                 name "_sip._tcp.name"

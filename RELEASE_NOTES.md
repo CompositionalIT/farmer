@@ -1,5 +1,7 @@
 Release Notes
 =============
+## vNext
+* DNS Zone: Added SOA and SRV record support
 
 ## 1.6.3
 * Container Service (AKS): Support basic SKU for the cluster's load balancer (default is standard).
