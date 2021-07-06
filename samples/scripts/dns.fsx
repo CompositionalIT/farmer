@@ -35,6 +35,13 @@ let dns = dnsZone {
                 1, "farmer2-com.mail.protection.outlook.com";
             ]
         }
+        nsRecord {
+            name "nsRecord"
+            ttl 172800
+            add_nsd_names [
+                "my.other.dns.com."
+            ]
+        }
         soaRecord { 
             host "ns1-09.azure-dns.com."
             ttl 3600

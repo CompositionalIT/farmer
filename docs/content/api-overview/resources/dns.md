@@ -20,12 +20,19 @@ It supports most record types (except CAA) and has specific builders for every r
 * SOA Record (`Microsoft.Network/dnsZones/SOA`)
 * SRV Record (`Microsoft.Network/dnsZones/SRV`)
 
-#### A note on SOA records
+#### SOA records
 You can only have one SOA record and it is [always created alongside a DNS zone](https://docs.microsoft.com/en-us/azure/dns/dns-zones-records#soa-records), whether you specify it or not.
 
 You can use the builder provided by Farmer to edit any of its properties. You should **not**, however, edit the `host` as [this is set automatically by Azure](https://docs.microsoft.com/en-us/azure/dns/dns-operations-recordsets-portal#modify-soa-records). 
 
 Ideally it just wouldn't be exposed, however [contrary to the official documentation](https://docs.microsoft.com/en-us/azure/templates/microsoft.network/dnszones/soa?tabs=json#soarecord-object) Azure rejects the ARM record if it is absent. For this reason if you wish to use the SOA builder it is recommended to first deploy your DNS Zone without it, copy the generated SOA host from the portal and then finally paste it into the Farmer builder's `host` parameter.
+
+#### NS Records
+An NS record is automatically added to every DNS zone at the apex (@) containing the name of the Azure DNS servers assigned to the zone.
+
+You can modify [certain properties of it, but not others](https://docs.microsoft.com/en-us/azure/dns/dns-zones-records#ns-records).
+
+If you wish to create a *new* NS record set, you **must** give it a `name` field.
 
 #### TODO
 The following items are currently unsupported:
