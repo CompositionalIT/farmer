@@ -42,8 +42,8 @@ type SoaRecordProperties =
       TTL: int option }
 
 type DnsCNameRecordBuilder() =
-    member __.Yield _ = { CNameRecordProperties.CName = None; Name = ResourceName.Empty; TTL = None; TargetResource = None }
-    member __.Run(state : CNameRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, CName(state.TargetResource, state.CName))
+    member _.Yield _ = { CNameRecordProperties.CName = None; Name = ResourceName.Empty; TTL = None; TargetResource = None }
+    member _.Run(state : CNameRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, CName(state.TargetResource, state.CName))
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
@@ -63,8 +63,8 @@ type DnsCNameRecordBuilder() =
     member _.RecordTargetResource(state:CNameRecordProperties, targetResource) = { state with TargetResource = Some targetResource }
 
 type DnsARecordBuilder() =
-    member __.Yield _ = { ARecordProperties.Ipv4Addresses = []; Name = ResourceName "@"; TTL = None; TargetResource = None }
-    member __.Run(state : ARecordProperties)  = DnsZoneRecordConfig.Create(state.Name, state.TTL, A(state.TargetResource, state.Ipv4Addresses))
+    member _.Yield _ = { ARecordProperties.Ipv4Addresses = []; Name = ResourceName "@"; TTL = None; TargetResource = None }
+    member _.Run(state : ARecordProperties)  = DnsZoneRecordConfig.Create(state.Name, state.TTL, A(state.TargetResource, state.Ipv4Addresses))
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
@@ -84,8 +84,8 @@ type DnsARecordBuilder() =
     member _.RecordTargetResource(state:ARecordProperties, targetResource) = { state with TargetResource = Some targetResource }
 
 type DnsAaaaRecordBuilder() =
-    member __.Yield _ = { AaaaRecordProperties.Ipv6Addresses = []; Name = ResourceName "@"; TTL = None; TargetResource = None }
-    member __.Run(state : AaaaRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, AAAA(state.TargetResource, state.Ipv6Addresses))
+    member _.Yield _ = { AaaaRecordProperties.Ipv6Addresses = []; Name = ResourceName "@"; TTL = None; TargetResource = None }
+    member _.Run(state : AaaaRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, AAAA(state.TargetResource, state.Ipv6Addresses))
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
@@ -105,8 +105,8 @@ type DnsAaaaRecordBuilder() =
     member _.RecordTargetResource(state:AaaaRecordProperties, targetResource) = { state with TargetResource = Some targetResource }
 
 type DnsNsRecordBuilder() =
-    member __.Yield _ = { NsRecordProperties.NsdNames = []; Name = ResourceName "@"; TTL = None; }
-    member __.Run(state : NsRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, NS state.NsdNames)
+    member _.Yield _ = { NsRecordProperties.NsdNames = []; Name = ResourceName "@"; TTL = None; }
+    member _.Run(state : NsRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, NS state.NsdNames)
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
@@ -139,8 +139,8 @@ type DnsPtrRecordBuilder() =
     member _.RecordTTL(state:PtrRecordProperties, ttl) = { state with TTL = Some ttl }
 
 type DnsTxtRecordBuilder() =
-    member __.Yield _ = { TxtRecordProperties.Name = ResourceName "@"; TxtValues = []; TTL = None; }
-    member __.Run(state : TxtRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, TXT state.TxtValues)
+    member _.Yield _ = { TxtRecordProperties.Name = ResourceName "@"; TxtValues = []; TTL = None; }
+    member _.Run(state : TxtRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, TXT state.TxtValues)
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
@@ -156,8 +156,8 @@ type DnsTxtRecordBuilder() =
     member _.RecordTTL(state:TxtRecordProperties, ttl) = { state with TTL = Some ttl }
 
 type DnsMxRecordBuilder() =
-    member __.Yield _ = { MxRecordProperties.Name = ResourceName "@"; MxValues = []; TTL = None; }
-    member __.Run(state : MxRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, MX state.MxValues)
+    member _.Yield _ = { MxRecordProperties.Name = ResourceName "@"; MxValues = []; TTL = None; }
+    member _.Run(state : MxRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, MX state.MxValues)
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
@@ -175,8 +175,8 @@ type DnsMxRecordBuilder() =
     member _.RecordTTL(state:MxRecordProperties, ttl) = { state with TTL = Some ttl }
 
 type DnsSrvRecordBuilder() =
-    member __.Yield _ = { SrvRecordProperties.Name = ResourceName "@"; SrvValues = []; TTL = None; }
-    member __.Run(state : SrvRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, SRV state.SrvValues)
+    member _.Yield _ = { SrvRecordProperties.Name = ResourceName "@"; SrvValues = []; TTL = None; }
+    member _.Run(state : SrvRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, SRV state.SrvValues)
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
@@ -193,7 +193,7 @@ type DnsSrvRecordBuilder() =
     member _.RecordTTL(state:SrvRecordProperties, ttl) = { state with TTL = Some ttl }
 
 type DnsSoaRecordBuilder() =
-    member __.Yield _ = 
+    member _.Yield _ = 
         { SoaRecordProperties.Name = ResourceName "@"
           Host = None
           Email = None
@@ -204,7 +204,7 @@ type DnsSoaRecordBuilder() =
           MinimumTTL = None
           TTL = None }
 
-    member __.Run(state : SoaRecordProperties) = 
+    member _.Run(state : SoaRecordProperties) = 
         let value = 
             { Host = state.Host
               Email = state.Email

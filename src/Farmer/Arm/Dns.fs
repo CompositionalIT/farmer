@@ -75,21 +75,12 @@ module DnsRecords =
                                     {| priority = srv.Priority |> Option.toNullable
                                        weight = srv.Weight |> Option.toNullable
                                        port = srv.Port |> Option.toNullable
-                                       target = 
-                                           match srv.Target with 
-                                           | Some target -> target
-                                           | None -> null |})
+                                       target =  Option.toObj srv.Target |})
                             "SRVRecords", box records
                         | SOA record -> 
                             let record = 
-                                {| host =
-                                    match record.Host with 
-                                    | Some email -> email
-                                    | None -> null
-                                   email = 
-                                    match record.Email with 
-                                    | Some email -> email
-                                    | None -> null
+                                {| host = Option.toObj record.Host
+                                   email = Option.toObj record.Email
                                    serialNumber = record.SerialNumber |> Option.toNullable
                                    refreshTime = record.RefreshTime |> Option.toNullable
                                    retryTime = record.RetryTime |> Option.toNullable
