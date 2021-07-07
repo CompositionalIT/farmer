@@ -55,34 +55,26 @@ type AzureFirewallBuilder() =
 
     /// Configure this firewall to use an unmanaged firewall policy.
     [<CustomOperation "link_to_unmanaged_firewall_policy">]
-    member this.LinkToUnmanagedFirewallPolicy (state:AzureFirewallConfig, firewallPolicyName:ResourceName) =
-        { state with FirewallPolicy = Some (Unmanaged(azureFirewallPolicies.resourceId firewallPolicyName)) }
-    member this.LinkToUnmanagedFirewallPolicy (state:AzureFirewallConfig, firewallPolicyName) =
-        { state with FirewallPolicy = Some (Unmanaged(azureFirewallPolicies.resourceId(ResourceName firewallPolicyName))) }
+    member this.LinkToUnmanagedFirewallPolicy (state:AzureFirewallConfig, resourceId) =
+        { state with FirewallPolicy = Some (Unmanaged resourceId) }
     /// Configure this firewall to use a managed firewall policy.
     [<CustomOperation "link_to_firewall_policy">]
-    member this.LinkToFirewallPolicy (state:AzureFirewallConfig, firewallPolicyName:ResourceName) =
-        { state with FirewallPolicy = Some (Managed(azureFirewallPolicies.resourceId firewallPolicyName)) }
-    member this.LinkToFirewallPolicy (state:AzureFirewallConfig, firewallPolicyName) =
-        { state with FirewallPolicy = Some (Managed(azureFirewallPolicies.resourceId(ResourceName firewallPolicyName))) }
+    member this.LinkToFirewallPolicy (state:AzureFirewallConfig, firewallPolicy:IArmResource) =
+        { state with FirewallPolicy = Some (Managed firewallPolicy.ResourceId) }
     /// The unmanaged virtualHub to which the firewall belongs. 
     [<CustomOperation "link_to_unmanaged_vhub">]
-    member this.LinkToUnmanagedVirtualHub (state:AzureFirewallConfig, vhubName:ResourceName) =
-        { state with VirtualHub = Some (Unmanaged(virtualHubs.resourceId vhubName)) }
-    member this.LinkToUnmanagedVirtualHub (state:AzureFirewallConfig, vhubName) =
-        { state with VirtualHub = Some (Unmanaged(virtualHubs.resourceId(ResourceName vhubName))) }
+    member this.LinkToUnmanagedVirtualHub (state:AzureFirewallConfig, resourceId) =
+        { state with VirtualHub = Some (Unmanaged resourceId) }
     /// The managed virtualHub to which the firewall belongs
     [<CustomOperation "link_to_vhub">]
-    member this.LinkToVirtualHub (state:AzureFirewallConfig, vhubName:ResourceName) =
-        { state with FirewallPolicy = Some (Managed(virtualHubs.resourceId vhubName)) }
-    member this.LinkToVirtualHub (state:AzureFirewallConfig, vhubName) =
-        { state with FirewallPolicy = Some (Managed(virtualHubs.resourceId(ResourceName vhubName))) }
+    member this.LinkToVirtualHub (state:AzureFirewallConfig, vhub:IArmResource) =    
+        { state with FirewallPolicy = Some (Managed vhub.ResourceId) }
     /// Configure this firewall to reserve a specified number of public ips.
     /// 0 is not a valid value for AZFW_HUB 
     [<CustomOperation "public_ip_reservation_count">]
     member _.PublicIpReservationCount(state:AzureFirewallConfig, count) =
         { state with HubIPAddressSpace = Some (HubIPAddressSpace.PublicCount count) }
-    member __.Run(state:AzureFirewallConfig) =
+    member _.Run(state:AzureFirewallConfig) =
         let stateIBuilder = state :> IBuilder
         match state.Sku.Name with
         | AZFW_Hub ->

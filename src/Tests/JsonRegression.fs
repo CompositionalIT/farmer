@@ -286,7 +286,7 @@ let tests =
                 name "farmer_firewall"
                 sku SkuName.AZFW_Hub SkuTier.Standard
                 public_ip_reservation_count 2
-                link_to_unmanaged_vhub "unmanaged-vhub" 
+                link_to_unmanaged_vhub (virtualHubs.resourceId "unmanaged-vhub") 
             }
             compareResourcesToJson [ firewall ] "azure-firewall.json"
         }
