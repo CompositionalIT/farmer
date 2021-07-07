@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+## 1.6.4
+* Service bus: Support max queue and topic sizes.
+* Service bus: Set default message TTL for subscriptions.
+
 ## 1.6.3
 * Container Service (AKS): Support basic SKU for the cluster's load balancer (default is standard).
 * Container Service (AKS): Support for private Kubernetes API access.
