@@ -1,15 +1,14 @@
 Release Notes
 =============
-## vNext
-* DNS Zone: Added SOA and SRV record support
-* Virtual Machine: Added Identity support
-* Virtual Machine: Added a PasswordParameterARM member
 
 ## 1.6.4
-* VirtualHubs: Support for virtualHubs and hubRouteTables
+* DNS Zone: Added SOA and SRV record support
 * Azure Firewall: Added support for Azure Firewalls
-* Service bus: Support max queue and topic sizes.
-* Service bus: Set default message TTL for subscriptions.
+* Service Bus: Support max queue and topic sizes.
+* Service Bus: Set default message TTL for subscriptions.
+* Virtual Hubs: Support for virtualHubs and hubRouteTables
+* Virtual Machine: Added Identity support
+* Virtual Machine: Added a PasswordParameterARM member
 
 ## 1.6.3
 * Container Service (AKS): Support basic SKU for the cluster's load balancer (default is standard).
