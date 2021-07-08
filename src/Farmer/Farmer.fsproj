@@ -91,6 +91,8 @@
     <Compile Include="Arm/Databricks.fs" />
     <Compile Include="Arm/VirtualWan.fs" />
     <Compile Include="Arm/TrafficManager.fs" />
+    <Compile Include="Arm/AzureFirewall.fs" />
+    <Compile Include="Arm/VirtualHub.fs" />
     <Compile Include="IdentityExtensions.fs" />
     <Compile Include="Builders/Builders.ResourceGroup.fs" />
     <Compile Include="Builders/Builders.LogAnalytics.fs" />
@@ -136,5 +138,6 @@
     <Compile Include="Builders/Builders.VirtualWan.fs" />
     <Compile Include="Builders/Builders.TrafficManager.fs" />
     <Compile Include="Aliases.fs" />
+    <Compile Include="Builders/Builders.AzureFirewall.fs" />
   </ItemGroup>
 </Project>
