@@ -23,10 +23,6 @@ The Azure Firewall builder (`azureFirewall`) is used to create Azure Firewall in
 | azureFirewall           | link_to_vhub | Specify the virtual hub deployed by farmer to which the azure firewall belongs |
 | azureFirewall           | public_ip_reservation_count | Specify The number of Public IP addresses associated with the azure firewall |
 
-
-
-
-
 ### Example
 
 ```fsharp

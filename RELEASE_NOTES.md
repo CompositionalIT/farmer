@@ -2,6 +2,7 @@ Release Notes
 =============
 
 ## 1.6.4
+* VirtualHubs: Support for virtualHubs and hubRouteTables
 * Azure Firewall: Added support for Azure Firewalls
 
 ## 1.6.3
