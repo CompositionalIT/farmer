@@ -1,5 +1,8 @@
 Release Notes
 =============
+## vNext
+* Virtual Machine: Added Identity support
+* Virtual Machine: Added a PasswordParameterARM member
 
 ## 1.6.4
 * Azure Firewall: Added support for Azure Firewalls
@@ -18,7 +21,7 @@ Release Notes
 * SQL Azure: Support for minimum TLS version.
 * Storage: Support for minimum TLS version.
 * Virtual Machine: Provide control over the public IP
-* Virtual Machine: Support for customData on osProfile Properties 
+* Virtual Machine: Support for customData on osProfile Properties
 * Virtual Network: Add support for vnet peering
 * WebApp: Added support for PrivateEndpoints
 

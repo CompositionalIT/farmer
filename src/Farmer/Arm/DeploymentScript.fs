@@ -53,7 +53,7 @@ type DeploymentScript =
             let dependencies = this.Dependencies.Add this.Identity.ResourceId
             {| deploymentScripts.Create(this.Name, this.Location, dependencies, this.Tags) with
                 kind = cliKind
-                identity = { SystemAssigned = Disabled; UserAssigned = [ this.Identity ] } |> ManagedIdentity.toArmJson
+                identity = { SystemAssigned = Disabled; UserAssigned = [ this.Identity ] }.ToArmJson
                 properties =
                     {| arguments = match this.Arguments with [] -> null | args -> String.concat " " args
                        azPowerShellVersion = azPowerShellVersion

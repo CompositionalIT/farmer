@@ -190,7 +190,7 @@ type Site =
                  kind = this.Kind
                  identity =
                      if this.Identity = ManagedIdentity.Empty then Unchecked.defaultof<_>
-                     else this.Identity |> ManagedIdentity.toArmJson
+                     else this.Identity.ToArmJson
                  properties =
                     {| serverFarmId = this.ServicePlan.Eval()
                        httpsOnly = this.HTTPSOnly

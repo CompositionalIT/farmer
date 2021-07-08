@@ -2,6 +2,7 @@
 module Farmer.Arm.Compute
 
 open Farmer
+open Farmer.Identity
 open Farmer.Vm
 open System
 open System.Text
@@ -46,6 +47,7 @@ type CustomScriptExtension =
                                 |> Convert.ToBase64String |}
                         |} :> _
             |} :> _
+
 type VirtualMachine =
     { Name : ResourceName
       Location : Location
@@ -59,9 +61,10 @@ type VirtualMachine =
       OsDisk : DiskInfo
       DataDisks : DiskInfo list
       NetworkInterfaceName : ResourceName
+      Identity : Identity.ManagedIdentity
       Tags: Map<string,string>  }
     interface IParameters with
-        member this.SecureParameters = 
+        member this.SecureParameters =
             if this.DisablePasswordAuthentication.IsSome && this.DisablePasswordAuthentication.Value then
                 []
             else
@@ -74,27 +77,30 @@ type VirtualMachine =
                 yield! this.StorageAccount |> Option.mapList storageAccounts.resourceId
             ]
             {| virtualMachines.Create(this.Name, this.Location, dependsOn, this.Tags) with
+                identity =
+                    if this.Identity = ManagedIdentity.Empty then Unchecked.defaultof<_>
+                    else this.Identity.ToArmJson
                 properties =
                  {| hardwareProfile = {| vmSize = this.Size.ArmValue |}
                     osProfile =
                      {| computerName = this.Name.Value
                         adminUsername = this.Credentials.Username
-                        adminPassword = 
+                        adminPassword =
                             if this.DisablePasswordAuthentication.IsSome && this.DisablePasswordAuthentication.Value then //If the disablePasswordAuthentication is set and the value is true then we don't need a password
-                                null 
-                            else 
+                                null
+                            else
                                 this.Credentials.Password.ArmExpression.Eval()
-                        customData = this.CustomData |> Option.map (System.Text.Encoding.UTF8.GetBytes >> Convert.ToBase64String) |> Option.toObj 
+                        customData = this.CustomData |> Option.map (System.Text.Encoding.UTF8.GetBytes >> Convert.ToBase64String) |> Option.toObj
                         linuxConfiguration =
                             if this.DisablePasswordAuthentication.IsSome || this.PublicKeys.IsSome then
                                 {|
                                     disablePasswordAuthentication = this.DisablePasswordAuthentication |> Option.map box |> Option.toObj
                                     ssh = match this.PublicKeys with
-                                          | Some publicKeys -> 
-                                            {| 
-                                                publicKeys = publicKeys |> List.map (fun k -> {| path = fst k;keyData = snd k|}) 
+                                          | Some publicKeys ->
+                                            {|
+                                                publicKeys = publicKeys |> List.map (fun k -> {| path = fst k;keyData = snd k|})
                                             |}
-                                          | None -> Unchecked.defaultof<_>          
+                                          | None -> Unchecked.defaultof<_>
                                 |}
                             else
                                 Unchecked.defaultof<_>

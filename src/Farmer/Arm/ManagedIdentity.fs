@@ -27,3 +27,7 @@ let toArmJson = function
     | { SystemAssigned = Enabled; UserAssigned = identities } ->
         {| ``type`` = "SystemAssigned, UserAssigned"
            userAssignedIdentities = identities |> List.map(fun identity -> identity.ResourceId.Eval(), obj()) |> dict |}
+
+type ManagedIdentity with
+    /// Builds the JSON ARM value for a resource's identity.
+    member this.ToArmJson = toArmJson this
