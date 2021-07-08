@@ -1666,6 +1666,38 @@ module AzureFirewall =
             | Standard -> "Standard"
             | Premium -> "Premium"
     
+module VirtualHub =
+    type Sku =
+        | Standard
+        member this.ArmValue =
+            match this with
+            | Standard -> "Standard"
+            
+    module HubRouteTable =
+        type Destination =
+            | CidrDestination of IPAddressCidr list
+            member this.DestinationTypeArmValue =
+                match this with
+                | CidrDestination _ -> "CIDR"
+            member this.DestinationsArmValue =
+                match this with
+                | CidrDestination destinations ->
+                    destinations
+                    |> List.map IPAddressCidr.format
+            
+        [<RequireQualifiedAccess>]
+        type NextHop =
+            | ResourceId of Farmer.LinkedResource
+            member this.NextHopTypeArmValue =
+                match this with
+                | ResourceId _ -> "ResourceId"
+            member this.NextHopArmValue =
+                match this with
+                | ResourceId linkedResource ->
+                    match linkedResource with
+                    | Managed resId
+                    | Unmanaged resId -> resId.Eval()
+
 namespace Farmer.DiagnosticSettings
 
 open Farmer

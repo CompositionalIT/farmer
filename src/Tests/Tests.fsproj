@@ -48,6 +48,7 @@
     <Compile Include="DeploymentScript.fs" />
     <Compile Include="Databricks.fs" />
     <Compile Include="VirtualWan.fs" />
+    <Compile Include="VirtualHub.fs" />
     <Compile Include="JsonRegression.fs" />
     <Compile Include="Types.fs" />
     <Compile Include="TrafficManager.fs" />

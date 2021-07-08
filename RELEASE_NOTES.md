@@ -6,6 +6,7 @@ Release Notes
 * Virtual Machine: Added a PasswordParameterARM member
 
 ## 1.6.4
+* VirtualHubs: Support for virtualHubs and hubRouteTables
 * Azure Firewall: Added support for Azure Firewalls
 * Service bus: Support max queue and topic sizes.
 * Service bus: Set default message TTL for subscriptions.
