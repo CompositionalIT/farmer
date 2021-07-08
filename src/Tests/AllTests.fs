@@ -46,6 +46,7 @@ let allTests =
                 Storage.tests
                 TrafficManager.tests
                 Types.tests
+                VirtualHub.tests
                 VirtualMachine.tests
                 VirtualNetworkGateway.tests
                 VirtualWan.tests

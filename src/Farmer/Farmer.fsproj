@@ -137,7 +137,8 @@
     <Compile Include="Builders/Builders.DiagnosticSetting.fs" />
     <Compile Include="Builders/Builders.VirtualWan.fs" />
     <Compile Include="Builders/Builders.TrafficManager.fs" />
-    <Compile Include="Aliases.fs" />
     <Compile Include="Builders/Builders.AzureFirewall.fs" />
+    <Compile Include="Builders/Builders.VirtualHub.fs" />
+    <Compile Include="Aliases.fs" />
   </ItemGroup>
 </Project>
