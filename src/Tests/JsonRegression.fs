@@ -301,11 +301,6 @@ let tests =
                 link_to_vhub vhub
                 depends_on [(vhub :>IBuilder).ResourceId]
             }
-            let template = arm {
-                location Location.NorthEurope
-                add_resources [firewall; vhub; vwan]
-            }
-            template :> IDeploymentSource |> Farmer.Writer.quickWrite "firewall"
             compareResourcesToJson [ firewall; vhub; vwan ] "azure-firewall.json"
         }
     ]
