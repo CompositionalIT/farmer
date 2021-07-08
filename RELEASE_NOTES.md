@@ -1,6 +1,7 @@
 Release Notes
 =============
 ## vNext
+* DNS Zone: Added SOA and SRV record support
 * Virtual Machine: Added Identity support
 * Virtual Machine: Added a PasswordParameterARM member
 

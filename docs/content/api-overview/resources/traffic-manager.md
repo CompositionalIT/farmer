@@ -32,11 +32,11 @@ The Traffic Manager builder (`trafficManager`) creates traffic manager profiles 
 | trafficManager | add_endpoints | Adds Endpoints to the Traffic Manager profile. |
 | endpoint | name | Sets the name of the Endpoint. |
 | endpoint | weight | Sets the weight of the Endpoint. |
-| endpoint | weight | Sets the priority of the Endpoint. |
-| endpoint | enable_endpoint | Sets the name of the Endpoint. |
-| endpoint | disable_endpoint  |Disables the Endpoint. |
+| endpoint | priority | Sets the priority of the Endpoint. |
+| endpoint | enable_endpoint | Enables the Endpoint. |
+| endpoint | disable_endpoint  | Disables the Endpoint. |
 | endpoint | target_webapp | Sets the target of the Endpoint to a web app. |
-| endpoint | target_webapp | Sets the target of the Endpoint to an external domain/IP and location. |
+| endpoint | target_external | Sets the target of the Endpoint to an external domain/IP and location. |
 
 #### Example
 

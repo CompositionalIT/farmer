@@ -1556,6 +1556,22 @@ module EventGrid =
 /// Built in Azure roles (https://docs.microsoft.com/en-us/azure/role-based-access-control/built-in-roles)
 module Dns =
     type DnsZoneType = Public | Private
+
+    type SrvRecord =  
+        { Priority : int option
+          Weight : int option
+          Port : int option
+          Target : string option }
+
+    type SoaRecord =
+        { Host : string option
+          Email : string option
+          SerialNumber : int64 option
+          RefreshTime : int64 option
+          RetryTime : int64 option
+          ExpireTime : int64 option
+          MinimumTTL : int64 option }
+
     type DnsRecordType =
         | A of TargetResource : ResourceName option * ARecords : string list
         | AAAA of TargetResource : ResourceName option * AaaaRecords : string list
@@ -1564,6 +1580,8 @@ module Dns =
         | PTR of PtrRecords : string list
         | TXT of TxtRecords : string list
         | MX of {| Preference : int; Exchange : string |} list
+        | SRV of SrvRecord list
+        | SOA of SoaRecord
 
 module Databricks =
     type KeySource = Databricks | KeyVault member this.ArmValue = match this with Databricks -> "Default" | KeyVault -> "MicrosoftKeyVault"
