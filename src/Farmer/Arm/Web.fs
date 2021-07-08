@@ -187,6 +187,12 @@ type Site =
         member this.ResourceId = sites.resourceId this.Name
         member this.JsonModel =
             let dependencies = this.Dependencies + (Set this.Identity.Dependencies)
+            let keyvaultId = 
+                match (this.KeyVaultReferenceIdentity, this.Identity) with
+                | Some x, _
+                // If there is no managed identity and only one user-assigned identity, we should use that be default
+                | None, {SystemAssigned = Disabled; UserAssigned = [x]} -> x.ResourceId.Eval()
+                | _ -> null
             {| sites.Create(this.Name, this.Location, dependencies, this.Tags) with
                  kind = this.Kind
                  identity =
@@ -196,7 +202,7 @@ type Site =
                     {| serverFarmId = this.ServicePlan.Eval()
                        httpsOnly = this.HTTPSOnly
                        clientAffinityEnabled = match this.ClientAffinityEnabled with Some v -> box v | None -> null
-                       keyVaultReferenceIdentity = this.KeyVaultReferenceIdentity |> Option.map (fun x->x.ResourceId.Eval()) |> Option.defaultValue null
+                       keyVaultReferenceIdentity = keyvaultId
                        siteConfig =
                         {| alwaysOn = this.AlwaysOn
                            appSettings = this.AppSettings |> Map.toList |> List.map(fun (k,v) -> {| name = k; value = v.Value |})
