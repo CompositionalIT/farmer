@@ -42,12 +42,12 @@ let dns = dnsZone {
                 "my.other.dns.com."
             ]
         }
-        soaRecord { 
+        soaRecord {
             host "ns1-09.azure-dns.com."
             ttl 3600
             email "test.microsoft.com"
-            serial_number 1L 
-            minimum_TTL 2L
+            serial_number 1L
+            minimum_ttl 2L
             refresh_time 3L
             retry_time 4L
             expire_time 5L

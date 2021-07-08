@@ -29,13 +29,13 @@ let tests = testList "DNS Zone" [
                                 ttl 7200
                                 add_ipv4_addresses [ "192.168.0.1" ]
                             }
-                            soaRecord { 
+                            soaRecord {
                                 name "soaName"
                                 host "ns1-09.azure-dns.com."
                                 ttl 3600
                                 email "azuredns-hostmaster.microsoft.com"
-                                serial_number 1L 
-                                minimum_TTL 300L
+                                serial_number 1L
+                                minimum_ttl 300L
                                 refresh_time 3600L
                                 retry_time 300L
                                 expire_time 2419200L

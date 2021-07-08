@@ -30,7 +30,7 @@ type PtrRecordProperties =  { Name: ResourceName; PtrdNames : string list; TTL: 
 type TxtRecordProperties =  { Name: ResourceName; TxtValues : string list; TTL: int option; }
 type MxRecordProperties =  { Name: ResourceName; MxValues : {| Preference : int; Exchange : string |} list; TTL: int option; }
 type SrvRecordProperties =  { Name: ResourceName; SrvValues : SrvRecord list; TTL: int option; }
-type SoaRecordProperties =  
+type SoaRecordProperties =
     { Name: ResourceName
       Host : string option
       Email : string option
@@ -193,7 +193,7 @@ type DnsSrvRecordBuilder() =
     member _.RecordTTL(state:SrvRecordProperties, ttl) = { state with TTL = Some ttl }
 
 type DnsSoaRecordBuilder() =
-    member _.Yield _ = 
+    member _.Yield _ =
         { SoaRecordProperties.Name = ResourceName "@"
           Host = None
           Email = None
@@ -204,8 +204,8 @@ type DnsSoaRecordBuilder() =
           MinimumTTL = None
           TTL = None }
 
-    member _.Run(state : SoaRecordProperties) = 
-        let value = 
+    member _.Run(state : SoaRecordProperties) =
+        let value =
             { Host = state.Host
               Email = state.Email
               SerialNumber = state.SerialNumber
@@ -228,14 +228,14 @@ type DnsSoaRecordBuilder() =
     [<CustomOperation "email">]
     member _.RecordEmail(state:SoaRecordProperties, email : string) = { state with Email = Some email }
 
-    /// Sets the expire time for this SOA record in seconds. 
+    /// Sets the expire time for this SOA record in seconds.
     /// Defaults to 2419200 (28 days).
     [<CustomOperation "expire_time">]
     member _.RecordExpireTime(state:SoaRecordProperties, expireTime : int64) = { state with ExpireTime = Some expireTime }
 
     /// Sets the minimum time to live for this SOA record in seconds.
     /// Defaults to 300.
-    [<CustomOperation "minimum_TTL">]
+    [<CustomOperation "minimum_ttl">]
     member _.RecordMinimumTTL(state:SoaRecordProperties, minTTL : int64) = { state with MinimumTTL = Some minTTL }
 
     /// Sets the refresh time for this SOA record in seconds.

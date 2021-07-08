@@ -23,7 +23,7 @@ It supports most record types (except CAA) and has specific builders for every r
 #### SOA records
 You can only have one SOA record and it is [always created alongside a DNS zone](https://docs.microsoft.com/en-us/azure/dns/dns-zones-records#soa-records), whether you specify it or not.
 
-You can use the builder provided by Farmer to edit any of its properties. You should **not**, however, edit the `host` as [this is set automatically by Azure](https://docs.microsoft.com/en-us/azure/dns/dns-operations-recordsets-portal#modify-soa-records). 
+You can use the builder provided by Farmer to edit any of its properties. You should **not**, however, edit the `host` as [this is set automatically by Azure](https://docs.microsoft.com/en-us/azure/dns/dns-operations-recordsets-portal#modify-soa-records).
 
 Ideally it just wouldn't be exposed, however [contrary to the official documentation](https://docs.microsoft.com/en-us/azure/templates/microsoft.network/dnszones/soa?tabs=json#soarecord-object) Azure rejects the ARM record if it is absent. For this reason if you wish to use the SOA builder it is recommended to first deploy your DNS Zone without it, copy the generated SOA host from the portal and then finally paste it into the Farmer builder's `host` parameter.
 
@@ -116,7 +116,7 @@ In addition, each record builder has its own custom keywords:
 | host | Sets the host name for the record |
 | email | Sets the email for the record |
 | expire_time | Sets the expire time name for the record in seconds |
-| minimum_TTL | Sets the minimum time to live for the record in seconds |
+| minimum_ttl | Sets the minimum time to live for the record in seconds |
 | refresh_time | Sets the refresh time for the record in seconds |
 | retry_time | Sets the retry time for the record in seconds |
 | serial_number | Sets the serial number for the record |
@@ -161,13 +161,13 @@ let dns = dnsZone {
                 1, "farmer2-com.mail.protection.outlook.com";
             ]
         }
-        soaRecord { 
+        soaRecord {
             name "soaName"
             host "ns1-09.azure-dns.com."
             ttl 3600
             email "test.microsoft.com"
-            serial_number 1L 
-            minimum_TTL 300L
+            serial_number 1L
+            minimum_ttl 300L
             refresh_time 3600L
             retry_time 300L
             expire_time 2419200L
