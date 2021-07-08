@@ -1630,6 +1630,24 @@ module Subscription =
     /// Gets an ARM expression pointing to the tenant id of the current subscription.
     let TenantId = ArmExpression.create "subscription().tenantid"
 
+module AzureFirewall =
+
+    type SkuName =
+        | AZFW_VNet
+        | AZFW_Hub
+        member this.ArmValue =
+            match this with
+            | AZFW_VNet -> "AZFW_VNet"
+            | AZFW_Hub -> "AZFW_Hub"
+
+    type SkuTier =
+        | Standard
+        | Premium
+        member this.ArmValue =
+            match this with
+            | Standard -> "Standard"
+            | Premium -> "Premium"
+    
 namespace Farmer.DiagnosticSettings
 
 open Farmer

@@ -4,6 +4,9 @@ Release Notes
 * Virtual Machine: Added Identity support
 * Virtual Machine: Added a PasswordParameterARM member
 
+## 1.6.4
+* Azure Firewall: Added support for Azure Firewalls
+
 ## 1.6.3
 * Container Service (AKS): Support basic SKU for the cluster's load balancer (default is standard).
 * Container Service (AKS): Support for private Kubernetes API access.

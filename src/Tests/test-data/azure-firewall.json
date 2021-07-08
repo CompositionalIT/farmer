@@ -1,0 +1,30 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "outputs": {},
+  "parameters": {},
+  "resources": [
+    {
+      "apiVersion": "2020-07-01",
+      "dependsOn": [],
+      "location": "northeurope",
+      "name": "farmer_firewall",
+      "properties": {
+        "hubIPAddresses": {
+          "publicIPs": {
+            "addresses": [],
+            "count": 2
+          }
+        },
+        "sku": {
+          "name": "AZFW_Hub",
+          "tier": "Standard"
+        },
+        "virtualHub": {
+          "id": "[resourceId('Microsoft.Network/virtualHubs', 'unmanaged-vhub')]"
+        }
+      },
+      "type": "Microsoft.Network/azureFirewalls"
+    }
+  ]
+}
