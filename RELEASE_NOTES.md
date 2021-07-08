@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.6.5
+* Azure Firewall: Bug fix for link_to_vhub and added depends_on to builder
+
 ## 1.6.4
 * DNS Zone: Added SOA and SRV record support
 * Azure Firewall: Added support for Azure Firewalls
