@@ -282,12 +282,30 @@ let tests =
         }
         
         test "AzureFirewall" {
+            let vwan = vwan {
+                name "farmer-vwan"
+                disable_vpn_encryption
+                allow_branch_to_branch_traffic
+                office_365_local_breakout_category Office365LocalBreakoutCategory.None
+                standard_vwan
+            }
+            let vhub = vhub {
+                name "farmer_vhub"
+                address_prefix (IPAddressCidr.parse "100.73.255.0/24")
+                link_to_vwan vwan
+            }
             let firewall = azureFirewall {
                 name "farmer_firewall"
                 sku SkuName.AZFW_Hub SkuTier.Standard
                 public_ip_reservation_count 2
-                link_to_unmanaged_vhub (virtualHubs.resourceId "unmanaged-vhub") 
+                link_to_vhub vhub
+                depends_on [(vhub :>IBuilder).ResourceId]
             }
-            compareResourcesToJson [ firewall ] "azure-firewall.json"
+            let template = arm {
+                location Location.NorthEurope
+                add_resources [firewall; vhub; vwan]
+            }
+            template :> IDeploymentSource |> Farmer.Writer.quickWrite "firewall"
+            compareResourcesToJson [ firewall; vhub; vwan ] "azure-firewall.json"
         }
     ]
