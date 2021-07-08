@@ -149,6 +149,7 @@ type Site =
       Dependencies : ResourceId Set
       Kind : string
       Identity : Identity.ManagedIdentity
+      KeyVaultReferenceIdentity : UserAssignedIdentity option
       LinuxFxVersion : string option
       AppCommandLine : string option
       NetFrameworkVersion : string option
@@ -195,6 +196,7 @@ type Site =
                     {| serverFarmId = this.ServicePlan.Eval()
                        httpsOnly = this.HTTPSOnly
                        clientAffinityEnabled = match this.ClientAffinityEnabled with Some v -> box v | None -> null
+                       keyVaultReferenceIdentity = this.KeyVaultReferenceIdentity |> Option.map (fun x->x.ResourceId.Eval()) |> Option.defaultValue null
                        siteConfig =
                         {| alwaysOn = this.AlwaysOn
                            appSettings = this.AppSettings |> Map.toList |> List.map(fun (k,v) -> {| name = k; value = v.Value |})

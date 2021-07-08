@@ -1,5 +1,8 @@
 Release Notes
 =============
+## 1.6.5
+* WebApp: Add support for keyvault reference user identity
+* Functions: Add support for keyvault reference user identity
 
 ## 1.6.4
 * Azure Firewall: Added support for Azure Firewalls

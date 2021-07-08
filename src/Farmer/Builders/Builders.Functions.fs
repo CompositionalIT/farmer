@@ -33,6 +33,7 @@ module private FunctionsConfig =
           Settings = state.Settings
           Cors = state.Cors
           Identity = state.Identity
+          KeyVaultReferenceIdentity = state.KeyVaultReferenceIdentity
           SecretStore = state.SecretStore
           ZipDeployPath = state.ZipDeployPath
           AlwaysOn = state.AlwaysOn
@@ -47,6 +48,7 @@ module private FunctionsConfig =
             Settings = config.Settings
             Cors = config.Cors
             Identity = config.Identity
+            KeyVaultReferenceIdentity = config.KeyVaultReferenceIdentity
             SecretStore = config.SecretStore
             ZipDeployPath = config.ZipDeployPath
             WorkerProcess = config.WorkerProcess }
@@ -66,6 +68,7 @@ type FunctionsConfig =
       PublishAs : PublishAs
       ExtensionVersion : FunctionsExtensionVersion
       Identity : ManagedIdentity
+      KeyVaultReferenceIdentity : UserAssignedIdentity Option
       SecretStore : SecretStore
       ZipDeployPath : string option
       AlwaysOn : bool
@@ -204,6 +207,7 @@ type FunctionsConfig =
               |> Map
 
               Identity = this.Identity
+              KeyVaultReferenceIdentity = this.KeyVaultReferenceIdentity
               Kind =
                 match this.OperatingSystem with
                 | Windows -> "functionapp"
@@ -320,6 +324,7 @@ type FunctionsBuilder() =
           Settings = Map.empty
           Dependencies = Set.empty
           Identity = ManagedIdentity.Empty
+          KeyVaultReferenceIdentity = None
           PublishAs = Code
           SecretStore = AppService
           Tags = Map.empty
