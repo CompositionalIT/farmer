@@ -2,6 +2,11 @@ Release Notes
 =============
 ## vNext
 * DNS Zone: Added SOA and SRV record support
+* Virtual Machine: Added Identity support
+* Virtual Machine: Added a PasswordParameterARM member
+
+## 1.6.4
+* Azure Firewall: Added support for Azure Firewalls
 
 ## 1.6.3
 * Container Service (AKS): Support basic SKU for the cluster's load balancer (default is standard).
@@ -17,7 +22,7 @@ Release Notes
 * SQL Azure: Support for minimum TLS version.
 * Storage: Support for minimum TLS version.
 * Virtual Machine: Provide control over the public IP
-* Virtual Machine: Support for customData on osProfile Properties 
+* Virtual Machine: Support for customData on osProfile Properties
 * Virtual Network: Add support for vnet peering
 * WebApp: Added support for PrivateEndpoints
 

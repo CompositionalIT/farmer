@@ -13,6 +13,7 @@ let myVm = vm {
     add_ssd_disk 128
     add_slow_disk 512
     diagnostics_support
+    system_identity
 }
 
 let deployment = arm {

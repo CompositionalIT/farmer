@@ -807,7 +807,6 @@ module Sql =
         static member Create (ResourceName name) = SqlAccountName.Create name
         member this.ResourceName = match this with SqlAccountName name -> name
 
-
 /// Represents a role that can be granted to an identity.
 type RoleId =
     | RoleId of {| Name:string; Id : Guid |}
@@ -1225,7 +1224,7 @@ module Network =
         static member ContainerRegistry = EndpointServiceType "Microsoft.ContainerRegistry"
         /// Microsoft.EventHub
         static member EventHub = EndpointServiceType "Microsoft.EventHub"
-        /// Microsoft.KeyVault 
+        /// Microsoft.KeyVault
         static member KeyVault = EndpointServiceType "Microsoft.KeyVault"
         /// Microsoft.ServiceBus
         static member ServiceBus = EndpointServiceType "Microsoft.ServiceBus"
@@ -1350,18 +1349,18 @@ module DeliveryPolicy =
     type IOperator =
             abstract member AsOperator : string
             abstract member AsNegateCondition : bool
-    
+
     type EqualityOperator =
         | Equals
         | NotEquals
         interface IOperator with
             member this.AsOperator = "Equal"
-    
+
             member this.AsNegateCondition =
                 match this with
                 | Equals -> false
                 | NotEquals -> true
-    
+
     type ComparisonOperator =
         | Any
         | Equals
@@ -1402,7 +1401,7 @@ module DeliveryPolicy =
                 | NotGreaterThan -> "GreaterThan"
                 | GreaterThanOrEquals
                 | NotGreaterThanOrEquals -> "GreaterThanOrEqual"
-    
+
             member this.AsNegateCondition =
                 match this with
                 | NotAny
@@ -1415,7 +1414,7 @@ module DeliveryPolicy =
                 | NotGreaterThan
                 | NotGreaterThanOrEquals -> true
                 | _ -> false
-    
+
     type RemoteAddressOperator =
         | Any
         | GeoMatch
@@ -1432,14 +1431,14 @@ module DeliveryPolicy =
                 | NotGeoMatch -> "GeoMatch"
                 | IPMatch
                 | NotIPMatch -> "IPMatch"
-    
+
             member this.AsNegateCondition =
                 match this with
                 | NotAny
                 | NotGeoMatch
                 | NotIPMatch -> true
                 | _ -> false
-    
+
     type DeviceType =
         | Mobile
         | Desktop
@@ -1447,7 +1446,7 @@ module DeliveryPolicy =
             match this with
             | Desktop -> "Desktop"
             | Mobile -> "Mobile"
-    
+
     type HttpVersion =
         | Version20
         | Version11
@@ -1459,7 +1458,7 @@ module DeliveryPolicy =
             | Version11 -> "1.1"
             | Version10 -> "1.0"
             | Version09 -> "0.9"
-    
+
     type RequestMethod =
         | Get
         | Post
@@ -1477,7 +1476,7 @@ module DeliveryPolicy =
             | Head -> "HEAD"
             | Options -> "OPTIONS"
             | Trace -> "TRACE"
-    
+
     type Protocol =
         | Http
         | Https
@@ -1485,7 +1484,7 @@ module DeliveryPolicy =
             match this with
             | Http -> "HTTP"
             | Https -> "HTTPS"
-    
+
     type UrlRedirectProtocol =
         | Http
         | Https
@@ -1495,7 +1494,7 @@ module DeliveryPolicy =
             | Http -> "Http"
             | Https -> "Https"
             | MatchRequest -> "MatchRequest"
-    
+
     type CaseTransform =
         | NoTransform
         | ToLowercase
@@ -1505,7 +1504,7 @@ module DeliveryPolicy =
             | NoTransform -> []
             | ToLowercase -> [ "Lowercase" ]
             | ToUppercase -> [ "Uppercase" ]
-            
+
     type CacheBehaviour =
         | Override
         | BypassCache
@@ -1537,7 +1536,7 @@ module DeliveryPolicy =
             | Append -> "Append"
             | Overwrite -> "Overwrite"
             | Delete -> "Delete"
-            
+
     type RedirectType =
         | Found
         | Moved
@@ -1630,24 +1629,42 @@ module Serialization =
             PropertyNameCaseInsensitive = true)
     let toJson x = JsonSerializer.Serialize(x, jsonSerializerOptions)
     let ofJson<'T> (x:string) = JsonSerializer.Deserialize<'T>(x, jsonSerializerOptions)
-    
+
 module Resource =
     /// Creates a unique IArmResource from an arbitrary object.
     let ofObj armObject =
         { new IArmResource with
                 member _.ResourceId = ResourceId.create (ResourceType("", ""), ResourceName (System.Guid.NewGuid().ToString()))
                 member _.JsonModel = armObject }
-    
+
     /// Creates a unique IArmResource from a JSON string containing the output you want.
     let ofJson = Serialization.ofJson >> ofObj
-    
+
 module Json =
     /// Creates a unique IArmResource from a JSON string containing the output you want.
     let toIArmResource = Resource.ofJson
-    
+
 module Subscription =
     /// Gets an ARM expression pointing to the tenant id of the current subscription.
     let TenantId = ArmExpression.create "subscription().tenantid"
+
+module AzureFirewall =
+
+    type SkuName =
+        | AZFW_VNet
+        | AZFW_Hub
+        member this.ArmValue =
+            match this with
+            | AZFW_VNet -> "AZFW_VNet"
+            | AZFW_Hub -> "AZFW_Hub"
+
+    type SkuTier =
+        | Standard
+        | Premium
+        member this.ArmValue =
+            match this with
+            | Standard -> "Standard"
+            | Premium -> "Premium"
     
 namespace Farmer.DiagnosticSettings
 

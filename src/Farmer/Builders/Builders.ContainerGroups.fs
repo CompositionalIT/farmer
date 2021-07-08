@@ -234,12 +234,8 @@ type ContainerGroupBuilder() =
         let newVolumes = volumes |> Map.ofSeq
         let updatedVolumes = state.Volumes |> Map.fold (fun current key vol -> Map.add key vol current) newVolumes
         { state with Volumes = updatedVolumes }
-    /// Sets the managed identity on this container group.
-    [<CustomOperation "add_identity">]
-    member _.AddIdentity(state:ContainerGroupConfig, identity:UserAssignedIdentity) = { state with Identity = state.Identity + identity }
-    member this.AddIdentity(state, identity:UserAssignedIdentityConfig) = this.AddIdentity(state, identity.UserAssignedIdentity)
-    [<CustomOperation "system_identity">]
-    member _.SystemIdentity(state:ContainerGroupConfig) = { state with Identity = { state.Identity with SystemAssigned = Enabled } }
+
+    interface IIdentity<ContainerGroupConfig> with member _.Add state updater = { state with Identity = updater state.Identity }
     interface ITaggable<ContainerGroupConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 /// Creates an image registry credential with a generated SecureParameter for the password.
