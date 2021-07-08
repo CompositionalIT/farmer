@@ -22,7 +22,7 @@ type AzureFirewallConfig =
       VirtualHub : LinkedResource option
       HubIPAddressSpace : HubIPAddressSpace option
       Sku : Sku
-      Dependencies : ResourceId Set}
+      Dependencies : ResourceId Set }
     interface IBuilder with
         member this.ResourceId = azureFirewalls.resourceId this.Name
         member this.BuildResources location = [
@@ -50,7 +50,7 @@ type AzureFirewallBuilder() =
           FirewallPolicy = None
           VirtualHub = None
           HubIPAddressSpace = None
-          Dependencies = Set.empty}
+          Dependencies = Set.empty }
     /// The name of the firewall.
     [<CustomOperation "name">] member _.Name(state:AzureFirewallConfig, name) = { state with Name = ResourceName name }
     /// The SKU of the firewall.
@@ -91,6 +91,5 @@ type AzureFirewallBuilder() =
         | AZFW_VNet -> ()
         state
     interface IDependable<AzureFirewallConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
-
         
 let azureFirewall = AzureFirewallBuilder()
