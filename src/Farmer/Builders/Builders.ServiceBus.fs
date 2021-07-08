@@ -16,6 +16,7 @@ type ServiceBusQueueConfig =
       Session : bool option
       DeadLetteringOnMessageExpiration : bool option
       MaxDeliveryCount : int option
+      MaxSizeInMegabytes : int<Mb> option
       EnablePartitioning : bool option
       AuthorizationRules : Map<ResourceName, AuthorizationRuleRight Set>}
 
@@ -28,6 +29,7 @@ type ServiceBusQueueBuilder() =
           DeadLetteringOnMessageExpiration = None
           DefaultMessageTimeToLive = None
           MaxDeliveryCount = None
+          MaxSizeInMegabytes = None
           EnablePartitioning = None
           AuthorizationRules = Map.empty }
 
@@ -37,11 +39,16 @@ type ServiceBusQueueBuilder() =
     [<CustomOperation "lock_duration_minutes">] member _.LockDurationMinutes(state:ServiceBusQueueConfig, duration) = { state with LockDuration = Some (TimeSpan.FromMinutes (float duration)) }
     /// The maximum number of times a message can be delivered before dead lettering.
     [<CustomOperation "duplicate_detection_minutes">] member _.DuplicateDetection(state:ServiceBusQueueConfig, maxTimeWindow) = { state with DuplicateDetection = Some (TimeSpan.FromMinutes (float maxTimeWindow)) }
+    /// The maximum size for the queue in megabytes.
+    [<CustomOperation "max_queue_size">]
+    member _.MaxTopicSize(state:ServiceBusQueueConfig, maxTopicSize:int<Mb>) = { state with MaxSizeInMegabytes = Some maxTopicSize }
     /// The default time-to-live for messages in a timespan string (e.g. '00:05:00'). If not specified, the maximum TTL will be set for the SKU.
     [<CustomOperation "message_ttl">]
     member _.MessageTtl(state:ServiceBusQueueConfig, ttl) = { state with DefaultMessageTimeToLive = Some (TimeSpan.Parse ttl) }
     /// The default time-to-live for messages in days. If not specified, the maximum TTL will be set for the SKU.
     member _.MessageTtl(state:ServiceBusQueueConfig, ttl:int<Days>) = { state with DefaultMessageTimeToLive = ttl / 1<Days> |> float |> TimeSpan.FromDays |> Some }
+    //// The default time-to-live for messages defined in a .NET TimeSpan.
+    member _.MessageTtl(state:ServiceBusQueueConfig, timespan:TimeSpan) = { state with DefaultMessageTimeToLive = Some timespan }
     /// Enables session support.
     [<CustomOperation "max_delivery_count">] member _.MaxDeliveryCount(state:ServiceBusQueueConfig, count) = { state with MaxDeliveryCount = Some count }
     /// Whether to enable duplicate detection, and if so, how long to check for.ServiceBusQueueConfig
@@ -87,6 +94,13 @@ type ServiceBusSubscriptionBuilder() =
     /// Whether to enable duplicate detection, and if so, how long to check for.ServiceBusQueueConfig
     [<CustomOperation "duplicate_detection_minutes">]
      member _.DuplicateDetection(state:ServiceBusSubscriptionConfig, maxTimeWindow) = { state with DuplicateDetection = Some (TimeSpan.FromMinutes (float maxTimeWindow)) }
+    /// The default time-to-live for messages in a timespan string (e.g. '00:05:00'). If not specified, the maximum TTL will be set for the SKU.
+    [<CustomOperation "message_ttl">]
+    member _.MessageTtl(state:ServiceBusSubscriptionConfig, ttl) = { state with DefaultMessageTimeToLive = Some (TimeSpan.Parse ttl) }
+    /// The default time-to-live for messages in days. If not specified, the maximum TTL will be set for the SKU.
+    member _.MessageTtl(state:ServiceBusSubscriptionConfig, ttl:int<Days>) = { state with DefaultMessageTimeToLive = ttl / 1<Days> |> float |> TimeSpan.FromDays |> Some }
+    //// The default time-to-live for messages defined in a .NET TimeSpan.
+    member _.MessageTtl(state:ServiceBusSubscriptionConfig, timespan:TimeSpan) = { state with DefaultMessageTimeToLive = Some timespan }
     /// Enables session support.
     [<CustomOperation "max_delivery_count">]
      member _.MaxDeliveryCount(state:ServiceBusSubscriptionConfig, count) = { state with MaxDeliveryCount = Some count }
@@ -116,6 +130,7 @@ type ServiceBusTopicConfig =
       DuplicateDetection : TimeSpan option
       DefaultMessageTimeToLive : TimeSpan option
       EnablePartitioning : bool option
+      MaxSizeInMegabytes : int<Mb> option
       Subscriptions : Map<ResourceName, ServiceBusSubscriptionConfig> }
     interface IBuilder with
         member this.ResourceId = topics.resourceId (this.Namespace.Name, this.Name)
@@ -132,7 +147,8 @@ type ServiceBusTopicConfig =
                 | Unmanaged resId -> resId
               DuplicateDetectionHistoryTimeWindow = this.DuplicateDetection |> Option.map IsoDateTime.OfTimeSpan
               DefaultMessageTimeToLive = this.DefaultMessageTimeToLive |> Option.map IsoDateTime.OfTimeSpan
-              EnablePartitioning = this.EnablePartitioning }
+              EnablePartitioning = this.EnablePartitioning
+              MaxSizeInMegabytes = this.MaxSizeInMegabytes }
             for subscription in this.Subscriptions do
                 let subscription = subscription.Value
                 { Name = subscription.Name
@@ -158,18 +174,24 @@ type ServiceBusTopicBuilder() =
           DuplicateDetection = None
           DefaultMessageTimeToLive = None
           EnablePartitioning = None
+          MaxSizeInMegabytes = None
           Subscriptions = Map.empty }
 
     /// The name of the queue.
     [<CustomOperation "name">] member _.Name(state:ServiceBusTopicConfig, name) = { state with Name = ResourceName name }
     /// Whether to enable duplicate detection, and if so, how long to check for.ServiceBusQueueConfig
     [<CustomOperation "duplicate_detection_minutes">] member _.DuplicateDetection(state:ServiceBusTopicConfig, maxTimeWindow) = { state with DuplicateDetection = Some (TimeSpan.FromMinutes (float maxTimeWindow)) }
+    /// The maximum size for the topic in megabytes.
+    [<CustomOperation "max_topic_size">]
+    member _.MaxTopicSize(state:ServiceBusTopicConfig, maxTopicSize:int<Mb>) = { state with MaxSizeInMegabytes = Some maxTopicSize }
     /// The default time-to-live for messages in a timespan string (e.g. '00:05:00'). If not specified, the maximum TTL will be set for the SKU.
     [<CustomOperation "message_ttl">]
     member _.MessageTtl(state:ServiceBusTopicConfig, ttl) = { state with DefaultMessageTimeToLive = Some (TimeSpan.Parse ttl) }
     /// The default time-to-live for messages in days. If not specified, the maximum TTL will be set for the SKU.
     member _.MessageTtl(state:ServiceBusTopicConfig, ttl:int<Days>) = { state with DefaultMessageTimeToLive = ttl / 1<Days> |> float |> TimeSpan.FromDays |> Some }
-    /// Enables partition support on the queue.
+    //// The default time-to-live for messages defined in a .NET TimeSpan.
+    member _.MessageTtl(state:ServiceBusTopicConfig, timespan:TimeSpan) = { state with DefaultMessageTimeToLive = Some timespan }
+    /// Enables partition support on the topic.
     [<CustomOperation "enable_partition">] member _.EnablePartition(state:ServiceBusTopicConfig) = { state with EnablePartitioning = Some true }
     [<CustomOperation "add_subscriptions">]
     member _.AddSubscriptions(state:ServiceBusTopicConfig, subscriptions) =
@@ -223,6 +245,7 @@ type ServiceBusConfig =
                     | Some ttl, _ -> ttl
                     |> IsoDateTime.OfTimeSpan
                 MaxDeliveryCount = queue.MaxDeliveryCount
+                MaxSizeInMegabytes = queue.MaxSizeInMegabytes
                 EnablePartitioning = queue.EnablePartitioning }
               for rule in queue.AuthorizationRules do
                 { QueueAuthorizationRule.Name = rule.Key.Map(fun rule -> $"{this.Name.Value}/{queue.Name.Value}/%s{rule}")

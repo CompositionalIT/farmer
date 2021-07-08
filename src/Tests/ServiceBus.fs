@@ -153,6 +153,21 @@ let tests = testList "Service Bus Tests" [
             Expect.equal (queue.DefaultMessageTimeToLive.GetValueOrDefault TimeSpan.MinValue).TotalDays TimeSpan.MaxValue.TotalDays "Default TTL should be max value"
         }
 
+        test "Max size set for queue" {
+            let queue:SBQueue =
+                serviceBus {
+                    name "serviceBus"
+                    add_queues [
+                            queue {
+                            name "my-queue"
+                            max_queue_size 10240<Mb>
+                        }
+                    ]
+                } |> getResourceAtIndex 1
+
+            Expect.equal queue.MaxSizeInMegabytes (Nullable 10240) "Incorrect max queue size"
+        }
+
         test "Correctly creates multiple queues" {
             let theBus = serviceBus {
                 name "serviceBus"
@@ -230,6 +245,20 @@ let tests = testList "Service Bus Tests" [
             Expect.equal topic.DefaultMessageTimeToLive (Nullable (TimeSpan.FromDays 2.)) "Time to live not set"
             Expect.equal topic.EnablePartitioning (Nullable true) "Paritition not set"
         }
+        test "Can create a topic with a max size" {
+            let topic:SBTopic =
+                serviceBus {
+                    name "my-bus"
+                    add_topics [
+                        topic {
+                            name "my-topic"
+                            max_topic_size 10240<Mb>
+                        }
+                    ]
+                } |> getResourceAtIndex 1
+            Expect.equal topic.Name "my-bus/my-topic" "Name not set"
+            Expect.equal topic.MaxSizeInMegabytes (Nullable 10240) "Max size not set"
+        }
         test "Can create a basic subscription" {
             let sub:SBSubscription =
                 serviceBus {
@@ -265,6 +294,24 @@ let tests = testList "Service Bus Tests" [
                     ]
                 } |> getResourceAtIndex 3
             Expect.equal sub.ForwardTo "my-other-topic" "ForwardTo not set"
+        }
+        test "Can create a subscription with a message ttl" {
+            let sub:SBSubscription =
+                serviceBus {
+                    name "my-bus"
+                    add_topics [
+                        topic {
+                            name "my-topic"
+                            add_subscriptions [
+                                subscription {
+                                    name "my-sub"
+                                    message_ttl (TimeSpan.FromHours 2.)
+                                }
+                            ]
+                        }
+                    ]
+                } |> getResourceAtIndex 2
+            Expect.equal sub.DefaultMessageTimeToLive (Nullable(TimeSpan.FromHours 2.)) "TTL not set"
         }
         test "Creates a correlation filter rule" {
             let correlationRule =

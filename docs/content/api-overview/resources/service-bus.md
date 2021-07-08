@@ -22,7 +22,8 @@ The Service Bus builder creates service bus namespaces and their associated queu
 | Queue | enable_dead_letter_on_message_expiration | Enables dead lettering of messages that expire. |
 | Queue | enable_partition | Enables partition support on the queue. |
 | Queue | link_to_namespace | Link this queue to an existing namespace instead of creating a new one. |
-| Queue | message_ttl | Time To Live (TTL) value for messages expressed as a TimeSpan string, such as '01:30:00' 1 hour, 30 minutes. |
+| Queue | max_queue_size | Maximum size for the queue in Megabytes e.g. `1024<Mb>`. |
+| Queue | message_ttl | Time To Live (TTL) value for messages expressed as a TimeSpan or a TimeSpan string, such as '01:30:00' 1 hour, 30 minutes. |
 | Queue | message_ttl_days | Time To Live (TTL) value for messages in days. |
 | Queue | add_authorization_rule | Adds an authorization rule to the queue. |
 | Subscription | name | The name of the subscription. |
@@ -34,13 +35,15 @@ The Service Bus builder creates service bus namespaces and their associated queu
 | Subscription | enable_partition | Enables partition support on the queue. |
 | Subscription | forward_to | Specifies a queue or topic to automatically forward messages delivered to this subscription. |
 | Subscription | link_to_namespace | Link this queue to an existing namespace instead of creating a new one. |
+| Subscription | message_ttl | Time To Live (TTL) value for messages expressed as a TimeSpan or a TimeSpan string, such as '01:30:00' 1 hour, 30 minutes. |
 | Subscription | add_filters | Adds multiple filters to a subscription |
 | Subscription | add_sql_filter | Adds a filter to a subscription using SQL syntax. |
 | Subscription | add_correlation_filter | Adds a filter to a subscription using header value correlation. |
 | Topic | name | The name of the topic. |
 | Topic | duplicate_detection_minutes | Whether to enable duplicate detection, and if so, how long to check for. |
 | Topic | enable_partition | Enables partition support on the topic. |
-| Topic | message_ttl | Time To Live (TTL) value for messages expressed as a TimeSpan string, such as '01:30:00' 1 hour, 30 minutes, or as an integer days e.g. `4<Days>`. |
+| Topic | max_topic_size | Maximum size for the topic in Megabytes e.g. `1024<Mb>`. |
+| Topic | message_ttl | Time To Live (TTL) value for messages expressed as a TimeSpan or a TimeSpan string, such as '01:30:00' 1 hour, 30 minutes, or as an integer days e.g. `4<Days>`. |
 | Topic | link_to_unmanaged_namespace | Instead of creating or modifying a namespace, configure this topic to point to another unmanaged namespace instance. |
 | Namespace | sku | The ServiceBusNamespaceSku e.g. Standard |
 | Namespace | namespace_name | The name of the namespace that holds the queue. |
