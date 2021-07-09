@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## vNext
+* Virtual Machine: Add option to static IP allocation
+
 ## 1.6.5
 * WebApp: Add support for keyvault reference user identity
 * Functions: Add support for keyvault reference user identity
