@@ -91,6 +91,24 @@ let tests = testList "Virtual Machine" [
         Expect.isEmpty (nicPublicIp) "Network Interface should not link to any public IP"
     }
 
+    test "Can create static Ip" {
+        let deployment =
+            arm {
+                add_resources
+                    [ vm { name "foo"; username "foo"; ip_allocation PublicIpAddress.Static} ]
+            }
+        let json = deployment.Template |> Writer.toJson
+        let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+
+        let publicIpProps= jobj.SelectTokens("resources[?(@.type=='Microsoft.Network/publicIPAddresses')].properties")
+        Expect.isNonEmpty publicIpProps "IP settings not found"
+
+        let ipToken = publicIpProps |> Seq.head
+        let expectedToken = Newtonsoft.Json.Linq.JToken.Parse("{\"publicIPAllocationMethod\": \"Static\"}")
+        Expect.equal (ipToken.ToString()) (expectedToken.ToString()) "Static IP was not found"
+
+    }
+
     test "Disabled password auth" {
         let deployment =
             arm {
