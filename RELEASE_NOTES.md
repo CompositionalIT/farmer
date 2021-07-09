@@ -1,6 +1,7 @@
 Release Notes
 =============
-
+## 1.6.5
+* VirtualHubs/hubRouteTables : Add support for labels
 ## 1.6.4
 * DNS Zone: Added SOA and SRV record support
 * Azure Firewall: Added support for Azure Firewalls
