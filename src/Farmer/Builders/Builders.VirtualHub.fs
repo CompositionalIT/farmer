@@ -135,9 +135,6 @@ type HubRouteTableBuilder() =
     /// Adds the routes to the HubRouteTable
     member _.AddRoutes(state:HubRouteTableConfig, routes) =
         { state with Routes = state.Routes @ routes}
-    [<CustomOperation "add_default_label">]
-    member _.AddDefaultLabel(state:HubRouteTableConfig) =
-        { state with Labels = state.Labels @ ["default"]}
     [<CustomOperation "add_labels">]
     member _.AddLabels(state:HubRouteTableConfig, labels) =
         { state with Labels = state.Labels @ labels }
