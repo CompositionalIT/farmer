@@ -306,6 +306,7 @@ let tests = testList "Web App Tests" [
     test "Supports .NET 5 EAP" {
         let app = webApp { runtime_stack Runtime.DotNet50 }
         let site:Site = app |> getResourceAtIndex 0
+        site.KeyVaultReferenceIdentity
         Expect.equal site.SiteConfig.NetFrameworkVersion "v5.0" "Wrong dotnet version"
     }
     test "Supports private endpoints" {
@@ -317,5 +318,16 @@ let tests = testList "Web App Tests" [
         Expect.equal ep.PrivateLinkServiceConnections.[0].GroupIds.[0] "sites" "Incorrect group ids"
         Expect.equal ep.PrivateLinkServiceConnections.[0].PrivateLinkServiceId "[resourceId('Microsoft.Web/sites', 'farmerWebApp')]" "Incorrect PrivateLinkServiceId"
         Expect.equal ep.Subnet.Id (subnet.ArmExpression.Eval()) "Incorrect subnet id"
+    }
+    test "Supports keyvault reference identity" {
+        let app = webApp { name "farmerWebApp"}
+        let site:Site = app |> getResourceAtIndex 0
+        Expect.isNull site.KeyVaultReferenceIdentity "Keyvault identity should not be set"
+
+        let myId = userAssignedIdentity { name "myFarmerIdentity" }
+        let app = webApp { name "farmerWebApp"; keyvault_identity myId }
+        let site:Site = app |> getResourceAtIndex 0
+        Expect.equal site.KeyVaultReferenceIdentity "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'myFarmerIdentity')]" "Keyvault identity should not be set"
+
     }
 ]
