@@ -1,13 +1,11 @@
 Release Notes
 =============
 
-## vNext
-* Virtual Machine: Add option to static IP allocation
-
 ## 1.6.5
-* WebApp: Add support for keyvault reference user identity
-* Functions: Add support for keyvault reference user identity
 * Azure Firewall: Bug fix for link_to_vhub and added depends_on to builder
+* Functions: Add support for keyvault reference user identity
+* Virtual Machine: Add option to static IP allocation
+* Web App: Add support for keyvault reference user identity
 
 ## 1.6.4
 * DNS Zone: Added SOA and SRV record support
