@@ -145,9 +145,6 @@
         "[resourceId('Microsoft.Insights/components', 'farmerwebapp1979-ai')]",
         "[resourceId('Microsoft.Web/serverfarms', 'farmerwebapp1979-farm')]"
       ],
-      "identity": {
-        "type": "None"
-      },
       "kind": "app",
       "location": "northeurope",
       "name": "farmerwebapp1979",
@@ -261,9 +258,6 @@
         "[resourceId('Microsoft.Storage/storageAccounts', 'farmerfuncs1979storage')]",
         "[resourceId('Microsoft.Web/serverfarms', 'farmerfuncs1979-farm')]"
       ],
-      "identity": {
-        "type": "None"
-      },
       "kind": "functionapp",
       "location": "northeurope",
       "name": "farmerfuncs1979",
@@ -723,7 +717,7 @@
               "type": "Microsoft.Network/networkInterfaces"
             },
             {
-              "apiVersion": "2018-11-01",
+              "apiVersion": "2020-07-01",
               "location": "uksouth",
               "name": "farmervm-vnet",
               "properties": {
@@ -764,6 +758,101 @@
       "resourceGroup": "nested-resources",
       "tags": {},
       "type": "Microsoft.Resources/deployments"
+    },
+    {
+      "apiVersion": "2018-02-01",
+      "location": "northeurope",
+      "name": "docker_func-farm",
+      "properties": {
+        "name": "docker_func-farm",
+        "perSiteScaling": false,
+        "reserved": false
+      },
+      "sku": {
+        "capacity": 0,
+        "name": "Y1",
+        "size": "Y1",
+        "tier": "Dynamic"
+      },
+      "tags": {},
+      "type": "Microsoft.Web/serverfarms"
+    },
+    {
+      "apiVersion": "2019-06-01",
+      "dependsOn": [],
+      "kind": "StorageV2",
+      "location": "northeurope",
+      "name": "dockerfuncstorage",
+      "properties": {},
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "tags": {},
+      "type": "Microsoft.Storage/storageAccounts"
+    },
+    {
+      "apiVersion": "2020-06-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', 'dockerfuncstorage')]",
+        "[resourceId('Microsoft.Web/serverfarms', 'docker_func-farm')]"
+      ],
+      "kind": "functionapp",
+      "location": "northeurope",
+      "name": "docker_func",
+      "properties": {
+        "httpsOnly": false,
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', 'docker_func-farm')]",
+        "siteConfig": {
+          "alwaysOn": false,
+          "appCommandLine": "do it",
+          "appSettings": [
+            {
+              "name": "AzureWebJobsDashboard",
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=dockerfuncstorage;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'dockerfuncstorage'), '2017-10-01').keys[0].value)]"
+            },
+            {
+              "name": "AzureWebJobsStorage",
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=dockerfuncstorage;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'dockerfuncstorage'), '2017-10-01').keys[0].value)]"
+            },
+            {
+              "name": "DOCKER_REGISTRY_SERVER_PASSWORD",
+              "value": "[parameters('secure_pass_param')]"
+            },
+            {
+              "name": "DOCKER_REGISTRY_SERVER_URL",
+              "value": "http://www.farmer.io/"
+            },
+            {
+              "name": "DOCKER_REGISTRY_SERVER_USERNAME",
+              "value": "Robert Lewandowski"
+            },
+            {
+              "name": "FUNCTIONS_EXTENSION_VERSION",
+              "value": "~3"
+            },
+            {
+              "name": "FUNCTIONS_WORKER_RUNTIME",
+              "value": "dotnet"
+            },
+            {
+              "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=dockerfuncstorage;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'dockerfuncstorage'), '2017-10-01').keys[0].value)]"
+            },
+            {
+              "name": "WEBSITE_CONTENTSHARE",
+              "value": "docker_func"
+            },
+            {
+              "name": "WEBSITE_NODE_DEFAULT_VERSION",
+              "value": "10.14.1"
+            }
+          ],
+          "connectionStrings": [],
+          "metadata": []
+        }
+      },
+      "tags": {},
+      "type": "Microsoft.Web/sites"
     }
   ]
 }

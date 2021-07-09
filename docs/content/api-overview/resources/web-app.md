@@ -39,6 +39,7 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Web App | docker_ci | Turns on continuous integration of the web app from the Docker source repository using a webhook.
 | Web App | docker_use_azure_registry | Uses the supplied Azure Container Registry name as the source of the Docker image, instead of Docker Hub. You do not need to specify the full url, but just the name of the registry itself.
 | Web App | add_identity | Adds a managed identity to the the Web App. Farmer will automatically set the AZURE_CLIENT_ID application setting to the Client Id of the supplied identity. |
+| Web App | keyvault_identity | Adds a managed identity to the the Web App and sets this identity to be used for [KeyVault References](https://docs.microsoft.com/en-us/azure/app-service/app-service-key-vault-references). Farmer will automatically set the AZURE_CLIENT_ID application setting to the Client Id of the supplied identity.  |
 | Web App | system_identity | Activates the system identity of the Web App. |
 | Web App | enable_cors | Enables CORS support for the app. Either specify `WebApp.AllOrigins` or a list of valid URIs as strings. |
 | Web App | enable_cors_credentials | Allows CORS requests with credentials. |
@@ -51,6 +52,8 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Web App | always_on | Sets the "Always On" flag. |
 | Web App | add_slot | Adds a deployment slot to the app |
 | Web App | add_slots | Adds multiple deployment slots to the app |
+| Web App | add_private_endpoint | Adds a private endpoint for this Webapp to a given subnet |
+| Web App | add_private_endpoints | Adds private endpoints for this Webapp to the given subnets |
 | Service Plan | service_plan_name | Sets the name of the service plan. If not set, uses the name of the web app postfixed with "-plan". |
 | Service Plan | runtime_stack | Sets the runtime stack. |
 | Service Plan | operating_system | Sets the operating system. If Linux, App Insights configuration settings will be omitted as they are not supported by Azure App Service. |

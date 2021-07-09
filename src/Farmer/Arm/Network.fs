@@ -10,10 +10,13 @@ let expressRouteCircuits = ResourceType ("Microsoft.Network/expressRouteCircuits
 let networkInterfaces = ResourceType ("Microsoft.Network/networkInterfaces", "2018-11-01")
 let networkProfiles = ResourceType ("Microsoft.Network/networkProfiles", "2020-04-01")
 let publicIPAddresses = ResourceType ("Microsoft.Network/publicIPAddresses", "2018-11-01")
-let subnets = ResourceType ("Microsoft.Network/virtualNetworks/subnets", "")
-let virtualNetworks = ResourceType ("Microsoft.Network/virtualNetworks", "2018-11-01")
+let serviceEndpointPolicies = ResourceType ("Microsoft.Network/serviceEndpointPolicies", "2020-07-01")
+let subnets = ResourceType ("Microsoft.Network/virtualNetworks/subnets", "2020-07-01")
+let virtualNetworks = ResourceType ("Microsoft.Network/virtualNetworks", "2020-07-01")
 let virtualNetworkGateways = ResourceType ("Microsoft.Network/virtualNetworkGateways", "2020-05-01")
 let localNetworkGateways = ResourceType ("Microsoft.Network/localNetworkGateways", "")
+let privateEndpoints = ResourceType ("Microsoft.Network/privateEndpoints", "2020-07-01")
+let virtualNetworkPeering = ResourceType ("Microsoft.Network/virtualNetworks/virtualNetworkPeerings","2020-05-01")
 
 type PublicIpAddress =
     { Name : ResourceName
@@ -35,11 +38,23 @@ type PublicIpAddress =
                         | None -> null |}
             |} :> _
 
+type SubnetDelegation =
+    { Name : ResourceName
+      ServiceName : string }
+
+type Subnet =
+    { Name : ResourceName
+      Prefix : string
+      Delegations : SubnetDelegation list
+      ServiceEndpoints : (Network.EndpointServiceType * Location list) list
+      AssociatedServiceEndpointPolicies : ResourceId list 
+      PrivateEndpointNetworkPolicies: FeatureFlag option }
+
 type VirtualNetwork =
     { Name : ResourceName
       Location : Location
       AddressSpacePrefixes : string list
-      Subnets : {| Name : ResourceName; Prefix : string; Delegations: {| Name: ResourceName; ServiceName: string |} list |} list;
+      Subnets : Subnet list;
       Tags: Map<string,string>  }
     interface IArmResource with
         member this.ResourceId = virtualNetworks.resourceId this.Name
@@ -53,11 +68,27 @@ type VirtualNetwork =
                             {| name = subnet.Name.Value
                                properties =
                                 {| addressPrefix = subnet.Prefix
-                                   delegations = subnet.Delegations
-                                   |> List.map (fun delegation ->
-                                    {| name = delegation.Name.Value
-                                       properties = {| serviceName = delegation.ServiceName |}
-                                    |})
+                                   delegations =
+                                       subnet.Delegations
+                                       |> List.map (fun delegation ->
+                                           {| name = delegation.Name.Value
+                                              properties = {| serviceName = delegation.ServiceName |}
+                                           |})
+                                   serviceEndpoints =
+                                       if subnet.ServiceEndpoints.IsEmpty then
+                                           Unchecked.defaultof<_>
+                                       else
+                                           subnet.ServiceEndpoints
+                                           |> List.map (fun (Network.EndpointServiceType(serviceEndpoint), locations) ->
+                                               {| service = serviceEndpoint
+                                                  locations = locations |> List.map (fun location ->location.ArmValue) |})
+                                   serviceEndpointPolicies =
+                                       if subnet.AssociatedServiceEndpointPolicies.IsEmpty then
+                                           Unchecked.defaultof<_>
+                                       else
+                                           subnet.AssociatedServiceEndpointPolicies
+                                           |> List.map (fun policyId -> {| id = policyId.ArmExpression.Eval() |})
+                                   privateEndpointNetworkPolicies = subnet.PrivateEndpointNetworkPolicies |> Option.map (fun x->x.ArmValue) |> Option.defaultValue Unchecked.defaultof<_>
                                 |}
                             |})
                     |}
@@ -79,7 +110,6 @@ type VpnClientConfiguration =
            Thumbprint : string |} list
       ClientProtocols : VPNClientProtocol list
     }
-
 
 type VirtualNetworkGateway =
     { Name : ResourceName
@@ -203,12 +233,13 @@ type Connection =
                             | None -> null
                      |}
             |} :> _
+
 type NetworkInterface =
     { Name : ResourceName
       Location : Location
       IpConfigs :
         {| SubnetName : ResourceName
-           PublicIpName : ResourceName |} list
+           PublicIpAddress : LinkedResource option |} list
       VirtualNetwork : ResourceName
       Tags: Map<string,string>  }
     interface IArmResource with
@@ -217,7 +248,10 @@ type NetworkInterface =
             let dependsOn = [
                 virtualNetworks.resourceId this.VirtualNetwork
                 for config in this.IpConfigs do
-                    publicIPAddresses.resourceId config.PublicIpName
+                    match config.PublicIpAddress with
+                    | Some ipName ->
+                        ipName.ResourceId
+                    | _ -> ()
             ]
             {| networkInterfaces.Create(this.Name, this.Location, dependsOn, this.Tags) with
                 properties =
@@ -227,12 +261,16 @@ type NetworkInterface =
                             {| name = $"ipconfig{index + 1}"
                                properties =
                                 {| privateIPAllocationMethod = "Dynamic"
-                                   publicIPAddress = {| id = publicIPAddresses.resourceId(ipConfig.PublicIpName).Eval() |}
+                                   publicIPAddress = 
+                                       ipConfig.PublicIpAddress 
+                                       |> Option.map(fun pip -> {| id = pip.ResourceId.ArmExpression.Eval() |}) 
+                                       |> Option.defaultValue Unchecked.defaultof<_> 
                                    subnet = {| id = subnets.resourceId(this.VirtualNetwork, ipConfig.SubnetName).Eval() |}
                                 |}
                             |})
                     |}
             |} :> _
+
 type NetworkProfile =
     { Name : ResourceName
       Location : Location
@@ -269,6 +307,7 @@ type NetworkProfile =
                         )
                     |}
             |} :> _
+
 type ExpressRouteCircuit =
     { Name : ResourceName
       Location : Location
@@ -316,4 +355,76 @@ type ExpressRouteCircuit =
                            peeringLocation = this.PeeringLocation
                            bandwidthInMbps = this.Bandwidth |}
                        globalReachEnabled = this.GlobalReachEnabled |}
+            |} :> _
+
+type PrivateEndpoint =
+  { Name: ResourceName
+    Location: Location
+    Subnet: LinkedResource
+    Resource: LinkedResource
+    GroupIds: string list}
+  static member create location (resourceId:ResourceId) groupIds =
+    Set.toSeq >> Seq.map
+      (fun (subnet: LinkedResource, epName:string option) ->
+        { Name = epName |> Option.defaultValue $"{resourceId.Name.Value}-ep-{subnet.Name.Value}" |> ResourceName
+          Location = location
+          Subnet = subnet
+          Resource = Managed resourceId
+          GroupIds = groupIds } :> IArmResource)
+  interface IArmResource with
+    member this.ResourceId = privateEndpoints.resourceId this.Name
+    member this.JsonModel =
+      let dependencies = 
+        [ match this.Subnet with | Managed x -> x | _ -> ()
+          match this.Resource with | Managed x -> x | _ -> () ]
+      {| privateEndpoints.Create(this.Name, this.Location, dependencies) with
+          properties =
+             {| subnet =
+                    {| id = this.Subnet.ResourceId.Eval() |}
+                privateLinkServiceConnections = [
+                    {| name = this.Name.Value
+                       properties =
+                           {| privateLinkServiceId = this.Resource.ResourceId.Eval()
+                              groupIds = this.GroupIds |} 
+                    |} 
+                  ]
+             |}
+      |} :> _
+
+type GatewayTransit = 
+    | UseRemoteGateway
+    | UseLocalGateway
+    | GatewayTransitDisabled
+
+type PeerAccess = 
+    | AccessDenied
+    | AccessOnly
+    | ForwardOnly
+    | AccessAndForward
+
+type NetworkPeering = 
+    { Location: Location
+      OwningVNet: LinkedResource
+      RemoteVNet: LinkedResource
+      RemoteAccess: PeerAccess
+      GatewayTransit: GatewayTransit
+      DependsOn: ResourceId Set
+    }
+    member this.Name = this.OwningVNet.Name / $"peering-%s{this.RemoteVNet.Name.Value}"
+    interface IArmResource with
+        member this.ResourceId = virtualNetworkPeering.resourceId this.Name
+        member this.JsonModel = 
+            let deps = [
+                match this.OwningVNet with | Managed id -> id | _ -> ()
+                match this.RemoteVNet with | Managed id -> id | _ -> ()
+                yield! this.DependsOn
+            ]
+            {| virtualNetworkPeering.Create(this.Name,this.Location,deps) with
+                properties = 
+                    {| allowVirtualNetworkAccess = match this.RemoteAccess with | AccessOnly | AccessAndForward -> true | _ -> false
+                       allowForwardedTraffic = match this.RemoteAccess with | ForwardOnly | AccessAndForward -> true | _ -> false
+                       allowGatewayTransit = match this.GatewayTransit with | UseLocalGateway| UseRemoteGateway -> true | _ -> false
+                       useRemoteGateways = match this.GatewayTransit with | UseRemoteGateway -> true | _ -> false
+                       remoteVirtualNetwork = {| id = match this.RemoteVNet with | Managed id | Unmanaged id -> id.ArmExpression.Eval() |}
+                    |}
             |} :> _

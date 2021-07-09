@@ -17,6 +17,7 @@ type Server =
     { ServerName : SqlAccountName
       Location : Location
       Credentials : {| Username : string; Password : SecureParameter |}
+      MinTlsVersion : TlsVersion option
       Tags: Map<string,string> }
     interface IParameters with
         member this.SecureParameters = [ this.Credentials.Password ]
@@ -27,7 +28,13 @@ type Server =
                 properties =
                  {| administratorLogin = this.Credentials.Username
                     administratorLoginPassword = this.Credentials.Password.ArmExpression.Eval()
-                    version = "12.0" |}
+                    version = "12.0"
+                    minimalTlsVersion = 
+                        match this.MinTlsVersion with
+                        | Some Tls10 -> "1.0"
+                        | Some Tls11 -> "1.1"
+                        | Some Tls12 -> "1.2"
+                        | None -> null |}
             |} :> _
 
 module Servers =

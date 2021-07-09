@@ -33,6 +33,7 @@ let allTests =
                 IotHub.tests
                 JsonRegression.tests
                 KeyVault.tests
+                Network.tests
                 LoadBalancer.tests
                 LogAnalytics.tests
                 Maps.tests
@@ -45,6 +46,7 @@ let allTests =
                 Storage.tests
                 TrafficManager.tests
                 Types.tests
+                VirtualHub.tests
                 VirtualMachine.tests
                 VirtualNetworkGateway.tests
                 VirtualWan.tests

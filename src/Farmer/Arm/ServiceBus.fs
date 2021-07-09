@@ -11,6 +11,8 @@ let subscriptions = ResourceType ("Microsoft.ServiceBus/namespaces/topics/subscr
 let queues = ResourceType ("Microsoft.ServiceBus/namespaces/queues", "2017-04-01")
 let topics = ResourceType ("Microsoft.ServiceBus/namespaces/topics", "2017-04-01")
 let namespaces = ResourceType ("Microsoft.ServiceBus/namespaces", "2017-04-01")
+let queueAuthorizationRules = ResourceType ("Microsoft.ServiceBus/namespaces/queues/authorizationRules", "2017-04-01")
+let namespaceAuthorizationRules = ResourceType ("Microsoft.ServiceBus/namespaces/AuthorizationRules", "2017-04-01")
 
 module Namespaces =
     module Topics =
@@ -72,7 +74,8 @@ module Namespaces =
           DeadLetteringOnMessageExpiration : bool option
           DefaultMessageTimeToLive : IsoDateTime
           MaxDeliveryCount : int option
-          EnablePartitioning : bool option }
+          MaxSizeInMegabytes : int<Mb> option
+          EnablePartitioning : bool option}
         interface IArmResource with
             member this.ResourceId = queues.resourceId (this.Namespace/this.Name)
             member this.JsonModel =
@@ -88,7 +91,31 @@ module Namespaces =
                         requiresSession = this.Session |> Option.toNullable
                         deadLetteringOnMessageExpiration = this.DeadLetteringOnMessageExpiration |> Option.toNullable
                         maxDeliveryCount = this.MaxDeliveryCount |> Option.toNullable
+                        maxSizeInMegabytes = this.MaxSizeInMegabytes |> Option.toNullable
                         enablePartitioning = this.EnablePartitioning |> Option.toNullable |}
+                |} :> _
+    type QueueAuthorizationRule =
+        { Name : ResourceName
+          Location : Location
+          Dependencies : ResourceId list
+          Rights : AuthorizationRuleRight Set }
+        interface IArmResource with
+            member this.ResourceId = queueAuthorizationRules.resourceId this.Name
+            member this.JsonModel =
+                {| queueAuthorizationRules.Create(this.Name, this.Location, this.Dependencies) with
+                    properties = {| rights = this.Rights |> Set.map string |> Set.toList |}
+                |} :> _
+
+    type NamespaceAuthorizationRule =
+        { Name : ResourceName
+          Location : Location
+          Dependencies : ResourceId list
+          Rights : AuthorizationRuleRight Set }
+        interface IArmResource with
+            member this.ResourceId = namespaceAuthorizationRules.resourceId this.Name
+            member this.JsonModel =
+                {| namespaceAuthorizationRules.Create(this.Name, this.Location, this.Dependencies) with
+                    properties = {| rights = this.Rights |> Set.map string |> Set.toList |}
                 |} :> _
 
     type Topic =
@@ -97,7 +124,8 @@ module Namespaces =
           Namespace : ResourceId
           DuplicateDetectionHistoryTimeWindow : IsoDateTime option
           DefaultMessageTimeToLive : IsoDateTime option
-          EnablePartitioning : bool option }
+          EnablePartitioning : bool option
+          MaxSizeInMegabytes : int<Mb> option }
         interface IArmResource with
             member this.ResourceId = topics.resourceId (this.Namespace.Name, this.Name)
             member this.JsonModel =
@@ -109,7 +137,8 @@ module Namespaces =
                                | Some _ -> Nullable true
                                | None -> Nullable()
                            duplicateDetectionHistoryTimeWindow = tryGetIso this.DuplicateDetectionHistoryTimeWindow
-                           enablePartitioning = this.EnablePartitioning |> Option.toNullable |}
+                           enablePartitioning = this.EnablePartitioning |> Option.toNullable
+                           maxSizeInMegabytes = this.MaxSizeInMegabytes |> Option.toNullable |}
                 |} :> _
 
 type Namespace =

@@ -4,8 +4,11 @@ open Expecto
 open Farmer
 open Farmer.Builders
 open Farmer.Arm
+open Farmer.Network
 open System.IO
 open Farmer.ServiceBus
+open System
+open Farmer.AzureFirewall
 
 let tests =
     testList "ARM Writer Regression Tests" [
@@ -31,7 +34,18 @@ let tests =
             let cdn = cdn { name ("farmercdn" + number); add_endpoints [ endpoint { name ("farmercdnendpoint" + number); origin storage.WebsitePrimaryEndpointHost; add_rule (cdnRule {name ("farmerrule" + number); order 1; when_device_type DeliveryPolicy.EqualityOperator.Equals DeliveryPolicy.DeviceType.Mobile; url_rewrite "/pattern" "/destination" true   }) } ] }
             let containerGroup = containerGroup { name ("farmeraci" + number); add_instances [ containerInstance { name "webserver"; image "nginx:latest"; add_ports ContainerGroup.PublicPort [ 80us ]; add_volume_mount "source-code" "/src/farmer" } ]; add_volumes [ volume_mount.git_repo "source-code" (System.Uri "https://github.com/CompositionalIT/farmer") ] }
             let vm = vm{ name "farmervm"; username "farmer-admin" }
-            
+            let dockerFunction = functions {
+                name "docker_func"
+                publish_as (
+                    DockerContainer {
+                        Url = new Uri("http://www.farmer.io")
+                        User = "Robert Lewandowski"
+                        Password = SecureParameter "secure_pass_param"
+                        StartupCommand = "do it" }
+                )
+                app_insights_off
+                }
+
             let cosmos = cosmosDb {
                 name "testdb"
                 account_name "testaccount"
@@ -76,7 +90,8 @@ let tests =
                     cdn
                     containerGroup
                     communicationServices
-                    nestedResourceGroup ]
+                    nestedResourceGroup
+                    dockerFunction ]
                 "lots-of-resources.json"
         }
 
@@ -165,7 +180,7 @@ let tests =
             Expect.equal resource.Sku.Name "Standard_LRS" "SKU is wrong"
             Expect.equal resource.Kind "StorageV2" "Kind"
         }
-        
+
         test "ServiceBus" {
             let svcBus = serviceBus {
                 name "farmer-bus"
@@ -196,7 +211,7 @@ let tests =
                 }
             compareResourcesToJson [ svcBus; topicWithUnmanagedNamespace ] "service-bus.json"
         }
-        
+
         test "VirtualWan" {
             let vwan = vwan {
                 name "farmer-vwan"
@@ -207,7 +222,7 @@ let tests =
             }
             compareResourcesToJson [ vwan ] "virtual-wan.json"
         }
-        
+
         test "LoadBalancer" {
             let myVnet =
                 vnet {
@@ -264,5 +279,28 @@ let tests =
                     ]
                 }
             compareResourcesToJson [ myVnet; lb ] "load-balancer.json"
+        }
+        
+        test "AzureFirewall" {
+            let vwan = vwan {
+                name "farmer-vwan"
+                disable_vpn_encryption
+                allow_branch_to_branch_traffic
+                office_365_local_breakout_category Office365LocalBreakoutCategory.None
+                standard_vwan
+            }
+            let vhub = vhub {
+                name "farmer_vhub"
+                address_prefix (IPAddressCidr.parse "100.73.255.0/24")
+                link_to_vwan vwan
+            }
+            let firewall = azureFirewall {
+                name "farmer_firewall"
+                sku SkuName.AZFW_Hub SkuTier.Standard
+                public_ip_reservation_count 2
+                link_to_vhub vhub
+                depends_on [(vhub :>IBuilder).ResourceId]
+            }
+            compareResourcesToJson [ firewall; vhub; vwan ] "azure-firewall.json"
         }
     ]

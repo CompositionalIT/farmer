@@ -153,6 +153,21 @@ let tests = testList "Service Bus Tests" [
             Expect.equal (queue.DefaultMessageTimeToLive.GetValueOrDefault TimeSpan.MinValue).TotalDays TimeSpan.MaxValue.TotalDays "Default TTL should be max value"
         }
 
+        test "Max size set for queue" {
+            let queue:SBQueue =
+                serviceBus {
+                    name "serviceBus"
+                    add_queues [
+                            queue {
+                            name "my-queue"
+                            max_queue_size 10240<Mb>
+                        }
+                    ]
+                } |> getResourceAtIndex 1
+
+            Expect.equal queue.MaxSizeInMegabytes (Nullable 10240) "Incorrect max queue size"
+        }
+
         test "Correctly creates multiple queues" {
             let theBus = serviceBus {
                 name "serviceBus"
@@ -164,6 +179,49 @@ let tests = testList "Service Bus Tests" [
             let deployment = arm { add_resource theBus }
             let queues = deployment.Template.Resources |> List.choose(function :? Queue as q -> Some q | _ -> None)
             Expect.hasLength queues 2 "Should have two queues in a single namespace."
+        }
+
+        test "No authorization rule by default" {
+            let sbAuthorizationRules =
+                arm {
+                    add_resource (
+                        serviceBus {
+                            name "serviceBus"
+                            sku Standard
+                            add_queues [queue {
+                                name "my-queue"
+                            }]
+                        })
+                }
+                |> findAzureResources<SBAuthorizationRule> dummyClient.SerializationSettings
+                |> List.filter (fun x -> (=) x.Type queueAuthorizationRules.Type)
+
+            Expect.hasLength sbAuthorizationRules 0 "Should not have authorization rule by default"
+        }
+
+        test "Authorization Rule writes correct template" {
+            let thing = 
+                arm {
+                    add_resource (
+                        serviceBus {
+                            name "serviceBus"
+                            sku Standard
+                            add_queues [queue {
+                                name "my-queue"
+                                add_authorization_rule "my-rule" [Manage]
+                            }]
+                        })
+                } 
+                |> findAzureResources<SBAuthorizationRule> dummyClient.SerializationSettings
+
+            let sbAuthorizationRule = 
+                thing
+                |> List.filter (fun x -> (=) x.Type queueAuthorizationRules.Type)
+                |> List.head
+
+            Expect.equal sbAuthorizationRule.Name "serviceBus/my-queue/my-rule" "Name is wrong"
+            Expect.equal sbAuthorizationRule.Rights.Count 1 "Wrong number of rights"
+            Expect.equal sbAuthorizationRule.Rights.[0] (Nullable AccessRights.Manage) "Wrong rights"
         }
     ]
 
@@ -186,6 +244,20 @@ let tests = testList "Service Bus Tests" [
             Expect.equal topic.DuplicateDetectionHistoryTimeWindow (Nullable (TimeSpan.FromMinutes 3.)) "Duplicate detection time not set"
             Expect.equal topic.DefaultMessageTimeToLive (Nullable (TimeSpan.FromDays 2.)) "Time to live not set"
             Expect.equal topic.EnablePartitioning (Nullable true) "Paritition not set"
+        }
+        test "Can create a topic with a max size" {
+            let topic:SBTopic =
+                serviceBus {
+                    name "my-bus"
+                    add_topics [
+                        topic {
+                            name "my-topic"
+                            max_topic_size 10240<Mb>
+                        }
+                    ]
+                } |> getResourceAtIndex 1
+            Expect.equal topic.Name "my-bus/my-topic" "Name not set"
+            Expect.equal topic.MaxSizeInMegabytes (Nullable 10240) "Max size not set"
         }
         test "Can create a basic subscription" {
             let sub:SBSubscription =
@@ -222,6 +294,24 @@ let tests = testList "Service Bus Tests" [
                     ]
                 } |> getResourceAtIndex 3
             Expect.equal sub.ForwardTo "my-other-topic" "ForwardTo not set"
+        }
+        test "Can create a subscription with a message ttl" {
+            let sub:SBSubscription =
+                serviceBus {
+                    name "my-bus"
+                    add_topics [
+                        topic {
+                            name "my-topic"
+                            add_subscriptions [
+                                subscription {
+                                    name "my-sub"
+                                    message_ttl (TimeSpan.FromHours 2.)
+                                }
+                            ]
+                        }
+                    ]
+                } |> getResourceAtIndex 2
+            Expect.equal sub.DefaultMessageTimeToLive (Nullable(TimeSpan.FromHours 2.)) "TTL not set"
         }
         test "Creates a correlation filter rule" {
             let correlationRule =
@@ -396,6 +486,42 @@ let tests = testList "Service Bus Tests" [
                 }
                 |> getResources |> getTopicResource |> List.head :> IArmResource
             Expect.equal (resource.ResourceId.Eval()) $"[resourceId('Microsoft.ServiceBus/namespaces/topics', 'my-bus', '{topicName}')]" ""
+        }
+    ]
+    testList "Namespace AuthorizationRule Tests" [
+        test "AuthorizationRule should not be present by default" {
+            let sbAuthorizationRules =
+                arm {
+                    add_resource (
+                        serviceBus {
+                            name "serviceBus"
+                            sku Standard
+                        })
+                }
+                |> findAzureResources<SBAuthorizationRule> dummyClient.SerializationSettings
+                |> List.filter (fun x -> (=) x.Type namespaceAuthorizationRules.Type)
+            
+            Expect.equal sbAuthorizationRules.Length 0 "AuthorizationRule should not be present" 
+        }
+        test "AuthorizationRule should write correct ARM template" {
+            let sbAuthorizationRule =
+                arm {
+                    add_resource (
+                        serviceBus {
+                            name "serviceBus"
+                            sku Standard
+                            add_authorization_rule "my-rule" [Manage]
+                        })
+                }
+                |> findAzureResources<SBAuthorizationRule> dummyClient.SerializationSettings
+                |> List.filter (fun x -> (=) x.Type namespaceAuthorizationRules.Type)
+                |> List.head
+
+            sbAuthorizationRule.Validate();
+            
+            Expect.equal sbAuthorizationRule.Name "serviceBus/my-rule" "Wrong name"
+            Expect.equal sbAuthorizationRule.Rights.Count 1 "Wrong number of rights"
+            Expect.equal sbAuthorizationRule.Rights.[0] (Nullable AccessRights.Manage) "Wrong rights"
         }
     ]
 ]

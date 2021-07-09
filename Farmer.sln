@@ -5,34 +5,65 @@ VisualStudioVersion = 16.0.29201.188
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Farmer", "src\Farmer\Farmer.fsproj", "{CB0287CC-AD12-427C-866B-5F236C29B0A2}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{2172A656-578A-48D4-81A2-126CBE1EF993}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Tests", "src\Tests\Tests.fsproj", "{D68F5B81-6F18-4FC7-B9FD-2113EE7614CE}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Tests", "src\Tests\Tests.fsproj", "{D68F5B81-6F18-4FC7-B9FD-2113EE7614CE}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{47438D72-1C5F-49EB-B7E5-B597F565B14B}"
+	ProjectSection(SolutionItems) = preProject
+		samples\SampleApp\SampleApp.fsproj = samples\SampleApp\SampleApp.fsproj
+	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scripts", "scripts", "{F54A1E1C-9069-4771-ABFB-5A7D9EA0F2D0}"
-ProjectSection(SolutionItems) = preProject
-	samples\scripts\appinsights.fsx = samples\scripts\appinsights.fsx
-	samples\scripts\container-registry.fsx = samples\scripts\container-registry.fsx
-	samples\scripts\cosmos.fsx = samples\scripts\cosmos.fsx
-	samples\scripts\loganalytics.fsx = samples\scripts\loganalytics.fsx
-	samples\scripts\diagnosticsetting.fsx = samples\scripts\diagnosticsetting.fsx
-	samples\scripts\eventhubs.fsx = samples\scripts\eventhubs.fsx
-	samples\scripts\functions.fsx = samples\scripts\functions.fsx
-	samples\scripts\keyvault.fsx = samples\scripts\keyvault.fsx
-	samples\scripts\keyvault.fsx = samples\scripts\loadbalancer.fsx
-	samples\scripts\redis.fsx = samples\scripts\redis.fsx
-	samples\scripts\safe-template.fsx = samples\scripts\safe-template.fsx
-	samples\scripts\search.fsx = samples\scripts\search.fsx
-	samples\scripts\vm.fsx = samples\scripts\vm.fsx
-	samples\scripts\webapp-appinsights.fsx = samples\scripts\webapp-appinsights.fsx
-	samples\scripts\webapp-storage.fsx = samples\scripts\webapp-storage.fsx
-	samples\scripts\postgresql.fsx = samples\scripts\postgresql.fsx
-	samples\scripts\aks.fsx = samples\scripts\aks.fsx
-	samples\scripts\bastion.fsx = samples\scripts\bastion.fsx
-	samples\scripts\container-instance.fsx = samples\scripts\container-instance.fsx
-EndProjectSection
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scripts", "scripts", "{C3991DD2-B728-4EDD-ACD1-2C1470309481}"
+	ProjectSection(SolutionItems) = preProject
+		samples\scripts\aks.fsx = samples\scripts\aks.fsx
+		samples\scripts\appinsights.fsx = samples\scripts\appinsights.fsx
+		samples\scripts\bastion.fsx = samples\scripts\bastion.fsx
+		samples\scripts\cdn.fsx = samples\scripts\cdn.fsx
+		samples\scripts\container-group.fsx = samples\scripts\container-group.fsx
+		samples\scripts\container-instance.fsx = samples\scripts\container-instance.fsx
+		samples\scripts\container-registry.fsx = samples\scripts\container-registry.fsx
+		samples\scripts\cosmos.fsx = samples\scripts\cosmos.fsx
+		samples\scripts\data-lake.fsx = samples\scripts\data-lake.fsx
+		samples\scripts\databricks.fsx = samples\scripts\databricks.fsx
+		samples\scripts\deployment-script.fsx = samples\scripts\deployment-script.fsx
+		samples\scripts\diagnosticsetting.fsx = samples\scripts\diagnosticsetting.fsx
+		samples\scripts\dns.fsx = samples\scripts\dns.fsx
+		samples\scripts\eventgrid.fsx = samples\scripts\eventgrid.fsx
+		samples\scripts\eventhubs.fsx = samples\scripts\eventhubs.fsx
+		samples\scripts\functions.fsx = samples\scripts\functions.fsx
+		samples\scripts\iot.fsx = samples\scripts\iot.fsx
+		samples\scripts\keyvault.fsx = samples\scripts\keyvault.fsx
+		samples\scripts\loadbalancer.fsx = samples\scripts\loadbalancer.fsx
+		samples\scripts\loganalytics.fsx = samples\scripts\loganalytics.fsx
+		samples\scripts\nested-resourcegroups.fsx = samples\scripts\nested-resourcegroups.fsx
+		samples\scripts\postgresql.fsx = samples\scripts\postgresql.fsx
+		samples\scripts\redis.fsx = samples\scripts\redis.fsx
+		samples\scripts\safe-template.fsx = samples\scripts\safe-template.fsx
+		samples\scripts\search.fsx = samples\scripts\search.fsx
+		samples\scripts\service-bus.fsx = samples\scripts\service-bus.fsx
+		samples\scripts\sqlserver.fsx = samples\scripts\sqlserver.fsx
+		samples\scripts\storage.fsx = samples\scripts\storage.fsx
+		samples\scripts\template.json = samples\scripts\template.json
+		samples\scripts\vm.fsx = samples\scripts\vm.fsx
+		samples\scripts\vnet-gateway.fsx = samples\scripts\vnet-gateway.fsx
+		samples\scripts\vnet-hub-and-spoke.fsx = samples\scripts\vnet-hub-and-spoke.fsx
+		samples\scripts\vnet.fsx = samples\scripts\vnet.fsx
+		samples\scripts\webapp-appinsights.fsx = samples\scripts\webapp-appinsights.fsx
+		samples\scripts\webapp-storage.fsx = samples\scripts\webapp-storage.fsx
+	EndProjectSection
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "SampleApp", "samples\SampleApp\SampleApp.fsproj", "{2F230746-189D-4AFD-9B60-D49BB23C98DA}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tutorials", "tutorials", "{0053093F-A18C-4FAC-A138-9F5D60CFA24F}"
+	ProjectSection(SolutionItems) = preProject
+		samples\scripts\tutorials\aci-fsharp.fsx = samples\scripts\tutorials\aci-fsharp.fsx
+		samples\scripts\tutorials\cosmos-backed-webapp.fsx = samples\scripts\tutorials\cosmos-backed-webapp.fsx
+		samples\scripts\tutorials\custom-output.fsx = samples\scripts\tutorials\custom-output.fsx
+		samples\scripts\tutorials\keyvault-certs-app.fsx = samples\scripts\tutorials\keyvault-certs-app.fsx
+		samples\scripts\tutorials\keyvault-certs.fsx = samples\scripts\tutorials\keyvault-certs.fsx
+		samples\scripts\tutorials\minecraft-server-aci.fsx = samples\scripts\tutorials\minecraft-server-aci.fsx
+		samples\scripts\tutorials\multiple-web-apps.fsx = samples\scripts\tutorials\multiple-web-apps.fsx
+		samples\scripts\tutorials\serverless-etl.fsx = samples\scripts\tutorials\serverless-etl.fsx
+		samples\scripts\tutorials\webapp-deploy.fsx = samples\scripts\tutorials\webapp-deploy.fsx
+		samples\scripts\tutorials\webapp-keyvault.fsx = samples\scripts\tutorials\webapp-keyvault.fsx
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -48,19 +79,15 @@ Global
 		{D68F5B81-6F18-4FC7-B9FD-2113EE7614CE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D68F5B81-6F18-4FC7-B9FD-2113EE7614CE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D68F5B81-6F18-4FC7-B9FD-2113EE7614CE}.Release|Any CPU.Build.0 = Release|Any CPU
-		{2F230746-189D-4AFD-9B60-D49BB23C98DA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{2F230746-189D-4AFD-9B60-D49BB23C98DA}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{2F230746-189D-4AFD-9B60-D49BB23C98DA}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{2F230746-189D-4AFD-9B60-D49BB23C98DA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{C3991DD2-B728-4EDD-ACD1-2C1470309481} = {47438D72-1C5F-49EB-B7E5-B597F565B14B}
+		{0053093F-A18C-4FAC-A138-9F5D60CFA24F} = {C3991DD2-B728-4EDD-ACD1-2C1470309481}
+	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {63B0361D-FC8A-40CF-B988-5BE797ADD2CE}
-	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{F54A1E1C-9069-4771-ABFB-5A7D9EA0F2D0} = {2172A656-578A-48D4-81A2-126CBE1EF993}
-		{2F230746-189D-4AFD-9B60-D49BB23C98DA} = {2172A656-578A-48D4-81A2-126CBE1EF993}
 	EndGlobalSection
 EndGlobal

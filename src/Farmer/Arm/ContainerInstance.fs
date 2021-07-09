@@ -35,12 +35,12 @@ type ContainerProbe =
       TimeoutSeconds : int option }
     member internal this.JsonModel =
         {|
-            exec = 
+            exec =
                 if this.Exec.Length > 0 then
                     {| command = this.Exec |} |> box
                 else
                     null
-            httpGet = 
+            httpGet =
                 this.HttpGet
                 |> Option.map (fun (uri:Uri) -> {| path=uri.AbsolutePath; port=uri.Port; scheme=uri.Scheme |} |> box)
                 |> Option.defaultValue null
@@ -124,7 +124,7 @@ type ContainerGroup =
         member this.ResourceId = containerGroups.resourceId this.Name
         member this.JsonModel =
             {| containerGroups.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
-                   identity = this.Identity |> ManagedIdentity.toArmJson
+                   identity = this.Identity.ToArmJson
                    properties =
                        {| containers =
                            this.ContainerInstances

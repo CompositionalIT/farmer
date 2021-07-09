@@ -534,6 +534,7 @@ module WebApp =
         | Premium of string
         | PremiumV2 of string
         | PremiumV3 of string
+        | ElasticPremium of string
         | Isolated of string
         | Dynamic
         static member D1 = Shared
@@ -553,6 +554,9 @@ module WebApp =
         static member P1V3 = PremiumV3 "P1V3"
         static member P2V3 = PremiumV3 "P2V3"
         static member P3V3 = PremiumV3 "P3V3"
+        static member EP1 = ElasticPremium "EP1"
+        static member EP2 = ElasticPremium "EP2"
+        static member EP3 = ElasticPremium "EP3"
         static member I1 = Isolated "I1"
         static member I2 = Isolated "I2"
         static member I3 = Isolated "I3"
@@ -802,7 +806,6 @@ module Sql =
 
         static member Create (ResourceName name) = SqlAccountName.Create name
         member this.ResourceName = match this with SqlAccountName name -> name
-
 
 /// Represents a role that can be granted to an identity.
 type RoleId =
@@ -1055,6 +1058,7 @@ module ServiceBus =
             CorrelationFilter (ResourceName name, correlationId, Map properties)
         static member CreateSqlFilter (name, expression) =
             SqlFilter (ResourceName name, expression)
+    type AuthorizationRuleRight = Manage | Send | Listen
 
 module CosmosDb =
     /// The consistency policy of a CosmosDB account.
@@ -1182,6 +1186,56 @@ module IPAddressCidr =
         else
             Seq.empty
 
+module Network =
+    type SubnetDelegationService = SubnetDelegationService of string
+    with
+        /// Microsoft.ApiManagement/service
+        static member ApiManagementService = SubnetDelegationService "Microsoft.ApiManagement/service"
+        /// Microsoft.AzureCosmosDB/clusters
+        static member CosmosDBClusters = SubnetDelegationService "Microsoft.AzureCosmosDB/clusters"
+        /// Microsoft.BareMetal/AzureVMware
+        static member BareMetalVMware = SubnetDelegationService "Microsoft.BareMetal/AzureVMware"
+        /// Microsoft.BareMetal/CrayServers
+        static member BareMetalCrayServers = SubnetDelegationService "Microsoft.BareMetal/CrayServers"
+        /// Microsoft.Batch/batchAccounts
+        static member BatchAccounts = SubnetDelegationService "Microsoft.Batch/batchAccounts"
+        /// Microsoft.ContainerInstance/containerGroups
+        static member ContainerGroups = SubnetDelegationService "Microsoft.ContainerInstance/containerGroups"
+        /// Microsoft.Databricks/workspaces
+        static member DatabricksWorkspaces = SubnetDelegationService "Microsoft.Databricks/workspaces"
+        /// Microsoft.MachineLearningServices/workspaces
+        static member MachineLearningWorkspaces = SubnetDelegationService "Microsoft.MachineLearningServices/workspaces"
+        /// Microsoft.Netapp/volumes
+        static member NetappVolumes = SubnetDelegationService "Microsoft.Netapp/volumes"
+        /// Microsoft.ServiceFabricMesh/networks
+        static member ServiceFabricMeshNetworks = SubnetDelegationService "Microsoft.ServiceFabricMesh/networks"
+        /// Microsoft.Sql/managedInstances
+        static member SqlManagedInstances = SubnetDelegationService "Microsoft.Sql/managedInstances"
+
+    type EndpointServiceType = EndpointServiceType of string
+    with
+        /// Microsoft.AzureActiveDirectory
+        static member AzureActiveDirectory = EndpointServiceType "Microsoft.AzureActiveDirectory"
+        /// Microsoft.AzureCosmosDB
+        static member AzureCosmosDB = EndpointServiceType "Microsoft.AzureCosmosDB"
+        /// Microsoft.CognitiveServices
+        static member CognitiveServices = EndpointServiceType "Microsoft.CognitiveServices"
+        /// Microsoft.ContainerRegistry
+        static member ContainerRegistry = EndpointServiceType "Microsoft.ContainerRegistry"
+        /// Microsoft.EventHub
+        static member EventHub = EndpointServiceType "Microsoft.EventHub"
+        /// Microsoft.KeyVault
+        static member KeyVault = EndpointServiceType "Microsoft.KeyVault"
+        /// Microsoft.ServiceBus
+        static member ServiceBus = EndpointServiceType "Microsoft.ServiceBus"
+        /// Microsoft.Sql
+        static member Sql = EndpointServiceType "Microsoft.Sql"
+        /// Microsoft.Storage
+        static member Storage = EndpointServiceType "Microsoft.Storage"
+        /// Microsoft.Web
+        static member Web = EndpointServiceType "Microsoft.Web"
+
+
 module NetworkSecurity =
     type Operation =
     | Allow
@@ -1295,18 +1349,18 @@ module DeliveryPolicy =
     type IOperator =
             abstract member AsOperator : string
             abstract member AsNegateCondition : bool
-    
+
     type EqualityOperator =
         | Equals
         | NotEquals
         interface IOperator with
             member this.AsOperator = "Equal"
-    
+
             member this.AsNegateCondition =
                 match this with
                 | Equals -> false
                 | NotEquals -> true
-    
+
     type ComparisonOperator =
         | Any
         | Equals
@@ -1347,7 +1401,7 @@ module DeliveryPolicy =
                 | NotGreaterThan -> "GreaterThan"
                 | GreaterThanOrEquals
                 | NotGreaterThanOrEquals -> "GreaterThanOrEqual"
-    
+
             member this.AsNegateCondition =
                 match this with
                 | NotAny
@@ -1360,7 +1414,7 @@ module DeliveryPolicy =
                 | NotGreaterThan
                 | NotGreaterThanOrEquals -> true
                 | _ -> false
-    
+
     type RemoteAddressOperator =
         | Any
         | GeoMatch
@@ -1377,14 +1431,14 @@ module DeliveryPolicy =
                 | NotGeoMatch -> "GeoMatch"
                 | IPMatch
                 | NotIPMatch -> "IPMatch"
-    
+
             member this.AsNegateCondition =
                 match this with
                 | NotAny
                 | NotGeoMatch
                 | NotIPMatch -> true
                 | _ -> false
-    
+
     type DeviceType =
         | Mobile
         | Desktop
@@ -1392,7 +1446,7 @@ module DeliveryPolicy =
             match this with
             | Desktop -> "Desktop"
             | Mobile -> "Mobile"
-    
+
     type HttpVersion =
         | Version20
         | Version11
@@ -1404,7 +1458,7 @@ module DeliveryPolicy =
             | Version11 -> "1.1"
             | Version10 -> "1.0"
             | Version09 -> "0.9"
-    
+
     type RequestMethod =
         | Get
         | Post
@@ -1422,7 +1476,7 @@ module DeliveryPolicy =
             | Head -> "HEAD"
             | Options -> "OPTIONS"
             | Trace -> "TRACE"
-    
+
     type Protocol =
         | Http
         | Https
@@ -1430,7 +1484,7 @@ module DeliveryPolicy =
             match this with
             | Http -> "HTTP"
             | Https -> "HTTPS"
-    
+
     type UrlRedirectProtocol =
         | Http
         | Https
@@ -1440,7 +1494,7 @@ module DeliveryPolicy =
             | Http -> "Http"
             | Https -> "Https"
             | MatchRequest -> "MatchRequest"
-    
+
     type CaseTransform =
         | NoTransform
         | ToLowercase
@@ -1450,7 +1504,7 @@ module DeliveryPolicy =
             | NoTransform -> []
             | ToLowercase -> [ "Lowercase" ]
             | ToUppercase -> [ "Uppercase" ]
-            
+
     type CacheBehaviour =
         | Override
         | BypassCache
@@ -1482,7 +1536,7 @@ module DeliveryPolicy =
             | Append -> "Append"
             | Overwrite -> "Overwrite"
             | Delete -> "Delete"
-            
+
     type RedirectType =
         | Found
         | Moved
@@ -1502,6 +1556,22 @@ module EventGrid =
 /// Built in Azure roles (https://docs.microsoft.com/en-us/azure/role-based-access-control/built-in-roles)
 module Dns =
     type DnsZoneType = Public | Private
+
+    type SrvRecord =  
+        { Priority : int option
+          Weight : int option
+          Port : int option
+          Target : string option }
+
+    type SoaRecord =
+        { Host : string option
+          Email : string option
+          SerialNumber : int64 option
+          RefreshTime : int64 option
+          RetryTime : int64 option
+          ExpireTime : int64 option
+          MinimumTTL : int64 option }
+
     type DnsRecordType =
         | A of TargetResource : ResourceName option * ARecords : string list
         | AAAA of TargetResource : ResourceName option * AaaaRecords : string list
@@ -1510,6 +1580,8 @@ module Dns =
         | PTR of PtrRecords : string list
         | TXT of TxtRecords : string list
         | MX of {| Preference : int; Exchange : string |} list
+        | SRV of SrvRecord list
+        | SOA of SoaRecord
 
 module Databricks =
     type KeySource = Databricks | KeyVault member this.ArmValue = match this with Databricks -> "Default" | KeyVault -> "MicrosoftKeyVault"
@@ -1557,25 +1629,75 @@ module Serialization =
             PropertyNameCaseInsensitive = true)
     let toJson x = JsonSerializer.Serialize(x, jsonSerializerOptions)
     let ofJson<'T> (x:string) = JsonSerializer.Deserialize<'T>(x, jsonSerializerOptions)
-    
+
 module Resource =
     /// Creates a unique IArmResource from an arbitrary object.
     let ofObj armObject =
         { new IArmResource with
                 member _.ResourceId = ResourceId.create (ResourceType("", ""), ResourceName (System.Guid.NewGuid().ToString()))
                 member _.JsonModel = armObject }
-    
+
     /// Creates a unique IArmResource from a JSON string containing the output you want.
     let ofJson = Serialization.ofJson >> ofObj
-    
+
 module Json =
     /// Creates a unique IArmResource from a JSON string containing the output you want.
     let toIArmResource = Resource.ofJson
-    
+
 module Subscription =
     /// Gets an ARM expression pointing to the tenant id of the current subscription.
     let TenantId = ArmExpression.create "subscription().tenantid"
+
+module AzureFirewall =
+
+    type SkuName =
+        | AZFW_VNet
+        | AZFW_Hub
+        member this.ArmValue =
+            match this with
+            | AZFW_VNet -> "AZFW_VNet"
+            | AZFW_Hub -> "AZFW_Hub"
+
+    type SkuTier =
+        | Standard
+        | Premium
+        member this.ArmValue =
+            match this with
+            | Standard -> "Standard"
+            | Premium -> "Premium"
     
+module VirtualHub =
+    type Sku =
+        | Standard
+        member this.ArmValue =
+            match this with
+            | Standard -> "Standard"
+            
+    module HubRouteTable =
+        type Destination =
+            | CidrDestination of IPAddressCidr list
+            member this.DestinationTypeArmValue =
+                match this with
+                | CidrDestination _ -> "CIDR"
+            member this.DestinationsArmValue =
+                match this with
+                | CidrDestination destinations ->
+                    destinations
+                    |> List.map IPAddressCidr.format
+            
+        [<RequireQualifiedAccess>]
+        type NextHop =
+            | ResourceId of Farmer.LinkedResource
+            member this.NextHopTypeArmValue =
+                match this with
+                | ResourceId _ -> "ResourceId"
+            member this.NextHopArmValue =
+                match this with
+                | ResourceId linkedResource ->
+                    match linkedResource with
+                    | Managed resId
+                    | Unmanaged resId -> resId.Eval()
+
 namespace Farmer.DiagnosticSettings
 
 open Farmer

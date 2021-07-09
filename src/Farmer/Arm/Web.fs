@@ -2,6 +2,7 @@
 module Farmer.Arm.Web
 
 open Farmer
+open Farmer.Identity
 open Farmer.WebApp
 open Farmer.Identity
 open System
@@ -20,6 +21,7 @@ type ServerFarm =
       Sku: Sku
       WorkerSize : WorkerSize
       WorkerCount : int
+      MaximumElasticWorkerCount : int option
       OperatingSystem : OS
       Tags: Map<string,string> }
     member this.IsDynamic =
@@ -31,9 +33,26 @@ type ServerFarm =
         | Linux -> true
         | Windows -> false
     member this.Kind =
-        match this.OperatingSystem with
-        | Linux -> Some "linux"
-        | Windows -> None
+        [
+            match this.Sku with
+            | Shared
+            | Free
+            | Basic _
+            | Standard _
+            | Premium _
+            | PremiumV2 _
+            | PremiumV3 _
+            | Isolated _
+            | Dynamic -> ()
+            | ElasticPremium _ -> "elastic"
+
+            match this.OperatingSystem with
+            | Linux -> "linux"
+            | Windows -> ()
+        ]
+        |> function
+            | [] -> None
+            | kinds -> kinds |> String.concat "," |> Some
     member this.Tier =
         match this.Sku with
         | Free -> "Free"
@@ -43,6 +62,7 @@ type ServerFarm =
         | Premium _ -> "Premium"
         | PremiumV2 _ -> "PremiumV2"
         | PremiumV3 _ -> "PremiumV3"
+        | ElasticPremium _ -> "ElasticPremium"
         | Dynamic -> "Dynamic"
         | Isolated _ -> "Isolated"
     interface IArmResource with
@@ -61,6 +81,7 @@ type ServerFarm =
                         | Premium sku
                         | PremiumV2 sku
                         | PremiumV3 sku
+                        | ElasticPremium sku
                         | Isolated sku ->
                             sku
                         | Dynamic ->
@@ -78,7 +99,8 @@ type ServerFarm =
                       {| name = this.Name.Value
                          computeMode = if this.IsDynamic then "Dynamic" else null
                          perSiteScaling = if this.IsDynamic then Nullable() else Nullable false
-                         reserved = this.Reserved |}
+                         reserved = this.Reserved
+                         maximumElasticWorkerCount = this.MaximumElasticWorkerCount |> Option.toNullable |}
                  kind = this.Kind |> Option.toObj
             |} :> _
 
@@ -138,6 +160,7 @@ type Site =
       Dependencies : ResourceId Set
       Kind : string
       Identity : Identity.ManagedIdentity
+      KeyVaultReferenceIdentity : UserAssignedIdentity option
       LinuxFxVersion : string option
       AppCommandLine : string option
       NetFrameworkVersion : string option
@@ -177,13 +200,22 @@ type Site =
         member this.ResourceId = sites.resourceId this.Name
         member this.JsonModel =
             let dependencies = this.Dependencies + (Set this.Identity.Dependencies)
+            let keyvaultId = 
+                match (this.KeyVaultReferenceIdentity, this.Identity) with
+                | Some x, _
+                // If there is no managed identity and only one user-assigned identity, we should use that be default
+                | None, {SystemAssigned = Disabled; UserAssigned = [x]} -> x.ResourceId.Eval()
+                | _ -> null
             {| this.Type.Create(this.Name, this.Location, dependencies, this.Tags) with
                  kind = this.Kind
-                 identity = this.Identity |> ManagedIdentity.toArmJson
+                 identity =
+                     if this.Identity = ManagedIdentity.Empty then Unchecked.defaultof<_>
+                     else this.Identity.ToArmJson
                  properties =
                     {| serverFarmId = this.ServicePlan.Eval()
                        httpsOnly = this.HTTPSOnly
                        clientAffinityEnabled = match this.ClientAffinityEnabled with Some v -> box v | None -> null
+                       keyVaultReferenceIdentity = keyvaultId
                        siteConfig =
                         {| alwaysOn = this.AlwaysOn
                            appSettings = this.AppSettings |> Map.toList |> List.map(fun (k,v) -> {| name = k; value = v.Value |})

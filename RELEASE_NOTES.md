@@ -1,7 +1,46 @@
 Release Notes
 =============
+
+## 1.6.5
+* WebApp: Add support for keyvault reference user identity
+* Functions: Add support for keyvault reference user identity
+* Azure Firewall: Bug fix for link_to_vhub and added depends_on to builder
+
+## 1.6.4
+* DNS Zone: Added SOA and SRV record support
+* Azure Firewall: Added support for Azure Firewalls
+* Service Bus: Support max queue and topic sizes.
+* Service Bus: Set default message TTL for subscriptions.
+* Virtual Hubs: Support for virtualHubs and hubRouteTables
+* Virtual Machine: Added Identity support
+* Virtual Machine: Added a PasswordParameterARM member
+
+## 1.6.3
+* Container Service (AKS): Support basic SKU for the cluster's load balancer (default is standard).
+* Container Service (AKS): Support for private Kubernetes API access.
+* Container Service (AKS): Support for restricting IP ranges for Kubernetes API access.
+* Functions: Support publishing as a docker container
+* Service bus: Add support for authorization rules.
+* Virtual Machine: Added disable password authentication to Virtual Machine linux configuration
+* Virtual Machine: Added sshKeys and paths to Virtual Machine linux configuration
+
+## 1.6.2
+* Functions: Support Elastic Premium SKUs for Functions service plans.
+* SQL Azure: Support for minimum TLS version.
+* Storage: Support for minimum TLS version.
+* Virtual Machine: Provide control over the public IP
+* Virtual Machine: Support for customData on osProfile Properties
+* Virtual Network: Add support for vnet peering
+* WebApp: Added support for PrivateEndpoints
+
+## 1.6.1
+* Web App: Workaround ARM regression when Identity is set to "None".
+
 ## 1.6.0
 * Added support for nesting resource groups
+* Storage: Support for firewall to restrict storage account network access to virtual network subnets, IP addresses, and CIDR prefixes.
+* Virtual Network: Support for creating service endpoints on subnets.
+* Virtual Network: Support for assigning existing service endpoint policies to subnets.
 
 ## 1.5.3
 * CDN: Support for CDN rules

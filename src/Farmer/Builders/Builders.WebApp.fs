@@ -80,6 +80,7 @@ module private WebAppConfig =
           Settings = state.Settings
           Cors = state.Cors
           Identity = state.Identity
+          KeyVaultReferenceIdentity = state.KeyVaultReferenceIdentity
           SecretStore = state.SecretStore
           ZipDeployPath = state.ZipDeployPath
           AlwaysOn = state.AlwaysOn
@@ -94,6 +95,7 @@ module private WebAppConfig =
             Settings = config.Settings
             Cors = config.Cors
             Identity = config.Identity
+            KeyVaultReferenceIdentity = config.KeyVaultReferenceIdentity
             SecretStore = config.SecretStore
             ZipDeployPath = config.ZipDeployPath
             AlwaysOn = config.AlwaysOn
@@ -187,6 +189,7 @@ type CommonWebConfig =
       Settings : Map<string, Setting>
       Cors : Cors option
       Identity : Identity.ManagedIdentity
+      KeyVaultReferenceIdentity: UserAssignedIdentity Option
       SecretStore : SecretStore
       ZipDeployPath : (string*ZipDeploy.ZipDeploySlot) option
       AlwaysOn : bool
@@ -201,6 +204,7 @@ type WebAppConfig =
       Settings : Map<string, Setting>
       Cors : Cors option
       Identity : Identity.ManagedIdentity
+      KeyVaultReferenceIdentity: UserAssignedIdentity Option
       ZipDeployPath : (string * ZipDeploy.ZipDeploySlot) option 
       HTTPSOnly : bool
       HTTP20Enabled : bool option
@@ -212,6 +216,7 @@ type WebAppConfig =
       Sku : Sku
       WorkerSize : WorkerSize
       WorkerCount : int
+      MaximumElasticWorkerCount : int option
       RunFromPackage : bool
       WebsiteNodeDefaultVersion : string option
       AlwaysOn : bool
@@ -224,7 +229,8 @@ type WebAppConfig =
       AutomaticLoggingExtension : bool
       SiteExtensions : ExtensionName Set
       WorkerProcess : Bitness option
-      Slots : Map<string,SlotConfig> }
+      Slots : Map<string,SlotConfig> 
+      PrivateEndpoints: (LinkedResource * string option) Set }
     /// Gets this web app's Server Plan's full resource ID.
     member this.ServicePlanId = this.ServicePlan.resourceId this.Name
     /// Gets the Service Plan name for this web app.
@@ -347,6 +353,7 @@ type WebAppConfig =
                   ClientAffinityEnabled = this.ClientAffinityEnabled
                   WebSocketsEnabled = this.WebSocketsEnabled
                   Identity = this.Identity
+                  KeyVaultReferenceIdentity = this.KeyVaultReferenceIdentity
                   Cors = this.Cors
                   Tags = this.Tags
                   ConnectionStrings = this.ConnectionStrings
@@ -482,6 +489,7 @@ type WebAppConfig =
                   Sku = this.Sku
                   WorkerSize = this.WorkerSize
                   WorkerCount = this.WorkerCount
+                  MaximumElasticWorkerCount = this.MaximumElasticWorkerCount
                   OperatingSystem = this.OperatingSystem
                   Tags = this.Tags}
             | _ ->
@@ -499,6 +507,7 @@ type WebAppConfig =
                 for (_,slot) in this.Slots |> Map.toSeq do
                     slot.ToArm site
 
+            yield! (PrivateEndpoint.create location this.ResourceId ["sites"] this.PrivateEndpoints)
         ]
 
 type WebAppBuilder() =
@@ -508,12 +517,14 @@ type WebAppBuilder() =
           AppInsights = Some (derived (fun name -> components.resourceId (name-"ai")))
           Settings = Map.empty
           Identity = ManagedIdentity.Empty
+          KeyVaultReferenceIdentity = None
           Cors = None
           OperatingSystem = Windows
           ZipDeployPath = None
           Sku = Sku.F1
           WorkerSize = Small
           WorkerCount = 1
+          MaximumElasticWorkerCount = None
           RunFromPackage = false
           WebsiteNodeDefaultVersion = None
           AlwaysOn = false
@@ -533,7 +544,8 @@ type WebAppBuilder() =
           AutomaticLoggingExtension = true
           SiteExtensions = Set.empty
           WorkerProcess = None 
-          Slots = Map.empty }
+          Slots = Map.empty 
+          PrivateEndpoints = Set.empty}
     member __.Run(state:WebAppConfig) =
         { state with
             SiteExtensions =
@@ -633,6 +645,8 @@ type WebAppBuilder() =
     /// Automatically add the ASP.NET Core logging extension.
     [<CustomOperation "automatic_logging_extension">]
     member _.DefaultLogging (state:WebAppConfig, setting) = { state with AutomaticLoggingExtension = setting }
+
+    interface IPrivateEndpoints<WebAppConfig> with member _.Add state endpoints = { state with PrivateEndpoints = state.PrivateEndpoints |> Set.union endpoints}
     interface ITaggable<WebAppConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     interface IDependable<WebAppConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
     interface IServicePlanApp<WebAppConfig> with
@@ -725,11 +739,21 @@ module Extensions =
                 Settings = current.Settings.Add("AZURE_CLIENT_ID", Setting.ExpressionSetting identity.ClientId) }
             |> this.Wrap state
         member this.AddIdentity (state, identity:UserAssignedIdentityConfig) = this.AddIdentity(state, identity.UserAssignedIdentity)
+        [<CustomOperation "keyvault_identity">]
+        member this.AddKeyVaultIdentity (state:'T, identity:UserAssignedIdentity) =
+            let current = this.Get state
+            { current with
+                Identity = current.Identity + identity
+                KeyVaultReferenceIdentity = Some identity
+                Settings = current.Settings.Add("AZURE_CLIENT_ID", Setting.ExpressionSetting identity.ClientId) }
+            |> this.Wrap state
+        member this.AddKeyVaultIdentity (state, identity:UserAssignedIdentityConfig) = this.AddKeyVaultIdentity(state, identity.UserAssignedIdentity)
         [<CustomOperation "system_identity">]
         member this.SystemIdentity (state:'T) =
             let current = this.Get state
             { current with Identity = { current.Identity with SystemAssigned = Enabled } }
             |> this.Wrap state
+
         /// sets the list of origins that should be allowed to make cross-origin calls. Use AllOrigins to allow all.
         [<CustomOperation "enable_cors">]
         member this.EnableCors (state:'T, origins) =

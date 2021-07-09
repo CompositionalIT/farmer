@@ -26,14 +26,18 @@ type ManagedCluster =
       DnsPrefix : string
       EnableRBAC : bool
       Identity : ManagedIdentity
+      ApiServerAccessProfile :
+       {| AuthorizedIPRanges : string list
+          EnablePrivateCluster : bool option |} option
       LinuxProfile :
        {| AdminUserName : string
           PublicKeys : string list |} option
       NetworkProfile :
-       {| NetworkPlugin : ContainerService.NetworkPlugin
-          DnsServiceIP : System.Net.IPAddress
-          DockerBridgeCidr : IPAddressCidr
-          ServiceCidr : IPAddressCidr |} option
+       {| NetworkPlugin : ContainerService.NetworkPlugin option
+          DnsServiceIP : System.Net.IPAddress option
+          DockerBridgeCidr : IPAddressCidr option
+          LoadBalancerSku : LoadBalancer.Sku option
+          ServiceCidr : IPAddressCidr option |} option
       WindowsProfile :
         {| AdminUserName : string
            AdminPassword : SecureParameter |} option
@@ -58,7 +62,7 @@ type ManagedCluster =
                 yield! this.Identity.Dependencies
             ]
             {| managedClusters.Create(this.Name, this.Location, dependencies) with
-                   identity = this.Identity |> ManagedIdentity.toArmJson
+                   identity = this.Identity.ToArmJson
                    properties =
                        {| agentPoolProfiles =
                            this.AgentPoolProfiles
@@ -78,6 +82,14 @@ type ManagedCluster =
                                |})
                           dnsPrefix = this.DnsPrefix
                           enableRBAC = this.EnableRBAC
+                          apiServerAccessProfile =
+                              match this.ApiServerAccessProfile with
+                              | Some apiServerProfile ->
+                                  {| authorizedIPRanges = apiServerProfile.AuthorizedIPRanges
+                                     enablePrivateCluster =
+                                        apiServerProfile.EnablePrivateCluster
+                                        |> Option.map box |> Option.toObj |}
+                              | None -> Unchecked.defaultof<_>
                           linuxProfile =
                                 match this.LinuxProfile with
                                 | Some linuxProfile ->
@@ -87,10 +99,11 @@ type ManagedCluster =
                           networkProfile =
                               match this.NetworkProfile with
                               | Some networkProfile ->
-                                    {| dnsServiceIP = networkProfile.DnsServiceIP |> string
-                                       dockerBridgeCidr = networkProfile.DockerBridgeCidr |> IPAddressCidr.format
-                                       networkPlugin = networkProfile.NetworkPlugin.ArmValue
-                                       serviceCidr = networkProfile.ServiceCidr |> IPAddressCidr.format |}
+                                    {| dnsServiceIP = networkProfile.DnsServiceIP |> Option.map string |> Option.toObj
+                                       dockerBridgeCidr = networkProfile.DockerBridgeCidr |> Option.map IPAddressCidr.format |> Option.toObj
+                                       loadBalancerSku = networkProfile.LoadBalancerSku |> Option.map (fun sku -> sku.ArmValue) |> Option.toObj
+                                       networkPlugin = networkProfile.NetworkPlugin |> Option.map (fun plugin -> plugin.ArmValue) |> Option.toObj
+                                       serviceCidr = networkProfile.ServiceCidr |> Option.map IPAddressCidr.format |> Option.toObj |}
                               | None -> Unchecked.defaultof<_>
                           servicePrincipalProfile =
                               {| clientId = this.ServicePrincipalProfile.ClientId

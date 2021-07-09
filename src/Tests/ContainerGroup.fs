@@ -6,6 +6,7 @@ open Farmer.Identity
 open Farmer.ContainerGroup
 open Farmer.Arm.ContainerInstance
 open Farmer.Builders
+open Farmer.Network
 open Microsoft.Azure.Management.ContainerInstance
 open Microsoft.Azure.Management.ContainerInstance.Models
 open Microsoft.Rest
@@ -420,7 +421,7 @@ let tests = testList "Container Group" [
         let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
         let subnetId = jobj.SelectToken("..subnet.id") |> string
         let expectedSubnetId = "[resourceId('other-res-group', 'Microsoft.Network/virtualNetworks/subnets', 'containerNet', 'ContainerSubnet')]"
-        Expect.equal subnetId expectedSubnetId "Generated incorrect subnet ID." 
+        Expect.equal subnetId expectedSubnetId "Generated incorrect subnet ID."
     }
     test "Can link a network profile directly to a container group" {
         let profile = networkProfile { name "netprofile" }
