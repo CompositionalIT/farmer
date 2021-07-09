@@ -5,6 +5,7 @@ open System
 open Farmer
 
 let hasEnv a b = Environment.GetEnvironmentVariable a = b
+let notEnv a b = Environment.GetEnvironmentVariable a <> b
 
 [<Tests>]
 let allTests =
@@ -12,7 +13,8 @@ let allTests =
         testList "All Tests" [
             testList "Builders" [
                 AppInsights.tests
-                AzCli.tests
+                if notEnv "BUILD_REASON" "PullRequest" then
+                    AzCli.tests
                 Bastion.tests
                 BingSearch.tests
                 Cdn.tests
@@ -53,7 +55,8 @@ let allTests =
                 WebApp.tests
             ]
             testList "Control" [
-                if hasEnv "TF_BUILD" "True" || hasEnv "FARMER_E2E" "True" then AzCli.endToEndTests
+                if (hasEnv "TF_BUILD" "True" && notEnv "BUILD_REASON" "PullRequest") || hasEnv "FARMER_E2E" "True" then
+                    AzCli.endToEndTests
                 Common.tests
                 Identity.tests
                 Template.tests
