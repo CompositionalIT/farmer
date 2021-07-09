@@ -6,7 +6,7 @@ let tests = testList "Common" [
     test "IPAddressCidr creates correct range" {
         let cidr = IPAddressCidr.parse "192.168.0.0/24"
         let first, last = cidr |> IPAddressCidr.ipRange
-        Expect.equal (string first) "192.168.0.0" "First address incorrect"
+        Expect.equal (string first) "192.168.0.1" "First address incorrect"
         Expect.equal (string last) "192.168.0.255" "Last address incorrect"
     }
 
