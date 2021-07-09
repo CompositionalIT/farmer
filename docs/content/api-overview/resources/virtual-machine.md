@@ -38,6 +38,7 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 |custom_script_files|Uploads the supplied set of files, specified by URI, to the VM on creation.|
 |custom_data|Sets the custom data field for the VM.|
 |public_ip|Specifies or removes the public IP for this VM|
+|ip_allocation|Sets the public IP as Dynamic or Static. Default is Dynamic.|
 |disable_password_authentication|Disables password authentication on the VM. Must include at least one key if true|
 |add_authorized_key|adds one authorized key|
 |add_authorized_keys|adds a list of authorized keys|
