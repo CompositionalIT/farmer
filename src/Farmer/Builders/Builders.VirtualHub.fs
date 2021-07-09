@@ -73,7 +73,8 @@ type VirtualHubBuilder() =
 type HubRouteTableConfig =
     { Name : ResourceName
       Vhub : LinkedResource
-      Routes : HubRoute list }
+      Routes : HubRoute list
+      Labels : string list }
     interface IBuilder with
         member this.ResourceId =
             let vhubResourceId = 
@@ -107,14 +108,15 @@ type HubRouteTableConfig =
                     routeDep
               ] |> Set.ofList
               Routes = this.Routes
-              Labels = [] }
+              Labels = this.Labels }
         ]
         
 type HubRouteTableBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
           Vhub = LinkedResource.Unmanaged (virtualHubs.resourceId ResourceName.Empty)
-          Routes = List.Empty }
+          Routes = List.Empty
+          Labels = List.Empty }
     [<CustomOperation "name">]
     /// Sets the name of the virtual hub.
     member _.Name(state:HubRouteTableConfig, name) = { state with Name = name }
@@ -133,6 +135,9 @@ type HubRouteTableBuilder() =
     /// Adds the routes to the HubRouteTable
     member _.AddRoutes(state:HubRouteTableConfig, routes) =
         { state with Routes = state.Routes @ routes}
+    [<CustomOperation "add_labels">]
+    member _.AddLabels(state:HubRouteTableConfig, labels) =
+        { state with Labels = state.Labels @ labels }
     member _.Run (state:HubRouteTableConfig) =
         match state.Vhub with
         | Managed resourceId
