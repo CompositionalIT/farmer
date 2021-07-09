@@ -219,6 +219,33 @@ let hubRouteTableTests = testList "Hub Route Table Tests" [
         let expectedDependency = $"[resourceId('Microsoft.Network/virtualHubs', '{vhubResourceName.Value}')]"
         Expect.equal dependsOn.Head expectedDependency "" 
     }
+    test "HubRouteTable creates default label" {
+        let routeTableResourceName = "my-routetable"
+        let vhubResourceName = "my-vhub"
+        let resource =
+            hubRouteTable {
+                name routeTableResourceName
+                link_to_unmanaged_vhub (virtualHubs.resourceId vhubResourceName)
+                add_default_label
+            }
+            |> getResources |> getHubRouteTableResource |> List.head
+        Expect.equal resource.Labels ["default"] ""
+    }
+    test "HubRouteTable appends labels to default label" {
+        let routeTableResourceName = "my-routetable"
+        let vhubResourceName = "my-vhub"
+        let otherLabels = ["label1"; "label2"]
+        let expectedLabels = ["default"] @ otherLabels
+        let resource =
+            hubRouteTable {
+                name routeTableResourceName
+                link_to_unmanaged_vhub (virtualHubs.resourceId vhubResourceName)
+                add_default_label
+                add_labels otherLabels
+            }
+            |> getResources |> getHubRouteTableResource |> List.head
+        Expect.equal resource.Labels expectedLabels ""
+    }
 ]
 
 let tests = testList "Virtual Hub Tests" [virtualHubTests; hubRouteTableTests]
