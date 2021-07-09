@@ -5,6 +5,7 @@ open Farmer
 open Farmer.AzureFirewall
 open Farmer.Arm.AzureFirewall
 open Farmer.Arm.VirtualHub
+open Farmer.Builders.VirtualHub
 
 type HubIPAddressSpace =
     | PublicCount of int
@@ -20,20 +21,22 @@ type AzureFirewallConfig =
       FirewallPolicy : LinkedResource option
       VirtualHub : LinkedResource option
       HubIPAddressSpace : HubIPAddressSpace option
-      Sku : Sku }
+      Sku : Sku
+      Dependencies : ResourceId Set }
     interface IBuilder with
         member this.ResourceId = azureFirewalls.resourceId this.Name
         member this.BuildResources location = [
             { Name = this.Name
               Location = location
-              Dependencies = [
+              Dependencies = Set [
+                yield! this.Dependencies
                 match this.FirewallPolicy with
                 | Some (Managed resId) -> resId // Only generate dependency if this is managed by Farmer (same template)
                 | _ -> ()
                 match this.VirtualHub with
                 | Some (Managed resId) -> resId
                 | _ -> ()
-              ] |> Set.ofList
+              ]
               FirewallPolicy = this.FirewallPolicy |> Option.map (fun x -> match x with | Managed resId | Unmanaged resId -> resId)
               VirtualHub = this.VirtualHub |> Option.map (fun x -> match x with | Managed resId | Unmanaged resId -> resId)
               HubIPAddresses = this.HubIPAddressSpace |> Option.map (fun x -> x.Arm)
@@ -46,7 +49,8 @@ type AzureFirewallBuilder() =
           Sku = {Name = SkuName.AZFW_Hub; Tier = SkuTier.Standard}
           FirewallPolicy = None
           VirtualHub = None
-          HubIPAddressSpace = None }
+          HubIPAddressSpace = None
+          Dependencies = Set.empty }
     /// The name of the firewall.
     [<CustomOperation "name">] member _.Name(state:AzureFirewallConfig, name) = { state with Name = ResourceName name }
     /// The SKU of the firewall.
@@ -67,8 +71,10 @@ type AzureFirewallBuilder() =
         { state with VirtualHub = Some (Unmanaged resourceId) }
     /// The managed virtualHub to which the firewall belongs
     [<CustomOperation "link_to_vhub">]
-    member this.LinkToVirtualHub (state:AzureFirewallConfig, vhub:IArmResource) =    
-        { state with FirewallPolicy = Some (Managed vhub.ResourceId) }
+    member this.LinkToVirtualHub (state:AzureFirewallConfig, vhub:VirtualHub) =    
+        { state with VirtualHub = Some (Managed (vhub :> IArmResource).ResourceId) }
+    member this.LinkToVirtualHub (state:AzureFirewallConfig, vhub:VirtualHubConfig) =    
+        { state with VirtualHub = Some (Managed (vhub :> IBuilder).ResourceId) }
     /// Configure this firewall to reserve a specified number of public ips.
     /// 0 is not a valid value for AZFW_HUB 
     [<CustomOperation "public_ip_reservation_count">]
@@ -84,6 +90,6 @@ type AzureFirewallBuilder() =
             | Some (PublicCount _) -> ()
         | AZFW_VNet -> ()
         state
-       
+    interface IDependable<AzureFirewallConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
         
 let azureFirewall = AzureFirewallBuilder()
