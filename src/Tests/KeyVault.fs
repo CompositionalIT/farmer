@@ -112,7 +112,7 @@ let tests = testList "KeyVault" [
         let enableRbac = jobj.SelectToken("resources[0].properties.enableRbacAuthorization")
         Expect.isTrue (enableRbac.Value<bool>()) "RBAC was not enabled on the key vault"
     }
-    ftest "Get Vault URI from output" {
+    test "Get Vault URI from output" {
         let kv = keyVault {
             name "my-test-kv-9876"
         }
@@ -126,5 +126,20 @@ let tests = testList "KeyVault" [
         let jobj = JObject.Parse(json)
         let kvUri = jobj.SelectToken("outputs.kv-uri.value")
         Expect.equal (string kvUri) "[reference(resourceId('Microsoft.KeyVault/vaults', 'my-test-kv-9876')).vaultUri]" "Vault URI not set properly in output"
+    }
+    test "Key Vault with purge protection emits correct value" {
+        let kv = keyVault {
+            name "my-test-kv-9876"
+            enable_soft_delete_with_purge_protection
+        }
+        let json =
+            let template = 
+                arm {
+                    add_resource kv
+                }
+            template.Template |> Writer.toJson
+        let jobj = JObject.Parse(json)
+        let purgeProtection = jobj.SelectToken("resources[0].properties.enablePurgeProtection")
+        Expect.equal (purgeProtection |> string |> Boolean.Parse) true "Purge protection not enabled"
     }
 ]
