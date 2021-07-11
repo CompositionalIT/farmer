@@ -306,7 +306,6 @@ let tests = testList "Web App Tests" [
     test "Supports .NET 5 EAP" {
         let app = webApp { runtime_stack Runtime.DotNet50 }
         let site:Site = app |> getResourceAtIndex 0
-        site.KeyVaultReferenceIdentity
         Expect.equal site.SiteConfig.NetFrameworkVersion "v5.0" "Wrong dotnet version"
     }
     test "Supports private endpoints" {
