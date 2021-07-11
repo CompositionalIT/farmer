@@ -63,7 +63,7 @@ type ContainerGroup =
            Memory : float<Gb>
            EnvironmentVariables: Map<string, EnvVar>
            VolumeMounts : Map<string,string>
-           LivelinessProbe : ContainerProbe option
+           LivenessProbe : ContainerProbe option
            ReadinessProbe : ContainerProbe option
         |} list
       OperatingSystem : OS
@@ -144,7 +144,7 @@ type ContainerGroup =
                                               | SecureEnvValue value ->
                                                 {| name = key; value = null; secureValue = value.ArmExpression.Eval() |}
                                       ]
-                                      livenessProbe = container.LivelinessProbe |> Option.map (fun p -> p.JsonModel |> box) |> Option.defaultValue null
+                                      livenessProbe = container.LivenessProbe |> Option.map (fun p -> p.JsonModel |> box) |> Option.defaultValue null
                                       readinessProbe = container.ReadinessProbe |> Option.map (fun p -> p.JsonModel |> box) |> Option.defaultValue null
                                       resources =
                                        {| requests =

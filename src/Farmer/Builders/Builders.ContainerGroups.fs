@@ -47,8 +47,8 @@ type ContainerInstanceConfig =
       Memory : float<Gb>
       /// Environment variables for the container
       EnvironmentVariables : Map<string, EnvVar>
-      /// Liveliness probe for checking the container's health.
-      LivelinessProbe : ContainerProbe option
+      /// Liveness probe for checking the container's health.
+      LivenessProbe : ContainerProbe option
       /// Readiness probe to wait for the container to be ready to accept requests.
       ReadinessProbe : ContainerProbe option
       /// Volume mounts for the container
@@ -108,7 +108,7 @@ type ContainerGroupConfig =
                        Cpu = instance.Cpu
                        Memory = instance.Memory
                        EnvironmentVariables = instance.EnvironmentVariables
-                       LivelinessProbe = instance.LivelinessProbe
+                       LivenessProbe = instance.LivenessProbe
                        ReadinessProbe = instance.ReadinessProbe
                        VolumeMounts = instance.VolumeMounts |}
               ]
@@ -131,7 +131,7 @@ type ContainerGroupConfig =
               Dependencies = this.Dependencies }
         ]
 
-type ContainerProbeType = LivelinessProbe | ReadinessProbe
+type ContainerProbeType = LivenessProbe | ReadinessProbe
 type ContainerProbeConfig =
     { ProbeType : ContainerProbeType
       Probe : ContainerProbe }
@@ -258,7 +258,7 @@ type ContainerInstanceBuilder() =
           Cpu = 1.0
           Memory = 1.5<Gb>
           EnvironmentVariables = Map.empty
-          LivelinessProbe = None
+          LivenessProbe = None
           ReadinessProbe = None
           VolumeMounts = Map.empty }
     /// Sets the name of the container instance.
@@ -302,13 +302,13 @@ type ContainerInstanceBuilder() =
     [<CustomOperation "command_line">]
     member _.CommandLine (state:ContainerInstanceConfig, command) =
         { state with Command = state.Command @ command }
-    /// Set readiness and liveliness probes on the container.
+    /// Set readiness and liveness probes on the container.
     [<CustomOperation "probes">]
     member _.Probes (state:ContainerInstanceConfig, probes:(ContainerProbeConfig) seq) =
         { state with
-            LivelinessProbe =
+            LivenessProbe =
                 probes
-                |> Seq.tryFind(fun p -> p.ProbeType = ContainerProbeType.LivelinessProbe)
+                |> Seq.tryFind(fun p -> p.ProbeType = ContainerProbeType.LivenessProbe)
                 |> Option.map (fun p -> p.Probe)
             ReadinessProbe =
                 probes
@@ -361,8 +361,10 @@ type ProbeBuilder (probeType:ContainerProbeType) =
     member _.TimeoutSeconds (state:(ContainerProbeConfig), delay:int) =
         { state with Probe = { state.Probe with TimeoutSeconds = delay |> Some } }
 
-let liveliness = ProbeBuilder(LivelinessProbe)
+let liveness = ProbeBuilder(LivenessProbe)
 let readiness = ProbeBuilder(ReadinessProbe)
+[<System.Obsolete "Compatibility only due to spelling error - please use 'liveness'">]
+let liveliness = ProbeBuilder(LivenessProbe)
 
 type InitContainerBuilder() =
     member _.Yield _ =
