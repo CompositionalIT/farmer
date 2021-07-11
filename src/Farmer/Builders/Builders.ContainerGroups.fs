@@ -89,7 +89,9 @@ type ContainerGroupConfig =
       /// Managed identity for the container group.
       Identity : ManagedIdentity
       /// Tags for the container group.
-      Tags: Map<string,string> }
+      Tags: Map<string,string>
+      /// Additional dependencies.
+      Dependencies: Set<ResourceId> }
     member private this.ResourceId = containerGroups.resourceId this.Name
     member this.SystemIdentity = SystemIdentity this.ResourceId
     interface IBuilder with
@@ -125,7 +127,8 @@ type ContainerGroupConfig =
               IpAddress = this.IpAddress
               NetworkProfile = this.NetworkProfile
               Volumes = this.Volumes
-              Tags = this.Tags }
+              Tags = this.Tags
+              Dependencies = this.Dependencies }
         ]
 
 type ContainerProbeType = LivelinessProbe | ReadinessProbe
@@ -180,7 +183,8 @@ type ContainerGroupBuilder() =
           NetworkProfile = None
           Instances = []
           Volumes = Map.empty
-          Tags = Map.empty }
+          Tags = Map.empty
+          Dependencies = Set.empty }
     member this.Run (state:ContainerGroupConfig) =
         // Automatically apply all public-facing ports to the container group itself.
         state.Instances
@@ -237,6 +241,7 @@ type ContainerGroupBuilder() =
 
     interface IIdentity<ContainerGroupConfig> with member _.Add state updater = { state with Identity = updater state.Identity }
     interface ITaggable<ContainerGroupConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
+    interface IDependable<ContainerGroupConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
 /// Creates an image registry credential with a generated SecureParameter for the password.
 let registry (server:string) (username:string) =

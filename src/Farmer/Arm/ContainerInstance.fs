@@ -80,11 +80,12 @@ type ContainerGroup =
       IpAddress : ContainerGroupIpAddress option
       NetworkProfile : ResourceName option
       Volumes : Map<string, Volume>
-      Tags: Map<string,string>  }
+      Tags: Map<string,string>
+      Dependencies: Set<ResourceId> }
     member this.NetworkProfilePath =
         this.NetworkProfile
         |> Option.map networkProfiles.resourceId
-    member private this.Dependencies = [
+    member private this.dependencies = [
         yield! Option.toList this.NetworkProfilePath
 
         for _, volume in this.Volumes |> Map.toSeq do
@@ -96,6 +97,7 @@ type ContainerGroup =
 
         // If the identity is set, include any dependent identity's resource ID
         yield! this.Identity.Dependencies
+        yield! this.Dependencies
     ]
 
     interface IParameters with
@@ -123,7 +125,7 @@ type ContainerGroup =
     interface IArmResource with
         member this.ResourceId = containerGroups.resourceId this.Name
         member this.JsonModel =
-            {| containerGroups.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
+            {| containerGroups.Create(this.Name, this.Location, this.dependencies, this.Tags) with
                    identity = this.Identity.ToArmJson
                    properties =
                        {| containers =

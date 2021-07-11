@@ -41,6 +41,7 @@ The Container Group builder is used to create Azure Container Group instances.
 | containerGroup | add_tcp_port | Adds a TCP port to be externally accessible. |
 | containerGroup | add_udp_port | Adds a UDP port to be externally accessible. |
 | containerGroup | add_volumes | Adds volumes to a container group so they are accessible to containers. |
+| containerGroup | depends_on | Specifies the resource or resource ID of resources that must exist before the container group is created. |
 | liveliness | http | Sets the http GET URI on a container liveliness check. |
 | liveliness | exec | Sets a command to execute on a container liveliness check. |
 | liveliness | initial_delay_seconds | Sets a delay after container startup before the first check - default is 0 seconds. |

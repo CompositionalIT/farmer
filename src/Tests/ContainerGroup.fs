@@ -11,6 +11,7 @@ open Microsoft.Azure.Management.ContainerInstance
 open Microsoft.Azure.Management.ContainerInstance.Models
 open Microsoft.Rest
 open System
+open Newtonsoft.Json.Linq
 
 let nginx = containerInstance {
     name "nginx"
@@ -432,5 +433,27 @@ let tests = testList "Container Group" [
             } |> asAzureResource
 
         Expect.equal "[resourceId('Microsoft.Network/networkProfiles', 'netprofile')]" template.NetworkProfile.Id "Incorrect profile name"
+    }
+    test "Support for additional dependencies" {
+        let storage =
+            storageAccount {
+                name "containerstorage"
+            }
+        let myGroup =
+            containerGroup {
+                name "myContainerGroup"
+                depends_on storage
+            }
+        let template =
+            arm {
+                add_resources [
+                    storage
+                    myGroup
+                ]
+            }
+        let json = template.Template |> Writer.toJson
+        let jobj = json |> Newtonsoft.Json.Linq.JObject.Parse
+        let dependencies = jobj.SelectToken "resources[?(@.name=='myContainerGroup')].dependsOn"
+        Expect.sequenceEqual dependencies [JValue "[resourceId('Microsoft.Storage/storageAccounts', 'containerstorage')]"] "Did not have correct dependencies"
     }
 ]
