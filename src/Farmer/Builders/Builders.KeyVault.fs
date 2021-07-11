@@ -95,6 +95,13 @@ type KeyVaultConfig =
       Uri : Uri option
       Secrets : SecretConfig list
       Tags: Map<string,string>  }
+
+      /// References the Key Vault URI after deployment.
+      member this.VaultUri =
+        let kvUriId = ResourceId.create(vaults, this.Name)
+        $"reference({kvUriId.ArmExpression.Value}).vaultUri"
+        |> ArmExpression.create
+
       interface IBuilder with
         member this.ResourceId = vaults.resourceId this.Name
         member this.BuildResources location = [
