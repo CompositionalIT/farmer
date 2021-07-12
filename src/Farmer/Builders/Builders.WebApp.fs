@@ -80,6 +80,7 @@ module private WebAppConfig =
           Settings = state.Settings
           Cors = state.Cors
           Identity = state.Identity
+          KeyVaultReferenceIdentity = state.KeyVaultReferenceIdentity
           SecretStore = state.SecretStore
           ZipDeployPath = state.ZipDeployPath
           AlwaysOn = state.AlwaysOn
@@ -93,6 +94,7 @@ module private WebAppConfig =
             Settings = config.Settings
             Cors = config.Cors
             Identity = config.Identity
+            KeyVaultReferenceIdentity = config.KeyVaultReferenceIdentity
             SecretStore = config.SecretStore
             ZipDeployPath = config.ZipDeployPath
             AlwaysOn = config.AlwaysOn
@@ -107,6 +109,7 @@ type CommonWebConfig =
       Settings : Map<string, Setting>
       Cors : Cors option
       Identity : Identity.ManagedIdentity
+      KeyVaultReferenceIdentity: UserAssignedIdentity Option
       SecretStore : SecretStore
       ZipDeployPath : string option
       AlwaysOn : bool
@@ -120,6 +123,7 @@ type WebAppConfig =
       Settings : Map<string, Setting>
       Cors : Cors option
       Identity : Identity.ManagedIdentity
+      KeyVaultReferenceIdentity: UserAssignedIdentity Option
       ZipDeployPath : string option
       HTTPSOnly : bool
       HTTP20Enabled : bool option
@@ -214,6 +218,7 @@ type WebAppConfig =
               ClientAffinityEnabled = this.ClientAffinityEnabled
               WebSocketsEnabled = this.WebSocketsEnabled
               Identity = this.Identity
+              KeyVaultReferenceIdentity = this.KeyVaultReferenceIdentity
               Cors = this.Cors
               Tags = this.Tags
               ConnectionStrings = this.ConnectionStrings
@@ -407,7 +412,7 @@ type WebAppConfig =
                 { Name = ResourceName extension
                   SiteName = this.Name
                   Location = location }
-            
+
             yield! (PrivateEndpoint.create location this.ResourceId ["sites"] this.PrivateEndpoints)
         ]
 
@@ -418,6 +423,7 @@ type WebAppBuilder() =
           AppInsights = Some (derived (fun name -> components.resourceId (name-"ai")))
           Settings = Map.empty
           Identity = ManagedIdentity.Empty
+          KeyVaultReferenceIdentity = None
           Cors = None
           OperatingSystem = Windows
           ZipDeployPath = None
@@ -443,7 +449,7 @@ type WebAppBuilder() =
           SecretStore = AppService
           AutomaticLoggingExtension = true
           SiteExtensions = Set.empty
-          WorkerProcess = None 
+          WorkerProcess = None
           PrivateEndpoints = Set.empty}
     member __.Run(state:WebAppConfig) =
         { state with
@@ -545,6 +551,7 @@ type WebAppBuilder() =
     /// Automatically add the ASP.NET Core logging extension.
     [<CustomOperation "automatic_logging_extension">]
     member _.DefaultLogging (state:WebAppConfig, setting) = { state with AutomaticLoggingExtension = setting }
+
     interface IPrivateEndpoints<WebAppConfig> with member _.Add state endpoints = { state with PrivateEndpoints = state.PrivateEndpoints |> Set.union endpoints}
     interface ITaggable<WebAppConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     interface IDependable<WebAppConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
@@ -637,11 +644,21 @@ module Extensions =
                 Settings = current.Settings.Add("AZURE_CLIENT_ID", Setting.ExpressionSetting identity.ClientId) }
             |> this.Wrap state
         member this.AddIdentity (state, identity:UserAssignedIdentityConfig) = this.AddIdentity(state, identity.UserAssignedIdentity)
+        [<CustomOperation "keyvault_identity">]
+        member this.AddKeyVaultIdentity (state:'T, identity:UserAssignedIdentity) =
+            let current = this.Get state
+            { current with
+                Identity = current.Identity + identity
+                KeyVaultReferenceIdentity = Some identity
+                Settings = current.Settings.Add("AZURE_CLIENT_ID", Setting.ExpressionSetting identity.ClientId) }
+            |> this.Wrap state
+        member this.AddKeyVaultIdentity (state, identity:UserAssignedIdentityConfig) = this.AddKeyVaultIdentity(state, identity.UserAssignedIdentity)
         [<CustomOperation "system_identity">]
         member this.SystemIdentity (state:'T) =
             let current = this.Get state
             { current with Identity = { current.Identity with SystemAssigned = Enabled } }
             |> this.Wrap state
+
         /// sets the list of origins that should be allowed to make cross-origin calls. Use AllOrigins to allow all.
         [<CustomOperation "enable_cors">]
         member this.EnableCors (state:'T, origins) =

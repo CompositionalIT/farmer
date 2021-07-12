@@ -5,7 +5,27 @@ Release Notes
 * Storage Account: Add support for data protection policies,
 * Storage Account: Add support for versioning.
 
+## 1.6.5
+* Azure Firewall: Bug fix for link_to_vhub and added depends_on to builder
+* Functions: Add support for keyvault reference user identity
+* VirtualHubs/hubRouteTables : Add support for labels
+* Virtual Machine: Add option to static IP allocation
+* Web App: Add support for keyvault reference user identity
+
+## 1.6.4
+* DNS Zone: Added SOA and SRV record support
+* Azure Firewall: Added support for Azure Firewalls
+* Service Bus: Support max queue and topic sizes.
+* Service Bus: Set default message TTL for subscriptions.
+* Virtual Hubs: Support for virtualHubs and hubRouteTables
+* Virtual Machine: Added Identity support
+* Virtual Machine: Added a PasswordParameterARM member
+
 ## 1.6.3
+* Container Service (AKS): Support basic SKU for the cluster's load balancer (default is standard).
+* Container Service (AKS): Support for private Kubernetes API access.
+* Container Service (AKS): Support for restricting IP ranges for Kubernetes API access.
+* Functions: Support publishing as a docker container
 * Service bus: Add support for authorization rules.
 * Virtual Machine: Added disable password authentication to Virtual Machine linux configuration
 * Virtual Machine: Added sshKeys and paths to Virtual Machine linux configuration

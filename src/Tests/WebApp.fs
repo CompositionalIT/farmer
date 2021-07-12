@@ -318,4 +318,15 @@ let tests = testList "Web App Tests" [
         Expect.equal ep.PrivateLinkServiceConnections.[0].PrivateLinkServiceId "[resourceId('Microsoft.Web/sites', 'farmerWebApp')]" "Incorrect PrivateLinkServiceId"
         Expect.equal ep.Subnet.Id (subnet.ArmExpression.Eval()) "Incorrect subnet id"
     }
+    test "Supports keyvault reference identity" {
+        let app = webApp { name "farmerWebApp"}
+        let site:Site = app |> getResourceAtIndex 0
+        Expect.isNull site.KeyVaultReferenceIdentity "Keyvault identity should not be set"
+
+        let myId = userAssignedIdentity { name "myFarmerIdentity" }
+        let app = webApp { name "farmerWebApp"; keyvault_identity myId }
+        let site:Site = app |> getResourceAtIndex 0
+        Expect.equal site.KeyVaultReferenceIdentity "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'myFarmerIdentity')]" "Keyvault identity should not be set"
+
+    }
 ]

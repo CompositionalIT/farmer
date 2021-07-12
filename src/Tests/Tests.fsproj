@@ -48,6 +48,7 @@
     <Compile Include="DeploymentScript.fs" />
     <Compile Include="Databricks.fs" />
     <Compile Include="VirtualWan.fs" />
+    <Compile Include="VirtualHub.fs" />
     <Compile Include="JsonRegression.fs" />
     <Compile Include="Types.fs" />
     <Compile Include="TrafficManager.fs" />
@@ -61,7 +62,7 @@
     <PackageReference Include="Microsoft.Azure.Management.CognitiveServices" Version="7.0.0" />
     <PackageReference Include="Microsoft.Azure.Management.Compute" Version="35.2.0" />
     <PackageReference Include="Microsoft.Azure.Management.ContainerInstance" Version="3.0.0" />
-    <PackageReference Include="Microsoft.Azure.Management.ContainerService" Version="1.0.0" />
+    <PackageReference Include="Microsoft.Azure.Management.ContainerService" Version="1.1.0" />
     <PackageReference Include="Microsoft.Azure.Management.DeviceProvisioningServices" Version="1.0.0" />
     <PackageReference Include="Microsoft.Azure.Management.IotHub" Version="2.10.0-preview" />
     <PackageReference Include="Microsoft.Azure.Management.Maps" Version="1.0.2" />
@@ -74,7 +75,7 @@
     <PackageReference Include="Microsoft.Azure.Management.Sql" Version="1.43.0-preview" />
     <PackageReference Include="Microsoft.Azure.Management.Storage" Version="21.0.0" />
     <PackageReference Include="Microsoft.Azure.Management.TrafficManager" Version="2.5.3" />
-    <PackageReference Include="Microsoft.Azure.Management.WebSites" Version="3.1.0" />
+    <PackageReference Include="Microsoft.Azure.Management.WebSites" Version="3.1.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.2.0" />
     <PackageReference Include="coverlet.collector" Version="1.2.0" />
     <PackageReference Include="YoloDev.Expecto.TestSdk" Version="0.9.1" />

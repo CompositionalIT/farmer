@@ -8,6 +8,7 @@ open Microsoft.Azure.Management.Compute
 open Microsoft.Azure.Management.Compute.Models
 open Microsoft.Rest
 open System
+open Microsoft.Azure.Management.WebSites.Models
 
 /// Client instance needed to get the serializer settings.
 let client = new ComputeManagementClient(Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
@@ -79,15 +80,33 @@ let tests = testList "Virtual Machine" [
             }
         let json = deployment.Template |> Writer.toJson
         let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
-        
+
         let publicIps= jobj.SelectTokens("resources[?(@.type=='Microsoft.Network/publicIPAddresses')]")
         Expect.isEmpty publicIps "No public IP should be created"
-        
+
         let nicDependsOn = jobj.SelectTokens("resources[?(@.type=='Microsoft.Network/networkInterfaces')].dependsOn.[*]") |> Seq.map (fun x -> x.ToString())
         Expect.isEmpty (nicDependsOn |> Seq.filter (fun x->x.Contains("Microsoft.Network/publicIPAddresses"))) "Network Interface should not depende on any public IP"
-        
+
         let nicPublicIp = jobj.SelectTokens("resources[?(@.type=='Microsoft.Network/networkInterfaces')].properties.publicIpAddress")
         Expect.isEmpty (nicPublicIp) "Network Interface should not link to any public IP"
+    }
+
+    test "Can create static Ip" {
+        let deployment =
+            arm {
+                add_resources
+                    [ vm { name "foo"; username "foo"; ip_allocation PublicIpAddress.Static} ]
+            }
+        let json = deployment.Template |> Writer.toJson
+        let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+
+        let publicIpProps= jobj.SelectTokens("resources[?(@.type=='Microsoft.Network/publicIPAddresses')].properties")
+        Expect.isNonEmpty publicIpProps "IP settings not found"
+
+        let ipToken = publicIpProps |> Seq.head
+        let expectedToken = Newtonsoft.Json.Linq.JToken.Parse("{\"publicIPAllocationMethod\": \"Static\"}")
+        Expect.equal (ipToken.ToString()) (expectedToken.ToString()) "Static IP was not found"
+
     }
 
     test "Disabled password auth" {
@@ -135,5 +154,18 @@ let tests = testList "Virtual Machine" [
         let path = jobj.SelectToken("resources[?(@.name=='foo')].properties.osProfile.linuxConfiguration.ssh.publicKeys[1].path").ToString()
         Expect.equal keyData "fooKey1" "public keys were not correctly added"
         Expect.equal path "fooPath1" "path was not correctly added"
+    }
+
+    test "Handles identity correctly" {
+        let machine = arm { add_resource (vm { name ""; username "isaac" }) } |> findAzureResources<VirtualMachine> client.SerializationSettings |> Seq.head
+        Expect.isNull machine.Identity "Default managed identity should be null"
+
+        let machine = arm { add_resource (vm { system_identity; username "isaac" }) } |> findAzureResources<VirtualMachine> client.SerializationSettings |> Seq.head
+        Expect.equal machine.Identity.Type (Nullable ResourceIdentityType.SystemAssigned) "Should have system identity"
+        Expect.isNull machine.Identity.UserAssignedIdentities "Should have no user assigned identities"
+
+        let machine = arm { add_resource (vm { system_identity; add_identity (createUserAssignedIdentity "test"); add_identity (createUserAssignedIdentity "test2"); username "isaac" }) } |> findAzureResources<VirtualMachine> client.SerializationSettings |> Seq.head
+        Expect.equal machine.Identity.Type (Nullable ResourceIdentityType.SystemAssignedUserAssigned) "Should have system identity"
+        Expect.sequenceEqual (machine.Identity.UserAssignedIdentities |> Seq.map(fun r -> r.Key)) [ "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test2')]"; "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test')]" ] "Should have two user assigned identities"
     }
 ]
