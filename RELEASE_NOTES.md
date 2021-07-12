@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+## vNext
+* Storage Account: Add support for data protection policies,
+* Storage Account: Add support for versioning.
+
 ## 1.6.3
 * Service bus: Add support for authorization rules.
 * Virtual Machine: Added disable password authentication to Virtual Machine linux configuration
@@ -11,7 +15,7 @@ Release Notes
 * SQL Azure: Support for minimum TLS version.
 * Storage: Support for minimum TLS version.
 * Virtual Machine: Provide control over the public IP
-* Virtual Machine: Support for customData on osProfile Properties 
+* Virtual Machine: Support for customData on osProfile Properties
 * Virtual Network: Add support for vnet peering
 * WebApp: Added support for PrivateEndpoints
 
