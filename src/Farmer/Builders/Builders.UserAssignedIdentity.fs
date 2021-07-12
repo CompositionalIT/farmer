@@ -35,3 +35,15 @@ let userAssignedIdentity = UserAssignedIdentityBuilder()
 
 /// Quickly creates a user-assigned managed identity.
 let createUserAssignedIdentity userName = userAssignedIdentity { name userName }
+
+type IIdentity<'TConfig> =
+    abstract member Add : 'TConfig -> (ManagedIdentity -> ManagedIdentity) -> 'TConfig
+
+[<AutoOpen>]
+module Extensions =
+    type IIdentity<'TConfig> with
+        [<CustomOperation "add_identity">]
+        member this.AddIdentity (state:'TConfig, identity:Identity.UserAssignedIdentity) = this.Add state (fun current -> current + identity)
+        member this.AddIdentity (state, identity:UserAssignedIdentityConfig) = this.AddIdentity(state, identity.UserAssignedIdentity)
+        [<CustomOperation "system_identity">]
+        member this.SystemIdentity (state:'TConfig) = this.Add state (fun current -> { current with SystemAssigned = Enabled })

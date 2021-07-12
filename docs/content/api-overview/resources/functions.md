@@ -41,6 +41,7 @@ The Functions builder is used to create Azure Functions accounts. It abstracts t
 | system_identity | Activates the system identity of the Function App. |
 | always_on | Stops the app from sleeping if idle for a few minutes of inactivity. |
 | worker_process | Specifies whether to set the app to 32 or 64 Bitness. |
+| publish_as | Specifies whether to publish function as code or as a docker container. |
 | add_slot | Adds a deployment slot to the app |
 | add_slots | Adds multiple deployment slots to the app |
 
@@ -84,5 +85,23 @@ let myFunctions = functions {
     service_plan_name "myServicePlan"
     setting "myKey" "aValue"
     app_insights_off
+}
+```
+
+#### Example of a Premium Functions app
+```fsharp
+let servicePlan = servicePlan {
+    name "myServicePlan"
+    sku WebApp.Sku.EP1 // Elastic Premium 1
+    max_elastic_workers 25
+}
+
+let functionsApp = functions {
+    name "myFunctionsApp"
+    link_to_service_plan servicePlan
+}
+
+let deployment = arm {
+    add_resources [ servicePlan; functionsApp ]
 }
 ```

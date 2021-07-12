@@ -1,0 +1,152 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "outputs": {},
+  "parameters": {},
+  "resources": [
+    {
+      "apiVersion": "2020-07-01",
+      "location": "northeurope",
+      "name": "my-vnet",
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "10.0.1.0/24"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "my-services",
+            "properties": {
+              "addressPrefix": "10.0.1.0/24",
+              "delegations": [
+                {
+                  "name": "Microsoft.ContainerInstance/containerGroups",
+                  "properties": {
+                    "serviceName": "Microsoft.ContainerInstance/containerGroups"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "tags": {},
+      "type": "Microsoft.Network/virtualNetworks"
+    },
+    {
+      "apiVersion": "2020-11-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/publicIPAddresses', 'lb-pip')]"
+      ],
+      "location": "northeurope",
+      "name": "lb",
+      "properties": {
+        "backendAddressPools": [
+          {
+            "name": "lb-backend"
+          }
+        ],
+        "frontendIpConfigurations": [
+          {
+            "name": "lb-frontend",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', 'lb-pip')]"
+              }
+            }
+          }
+        ],
+        "inboundNatPools": [],
+        "inboundNatRules": [],
+        "loadBalancingRules": [
+          {
+            "name": "rule1",
+            "properties": {
+              "backendAddressPool": {
+                "id": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', 'lb', 'lb-backend')]"
+              },
+              "backendPort": 8080,
+              "disableOutboundSnat": true,
+              "enableTcpReset": false,
+              "frontendIPConfiguration": {
+                "id": "[resourceId('Microsoft.Network/loadBalancers/frontendIPConfigurations', 'lb', 'lb-frontend')]"
+              },
+              "frontendPort": 80,
+              "idleTimeoutInMinutes": 4,
+              "loadDistribution": "Default",
+              "probe": {
+                "id": "[resourceId('Microsoft.Network/loadBalancers/probes', 'lb', 'httpGet')]"
+              },
+              "protocol": "Tcp"
+            }
+          }
+        ],
+        "outboundNatRules": [],
+        "probes": [
+          {
+            "name": "httpGet",
+            "properties": {
+              "intervalInSeconds": 15,
+              "numberOfProbes": 2,
+              "port": 8080,
+              "protocol": "Http",
+              "requestPath": "/"
+            }
+          }
+        ]
+      },
+      "sku": {
+        "name": "Standard",
+        "tier": "Regional"
+      },
+      "tags": {},
+      "type": "Microsoft.Network/loadBalancers"
+    },
+    {
+      "apiVersion": "2020-11-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/loadBalancers', 'lb')]",
+        "[resourceId('Microsoft.Network/virtualNetworks', 'my-vnet')]"
+      ],
+      "name": "lb/lb-backend",
+      "properties": {
+        "loadBalancerBackendAddresses": [
+          {
+            "name": "addr0",
+            "properties": {
+              "ipAddress": "10.0.1.4",
+              "virtualNetwork": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks', 'my-vnet')]"
+              }
+            }
+          },
+          {
+            "name": "addr1",
+            "properties": {
+              "ipAddress": "10.0.1.5",
+              "virtualNetwork": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks', 'my-vnet')]"
+              }
+            }
+          }
+        ]
+      },
+      "type": "Microsoft.Network/loadBalancers/backendAddressPools"
+    },
+    {
+      "apiVersion": "2018-11-01",
+      "location": "northeurope",
+      "name": "lb-pip",
+      "properties": {
+        "publicIPAllocationMethod": "Static"
+      },
+      "sku": {
+        "name": "Standard"
+      },
+      "tags": {},
+      "type": "Microsoft.Network/publicIPAddresses"
+    }
+  ]
+}

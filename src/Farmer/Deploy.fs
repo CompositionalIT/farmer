@@ -84,7 +84,12 @@ module Az =
     let listSubscriptions() = az "account list --all"
     let setSubscription subscriptionId = az $"account set --subscription %s{subscriptionId}"
     /// Creates a resource group.
-    let createResourceGroup location resourceGroup = az $"group create -l %s{location} -n %s{resourceGroup}" |> Result.ignore
+    let createResourceGroup location tags resourceGroup = 
+        let tagString = 
+            match Map.toList tags with 
+            | [] -> ""
+            | tagList -> tagList |> Seq.map (fun (key,value) -> $"{key}={value}") |> String.concat " " |> sprintf " --tags %s"
+        az $"group create -l %s{location} -n %s{resourceGroup}%s{tagString}" |> Result.ignore
     /// Searches for users in AD using the supplied filter.
     let searchUsers filter = az $"ad user list --filter %s{filter}"
     /// Searches for groups in AD using the supplied filter.
@@ -187,8 +192,8 @@ let setSubscription (subscriptionId:Guid) =
     Az.setSubscription (subscriptionId.ToString())
 
 /// Validates that the parameters supplied meet the deployment requirements.
-let validateParameters suppliedParameters deployment =
-    let expected = deployment.Template.Parameters |> List.map(fun (SecureParameter p) -> p) |> Set
+let validateParameters suppliedParameters (deployment:IDeploymentSource) =
+    let expected = deployment.Deployment.Template.Parameters |> List.map(fun (SecureParameter p) -> p) |> Set
     let supplied = suppliedParameters |> List.map fst |> Set
     let missing = Set.toList (expected - supplied)
     let extra = Set.toList (supplied - expected)
@@ -199,7 +204,7 @@ let validateParameters suppliedParameters deployment =
 
 let NoParameters : (string * string) list = []
 
-let private prepareForDeployment parameters resourceGroupName deployment = result {
+let private prepareForDeployment parameters resourceGroupName (deployment:IDeploymentSource) = result {
     do! deployment |> validateParameters parameters
 
     let! version = checkVersion Az.MinimumVersion
@@ -222,35 +227,35 @@ let private prepareForDeployment parameters resourceGroupName deployment = resul
     printfn "Using subscription '%s' (%O)." subscriptionDetails.name subscriptionDetails.id
 
     printfn "Creating resource group %s..." resourceGroupName
-    do! Az.createResourceGroup deployment.Location.ArmValue resourceGroupName
+    do! Az.createResourceGroup deployment.Deployment.Location.ArmValue deployment.Deployment.Tags resourceGroupName
 
     return
         {| DeploymentName = $"farmer-deploy-{generateDeployNumber()}"
-           TemplateFilename = deployment.Template |> Writer.toJson |> Writer.toFile deployFolder "farmer-deploy" |}
+           TemplateFilename = deployment.Deployment.Template |> Writer.toJson |> Writer.toFile deployFolder "farmer-deploy" |}
 }
 
 /// Validates a deployment against a resource group. If the resource group does not exist, it will be created automatically.
-let tryValidate resourceGroupName parameters deployment = result {
+let tryValidate resourceGroupName parameters (deployment:IDeploymentSource) = result {
     let! deploymentParameters = deployment |> prepareForDeployment parameters resourceGroupName
     return! Az.validate resourceGroupName deploymentParameters.DeploymentName deploymentParameters.TemplateFilename parameters
 }
 
 /// Validates a deployment against a resource group. If the resource group does not exist, it will be created automatically.
-let tryWhatIf resourceGroupName parameters deployment = result {
+let tryWhatIf resourceGroupName parameters (deployment:IDeploymentSource) = result {
     let! deploymentParameters = deployment |> prepareForDeployment parameters resourceGroupName
     return! Az.whatIf resourceGroupName deploymentParameters.DeploymentName deploymentParameters.TemplateFilename parameters
 }
 
 /// Executes the supplied Deployment against a resource group using the Azure CLI.
 /// If successful, returns a Map of the output keys and values.
-let tryExecute resourceGroupName parameters deployment = result {
+let tryExecute resourceGroupName parameters (deployment:IDeploymentSource) = result {
     let! deploymentParameters = deployment |> prepareForDeployment parameters resourceGroupName
 
     printfn "Deploying ARM template (please be patient, this can take a while)..."
     let! response = Az.deploy resourceGroupName deploymentParameters.DeploymentName deploymentParameters.TemplateFilename parameters
 
     do!
-        [ for task in deployment.PostDeployTasks do task.Run resourceGroupName ]
+        [ for task in deployment.Deployment.PostDeployTasks do task.Run resourceGroupName ]
         |> List.choose id
         |> Result.sequence
         |> Result.ignore
@@ -268,12 +273,12 @@ let tryExecute resourceGroupName parameters deployment = result {
 
 /// Executes the supplied Deployment against a resource group using the Azure CLI.
 /// If successful, returns a Map of the output keys and values, otherwise returns any error as an exception.
-let execute resourceGroupName parameters deployment =
+let execute resourceGroupName parameters (deployment:IDeploymentSource) =
     match tryExecute resourceGroupName parameters deployment with
     | Ok output -> output
     | Error message -> failwith (Az.tryGetError message)
 
-let whatIf resourceGroupName parameters deployment =
+let whatIf resourceGroupName parameters (deployment:IDeploymentSource) =
     match tryWhatIf resourceGroupName parameters deployment with
     | Ok output -> output
     | Error message -> failwith message

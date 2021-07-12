@@ -18,8 +18,8 @@ let getTopicResource = getResource<Topic>
 
 let getResources (v:IBuilder) = v.BuildResources Location.WestUS
 
-let getResourceDependsOnByName (template:Deployment) (resourceName:ResourceName) =
-    let json = template.Template |> Writer.toJson
+let getResourceDependsOnByName (template:IDeploymentSource) (resourceName:ResourceName) =
+    let json = template.Deployment.Template |> Writer.toJson
     let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
     let dependsOn = jobj.SelectToken($"resources[?(@.name=='{resourceName.Value}')].dependsOn")
     let jarray = dependsOn :?> Newtonsoft.Json.Linq.JArray
@@ -164,6 +164,49 @@ let tests = testList "Service Bus Tests" [
             let deployment = arm { add_resource theBus }
             let queues = deployment.Template.Resources |> List.choose(function :? Queue as q -> Some q | _ -> None)
             Expect.hasLength queues 2 "Should have two queues in a single namespace."
+        }
+
+        test "No authorization rule by default" {
+            let sbAuthorizationRules =
+                arm {
+                    add_resource (
+                        serviceBus {
+                            name "serviceBus"
+                            sku Standard
+                            add_queues [queue {
+                                name "my-queue"
+                            }]
+                        })
+                }
+                |> findAzureResources<SBAuthorizationRule> dummyClient.SerializationSettings
+                |> List.filter (fun x -> (=) x.Type queueAuthorizationRules.Type)
+
+            Expect.hasLength sbAuthorizationRules 0 "Should not have authorization rule by default"
+        }
+
+        test "Authorization Rule writes correct template" {
+            let thing = 
+                arm {
+                    add_resource (
+                        serviceBus {
+                            name "serviceBus"
+                            sku Standard
+                            add_queues [queue {
+                                name "my-queue"
+                                add_authorization_rule "my-rule" [Manage]
+                            }]
+                        })
+                } 
+                |> findAzureResources<SBAuthorizationRule> dummyClient.SerializationSettings
+
+            let sbAuthorizationRule = 
+                thing
+                |> List.filter (fun x -> (=) x.Type queueAuthorizationRules.Type)
+                |> List.head
+
+            Expect.equal sbAuthorizationRule.Name "serviceBus/my-queue/my-rule" "Name is wrong"
+            Expect.equal sbAuthorizationRule.Rights.Count 1 "Wrong number of rights"
+            Expect.equal sbAuthorizationRule.Rights.[0] (Nullable AccessRights.Manage) "Wrong rights"
         }
     ]
 
@@ -396,6 +439,42 @@ let tests = testList "Service Bus Tests" [
                 }
                 |> getResources |> getTopicResource |> List.head :> IArmResource
             Expect.equal (resource.ResourceId.Eval()) $"[resourceId('Microsoft.ServiceBus/namespaces/topics', 'my-bus', '{topicName}')]" ""
+        }
+    ]
+    testList "Namespace AuthorizationRule Tests" [
+        test "AuthorizationRule should not be present by default" {
+            let sbAuthorizationRules =
+                arm {
+                    add_resource (
+                        serviceBus {
+                            name "serviceBus"
+                            sku Standard
+                        })
+                }
+                |> findAzureResources<SBAuthorizationRule> dummyClient.SerializationSettings
+                |> List.filter (fun x -> (=) x.Type namespaceAuthorizationRules.Type)
+            
+            Expect.equal sbAuthorizationRules.Length 0 "AuthorizationRule should not be present" 
+        }
+        test "AuthorizationRule should write correct ARM template" {
+            let sbAuthorizationRule =
+                arm {
+                    add_resource (
+                        serviceBus {
+                            name "serviceBus"
+                            sku Standard
+                            add_authorization_rule "my-rule" [Manage]
+                        })
+                }
+                |> findAzureResources<SBAuthorizationRule> dummyClient.SerializationSettings
+                |> List.filter (fun x -> (=) x.Type namespaceAuthorizationRules.Type)
+                |> List.head
+
+            sbAuthorizationRule.Validate();
+            
+            Expect.equal sbAuthorizationRule.Name "serviceBus/my-rule" "Wrong name"
+            Expect.equal sbAuthorizationRule.Rights.Count 1 "Wrong number of rights"
+            Expect.equal sbAuthorizationRule.Rights.[0] (Nullable AccessRights.Manage) "Wrong rights"
         }
     ]
 ]
