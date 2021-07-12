@@ -48,8 +48,12 @@ type StorageAccountConfig =
       StaticWebsite : {| IndexPage : string; ContentPath : string; ErrorPage : string option |} option
       /// The CORS rules for a storage service
       CorsRules : List<Storage.StorageService * CorsRule>
+      /// The Policies for a storage service
+      Policies : List<Storage.StorageService * Policy list>
+      /// Versioning enable information for a storage service
+      IsVersioningEnabled : List<Storage.StorageService * bool>
       /// Minimum TLS version
-      MinTlsVersion : TlsVersion option 
+      MinTlsVersion : TlsVersion option
       /// Tags to apply to the storage account
       Tags: Map<string,string> }
     /// Gets the ARM expression path to the key of this storage account.
@@ -86,7 +90,7 @@ type StorageAccountConfig =
                 |> Seq.toList
               NetworkAcls = this.NetworkAcls
               StaticWebsite = this.StaticWebsite
-              MinTlsVersion = this.MinTlsVersion 
+              MinTlsVersion = this.MinTlsVersion
               Tags = this.Tags }
             for name, access in this.Containers do
                 { Name = name
@@ -133,11 +137,21 @@ type StorageAccountConfig =
             let rules =
                 this.CorsRules
                 |> List.groupBy fst
-                |> List.map(fun (svc, rules) ->
-                    svc, {| StorageAccount = storageResourceName
-                            CorsRules = rules |> List.map snd |}
-                )
-            for svc, rulesForService in this.CorsRules |> List.groupBy fst do
+            let versioning =
+                this.IsVersioningEnabled
+                |> List.groupBy fst
+            let policies =
+                this.Policies
+                |> List.groupBy fst
+
+            let allSvcs =
+                rules
+                |> List.map fst
+                |> (@) (versioning |> List.map fst)
+                |> (@) (policies |> List.map fst)
+                |> List.distinct
+
+            for svc in allSvcs do
                 { ResourceType =
                     match svc with
                     | StorageService.Blobs -> blobServices
@@ -145,7 +159,19 @@ type StorageAccountConfig =
                     | StorageService.Tables -> tableServices
                     | StorageService.Files -> fileServices
                   StorageAccount = storageResourceName
-                  CorsRules = rulesForService |> List.map snd }
+                  CorsRules =
+                    this.CorsRules
+                    |> List.filter (fst >> (=) svc)
+                    |> List.map (fun (_, s) -> s)
+                  Policies =
+                    this.Policies
+                    |> List.filter (fst >> (=) svc)
+                    |> List.map (fun (_, s) -> s)
+                    |> List.collect id
+                  IsVersioningEnabled =
+                    this.IsVersioningEnabled
+                    |> List.filter (fst >> (=) svc)
+                    |> List.forall (fun (_, ive) -> ive = true)  }
         ]
 
 type StorageAccountBuilder() =
@@ -162,6 +188,8 @@ type StorageAccountBuilder() =
         RoleAssignments = Set.empty
         StaticWebsite = None
         CorsRules = []
+        Policies = []
+        IsVersioningEnabled = []
         MinTlsVersion = None
         Tags = Map.empty
     }
@@ -310,6 +338,14 @@ type StorageAccountBuilder() =
     [<CustomOperation "add_cors_rules">]
     member _.AddCorsRules(state:StorageAccountConfig, rules) =
         { state with CorsRules = state.CorsRules @ rules }
+    /// Adds a set of policies to the storage account.
+    [<CustomOperation "add_policies">]
+    member _.AddPolicies(state:StorageAccountConfig, policies) =
+        { state with Policies = state.Policies @ policies }
+    /// Adds a versioning enabled rule to the storage account.
+    [<CustomOperation "enable_versioning">]
+    member _.EnableVersioning(state:StorageAccountConfig, enableVersioning) =
+        { state with IsVersioningEnabled = state.IsVersioningEnabled @ enableVersioning }
     /// Set minimum TLS version
     [<CustomOperation "min_tls_version">]
     member _.SetMinTlsVersion(state:StorageAccountConfig, minTlsVersion) =

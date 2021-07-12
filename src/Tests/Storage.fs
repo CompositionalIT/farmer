@@ -13,8 +13,27 @@ open System
 /// Client instance needed to get the serializer settings.
 let client = new StorageManagementClient(Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
 let getStorageResource = findAzureResources<StorageAccount> client.SerializationSettings >> List.head
-type CorsResource = {| ``type`` : string; properties : {| cors : {| corsRules : {| allowedHeaders : string array; allowedMethods : string array; allowedOrigins : string array; exposedHeaders : string array; maxAgeInSeconds : int |} array |} |} |}
-let findCorsResource typeName x = x |> toTemplate Location.NorthEurope |> Writer.toJson |> Serialization.ofJson<TypedArmTemplate<CorsResource>> |> fun r -> r.Resources |> Seq.find(fun r -> r.``type`` = $"Microsoft.Storage/storageAccounts/%s{typeName}")
+type PropertiesResource = {|
+    ``type`` : string
+    properties : {|
+                    cors : {|
+                            corsRules : {|
+                                        allowedHeaders : string array
+                                        allowedMethods : string array
+                                        allowedOrigins : string array
+                                        exposedHeaders : string array
+                                        maxAgeInSeconds : int |} array
+                    |}
+                    IsVersioningEnabled : bool
+                    deleteRetentionPolicy : {| enabled: bool; days: int |}
+                    restorePolicy : {| enabled: bool; days: int |}
+                    containerDeleteRetentionPolicy : {| enabled: bool; days: int |}
+                    lastAccessTimeTrackingPolicy : {| enable: bool; name: string; trackingGranularityInDays: int; blobType: string [] |}
+                    changeFeed : {| enabled: bool; retentionInDays: int |}
+
+    |}
+|}
+let findPropertiesResource typeName x = x |> toTemplate Location.NorthEurope |> Writer.toJson |> Serialization.ofJson<TypedArmTemplate<PropertiesResource>> |> fun r -> r.Resources |> Seq.find(fun r -> r.``type`` = $"Microsoft.Storage/storageAccounts/%s{typeName}")
 
 let tests = testList "Storage Tests" [
     test "Can create a basic storage account" {
@@ -273,8 +292,8 @@ let tests = testList "Storage Tests" [
             ]
         }
 
-        let rules = (account |> findCorsResource "blobServices").properties.cors.corsRules
-        Expect.equal 2 rules.Length "Incorrect number of CORS rules"
+        let rules = (account |> findPropertiesResource "blobServices").properties.cors.corsRules
+        Expect.equal rules.Length 2 "Incorrect number of CORS rules"
 
         let blobAllowAllRule = rules.[0]
         Expect.equal [| "*" |] blobAllowAllRule.allowedHeaders "Incorrect default headers"
@@ -286,17 +305,67 @@ let tests = testList "Storage Tests" [
         let blobSpecificRule = rules.[1]
         Expect.equal [| "https://compositional-it.com/" |] blobSpecificRule.allowedOrigins "Incorrect custom allowed origin"
 
-        let queueRule = (account |> findCorsResource "queueServices").properties.cors.corsRules |> Seq.exactlyOne
+        let queueRule = (account |> findPropertiesResource "queueServices").properties.cors.corsRules |> Seq.exactlyOne
         Expect.equal [| "ALLOWED1"; "ALLOWED2" |] queueRule.allowedHeaders "Incorrect factory headers"
         Expect.equal [| string GET |] queueRule.allowedMethods "Incorrect factory methods"
         Expect.equal [| "https://compositional-it.com/" |] queueRule.allowedOrigins "Incorrect factory origin"
         Expect.equal [| "exposed1"; "exposed2" |] queueRule.exposedHeaders "Incorrect factory exposed headers"
         Expect.equal 15 queueRule.maxAgeInSeconds "Incorrect factory max age is seconds"
     }
+
+    test "Policies" {
+        let account = storageAccount {
+            add_policies [
+                StorageService.Blobs, [
+                    Policy.Restore { Enabled = true; Days = 5 }
+                    Policy.DeleteRetention { Enabled = true; Days = 10 }
+                    Policy.LastAccessTimeTracking { Enabled = true; TrackingGranularityInDays = 12 }
+                    Policy.ContainerDeleteRetention { Enabled = true; Days = 11 }
+                    Policy.ChangeFeed { Enabled = true; RetentionInDays = 30 } ]
+            ]
+        }
+        let properties = (account |> findPropertiesResource "blobServices").properties
+        let restore = properties.restorePolicy
+
+        Expect.isTrue restore.enabled ""
+        Expect.equal restore.days 5 ""
+
+        let deleteRetention = properties.deleteRetentionPolicy
+
+        Expect.isTrue deleteRetention.enabled ""
+        Expect.equal deleteRetention.days 10 ""
+
+        let changeFeed = properties.changeFeed
+
+        Expect.isTrue changeFeed.enabled ""
+        Expect.equal changeFeed.retentionInDays 30 ""
+
+        let lastAccessTimeTrackingPolicy = properties.lastAccessTimeTrackingPolicy
+
+        Expect.isTrue lastAccessTimeTrackingPolicy.enable ""
+        Expect.equal lastAccessTimeTrackingPolicy.trackingGranularityInDays 12 ""
+        Expect.equal lastAccessTimeTrackingPolicy.name "AccessTimeTracking" ""
+        Expect.equal lastAccessTimeTrackingPolicy.blobType [| "blockBlob" |]  ""
+
+        let containerDeleteRetentionPolicy = properties.containerDeleteRetentionPolicy
+
+        Expect.isTrue containerDeleteRetentionPolicy.enabled ""
+        Expect.equal containerDeleteRetentionPolicy.days 11 ""
+    }
+
+    test "Versioning" {
+        let account = storageAccount {
+            enable_versioning [ StorageService.Blobs, true ]
+        }
+        let properties = (account |> findPropertiesResource "blobServices").properties
+
+        Expect.isTrue properties.IsVersioningEnabled ""
+    }
+
     test "Sets Min TLS version correctly" {
         let resource =
-            let account = storageAccount { 
-                name "mystorage123" 
+            let account = storageAccount {
+                name "mystorage123"
                 min_tls_version Tls12
             }
             arm { add_resource account } |> getStorageResource
