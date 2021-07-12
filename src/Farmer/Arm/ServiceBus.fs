@@ -74,6 +74,7 @@ module Namespaces =
           DeadLetteringOnMessageExpiration : bool option
           DefaultMessageTimeToLive : IsoDateTime
           MaxDeliveryCount : int option
+          MaxSizeInMegabytes : int<Mb> option
           EnablePartitioning : bool option}
         interface IArmResource with
             member this.ResourceId = queues.resourceId (this.Namespace/this.Name)
@@ -90,6 +91,7 @@ module Namespaces =
                         requiresSession = this.Session |> Option.toNullable
                         deadLetteringOnMessageExpiration = this.DeadLetteringOnMessageExpiration |> Option.toNullable
                         maxDeliveryCount = this.MaxDeliveryCount |> Option.toNullable
+                        maxSizeInMegabytes = this.MaxSizeInMegabytes |> Option.toNullable
                         enablePartitioning = this.EnablePartitioning |> Option.toNullable |}
                 |} :> _
     type QueueAuthorizationRule =
@@ -122,7 +124,8 @@ module Namespaces =
           Namespace : ResourceId
           DuplicateDetectionHistoryTimeWindow : IsoDateTime option
           DefaultMessageTimeToLive : IsoDateTime option
-          EnablePartitioning : bool option }
+          EnablePartitioning : bool option
+          MaxSizeInMegabytes : int<Mb> option }
         interface IArmResource with
             member this.ResourceId = topics.resourceId (this.Namespace.Name, this.Name)
             member this.JsonModel =
@@ -134,7 +137,8 @@ module Namespaces =
                                | Some _ -> Nullable true
                                | None -> Nullable()
                            duplicateDetectionHistoryTimeWindow = tryGetIso this.DuplicateDetectionHistoryTimeWindow
-                           enablePartitioning = this.EnablePartitioning |> Option.toNullable |}
+                           enablePartitioning = this.EnablePartitioning |> Option.toNullable
+                           maxSizeInMegabytes = this.MaxSizeInMegabytes |> Option.toNullable |}
                 |} :> _
 
 type Namespace =

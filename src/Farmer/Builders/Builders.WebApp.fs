@@ -80,6 +80,7 @@ module private WebAppConfig =
           Settings = state.Settings
           Cors = state.Cors
           Identity = state.Identity
+          KeyVaultReferenceIdentity = state.KeyVaultReferenceIdentity
           SecretStore = state.SecretStore
           ZipDeployPath = state.ZipDeployPath
           AlwaysOn = state.AlwaysOn
@@ -94,6 +95,7 @@ module private WebAppConfig =
             Settings = config.Settings
             Cors = config.Cors
             Identity = config.Identity
+            KeyVaultReferenceIdentity = config.KeyVaultReferenceIdentity
             SecretStore = config.SecretStore
             ZipDeployPath = config.ZipDeployPath
             AlwaysOn = config.AlwaysOn
@@ -187,6 +189,7 @@ type CommonWebConfig =
       Settings : Map<string, Setting>
       Cors : Cors option
       Identity : Identity.ManagedIdentity
+      KeyVaultReferenceIdentity: UserAssignedIdentity Option
       SecretStore : SecretStore
       ZipDeployPath : (string*ZipDeploy.ZipDeploySlot) option
       AlwaysOn : bool
@@ -201,6 +204,7 @@ type WebAppConfig =
       Settings : Map<string, Setting>
       Cors : Cors option
       Identity : Identity.ManagedIdentity
+      KeyVaultReferenceIdentity: UserAssignedIdentity Option
       ZipDeployPath : (string * ZipDeploy.ZipDeploySlot) option 
       HTTPSOnly : bool
       HTTP20Enabled : bool option
@@ -349,6 +353,7 @@ type WebAppConfig =
                   ClientAffinityEnabled = this.ClientAffinityEnabled
                   WebSocketsEnabled = this.WebSocketsEnabled
                   Identity = this.Identity
+                  KeyVaultReferenceIdentity = this.KeyVaultReferenceIdentity
                   Cors = this.Cors
                   Tags = this.Tags
                   ConnectionStrings = this.ConnectionStrings
@@ -512,6 +517,7 @@ type WebAppBuilder() =
           AppInsights = Some (derived (fun name -> components.resourceId (name-"ai")))
           Settings = Map.empty
           Identity = ManagedIdentity.Empty
+          KeyVaultReferenceIdentity = None
           Cors = None
           OperatingSystem = Windows
           ZipDeployPath = None
@@ -733,6 +739,15 @@ module Extensions =
                 Settings = current.Settings.Add("AZURE_CLIENT_ID", Setting.ExpressionSetting identity.ClientId) }
             |> this.Wrap state
         member this.AddIdentity (state, identity:UserAssignedIdentityConfig) = this.AddIdentity(state, identity.UserAssignedIdentity)
+        [<CustomOperation "keyvault_identity">]
+        member this.AddKeyVaultIdentity (state:'T, identity:UserAssignedIdentity) =
+            let current = this.Get state
+            { current with
+                Identity = current.Identity + identity
+                KeyVaultReferenceIdentity = Some identity
+                Settings = current.Settings.Add("AZURE_CLIENT_ID", Setting.ExpressionSetting identity.ClientId) }
+            |> this.Wrap state
+        member this.AddKeyVaultIdentity (state, identity:UserAssignedIdentityConfig) = this.AddKeyVaultIdentity(state, identity.UserAssignedIdentity)
         [<CustomOperation "system_identity">]
         member this.SystemIdentity (state:'T) =
             let current = this.Get state

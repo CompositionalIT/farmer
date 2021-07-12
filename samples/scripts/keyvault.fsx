@@ -1,4 +1,4 @@
-#r "../../src/Farmer/bin/Debug/net5.0/Farmer.dll"
+#r "nuget:Farmer"
 
 open Farmer
 open Farmer.Builders
@@ -57,9 +57,10 @@ let vault =
 vault.Policies
 
 let deployment = arm {
-    add_resource vault
     location Location.NorthEurope
+    add_resource vault
+    output "vault_uri" vault.VaultUri
 }
 
 deployment
-|> Writer.quickWrite "output"
+|> Writer.quickWrite (System.IO.Path.GetFileNameWithoutExtension __SOURCE_FILE__)
