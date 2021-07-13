@@ -25,8 +25,13 @@ type ResourceGroupDeployment =
                 | _ -> ()
           ] |> List.distinct
     member this.RequiredResourceGroups = 
-        this.Name.Value :: (this.Resources |> List.collect (function | :? ResourceGroupDeployment as rg -> rg.RequiredResourceGroups | _ ->  []))
-        |> List.distinct
+        let nestedRgs = 
+            this.Resources 
+            |> List.collect 
+                (function 
+                | :? ResourceGroupDeployment as rg -> rg.RequiredResourceGroups 
+                | _ ->  [])
+        List.distinct (this.Name.Value :: nestedRgs)        
     member this.Template = 
         { Parameters = this.Parameters
           Outputs = this.Outputs |> Map.toList

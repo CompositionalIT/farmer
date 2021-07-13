@@ -230,8 +230,7 @@ let private prepareForDeployment parameters resourceGroupName (deployment:IDeplo
         |> List.distinct
         |> List.mapi (fun i x -> i,x)
     for (i,rg) in resourceGroups do
-        let status = if resourceGroups.Tail.IsEmpty then "" else $" ({i+1}/{resourceGroups.Length})"
-        printfn "Creating resource group %s%s..." rg status
+        printfn $"Creating resource group {rg} ({i+1}/{resourceGroups.Length})..." 
         do! Az.createResourceGroup deployment.Deployment.Location.ArmValue deployment.Deployment.Tags rg
 
     return
