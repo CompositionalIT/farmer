@@ -11,6 +11,7 @@ open Microsoft.Azure.Management.ContainerInstance
 open Microsoft.Azure.Management.ContainerInstance.Models
 open Microsoft.Rest
 open System
+open Newtonsoft.Json.Linq
 
 let nginx = containerInstance {
     name "nginx"
@@ -320,7 +321,7 @@ let tests = testList "Container Group" [
         Expect.hasLength deployment.Template.Parameters 1 "Should have a secure parameter for secret volume"
         Expect.equal (deployment.Template.Parameters.Head.ArmExpression.Eval()) "[parameters('secret-foo')]" "Generated incorrect secure parameter."
     }
-    test "Container with liveliness and readiness probes" {
+    test "Container with liveness and readiness probes" {
 
         let cg =
             containerGroup {
@@ -330,9 +331,9 @@ let tests = testList "Container Group" [
                         name "nginx"
                         image "nginx:1.17.6-alpine"
                         probes [
-                            liveliness {
+                            liveness {
                                 http "https://whatever.com:8080/healthcheck"
-                                period_seconds 30 // Wait 30 seconds between each liveliness check
+                                period_seconds 30 // Wait 30 seconds between each liveness check
                                 failure_threshold 10 // After 10 tries, consider this unhealthy
                             }
                             readiness {
@@ -344,13 +345,13 @@ let tests = testList "Container Group" [
                     }
                 ]
             } |> asAzureResource
-        let livelinessProbe = cg.Containers.[0].LivenessProbe
-        Expect.isNotNull livelinessProbe "Resulting container should have a liveliness probe"
-        Expect.equal livelinessProbe.HttpGet.Path "/healthcheck" "Incorrect path on liveliness http probe"
-        Expect.equal livelinessProbe.HttpGet.Port 8080 "Incorrect port on liveliness http probe"
-        Expect.equal livelinessProbe.HttpGet.Scheme "https" "Incorrect scheme on liveliness http probe"
-        Expect.equal livelinessProbe.PeriodSeconds.Value 30 "Incorrect period on liveliness probe"
-        Expect.equal livelinessProbe.FailureThreshold.Value 10 "Incorrect failure threshold on liveliness probe"
+        let livenessProbe = cg.Containers.[0].LivenessProbe
+        Expect.isNotNull livenessProbe "Resulting container should have a liveness probe"
+        Expect.equal livenessProbe.HttpGet.Path "/healthcheck" "Incorrect path on liveness http probe"
+        Expect.equal livenessProbe.HttpGet.Port 8080 "Incorrect port on liveness http probe"
+        Expect.equal livenessProbe.HttpGet.Scheme "https" "Incorrect scheme on liveness http probe"
+        Expect.equal livenessProbe.PeriodSeconds.Value 30 "Incorrect period on liveness probe"
+        Expect.equal livenessProbe.FailureThreshold.Value 10 "Incorrect failure threshold on liveness probe"
         let readinessProbe = cg.Containers.[0].ReadinessProbe
         Expect.isNotNull readinessProbe "Resulting container should have a readiness probe"
         Expect.equal readinessProbe.HttpGet.Path "/healthcheck" "Incorrect path on readiness http probe"
@@ -448,5 +449,27 @@ let tests = testList "Container Group" [
             } |> asAzureResource
 
         Expect.equal "[resourceId('Microsoft.Network/networkProfiles', 'netprofile')]" template.NetworkProfile.Id "Incorrect profile name"
+    }
+    test "Support for additional dependencies" {
+        let storage =
+            storageAccount {
+                name "containerstorage"
+            }
+        let myGroup =
+            containerGroup {
+                name "myContainerGroup"
+                depends_on storage
+            }
+        let template =
+            arm {
+                add_resources [
+                    storage
+                    myGroup
+                ]
+            }
+        let json = template.Template |> Writer.toJson
+        let jobj = json |> Newtonsoft.Json.Linq.JObject.Parse
+        let dependencies = jobj.SelectToken "resources[?(@.name=='myContainerGroup')].dependsOn"
+        Expect.sequenceEqual dependencies [JValue "[resourceId('Microsoft.Storage/storageAccounts', 'containerstorage')]"] "Did not have correct dependencies"
     }
 ]
