@@ -47,8 +47,8 @@ type ContainerInstanceConfig =
       Memory : float<Gb>
       /// Environment variables for the container
       EnvironmentVariables : Map<string, EnvVar>
-      /// Liveliness probe for checking the container's health.
-      LivelinessProbe : ContainerProbe option
+      /// Liveness probe for checking the container's health.
+      LivenessProbe : ContainerProbe option
       /// Readiness probe to wait for the container to be ready to accept requests.
       ReadinessProbe : ContainerProbe option
       /// Volume mounts for the container
@@ -89,7 +89,9 @@ type ContainerGroupConfig =
       /// Managed identity for the container group.
       Identity : ManagedIdentity
       /// Tags for the container group.
-      Tags: Map<string,string> }
+      Tags: Map<string,string>
+      /// Additional dependencies.
+      Dependencies: Set<ResourceId> }
     member private this.ResourceId = containerGroups.resourceId this.Name
     member this.SystemIdentity = SystemIdentity this.ResourceId
     interface IBuilder with
@@ -106,7 +108,7 @@ type ContainerGroupConfig =
                        Cpu = instance.Cpu
                        Memory = instance.Memory
                        EnvironmentVariables = instance.EnvironmentVariables
-                       LivelinessProbe = instance.LivelinessProbe
+                       LivenessProbe = instance.LivenessProbe
                        ReadinessProbe = instance.ReadinessProbe
                        VolumeMounts = instance.VolumeMounts |}
               ]
@@ -125,10 +127,11 @@ type ContainerGroupConfig =
               IpAddress = this.IpAddress
               NetworkProfile = this.NetworkProfile
               Volumes = this.Volumes
-              Tags = this.Tags }
+              Tags = this.Tags
+              Dependencies = this.Dependencies }
         ]
 
-type ContainerProbeType = LivelinessProbe | ReadinessProbe
+type ContainerProbeType = LivenessProbe | ReadinessProbe
 type ContainerProbeConfig =
     { ProbeType : ContainerProbeType
       Probe : ContainerProbe }
@@ -180,7 +183,8 @@ type ContainerGroupBuilder() =
           NetworkProfile = None
           Instances = []
           Volumes = Map.empty
-          Tags = Map.empty }
+          Tags = Map.empty
+          Dependencies = Set.empty }
     member this.Run (state:ContainerGroupConfig) =
         // Automatically apply all public-facing ports to the container group itself.
         state.Instances
@@ -237,6 +241,7 @@ type ContainerGroupBuilder() =
 
     interface IIdentity<ContainerGroupConfig> with member _.Add state updater = { state with Identity = updater state.Identity }
     interface ITaggable<ContainerGroupConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
+    interface IDependable<ContainerGroupConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
 /// Creates an image registry credential with a generated SecureParameter for the password.
 let registry (server:string) (username:string) =
@@ -253,7 +258,7 @@ type ContainerInstanceBuilder() =
           Cpu = 1.0
           Memory = 1.5<Gb>
           EnvironmentVariables = Map.empty
-          LivelinessProbe = None
+          LivenessProbe = None
           ReadinessProbe = None
           VolumeMounts = Map.empty }
     /// Sets the name of the container instance.
@@ -297,13 +302,13 @@ type ContainerInstanceBuilder() =
     [<CustomOperation "command_line">]
     member _.CommandLine (state:ContainerInstanceConfig, command) =
         { state with Command = state.Command @ command }
-    /// Set readiness and liveliness probes on the container.
+    /// Set readiness and liveness probes on the container.
     [<CustomOperation "probes">]
     member _.Probes (state:ContainerInstanceConfig, probes:(ContainerProbeConfig) seq) =
         { state with
-            LivelinessProbe =
+            LivenessProbe =
                 probes
-                |> Seq.tryFind(fun p -> p.ProbeType = ContainerProbeType.LivelinessProbe)
+                |> Seq.tryFind(fun p -> p.ProbeType = ContainerProbeType.LivenessProbe)
                 |> Option.map (fun p -> p.Probe)
             ReadinessProbe =
                 probes
@@ -356,8 +361,10 @@ type ProbeBuilder (probeType:ContainerProbeType) =
     member _.TimeoutSeconds (state:(ContainerProbeConfig), delay:int) =
         { state with Probe = { state.Probe with TimeoutSeconds = delay |> Some } }
 
-let liveliness = ProbeBuilder(LivelinessProbe)
+let liveness = ProbeBuilder(LivenessProbe)
 let readiness = ProbeBuilder(ReadinessProbe)
+[<System.Obsolete "Compatibility only due to spelling error - please use 'liveness'">]
+let liveliness = ProbeBuilder(LivenessProbe)
 
 type InitContainerBuilder() =
     member _.Yield _ =

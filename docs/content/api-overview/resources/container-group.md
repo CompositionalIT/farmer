@@ -11,54 +11,87 @@ The Container Group builder is used to create Azure Container Group instances.
 * Container Group (`Microsoft.ContainerInstance/containerGroups`)
 * Network Profile (`Microsoft.Network/networkProfiles`)
 
-#### Builder Keywords
-| Applies To        | Keyword | Purpose |
-|-------------------|---------|------------------------------------------|
-| containerInstance | name    | Sets the name of the container instance. |
-| containerInstance | image   | Sets the container image. |
-| containerInstance | command | Sets the commands to execute within the container instance in exec form. |
-| containerInstance | add_ports | Sets the ports the container exposes. |
-| containerInstance | cpu_cores | Sets the maximum CPU cores the container may use. |
-| containerInstance | memory | Sets the maximum gigabytes of memory the container may use. |
-| containerInstance | env_vars | Sets a list of environment variables for the container. |
-| containerInstance | add_volume_mount | Adds a volume mount on a container from a volume in the container group. |
-| containerInstance | probes | Adds liveliness and readiness probes to a container. |
-| initContainer | name | Sets the name of the init container. |
-| initContainer | image | Sets the init container image. |
-| initContainer | command | Sets the commands to execute within the init container in exec form. |
-| initContainer | env_vars | Sets a list of environment variables for the init container. |
-| initContainer | add_volume_mount | Adds a volume mount on an init container from a volume in the container group. |
-| containerGroup | name | Sets the name of the container group. |
-| containerGroup | add_instances | Adds container instances to the group. |
-| containerGroup | operating_system | Sets the OS type (default Linux). |
-| containerGroup | restart_policy | Sets the restart policy (default Always) |
-| containerGroup | public_dns | Sets the DNS host label when using a public IP. |
-| containerGroup | private_ip | Indicates the container should use a system-assigned private IP address for use in a virtual network. |
-| containerGroup | network_profile | Name of a network profile resource for the subnet in a virtual network where the container group will attach. |
-| containerGroup | add_identity | Adds a managed identity to the the container group. |
-| containerGroup | system_identity | Activates the system identity of the container group. |
-| containerGroup | add_registry_credentials | Adds a container image registry credential with a secure parameter for the password. |
-| containerGroup | add_tcp_port | Adds a TCP port to be externally accessible. |
-| containerGroup | add_udp_port | Adds a UDP port to be externally accessible. |
-| containerGroup | add_volumes | Adds volumes to a container group so they are accessible to containers. |
-| liveliness | http | Sets the http GET URI on a container liveliness check. |
-| liveliness | exec | Sets a command to execute on a container liveliness check. |
-| liveliness | initial_delay_seconds | Sets a delay after container startup before the first check - default is 0 seconds. |
-| liveliness | period_seconds | Sets the period between running checks - default is 10 seconds. |
-| liveliness | failure_threshold | Sets the number of times a check can fail before the container is considered unhealthy and will be restarted - default is 3. |
-| liveliness | success_threshold | Sets the number of times a check must succeed before the container is considered healthy - default is 1. |
-| liveliness | timeout_seconds | Sets the number of seconds a check is allowed to run before considering the check a failure - default is 1 second. |
-| readiness | http | Sets the http GET URI on a container readiness check. |
-| readiness | exec | Sets a command to execute on a container readiness check. |
-| readiness | initial_delay_seconds | Sets a delay after container startup before the readiness check - default is 0 seconds. |
-| readiness | period_seconds | Sets the period between running checks - default is 10 seconds. |
-| readiness | failure_threshold | Sets the number of times a check can fail before the container is considered unhealthy and will be restarted - default is 3. |
-| readiness | success_threshold | Sets the number of times a check must succeed before the container is considered healthy - default is 1. |
-| readiness | timeout_seconds | Sets the number of seconds a check is allowed to run before considering the check a failure - default is 1 second. |
-| networkProfile | name | Name of the container network profile for connecting a container group to a virtual network. |
-| networkProfile | vnet | Resource name of the virtual network to connect (if created in the same deployment). |
-| networkProfile | link_to_vnet | Resource name of an existing virtual network to connect. |
-| networkProfile | subnet | Name of the subnet in the virtual network where the container group should attach. |
+#### Container Group Builder
+The Container Group builder (`containerGroup`) defines a Container Group.
+
+| Keyword | Purpose |
+|-|-|
+| name | Sets the name of the container group. |
+| add_instances | Adds container instances to the group. |
+| operating_system | Sets the OS type (default Linux). |
+| restart_policy | Sets the restart policy (default Always) |
+| public_dns | Sets the DNS host label when using a public IP. |
+| private_ip | Indicates the container should use a system-assigned private IP address for use in a virtual network. |
+| network_profile | Name of a network profile resource for the subnet in a virtual network where the container group will attach. |
+| add_identity | Adds a managed identity to the the container group. |
+| system_identity | Activates the system identity of the container group. |
+| add_registry_credentials | Adds a container image registry credential with a secure parameter for the password. |
+| add_tcp_port | Adds a TCP port to be externally accessible. |
+| add_udp_port | Adds a UDP port to be externally accessible. |
+| add_volumes | Adds volumes to a container group so they are accessible to containers. |
+| depends_on | Specifies the resource or resource ID of resources that must exist before the container group is created. |
+
+#### Container Instance Builder
+The Container Instance builder (`containerInstance`) is used to define one or more containers to add to the group.
+
+| Keyword | Purpose |
+|-|-|
+| name    | Sets the name of the container instance. |
+| image   | Sets the container image. |
+| command | Sets the commands to execute within the container instance in exec form. |
+| add_ports | Sets the ports the container exposes. |
+| cpu_cores | Sets the maximum CPU cores the container may use. |
+| memory | Sets the maximum gigabytes of memory the container may use. |
+| env_vars | Sets a list of environment variables for the container. |
+| add_volume_mount | Adds a volume mount on a container from a volume in the container group. |
+| probes | Adds liveliness and readiness probes to a container. |
+
+#### Init Container Instance Builder
+The Init Container builder (`initContainer`) is used to define one or more init containers which must fully start before the rest of the containers in the group.
+
+| Keyword | Purpose |
+|-|-|
+| name | Sets the name of the init container. |
+| image | Sets the init container image. |
+| command | Sets the commands to execute within the init container in exec form. |
+| env_vars | Sets a list of environment variables for the init container. |
+| add_volume_mount | Adds a volume mount on an init container from a volume in the container group. |
+
+#### Network Profile Builder
+The Network Profile builder (`networkProfile`) is used to define a network profile to connect the container group to a subnet on a virtual network.
+
+| Keyword | Purpose |
+|-|-|
+| name | Name of the container network profile for connecting a container group to a virtual network. |
+| vnet | Resource name of the virtual network to connect (if created in the same deployment). |
+| link_to_vnet | Resource name of an existing virtual network to connect. |
+| subnet | Name of the subnet in the virtual network where the container group should attach. |
+
+#### Liveness Probe Builder
+The Liveness Probe builder (`liveness`) is used to define a liveness probe for a container instance to determine if it is healthy.
+
+| Keyword | Purpose |
+|-|-|
+| http | Sets the http GET URI on a container liveliness check. |
+| exec | Sets a command to execute on a container liveliness check. |
+| initial_delay_seconds | Sets a delay after container startup before the first check - default is 0 seconds. |
+| period_seconds | Sets the period between running checks - default is 10 seconds. |
+| failure_threshold | Sets the number of times a check can fail before the container is considered unhealthy and will be restarted - default is 3. |
+| success_threshold | Sets the number of times a check must succeed before the container is considered healthy - default is 1. |
+| timeout_seconds | Sets the number of seconds a check is allowed to run before considering the check a failure - default is 1 second. |
+
+#### Readiness Probe Builder
+The Readiness Probe builder (`readiness`) is used to define a readiness probe for a container instance to determine if it is ready to accept requests.
+
+| Keyword | Purpose |
+|-|-|
+| http | Sets the http GET URI on a container readiness check. |
+| exec | Sets a command to execute on a container readiness check. |
+| initial_delay_seconds | Sets a delay after container startup before the readiness check - default is 0 seconds. |
+| period_seconds | Sets the period between running checks - default is 10 seconds. |
+| failure_threshold | Sets the number of times a check can fail before the container is considered unhealthy and will be restarted - default is 3. |
+| success_threshold | Sets the number of times a check must succeed before the container is considered healthy - default is 1. |
+| timeout_seconds | Sets the number of seconds a check is allowed to run before considering the check a failure - default is 1 second. |
 
 #### Example
 ```fsharp
