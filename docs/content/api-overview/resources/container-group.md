@@ -38,6 +38,7 @@ The Container Group builder is used to create Azure Container Group instances.
 | containerGroup | add_identity | Adds a managed identity to the the container group. |
 | containerGroup | system_identity | Activates the system identity of the container group. |
 | containerGroup | add_registry_credentials | Adds a container image registry credential with a secure parameter for the password. |
+| containerGroup | reference_registry_credentials | References credentials from a container image registry by resource ID. |
 | containerGroup | add_tcp_port | Adds a TCP port to be externally accessible. |
 | containerGroup | add_udp_port | Adds a UDP port to be externally accessible. |
 | containerGroup | add_volumes | Adds volumes to a container group so they are accessible to containers. |
@@ -98,8 +99,13 @@ let group = containerGroup {
     add_identity containerGroupUser
     add_udp_port 123us
     add_instances [ nginx ]
+    // Add registry credentials as a secure password
     add_registry_credentials [
         registry "mygregistry.azurecr.io" "registryuser"
+    ]
+    // or reference an Azure container registry to pull the credentials directly.
+    reference_registry_credentials [
+        ResourceId.create (Arm.ContainerRegistry.registries, ResourceName "my-gregistry", "acr-resource-group")
     ]
     add_volumes [
         volume_mount.secret_string "secret-files" "secret1" "abcdefg"

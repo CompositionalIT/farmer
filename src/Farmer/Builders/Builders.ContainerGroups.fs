@@ -75,7 +75,7 @@ type ContainerGroupConfig =
       /// Restart policy for the container group.
       RestartPolicy : RestartPolicy
       /// Credentials for image registries used by containers in this group.
-      ImageRegistryCredentials : ImageRegistryCredential list
+      ImageRegistryCredentials : ImageRegistryAuthentication list
       /// IP address for the container group.
       IpAddress : ContainerGroupIpAddress option
       /// Name of the network profile for this container's group.
@@ -221,7 +221,11 @@ type ContainerGroupBuilder() =
     /// Adds container image registry credentials for images in this container group.
     [<CustomOperation "add_registry_credentials">]
     member _.AddRegistryCredentials(state:ContainerGroupConfig, credentials) =
-        { state with ImageRegistryCredentials = state.ImageRegistryCredentials @ credentials }
+        { state with ImageRegistryCredentials = state.ImageRegistryCredentials @ (credentials |> List.map ImageRegistryAuthentication.Credential) }
+    /// References one or more container image registries to get credentials for images in this container group.
+    [<CustomOperation "reference_registry_credentials">]
+    member _.ReferenceRegistryCredentials(state:ContainerGroupConfig, resourceIds) =
+        { state with ImageRegistryCredentials = state.ImageRegistryCredentials @ (resourceIds |> List.map ImageRegistryAuthentication.ListCredentials) }
     /// Adds a collection of init containers to this group that run once on startup before other containers in the group.
     [<CustomOperation "add_init_containers">]
     member _.AddInitContainers(state:ContainerGroupConfig, initContainers) = { state with InitContainers = state.InitContainers @ (Seq.toList initContainers) }

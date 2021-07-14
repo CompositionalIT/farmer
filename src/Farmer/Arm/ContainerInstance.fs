@@ -19,6 +19,13 @@ type ImageRegistryCredential =
       Username : string
       Password : SecureParameter }
 
+[<RequireQualifiedAccess>]
+type ImageRegistryAuthentication =
+/// Credentials for the container registry are included with the password as a template parameter.
+| Credential of ImageRegistryCredential
+/// Credentials for the container registry will be listed by ARM expression.
+| ListCredentials of ResourceId
+
 /// Defines a command or HTTP request to get the status of a container.
 type ContainerProbe =
     { Exec : string list
@@ -69,7 +76,7 @@ type ContainerGroup =
       OperatingSystem : OS
       RestartPolicy : RestartPolicy
       Identity : ManagedIdentity
-      ImageRegistryCredentials : ImageRegistryCredential list
+      ImageRegistryCredentials : ImageRegistryAuthentication list
       InitContainers :
         {| Name : ResourceName
            Image : string
@@ -101,7 +108,10 @@ type ContainerGroup =
     interface IParameters with
         member this.SecureParameters = [
             for credential in this.ImageRegistryCredentials do
-                credential.Password
+                match credential with
+                | ImageRegistryAuthentication.Credential credential ->
+                    credential.Password
+                | ImageRegistryAuthentication.ListCredentials _ -> ()
             for container in this.ContainerInstances do
                 for envVar in container.EnvironmentVariables do
                     match envVar.Value with
@@ -183,9 +193,16 @@ type ContainerGroup =
                           imageRegistryCredentials =
                               this.ImageRegistryCredentials
                               |> List.map (fun cred ->
-                                  {| server = cred.Server
-                                     username = cred.Username
-                                     password = cred.Password.ArmExpression.Eval() |})
+                                  match cred with
+                                  | ImageRegistryAuthentication.Credential cred ->
+                                      {| server = cred.Server
+                                         username = cred.Username
+                                         password = cred.Password.ArmExpression.Eval() |}
+                                  | ImageRegistryAuthentication.ListCredentials resourceId ->
+                                      {| server = ArmExpression.create($"reference({resourceId.ArmExpression.Value}, '2019-05-01').loginServer").Eval()
+                                         username = ArmExpression.create($"listCredentials({resourceId.ArmExpression.Value}, '2019-05-01').username").Eval()
+                                         password = ArmExpression.create($"listCredentials({resourceId.ArmExpression.Value}, '2019-05-01').passwords[0].value").Eval() |}
+                                  )
                           ipAddress =
                             match this.IpAddress with
                             | Some ipAddresses ->
