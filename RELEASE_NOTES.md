@@ -2,6 +2,8 @@ Release Notes
 =============
 
 ## 1.6.6
+* KeyVault: Enable VaultUri configuration member for use as output parameter.
+* KeyVault: Fix emitted `enablePurgeProtection`.
 * Container Groups: Support for 'depends_on' to add dependencies.
 
 ## 1.6.5

@@ -99,7 +99,7 @@ type Vault =
                         | Some SoftDeletionOnly ->
                             Nullable true
                        createMode = this.CreateMode |> Option.map(fun m -> m.ToString().ToLower()) |> Option.toObj
-                       enablePurgeProtection = this.PurgeProtection
+                       enablePurgeProtection = this.PurgeProtection |> Option.toNullable
                        vaultUri = this.Uri |> Option.map string |> Option.toObj
                        accessPolicies = [|
                         for policy in this.AccessPolicies do
