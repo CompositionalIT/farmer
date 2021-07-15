@@ -760,6 +760,37 @@
       "type": "Microsoft.Resources/deployments"
     },
     {
+      "apiVersion": "2018-02-01",
+      "location": "northeurope",
+      "name": "docker_func-farm",
+      "properties": {
+        "name": "docker_func-farm",
+        "perSiteScaling": false,
+        "reserved": false
+      },
+      "sku": {
+        "capacity": 0,
+        "name": "Y1",
+        "size": "Y1",
+        "tier": "Dynamic"
+      },
+      "tags": {},
+      "type": "Microsoft.Web/serverfarms"
+    },
+    {
+      "apiVersion": "2019-06-01",
+      "dependsOn": [],
+      "kind": "StorageV2",
+      "location": "northeurope",
+      "name": "dockerfuncstorage",
+      "properties": {},
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "tags": {},
+      "type": "Microsoft.Storage/storageAccounts"
+    },
+    {
       "apiVersion": "2020-06-01",
       "dependsOn": [
         "[resourceId('Microsoft.Storage/storageAccounts', 'dockerfuncstorage')]",
@@ -822,37 +853,6 @@
       },
       "tags": {},
       "type": "Microsoft.Web/sites"
-    },
-    {
-      "apiVersion": "2018-02-01",
-      "location": "northeurope",
-      "name": "docker_func-farm",
-      "properties": {
-        "name": "docker_func-farm",
-        "perSiteScaling": false,
-        "reserved": false
-      },
-      "sku": {
-        "capacity": 0,
-        "name": "Y1",
-        "size": "Y1",
-        "tier": "Dynamic"
-      },
-      "tags": {},
-      "type": "Microsoft.Web/serverfarms"
-    },
-    {
-      "apiVersion": "2019-06-01",
-      "dependsOn": [],
-      "kind": "StorageV2",
-      "location": "northeurope",
-      "name": "dockerfuncstorage",
-      "properties": {},
-      "sku": {
-        "name": "Standard_LRS"
-      },
-      "tags": {},
-      "type": "Microsoft.Storage/storageAccounts"
     }
   ]
 }
