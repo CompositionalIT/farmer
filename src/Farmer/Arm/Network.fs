@@ -264,7 +264,7 @@ type NetworkInterface =
                                 let allocationMethod, ip = 
                                     match this.PrivateIpAllocation with 
                                     | Some (StaticPrivateIp ip) -> "Static", string ip
-                                    | _ -> ("Dynamic", null)
+                                    | _ -> "Dynamic", null
                                 {| privateIPAllocationMethod = allocationMethod
                                    privateIPAddress = ip
                                    publicIPAddress = 
