@@ -48,7 +48,8 @@ type Subnet =
       Delegations : SubnetDelegation list
       ServiceEndpoints : (Network.EndpointServiceType * Location list) list
       AssociatedServiceEndpointPolicies : ResourceId list 
-      PrivateEndpointNetworkPolicies: FeatureFlag option }
+      PrivateEndpointNetworkPolicies: FeatureFlag option
+      PrivateLinkServiceNetworkPolicies: FeatureFlag option }
 
 type VirtualNetwork =
     { Name : ResourceName
@@ -89,6 +90,7 @@ type VirtualNetwork =
                                            subnet.AssociatedServiceEndpointPolicies
                                            |> List.map (fun policyId -> {| id = policyId.ArmExpression.Eval() |})
                                    privateEndpointNetworkPolicies = subnet.PrivateEndpointNetworkPolicies |> Option.map (fun x->x.ArmValue) |> Option.defaultValue Unchecked.defaultof<_>
+                                   privateLinkServiceNetworkPolicies = subnet.PrivateLinkServiceNetworkPolicies |> Option.map (fun x->x.ArmValue) |> Option.defaultValue Unchecked.defaultof<_>
                                 |}
                             |})
                     |}

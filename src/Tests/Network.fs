@@ -124,6 +124,7 @@ let tests = testList "Network Tests" [
                     name servicesSubnet
                     prefix "10.28.0.0/24"
                     allow_private_endpoints Enabled
+                    private_link_service_network_policies Disabled
                 }
             ]
         }
@@ -131,6 +132,7 @@ let tests = testList "Network Tests" [
         Expect.hasLength builtVnet.AddressSpace.AddressPrefixes 1 "Incorrect number of address spaces"
         Expect.hasLength builtVnet.Subnets 1 "Incorrect number of subnets"
         Expect.equal builtVnet.Subnets.[0].PrivateEndpointNetworkPolicies "Disabled" "Incorrect PrivateEndpointNetworkPolicies"
+        Expect.equal builtVnet.Subnets.[0].PrivateLinkServiceNetworkPolicies "Disabled" "PrivateLinkServiceNetworkPolicies should be enabled"
     }
     test "Automatically carved subnets with private endpoint support" {
         let vnetName = "my-vnet"
@@ -146,6 +148,7 @@ let tests = testList "Network Tests" [
                             name servicesSubnet
                             size 24
                             allow_private_endpoints Enabled
+                            private_link_service_network_policies Disabled
                         }
                     ]
                 }
@@ -155,6 +158,7 @@ let tests = testList "Network Tests" [
         Expect.equal generatedVNet.Subnets.[0].Name servicesSubnet "Incorrect name for services subnet"
         Expect.equal generatedVNet.Subnets.[0].AddressPrefix "10.28.0.0/24" "Incorrect prefix for services subnet"
         Expect.equal generatedVNet.Subnets.[0].PrivateEndpointNetworkPolicies "Disabled" "Incorrect PrivateEndpointNetworkPolicies"
+        Expect.equal generatedVNet.Subnets.[0].PrivateLinkServiceNetworkPolicies "Disabled" "Incorrect PrivateEndpointNetworkPolicies"
     }
     test "Two VNets with bidirectional peering" {
         let vnet1 = vnet { name "vnet1" }

@@ -43,7 +43,8 @@ The Virtual Network module contains four builders
 | add_delegations                         | Adds one or more delegations to this subnet.                           |
 | add_service_endpoints                   | Adds one or more service endpoints to this subnet.                     |
 | associate_service_endpoint_policies     | Associates a subnet with an existing service policy.                   |
-| private_endpoints                       | Enable or disable support for private endpoints, default is `Disabled` |
+| allow_private_endpoints                 | Enable or disable support for private endpoints, default is `Disabled` |
+| private_link_service_network_policies   | Enable or disable support for private link service network polices, default is `Disabled` |
 
 ##### Automatically build out an address space: `addressSpace`
 
@@ -62,7 +63,8 @@ The Virtual Network module contains four builders
 | add_delegations                         | Adds service delegations for the subnet.                               |
 | add_service_endpoints                   | Adds service endpoints for the subnet.                                 |
 | add_service_endpoint_policies           | Associates the service endpoint policies with the subnet.              |
-| private_endpoints                       | Enable or disable support for private endpoints, default is `Disabled` |
+| allow_private_endpoints                 | Enable or disable support for private endpoints, default is `Disabled` |
+| private_link_service_network_policies   | Enable or disable support for private link service network polices, default is `Disabled` |
 
 #### Configuration Members
 

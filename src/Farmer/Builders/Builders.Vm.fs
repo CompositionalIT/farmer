@@ -109,7 +109,8 @@ type VmConfig =
                         Delegations = []
                         ServiceEndpoints = []
                         AssociatedServiceEndpointPolicies = []
-                        PrivateEndpointNetworkPolicies = None }
+                        PrivateEndpointNetworkPolicies = None
+                        PrivateLinkServiceNetworkPolicies = None }
                   ]
                   Tags = this.Tags
                 }

@@ -16,7 +16,8 @@ type SubnetConfig =
       Delegations:  SubnetDelegationService list
       ServiceEndpoints: (EndpointServiceType * Location list) list
       AssociatedServiceEndpointPolicies : ResourceId list
-      AllowPrivateEndpoints: FeatureFlag option }
+      AllowPrivateEndpoints: FeatureFlag option
+      PrivateLinkServiceNetworkPolicies: FeatureFlag option }
 
 type SubnetBuilder() =
     member _.Yield _ =
@@ -25,7 +26,8 @@ type SubnetBuilder() =
           Delegations = []
           ServiceEndpoints = []
           AssociatedServiceEndpointPolicies = [] 
-          AllowPrivateEndpoints = None }
+          AllowPrivateEndpoints = None
+          PrivateLinkServiceNetworkPolicies = None }
     /// Sets the name of the subnet
     [<CustomOperation "name">]
     member _.Name(state:SubnetConfig, name) = { state with Name = ResourceName name }
@@ -44,6 +46,10 @@ type SubnetBuilder() =
     /// Disable private endpoint network policies
     [<CustomOperation "allow_private_endpoints">]
     member _.PrivateEndpoints(state:SubnetConfig, value:FeatureFlag ) = { state with AllowPrivateEndpoints = Some value }
+    /// Enable or disable private link service network policies on this subnet to allow specifying the private link IP.
+    [<CustomOperation "private_link_service_network_policies">]
+    member _.PrivateLinkServiceNetworkPolicies(state:SubnetConfig, flag:FeatureFlag ) =
+        { state with PrivateLinkServiceNetworkPolicies = Some flag}
 
 let subnet = SubnetBuilder ()
 /// Specification for a subnet to build from an address space.
@@ -53,15 +59,34 @@ type SubnetBuildSpec =
       Delegations: SubnetDelegationService list
       ServiceEndpoints: (EndpointServiceType * Location list) list
       AssociatedServiceEndpointPolicies : ResourceId list
-      AllowPrivateEndpoints: FeatureFlag option }
+      AllowPrivateEndpoints: FeatureFlag option
+      PrivateLinkServiceNetworkPolicies: FeatureFlag option }
 /// Builds a subnet of a certain CIDR block size.
 let buildSubnet name size =
-    { Name = name; Size = size; Delegations = []; ServiceEndpoints = []; AssociatedServiceEndpointPolicies = []; AllowPrivateEndpoints = None}
+    { Name = name
+      Size = size
+      Delegations = []
+      ServiceEndpoints = []
+      AssociatedServiceEndpointPolicies = []
+      AllowPrivateEndpoints = None
+      PrivateLinkServiceNetworkPolicies = None }
 /// Builds a subnet of a certain CIDR block size with service delegations.
 let buildSubnetDelegations name size delegations =
-    { Name = name; Size = size; Delegations = delegations; ServiceEndpoints = []; AssociatedServiceEndpointPolicies = []; AllowPrivateEndpoints = None}
+    { Name = name
+      Size = size
+      Delegations = delegations
+      ServiceEndpoints = []
+      AssociatedServiceEndpointPolicies = []
+      AllowPrivateEndpoints = None
+      PrivateLinkServiceNetworkPolicies = None }
 let buildSubnetAllowPrivateEndpoints name size =
-    { Name = name; Size = size; Delegations = []; ServiceEndpoints = []; AssociatedServiceEndpointPolicies = []; AllowPrivateEndpoints = None }
+    { Name = name
+      Size = size
+      Delegations = []
+      ServiceEndpoints = []
+      AssociatedServiceEndpointPolicies = []
+      AllowPrivateEndpoints = None
+      PrivateLinkServiceNetworkPolicies = None }
 
 type SubnetSpecBuilder () =
     member _.Yield _ =
@@ -70,7 +95,8 @@ type SubnetSpecBuilder () =
           Delegations = []
           ServiceEndpoints = []
           AssociatedServiceEndpointPolicies = []
-          AllowPrivateEndpoints = None }
+          AllowPrivateEndpoints = None
+          PrivateLinkServiceNetworkPolicies = None }
     /// Sets the name of the subnet to build
     [<CustomOperation "name">]
     member _.Name(state:SubnetBuildSpec, name) =
@@ -95,6 +121,10 @@ type SubnetSpecBuilder () =
     [<CustomOperation "allow_private_endpoints">]
     member _.PrivateEndpoints(state:SubnetBuildSpec, flag:FeatureFlag ) =
         { state with AllowPrivateEndpoints = Some flag}
+    /// Enable or disable private link service network policies on this subnet to allow specifying the private link IP.
+    [<CustomOperation "private_link_service_network_policies">]
+    member _.PrivateLinkServiceNetworkPolicies(state:SubnetBuildSpec, flag:FeatureFlag ) =
+        { state with PrivateLinkServiceNetworkPolicies = Some flag}
 
 let subnetSpec = SubnetSpecBuilder()
 
@@ -110,14 +140,15 @@ type AddressSpaceBuilder() =
     member _.Space(state:AddressSpaceSpec, space) = { state with Space = space }
     [<CustomOperation("subnets")>]
     member _.Subnets(state:AddressSpaceSpec, subnets) = { state with Subnets = state.Subnets @ subnets }
-    member private _.buildSubnet(state:AddressSpaceSpec, name:string, size:int, ?delegations:SubnetDelegationService list, ?serviceEndpoints:(EndpointServiceType * Location list) list, ?associatedServiceEndpointPolicies:ResourceId list, ?allowPrivateEndpoints: FeatureFlag) =
+    member private _.buildSubnet(state:AddressSpaceSpec, name:string, size:int, ?delegations:SubnetDelegationService list, ?serviceEndpoints:(EndpointServiceType * Location list) list, ?associatedServiceEndpointPolicies:ResourceId list, ?allowPrivateEndpoints: FeatureFlag, ?privateLinkServiceNetworkPolicies: FeatureFlag) =
         let subnetBuildSpec =
             { Name = name
               Size = size
               Delegations = delegations |> Option.defaultValue []
               ServiceEndpoints = serviceEndpoints |> Option.defaultValue []
               AssociatedServiceEndpointPolicies = associatedServiceEndpointPolicies |> Option.defaultValue [] 
-              AllowPrivateEndpoints = allowPrivateEndpoints }
+              AllowPrivateEndpoints = allowPrivateEndpoints
+              PrivateLinkServiceNetworkPolicies = privateLinkServiceNetworkPolicies }
         { state with Subnets = state.Subnets @ [ subnetBuildSpec ] }
     [<CustomOperation("build_subnet")>]
     member this.BuildSubnet(state:AddressSpaceSpec, name:string, size:int) =
@@ -162,6 +193,7 @@ type VirtualNetworkConfig =
                     // PrivateEndpointNetworkPolicies prevents the use of private endpoints so 
                     // to ENable private endpoints we have to DISable PrivateEndpointNetworkPolicies
                     PrivateEndpointNetworkPolicies = subnetConfig.AllowPrivateEndpoints |> Option.map FeatureFlag.invert 
+                    PrivateLinkServiceNetworkPolicies = subnetConfig.PrivateLinkServiceNetworkPolicies
                     })
               Tags = this.Tags
             }
@@ -240,14 +272,15 @@ type VirtualNetworkBuilder() =
                         subnet.Size
                 ]
                 IPAddressCidr.carveAddressSpace addressSpace sizes
-                |> List.zip (addressSpaceConfig.Subnets |> List.map (fun s -> s.Name, s.Delegations, s.ServiceEndpoints, s.AssociatedServiceEndpointPolicies, s.AllowPrivateEndpoints))
-                |> List.map (fun ((name, delegations, serviceEndpoints, serviceEndpointPolicies, allowPrivateEndpoints), cidr) ->
+                |> List.zip (addressSpaceConfig.Subnets |> List.map (fun s -> s.Name, s.Delegations, s.ServiceEndpoints, s.AssociatedServiceEndpointPolicies, s.AllowPrivateEndpoints, s.PrivateLinkServiceNetworkPolicies))
+                |> List.map (fun ((name, delegations, serviceEndpoints, serviceEndpointPolicies, allowPrivateEndpoints, privateLinkServiceNetworkPolicies), cidr) ->
                     { Name = ResourceName name
                       Prefix = cidr
                       Delegations = delegations
                       ServiceEndpoints = serviceEndpoints
                       AssociatedServiceEndpointPolicies = serviceEndpointPolicies
-                      AllowPrivateEndpoints = allowPrivateEndpoints }
+                      AllowPrivateEndpoints = allowPrivateEndpoints
+                      PrivateLinkServiceNetworkPolicies = privateLinkServiceNetworkPolicies }
                 ))
         let newAddressSpaces = addressSpaces |> List.map (fun addressSpace -> addressSpace.Space)
         { state with
