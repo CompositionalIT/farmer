@@ -4,8 +4,10 @@ Release Notes
 ## 1.6.6
 * Container Groups: Reference Azure container registry credentials.
 * Container Groups: Support for 'depends_on' to add dependencies.
+* Functions: Added support for deployment slots
 * KeyVault: Enable VaultUri configuration member for use as output parameter.
 * KeyVault: Fix emitted `enablePurgeProtection`.
+* WebApp: Added support for deployment slots
 
 ## 1.6.5
 * Azure Firewall: Bug fix for link_to_vhub and added depends_on to builder

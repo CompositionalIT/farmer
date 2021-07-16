@@ -52,6 +52,8 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Web App | always_on | Sets the "Always On" flag. |
 | Web App | add_private_endpoint | Adds a private endpoint for this Webapp to a given subnet |
 | Web App | add_private_endpoints | Adds private endpoints for this Webapp to the given subnets |
+| Web App | add_slot | Adds a deployment slot to the app |
+| Web App | add_slots | Adds multiple deployment slots to the app |
 | Service Plan | service_plan_name | Sets the name of the service plan. If not set, uses the name of the web app postfixed with "-plan". |
 | Service Plan | runtime_stack | Sets the runtime stack. |
 | Service Plan | operating_system | Sets the operating system. If Linux, App Insights configuration settings will be omitted as they are not supported by Azure App Service. |
@@ -69,6 +71,7 @@ The Web App builder contains special commands that are executed *after* the ARM 
 | Keyword | Purpose |
 |-|-|
 | zip_deploy | Supplying a folder or zip file will instruct Farmer to upload the contents directly to the App Service once the ARM deployment is complete. |
+| zip_deploy_slot | Supplying a folder or zip file will instruct Farmer to upload the contents directly to the named slot of the App Service once the ARM deployment is complete. |
 
 #### Configuration Members
 

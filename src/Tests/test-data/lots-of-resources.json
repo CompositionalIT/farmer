@@ -96,6 +96,50 @@
       "type": "Microsoft.Storage/storageAccounts"
     },
     {
+      "apiVersion": "2014-04-01",
+      "kind": "web",
+      "location": "northeurope",
+      "name": "farmerwebapp1979-ai",
+      "properties": {
+        "ApplicationId": "farmerwebapp1979",
+        "Application_Type": "web",
+        "DisableIpMasking": false,
+        "SamplingPercentage": 100,
+        "name": "farmerwebapp1979-ai"
+      },
+      "tags": {
+        "[concat('hidden-link:', resourceGroup().id, '/providers/Microsoft.Web/sites/', 'farmerwebapp1979')]": "Resource"
+      },
+      "type": "Microsoft.Insights/components"
+    },
+    {
+      "apiVersion": "2018-02-01",
+      "location": "northeurope",
+      "name": "farmerwebapp1979-farm",
+      "properties": {
+        "name": "farmerwebapp1979-farm",
+        "perSiteScaling": false,
+        "reserved": false
+      },
+      "sku": {
+        "capacity": 1,
+        "name": "F1",
+        "size": "0",
+        "tier": "Free"
+      },
+      "tags": {},
+      "type": "Microsoft.Web/serverfarms"
+    },
+    {
+      "apiVersion": "2020-06-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', 'farmerwebapp1979')]"
+      ],
+      "location": "northeurope",
+      "name": "farmerwebapp1979/Microsoft.AspNetCore.AzureAppServices.SiteExtension",
+      "type": "Microsoft.Web/sites/siteextensions"
+    },
+    {
       "apiVersion": "2020-06-01",
       "dependsOn": [
         "[resourceId('Microsoft.Insights/components', 'farmerwebapp1979-ai')]",
@@ -160,48 +204,52 @@
       "type": "Microsoft.Web/sites"
     },
     {
-      "apiVersion": "2014-04-01",
-      "kind": "web",
-      "location": "northeurope",
-      "name": "farmerwebapp1979-ai",
-      "properties": {
-        "ApplicationId": "farmerwebapp1979",
-        "Application_Type": "web",
-        "DisableIpMasking": false,
-        "SamplingPercentage": 100,
-        "name": "farmerwebapp1979-ai"
-      },
-      "tags": {
-        "[concat('hidden-link:', resourceGroup().id, '/providers/Microsoft.Web/sites/', 'farmerwebapp1979')]": "Resource"
-      },
-      "type": "Microsoft.Insights/components"
-    },
-    {
       "apiVersion": "2018-02-01",
       "location": "northeurope",
-      "name": "farmerwebapp1979-farm",
+      "name": "farmerfuncs1979-farm",
       "properties": {
-        "name": "farmerwebapp1979-farm",
+        "name": "farmerfuncs1979-farm",
         "perSiteScaling": false,
         "reserved": false
       },
       "sku": {
-        "capacity": 1,
-        "name": "F1",
-        "size": "0",
-        "tier": "Free"
+        "capacity": 0,
+        "name": "Y1",
+        "size": "Y1",
+        "tier": "Dynamic"
       },
       "tags": {},
       "type": "Microsoft.Web/serverfarms"
     },
     {
-      "apiVersion": "2020-06-01",
-      "dependsOn": [
-        "[resourceId('Microsoft.Web/sites', 'farmerwebapp1979')]"
-      ],
+      "apiVersion": "2019-06-01",
+      "dependsOn": [],
+      "kind": "StorageV2",
       "location": "northeurope",
-      "name": "farmerwebapp1979/Microsoft.AspNetCore.AzureAppServices.SiteExtension",
-      "type": "Microsoft.Web/sites/siteextensions"
+      "name": "farmerfuncs1979storage",
+      "properties": {},
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "tags": {},
+      "type": "Microsoft.Storage/storageAccounts"
+    },
+    {
+      "apiVersion": "2014-04-01",
+      "kind": "web",
+      "location": "northeurope",
+      "name": "farmerfuncs1979-ai",
+      "properties": {
+        "ApplicationId": "farmerfuncs1979",
+        "Application_Type": "web",
+        "DisableIpMasking": false,
+        "SamplingPercentage": 100,
+        "name": "farmerfuncs1979-ai"
+      },
+      "tags": {
+        "[concat('hidden-link:', resourceGroup().id, '/providers/Microsoft.Web/sites/', 'farmerfuncs1979')]": "Resource"
+      },
+      "type": "Microsoft.Insights/components"
     },
     {
       "apiVersion": "2020-06-01",
@@ -258,54 +306,6 @@
       },
       "tags": {},
       "type": "Microsoft.Web/sites"
-    },
-    {
-      "apiVersion": "2018-02-01",
-      "location": "northeurope",
-      "name": "farmerfuncs1979-farm",
-      "properties": {
-        "name": "farmerfuncs1979-farm",
-        "perSiteScaling": false,
-        "reserved": false
-      },
-      "sku": {
-        "capacity": 0,
-        "name": "Y1",
-        "size": "Y1",
-        "tier": "Dynamic"
-      },
-      "tags": {},
-      "type": "Microsoft.Web/serverfarms"
-    },
-    {
-      "apiVersion": "2019-06-01",
-      "dependsOn": [],
-      "kind": "StorageV2",
-      "location": "northeurope",
-      "name": "farmerfuncs1979storage",
-      "properties": {},
-      "sku": {
-        "name": "Standard_LRS"
-      },
-      "tags": {},
-      "type": "Microsoft.Storage/storageAccounts"
-    },
-    {
-      "apiVersion": "2014-04-01",
-      "kind": "web",
-      "location": "northeurope",
-      "name": "farmerfuncs1979-ai",
-      "properties": {
-        "ApplicationId": "farmerfuncs1979",
-        "Application_Type": "web",
-        "DisableIpMasking": false,
-        "SamplingPercentage": 100,
-        "name": "farmerfuncs1979-ai"
-      },
-      "tags": {
-        "[concat('hidden-link:', resourceGroup().id, '/providers/Microsoft.Web/sites/', 'farmerfuncs1979')]": "Resource"
-      },
-      "type": "Microsoft.Insights/components"
     },
     {
       "apiVersion": "2017-04-01",
@@ -760,6 +760,37 @@
       "type": "Microsoft.Resources/deployments"
     },
     {
+      "apiVersion": "2018-02-01",
+      "location": "northeurope",
+      "name": "docker_func-farm",
+      "properties": {
+        "name": "docker_func-farm",
+        "perSiteScaling": false,
+        "reserved": false
+      },
+      "sku": {
+        "capacity": 0,
+        "name": "Y1",
+        "size": "Y1",
+        "tier": "Dynamic"
+      },
+      "tags": {},
+      "type": "Microsoft.Web/serverfarms"
+    },
+    {
+      "apiVersion": "2019-06-01",
+      "dependsOn": [],
+      "kind": "StorageV2",
+      "location": "northeurope",
+      "name": "dockerfuncstorage",
+      "properties": {},
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "tags": {},
+      "type": "Microsoft.Storage/storageAccounts"
+    },
+    {
       "apiVersion": "2020-06-01",
       "dependsOn": [
         "[resourceId('Microsoft.Storage/storageAccounts', 'dockerfuncstorage')]",
@@ -822,37 +853,6 @@
       },
       "tags": {},
       "type": "Microsoft.Web/sites"
-    },
-    {
-      "apiVersion": "2018-02-01",
-      "location": "northeurope",
-      "name": "docker_func-farm",
-      "properties": {
-        "name": "docker_func-farm",
-        "perSiteScaling": false,
-        "reserved": false
-      },
-      "sku": {
-        "capacity": 0,
-        "name": "Y1",
-        "size": "Y1",
-        "tier": "Dynamic"
-      },
-      "tags": {},
-      "type": "Microsoft.Web/serverfarms"
-    },
-    {
-      "apiVersion": "2019-06-01",
-      "dependsOn": [],
-      "kind": "StorageV2",
-      "location": "northeurope",
-      "name": "dockerfuncstorage",
-      "properties": {},
-      "sku": {
-        "name": "Standard_LRS"
-      },
-      "tags": {},
-      "type": "Microsoft.Storage/storageAccounts"
     }
   ]
 }
