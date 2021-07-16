@@ -42,6 +42,8 @@ The Functions builder is used to create Azure Functions accounts. It abstracts t
 | always_on | Stops the app from sleeping if idle for a few minutes of inactivity. |
 | worker_process | Specifies whether to set the app to 32 or 64 Bitness. |
 | publish_as | Specifies whether to publish function as code or as a docker container. |
+| add_slot | Adds a deployment slot to the app |
+| add_slots | Adds multiple deployment slots to the app |
 
 #### Post-deployment Builder Keywords
 The Functions builder contains special commands that are executed *after* the ARM deployment is completed.
@@ -49,6 +51,7 @@ The Functions builder contains special commands that are executed *after* the AR
 | Keyword | Purpose |
 |-|-|
 | zip_deploy | Supplying a folder or zip file will instruct Farmer to upload the contents directly to the Azure Functions once the ARM deployment is complete. |
+| zip_deploy_slot | Supplying a folder or zip file will instruct Farmer to upload the contents directly to the named slot of the Azure Functions once the ARM deployment is complete. |
 
 #### Key Vault integration
 The Function builder comes with special integration into KeyVault. By activating KeyVault integration, the function builder can automatically link to, or even create, a full KeyVault instance. All Secret or ARM Expression-based Settings (e.g. a setting that links to the Key of a Storage Account) will automatically be redirected to KeyVault. The value will be stored in KeyVault and the system identity will be activated and provided into the KeyVault with GET permissions. Lastly, Function app settings will remain in place, using the Azure Functions built-in KeyVault redirection capabilities.

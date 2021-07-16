@@ -18,32 +18,6 @@
       "type": "Microsoft.Storage/storageAccounts"
     },
     {
-      "apiVersion": "2020-06-01",
-      "dependsOn": [
-        "[resourceId('Microsoft.Web/serverfarms', 'isaacdiagsuperweb-farm')]"
-      ],
-      "kind": "app",
-      "location": "northeurope",
-      "name": "isaacdiagsuperweb",
-      "properties": {
-        "httpsOnly": false,
-        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', 'isaacdiagsuperweb-farm')]",
-        "siteConfig": {
-          "alwaysOn": false,
-          "appSettings": [],
-          "connectionStrings": [],
-          "metadata": [
-            {
-              "name": "CURRENT_STACK",
-              "value": "dotnetcore"
-            }
-          ]
-        }
-      },
-      "tags": {},
-      "type": "Microsoft.Web/sites"
-    },
-    {
       "apiVersion": "2018-02-01",
       "location": "northeurope",
       "name": "isaacdiagsuperweb-farm",
@@ -69,6 +43,32 @@
       "location": "northeurope",
       "name": "isaacdiagsuperweb/Microsoft.AspNetCore.AzureAppServices.SiteExtension",
       "type": "Microsoft.Web/sites/siteextensions"
+    },
+    {
+      "apiVersion": "2020-06-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', 'isaacdiagsuperweb-farm')]"
+      ],
+      "kind": "app",
+      "location": "northeurope",
+      "name": "isaacdiagsuperweb",
+      "properties": {
+        "httpsOnly": false,
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', 'isaacdiagsuperweb-farm')]",
+        "siteConfig": {
+          "alwaysOn": false,
+          "appSettings": [],
+          "connectionStrings": [],
+          "metadata": [
+            {
+              "name": "CURRENT_STACK",
+              "value": "dotnetcore"
+            }
+          ]
+        }
+      },
+      "tags": {},
+      "type": "Microsoft.Web/sites"
     },
     {
       "apiVersion": "2017-04-01",

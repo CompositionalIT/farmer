@@ -74,6 +74,12 @@ The Key Vault builder contains access policies, secrets, and configuration infor
 | add_tag | Adds a tag to the key vault. |
 | add_tags | Adds multiple tags to the key vault. |
 
+#### Configuration Members
+
+| Member | Purpose |
+|-|-|
+| VaultUri | Gets the ARM expression path to the key vault's URI. |
+
 #### Utilities
 * The KeyVault module comes with a set of utility functions to quickly create access policies if you do not wish to use the `AccessPolicy` builder, in the `Farmer.KeyVault.AccessPolicy` module which enable creating an access policy for a `PrincipalId` or an `ObjectId` which will have the GET Secret permission.
 * In addition, the `AccessPolicy` module also contains helpers to search for users or groups in active directory (*requires Azure CLI installed*), as well as their Object IDs. These can be used to rapidly create Access Policies for specific users.
@@ -125,4 +131,10 @@ let vault =
         add_secret "simpleSecret"
         add_secrets [ "firstSecret"; "secondSecret"]
     }
+
+arm {
+    add_resource vault
+    output "vault-uri" vault.VaultUri
+}
+
 ```

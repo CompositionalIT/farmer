@@ -33,12 +33,19 @@ stages:
         command: 'build'
         arguments: '-c release'
     - task: AzureCLI@2
-      displayName: 'Test'
+      displayName: 'Test master'
+      condition:  and(succeeded(), not(eq(variables['build.reason'], 'PullRequest')))
       inputs:
         azureSubscription: 'Microsoft Azure Sponsorship(6c9e2629-3964-4b24-bc32-97dafc8c90f3)'
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
         inlineScript: 'dotnet test -v n -c release -l trx'
+    - task: DotNetCoreCLI@2
+      displayName: 'Test Pull Request'
+      condition:  and(succeeded(), eq(variables['build.reason'], 'PullRequest'))
+      inputs:
+        command: 'test'
+        arguments: '-v n -c release -l trx'
     - task: PublishTestResults@2
       displayName: 'Publish Test Results'
       inputs:

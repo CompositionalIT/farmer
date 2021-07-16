@@ -4,6 +4,7 @@ module Farmer.Arm.Web
 open Farmer
 open Farmer.Identity
 open Farmer.WebApp
+open Farmer.Identity
 open System
 
 let serverFarms = ResourceType ("Microsoft.Web/serverfarms", "2018-02-01")
@@ -12,6 +13,7 @@ let config = ResourceType ("Microsoft.Web/sites/config", "2016-08-01")
 let sourceControls = ResourceType ("Microsoft.Web/sites/sourcecontrols", "2019-08-01")
 let staticSites = ResourceType("Microsoft.Web/staticSites", "2019-12-01-preview")
 let siteExtensions = ResourceType("Microsoft.Web/sites/siteextensions", "2020-06-01")
+let slots = ResourceType ("Microsoft.Web/sites/slots", "2020-09-01")
 
 type ServerFarm =
     { Name : ResourceName
@@ -106,6 +108,14 @@ module ZipDeploy =
     open System.IO
     open System.IO.Compression
 
+    type ZipDeploySlot = 
+        | ProductionSlot
+        | NamedSlot of name: string
+        member this.ToOption = 
+            match this with
+            | ProductionSlot -> None
+            | NamedSlot n -> Some n
+
     type ZipDeployTarget =
         | WebApp
         | FunctionApp
@@ -134,7 +144,8 @@ module ZipDeploy =
             | DeployZip zipFilePath ->
                 zipFilePath
 type Site =
-    { Name : ResourceName
+    { Type: ResourceType
+      Name : ResourceName
       Location : Location
       ServicePlan : ResourceId
       AppSettings : Map<string, Setting>
@@ -160,7 +171,8 @@ type Site =
       PythonVersion : string option
       Tags : Map<string, string>
       Metadata : List<string * string>
-      ZipDeployPath : (string * ZipDeploy.ZipDeployTarget) option }
+      AutoSwapSlotName: string option
+      ZipDeployPath : (string * ZipDeploy.ZipDeployTarget * ZipDeploy.ZipDeploySlot) option }
     interface IParameters with
         member this.SecureParameters =
             Map.toList this.AppSettings
@@ -172,15 +184,16 @@ type Site =
     interface IPostDeploy with
         member this.Run resourceGroupName =
             match this with
-            | { ZipDeployPath = Some (path, target); Name = name } ->
+            | { ZipDeployPath = Some (path, target, slot); Name = name } ->
                 let path =
                     ZipDeploy.ZipDeployKind.TryParse path
                     |> Option.defaultWith (fun () ->
                         failwith $"Path '{path}' must either be a folder to be zipped, or an existing zip.")
-                printfn "Running ZIP deploy for %s" path.Value
+                let slotName = slot.ToOption
+                printfn "Running ZIP deploy to %s for %s" (slotName |> Option.defaultValue "WebApp") path.Value
                 Some (match target with
-                      | ZipDeploy.WebApp -> Deploy.Az.zipDeployWebApp name.Value path.GetZipPath resourceGroupName
-                      | ZipDeploy.FunctionApp -> Deploy.Az.zipDeployFunctionApp name.Value path.GetZipPath resourceGroupName)
+                      | ZipDeploy.WebApp -> Deploy.Az.zipDeployWebApp name.Value path.GetZipPath resourceGroupName slotName
+                      | ZipDeploy.FunctionApp -> Deploy.Az.zipDeployFunctionApp name.Value path.GetZipPath resourceGroupName slotName)
             | _ ->
                 None
     interface IArmResource with
@@ -193,7 +206,7 @@ type Site =
                 // If there is no managed identity and only one user-assigned identity, we should use that be default
                 | None, {SystemAssigned = Disabled; UserAssigned = [x]} -> x.ResourceId.Eval()
                 | _ -> null
-            {| sites.Create(this.Name, this.Location, dependencies, this.Tags) with
+            {| this.Type.Create(this.Name, this.Location, dependencies, this.Tags) with
                  kind = this.Kind
                  identity =
                      if this.Identity = ManagedIdentity.Empty then Unchecked.defaultof<_>
