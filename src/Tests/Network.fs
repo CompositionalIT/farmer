@@ -208,4 +208,94 @@ let tests = testList "Network Tests" [
         Expect.equal foundPeerings.[0].AllowGatewayTransit (Nullable true) "incorrect transit"
         Expect.equal foundPeerings.[0].UseRemoteGateways (Nullable false) "incorrect gateway"
     }
+    test "Automatically carved subnets with network security group support" {
+        let webPolicy = securityRule {
+            name "web-servers"
+            description "Public web server access"
+            services [ "http", 80
+                       "https", 443 ]
+            add_source_tag NetworkSecurity.TCP "Internet"
+            add_destination_network "10.28.0.0/24"
+        }
+        let appPolicy = securityRule {
+            name "app-servers"
+            description "Internal app server access"
+            services [ "http", 8080 ]
+            add_source_network NetworkSecurity.TCP "10.28.0.0/24"
+            add_destination_network "10.28.1.0/24"
+        }
+
+        let myNsg = nsg {
+            name "my-nsg"
+            add_rules [ webPolicy; appPolicy ]
+        }
+        let vnetName = "my-vnet"
+        let webSubnet = "web"
+        let appsSubnet = "apps"
+        let noNsgSubnet = "no-nsg"
+        let myNet = vnet {
+            name vnetName
+            build_address_spaces [
+                addressSpace {
+                    space "10.28.0.0/16"
+                    subnets [
+                        subnetSpec {
+                            name webSubnet
+                            size 24
+                            network_security_group myNsg.Name
+                        }
+                        subnetSpec {
+                            name appsSubnet
+                            size 24
+                            network_security_group myNsg.Name
+                        }
+                        subnetSpec {
+                            name noNsgSubnet
+                            size 24
+                        }
+                    ]
+                }
+            ]
+        }
+        let template = arm { add_resources [ myNet; myNsg ] }
+        let jobj = template.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
+        let dependencies = jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualNetworks')].dependsOn" :?> Newtonsoft.Json.Linq.JArray
+        Expect.isNotNull dependencies "vnet missing dependency for nsg"
+        Expect.hasLength dependencies 1 "Incorrect number of dependencies for vnet"
+        Expect.equal (dependencies.[0].ToString()) "[resourceId('Microsoft.Network/networkSecurityGroups', 'my-nsg')]" "Incorrect vnet dependencies"
+
+        let vnet = template |> getVnetResource
+        Expect.isNotNull vnet.Subnets.[0].NetworkSecurityGroup "First subnet missing NSG"
+        Expect.equal vnet.Subnets.[0].NetworkSecurityGroup.Id "[resourceId('Microsoft.Network/networkSecurityGroups', 'my-nsg')]" "Incorrect security group for first subnet"
+        Expect.isNotNull vnet.Subnets.[0].NetworkSecurityGroup "Second subnet missing NSG"
+        Expect.equal vnet.Subnets.[1].NetworkSecurityGroup.Id "[resourceId('Microsoft.Network/networkSecurityGroups', 'my-nsg')]" "Incorrect security group for second subnet"
+        Expect.isNull vnet.Subnets.[2].NetworkSecurityGroup "Third subnet should not have NSG"
+    }
+    test "Vnet with linked network security group doesn't add dependsOn" {
+        let vnetName = "my-vnet"
+        let webSubnet = "web"
+        let myNet = vnet {
+            name vnetName
+            build_address_spaces [
+                addressSpace {
+                    space "10.28.0.0/16"
+                    subnets [
+                        subnetSpec {
+                            name webSubnet
+                            size 24
+                            link_to_network_security_group "my-nsg"
+                        }
+                    ]
+                }
+            ]
+        }
+        let template = arm { add_resources [ myNet ] }
+        let jobj = template.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
+        let dependencies = jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualNetworks')].dependsOn" :?> Newtonsoft.Json.Linq.JArray
+        Expect.hasLength dependencies 0 "Should be no vnet dependencies when linking to nsg"
+
+        let vnet = template |> getVnetResource
+        Expect.isNotNull vnet.Subnets.[0].NetworkSecurityGroup "Subnet missing NSG"
+        Expect.equal vnet.Subnets.[0].NetworkSecurityGroup.Id "[resourceId('Microsoft.Network/networkSecurityGroups', 'my-nsg')]" "Incorrect security group for subnet"
+    }
 ]

@@ -13,6 +13,7 @@ type PeeringMode =
 type SubnetConfig =
     { Name: ResourceName
       Prefix: IPAddressCidr
+      NetworkSecurityGroup : LinkedResource option
       Delegations:  SubnetDelegationService list
       ServiceEndpoints: (EndpointServiceType * Location list) list
       AssociatedServiceEndpointPolicies : ResourceId list
@@ -23,6 +24,7 @@ type SubnetBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
           Prefix = { Address = System.Net.IPAddress.Parse("10.100.0.0"); Prefix = 16 }
+          NetworkSecurityGroup = None
           Delegations = []
           ServiceEndpoints = []
           AssociatedServiceEndpointPolicies = [] 
@@ -34,6 +36,22 @@ type SubnetBuilder() =
     /// Sets the network prefix in CIDR notation
     [<CustomOperation "prefix">]
     member _.Prefix(state:SubnetConfig, prefix) = { state with Prefix = IPAddressCidr.parse prefix }
+    /// Sets the network security group for subnet
+    [<CustomOperation "network_security_group">]
+    member _.NetworkSecurityGroup(state:SubnetConfig, nsg:string) =
+        { state with NetworkSecurityGroup = Some (Managed (Farmer.Arm.NetworkSecurityGroup.networkSecurityGroups.resourceId (ResourceName nsg))) }
+    member _.NetworkSecurityGroup(state:SubnetConfig, nsg:ResourceName) =
+        { state with NetworkSecurityGroup = Some (Managed (Farmer.Arm.NetworkSecurityGroup.networkSecurityGroups.resourceId nsg)) }
+    member _.NetworkSecurityGroup(state:SubnetConfig, nsg:ResourceId) =
+        { state with NetworkSecurityGroup = Some (Managed nsg) }
+    /// Links the subnet to an existing network security group.
+    [<CustomOperation "link_to_network_security_group">]
+    member _.LinkToNetworkSecurityGroup(state:SubnetConfig, nsg:string) =
+        { state with NetworkSecurityGroup = Some (Unmanaged (Farmer.Arm.NetworkSecurityGroup.networkSecurityGroups.resourceId (ResourceName nsg))) }
+    member _.LinkToNetworkSecurityGroup(state:SubnetConfig, nsg:ResourceName) =
+        { state with NetworkSecurityGroup = Some (Unmanaged (Farmer.Arm.NetworkSecurityGroup.networkSecurityGroups.resourceId nsg)) }
+    member _.LinkToNetworkSecurityGroup(state:SubnetConfig, nsg:ResourceId) =
+        { state with NetworkSecurityGroup = Some (Unmanaged nsg) }
     /// Sets the network prefix in CIDR notation
     [<CustomOperation "add_delegations">]
     member _.AddDelegations(state:SubnetConfig, delegations) = { state with Delegations = state.Delegations @ delegations }
@@ -56,6 +74,7 @@ let subnet = SubnetBuilder ()
 type SubnetBuildSpec =
     { Name: string
       Size: int
+      NetworkSecurityGroup : LinkedResource option
       Delegations: SubnetDelegationService list
       ServiceEndpoints: (EndpointServiceType * Location list) list
       AssociatedServiceEndpointPolicies : ResourceId list
@@ -65,6 +84,7 @@ type SubnetBuildSpec =
 let buildSubnet name size =
     { Name = name
       Size = size
+      NetworkSecurityGroup = None
       Delegations = []
       ServiceEndpoints = []
       AssociatedServiceEndpointPolicies = []
@@ -74,6 +94,7 @@ let buildSubnet name size =
 let buildSubnetDelegations name size delegations =
     { Name = name
       Size = size
+      NetworkSecurityGroup = None
       Delegations = delegations
       ServiceEndpoints = []
       AssociatedServiceEndpointPolicies = []
@@ -82,6 +103,7 @@ let buildSubnetDelegations name size delegations =
 let buildSubnetAllowPrivateEndpoints name size =
     { Name = name
       Size = size
+      NetworkSecurityGroup = None
       Delegations = []
       ServiceEndpoints = []
       AssociatedServiceEndpointPolicies = []
@@ -92,6 +114,7 @@ type SubnetSpecBuilder () =
     member _.Yield _ =
         { Name = ""
           Size = 24
+          NetworkSecurityGroup = None
           Delegations = []
           ServiceEndpoints = []
           AssociatedServiceEndpointPolicies = []
@@ -105,6 +128,22 @@ type SubnetSpecBuilder () =
     [<CustomOperation "size">]
     member _.Size(state:SubnetBuildSpec, size) =
         { state with Size = size }
+    /// Sets the network security group for subnet
+    [<CustomOperation "network_security_group">]
+    member _.NetworkSecurityGroup(state:SubnetBuildSpec, nsg:string) =
+        { state with NetworkSecurityGroup = Some (Managed (Farmer.Arm.NetworkSecurityGroup.networkSecurityGroups.resourceId (ResourceName nsg))) }
+    member _.NetworkSecurityGroup(state:SubnetBuildSpec, nsg:ResourceName) =
+        { state with NetworkSecurityGroup = Some (Managed (Farmer.Arm.NetworkSecurityGroup.networkSecurityGroups.resourceId nsg)) }
+    member _.NetworkSecurityGroup(state:SubnetBuildSpec, nsg:ResourceId) =
+        { state with NetworkSecurityGroup = Some (Managed nsg) }
+    /// Links the subnet to an existing network security group.
+    [<CustomOperation "link_to_network_security_group">]
+    member _.LinkToNetworkSecurityGroup(state:SubnetBuildSpec, nsg:string) =
+        { state with NetworkSecurityGroup = Some (Unmanaged (Farmer.Arm.NetworkSecurityGroup.networkSecurityGroups.resourceId (ResourceName nsg))) }
+    member _.LinkToNetworkSecurityGroup(state:SubnetBuildSpec, nsg:ResourceName) =
+        { state with NetworkSecurityGroup = Some (Unmanaged (Farmer.Arm.NetworkSecurityGroup.networkSecurityGroups.resourceId nsg)) }
+    member _.LinkToNetworkSecurityGroup(state:SubnetBuildSpec, nsg:ResourceId) =
+        { state with NetworkSecurityGroup = Some (Unmanaged nsg) }
     /// Adds any services to delegate this subnet
     [<CustomOperation "add_delegations">]
     member _.AddDelegations(state:SubnetBuildSpec, delegations) =
@@ -140,10 +179,19 @@ type AddressSpaceBuilder() =
     member _.Space(state:AddressSpaceSpec, space) = { state with Space = space }
     [<CustomOperation("subnets")>]
     member _.Subnets(state:AddressSpaceSpec, subnets) = { state with Subnets = state.Subnets @ subnets }
-    member private _.buildSubnet(state:AddressSpaceSpec, name:string, size:int, ?delegations:SubnetDelegationService list, ?serviceEndpoints:(EndpointServiceType * Location list) list, ?associatedServiceEndpointPolicies:ResourceId list, ?allowPrivateEndpoints: FeatureFlag, ?privateLinkServiceNetworkPolicies: FeatureFlag) =
+    member private _.buildSubnet(state:AddressSpaceSpec,
+                                 name:string,
+                                 size:int,
+                                 ?delegations:SubnetDelegationService list,
+                                 ?serviceEndpoints:(EndpointServiceType * Location list) list,
+                                 ?associatedServiceEndpointPolicies:ResourceId list,
+                                 ?allowPrivateEndpoints: FeatureFlag,
+                                 ?privateLinkServiceNetworkPolicies: FeatureFlag,
+                                 ?nsg:LinkedResource) =
         let subnetBuildSpec =
             { Name = name
               Size = size
+              NetworkSecurityGroup = nsg
               Delegations = delegations |> Option.defaultValue []
               ServiceEndpoints = serviceEndpoints |> Option.defaultValue []
               AssociatedServiceEndpointPolicies = associatedServiceEndpointPolicies |> Option.defaultValue [] 
@@ -186,6 +234,7 @@ type VirtualNetworkConfig =
               Subnets = this.Subnets |> List.map (fun subnetConfig ->
                   { Name = subnetConfig.Name
                     Prefix = IPAddressCidr.format subnetConfig.Prefix
+                    NetworkSecurityGroup = subnetConfig.NetworkSecurityGroup
                     Delegations = subnetConfig.Delegations |> List.map (fun (SubnetDelegationService(delegation)) ->
                         { Name = ResourceName delegation; ServiceName = delegation })
                     ServiceEndpoints = subnetConfig.ServiceEndpoints
@@ -272,10 +321,11 @@ type VirtualNetworkBuilder() =
                         subnet.Size
                 ]
                 IPAddressCidr.carveAddressSpace addressSpace sizes
-                |> List.zip (addressSpaceConfig.Subnets |> List.map (fun s -> s.Name, s.Delegations, s.ServiceEndpoints, s.AssociatedServiceEndpointPolicies, s.AllowPrivateEndpoints, s.PrivateLinkServiceNetworkPolicies))
-                |> List.map (fun ((name, delegations, serviceEndpoints, serviceEndpointPolicies, allowPrivateEndpoints, privateLinkServiceNetworkPolicies), cidr) ->
+                |> List.zip (addressSpaceConfig.Subnets |> List.map (fun s -> s.Name, s.Delegations, s.ServiceEndpoints, s.AssociatedServiceEndpointPolicies, s.AllowPrivateEndpoints, s.PrivateLinkServiceNetworkPolicies, s.NetworkSecurityGroup))
+                |> List.map (fun ((name, delegations, serviceEndpoints, serviceEndpointPolicies, allowPrivateEndpoints, privateLinkServiceNetworkPolicies, nsg), cidr) ->
                     { Name = ResourceName name
                       Prefix = cidr
+                      NetworkSecurityGroup = nsg
                       Delegations = delegations
                       ServiceEndpoints = serviceEndpoints
                       AssociatedServiceEndpointPolicies = serviceEndpointPolicies

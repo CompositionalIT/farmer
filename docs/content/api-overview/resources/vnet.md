@@ -40,6 +40,8 @@ The Virtual Network module contains four builders
 | --------------------------------------- | ---------------------------------------------------------------------- |
 | name                                    | Name of the subnet resource                                            |
 | prefix                                  | Subnet prefix in CIDR notation (e.g. 192.168.100.0/24)                 |
+| network_security_group                  | Specify the network security group from the same deployment.           |
+| link_to_network_security_group          | Specify an existing network security group for this subnet.            |
 | add_delegations                         | Adds one or more delegations to this subnet.                           |
 | add_service_endpoints                   | Adds one or more service endpoints to this subnet.                     |
 | associate_service_endpoint_policies     | Associates a subnet with an existing service policy.                   |
@@ -60,6 +62,8 @@ The Virtual Network module contains four builders
 | --------------------------------------- | ---------------------------------------------------------------------- |
 | name                                    | Specifies the name of the subnet to build.                             |
 | size                                    | Specifies the size of the subnet to build, default is /24.             |
+| network_security_group                  | Specify the network security group from the same deployment.           |
+| link_to_network_security_group          | Specify an existing network security group for the subnet.             |
 | add_delegations                         | Adds service delegations for the subnet.                               |
 | add_service_endpoints                   | Adds service endpoints for the subnet.                                 |
 | add_service_endpoint_policies           | Associates the service endpoint policies with the subnet.              |

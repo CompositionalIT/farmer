@@ -6,6 +6,7 @@ Release Notes
 * Functions: Added support for deployment slots
 * KeyVault: Enable VaultUri configuration member for use as output parameter.
 * KeyVault: Fix emitted `enablePurgeProtection`.
+* Virtual Network: Specify the network security group for a subnet.
 * Virtual Network: Subnet support for enabling or disabling Private Link Service Network Policies to allow assigning the IP for a private endpoint connection.
 * WebApp: Added support for deployment slots
 
