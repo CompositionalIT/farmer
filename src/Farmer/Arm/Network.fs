@@ -241,6 +241,7 @@ type NetworkInterface =
         {| SubnetName : ResourceName
            PublicIpAddress : LinkedResource option |} list
       VirtualNetwork : ResourceName
+      PrivateIpAllocation: PrivateIpAddress.AllocationMethod option
       Tags: Map<string,string>  }
     interface IArmResource with
         member this.ResourceId = networkInterfaces.resourceId this.Name
@@ -260,7 +261,12 @@ type NetworkInterface =
                         |> List.mapi(fun index ipConfig ->
                             {| name = $"ipconfig{index + 1}"
                                properties =
-                                {| privateIPAllocationMethod = "Dynamic"
+                                let allocationMethod, ip = 
+                                    match this.PrivateIpAllocation with 
+                                    | Some (StaticPrivateIp ip) -> "Static", string ip
+                                    | _ -> ("Dynamic", null)
+                                {| privateIPAllocationMethod = allocationMethod
+                                   privateIPAddress = ip
                                    publicIPAddress = 
                                        ipConfig.PublicIpAddress 
                                        |> Option.map(fun pip -> {| id = pip.ResourceId.ArmExpression.Eval() |}) 
