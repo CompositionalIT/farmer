@@ -50,10 +50,10 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Web App | automatic_logging_extension | Enables or disables automatically adding the ASP .NET logging extension for netcore apps (defaults to on unless docker_image is set). |
 | Web App | worker_process | Specifies whether to set the web app to 32 or 64 Bitness. |
 | Web App | always_on | Sets the "Always On" flag. |
-| Web App | add_slot | Adds a deployment slot to the app |
-| Web App | add_slots | Adds multiple deployment slots to the app |
 | Web App | add_private_endpoint | Adds a private endpoint for this Webapp to a given subnet |
 | Web App | add_private_endpoints | Adds private endpoints for this Webapp to the given subnets |
+| Web App | add_slot | Adds a deployment slot to the app |
+| Web App | add_slots | Adds multiple deployment slots to the app |
 | Service Plan | service_plan_name | Sets the name of the service plan. If not set, uses the name of the web app postfixed with "-plan". |
 | Service Plan | runtime_stack | Sets the runtime stack. |
 | Service Plan | operating_system | Sets the operating system. If Linux, App Insights configuration settings will be omitted as they are not supported by Azure App Service. |

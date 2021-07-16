@@ -219,6 +219,19 @@ let hubRouteTableTests = testList "Hub Route Table Tests" [
         let expectedDependency = $"[resourceId('Microsoft.Network/virtualHubs', '{vhubResourceName.Value}')]"
         Expect.equal dependsOn.Head expectedDependency "" 
     }
+    test "HubRouteTable appends labels" {
+        let routeTableResourceName = "my-routetable"
+        let vhubResourceName = "my-vhub"
+        let expectedLabels = ["label1"; "label2"]
+        let resource =
+            hubRouteTable {
+                name routeTableResourceName
+                link_to_unmanaged_vhub (virtualHubs.resourceId vhubResourceName)
+                add_labels expectedLabels
+            }
+            |> getResources |> getHubRouteTableResource |> List.head
+        Expect.equal resource.Labels expectedLabels ""
+    }
 ]
 
 let tests = testList "Virtual Hub Tests" [virtualHubTests; hubRouteTableTests]

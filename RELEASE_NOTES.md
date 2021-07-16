@@ -1,10 +1,19 @@
 Release Notes
 =============
 
+## 1.6.6
+* Container Groups: Support for 'depends_on' to add dependencies.
+* Functions: Added support for deployment slots
+* KeyVault: Enable VaultUri configuration member for use as output parameter.
+* KeyVault: Fix emitted `enablePurgeProtection`.
+* WebApp: Added support for deployment slots
+
 ## 1.6.5
-* WebApp: Add support for keyvault reference user identity
-* Functions: Add support for keyvault reference user identity
 * Azure Firewall: Bug fix for link_to_vhub and added depends_on to builder
+* Functions: Add support for keyvault reference user identity
+* VirtualHubs/hubRouteTables : Add support for labels
+* Virtual Machine: Add option to static IP allocation
+* Web App: Add support for keyvault reference user identity
 
 ## 1.6.4
 * DNS Zone: Added SOA and SRV record support
@@ -47,10 +56,6 @@ Release Notes
 * Container Service (AKS): Support for using managed identity (msi) for the service principal.
 * LoadBalancer: Adds support for public and internal load balancers.
 * Traffic Manager: initial release.
-
-## vNext
-* WebApp: Added support for deployment slots
-* Function: Added support for deployment slots
 
 ## 1.5.2
 * ServiceBus: TopicConfig implements IBuilder and supports link_to_unmanaged_namespace.

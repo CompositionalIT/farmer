@@ -271,7 +271,7 @@ type FunctionsConfig =
                   Metadata = []
                   AutoSwapSlotName = None
                   ZipDeployPath = this.ZipDeployPath |> Option.map (fun (path, slot) -> path, ZipDeploy.ZipDeployTarget.FunctionApp, slot)
-                  AppCommandLine =
+                  AppCommandLine = 
                     match this.PublishAs with
                     | DockerContainer { StartupCommand = sc } ->
                         Some sc
