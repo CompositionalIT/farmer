@@ -12,6 +12,7 @@ let createSimpleDeployment parameters =
           Parameters = parameters |> List.map SecureParameter
           Resources = []
       }
+      RequiredResourceGroups = []
       Tags = Map.empty
     }
 let convertTo<'T> = Serialization.toJson >> Serialization.ofJson<'T>

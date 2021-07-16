@@ -6,6 +6,7 @@
   "resources": [
     {
       "apiVersion": "2020-07-01",
+      "dependsOn": [],
       "location": "northeurope",
       "name": "my-vnet",
       "properties": {
