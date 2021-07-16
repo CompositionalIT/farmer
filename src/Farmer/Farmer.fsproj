@@ -111,6 +111,7 @@
     <Compile Include="Builders/Builders.Redis.fs" />
     <Compile Include="Builders/Builders.KeyVault.fs" />
     <Compile Include="Builders/Builders.Bastion.fs" />
+    <Compile Include="Builders\Builders.NetworkSecurityGroup.fs" />
     <Compile Include="Builders/Builders.VirtualNetwork.fs" />
     <Compile Include="Builders\Builders.LoadBalancer.fs" />
     <Compile Include="Builders/Builders.Vm.fs" />
@@ -134,7 +135,6 @@
     <Compile Include="Builders/Builders.VirtualNetworkGateway.fs" />
     <Compile Include="Builders/Builders.EventGrid.fs" />
     <Compile Include="Builders/Builders.StaticWebApp.fs" />
-    <Compile Include="Builders/Builders.NetworkSecurityGroup.fs" />
     <Compile Include="Builders/Builders.Databricks.fs" />
     <Compile Include="Builders/Builders.DiagnosticSetting.fs" />
     <Compile Include="Builders/Builders.VirtualWan.fs" />

@@ -38,20 +38,20 @@ type SubnetBuilder() =
     member _.Prefix(state:SubnetConfig, prefix) = { state with Prefix = IPAddressCidr.parse prefix }
     /// Sets the network security group for subnet
     [<CustomOperation "network_security_group">]
-    member _.NetworkSecurityGroup(state:SubnetConfig, nsg:string) =
-        { state with NetworkSecurityGroup = Some (Managed (Farmer.Arm.NetworkSecurityGroup.networkSecurityGroups.resourceId (ResourceName nsg))) }
-    member _.NetworkSecurityGroup(state:SubnetConfig, nsg:ResourceName) =
-        { state with NetworkSecurityGroup = Some (Managed (Farmer.Arm.NetworkSecurityGroup.networkSecurityGroups.resourceId nsg)) }
+    member _.NetworkSecurityGroup(state:SubnetConfig, nsg:IArmResource) =
+        { state with NetworkSecurityGroup = Some (Managed nsg.ResourceId) }
     member _.NetworkSecurityGroup(state:SubnetConfig, nsg:ResourceId) =
         { state with NetworkSecurityGroup = Some (Managed nsg) }
+    member _.NetworkSecurityGroup(state:SubnetConfig, nsg:NsgConfig) =
+        { state with NetworkSecurityGroup = Some (Managed (nsg :> IBuilder).ResourceId) }
     /// Links the subnet to an existing network security group.
     [<CustomOperation "link_to_network_security_group">]
-    member _.LinkToNetworkSecurityGroup(state:SubnetConfig, nsg:string) =
-        { state with NetworkSecurityGroup = Some (Unmanaged (Farmer.Arm.NetworkSecurityGroup.networkSecurityGroups.resourceId (ResourceName nsg))) }
-    member _.LinkToNetworkSecurityGroup(state:SubnetConfig, nsg:ResourceName) =
-        { state with NetworkSecurityGroup = Some (Unmanaged (Farmer.Arm.NetworkSecurityGroup.networkSecurityGroups.resourceId nsg)) }
+    member _.LinkToNetworkSecurityGroup(state:SubnetConfig, nsg:IArmResource) =
+        { state with NetworkSecurityGroup = Some (Unmanaged (nsg.ResourceId)) }
     member _.LinkToNetworkSecurityGroup(state:SubnetConfig, nsg:ResourceId) =
         { state with NetworkSecurityGroup = Some (Unmanaged nsg) }
+    member _.LinkToNetworkSecurityGroup(state:SubnetConfig, nsg:NsgConfig) =
+        { state with NetworkSecurityGroup = Some (Unmanaged (nsg :> IBuilder).ResourceId) }
     /// Sets the network prefix in CIDR notation
     [<CustomOperation "add_delegations">]
     member _.AddDelegations(state:SubnetConfig, delegations) = { state with Delegations = state.Delegations @ delegations }
@@ -130,20 +130,20 @@ type SubnetSpecBuilder () =
         { state with Size = size }
     /// Sets the network security group for subnet
     [<CustomOperation "network_security_group">]
-    member _.NetworkSecurityGroup(state:SubnetBuildSpec, nsg:string) =
-        { state with NetworkSecurityGroup = Some (Managed (Farmer.Arm.NetworkSecurityGroup.networkSecurityGroups.resourceId (ResourceName nsg))) }
-    member _.NetworkSecurityGroup(state:SubnetBuildSpec, nsg:ResourceName) =
-        { state with NetworkSecurityGroup = Some (Managed (Farmer.Arm.NetworkSecurityGroup.networkSecurityGroups.resourceId nsg)) }
+    member _.NetworkSecurityGroup(state:SubnetBuildSpec, nsg:IArmResource) =
+        { state with NetworkSecurityGroup = Some (Managed (nsg.ResourceId)) }
     member _.NetworkSecurityGroup(state:SubnetBuildSpec, nsg:ResourceId) =
         { state with NetworkSecurityGroup = Some (Managed nsg) }
+    member _.NetworkSecurityGroup(state:SubnetBuildSpec, nsg:NsgConfig) =
+        { state with NetworkSecurityGroup = Some (Managed (nsg :> IBuilder).ResourceId) }
     /// Links the subnet to an existing network security group.
     [<CustomOperation "link_to_network_security_group">]
-    member _.LinkToNetworkSecurityGroup(state:SubnetBuildSpec, nsg:string) =
-        { state with NetworkSecurityGroup = Some (Unmanaged (Farmer.Arm.NetworkSecurityGroup.networkSecurityGroups.resourceId (ResourceName nsg))) }
-    member _.LinkToNetworkSecurityGroup(state:SubnetBuildSpec, nsg:ResourceName) =
-        { state with NetworkSecurityGroup = Some (Unmanaged (Farmer.Arm.NetworkSecurityGroup.networkSecurityGroups.resourceId nsg)) }
+    member _.LinkToNetworkSecurityGroup(state:SubnetBuildSpec, nsg:IArmResource) =
+        { state with NetworkSecurityGroup = Some (Unmanaged (nsg.ResourceId)) }
     member _.LinkToNetworkSecurityGroup(state:SubnetBuildSpec, nsg:ResourceId) =
         { state with NetworkSecurityGroup = Some (Unmanaged nsg) }
+    member _.LinkToNetworkSecurityGroup(state:SubnetBuildSpec, nsg:NsgConfig) =
+        { state with NetworkSecurityGroup = Some (Unmanaged (nsg :> IBuilder).ResourceId) }
     /// Adds any services to delegate this subnet
     [<CustomOperation "add_delegations">]
     member _.AddDelegations(state:SubnetBuildSpec, delegations) =

@@ -242,12 +242,12 @@ let tests = testList "Network Tests" [
                         subnetSpec {
                             name webSubnet
                             size 24
-                            network_security_group myNsg.Name
+                            network_security_group myNsg
                         }
                         subnetSpec {
                             name appsSubnet
                             size 24
-                            network_security_group myNsg.Name
+                            network_security_group myNsg
                         }
                         subnetSpec {
                             name noNsgSubnet
@@ -283,7 +283,7 @@ let tests = testList "Network Tests" [
                         subnetSpec {
                             name webSubnet
                             size 24
-                            link_to_network_security_group "my-nsg"
+                            link_to_network_security_group (networkSecurityGroups.resourceId "my-nsg")
                         }
                     ]
                 }
