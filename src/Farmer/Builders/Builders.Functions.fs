@@ -37,7 +37,8 @@ module private FunctionsConfig =
           SecretStore = state.SecretStore
           ZipDeployPath = state.ZipDeployPath
           AlwaysOn = state.AlwaysOn
-          WorkerProcess = state.WorkerProcess }
+          WorkerProcess = state.WorkerProcess
+          Slots = state.Slots }
     let FromCommon state (config: CommonWebConfig): FunctionsConfig =
         { state with
             AlwaysOn = config.AlwaysOn
@@ -51,7 +52,8 @@ module private FunctionsConfig =
             KeyVaultReferenceIdentity = config.KeyVaultReferenceIdentity
             SecretStore = config.SecretStore
             ZipDeployPath = config.ZipDeployPath
-            WorkerProcess = config.WorkerProcess }
+            WorkerProcess = config.WorkerProcess
+            Slots = config.Slots }
 
 type FunctionsConfig =
     { Name : ResourceName
@@ -70,9 +72,10 @@ type FunctionsConfig =
       Identity : ManagedIdentity
       KeyVaultReferenceIdentity : UserAssignedIdentity Option
       SecretStore : SecretStore
-      ZipDeployPath : string option
+      ZipDeployPath : (string * ZipDeploy.ZipDeploySlot) option 
       AlwaysOn : bool
-      WorkerProcess : Bitness option }
+      WorkerProcess : Bitness option 
+      Slots : Map<string,SlotConfig> }
 
     /// Gets the system-created managed principal for the functions instance. It must have been enabled using enable_managed_identity.
     member this.SystemIdentity = SystemIdentity (sites.resourceId this.Name)
@@ -98,6 +101,8 @@ type FunctionsConfig =
     member this.AppInsightsName : ResourceName option = this.AppInsights |> Option.map (fun ai -> ai.resourceId(this.Name).Name)
     /// Gets the Storage Account name for this functions app.
     member this.StorageAccountName : Storage.StorageAccountName = this.StorageAccount.resourceId(this).Name |> Storage.StorageAccountName.Create |> Result.get
+    /// Gets the Resource Id for this functions app
+    member this.ResourceId = sites.resourceId this.Name
     interface IBuilder with
         member this.ResourceId = sites.resourceId this.Name
         member this.BuildResources location = [
@@ -160,13 +165,8 @@ type FunctionsConfig =
                 | DotNetIsolated -> "dotnet-isolated"
                 | DotNet -> "dotnet"
                 | other -> (string other).ToLower()
-            { Name = this.Name
-              ServicePlan = this.ServicePlanId
-              Location = location
-              Cors = this.Cors
-              Tags = this.Tags
-              ConnectionStrings = Map.empty
-              AppSettings = [
+
+            let basicSettings = [
                 "FUNCTIONS_WORKER_RUNTIME", functionsRuntime
                 "WEBSITE_NODE_DEFAULT_VERSION", "10.14.1"
                 "FUNCTIONS_EXTENSION_VERSION", match this.ExtensionVersion with V1 -> "~1" | V2 -> "~2" | V3 -> "~3"
@@ -188,12 +188,15 @@ type FunctionsConfig =
 
                 | _ -> ()
               ]
-              |> List.map Setting.AsLiteral
-              |> List.append (
+            
+            let functionsSettings = 
+                basicSettings
+                |> List.map Setting.AsLiteral
+                |> List.append (
                     (match this.SecretStore with
-                     | AppService ->
-                         this.Settings
-                     | KeyVault r ->
+                        | AppService ->
+                            this.Settings
+                        | KeyVault r ->
                         let name = r.resourceId (FunctionsConfig.ToCommon this)
                         [ for setting in this.Settings do
                             match setting.Value with
@@ -204,66 +207,77 @@ type FunctionsConfig =
                                 setting.Key, LiteralSetting $"@Microsoft.KeyVault(SecretUri=https://{name.Name.Value}.vault.azure.net/secrets/{setting.Key})"
                         ] |> Map.ofList
                     ) |> Map.toList)
-              |> Map
+                |> Map
 
-              Identity = this.Identity
-              KeyVaultReferenceIdentity = this.KeyVaultReferenceIdentity
-              Kind =
-                match this.OperatingSystem with
-                | Windows -> "functionapp"
-                | Linux -> "functionapp,linux"
-              Dependencies = Set [
-                yield! this.Dependencies
+            let site =
+                { Type = Arm.Web.sites
+                  Name = this.Name
+                  ServicePlan = this.ServicePlanId
+                  Location = location
+                  Cors = this.Cors
+                  Tags = this.Tags
+                  ConnectionStrings = Map.empty
+                  AppSettings =functionsSettings
+                  Identity = this.Identity
+                  KeyVaultReferenceIdentity = this.KeyVaultReferenceIdentity
+                  Kind =
+                    match this.OperatingSystem with
+                    | Windows -> "functionapp"
+                    | Linux -> "functionapp,linux"
+                  Dependencies = Set [
+                    yield! this.Dependencies
 
-                match this.AppInsights with
-                | Some (DependableResource this.Name resourceId) -> resourceId
-                | _ -> ()
+                    match this.AppInsights with
+                    | Some (DependableResource this.Name resourceId) -> resourceId
+                    | _ -> ()
 
-                for setting in this.Settings do
-                    match setting.Value with
-                    | ExpressionSetting e -> yield! Option.toList e.Owner
-                    | ParameterSetting _ | LiteralSetting _ -> ()
-
-                match this.ServicePlan with
-                | DependableResource this.Name resourceId -> resourceId
-                | _ -> ()
-
-                match this.StorageAccount with
-                | DependableResource this resourceId -> resourceId
-                | _ -> ()
-
-                match this.SecretStore with
-                | AppService ->
                     for setting in this.Settings do
                         match setting.Value with
-                        | ExpressionSetting expr ->
-                            yield! Option.toList expr.Owner
-                        | ParameterSetting _
-                        | LiteralSetting _ ->
-                            ()
-                | KeyVault _ ->
-                    ()
-              ]
-              HTTPSOnly = this.HTTPSOnly
-              AlwaysOn = this.AlwaysOn
-              HTTP20Enabled = None
-              ClientAffinityEnabled = None
-              WebSocketsEnabled = None
-              LinuxFxVersion = None
-              NetFrameworkVersion = None
-              JavaVersion = None
-              JavaContainer = None
-              JavaContainerVersion = None
-              PhpVersion = None
-              PythonVersion = None
-              Metadata = []
-              ZipDeployPath = this.ZipDeployPath |> Option.map (fun x -> x, ZipDeploy.ZipDeployTarget.FunctionApp)
-              AppCommandLine =
-                match this.PublishAs with
-                | DockerContainer { StartupCommand = sc } ->
-                    Some sc
-                | _ -> None
-              WorkerProcess = this.WorkerProcess }
+                        | ExpressionSetting e -> yield! Option.toList e.Owner
+                        | ParameterSetting _ | LiteralSetting _ -> ()
+
+                    match this.ServicePlan with
+                    | DependableResource this.Name resourceId -> resourceId
+                    | _ -> ()
+
+                    match this.StorageAccount with
+                    | DependableResource this resourceId -> resourceId
+                    | _ -> ()
+
+                    match this.SecretStore with
+                    | AppService ->
+                        for setting in this.Settings do
+                            match setting.Value with
+                            | ExpressionSetting expr ->
+                                yield! Option.toList expr.Owner
+                            | ParameterSetting _
+                            | LiteralSetting _ ->
+                                ()
+                    | KeyVault _ ->
+                        ()
+                  ]
+                  HTTPSOnly = this.HTTPSOnly
+                  AlwaysOn = this.AlwaysOn
+                  HTTP20Enabled = None
+                  ClientAffinityEnabled = None
+                  WebSocketsEnabled = None
+                  LinuxFxVersion = None
+                  NetFrameworkVersion = None
+                  JavaVersion = None
+                  JavaContainer = None
+                  JavaContainerVersion = None
+                  PhpVersion = None
+                  PythonVersion = None
+                  Metadata = []
+                  AutoSwapSlotName = None
+                  ZipDeployPath = this.ZipDeployPath |> Option.map (fun (path, slot) -> path, ZipDeploy.ZipDeployTarget.FunctionApp, slot)
+                  AppCommandLine = 
+                    match this.PublishAs with
+                    | DockerContainer { StartupCommand = sc } ->
+                        Some sc
+                    | _ -> None
+                  WorkerProcess = this.WorkerProcess }
+
             match this.ServicePlan with
             | DeployableResource this.Name resourceId ->
                 { Name = resourceId.Name
@@ -305,6 +319,13 @@ type FunctionsConfig =
             | Some _
             | None ->
                 ()
+            
+            if Map.isEmpty this.Slots then
+                site
+            else
+                {site with AppSettings = Map.empty}
+                for (_, slot) in this.Slots |> Map.toSeq do
+                    slot.ToArm site
         ]
 
 type FunctionsBuilder() =
@@ -329,7 +350,8 @@ type FunctionsBuilder() =
           SecretStore = AppService
           Tags = Map.empty
           ZipDeployPath = None
-          WorkerProcess = None }
+          WorkerProcess = None
+          Slots = Map.empty }
     /// Do not create an automatic storage account; instead, link to a storage account that is created outside of this Functions instance.
     [<CustomOperation "link_to_storage_account">]
     member _.LinkToStorageAccount(state:FunctionsConfig, name) = { state with StorageAccount = managed storageAccounts name }
