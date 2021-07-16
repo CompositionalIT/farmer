@@ -109,10 +109,12 @@ type VmConfig =
                   Subnets = [
                       { Name = subnetName.Name
                         Prefix = this.SubnetPrefix
+                        NetworkSecurityGroup = None
                         Delegations = []
                         ServiceEndpoints = []
                         AssociatedServiceEndpointPolicies = []
-                        PrivateEndpointNetworkPolicies = None }
+                        PrivateEndpointNetworkPolicies = None
+                        PrivateLinkServiceNetworkPolicies = None }
                   ]
                   Tags = this.Tags
                 }

@@ -45,10 +45,12 @@ type SubnetDelegation =
 type Subnet =
     { Name : ResourceName
       Prefix : string
+      NetworkSecurityGroup : LinkedResource option
       Delegations : SubnetDelegation list
       ServiceEndpoints : (Network.EndpointServiceType * Location list) list
       AssociatedServiceEndpointPolicies : ResourceId list 
-      PrivateEndpointNetworkPolicies: FeatureFlag option }
+      PrivateEndpointNetworkPolicies: FeatureFlag option
+      PrivateLinkServiceNetworkPolicies: FeatureFlag option }
 
 type VirtualNetwork =
     { Name : ResourceName
@@ -59,7 +61,14 @@ type VirtualNetwork =
     interface IArmResource with
         member this.ResourceId = virtualNetworks.resourceId this.Name
         member this.JsonModel =
-            {| virtualNetworks.Create(this.Name, this.Location, tags = this.Tags) with
+            let dependencies =
+                seq {
+                    for subnet in this.Subnets do
+                        match subnet.NetworkSecurityGroup with
+                        | Some (Managed id) -> id
+                        | _ -> ()
+                } |> Set
+            {| virtualNetworks.Create(this.Name, this.Location, dependsOn=dependencies, tags = this.Tags) with
                 properties =
                     {| addressSpace = {| addressPrefixes = this.AddressSpacePrefixes |}
                        subnets =
@@ -68,6 +77,10 @@ type VirtualNetwork =
                             {| name = subnet.Name.Value
                                properties =
                                 {| addressPrefix = subnet.Prefix
+                                   networkSecurityGroup = 
+                                       subnet.NetworkSecurityGroup
+                                       |> Option.map(fun nsg -> {| id = nsg.ResourceId.ArmExpression.Eval() |}) 
+                                       |> Option.defaultValue Unchecked.defaultof<_> 
                                    delegations =
                                        subnet.Delegations
                                        |> List.map (fun delegation ->
@@ -89,6 +102,7 @@ type VirtualNetwork =
                                            subnet.AssociatedServiceEndpointPolicies
                                            |> List.map (fun policyId -> {| id = policyId.ArmExpression.Eval() |})
                                    privateEndpointNetworkPolicies = subnet.PrivateEndpointNetworkPolicies |> Option.map (fun x->x.ArmValue) |> Option.defaultValue Unchecked.defaultof<_>
+                                   privateLinkServiceNetworkPolicies = subnet.PrivateLinkServiceNetworkPolicies |> Option.map (fun x->x.ArmValue) |> Option.defaultValue Unchecked.defaultof<_>
                                 |}
                             |})
                     |}
