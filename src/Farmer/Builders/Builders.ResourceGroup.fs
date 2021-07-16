@@ -53,6 +53,9 @@ type ResourceGroupConfig =
               PostDeployTasks = 
                     this.Resources 
                     |> List.choose (function | :? IPostDeploy as pd -> Some pd |_ -> None)
+              RequiredResourceGroups =
+                    this.Resources
+                    |> List.collect (function | :? ResourceGroupDeployment as rg -> rg.RequiredResourceGroups | _ -> [])
               Tags = this.Tags }
     interface IBuilder with
         member this.ResourceId = this.ResourceId

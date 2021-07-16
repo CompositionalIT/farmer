@@ -44,6 +44,7 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 |add_authorized_keys|adds a list of authorized keys|
 |add_identity|Adds a managed identity to the the AKS cluster.|
 |system_identity|Activates the system identity of the AKS cluster.|
+|private_ip_allocation| Sets the private ip as Dynamic or Static default is dynamic.|
 
 #### Configuration Members
 
@@ -75,5 +76,6 @@ let myVm = vm {
     disable_password_authentication true
     add_authorized_key "fooPath" "fooKey"
     add_authorized_keys [("fooPath", "fooKey");("fooPath1", "fooKey1")]
+    private_ip_allocation (PrivateIpAddress.StaticPrivateIp (Net.IPAddress.Parse("10.0.0.10")))
 }
 ```
