@@ -6,10 +6,12 @@ Release Notes
 * Functions: Added support for deployment slots
 * KeyVault: Enable VaultUri configuration member for use as output parameter.
 * KeyVault: Fix emitted `enablePurgeProtection`.
+* Storage Account: Add support for data protection policies,
+* Storage Account: Add support for versioning.
 * Virtual Network: Specify the network security group for a subnet.
 * Virtual Network: Subnet support for enabling or disabling Private Link Service Network Policies to allow assigning the IP for a private endpoint connection.
-* WebApp: Added support for deployment slots
 * Virtual Machine: Added support for Private IP on NIC
+* WebApp: Added support for deployment slots
 
 ## 1.6.5
 * Azure Firewall: Bug fix for link_to_vhub and added depends_on to builder
