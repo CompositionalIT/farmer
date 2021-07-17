@@ -24,59 +24,16 @@ type PublishAs =
     | DockerContainer of DockerInfo
 type FunctionsExtensionVersion = V1 | V2 | V3
 
-module private FunctionsConfig =
-    let ToCommon state =
-        { Name = state.Name
-          ServicePlan = state.ServicePlan
-          AppInsights = state.AppInsights
-          OperatingSystem = state.OperatingSystem
-          Settings = state.Settings
-          Cors = state.Cors
-          Identity = state.Identity
-          KeyVaultReferenceIdentity = state.KeyVaultReferenceIdentity
-          SecretStore = state.SecretStore
-          ZipDeployPath = state.ZipDeployPath
-          AlwaysOn = state.AlwaysOn
-          WorkerProcess = state.WorkerProcess
-          Slots = state.Slots }
-    let FromCommon state (config: CommonWebConfig): FunctionsConfig =
-        { state with
-            AlwaysOn = config.AlwaysOn
-            Name = config.Name
-            ServicePlan = config.ServicePlan
-            AppInsights = config.AppInsights
-            OperatingSystem = config.OperatingSystem
-            Settings = config.Settings
-            Cors = config.Cors
-            Identity = config.Identity
-            KeyVaultReferenceIdentity = config.KeyVaultReferenceIdentity
-            SecretStore = config.SecretStore
-            ZipDeployPath = config.ZipDeployPath
-            WorkerProcess = config.WorkerProcess
-            Slots = config.Slots }
-
 type FunctionsConfig =
-    { Name : ResourceName
-      ServicePlan : ResourceRef<ResourceName>
+    { CommonWebConfig: CommonWebConfig
       HTTPSOnly : bool
-      AppInsights : ResourceRef<ResourceName> option
-      OperatingSystem : OS
-      Settings : Map<string, Setting>
       Tags : Map<string, string>
       Dependencies : ResourceId Set
-      Cors : Cors option
       StorageAccount : ResourceRef<FunctionsConfig>
       Runtime : FunctionsRuntime
       PublishAs : PublishAs
-      ExtensionVersion : FunctionsExtensionVersion
-      Identity : ManagedIdentity
-      KeyVaultReferenceIdentity : UserAssignedIdentity Option
-      SecretStore : SecretStore
-      ZipDeployPath : (string * ZipDeploy.ZipDeploySlot) option 
-      AlwaysOn : bool
-      WorkerProcess : Bitness option 
-      Slots : Map<string,SlotConfig> }
-
+      ExtensionVersion : FunctionsExtensionVersion }
+    member this.Name = this.CommonWebConfig.Name
     /// Gets the system-created managed principal for the functions instance. It must have been enabled using enable_managed_identity.
     member this.SystemIdentity = SystemIdentity (sites.resourceId this.Name)
     /// Gets the ARM expression path to the publishing password of this functions app.
@@ -94,11 +51,11 @@ type FunctionsConfig =
         $"listkeys(concat(resourceId('Microsoft.Web/sites', '{this.Name.Value}'), '/host/default/'),'2016-08-01').masterKey"
         |> ArmExpression.create
     /// Gets this web app's Server Plan's full resource ID.
-    member this.ServicePlanId = this.ServicePlan.resourceId this.Name
+    member this.ServicePlanId = this.CommonWebConfig.ServicePlan.resourceId this.Name
     /// Gets the Service Plan name for this web app.
     member this.ServicePlanName = this.ServicePlanId.Name
     /// Gets the App Insights name for this functions app, if it exists.
-    member this.AppInsightsName : ResourceName option = this.AppInsights |> Option.map (fun ai -> ai.resourceId(this.Name).Name)
+    member this.AppInsightsName : ResourceName option = this.CommonWebConfig.AppInsights |> Option.map (fun ai -> ai.resourceId(this.Name).Name)
     /// Gets the Storage Account name for this functions app.
     member this.StorageAccountName : Storage.StorageAccountName = this.StorageAccount.resourceId(this).Name |> Storage.StorageAccountName.Create |> Result.get
     /// Gets the Resource Id for this functions app
@@ -107,13 +64,13 @@ type FunctionsConfig =
         member this.ResourceId = sites.resourceId this.Name
         member this.BuildResources location = [
             let keyVault, secrets =
-                match this.SecretStore with
-                | KeyVault (DeployableResource (FunctionsConfig.ToCommon this) vaultName) ->
+                match this.CommonWebConfig.SecretStore with
+                | KeyVault (DeployableResource (this.CommonWebConfig) vaultName) ->
                     let store = keyVault {
                         name vaultName.Name
                         add_access_policy (AccessPolicy.create (this.SystemIdentity.PrincipalId, [ KeyVault.Secret.Get ]))
                         add_secrets [
-                            for setting in this.Settings do
+                            for setting in this.CommonWebConfig.Settings do
                                 match setting.Value with
                                 | LiteralSetting _ ->
                                     ()
@@ -126,7 +83,7 @@ type FunctionsConfig =
                     Some store, []
                 | KeyVault (ExternalResource vaultName) ->
                     let secrets = [
-                        for setting in this.Settings do
+                        for setting in this.CommonWebConfig.Settings do
                             let secret =
                                 match setting.Value with
                                 | LiteralSetting _ -> None
@@ -175,7 +132,7 @@ type FunctionsConfig =
 
                 yield! this.AppInsightsKey |> Option.mapList (fun key -> "APPINSIGHTS_INSTRUMENTATIONKEY", key |> ArmExpression.Eval)
 
-                if this.OperatingSystem = Windows then
+                if this.CommonWebConfig.OperatingSystem = Windows then
                     "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING", StorageAccount.getConnectionString this.StorageAccountName |> ArmExpression.Eval
                     "WEBSITE_CONTENTSHARE", this.Name.Value.ToLower()
                 match this.PublishAs with
@@ -193,12 +150,12 @@ type FunctionsConfig =
                 basicSettings
                 |> List.map Setting.AsLiteral
                 |> List.append (
-                    (match this.SecretStore with
+                    (match this.CommonWebConfig.SecretStore with
                         | AppService ->
-                            this.Settings
+                            this.CommonWebConfig.Settings
                         | KeyVault r ->
-                        let name = r.resourceId (FunctionsConfig.ToCommon this)
-                        [ for setting in this.Settings do
+                        let name = r.resourceId (this.CommonWebConfig)
+                        [ for setting in this.CommonWebConfig.Settings do
                             match setting.Value with
                             | LiteralSetting _ ->
                                 setting.Key, setting.Value
@@ -214,29 +171,29 @@ type FunctionsConfig =
                   Name = this.Name
                   ServicePlan = this.ServicePlanId
                   Location = location
-                  Cors = this.Cors
+                  Cors = this.CommonWebConfig.Cors
                   Tags = this.Tags
                   ConnectionStrings = Map.empty
                   AppSettings =functionsSettings
-                  Identity = this.Identity
-                  KeyVaultReferenceIdentity = this.KeyVaultReferenceIdentity
+                  Identity = this.CommonWebConfig.Identity
+                  KeyVaultReferenceIdentity = this.CommonWebConfig.KeyVaultReferenceIdentity
                   Kind =
-                    match this.OperatingSystem with
+                    match this.CommonWebConfig.OperatingSystem with
                     | Windows -> "functionapp"
                     | Linux -> "functionapp,linux"
                   Dependencies = Set [
                     yield! this.Dependencies
 
-                    match this.AppInsights with
+                    match this.CommonWebConfig.AppInsights with
                     | Some (DependableResource this.Name resourceId) -> resourceId
                     | _ -> ()
 
-                    for setting in this.Settings do
+                    for setting in this.CommonWebConfig.Settings do
                         match setting.Value with
                         | ExpressionSetting e -> yield! Option.toList e.Owner
                         | ParameterSetting _ | LiteralSetting _ -> ()
 
-                    match this.ServicePlan with
+                    match this.CommonWebConfig.ServicePlan with
                     | DependableResource this.Name resourceId -> resourceId
                     | _ -> ()
 
@@ -244,9 +201,9 @@ type FunctionsConfig =
                     | DependableResource this resourceId -> resourceId
                     | _ -> ()
 
-                    match this.SecretStore with
+                    match this.CommonWebConfig.SecretStore with
                     | AppService ->
-                        for setting in this.Settings do
+                        for setting in this.CommonWebConfig.Settings do
                             match setting.Value with
                             | ExpressionSetting expr ->
                                 yield! Option.toList expr.Owner
@@ -257,7 +214,7 @@ type FunctionsConfig =
                         ()
                   ]
                   HTTPSOnly = this.HTTPSOnly
-                  AlwaysOn = this.AlwaysOn
+                  AlwaysOn = this.CommonWebConfig.AlwaysOn
                   HTTP20Enabled = None
                   ClientAffinityEnabled = None
                   WebSocketsEnabled = None
@@ -270,15 +227,15 @@ type FunctionsConfig =
                   PythonVersion = None
                   Metadata = []
                   AutoSwapSlotName = None
-                  ZipDeployPath = this.ZipDeployPath |> Option.map (fun (path, slot) -> path, ZipDeploy.ZipDeployTarget.FunctionApp, slot)
+                  ZipDeployPath = this.CommonWebConfig.ZipDeployPath |> Option.map (fun (path, slot) -> path, ZipDeploy.ZipDeployTarget.FunctionApp, slot)
                   AppCommandLine = 
                     match this.PublishAs with
                     | DockerContainer { StartupCommand = sc } ->
                         Some sc
                     | _ -> None
-                  WorkerProcess = this.WorkerProcess }
+                  WorkerProcess = this.CommonWebConfig.WorkerProcess }
 
-            match this.ServicePlan with
+            match this.CommonWebConfig.ServicePlan with
             | DeployableResource this.Name resourceId ->
                 { Name = resourceId.Name
                   Location = location
@@ -286,7 +243,7 @@ type FunctionsConfig =
                   WorkerSize = Serverless
                   WorkerCount = 0
                   MaximumElasticWorkerCount = None
-                  OperatingSystem = this.OperatingSystem
+                  OperatingSystem = this.CommonWebConfig.OperatingSystem
                   Tags = this.Tags }
             | _ ->
                 ()
@@ -305,14 +262,14 @@ type FunctionsConfig =
             | _ ->
                 ()
 
-            match this.AppInsights with
+            match this.CommonWebConfig.AppInsights with
             | Some (DeployableResource this.Name resourceId) ->
                 { Name = resourceId.Name
                   Location = location
                   DisableIpMasking = false
                   SamplingPercentage = 100
                   LinkedWebsite =
-                    match this.OperatingSystem with
+                    match this.CommonWebConfig.OperatingSystem with
                     | Windows -> Some this.Name
                     | Linux -> None
                   Tags = this.Tags }
@@ -320,38 +277,39 @@ type FunctionsConfig =
             | None ->
                 ()
             
-            if Map.isEmpty this.Slots then
+            if Map.isEmpty this.CommonWebConfig.Slots then
                 site
             else
                 {site with AppSettings = Map.empty}
-                for (_, slot) in this.Slots |> Map.toSeq do
+                for (_, slot) in this.CommonWebConfig.Slots |> Map.toSeq do
                     slot.ToArm site
         ]
 
 type FunctionsBuilder() =
     member _.Yield _ =
-        { Name = ResourceName.Empty
-          ServicePlan = derived (fun name -> serverFarms.resourceId (name-"farm"))
-          AppInsights = Some (derived (fun name -> components.resourceId (name-"ai")))
+        { FunctionsConfig.CommonWebConfig = 
+            { Name = ResourceName.Empty
+              ServicePlan = derived (fun name -> serverFarms.resourceId (name-"farm"))
+              AppInsights = Some (derived (fun name -> components.resourceId (name-"ai")))
+              OperatingSystem = Windows
+              Settings = Map.empty
+              Cors = None
+              Identity = ManagedIdentity.Empty
+              KeyVaultReferenceIdentity = None
+              SecretStore = AppService
+              ZipDeployPath = None
+              AlwaysOn = false
+              WorkerProcess = None
+              Slots = Map.empty }
           StorageAccount = derived (fun config ->
             let storage = config.Name.Map (sprintf "%sstorage") |> sanitiseStorage |> ResourceName
             storageAccounts.resourceId storage)
           Runtime = DotNet
           ExtensionVersion = V3
-          Cors = None
           HTTPSOnly = false
-          AlwaysOn = false
-          OperatingSystem = Windows
-          Settings = Map.empty
           Dependencies = Set.empty
-          Identity = ManagedIdentity.Empty
-          KeyVaultReferenceIdentity = None
           PublishAs = Code
-          SecretStore = AppService
-          Tags = Map.empty
-          ZipDeployPath = None
-          WorkerProcess = None
-          Slots = Map.empty }
+          Tags = Map.empty }
     /// Do not create an automatic storage account; instead, link to a storage account that is created outside of this Functions instance.
     [<CustomOperation "link_to_storage_account">]
     member _.LinkToStorageAccount(state:FunctionsConfig, name) = { state with StorageAccount = managed storageAccounts name }
@@ -376,8 +334,8 @@ type FunctionsBuilder() =
     interface ITaggable<FunctionsConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     interface IDependable<FunctionsConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
     interface IServicePlanApp<FunctionsConfig> with
-        member _.Get state = FunctionsConfig.ToCommon state
-        member _.Wrap state config = FunctionsConfig.FromCommon state config
+        member _.Get state = state.CommonWebConfig
+        member _.Wrap state config = {state with CommonWebConfig=config}
 
 let functions = FunctionsBuilder()
 let docker (server: Uri) (user: string) (command: string): DockerInfo =

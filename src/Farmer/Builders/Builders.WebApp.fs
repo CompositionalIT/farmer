@@ -71,37 +71,6 @@ type SecretStore =
     | AppService
     | KeyVault of ResourceRef<CommonWebConfig>
 
-module private WebAppConfig =
-    let ToCommon state =
-        { Name = state.Name
-          ServicePlan = state.ServicePlan
-          AppInsights = state.AppInsights
-          OperatingSystem = state.OperatingSystem
-          Settings = state.Settings
-          Cors = state.Cors
-          Identity = state.Identity
-          KeyVaultReferenceIdentity = state.KeyVaultReferenceIdentity
-          SecretStore = state.SecretStore
-          ZipDeployPath = state.ZipDeployPath
-          AlwaysOn = state.AlwaysOn
-          WorkerProcess = state.WorkerProcess 
-          Slots = state.Slots }
-    let FromCommon state (config: CommonWebConfig): WebAppConfig =
-        { state with
-            Name = config.Name
-            ServicePlan = config.ServicePlan
-            AppInsights = config.AppInsights
-            OperatingSystem = config.OperatingSystem
-            Settings = config.Settings
-            Cors = config.Cors
-            Identity = config.Identity
-            KeyVaultReferenceIdentity = config.KeyVaultReferenceIdentity
-            SecretStore = config.SecretStore
-            ZipDeployPath = config.ZipDeployPath
-            AlwaysOn = config.AlwaysOn
-            WorkerProcess = config.WorkerProcess 
-            Slots = config.Slots }
-
 type SlotConfig = 
     { Name: string
       AutoSwapSlotName: string option
@@ -197,15 +166,7 @@ type CommonWebConfig =
       Slots : Map<string,SlotConfig> }
 
 type WebAppConfig =
-    { Name : ResourceName
-      ServicePlan : ResourceRef<ResourceName>
-      AppInsights : ResourceRef<ResourceName> option
-      OperatingSystem : OS
-      Settings : Map<string, Setting>
-      Cors : Cors option
-      Identity : Identity.ManagedIdentity
-      KeyVaultReferenceIdentity: UserAssignedIdentity Option
-      ZipDeployPath : (string * ZipDeploy.ZipDeploySlot) option 
+    { CommonWebConfig: CommonWebConfig
       HTTPSOnly : bool
       HTTP20Enabled : bool option
       ClientAffinityEnabled : bool option
@@ -219,24 +180,21 @@ type WebAppConfig =
       MaximumElasticWorkerCount : int option
       RunFromPackage : bool
       WebsiteNodeDefaultVersion : string option
-      AlwaysOn : bool
       Runtime : Runtime
       SourceControlSettings : {| Repository : Uri; Branch : string; ContinuousIntegration : FeatureFlag |} option
       DockerImage : (string * string) option
       DockerCi : bool
       DockerAcrCredentials : {| RegistryName : string; Password : SecureParameter |} option
-      SecretStore : SecretStore
       AutomaticLoggingExtension : bool
       SiteExtensions : ExtensionName Set
-      WorkerProcess : Bitness option
-      Slots : Map<string,SlotConfig>
       PrivateEndpoints: (LinkedResource * string option) Set }
+    member this.Name = this.CommonWebConfig.Name
     /// Gets this web app's Server Plan's full resource ID.
-    member this.ServicePlanId = this.ServicePlan.resourceId this.Name
+    member this.ServicePlanId = this.CommonWebConfig.ServicePlan.resourceId this.Name
     /// Gets the Service Plan name for this web app.
     member this.ServicePlanName = this.ServicePlanId.Name
     /// Gets the App Insights name for this web app, if it exists.
-    member this.AppInsightsName = this.AppInsights |> Option.map (fun ai -> ai.resourceId(this.Name).Name)
+    member this.AppInsightsName = this.CommonWebConfig.AppInsights |> Option.map (fun ai -> ai.resourceId(this.Name).Name)
     /// Gets the ARM expression path to the publishing password of this web app.
     member this.PublishingPassword = publishingPassword (this.Name)
     member this.Endpoint = $"{this.Name.Value}.azurewebsites.net"
@@ -246,13 +204,13 @@ type WebAppConfig =
         member this.ResourceId = this.ResourceId
         member this.BuildResources location = [
             let keyVault, secrets =
-                match this.SecretStore with
-                | KeyVault (DeployableResource (WebAppConfig.ToCommon this) vaultName) ->
+                match this.CommonWebConfig.SecretStore with
+                | KeyVault (DeployableResource (this.CommonWebConfig) vaultName) ->
                     let store = keyVault {
                         name vaultName.Name
                         add_access_policy (AccessPolicy.create (this.SystemIdentity.PrincipalId, [ KeyVault.Secret.Get ]))
                         add_secrets [
-                            for setting in this.Settings do
+                            for setting in this.CommonWebConfig.Settings do
                                 match setting.Value with
                                 | LiteralSetting _ ->
                                     ()
@@ -265,7 +223,7 @@ type WebAppConfig =
                     Some store, []
                 | KeyVault (ExternalResource vaultName) ->
                     let secrets = [
-                        for setting in this.Settings do
+                        for setting in this.CommonWebConfig.Settings do
                             let secret =
                                 match setting.Value with
                                 | LiteralSetting _ -> None
@@ -296,8 +254,8 @@ type WebAppConfig =
                 let literalSettings = [
                     if this.RunFromPackage then AppSettings.RunFromPackage
                     yield! this.WebsiteNodeDefaultVersion |> Option.mapList AppSettings.WebsiteNodeDefaultVersion
-                    yield! this.AppInsights |> Option.mapList (fun resource -> "APPINSIGHTS_INSTRUMENTATIONKEY", AppInsights.getInstrumentationKey(resource.resourceId this.Name).Eval())
-                    match this.OperatingSystem, this.AppInsights with
+                    yield! this.CommonWebConfig.AppInsights |> Option.mapList (fun resource -> "APPINSIGHTS_INSTRUMENTATIONKEY", AppInsights.getInstrumentationKey(resource.resourceId this.Name).Eval())
+                    match this.CommonWebConfig.OperatingSystem, this.CommonWebConfig.AppInsights with
                     | Windows, Some _ ->
                         "APPINSIGHTS_PROFILERFEATURE_VERSION", "1.0.0"
                         "APPINSIGHTS_SNAPSHOTFEATURE_VERSION", "1.0.0"
@@ -327,12 +285,12 @@ type WebAppConfig =
                 |> List.map Setting.AsLiteral
                 |> List.append dockerSettings
                 |> List.append (
-                    (match this.SecretStore with
+                    (match this.CommonWebConfig.SecretStore with
                      | AppService ->
-                         this.Settings
+                         this.CommonWebConfig.Settings
                      | KeyVault r ->
-                        let name = r.resourceId (WebAppConfig.ToCommon this)
-                        [ for setting in this.Settings do
+                        let name = r.resourceId (this.CommonWebConfig)
+                        [ for setting in this.CommonWebConfig.Settings do
                             match setting.Value with
                             | LiteralSetting _ ->
                                 setting.Key, setting.Value
@@ -352,28 +310,28 @@ type WebAppConfig =
                   HTTP20Enabled = this.HTTP20Enabled
                   ClientAffinityEnabled = this.ClientAffinityEnabled
                   WebSocketsEnabled = this.WebSocketsEnabled
-                  Identity = this.Identity
-                  KeyVaultReferenceIdentity = this.KeyVaultReferenceIdentity
-                  Cors = this.Cors
+                  Identity = this.CommonWebConfig.Identity
+                  KeyVaultReferenceIdentity = this.CommonWebConfig.KeyVaultReferenceIdentity
+                  Cors = this.CommonWebConfig.Cors
                   Tags = this.Tags
                   ConnectionStrings = this.ConnectionStrings
-                  WorkerProcess = this.WorkerProcess
+                  WorkerProcess = this.CommonWebConfig.WorkerProcess
                   AppSettings = siteSettings
                   Kind = [
                     "app"
-                    match this.OperatingSystem with Linux -> "linux" | Windows -> ()
+                    match this.CommonWebConfig.OperatingSystem with Linux -> "linux" | Windows -> ()
                     match this.DockerImage with Some _ -> "container" | _ -> ()
                   ] |> String.concat ","
                   Dependencies = Set [
-                    match this.ServicePlan with
+                    match this.CommonWebConfig.ServicePlan with
                     | DependableResource this.Name resourceId -> resourceId
                     | _ -> ()
 
                     yield! this.Dependencies
 
-                    match this.SecretStore with
+                    match this.CommonWebConfig.SecretStore with
                     | AppService ->
-                        for setting in this.Settings do
+                        for setting in this.CommonWebConfig.Settings do
                             match setting.Value with
                             | ExpressionSetting expr ->
                                 yield! Option.toList expr.Owner
@@ -383,13 +341,13 @@ type WebAppConfig =
                     | KeyVault _ ->
                         ()
 
-                    match this.AppInsights with
+                    match this.CommonWebConfig.AppInsights with
                     | Some (DependableResource this.Name resourceId) -> resourceId
                     | Some _ | None -> ()
                   ]
-                  AlwaysOn = this.AlwaysOn
+                  AlwaysOn = this.CommonWebConfig.AlwaysOn
                   LinuxFxVersion =
-                    match this.OperatingSystem with
+                    match this.CommonWebConfig.OperatingSystem with
                     | Windows ->
                         None
                     | Linux ->
@@ -415,28 +373,28 @@ type WebAppConfig =
                     | _ ->
                         None
                   JavaVersion =
-                    match this.Runtime, this.OperatingSystem with
+                    match this.Runtime, this.CommonWebConfig.OperatingSystem with
                     | Java (Java11, Tomcat _), Windows -> Some "11"
                     | Java (Java8, Tomcat _), Windows -> Some "1.8"
                     | _ -> None
                   JavaContainer =
-                    match this.Runtime, this.OperatingSystem with
+                    match this.Runtime, this.CommonWebConfig.OperatingSystem with
                     | Java (_, Tomcat _), Windows -> Some "Tomcat"
                     | _ -> None
                   JavaContainerVersion =
-                    match this.Runtime, this.OperatingSystem with
+                    match this.Runtime, this.CommonWebConfig.OperatingSystem with
                     | Java (_, Tomcat version), Windows -> Some version
                     | _ -> None
                   PhpVersion =
-                    match this.Runtime, this.OperatingSystem with
+                    match this.Runtime, this.CommonWebConfig.OperatingSystem with
                     | Php version, Windows -> Some version
                     | _ -> None
                   PythonVersion =
-                    match this.Runtime, this.OperatingSystem with
+                    match this.Runtime, this.CommonWebConfig.OperatingSystem with
                     | Python (_, windowsVersion), Windows -> Some windowsVersion
                     | _ -> None
                   Metadata =
-                    match this.Runtime, this.OperatingSystem with
+                    match this.Runtime, this.CommonWebConfig.OperatingSystem with
                     | Java (_, Tomcat _), Windows -> Some "java"
                     | Php _, _ -> Some "php"
                     | Python _, Windows -> Some "python"
@@ -447,7 +405,7 @@ type WebAppConfig =
                     |> Option.toList
                   AppCommandLine = this.DockerImage |> Option.map snd
                   AutoSwapSlotName = None
-                  ZipDeployPath = this.ZipDeployPath |> Option.map (fun (path,slot) -> path, ZipDeploy.ZipDeployTarget.WebApp, slot )
+                  ZipDeployPath = this.CommonWebConfig.ZipDeployPath |> Option.map (fun (path,slot) -> path, ZipDeploy.ZipDeployTarget.WebApp, slot )
                 }
 
             match keyVault with
@@ -467,14 +425,14 @@ type WebAppConfig =
             | None ->
                 ()
 
-            match this.AppInsights with
+            match this.CommonWebConfig.AppInsights with
             | Some (DeployableResource this.Name resourceId) ->
                 { Name = resourceId.Name
                   Location = location
                   DisableIpMasking = false
                   SamplingPercentage = 100
                   LinkedWebsite =
-                    match this.OperatingSystem with
+                    match this.CommonWebConfig.OperatingSystem with
                     | Windows -> Some this.Name
                     | Linux -> None
                   Tags = this.Tags }
@@ -482,7 +440,7 @@ type WebAppConfig =
             | None ->
                 ()
 
-            match this.ServicePlan with
+            match this.CommonWebConfig.ServicePlan with
             | DeployableResource this.Name resourceId ->
                 { Name = resourceId.Name
                   Location = location
@@ -490,7 +448,7 @@ type WebAppConfig =
                   WorkerSize = this.WorkerSize
                   WorkerCount = this.WorkerCount
                   MaximumElasticWorkerCount = this.MaximumElasticWorkerCount
-                  OperatingSystem = this.OperatingSystem
+                  OperatingSystem = this.CommonWebConfig.OperatingSystem
                   Tags = this.Tags}
             | _ ->
                 ()
@@ -500,11 +458,11 @@ type WebAppConfig =
                   SiteName = this.Name
                   Location = location }
 
-            if Map.isEmpty this.Slots then
+            if Map.isEmpty this.CommonWebConfig.Slots then
                 site
             else
                 { site with AppSettings = Map.empty; ConnectionStrings = Map.empty }
-                for (_,slot) in this.Slots |> Map.toSeq do
+                for (_,slot) in this.CommonWebConfig.Slots |> Map.toSeq do
                     slot.ToArm site
 
             yield! (PrivateEndpoint.create location this.ResourceId ["sites"] this.PrivateEndpoints)
@@ -512,22 +470,26 @@ type WebAppConfig =
 
 type WebAppBuilder() =
     member __.Yield _ =
-        { Name = ResourceName.Empty
-          ServicePlan = derived (fun name -> serverFarms.resourceId (name-"farm"))
-          AppInsights = Some (derived (fun name -> components.resourceId (name-"ai")))
-          Settings = Map.empty
-          Identity = ManagedIdentity.Empty
-          KeyVaultReferenceIdentity = None
-          Cors = None
-          OperatingSystem = Windows
-          ZipDeployPath = None
+        { CommonWebConfig = 
+            { Name = ResourceName.Empty
+              ServicePlan = derived (fun name -> serverFarms.resourceId (name-"farm"))
+              AppInsights = Some (derived (fun name -> components.resourceId (name-"ai")))
+              Settings = Map.empty
+              Identity = ManagedIdentity.Empty
+              KeyVaultReferenceIdentity = None
+              Cors = None
+              OperatingSystem = Windows
+              AlwaysOn = false
+              ZipDeployPath = None
+              WorkerProcess = None 
+              Slots = Map.empty
+              SecretStore = AppService }
           Sku = Sku.F1
           WorkerSize = Small
           WorkerCount = 1
           MaximumElasticWorkerCount = None
           RunFromPackage = false
           WebsiteNodeDefaultVersion = None
-          AlwaysOn = false
           HTTPSOnly = false
           HTTP20Enabled = None
           ClientAffinityEnabled = None
@@ -540,11 +502,8 @@ type WebAppBuilder() =
           DockerCi = false
           SourceControlSettings = None
           DockerAcrCredentials = None
-          SecretStore = AppService
           AutomaticLoggingExtension = true
           SiteExtensions = Set.empty
-          WorkerProcess = None 
-          Slots = Map.empty
           PrivateEndpoints = Set.empty}
     member __.Run(state:WebAppConfig) =
         { state with
@@ -611,7 +570,7 @@ type WebAppBuilder() =
     /// Specifies a docker image to use from the registry (linux only), and the startup command to execute.
     member __.DockerImage(state:WebAppConfig, registryPath, startupFile) =
         { state with
-            OperatingSystem = Linux
+            CommonWebConfig = { state.CommonWebConfig with OperatingSystem = Linux }
             DockerImage = Some (registryPath, startupFile) }
     [<CustomOperation "docker_ci">]
     /// Have your custom Docker image automatically re-deployed when a new version is pushed to e.g. Docker hub.
@@ -650,8 +609,8 @@ type WebAppBuilder() =
     interface ITaggable<WebAppConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     interface IDependable<WebAppConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
     interface IServicePlanApp<WebAppConfig> with
-        member _.Get state = WebAppConfig.ToCommon state
-        member _.Wrap state config = WebAppConfig.FromCommon state config
+        member _.Get state = state.CommonWebConfig
+        member _.Wrap state config = {state with CommonWebConfig = config}
 
 let webApp = WebAppBuilder()
 
