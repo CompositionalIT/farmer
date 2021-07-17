@@ -32,6 +32,8 @@ The Storage Account builder creates storage accounts and their associated contai
 | add_table | Adds a table to the storage account |
 | add_tables | Adds a list of tables to the storage account |
 | add_cors_rules | Adds a list of CORS rules to the different storage services |
+| add_policies | Adds a list of Policies to the different storage services |
+| enable_versioning | Enabled versioning for different storage services |
 | use_static_website | Activates static website host, and uploads the provided local content as a post-deployment task to the storage with the specified index page |
 | static_website_error_page | Specifies the 404 page to display for static website hosting |
 | enable_data_lake | Enables Azure Data Lake Gen2 support on the storage account |
@@ -73,12 +75,22 @@ let storage = storageAccount {
     add_lifecycle_rule "moveToCool" [ Storage.CoolAfter 30<Days>; Storage.ArchiveAfter 90<Days> ] Storage.NoRuleFilters
     add_lifecycle_rule "cleanup" [ Storage.DeleteAfter 7<Days> ] [ "data/recyclebin" ]
     grant_access myWebApp.SystemIdentity Roles.StorageBlobDataReader
-    add_cors_rules [        
+    add_cors_rules [
         StorageService.Blobs, CorsRule.AllowAll
         StorageService.Tables, CorsRule.create [ "https://compositional-it.com" ]
         StorageService.Files, { CorsRule.AllowAll with MaxAgeInSeconds = 10 }
         StorageService.Queues, CorsRule.create ([ "https://compositional-it.com" ], [ GET ])
     ]
-    min_tls_version Tls12    
+    add_policies [
+        StorageService.Blobs, [
+            Policy.Restore { Enabled = true; Days = 5 }
+            Policy.DeleteRetention { Enabled = true; Days = 10 }
+            Policy.LastAccessTimeTracking { Enabled = true; TrackingGranularityInDays = 12 }
+            Policy.ContainerDeleteRetention { Enabled = true; Days = 11 }
+            Policy.ChangeFeed { Enabled = true; RetentionInDays = 30 } ]
+        ]
+    ]
+    enable_versioning [ StorageService.Blobs, true ]
+    min_tls_version Tls12
 }
 ```

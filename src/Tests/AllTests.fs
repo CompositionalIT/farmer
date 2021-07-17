@@ -15,6 +15,7 @@ let allTests =
                 AppInsights.tests
                 if notEnv "BUILD_REASON" "PullRequest" then
                     AzCli.tests
+                AzureFirewall.tests
                 Bastion.tests
                 BingSearch.tests
                 Cdn.tests

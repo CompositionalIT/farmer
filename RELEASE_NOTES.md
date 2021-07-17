@@ -1,12 +1,20 @@
 Release Notes
 =============
 
-## 1.6.6
+## 1.6.7
 * Container Groups: Reference Azure container registry credentials.
+
+## 1.6.6
+* Azure Firewall: Support for 'link_to_firewall_policy' to link to a builder as well as a resource.
 * Container Groups: Support for 'depends_on' to add dependencies.
 * Functions: Added support for deployment slots
 * KeyVault: Enable VaultUri configuration member for use as output parameter.
 * KeyVault: Fix emitted `enablePurgeProtection`.
+* Storage Account: Add support for data protection policies,
+* Storage Account: Add support for versioning.
+* Virtual Network: Specify the network security group for a subnet.
+* Virtual Network: Subnet support for enabling or disabling Private Link Service Network Policies to allow assigning the IP for a private endpoint connection.
+* Virtual Machine: Added support for Private IP on NIC
 * WebApp: Added support for deployment slots
 
 ## 1.6.5

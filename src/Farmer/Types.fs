@@ -283,6 +283,7 @@ type Deployment =
     { Location : Location
       Template : ArmTemplate
       PostDeployTasks : IPostDeploy list
+      RequiredResourceGroups: string list
       Tags: Map<string,string> }
     interface IDeploymentSource with
         member this.Deployment = this

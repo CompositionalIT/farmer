@@ -520,6 +520,32 @@ module Storage =
               MaxAgeInSeconds = defaultArg maxAgeInSeconds CorsRule.AllowAll.MaxAgeInSeconds
               ExposedHeaders = exposedHeaders |> mapDefault Specific CorsRule.AllowAll.ExposedHeaders
               AllowedHeaders = allowedHeaders |> mapDefault Specific CorsRule.AllowAll.AllowedHeaders }
+    type DeleteRetentionPolicy = {
+        Enabled : bool
+        Days : int
+    }
+
+    type RestorePolicy = DeleteRetentionPolicy
+
+    type LastAccessTimeTrackingPolicy = {
+        Enabled : bool
+        TrackingGranularityInDays : int
+        // Name : enum //AccessTimeTracking is the only possible value
+        // BlobType : string [] //blockBlob is the only possible value
+    }
+
+    type ChangeFeed = {
+        Enabled : bool
+        RetentionInDays : int
+    }
+
+    type Policy =
+        | DeleteRetention of DeleteRetentionPolicy
+        | Restore of RestorePolicy
+        | ContainerDeleteRetention of DeleteRetentionPolicy
+        | LastAccessTimeTracking of LastAccessTimeTrackingPolicy
+        | ChangeFeed of ChangeFeed
+
     [<RequireQualifiedAccess>]
     type StorageService = Blobs | Tables | Files | Queues
 
@@ -1557,7 +1583,7 @@ module EventGrid =
 module Dns =
     type DnsZoneType = Public | Private
 
-    type SrvRecord =  
+    type SrvRecord =
         { Priority : int option
           Weight : int option
           Port : int option
@@ -1665,14 +1691,14 @@ module AzureFirewall =
             match this with
             | Standard -> "Standard"
             | Premium -> "Premium"
-    
+
 module VirtualHub =
     type Sku =
         | Standard
         member this.ArmValue =
             match this with
             | Standard -> "Standard"
-            
+
     module HubRouteTable =
         type Destination =
             | CidrDestination of IPAddressCidr list
@@ -1684,7 +1710,7 @@ module VirtualHub =
                 | CidrDestination destinations ->
                     destinations
                     |> List.map IPAddressCidr.format
-            
+
         [<RequireQualifiedAccess>]
         type NextHop =
             | ResourceId of Farmer.LinkedResource
