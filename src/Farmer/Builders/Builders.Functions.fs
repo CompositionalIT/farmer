@@ -26,7 +26,6 @@ type FunctionsExtensionVersion = V1 | V2 | V3
 
 type FunctionsConfig =
     { CommonWebConfig: CommonWebConfig
-      HTTPSOnly : bool
       Tags : Map<string, string>
       Dependencies : ResourceId Set
       StorageAccount : ResourceRef<FunctionsConfig>
@@ -213,7 +212,7 @@ type FunctionsConfig =
                     | KeyVault _ ->
                         ()
                   ]
-                  HTTPSOnly = this.HTTPSOnly
+                  HTTPSOnly = this.CommonWebConfig.HTTPSOnly
                   AlwaysOn = this.CommonWebConfig.AlwaysOn
                   HTTP20Enabled = None
                   ClientAffinityEnabled = None
@@ -289,24 +288,24 @@ type FunctionsBuilder() =
     member _.Yield _ =
         { FunctionsConfig.CommonWebConfig = 
             { Name = ResourceName.Empty
-              ServicePlan = derived (fun name -> serverFarms.resourceId (name-"farm"))
+              AlwaysOn = false
               AppInsights = Some (derived (fun name -> components.resourceId (name-"ai")))
-              OperatingSystem = Windows
-              Settings = Map.empty
               Cors = None
+              HTTPSOnly = false
               Identity = ManagedIdentity.Empty
               KeyVaultReferenceIdentity = None
+              OperatingSystem = Windows
               SecretStore = AppService
-              ZipDeployPath = None
-              AlwaysOn = false
+              ServicePlan = derived (fun name -> serverFarms.resourceId (name-"farm"))
+              Settings = Map.empty
+              Slots = Map.empty 
               WorkerProcess = None
-              Slots = Map.empty }
+              ZipDeployPath = None }
           StorageAccount = derived (fun config ->
             let storage = config.Name.Map (sprintf "%sstorage") |> sanitiseStorage |> ResourceName
             storageAccounts.resourceId storage)
           Runtime = DotNet
           ExtensionVersion = V3
-          HTTPSOnly = false
           Dependencies = Set.empty
           PublishAs = Code
           Tags = Map.empty }
@@ -319,9 +318,6 @@ type FunctionsBuilder() =
     /// Set the name of the storage account instead of using an auto-generated one based on the function instance name.
     [<CustomOperation "storage_account_name">]
     member _.StorageAccountName(state:FunctionsConfig, name) = { state with StorageAccount = named storageAccounts (ResourceName name) }
-    /// Disables http for this webapp so that only https is used.
-    [<CustomOperation "https_only">]
-    member _.HttpsOnly(state:FunctionsConfig) = { state with HTTPSOnly = true }
     /// Sets the runtime of the Functions host.
     [<CustomOperation "use_runtime">]
     member _.Runtime(state:FunctionsConfig, runtime) = { state with Runtime = runtime }

@@ -152,22 +152,22 @@ let appSlot = SlotBuilder()
 /// Common fields between WebApp and Functions
 type CommonWebConfig =
     { Name : ResourceName
-      ServicePlan : ResourceRef<ResourceName>
+      AlwaysOn : bool
       AppInsights : ResourceRef<ResourceName> option
-      OperatingSystem : OS
-      Settings : Map<string, Setting>
       Cors : Cors option
+      HTTPSOnly : bool
       Identity : Identity.ManagedIdentity
       KeyVaultReferenceIdentity: UserAssignedIdentity Option
+      OperatingSystem : OS
       SecretStore : SecretStore
-      ZipDeployPath : (string*ZipDeploy.ZipDeploySlot) option
-      AlwaysOn : bool
+      ServicePlan : ResourceRef<ResourceName>
+      Settings : Map<string, Setting>
+      Slots : Map<string,SlotConfig>
       WorkerProcess : Bitness option 
-      Slots : Map<string,SlotConfig> }
+      ZipDeployPath : (string*ZipDeploy.ZipDeploySlot) option }
 
 type WebAppConfig =
     { CommonWebConfig: CommonWebConfig
-      HTTPSOnly : bool
       HTTP20Enabled : bool option
       ClientAffinityEnabled : bool option
       WebSocketsEnabled: bool option
@@ -306,7 +306,7 @@ type WebAppConfig =
                   Name = this.Name
                   Location = location
                   ServicePlan = this.ServicePlanId
-                  HTTPSOnly = this.HTTPSOnly
+                  HTTPSOnly = this.CommonWebConfig.HTTPSOnly
                   HTTP20Enabled = this.HTTP20Enabled
                   ClientAffinityEnabled = this.ClientAffinityEnabled
                   WebSocketsEnabled = this.WebSocketsEnabled
@@ -472,25 +472,25 @@ type WebAppBuilder() =
     member __.Yield _ =
         { CommonWebConfig = 
             { Name = ResourceName.Empty
-              ServicePlan = derived (fun name -> serverFarms.resourceId (name-"farm"))
+              AlwaysOn = false
               AppInsights = Some (derived (fun name -> components.resourceId (name-"ai")))
-              Settings = Map.empty
+              Cors = None
+              HTTPSOnly = false
               Identity = ManagedIdentity.Empty
               KeyVaultReferenceIdentity = None
-              Cors = None
               OperatingSystem = Windows
-              AlwaysOn = false
-              ZipDeployPath = None
-              WorkerProcess = None 
+              SecretStore = AppService 
+              ServicePlan = derived (fun name -> serverFarms.resourceId (name-"farm"))
+              Settings = Map.empty
               Slots = Map.empty
-              SecretStore = AppService }
+              WorkerProcess = None 
+              ZipDeployPath = None }
           Sku = Sku.F1
           WorkerSize = Small
           WorkerCount = 1
           MaximumElasticWorkerCount = None
           RunFromPackage = false
           WebsiteNodeDefaultVersion = None
-          HTTPSOnly = false
           HTTP20Enabled = None
           ClientAffinityEnabled = None
           WebSocketsEnabled = None
@@ -551,9 +551,6 @@ type WebAppBuilder() =
     member this.AddConnectionStrings(state:WebAppConfig, connectionStrings) =
         connectionStrings
         |> List.fold (fun (state:WebAppConfig) (key:string) -> this.AddConnectionString(state, key)) state
-    /// Disables http for this webapp so that only https is used.
-    [<CustomOperation "https_only">]
-    member __.HttpsOnly(state:WebAppConfig) = { state with HTTPSOnly = true }
     /// Enables HTTP 2.0 for this webapp.
     [<CustomOperation "enable_http2">]
     member __.Http20Enabled(state:WebAppConfig) = { state with HTTP20Enabled = Some true }
@@ -630,6 +627,7 @@ type IServicePlanApp<'T> =
 [<AutoOpen>]
 module Extensions =
     type IServicePlanApp<'T> with
+        member private this.Map (state:'T) f = this.Wrap state ( f (this.Get state) )
         /// Sets the name of the web app.
         [<CustomOperation "name">]
         member this.Name (state:'T, name) = { this.Get state with Name = name } |> this.Wrap state
@@ -792,3 +790,7 @@ module Extensions =
             let current = this.Get state
             { current with Slots = slots |> List.fold (fun m s -> Map.add s.Name s m) current.Slots}
             |> this.Wrap state 
+        
+        /// Disables http for this webapp so that only https is used.
+        [<CustomOperation "https_only">]
+        member this.HttpsOnly(state:'T) = this.Map state (fun x -> { x with HTTPSOnly = true })
