@@ -43,12 +43,13 @@ type ResourceType =
 type ResourceId =
     { Type : ResourceType
       ResourceGroup : string option
+      Subscription : string option
       Name : ResourceName
       Segments : ResourceName list }
-    static member create (resourceType:ResourceType, name:ResourceName, ?group:string) =
-        { Type = resourceType; ResourceGroup = group; Name = name; Segments = [] }
+    static member create (resourceType:ResourceType, name:ResourceName, ?group:string, ?subscription:string) =
+        { Type = resourceType; ResourceGroup = group; Subscription = subscription; Name = name; Segments = [] }
     static member create (resourceType:ResourceType, name:ResourceName, [<ParamArray>] resourceSegments:ResourceName []) =
-        { Type = resourceType; Name = name; ResourceGroup = None; Segments = List.ofArray resourceSegments }
+        { Type = resourceType; Name = name; ResourceGroup = None; Subscription = None; Segments = List.ofArray resourceSegments }
 
 type ResourceType with
     member this.resourceId name = ResourceId.create (this, name)
@@ -123,7 +124,8 @@ type ResourceId with
             $"string('{this.Name.Value}')"
             |> ArmExpression.create
         | _ ->
-            [ yield! Option.toList this.ResourceGroup
+            [ yield! Option.toList this.Subscription
+              yield! Option.toList this.ResourceGroup
               this.Type.Type
               this.Name.Value
               for segment in this.Segments do segment.Value ]

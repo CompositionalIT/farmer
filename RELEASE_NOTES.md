@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.6.7
+* Container Groups: Reference Azure container registry credentials.
+
 ## 1.6.6
 * Azure Firewall: Support for 'link_to_firewall_policy' to link to a builder as well as a resource.
 * Container Groups: Support for 'depends_on' to add dependencies.
