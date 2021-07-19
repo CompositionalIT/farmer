@@ -502,6 +502,7 @@ let tests = testList "Web App Tests" [
  
         Expect.equal ((slots.Item 0).ConnectionStrings.Count) 2 "Slot should have two connection strings"
     }
+    
     test "Supports private endpoints" {
         let subnet = ResourceId.create(Network.subnets,ResourceName "subnet")
         let app = webApp { name "farmerWebApp"; add_private_endpoint (Managed subnet, "myWebApp-ep")}
@@ -512,6 +513,7 @@ let tests = testList "Web App Tests" [
         Expect.equal ep.PrivateLinkServiceConnections.[0].PrivateLinkServiceId "[resourceId('Microsoft.Web/sites', 'farmerWebApp')]" "Incorrect PrivateLinkServiceId"
         Expect.equal ep.Subnet.Id (subnet.ArmExpression.Eval()) "Incorrect subnet id"
     }
+    
     test "Supports keyvault reference identity" {
         let app = webApp { name "farmerWebApp"}
         let site:Site = app |> getResourceAtIndex 3

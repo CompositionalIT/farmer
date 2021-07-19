@@ -259,6 +259,7 @@ let tests = testList "Functions tests" [
         Expect.isTrue hasValue "Slot should have app service setting"
         Expect.equal value.Value "overridden" "Slot should have correct app service value"
     }
+    
     test "Publish as docker container" {
         let f = functions {
             publish_as (DockerContainer (docker (new Uri("http://www.farmer.io")) "Robert Lewandowski" "do it")) }

@@ -229,7 +229,7 @@ type WebAppConfig =
       AutomaticLoggingExtension : bool
       SiteExtensions : ExtensionName Set
       WorkerProcess : Bitness option
-      Slots : Map<string,SlotConfig> 
+      Slots : Map<string,SlotConfig>
       PrivateEndpoints: (LinkedResource * string option) Set }
     /// Gets this web app's Server Plan's full resource ID.
     member this.ServicePlanId = this.ServicePlan.resourceId this.Name
@@ -544,7 +544,7 @@ type WebAppBuilder() =
           AutomaticLoggingExtension = true
           SiteExtensions = Set.empty
           WorkerProcess = None 
-          Slots = Map.empty 
+          Slots = Map.empty
           PrivateEndpoints = Set.empty}
     member __.Run(state:WebAppConfig) =
         { state with
