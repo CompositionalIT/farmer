@@ -7,6 +7,7 @@ open System
 open Microsoft.Rest
 open Microsoft.Azure.Management.Dns
 open Microsoft.Azure.Management.Dns.Models
+open Newtonsoft.Json.Linq
 
 let client = new DnsManagementClient (Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
 
@@ -104,5 +105,21 @@ let tests = testList "DNS Zone" [
         Expect.equal dnsRecords.[5].Name "farmer.com/txtName" "DNS TXT record name is wrong"
         Expect.sequenceEqual dnsRecords.[5].TxtRecords.[0].Value.[0] "somevalue" "DNS TXT record value is wrong"
         Expect.equal dnsRecords.[5].TTL (Nullable 3600L) "DNS record TTL is wrong"
+    }
+    test "Adding A record to existing zone" {
+        let template =
+            arm {
+                add_resources [
+                    aRecord {
+                        name "arm"
+                        ttl 3600
+                        add_ipv4_addresses [ "10.100.200.28" ]
+                        link_to_dns_zone (Farmer.Arm.Dns.zones.resourceId "farmer.com")
+                    }
+                ]
+            }
+        let jobj = template.Template |> Writer.toJson |> JObject.Parse
+        let dependsOn = jobj.SelectToken("resources[?(@.name=='farmer.com/arm')].dependsOn") :?> JArray
+        Expect.isEmpty dependsOn "DNS 'A' record linked to existing zone dependsOn."
     }
 ]

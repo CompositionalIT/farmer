@@ -11,8 +11,9 @@ open DnsRecords
 type DnsZoneRecordConfig =
     { Name : ResourceName
       Type : DnsRecordType
-      TTL : int }
-    static member Create(name, ttl, recordType) =
+      TTL : int
+      Zone : LinkedResource option }
+    static member Create(name, ttl, zone, recordType) =
         { Name =
               if name = ResourceName.Empty then failwith "You must set a DNS zone name"
               name
@@ -20,16 +21,29 @@ type DnsZoneRecordConfig =
               match ttl with
               | Some ttl -> ttl
               | None -> failwith "You must set a TTL"
+          Zone = zone
           Type = recordType }
+    interface IBuilder with
+        member this.ResourceId = zones.resourceId this.Name
+        member this.BuildResources _ =
+            match this.Zone with
+            | Some zone ->
+                [
+                    { DnsRecord.Name = this.Name
+                      Zone = zone
+                      TTL = this.TTL
+                      Type = this.Type }
+                ]
+            | None -> failwith "DNS record must be linked to a zone."
 
-type CNameRecordProperties =  { Name: ResourceName; CName : string option; TTL: int option; TargetResource: ResourceName option }
-type ARecordProperties =  { Name: ResourceName; Ipv4Addresses : string list; TTL: int option; TargetResource: ResourceName option  }
-type AaaaRecordProperties =  { Name: ResourceName; Ipv6Addresses : string list; TTL: int option; TargetResource: ResourceName option }
-type NsRecordProperties =  { Name: ResourceName; NsdNames : string list; TTL: int option; }
-type PtrRecordProperties =  { Name: ResourceName; PtrdNames : string list; TTL: int option; }
-type TxtRecordProperties =  { Name: ResourceName; TxtValues : string list; TTL: int option; }
-type MxRecordProperties =  { Name: ResourceName; MxValues : {| Preference : int; Exchange : string |} list; TTL: int option; }
-type SrvRecordProperties =  { Name: ResourceName; SrvValues : SrvRecord list; TTL: int option; }
+type CNameRecordProperties =  { Name: ResourceName; CName : string option; TTL: int option; Zone: LinkedResource option; TargetResource: ResourceName option }
+type ARecordProperties =  { Name: ResourceName; Ipv4Addresses : string list; TTL: int option; Zone: LinkedResource option; TargetResource: ResourceName option  }
+type AaaaRecordProperties =  { Name: ResourceName; Ipv6Addresses : string list; TTL: int option; Zone: LinkedResource option; TargetResource: ResourceName option }
+type NsRecordProperties =  { Name: ResourceName; NsdNames : string list; TTL: int option; Zone: LinkedResource option }
+type PtrRecordProperties =  { Name: ResourceName; PtrdNames : string list; TTL: int option; Zone: LinkedResource option; }
+type TxtRecordProperties =  { Name: ResourceName; TxtValues : string list; TTL: int option; Zone: LinkedResource option; }
+type MxRecordProperties =  { Name: ResourceName; MxValues : {| Preference : int; Exchange : string |} list; TTL: int option; Zone: LinkedResource option; }
+type SrvRecordProperties =  { Name: ResourceName; SrvValues : SrvRecord list; TTL: int option; Zone: LinkedResource option; }
 type SoaRecordProperties =
     { Name: ResourceName
       Host : string option
@@ -39,11 +53,12 @@ type SoaRecordProperties =
       RetryTime : int64 option
       ExpireTime : int64 option
       MinimumTTL : int64 option
-      TTL: int option }
+      TTL: int option
+      Zone: LinkedResource option }
 
 type DnsCNameRecordBuilder() =
-    member _.Yield _ = { CNameRecordProperties.CName = None; Name = ResourceName.Empty; TTL = None; TargetResource = None }
-    member _.Run(state : CNameRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, CName(state.TargetResource, state.CName))
+    member _.Yield _ = { CNameRecordProperties.CName = None; Name = ResourceName.Empty; TTL = None; Zone = None; TargetResource = None }
+    member _.Run(state : CNameRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, CName(state.TargetResource, state.CName))
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
@@ -62,9 +77,13 @@ type DnsCNameRecordBuilder() =
     [<CustomOperation "target_resource">]
     member _.RecordTargetResource(state:CNameRecordProperties, targetResource) = { state with TargetResource = Some targetResource }
 
+    /// Builds a record for an existing DNS zone.
+    [<CustomOperation "link_to_dns_zone">]
+    member _.LinkToDnsZone(state:CNameRecordProperties, zone:ResourceId) = { state with Zone = Some (Unmanaged zone) }
+
 type DnsARecordBuilder() =
-    member _.Yield _ = { ARecordProperties.Ipv4Addresses = []; Name = ResourceName "@"; TTL = None; TargetResource = None }
-    member _.Run(state : ARecordProperties)  = DnsZoneRecordConfig.Create(state.Name, state.TTL, A(state.TargetResource, state.Ipv4Addresses))
+    member _.Yield _ = { ARecordProperties.Ipv4Addresses = []; Name = ResourceName "@"; TTL = None; Zone = None; TargetResource = None }
+    member _.Run(state : ARecordProperties)  = DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, A(state.TargetResource, state.Ipv4Addresses))
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
@@ -83,9 +102,13 @@ type DnsARecordBuilder() =
     [<CustomOperation "target_resource">]
     member _.RecordTargetResource(state:ARecordProperties, targetResource) = { state with TargetResource = Some targetResource }
 
+    /// Builds a record for an existing DNS zone.
+    [<CustomOperation "link_to_dns_zone">]
+    member _.LinkToDnsZone(state:ARecordProperties, zone:ResourceId) = { state with Zone = Some (Unmanaged zone) }
+
 type DnsAaaaRecordBuilder() =
-    member _.Yield _ = { AaaaRecordProperties.Ipv6Addresses = []; Name = ResourceName "@"; TTL = None; TargetResource = None }
-    member _.Run(state : AaaaRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, AAAA(state.TargetResource, state.Ipv6Addresses))
+    member _.Yield _ = { AaaaRecordProperties.Ipv6Addresses = []; Name = ResourceName "@"; TTL = None; Zone = None; TargetResource = None }
+    member _.Run(state : AaaaRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, AAAA(state.TargetResource, state.Ipv6Addresses))
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
@@ -104,9 +127,13 @@ type DnsAaaaRecordBuilder() =
     [<CustomOperation "target_resource">]
     member _.RecordTargetResource(state:AaaaRecordProperties, targetResource) = { state with TargetResource = Some targetResource }
 
+    /// Builds a record for an existing DNS zone.
+    [<CustomOperation "link_to_dns_zone">]
+    member _.LinkToDnsZone(state:AaaaRecordProperties, zone:ResourceId) = { state with Zone = Some (Unmanaged zone) }
+
 type DnsNsRecordBuilder() =
-    member _.Yield _ = { NsRecordProperties.NsdNames = []; Name = ResourceName "@"; TTL = None; }
-    member _.Run(state : NsRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, NS state.NsdNames)
+    member _.Yield _ = { NsRecordProperties.NsdNames = []; Name = ResourceName "@"; TTL = None; Zone = None }
+    member _.Run(state : NsRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, NS state.NsdNames)
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
@@ -121,9 +148,13 @@ type DnsNsRecordBuilder() =
     [<CustomOperation "ttl">]
     member _.RecordTTL(state:NsRecordProperties, ttl) = { state with TTL = Some ttl }
 
+    /// Builds a record for an existing DNS zone.
+    [<CustomOperation "link_to_dns_zone">]
+    member _.LinkToDnsZone(state:NsRecordProperties, zone:ResourceId) = { state with Zone = Some (Unmanaged zone) }
+
 type DnsPtrRecordBuilder() =
-    member __.Yield _ = { PtrRecordProperties.PtrdNames = []; Name = ResourceName "@"; TTL = None; }
-    member __.Run(state : PtrRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, PTR state.PtrdNames)
+    member __.Yield _ = { PtrRecordProperties.PtrdNames = []; Name = ResourceName "@"; TTL = None; Zone = None }
+    member __.Run(state : PtrRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, PTR state.PtrdNames)
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
@@ -138,9 +169,13 @@ type DnsPtrRecordBuilder() =
     [<CustomOperation "ttl">]
     member _.RecordTTL(state:PtrRecordProperties, ttl) = { state with TTL = Some ttl }
 
+    /// Builds a record for an existing DNS zone.
+    [<CustomOperation "link_to_dns_zone">]
+    member _.LinkToDnsZone(state:PtrRecordProperties, zone:ResourceId) = { state with Zone = Some (Unmanaged zone) }
+
 type DnsTxtRecordBuilder() =
-    member _.Yield _ = { TxtRecordProperties.Name = ResourceName "@"; TxtValues = []; TTL = None; }
-    member _.Run(state : TxtRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, TXT state.TxtValues)
+    member _.Yield _ = { TxtRecordProperties.Name = ResourceName "@"; TxtValues = []; TTL = None; Zone = None; }
+    member _.Run(state : TxtRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, TXT state.TxtValues)
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
@@ -155,9 +190,13 @@ type DnsTxtRecordBuilder() =
     [<CustomOperation "ttl">]
     member _.RecordTTL(state:TxtRecordProperties, ttl) = { state with TTL = Some ttl }
 
+    /// Builds a record for an existing DNS zone.
+    [<CustomOperation "link_to_dns_zone">]
+    member _.LinkToDnsZone(state:TxtRecordProperties, zone:ResourceId) = { state with Zone = Some (Unmanaged zone) }
+
 type DnsMxRecordBuilder() =
-    member _.Yield _ = { MxRecordProperties.Name = ResourceName "@"; MxValues = []; TTL = None; }
-    member _.Run(state : MxRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, MX state.MxValues)
+    member _.Yield _ = { MxRecordProperties.Name = ResourceName "@"; MxValues = []; TTL = None; Zone = None }
+    member _.Run(state : MxRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, MX state.MxValues)
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
@@ -174,9 +213,13 @@ type DnsMxRecordBuilder() =
     [<CustomOperation "ttl">]
     member _.RecordTTL(state:MxRecordProperties, ttl) = { state with TTL = Some ttl }
 
+    /// Builds a record for an existing DNS zone.
+    [<CustomOperation "link_to_dns_zone">]
+    member _.LinkToDnsZone(state:MxRecordProperties, zone:ResourceId) = { state with Zone = Some (Unmanaged zone) }
+
 type DnsSrvRecordBuilder() =
-    member _.Yield _ = { SrvRecordProperties.Name = ResourceName "@"; SrvValues = []; TTL = None; }
-    member _.Run(state : SrvRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, SRV state.SrvValues)
+    member _.Yield _ = { SrvRecordProperties.Name = ResourceName "@"; SrvValues = []; TTL = None; Zone = None; }
+    member _.Run(state : SrvRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, SRV state.SrvValues)
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
@@ -192,6 +235,10 @@ type DnsSrvRecordBuilder() =
     [<CustomOperation "ttl">]
     member _.RecordTTL(state:SrvRecordProperties, ttl) = { state with TTL = Some ttl }
 
+    /// Builds a record for an existing DNS zone.
+    [<CustomOperation "link_to_dns_zone">]
+    member _.LinkToDnsZone(state:SrvRecordProperties, zone:ResourceId) = { state with Zone = Some (Unmanaged zone) }
+
 type DnsSoaRecordBuilder() =
     member _.Yield _ =
         { SoaRecordProperties.Name = ResourceName "@"
@@ -202,7 +249,8 @@ type DnsSoaRecordBuilder() =
           RetryTime = None
           ExpireTime = None
           MinimumTTL = None
-          TTL = None }
+          TTL = None
+          Zone = None }
 
     member _.Run(state : SoaRecordProperties) =
         let value =
@@ -213,7 +261,7 @@ type DnsSoaRecordBuilder() =
               RetryTime = state.RetryTime
               ExpireTime = state.ExpireTime
               MinimumTTL = state.MinimumTTL }
-        DnsZoneRecordConfig.Create(state.Name, state.TTL, SOA value)
+        DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, SOA value)
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
@@ -256,6 +304,10 @@ type DnsSoaRecordBuilder() =
     [<CustomOperation "ttl">]
     member _.RecordTTL(state:SoaRecordProperties, ttl) = { state with TTL = Some ttl }
 
+    /// Builds a record for an existing DNS zone.
+    [<CustomOperation "link_to_dns_zone">]
+    member _.LinkToDnsZone(state:NsRecordProperties, zone:ResourceId) = { state with Zone = Some (Unmanaged zone) }
+
 type DnsZoneConfig =
     { Name : ResourceName
       ZoneType : DnsZoneType
@@ -268,8 +320,8 @@ type DnsZoneConfig =
               Properties = {| ZoneType = this.ZoneType |> string |} }
 
             for record in this.Records do
-                { Name = record.Name
-                  Zone = this.Name
+                { DnsRecord.Name = record.Name
+                  Zone = Managed (zones.resourceId this.Name)
                   TTL = record.TTL
                   Type = record.Type }
         ]
