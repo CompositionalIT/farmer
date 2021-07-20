@@ -4,6 +4,7 @@ open Expecto
 open Farmer
 open Farmer.Builders
 open System
+open Farmer.Dns
 open Microsoft.Rest
 open Microsoft.Azure.Management.Dns
 open Microsoft.Azure.Management.Dns.Models
@@ -121,5 +122,12 @@ let tests = testList "DNS Zone" [
         let jobj = template.Template |> Writer.toJson |> JObject.Parse
         let dependsOn = jobj.SelectToken("resources[?(@.name=='farmer.com/arm')].dependsOn") :?> JArray
         Expect.isEmpty dependsOn "DNS 'A' record linked to existing zone dependsOn."
+        let expectedARecordType =
+            { ResourceId.Type = ResourceType ("Microsoft.Network/dnsZones/A", "2018-05-01")
+              ResourceGroup = None
+              Subscription = None
+              Name = ResourceName "farmer.com/arm"
+              Segments = [] }
+        Expect.equal template.Resources.[0].ResourceId expectedARecordType "Incorrect resourceId generated from standalone record builder"
     }
 ]
