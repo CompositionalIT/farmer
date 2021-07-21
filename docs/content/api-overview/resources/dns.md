@@ -54,6 +54,7 @@ Each Record type has its own custom builder. All builders share the following co
 |-|-|
 | name | Sets the name of the record set (default to `@`). |
 | ttl | Sets the time-to-live of the record set. |
+| link_to_unmanaged_dns_zone | Add the record to an existing DNS zone. |
 
 In addition, each record builder has its own custom keywords:
 

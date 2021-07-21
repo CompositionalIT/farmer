@@ -42,13 +42,19 @@ type DnsZone =
 module DnsRecords =
     type DnsRecord =
         { Name : ResourceName
-          Zone : ResourceName
+          Zone : LinkedResource
           Type : DnsRecordType
           TTL : int }
+        /// Includes the DnsZone if deployed in the same template (Managed).
+        member this.Dependencies =
+            match this.Zone with
+            | Managed id -> [ id ]
+            | Unmanaged _ -> []
         interface IArmResource with
-            member this.ResourceId = this.Type.ResourceType.resourceId (this.Zone/this.Name)
+            member this.ResourceId = this.Type.ResourceType.resourceId (this.Zone.Name/this.Name)
+
             member this.JsonModel =
-                {| this.Type.ResourceType.Create(this.Zone/this.Name, dependsOn = [ zones.resourceId this.Zone ]) with
+                {| this.Type.ResourceType.Create(this.Zone.Name/this.Name, dependsOn = this.Dependencies) with
                     properties = [
                         "TTL", box this.TTL
 
