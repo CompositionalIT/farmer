@@ -82,7 +82,7 @@ type DnsCNameRecordBuilder() =
     member _.RecordTargetResource(state:CNameRecordProperties, targetResource) = { state with TargetResource = Some targetResource }
 
     /// Builds a record for an existing DNS zone.
-    [<CustomOperation "link_to_dns_zone">]
+    [<CustomOperation "link_to_unmanaged_dns_zone">]
     member _.LinkToDnsZone(state:CNameRecordProperties, zone:ResourceId) = { state with Zone = Some (Unmanaged zone) }
 
 type DnsARecordBuilder() =
@@ -107,7 +107,7 @@ type DnsARecordBuilder() =
     member _.RecordTargetResource(state:ARecordProperties, targetResource) = { state with TargetResource = Some targetResource }
 
     /// Builds a record for an existing DNS zone.
-    [<CustomOperation "link_to_dns_zone">]
+    [<CustomOperation "link_to_unmanaged_dns_zone">]
     member _.LinkToDnsZone(state:ARecordProperties, zone:ResourceId) = { state with Zone = Some (Unmanaged zone) }
 
 type DnsAaaaRecordBuilder() =
@@ -132,7 +132,7 @@ type DnsAaaaRecordBuilder() =
     member _.RecordTargetResource(state:AaaaRecordProperties, targetResource) = { state with TargetResource = Some targetResource }
 
     /// Builds a record for an existing DNS zone.
-    [<CustomOperation "link_to_dns_zone">]
+    [<CustomOperation "link_to_unmanaged_dns_zone">]
     member _.LinkToDnsZone(state:AaaaRecordProperties, zone:ResourceId) = { state with Zone = Some (Unmanaged zone) }
 
 type DnsNsRecordBuilder() =
@@ -153,7 +153,7 @@ type DnsNsRecordBuilder() =
     member _.RecordTTL(state:NsRecordProperties, ttl) = { state with TTL = Some ttl }
 
     /// Builds a record for an existing DNS zone.
-    [<CustomOperation "link_to_dns_zone">]
+    [<CustomOperation "link_to_unmanaged_dns_zone">]
     member _.LinkToDnsZone(state:NsRecordProperties, zone:ResourceId) = { state with Zone = Some (Unmanaged zone) }
 
 type DnsPtrRecordBuilder() =
@@ -174,7 +174,7 @@ type DnsPtrRecordBuilder() =
     member _.RecordTTL(state:PtrRecordProperties, ttl) = { state with TTL = Some ttl }
 
     /// Builds a record for an existing DNS zone.
-    [<CustomOperation "link_to_dns_zone">]
+    [<CustomOperation "link_to_unmanaged_dns_zone">]
     member _.LinkToDnsZone(state:PtrRecordProperties, zone:ResourceId) = { state with Zone = Some (Unmanaged zone) }
 
 type DnsTxtRecordBuilder() =
@@ -195,7 +195,7 @@ type DnsTxtRecordBuilder() =
     member _.RecordTTL(state:TxtRecordProperties, ttl) = { state with TTL = Some ttl }
 
     /// Builds a record for an existing DNS zone.
-    [<CustomOperation "link_to_dns_zone">]
+    [<CustomOperation "link_to_unmanaged_dns_zone">]
     member _.LinkToDnsZone(state:TxtRecordProperties, zone:ResourceId) = { state with Zone = Some (Unmanaged zone) }
 
 type DnsMxRecordBuilder() =
@@ -218,7 +218,7 @@ type DnsMxRecordBuilder() =
     member _.RecordTTL(state:MxRecordProperties, ttl) = { state with TTL = Some ttl }
 
     /// Builds a record for an existing DNS zone.
-    [<CustomOperation "link_to_dns_zone">]
+    [<CustomOperation "link_to_unmanaged_dns_zone">]
     member _.LinkToDnsZone(state:MxRecordProperties, zone:ResourceId) = { state with Zone = Some (Unmanaged zone) }
 
 type DnsSrvRecordBuilder() =
@@ -240,7 +240,7 @@ type DnsSrvRecordBuilder() =
     member _.RecordTTL(state:SrvRecordProperties, ttl) = { state with TTL = Some ttl }
 
     /// Builds a record for an existing DNS zone.
-    [<CustomOperation "link_to_dns_zone">]
+    [<CustomOperation "link_to_unmanaged_dns_zone">]
     member _.LinkToDnsZone(state:SrvRecordProperties, zone:ResourceId) = { state with Zone = Some (Unmanaged zone) }
 
 type DnsSoaRecordBuilder() =
@@ -309,7 +309,7 @@ type DnsSoaRecordBuilder() =
     member _.RecordTTL(state:SoaRecordProperties, ttl) = { state with TTL = Some ttl }
 
     /// Builds a record for an existing DNS zone.
-    [<CustomOperation "link_to_dns_zone">]
+    [<CustomOperation "link_to_unmanaged_dns_zone">]
     member _.LinkToDnsZone(state:NsRecordProperties, zone:ResourceId) = { state with Zone = Some (Unmanaged zone) }
 
 type DnsZoneConfig =

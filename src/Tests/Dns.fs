@@ -115,7 +115,7 @@ let tests = testList "DNS Zone" [
                         name "arm"
                         ttl 3600
                         add_ipv4_addresses [ "10.100.200.28" ]
-                        link_to_dns_zone (Farmer.Arm.Dns.zones.resourceId "farmer.com")
+                        link_to_unmanaged_dns_zone (Farmer.Arm.Dns.zones.resourceId "farmer.com")
                     }
                 ]
             }
