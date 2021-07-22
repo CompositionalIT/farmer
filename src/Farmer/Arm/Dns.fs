@@ -64,7 +64,7 @@ module DnsRecords =
                         | A (Some targetResource, _)
                         | CName (Some targetResource, _)
                         | AAAA (Some targetResource, _)  ->
-                            "targetResource", box {| id = targetResource.Value |}
+                            "targetResource", box {| id = targetResource.ArmExpression.Eval() |}
                         | _ ->
                             ()
 

@@ -43,9 +43,9 @@ type DnsZoneRecordConfig =
                 ]
             | None -> failwith "DNS record must be linked to a zone."
 
-type CNameRecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; CName : string option; TTL: int option; Zone: LinkedResource option; TargetResource: ResourceName option }
-type ARecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; Ipv4Addresses : string list; TTL: int option; Zone: LinkedResource option; TargetResource: ResourceName option  }
-type AaaaRecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; Ipv6Addresses : string list; TTL: int option; Zone: LinkedResource option; TargetResource: ResourceName option }
+type CNameRecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; CName : string option; TTL: int option; Zone: LinkedResource option; TargetResource: ResourceId option }
+type ARecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; Ipv4Addresses : string list; TTL: int option; Zone: LinkedResource option; TargetResource: ResourceId option  }
+type AaaaRecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; Ipv6Addresses : string list; TTL: int option; Zone: LinkedResource option; TargetResource: ResourceId option }
 type NsRecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; NsdNames : string list; TTL: int option; Zone: LinkedResource option }
 type PtrRecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; PtrdNames : string list; TTL: int option; Zone: LinkedResource option; }
 type TxtRecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; TxtValues : string list; TTL: int option; Zone: LinkedResource option; }
@@ -83,7 +83,9 @@ type DnsCNameRecordBuilder() =
 
     /// Sets the target resource of the record.
     [<CustomOperation "target_resource">]
-    member _.RecordTargetResource(state:CNameRecordProperties, targetResource) = { state with TargetResource = Some targetResource }
+    member _.RecordTargetResource(state:CNameRecordProperties, targetResource:ResourceId) = { state with TargetResource = Some targetResource }
+    member _.RecordTargetResource(state:CNameRecordProperties, targetResource:IArmResource) = { state with TargetResource = Some targetResource.ResourceId }
+    member _.RecordTargetResource(state:CNameRecordProperties, targetResource:IBuilder) = { state with TargetResource = Some targetResource.ResourceId }
 
     /// Builds a record for an existing DNS zone that is not managed by this Farmer deployment.
     [<CustomOperation "link_to_unmanaged_dns_zone">]
@@ -117,7 +119,9 @@ type DnsARecordBuilder() =
 
     /// Sets the target resource of the record.
     [<CustomOperation "target_resource">]
-    member _.RecordTargetResource(state:ARecordProperties, targetResource) = { state with TargetResource = Some targetResource }
+    member _.RecordTargetResource(state:ARecordProperties, targetResource:ResourceId) = { state with TargetResource = Some targetResource }
+    member _.RecordTargetResource(state:ARecordProperties, targetResource:IArmResource) = { state with TargetResource = Some targetResource.ResourceId }
+    member _.RecordTargetResource(state:ARecordProperties, targetResource:IBuilder) = { state with TargetResource = Some targetResource.ResourceId }
 
     /// Builds a record for an existing DNS zone.
     [<CustomOperation "link_to_unmanaged_dns_zone">]
@@ -151,7 +155,9 @@ type DnsAaaaRecordBuilder() =
 
     /// Sets the target resource of the record.
     [<CustomOperation "target_resource">]
-    member _.RecordTargetResource(state:AaaaRecordProperties, targetResource) = { state with TargetResource = Some targetResource }
+    member _.RecordTargetResource(state:AaaaRecordProperties, targetResource:ResourceId) = { state with TargetResource = Some targetResource }
+    member _.RecordTargetResource(state:AaaaRecordProperties, targetResource:IArmResource) = { state with TargetResource = Some targetResource.ResourceId }
+    member _.RecordTargetResource(state:AaaaRecordProperties, targetResource:IBuilder) = { state with TargetResource = Some targetResource.ResourceId }
 
     /// Builds a record for an existing DNS zone.
     [<CustomOperation "link_to_unmanaged_dns_zone">]

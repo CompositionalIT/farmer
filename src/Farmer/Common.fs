@@ -1599,9 +1599,9 @@ module Dns =
           MinimumTTL : int64 option }
 
     type DnsRecordType =
-        | A of TargetResource : ResourceName option * ARecords : string list
-        | AAAA of TargetResource : ResourceName option * AaaaRecords : string list
-        | CName of TargetResource : ResourceName option * CNameRecord : string option
+        | A of TargetResource : ResourceId option * ARecords : string list
+        | AAAA of TargetResource : ResourceId option * AaaaRecords : string list
+        | CName of TargetResource : ResourceId option * CNameRecord : string option
         | NS of NsRecords : string list
         | PTR of PtrRecords : string list
         | TXT of TxtRecords : string list

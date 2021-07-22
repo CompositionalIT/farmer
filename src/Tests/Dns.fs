@@ -171,7 +171,6 @@ let tests = testList "DNS Zone" [
             arm {
                 add_resources [ zone; first; second ]
             }
-        template |> Writer.quickWrite "dns-cname"
         let jobj = template.Template |> Writer.toJson |> JObject.Parse
         let firstDependsOn = jobj.SelectToken("resources[?(@.name=='farmer.com/first')].dependsOn") :?> JArray |> Seq.map string
         Expect.hasLength firstDependsOn 1 "first 'CNAME' record dependsOn zone only."
@@ -180,5 +179,38 @@ let tests = testList "DNS Zone" [
         Expect.hasLength secondDependsOn 2 "second 'CNAME' record linked to first 'CNAME' record dependsOn."
         Expect.contains secondDependsOn "[resourceId('Microsoft.Network/dnsZones', 'farmer.com')]" "Missing dependency on zone"
         Expect.contains secondDependsOn "[resourceId('Microsoft.Network/dnsZones/CNAME', 'farmer.com', 'first')]" "Missing dependency on first 'CNAME' record"
+    }
+    test "Assigning target_resource on DNS record emits correct resource id" {
+        let zone =
+            dnsZone {
+                name "farmer.com"
+            }
+        let tm = trafficManager {
+            name "my-tm"
+        }
+        let targetA = 
+            aRecord {
+                name "tm-a"
+                link_to_dns_zone zone
+                ttl 60
+                target_resource tm
+            }
+        let targetCname = 
+            cnameRecord {
+                name "tm-cname"
+                link_to_dns_zone zone
+                target_resource tm
+                ttl 60
+                depends_on targetA
+            }
+        let template =
+            arm {
+                add_resources [ zone; tm; targetA; targetCname ]
+            }
+        let jobj = template.Template |> Writer.toJson |> JObject.Parse
+        let tmAresourceId = jobj.SelectToken("resources[?(@.name=='farmer.com/tm-a')].properties.targetResource.id") |> string
+        Expect.equal tmAresourceId "[resourceId('Microsoft.Network/trafficManagerProfiles', 'my-tm')]" "Incorrect ID on target resource"
+        let tmAresourceId = jobj.SelectToken("resources[?(@.name=='farmer.com/tm-cname')].properties.targetResource.id") |> string
+        Expect.equal tmAresourceId "[resourceId('Microsoft.Network/trafficManagerProfiles', 'my-tm')]" "Incorrect ID on target resource"
     }
 ]
