@@ -30,12 +30,13 @@ type DnsRecordType with
 
 type DnsZone =
     { Name : ResourceName
+      Dependencies : Set<ResourceId>
       Properties : {| ZoneType : string |} }
 
     interface IArmResource with
         member this.ResourceId = zones.resourceId this.Name
         member this.JsonModel =
-            {| zones.Create(this.Name, Location.Global) with
+            {| zones.Create(this.Name, Location.Global, this.Dependencies) with
                 properties = {| zoneType = this.Properties.ZoneType |}
             |} :> _
 

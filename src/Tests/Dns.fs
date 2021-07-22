@@ -130,6 +130,23 @@ let tests = testList "DNS Zone" [
               Segments = [] }
         Expect.equal template.Resources.[0].ResourceId expectedARecordType "Incorrect resourceId generated from standalone record builder"
     }
+    test "DNS zone depends_on emits 'dependsOn'" {
+        let zone =
+            dnsZone {
+                name "farmer.com"
+                depends_on (Farmer.Arm.TrafficManager.profiles.resourceId "foo")
+            }
+        let template =
+            arm {
+                add_resources [ zone ]
+            }
+        let jobj = template.Template |> Writer.toJson |> JObject.Parse
+        let zoneDependsOn = jobj.SelectToken("resources[?(@.name=='farmer.com')].dependsOn")
+        Expect.isNotNull zoneDependsOn "Zone missing dependsOn"
+        let zoneDependsOn = zoneDependsOn :?> JArray |> Seq.map string
+        Expect.hasLength zoneDependsOn 1 "Zone should have one dependency"
+        Expect.contains zoneDependsOn "[resourceId('Microsoft.Network/trafficManagerProfiles', 'foo')]" "Missing expected resource dependency"
+    }
     test "Sequencing DNS record deployment through depends_on" {
         let zone =
             dnsZone {

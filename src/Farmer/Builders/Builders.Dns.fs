@@ -400,6 +400,7 @@ type DnsSoaRecordBuilder() =
 
 type DnsZoneConfig =
     { Name : ResourceName
+      Dependencies : Set<ResourceId>
       ZoneType : DnsZoneType
       Records : DnsZoneRecordConfig list }
 
@@ -407,6 +408,7 @@ type DnsZoneConfig =
         member this.ResourceId = zones.resourceId this.Name
         member this.BuildResources _ = [
             { DnsZone.Name = this.Name
+              Dependencies = this.Dependencies
               Properties = {| ZoneType = this.ZoneType |> string |} }
 
             for record in this.Records do
@@ -420,6 +422,7 @@ type DnsZoneConfig =
 type DnsZoneBuilder() =
     member __.Yield _ =
         { DnsZoneConfig.Name = ResourceName ""
+          Dependencies = Set.empty
           Records = []
           ZoneType = Public }
     member __.Run(state) : DnsZoneConfig =
@@ -439,6 +442,9 @@ type DnsZoneBuilder() =
     /// Add DNS records to the DNS Zone.
     [<CustomOperation "add_records">]
     member _.AddRecords(state:DnsZoneConfig, records) = { state with Records = state.Records @ records }
+
+    /// Enable support for additional dependencies.
+    interface IDependable<DnsZoneConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
 let dnsZone = DnsZoneBuilder()
 let cnameRecord = DnsCNameRecordBuilder()
