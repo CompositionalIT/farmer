@@ -171,6 +171,7 @@ let tests = testList "DNS Zone" [
             arm {
                 add_resources [ zone; first; second ]
             }
+        template |> Writer.quickWrite "dns-cname"
         let jobj = template.Template |> Writer.toJson |> JObject.Parse
         let firstDependsOn = jobj.SelectToken("resources[?(@.name=='farmer.com/first')].dependsOn") :?> JArray |> Seq.map string
         Expect.hasLength firstDependsOn 1 "first 'CNAME' record dependsOn zone only."
@@ -178,6 +179,6 @@ let tests = testList "DNS Zone" [
         let secondDependsOn = jobj.SelectToken("resources[?(@.name=='farmer.com/second')].dependsOn") :?> JArray |> Seq.map string
         Expect.hasLength secondDependsOn 2 "second 'CNAME' record linked to first 'CNAME' record dependsOn."
         Expect.contains secondDependsOn "[resourceId('Microsoft.Network/dnsZones', 'farmer.com')]" "Missing dependency on zone"
-        Expect.contains secondDependsOn "[resourceId('Microsoft.Network/dnsZones/CNAME', 'farmer.com/first')]" "Missing dependency on first 'CNAME' record"
+        Expect.contains secondDependsOn "[resourceId('Microsoft.Network/dnsZones/CNAME', 'farmer.com', 'first')]" "Missing dependency on first 'CNAME' record"
     }
 ]

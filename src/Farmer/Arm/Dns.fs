@@ -53,7 +53,7 @@ module DnsRecords =
             | Managed id -> this.Dependencies |> Set.add id
             | Unmanaged _ -> this.Dependencies
         interface IArmResource with
-            member this.ResourceId = this.Type.ResourceType.resourceId (this.Zone.Name/this.Name)
+            member this.ResourceId = this.Type.ResourceType.resourceId (this.Zone.Name, this.Name)
 
             member this.JsonModel =
                 {| this.Type.ResourceType.Create(this.Zone.Name/this.Name, dependsOn = this.dependsOn) with

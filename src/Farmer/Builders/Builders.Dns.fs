@@ -29,7 +29,7 @@ type DnsZoneRecordConfig =
         member this.ResourceId =
             match this.Zone with
             | Some zone ->
-                this.Type.ResourceType.resourceId (zone.Name/this.Name)
+                this.Type.ResourceType.resourceId (zone.Name, this.Name)
             | None -> failwith "DNS record must be linked to a zone to properly assign the resourceId."
         member this.BuildResources _ =
             match this.Zone with
