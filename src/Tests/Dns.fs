@@ -130,4 +130,37 @@ let tests = testList "DNS Zone" [
               Segments = [] }
         Expect.equal template.Resources.[0].ResourceId expectedARecordType "Incorrect resourceId generated from standalone record builder"
     }
+    test "Sequencing DNS record deployment through depends_on" {
+        let zone =
+            dnsZone {
+                name "farmer.com"
+            }
+        let first = 
+            cnameRecord {
+                name "first"
+                link_to_dns_zone zone
+                cname "farmer.com"
+                ttl 3600
+            }
+        let second = 
+            cnameRecord {
+                name "second"
+                link_to_dns_zone zone
+                cname "farmer.com"
+                depends_on first
+                ttl 3600
+            }
+        let template =
+            arm {
+                add_resources [ zone; first; second ]
+            }
+        let jobj = template.Template |> Writer.toJson |> JObject.Parse
+        let firstDependsOn = jobj.SelectToken("resources[?(@.name=='farmer.com/first')].dependsOn") :?> JArray |> Seq.map string
+        Expect.hasLength firstDependsOn 1 "first 'CNAME' record dependsOn zone only."
+        Expect.contains firstDependsOn "[resourceId('Microsoft.Network/dnsZones', 'farmer.com')]" "Missing dependency on zone"
+        let secondDependsOn = jobj.SelectToken("resources[?(@.name=='farmer.com/second')].dependsOn") :?> JArray |> Seq.map string
+        Expect.hasLength secondDependsOn 2 "second 'CNAME' record linked to first 'CNAME' record dependsOn."
+        Expect.contains secondDependsOn "[resourceId('Microsoft.Network/dnsZones', 'farmer.com')]" "Missing dependency on zone"
+        Expect.contains secondDependsOn "[resourceId('Microsoft.Network/dnsZones/CNAME', 'farmer.com/first')]" "Missing dependency on first 'CNAME' record"
+    }
 ]

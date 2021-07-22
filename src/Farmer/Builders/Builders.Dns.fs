@@ -10,13 +10,15 @@ open DnsRecords
 
 type DnsZoneRecordConfig =
     { Name : ResourceName
+      Dependencies : Set<ResourceId>
       Type : DnsRecordType
       TTL : int
       Zone : LinkedResource option }
-    static member Create(name, ttl, zone, recordType) =
+    static member Create(name, ttl, zone, recordType, ?dependencies:Set<ResourceId>) =
         { Name =
               if name = ResourceName.Empty then failwith "You must set a DNS zone name"
               name
+          Dependencies = dependencies |> Option.defaultValue Set.empty
           TTL =
               match ttl with
               | Some ttl -> ttl
@@ -34,13 +36,14 @@ type DnsZoneRecordConfig =
             | Some zone ->
                 [
                     { DnsRecord.Name = this.Name
+                      Dependencies = this.Dependencies
                       Zone = zone
                       TTL = this.TTL
                       Type = this.Type }
                 ]
             | None -> failwith "DNS record must be linked to a zone."
 
-type CNameRecordProperties =  { Name: ResourceName; CName : string option; TTL: int option; Zone: LinkedResource option; TargetResource: ResourceName option }
+type CNameRecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; CName : string option; TTL: int option; Zone: LinkedResource option; TargetResource: ResourceName option }
 type ARecordProperties =  { Name: ResourceName; Ipv4Addresses : string list; TTL: int option; Zone: LinkedResource option; TargetResource: ResourceName option  }
 type AaaaRecordProperties =  { Name: ResourceName; Ipv6Addresses : string list; TTL: int option; Zone: LinkedResource option; TargetResource: ResourceName option }
 type NsRecordProperties =  { Name: ResourceName; NsdNames : string list; TTL: int option; Zone: LinkedResource option }
@@ -61,8 +64,8 @@ type SoaRecordProperties =
       Zone: LinkedResource option }
 
 type DnsCNameRecordBuilder() =
-    member _.Yield _ = { CNameRecordProperties.CName = None; Name = ResourceName.Empty; TTL = None; Zone = None; TargetResource = None }
-    member _.Run(state : CNameRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, CName(state.TargetResource, state.CName))
+    member _.Yield _ = { CNameRecordProperties.CName = None; Name = ResourceName.Empty; Dependencies = Set.empty; TTL = None; Zone = None; TargetResource = None }
+    member _.Run(state : CNameRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, CName(state.TargetResource, state.CName), state.Dependencies)
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
@@ -81,10 +84,18 @@ type DnsCNameRecordBuilder() =
     [<CustomOperation "target_resource">]
     member _.RecordTargetResource(state:CNameRecordProperties, targetResource) = { state with TargetResource = Some targetResource }
 
-    /// Builds a record for an existing DNS zone.
+    /// Builds a record for an existing DNS zone that is not managed by this Farmer deployment.
     [<CustomOperation "link_to_unmanaged_dns_zone">]
-    member _.LinkToDnsZone(state:CNameRecordProperties, zone:ResourceId) = { state with Zone = Some (Unmanaged zone) }
+    member _.LinkToUnmanagedDnsZone(state:CNameRecordProperties, zone:ResourceId) = { state with Zone = Some (Unmanaged zone) }
 
+    /// Builds a record for an existing DNS zone that is managed by this Farmer deployment.
+    [<CustomOperation "link_to_dns_zone">]
+    member _.LinkToDnsZone(state:CNameRecordProperties, zone:ResourceId) = { state with Zone = Some (Managed zone) }
+    member _.LinkToDnsZone(state:CNameRecordProperties, zone:IArmResource) = { state with Zone = Some (Managed zone.ResourceId) }
+    member _.LinkToDnsZone(state:CNameRecordProperties, zone:IBuilder) = { state with Zone = Some (Managed zone.ResourceId) }
+    /// Enable support for additional dependencies.
+    interface IDependable<CNameRecordProperties> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
+    
 type DnsARecordBuilder() =
     member _.Yield _ = { ARecordProperties.Ipv4Addresses = []; Name = ResourceName "@"; TTL = None; Zone = None; TargetResource = None }
     member _.Run(state : ARecordProperties)  = DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, A(state.TargetResource, state.Ipv4Addresses))
@@ -325,6 +336,7 @@ type DnsZoneConfig =
 
             for record in this.Records do
                 { DnsRecord.Name = record.Name
+                  Dependencies = record.Dependencies
                   Zone = Managed (zones.resourceId this.Name)
                   TTL = record.TTL
                   Type = record.Type }
