@@ -4,6 +4,7 @@ Release Notes
 ## 1.6.7
 * Container Groups: Reference Azure container registry credentials.
 * DNS Zone: Support for adding records to existing zones.
+* DNS Zone: zone and record 'depends_on' support.
 
 ## 1.6.6
 * Azure Firewall: Support for 'link_to_firewall_policy' to link to a builder as well as a resource.
