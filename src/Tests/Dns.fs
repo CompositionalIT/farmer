@@ -126,8 +126,8 @@ let tests = testList "DNS Zone" [
             { ResourceId.Type = ResourceType ("Microsoft.Network/dnsZones/A", "2018-05-01")
               ResourceGroup = None
               Subscription = None
-              Name = ResourceName "farmer.com/arm"
-              Segments = [] }
+              Name = ResourceName "farmer.com"
+              Segments = [ ResourceName "arm" ] }
         Expect.equal template.Resources.[0].ResourceId expectedARecordType "Incorrect resourceId generated from standalone record builder"
     }
     test "DNS zone depends_on emits 'dependsOn'" {
