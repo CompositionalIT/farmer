@@ -1,5 +1,7 @@
 Release Notes
 =============
+## vNext
+* Refactored Web App and Functions builders to simplify adding new common properties
 
 ## 1.6.7
 * Container Groups: Reference Azure container registry credentials.
