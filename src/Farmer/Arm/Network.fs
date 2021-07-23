@@ -255,7 +255,6 @@ type NetworkInterface =
         {| SubnetName : ResourceName
            PublicIpAddress : LinkedResource option |} list
       VirtualNetwork : ResourceName
-      Dependencies : ResourceId Set
       NetworkSecurityGroup: ResourceId option
       PrivateIpAllocation: PrivateIpAddress.AllocationMethod option
       Tags: Map<string,string>  }
@@ -269,6 +268,7 @@ type NetworkInterface =
                     | Some ipName ->
                         ipName.ResourceId
                     | _ -> ()
+                if this.NetworkSecurityGroup.IsSome then this.NetworkSecurityGroup.Value
             ]
             let props = 
                     {| ipConfigurations =

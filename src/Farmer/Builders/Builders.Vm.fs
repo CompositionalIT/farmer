@@ -99,7 +99,6 @@ type VmConfig =
                         |> Option.map (fun x -> x.toLinkedResource this) |} ]
               VirtualNetwork = vnetName
               PrivateIpAllocation = this.PrivateIpAllocation
-              Dependencies = match nsgId with | None -> Set.empty | Some nsg -> set [nsg]
               NetworkSecurityGroup = nsgId
               Tags = this.Tags }
 
