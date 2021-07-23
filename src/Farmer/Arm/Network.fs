@@ -255,6 +255,8 @@ type NetworkInterface =
         {| SubnetName : ResourceName
            PublicIpAddress : LinkedResource option |} list
       VirtualNetwork : ResourceName
+      Dependencies : ResourceId Set
+      NetworkSecurityGroup: ResourceId option
       PrivateIpAllocation: PrivateIpAddress.AllocationMethod option
       Tags: Map<string,string>  }
     interface IArmResource with
@@ -268,8 +270,7 @@ type NetworkInterface =
                         ipName.ResourceId
                     | _ -> ()
             ]
-            {| networkInterfaces.Create(this.Name, this.Location, dependsOn, this.Tags) with
-                properties =
+            let props = 
                     {| ipConfigurations =
                         this.IpConfigs
                         |> List.mapi(fun index ipConfig ->
@@ -289,7 +290,16 @@ type NetworkInterface =
                                 |}
                             |})
                     |}
-            |} :> _
+            match this.NetworkSecurityGroup with
+            | None -> 
+                {| networkInterfaces.Create(this.Name, this.Location, dependsOn, this.Tags) with
+                    properties = props
+                |} :> _
+            | Some nsg -> 
+                {| networkInterfaces.Create(this.Name, this.Location, dependsOn, this.Tags) with
+                    properties = {| props with networkSecurityGroup = {| id = nsg.Eval() |} |}
+                |} :> _
+                
 
 type NetworkProfile =
     { Name : ResourceName

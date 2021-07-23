@@ -41,8 +41,8 @@ type VmConfig =
       PublicIp: ResourceRef<VmConfig> option
       IpAllocation: PublicIpAddress.AllocationMethod option
       PrivateIpAllocation: PrivateIpAddress.AllocationMethod option
-
       Identity : Identity.ManagedIdentity
+      NetworkSecurityGroup: NsgConfig option
 
       Tags: Map<string,string> }
 
@@ -87,6 +87,7 @@ type VmConfig =
 
             let vnetName = this.VNet.resourceId(this).Name
             let subnetName = this.Subnet.resourceId this
+            let nsgId = this.NetworkSecurityGroup |> Option.map(fun nsg -> (nsg:> IBuilder).ResourceId)
 
             // NIC
             { Name = this.NicName.Name
@@ -98,6 +99,8 @@ type VmConfig =
                         |> Option.map (fun x -> x.toLinkedResource this) |} ]
               VirtualNetwork = vnetName
               PrivateIpAllocation = this.PrivateIpAllocation
+              Dependencies = match nsgId with | None -> Set.empty | Some nsg -> set [nsg]
+              NetworkSecurityGroup = nsgId
               Tags = this.Tags }
 
             // VNET
@@ -192,6 +195,7 @@ type VirtualMachineBuilder() =
           PublicIp = automaticPublicIp
           IpAllocation = None
           PrivateIpAllocation = None
+          NetworkSecurityGroup = None
           Tags = Map.empty }
 
     member __.Run (state:VmConfig) =
@@ -301,6 +305,9 @@ type VirtualMachineBuilder() =
     member _.PrivateIpAllocation(state: VmConfig, ref: PrivateIpAddress.AllocationMethod Option) = { state with PrivateIpAllocation = ref}
     member _.PrivateIpAllocation(state: VmConfig, ref: PrivateIpAddress.AllocationMethod) = { state with PrivateIpAllocation = Some ref}
 
-
+    [<CustomOperation "network_security_group">]
+    /// IP allocation method
+    member _.Nsg(state: VmConfig, ref: NsgConfig Option) = { state with NetworkSecurityGroup = ref}
+    member _.Nsg(state: VmConfig, ref: NsgConfig) = { state with NetworkSecurityGroup = Some ref}
 
 let vm = VirtualMachineBuilder()

@@ -45,6 +45,7 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 |add_identity|Adds a managed identity to the the AKS cluster.|
 |system_identity|Activates the system identity of the AKS cluster.|
 |private_ip_allocation| Sets the private ip as Dynamic or Static default is dynamic.|
+|network_security_group| Sets the Network Security Group (NSG) for VM/NIC. Enables you to create and share firewall rule sets.|
 
 #### Configuration Members
 
