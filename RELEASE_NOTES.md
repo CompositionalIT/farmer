@@ -2,6 +2,7 @@ Release Notes
 =============
 ## vNext
 * Refactored Web App and Functions builders to simplify adding new common properties
+* Support for adding Network Security Group (NSG) to Virtual Machine (VM)
 
 ## 1.6.7
 * Container Groups: Reference Azure container registry credentials.
