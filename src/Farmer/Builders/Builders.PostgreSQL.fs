@@ -278,6 +278,15 @@ type PostgreSQLBuilder() =
                    Start = IPAddress.Parse startRange
                    End = IPAddress.Parse endRange |}
                 :: state.FirewallRules }
+    /// Adds a custom firewall rules given a name, start and end IP address range.
+    [<CustomOperation "add_firewall_rules">]
+    member _.AddFirewallRules(state:PostgreSQLConfig, listOfRules:(string*string*string) list) =
+        let newRules =
+            listOfRules |> List.map(fun (name, startRange, endRange) ->
+                {| Name = ResourceName name
+                   Start = IPAddress.Parse startRange
+                   End = IPAddress.Parse endRange |})
+        { state with FirewallRules = newRules @ state.FirewallRules }
 
     /// Adds a firewall rule that enables access to other Azure services.
     [<CustomOperation "enable_azure_firewall">]
