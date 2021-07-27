@@ -42,7 +42,7 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 |disable_password_authentication|Disables password authentication on the VM. Must include at least one key if true|
 |add_authorized_key|adds one authorized key|
 |add_authorized_keys|adds a list of authorized keys|
-|add_identity|Adds a managed identity to the the Virtual Machine.|
+|add_identity|Adds a managed identity to the Virtual Machine.|
 |system_identity|Activates the system identity of the Virtual Machine.|
 |private_ip_allocation| Sets the private ip as Dynamic or Static default is dynamic.|
 
