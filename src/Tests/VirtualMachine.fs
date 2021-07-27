@@ -191,11 +191,13 @@ let tests = testList "Virtual Machine" [
     }
 
     test "Can attach to NSG" {
+        let vmName = "fooVm"
         let myNsg = nsg { name "testNsg" }
-        let myVm = vm { name "fooVm"; username "foo"; network_security_group myNsg }
+        let myVm = vm { name vmName; username "foo"; network_security_group myNsg }
         let deployment = arm { add_resources [ myNsg; myVm ] }
         let json = deployment.Template |> Writer.toJson
-        Expect.isNonEmpty json "NSG found"
-        //System.IO.File.WriteAllText(@"c:\temp\nsg.json", json)
+        let jobj = Newtonsoft.Json.Linq.JObject.Parse json
+        let vmNsgId = jobj.SelectToken($"resources[?(@.name=='{vmName}-nic')].properties.networkSecurityGroup.id").ToString()
+        Expect.isFalse (String.IsNullOrEmpty vmNsgId) "NSG not attached"
     }
 ]

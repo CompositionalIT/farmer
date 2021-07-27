@@ -306,7 +306,6 @@ type VirtualMachineBuilder() =
 
     [<CustomOperation "network_security_group">]
     /// IP allocation method
-    member _.Nsg(state: VmConfig, ref: NsgConfig Option) = { state with NetworkSecurityGroup = ref}
     member _.Nsg(state: VmConfig, ref: NsgConfig) = { state with NetworkSecurityGroup = Some ref}
 
 let vm = VirtualMachineBuilder()
