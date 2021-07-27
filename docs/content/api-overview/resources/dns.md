@@ -45,6 +45,7 @@ The following items are currently unsupported:
 | Keyword | Purpose |
 |-|-|
 | name | Sets the name of the domain. |
+| depends_on | Deploy this DNS zone after another resource is successfully deployed. |
 | zone_type | Sets the zone type. |
 | add_records | Adds DNS Zone records (see below). |
 
@@ -53,7 +54,9 @@ Each Record type has its own custom builder. All builders share the following co
 | Keyword | Purpose |
 |-|-|
 | name | Sets the name of the record set (default to `@`). |
+| depends_on | Deploy this DNS record after another resource is successfully deployed. |
 | ttl | Sets the time-to-live of the record set. |
+| link_to_dns_zone | Add the record to a DNS zone in the same deployment. |
 | link_to_unmanaged_dns_zone | Add the record to an existing DNS zone. |
 
 In addition, each record builder has its own custom keywords:
