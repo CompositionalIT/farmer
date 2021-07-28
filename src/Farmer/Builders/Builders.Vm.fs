@@ -42,7 +42,7 @@ type VmConfig =
       IpAllocation: PublicIpAddress.AllocationMethod option
       PrivateIpAllocation: PrivateIpAddress.AllocationMethod option
       Identity : Identity.ManagedIdentity
-      NetworkSecurityGroup: NsgConfig option
+      NetworkSecurityGroup: LinkedResource option
 
       Tags: Map<string,string> }
 
@@ -87,7 +87,7 @@ type VmConfig =
 
             let vnetName = this.VNet.resourceId(this).Name
             let subnetName = this.Subnet.resourceId this
-            let nsgId = this.NetworkSecurityGroup |> Option.map(fun nsg -> (nsg:> IBuilder).ResourceId)
+            let nsgId = this.NetworkSecurityGroup |> Option.map(fun nsg -> nsg.ResourceId)
 
             // NIC
             { Name = this.NicName.Name
@@ -304,8 +304,22 @@ type VirtualMachineBuilder() =
     member _.PrivateIpAllocation(state: VmConfig, ref: PrivateIpAddress.AllocationMethod Option) = { state with PrivateIpAllocation = ref}
     member _.PrivateIpAllocation(state: VmConfig, ref: PrivateIpAddress.AllocationMethod) = { state with PrivateIpAllocation = Some ref}
 
+    /// Sets the network security group
     [<CustomOperation "network_security_group">]
-    /// IP allocation method
-    member _.Nsg(state: VmConfig, ref: NsgConfig) = { state with NetworkSecurityGroup = Some ref}
+    member _.NetworkSecurityGroup(state:VmConfig, nsg:IArmResource) =
+        { state with NetworkSecurityGroup = Some (Managed nsg.ResourceId) }
+    member _.NetworkSecurityGroup(state:VmConfig, nsg:ResourceId) =
+        { state with NetworkSecurityGroup = Some (Managed nsg) }
+    member _.NetworkSecurityGroup(state:VmConfig, nsg:NsgConfig) =
+        { state with NetworkSecurityGroup = Some (Managed (nsg :> IBuilder).ResourceId) }
+    /// Links the VM to an existing network security group.
+    [<CustomOperation "link_to_network_security_group">]
+    member _.LinkToNetworkSecurityGroup(state:VmConfig, nsg:IArmResource) =
+        { state with NetworkSecurityGroup = Some (Unmanaged (nsg.ResourceId)) }
+    member _.LinkToNetworkSecurityGroup(state:VmConfig, nsg:ResourceId) =
+        { state with NetworkSecurityGroup = Some (Unmanaged nsg) }
+    member _.LinkToNetworkSecurityGroup(state:VmConfig, nsg:NsgConfig) =
+        { state with NetworkSecurityGroup = Some (Unmanaged (nsg :> IBuilder).ResourceId) }
+
 
 let vm = VirtualMachineBuilder()

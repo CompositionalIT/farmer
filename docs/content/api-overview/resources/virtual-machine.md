@@ -46,6 +46,7 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 |system_identity|Activates the system identity of the Virtual Machine.|
 |private_ip_allocation| Sets the private ip as Dynamic or Static default is dynamic.|
 |network_security_group| Sets the Network Security Group (NSG) for VM/NIC. Enables you to create and share firewall rule sets.|
+|link_to_network_security_group| Specify an existing Network Security Group (NSG) for VM/NIC.             |
 
 #### Configuration Members
 
