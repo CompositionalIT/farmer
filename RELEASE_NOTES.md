@@ -1,12 +1,15 @@
 Release Notes
 =============
-## vNext
-* Refactored Web App and Functions builders to simplify adding new common properties
+
+## 1.6.8
+* SQL Azure and Postgres: `add_firewall_rules` to take list of rules
 
 ## 1.6.7
 * Container Groups: Reference Azure container registry credentials.
 * DNS Zone: Support for adding records to existing zones.
-* SQL Azure and Postgres: add_firewall_rules to take list of rules
+* DNS Zone: zone and record 'depends_on' support.
+* DNS Zone: DNS record 'target_resource' fix to emit correct resource Id.
+* Web App, Functions: Refactored Web App and Functions builders to simplify adding new common properties
 
 ## 1.6.6
 * Azure Firewall: Support for 'link_to_firewall_policy' to link to a builder as well as a resource.
