@@ -30,31 +30,33 @@ type DnsRecordType with
 
 type DnsZone =
     { Name : ResourceName
+      Dependencies : Set<ResourceId>
       Properties : {| ZoneType : string |} }
 
     interface IArmResource with
         member this.ResourceId = zones.resourceId this.Name
         member this.JsonModel =
-            {| zones.Create(this.Name, Location.Global) with
+            {| zones.Create(this.Name, Location.Global, this.Dependencies) with
                 properties = {| zoneType = this.Properties.ZoneType |}
             |} :> _
 
 module DnsRecords =
     type DnsRecord =
         { Name : ResourceName
+          Dependencies : Set<ResourceId>
           Zone : LinkedResource
           Type : DnsRecordType
           TTL : int }
         /// Includes the DnsZone if deployed in the same template (Managed).
-        member this.Dependencies =
+        member private this.dependsOn =
             match this.Zone with
-            | Managed id -> [ id ]
-            | Unmanaged _ -> []
+            | Managed id -> this.Dependencies |> Set.add id
+            | Unmanaged _ -> this.Dependencies
         interface IArmResource with
-            member this.ResourceId = this.Type.ResourceType.resourceId (this.Zone.Name/this.Name)
+            member this.ResourceId = this.Type.ResourceType.resourceId (this.Zone.Name, this.Name)
 
             member this.JsonModel =
-                {| this.Type.ResourceType.Create(this.Zone.Name/this.Name, dependsOn = this.Dependencies) with
+                {| this.Type.ResourceType.Create(this.Zone.Name/this.Name, dependsOn = this.dependsOn) with
                     properties = [
                         "TTL", box this.TTL
 
@@ -62,7 +64,7 @@ module DnsRecords =
                         | A (Some targetResource, _)
                         | CName (Some targetResource, _)
                         | AAAA (Some targetResource, _)  ->
-                            "targetResource", box {| id = targetResource.Value |}
+                            "targetResource", box {| id = targetResource.ArmExpression.Eval() |}
                         | _ ->
                             ()
 
