@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.6.8
+* SQL Azure and Postgres: `add_firewall_rules` to take list of rules
+
 ## 1.6.7
 * Container Groups: Reference Azure container registry credentials.
 * DNS Zone: Support for adding records to existing zones.
