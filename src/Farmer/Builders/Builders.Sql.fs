@@ -190,6 +190,15 @@ type SqlServerBuilder() =
                    Start = makeIp startRange
                    End = makeIp endRange |}
                 :: state.FirewallRules }
+    /// Adds a firewall rules that enables access to a specific IP Address range.
+    [<CustomOperation "add_firewall_rules">]
+    member __.AddFirewallRules(state:SqlAzureConfig, listOfRules:(string*string*string) list) =
+        let newRules =
+            listOfRules |> List.map(fun (name, startRange, endRange) ->
+                {| Name = ResourceName name
+                   Start = makeIp startRange
+                   End = makeIp endRange |})
+        { state with FirewallRules = newRules @ state.FirewallRules }
     /// Adds a firewall rule that enables access to other Azure services.
     [<CustomOperation "enable_azure_firewall">]
     member this.UseAzureFirewall(state:SqlAzureConfig) =

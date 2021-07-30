@@ -45,10 +45,12 @@ type SubnetDelegation =
 type Subnet =
     { Name : ResourceName
       Prefix : string
+      NetworkSecurityGroup : LinkedResource option
       Delegations : SubnetDelegation list
       ServiceEndpoints : (Network.EndpointServiceType * Location list) list
       AssociatedServiceEndpointPolicies : ResourceId list 
-      PrivateEndpointNetworkPolicies: FeatureFlag option }
+      PrivateEndpointNetworkPolicies: FeatureFlag option
+      PrivateLinkServiceNetworkPolicies: FeatureFlag option }
 
 type VirtualNetwork =
     { Name : ResourceName
@@ -59,7 +61,14 @@ type VirtualNetwork =
     interface IArmResource with
         member this.ResourceId = virtualNetworks.resourceId this.Name
         member this.JsonModel =
-            {| virtualNetworks.Create(this.Name, this.Location, tags = this.Tags) with
+            let dependencies =
+                seq {
+                    for subnet in this.Subnets do
+                        match subnet.NetworkSecurityGroup with
+                        | Some (Managed id) -> id
+                        | _ -> ()
+                } |> Set
+            {| virtualNetworks.Create(this.Name, this.Location, dependsOn=dependencies, tags = this.Tags) with
                 properties =
                     {| addressSpace = {| addressPrefixes = this.AddressSpacePrefixes |}
                        subnets =
@@ -68,6 +77,10 @@ type VirtualNetwork =
                             {| name = subnet.Name.Value
                                properties =
                                 {| addressPrefix = subnet.Prefix
+                                   networkSecurityGroup = 
+                                       subnet.NetworkSecurityGroup
+                                       |> Option.map(fun nsg -> {| id = nsg.ResourceId.ArmExpression.Eval() |}) 
+                                       |> Option.defaultValue Unchecked.defaultof<_> 
                                    delegations =
                                        subnet.Delegations
                                        |> List.map (fun delegation ->
@@ -89,6 +102,7 @@ type VirtualNetwork =
                                            subnet.AssociatedServiceEndpointPolicies
                                            |> List.map (fun policyId -> {| id = policyId.ArmExpression.Eval() |})
                                    privateEndpointNetworkPolicies = subnet.PrivateEndpointNetworkPolicies |> Option.map (fun x->x.ArmValue) |> Option.defaultValue Unchecked.defaultof<_>
+                                   privateLinkServiceNetworkPolicies = subnet.PrivateLinkServiceNetworkPolicies |> Option.map (fun x->x.ArmValue) |> Option.defaultValue Unchecked.defaultof<_>
                                 |}
                             |})
                     |}
@@ -241,6 +255,7 @@ type NetworkInterface =
         {| SubnetName : ResourceName
            PublicIpAddress : LinkedResource option |} list
       VirtualNetwork : ResourceName
+      PrivateIpAllocation: PrivateIpAddress.AllocationMethod option
       Tags: Map<string,string>  }
     interface IArmResource with
         member this.ResourceId = networkInterfaces.resourceId this.Name
@@ -260,7 +275,12 @@ type NetworkInterface =
                         |> List.mapi(fun index ipConfig ->
                             {| name = $"ipconfig{index + 1}"
                                properties =
-                                {| privateIPAllocationMethod = "Dynamic"
+                                let allocationMethod, ip = 
+                                    match this.PrivateIpAllocation with 
+                                    | Some (StaticPrivateIp ip) -> "Static", string ip
+                                    | _ -> "Dynamic", null
+                                {| privateIPAllocationMethod = allocationMethod
+                                   privateIPAddress = ip
                                    publicIPAddress = 
                                        ipConfig.PublicIpAddress 
                                        |> Option.map(fun pip -> {| id = pip.ResourceId.ArmExpression.Eval() |}) 

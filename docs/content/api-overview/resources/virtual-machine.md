@@ -42,8 +42,9 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 |disable_password_authentication|Disables password authentication on the VM. Must include at least one key if true|
 |add_authorized_key|adds one authorized key|
 |add_authorized_keys|adds a list of authorized keys|
-|add_identity|Adds a managed identity to the the AKS cluster.|
-|system_identity|Activates the system identity of the AKS cluster.|
+|add_identity|Adds a managed identity to the Virtual Machine.|
+|system_identity|Activates the system identity of the Virtual Machine.|
+|private_ip_allocation| Sets the private ip as Dynamic or Static default is dynamic.|
 
 #### Configuration Members
 
@@ -75,5 +76,6 @@ let myVm = vm {
     disable_password_authentication true
     add_authorized_key "fooPath" "fooKey"
     add_authorized_keys [("fooPath", "fooKey");("fooPath1", "fooKey1")]
+    private_ip_allocation (PrivateIpAddress.StaticPrivateIp (Net.IPAddress.Parse("10.0.0.10")))
 }
 ```

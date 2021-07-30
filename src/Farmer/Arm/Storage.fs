@@ -71,7 +71,7 @@ type StorageAccount =
       EnableHierarchicalNamespace : bool option
       NetworkAcls : NetworkRuleSet option
       StaticWebsite : {| IndexPage : string; ErrorPage : string option; ContentPath : string |} option
-      MinTlsVersion : TlsVersion option 
+      MinTlsVersion : TlsVersion option
       Tags: Map<string,string> }
     interface IArmResource with
         member this.ResourceId = storageAccounts.resourceId this.Name.ResourceName
@@ -130,7 +130,7 @@ type StorageAccount =
                                          action=rule.Action.ArmValue |})
                               defaultAction = networkRuleSet.DefaultAction.ArmValue |})
                            |> Option.defaultValue Unchecked.defaultof<_>
-                       minimumTlsVersion = 
+                       minimumTlsVersion =
                         match this.MinTlsVersion with
                         | Some Tls10 -> "TLS1_0"
                         | Some Tls11 -> "TLS1_1"
@@ -165,27 +165,74 @@ module Extensions =
 type StorageService =
     { StorageAccount : StorageResourceName
       CorsRules : CorsRule list
+      Policies : Policy list
+      IsVersioningEnabled : bool
       ResourceType : ResourceType }
     interface IArmResource with
         member this.ResourceId =
             this.ResourceType.resourceId (this.StorageAccount.ResourceName/"default")
         member this.JsonModel =
+            let resolvePolicy (pol: Policy) =
+                match pol with
+                | DeleteRetention p
+                | Restore p
+                | ContainerDeleteRetention p ->
+                    {|  enabled = p.Enabled
+                        days = p.Days |}
+                    |> box
+                | ChangeFeed p ->
+                    {|  enabled = p.Enabled
+                        retentionInDays = p.RetentionInDays |}
+                    |> box
+                | LastAccessTimeTracking p ->
+                    {|  enable = p.Enabled
+                        name = "AccessTimeTracking"
+                        trackingGranularityInDays = p.TrackingGranularityInDays
+                        blobType = [| "blockBlob" |] |}
+                    |> box
             {| this.ResourceType.Create(this.StorageAccount.ResourceName/"default", dependsOn = [ storageAccounts.resourceId this.StorageAccount.ResourceName ]) with
                 properties =
-                    {| cors =
-                        {| corsRules =
-                            [
-                                for rule in this.CorsRules do
-                                    {| allowedOrigins = rule.AllowedOrigins.Emit (fun r -> r.AbsoluteUri)
-                                       allowedMethods = [
-                                           for httpMethod in rule.AllowedMethods.Value do
-                                               httpMethod.ArmValue
-                                       ]
-                                       maxAgeInSeconds = rule.MaxAgeInSeconds
-                                       exposedHeaders = rule.ExposedHeaders.Emit id
-                                       allowedHeaders = rule.AllowedHeaders.Emit id |}
-                            ]
-                        |}
+                    {|
+                        cors =
+                            {| corsRules =
+                                [
+                                    for rule in this.CorsRules do
+                                        {| allowedOrigins = rule.AllowedOrigins.Emit (fun r -> r.AbsoluteUri)
+                                           allowedMethods = [
+                                               for httpMethod in rule.AllowedMethods.Value do
+                                                   httpMethod.ArmValue
+                                           ]
+                                           maxAgeInSeconds = rule.MaxAgeInSeconds
+                                           exposedHeaders = rule.ExposedHeaders.Emit id
+                                           allowedHeaders = rule.AllowedHeaders.Emit id |}
+                                ]
+                            |}
+                        IsVersioningEnabled = this.IsVersioningEnabled
+                        deleteRetentionPolicy =
+                            this.Policies
+                            |> List.tryFind (function | DeleteRetention _ -> true | _ -> false)
+                            |> Option.map resolvePolicy
+                            |> Option.defaultValue null
+                        restorePolicy =
+                            this.Policies
+                            |> List.tryFind (function | Restore _ -> true | _ -> false)
+                            |> Option.map resolvePolicy
+                            |> Option.defaultValue null
+                        containerDeleteRetentionPolicy =
+                            this.Policies
+                            |> List.tryFind (function | ContainerDeleteRetention _ -> true | _ -> false)
+                            |> Option.map resolvePolicy
+                            |> Option.defaultValue null
+                        lastAccessTimeTrackingPolicy =
+                            this.Policies
+                            |> List.tryFind (function | LastAccessTimeTracking _ -> true | _ -> false)
+                            |> Option.map resolvePolicy
+                            |> Option.defaultValue null
+                        changeFeed =
+                            this.Policies
+                            |> List.tryFind (function | ChangeFeed _ -> true | _ -> false)
+                            |> Option.map resolvePolicy
+                            |> Option.defaultValue null
                     |}
             |} :> _
 

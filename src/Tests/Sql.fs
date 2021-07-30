@@ -121,6 +121,19 @@ let tests = testList "SQL Server" [
         Expect.equal model.EndIpAddress "255.255.255.255" "Incorrect end IP"
     }
 
+    test "SQL Firewall is correctly configured with list" {
+        let sql =
+            sqlServer {
+                name "server"
+                admin_username "isaac"
+                add_firewall_rules [ "Rule", "0.0.0.0", "255.255.255.255" ]
+                add_databases [ sqlDb { name "db" } ]
+            }
+        let model : Models.FirewallRule = sql |> getResourceAtIndex client.SerializationSettings 2
+        Expect.equal model.StartIpAddress "0.0.0.0" "Incorrect start IP"
+        Expect.equal model.EndIpAddress "255.255.255.255" "Incorrect end IP"
+    }
+
     test "Validation occurs on account name" {
         let check (v:string) m = Expect.equal (SqlAccountName.Create v) (Error ("SQL account names " + m))
 

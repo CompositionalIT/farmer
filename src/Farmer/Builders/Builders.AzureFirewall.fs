@@ -65,6 +65,8 @@ type AzureFirewallBuilder() =
     [<CustomOperation "link_to_firewall_policy">]
     member this.LinkToFirewallPolicy (state:AzureFirewallConfig, firewallPolicy:IArmResource) =
         { state with FirewallPolicy = Some (Managed firewallPolicy.ResourceId) }
+    member this.LinkToFirewallPolicy (state:AzureFirewallConfig, firewallPolicy:IBuilder) =
+        { state with FirewallPolicy = Some (Managed firewallPolicy.ResourceId) }
     /// The unmanaged virtualHub to which the firewall belongs. 
     [<CustomOperation "link_to_unmanaged_vhub">]
     member this.LinkToUnmanagedVirtualHub (state:AzureFirewallConfig, resourceId) =

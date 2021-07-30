@@ -155,7 +155,7 @@ let tests = testList "Web App Tests" [
 
         Expect.sequenceEqual kv.Dependencies [ ResourceId.create(sites, site.Name) ] "Key Vault dependencies are wrong"
         Expect.equal kv.Name (ResourceName (site.Name.Value + "vault")) "Key Vault name is wrong"
-        Expect.equal wa.Identity.SystemAssigned Enabled "System Identity should be turned on"
+        Expect.equal wa.CommonWebConfig.Identity.SystemAssigned Enabled "System Identity should be turned on"
         Expect.equal kv.AccessPolicies.[0].ObjectId wa.SystemIdentity.PrincipalId.ArmExpression "Policy is incorrect"
 
         Expect.hasLength secrets 2 "Incorrect number of KV secrets"
@@ -189,7 +189,7 @@ let tests = testList "Web App Tests" [
         Expect.equal site.Identity.SystemAssigned Enabled "System Identity should be enabled"
         Expect.containsAll site.AppSettings expectedSettings "Incorrect settings"
 
-        Expect.equal wa.Identity.SystemAssigned Enabled "System Identity should be turned on"
+        Expect.equal wa.CommonWebConfig.Identity.SystemAssigned Enabled "System Identity should be turned on"
 
         Expect.hasLength secrets 2 "Incorrect number of KV secrets"
 
@@ -287,7 +287,7 @@ let tests = testList "Web App Tests" [
 
     test "Supports always on" {
         let template = webApp { name "web"; always_on }
-        Expect.equal template.AlwaysOn true "AlwaysOn should be true"
+        Expect.equal template.CommonWebConfig.AlwaysOn true "AlwaysOn should be true"
 
         let w:Site = webApp { name "testDefault" } |> getResourceAtIndex 3
         Expect.equal w.SiteConfig.AlwaysOn (Nullable false) "always on should be false by default"
@@ -313,7 +313,7 @@ let tests = testList "Web App Tests" [
     test "WebApp supports adding slots" {
         let slot = appSlot { name "warm-up" }
         let site:WebAppConfig = webApp { add_slot slot }
-        Expect.isTrue (site.Slots.ContainsKey "warm-up") "Config should contain slot"
+        Expect.isTrue (site.CommonWebConfig.Slots.ContainsKey "warm-up") "Config should contain slot"
 
         let slots = 
             site 
@@ -329,7 +329,7 @@ let tests = testList "Web App Tests" [
         let site:WebAppConfig = webApp { 
             add_slot slot
         }
-        Expect.isTrue (site.Slots.ContainsKey "warm-up") "Config should contain slot"
+        Expect.isTrue (site.CommonWebConfig.Slots.ContainsKey "warm-up") "Config should contain slot"
 
         let slots = 
             site 
@@ -348,7 +348,7 @@ let tests = testList "Web App Tests" [
             add_slot slot 
             setting "setting" "some value"
         }
-        Expect.isTrue (site.Slots.ContainsKey "warm-up") "Config should contain slot"
+        Expect.isTrue (site.CommonWebConfig.Slots.ContainsKey "warm-up") "Config should contain slot"
 
         let slots = 
             site 
@@ -387,7 +387,7 @@ let tests = testList "Web App Tests" [
             website_node_default_version "xxx"
             docker_ci
             docker_use_azure_registry "registry" }
-        Expect.isTrue (site.Slots.ContainsKey "warm-up") "Config should contain slot"
+        Expect.isTrue (site.CommonWebConfig.Slots.ContainsKey "warm-up") "Config should contain slot"
 
         let sites = site |> getResources |> getResource<Arm.Web.Site>
         let slots = sites |> List.filter (fun x-> x.Type = Arm.Web.slots)
@@ -422,7 +422,7 @@ let tests = testList "Web App Tests" [
             add_slot slot 
             setting "appService" "app service value"
         }
-        Expect.isTrue (site.Slots.ContainsKey "warm-up") "Config should contain slot"
+        Expect.isTrue (site.CommonWebConfig.Slots.ContainsKey "warm-up") "Config should contain slot"
 
         let slots = 
             site 
@@ -446,7 +446,7 @@ let tests = testList "Web App Tests" [
             add_slot slot 
             setting "override" "some value"
         }
-        Expect.isTrue (site.Slots.ContainsKey "warm-up") "Config should contain slot"
+        Expect.isTrue (site.CommonWebConfig.Slots.ContainsKey "warm-up") "Config should contain slot"
 
         let slots = 
             site 
@@ -468,7 +468,7 @@ let tests = testList "Web App Tests" [
             add_slot slot 
             connection_string "connection_string"
         }
-        Expect.isTrue (site.Slots.ContainsKey "warm-up") "Config should contain slot"
+        Expect.isTrue (site.CommonWebConfig.Slots.ContainsKey "warm-up") "Config should contain slot"
 
         let slots = 
             site 
@@ -490,7 +490,7 @@ let tests = testList "Web App Tests" [
             add_slot slot 
             connection_string "appService"
         }
-        Expect.isTrue (site.Slots.ContainsKey "warm-up") "Config should contain slot"
+        Expect.isTrue (site.CommonWebConfig.Slots.ContainsKey "warm-up") "Config should contain slot"
 
         let slots = 
             site 
@@ -501,6 +501,33 @@ let tests = testList "Web App Tests" [
         Expect.hasLength slots 1 "Should only be 1 slot"
  
         Expect.equal ((slots.Item 0).ConnectionStrings.Count) 2 "Slot should have two connection strings"
+    }
+    
+    test "WebApp with slots and identity applies identity to slots" {
+        let identity18 = userAssignedIdentity { name "im-18" }
+        let identity21 = userAssignedIdentity { name "im-21" }
+        let slot = appSlot{
+            name "deploy"
+            keyvault_identity identity21
+        }
+        let site:WebAppConfig = webApp { 
+            add_slot slot
+            add_identity identity18
+        }
+        Expect.isTrue (site.CommonWebConfig.Slots.ContainsKey "deploy") "Config should contain slot"
+
+        let slots = 
+            site 
+            |> getResources
+            |> getResource<Arm.Web.Site>
+            |> List.filter (fun x-> x.Type = Arm.Web.slots)
+        // Default "production" slot is not included as it is created automatically in Azure
+        Expect.hasLength slots 1 "Should only be 1 slot"
+ 
+        let theSlot = (slots.[0])
+        Expect.hasLength (theSlot.Identity.UserAssigned) 2 "Slot should have 2 user-assigned identities"
+        Expect.containsAll (theSlot.Identity.UserAssigned) [identity18.UserAssignedIdentity; identity21.UserAssignedIdentity] "Slot should have both user assigned identities"
+        Expect.equal theSlot.KeyVaultReferenceIdentity (Some identity21.UserAssignedIdentity) "Slot should have correct keyvault identity"
     }
     
     test "Supports private endpoints" {
