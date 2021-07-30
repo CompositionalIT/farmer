@@ -225,6 +225,22 @@ let tests = testList "Container Group" [
         Expect.equal credentials.Password "[parameters('my-registry.azurecr.io-password')]" "Container image registry password should be secure parameter"
     }
 
+    test "Container group with reference to private registry" {
+        let group =
+            containerGroup {
+                add_instances [ nginx ]
+                reference_registry_credentials [
+                    // Reference a container registry in a different resource group.
+                    ResourceId.create (Arm.ContainerRegistry.registries, ResourceName "my-registry", "my-reg-group")
+                ]
+            } |> asAzureResource
+        Expect.hasLength group.ImageRegistryCredentials 1 "Expected one image registry credential"
+        let credentials = group.ImageRegistryCredentials.[0]
+        Expect.equal credentials.Server "[reference(resourceId('my-reg-group', 'Microsoft.ContainerRegistry/registries', 'my-registry'), '2019-05-01').loginServer]" "Image registry server should come from 'reference'"
+        Expect.equal credentials.Username "[listCredentials(resourceId('my-reg-group', 'Microsoft.ContainerRegistry/registries', 'my-registry'), '2019-05-01').username]" "mage registry user should come from 'listCredentials'"
+        Expect.equal credentials.Password "[listCredentials(resourceId('my-reg-group', 'Microsoft.ContainerRegistry/registries', 'my-registry'), '2019-05-01').passwords[0].value]" "Image registry password should come from listCredentials"
+    }
+
     test "Container group with system assigned identity" {
         let group =
             containerGroup {

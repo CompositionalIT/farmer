@@ -168,4 +168,36 @@ let tests = testList "Virtual Machine" [
         Expect.equal machine.Identity.Type (Nullable ResourceIdentityType.SystemAssignedUserAssigned) "Should have system identity"
         Expect.sequenceEqual (machine.Identity.UserAssignedIdentities |> Seq.map(fun r -> r.Key)) [ "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test2')]"; "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test')]" ] "Should have two user assigned identities"
     }
+
+    test "PrivateIpAllocation set correctly" {
+        let deployment =
+            arm {
+                add_resources
+                    [ vm { name "foo"; username "foo"; private_ip_allocation (PrivateIpAddress.StaticPrivateIp (Net.IPAddress((int64 0x2414188f)))) } ]
+            }
+        let json = deployment.Template |> Writer.toJson
+        let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+
+        let privateIpProps= jobj.SelectToken("resources[?(@.name=='foo-nic')]").ToString()
+        Expect.isNonEmpty privateIpProps "IP settings not found"
+
+        let methodToken = jobj.SelectToken("resources[?(@.name=='foo-nic')].properties.ipConfigurations[0].properties.privateIPAllocationMethod")
+        let expectedMethodToken = "Static"
+        Expect.equal (methodToken.ToString()) (expectedMethodToken) "Allocation Method is wrong or missing"
+
+        let ipToken = jobj.SelectToken("resources[?(@.name=='foo-nic')].properties.ipConfigurations[0].properties.privateIPAddress").ToString()
+        let expectedIpToken = "143.24.20.36"
+        Expect.equal (ipToken.ToString()) (expectedIpToken) "Static IP is wrong or missing"
+    }
+
+    test "Can attach to NSG" {
+        let vmName = "fooVm"
+        let myNsg = nsg { name "testNsg" }
+        let myVm = vm { name vmName; username "foo"; network_security_group myNsg }
+        let deployment = arm { add_resources [ myNsg; myVm ] }
+        let json = deployment.Template |> Writer.toJson
+        let jobj = Newtonsoft.Json.Linq.JObject.Parse json
+        let vmNsgId = jobj.SelectToken($"resources[?(@.name=='{vmName}-nic')].properties.networkSecurityGroup.id").ToString()
+        Expect.isFalse (String.IsNullOrEmpty vmNsgId) "NSG not attached"
+    }
 ]

@@ -34,6 +34,7 @@ parameter for the admin account password.
 | Server | add_database (name:string) | Adds a database with name of `name` |
 | Server | enable_azure_firewall | Enables firewall access to all Azure services |
 | Server | add_firewall_rule (name:string, start ip:string, end ip:string) | Adds a firewall rule to the server |
+| Server | add_firewall_rules (rules:(string*string*sting)list) | As add_firewall_rule but a list of rules |
 
 #### PostgreSQLDb Builder keywords
 | Applies To | Keyword | Purpose |

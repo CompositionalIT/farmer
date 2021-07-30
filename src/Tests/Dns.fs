@@ -4,9 +4,11 @@ open Expecto
 open Farmer
 open Farmer.Builders
 open System
+open Farmer.Dns
 open Microsoft.Rest
 open Microsoft.Azure.Management.Dns
 open Microsoft.Azure.Management.Dns.Models
+open Newtonsoft.Json.Linq
 
 let client = new DnsManagementClient (Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
 
@@ -104,5 +106,111 @@ let tests = testList "DNS Zone" [
         Expect.equal dnsRecords.[5].Name "farmer.com/txtName" "DNS TXT record name is wrong"
         Expect.sequenceEqual dnsRecords.[5].TxtRecords.[0].Value.[0] "somevalue" "DNS TXT record value is wrong"
         Expect.equal dnsRecords.[5].TTL (Nullable 3600L) "DNS record TTL is wrong"
+    }
+    test "Adding A record to existing zone" {
+        let template =
+            arm {
+                add_resources [
+                    aRecord {
+                        name "arm"
+                        ttl 3600
+                        add_ipv4_addresses [ "10.100.200.28" ]
+                        link_to_unmanaged_dns_zone (Farmer.Arm.Dns.zones.resourceId "farmer.com")
+                    }
+                ]
+            }
+        let jobj = template.Template |> Writer.toJson |> JObject.Parse
+        let dependsOn = jobj.SelectToken("resources[?(@.name=='farmer.com/arm')].dependsOn") :?> JArray
+        Expect.isEmpty dependsOn "DNS 'A' record linked to existing zone dependsOn."
+        let expectedARecordType =
+            { ResourceId.Type = ResourceType ("Microsoft.Network/dnsZones/A", "2018-05-01")
+              ResourceGroup = None
+              Subscription = None
+              Name = ResourceName "farmer.com"
+              Segments = [ ResourceName "arm" ] }
+        Expect.equal template.Resources.[0].ResourceId expectedARecordType "Incorrect resourceId generated from standalone record builder"
+    }
+    test "DNS zone depends_on emits 'dependsOn'" {
+        let zone =
+            dnsZone {
+                name "farmer.com"
+                depends_on (Farmer.Arm.TrafficManager.profiles.resourceId "foo")
+            }
+        let template =
+            arm {
+                add_resources [ zone ]
+            }
+        let jobj = template.Template |> Writer.toJson |> JObject.Parse
+        let zoneDependsOn = jobj.SelectToken("resources[?(@.name=='farmer.com')].dependsOn")
+        Expect.isNotNull zoneDependsOn "Zone missing dependsOn"
+        let zoneDependsOn = zoneDependsOn :?> JArray |> Seq.map string
+        Expect.hasLength zoneDependsOn 1 "Zone should have one dependency"
+        Expect.contains zoneDependsOn "[resourceId('Microsoft.Network/trafficManagerProfiles', 'foo')]" "Missing expected resource dependency"
+    }
+    test "Sequencing DNS record deployment through depends_on" {
+        let zone =
+            dnsZone {
+                name "farmer.com"
+            }
+        let first = 
+            cnameRecord {
+                name "first"
+                link_to_dns_zone zone
+                cname "farmer.com"
+                ttl 3600
+            }
+        let second = 
+            cnameRecord {
+                name "second"
+                link_to_dns_zone zone
+                cname "farmer.com"
+                depends_on first
+                ttl 3600
+            }
+        let template =
+            arm {
+                add_resources [ zone; first; second ]
+            }
+        let jobj = template.Template |> Writer.toJson |> JObject.Parse
+        let firstDependsOn = jobj.SelectToken("resources[?(@.name=='farmer.com/first')].dependsOn") :?> JArray |> Seq.map string
+        Expect.hasLength firstDependsOn 1 "first 'CNAME' record dependsOn zone only."
+        Expect.contains firstDependsOn "[resourceId('Microsoft.Network/dnsZones', 'farmer.com')]" "Missing dependency on zone"
+        let secondDependsOn = jobj.SelectToken("resources[?(@.name=='farmer.com/second')].dependsOn") :?> JArray |> Seq.map string
+        Expect.hasLength secondDependsOn 2 "second 'CNAME' record linked to first 'CNAME' record dependsOn."
+        Expect.contains secondDependsOn "[resourceId('Microsoft.Network/dnsZones', 'farmer.com')]" "Missing dependency on zone"
+        Expect.contains secondDependsOn "[resourceId('Microsoft.Network/dnsZones/CNAME', 'farmer.com', 'first')]" "Missing dependency on first 'CNAME' record"
+    }
+    test "Assigning target_resource on DNS record emits correct resource id" {
+        let zone =
+            dnsZone {
+                name "farmer.com"
+            }
+        let tm = trafficManager {
+            name "my-tm"
+        }
+        let targetA = 
+            aRecord {
+                name "tm-a"
+                link_to_dns_zone zone
+                ttl 60
+                target_resource tm
+            }
+        let targetCname = 
+            cnameRecord {
+                name "tm-cname"
+                link_to_dns_zone zone
+                target_resource tm
+                ttl 60
+                depends_on targetA
+            }
+        let template =
+            arm {
+                add_resources [ zone; tm; targetA; targetCname ]
+            }
+        let jobj = template.Template |> Writer.toJson |> JObject.Parse
+        let tmAresourceId = jobj.SelectToken("resources[?(@.name=='farmer.com/tm-a')].properties.targetResource.id") |> string
+        Expect.equal tmAresourceId "[resourceId('Microsoft.Network/trafficManagerProfiles', 'my-tm')]" "Incorrect ID on target resource"
+        let tmAresourceId = jobj.SelectToken("resources[?(@.name=='farmer.com/tm-cname')].properties.targetResource.id") |> string
+        Expect.equal tmAresourceId "[resourceId('Microsoft.Network/trafficManagerProfiles', 'my-tm')]" "Incorrect ID on target resource"
     }
 ]
