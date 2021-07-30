@@ -189,4 +189,15 @@ let tests = testList "Virtual Machine" [
         let expectedIpToken = "143.24.20.36"
         Expect.equal (ipToken.ToString()) (expectedIpToken) "Static IP is wrong or missing"
     }
+
+    test "Can attach to NSG" {
+        let vmName = "fooVm"
+        let myNsg = nsg { name "testNsg" }
+        let myVm = vm { name vmName; username "foo"; network_security_group myNsg }
+        let deployment = arm { add_resources [ myNsg; myVm ] }
+        let json = deployment.Template |> Writer.toJson
+        let jobj = Newtonsoft.Json.Linq.JObject.Parse json
+        let vmNsgId = jobj.SelectToken($"resources[?(@.name=='{vmName}-nic')].properties.networkSecurityGroup.id").ToString()
+        Expect.isFalse (String.IsNullOrEmpty vmNsgId) "NSG not attached"
+    }
 ]
