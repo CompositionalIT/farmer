@@ -503,6 +503,33 @@ let tests = testList "Web App Tests" [
         Expect.equal ((slots.Item 0).ConnectionStrings.Count) 2 "Slot should have two connection strings"
     }
     
+    test "WebApp with slots and identity applies identity to slots" {
+        let identity18 = userAssignedIdentity { name "im-18" }
+        let identity21 = userAssignedIdentity { name "im-21" }
+        let slot = appSlot{
+            name "deploy"
+            keyvault_identity identity21
+        }
+        let site:WebAppConfig = webApp { 
+            add_slot slot
+            add_identity identity18
+        }
+        Expect.isTrue (site.CommonWebConfig.Slots.ContainsKey "deploy") "Config should contain slot"
+
+        let slots = 
+            site 
+            |> getResources
+            |> getResource<Arm.Web.Site>
+            |> List.filter (fun x-> x.Type = Arm.Web.slots)
+        // Default "production" slot is not included as it is created automatically in Azure
+        Expect.hasLength slots 1 "Should only be 1 slot"
+ 
+        let theSlot = (slots.[0])
+        Expect.hasLength (theSlot.Identity.UserAssigned) 2 "Slot should have 2 user-assigned identities"
+        Expect.containsAll (theSlot.Identity.UserAssigned) [identity18.UserAssignedIdentity; identity21.UserAssignedIdentity] "Slot should have both user assigned identities"
+        Expect.equal theSlot.KeyVaultReferenceIdentity (Some identity21.UserAssignedIdentity) "Slot should have correct keyvault identity"
+    }
+    
     test "Supports private endpoints" {
         let subnet = ResourceId.create(Network.subnets,ResourceName "subnet")
         let app = webApp { name "farmerWebApp"; add_private_endpoint (Managed subnet, "myWebApp-ep")}
