@@ -1,5 +1,7 @@
 Release Notes
 =============
+## 1.6.9
+* WebApp: Slots now inherit user assigned identities from their owning webApp
 
 ## 1.6.8
 * SQL Azure and Postgres: `add_firewall_rules` to take list of rules
