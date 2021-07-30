@@ -2,8 +2,8 @@ Release Notes
 =============
 
 ## 1.6.8
-* Support for adding Network Security Group (NSG) to Virtual Machine (VM)
 * SQL Azure and Postgres: `add_firewall_rules` to take list of rules
+* Virtual Machine: Support for adding Network Security Group (NSG) to Virtual Machine (VM)
 
 ## 1.6.7
 * Container Groups: Reference Azure container registry credentials.
