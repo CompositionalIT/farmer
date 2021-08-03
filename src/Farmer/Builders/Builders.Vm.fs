@@ -269,7 +269,10 @@ type VirtualMachineBuilder() =
     member this.LinkToVNet(state:VmConfig, vnet:VirtualNetworkConfig) = this.LinkToVNet(state, vnet.Name)
 
     [<CustomOperation "custom_script">]
-    member _.CustomScript(state:VmConfig, script:string) = { state with CustomScript = Some script }
+    member _.CustomScript(state:VmConfig, script:string) = 
+        match state.CustomScript with
+        | None -> { state with CustomScript = Some script }
+        | Some previousScript -> { state with CustomScript = Some $"{previousScript} && {script}" }
     [<CustomOperation "custom_script_files">]
     member _.CustomScriptFiles(state:VmConfig, uris:string list) = { state with CustomScriptFiles = uris |> List.map Uri }
 
