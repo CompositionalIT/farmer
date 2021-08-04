@@ -199,9 +199,9 @@ type LinkedResource =
         | Unmanaged resId -> resId
     member this.Name = this.ResourceId.Name
 
-type CertConfig =
-    | AppServiceCertificate of string
-    | NoCertificate of string
+type DomainConfig =
+    | AppServiceDomain of string
+    | NoDomain of string
 
 /// A reference to another Azure resource that may or may not be created by Farmer.
 type ResourceRef<'TConfig> =

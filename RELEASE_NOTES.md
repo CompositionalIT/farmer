@@ -2,6 +2,7 @@ Release Notes
 =============
 ## vNext
 * WebApp/Functions: Web Apps and Functions now 'health_check_path' support. The "Configure the time that an unhealthy instance remains in the load balancer before it is removed" setting is not configurable via ARM, and defaults to ten minutes.
+* WebApp: Supports custom domains with app service managed certificates
 
 ## 1.6.9
 * WebApp: Slots now inherit user assigned identities from their owning webApp

@@ -200,7 +200,7 @@ type WebAppConfig =
       AutomaticLoggingExtension : bool
       SiteExtensions : ExtensionName Set
       PrivateEndpoints: (LinkedResource * string option) Set 
-      CustomDomain : CertConfig }
+      CustomDomain : DomainConfig }
     member this.Name = this.CommonWebConfig.Name
     /// Gets this web app's Server Plan's full resource ID.
     member this.ServicePlanId = this.CommonWebConfig.ServicePlan.resourceId this.Name
@@ -479,42 +479,32 @@ type WebAppConfig =
                 for (_,slot) in this.CommonWebConfig.Slots |> Map.toSeq do
                     slot.ToArm site
 
-            let hostNameBinding =
-                match this.CustomDomain with
-                | AppServiceCertificate customDomain ->
-                        Some { Location = resourceLocation
-                               SiteId =  Managed (Arm.Web.sites.resourceId this.Name)
-                               DomainName = customDomain
-                               SslState = SslDisabled }
-                | _ ->
-                        None
-
-            let cert =
-                match this.CustomDomain with
-                | AppServiceCertificate customDomain ->
-                        Some { Location = resourceLocation
-                               SiteId = this.ResourceId
-                               ServicePlanId = this.ServicePlanId
-                               DomainName = customDomain }
-                | (NoCertificate customDomain) ->
-                        None
-
             match this.CustomDomain with
-            | AppServiceCertificate customDomain ->
-                hostNameBinding.Value
-                cert.Value
-                yield! (resourceGroup { name "[resourceGroup().name]"
+            | AppServiceDomain customDomain ->
+                let hostNameBinding =
+                    { Location = resourceLocation
+                      SiteId =  Managed (Arm.Web.sites.resourceId this.Name)
+                      DomainName = customDomain
+                      SslState = SslDisabled }
+                let cert =
+                    { Location = resourceLocation
+                      SiteId = this.ResourceId
+                      ServicePlanId = this.ServicePlanId
+                      DomainName = customDomain }
+                hostNameBinding
+                cert
+
+                yield! (resourceGroup { name ((ArmExpression.create "resourceGroup().name").Eval())
                                         location resourceLocation
-                                        add_resource { hostNameBinding.Value with
-                                                        SslState = SslState.Sni (ArmExpression.reference(Arm.Web.certificates, Arm.Web.certificates.resourceId cert.Value.ResourceName).Map(sprintf "%s.Thumbprint"))
-                                                        SiteId =  match hostNameBinding.Value.SiteId with 
+                                        add_resource { hostNameBinding with
+                                                        SslState = SslState.Sni (ArmExpression.reference(Arm.Web.certificates, Arm.Web.certificates.resourceId cert.ResourceName).Map(sprintf "%s.Thumbprint"))
+                                                        SiteId =  match hostNameBinding.SiteId with 
                                                                   | Managed id -> Unmanaged id
                                                                   | x -> x }
-                                        depends_on [ Arm.Web.certificates.resourceId cert.Value.ResourceName
-                                                     hostNameBinding.Value.ResourceId ]
+                                        depends_on [ Arm.Web.certificates.resourceId cert.ResourceName
+                                                     hostNameBinding.ResourceId ]
                                         } :> IBuilder).BuildResources resourceLocation
-            | (NoCertificate customDomain) ->
-                ()
+            | _ -> ()
 
             yield! (PrivateEndpoint.create resourceLocation this.ResourceId ["sites"] this.PrivateEndpoints)
         ]
@@ -557,7 +547,7 @@ type WebAppBuilder() =
           AutomaticLoggingExtension = true
           SiteExtensions = Set.empty
           PrivateEndpoints = Set.empty
-          CustomDomain = NoCertificate "" }
+          CustomDomain = NoDomain "" }
     member __.Run(state:WebAppConfig) =
         { state with
             SiteExtensions =
