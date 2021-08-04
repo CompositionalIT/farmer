@@ -309,51 +309,50 @@ type HostNameBinding =
     { Location: Location
       SiteId: LinkedResource
       DomainName: string
-      SslState: SslState
-    }
-    member this.SiteResourceId = 
-        match this.SiteId with 
-        | Managed id -> id.Name
-        | Unmanaged id -> id.Name
-    member this.ResourceName =
-        this.SiteResourceId / this.DomainName
-    member this.Dependencies = 
-        [ match this.SiteId with
-          | Managed resid -> resid
-          | _ -> () ]
-    member this.ResourceId = 
-        hostNameBindings.resourceId (this.SiteResourceId, ResourceName this.DomainName)
-    interface IArmResource with
-        member this.ResourceId = hostNameBindings.resourceId this.ResourceName
-        member this.JsonModel =
-            {| hostNameBindings.Create(this.ResourceName, this.Location, this.Dependencies) with
-                properties =
-                    match this.SslState with 
-                    | Sni thumbprint -> 
-                        {| sslState = "SniEnabled"
-                           thumbprint = thumbprint.Eval() |} :> obj
-                    | SslDisabled -> {| |} :> obj
-            |} :> _
+      SslState: SslState }
+        member this.SiteResourceId = 
+            match this.SiteId with 
+            | Managed id -> id.Name
+            | Unmanaged id -> id.Name
+        member this.ResourceName =
+            this.SiteResourceId / this.DomainName
+        member this.Dependencies = 
+            [ match this.SiteId with
+              | Managed resid -> resid
+              | _ -> () ]
+        member this.ResourceId = 
+            hostNameBindings.resourceId (this.SiteResourceId, ResourceName this.DomainName)
+        interface IArmResource with
+            member this.ResourceId = hostNameBindings.resourceId this.ResourceName
+            member this.JsonModel =
+                {| hostNameBindings.Create(this.ResourceName, this.Location, this.Dependencies) with
+                    properties =
+                        match this.SslState with 
+                        | Sni thumbprint -> 
+                            {| sslState = "SniEnabled"
+                               thumbprint = thumbprint.Eval() |} :> obj
+                        | SslDisabled -> {| |} :> obj
+                |} :> _
 
 type Certificate =
     { Location: Location
       SiteId: ResourceId
       ServicePlanId: ResourceId
       DomainName: string }
-    member this.ResourceName =
-      let (ResourceName name) = this.SiteId.Name
-      ResourceName $"{name}-cert"
-    interface IArmResource with
-        member this.ResourceId = certificates.resourceId this.ResourceName
-        member this.JsonModel =
-            {| certificates.Create(
-                    this.ResourceName,
-                    this.Location, 
-                    [this.SiteId; this.ServicePlanId; hostNameBindings.resourceId(this.SiteId.Name,ResourceName this.DomainName)]) with
-                properties =
-                    {| serverFarmId = this.ServicePlanId.Eval()
-                       canonicalName = this.DomainName |}
-            |} :> _
+        member this.ResourceName =
+          let (ResourceName name) = this.SiteId.Name
+          ResourceName $"{name}-cert"
+        interface IArmResource with
+            member this.ResourceId = certificates.resourceId this.ResourceName
+            member this.JsonModel =
+                {| certificates.Create(
+                        this.ResourceName,
+                        this.Location, 
+                        [this.SiteId; this.ServicePlanId; hostNameBindings.resourceId(this.SiteId.Name,ResourceName this.DomainName)]) with
+                    properties =
+                        {| serverFarmId = this.ServicePlanId.Eval()
+                           canonicalName = this.DomainName |}
+                |} :> _
 
 [<AutoOpen>]
 module SiteExtensions =
