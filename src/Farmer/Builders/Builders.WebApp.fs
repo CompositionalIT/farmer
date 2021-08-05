@@ -494,7 +494,7 @@ type WebAppConfig =
                 hostNameBinding
                 cert
 
-                yield! (resourceGroup { name "my-resource-group-name-2"
+                yield! (resourceGroup { name (ArmExpression.create "resourceGroup().name")
                                         location resourceLocation
                                         add_resource { hostNameBinding with
                                                         SslState = SslState.Sni (ArmExpression.reference(Arm.Web.certificates, Arm.Web.certificates.resourceId cert.ResourceName).Map(sprintf "%s.Thumbprint"))

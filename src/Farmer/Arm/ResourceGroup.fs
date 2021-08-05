@@ -41,7 +41,7 @@ type ResourceGroupDeployment =
     interface IArmResource with
         member this.ResourceId = resourceGroupDeployment.resourceId this.Name.Value
         member this.JsonModel = 
-            {| resourceGroupDeployment.Create(ResourceName this.Name.Value, this.Location, dependsOn = this.Dependencies, tags = this.Tags ) with
+            {| resourceGroupDeployment.Create(ResourceName (ArmExpression.Eval this.Name), this.Location, dependsOn = this.Dependencies, tags = this.Tags ) with
                 location = null // location is not supported for nested resource groups
                 resourceGroup = ArmExpression.Eval this.Name
                 properties = 
