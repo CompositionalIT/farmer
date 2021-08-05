@@ -5,12 +5,14 @@ open Farmer
 open Farmer.Writer
 
 let resourceGroupDeployment = ResourceType ("Microsoft.Resources/deployments","2020-10-01")
+let resourceGroups = ResourceType ("Microsoft.Resources/resourceGroups", "2021-04-01")
 
 type DeploymentMode = Incremental|Complete
 
 /// Represents all configuration information to generate an ARM template.
 type ResourceGroupDeployment =
     { Name: ResourceName
+      ResourceGroup : ResourceName
       Dependencies: ResourceId Set
       Outputs : Map<string, string>
       Location : Location
@@ -31,7 +33,7 @@ type ResourceGroupDeployment =
                 (function 
                 | :? ResourceGroupDeployment as rg -> rg.RequiredResourceGroups 
                 | _ ->  [])
-        List.distinct (this.Name.Value :: nestedRgs)        
+        List.distinct (this.ResourceGroup.Value :: nestedRgs)        
     member this.Template = 
         { Parameters = this.Parameters
           Outputs = this.Outputs |> Map.toList
@@ -43,7 +45,7 @@ type ResourceGroupDeployment =
         member this.JsonModel = 
             {| resourceGroupDeployment.Create(this.Name, this.Location, dependsOn = this.Dependencies, tags = this.Tags ) with
                 location = null // location is not supported for nested resource groups
-                resourceGroup = this.Name.Value
+                resourceGroup = this.ResourceGroup.Value
                 properties = 
                     {|  template = TemplateGeneration.processTemplate this.Template
                         parameters = 
@@ -57,3 +59,16 @@ type ResourceGroupDeployment =
                         expressionEvaluationOptions = {| scope = "Inner" |}
                     |}
             |} :> _
+
+/// Resource Group as a subscription level resource - only for use in deployments targeting a subscription.
+type ResourceGroup =
+    { Name: ResourceName
+      Dependencies: ResourceId Set
+      Location : Location
+      Tags: Map<string,string> }
+    interface IArmResource with
+        member this.JsonModel =
+            {| resourceGroups.Create (this.Name, this.Location, this.Dependencies, this.Tags) with
+                properties = {| |}
+            |} :> _
+        member this.ResourceId = resourceGroups.resourceId this.Name

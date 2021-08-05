@@ -13,7 +13,7 @@ type ResourceGroupConfig =
       Resources : IArmResource list 
       Mode: DeploymentMode
       Tags: Map<string,string> }
-    member this.ResourceId = resourceGroupDeployment.resourceId (this.Name |> Option.defaultValue "farmer-deploy")
+    member this.ResourceId = resourceGroupDeployment.resourceId (this.Name |> Option.map (sprintf "%s-deploy") |> Option.defaultValue "farmer-deploy")
     member private this.ContentDeployment = 
         if this.Parameters.IsEmpty && this.Outputs.IsEmpty && this.Resources.IsEmpty then
             None // this resource group has no content so there's nothing to deploy
@@ -31,6 +31,7 @@ type ResourceGroupConfig =
                 |> Map.ofList
                
             { ResourceGroupDeployment.Name = this.ResourceId.Name
+              ResourceGroup = this.Name |> Option.defaultValue "farmer" |> ResourceName
               Dependencies = this.Dependencies
               Outputs = Map.merge (Map.toList this.Outputs) innerOutputs // New values overwrite old values so supply this.Outputs as newValues
               Location  = this.Location
@@ -122,3 +123,10 @@ type ResourceGroupBuilder() =
     interface ITaggable<ResourceGroupConfig> with member _.Add state tags = {state with Tags = state.Tags |> Map.merge tags}
 
 let resourceGroup = ResourceGroupBuilder()
+
+/// Creates a resource group in a subscription level deployment.
+let createResourceGroup (name:string) (location:Location) : ResourceGroup =
+    { Name = ResourceName name
+      Location = location
+      Dependencies = Set.empty
+      Tags = Map.empty }
