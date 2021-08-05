@@ -1,21 +1,18 @@
 open Farmer
 open Farmer.Builders
 
-let template =
-    let myWebApp = webApp {
-        name "codat-devopstest"
-        sku WebApp.Sku.B1
-        custom_domain (DomainConfig.AppServiceDomain "devops-test.codat.io")
-        app_insights_off
-        runtime_stack Runtime.DotNetCore31
-    }
+//TODO: Create resources here!
 
-    arm {
-        location Location.UKSouth
-        add_resource myWebApp
-    }
+let deployment = arm {
+    location Location.NorthEurope
 
-template
-//|> Writer.quickWrite "army"
-|> Deploy.execute "my-resource-group-name-2" Deploy.NoParameters
+    //TODO: Assign resources here using the add_resource keyword
+}
 
+// Generate the ARM template here...
+deployment
+|> Writer.quickWrite @"generated-template"
+
+// Or deploy it directly to Azure here... (required Azure CLI installed!)
+// deployment
+// |> Deploy.execute "my-resource-group" Deploy.NoParameters
