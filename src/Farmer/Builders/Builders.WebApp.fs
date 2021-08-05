@@ -494,7 +494,7 @@ type WebAppConfig =
                 hostNameBinding
                 cert
 
-                yield! (resourceGroup { name ((ArmExpression.create "resourceGroup().name").Eval())
+                yield! (resourceGroup { name "my-resource-group-name-2"
                                         location resourceLocation
                                         add_resource { hostNameBinding with
                                                         SslState = SslState.Sni (ArmExpression.reference(Arm.Web.certificates, Arm.Web.certificates.resourceId cert.ResourceName).Map(sprintf "%s.Thumbprint"))
@@ -547,7 +547,7 @@ type WebAppBuilder() =
           AutomaticLoggingExtension = true
           SiteExtensions = Set.empty
           PrivateEndpoints = Set.empty
-          CustomDomain = NoDomain "" }
+          CustomDomain = NoDomain }
     member __.Run(state:WebAppConfig) =
         { state with
             SiteExtensions =

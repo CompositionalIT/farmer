@@ -10,14 +10,14 @@ type DeploymentMode = Incremental|Complete
 
 /// Represents all configuration information to generate an ARM template.
 type ResourceGroupDeployment =
-    { Name: ResourceName
+    { Name: ArmExpression
       Dependencies: ResourceId Set
       Outputs : Map<string, string>
       Location : Location
       Resources : IArmResource list
       Mode: DeploymentMode
       Tags: Map<string,string> }
-    member this.ResourceId = resourceGroupDeployment.resourceId this.Name
+    member this.ResourceId = resourceGroupDeployment.resourceId this.Name.Value
     member this.Parameters = 
           [ for resource in this.Resources do
                 match resource with
@@ -39,11 +39,11 @@ type ResourceGroupDeployment =
     interface IParameters with 
         member this.SecureParameters = this.Parameters
     interface IArmResource with
-        member this.ResourceId = resourceGroupDeployment.resourceId this.Name
+        member this.ResourceId = resourceGroupDeployment.resourceId this.Name.Value
         member this.JsonModel = 
-            {| resourceGroupDeployment.Create(this.Name, this.Location, dependsOn = this.Dependencies, tags = this.Tags ) with
+            {| resourceGroupDeployment.Create(ResourceName this.Name.Value, this.Location, dependsOn = this.Dependencies, tags = this.Tags ) with
                 location = null // location is not supported for nested resource groups
-                resourceGroup = this.Name.Value
+                resourceGroup = ArmExpression.Eval this.Name
                 properties = 
                     {|  template = TemplateGeneration.processTemplate this.Template
                         parameters = 

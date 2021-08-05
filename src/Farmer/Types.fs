@@ -201,7 +201,7 @@ type LinkedResource =
 
 type DomainConfig =
     | AppServiceDomain of string
-    | NoDomain of string
+    | NoDomain
 
 /// A reference to another Azure resource that may or may not be created by Farmer.
 type ResourceRef<'TConfig> =
