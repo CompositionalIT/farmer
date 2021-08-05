@@ -192,7 +192,7 @@ let tests = testList "Template" [
         Expect.isTrue (template.Template.Resources.[0] :? Arm.ResourceGroup.ResourceGroupDeployment) "The only resource should be a resourceGroupDeployment"
         let innerDeployment = template.Template.Resources.[0] :?> Arm.ResourceGroup.ResourceGroupDeployment
         Expect.hasLength innerDeployment.Resources 1 "Inner template should have 1 resource"
-        Expect.equal innerDeployment.Name.Value "inner" "Inner template name is incorrect"
+        Expect.equal innerDeployment.Name.Value "inner-deploy" "Inner template name is incorrect"
         Expect.isTrue (innerDeployment.Template.Resources.[0] :? Arm.Storage.StorageAccount) "The only resource in the inner deployment should be a storageAccount"
     }
     test "Nested resource group outputs are copied to outer deployments" {
@@ -206,8 +206,8 @@ let tests = testList "Template" [
 
         Expect.hasLength outer.Template.Outputs 3 "inner outputs should copy to outer template"
         Expect.equal outer.Template.Outputs.[0] ("foo","baz") "output expression was incorrect"
-        Expect.equal outer.Template.Outputs.[1] ("inner1.foo","[reference('inner1').outputs['foo'].value]") "output expression was incorrect"
-        Expect.equal outer.Template.Outputs.[2] ("inner2.foo","[reference('inner2').outputs['foo'].value]") "output expression was incorrect"
+        Expect.equal outer.Template.Outputs.[1] ("inner1-deploy.foo","[reference('inner1-deploy').outputs['foo'].value]") "output expression was incorrect"
+        Expect.equal outer.Template.Outputs.[2] ("inner2-deploy.foo","[reference('inner2-deploy').outputs['foo'].value]") "output expression was incorrect"
     }
     test "Nested resource group can accept parameters" {
         let inner1 = resourceGroup { 
