@@ -131,7 +131,7 @@ type SqlAzureConfig =
 
                     let primaryDatabaseFullId =
                         ArmExpression.create(
-                            $"concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().id, '/providers/Microsoft.Sql/servers/', '{this.Name.ResourceName.Value}', '/databases/','{database.Name.Value}')"
+                            $"concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Sql/servers/', '{this.Name.ResourceName.Value}', '/databases/','{database.Name.Value}')"
                         ).Eval()
 
                     {| apiVersion = "2021-02-01-preview"
