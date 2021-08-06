@@ -42,6 +42,7 @@ let allTests =
                 Maps.tests
                 NetworkSecurityGroup.tests
                 PostgreSQL.tests
+                ResourceGroup.tests
                 ServiceBus.tests
                 SignalR.tests
                 Sql.tests

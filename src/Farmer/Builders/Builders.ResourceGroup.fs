@@ -122,3 +122,10 @@ type ResourceGroupBuilder() =
     interface ITaggable<ResourceGroupConfig> with member _.Add state tags = {state with Tags = state.Tags |> Map.merge tags}
 
 let resourceGroup = ResourceGroupBuilder()
+
+/// Creates a resource group in a subscription level deployment.
+let createResourceGroup (name:string) (location:Location) : ResourceGroup =
+    { Name = ResourceName name
+      Location = location
+      Dependencies = Set.empty
+      Tags = Map.empty }

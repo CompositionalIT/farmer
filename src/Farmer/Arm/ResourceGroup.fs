@@ -5,6 +5,7 @@ open Farmer
 open Farmer.Writer
 
 let resourceGroupDeployment = ResourceType ("Microsoft.Resources/deployments","2020-10-01")
+let resourceGroups = ResourceType ("Microsoft.Resources/resourceGroups", "2021-04-01")
 
 type DeploymentMode = Incremental|Complete
 
@@ -57,3 +58,16 @@ type ResourceGroupDeployment =
                         expressionEvaluationOptions = {| scope = "Inner" |}
                     |}
             |} :> _
+
+/// Resource Group as a subscription level resource - only for use in deployments targeting a subscription.
+type ResourceGroup =
+    { Name: ResourceName
+      Dependencies: ResourceId Set
+      Location : Location
+      Tags: Map<string,string> }
+    interface IArmResource with
+        member this.JsonModel =
+            {| resourceGroups.Create (this.Name, this.Location, this.Dependencies, this.Tags) with
+                properties = {| |}
+            |} :> _
+        member this.ResourceId = resourceGroups.resourceId this.Name

@@ -1,6 +1,6 @@
 ---
 title: "Resource Group"
-date: 2020-02-05T08:53:46+01:00
+date: 2021-08-05T17:30:25-04:00
 weight: 1
 chapter: false
 ---
@@ -18,6 +18,9 @@ The Resource Group builder is always the top-level element of your deployment. I
 | add_tag | Add a tag to the resource group for top-level instances or to the deployment for nested resource groups |
 | add_tags | Add multiple tags to the resource group for top-level instances or to the deployment for nested resource groups |
 | name | the name of the resource group (only used for nested resource group deployments) |
+
+#### Utilities
+* The `createResourceGroup` function is used to define a resource group deployment resource by name and location, useful when deploying to a subscription.
 
 #### Example
 ```fsharp
