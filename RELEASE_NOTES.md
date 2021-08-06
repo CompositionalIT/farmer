@@ -1,5 +1,7 @@
 Release Notes
 =============
+## vNext
+* Support for App Insights - Availability tests, VS WebTests
 
 ## 1.6.8
 * SQL Azure and Postgres: `add_firewall_rules` to take list of rules
