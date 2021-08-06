@@ -76,7 +76,8 @@ type SlotConfig =
       AutoSwapSlotName: string option
       AppSettings: Map<string,Setting>
       ConnectionStrings: Map<string,(Setting * ConnectionStringKind)>
-      Identity: ManagedIdentity 
+      Identity: ManagedIdentity
+      KeyVaultReferenceIdentity: UserAssignedIdentity option
       Tags: Map<string,string>
       Dependencies: ResourceId Set}
     member this.ToArm (owner: Arm.Web.Site) = 
@@ -87,7 +88,8 @@ type SlotConfig =
             AutoSwapSlotName = this.AutoSwapSlotName
             AppSettings = owner.AppSettings |> Map.merge ( this.AppSettings |> Map.toList)
             ConnectionStrings = owner.ConnectionStrings |> Map.merge (this.ConnectionStrings |> Map.toList)
-            Identity = this.Identity }
+            Identity = this.Identity + owner.Identity
+            KeyVaultReferenceIdentity = this.KeyVaultReferenceIdentity |> Option.orElse owner.KeyVaultReferenceIdentity}
 
 type SlotBuilder() =
     member this.Yield _ =
@@ -96,6 +98,7 @@ type SlotBuilder() =
           AppSettings = Map.empty
           ConnectionStrings = Map.empty
           Identity = ManagedIdentity.Empty
+          KeyVaultReferenceIdentity =  None
           Tags = Map.empty
           Dependencies = Set.empty}
 
@@ -109,13 +112,21 @@ type SlotBuilder() =
     [<CustomOperation "add_identity">]
     member this.AddIdentity (state: SlotConfig, identity:UserAssignedIdentity) =
         { state with
-            Identity = state.Identity + identity
+            Identity = (state.Identity + identity)
             AppSettings = state.AppSettings.Add("AZURE_CLIENT_ID", Setting.ExpressionSetting identity.ClientId) }
     member this.AddIdentity (state, identity:UserAssignedIdentityConfig) = this.AddIdentity(state, identity.UserAssignedIdentity)
 
     [<CustomOperation "system_identity">]
     member this.SystemIdentity (state: SlotConfig) =
-        { state with Identity = { state.Identity with SystemAssigned = Enabled } }
+        { state with Identity = {state.Identity with SystemAssigned = Enabled } }
+        
+    [<CustomOperation "keyvault_identity">]
+    member this.AddKeyVaultIdentity (state: SlotConfig, identity:UserAssignedIdentity) =
+        { state with
+            Identity = state.Identity + identity
+            KeyVaultReferenceIdentity = Some identity
+            AppSettings = state.AppSettings.Add("AZURE_CLIENT_ID", Setting.ExpressionSetting identity.ClientId) }
+    member this.AddKeyVaultIdentity (state: SlotConfig, identity:UserAssignedIdentityConfig) = this.AddKeyVaultIdentity(state, identity.UserAssignedIdentity)
 
     [<CustomOperation "setting">]
     /// Adds an AppSetting to this deployment slot

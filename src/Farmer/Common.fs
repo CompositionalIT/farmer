@@ -293,6 +293,7 @@ module Vm =
     let WindowsServer_2012R2Datacenter = makeWindowsVm "2012-R2-Datacenter"
     let WindowsServer_2012Datacenter = makeWindowsVm "2012-Datacenter"
     let WindowsServer_2008R2SP1 = makeWindowsVm "2008-R2-SP1"
+    let Windows10Pro = makeVm Windows "Windows-10" "MicrosoftWindowsDesktop" "20h2-pro"
     /// The type of disk to use.
     type DiskType =
         | StandardSSD_LRS

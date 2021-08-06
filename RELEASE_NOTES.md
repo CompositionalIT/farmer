@@ -3,6 +3,10 @@ Release Notes
 ## vNext
 * Support for App Insights - Availability tests, VS WebTests
 
+## 1.6.9
+* Resource Groups: Support for creating resource groups for deployments targeting a subscription.
+* WebApp: Slots now inherit user assigned identities from their owning webApp
+
 ## 1.6.8
 * SQL Azure and Postgres: `add_firewall_rules` to take list of rules
 * Virtual Machine: Support for adding Network Security Group (NSG) to Virtual Machine (VM)

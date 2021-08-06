@@ -29,6 +29,7 @@
     <Compile Include="Network.fs" />
     <Compile Include="LoadBalancer.fs" />
     <Compile Include="NetworkSecurityGroup.fs" />
+    <Compile Include="ResourceGroup.fs" />
     <Compile Include="Storage.fs" />
     <Compile Include="ServiceBus.fs" />
     <Compile Include="IotHub.fs" />

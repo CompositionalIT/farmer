@@ -269,7 +269,14 @@ type VirtualMachineBuilder() =
     member this.LinkToVNet(state:VmConfig, vnet:VirtualNetworkConfig) = this.LinkToVNet(state, vnet.Name)
 
     [<CustomOperation "custom_script">]
-    member _.CustomScript(state:VmConfig, script:string) = { state with CustomScript = Some script }
+    member _.CustomScript(state:VmConfig, script:string) = 
+        match state.CustomScript with
+        | None -> { state with CustomScript = Some script }
+        | Some previousScript -> 
+            let firstScript = if script.Length > 10 then script.Substring(0, 10) + "..." else script
+            let secondScript = if previousScript.Length > 10 then previousScript.Substring(0, 10) + "..." else previousScript
+            failwith $"Only single custom_script execution is supported (and it can contain ARM-expressions). You have to merge your scripts. You have defined multiple custom_script: {firstScript} and {secondScript}"
+
     [<CustomOperation "custom_script_files">]
     member _.CustomScriptFiles(state:VmConfig, uris:string list) = { state with CustomScriptFiles = uris |> List.map Uri }
 
