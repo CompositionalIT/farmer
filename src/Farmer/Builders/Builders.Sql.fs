@@ -26,6 +26,13 @@ type SqlAzureConfig =
            PerDbLimits : {| Min: int<DTU>; Max : int<DTU> |} option
            Capacity : int<Mb> option |}
       Databases : SqlAzureDbConfig list
+      GeoReplicaServer : 
+        {| /// Suffix name for server and database name
+           NameSuffix : string; 
+           /// Replication location, different from the original one
+           Location : Farmer.Location;
+           /// Override database Skus
+           DbSku : Farmer.Sql.DtuSku option |} option
       Tags: Map<string,string>  }
     /// Gets a basic .NET connection string using the administrator username / password.
     member this.ConnectionString (database:SqlAzureDbConfig) =
@@ -96,6 +103,61 @@ type SqlAzureConfig =
                   Sku = this.ElasticPoolSettings.Sku
                   MaxSizeBytes = this.ElasticPoolSettings.Capacity |> Option.map Mb.toBytes
                   MinMax = this.ElasticPoolSettings.PerDbLimits |> Option.map(fun l -> l.Min, l.Max) }
+
+            match this.GeoReplicaServer with
+            | Some replica ->
+                if replica.Location.ArmValue = location.ArmValue then
+                    failwith $"Geo-replica cannot be deployed to the same location than the main database {this.Name}: {location.ArmValue}"
+                else
+                let replicaServerName = 
+                    match (this.Name.ResourceName.Value + replica.NameSuffix) |> SqlAccountName.Create with
+                    | Ok x -> x
+                    | Error e -> failwith e
+
+                { ServerName = replicaServerName
+                  Location = replica.Location
+                  Credentials =
+                    {| Username = this.AdministratorCredentials.UserName
+                       Password = this.AdministratorCredentials.Password |}
+                  MinTlsVersion = this.MinTlsVersion
+                  Tags = this.Tags
+                }
+                for database in this.Databases do
+                    let geoSku =
+                        match replica.DbSku, database.Sku with
+                        | Some relicaSku, _ -> relicaSku.Name, relicaSku.Edition
+                        | None, Some dbSku -> dbSku.Name, dbSku.Edition
+                        | None, None -> this.ElasticPoolSettings.Sku.Name, this.ElasticPoolSettings.Sku.Edition
+
+                    let primaryDatabaseFullId =
+                        ArmExpression.create(
+                            $"concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().id, '/providers/Microsoft.Sql/servers/', '{this.Name.ResourceName.Value}', '/databases/','{database.Name.Value}')"
+                        ).Eval()
+
+                    {| apiVersion = "2021-02-01-preview"
+                       location = replica.Location.ArmValue
+                       dependsOn = [ Farmer.ResourceId.create(Farmer.Arm.Sql.servers, replicaServerName.ResourceName).Eval(); ]
+                       name = $"{replicaServerName.ResourceName.Value}/{database.Name.Value + replica.NameSuffix}"
+                       ``type`` = Farmer.Arm.Sql.databases.Type
+                       sku =
+                           {|  name = fst geoSku
+                               tier = snd geoSku
+                           |}
+                       properties =
+                           {|   createMode = "OnlineSecondary"
+                                secondaryType = "Geo"
+                                sourceDatabaseId = primaryDatabaseFullId
+                                zoneRedundant = false
+                                licenseType = ""
+                                readScale = "Disabled"
+                                highAvailabilityReplicaCount = 0
+                                minCapacity = ""
+                                autoPauseDelay = ""
+                                requestedBackupStorageRedundancy = ""
+    
+                           |}
+                    |} |> Farmer.Resource.ofObj
+            | None -> ()
         ]
 
 type SqlDbBuilder() =
@@ -154,6 +216,7 @@ type SqlServerBuilder() =
           Databases = []
           FirewallRules = []
           MinTlsVersion = None
+          GeoReplicaServer = None
           Tags = Map.empty  }
     member __.Run state : SqlAzureConfig =
         { state with
@@ -215,6 +278,12 @@ type SqlServerBuilder() =
     [<CustomOperation "min_tls_version">]
     member _.SetMinTlsVersion(state:SqlAzureConfig, minTlsVersion) =
         { state with MinTlsVersion = Some minTlsVersion }
+
+    /// Geo-replicate all the databases in this server to another location, having NameSuffix after original server and database names.
+    [<CustomOperation "geo_replicate">]
+    member _.SetGeoReplication(state:SqlAzureConfig, replicaSettings) =
+        { state with GeoReplicaServer = Some replicaSettings }
+
     interface ITaggable<SqlAzureConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let sqlServer = SqlServerBuilder()
