@@ -1,5 +1,8 @@
 Release Notes
 =============
+## vNext
+* WebApp: Validation on site name.
+* Functions: Validation on functions name.
 
 ## 1.6.10
 * Azure SQL Server: geo_replicate parameter to geo-replicate the server databases

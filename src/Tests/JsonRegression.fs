@@ -35,7 +35,7 @@ let tests =
             let containerGroup = containerGroup { name ("farmeraci" + number); add_instances [ containerInstance { name "webserver"; image "nginx:latest"; add_ports ContainerGroup.PublicPort [ 80us ]; add_volume_mount "source-code" "/src/farmer" } ]; add_volumes [ volume_mount.git_repo "source-code" (System.Uri "https://github.com/CompositionalIT/farmer") ] }
             let vm = vm{ name "farmervm"; username "farmer-admin" }
             let dockerFunction = functions {
-                name "docker_func"
+                name "docker-func"
                 publish_as (
                     DockerContainer {
                         Url = new Uri("http://www.farmer.io")

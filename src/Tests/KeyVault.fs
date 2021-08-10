@@ -66,7 +66,7 @@ let tests = testList "KeyVault" [
         let a = webApp { name "test" }
         let v = keyVault { add_access_policy (AccessPolicy.create a.SystemIdentity.PrincipalId) } :> IBuilder
         let vault = v.BuildResources Location.NorthEurope |> List.head :?> Farmer.Arm.KeyVault.Vault
-        Expect.sequenceEqual vault.Dependencies [ ResourceId.create(Arm.Web.sites, a.Name) ] "Web App dependency"
+        Expect.sequenceEqual vault.Dependencies [ ResourceId.create(Arm.Web.sites, a.Name.ResourceName) ] "Web App dependency"
     }
     
     test "Create a basic key vault" {

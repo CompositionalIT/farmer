@@ -48,7 +48,7 @@ let tests = testList "Functions tests" [
         Expect.stringContains site.AppSettings.["AzureWebJobsDashboard"].Value "foo" "Web Jobs Dashboard setting should have storage account name"
     }
     test "Handles identity correctly" {
-        let f : Site = functions { name "" } |> getResourceAtIndex 0
+        let f : Site = functions { name "testfunc" } |> getResourceAtIndex 0
         Expect.isNull f.Identity "Default managed identity should be null"
 
         let f : Site = functions { system_identity } |> getResourceAtIndex 3
@@ -62,7 +62,7 @@ let tests = testList "Functions tests" [
     }
 
     test "Supports always on" {
-        let f:Site = functions { name "" } |> getResourceAtIndex 3
+        let f:Site = functions { name "testfunc" } |> getResourceAtIndex 3
         Expect.equal f.SiteConfig.AlwaysOn (Nullable false) "always on should be false by default"
 
         let f:Site = functions { always_on } |> getResourceAtIndex 3
@@ -130,7 +130,7 @@ let tests = testList "Functions tests" [
 
     test "Functions App with slot that has system assigned identity adds identity to slot" {
         let slot = appSlot { name "warm-up"; system_identity }
-        let site:FunctionsConfig = functions { 
+        let site = functions { 
             add_slot slot
         }
         Expect.isTrue (site.CommonWebConfig.Slots.ContainsKey "warm-up") "Config should contain slot"
@@ -149,7 +149,7 @@ let tests = testList "Functions tests" [
 
     test "Functions App with slot adds settings to slot" {
         let slot = appSlot { name "warm-up" }
-        let site:FunctionsConfig = functions { 
+        let site = functions { 
             add_slot slot 
             setting "setting" "some value"
         }
@@ -187,7 +187,7 @@ let tests = testList "Functions tests" [
     
     test "Functions App adds literal settings to slots" {
         let slot = appSlot { name "warm-up" }
-        let site:FunctionsConfig = functions { add_slot slot; operating_system Windows }
+        let site = functions { add_slot slot; operating_system Windows }
         Expect.isTrue (site.CommonWebConfig.Slots.ContainsKey "warm-up") "Config should contain slot"
 
         let slots = 
@@ -212,11 +212,12 @@ let tests = testList "Functions tests" [
     }
 
     test "Functions App with different settings on slot and service adds both settings to slot" {
-        let slot = appSlot { 
+        let slot = appSlot {
             name "warm-up" 
             setting "slot" "slot value"
         }
-        let site:FunctionsConfig = functions { 
+        let site = functions {
+            name "testfunc"
             add_slot slot 
             setting "appService" "app service value"
         }
@@ -237,10 +238,11 @@ let tests = testList "Functions tests" [
     
     test "Functions App with slot, slot settings override app service setting" {
         let slot = appSlot { 
-            name "warm-up" 
+            name "warm-up"
             setting "override" "overridden"
         }
-        let site:FunctionsConfig = functions { 
+        let site = functions {
+            name "testfunc"
             add_slot slot 
             setting "override" "some value"
         }

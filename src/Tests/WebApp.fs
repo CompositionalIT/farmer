@@ -203,7 +203,7 @@ let tests = testList "Web App Tests" [
     }
 
     test "Handles identity correctly" {
-        let wa : Site = webApp { name "" } |> getResourceAtIndex 0
+        let wa : Site = webApp { name "testsite" } |> getResourceAtIndex 0
         Expect.isNull wa.Identity  "Default managed identity should be null"
 
         let wa : Site = webApp { system_identity } |> getResourceAtIndex 3
@@ -275,13 +275,13 @@ let tests = testList "Web App Tests" [
 
     test "Deploys AI configuration correctly" {
         let hasSetting key message (wa:Site) = Expect.isTrue (wa.SiteConfig.AppSettings |> Seq.exists(fun k -> k.Name = key)) message
-        let wa : Site = webApp { name "" } |> getResourceAtIndex 3
+        let wa : Site = webApp { name "testsite" } |> getResourceAtIndex 3
         wa |> hasSetting "APPINSIGHTS_INSTRUMENTATIONKEY" "Missing Windows instrumentation key"
 
-        let wa : Site = webApp { name ""; operating_system Linux } |> getResourceAtIndex 3
+        let wa : Site = webApp { name "testsite"; operating_system Linux } |> getResourceAtIndex 3
         wa |> hasSetting "APPINSIGHTS_INSTRUMENTATIONKEY" "Missing Linux instrumentation key"
 
-        let wa : Site = webApp { name ""; app_insights_off } |> getResourceAtIndex 2
+        let wa : Site = webApp { name "testsite"; app_insights_off } |> getResourceAtIndex 2
         Expect.isEmpty wa.SiteConfig.AppSettings "Should be no settings"
     }
 
@@ -294,7 +294,7 @@ let tests = testList "Web App Tests" [
     }
 
     test "Supports 32 and 64 bit worker processes" {
-        let site : Site = webApp { name "w" } |> getResourceAtIndex 3
+        let site : Site = webApp { name "web" } |> getResourceAtIndex 3
         Expect.equal site.SiteConfig.Use32BitWorkerProcess (Nullable()) "Default worker process"
 
         let site:Site = webApp { worker_process Bits32 } |> getResourceAtIndex 3
@@ -550,6 +550,16 @@ let tests = testList "Web App Tests" [
         let app = webApp { name "farmerWebApp"; keyvault_identity myId }
         let site:Site = app |> getResourceAtIndex 3
         Expect.equal site.KeyVaultReferenceIdentity "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'myFarmerIdentity')]" "Keyvault identity should not be set"
+    }
 
+    test "Validates name correctly" {
+        let check (v:string) m = Expect.equal (WebAppName.Create v) (Error ("Web App site names " + m))
+
+        check "" "cannot be empty" "Name too short"
+        let longName = Array.init 61 (fun _ -> 'a') |> String
+        check longName ("max length is 60, but here is 61 ('" + longName + "')") "Name too long"
+        check "zz!z" "can only contain alphanumeric characters or the dash ('zz!z')" "Bad character allowed"
+        check "-zz" "cannot start with a dash ('-zz')" "Start with dash"
+        check "zz-" "cannot end with a dash ('zz-')" "End with dash"
     }
 ]
