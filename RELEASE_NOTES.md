@@ -1,5 +1,8 @@
 Release Notes
 =============
+## 1.6.10
+* Azure SQL Server: geo_replicate parameter to geo-replicate the server databases
+
 ## 1.6.9
 * Resource Groups: Support for creating resource groups for deployments targeting a subscription.
 * WebApp: Slots now inherit user assigned identities from their owning webApp
