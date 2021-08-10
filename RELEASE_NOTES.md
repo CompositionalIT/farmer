@@ -1,6 +1,6 @@
 Release Notes
 =============
-## vNext
+## 1.6.10
 * Azure SQL Server: geo_replicate parameter to geo-replicate the server databases
 
 ## 1.6.9
