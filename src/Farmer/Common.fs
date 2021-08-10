@@ -1725,6 +1725,34 @@ module VirtualHub =
                     | Managed resId
                     | Unmanaged resId -> resId.Eval()
 
+module AvailabilityTest =
+    /// Availability test types: WebsiteUrl or CustomWebtestXml
+    type WebTestType =
+    /// Raw Visual Stuido WebTest XML
+    | CustomWebtestXml of string
+    /// URL of website that the test will ping
+    | WebsiteUrl of System.Uri
+
+    /// Availability test sites, from where the webtest is run
+    type TestSiteLocation =
+    | AvailabilityTestSite of Farmer.Location
+        static member NorthCentralUS = Farmer.Location "us-il-ch1-azr" |> AvailabilityTestSite
+        static member WestEurope = Farmer.Location "emea-nl-ams-azr" |> AvailabilityTestSite
+        static member SoutheastAsia = Farmer.Location "apac-sg-sin-azr" |> AvailabilityTestSite
+        static member WestUS = Farmer.Location "us-ca-sjc-azr" |> AvailabilityTestSite
+        static member SouthCentralUS = Farmer.Location "us-tx-sn1-azr" |> AvailabilityTestSite
+        static member EastUS = Farmer.Location "us-va-ash-azr" |> AvailabilityTestSite
+        static member EastAsia = Farmer.Location "apac-hk-hkn-azr" |> AvailabilityTestSite
+        static member NorthEurope = Farmer.Location "emea-gb-db3-azr" |> AvailabilityTestSite
+        static member JapanEast = Farmer.Location "apac-jp-kaw-edge" |> AvailabilityTestSite
+        static member AustraliaEast = Farmer.Location "emea-au-syd-edge" |> AvailabilityTestSite
+        static member FranceCentralSouth = Farmer.Location "emea-ch-zrh-edge" |> AvailabilityTestSite
+        static member FranceCentral = Farmer.Location "emea-fr-pra-edge" |> AvailabilityTestSite
+        static member UKSouth = Farmer.Location "emea-ru-msa-edge" |> AvailabilityTestSite
+        static member UKWest = Farmer.Location "emea-se-sto-edge" |> AvailabilityTestSite
+        static member BrazilSouth = Farmer.Location "latam-br-gru-edge" |> AvailabilityTestSite
+        static member CentralUS = Farmer.Location "us-fl-mia-edge" |> AvailabilityTestSite
+
 namespace Farmer.DiagnosticSettings
 
 open Farmer

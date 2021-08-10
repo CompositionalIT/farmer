@@ -162,4 +162,24 @@ let tests = testList "SQL Server" [
         Expect.equal model.Name "server" "Incorrect Server name"
         Expect.equal model.MinimalTlsVersion "1.2" "Min TLS version is wrong"
     }
+
+    test "Test Geo-replication" {
+        let sql = sqlServer {
+            name "my36server"
+            admin_username "isaac"
+            add_databases [
+                sqlDb { name "mydb21"; sku DtuSku.S0 }
+            ]
+            geo_replicate ({| NameSuffix = "geo"; 
+                              Location = Location.UKWest;
+                              DbSku = Some Farmer.Sql.DtuSku.S0 |})
+        }
+        let template = arm { location Location.UKSouth; add_resources [ sql ] }
+
+        let jsn = template.Template |> Writer.toJson 
+        let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+        let geoLocated = jobj.SelectToken("resources[?(@.name=='my36servergeo/mydb21geo')].location")
+        Expect.equal (geoLocated.ToString()) "ukwest" "Geo-replication with location not found"
+        ()
+    }
 ]
