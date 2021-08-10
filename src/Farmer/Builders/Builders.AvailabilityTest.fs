@@ -32,21 +32,22 @@ type AvailabilityTestBuilder() =
           Locations = List.empty
           WebTest = None }
     [<CustomOperation "name">]
-    /// Sets the name of the App Insights instance.
+    /// Sets the name of this Webtest instance.
     member __.Name(state:AvailabilityTestProperties, name) = { state with Name = ResourceName name }
     [<CustomOperation "timeout">]
-    /// Sets the name of the App Insights instance.
+    /// Timeout if the test is not responding. Default: 120 seconds.
     member __.Timeout(state:AvailabilityTestProperties, seconds) = { state with Timeout = seconds }
     [<CustomOperation "frequency">]
-    /// Sets the name of the App Insights instance.
+    /// Frequency how often the test is run. Default: 900 seconds.
     member __.Frequency(state:AvailabilityTestProperties, frequency) = { state with VisitFrequency = frequency }
     [<CustomOperation "locations">]
-    /// Sets the name of the App Insights instance.
+    /// List of locations where the site is pinged. These are not format of Farmer.Location but AvailabilityTest.TestSiteLocation.
     member __.Locations(state:AvailabilityTestProperties, locations) = { state with Locations = locations }
     [<CustomOperation "web_test">]
-    /// Sets the name of the App Insights instance.
+    /// AvailabilityTest.WebsiteUrl Uri to website, or AvailabilityTest.CustomWebtestXml string
     member __.WebTest(state:AvailabilityTestProperties, webtest) = { state with WebTest = Some webtest }
     [<CustomOperation "link_to_app_insights">]
+    /// Name or resource of the App Insight instance.
     member this.LinkToAi (state:AvailabilityTestProperties, name) = { state with AppInsightsName = name } 
     member this.LinkToAi (state:AvailabilityTestProperties, name) = this.LinkToAi (state, ResourceName name)
     member this.LinkToAi (state:AvailabilityTestProperties, config:AppInsightsConfig) = this.LinkToAi (state, config.Name)
