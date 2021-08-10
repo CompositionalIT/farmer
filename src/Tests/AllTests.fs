@@ -13,6 +13,7 @@ let allTests =
         testList "All Tests" [
             testList "Builders" [
                 AppInsights.tests
+                AppInsightsAvailability.tests
                 if notEnv "BUILD_REASON" "PullRequest" then
                     AzCli.tests
                 AzureFirewall.tests

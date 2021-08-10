@@ -84,6 +84,7 @@
     <Compile Include="Arm/DocumentDb.fs" />
     <Compile Include="Arm/EventHub.fs" />
     <Compile Include="Arm/Insights.fs" />
+    <Compile Include="Arm\AvailabilityTest.fs" />
     <Compile Include="Arm/KeyVault.fs" />
     <Compile Include="Arm\LoadBalancer.fs" />
     <Compile Include="Arm/RoleAssignment.fs" />
@@ -125,6 +126,7 @@
     <Compile Include="Builders/Builders.Vm.fs" />
     <Compile Include="Builders/Builders.ServicePlan.fs" />
     <Compile Include="Builders/Builders.AppInsights.fs" />
+    <Compile Include="Builders\Builders.AvailabilityTest.fs" />
     <Compile Include="Builders/Builders.WebApp.fs" />
     <Compile Include="Builders/Builders.Functions.fs" />
     <Compile Include="Builders/Builders.Sql.fs" />
