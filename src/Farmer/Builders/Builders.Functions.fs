@@ -166,8 +166,7 @@ type FunctionsConfig =
                 |> Map
 
             let site =
-                { Type = Arm.Web.sites
-                  Name = this.Name.ResourceName
+                { Name = Site this.Name
                   ServicePlan = this.ServicePlanId
                   Location = location
                   Cors = this.CommonWebConfig.Cors
@@ -279,9 +278,9 @@ type FunctionsConfig =
             if Map.isEmpty this.CommonWebConfig.Slots then
                 site
             else
-                {site with AppSettings = Map.empty}
+                { site with AppSettings = Map.empty }
                 for (_, slot) in this.CommonWebConfig.Slots |> Map.toSeq do
-                    slot.ToArm site
+                    slot.ToSite site
         ]
 
 type FunctionsBuilder() =

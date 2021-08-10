@@ -153,8 +153,8 @@ let tests = testList "Web App Tests" [
         Expect.equal site.Identity.SystemAssigned Enabled "System Identity should be enabled"
         Expect.containsAll site.AppSettings expectedSettings "Incorrect settings"
 
-        Expect.sequenceEqual kv.Dependencies [ ResourceId.create(sites, site.Name) ] "Key Vault dependencies are wrong"
-        Expect.equal kv.Name (ResourceName (site.Name.Value + "vault")) "Key Vault name is wrong"
+        Expect.sequenceEqual kv.Dependencies [ ResourceId.create(sites, site.Name.ResourceName) ] "Key Vault dependencies are wrong"
+        Expect.equal kv.Name (ResourceName (site.Name.ResourceName.Value + "vault")) "Key Vault name is wrong"
         Expect.equal wa.CommonWebConfig.Identity.SystemAssigned Enabled "System Identity should be turned on"
         Expect.equal kv.AccessPolicies.[0].ObjectId wa.SystemIdentity.PrincipalId.ArmExpression "Policy is incorrect"
 
@@ -319,7 +319,7 @@ let tests = testList "Web App Tests" [
             site 
             |> getResources
             |> getResource<Arm.Web.Site>
-            |> List.filter (fun x-> x.Type = Arm.Web.slots)
+            |> List.filter (fun x -> x.ResourceType = Arm.Web.slots)
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
     }
@@ -354,7 +354,7 @@ let tests = testList "Web App Tests" [
             site 
             |> getResources
             |> getResource<Arm.Web.Site>
-            |> List.filter (fun x-> x.Type = Arm.Web.slots)
+            |> List.filter (fun x -> x.ResourceType = Arm.Web.slots)
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
 
@@ -390,7 +390,7 @@ let tests = testList "Web App Tests" [
         Expect.isTrue (site.CommonWebConfig.Slots.ContainsKey "warm-up") "Config should contain slot"
 
         let sites = site |> getResources |> getResource<Arm.Web.Site>
-        let slots = sites |> List.filter (fun x-> x.Type = Arm.Web.slots)
+        let slots = sites |> List.filter (fun x -> x.ResourceType = Arm.Web.slots)
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
 
@@ -428,7 +428,7 @@ let tests = testList "Web App Tests" [
             site 
             |> getResources
             |> getResource<Arm.Web.Site>
-            |> List.filter (fun x-> x.Type = Arm.Web.slots)
+            |> List.filter (fun x -> x.ResourceType = Arm.Web.slots)
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
  
@@ -452,7 +452,7 @@ let tests = testList "Web App Tests" [
             site 
             |> getResources
             |> getResource<Arm.Web.Site>
-            |> List.filter (fun x-> x.Type = Arm.Web.slots)
+            |> List.filter (fun x -> x.ResourceType = Arm.Web.slots)
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
 
@@ -474,7 +474,7 @@ let tests = testList "Web App Tests" [
             site 
             |> getResources
             |> getResource<Arm.Web.Site>
-            |> List.filter (fun x-> x.Type = Arm.Web.slots)
+            |> List.filter (fun x -> x.ResourceType = Arm.Web.slots)
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
 
@@ -496,7 +496,7 @@ let tests = testList "Web App Tests" [
             site 
             |> getResources
             |> getResource<Arm.Web.Site>
-            |> List.filter (fun x-> x.Type = Arm.Web.slots)
+            |> List.filter (fun x -> x.ResourceType = Arm.Web.slots)
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
  
@@ -520,7 +520,7 @@ let tests = testList "Web App Tests" [
             site 
             |> getResources
             |> getResource<Arm.Web.Site>
-            |> List.filter (fun x-> x.Type = Arm.Web.slots)
+            |> List.filter (fun x -> x.ResourceType = Arm.Web.slots)
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
  

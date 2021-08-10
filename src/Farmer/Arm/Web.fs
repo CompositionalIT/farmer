@@ -143,9 +143,20 @@ module ZipDeploy =
                 packageFilename
             | DeployZip zipFilePath ->
                 zipFilePath
+type SiteType =
+    | Slot of ResourceName
+    | Site of WebAppName
+    member this.ResourceName =
+        match this with
+        | Slot r -> r
+        | Site r -> r.ResourceName
+    member this.ResourceType =
+        match this with
+        | Slot _ -> slots
+        | Site _ -> sites
+
 type Site =
-    { Type: ResourceType
-      Name : ResourceName
+    { Name : SiteType
       Location : Location
       ServicePlan : ResourceId
       AppSettings : Map<string, Setting>
@@ -173,6 +184,7 @@ type Site =
       Metadata : List<string * string>
       AutoSwapSlotName: string option
       ZipDeployPath : (string * ZipDeploy.ZipDeployTarget * ZipDeploy.ZipDeploySlot) option }
+    member this.ResourceType = this.Name.ResourceType
     interface IParameters with
         member this.SecureParameters =
             Map.toList this.AppSettings
@@ -192,12 +204,12 @@ type Site =
                 let slotName = slot.ToOption
                 printfn "Running ZIP deploy to %s for %s" (slotName |> Option.defaultValue "WebApp") path.Value
                 Some (match target with
-                      | ZipDeploy.WebApp -> Deploy.Az.zipDeployWebApp name.Value path.GetZipPath resourceGroupName slotName
-                      | ZipDeploy.FunctionApp -> Deploy.Az.zipDeployFunctionApp name.Value path.GetZipPath resourceGroupName slotName)
+                      | ZipDeploy.WebApp -> Deploy.Az.zipDeployWebApp name.ResourceName.Value path.GetZipPath resourceGroupName slotName
+                      | ZipDeploy.FunctionApp -> Deploy.Az.zipDeployFunctionApp name.ResourceName.Value path.GetZipPath resourceGroupName slotName)
             | _ ->
                 None
     interface IArmResource with
-        member this.ResourceId = sites.resourceId this.Name
+        member this.ResourceId = sites.resourceId this.Name.ResourceName
         member this.JsonModel =
             let dependencies = this.Dependencies + (Set this.Identity.Dependencies)
             let keyvaultId = 
@@ -206,7 +218,7 @@ type Site =
                 // If there is no managed identity and only one user-assigned identity, we should use that be default
                 | None, {SystemAssigned = Disabled; UserAssigned = [x]} -> x.ResourceId.Eval()
                 | _ -> null
-            {| this.Type.Create(this.Name, this.Location, dependencies, this.Tags) with
+            {| this.Name.ResourceType.Create(this.Name.ResourceName, this.Location, dependencies, this.Tags) with
                  kind = this.Kind
                  identity =
                      if this.Identity = ManagedIdentity.Empty then Unchecked.defaultof<_>

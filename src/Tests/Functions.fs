@@ -123,7 +123,7 @@ let tests = testList "Functions tests" [
             site 
             |> getResources
             |> getResource<Arm.Web.Site>
-            |> List.filter (fun s-> s.Type = Arm.Web.slots)
+            |> List.filter (fun s -> s.ResourceType = Arm.Web.slots)
 
         Expect.hasLength slots 1 "Should only be 1 slot"
     }
@@ -139,7 +139,7 @@ let tests = testList "Functions tests" [
             site 
             |> getResources
             |> getResource<Arm.Web.Site>
-            |> List.filter (fun s-> s.Type = Arm.Web.slots)
+            |> List.filter (fun s -> s.ResourceType = Arm.Web.slots)
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
 
@@ -159,7 +159,7 @@ let tests = testList "Functions tests" [
             site 
             |> getResources
             |> getResource<Arm.Web.Site>
-            |> List.filter (fun s-> s.Type = Arm.Web.slots)
+            |> List.filter (fun s -> s.ResourceType = Arm.Web.slots)
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
 
@@ -177,7 +177,7 @@ let tests = testList "Functions tests" [
             config 
             |> getResources
             |> getResource<Farmer.Arm.Web.Site>
-        let slots = sites |> List.filter (fun s-> s.Type = Arm.Web.slots)
+        let slots = sites |> List.filter (fun s -> s.ResourceType = Arm.Web.slots)
 
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
@@ -194,7 +194,7 @@ let tests = testList "Functions tests" [
             site 
             |> getResources
             |> getResource<Arm.Web.Site>
-            |> List.filter (fun s-> s.Type = Arm.Web.slots)
+            |> List.filter (fun s -> s.ResourceType = Arm.Web.slots)
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
 
@@ -227,7 +227,7 @@ let tests = testList "Functions tests" [
             site 
             |> getResources
             |> getResource<Arm.Web.Site>
-            |> List.filter (fun s-> s.Type = Arm.Web.slots)
+            |> List.filter (fun s -> s.ResourceType = Arm.Web.slots)
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
  
@@ -252,7 +252,7 @@ let tests = testList "Functions tests" [
             site 
             |> getResources
             |> getResource<Arm.Web.Site>
-        let slots = sites |> List.filter (fun s-> s.Type = Arm.Web.slots)
+        let slots = sites |> List.filter (fun s -> s.ResourceType = Arm.Web.slots)
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
 

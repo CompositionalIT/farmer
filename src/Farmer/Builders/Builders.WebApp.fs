@@ -80,11 +80,10 @@ type SlotConfig =
       KeyVaultReferenceIdentity: UserAssignedIdentity option
       Tags: Map<string,string>
       Dependencies: ResourceId Set}
-    member this.ToArm (owner: Arm.Web.Site) = 
+    member this.ToSite (owner: Arm.Web.Site) = 
         { owner with
-            Type = Arm.Web.slots
-            Name = owner.Name/this.Name
-            Dependencies = owner.Dependencies |> Set.add (owner.Type.resourceId owner.Name)
+            Name = SiteType.Slot (owner.Name.ResourceName/this.Name)
+            Dependencies = owner.Dependencies |> Set.add (owner.Name.ResourceType.resourceId owner.Name.ResourceName)
             AutoSwapSlotName = this.AutoSwapSlotName
             AppSettings = owner.AppSettings |> Map.merge ( this.AppSettings |> Map.toList)
             ConnectionStrings = owner.ConnectionStrings |> Map.merge (this.ConnectionStrings |> Map.toList)
@@ -313,8 +312,7 @@ type WebAppConfig =
                 |> Map
 
             let site = 
-                { Type = Arm.Web.sites
-                  Name = this.Name.ResourceName
+                { Name = Site this.Name
                   Location = location
                   ServicePlan = this.ServicePlanId
                   HTTPSOnly = this.CommonWebConfig.HTTPSOnly
@@ -474,7 +472,7 @@ type WebAppConfig =
             else
                 { site with AppSettings = Map.empty; ConnectionStrings = Map.empty }
                 for (_,slot) in this.CommonWebConfig.Slots |> Map.toSeq do
-                    slot.ToArm site
+                    slot.ToSite site
 
             yield! (PrivateEndpoint.create location this.ResourceId ["sites"] this.PrivateEndpoints)
         ]
