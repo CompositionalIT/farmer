@@ -181,7 +181,7 @@ type DnsNsRecordBuilder() =
     member _.RecordName(state:NsRecordProperties, name) = { state with Name = name }
     member this.RecordName(state:NsRecordProperties, name:string) = this.RecordName(state, ResourceName name)
 
-    /// Add NSD names
+    /// Add NSD names (Subdomain NameServers)
     [<CustomOperation "add_nsd_names">]
     member _.RecordNsdNames(state:NsRecordProperties, nsdNames) = { state with NsdNames = state.NsdNames @ nsdNames }
 

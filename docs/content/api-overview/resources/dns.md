@@ -98,7 +98,7 @@ In addition, each record builder has its own custom keywords:
 
 | Keyword | Purpose |
 |-|-|
-| add_nsd_names | Add NS values to this record set. |
+| add_nsd_names | Add NS values to this record set. (Subdomain NameServers) |
 
 #### PTR Record Builder Keywords
 
