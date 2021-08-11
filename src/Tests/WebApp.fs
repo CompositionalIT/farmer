@@ -550,6 +550,12 @@ let tests = testList "Web App Tests" [
         let app = webApp { name "farmerWebApp"; keyvault_identity myId }
         let site:Site = app |> getResourceAtIndex 3
         Expect.equal site.KeyVaultReferenceIdentity "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'myFarmerIdentity')]" "Keyvault identity should be correctly set"
+    }
 
+    test "Supports health check" {
+      let resources = webApp { name "test"; health_check_path "/status" } |> getResources
+      let wa = resources |> getResource<Web.Site> |> List.head
+
+      Expect.equal wa.HealthCheckPath (Some "/status") "Health check path should be '/status'"
     }
 ]

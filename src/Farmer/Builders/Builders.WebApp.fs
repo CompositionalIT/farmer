@@ -175,7 +175,8 @@ type CommonWebConfig =
       Settings : Map<string, Setting>
       Slots : Map<string,SlotConfig>
       WorkerProcess : Bitness option 
-      ZipDeployPath : (string*ZipDeploy.ZipDeploySlot) option }
+      ZipDeployPath : (string*ZipDeploy.ZipDeploySlot) option
+      HealthCheckPath: string option }
 
 type WebAppConfig =
     { CommonWebConfig: CommonWebConfig
@@ -417,6 +418,7 @@ type WebAppConfig =
                   AppCommandLine = this.DockerImage |> Option.map snd
                   AutoSwapSlotName = None
                   ZipDeployPath = this.CommonWebConfig.ZipDeployPath |> Option.map (fun (path,slot) -> path, ZipDeploy.ZipDeployTarget.WebApp, slot )
+                  HealthCheckPath = this.CommonWebConfig.HealthCheckPath
                 }
 
             match keyVault with
@@ -495,7 +497,8 @@ type WebAppBuilder() =
               Settings = Map.empty
               Slots = Map.empty
               WorkerProcess = None 
-              ZipDeployPath = None }
+              ZipDeployPath = None
+              HealthCheckPath = None }
           Sku = Sku.F1
           WorkerSize = Small
           WorkerCount = 1
@@ -805,3 +808,7 @@ module Extensions =
         /// Disables http for this webapp so that only https is used.
         [<CustomOperation "https_only">]
         member this.HttpsOnly(state:'T) = this.Map state (fun x -> { x with HTTPSOnly = true })
+
+        [<CustomOperation "health_check_path">]
+        /// Specifies the path Azure load balancers will ping to check for unhealthy instances.
+        member this.HealthCheckPath(state:'T, healthCheckPath:string) = this.Map state (fun x -> {x with HealthCheckPath = Some(healthCheckPath)})
