@@ -280,4 +280,9 @@ let tests = testList "Functions tests" [
         Expect.equal serverFarm.Kind (Some "elastic") "Incorrect Kind"
         Expect.equal serverFarm.MaximumElasticWorkerCount (Some 25) "Incorrect worker count"
     }
+
+    test "Supports health check" {
+      let f:Site = functions { health_check_path "/status" } |> getResourceAtIndex 3
+      Expect.equal f.SiteConfig.HealthCheckPath "/status" "Health check path should be '/status'"
+    }
 ]

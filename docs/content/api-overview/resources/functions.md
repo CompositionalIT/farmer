@@ -44,6 +44,7 @@ The Functions builder is used to create Azure Functions accounts. It abstracts t
 | publish_as | Specifies whether to publish function as code or as a docker container. |
 | add_slot | Adds a deployment slot to the app |
 | add_slots | Adds multiple deployment slots to the app |
+| health_check_path | Sets the path to your functions health check endpoint, which Azure load balancers will ping to determine which instances are healthy.|
 
 #### Post-deployment Builder Keywords
 The Functions builder contains special commands that are executed *after* the ARM deployment is completed.

@@ -1,5 +1,7 @@
 Release Notes
 =============
+## vNext
+* WebApp/Functions: Web Apps and Functions now 'health_check_path' support.
 
 ## 1.6.11
 * Container Groups: Use `ip_config` to name the IP configuration for a container group's subnet.
