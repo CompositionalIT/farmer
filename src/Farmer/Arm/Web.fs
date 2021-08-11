@@ -172,7 +172,8 @@ type Site =
       Tags : Map<string, string>
       Metadata : List<string * string>
       AutoSwapSlotName: string option
-      ZipDeployPath : (string * ZipDeploy.ZipDeployTarget * ZipDeploy.ZipDeploySlot) option }
+      ZipDeployPath : (string * ZipDeploy.ZipDeployTarget * ZipDeploy.ZipDeploySlot) option
+      HealthCheckPath : string option }
     interface IParameters with
         member this.SecureParameters =
             Map.toList this.AppSettings
@@ -244,6 +245,7 @@ type Site =
                                     box {| allowedOrigins = origins
                                            supportCredentials = credentials |> Option.toNullable |})
                             |> Option.toObj
+                           healthCheckPath = this.HealthCheckPath |> Option.toObj
                         |}
                     |}
             |} :> _
