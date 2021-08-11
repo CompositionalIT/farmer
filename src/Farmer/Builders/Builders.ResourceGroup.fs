@@ -93,6 +93,11 @@ type ResourceGroupBuilder() =
         | Some outputValue -> this.Output(state, outputName, outputValue)
         | None -> state
 
+    [<CustomOperation "outputs">]
+    member __.Outputs (state, outputs) : ResourceGroupConfig =  { state with Outputs = Map.merge outputs state.Outputs }
+    member this.Outputs (state:ResourceGroupConfig, outputs) = this.Outputs(state, outputs |> List.map(fun (k:string, ResourceName r) -> k,r))
+    member this.Outputs (state:ResourceGroupConfig, outputs) = this.Outputs(state, outputs |> List.map(fun (k, a:ArmExpression) -> k,a.Eval()))
+
     /// Sets the default location of all resources.
     [<CustomOperation "location">]
     member __.Location (state, location) : ResourceGroupConfig = { state with Location = location }
