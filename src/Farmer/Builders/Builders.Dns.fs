@@ -404,11 +404,25 @@ type DnsSoaRecordBuilder() =
     /// Enable support for additional dependencies.
     interface IDependable<SoaRecordProperties> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
+type DnsZone =
+    static member getNameServers (resourceId:ResourceId) =
+        ArmExpression
+            .reference(zones, resourceId)
+            .Map(fun r -> r + ".nameServers")
+            .WithOwner(resourceId)
+        |> ArmExpression.string
+            
+    static member getNameServers (name:ResourceName, ?resourceGroup) =
+        DnsZone.getNameServers(ResourceId.create (zones, name, ?group = resourceGroup))
+        
 type DnsZoneConfig =
     { Name : ResourceName
       Dependencies : Set<ResourceId>
       ZoneType : DnsZoneType
       Records : DnsZoneRecordConfig list }
+
+    /// Gets the ARM expression path to the NameServers. When evaluated, will return a JSON array as string. E.g.: """["ns1-01.azure-dns.com.","ns2-01.azure-dns.net.","ns3-01.azure-dns.org.","ns4-01.azure-dns.info."]"""
+    member this.NameServers = DnsZone.getNameServers this.Name
 
     interface IBuilder with
         member this.ResourceId = zones.resourceId this.Name

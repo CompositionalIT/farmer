@@ -117,6 +117,11 @@ type ArmExpression =
         |> sprintf "concat(%s)"
         |> ArmExpression.create
 
+    static member string (value:ArmExpression) =
+        value.Value
+        |> sprintf "string(%s)"
+        |> ArmExpression.create
+
 type ResourceId with
     member this.ArmExpression =
         match this.Type.Type with

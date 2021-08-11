@@ -125,6 +125,12 @@ In addition, each record builder has its own custom keywords:
 | retry_time | Sets the retry time for the record in seconds |
 | serial_number | Sets the serial number for the record |
 
+#### Configuration Members
+
+| Member | Purpose |
+|-|-|
+| NameServers | Gets the ARM expression path to the NameServers. When evaluated, will return a JSON array as string.
+
 #### Example
 ```fsharp
 #r @"./libs/Newtonsoft.Json.dll"
