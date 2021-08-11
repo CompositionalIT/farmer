@@ -4,6 +4,9 @@ Release Notes
 * DNS Zone: Added configuration member of NameServers
 * Virtual Machine: Added configuration member PublicIpAddress
 
+## vNext
+* Container Groups: Use `ip_config` to name the IP configuration for a container group's subnet.
+
 ## 1.6.10
 * Azure SQL Server: geo_replicate parameter to geo-replicate the server databases
 * App Insights: Support for Availability tests, VS WebTests
