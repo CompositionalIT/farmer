@@ -306,7 +306,7 @@ type NetworkProfile =
       Location : Location
       Dependencies : ResourceId Set
       ContainerNetworkInterfaceConfigurations :
-        {| IpConfigs : {| SubnetName : ResourceName |} list
+        {| IpConfigs : {| Name : ResourceName;  SubnetName : ResourceName |} list
         |} list
       VirtualNetwork : ResourceId
       Tags: Map<string,string> }
@@ -323,7 +323,7 @@ type NetworkProfile =
                                 {| ipConfigurations =
                                    containerIfConfig.IpConfigs
                                    |> List.mapi (fun index ipConfig ->
-                                    {| name = $"ipconfig{index + 1}"
+                                    {| name = (ipConfig.Name.IfEmpty $"ipconfig{index + 1}").Value
                                        properties =
                                         {| subnet =
                                             {| id =

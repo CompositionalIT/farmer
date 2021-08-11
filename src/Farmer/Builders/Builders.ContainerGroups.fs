@@ -136,7 +136,7 @@ type ContainerProbeConfig =
     { ProbeType : ContainerProbeType
       Probe : ContainerProbe }
 
-type ContainerNetworkInterfaceIpConfig = { Subnet : string }
+type ContainerNetworkInterfaceIpConfig = { Name : ResourceName; Subnet : string }
 type ContainerNetworkInterfaceConfiguration = { IpConfigs : ContainerNetworkInterfaceIpConfig list }
 
 type NetworkProfileConfig =
@@ -156,7 +156,10 @@ type NetworkProfileConfig =
               ] |> Set.ofList
               ContainerNetworkInterfaceConfigurations =
                   this.ContainerNetworkInterfaceConfigurations
-                  |> List.map (fun ifconfig -> {| IpConfigs = (ifconfig.IpConfigs |> List.map (fun ipConfig -> {| SubnetName = ResourceName ipConfig.Subnet |})) |})
+                  |> List.map (fun ifconfig ->
+                      {| IpConfigs =
+                          ifconfig.IpConfigs |> List.map (fun ipConfig -> {| Name = ipConfig.Name; SubnetName = ResourceName ipConfig.Subnet |})
+                      |} )
               VirtualNetwork =
                   match this.VirtualNetwork with
                   | Managed resId
@@ -414,10 +417,24 @@ type NetworkProfileBuilder() =
     member _.Name(state:NetworkProfileConfig, name) = { state with Name = ResourceName name }
     /// Sets a single target subnet for the network profile (typical case of single subnet)
     [<CustomOperation "subnet">]
-    member _.SubnetName(state:NetworkProfileConfig, subnet) = { state with ContainerNetworkInterfaceConfigurations = [ { IpConfigs = [ { Subnet = subnet } ] } ] }
-    /// Sets a single target subnet for the network profile (typical case of single subnet)
+    member _.SubnetName(state:NetworkProfileConfig, subnet) =
+        { state
+          with ContainerNetworkInterfaceConfigurations = [
+              { IpConfigs = [ { Name = ResourceName "ipconfig"; Subnet = subnet } ] }
+          ]
+        }
+    /// Sets a single target named ip configuration for the network profile (typical case of single subnet)
+    [<CustomOperation "ip_config">]
+    member _.IpConfig(state:NetworkProfileConfig, ipConfigName:string, subnetName:string) =
+        { state
+          with ContainerNetworkInterfaceConfigurations = [
+              { IpConfigs = [ { Name = ResourceName ipConfigName; Subnet = subnetName } ] }
+          ]
+        }
+    /// Sets multiple subnet IP configs for the network profile to connect to multiple subnets.
     [<CustomOperation "add_ip_configs">]
-    member _.AddIpConfigs(state:NetworkProfileConfig, configs) = { state with ContainerNetworkInterfaceConfigurations = state.ContainerNetworkInterfaceConfigurations @ configs }
+    member _.AddIpConfigs(state:NetworkProfileConfig, configs) =
+        { state with ContainerNetworkInterfaceConfigurations = state.ContainerNetworkInterfaceConfigurations @ configs }
     /// Sets the virtual network for the profile
     [<CustomOperation "vnet">]
     member _.VirtualNetwork(state:NetworkProfileConfig, vnet) =
