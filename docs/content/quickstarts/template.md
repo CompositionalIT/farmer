@@ -54,4 +54,4 @@ This comes with a ready-made devops YAML file designed for simple CI/CD, using F
 * **--resourceGroup**: Set the name of the resource group that you wish to deploy to.
 
 #### Direct deployment
-If you prefer a deployment process that is not coupled to Azure Devops, you can create a [service principle](../../deployment-guidance/#how-do-i-create-a-service-principal) in Azure and use the generated credentials in Farmer. Farmer will use its own wrapper around the Azure REST API to deploy to Azure, reporting progress to the console.
+If you prefer a deployment process that is not coupled to Azure Devops, you can create a [service principal](../../deployment-guidance/#how-do-i-create-a-service-principal) in Azure and use the generated credentials in Farmer. Farmer will use its own wrapper around the Azure REST API to deploy to Azure, reporting progress to the console.
