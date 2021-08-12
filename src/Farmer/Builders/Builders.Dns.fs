@@ -99,7 +99,7 @@ type DnsCNameRecordBuilder() =
 
     /// Enable support for additional dependencies.
     interface IDependable<CNameRecordProperties> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
-    
+
 type DnsARecordBuilder() =
     member _.Yield _ = { ARecordProperties.Ipv4Addresses = []; Name = ResourceName "@"; Dependencies = Set.empty; TTL = None; Zone = None; TargetResource = None }
     member _.Run(state : ARecordProperties)  = DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, A(state.TargetResource, state.Ipv4Addresses), state.Dependencies)
@@ -203,8 +203,8 @@ type DnsNsRecordBuilder() =
     interface IDependable<NsRecordProperties> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
 type DnsPtrRecordBuilder() =
-    member __.Yield _ = { PtrRecordProperties.PtrdNames = []; Name = ResourceName "@"; Dependencies = Set.empty; TTL = None; Zone = None }
-    member __.Run(state : PtrRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, PTR state.PtrdNames, state.Dependencies)
+    member _.Yield _ = { PtrRecordProperties.PtrdNames = []; Name = ResourceName "@"; Dependencies = Set.empty; TTL = None; Zone = None }
+    member _.Run(state : PtrRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, PTR state.PtrdNames, state.Dependencies)
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
@@ -426,12 +426,12 @@ type DnsZoneConfig =
         ]
 
 type DnsZoneBuilder() =
-    member __.Yield _ =
+    member _.Yield _ =
         { DnsZoneConfig.Name = ResourceName ""
           Dependencies = Set.empty
           Records = []
           ZoneType = Public }
-    member __.Run(state) : DnsZoneConfig =
+    member _.Run(state) : DnsZoneConfig =
         { state with
             Name =
                 if state.Name = ResourceName.Empty then failwith "You must set a DNS zone name"

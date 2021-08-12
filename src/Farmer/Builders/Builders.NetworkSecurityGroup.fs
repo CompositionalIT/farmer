@@ -18,7 +18,7 @@ type SecurityRuleConfig =
       Direction : TrafficDirection }
 
 type SecurityRuleBuilder () =
-    member __.Yield _ =
+    member _.Yield _ =
         { Name = ResourceName.Empty
           Description = None
           Services = []
@@ -119,7 +119,7 @@ type NsgConfig =
                 buildNsgRule securityGroup rule ((priority + 1) * 100)
         ]
 type NsgBuilder() =
-    member __.Yield _ =
+    member _.Yield _ =
         { Name = ResourceName.Empty
           SecurityRules = []
           Tags = Map.empty  }

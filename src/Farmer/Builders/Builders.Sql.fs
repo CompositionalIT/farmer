@@ -26,9 +26,9 @@ type SqlAzureConfig =
            PerDbLimits : {| Min: int<DTU>; Max : int<DTU> |} option
            Capacity : int<Mb> option |}
       Databases : SqlAzureDbConfig list
-      GeoReplicaServer : 
+      GeoReplicaServer :
         {| /// Suffix name for server and database name
-           NameSuffix : string; 
+           NameSuffix : string;
            /// Replication location, different from the original one
            Location : Farmer.Location;
            /// Override database Skus
@@ -109,7 +109,7 @@ type SqlAzureConfig =
                 if replica.Location.ArmValue = location.ArmValue then
                     failwith $"Geo-replica cannot be deployed to the same location than the main database {this.Name}: {location.ArmValue}"
                 else
-                let replicaServerName = 
+                let replicaServerName =
                     match (this.Name.ResourceName.Value + replica.NameSuffix) |> SqlAccountName.Create with
                     | Ok x -> x
                     | Error e -> failwith e
@@ -154,7 +154,7 @@ type SqlAzureConfig =
                                 minCapacity = ""
                                 autoPauseDelay = ""
                                 requestedBackupStorageRedundancy = ""
-    
+
                            |}
                     |} |> Farmer.Resource.ofObj
             | None -> ()
@@ -205,7 +205,7 @@ type SqlDbBuilder() =
 
 type SqlServerBuilder() =
     let makeIp (text:string) = IPAddress.Parse text
-    member __.Yield _ =
+    member _.Yield _ =
         { Name = (SqlAccountName.Create "defaultvalue").OkValue
           AdministratorCredentials = {| UserName = ""; Password = SecureParameter "" |}
           ElasticPoolSettings =
@@ -218,7 +218,7 @@ type SqlServerBuilder() =
           MinTlsVersion = None
           GeoReplicaServer = None
           Tags = Map.empty  }
-    member __.Run state : SqlAzureConfig =
+    member _.Run state : SqlAzureConfig =
         { state with
             AdministratorCredentials =
                 if System.String.IsNullOrWhiteSpace state.AdministratorCredentials.UserName then failwith $"You must specify the admin_username for SQL Server instance {state.Name.ResourceName.Value}"
@@ -246,7 +246,7 @@ type SqlServerBuilder() =
     member _.AddDatabases(state:SqlAzureConfig, databases) = { state with Databases = state.Databases @ databases }
     /// Adds a firewall rule that enables access to a specific IP Address range.
     [<CustomOperation "add_firewall_rule">]
-    member __.AddFirewallRule(state:SqlAzureConfig, name, startRange, endRange) =
+    member _.AddFirewallRule(state:SqlAzureConfig, name, startRange, endRange) =
         { state with
             FirewallRules =
                 {| Name = ResourceName name
@@ -255,7 +255,7 @@ type SqlServerBuilder() =
                 :: state.FirewallRules }
     /// Adds a firewall rules that enables access to a specific IP Address range.
     [<CustomOperation "add_firewall_rules">]
-    member __.AddFirewallRules(state:SqlAzureConfig, listOfRules:(string*string*string) list) =
+    member _.AddFirewallRules(state:SqlAzureConfig, listOfRules:(string*string*string) list) =
         let newRules =
             listOfRules |> List.map(fun (name, startRange, endRange) ->
                 {| Name = ResourceName name
@@ -268,7 +268,7 @@ type SqlServerBuilder() =
         this.AddFirewallRule(state, "allow-azure-services", "0.0.0.0", "0.0.0.0")
     /// Sets the admin username of the server (note: the password is supplied as a securestring parameter to the generated ARM template).
     [<CustomOperation "admin_username">]
-    member __.AdminUsername(state:SqlAzureConfig, username) =
+    member _.AdminUsername(state:SqlAzureConfig, username) =
         { state with
             AdministratorCredentials =
                 {| state.AdministratorCredentials with
