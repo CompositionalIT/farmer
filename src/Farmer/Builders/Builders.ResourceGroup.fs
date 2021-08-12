@@ -25,7 +25,7 @@ type ResourceGroupConfig =
                     | :? ResourceGroupDeployment as rg -> 
                         Map.toList rg.Outputs 
                         |> List.map fst
-                        |> List.map (fun key -> $"{rg.ResourceId.Name.Value}.{key}",$"[reference('{rg.ResourceId.Name.Value}').outputs['{key}'].value]")
+                        |> List.map (fun key -> $"{(ArmExpression.create rg.ResourceId.Name.Value).Eval()}.{key}",$"[reference('{(ArmExpression.create rg.ResourceId.Name.Value).Eval()}').outputs['{key}'].value]")
                     | _ -> 
                         [] )
                 |> Map.ofList

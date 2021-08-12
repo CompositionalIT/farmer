@@ -192,7 +192,7 @@ let tests = testList "Template" [
         Expect.isTrue (template.Template.Resources.[0] :? Arm.ResourceGroup.ResourceGroupDeployment) "The only resource should be a resourceGroupDeployment"
         let innerDeployment = template.Template.Resources.[0] :?> Arm.ResourceGroup.ResourceGroupDeployment
         Expect.hasLength innerDeployment.Resources 1 "Inner template should have 1 resource"
-        Expect.equal innerDeployment.Name.Value "inner" "Inner template name is incorrect"
+        Expect.equal (innerDeployment.Name.Eval()) "inner" "Inner template name is incorrect"
         Expect.isTrue (innerDeployment.Template.Resources.[0] :? Arm.Storage.StorageAccount) "The only resource in the inner deployment should be a storageAccount"
     }
     test "Nested resource group outputs are copied to outer deployments" {
