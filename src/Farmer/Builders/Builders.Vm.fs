@@ -49,6 +49,7 @@ type VmConfig =
     member internal this.DeriveResourceName (resourceType:ResourceType) elementName = resourceType.resourceId (makeName this.Name elementName)
     member this.NicName = this.DeriveResourceName networkInterfaces "nic"
     member this.PublicIpId = this.PublicIp |> Option.map (fun ref -> ref.resourceId this) //(this.DeriveResourceName publicIPAddresses "ip")
+    member this.PublicIpAddress = this.PublicIpId |> Option.map (fun ipid -> ArmExpression.create($"reference({ipid.ArmExpression.Value}).ipAddress"))
     member this.Hostname = this.PublicIpId |> Option.map (fun ip -> ip.ArmExpression.Map(sprintf "%s.dnsSettings.fqdn"))
     member this.SystemIdentity = SystemIdentity this.ResourceId
     member this.ResourceId = virtualMachines.resourceId this.Name

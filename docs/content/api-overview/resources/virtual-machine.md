@@ -56,6 +56,7 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 |VnetName|Provides the resource name of the Virtual Network (VNet)|
 |SubnetName|Provides the resource name of the subnet|
 |IpName|Provides the resource name of the IP Address|
+|PublicIpAddress|Returns an ARM expression to retrieve public IP address of the virtual machine.|
 |Hostname|Returns an ARM expression to retrieve the fully-qualified domain name from the virtual machine's DNS settings."|
 
 #### Example

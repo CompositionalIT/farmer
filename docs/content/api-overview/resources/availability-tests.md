@@ -15,7 +15,7 @@ The tests can be just pinging the website and expecting response code of 200, or
 
 | Keyword | Purpose |
 |-|-|
-| name | Sets the name of the App Insights instance. |
+| name | Sets the name of this Webtest instance. |
 | link_to_app_insights | Name or resource of the App Insight instance. |
 | web_test | AvailabilityTest.WebsiteUrl Uri to website, or AvailabilityTest.CustomWebtestXml string |
 | locations | List of locations where the site is pinged. These are not format of Farmer.Location but AvailabilityTest.TestSiteLocation.  |
