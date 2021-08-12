@@ -1,8 +1,10 @@
 Release Notes
 =============
-## vNext
+
+## 1.6.11
 * DNS Zone: Added configuration member of NameServers
 * DNS Zone: Support for delegating a subdomain to another DNS Zone
+* Virtual Machine: Added configuration member PublicIpAddress
 
 ## 1.6.10
 * Azure SQL Server: geo_replicate parameter to geo-replicate the server databases
