@@ -3,7 +3,7 @@ module Farmer.Arm.Dashboard
 
 open Farmer
 
-let dashboard = ResourceType("Microsoft.Portal/dashboards", "2015-08-01-preview")
+let dashboard = ResourceType("Microsoft.Portal/dashboards", "2020-09-01-preview")
 
 type DashboardMetadata =
 | EmptyMetadata
@@ -127,11 +127,6 @@ type Dashboard =
         member this.ResourceId = dashboard.resourceId this.Name
         member this.JsonModel =
 
-            let lensesPartsObjJson =
-                // Parts-list is not array, instead it's "parts": { "0": { }, "1": { }, ... }
-                let lensesJsons = this.LensParts |> List.mapi(fun idx item -> $"\"{idx}\": {item |> Farmer.Serialization.toJson }")
-                ("{" + System.String.Join(",", lensesJsons) + "}") |> Farmer.Serialization.ofJson
-
             let dahsboardTitle = 
                 match this.Title with
                 | Some title -> title
@@ -158,6 +153,6 @@ type Dashboard =
                                            |} |} |}
                                     |}
                                 |} :> _
-                          lenses = {| ``0`` = {| order = "0"; parts = lensesPartsObjJson |} |}
+                          lenses = [ {| order = "0"; parts = this.LensParts |} ]
                        |}
                 |} :> _
