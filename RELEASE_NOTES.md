@@ -1,7 +1,7 @@
 Release Notes
 =============
-##vNext
-* Dashboards: Initial support for creating dashboards
+## 1.6.11
+* DNS Zone: Added configuration member of NameServers
 
 ## 1.6.10
 * Azure SQL Server: geo_replicate parameter to geo-replicate the server databases

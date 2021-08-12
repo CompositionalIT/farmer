@@ -213,4 +213,18 @@ let tests = testList "DNS Zone" [
         let tmAresourceId = jobj.SelectToken("resources[?(@.name=='farmer.com/tm-cname')].properties.targetResource.id") |> string
         Expect.equal tmAresourceId "[resourceId('Microsoft.Network/trafficManagerProfiles', 'my-tm')]" "Incorrect ID on target resource"
     }
+    test "DNS zone get NameServers" {
+        let zone =
+            dnsZone { name "farmer.com" }
+        
+        let template =
+            arm {
+                add_resources [ zone ]
+                output "nameservers" zone.NameServers
+            }
+        let expected = "[string(reference(resourceId('Microsoft.Network/dnsZones', 'farmer.com'), '2018-05-01').nameServers)]"
+        let jobj = template.Template |> Writer.toJson |> JObject.Parse
+        let nsArm = jobj.SelectToken("outputs.nameservers.value").ToString()
+        Expect.equal nsArm expected "Nameservers not gotten"
+    }
 ]

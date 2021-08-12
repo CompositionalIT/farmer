@@ -98,7 +98,7 @@ In addition, each record builder has its own custom keywords:
 
 | Keyword | Purpose |
 |-|-|
-| add_nsd_names | Add NS values to this record set. |
+| add_nsd_names | Add NS values to this record set. (Subdomain NameServers) |
 
 #### PTR Record Builder Keywords
 
@@ -124,6 +124,12 @@ In addition, each record builder has its own custom keywords:
 | refresh_time | Sets the refresh time for the record in seconds |
 | retry_time | Sets the retry time for the record in seconds |
 | serial_number | Sets the serial number for the record |
+
+#### Configuration Members
+
+| Member | Purpose |
+|-|-|
+| NameServers | Gets the ARM expression path to the NameServers. When evaluated, will return a JSON array as string.
 
 #### Example
 ```fsharp
