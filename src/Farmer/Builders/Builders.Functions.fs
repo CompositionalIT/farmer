@@ -166,7 +166,7 @@ type FunctionsConfig =
                 |> Map
 
             let site =
-                { Name = Site this.Name
+                { SiteType = Site this.Name
                   ServicePlan = this.ServicePlanId
                   Location = location
                   Cors = this.CommonWebConfig.Cors

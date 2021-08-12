@@ -82,8 +82,8 @@ type SlotConfig =
       Dependencies: ResourceId Set}
     member this.ToSite (owner: Arm.Web.Site) = 
         { owner with
-            Name = SiteType.Slot (owner.Name.ResourceName/this.Name)
-            Dependencies = owner.Dependencies |> Set.add (owner.Name.ResourceType.resourceId owner.Name.ResourceName)
+            SiteType = SiteType.Slot (owner.Name/this.Name)
+            Dependencies = owner.Dependencies |> Set.add (owner.ResourceType.resourceId owner.Name)
             AutoSwapSlotName = this.AutoSwapSlotName
             AppSettings = owner.AppSettings |> Map.merge ( this.AppSettings |> Map.toList)
             ConnectionStrings = owner.ConnectionStrings |> Map.merge (this.ConnectionStrings |> Map.toList)
@@ -312,7 +312,7 @@ type WebAppConfig =
                 |> Map
 
             let site = 
-                { Name = Site this.Name
+                { SiteType = Site this.Name
                   Location = location
                   ServicePlan = this.ServicePlanId
                   HTTPSOnly = this.CommonWebConfig.HTTPSOnly
