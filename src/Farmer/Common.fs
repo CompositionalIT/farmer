@@ -1599,11 +1599,16 @@ module Dns =
           ExpireTime : int64 option
           MinimumTTL : int64 option }
 
+    [<RequireQualifiedAccess>]
+    type NsRecords =
+        | Records of string list
+        | SourceZone of ResourceId
+
     type DnsRecordType =
         | A of TargetResource : ResourceId option * ARecords : string list
         | AAAA of TargetResource : ResourceId option * AaaaRecords : string list
         | CName of TargetResource : ResourceId option * CNameRecord : string option
-        | NS of NsRecords : string list
+        | NS of NsRecords
         | PTR of PtrRecords : string list
         | TXT of TxtRecords : string list
         | MX of {| Preference : int; Exchange : string |} list

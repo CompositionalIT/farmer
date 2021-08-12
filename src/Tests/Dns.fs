@@ -227,4 +227,35 @@ let tests = testList "DNS Zone" [
         let nsArm = jobj.SelectToken("outputs.nameservers.value").ToString()
         Expect.equal nsArm expected "Nameservers not gotten"
     }
+    test "Delegate subdomain to another zone" {
+        let nsrecords = "[reference(resourceId('Microsoft.Network/dnsZones/NS', 'subdomain.farmer.com', '@'), '2018-05-01').NSRecords]"
+        let subdomainZone = dnsZone {
+            name "subdomain.farmer.com"
+            zone_type Dns.Public
+            add_records [
+                aRecord {
+                    name "aName"
+                    ttl 7200
+                    add_ipv4_addresses [ "192.168.0.1"; "192.168.0.2" ]
+                }
+            ]
+        }
+
+        let template =
+            arm {
+                add_resources [
+                    subdomainZone
+                    // When delegating lookups to another DNS zone, you add an NS record to your existing zone and reference the delegated zone to get it's NSRecords.
+                    nsRecord {
+                        name "subdomain"
+                        link_to_unmanaged_dns_zone (Farmer.Arm.Dns.zones.resourceId "farmer.com")
+                        ttl (int (TimeSpan.FromDays 2.).TotalSeconds)
+                        reference_nsd_names subdomainZone
+                    }
+                ]
+            }
+        let jobj = template.Template |> Writer.toJson |> JObject.Parse
+        let delegatedNsRecord = jobj.SelectToken("resources[?(@.name=='farmer.com/subdomain')].properties.NSRecords") |> string
+        Expect.equal delegatedNsRecord nsrecords "Incorrect reference generated for NS record of delegated subdomain."
+    }
 ]

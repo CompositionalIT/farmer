@@ -46,7 +46,7 @@ type DnsZoneRecordConfig =
 type CNameRecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; CName : string option; TTL: int option; Zone: LinkedResource option; TargetResource: ResourceId option }
 type ARecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; Ipv4Addresses : string list; TTL: int option; Zone: LinkedResource option; TargetResource: ResourceId option  }
 type AaaaRecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; Ipv6Addresses : string list; TTL: int option; Zone: LinkedResource option; TargetResource: ResourceId option }
-type NsRecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; NsdNames : string list; TTL: int option; Zone: LinkedResource option }
+type NsRecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; NsdNames : NsRecords; TTL: int option; Zone: LinkedResource option }
 type PtrRecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; PtrdNames : string list; TTL: int option; Zone: LinkedResource option; }
 type TxtRecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; TxtValues : string list; TTL: int option; Zone: LinkedResource option; }
 type MxRecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; MxValues : {| Preference : int; Exchange : string |} list; TTL: int option; Zone: LinkedResource option; }
@@ -63,6 +63,41 @@ type SoaRecordProperties =
       MinimumTTL : int64 option
       TTL: int option
       Zone: LinkedResource option }
+
+type DnsZone =
+    static member getNameServers (resourceId:ResourceId) =
+        ArmExpression
+            .reference(zones, resourceId)
+            .Map(fun r -> r + ".nameServers")
+            .WithOwner(resourceId)
+        |> ArmExpression.string
+            
+    static member getNameServers (name:ResourceName, ?resourceGroup) =
+        DnsZone.getNameServers(ResourceId.create (zones, name, ?group = resourceGroup))
+
+type DnsZoneConfig =
+    { Name : ResourceName
+      Dependencies : Set<ResourceId>
+      ZoneType : DnsZoneType
+      Records : DnsZoneRecordConfig list }
+
+    /// Gets the ARM expression path to the NameServers. When evaluated, will return a JSON array as string. E.g.: """["ns1-01.azure-dns.com.","ns2-01.azure-dns.net.","ns3-01.azure-dns.org.","ns4-01.azure-dns.info."]"""
+    member this.NameServers = DnsZone.getNameServers this.Name
+
+    interface IBuilder with
+        member this.ResourceId = zones.resourceId this.Name
+        member this.BuildResources _ = [
+            { DnsZone.Name = this.Name
+              Dependencies = this.Dependencies
+              Properties = {| ZoneType = this.ZoneType |> string |} }
+
+            for record in this.Records do
+                { DnsRecord.Name = record.Name
+                  Dependencies = record.Dependencies
+                  Zone = Managed (zones.resourceId this.Name)
+                  TTL = record.TTL
+                  Type = record.Type }
+        ]
 
 type DnsCNameRecordBuilder() =
     member _.Yield _ = { CNameRecordProperties.CName = None; Name = ResourceName.Empty; Dependencies = Set.empty; TTL = None; Zone = None; TargetResource = None }
@@ -173,7 +208,7 @@ type DnsAaaaRecordBuilder() =
     interface IDependable<AaaaRecordProperties> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
 type DnsNsRecordBuilder() =
-    member _.Yield _ = { NsRecordProperties.NsdNames = []; Name = ResourceName "@"; Dependencies = Set.empty; TTL = None; Zone = None }
+    member _.Yield _ = { NsRecordProperties.NsdNames = NsRecords.Records []; Name = ResourceName "@"; Dependencies = Set.empty; TTL = None; Zone = None }
     member _.Run(state : NsRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, NS state.NsdNames, state.Dependencies)
 
     /// Sets the name of the record set.
@@ -183,7 +218,21 @@ type DnsNsRecordBuilder() =
 
     /// Add NSD names (Subdomain NameServers)
     [<CustomOperation "add_nsd_names">]
-    member _.RecordNsdNames(state:NsRecordProperties, nsdNames) = { state with NsdNames = state.NsdNames @ nsdNames }
+    member _.RecordNsdNames(state:NsRecordProperties, nsdNames) =
+        match state.NsdNames with
+        | NsRecords.SourceZone _ ->
+            failwith "Cannot add_nsd_names when using 'reference_nsd_names' to reference another zone's nameservers."
+        | NsRecords.Records existingNsdNames ->
+            { state with NsdNames = NsRecords.Records(existingNsdNames @ nsdNames) }
+
+    /// Reference another DNS zone's nameservers.
+    [<CustomOperation "reference_nsd_names">]
+    member _.RecordNsdNameReference(state:NsRecordProperties, dnsZoneResourceId:ResourceId) =
+        { state with NsdNames = NsRecords.SourceZone dnsZoneResourceId }
+    member _.RecordNsdNameReference(state:NsRecordProperties, dnsZoneResourceId:IArmResource) =
+        { state with NsdNames = NsRecords.SourceZone dnsZoneResourceId.ResourceId }
+    member _.RecordNsdNameReference(state:NsRecordProperties, dnsZoneConfig:DnsZoneConfig) =
+        { state with NsdNames = NsRecords.SourceZone (dnsZoneConfig :> IBuilder).ResourceId }
 
     /// Sets the TTL of the record.
     [<CustomOperation "ttl">]
@@ -403,41 +452,6 @@ type DnsSoaRecordBuilder() =
 
     /// Enable support for additional dependencies.
     interface IDependable<SoaRecordProperties> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
-
-type DnsZone =
-    static member getNameServers (resourceId:ResourceId) =
-        ArmExpression
-            .reference(zones, resourceId)
-            .Map(fun r -> r + ".nameServers")
-            .WithOwner(resourceId)
-        |> ArmExpression.string
-            
-    static member getNameServers (name:ResourceName, ?resourceGroup) =
-        DnsZone.getNameServers(ResourceId.create (zones, name, ?group = resourceGroup))
-        
-type DnsZoneConfig =
-    { Name : ResourceName
-      Dependencies : Set<ResourceId>
-      ZoneType : DnsZoneType
-      Records : DnsZoneRecordConfig list }
-
-    /// Gets the ARM expression path to the NameServers. When evaluated, will return a JSON array as string. E.g.: """["ns1-01.azure-dns.com.","ns2-01.azure-dns.net.","ns3-01.azure-dns.org.","ns4-01.azure-dns.info."]"""
-    member this.NameServers = DnsZone.getNameServers this.Name
-
-    interface IBuilder with
-        member this.ResourceId = zones.resourceId this.Name
-        member this.BuildResources _ = [
-            { DnsZone.Name = this.Name
-              Dependencies = this.Dependencies
-              Properties = {| ZoneType = this.ZoneType |> string |} }
-
-            for record in this.Records do
-                { DnsRecord.Name = record.Name
-                  Dependencies = record.Dependencies
-                  Zone = Managed (zones.resourceId this.Name)
-                  TTL = record.TTL
-                  Type = record.Type }
-        ]
 
 type DnsZoneBuilder() =
     member __.Yield _ =
