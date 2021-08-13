@@ -204,46 +204,46 @@ let tests = testList "Storage Tests" [
         Expect.equal builder.WebsitePrimaryEndpoint.Value "reference(resourceId('Microsoft.Storage/storageAccounts', 'foo'), '2019-06-01').primaryEndpoints.web" "Zone names are not fixed and should be related to a storage account name"
     }
     test "Creates different SKU kinds correctly" {
-        let account = storageAccount { sku (Blobs (BlobReplication.LRS, Some DefaultAccessTier.Hot)) }
+        let account = storageAccount { name "storage"; sku (Blobs (BlobReplication.LRS, Some DefaultAccessTier.Hot)) }
         let resource = arm { add_resource account } |> getStorageResource
         Expect.equal resource.Kind "BlobStorage" "Kind"
         Expect.equal resource.AccessTier (Nullable AccessTier.Hot) "Access Tier"
         Expect.equal resource.Sku.Name "Standard_LRS" "Sku Name"
 
-        let account = storageAccount { sku (Files BasicReplication.ZRS) }
+        let account = storageAccount { name "storage"; sku (Files BasicReplication.ZRS) }
         let resource = arm { add_resource account } |> getStorageResource
         Expect.equal resource.Kind "FileStorage" "Kind"
         Expect.equal resource.Sku.Name "Premium_ZRS" "Sku Name"
 
-        let account = storageAccount { sku (BlockBlobs BasicReplication.LRS) }
+        let account = storageAccount { name "storage"; sku (BlockBlobs BasicReplication.LRS) }
         let resource = arm { add_resource account } |> getStorageResource
         Expect.equal resource.Kind "BlockBlobStorage" "Kind"
         Expect.equal resource.Sku.Name "Premium_LRS" "Sku Name"
 
-        let account = storageAccount { sku (GeneralPurpose (V1 V1Replication.RAGRS)) }
+        let account = storageAccount { name "storage"; sku (GeneralPurpose (V1 V1Replication.RAGRS)) }
         let resource = arm { add_resource account } |> getStorageResource
         Expect.equal resource.Kind "Storage" "Kind"
         Expect.equal resource.Sku.Name "Standard_RAGRS" "Sku Name"
 
-        let account = storageAccount { sku (GeneralPurpose (V2 (V2Replication.LRS Premium, Some Cool))) }
+        let account = storageAccount { name "storage"; sku (GeneralPurpose (V2 (V2Replication.LRS Premium, Some Cool))) }
         let resource = arm { add_resource account } |> getStorageResource
         Expect.equal resource.Kind "StorageV2" "Kind"
         Expect.equal resource.Sku.Name "Premium_LRS" "Sku Name"
     }
     test "Sets blob access tier correctly different SKU kinds correctly" {
-        let account = storageAccount { default_blob_access_tier DefaultAccessTier.Cool }
+        let account = storageAccount { name "storage"; default_blob_access_tier DefaultAccessTier.Cool }
         let resource = arm { add_resource account } |> getStorageResource
         Expect.equal resource.AccessTier (Nullable AccessTier.Cool) "Access Tier"
 
-        let account = storageAccount { default_blob_access_tier Hot }
+        let account = storageAccount { name "storage"; default_blob_access_tier Hot }
         let resource = arm { add_resource account } |> getStorageResource
         Expect.equal resource.AccessTier (Nullable AccessTier.Hot) "Access Tier"
 
-        let account = storageAccount { sku (GeneralPurpose (V2 (V2Replication.LRS Premium, None))) }
+        let account = storageAccount { name "storage"; sku (GeneralPurpose (V2 (V2Replication.LRS Premium, None))) }
         let resource = arm { add_resource account } |> getStorageResource
         Expect.equal resource.AccessTier (Nullable ()) "Access Tier"
 
-        let account = storageAccount { sku (Blobs (BlobReplication.LRS, Some Hot)) }
+        let account = storageAccount { name "storage"; sku (Blobs (BlobReplication.LRS, Some Hot)) }
         let resource = arm { add_resource account } |> getStorageResource
         Expect.equal resource.AccessTier (Nullable AccessTier.Hot) "Access Tier"
     }
@@ -251,6 +251,7 @@ let tests = testList "Storage Tests" [
         Expect.throws
             (fun _ ->
                 storageAccount {
+                    name "storage"
                     sku (BlockBlobs BasicReplication.LRS)
                     default_blob_access_tier Cool
                 } |> ignore)
@@ -285,6 +286,7 @@ let tests = testList "Storage Tests" [
     }
     test "Sets CORS correctly" {
         let account = storageAccount {
+            name "storage"
             add_cors_rules [
                 StorageService.Blobs, CorsRule.AllowAll
                 StorageService.Blobs, { CorsRule.AllowAll with AllowedOrigins = Specific [ Uri "https://compositional-it.com" ] }
@@ -315,6 +317,7 @@ let tests = testList "Storage Tests" [
 
     test "Policies" {
         let account = storageAccount {
+            name "storage"
             add_policies [
                 StorageService.Blobs, [
                     Policy.Restore { Enabled = true; Days = 5 }
@@ -355,6 +358,7 @@ let tests = testList "Storage Tests" [
 
     test "Versioning" {
         let account = storageAccount {
+            name "storage"
             enable_versioning [ StorageService.Blobs, true ]
         }
         let properties = (account |> findPropertiesResource "blobServices").properties

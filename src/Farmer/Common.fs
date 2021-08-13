@@ -410,6 +410,7 @@ module Storage =
             |> validate "Storage account names" name
             |> Result.map (ResourceName >> StorageAccountName)
 
+        static member internal Empty = StorageAccountName ResourceName.Empty
         static member Create (ResourceName name) = StorageAccountName.Create name
         member this.ResourceName = match this with StorageAccountName name -> name
 
@@ -852,6 +853,7 @@ module Sql =
             |> validate "SQL account names" name
             |> Result.map (ResourceName >> SqlAccountName)
 
+        static member internal Empty = SqlAccountName ResourceName.Empty
         static member Create (ResourceName name) = SqlAccountName.Create name
         member this.ResourceName = match this with SqlAccountName name -> name
 

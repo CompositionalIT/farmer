@@ -206,7 +206,7 @@ type SqlDbBuilder() =
 type SqlServerBuilder() =
     let makeIp (text:string) = IPAddress.Parse text
     member __.Yield _ =
-        { Name = (SqlAccountName.Create "defaultvalue").OkValue
+        { Name = SqlAccountName.Empty
           AdministratorCredentials = {| UserName = ""; Password = SecureParameter "" |}
           ElasticPoolSettings =
             {| Name = None
@@ -219,6 +219,7 @@ type SqlServerBuilder() =
           GeoReplicaServer = None
           Tags = Map.empty  }
     member __.Run state : SqlAzureConfig =
+        if state.Name.ResourceName = ResourceName.Empty then raiseFarmer "No SQL Server account name has been set."
         { state with
             AdministratorCredentials =
                 if System.String.IsNullOrWhiteSpace state.AdministratorCredentials.UserName then raiseFarmer $"You must specify the admin_username for SQL Server instance {state.Name.ResourceName.Value}"
