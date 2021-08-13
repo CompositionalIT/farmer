@@ -1,11 +1,11 @@
 Release Notes
 =============
-## 1.6.11
-* DNS Zone: Added configuration member of NameServers
-* Virtual Machine: Added configuration member PublicIpAddress
 
-## vNext
+## 1.6.11
 * Container Groups: Use `ip_config` to name the IP configuration for a container group's subnet.
+* DNS Zone: Added configuration member of NameServers
+* Resource groups: Added outputs keyword
+* Virtual Machine: Added configuration member PublicIpAddress
 
 ## 1.6.10
 * Azure SQL Server: geo_replicate parameter to geo-replicate the server databases
