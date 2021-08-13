@@ -1,15 +1,14 @@
 Release Notes
 =============
-## vNext
-* WebApp: Validation on site name.
-* Functions: Validation on functions name.
 
 ## 1.6.11
 * Container Groups: Use `ip_config` to name the IP configuration for a container group's subnet.
 * DNS Zone: Added configuration member of NameServers
 * DNS Zone: Support for delegating a subdomain to another DNS Zone with `add_nsd_reference`.
+* Functions: Validation on functions name.
 * Resource groups: Added `outputs` keyword
 * Virtual Machine: Added configuration member PublicIpAddress
+* WebApp: Validation on site name.
 
 ## 1.6.10
 * Azure SQL Server: geo_replicate parameter to geo-replicate the server databases
