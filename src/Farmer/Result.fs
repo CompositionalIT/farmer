@@ -1,5 +1,6 @@
 namespace Farmer
-exception FarmerException of message:string
+exception FarmerException of ErrorMessage:string with
+    override this.Message = this.ErrorMessage
 
 [<AutoOpen>]
 module Exceptions =
