@@ -67,6 +67,8 @@ The Network Profile builder (`networkProfile`) is used to define a network profi
 | vnet | Resource name of the virtual network to connect (if created in the same deployment). |
 | link_to_vnet | Resource name of an existing virtual network to connect. |
 | subnet | Name of the subnet in the virtual network where the container group should attach. |
+| ip_config | Name of the IP configuration and subnet in the virtual network where the container group should attach. |
+| add_ip_configs | Adds multiple IP configurations to connect the container group to multiple subnets. |
 
 #### Liveness Probe Builder
 The Liveness Probe builder (`liveness`) is used to define a liveness probe for a container instance to determine if it is healthy.
