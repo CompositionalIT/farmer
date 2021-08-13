@@ -834,6 +834,15 @@ module Sql =
         static member Create (ResourceName name) = SqlAccountName.Create name
         member this.ResourceName = match this with SqlAccountName name -> name
 
+    type GeoReplicationSettings = { 
+        /// Suffix name for server and database name
+        NameSuffix : string
+        /// Replication location, different from the original one
+        Location : Farmer.Location
+        /// Override database Skus
+        DbSku : DtuSku option
+    }
+
 /// Represents a role that can be granted to an identity.
 type RoleId =
     | RoleId of {| Name:string; Id : Guid |}

@@ -10,18 +10,20 @@ type DashboardMetadata =
 | CustomMetadata of obj
 | Cache24h 
 
+type LensAsset = { idInputName : string;  ``type`` : string }
 type LensMetadata = {
     ``type`` : string
     inputs : obj list
     settings : obj
     filters : obj option
-    asset : {| idInputName : string;  ``type`` : string |} option
+    asset : LensAsset option
     isAdapter : bool option
     defaultMenuItemId : string option
 }
+type LensPosition = { x : int; y : int; rowSpan : int; colSpan : int; }
 
 type LensPart = {
-    position : {| x : int; y : int; rowSpan : int; colSpan : int; |}
+    position : LensPosition
     metadata : LensMetadata
 }
 
@@ -41,8 +43,9 @@ type ChartResources =
     static member NetworkIn = ChartResouce "Network In"
     static member NetworkOut = ChartResouce "Network Out"
 
+type MarkdownPartParameters = {title:string; subtitle:string; content:string}
 /// Generates a MarkdownPart
-let generateMarkdownPart (markdownProperties:{|title:string; subtitle:string; content:string|}) = {
+let generateMarkdownPart (markdownProperties:MarkdownPartParameters) = {
     ``type`` = "Extension[azure]/HubsExtension/PartType/MarkdownPart"
     inputs = List.empty
     settings = {| content = markdownProperties.content; title = markdownProperties.title; subtitle = markdownProperties.subtitle |} :> obj
@@ -52,8 +55,9 @@ let generateMarkdownPart (markdownProperties:{|title:string; subtitle:string; co
     defaultMenuItemId = None
 }
 
+type VideoPartParameters = {title:string; subtitle:string; url:string}
 /// Generates a VideoPart
-let generateVideoPart (videoProperties:{|title:string; subtitle:string; url:string|}) = {
+let generateVideoPart (videoProperties:VideoPartParameters) = {
     ``type`` = "Extension[azure]/HubsExtension/PartType/VideoPart"
     inputs = List.empty
     settings = {| content = {| settings = {| title = videoProperties.title; subtitle = videoProperties.subtitle; src = videoProperties.url; autoplay= false |} |} |} :> obj
@@ -69,7 +73,7 @@ let generateVirtualMachinePart (vmId:ResourceId) = {
     inputs = [ {| name = "id"; value = vmId.ArmExpression.Eval() |} :> obj ]
     settings = None
     filters = None
-    asset = Some {| idInputName = "id"; ``type`` = "VirtualMachine" |}
+    asset = Some { idInputName = "id"; ``type`` = "VirtualMachine" }
     isAdapter = None
     defaultMenuItemId = Some "overview"
 }
@@ -80,13 +84,13 @@ let generateWebtestResultPart (applicationInsightsName:string) = {
     inputs = [ {| name = "ComponentId"; value = {| Name = applicationInsightsName; SubscriptionId = "[ subscription().subscriptionId ]"; ResourceGroup = "[ resourceGroup().id ]" |} |} ]
     settings = None
     filters = None
-    asset = Some {| idInputName = "ComponentId"; ``type`` = "ApplicationInsights" |}
+    asset = Some { idInputName = "ComponentId"; ``type`` = "ApplicationInsights" }
     isAdapter = Some true
     defaultMenuItemId = None
 }
-
+type MetrixChartParameters = { resourceId:ResourceId; metrics: ChartResources list; interval : ChartDurationInterval }
 /// Generates a MetricsChartPart for a resource given in parameters
-let generateMetricsChartPart (chartProperties:{| resourceId:ResourceId; metrics: ChartResources list; interval : ChartDurationInterval |}) = {
+let generateMetricsChartPart (chartProperties:MetrixChartParameters) = {
     ``type`` = "Extension/Microsoft_Azure_Monitoring/PartType/MetricsChartPart"
     inputs = [ {| name = "queryInputs"
                   value = {| id = chartProperties.resourceId.ArmExpression.Eval(); chartType = 0;
@@ -102,8 +106,9 @@ let generateMetricsChartPart (chartProperties:{| resourceId:ResourceId; metrics:
     defaultMenuItemId = None
 }
 
+type MonitorChartParameters = { chartInputs:obj list; chartSettings: obj option; filters : obj option }
 /// Generates a MonitorChartPart
-let generateMonitorChartPart (chartProperties : {| chartInputs:obj list; chartSettings: obj option; filters : obj option |}) = {
+let generateMonitorChartPart (chartProperties : MonitorChartParameters) = {
     ``type`` = "Extension/HubsExtension/PartType/MonitorChartPart"
     inputs = [ box <| {| name = "sharedTimeRange"; isOptional = true |};
                box <| {| name = "options"

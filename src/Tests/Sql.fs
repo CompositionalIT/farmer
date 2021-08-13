@@ -170,9 +170,9 @@ let tests = testList "SQL Server" [
             add_databases [
                 sqlDb { name "mydb21"; sku DtuSku.S0 }
             ]
-            geo_replicate ({| NameSuffix = "geo"; 
-                              Location = Location.UKWest;
-                              DbSku = Some Farmer.Sql.DtuSku.S0 |})
+            geo_replicate ({ NameSuffix = "geo"; 
+                             Location = Location.UKWest;
+                             DbSku = Some Farmer.Sql.DtuSku.S0 })
         }
         let template = arm { location Location.UKSouth; add_resources [ sql ] }
 

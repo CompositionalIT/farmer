@@ -26,13 +26,7 @@ type SqlAzureConfig =
            PerDbLimits : {| Min: int<DTU>; Max : int<DTU> |} option
            Capacity : int<Mb> option |}
       Databases : SqlAzureDbConfig list
-      GeoReplicaServer : 
-        {| /// Suffix name for server and database name
-           NameSuffix : string; 
-           /// Replication location, different from the original one
-           Location : Farmer.Location;
-           /// Override database Skus
-           DbSku : Farmer.Sql.DtuSku option |} option
+      GeoReplicaServer : GeoReplicationSettings option
       Tags: Map<string,string>  }
     /// Gets a basic .NET connection string using the administrator username / password.
     member this.ConnectionString (database:SqlAzureDbConfig) =
