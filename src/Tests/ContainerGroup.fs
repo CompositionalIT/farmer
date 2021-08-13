@@ -440,6 +440,35 @@ let tests = testList "Container Group" [
         let expectedSubnetId = "[resourceId('other-res-group', 'Microsoft.Network/virtualNetworks/subnets', 'containerNet', 'ContainerSubnet')]"
         Expect.equal subnetId expectedSubnetId "Generated incorrect subnet ID."
     }
+    test "Container network profile allows naming of ip configs" {
+        let template =
+            arm {
+                add_resources [
+                    vnet {
+                        name "containernet"
+                        add_address_spaces [
+                            "10.30.40.0/20"
+                        ]
+                        add_subnets [
+                            subnet {
+                                name "ContainerSubnet"
+                                prefix "10.40.41.0/24"
+                                add_delegations [ SubnetDelegationService.ContainerGroups ]
+                            }
+                        ]
+                    }
+                    networkProfile {
+                        name "netprofile"
+                        vnet "containernet"
+                        ip_config "ipconfigProfile" "ContainerSubnet"
+                    }
+                ]
+            }
+        let json = template.Template |> Writer.toJson
+        let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+        let ipConfigName = jobj.SelectToken("resources[?(@.name=='netprofile')].properties.containerNetworkInterfaceConfigurations[0].properties.ipConfigurations[0].name")
+        Expect.equal (string ipConfigName) "ipconfigProfile" "netprofile ipConfiguration has wrong name"
+    }
     test "Can link a network profile directly to a container group" {
         let profile = networkProfile { name "netprofile" }
         let template =
