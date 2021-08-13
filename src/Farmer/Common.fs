@@ -603,7 +603,7 @@ module WebApp =
             ]
             |> validate "Web App site names" name
             |> Result.map (ResourceName >> WebAppName)
-
+        static member internal Empty = WebAppName ResourceName.Empty
         static member Create (ResourceName name) = WebAppName.Create name
         member this.ResourceName = match this with WebAppName name -> name
 

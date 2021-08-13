@@ -71,7 +71,7 @@ type SecretStore =
     | AppService
     | KeyVault of ResourceRef<CommonWebConfig>
 
-type SlotConfig = 
+type SlotConfig =
     { Name: string
       AutoSwapSlotName: string option
       AppSettings: Map<string,Setting>
@@ -80,7 +80,7 @@ type SlotConfig =
       KeyVaultReferenceIdentity: UserAssignedIdentity option
       Tags: Map<string,string>
       Dependencies: ResourceId Set}
-    member this.ToSite (owner: Arm.Web.Site) = 
+    member this.ToSite (owner: Arm.Web.Site) =
         { owner with
             SiteType = SiteType.Slot (owner.Name/this.Name)
             Dependencies = owner.Dependencies |> Set.add (owner.ResourceType.resourceId owner.Name)
@@ -118,7 +118,7 @@ type SlotBuilder() =
     [<CustomOperation "system_identity">]
     member this.SystemIdentity (state: SlotConfig) =
         { state with Identity = {state.Identity with SystemAssigned = Enabled } }
-        
+
     [<CustomOperation "keyvault_identity">]
     member this.AddKeyVaultIdentity (state: SlotConfig, identity:UserAssignedIdentity) =
         { state with
@@ -139,7 +139,7 @@ type SlotBuilder() =
     [<CustomOperation "settings">]
     member this.AddSettings(state, settings: (string*Setting) list):SlotConfig =
         {state with AppSettings = Map.merge settings state.AppSettings }
-    member this.AddSettings(state, settings: (string*string) list) = 
+    member this.AddSettings(state, settings: (string*string) list) =
         this.AddSettings( state, List.map(fun (k,v) -> k,LiteralSetting v) settings)
 
     /// Creates a set of connection strings of the web app whose values will be supplied as secret parameters.
@@ -173,7 +173,7 @@ type CommonWebConfig =
       ServicePlan : ResourceRef<ResourceName>
       Settings : Map<string, Setting>
       Slots : Map<string,SlotConfig>
-      WorkerProcess : Bitness option 
+      WorkerProcess : Bitness option
       ZipDeployPath : (string*ZipDeploy.ZipDeploySlot) option }
 
 type WebAppConfig =
@@ -260,7 +260,7 @@ type WebAppConfig =
 
             yield! secrets
 
-            let siteSettings = 
+            let siteSettings =
                 let literalSettings = [
                     if this.RunFromPackage then AppSettings.RunFromPackage
                     yield! this.WebsiteNodeDefaultVersion |> Option.mapList AppSettings.WebsiteNodeDefaultVersion
@@ -311,7 +311,7 @@ type WebAppConfig =
                     ) |> Map.toList)
                 |> Map
 
-            let site = 
+            let site =
                 { SiteType = Site this.Name
                   Location = location
                   ServicePlan = this.ServicePlanId
@@ -479,8 +479,8 @@ type WebAppConfig =
 
 type WebAppBuilder() =
     member __.Yield _ =
-        { CommonWebConfig = 
-            { Name = WebAppName.Create("defaultvalue").OkValue
+        { CommonWebConfig =
+            { Name = WebAppName.Empty
               AlwaysOn = false
               AppInsights = Some (derived (fun name -> components.resourceId (name-"ai")))
               Cors = None
@@ -488,11 +488,11 @@ type WebAppBuilder() =
               Identity = ManagedIdentity.Empty
               KeyVaultReferenceIdentity = None
               OperatingSystem = Windows
-              SecretStore = AppService 
+              SecretStore = AppService
               ServicePlan = derived (fun name -> serverFarms.resourceId (name-"farm"))
               Settings = Map.empty
               Slots = Map.empty
-              WorkerProcess = None 
+              WorkerProcess = None
               ZipDeployPath = None }
           Sku = Sku.F1
           WorkerSize = Small
@@ -515,6 +515,7 @@ type WebAppBuilder() =
           SiteExtensions = Set.empty
           PrivateEndpoints = Set.empty}
     member __.Run(state:WebAppConfig) =
+        if state.Name.ResourceName = ResourceName.Empty then failwith "No Web App name has been set."
         { state with
             SiteExtensions =
                 match state with
@@ -789,18 +790,18 @@ module Extensions =
             |> this.Wrap state
         /// Adds a deployment slot to the app
         [<CustomOperation "add_slot">]
-        member this.AddSlot (state:'T, slot:SlotConfig) = 
+        member this.AddSlot (state:'T, slot:SlotConfig) =
             let current = this.Get state
             { current with Slots = current.Slots |> Map.add slot.Name slot}
             |> this.Wrap state
         member this.AddSlot (state:'T, slotName:string) = this.AddSlot(state, appSlot{ name slotName })
         /// Adds deployment slots to the app
         [<CustomOperation "add_slots">]
-        member this.AddSlots (state:'T, slots:SlotConfig list) = 
+        member this.AddSlots (state:'T, slots:SlotConfig list) =
             let current = this.Get state
             { current with Slots = slots |> List.fold (fun m s -> Map.add s.Name s m) current.Slots}
-            |> this.Wrap state 
-        
+            |> this.Wrap state
+
         /// Disables http for this webapp so that only https is used.
         [<CustomOperation "https_only">]
         member this.HttpsOnly(state:'T) = this.Map state (fun x -> { x with HTTPSOnly = true })

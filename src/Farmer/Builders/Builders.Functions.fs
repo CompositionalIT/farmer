@@ -144,8 +144,8 @@ type FunctionsConfig =
 
                 | _ -> ()
               ]
-            
-            let functionsSettings = 
+
+            let functionsSettings =
                 basicSettings
                 |> List.map Setting.AsLiteral
                 |> List.append (
@@ -226,7 +226,7 @@ type FunctionsConfig =
                   Metadata = []
                   AutoSwapSlotName = None
                   ZipDeployPath = this.CommonWebConfig.ZipDeployPath |> Option.map (fun (path, slot) -> path, ZipDeploy.ZipDeployTarget.FunctionApp, slot)
-                  AppCommandLine = 
+                  AppCommandLine =
                     match this.PublishAs with
                     | DockerContainer { StartupCommand = sc } ->
                         Some sc
@@ -255,7 +255,7 @@ type FunctionsConfig =
                   NetworkAcls = None
                   StaticWebsite = None
                   EnableHierarchicalNamespace = None
-                  MinTlsVersion = None 
+                  MinTlsVersion = None
                   Tags = this.Tags }
             | _ ->
                 ()
@@ -274,7 +274,7 @@ type FunctionsConfig =
             | Some _
             | None ->
                 ()
-            
+
             if Map.isEmpty this.CommonWebConfig.Slots then
                 site
             else
@@ -285,8 +285,8 @@ type FunctionsConfig =
 
 type FunctionsBuilder() =
     member _.Yield _ =
-        { FunctionsConfig.CommonWebConfig = 
-            { Name = WebAppName.Create("defaultvalue").OkValue
+        { FunctionsConfig.CommonWebConfig =
+            { Name = WebAppName.Empty
               AlwaysOn = false
               AppInsights = Some (derived (fun name -> components.resourceId (name-"ai")))
               Cors = None
@@ -297,7 +297,7 @@ type FunctionsBuilder() =
               SecretStore = AppService
               ServicePlan = derived (fun name -> serverFarms.resourceId (name-"farm"))
               Settings = Map.empty
-              Slots = Map.empty 
+              Slots = Map.empty
               WorkerProcess = None
               ZipDeployPath = None }
           StorageAccount = derived (fun config ->
@@ -308,6 +308,9 @@ type FunctionsBuilder() =
           Dependencies = Set.empty
           PublishAs = Code
           Tags = Map.empty }
+    member _.Run (state:FunctionsConfig) =
+        if state.Name.ResourceName = ResourceName.Empty then failwith "No Functions instance name has been set."
+        state
     /// Do not create an automatic storage account; instead, link to a storage account that is created outside of this Functions instance.
     [<CustomOperation "link_to_storage_account">]
     member _.LinkToStorageAccount(state:FunctionsConfig, name) = { state with StorageAccount = managed storageAccounts name }

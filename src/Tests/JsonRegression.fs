@@ -174,8 +174,6 @@ let tests =
     }
 """
             let resource = arm { add_resource (Resource.ofJson json) } |> Storage.getStorageResource
-            printfn "%A" resource
-
             Expect.equal resource.Name "jsontest" "Account name is wrong"
             Expect.equal resource.Sku.Name "Standard_LRS" "SKU is wrong"
             Expect.equal resource.Kind "StorageV2" "Kind"
@@ -280,7 +278,7 @@ let tests =
                 }
             compareResourcesToJson [ myVnet; lb ] "load-balancer.json"
         }
-        
+
         test "AzureFirewall" {
             let vwan = vwan {
                 name "farmer-vwan"
