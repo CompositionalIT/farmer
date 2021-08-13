@@ -258,4 +258,22 @@ let tests = testList "DNS Zone" [
         let delegatedNsRecord = jobj.SelectToken("resources[?(@.name=='farmer.com/subdomain')].properties.NSRecords") |> string
         Expect.equal delegatedNsRecord nsrecords "Incorrect reference generated for NS record of delegated subdomain."
     }
+    test "Delegate subdomain to a zone in another group and subscription" {
+        let fakeSubId = "8231b360-0d7f-460c-b421-62146c4716b3"
+        let nsrecords = $"[reference(resourceId('{fakeSubId}', 'res-group', 'Microsoft.Network/dnsZones/NS', 'subdomain.farmer.com', '@'), '2018-05-01').NSRecords]"
+        let template =
+            arm {
+                add_resources [
+                    nsRecord {
+                        name "subdomain"
+                        link_to_unmanaged_dns_zone (Farmer.Arm.Dns.zones.resourceId "farmer.com")
+                        ttl (int (TimeSpan.FromDays 2.).TotalSeconds)
+                        reference_nsd_names (ResourceId.create (Farmer.Arm.Dns.zones, ResourceName "subdomain.farmer.com", "res-group", fakeSubId))
+                    }
+                ]
+            }
+        let jobj = template.Template |> Writer.toJson |> JObject.Parse
+        let delegatedNsRecord = jobj.SelectToken("resources[?(@.name=='farmer.com/subdomain')].properties.NSRecords") |> string
+        Expect.equal delegatedNsRecord nsrecords "Incorrect reference generated for NS record of delegated subdomain in different group/subscription."
+    }
 ]
