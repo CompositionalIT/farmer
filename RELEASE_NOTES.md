@@ -1,5 +1,8 @@
 Release Notes
 =============
+## vNext
+* WebApp: Validation on site name.
+* Functions: Validation on functions name.
 
 ## 1.6.11
 * Container Groups: Use `ip_config` to name the IP configuration for a container group's subnet.
