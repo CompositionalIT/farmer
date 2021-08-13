@@ -106,7 +106,7 @@ type CosmosDbContainerBuilder() =
           ExcludedPaths = [] }
     member _.Run state =
         match state.PartitionKey with
-        | [], _ -> failwith $"You must set a partition key on CosmosDB container '{state.Name.Value}'."
+        | [], _ -> raiseFarmer $"You must set a partition key on CosmosDB container '{state.Name.Value}'."
         | partitions, indexKind ->
             { state with
                 PartitionKey =

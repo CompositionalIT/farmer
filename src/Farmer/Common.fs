@@ -9,7 +9,7 @@ type NonEmptyList<'T> =
 module NonEmptyList =
     let create list =
         match list with
-        | [] -> failwith "This list must always have at least one item in it."
+        | [] -> raiseFarmer "This list must always have at least one item in it."
         | list -> NonEmptyList list
 
 [<AutoOpen>]
@@ -1800,7 +1800,7 @@ type RetentionPolicy =
     static member Create (retentionPeriod, ?enabled) =
         match retentionPeriod with
         | OutOfBounds days ->
-            failwith $"The retention period must be between 1 and 365 days. It is currently {days}."
+            raiseFarmer $"The retention period must be between 1 and 365 days. It is currently {days}."
         | InBounds _ ->
             { Enabled = defaultArg enabled true
               RetentionPeriod = retentionPeriod }

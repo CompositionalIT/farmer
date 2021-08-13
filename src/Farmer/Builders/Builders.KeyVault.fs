@@ -68,7 +68,7 @@ type SecretConfig =
             |> Seq.forall(fun r -> r key)
 
         if not (charRulesPassed && stringRulesPassed) then
-            failwith $"Key Vault key names must be a 1-127 character string, starting with a letter and containing only 0-9, a-z, A-Z, and -. '{key}' is invalid."
+            raiseFarmer $"Key Vault key names must be a 1-127 character string, starting with a letter and containing only 0-9, a-z, A-Z, and -. '{key}' is invalid."
         else
             ()
 
@@ -82,7 +82,7 @@ type SecretConfig =
             Dependencies =
                 match expression.Owner with
                 | Some owner -> Set.ofList [ owner ]
-                | None -> failwith $"The supplied ARM expression ('{expression.Value}') has no resource owner. You should explicitly set this using WithOwner(), supplying the Resource Name of the owner."
+                | None -> raiseFarmer $"The supplied ARM expression ('{expression.Value}') has no resource owner. You should explicitly set this using WithOwner(), supplying the Resource Name of the owner."
         }
 
 type KeyVaultConfig =
@@ -253,7 +253,7 @@ type KeyVaultBuilder() =
             match state.CreateMode, state.Policies with
             | None, policies -> Unspecified policies
             | Some SimpleCreateMode.Default, policies -> Default policies
-            | Some SimpleCreateMode.Recover, [] -> failwith "Setting the creation mode to Recover requires at least one access policy. Use the accessPolicy builder to create a policy, and add it to the vault configuration using add_access_policy."
+            | Some SimpleCreateMode.Recover, [] -> raiseFarmer "Setting the creation mode to Recover requires at least one access policy. Use the accessPolicy builder to create a policy, and add it to the vault configuration using add_access_policy."
             | Some SimpleCreateMode.Recover, policies -> Recover (NonEmptyList.create policies)
           Secrets = state.Secrets
           Uri = state.Uri

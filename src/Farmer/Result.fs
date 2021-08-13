@@ -1,7 +1,15 @@
+namespace Farmer
+exception FarmerException of message:string
+
+[<AutoOpen>]
+module Exceptions =
+    let raiseFarmer msg = msg |> FarmerException |> raise
+
 namespace global
 
 [<RequireQualifiedAccess>]
 module Result =
+    open Farmer
     open System
 
     let ofOption error = function Some s -> Ok s | None -> Error error
@@ -20,7 +28,7 @@ module Result =
         try Ok(thunk arg)
         with ex -> Error (string ex)
     // Unsafely unwraps a Result. If the Result is an Error, the Error is cascaded as an exception.
-    let get = function Ok value -> value | Error err -> failwith (err.ToString())
+    let get = function Ok value -> value | Error err -> raiseFarmer (err.ToString())
     let bindError onError = function Error s -> onError s | s -> s
 
     type ResultBuilder() =
@@ -71,4 +79,3 @@ module Builders =
     type Result<'TS, 'TE> with
         /// Unsafely unwraps the Success value out of the Result.
         member this.OkValue = Result.get this
-

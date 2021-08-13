@@ -50,8 +50,8 @@ type AppInsightsBuilder() =
     member __.SamplingPercentage(state:AppInsightsConfig, samplingPercentage) = { state with SamplingPercentage = samplingPercentage }
 
     member _.Run (state:AppInsightsConfig) =
-        if state.SamplingPercentage > 100  then failwith "Sampling Percentage cannot be higher than 100%"
-        elif state.SamplingPercentage <= 0 then failwith "Sampling Percentage cannot be lower than or equal to 0%"
+        if state.SamplingPercentage > 100  then raiseFarmer "Sampling Percentage cannot be higher than 100%"
+        elif state.SamplingPercentage <= 0 then raiseFarmer "Sampling Percentage cannot be lower than or equal to 0%"
         state
     interface ITaggable<AppInsightsConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 

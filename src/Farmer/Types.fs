@@ -82,7 +82,7 @@ type ArmExpression =
     private | ArmExpression of expression:string * owner:ResourceId option
     static member create (rawText:string, ?owner) =
         if System.Text.RegularExpressions.Regex.IsMatch(rawText, @"^\[.*\]$") then
-            failwith $"ARM Expressions should not be wrapped in [ ]; these will automatically be added when the expression is evaluated. Please remove them from '{rawText}'."
+            raiseFarmer $"ARM Expressions should not be wrapped in [ ]; these will automatically be added when the expression is evaluated. Please remove them from '{rawText}'."
         else
             ArmExpression(rawText, owner)
     /// Gets the raw value of this expression.

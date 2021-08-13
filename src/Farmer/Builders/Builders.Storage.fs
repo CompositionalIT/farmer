@@ -269,7 +269,7 @@ type StorageAccountBuilder() =
                 match state.Sku with
                 | Blobs (replication, _) -> Blobs(replication, Some tier)
                 | GeneralPurpose (V2 (replication, _)) -> GeneralPurpose (V2 (replication, Some tier))
-                | other -> failwith $"You can only set the default access tier for Blobs or General Purpose V2 storage accounts. This account is %A{other}."
+                | other -> raiseFarmer $"You can only set the default access tier for Blobs or General Purpose V2 storage accounts. This account is %A{other}."
         }
     /// Specify network access control lists for this storage account.
     [<CustomOperation "set_network_acls">]
