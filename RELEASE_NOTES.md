@@ -4,7 +4,8 @@ Release Notes
 ## 1.6.11
 * Container Groups: Use `ip_config` to name the IP configuration for a container group's subnet.
 * DNS Zone: Added configuration member of NameServers
-* Resource groups: Added outputs keyword
+* DNS Zone: Support for delegating a subdomain to another DNS Zone with `add_nsd_reference`.
+* Resource groups: Added `outputs` keyword
 * Virtual Machine: Added configuration member PublicIpAddress
 
 ## 1.6.10
