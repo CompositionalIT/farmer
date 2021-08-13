@@ -569,6 +569,10 @@ let tests = testList "Web App Tests" [
         check "zz-" "cannot end with a dash ('zz-')" "End with dash"
     }
 
+    test "Not setting the web app name causes an error" {
+        Expect.throws (fun () -> webApp { runtime_stack Runtime.Java11 } |> ignore) "Not setting web app name should throw"
+    }
+
     test "Supports health check" {
         let resources = webApp { name "test"; health_check_path "/status" } |> getResources
         let wa = resources |> getResource<Web.Site> |> List.head
