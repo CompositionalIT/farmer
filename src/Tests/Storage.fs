@@ -375,4 +375,8 @@ let tests = testList "Storage Tests" [
             arm { add_resource account } |> getStorageResource
         Expect.equal resource.MinimumTlsVersion "TLS1_2" "Min TLS version is wrong"
     }
+
+    test "Must set a storage account name" {
+        Expect.throws (fun () -> storageAccount { sku Sku.Standard_ZRS } |> ignore) "Must set a name on a storage account"
+    }
 ]

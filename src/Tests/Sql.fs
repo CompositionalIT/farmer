@@ -182,4 +182,8 @@ let tests = testList "SQL Server" [
         Expect.equal (geoLocated.ToString()) "ukwest" "Geo-replication with location not found"
         ()
     }
+
+    test "Must set a SQL Server account name" {
+        Expect.throws (fun () -> sqlServer { admin_username "test" } |> ignore) "Must set a name on a sql server account"
+    }
 ]
