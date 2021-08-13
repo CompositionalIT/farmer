@@ -276,4 +276,34 @@ let tests = testList "DNS Zone" [
         let delegatedNsRecord = jobj.SelectToken("resources[?(@.name=='farmer.com/subdomain')].properties.NSRecords") |> string
         Expect.equal delegatedNsRecord nsrecords "Incorrect reference generated for NS record of delegated subdomain in different group/subscription."
     }
+    test "Disallow adding NSD reference after NSD names are added to prevent overwriting" {
+        Expect.throws ( fun _ ->
+            arm {
+                add_resources [
+                    nsRecord {
+                        name "subdomain"
+                        link_to_unmanaged_dns_zone (Farmer.Arm.Dns.zones.resourceId "farmer.com")
+                        ttl (int (TimeSpan.FromDays 2.).TotalSeconds)
+                        add_nsd_names [ "ns01.foo.bar " ]
+                        add_nsd_reference (Farmer.Arm.Dns.zones.resourceId "subdomain.farmer.com")
+                    }
+                ]
+            } |> ignore
+        ) "Should fail when add_nsd_records was already called"
+    }
+    test "Disallow adding NSD records after NSD reference to prevent overwriting" {
+        Expect.throws ( fun _ ->
+            arm {
+                add_resources [
+                    nsRecord {
+                        name "subdomain"
+                        link_to_unmanaged_dns_zone (Farmer.Arm.Dns.zones.resourceId "farmer.com")
+                        ttl (int (TimeSpan.FromDays 2.).TotalSeconds)
+                        add_nsd_reference (Farmer.Arm.Dns.zones.resourceId "subdomain.farmer.com")
+                        add_nsd_names [ "ns01.foo.bar " ]
+                    }
+                ]
+            } |> ignore
+        ) "Should fail when add_nsd_reference was already called"
+    }
 ]

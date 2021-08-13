@@ -225,7 +225,7 @@ type DnsNsRecordBuilder() =
         | NsRecords.Records existingNsdNames ->
             { state with NsdNames = NsRecords.Records(existingNsdNames @ nsdNames) }
 
-    /// Ensure no nsd records were already added that will be overwritten byt he reference.
+    /// Ensure no nsd records were already added that will be overwritten by the reference.
     member private this.validateNsdReference (state:NsRecordProperties) =
         match state.NsdNames with
         | NsRecords.Records records when records <> [] ->
