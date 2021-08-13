@@ -99,7 +99,7 @@ In addition, each record builder has its own custom keywords:
 | Keyword | Purpose |
 |-|-|
 | add_nsd_names | Add NS values to this record set. (Subdomain NameServers) |
-| reference_nsd_names | Reference NS records from another DNS Zone. (Subdomain NameServers) |
+| add_nsd_reference | Reference NS records from another DNS Zone. (Subdomain NameServers) |
 
 #### PTR Record Builder Keywords
 

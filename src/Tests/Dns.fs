@@ -250,7 +250,7 @@ let tests = testList "DNS Zone" [
                         name "subdomain"
                         link_to_unmanaged_dns_zone (Farmer.Arm.Dns.zones.resourceId "farmer.com")
                         ttl (int (TimeSpan.FromDays 2.).TotalSeconds)
-                        reference_nsd_names subdomainZone
+                        add_nsd_reference subdomainZone
                     }
                 ]
             }
@@ -268,7 +268,7 @@ let tests = testList "DNS Zone" [
                         name "subdomain"
                         link_to_unmanaged_dns_zone (Farmer.Arm.Dns.zones.resourceId "farmer.com")
                         ttl (int (TimeSpan.FromDays 2.).TotalSeconds)
-                        reference_nsd_names (ResourceId.create (Farmer.Arm.Dns.zones, ResourceName "subdomain.farmer.com", "res-group", fakeSubId))
+                        add_nsd_reference (ResourceId.create (Farmer.Arm.Dns.zones, ResourceName "subdomain.farmer.com", "res-group", fakeSubId))
                     }
                 ]
             }

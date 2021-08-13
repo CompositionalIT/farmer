@@ -221,17 +221,26 @@ type DnsNsRecordBuilder() =
     member _.RecordNsdNames(state:NsRecordProperties, nsdNames) =
         match state.NsdNames with
         | NsRecords.SourceZone _ ->
-            failwith "Cannot add_nsd_names when using 'reference_nsd_names' to reference another zone's nameservers."
+            failwith "Cannot add 'add_nsd_names' when using 'add_nsd_reference' to reference another zone's nameservers."
         | NsRecords.Records existingNsdNames ->
             { state with NsdNames = NsRecords.Records(existingNsdNames @ nsdNames) }
 
+    /// Ensure no nsd records were already added that will be overwritten byt he reference.
+    member private this.validateNsdReference (state:NsRecordProperties) =
+        match state.NsdNames with
+        | NsRecords.Records records when records <> [] ->
+            failwith "Cannot 'add_nsd_reference' when using 'add_nsd_names' to add a zone's nameservers."
+        | _ -> ()
     /// Reference another DNS zone's nameservers.
-    [<CustomOperation "reference_nsd_names">]
-    member _.RecordNsdNameReference(state:NsRecordProperties, dnsZoneResourceId:ResourceId) =
+    [<CustomOperation "add_nsd_reference">]
+    member this.RecordNsdNameReference(state:NsRecordProperties, dnsZoneResourceId:ResourceId) =
+        this.validateNsdReference state
         { state with NsdNames = NsRecords.SourceZone dnsZoneResourceId }
-    member _.RecordNsdNameReference(state:NsRecordProperties, dnsZoneResourceId:IArmResource) =
+    member this.RecordNsdNameReference(state:NsRecordProperties, dnsZoneResourceId:IArmResource) =
+        this.validateNsdReference state
         { state with NsdNames = NsRecords.SourceZone dnsZoneResourceId.ResourceId }
-    member _.RecordNsdNameReference(state:NsRecordProperties, dnsZoneConfig:DnsZoneConfig) =
+    member this.RecordNsdNameReference(state:NsRecordProperties, dnsZoneConfig:DnsZoneConfig) =
+        this.validateNsdReference state
         { state with NsdNames = NsRecords.SourceZone (dnsZoneConfig :> IBuilder).ResourceId }
 
     /// Sets the TTL of the record.
