@@ -139,11 +139,11 @@ let tests = testList "SQL Server" [
 
         check "" "cannot be empty" "Name too short"
         let longName = Array.init 64 (fun _ -> 'a') |> String
-        check longName ("max length is 63, but here is 64 ('" + longName + "')") "Name too long"
-        check "zzzT" "can only contain lowercase letters ('zzzT')" "Upper case character allowed"
-        check "zz!z" "can only contain alphanumeric characters or the dash ('zz!z')" "Bad character allowed"
-        check "-zz" "cannot start with a dash ('-zz')" "Start with dash"
-        check "zz-" "cannot end with a dash ('zz-')" "End with dash"
+        check longName $"max length is 63, but here is 64. The invalid value is '{longName}'" "Name too long"
+        check "zzzT" "can only contain lowercase letters. The invalid value is 'zzzT'" "Upper case character allowed"
+        check "zz!z" "can only contain alphanumeric characters or the dash (-). The invalid value is 'zz!z'" "Bad character allowed"
+        check "-zz" "cannot start with a dash (-). The invalid value is '-zz'" "Start with dash"
+        check "zz-" "cannot end with a dash (-). The invalid value is 'zz-'" "End with dash"
     }
     test "Sets Min TLS version correctly" {
         let sql = sqlServer {
@@ -170,13 +170,13 @@ let tests = testList "SQL Server" [
             add_databases [
                 sqlDb { name "mydb21"; sku DtuSku.S0 }
             ]
-            geo_replicate ({| NameSuffix = "geo"; 
+            geo_replicate ({| NameSuffix = "geo";
                               Location = Location.UKWest;
                               DbSku = Some Farmer.Sql.DtuSku.S0 |})
         }
         let template = arm { location Location.UKSouth; add_resources [ sql ] }
 
-        let jsn = template.Template |> Writer.toJson 
+        let jsn = template.Template |> Writer.toJson
         let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
         let geoLocated = jobj.SelectToken("resources[?(@.name=='my36servergeo/mydb21geo')].location")
         Expect.equal (geoLocated.ToString()) "ukwest" "Geo-replication with location not found"

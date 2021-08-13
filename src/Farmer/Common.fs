@@ -1,4 +1,4 @@
-namespace Farmer
+﻿namespace Farmer
 
 open System
 
@@ -305,8 +305,11 @@ module Vm =
     type DiskInfo = { Size : int; DiskType : DiskType }
 
 module internal Validation =
+    // ANDs two validation rules
     let (<+>) a b v = a v && b v
+    /// ORs two validation rules
     let (<|>) a b v = a v || b v
+    /// Combines two validation rules. Both OK -> OK, otherwise Error.
     let (<!>) a b e s =
         match a e s, b e s with
         | Ok _, Ok _ -> Ok ()
@@ -315,19 +318,18 @@ module internal Validation =
 
     let isNonEmpty entity s = if String.IsNullOrWhiteSpace s then Error $"%s{entity} cannot be empty" else Ok()
     let isNotAGuid entity (s: string) =
-        let success, _ = Guid.TryParse s
-        if success then
-            Error $"%s{entity} cannot be a GUID"
-        else Ok()
-    let notLongerThan max entity (s:string) = if s.Length > max then Error $"%s{entity} max length is %d{max}, but here is {s.Length} ('{s}')" else Ok()
-    let notShorterThan min entity (s:string) = if s.Length < min then Error $"%s{entity} min length is %d{min}, but here is {s.Length} ('{s}')" else Ok()
+        match Guid.TryParse s with
+        | true, _ -> Error $"%s{entity} cannot be a GUID"
+        | false, _ -> Ok()
+    let notLongerThan max entity (s:string) = if s.Length > max then Error $"%s{entity} max length is %d{max}, but here is {s.Length}" else Ok()
+    let notShorterThan min entity (s:string) = if s.Length < min then Error $"%s{entity} min length is %d{min}, but here is {s.Length}" else Ok()
     let lengthBetween min max entity (s:string) = s |> notLongerThan max entity |> Result.bind (fun _ -> s |> notShorterThan min entity)
-    let containsOnly (message, predicate) entity (s:string) = if s |> Seq.exists (predicate >> not) then Error $"%s{entity} can only contain %s{message} ('{s}')" else Ok()
-    let cannotContain (message, predicate) entity (s:string) = if s |> Seq.exists predicate then Error $"%s{entity} do not allow %s{message} ('{s}')" else Ok()
-    let startsWith (message, predicate) entity (s:string) = if not (predicate s.[0]) then Error $"%s{entity} must start with %s{message} ('{s}')" else Ok()
-    let endsWith (message, predicate) entity (s:string) = if not (predicate s.[s.Length - 1]) then Error $"%s{entity} must end with %s{message} ('{s}')" else Ok()
-    let cannotStartWith (message, predicate) entity (s:string) = if predicate s.[0] then Error $"%s{entity} cannot start with %s{message} ('{s}')" else Ok()
-    let cannotEndWith (message, predicate) entity (s:string) = if predicate s.[s.Length - 1] then Error $"%s{entity} cannot end with %s{message} ('{s}')" else Ok()
+    let containsOnly (message, predicate) entity (s:string) = if s |> Seq.exists (predicate >> not) then Error $"%s{entity} can only contain %s{message}" else Ok()
+    let cannotContain (message, predicate) entity (s:string) = if s |> Seq.exists predicate then Error $"%s{entity} do not allow %s{message}" else Ok()
+    let startsWith (message, predicate) entity (s:string) = if not (predicate s.[0]) then Error $"%s{entity} must start with %s{message}" else Ok()
+    let endsWith (message, predicate) entity (s:string) = if not (predicate s.[s.Length - 1]) then Error $"%s{entity} must end with %s{message}" else Ok()
+    let cannotStartWith (message, predicate) entity (s:string) = if predicate s.[0] then Error $"%s{entity} cannot start with %s{message}" else Ok()
+    let cannotEndWith (message, predicate) entity (s:string) = if predicate s.[s.Length - 1] then Error $"%s{entity} cannot end with %s{message}" else Ok()
     let cannotEndsWith (predicate: (string * string) seq) entity (s:string) =
         let matches =
             predicate
@@ -338,27 +340,33 @@ module internal Validation =
         | [] -> Ok()
         | predicatesThatFailes ->
             let message = System.String.Join(", ", predicatesThatFailes)
-            Error $"%s{entity} cannot end with %s{message} ('{s}')"
-    let arb (message, predicate) entity s = if predicate s then Error $"%s{entity} %s{message} ('%s{s}')" else Ok()
+            Error $"%s{entity} cannot end with %s{message}"
+    let arb (message, predicate) entity s = if predicate s then Error $"%s{entity} %s{message}" else Ok()
     let containsOnlyM containers =
         containers
         |> List.map containsOnly
         |> List.reduce (<!>)
+    let nonEmptyLengthBetween a b = isNonEmpty <!> lengthBetween a b
+
     let lowercaseLetters = "lowercase letters", Char.IsLetter >> not <|> Char.IsLower
     let aLetterOrNumber = "an alphanumeric character", Char.IsLetterOrDigit
     let lettersOrNumbers = "alphanumeric characters", Char.IsLetterOrDigit
     let letters = "letters", Char.IsLetter
-    let aDash = "a dash", ((=) '-')
-    let lettersNumbersOrDash = "alphanumeric characters or the dash", Char.IsLetterOrDigit <|> (snd aDash)
-    let nonEmptyLengthBetween a b = isNonEmpty <!> lengthBetween a b
-    let validate entity text rules =
+    let dash = "a dash (-)", ((=) '-')
+    let lettersNumbersOrDash = "alphanumeric characters or the dash (-)", Char.IsLetterOrDigit <|> (snd dash)
+    let validate entity inputValue rules =
         rules
-        |> Seq.choose (fun v ->
-            match v entity text with
-            | Error m -> Some (Error m)
+        |> Seq.choose (fun rule ->
+            match rule entity inputValue with
+            | Error msg -> Some msg
             | Ok _ -> None)
         |> Seq.tryHead
-        |> Option.defaultValue (Ok text)
+        |> Option.map(fun errorMessage ->
+            let inputValueDescription =
+                if String.IsNullOrWhiteSpace inputValue then ""
+                else $". The invalid value is '{inputValue}'"
+            Error $"{errorMessage}{inputValueDescription}")
+        |> Option.defaultValue (Ok inputValue)
 
 module CosmosDbValidation =
     open Validation
@@ -381,7 +389,7 @@ module ServiceBusValidation =
         private | ServiceBusName of ResourceName
         static member Create (name: string) =
             [ nonEmptyLengthBetween 6 50
-              containsOnlyM [ lettersNumbersOrDash ]
+              containsOnly lettersNumbersOrDash
               startsWith letters
               isNotAGuid
               cannotEndsWith [ ("a dash", "-"); ("a sb postfix", "-sb"); ("a management postfix", "-mgmt") ]
@@ -596,10 +604,11 @@ module WebApp =
     type WebAppName =
         private | WebAppName of ResourceName
         static member Create name =
-            [ nonEmptyLengthBetween 2 60
-              containsOnlyM [ lettersNumbersOrDash ]
-              cannotStartWith aDash
-              cannotEndWith aDash
+            [
+                nonEmptyLengthBetween 2 60
+                containsOnly lettersNumbersOrDash
+                cannotStartWith dash
+                cannotEndWith dash
             ]
             |> validate "Web App site names" name
             |> Result.map (ResourceName >> WebAppName)
@@ -836,8 +845,8 @@ module Sql =
         private | SqlAccountName of ResourceName
         static member Create name =
             [ nonEmptyLengthBetween 1 63
-              cannotStartWith aDash
-              cannotEndWith aDash
+              cannotStartWith dash
+              cannotEndWith dash
               containsOnlyM [ lowercaseLetters; lettersNumbersOrDash ]
             ]
             |> validate "SQL account names" name
