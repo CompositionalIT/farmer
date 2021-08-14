@@ -48,35 +48,35 @@ let tests = testList "Functions tests" [
         Expect.stringContains site.AppSettings.["AzureWebJobsDashboard"].Value "foo" "Web Jobs Dashboard setting should have storage account name"
     }
     test "Handles identity correctly" {
-        let f : Site = functions { name "" } |> getResourceAtIndex 0
+        let f : Site = functions { name "testfunc" } |> getResourceAtIndex 0
         Expect.isNull f.Identity "Default managed identity should be null"
 
-        let f : Site = functions { system_identity } |> getResourceAtIndex 3
+        let f : Site = functions { name "func2"; system_identity } |> getResourceAtIndex 3
         Expect.equal f.Identity.Type (Nullable ManagedServiceIdentityType.SystemAssigned) "Should have system identity"
         Expect.isNull f.Identity.UserAssignedIdentities "Should have no user assigned identities"
 
-        let f : Site = functions { system_identity; add_identity (createUserAssignedIdentity "test"); add_identity (createUserAssignedIdentity "test2") } |> getResourceAtIndex 3
+        let f : Site = functions { name "func3"; system_identity; add_identity (createUserAssignedIdentity "test"); add_identity (createUserAssignedIdentity "test2") } |> getResourceAtIndex 3
         Expect.equal f.Identity.Type (Nullable ManagedServiceIdentityType.SystemAssignedUserAssigned) "Should have system identity"
         Expect.sequenceEqual (f.Identity.UserAssignedIdentities |> Seq.map(fun r -> r.Key)) [ "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test2')]"; "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test')]" ] "Should have two user assigned identities"
 
     }
 
     test "Supports always on" {
-        let f:Site = functions { name "" } |> getResourceAtIndex 3
+        let f:Site = functions { name "testfunc" } |> getResourceAtIndex 3
         Expect.equal f.SiteConfig.AlwaysOn (Nullable false) "always on should be false by default"
 
-        let f:Site = functions { always_on } |> getResourceAtIndex 3
+        let f:Site = functions { name "func2"; always_on } |> getResourceAtIndex 3
         Expect.equal f.SiteConfig.AlwaysOn (Nullable true) "always on should be true"
     }
 
     test "Supports 32 and 64 bit worker processes" {
-        let f:Site = functions { worker_process Bitness.Bits32 } |> getResourceAtIndex 3
+        let f:Site = functions { name "func"; worker_process Bitness.Bits32 } |> getResourceAtIndex 3
         Expect.equal f.SiteConfig.Use32BitWorkerProcess (Nullable true) "Should use 32 bit worker process"
 
-        let f:Site = functions { worker_process Bitness.Bits64 } |> getResourceAtIndex 3
+        let f:Site = functions { name "func2"; worker_process Bitness.Bits64 } |> getResourceAtIndex 3
         Expect.equal f.SiteConfig.Use32BitWorkerProcess (Nullable false) "Should not use 32 bit worker process"
     }
-    
+
     test "Managed KV integration works correctly" {
         let sa = storageAccount { name "teststorage" }
         let wa = functions { name "testfunc"; setting "storage" sa.Key; secret_setting "secret"; setting "literal" "value"; link_to_keyvault (ResourceName "testfuncvault") }
@@ -108,7 +108,7 @@ let tests = testList "Functions tests" [
     }
 
     test "Supports dotnet-isolated runtime" {
-        let f = functions { use_runtime (FunctionsRuntime.DotNetIsolated) }
+        let f = functions { name "func"; use_runtime (FunctionsRuntime.DotNetIsolated) }
         let resources = (f :> IBuilder).BuildResources Location.WestEurope
         let site = resources.[3] :?> Web.Site
         Expect.equal site.AppSettings.["FUNCTIONS_WORKER_RUNTIME"] (LiteralSetting "dotnet-isolated") "Should use dotnet-isolated functions runtime"
@@ -116,30 +116,31 @@ let tests = testList "Functions tests" [
 
     test "FunctionsApp supports adding slots" {
         let slot = appSlot { name "warm-up" }
-        let site = functions { add_slot slot }
+        let site = functions { name "func"; add_slot slot }
         Expect.isTrue (site.CommonWebConfig.Slots.ContainsKey "warm-up") "config should contain slot"
 
-        let slots = 
-            site 
+        let slots =
+            site
             |> getResources
             |> getResource<Arm.Web.Site>
-            |> List.filter (fun s-> s.Type = Arm.Web.slots)
+            |> List.filter (fun s -> s.ResourceType = Arm.Web.slots)
 
         Expect.hasLength slots 1 "Should only be 1 slot"
     }
 
     test "Functions App with slot that has system assigned identity adds identity to slot" {
         let slot = appSlot { name "warm-up"; system_identity }
-        let site:FunctionsConfig = functions { 
+        let site = functions {
+            name "func"
             add_slot slot
         }
         Expect.isTrue (site.CommonWebConfig.Slots.ContainsKey "warm-up") "Config should contain slot"
 
-        let slots = 
-            site 
+        let slots =
+            site
             |> getResources
             |> getResource<Arm.Web.Site>
-            |> List.filter (fun s-> s.Type = Arm.Web.slots)
+            |> List.filter (fun s -> s.ResourceType = Arm.Web.slots)
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
 
@@ -149,17 +150,18 @@ let tests = testList "Functions tests" [
 
     test "Functions App with slot adds settings to slot" {
         let slot = appSlot { name "warm-up" }
-        let site:FunctionsConfig = functions { 
-            add_slot slot 
+        let site = functions {
+            name "func"
+            add_slot slot
             setting "setting" "some value"
         }
         Expect.isTrue (site.CommonWebConfig.Slots.ContainsKey "warm-up") "Config should contain slot"
 
-        let slots = 
-            site 
+        let slots =
+            site
             |> getResources
             |> getResource<Arm.Web.Site>
-            |> List.filter (fun s-> s.Type = Arm.Web.slots)
+            |> List.filter (fun s -> s.ResourceType = Arm.Web.slots)
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
 
@@ -168,33 +170,34 @@ let tests = testList "Functions tests" [
 
     test "Functions App with slot does not add settings to app service" {
         let slot = appSlot { name "warm-up" }
-        let config = functions { 
-            add_slot slot 
+        let config = functions {
+            name "func"
+            add_slot slot
             setting "setting" "some value"
         }
 
-        let sites = 
-            config 
+        let sites =
+            config
             |> getResources
             |> getResource<Farmer.Arm.Web.Site>
-        let slots = sites |> List.filter (fun s-> s.Type = Arm.Web.slots)
+        let slots = sites |> List.filter (fun s -> s.ResourceType = Arm.Web.slots)
 
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
-        
+
         Expect.isFalse (sites.[0].AppSettings.ContainsKey("setting")) "App service should not have any settings"
     }
-    
+
     test "Functions App adds literal settings to slots" {
         let slot = appSlot { name "warm-up" }
-        let site:FunctionsConfig = functions { add_slot slot; operating_system Windows }
+        let site = functions { name "func"; add_slot slot; operating_system Windows }
         Expect.isTrue (site.CommonWebConfig.Slots.ContainsKey "warm-up") "Config should contain slot"
 
-        let slots = 
-            site 
+        let slots =
+            site
             |> getResources
             |> getResource<Arm.Web.Site>
-            |> List.filter (fun s-> s.Type = Arm.Web.slots)
+            |> List.filter (fun s -> s.ResourceType = Arm.Web.slots)
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
 
@@ -212,45 +215,47 @@ let tests = testList "Functions tests" [
     }
 
     test "Functions App with different settings on slot and service adds both settings to slot" {
-        let slot = appSlot { 
-            name "warm-up" 
+        let slot = appSlot {
+            name "warm-up"
             setting "slot" "slot value"
         }
-        let site:FunctionsConfig = functions { 
-            add_slot slot 
+        let site = functions {
+            name "testfunc"
+            add_slot slot
             setting "appService" "app service value"
         }
         Expect.isTrue (site.CommonWebConfig.Slots.ContainsKey "warm-up") "Config should contain slot"
 
-        let slots = 
-            site 
+        let slots =
+            site
             |> getResources
             |> getResource<Arm.Web.Site>
-            |> List.filter (fun s-> s.Type = Arm.Web.slots)
+            |> List.filter (fun s -> s.ResourceType = Arm.Web.slots)
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
- 
+
         let settings = (slots.Item 0).AppSettings;
         Expect.isTrue (settings.ContainsKey("slot")) "Slot should have slot setting"
         Expect.isTrue (settings.ContainsKey("appService")) "Slot should have app service setting"
     }
-    
+
     test "Functions App with slot, slot settings override app service setting" {
-        let slot = appSlot { 
-            name "warm-up" 
+        let slot = appSlot {
+            name "warm-up"
             setting "override" "overridden"
         }
-        let site:FunctionsConfig = functions { 
-            add_slot slot 
+        let site = functions {
+            name "testfunc"
+            add_slot slot
             setting "override" "some value"
         }
         Expect.isTrue (site.CommonWebConfig.Slots.ContainsKey "warm-up") "Config should contain slot"
 
-        let sites = 
-            site 
+        let sites =
+            site
             |> getResources
             |> getResource<Arm.Web.Site>
-        let slots = sites |> List.filter (fun s-> s.Type = Arm.Web.slots)
+        let slots = sites |> List.filter (fun s -> s.ResourceType = Arm.Web.slots)
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
 
@@ -259,9 +264,10 @@ let tests = testList "Functions tests" [
         Expect.isTrue hasValue "Slot should have app service setting"
         Expect.equal value.Value "overridden" "Slot should have correct app service value"
     }
-    
+
     test "Publish as docker container" {
         let f = functions {
+            name "func"
             publish_as (DockerContainer (docker (new Uri("http://www.farmer.io")) "Robert Lewandowski" "do it")) }
         let resources = (f :> IBuilder).BuildResources Location.WestEurope
         let site = resources.[3] :?> Web.Site
@@ -280,4 +286,9 @@ let tests = testList "Functions tests" [
         Expect.equal serverFarm.Kind (Some "elastic") "Incorrect Kind"
         Expect.equal serverFarm.MaximumElasticWorkerCount (Some 25) "Incorrect worker count"
     }
+
+    test "Not setting the functions name causes an error" {
+        Expect.throws (fun () -> functions { storage_account_name "foo" } |> ignore) "Not setting functions name should throw"
+    }
+
 ]

@@ -123,7 +123,7 @@ let tests = testList "Template" [
 
     test "Can add dependency through IBuilder" {
         let a = storageAccount { name "aaa" }
-        let b = webApp { name "b"; depends_on a }
+        let b = webApp { name "testweb"; depends_on a }
 
         Expect.equal b.Dependencies (Set [ storageAccounts.resourceId "aaa" ]) "Dependency should have been set"
     }
@@ -131,7 +131,7 @@ let tests = testList "Template" [
     test "Can add dependencies through IBuilder" {
         let a = storageAccount { name "aaa" } :> IBuilder
         let b = storageAccount { name "bbb" } :> IBuilder
-        let b = webApp { name "b"; depends_on [ a; b ] }
+        let b = webApp { name "testweb"; depends_on [ a; b ] }
 
         Expect.equal b.Dependencies (Set [ storageAccounts.resourceId "aaa"; storageAccounts.resourceId "bbb" ]) "Dependencies should have been set"
     }

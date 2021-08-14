@@ -41,6 +41,17 @@ type DnsZone =
             |} :> _
 
 module DnsRecords =
+    let private sourceZoneNSRecordReference (zoneResourceId:ResourceId) : ArmExpression = 
+        let sourceZoneResId =
+            { zoneResourceId with
+                Segments = [ ResourceName "@" ]
+                Type = nsRecord }
+        ArmExpression
+            .reference(nsRecord, sourceZoneResId)
+            .Map(fun r -> r + ".NSRecords")
+            .WithOwner(sourceZoneResId)
+        
+
     type DnsRecord =
         { Name : ResourceName
           Dependencies : Set<ResourceId>
@@ -71,7 +82,8 @@ module DnsRecords =
                         match this.Type with
                         | CName (_, Some cnameRecord) -> "CNAMERecord", box {| cname = cnameRecord |}
                         | MX records -> "MXRecords", records |> List.map (fun mx -> {| preference = mx.Preference; exchange = mx.Exchange |}) |> box
-                        | NS records -> "NSRecords", records |> List.map (fun ns -> {| nsdname = ns |}) |> box
+                        | NS (NsRecords.Records records) -> "NSRecords", records |> List.map (fun ns -> {| nsdname = ns |}) |> box
+                        | NS (NsRecords.SourceZone sourceZone) -> "NSRecords", (sourceZoneNSRecordReference sourceZone).Eval() |> box
                         | TXT records -> "TXTRecords", records |> List.map (fun txt -> {| value = [ txt ] |}) |> box
                         | PTR records -> "PTRRecords", records |> List.map (fun ptr -> {| ptrdname = ptr |}) |> box
                         | A (_, records) -> "ARecords", records |> List.map (fun a -> {| ipv4Address = a |}) |> box

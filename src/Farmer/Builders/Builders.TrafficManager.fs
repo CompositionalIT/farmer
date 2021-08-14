@@ -1,4 +1,4 @@
-﻿[<AutoOpen>]
+[<AutoOpen>]
 module Farmer.Builders.TrafficManager
 
 open Farmer
@@ -92,9 +92,9 @@ type EndpointBuilder() =
         { state with
             Target = Website name
             Dependencies = state.Dependencies |> Set.add (sites.resourceId(name)) }
-    member this.TargetWebApp(state:EndpointConfig, (webApp: WebAppConfig)) =
+    member _.TargetWebApp(state:EndpointConfig, (webApp: WebAppConfig)) =
         { state with
-            Target = Website webApp.Name
+            Target = Website webApp.Name.ResourceName
             Dependencies = state.Dependencies |> Set.add webApp.ResourceId }
 
     /// Sets the target of the Endpoint to an external domain/IP and location

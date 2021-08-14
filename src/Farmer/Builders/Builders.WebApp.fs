@@ -80,11 +80,10 @@ type SlotConfig =
       KeyVaultReferenceIdentity: UserAssignedIdentity option
       Tags: Map<string,string>
       Dependencies: ResourceId Set}
-    member this.ToArm (owner: Arm.Web.Site) =
+    member this.ToSite (owner: Arm.Web.Site) =
         { owner with
-            Type = Arm.Web.slots
-            Name = owner.Name/this.Name
-            Dependencies = owner.Dependencies |> Set.add (owner.Type.resourceId owner.Name)
+            SiteType = SiteType.Slot (owner.Name/this.Name)
+            Dependencies = owner.Dependencies |> Set.add (owner.ResourceType.resourceId owner.Name)
             AutoSwapSlotName = this.AutoSwapSlotName
             AppSettings = owner.AppSettings |> Map.merge ( this.AppSettings |> Map.toList)
             ConnectionStrings = owner.ConnectionStrings |> Map.merge (this.ConnectionStrings |> Map.toList)
@@ -162,7 +161,7 @@ let appSlot = SlotBuilder()
 
 /// Common fields between WebApp and Functions
 type CommonWebConfig =
-    { Name : ResourceName
+    { Name : WebAppName
       AlwaysOn : bool
       AppInsights : ResourceRef<ResourceName> option
       Cors : Cors option
@@ -201,16 +200,16 @@ type WebAppConfig =
       PrivateEndpoints: (LinkedResource * string option) Set }
     member this.Name = this.CommonWebConfig.Name
     /// Gets this web app's Server Plan's full resource ID.
-    member this.ServicePlanId = this.CommonWebConfig.ServicePlan.resourceId this.Name
+    member this.ServicePlanId = this.CommonWebConfig.ServicePlan.resourceId this.Name.ResourceName
     /// Gets the Service Plan name for this web app.
     member this.ServicePlanName = this.ServicePlanId.Name
     /// Gets the App Insights name for this web app, if it exists.
-    member this.AppInsightsName = this.CommonWebConfig.AppInsights |> Option.map (fun ai -> ai.resourceId(this.Name).Name)
+    member this.AppInsightsName = this.CommonWebConfig.AppInsights |> Option.map (fun ai -> ai.resourceId(this.Name.ResourceName).Name)
     /// Gets the ARM expression path to the publishing password of this web app.
-    member this.PublishingPassword = publishingPassword (this.Name)
-    member this.Endpoint = $"{this.Name.Value}.azurewebsites.net"
+    member this.PublishingPassword = publishingPassword this.Name.ResourceName
+    member this.Endpoint = $"{this.Name.ResourceName.Value}.azurewebsites.net"
     member this.SystemIdentity = SystemIdentity this.ResourceId
-    member this.ResourceId = sites.resourceId this.Name
+    member this.ResourceId = sites.resourceId this.Name.ResourceName
     interface IBuilder with
         member this.ResourceId = this.ResourceId
         member this.BuildResources location = [
@@ -265,7 +264,7 @@ type WebAppConfig =
                 let literalSettings = [
                     if this.RunFromPackage then AppSettings.RunFromPackage
                     yield! this.WebsiteNodeDefaultVersion |> Option.mapList AppSettings.WebsiteNodeDefaultVersion
-                    yield! this.CommonWebConfig.AppInsights |> Option.mapList (fun resource -> "APPINSIGHTS_INSTRUMENTATIONKEY", AppInsights.getInstrumentationKey(resource.resourceId this.Name).Eval())
+                    yield! this.CommonWebConfig.AppInsights |> Option.mapList (fun resource -> "APPINSIGHTS_INSTRUMENTATIONKEY", AppInsights.getInstrumentationKey(resource.resourceId this.Name.ResourceName).Eval())
                     match this.CommonWebConfig.OperatingSystem, this.CommonWebConfig.AppInsights with
                     | Windows, Some _ ->
                         "APPINSIGHTS_PROFILERFEATURE_VERSION", "1.0.0"
@@ -313,8 +312,7 @@ type WebAppConfig =
                 |> Map
 
             let site =
-                { Type = Arm.Web.sites
-                  Name = this.Name
+                { SiteType = Site this.Name
                   Location = location
                   ServicePlan = this.ServicePlanId
                   HTTPSOnly = this.CommonWebConfig.HTTPSOnly
@@ -335,7 +333,7 @@ type WebAppConfig =
                   ] |> String.concat ","
                   Dependencies = Set [
                     match this.CommonWebConfig.ServicePlan with
-                    | DependableResource this.Name resourceId -> resourceId
+                    | DependableResource this.Name.ResourceName resourceId -> resourceId
                     | _ -> ()
 
                     yield! this.Dependencies
@@ -353,7 +351,7 @@ type WebAppConfig =
                         ()
 
                     match this.CommonWebConfig.AppInsights with
-                    | Some (DependableResource this.Name resourceId) -> resourceId
+                    | Some (DependableResource this.Name.ResourceName resourceId) -> resourceId
                     | Some _ | None -> ()
                   ]
                   AlwaysOn = this.CommonWebConfig.AlwaysOn
@@ -428,7 +426,7 @@ type WebAppConfig =
 
             match this.SourceControlSettings with
             | Some settings ->
-                { Website = this.Name
+                { Website = this.Name.ResourceName
                   Location = location
                   Repository = settings.Repository
                   Branch = settings.Branch
@@ -437,14 +435,14 @@ type WebAppConfig =
                 ()
 
             match this.CommonWebConfig.AppInsights with
-            | Some (DeployableResource this.Name resourceId) ->
+            | Some (DeployableResource this.Name.ResourceName resourceId) ->
                 { Name = resourceId.Name
                   Location = location
                   DisableIpMasking = false
                   SamplingPercentage = 100
                   LinkedWebsite =
                     match this.CommonWebConfig.OperatingSystem with
-                    | Windows -> Some this.Name
+                    | Windows -> Some this.Name.ResourceName
                     | Linux -> None
                   Tags = this.Tags }
             | Some _
@@ -452,7 +450,7 @@ type WebAppConfig =
                 ()
 
             match this.CommonWebConfig.ServicePlan with
-            | DeployableResource this.Name resourceId ->
+            | DeployableResource this.Name.ResourceName resourceId ->
                 { Name = resourceId.Name
                   Location = location
                   Sku = this.Sku
@@ -466,7 +464,7 @@ type WebAppConfig =
 
             for (ExtensionName extension) in this.SiteExtensions do
                 { Name = ResourceName extension
-                  SiteName = this.Name
+                  SiteName = this.Name.ResourceName
                   Location = location }
 
             if Map.isEmpty this.CommonWebConfig.Slots then
@@ -474,7 +472,7 @@ type WebAppConfig =
             else
                 { site with AppSettings = Map.empty; ConnectionStrings = Map.empty }
                 for (_,slot) in this.CommonWebConfig.Slots |> Map.toSeq do
-                    slot.ToArm site
+                    slot.ToSite site
 
             yield! (PrivateEndpoint.create location this.ResourceId ["sites"] this.PrivateEndpoints)
         ]
@@ -482,7 +480,7 @@ type WebAppConfig =
 type WebAppBuilder() =
     member _.Yield _ =
         { CommonWebConfig =
-            { Name = ResourceName.Empty
+            { Name = WebAppName.Empty
               AlwaysOn = false
               AppInsights = Some (derived (fun name -> components.resourceId (name-"ai")))
               Cors = None
@@ -517,6 +515,7 @@ type WebAppBuilder() =
           SiteExtensions = Set.empty
           PrivateEndpoints = Set.empty}
     member _.Run(state:WebAppConfig) =
+        if state.Name.ResourceName = ResourceName.Empty then failwith "No Web App name has been set."
         { state with
             SiteExtensions =
                 match state with
@@ -642,6 +641,7 @@ module Extensions =
         /// Sets the name of the web app.
         [<CustomOperation "name">]
         member this.Name (state:'T, name) = { this.Get state with Name = name } |> this.Wrap state
+        member this.Name (state:'T, name:ResourceName) = this.Name (state, (WebAppName.Create name |> Result.get))
         member this.Name (state:'T, name:string) = this.Name(state, ResourceName name)
         /// Sets the name of the service plan.
         [<CustomOperation "service_plan_name">]
@@ -770,7 +770,7 @@ module Extensions =
             let current = this.Get state
             { current with
                 Identity = { current.Identity with SystemAssigned = Enabled }
-                SecretStore = KeyVault (derived(fun c -> vaults.resourceId (ResourceName (c.Name.Value + "vault")))) }
+                SecretStore = KeyVault (derived(fun c -> vaults.resourceId (ResourceName (c.Name.ResourceName.Value + "vault")))) }
             |> this.Wrap state
         /// Links your application to a Farmer-managed key vault instance. All secret settings will automatically be mapped into key vault.
         [<CustomOperation "link_to_keyvault">]
