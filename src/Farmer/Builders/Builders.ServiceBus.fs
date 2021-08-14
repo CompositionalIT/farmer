@@ -59,7 +59,7 @@ type ServiceBusQueueBuilder() =
     [<CustomOperation "enable_partition">] member _.EnablePartition(state:ServiceBusQueueConfig) = { state with EnablePartitioning = Some true }
     /// Add authorization rule on the queue.
     [<CustomOperation "add_authorization_rule">]
-    member __.AddAuthorizationRule(state:ServiceBusQueueConfig, name, rights) = { state with AuthorizationRules = state.AuthorizationRules.Add(ResourceName name, Set rights) }
+    member _.AddAuthorizationRule(state:ServiceBusQueueConfig, name, rights) = { state with AuthorizationRules = state.AuthorizationRules.Add(ResourceName name, Set rights) }
 
 type ServiceBusSubscriptionConfig =
     { Name : ResourceName
@@ -315,7 +315,7 @@ type ServiceBusBuilder() =
         }
     /// Add authorization rule on the namespace.
     [<CustomOperation "add_authorization_rule">]
-    member __.AddAuthorizationRule(state:ServiceBusConfig, name, rights) = { state with AuthorizationRules = state.AuthorizationRules.Add(ResourceName name, Set rights) }
+    member _.AddAuthorizationRule(state:ServiceBusConfig, name, rights) = { state with AuthorizationRules = state.AuthorizationRules.Add(ResourceName name, Set rights) }
     interface ITaggable<ServiceBusConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let serviceBus = ServiceBusBuilder()

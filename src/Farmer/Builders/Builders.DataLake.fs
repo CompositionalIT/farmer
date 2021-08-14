@@ -21,7 +21,7 @@ type DataLakeConfig =
         ]
 
 type DataLakeBuilder() =
-    member __.Yield _ =
+    member _.Yield _ =
         { Name = ResourceName ""
           EncryptionState = Disabled
           Sku = Sku.Consumption
@@ -29,7 +29,7 @@ type DataLakeBuilder() =
 
     /// Sets the name of the data lake.
     [<CustomOperation "name">]
-    member __.Name (state:DataLakeConfig, name) = { state with Name = ResourceName name }
+    member _.Name (state:DataLakeConfig, name) = { state with Name = ResourceName name }
     [<CustomOperation "enable_encryption">]
     member _.EncryptionState (state:DataLakeConfig) = { state with EncryptionState = Enabled }
     [<CustomOperation "sku">]

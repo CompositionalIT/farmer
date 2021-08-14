@@ -478,7 +478,7 @@ type WebAppConfig =
         ]
 
 type WebAppBuilder() =
-    member __.Yield _ =
+    member _.Yield _ =
         { CommonWebConfig =
             { Name = WebAppName.Empty
               AlwaysOn = false
@@ -514,7 +514,7 @@ type WebAppBuilder() =
           AutomaticLoggingExtension = true
           SiteExtensions = Set.empty
           PrivateEndpoints = Set.empty}
-    member __.Run(state:WebAppConfig) =
+    member _.Run(state:WebAppConfig) =
         if state.Name.ResourceName = ResourceName.Empty then raiseFarmer "No Web App name has been set."
         { state with
             SiteExtensions =
@@ -563,28 +563,28 @@ type WebAppBuilder() =
         |> List.fold (fun (state:WebAppConfig) (key:string) -> this.AddConnectionString(state, key)) state
     /// Enables HTTP 2.0 for this webapp.
     [<CustomOperation "enable_http2">]
-    member __.Http20Enabled(state:WebAppConfig) = { state with HTTP20Enabled = Some true }
+    member _.Http20Enabled(state:WebAppConfig) = { state with HTTP20Enabled = Some true }
     /// Disables client affinity for this webapp.
     [<CustomOperation "disable_client_affinity">]
-    member __.ClientAffinityEnabled(state:WebAppConfig) = { state with ClientAffinityEnabled = Some false }
+    member _.ClientAffinityEnabled(state:WebAppConfig) = { state with ClientAffinityEnabled = Some false }
     /// Enables websockets for this webapp.
     [<CustomOperation "enable_websockets">]
-    member __.WebSockets(state:WebAppConfig) = { state with WebSocketsEnabled = Some true }
+    member _.WebSockets(state:WebAppConfig) = { state with WebSocketsEnabled = Some true }
     /// Sets the runtime stack
     [<CustomOperation "runtime_stack">]
-    member __.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = runtime }
+    member _.RuntimeStack(state:WebAppConfig, runtime) = { state with Runtime = runtime }
     [<CustomOperation "docker_image">]
     /// Specifies a docker image to use from the registry (linux only), and the startup command to execute.
-    member __.DockerImage(state:WebAppConfig, registryPath, startupFile) =
+    member _.DockerImage(state:WebAppConfig, registryPath, startupFile) =
         { state with
             CommonWebConfig = { state.CommonWebConfig with OperatingSystem = Linux }
             DockerImage = Some (registryPath, startupFile) }
     [<CustomOperation "docker_ci">]
     /// Have your custom Docker image automatically re-deployed when a new version is pushed to e.g. Docker hub.
-    member __.DockerCI(state:WebAppConfig) = { state with DockerCi = true }
+    member _.DockerCI(state:WebAppConfig) = { state with DockerCi = true }
     [<CustomOperation "docker_use_azure_registry">]
     /// Have your custom Docker image automatically re-deployed when a new version is pushed to e.g. Docker hub.
-    member __.DockerAcrCredentials(state:WebAppConfig, registryName) =
+    member _.DockerAcrCredentials(state:WebAppConfig, registryName) =
         { state with
             DockerAcrCredentials =
                 Some {| RegistryName = registryName

@@ -205,7 +205,7 @@ type SqlDbBuilder() =
 
 type SqlServerBuilder() =
     let makeIp (text:string) = IPAddress.Parse text
-    member __.Yield _ =
+    member _.Yield _ =
         { Name = SqlAccountName.Empty
           AdministratorCredentials = {| UserName = ""; Password = SecureParameter "" |}
           ElasticPoolSettings =
@@ -218,7 +218,7 @@ type SqlServerBuilder() =
           MinTlsVersion = None
           GeoReplicaServer = None
           Tags = Map.empty  }
-    member __.Run state : SqlAzureConfig =
+    member _.Run state : SqlAzureConfig =
         if state.Name.ResourceName = ResourceName.Empty then raiseFarmer "No SQL Server account name has been set."
         { state with
             AdministratorCredentials =
@@ -247,7 +247,7 @@ type SqlServerBuilder() =
     member _.AddDatabases(state:SqlAzureConfig, databases) = { state with Databases = state.Databases @ databases }
     /// Adds a firewall rule that enables access to a specific IP Address range.
     [<CustomOperation "add_firewall_rule">]
-    member __.AddFirewallRule(state:SqlAzureConfig, name, startRange, endRange) =
+    member _.AddFirewallRule(state:SqlAzureConfig, name, startRange, endRange) =
         { state with
             FirewallRules =
                 {| Name = ResourceName name
@@ -256,7 +256,7 @@ type SqlServerBuilder() =
                 :: state.FirewallRules }
     /// Adds a firewall rules that enables access to a specific IP Address range.
     [<CustomOperation "add_firewall_rules">]
-    member __.AddFirewallRules(state:SqlAzureConfig, listOfRules:(string*string*string) list) =
+    member _.AddFirewallRules(state:SqlAzureConfig, listOfRules:(string*string*string) list) =
         let newRules =
             listOfRules |> List.map(fun (name, startRange, endRange) ->
                 {| Name = ResourceName name
@@ -269,7 +269,7 @@ type SqlServerBuilder() =
         this.AddFirewallRule(state, "allow-azure-services", "0.0.0.0", "0.0.0.0")
     /// Sets the admin username of the server (note: the password is supplied as a securestring parameter to the generated ARM template).
     [<CustomOperation "admin_username">]
-    member __.AdminUsername(state:SqlAzureConfig, username) =
+    member _.AdminUsername(state:SqlAzureConfig, username) =
         { state with
             AdministratorCredentials =
                 {| state.AdministratorCredentials with

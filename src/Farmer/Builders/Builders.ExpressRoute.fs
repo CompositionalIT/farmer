@@ -35,7 +35,7 @@ type ExpressRouteCircuitPeeringConfig =
       VlanId : int }
 
 type ExpressRouteCircuitPeeringBuilder() =
-    member __.Yield _ =
+    member _.Yield _ =
       { PeeringType = AzurePrivatePeering
         AzureASN = 0
         PeerASN = 0L
@@ -45,19 +45,19 @@ type ExpressRouteCircuitPeeringBuilder() =
         VlanId = 0 }
     /// Sets the peering type.
     [<CustomOperation "peering_type">]
-    member __.PeeringType (state:ExpressRouteCircuitPeeringConfig, peeringType) = { state with PeeringType = peeringType }
+    member _.PeeringType (state:ExpressRouteCircuitPeeringConfig, peeringType) = { state with PeeringType = peeringType }
     [<CustomOperation "azure_asn">]
-    member __.AzureASN (state:ExpressRouteCircuitPeeringConfig, azureAsn) = { state with AzureASN = azureAsn }
+    member _.AzureASN (state:ExpressRouteCircuitPeeringConfig, azureAsn) = { state with AzureASN = azureAsn }
     [<CustomOperation "peer_asn">]
-    member __.PeerASN (state:ExpressRouteCircuitPeeringConfig, peerAsn) = { state with PeerASN = peerAsn }
+    member _.PeerASN (state:ExpressRouteCircuitPeeringConfig, peerAsn) = { state with PeerASN = peerAsn }
     [<CustomOperation "primary_prefix">]
-    member __.PrimaryPeerAddressPrefix (state:ExpressRouteCircuitPeeringConfig, primaryPrefix) = { state with PrimaryPeerAddressPrefix = primaryPrefix }
+    member _.PrimaryPeerAddressPrefix (state:ExpressRouteCircuitPeeringConfig, primaryPrefix) = { state with PrimaryPeerAddressPrefix = primaryPrefix }
     [<CustomOperation "secondary_prefix">]
-    member __.SecondaryPeerAddressPrefix (state:ExpressRouteCircuitPeeringConfig, secondaryPrefix) = { state with SecondaryPeerAddressPrefix = secondaryPrefix }
+    member _.SecondaryPeerAddressPrefix (state:ExpressRouteCircuitPeeringConfig, secondaryPrefix) = { state with SecondaryPeerAddressPrefix = secondaryPrefix }
     [<CustomOperation "shared_key">]
-    member __.SharedKey (state:ExpressRouteCircuitPeeringConfig, sharedKey) = { state with SharedKey = Some sharedKey }
+    member _.SharedKey (state:ExpressRouteCircuitPeeringConfig, sharedKey) = { state with SharedKey = Some sharedKey }
     [<CustomOperation "vlan">]
-    member __.VlanId (state:ExpressRouteCircuitPeeringConfig, vlan) = { state with VlanId = vlan }
+    member _.VlanId (state:ExpressRouteCircuitPeeringConfig, vlan) = { state with VlanId = vlan }
 let peering = ExpressRouteCircuitPeeringBuilder()
 
 type ExpressRouteConfig =
@@ -110,7 +110,7 @@ type ExpressRouteConfig =
         ]
 
 type ExpressRouteBuilder() =
-    member __.Yield _ =
+    member _.Yield _ =
       { Name = ResourceName.Empty
         Tier = Standard
         Family = MeteredData
@@ -122,27 +122,27 @@ type ExpressRouteBuilder() =
         Tags = Map.empty}
     /// Sets the name of the circuit
     [<CustomOperation "name">]
-    member __.Name(state:ExpressRouteConfig, name) = { state with Name = ResourceName name }
+    member _.Name(state:ExpressRouteConfig, name) = { state with Name = ResourceName name }
     /// Sets the tier of the circuit (standard or premium - default standard).
     [<CustomOperation "tier">]
-    member __.Tier(state:ExpressRouteConfig, tier) = { state with Tier = tier }
+    member _.Tier(state:ExpressRouteConfig, tier) = { state with Tier = tier }
     /// Sets the family of the circuit (metered or unlimited - default:metered).
     [<CustomOperation "family">]
-    member __.Family(state:ExpressRouteConfig, family) = { state with Family = family }
+    member _.Family(state:ExpressRouteConfig, family) = { state with Family = family }
     /// Sets the service provider for of the circuit.
     [<CustomOperation "service_provider">]
-    member __.ServiceProviderName(state:ExpressRouteConfig, provider) = { state with ServiceProviderName = provider }
+    member _.ServiceProviderName(state:ExpressRouteConfig, provider) = { state with ServiceProviderName = provider }
     /// Sets the peering location for this circuit.
     [<CustomOperation "peering_location">]
-    member __.PeeringLocation(state:ExpressRouteConfig, location) = { state with PeeringLocation = location }
+    member _.PeeringLocation(state:ExpressRouteConfig, location) = { state with PeeringLocation = location }
     /// Sets the tier of the circuit (standard or premium).
     [<CustomOperation "bandwidth">]
-    member __.Bandwidth(state:ExpressRouteConfig, bandwidth) = { state with Bandwidth = bandwidth }
+    member _.Bandwidth(state:ExpressRouteConfig, bandwidth) = { state with Bandwidth = bandwidth }
     /// Sets the tier of the circuit (standard or premium).
     [<CustomOperation "add_peering">]
-    member __.AddPeering(state:ExpressRouteConfig, peering) = { state with Peerings = peering :: state.Peerings }
+    member _.AddPeering(state:ExpressRouteConfig, peering) = { state with Peerings = peering :: state.Peerings }
     /// Enables Global Reach on the circuit
     [<CustomOperation "enable_global_reach">]
-    member __.EnableGlobalReach(state:ExpressRouteConfig) = { state with GlobalReachEnabled = true }
+    member _.EnableGlobalReach(state:ExpressRouteConfig) = { state with GlobalReachEnabled = true }
     interface ITaggable<ExpressRouteConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 let expressRoute = ExpressRouteBuilder()
