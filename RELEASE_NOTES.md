@@ -3,12 +3,10 @@ Release Notes
 
 ## 1.6.12
 * Custom FarmerException raised for all exceptions.
-* Improve validation error messages.
-* WebApp/Functions: Web Apps and Functions now 'health_check_path' support.
-
-## vNext
-* SQL Server: geo_replicate changed the API to use non-anonymous record.
 * Dashboards: Changed the API to use non-anonymous record.
+* Improve validation error messages.
+* SQL Server: geo_replicate changed the API to use non-anonymous record.
+* WebApp/Functions: Web Apps and Functions now 'health_check_path' support.
 
 ## 1.6.11
 * Container Groups: Use `ip_config` to name the IP configuration for a container group's subnet.
