@@ -32,26 +32,26 @@ type AppInsightsConfig =
         ]
 
 type AppInsightsBuilder() =
-    member __.Yield _ =
+    member _.Yield _ =
         { Name = ResourceName.Empty
           DisableIpMasking = false
           SamplingPercentage = 100
           Tags = Map.empty }
     [<CustomOperation "name">]
     /// Sets the name of the App Insights instance.
-    member __.Name(state:AppInsightsConfig, name) = { state with Name = ResourceName name }
+    member _.Name(state:AppInsightsConfig, name) = { state with Name = ResourceName name }
 
     [<CustomOperation "disable_ip_masking">]
     /// Sets the name of the App Insights instance.
-    member __.DisableIpMasking(state:AppInsightsConfig) = { state with DisableIpMasking = true }
+    member _.DisableIpMasking(state:AppInsightsConfig) = { state with DisableIpMasking = true }
 
     [<CustomOperation "sampling_percentage">]
     /// Sets the name of the App Insights instance.
-    member __.SamplingPercentage(state:AppInsightsConfig, samplingPercentage) = { state with SamplingPercentage = samplingPercentage }
+    member _.SamplingPercentage(state:AppInsightsConfig, samplingPercentage) = { state with SamplingPercentage = samplingPercentage }
 
     member _.Run (state:AppInsightsConfig) =
-        if state.SamplingPercentage > 100  then failwith "Sampling Percentage cannot be higher than 100%"
-        elif state.SamplingPercentage <= 0 then failwith "Sampling Percentage cannot be lower than or equal to 0%"
+        if state.SamplingPercentage > 100  then raiseFarmer "Sampling Percentage cannot be higher than 100%"
+        elif state.SamplingPercentage <= 0 then raiseFarmer "Sampling Percentage cannot be lower than or equal to 0%"
         state
     interface ITaggable<AppInsightsConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 

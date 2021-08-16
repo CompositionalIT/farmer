@@ -75,7 +75,7 @@ type BackendAddressPoolConfig =
         member this.ResourceId = Farmer.Arm.LoadBalancer.loadBalancerBackendAddressPools.resourceId (this.LoadBalancer, this.Name)
         member this.BuildResources _ =
             if String.IsNullOrWhiteSpace (this.LoadBalancer.Value) then
-                failwith "Load balancer must be specified for backend address pool."
+                raiseFarmer "Load balancer must be specified for backend address pool."
             else
                 [
                     { Name = this.Name
@@ -167,13 +167,13 @@ type ProbeBuilder () =
     member _.Run (config:ProbeConfig) =
         match config.Port with
         | None ->
-            failwith "A 'port' value is required for probes."
+            raiseFarmer "A 'port' value is required for probes."
         | _ -> ()
         match config.Protocol with
         | Some LoadBalancerProbeProtocol.HTTP
         | Some LoadBalancerProbeProtocol.HTTPS ->
             if config.RequestPath.IsNone then
-                failwith "Set 'request_path' for HTTP or HTTPS probes."
+                raiseFarmer "Set 'request_path' for HTTP or HTTPS probes."
         | _ -> ()
         { config with Name = config.Name.IfEmpty $"{config.Protocol.Value}-{config.Port.Value}" }
     /// Sets the name of the connectivity probe.
@@ -334,7 +334,7 @@ type LoadBalancerConfig =
             } :> IArmResource
             :: backendPools
             @ (frontendPublicIps |> Seq.cast<IArmResource> |> List.ofSeq)
-            
+
 
 type LoadBalancerBuilder () =
     member _.Yield _ =

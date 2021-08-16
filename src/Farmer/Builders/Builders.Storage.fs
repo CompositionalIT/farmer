@@ -176,7 +176,7 @@ type StorageAccountConfig =
 
 type StorageAccountBuilder() =
     member _.Yield _ = {
-        Name = StorageAccountName.Create("default").OkValue
+        Name = StorageAccountName.Empty
         Sku = Sku.Standard_LRS
         EnableDataLake = None
         Containers = []
@@ -193,6 +193,10 @@ type StorageAccountBuilder() =
         MinTlsVersion = None
         Tags = Map.empty
     }
+    member _.Run state =
+        if state.Name.ResourceName = ResourceName.Empty then raiseFarmer "No Storage Account name has been set."
+        state
+
     static member private AddContainer(state, access, name:string) = { state with Containers = state.Containers @ [ ((StorageResourceName.Create name).OkValue, access) ] }
     static member private AddFileShare(state:StorageAccountConfig, name:string, quota) = { state with FileShares = state.FileShares @ [ (StorageResourceName.Create(name).OkValue, quota) ] }
 
@@ -269,7 +273,7 @@ type StorageAccountBuilder() =
                 match state.Sku with
                 | Blobs (replication, _) -> Blobs(replication, Some tier)
                 | GeneralPurpose (V2 (replication, _)) -> GeneralPurpose (V2 (replication, Some tier))
-                | other -> failwith $"You can only set the default access tier for Blobs or General Purpose V2 storage accounts. This account is %A{other}."
+                | other -> raiseFarmer $"You can only set the default access tier for Blobs or General Purpose V2 storage accounts. This account is %A{other}."
         }
     /// Specify network access control lists for this storage account.
     [<CustomOperation "set_network_acls">]

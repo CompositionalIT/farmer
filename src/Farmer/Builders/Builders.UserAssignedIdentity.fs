@@ -26,7 +26,7 @@ type UserAssignedIdentityBuilder() =
           Tags = Map.empty }
     /// Sets the name of the user assigned identity.
     [<CustomOperation "name">]
-    member __.Name(state:UserAssignedIdentityConfig, name) = { state with Name = ResourceName name }
+    member _.Name(state:UserAssignedIdentityConfig, name) = { state with Name = ResourceName name }
     /// Adds tags to the user assigned identity.
     interface ITaggable<UserAssignedIdentityConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 

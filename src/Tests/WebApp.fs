@@ -563,10 +563,10 @@ let tests = testList "Web App Tests" [
 
         check "" "cannot be empty" "Name too short"
         let longName = Array.init 61 (fun _ -> 'a') |> String
-        check longName ("max length is 60, but here is 61 ('" + longName + "')") "Name too long"
-        check "zz!z" "can only contain alphanumeric characters or the dash ('zz!z')" "Bad character allowed"
-        check "-zz" "cannot start with a dash ('-zz')" "Start with dash"
-        check "zz-" "cannot end with a dash ('zz-')" "End with dash"
+        check longName $"max length is 60, but here is 61. The invalid value is '{longName}'" "Name too long"
+        check "zz!z" "can only contain alphanumeric characters or the dash (-). The invalid value is 'zz!z'" "Bad character allowed"
+        check "-zz" "cannot start with a dash (-). The invalid value is '-zz'" "Start with dash"
+        check "zz-" "cannot end with a dash (-). The invalid value is 'zz-'" "End with dash"
     }
 
     test "Not setting the web app name causes an error" {

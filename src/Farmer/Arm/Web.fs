@@ -108,10 +108,10 @@ module ZipDeploy =
     open System.IO
     open System.IO.Compression
 
-    type ZipDeploySlot = 
+    type ZipDeploySlot =
         | ProductionSlot
         | NamedSlot of name: string
-        member this.ToOption = 
+        member this.ToOption =
             match this with
             | ProductionSlot -> None
             | NamedSlot n -> Some n
@@ -204,7 +204,7 @@ type Site =
                 let path =
                     ZipDeploy.ZipDeployKind.TryParse path
                     |> Option.defaultWith (fun () ->
-                        failwith $"Path '{path}' must either be a folder to be zipped, or an existing zip.")
+                        raiseFarmer $"Path '{path}' must either be a folder to be zipped, or an existing zip.")
                 let slotName = slot.ToOption
                 printfn "Running ZIP deploy to %s for %s" (slotName |> Option.defaultValue "WebApp") path.Value
                 Some (match target with
@@ -216,7 +216,7 @@ type Site =
         member this.ResourceId = sites.resourceId this.Name
         member this.JsonModel =
             let dependencies = this.Dependencies + (Set this.Identity.Dependencies)
-            let keyvaultId = 
+            let keyvaultId =
                 match (this.KeyVaultReferenceIdentity, this.Identity) with
                 | Some x, _
                 // If there is no managed identity and only one user-assigned identity, we should use that be default

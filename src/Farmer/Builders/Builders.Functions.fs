@@ -311,7 +311,7 @@ type FunctionsBuilder() =
           PublishAs = Code
           Tags = Map.empty }
     member _.Run (state:FunctionsConfig) =
-        if state.Name.ResourceName = ResourceName.Empty then failwith "No Functions instance name has been set."
+        if state.Name.ResourceName = ResourceName.Empty then raiseFarmer "No Functions instance name has been set."
         state
     /// Do not create an automatic storage account; instead, link to a storage account that is created outside of this Functions instance.
     [<CustomOperation "link_to_storage_account">]

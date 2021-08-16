@@ -11,8 +11,8 @@ let deployTo resourceGroupName parameters (deployment:IDeploymentSource) =
     let deleteResponse = Deploy.Az.delete resourceGroupName
     match deployResponse, deleteResponse with
     | Ok _, Ok _ -> ()
-    | Error e, _ -> failwith $"Something went wrong during the deployment: {e}"
-    | _, Error e -> failwith $"Something went wrong during the delete: {e}"
+    | Error e, _ -> raiseFarmer $"Something went wrong during the deployment: {e}"
+    | _, Error e -> raiseFarmer $"Something went wrong during the delete: {e}"
 
 let endToEndTests = testList "End to end tests" [
     test "Deploys and deletes a resource group" {
@@ -31,7 +31,7 @@ let tests = testList "Azure CLI" [
     test "Can connect to Az CLI" {
         match Deploy.checkVersion Deploy.Az.MinimumVersion with
         | Ok _ -> ()
-        | Error msg -> failwith $"Version check failed: {msg}"
+        | Error msg -> raiseFarmer $"Version check failed: {msg}"
     }
 
     test "Az output is always JSON" {
