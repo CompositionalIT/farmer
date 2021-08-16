@@ -572,4 +572,11 @@ let tests = testList "Web App Tests" [
     test "Not setting the web app name causes an error" {
         Expect.throws (fun () -> webApp { runtime_stack Runtime.Java11 } |> ignore) "Not setting web app name should throw"
     }
+
+    test "Supports health check" {
+        let resources = webApp { name "test"; health_check_path "/status" } |> getResources
+        let wa = resources |> getResource<Web.Site> |> List.head
+
+        Expect.equal wa.HealthCheckPath (Some "/status") "Health check path should be '/status'"
+    }
 ]

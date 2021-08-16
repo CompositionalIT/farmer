@@ -287,8 +287,12 @@ let tests = testList "Functions tests" [
         Expect.equal serverFarm.MaximumElasticWorkerCount (Some 25) "Incorrect worker count"
     }
 
+    test "Supports health check" {
+      let f:Site = functions { name "test"; health_check_path "/status" } |> getResourceAtIndex 3
+      Expect.equal f.SiteConfig.HealthCheckPath "/status" "Health check path should be '/status'"
+    }
+
     test "Not setting the functions name causes an error" {
         Expect.throws (fun () -> functions { storage_account_name "foo" } |> ignore) "Not setting functions name should throw"
     }
-
 ]

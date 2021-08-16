@@ -183,7 +183,8 @@ type Site =
       Tags : Map<string, string>
       Metadata : List<string * string>
       AutoSwapSlotName: string option
-      ZipDeployPath : (string * ZipDeploy.ZipDeployTarget * ZipDeploy.ZipDeploySlot) option }
+      ZipDeployPath : (string * ZipDeploy.ZipDeployTarget * ZipDeploy.ZipDeploySlot) option
+      HealthCheckPath : string option }
     /// Shorthand for SiteType.ResourceType
     member this.ResourceType = this.SiteType.ResourceType
     /// Shorthand for SiteType.ResourceName
@@ -259,6 +260,7 @@ type Site =
                                     box {| allowedOrigins = origins
                                            supportCredentials = credentials |> Option.toNullable |})
                             |> Option.toObj
+                           healthCheckPath = this.HealthCheckPath |> Option.toObj
                         |}
                     |}
             |} :> _

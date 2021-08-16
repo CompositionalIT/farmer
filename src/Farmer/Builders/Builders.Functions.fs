@@ -231,7 +231,8 @@ type FunctionsConfig =
                     | DockerContainer { StartupCommand = sc } ->
                         Some sc
                     | _ -> None
-                  WorkerProcess = this.CommonWebConfig.WorkerProcess }
+                  WorkerProcess = this.CommonWebConfig.WorkerProcess
+                  HealthCheckPath = this.CommonWebConfig.HealthCheckPath }
 
             match this.CommonWebConfig.ServicePlan with
             | DeployableResource this.Name.ResourceName resourceId ->
@@ -299,7 +300,8 @@ type FunctionsBuilder() =
               Settings = Map.empty
               Slots = Map.empty
               WorkerProcess = None
-              ZipDeployPath = None }
+              ZipDeployPath = None
+              HealthCheckPath = None }
           StorageAccount = derived (fun config ->
             let storage = config.Name.ResourceName.Map (sprintf "%sstorage") |> sanitiseStorage |> ResourceName
             storageAccounts.resourceId storage)

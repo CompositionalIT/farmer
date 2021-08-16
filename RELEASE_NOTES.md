@@ -1,8 +1,10 @@
 Release Notes
 =============
-## vNext
-* Improve validation error messages.
+
+## 1.6.12
 * Custom FarmerException raised for all exceptions.
+* Improve validation error messages.
+* WebApp/Functions: Web Apps and Functions now 'health_check_path' support.
 
 ## 1.6.11
 * Container Groups: Use `ip_config` to name the IP configuration for a container group's subnet.
