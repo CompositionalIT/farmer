@@ -6,6 +6,10 @@ Release Notes
 * Improve validation error messages.
 * WebApp/Functions: Web Apps and Functions now 'health_check_path' support.
 
+## vNext
+* SQL Server: geo_replicate changed the API to use non-anonymous record.
+* Dashboards: Changed the API to use non-anonymous record.
+
 ## 1.6.11
 * Container Groups: Use `ip_config` to name the IP configuration for a container group's subnet.
 * DNS Zone: Added configuration member of NameServers

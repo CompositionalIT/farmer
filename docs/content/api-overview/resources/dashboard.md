@@ -1,6 +1,6 @@
 ---
 title: "Dashboard"
-date: 2021-08-09T07:00:46+01:00
+date: 2021-08-13T07:00:46+01:00
 weight: 1
 chapter: false
 ---
@@ -41,24 +41,24 @@ let dash = dashboard {
     title "Monitoring"
     depends_on vm
     add_markdown_part (
-        {| x = 0; y = 0; rowSpan = 2; colSpan = 3 |},
-        {| title = ""; subtitle = ""; content = "## Azure Virtual Machines Overview\r\nNew team members should watch this video to get familiar with Azure Virtual Machines." |}
+        { x = 0; y = 0; rowSpan = 2; colSpan = 3 },
+        { title = ""; subtitle = ""; content = "## Azure Virtual Machines Overview\r\nNew team members should watch this video to get familiar with Azure Virtual Machines." }
     )
     add_markdown_part (
-        {| x = 3; y = 0; rowSpan = 4; colSpan = 8 |},
-        {| title = "Test VM Dashboard"; subtitle = "Contoso"; content = "This is the team dashboard for the test VM we use on our team. Here are some useful links:\r\n\r\n1. [Getting started](https://www.contoso.com/tsgs)\r\n1. [Troubleshooting guide](https://www.contoso.com/tsgs)\r\n1. [Architecture docs](https://www.contoso.com/tsgs)" |}
+        { x = 3; y = 0; rowSpan = 4; colSpan = 8 },
+        { title = "Test VM Dashboard"; subtitle = "Contoso"; content = "This is the team dashboard for the test VM we use on our team. Here are some useful links:\r\n\r\n1. [Getting started](https://www.contoso.com/tsgs)\r\n1. [Troubleshooting guide](https://www.contoso.com/tsgs)\r\n1. [Architecture docs](https://www.contoso.com/tsgs)" }
     )
     add_video_part (
-        {| x = 3; y = 0; rowSpan = 4; colSpan = 8 |},
-        {| title = ""; subtitle = ""; url = "https://www.youtube.com/watch?v=YcylDIiKaSU&list=PLLasX02E8BPCsnETz0XAMfpLR1LIBqpgs&index=4" |}
+        { x = 3; y = 0; rowSpan = 4; colSpan = 8 },
+        { title = ""; subtitle = ""; url = "https://www.youtube.com/watch?v=YcylDIiKaSU&list=PLLasX02E8BPCsnETz0XAMfpLR1LIBqpgs&index=4" }
     )
     add_metrics_chart (
-        {| x = 0; y = 4; rowSpan = 3; colSpan = 11 |},
-        {| interval = Farmer.Arm.Dashboard.ChartDurationInterval.OneHour; 
-            metrics = [ Farmer.Arm.Dashboard.ChartResources.PercentageCPU ]; 
-            resourceId = vmId |}
+        { x = 0; y = 4; rowSpan = 3; colSpan = 11 },
+        { interval = Farmer.Arm.Dashboard.ChartDurationInterval.OneHour; 
+          metrics = [ Farmer.Arm.Dashboard.ChartResources.PercentageCPU ]; 
+          resourceId = vmId }
     )
-    add_virtual_machine_icon ({| x = 9; y = 7; rowSpan = 2; colSpan = 2 |}, vmId)
+    add_virtual_machine_icon ({ x = 9; y = 7; rowSpan = 2; colSpan = 2 }, vmId)
 }
 ```
 
