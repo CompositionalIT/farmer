@@ -196,7 +196,7 @@ let azureCniNetworkProfile = AzureCniBuilder()
 let makeLinuxProfile user sshKeys = user, sshKeys
 
 /// Match on type of load balancer for an AKS config's network profile.
-/// The default if nothing is specified is a Standard LB.  
+/// The default if nothing is specified is a Standard LB.
 let private (|BasicLoadBalancer|StandardLoadBalancer|) = function
     | Some netProfile ->
         match netProfile.LoadBalancerSku with
@@ -230,7 +230,7 @@ type AksBuilder() =
             invalidArg "sku" "Private cluster requires a standard SKU load balancer."
         | _ -> ()
         if System.String.IsNullOrWhiteSpace config.ServicePrincipalClientID then
-            failwith "Missing ServicePrincipalClientID on ManagedCluster."
+            raiseFarmer "Missing ServicePrincipalClientID on ManagedCluster."
         config
     /// Sets the name of the AKS cluster.
     [<CustomOperation "name">]

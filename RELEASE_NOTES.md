@@ -1,5 +1,8 @@
 Release Notes
 =============
+## vNext
+* Improve validation error messages.
+* Custom FarmerException raised for all exceptions.
 
 ## vNext
 * SQL Server: geo_replicate changed the API to use non-anonymous record.

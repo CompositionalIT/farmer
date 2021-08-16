@@ -72,12 +72,12 @@ type VmConfig =
                     {| Username = username
                        Password = SecureParameter this.PasswordParameterArm |}
                 | None ->
-                    failwith $"You must specify a username for virtual machine {this.Name.Value}"
+                    raiseFarmer $"You must specify a username for virtual machine {this.Name.Value}"
               CustomData = this.CustomData
               DisablePasswordAuthentication = this.DisablePasswordAuthentication
               PublicKeys =
                 if this.DisablePasswordAuthentication.IsSome && this.DisablePasswordAuthentication.Value && this.SshPathAndPublicKeys.IsNone then
-                  failwith $"You must include at least one ssh key when Password Authentication is disabled"
+                  raiseFarmer $"You must include at least one ssh key when Password Authentication is disabled"
                 else
                   (this.SshPathAndPublicKeys)
               Identity = this.Identity
@@ -167,7 +167,7 @@ type VmConfig =
             | None, [] ->
                 ()
             | None, _ ->
-                failwith $"You have supplied custom script files {this.CustomScriptFiles} but no script. Custom script files are not automatically executed; you must provide an inline script which acts as a bootstrapper using the custom_script keyword."
+                raiseFarmer $"You have supplied custom script files {this.CustomScriptFiles} but no script. Custom script files are not automatically executed; you must provide an inline script which acts as a bootstrapper using the custom_script keyword."
         ]
 
 type VirtualMachineBuilder() =
@@ -276,7 +276,7 @@ type VirtualMachineBuilder() =
         | Some previousScript ->
             let firstScript = if script.Length > 10 then script.Substring(0, 10) + "..." else script
             let secondScript = if previousScript.Length > 10 then previousScript.Substring(0, 10) + "..." else previousScript
-            failwith $"Only single custom_script execution is supported (and it can contain ARM-expressions). You have to merge your scripts. You have defined multiple custom_script: {firstScript} and {secondScript}"
+            raiseFarmer $"Only single custom_script execution is supported (and it can contain ARM-expressions). You have to merge your scripts. You have defined multiple custom_script: {firstScript} and {secondScript}"
 
     [<CustomOperation "custom_script_files">]
     member _.CustomScriptFiles(state:VmConfig, uris:string list) = { state with CustomScriptFiles = uris |> List.map Uri }

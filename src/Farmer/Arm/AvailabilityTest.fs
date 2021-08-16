@@ -17,16 +17,16 @@ type AvailabilityTest =
         member this.ResourceId = availabilitytest.resourceId this.Name
         member this.JsonModel =
             if this.AppInsightsName = ResourceName.Empty then
-                failwith $"AvailabilityTest {this.Name} needs to be attached to an Application Insights."
+                raiseFarmer $"AvailabilityTest {this.Name} needs to be attached to an Application Insights."
             else
             match this.WebTest with
-            | None -> failwith $"AvailabilityTest {this.Name} Webtest value has to be defined."
+            | None -> raiseFarmer $"AvailabilityTest {this.Name} Webtest value has to be defined."
             | Some webTest ->
                 let appInsightResource = $"[concat('hidden-link:', resourceId('{components.Type}', '{this.AppInsightsName.Value}'))]"
                 let testString =
                     match webTest with
                     | AvailabilityTest.CustomWebtestXml xml -> xml
-                    | AvailabilityTest.WebsiteUrl websiteUrl -> 
+                    | AvailabilityTest.WebsiteUrl websiteUrl ->
                         $"""<WebTest xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010"
                                 Name="{this.Name.Value}"
                                 Id="{System.Guid.NewGuid()}"

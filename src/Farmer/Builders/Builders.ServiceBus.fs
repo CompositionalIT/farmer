@@ -287,9 +287,9 @@ type ServiceBusBuilder() =
             let queue = queue.Value
 
             match queue.DuplicateDetection, state.Sku with
-            | Some _, Basic -> failwith $"Duplicate Detection cannot be set when creating a queue using the Basic tier (queue '{queue.Name.Value}' fails this check)."
+            | Some _, Basic -> raiseFarmer $"Duplicate Detection cannot be set when creating a queue using the Basic tier (queue '{queue.Name.Value}' fails this check)."
             | _ -> ()
-            queue.LockDuration |> Option.iter(fun lockDuration -> if lockDuration > TimeSpan(0,5,0) then failwith "Lock duration name must not be more than 5 minutes.")
+            queue.LockDuration |> Option.iter(fun lockDuration -> if lockDuration > TimeSpan(0,5,0) then raiseFarmer "Lock duration name must not be more than 5 minutes.")
 
         state
     /// The name of the namespace that holds the queue.

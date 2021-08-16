@@ -41,7 +41,7 @@ type SqlAzureConfig =
         this.Databases
         |> List.tryFind(fun db -> db.Name = databaseName)
         |> Option.map this.ConnectionString
-        |> Option.defaultWith(fun _ -> failwith $"Unknown database name {databaseName.Value}")
+        |> Option.defaultWith(fun _ -> raiseFarmer $"Unknown database name {databaseName.Value}")
     member this.ConnectionString databaseName = this.ConnectionString (ResourceName databaseName)
     /// The key of the parameter that is required by Farmer for the SQL password.
     member this.PasswordParameter = $"password-for-{this.Name.ResourceName.Value}"
@@ -101,12 +101,12 @@ type SqlAzureConfig =
             match this.GeoReplicaServer with
             | Some replica ->
                 if replica.Location.ArmValue = location.ArmValue then
-                    failwith $"Geo-replica cannot be deployed to the same location than the main database {this.Name}: {location.ArmValue}"
+                    raiseFarmer $"Geo-replica cannot be deployed to the same location than the main database {this.Name}: {location.ArmValue}"
                 else
                 let replicaServerName =
                     match (this.Name.ResourceName.Value + replica.NameSuffix) |> SqlAccountName.Create with
                     | Ok x -> x
-                    | Error e -> failwith e
+                    | Error e -> raiseFarmer e
 
                 { ServerName = replicaServerName
                   Location = replica.Location
@@ -184,7 +184,7 @@ type SqlDbBuilder() =
                     Some (VCore (v, AzureHybridBenefit))
                 | Some (DTU _)
                 | None ->
-                    failwith "You can only set licensing on VCore databases. Ensure that you have already set the SKU to a VCore model."
+                    raiseFarmer "You can only set licensing on VCore databases. Ensure that you have already set the SKU to a VCore model."
         }
     /// Sets the maximum size of the database, if this database is not part of an elastic pool.
     [<CustomOperation "db_size">]
@@ -194,13 +194,13 @@ type SqlDbBuilder() =
     member _.UseEncryption(state:SqlAzureDbConfig) = { state with Encryption = Enabled }
     /// Adds a custom firewall rule given a name, start and end IP address range.
     member _.Run (state:SqlAzureDbConfig) =
-        if state.Name = ResourceName.Empty then failwith "You must set a database name."
+        if state.Name = ResourceName.Empty then raiseFarmer "You must set a database name."
         state
 
 type SqlServerBuilder() =
     let makeIp (text:string) = IPAddress.Parse text
     member _.Yield _ =
-        { Name = (SqlAccountName.Create "defaultvalue").OkValue
+        { Name = SqlAccountName.Empty
           AdministratorCredentials = {| UserName = ""; Password = SecureParameter "" |}
           ElasticPoolSettings =
             {| Name = None
@@ -213,9 +213,10 @@ type SqlServerBuilder() =
           GeoReplicaServer = None
           Tags = Map.empty  }
     member _.Run state : SqlAzureConfig =
+        if state.Name.ResourceName = ResourceName.Empty then raiseFarmer "No SQL Server account name has been set."
         { state with
             AdministratorCredentials =
-                if System.String.IsNullOrWhiteSpace state.AdministratorCredentials.UserName then failwith $"You must specify the admin_username for SQL Server instance {state.Name.ResourceName.Value}"
+                if System.String.IsNullOrWhiteSpace state.AdministratorCredentials.UserName then raiseFarmer $"You must specify the admin_username for SQL Server instance {state.Name.ResourceName.Value}"
                 {| state.AdministratorCredentials with
                     Password = SecureParameter state.PasswordParameter |} }
     /// Sets the name of the SQL server.

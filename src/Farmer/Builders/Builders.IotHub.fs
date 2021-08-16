@@ -64,7 +64,7 @@ type IotHubBuilder() =
     member _.Run state =
         match state.PartitionCount with
         | Some partitionCount when partitionCount < 2 || partitionCount > 128 ->
-            failwith $"Invalid PartitionCount {partitionCount} - value must be between 2 and 128"
+            raiseFarmer $"Invalid PartitionCount {partitionCount} - value must be between 2 and 128"
         | Some _
         | None ->
             state
