@@ -40,9 +40,9 @@ type BastionBuilder() =
           Tags = Map.empty }
     /// Sets the name of the bastion host.
     [<CustomOperation "name">]
-    member __.Name(state:BastionConfig, name) = { state with Name = ResourceName name }
+    member _.Name(state:BastionConfig, name) = { state with Name = ResourceName name }
     /// Sets the virtual network where this bastion host is attached.
     [<CustomOperation "vnet">]
-    member __.VNet(state:BastionConfig, vnet) = { state with VirtualNetwork = ResourceName vnet }
+    member _.VNet(state:BastionConfig, vnet) = { state with VirtualNetwork = ResourceName vnet }
 
 let bastion = BastionBuilder()

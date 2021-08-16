@@ -35,7 +35,7 @@ let tests =
             let containerGroup = containerGroup { name ("farmeraci" + number); add_instances [ containerInstance { name "webserver"; image "nginx:latest"; add_ports ContainerGroup.PublicPort [ 80us ]; add_volume_mount "source-code" "/src/farmer" } ]; add_volumes [ volume_mount.git_repo "source-code" (System.Uri "https://github.com/CompositionalIT/farmer") ] }
             let vm = vm{ name "farmervm"; username "farmer-admin" }
             let dockerFunction = functions {
-                name "docker_func"
+                name "docker-func"
                 publish_as (
                     DockerContainer {
                         Url = new Uri("http://www.farmer.io")
@@ -174,8 +174,6 @@ let tests =
     }
 """
             let resource = arm { add_resource (Resource.ofJson json) } |> Storage.getStorageResource
-            printfn "%A" resource
-
             Expect.equal resource.Name "jsontest" "Account name is wrong"
             Expect.equal resource.Sku.Name "Standard_LRS" "SKU is wrong"
             Expect.equal resource.Kind "StorageV2" "Kind"
@@ -280,7 +278,7 @@ let tests =
                 }
             compareResourcesToJson [ myVnet; lb ] "load-balancer.json"
         }
-        
+
         test "AzureFirewall" {
             let vwan = vwan {
                 name "farmer-vwan"

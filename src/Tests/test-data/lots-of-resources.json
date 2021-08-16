@@ -763,9 +763,9 @@
     {
       "apiVersion": "2018-02-01",
       "location": "northeurope",
-      "name": "docker_func-farm",
+      "name": "docker-func-farm",
       "properties": {
-        "name": "docker_func-farm",
+        "name": "docker-func-farm",
         "perSiteScaling": false,
         "reserved": false
       },
@@ -795,14 +795,14 @@
       "apiVersion": "2020-06-01",
       "dependsOn": [
         "[resourceId('Microsoft.Storage/storageAccounts', 'dockerfuncstorage')]",
-        "[resourceId('Microsoft.Web/serverfarms', 'docker_func-farm')]"
+        "[resourceId('Microsoft.Web/serverfarms', 'docker-func-farm')]"
       ],
       "kind": "functionapp",
       "location": "northeurope",
-      "name": "docker_func",
+      "name": "docker-func",
       "properties": {
         "httpsOnly": false,
-        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', 'docker_func-farm')]",
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', 'docker-func-farm')]",
         "siteConfig": {
           "alwaysOn": false,
           "appCommandLine": "do it",
@@ -841,7 +841,7 @@
             },
             {
               "name": "WEBSITE_CONTENTSHARE",
-              "value": "docker_func"
+              "value": "docker-func"
             },
             {
               "name": "WEBSITE_NODE_DEFAULT_VERSION",

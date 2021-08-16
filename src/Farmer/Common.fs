@@ -1,4 +1,4 @@
-﻿namespace Farmer
+namespace Farmer
 
 open System
 
@@ -531,8 +531,6 @@ module Storage =
     type LastAccessTimeTrackingPolicy = {
         Enabled : bool
         TrackingGranularityInDays : int
-        // Name : enum //AccessTimeTracking is the only possible value
-        // BlobType : string [] //blockBlob is the only possible value
     }
 
     type ChangeFeed = {
@@ -594,6 +592,20 @@ module WebApp =
     module Extensions =
         /// The Microsoft.AspNetCore.AzureAppServices logging extension.
         let Logging = ExtensionName "Microsoft.AspNetCore.AzureAppServices.SiteExtension"
+    open Validation
+    type WebAppName =
+        private | WebAppName of ResourceName
+        static member Create name =
+            [ nonEmptyLengthBetween 2 60
+              containsOnlyM [ lettersNumbersOrDash ]
+              cannotStartWith aDash
+              cannotEndWith aDash
+            ]
+            |> validate "Web App site names" name
+            |> Result.map (ResourceName >> WebAppName)
+        static member internal Empty = WebAppName ResourceName.Empty
+        static member Create (ResourceName name) = WebAppName.Create name
+        member this.ResourceName = match this with WebAppName name -> name
 
 module CognitiveServices =
     /// Type of SKU. See https://docs.microsoft.com/en-us/rest/api/cognitiveservices/accountmanagement/resourceskus/list
@@ -1608,11 +1620,16 @@ module Dns =
           ExpireTime : int64 option
           MinimumTTL : int64 option }
 
+    [<RequireQualifiedAccess>]
+    type NsRecords =
+        | Records of string list
+        | SourceZone of ResourceId
+
     type DnsRecordType =
         | A of TargetResource : ResourceId option * ARecords : string list
         | AAAA of TargetResource : ResourceId option * AaaaRecords : string list
         | CName of TargetResource : ResourceId option * CNameRecord : string option
-        | NS of NsRecords : string list
+        | NS of NsRecords
         | PTR of PtrRecords : string list
         | TXT of TxtRecords : string list
         | MX of {| Preference : int; Exchange : string |} list

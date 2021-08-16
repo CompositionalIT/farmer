@@ -1,11 +1,18 @@
 Release Notes
 =============
 
+## vNext
+* SQL Server: geo_replicate changed the API to use non-anonymous record.
+* Dashboards: Changed the API to use non-anonymous record.
+
 ## 1.6.11
 * Container Groups: Use `ip_config` to name the IP configuration for a container group's subnet.
 * DNS Zone: Added configuration member of NameServers
-* Resource groups: Added outputs keyword
+* DNS Zone: Support for delegating a subdomain to another DNS Zone with `add_nsd_reference`.
+* Functions: Validation on functions name.
+* Resource groups: Added `outputs` keyword
 * Virtual Machine: Added configuration member PublicIpAddress
+* WebApp: Validation on site name.
 
 ## 1.6.10
 * Azure SQL Server: geo_replicate parameter to geo-replicate the server databases

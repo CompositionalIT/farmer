@@ -99,6 +99,7 @@ In addition, each record builder has its own custom keywords:
 | Keyword | Purpose |
 |-|-|
 | add_nsd_names | Add NS values to this record set. (Subdomain NameServers) |
+| add_nsd_reference | Reference NS records from another DNS Zone. (Subdomain NameServers) |
 
 #### PTR Record Builder Keywords
 
@@ -133,8 +134,7 @@ In addition, each record builder has its own custom keywords:
 
 #### Example
 ```fsharp
-#r @"./libs/Newtonsoft.Json.dll"
-#r @"../../src/Farmer/bin/Debug/netstandard2.0/Farmer.dll"
+#r "nuget: Farmer"
 
 open Farmer
 open Farmer.Builders

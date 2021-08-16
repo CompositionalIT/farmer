@@ -143,9 +143,20 @@ module ZipDeploy =
                 packageFilename
             | DeployZip zipFilePath ->
                 zipFilePath
+type SiteType =
+    | Slot of ResourceName
+    | Site of WebAppName
+    member this.ResourceName =
+        match this with
+        | Slot r -> r
+        | Site r -> r.ResourceName
+    member this.ResourceType =
+        match this with
+        | Slot _ -> slots
+        | Site _ -> sites
+
 type Site =
-    { Type: ResourceType
-      Name : ResourceName
+    { SiteType : SiteType
       Location : Location
       ServicePlan : ResourceId
       AppSettings : Map<string, Setting>
@@ -173,6 +184,10 @@ type Site =
       Metadata : List<string * string>
       AutoSwapSlotName: string option
       ZipDeployPath : (string * ZipDeploy.ZipDeployTarget * ZipDeploy.ZipDeploySlot) option }
+    /// Shorthand for SiteType.ResourceType
+    member this.ResourceType = this.SiteType.ResourceType
+    /// Shorthand for SiteType.ResourceName
+    member this.Name = this.SiteType.ResourceName
     interface IParameters with
         member this.SecureParameters =
             Map.toList this.AppSettings
@@ -184,7 +199,7 @@ type Site =
     interface IPostDeploy with
         member this.Run resourceGroupName =
             match this with
-            | { ZipDeployPath = Some (path, target, slot); Name = name } ->
+            | { ZipDeployPath = Some (path, target, slot); SiteType = siteType } ->
                 let path =
                     ZipDeploy.ZipDeployKind.TryParse path
                     |> Option.defaultWith (fun () ->
@@ -192,8 +207,8 @@ type Site =
                 let slotName = slot.ToOption
                 printfn "Running ZIP deploy to %s for %s" (slotName |> Option.defaultValue "WebApp") path.Value
                 Some (match target with
-                      | ZipDeploy.WebApp -> Deploy.Az.zipDeployWebApp name.Value path.GetZipPath resourceGroupName slotName
-                      | ZipDeploy.FunctionApp -> Deploy.Az.zipDeployFunctionApp name.Value path.GetZipPath resourceGroupName slotName)
+                      | ZipDeploy.WebApp -> Deploy.Az.zipDeployWebApp siteType.ResourceName.Value path.GetZipPath resourceGroupName slotName
+                      | ZipDeploy.FunctionApp -> Deploy.Az.zipDeployFunctionApp siteType.ResourceName.Value path.GetZipPath resourceGroupName slotName)
             | _ ->
                 None
     interface IArmResource with
@@ -206,7 +221,7 @@ type Site =
                 // If there is no managed identity and only one user-assigned identity, we should use that be default
                 | None, {SystemAssigned = Disabled; UserAssigned = [x]} -> x.ResourceId.Eval()
                 | _ -> null
-            {| this.Type.Create(this.Name, this.Location, dependencies, this.Tags) with
+            {| this.ResourceType.Create(this.Name, this.Location, dependencies, this.Tags) with
                  kind = this.Kind
                  identity =
                      if this.Identity = ManagedIdentity.Empty then Unchecked.defaultof<_>

@@ -93,7 +93,7 @@ type EventHubConfig =
         ]
 
 type EventHubBuilder() =
-    member __.Yield _ =
+    member _.Yield _ =
         { Name = ResourceName "hub"
           EventHubNamespace = derived (fun config -> namespaces.resourceId (config.Name-"ns"))
           Sku = Standard
@@ -109,35 +109,35 @@ type EventHubBuilder() =
           Tags = Map.empty }
     /// Sets the name of the Event Hub instance.
     [<CustomOperation "name">]
-    member __.Name(state:EventHubConfig, name) = { state with Name = name }
+    member _.Name(state:EventHubConfig, name) = { state with Name = name }
     member this.Name(state:EventHubConfig, name) = this.Name(state, ResourceName name)
     /// Sets the name of the Event Hub namespace.
     [<CustomOperation "namespace_name">]
-    member __.NamespaceName(state:EventHubConfig, name) = { state with EventHubNamespace = named namespaces name }
+    member _.NamespaceName(state:EventHubConfig, name) = { state with EventHubNamespace = named namespaces name }
     member this.NamespaceName(state:EventHubConfig, name) = this.NamespaceName(state, ResourceName name)
     /// Sets the name of the Event Hub namespace.
     [<CustomOperation "link_to_namespace">]
-    member __.LinkToNamespaceName(state:EventHubConfig, name) = { state with EventHubNamespace = managed namespaces name }
+    member _.LinkToNamespaceName(state:EventHubConfig, name) = { state with EventHubNamespace = managed namespaces name }
     member this.LinkToNamespaceName(state:EventHubConfig, name) = this.LinkToNamespaceName(state, ResourceName name)
     /// Sets the sku of the Event Hub instance.
     [<CustomOperation "sku">]
-    member __.Sku(state:EventHubConfig, sku) = { state with Sku = sku }
+    member _.Sku(state:EventHubConfig, sku) = { state with Sku = sku }
     [<CustomOperation "capacity">]
-    member __.ReplicaCount(state:EventHubConfig, capacity:int) = { state with Capacity = capacity }
+    member _.ReplicaCount(state:EventHubConfig, capacity:int) = { state with Capacity = capacity }
     [<CustomOperation "enable_zone_redundant">]
-    member __.ZoneRedundant(state:EventHubConfig) = { state with ZoneRedundant = Some true }
+    member _.ZoneRedundant(state:EventHubConfig) = { state with ZoneRedundant = Some true }
     [<CustomOperation "enable_auto_inflate">]
-    member __.AutoInflate(state:EventHubConfig, maxThroughput) = { state with ThroughputSettings = Some (AutoInflate maxThroughput) }
+    member _.AutoInflate(state:EventHubConfig, maxThroughput) = { state with ThroughputSettings = Some (AutoInflate maxThroughput) }
     [<CustomOperation "disable_auto_inflate">]
-    member __.MaximumThroughputUnits(state:EventHubConfig) = { state with ThroughputSettings = Some ManualInflate }
+    member _.MaximumThroughputUnits(state:EventHubConfig) = { state with ThroughputSettings = Some ManualInflate }
     [<CustomOperation "message_retention_days">]
-    member __.MessageRetentionDays(state:EventHubConfig, days) = { state with MessageRetentionInDays = Some days }
+    member _.MessageRetentionDays(state:EventHubConfig, days) = { state with MessageRetentionInDays = Some days }
     [<CustomOperation "partitions">]
-    member __.Partitions(state:EventHubConfig, partitions) = { state with Partitions = partitions }
+    member _.Partitions(state:EventHubConfig, partitions) = { state with Partitions = partitions }
     [<CustomOperation "add_consumer_group">]
-    member __.AddConsumerGroup(state:EventHubConfig, name) = { state with ConsumerGroups = state.ConsumerGroups.Add (ResourceName name) }
+    member _.AddConsumerGroup(state:EventHubConfig, name) = { state with ConsumerGroups = state.ConsumerGroups.Add (ResourceName name) }
     [<CustomOperation "add_authorization_rule">]
-    member __.AddAuthorizationRule(state:EventHubConfig, name, rights) = { state with AuthorizationRules = state.AuthorizationRules.Add(ResourceName name, Set rights) }
+    member _.AddAuthorizationRule(state:EventHubConfig, name, rights) = { state with AuthorizationRules = state.AuthorizationRules.Add(ResourceName name, Set rights) }
     [<CustomOperation "capture_to_storage">]
     member _.CaptureToStorage(state:EventHubConfig, storageName:ResourceName, container) =
         { state with

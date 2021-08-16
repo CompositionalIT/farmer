@@ -37,7 +37,7 @@ type DatabricksConfig =
         ]
 
 type WorkspaceBuilder() =
-    member __.Yield _ =
+    member _.Yield _ =
       { Name = ResourceName.Empty
         ManagedResourceGroupId = None
         Sku = Standard
