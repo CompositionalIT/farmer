@@ -27,7 +27,7 @@ type StaticWebAppConfig =
                   ApiLocation = this.ApiLocation
                   AppArtifactLocation = this.AppArtifactLocation }
             | _ ->
-                failwith "You must set the repository URI."
+                raiseFarmer "You must set the repository URI."
         ]
     member this.RepositoryParameter = $"repositorytoken-for-{this.Name.Value}"
 

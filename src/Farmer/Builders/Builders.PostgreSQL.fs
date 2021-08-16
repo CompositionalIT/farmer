@@ -80,58 +80,58 @@ module Validate =
 
     let username (paramName : string) (candidate : string) =
         if String.IsNullOrWhiteSpace candidate then
-            failwith $"{paramName} can not be null, empty, or blank"
+            raiseFarmer $"{paramName} can not be null, empty, or blank"
         if candidate.Length > 63 then
-            failwith $"{paramName} must have a length between 1 and 63, was {candidate.Length}"
+            raiseFarmer $"{paramName} must have a length between 1 and 63, was {candidate.Length}"
         if isAsciiDigit candidate.[0] then
-            failwith $"{paramName} can not begin with a digit"
+            raiseFarmer $"{paramName} can not begin with a digit"
         if not (Seq.forall isAsciiLetterOrDigit candidate) then
-            failwith $"{paramName} can only consist of ASCII letters and digits, was '{candidate}'"
+            raiseFarmer $"{paramName} can only consist of ASCII letters and digits, was '{candidate}'"
         if candidate.StartsWith "pg_" then
-            failwith $"{paramName} must not start with 'pg_'"
+            raiseFarmer $"{paramName} must not start with 'pg_'"
         if Seq.contains candidate reservedUsernames then
-            failwith $"{paramName} can not be one of %A{reservedUsernames}"
+            raiseFarmer $"{paramName} can not be one of %A{reservedUsernames}"
 
     let servername (name : string) =
         if String.IsNullOrWhiteSpace name then
-            failwith "Server name can not be null, empty, or blank"
+            raiseFarmer "Server name can not be null, empty, or blank"
         if name.Length > 63 || name.Length < 3 then
-            failwith $"Server name must have a length between 3 and 63, was {name.Length}"
+            raiseFarmer $"Server name must have a length between 3 and 63, was {name.Length}"
         if name.[0] = '-' || name.[name.Length-1] = '-' then
-            failwith "Server name must not start or end with a hyphen ('-')"
+            raiseFarmer "Server name must not start or end with a hyphen ('-')"
         if isAsciiDigit name.[0] then
-            failwith "Server name must not start with a digit"
+            raiseFarmer "Server name must not start with a digit"
         if not (Seq.forall isLegalServernameChar name) then
-            failwith $"Server name can only consist of ASCII lowercase letters, digits, or hyphens. Was '{name}'"
+            raiseFarmer $"Server name can only consist of ASCII lowercase letters, digits, or hyphens. Was '{name}'"
 
     let dbname (name : string) =
         if String.IsNullOrWhiteSpace name then
-            failwith "Database name can not be null, empty, or blank"
+            raiseFarmer "Database name can not be null, empty, or blank"
         if name.Length > 63 then
-            failwith $"Database name must have a length between 1 and 63, was {name.Length}"
+            raiseFarmer $"Database name must have a length between 1 and 63, was {name.Length}"
         if isAsciiDigit name.[0] then
-            failwith "Server name must not start with a digit"
+            raiseFarmer "Server name must not start with a digit"
 
     let minBackupRetention = 7<Days>
     let maxBackupRetention = 35<Days>
     let backupRetention (days: int<Days>) =
         if days < minBackupRetention || days > maxBackupRetention then
-            failwith $"Backup retention must be between {minBackupRetention} and {maxBackupRetention} days, but was {days}"
+            raiseFarmer $"Backup retention must be between {minBackupRetention} and {maxBackupRetention} days, but was {days}"
     let minStorageSize = 5<Gb>
     let maxStorageSize = 1024<Gb>
     let storageSize (size : int<Gb>) =
         if size < minStorageSize || size > maxStorageSize then
-            failwith $"Storage space must between {minStorageSize} and {maxStorageSize} GB, but was {size}"
+            raiseFarmer $"Storage space must between {minStorageSize} and {maxStorageSize} GB, but was {size}"
 
     let minCapacity = 1<VCores>
     let maxCapacity = 64<VCores>
     let capacity (capacity:int<VCores>) =
         if capacity < minCapacity || capacity > maxCapacity then
-            failwith $"Capacity must be between {minCapacity} and {maxCapacity} cores, was {capacity}"
+            raiseFarmer $"Capacity must be between {minCapacity} and {maxCapacity} cores, was {capacity}"
 
         let c = int capacity
         if ((c &&& (c - 1)) <> 0) then
-            failwith $"Capacity must be a power of two, was {capacity}"
+            raiseFarmer $"Capacity must be a power of two, was {capacity}"
 
 type PostgreSQLDbBuilder() =
     member _.Yield _ : PostgreSQLDbConfig =
@@ -140,7 +140,7 @@ type PostgreSQLDbBuilder() =
           DbCollation = None }
 
     member _.Run (state:PostgreSQLDbConfig) =
-        if state.Name = ResourceName.Empty then failwith "You must set a database name"
+        if state.Name = ResourceName.Empty then raiseFarmer "You must set a database name"
         state
 
     [<CustomOperation "name">]
@@ -152,12 +152,12 @@ type PostgreSQLDbBuilder() =
 
     [<CustomOperation "collation">]
     member _.SetCollation(state: PostgreSQLDbConfig, collation:string) =
-        if String.IsNullOrWhiteSpace collation then failwith "collation must have a value"
+        if String.IsNullOrWhiteSpace collation then raiseFarmer "collation must have a value"
         { state with DbCollation = Some collation }
 
     [<CustomOperation "charset">]
     member _.SetCharset(state: PostgreSQLDbConfig, charSet:string) =
-        if String.IsNullOrWhiteSpace charSet then failwith "charSet must have a value"
+        if String.IsNullOrWhiteSpace charSet then raiseFarmer "charSet must have a value"
         { state with DbCharset = Some charSet }
 
 let postgreSQLDb = PostgreSQLDbBuilder()

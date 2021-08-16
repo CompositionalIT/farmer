@@ -48,9 +48,9 @@ type DiagnosticSettingsBuilder() =
         let (|EmptySet|_|) theSet = if Set.isEmpty theSet then Some EmptySet else None
         match state with
         | { Metrics = EmptySet; Logs = EmptySet } ->
-            failwith "You must specify at least one metric or log setting."
+            raiseFarmer "You must specify at least one metric or log setting."
         | _ when state.Sinks.EventHub = None && state.Sinks.StorageAccount = None && state.Sinks.LogAnalyticsWorkspace = None ->
-            failwith "You must specify at least one data sink."
+            raiseFarmer "You must specify at least one data sink."
         | _ ->
             state
 
@@ -76,7 +76,7 @@ type DiagnosticSettingsBuilder() =
                 | HasResourceType storageAccounts -> { state.Sinks with StorageAccount = Some resourceId }
                 | HasResourceType workspaces -> { state.Sinks with LogAnalyticsWorkspace = Some (resourceId, AzureDiagnostics) }
                 | HasResourceType Namespaces.authorizationRules -> { state.Sinks with EventHub = Some {| AuthorizationRuleId = resourceId; EventHubName = None |} }
-                | _ -> failwith $"Unsupported resource type '{resourceId.Type}'. Supported types are {[ storageAccounts; workspaces ]}"
+                | _ -> raiseFarmer $"Unsupported resource type '{resourceId.Type}'. Supported types are {[ storageAccounts; workspaces ]}"
             Dependencies = state.Dependencies.Add dependency }
 
     /// Adds a destination sink (either a storage account, log analytics workspace or event hub authorization rule)
@@ -104,7 +104,7 @@ type DiagnosticSettingsBuilder() =
                    EventHub =
                        match state.Sinks.EventHub with
                        | Some hub -> Some {| hub with EventHubName = Some eventHubName |}
-                       | None -> failwith "You must set the Authorization Rule Id before setting the event hub name" }
+                       | None -> raiseFarmer "You must set the Authorization Rule Id before setting the event hub name" }
         }
     member this.EventHubName(state, eventHubName:string) =
         this.EventHubName(state, ResourceName eventHubName)
@@ -116,7 +116,7 @@ type DiagnosticSettingsBuilder() =
         | Some (resourceId, _) ->
             { state with Sinks = { state.Sinks with LogAnalyticsWorkspace = Some (resourceId, outputType) } }
         | None ->
-            failwith "You must first specify a Log Analytics sink before enabling dedicated outputs."
+            raiseFarmer "You must first specify a Log Analytics sink before enabling dedicated outputs."
 
     /// Add metric settings to the resource.
     [<CustomOperation "capture_metrics">]

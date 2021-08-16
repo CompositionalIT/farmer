@@ -15,7 +15,7 @@ type HubIPAddressSpace =
             { PublicIPAddresses =
                 { Count = count
                   Addresses = [] } |> Some }
-        
+
 type AzureFirewallConfig =
     { Name : ResourceName
       FirewallPolicy : LinkedResource option
@@ -67,18 +67,18 @@ type AzureFirewallBuilder() =
         { state with FirewallPolicy = Some (Managed firewallPolicy.ResourceId) }
     member this.LinkToFirewallPolicy (state:AzureFirewallConfig, firewallPolicy:IBuilder) =
         { state with FirewallPolicy = Some (Managed firewallPolicy.ResourceId) }
-    /// The unmanaged virtualHub to which the firewall belongs. 
+    /// The unmanaged virtualHub to which the firewall belongs.
     [<CustomOperation "link_to_unmanaged_vhub">]
     member this.LinkToUnmanagedVirtualHub (state:AzureFirewallConfig, resourceId) =
         { state with VirtualHub = Some (Unmanaged resourceId) }
     /// The managed virtualHub to which the firewall belongs
     [<CustomOperation "link_to_vhub">]
-    member this.LinkToVirtualHub (state:AzureFirewallConfig, vhub:VirtualHub) =    
+    member this.LinkToVirtualHub (state:AzureFirewallConfig, vhub:VirtualHub) =
         { state with VirtualHub = Some (Managed (vhub :> IArmResource).ResourceId) }
-    member this.LinkToVirtualHub (state:AzureFirewallConfig, vhub:VirtualHubConfig) =    
+    member this.LinkToVirtualHub (state:AzureFirewallConfig, vhub:VirtualHubConfig) =
         { state with VirtualHub = Some (Managed (vhub :> IBuilder).ResourceId) }
     /// Configure this firewall to reserve a specified number of public ips.
-    /// 0 is not a valid value for AZFW_HUB 
+    /// 0 is not a valid value for AZFW_HUB
     [<CustomOperation "public_ip_reservation_count">]
     member _.PublicIpReservationCount(state:AzureFirewallConfig, count) =
         { state with HubIPAddressSpace = Some (HubIPAddressSpace.PublicCount count) }
@@ -87,11 +87,11 @@ type AzureFirewallBuilder() =
         match state.Sku.Name with
         | AZFW_Hub ->
             match state.HubIPAddressSpace with
-            | None -> failwith $"Sku AZFW_Hub requires Public IPs provided for Azure Firewall {stateIBuilder.ResourceId}. Please specify valid IPs count (count cannot be zero) and/or Public IPs to be retained (in case of deleting IPs). Some Public IPs specified may be incorrect, please specify the IPs that are linked to the firewall"
-            | Some (PublicCount 0) -> failwith $"Sku AZFW_Hub requires Public IPs count be > 0 for Azure Firewall {stateIBuilder.ResourceId}"
+            | None -> raiseFarmer $"Sku AZFW_Hub requires Public IPs provided for Azure Firewall {stateIBuilder.ResourceId}. Please specify valid IPs count (count cannot be zero) and/or Public IPs to be retained (in case of deleting IPs). Some Public IPs specified may be incorrect, please specify the IPs that are linked to the firewall"
+            | Some (PublicCount 0) -> raiseFarmer $"Sku AZFW_Hub requires Public IPs count be > 0 for Azure Firewall {stateIBuilder.ResourceId}"
             | Some (PublicCount _) -> ()
         | AZFW_VNet -> ()
         state
     interface IDependable<AzureFirewallConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
-        
+
 let azureFirewall = AzureFirewallBuilder()

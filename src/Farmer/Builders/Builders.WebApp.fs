@@ -515,7 +515,7 @@ type WebAppBuilder() =
           SiteExtensions = Set.empty
           PrivateEndpoints = Set.empty}
     member _.Run(state:WebAppConfig) =
-        if state.Name.ResourceName = ResourceName.Empty then failwith "No Web App name has been set."
+        if state.Name.ResourceName = ResourceName.Empty then raiseFarmer "No Web App name has been set."
         { state with
             SiteExtensions =
                 match state with
@@ -741,7 +741,7 @@ module Extensions =
                     current.Cors
                     |> Option.map (function
                     | SpecificOrigins (origins, _) -> SpecificOrigins (origins, Some true)
-                    | AllOrigins -> failwith "You cannot enable CORS Credentials if you have already set CORS to AllOrigins.") }
+                    | AllOrigins -> raiseFarmer "You cannot enable CORS Credentials if you have already set CORS to AllOrigins.") }
             |> this.Wrap state
         /// Sets the operating system
         [<CustomOperation "operating_system">]
