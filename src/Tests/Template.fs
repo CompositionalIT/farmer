@@ -121,6 +121,39 @@ let tests = testList "Template" [
         Expect.hasLength template.Template.Resources 2 "Should be two resources added"
     }
 
+    test "Can add a list of arm resources types together" {
+        let web = webApp {
+            name "test"
+            system_identity
+        }
+        let roleAssignment =
+            {  Name = "r2" |> ResourceName
+               RoleDefinitionId = Roles.DNSZoneContributor
+               PrincipalId = web.SystemIdentity.PrincipalId
+               PrincipalType = Arm.RoleAssignment.PrincipalType.MSI
+               Scope = Arm.RoleAssignment.AssignmentScope.ResourceGroup 
+               Dependencies = Set.ofList [ web.ResourceId ] }
+
+        let roleAssignment2 =
+            {  Name = "r1" |> ResourceName
+               RoleDefinitionId = Roles.DNSZoneContributor
+               PrincipalId = web.SystemIdentity.PrincipalId
+               PrincipalType = Arm.RoleAssignment.PrincipalType.ServicePrincipal
+               Scope = Arm.RoleAssignment.AssignmentScope.ResourceGroup 
+               Dependencies = Set.ofList [ web.ResourceId ] }
+        
+        let resources : IArmResource list = [
+            roleAssignment
+            roleAssignment2
+        ]
+
+        let template = arm {
+            add_arm_resources resources
+        }
+
+        Expect.hasLength template.Template.Resources 2 "Should be two resources added"
+    }
+
     test "Can add dependency through IBuilder" {
         let a = storageAccount { name "aaa" }
         let b = webApp { name "testweb"; depends_on a }
