@@ -119,6 +119,8 @@ type ResourceGroupBuilder() =
     member this.AddResources(state:ResourceGroupConfig, input:IBuilder list) =
         let resources = input |> List.collect(fun i -> i.BuildResources state.Location)
         ResourceGroupBuilder.AddResources(state, resources)
+    member this.AddResources(state:ResourceGroupConfig, input:IArmResource list) =
+        ResourceGroupBuilder.AddResources(state, input)
 
     [<CustomOperation "depends_on">]
     member this.AddDepenencies(state:ResourceGroupConfig, dependencies: ResourceId list) =
