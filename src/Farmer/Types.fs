@@ -199,8 +199,17 @@ type LinkedResource =
         | Unmanaged resId -> resId
     member this.Name = this.ResourceId.Name
 
-type DomainConfig =
-    | AppServiceDomain of string
+type SslState = 
+    | Sni of thumbprint:ArmExpression
+    | SslDisabled
+
+type CertificateOptions = 
+    | AppManagedCertificate of SslState
+    | CustomCertificate of thumbprint: ArmExpression
+    
+type DomainConfig = 
+    | SecuredDomain of domain:string * cert: CertificateOptions
+    | InsecureDomain of domain:string
     | NoDomain
 
 /// A reference to another Azure resource that may or may not be created by Farmer.

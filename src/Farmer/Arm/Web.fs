@@ -301,10 +301,6 @@ type StaticSite =
             this.RepositoryToken
         ]
 
-type SslState = 
-    | Sni of thumbprint:ArmExpression
-    | SslDisabled
-
 type HostNameBinding =
     { Location: Location
       SiteId: LinkedResource
