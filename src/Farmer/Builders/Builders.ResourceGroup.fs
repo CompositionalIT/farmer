@@ -13,7 +13,7 @@ type ResourceGroupConfig =
       Resources : IArmResource list 
       Mode: DeploymentMode
       Tags: Map<string,string> }
-    member this.ResourceId = resourceGroupDeployment.resourceId this.Name.Value
+    member this.ResourceId = resourceGroupDeployment.resourceId (this.Name.Eval())
     member private this.ContentDeployment = 
         if this.Parameters.IsEmpty && this.Outputs.IsEmpty && this.Resources.IsEmpty then
             None // this resource group has no content so there's nothing to deploy
@@ -25,7 +25,7 @@ type ResourceGroupConfig =
                     | :? ResourceGroupDeployment as rg -> 
                         Map.toList rg.Outputs 
                         |> List.map fst
-                        |> List.map (fun key -> $"{(ArmExpression.create rg.ResourceId.Name.Value).Eval()}.{key}",$"[reference('{(ArmExpression.create rg.ResourceId.Name.Value).Eval()}').outputs['{key}'].value]")
+                        |> List.map (fun key -> $"{ rg.Name.Eval()}.{key}",$"[reference('{rg.Name.Eval()}').outputs['{key}'].value]")
                     | _ -> 
                         [] )
                 |> Map.ofList
