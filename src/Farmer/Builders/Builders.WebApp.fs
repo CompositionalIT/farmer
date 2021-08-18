@@ -498,10 +498,11 @@ type WebAppConfig =
                                         location resourceLocation
                                         add_resource { hostNameBinding with
                                                         SslState = match certOptions with
-                                                                   | AppManagedCertificate sslState -> match sslState with
-                                                                                                       |  Sni thumbprint -> SslState.Sni thumbprint
-                                                                                                       |  _ -> SslDisabled
-                                                                   | CustomCertificate thumbprint -> SslState.Sni thumbprint
+                                                                   | None -> Sni (ArmExpression.reference(Arm.Web.certificates, Arm.Web.certificates.resourceId $"{this.Name.Value}-cert").Map(sprintf "%s.Thumbprint"))
+                                                                   | Some (AppManagedCertificate sslState) -> match sslState with
+                                                                                                              |  Sni thumbprint -> SslState.Sni thumbprint
+                                                                                                              |  _ -> SslDisabled
+                                                                   | Some (CustomCertificate thumbprint) -> SslState.Sni thumbprint
                                                         SiteId =  match hostNameBinding.SiteId with 
                                                                   | Managed id -> Unmanaged id
                                                                   | x -> x }

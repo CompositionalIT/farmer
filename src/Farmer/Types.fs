@@ -205,10 +205,10 @@ type SslState =
 
 type CertificateOptions = 
     | AppManagedCertificate of SslState
-    | CustomCertificate of thumbprint: ArmExpression
+    | CustomCertificate of thumbprint:ArmExpression
     
 type DomainConfig = 
-    | SecuredDomain of domain:string * cert: CertificateOptions
+    | SecuredDomain of domain:string * cert:CertificateOptions Option
     | InsecureDomain of domain:string
     | NoDomain
 

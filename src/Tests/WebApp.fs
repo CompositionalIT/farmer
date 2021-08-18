@@ -559,10 +559,10 @@ let tests = testList "Web App Tests" [
       Expect.equal wa.HealthCheckPath (Some "/status") "Health check path should be '/status'"
     }
 
-    test "Supports secure custom domains" {
+    test "Supports secure custom domains with custom thumbprint" {
       let webappName = "test"
-      let thumbprint = ArmExpression.reference(Arm.Web.certificates, Arm.Web.certificates.resourceId $"{webappName}-cert")
-      let resources = webApp { name webappName; custom_domain (DomainConfig.SecuredDomain ("customDomain.io", (AppManagedCertificate (SslState.Sni (thumbprint.Map(sprintf "%s.Thumbprint")))))) } |> getResources
+      let thumbprint = "1111583E8FABEF4C0BEF694CBC41C28FB81CD111"
+      let resources = webApp { name webappName; custom_domain (DomainConfig.SecuredDomain ("customDomain.io", Some (AppManagedCertificate (SslState.Sni (ArmExpression.literal thumbprint))))) } |> getResources
       let wa = resources |> getResource<Web.Site> |> List.head
 
       //Testing certificate
@@ -581,11 +581,38 @@ let tests = testList "Web App Tests" [
       //Testing ResourceGroupDeployment
       let resourceGroupDeployment = resources |> getResource<ResourceGroup.ResourceGroupDeployment> |> List.head
       let innerResource = resourceGroupDeployment.Resources |> getResource<Web.HostNameBinding> |> List.head
-      let innerExpectedSslState = SslState.Sni (ArmExpression.reference(Arm.Web.certificates, Arm.Web.certificates.resourceId cert.ResourceName).Map(sprintf "%s.Thumbprint"))
+      let innerExpectedSslState = SslState.Sni (ArmExpression.literal thumbprint)
       Expect.equal resourceGroupDeployment.Resources.Length 1 "resourceGroupDeployment stage should only contain one resource"
       Expect.equal resourceGroupDeployment.Dependencies.Count 2 "resourceGroupDeployment stage should only contain two dependencies"
       Expect.equal innerResource.SslState innerExpectedSslState $"hostnameBinding should have a {innerExpectedSslState} Ssl state inside the resourceGroupDeployment template"
     }
+
+    test "Supports secure custom domains with default thumbprint" {
+        let webappName = "test"
+        let resources = webApp { name webappName; custom_domain (DomainConfig.SecuredDomain ("customDomain.io", None)) } |> getResources
+        let wa = resources |> getResource<Web.Site> |> List.head
+
+        //Testing certificate
+        let cert = resources |> getResource<Web.Certificate> |> List.head
+        let expectedDomainName = "customDomain.io"
+        Expect.equal cert.DomainName expectedDomainName $"Certificate domain name should have {expectedDomainName}"
+
+        //Testing HostnameBinding
+        let hostnameBinding = resources |> getResource<Web.HostNameBinding> |> List.head
+        let expectedSslState = SslState.SslDisabled
+        let exepectedSiteId = (Managed (Arm.Web.sites.resourceId wa.Name))
+        Expect.equal hostnameBinding.DomainName expectedDomainName $"HostnameBinding domain name should have {expectedDomainName}"
+        Expect.equal hostnameBinding.SslState expectedSslState $"HostnameBinding should have a {expectedSslState} Ssl state"
+        Expect.equal hostnameBinding.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
+
+        //Testing ResourceGroupDeployment
+        let resourceGroupDeployment = resources |> getResource<ResourceGroup.ResourceGroupDeployment> |> List.head
+        let innerResource = resourceGroupDeployment.Resources |> getResource<Web.HostNameBinding> |> List.head
+        let innerExpectedSslState = SslState.Sni (ArmExpression.reference(Arm.Web.certificates, Arm.Web.certificates.resourceId cert.ResourceName).Map(sprintf "%s.Thumbprint"))
+        Expect.equal resourceGroupDeployment.Resources.Length 1 "resourceGroupDeployment stage should only contain one resource"
+        Expect.equal resourceGroupDeployment.Dependencies.Count 2 "resourceGroupDeployment stage should only contain two dependencies"
+        Expect.equal innerResource.SslState innerExpectedSslState $"hostnameBinding should have a {innerExpectedSslState} Ssl state inside the resourceGroupDeployment template"
+      }
 
     test "Supports insecure custom domains" {
         let webappName = "test"
