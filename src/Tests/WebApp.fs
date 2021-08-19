@@ -629,4 +629,16 @@ let tests = testList "Web App Tests" [
         Expect.equal hostnameBinding.SslState expectedSslState $"HostnameBinding should have a {expectedSslState} Ssl state"
         Expect.equal hostnameBinding.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
       }
+
+    test "Supports no domains" {
+        let webappName = "test"
+        let resources = webApp { name webappName; custom_domain NoDomain } |> getResources
+        let wa = resources |> getResource<Web.Site> |> List.head
+
+        //Testing HostnameBinding
+        let hostnameBinding = resources |> getResource<Web.HostNameBinding>
+
+        Expect.equal hostnameBinding.Length 0 $"There should not be a hostname binding as a result of choosing the 'NoDomain' option"
+
+      }
 ]
