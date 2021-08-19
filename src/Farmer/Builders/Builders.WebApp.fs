@@ -79,7 +79,7 @@ type SlotConfig =
       Identity: ManagedIdentity
       KeyVaultReferenceIdentity: UserAssignedIdentity option
       Tags: Map<string,string>
-      Dependencies: ResourceId Set}
+      Dependencies: ResourceId Set }
     member this.ToSite (owner: Arm.Web.Site) =
         { owner with
             SiteType = SiteType.Slot (owner.Name/this.Name)
@@ -99,7 +99,7 @@ type SlotBuilder() =
           Identity = ManagedIdentity.Empty
           KeyVaultReferenceIdentity =  None
           Tags = Map.empty
-          Dependencies = Set.empty}
+          Dependencies = Set.empty }
 
     [<CustomOperation "name">]
     member this.Name (state,name) : SlotConfig = {state with Name = name}
@@ -175,7 +175,9 @@ type CommonWebConfig =
       Slots : Map<string,SlotConfig>
       WorkerProcess : Bitness option
       ZipDeployPath : (string*ZipDeploy.ZipDeploySlot) option
-      HealthCheckPath: string option }
+      HealthCheckPath: string option
+      FtpsState: FtpsState option
+      IpSecurityRestrictions: IpSecurityRestriction list }
 
 type WebAppConfig =
     { CommonWebConfig: CommonWebConfig
@@ -417,6 +419,8 @@ type WebAppConfig =
                   AutoSwapSlotName = None
                   ZipDeployPath = this.CommonWebConfig.ZipDeployPath |> Option.map (fun (path,slot) -> path, ZipDeploy.ZipDeployTarget.WebApp, slot )
                   HealthCheckPath = this.CommonWebConfig.HealthCheckPath
+                  FtpsState = this.CommonWebConfig.FtpsState
+                  IpSecurityRestrictions = this.CommonWebConfig.IpSecurityRestrictions
                 }
 
             match keyVault with
@@ -496,7 +500,9 @@ type WebAppBuilder() =
               Slots = Map.empty
               WorkerProcess = None
               ZipDeployPath = None
-              HealthCheckPath = None }
+              HealthCheckPath = None
+              FtpsState = None
+              IpSecurityRestrictions = [] }
           Sku = Sku.F1
           WorkerSize = Small
           WorkerCount = 1
@@ -516,7 +522,7 @@ type WebAppBuilder() =
           DockerAcrCredentials = None
           AutomaticLoggingExtension = true
           SiteExtensions = Set.empty
-          PrivateEndpoints = Set.empty}
+          PrivateEndpoints = Set.empty }
     member _.Run(state:WebAppConfig) =
         if state.Name.ResourceName = ResourceName.Empty then raiseFarmer "No Web App name has been set."
         { state with
@@ -812,3 +818,21 @@ module Extensions =
         [<CustomOperation "health_check_path">]
         /// Specifies the path Azure load balancers will ping to check for unhealthy instances.
         member this.HealthCheckPath(state:'T, healthCheckPath:string) = this.Map state (fun x -> {x with HealthCheckPath = Some(healthCheckPath)})
+
+        /// Disable the FTP / FTPS service completely
+        [<CustomOperation "disable_ftp_service">]
+        member this.DisableFtp (state:'T) = this.Map state (fun x -> { x with FtpsState = Some FtpsState.Disabled })
+        /// Enable FTP and FTPS service
+        [<CustomOperation "enable_ftp_and_ftps_service">]
+        member this.EnableFtp (state:'T) = this.Map state (fun x -> { x with FtpsState = Some FtpsState.AllAllowed })
+        /// Enable FTPS service only
+        [<CustomOperation "enable_ftps_service">]
+        member this.EnableFtps (state:'T) = this.Map state (fun x -> { x with FtpsState = Some FtpsState.FtpsOnly })
+        /// Add Allowed ip for ip security restrictions
+        [<CustomOperation "add_allowed_ip_restriction">] 
+        member this.AllowIp(state:'T, name, ip) = 
+            this.Map state (fun x -> { x with IpSecurityRestrictions = IpSecurityRestriction.Create name ip Allow :: x.IpSecurityRestrictions })
+        /// Add Denied ip for ip security restrictions
+        [<CustomOperation "add_denied_ip_restriction">] 
+        member this.DenyIp(state:'T, name, ip) = 
+            this.Map state (fun x -> { x with IpSecurityRestrictions = IpSecurityRestriction.Create name ip Deny :: x.IpSecurityRestrictions })

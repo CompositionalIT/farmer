@@ -184,7 +184,9 @@ type Site =
       Metadata : List<string * string>
       AutoSwapSlotName: string option
       ZipDeployPath : (string * ZipDeploy.ZipDeployTarget * ZipDeploy.ZipDeploySlot) option
-      HealthCheckPath : string option }
+      HealthCheckPath : string option 
+      FtpsState : FtpsState  option
+      IpSecurityRestrictions : IpSecurityRestriction list }
     /// Shorthand for SiteType.ResourceType
     member this.ResourceType = this.SiteType.ResourceType
     /// Shorthand for SiteType.ResourceName
@@ -244,6 +246,17 @@ type Site =
                            javaContainer = this.JavaContainer |> Option.toObj
                            javaContainerVersion = this.JavaContainerVersion |> Option.toObj
                            phpVersion = this.PhpVersion |> Option.toObj
+                           ftpsState = match this.FtpsState with Some s -> s.ToString() | None -> null
+                           ipSecurityRestrictions = 
+                                match this.IpSecurityRestrictions with
+                                | [] -> null
+                                | restrictions ->
+                                restrictions
+                                    |> List.mapi (fun index restriction ->
+                                       {| ipAddress = $"%s{restriction.IpAddress.ToString()}/32"
+                                          name = restriction.Name
+                                          action = restriction.Action.ToString()
+                                          priority = index + 1 |}) |> box
                            pythonVersion = this.PythonVersion |> Option.toObj
                            http20Enabled = this.HTTP20Enabled |> Option.toNullable
                            webSocketsEnabled = this.WebSocketsEnabled |> Option.toNullable

@@ -598,6 +598,23 @@ module WebApp =
     type ConnectionStringKind = MySql | SQLServer | SQLAzure | Custom | NotificationHub | ServiceBus | EventHub | ApiHub | DocDb | RedisCache | PostgreSQL
     type ExtensionName = ExtensionName of string
     type Bitness = Bits32 | Bits64
+    [<RequireQualifiedAccess>]
+    type FtpsState =
+        | AllAllowed 
+        | FtpsOnly 
+        | Disabled
+    type IpSecurityAction =
+        | Allow
+        | Deny
+    type IpSecurityRestriction =
+        { Name: string 
+          IpAddress: System.Net.IPAddress
+          Action: IpSecurityAction }
+        static member Create name ip action =
+            { Name = name
+              IpAddress = ip
+              Action = action }
+
     module Extensions =
         /// The Microsoft.AspNetCore.AzureAppServices logging extension.
         let Logging = ExtensionName "Microsoft.AspNetCore.AzureAppServices.SiteExtension"

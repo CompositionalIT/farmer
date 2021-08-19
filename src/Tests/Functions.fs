@@ -295,4 +295,34 @@ let tests = testList "Functions tests" [
     test "Not setting the functions name causes an error" {
         Expect.throws (fun () -> functions { storage_account_name "foo" } |> ignore) "Not setting functions name should throw"
     }
+
+    test "Supports disabling ftp/ftps service" {
+        let resources = functions { name "test"; disable_ftp_service } |> getResources
+        let wa = resources |> getResource<Web.Site> |> List.head
+
+        Expect.equal wa.FtpsState (Some Farmer.WebApp.FtpsState.Disabled) "Should disable FtpsState"
+    }
+
+    test "Supports enabling ftp and ftps service" {
+        let resources = functions { name "test"; enable_ftp_and_ftps_service } |> getResources
+        let wa = resources |> getResource<Web.Site> |> List.head
+
+        Expect.equal wa.FtpsState (Some Farmer.WebApp.FtpsState.AllAllowed) "Should enable Ftp and Ftps state"
+    }
+
+    test "Supports enabling ftps service only" {
+        let resources = functions { name "test"; enable_ftps_service } |> getResources
+        let wa = resources |> getResource<Web.Site> |> List.head
+
+        Expect.equal wa.FtpsState (Some Farmer.WebApp.FtpsState.FtpsOnly) "Should enable Ftps only"
+    }
+
+    test "Supports adding ip restriction" {
+        let ip = System.Net.IPAddress.Parse "1.2.3.4"
+        let resources = functions { name "test"; add_allowed_ip_restriction "test-rule" ip } |> getResources
+        let wa = resources |> getResource<Web.Site> |> List.head
+
+        let expectedRestriction = IpSecurityRestriction.Create "test-rule" ip Allow
+        Expect.equal wa.IpSecurityRestrictions [ expectedRestriction ] "Should add expected ip security restriction"
+    }
 ]

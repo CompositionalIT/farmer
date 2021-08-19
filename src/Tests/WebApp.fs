@@ -579,4 +579,34 @@ let tests = testList "Web App Tests" [
 
         Expect.equal wa.HealthCheckPath (Some "/status") "Health check path should be '/status'"
     }
+
+    test "Supports disabling ftp/ftps service" {
+        let resources = webApp { name "test"; disable_ftp_service } |> getResources
+        let wa = resources |> getResource<Web.Site> |> List.head
+
+        Expect.equal wa.FtpsState (Some Farmer.WebApp.FtpsState.Disabled) "Should disable FtpsState"
+    }
+
+    test "Supports enabling ftp and ftps service" {
+        let resources = webApp { name "test"; enable_ftp_and_ftps_service } |> getResources
+        let wa = resources |> getResource<Web.Site> |> List.head
+
+        Expect.equal wa.FtpsState (Some Farmer.WebApp.FtpsState.AllAllowed) "Should enable Ftp and Ftps state"
+    }
+
+    test "Supports enabling ftps service only" {
+        let resources = webApp { name "test"; enable_ftps_service } |> getResources
+        let wa = resources |> getResource<Web.Site> |> List.head
+
+        Expect.equal wa.FtpsState (Some Farmer.WebApp.FtpsState.FtpsOnly) "Should enable Ftps only"
+    }
+
+    test "Supports adding ip restriction" {
+        let ip = System.Net.IPAddress.Parse "1.2.3.4"
+        let resources = webApp { name "test"; add_allowed_ip_restriction "test-rule" ip } |> getResources
+        let wa = resources |> getResource<Web.Site> |> List.head
+
+        let expectedRestriction = IpSecurityRestriction.Create "test-rule" ip Allow
+        Expect.equal wa.IpSecurityRestrictions [ expectedRestriction ] "Should add expected ip security restriction"
+    }
 ]

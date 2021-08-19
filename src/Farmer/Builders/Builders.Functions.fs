@@ -232,7 +232,9 @@ type FunctionsConfig =
                         Some sc
                     | _ -> None
                   WorkerProcess = this.CommonWebConfig.WorkerProcess
-                  HealthCheckPath = this.CommonWebConfig.HealthCheckPath }
+                  HealthCheckPath = this.CommonWebConfig.HealthCheckPath 
+                  FtpsState = this.CommonWebConfig.FtpsState
+                  IpSecurityRestrictions = this.CommonWebConfig.IpSecurityRestrictions }
 
             match this.CommonWebConfig.ServicePlan with
             | DeployableResource this.Name.ResourceName resourceId ->
@@ -301,7 +303,9 @@ type FunctionsBuilder() =
               Slots = Map.empty
               WorkerProcess = None
               ZipDeployPath = None
-              HealthCheckPath = None }
+              HealthCheckPath = None 
+              FtpsState = None
+              IpSecurityRestrictions = [] }
           StorageAccount = derived (fun config ->
             let storage = config.Name.ResourceName.Map (sprintf "%sstorage") |> sanitiseStorage |> ResourceName
             storageAccounts.resourceId storage)
