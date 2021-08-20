@@ -62,12 +62,26 @@ The CNI builder (`azureCniNetworkProfile`) creates Azure CNI network profiles on
 | service_cidr | Sets the service cidr to a network other than the default 10.224.0.0/16. |
 | load_balancer_sku | SKU for the Load Balancer - defaults to 'Standard' |
 
-#### Example
+#### Basic Example
+
+The simplest cluster uses managed identity and default settings for 
+the node pool (size of 3).
+
 ```fsharp
 open Farmer
 open Farmer.Builders
 open Farmer.ContainerService
 
+let myAks = aks {
+    name "aks-cluster"
+    system_identity
+    linux_profile "azureuser" "public-key-here"
+    service_principal_use_msi
+}
+```
+
+#### Customizing agent pool and network profile
+```fsharp
 let myAks = aks {
     name "k8s-cluster"
     dns_prefix "testaks"
@@ -78,12 +92,11 @@ let myAks = aks {
         }
     ]
     linux_profile "aksuser" "public-key-here"
-    service_principal_client_id "some-spn-client-id"
+    service_principal_use_msi
     network_profile (
         azureCniNetworkProfile {
             service_cidr "10.250.0.0/16"
         }
     )
 }
-
 ```

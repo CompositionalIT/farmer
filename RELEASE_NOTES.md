@@ -3,6 +3,7 @@ Release Notes
 
 ## 1.6.13
 * Container Groups: Fix to generate parameters for secure environment variables on `initContainers`.
+* Container Service (AKS): Simplify `aks` builder with defaults for node pool and DNS prefix.
 
 ## 1.6.12
 * Custom FarmerException raised for all exceptions.

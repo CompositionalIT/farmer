@@ -12,7 +12,26 @@ open System
 let dummyClient = new ContainerServiceClient (Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
 
 let tests = testList "AKS" [
+    /// The simplest AKS cluster would be one that uses a system assigned managed identity (MSI),
+    /// uses that MSI for accessing other resources, and then takes the defaults for node pool
+    /// size (3 nodes) and DNS prefix (generated based on cluster name).
     test "Basic AKS cluster" {
+        let myAks = aks {
+            name "aks-cluster"
+            system_identity
+            linux_profile "azureuser" "public-key-here"
+            service_principal_use_msi
+        }
+        let aks =
+            arm { add_resource myAks }
+            |> findAzureResources<ContainerService> dummyClient.SerializationSettings
+            |> Seq.head
+        Expect.equal aks.Name "aks-cluster" ""
+        Expect.hasLength aks.AgentPoolProfiles 1 ""
+        Expect.equal aks.AgentPoolProfiles.[0].Name "nodepool1" ""
+        Expect.equal aks.AgentPoolProfiles.[0].Count 3 ""
+    }
+    test "Simple AKS cluster" {
         let myAks = aks {
             name "k8s-cluster"
             dns_prefix "testaks"
