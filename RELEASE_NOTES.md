@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+#vNext
+* Alerts: Initial support for Alerts
+
 ## 1.6.12
 * Custom FarmerException raised for all exceptions.
 * Dashboards: Changed the API to use non-anonymous record.
