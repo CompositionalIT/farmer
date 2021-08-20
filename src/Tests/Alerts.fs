@@ -31,7 +31,6 @@ let tests = testList "Alerts" [
         let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
         let isenabled = jobj.SelectToken("resources[?(@.name=='myVmAlert2')].properties.enabled").ToString().ToLower()
         Expect.equal isenabled "true" "Webtest not enabled"
-        System.IO.File.WriteAllText(@"c:\temp\vm2.json", jsn)
     }
 
     test "Create a SQL Database heavy usage alert" {
