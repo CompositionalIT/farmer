@@ -119,6 +119,11 @@ type ContainerGroup =
                     match envVar.Value with
                     | SecureEnvValue p -> p
                     | EnvValue _ -> ()
+            for container in this.InitContainers do
+                for envVar in container.EnvironmentVariables do
+                    match envVar.Value with
+                    | SecureEnvValue p -> p
+                    | EnvValue _ -> ()
             for volume in this.Volumes do
                 match volume.Value with
                 | Volume.Secret secrets ->
