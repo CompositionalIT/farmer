@@ -3,6 +3,7 @@ Release Notes
 
 ## 1.6.13
 * Container Groups: Fix to generate parameters for secure environment variables on `initContainers`.
+* Key Vaults: Support for adding access policies on an existing key vault with `keyVaultAddPolicies`.
 
 ## 1.6.12
 * Custom FarmerException raised for all exceptions.

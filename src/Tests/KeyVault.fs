@@ -142,4 +142,57 @@ let tests = testList "KeyVault" [
         let purgeProtection = jobj.SelectToken("resources[0].properties.enablePurgeProtection")
         Expect.equal (purgeProtection |> string |> Boolean.Parse) true "Purge protection not enabled"
     }
+    test "Add access policies on existing key vault" {
+        let additionalPolicies =
+            keyVaultAddPolicies {
+                key_vault (Farmer.Arm.KeyVault.vaults.resourceId "existing-vault")
+                add_access_policies [
+                    accessPolicy {
+                        object_id (Guid "ad731a70-fd25-452f-b9d8-a0c0ae8033af")
+                        application_id (Guid "12ef53f8-98a0-4513-b081-6b5e70db76e1")
+                        certificate_permissions [ KeyVault.Certificate.List ]
+                        secret_permissions KeyVault.Secret.All
+                        key_permissions [ KeyVault.Key.List ]
+                    }
+                ]
+            }
+        let template =
+            arm {
+                add_resources [
+                    additionalPolicies
+                ]
+            }
+        let jobj = JObject.Parse(template.Template |> Writer.toJson)
+        let name = jobj.SelectToken("resources[0].name")
+        Expect.equal (name |> string) "existing-vault/add" "Incorrect name for adding kv access policies"
+        let dependsOn = jobj.SelectToken("resources[0].dependsOn") :?> JArray
+        Expect.hasLength dependsOn 0 "Should have no dependencies"
+        let accessPolicies = jobj.SelectToken("resources[0].properties.accessPolicies") :?> JArray
+        Expect.hasLength accessPolicies 1 "Should include one access policy to add to the key vault"
+        let tenant = jobj.SelectToken("resources[0].properties.accessPolicies[0].tenantId") |> string
+        Expect.equal tenant "[subscription().tenantId]" "If tenant was not specified, access policies default to target subscription's tenant"
+    }
+    test "Adding access policies on existing key vault without specifying the key vault fails" {
+        Expect.throws (fun _ ->
+            let additionalPolicies =
+                keyVaultAddPolicies {
+                    add_access_policies [
+                        accessPolicy {
+                            object_id (Guid "ad731a70-fd25-452f-b9d8-a0c0ae8033af")
+                            application_id (Guid "12ef53f8-98a0-4513-b081-6b5e70db76e1")
+                            certificate_permissions [ KeyVault.Certificate.List ]
+                            secret_permissions KeyVault.Secret.All
+                            key_permissions [ KeyVault.Key.List ]
+                        }
+                    ]
+                }
+            let template =
+                arm {
+                    add_resources [
+                        additionalPolicies
+                    ]
+                }
+            template |> Writer.quickWrite |> ignore
+        ) "Should have failed to build the key vault policy addition resource"
+    }
 ]

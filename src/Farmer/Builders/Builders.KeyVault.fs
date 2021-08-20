@@ -186,6 +186,7 @@ type AccessPolicyBuilder() =
     member _.SetCertificatePermissions(state:AccessPolicyConfig, permissions) = { state with Permissions = {| state.Permissions with Certificates = set permissions |} }
 
 let accessPolicy = AccessPolicyBuilder()
+
 type AccessPolicy =
     /// Quickly creates an access policy for the supplied Principal. If no permissions are supplied, defaults to GET and LIST.
     static member create (principal:PrincipalId, ?permissions) = accessPolicy { object_id principal; secret_permissions (permissions |> Option.defaultValue Secret.ReadSecrets) }
@@ -372,3 +373,63 @@ type SecretBuilder() =
 
 let secret = SecretBuilder()
 let keyVault = KeyVaultBuilder()
+
+/// Configuration for adding access policies to an existing key vault.
+type KeyVaultAddPoliciesConfig =
+    {
+        KeyVault : LinkedResource option
+        TenantId : string option
+        AccessPolicies : AccessPolicyConfig list
+    }
+    interface IBuilder with
+        member this.BuildResources _ =
+            match this.KeyVault with
+            | None -> raiseFarmer "Key vault policy addition must be linked to a key vault to properly assign the resourceId."
+            | Some kv -> [
+                    { VaultAddPolicies.KeyVault = kv
+                      TenantId = this.TenantId
+                      AccessPolicies =
+                          this.AccessPolicies
+                          |> List.map (fun policy ->
+                            {| ObjectId = policy.ObjectId
+                               ApplicationId = policy.ApplicationId
+                               Permissions =
+                                {| Certificates = policy.Permissions.Certificates
+                                   Storage = policy.Permissions.Storage
+                                   Keys = policy.Permissions.Keys
+                                   Secrets = policy.Permissions.Secrets |}
+                            |})
+                    }
+                ]
+            
+        member this.ResourceId =
+            match this.KeyVault with
+            | None -> raiseFarmer "Key vault policy addition must be linked to a key vault to properly assign the resourceId."
+            | Some kv -> accessPolicies.resourceId (kv.Name / (ResourceName "add"))
+
+/// Builder for adding policies to an existing key vault.
+type KeyVaultAddPoliciesBuilder() =
+    member _.Yield _ =
+        {
+            KeyVault = None
+            TenantId = None
+            AccessPolicies = []
+        }
+    /// The key vault where the policies should be added.
+    [<CustomOperation "key_vault">]
+    member _.KeyVault (state:KeyVaultAddPoliciesConfig, kv:Vault) =
+        { state with KeyVault = Some (Unmanaged (kv :> IArmResource).ResourceId) }
+    member _.KeyVault (state:KeyVaultAddPoliciesConfig, kv:KeyVaultConfig) =
+        { state with KeyVault = Some (Unmanaged (kv :> IBuilder).ResourceId) }
+    member _.KeyVault (state:KeyVaultAddPoliciesConfig, kv:ResourceId) =
+        { state with KeyVault = Some (Unmanaged kv) }
+    /// Specify the tenant ID for the users or service principals being granted access.
+    [<CustomOperation "tenant_id">]
+    member _.TenantId (state:KeyVaultAddPoliciesConfig, tenantId:string) =
+        { state with TenantId = Some tenantId }
+    /// Access polices to add to the key vault.
+    [<CustomOperation "add_access_policies">]
+    member _.AddAccessPolicies (state:KeyVaultAddPoliciesConfig, accessPolicies:AccessPolicyConfig list) =
+        { state with AccessPolicies = state.AccessPolicies @ accessPolicies }
+
+let keyVaultAddPolicies = KeyVaultAddPoliciesBuilder()
