@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.6.13
+* Virtual Networks: support for adding subnets to existing virtual networks.
+
 ## 1.6.12
 * Custom FarmerException raised for all exceptions.
 * Dashboards: Changed the API to use non-anonymous record.
