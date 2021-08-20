@@ -9,8 +9,8 @@ type AlertConfig =
     {   Name : Farmer.ResourceName
         Description : string
         Severity : AlertSeverity
-        Frequency : DurationInterval
-        Window : DurationInterval
+        Frequency : IsoDateTime
+        Window : IsoDateTime
         Actions : List<AlertAction>
         LinkedResources : LinkedResource list
         Criteria : MetricAlertCriteria }
@@ -33,8 +33,8 @@ type AlertBuilder() =
         { Name = ResourceName.Empty
           Description = ""
           Severity = AlertSeverity.Error
-          Frequency = DurationInterval.FiveMinutes
-          Window = DurationInterval.FifteenMinutes
+          Frequency = System.TimeSpan(0,5,0) |> IsoDateTime.OfTimeSpan
+          Window = System.TimeSpan(0,15,0) |> IsoDateTime.OfTimeSpan
           Actions = List.empty
           LinkedResources = List.empty
           Criteria = SingleResourceMultipleMetricCriteria [] }

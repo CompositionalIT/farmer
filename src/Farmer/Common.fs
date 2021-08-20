@@ -402,16 +402,6 @@ module ServiceBusValidation =
 
 module Insights =
 
-    type DurationInterval =
-    | ISO8601DurationFormat of string
-        static member OneHour = ISO8601DurationFormat "PT1H"
-        static member FifteenMinutes = ISO8601DurationFormat "PT15M"
-        static member FiveMinutes = ISO8601DurationFormat "PT5M"
-        static member OneMinute = ISO8601DurationFormat "PT1M"
-        static member OncePerXMinutes min = sprintf "PT%dM" min |> ISO8601DurationFormat
-        static member OncePerXHours h = sprintf "PT%dH" h |> ISO8601DurationFormat
-        static member OncePerXSeconds s = sprintf "PT%dS" s |> ISO8601DurationFormat
-
     /// https://docs.microsoft.com/en-us/azure/azure-monitor/essentials/metrics-supported
     type MetricsName = 
     | MetricsName of string

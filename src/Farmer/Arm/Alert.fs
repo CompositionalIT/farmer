@@ -96,8 +96,8 @@ type AlertData =
         Name : Farmer.ResourceName
         Description : string
         Severity : AlertSeverity
-        Frequency : DurationInterval
-        Window : DurationInterval
+        Frequency : IsoDateTime
+        Window : IsoDateTime
         Actions : List<AlertAction>
         LinkedResources : ResourceId list
         Criteria : MetricAlertCriteria }
@@ -127,8 +127,8 @@ type AlertData =
                            | AlertSeverity.Verbose -> 4
                        enabled = true
                        scopes = scopes
-                       evaluationFrequency = this.Frequency |> (function | ISO8601DurationFormat x -> x)
-                       windowSize = this.Window|> (function | ISO8601DurationFormat x -> x) 
+                       evaluationFrequency = this.Frequency |> (function | IsoDateTime x -> x)
+                       windowSize = this.Window|> (function | IsoDateTime x -> x) 
                        criteria = this.Criteria |> createCriteria
                        autoMitigate = true
                        targetResourceType =

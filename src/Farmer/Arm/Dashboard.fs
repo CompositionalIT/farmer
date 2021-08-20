@@ -73,13 +73,13 @@ let generateWebtestResultPart (applicationInsightsName:string) = {
     isAdapter = Some true
     defaultMenuItemId = None
 }
-type MetrixChartParameters = { resourceId:ResourceId; metrics: MetricsName list; interval : DurationInterval }
+type MetrixChartParameters = { resourceId:ResourceId; metrics: MetricsName list; interval : IsoDateTime }
 /// Generates a MetricsChartPart for a resource given in parameters
 let generateMetricsChartPart (chartProperties:MetrixChartParameters) = {
     ``type`` = "Extension/Microsoft_Azure_Monitoring/PartType/MetricsChartPart"
     inputs = [ {| name = "queryInputs"
                   value = {| id = chartProperties.resourceId.ArmExpression.Eval(); chartType = 0;
-                             timespan = {| duration = match chartProperties.interval with | ISO8601DurationFormat dur -> dur
+                             timespan = {| duration = match chartProperties.interval with | IsoDateTime dur -> dur
                                            start = null; ``end`` = null |}
                              metrics = chartProperties.metrics |> List.map(function 
                                             MetricsName m -> {| name = m; resourceId = chartProperties.resourceId.ArmExpression.Eval() |})

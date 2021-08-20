@@ -29,7 +29,7 @@ let tests = testList "Dashboards" [
             )
             add_metrics_chart (
                 { x = 0; y = 4; rowSpan = 3; colSpan = 11 },
-                { interval = DurationInterval.OneHour; 
+                { interval = System.TimeSpan(1,0,0) |> IsoDateTime.OfTimeSpan; 
                    metrics = [ MetricsName.PercentageCPU ]; 
                    resourceId = vmId }
             )
@@ -78,7 +78,7 @@ let tests = testList "Dashboards" [
                                        itemDataModel = {| id = $"defaultAiChartDiv{System.Guid.NewGuid()}"; grouping = null; chartHeight = 1;
                                                           priorPeriod = false; horizontalBars = true; showOther = false; palette = "multiColor";
                                                           jsonDefinitionId = ""; yAxisOptions = {| options = 1 |}; 
-                                                          appliedISOGrain = DurationInterval.OneMinute;
+                                                          appliedISOGrain = System.TimeSpan(0,1,0) |> IsoDateTime.OfTimeSpan;
                                                           title = chartTitle; titleKind = "Auto"
                                                           visualization = {| chartType = 2; legend = null; axis = null |}
                                                           metrics = [

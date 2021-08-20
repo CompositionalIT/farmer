@@ -37,8 +37,8 @@ let vm = vm { name "foo"; username "foo" }
 let vmAlert = alert { 
     name "myVmAlert2"
     description "Alert if VM CPU goes over 80% for 15 minutes"
-    frequency DurationInterval.FiveMinutes
-    window DurationInterval.FifteenMinutes
+    frequency (System.TimeSpan(0,5,0) |> IsoDateTime.OfTimeSpan)
+    window (System.TimeSpan(0,15,0) |> IsoDateTime.OfTimeSpan)
     add_linked_resource vm
     severity AlertSeverity.Warning
     single_resource_multiple_metric_criteria [
@@ -60,8 +60,8 @@ Database alert:
 let myAlert = alert { 
         name "myDbAlert"
         description "Alert if DB DTU goes over 85% for 5 minutes"
-        frequency DurationInterval.FiveMinutes
-        window DurationInterval.FiveMinutes
+        frequency (System.TimeSpan(0,5,0) |> IsoDateTime.OfTimeSpan)
+        window (System.TimeSpan(0,15,0) |> IsoDateTime.OfTimeSpan)
         add_linked_resource resId
         severity AlertSeverity.Error
         single_resource_multiple_metric_criteria [
@@ -84,8 +84,8 @@ let aiId, webId = (ai :> IBuilder).ResourceId |> Managed,
 let webAlert = alert { 
     name "myWebAlert"
     description "Alert if website is failing 5 mins on 3 locations"
-    frequency DurationInterval.OneMinute
-    window DurationInterval.FiveMinutes
+    frequency (System.TimeSpan(0,1,0) |> IsoDateTime.OfTimeSpan)
+    window (System.TimeSpan(0,5,0) |> IsoDateTime.OfTimeSpan)
     add_linked_resources [aiId; webId]
     severity AlertSeverity.Warning
     webtest_location_availability_criteria (aiId.ResourceId, webId.ResourceId, 3)
