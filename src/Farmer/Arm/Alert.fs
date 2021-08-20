@@ -6,17 +6,18 @@ open Farmer.Insights
 
 let metricAlert = Farmer.ResourceType("microsoft.insights/metricAlerts", "2018-03-01")
 
+[<RequireQualifiedAccess>]
 type AlertSeverity =
 /// 0
-| Alert_Critical
+| Critical
 /// 1
-| Alert_Error
+| Error
 /// 2
-| Alert_Warning
+| Warning
 /// 3
-| Alert_Informational
+| Informational
 /// 4
-| Alert_Verbose
+| Verbose
 
 type MetricComparison =
 | GreaterThan
@@ -29,6 +30,8 @@ type MetricAggregation =
 | Minimum
 | Total
 
+/// If avg of metric x is going over(/under) threshold for selected windowSize time.
+// E.g. if average of VM CPU is going over 80% for 15 minutes -> alert
 /// See the MetricNames and their Aggregations:
 /// https://docs.microsoft.com/en-us/azure/azure-monitor/essentials/metrics-supported
 type ResourceCriteria = {
@@ -117,11 +120,11 @@ type AlertData =
                     {| description = this.Description
                        severity =
                            match this.Severity with
-                           | Alert_Critical -> 0
-                           | Alert_Error -> 1
-                           | Alert_Warning -> 2
-                           | Alert_Informational -> 3
-                           | Alert_Verbose -> 4
+                           | AlertSeverity.Critical -> 0
+                           | AlertSeverity.Error -> 1
+                           | AlertSeverity.Warning -> 2
+                           | AlertSeverity.Informational -> 3
+                           | AlertSeverity.Verbose -> 4
                        enabled = true
                        scopes = scopes
                        evaluationFrequency = this.Frequency |> (function | ISO8601DurationFormat x -> x)

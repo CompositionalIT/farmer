@@ -12,18 +12,17 @@ let tests = testList "Alerts" [
         let vmAlert = alert { 
             name "myVmAlert2"
             description "Alert if VM CPU goes over 80% for 15 minutes"
-            frequency (DurationInterval.FiveMinutes)
-            window (DurationInterval.FifteenMinutes)
+            frequency DurationInterval.FiveMinutes
+            window DurationInterval.FifteenMinutes
             add_linked_resource vm
-            severity AlertSeverity.Alert_Warning
-            criteria 
-                (SingleResourceMultipleMetricCriteria [
+            severity AlertSeverity.Warning
+            single_resource_multiple_metric_criteria [
                     {   MetricNamespace = vm.ResourceId.Type
                         MetricName = MetricsName.PercentageCPU
                         Threshold = 80
                         Comparison = GreaterThan
                         Aggregation = Average
-                    }])
+                    }]
         }
 
         let template = arm { add_resources [ vm; vmAlert ] }
@@ -44,18 +43,17 @@ let tests = testList "Alerts" [
         let myAlert = alert { 
                 name "myDbAlert"
                 description "Alert if DB DTU goes over 80% for 5 minutes"
-                frequency (DurationInterval.FiveMinutes)
-                window (DurationInterval.FiveMinutes)
+                frequency DurationInterval.FiveMinutes
+                window DurationInterval.FiveMinutes
                 add_linked_resource resId
-                severity AlertSeverity.Alert_Error
-                criteria 
-                    (SingleResourceMultipleMetricCriteria [
+                severity AlertSeverity.Error
+                single_resource_multiple_metric_criteria [
                         {   MetricNamespace = resId.ResourceId.Type
                             MetricName = MetricsName.SQL_DB_DTU
                             Threshold = 80
                             Comparison = GreaterThan
                             Aggregation = Average
-                        }])
+                        }]
             } 
 
         let template = arm { add_resource sql; add_resource myAlert }
@@ -82,11 +80,11 @@ let tests = testList "Alerts" [
         let webAlert = alert { 
             name "myWebAlert"
             description "Alert if Google is failing 5 mins on both 2 locations"
-            frequency (DurationInterval.OneMinute)
-            window (DurationInterval.FiveMinutes)
+            frequency DurationInterval.OneMinute
+            window DurationInterval.FiveMinutes
             add_linked_resources [aiId; webId]
-            severity AlertSeverity.Alert_Warning
-            criteria (WebtestLocationAvailabilityCriteria(aiId.ResourceId, webId.ResourceId, 2))
+            severity AlertSeverity.Warning
+            webtest_location_availability_criteria (aiId.ResourceId, webId.ResourceId, 2)
         }
 
         let template = arm { add_resources [ ai; webtest; webAlert ] }

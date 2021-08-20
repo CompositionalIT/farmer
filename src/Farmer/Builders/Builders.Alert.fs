@@ -32,7 +32,7 @@ type AlertBuilder() =
     member __.Yield _ =
         { Name = ResourceName.Empty
           Description = ""
-          Severity = AlertSeverity.Alert_Error
+          Severity = AlertSeverity.Error
           Frequency = DurationInterval.FiveMinutes
           Window = DurationInterval.FifteenMinutes
           Actions = List.empty
@@ -69,9 +69,19 @@ type AlertBuilder() =
     member this.LinkedResource(state:AlertConfig, resource:ResourceId) = this.LinkedResource(state, resource |> Managed)
     member this.LinkedResource(state:AlertConfig, builder:IBuilder) = this.LinkedResource(state, builder.ResourceId |> Managed)
 
-    [<CustomOperation "criteria">]
+    [<CustomOperation "single_resource_multiple_metric_criteria">]
     /// The rule criteria that defines the conditions of the alert rule.
-    member __.Criteria(state:AlertConfig, criteria) = { state with Criteria = criteria }
+    member __.SingleCriteria(state:AlertConfig, criteria) = { state with Criteria = SingleResourceMultipleMetricCriteria criteria }
+
+    [<CustomOperation "multiple_resource_multiple_metric_criteria">]
+    /// The rule criterias that defines the conditions of the alert rule.
+    member __.MultiCriteria(state:AlertConfig, criteria) = { state with Criteria = MultipleResourceMultipleMetricCriteria criteria }
+
+    [<CustomOperation "webtest_location_availability_criteria">]
+    /// The rule criteria that defines the conditions of the alert rule.
+    /// AppInsightsId * WebTestId * FailedLocationCount
+    /// If webtest is failing at the same time from x different locations
+    member __.WebCriteria(state:AlertConfig, criteria) = { state with Criteria = WebtestLocationAvailabilityCriteria criteria }
 
     [<CustomOperation "add_action">]
     /// Add an action that are performed when the alert rule becomes active.
