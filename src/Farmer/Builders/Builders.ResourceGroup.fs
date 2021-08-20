@@ -114,6 +114,18 @@ type ResourceGroupBuilder() =
     member _.AddResource (state:ResourceGroupConfig, input:IBuilder) = ResourceGroupBuilder.AddResources(state, input.BuildResources state.Location)
     member _.AddResource (state:ResourceGroupConfig, input:Builder) = ResourceGroupBuilder.AddResources(state, input state.Location)
     member _.AddResource (state:ResourceGroupConfig, input:IArmResource) = ResourceGroupBuilder.AddResources(state, [ input ])
+    member _.AddResource (state:ResourceGroupConfig, input:IBuilder option) = 
+        match input with
+        | Some inp -> ResourceGroupBuilder.AddResources(state, inp.BuildResources state.Location)
+        | None -> state
+    member _.AddResource (state:ResourceGroupConfig, input:Builder option) = 
+        match input with
+        | Some inp -> ResourceGroupBuilder.AddResources(state, inp state.Location)
+        | None -> state
+    member _.AddResource (state:ResourceGroupConfig, input:IArmResource option) = 
+        match input with
+        | Some inp -> ResourceGroupBuilder.AddResources(state, [ inp ])
+        | None -> state
 
     [<CustomOperation "add_resources">]
     member this.AddResources(state:ResourceGroupConfig, input:IBuilder list) =
