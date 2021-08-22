@@ -67,7 +67,7 @@ type AksConfig =
               Location = location
               DnsPrefix =
                   if String.IsNullOrWhiteSpace this.DnsPrefix then
-                      String.Format("{0}-{1:x}", this.Name.Value, this.Name.Value.GetHashCode())
+                      $"{this.Name.Value}-%x{this.Name.Value.GetHashCode()}"
                   else this.DnsPrefix
               EnableRBAC = this.EnableRBAC
               Identity = this.Identity
