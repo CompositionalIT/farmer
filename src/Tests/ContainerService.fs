@@ -5,7 +5,6 @@ open Farmer.Builders
 open Farmer
 open Microsoft.Azure.Management.Compute.Models
 open Microsoft.Azure.Management.ContainerService
-open Microsoft.Azure.Management.ContainerService.Models
 open Microsoft.Rest
 open System
 
@@ -15,21 +14,52 @@ let tests = testList "AKS" [
     /// The simplest AKS cluster would be one that uses a system assigned managed identity (MSI),
     /// uses that MSI for accessing other resources, and then takes the defaults for node pool
     /// size (3 nodes) and DNS prefix (generated based on cluster name).
-    test "Basic AKS cluster" {
+    test "Basic AKS cluster with MSI" {
         let myAks = aks {
             name "aks-cluster"
-            system_identity
-            linux_profile "azureuser" "public-key-here"
             service_principal_use_msi
         }
+        let template = arm { add_resource myAks }
         let aks =
-            arm { add_resource myAks }
+            template
             |> findAzureResources<ContainerService> dummyClient.SerializationSettings
             |> Seq.head
         Expect.equal aks.Name "aks-cluster" ""
         Expect.hasLength aks.AgentPoolProfiles 1 ""
         Expect.equal aks.AgentPoolProfiles.[0].Name "nodepool1" ""
         Expect.equal aks.AgentPoolProfiles.[0].Count 3 ""
+        let json = template.Template |> Writer.toJson
+        let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+        let identity = jobj.SelectToken("resources[?(@.name=='aks-cluster')].identity.type") |> string
+        Expect.equal identity "SystemAssigned" "Basic cluster using MSI should have a SystemAssigned identity."
+    }
+    test "Basic AKS cluster with client ID" {
+        let myAks = aks {
+            name "aks-cluster"
+            service_principal_client_id "some-spn-client-id"
+        }
+        let template = arm { add_resource myAks }
+        let aks =
+            template
+            |> findAzureResources<ContainerService> dummyClient.SerializationSettings
+            |> Seq.head
+        Expect.equal aks.Name "aks-cluster" ""
+        Expect.hasLength aks.AgentPoolProfiles 1 ""
+        Expect.equal aks.AgentPoolProfiles.[0].Name "nodepool1" ""
+        Expect.equal aks.AgentPoolProfiles.[0].Count 3 ""
+        let json = template.Template |> Writer.toJson
+        let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+        let identity = jobj.SelectToken("resources[?(@.name=='aks-cluster')].identity.type") |> string
+        Expect.equal identity "None" "Basic cluster with client ID should have no identity assigned."
+    }
+    test "Basic AKS cluster needs SP" {
+        Expect.throws (fun _ ->
+            let myAks = aks {
+                name "aks-cluster"
+            }
+            let template = arm { add_resource myAks }
+            template |> Writer.quickWrite "aks-cluster-should-fail"
+        ) "Error should be raised if there are no service principal settings."
     }
     test "Simple AKS cluster" {
         let myAks = aks {

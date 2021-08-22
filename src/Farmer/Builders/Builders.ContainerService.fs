@@ -234,8 +234,8 @@ type AksBuilder() =
         | BasicLoadBalancer, PrivateClusterEnabled ->
             invalidArg "sku" "Private cluster requires a standard SKU load balancer."
         | _ -> ()
-        if System.String.IsNullOrWhiteSpace config.ServicePrincipalClientID then
-            raiseFarmer "Missing ServicePrincipalClientID on ManagedCluster."
+        if String.IsNullOrWhiteSpace config.ServicePrincipalClientID then
+            raiseFarmer "Missing ServicePrincipalClientID on ManagedCluster - specify 'service_principal_use_msi' or 'service_principal_client_id' to assign one."
         config
     /// Sets the name of the AKS cluster.
     [<CustomOperation "name">]

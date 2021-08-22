@@ -62,7 +62,13 @@ type ManagedCluster =
                 yield! this.Identity.Dependencies
             ]
             {| managedClusters.Create(this.Name, this.Location, dependencies) with
-                   identity = this.Identity.ToArmJson
+                   identity = // If using MSI but no identity was set, then enable the system identity like the CLI
+                       if this.ServicePrincipalProfile.ClientId = "msi"
+                          && this.Identity.SystemAssigned = FeatureFlag.Disabled
+                          && this.Identity.UserAssigned.Length = 0 then
+                           { SystemAssigned = Enabled; UserAssigned = [] }.ToArmJson
+                       else
+                           this.Identity.ToArmJson
                    properties =
                        {| agentPoolProfiles =
                            this.AgentPoolProfiles

@@ -64,8 +64,8 @@ The CNI builder (`azureCniNetworkProfile`) creates Azure CNI network profiles on
 
 #### Basic Example
 
-The simplest cluster uses managed identity and default settings for 
-the node pool (size of 3).
+The simplest cluster uses a system assigned managed identity and 
+default settings for the node pool (size of 3).
 
 ```fsharp
 open Farmer
@@ -74,8 +74,6 @@ open Farmer.ContainerService
 
 let myAks = aks {
     name "aks-cluster"
-    system_identity
-    linux_profile "azureuser" "public-key-here"
     service_principal_use_msi
 }
 ```
