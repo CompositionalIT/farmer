@@ -1,5 +1,7 @@
 Release Notes
 =============
+#vNext
+* Dashboads: Fixes for complex dashboards: custom parts and monitor parts.
 
 ## 1.6.13
 * Container Groups: Fix to generate parameters for secure environment variables on `initContainers`.

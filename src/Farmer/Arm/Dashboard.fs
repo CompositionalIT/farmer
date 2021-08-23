@@ -16,10 +16,10 @@ type LensMetadata = {
     ``type`` : string
     inputs : obj list
     settings : obj
-    filters : obj option
-    asset : LensAsset option
-    isAdapter : bool option
-    defaultMenuItemId : string option
+    filters : obj
+    asset : LensAsset
+    isAdapter : System.Nullable<bool>
+    defaultMenuItemId : string
 }
 type LensPosition = { x : int; y : int; rowSpan : int; colSpan : int; }
 
@@ -34,10 +34,10 @@ let generateMarkdownPart (markdownProperties:MarkdownPartParameters) = {
     ``type`` = "Extension[azure]/HubsExtension/PartType/MarkdownPart"
     inputs = List.empty
     settings = {| content = markdownProperties.content; title = markdownProperties.title; subtitle = markdownProperties.subtitle |} :> obj
-    filters = None
-    asset = None 
-    isAdapter = None
-    defaultMenuItemId = None
+    filters = null
+    asset = Unchecked.defaultof<LensAsset> 
+    isAdapter = System.Nullable()
+    defaultMenuItemId = null
 }
 
 type VideoPartParameters = {title:string; subtitle:string; url:string}
@@ -46,32 +46,32 @@ let generateVideoPart (videoProperties:VideoPartParameters) = {
     ``type`` = "Extension[azure]/HubsExtension/PartType/VideoPart"
     inputs = List.empty
     settings = {| content = {| settings = {| title = videoProperties.title; subtitle = videoProperties.subtitle; src = videoProperties.url; autoplay= false |} |} |} :> obj
-    filters = None
-    asset = None 
-    isAdapter = None
-    defaultMenuItemId = None
+    filters = null
+    asset = Unchecked.defaultof<LensAsset> 
+    isAdapter = System.Nullable()
+    defaultMenuItemId = null
 }
 
 /// Generates a virtualMachinePart
 let generateVirtualMachinePart (vmId:ResourceId) = {
     ``type`` = "Extension/Microsoft_Azure_Compute/PartType/VirtualMachinePart"
     inputs = [ {| name = "id"; value = vmId.ArmExpression.Eval() |} :> obj ]
-    settings = None
-    filters = None
-    asset = Some { idInputName = "id"; ``type`` = "VirtualMachine" }
-    isAdapter = None
-    defaultMenuItemId = Some "overview"
+    settings = null
+    filters = null
+    asset = { idInputName = "id"; ``type`` = "VirtualMachine" }
+    isAdapter = System.Nullable()
+    defaultMenuItemId = "overview"
 }
 
-/// Generates a virtualMachinePart
+/// Generates a webtest part
 let generateWebtestResultPart (applicationInsightsName:string) = {
     ``type`` = "Extension/AppInsightsExtension/PartType/AllWebTestsResponseTimeFullGalleryAdapterPart"
     inputs = [ {| name = "ComponentId"; value = {| Name = applicationInsightsName; SubscriptionId = "[ subscription().subscriptionId ]"; ResourceGroup = "[ resourceGroup().id ]" |} |} ]
-    settings = None
-    filters = None
-    asset = Some { idInputName = "ComponentId"; ``type`` = "ApplicationInsights" }
-    isAdapter = Some true
-    defaultMenuItemId = None
+    settings = null
+    filters = null
+    asset = { idInputName = "ComponentId"; ``type`` = "ApplicationInsights" }
+    isAdapter = System.Nullable(true)
+    defaultMenuItemId = null
 }
 type MetrixChartParameters = { resourceId:ResourceId; metrics: MetricsName list; interval : IsoDateTime }
 /// Generates a MetricsChartPart for a resource given in parameters
@@ -84,14 +84,14 @@ let generateMetricsChartPart (chartProperties:MetrixChartParameters) = {
                              metrics = chartProperties.metrics |> List.map(function 
                                             MetricsName m -> {| name = m; resourceId = chartProperties.resourceId.ArmExpression.Eval() |})
                           |} |}  ]
-    settings = None
-    filters = None
-    asset = None
-    isAdapter = None
-    defaultMenuItemId = None
+    settings = null
+    filters = null
+    asset = Unchecked.defaultof<LensAsset>
+    isAdapter = System.Nullable()
+    defaultMenuItemId = null
 }
 
-type MonitorChartParameters = { chartInputs:obj list; chartSettings: obj option; filters : obj option }
+type MonitorChartParameters = { chartInputs:obj list; chartSettings: obj; filters : obj }
 /// Generates a MonitorChartPart
 let generateMonitorChartPart (chartProperties : MonitorChartParameters) = {
     ``type`` = "Extension/HubsExtension/PartType/MonitorChartPart"
@@ -99,11 +99,11 @@ let generateMonitorChartPart (chartProperties : MonitorChartParameters) = {
                box <| {| name = "options"
                          value = {| v2charts = true
                                     charts = [ chartProperties.chartInputs ] |} |} ]
-    settings = Some ({| content = {| options = {| chart = chartProperties.chartSettings |} |} |})
+    settings = {| content = {| options = {| chart = chartProperties.chartSettings |} |} |}
     filters = chartProperties.filters
-    asset = None
-    isAdapter = None
-    defaultMenuItemId = None
+    asset = Unchecked.defaultof<LensAsset>
+    isAdapter = System.Nullable()
+    defaultMenuItemId = null
 }
 
 type Dashboard =
