@@ -54,7 +54,7 @@ let dash = dashboard {
     )
     add_metrics_chart (
         { x = 0; y = 4; rowSpan = 3; colSpan = 11 },
-        { interval = Farmer.Arm.Dashboard.ChartDurationInterval.OneHour; 
+        { interval = (System.TimeSpan(1,0,0) |> IsoDateTime.OfTimeSpan); 
           metrics = [ Farmer.Arm.Dashboard.ChartResources.PercentageCPU ]; 
           resourceId = vmId }
     )
@@ -96,7 +96,7 @@ let dashboard2 = dashboard {
                                itemDataModel = {| id = $"defaultAiChartDiv{System.Guid.NewGuid()}"; grouping = null; chartHeight = 1;
                                                   priorPeriod = false; horizontalBars = true; showOther = false; palette = "multiColor";
                                                   jsonDefinitionId = ""; yAxisOptions = {| options = 1 |}; 
-                                                  appliedISOGrain = Farmer.Arm.Dashboard.ChartDurationInterval.OneMinute;
+                                                  appliedISOGrain = (System.TimeSpan(0,1,0) |> IsoDateTime.OfTimeSpan);
                                                   title = chartTitle; titleKind = "Auto"
                                                   visualization = {| chartType = 2; legend = null; axis = null |}
                                                   metrics = [

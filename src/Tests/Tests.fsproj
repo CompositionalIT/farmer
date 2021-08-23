@@ -10,6 +10,7 @@
     <Content Include="test-data\*.json" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="Helpers.fs" />
     <Compile Include="AppInsights.fs" />
+    <Compile Include="Alerts.fs" />
     <Compile Include="AvailabilityTests.fs" />
     <Compile Include="AzureFirewall.fs" />
     <Compile Include="DiagnosticSettings.fs" />

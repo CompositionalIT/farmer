@@ -73,6 +73,7 @@ module DataLocationExtensions =
         static member UnitedKingdom = DataLocation "United Kingdom"
         static member UnitedStates = DataLocation "United States"
 
+
 type OS = Windows | Linux
 
 type [<Measure>] Gb
@@ -398,6 +399,22 @@ module ServiceBusValidation =
             |> Result.map (ResourceName >> ServiceBusName)
 
         member this.ResourceName = match this with ServiceBusName name -> name
+
+module Insights =
+
+    /// https://docs.microsoft.com/en-us/azure/azure-monitor/essentials/metrics-supported
+    type MetricsName = 
+    | MetricsName of string
+        static member PercentageCPU = MetricsName "Percentage CPU"
+        static member DiskReadOperationsPerSec = MetricsName "Disk Read Operations/Sec"
+        static member DiskWriteOperationsPerSec = MetricsName "Disk Write Operations/Sec"
+        static member DiskReadBytes = MetricsName "Disk Read Bytes"
+        static member DiskWriteBytes = MetricsName "Disk Write Bytes"
+        static member MemoryAvailable = MetricsName "Available Memory Bytes"
+        static member NetworkIn = MetricsName "Network In"
+        static member NetworkOut = MetricsName "Network Out"
+        static member SQL_DB_DTU = MetricsName "dtu_consumption_percent"
+        static member SQL_DB_Size = MetricsName "storage_percent"
 
 module Storage =
     open Validation

@@ -3,6 +3,7 @@ Release Notes
 
 ## 1.6.13
 * Container Groups: Fix to generate parameters for secure environment variables on `initContainers`.
+* Alerts: Initial support for Alerts
 
 ## 1.6.12
 * Custom FarmerException raised for all exceptions.
