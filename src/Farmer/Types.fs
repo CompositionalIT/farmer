@@ -93,7 +93,7 @@ type ArmExpression =
     member this.Map mapper = match this with ArmExpression (e, r) -> ArmExpression(mapper e, r)
     /// Evaluates the expression for emitting into an ARM template. That is, wraps it in [].
     member this.Eval() =
-        let specialCases = [ @"string\(\'[^\']*\'\)", 8, 10; @"^'\w*'$", 1, 2 ]
+        let specialCases = [ @"string\(\'[^\']*\'\)", 8, 10; @"^'[^']*'$", 1, 2 ]
         match specialCases |> List.tryFind(fun (case, _, _) -> System.Text.RegularExpressions.Regex.IsMatch(this.Value, case)) with
         | Some (_, start, finish) -> this.Value.Substring(start, this.Value.Length - finish)
         | None -> $"[{this.Value}]"
@@ -138,6 +138,9 @@ type ResourceId with
     member this.Eval() = this.ArmExpression.Eval()
 
 type ArmExpression with
+    static member reference (resourceId:ResourceId) =
+        ArmExpression.create($"reference({resourceId.ArmExpression.Value}, '{resourceId.Type.ApiVersion}')")
+                     .WithOwner(resourceId)
     static member reference (resourceType:ResourceType, resourceId:ResourceId) =
         ArmExpression.create($"reference({resourceId.ArmExpression.Value}, '{resourceType.ApiVersion}')")
                      .WithOwner(resourceId)
@@ -199,16 +202,12 @@ type LinkedResource =
         | Unmanaged resId -> resId
     member this.Name = this.ResourceId.Name
 
-type SslState = 
-    | Sni of thumbprint:ArmExpression
-    | SslDisabled
-
 type CertificateOptions = 
-    | AppManagedCertificate of SslState
+    | AppManagedCertificate 
     | CustomCertificate of thumbprint:ArmExpression
     
 type DomainConfig = 
-    | SecuredDomain of domain:string * cert:CertificateOptions Option
+    | SecureDomain of domain:string * cert:CertificateOptions
     | InsecureDomain of domain:string
     | NoDomain
 

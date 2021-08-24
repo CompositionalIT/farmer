@@ -301,6 +301,10 @@ type StaticSite =
             this.RepositoryToken
         ]
 
+type SslState = 
+    | SslDisabled
+    | SniBased of thumbprint: ArmExpression
+
 type HostNameBinding =
     { Location: Location
       SiteId: LinkedResource
@@ -324,7 +328,7 @@ type HostNameBinding =
                 {| hostNameBindings.Create(this.ResourceName, this.Location, this.Dependencies) with
                     properties =
                         match this.SslState with 
-                        | Sni thumbprint -> 
+                        | SniBased thumbprint -> 
                             {| sslState = "SniEnabled"
                                thumbprint = thumbprint.Eval() |} :> obj
                         | SslDisabled -> {| |} :> obj
@@ -335,9 +339,9 @@ type Certificate =
       SiteId: ResourceId
       ServicePlanId: ResourceId
       DomainName: string }
-        member this.ResourceName =
-          let (ResourceName name) = this.SiteId.Name
-          ResourceName $"{name}-cert"
+        member this.ResourceName = this.SiteId.Name.Map (sprintf "%s-cert")
+        member this.Thumbprint =
+            ArmExpression.reference(certificates.resourceId this.ResourceName).Map(sprintf "%s.Thumbprint")
         interface IArmResource with
             member this.ResourceId = certificates.resourceId this.ResourceName
             member this.JsonModel =
