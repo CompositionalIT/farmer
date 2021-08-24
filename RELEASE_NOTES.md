@@ -4,6 +4,7 @@ Release Notes
 ## 1.6.13
 * Alerts: Initial support for Alerts
 * Container Groups: Fix to generate parameters for secure environment variables on `initContainers`.
+* Key Vaults: Support for adding access policies on an existing key vault with `keyVaultAddPolicies`.
 * Virtual Networks: support for adding subnets to existing virtual networks.
 
 ## 1.6.12

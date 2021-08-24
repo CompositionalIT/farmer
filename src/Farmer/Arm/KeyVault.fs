@@ -6,6 +6,7 @@ open Farmer.KeyVault
 open System
 
 let secrets = ResourceType ("Microsoft.KeyVault/vaults/secrets", "2019-09-01")
+let accessPolicies = ResourceType ("Microsoft.KeyVault/vaults/accessPolicies", "2019-09-01")
 let vaults = ResourceType ("Microsoft.KeyVault/vaults", "2019-09-01")
 
 module Vaults =
@@ -118,6 +119,44 @@ type Vault =
                            bypass = this.Bypass  |> Option.map string |> Option.toObj
                            ipRules = this.IpRules
                            virtualNetworkRules = this.VnetRules |}
+                    |}
+            |} :> _
+
+type VaultAddPolicies =
+    { KeyVault : LinkedResource
+      TenantId : string option
+      AccessPolicies :
+        {| ObjectId : ArmExpression
+           ApplicationId : Guid option
+           Permissions :
+            {| Keys : Key Set
+               Secrets : Secret Set
+               Certificates : Certificate Set
+               Storage : Storage Set |}
+        |} list
+    }
+    member private _.ToStringArray s = s |> Set.map(fun s -> s.ToString().ToLower()) |> Set.toArray
+    interface IArmResource with
+        member this.ResourceId = accessPolicies.resourceId (this.KeyVault.Name / (ResourceName "add"))
+        member this.JsonModel =
+            let dependencies =
+                match this.KeyVault with
+                | Managed kvResId -> [ kvResId ]
+                | _ -> []
+            {| accessPolicies.Create(this.KeyVault.Name / (ResourceName "add"), dependsOn=dependencies) with
+                properties =
+                    {| accessPolicies = [|
+                        for policy in this.AccessPolicies do
+                            {| objectId = ArmExpression.Eval policy.ObjectId
+                               tenantId = this.TenantId |> Option.defaultValue "[subscription().tenantId]"
+                               applicationId = policy.ApplicationId |> Option.map string |> Option.toObj
+                               permissions =
+                                {| keys = this.ToStringArray policy.Permissions.Keys
+                                   storage = this.ToStringArray policy.Permissions.Storage
+                                   certificates = this.ToStringArray policy.Permissions.Certificates
+                                   secrets = this.ToStringArray policy.Permissions.Secrets |}
+                            |}
+                       |]
                     |}
             |} :> _
 

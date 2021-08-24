@@ -6,11 +6,11 @@ weight: 11
 ---
 
 ### Overview
-The KeyVault package contains *three* builders, for the different components used by KeyVault: One for **access policies**, one for **secrets**, and one for the overall **keyvault** container.
+The KeyVault package contains *four* builders, for the different components used by KeyVault: One for **access policies**, one for **secrets**, one for the overall **keyvault** container, and one for **adding access policies** to an existing key vault.
 
 * KeyVault (`Microsoft.KeyVault/vaults`)
 * Secrets (`Microsoft.KeyVault/vaults/secrets`)
-
+* AccessPolicies (`Microsoft.KeyVault/vaults/accessPolicies`)
 
 #### Secret Builder
 The secret builder allows you to store secrets into key vault. Values for a secret are passed by Secure String parameters.
@@ -73,6 +73,15 @@ The Key Vault builder contains access policies, secrets, and configuration infor
 | add_secrets | Adds multiple secrets to the vault. This can either be "full" secret configs created using the Secret Builder, string literal values which represents the parameter name. |
 | add_tag | Adds a tag to the key vault. |
 | add_tags | Adds multiple tags to the key vault. |
+
+#### Key Vault Add Access Policy Builder (`keyVaultAddPolicies`)
+As applications grow, more components often need access to a key vault. The `keyVaultAddPolicies` builder is used to add new access policies to an existing key vault without the need to redeploy the full key vault, potentially changing existing access.
+
+| Keyword | Purpose |
+|-|-|
+| key_vault | Sets the resource Id or a builder for the existing key vault where the policies should be added. |
+| add_access_policies | A list of policies to add to the key vault. |
+| tenant_id | Used if granting access to users or service principals from another tenant. |
 
 #### Configuration Members
 
