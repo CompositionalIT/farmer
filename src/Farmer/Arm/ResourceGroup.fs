@@ -10,14 +10,15 @@ type DeploymentMode = Incremental|Complete
 
 /// Represents all configuration information to generate an ARM template.
 type ResourceGroupDeployment =
-    { Name: ResourceName
+    { Name: ArmExpression
       Dependencies: ResourceId Set
       Outputs : Map<string, string>
       Location : Location
       Resources : IArmResource list
       Mode: DeploymentMode
       Tags: Map<string,string> }
-    member this.ResourceId = resourceGroupDeployment.resourceId this.Name
+    member this.ResourceName = this.Name.Eval()
+    member this.ResourceId = resourceGroupDeployment.resourceId this.ResourceName
     member this.Parameters = 
           [ for resource in this.Resources do
                 match resource with
@@ -31,7 +32,11 @@ type ResourceGroupDeployment =
                 (function 
                 | :? ResourceGroupDeployment as rg -> rg.RequiredResourceGroups 
                 | _ ->  [])
-        List.distinct (this.Name.Value :: nestedRgs)        
+        if this.ResourceName.[0] = '[' then
+            // Calculated resource group names aren't auto-generate because we'd have to evaluate the ARM expression to figure out what they should be
+            List.distinct nestedRgs
+        else
+            List.distinct (this.ResourceName :: nestedRgs)        
     member this.Template = 
         { Parameters = this.Parameters
           Outputs = this.Outputs |> Map.toList
@@ -39,11 +44,11 @@ type ResourceGroupDeployment =
     interface IParameters with 
         member this.SecureParameters = this.Parameters
     interface IArmResource with
-        member this.ResourceId = resourceGroupDeployment.resourceId this.Name
+        member this.ResourceId = resourceGroupDeployment.resourceId this.ResourceName
         member this.JsonModel = 
-            {| resourceGroupDeployment.Create(this.Name, this.Location, dependsOn = this.Dependencies, tags = this.Tags ) with
+            {| resourceGroupDeployment.Create(ResourceName this.ResourceName, this.Location, dependsOn = this.Dependencies, tags = this.Tags ) with
                 location = null // location is not supported for nested resource groups
-                resourceGroup = this.Name.Value
+                resourceGroup = this.ResourceName
                 properties = 
                     {|  template = TemplateGeneration.processTemplate this.Template
                         parameters = 
