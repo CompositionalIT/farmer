@@ -663,6 +663,5 @@ let tests = testList "Web App Tests" [
         let hostnameBinding = resources |> getResource<Web.HostNameBinding>
 
         Expect.equal hostnameBinding.Length 0 $"There should not be a hostname binding as a result of choosing the 'NoDomain' option"
-
     }
 ]

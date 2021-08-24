@@ -37,7 +37,7 @@ type ResourceGroupConfig =
               Mode = this.Mode
               Tags = this.Tags }
             |> Some
-    member this.Template = 
+    member this.Template =
         this.ContentDeployment
         |> Option.map (fun x -> x.Template)
         |> Option.defaultValue
