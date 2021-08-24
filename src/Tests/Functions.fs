@@ -168,26 +168,6 @@ let tests = testList "Functions tests" [
         Expect.isTrue ((slots.Item 0).AppSettings.ContainsKey("setting")) "Slot should have slot setting"
     }
 
-    test "Functions App with slot does not add settings to app service" {
-        let slot = appSlot { name "warm-up" }
-        let config = functions {
-            name "func"
-            add_slot slot
-            setting "setting" "some value"
-        }
-
-        let sites =
-            config
-            |> getResources
-            |> getResource<Farmer.Arm.Web.Site>
-        let slots = sites |> List.filter (fun s -> s.ResourceType = Arm.Web.slots)
-
-        // Default "production" slot is not included as it is created automatically in Azure
-        Expect.hasLength slots 1 "Should only be 1 slot"
-
-        Expect.isFalse (sites.[0].AppSettings.ContainsKey("setting")) "App service should not have any settings"
-    }
-
     test "Functions App adds literal settings to slots" {
         let slot = appSlot { name "warm-up" }
         let site = functions { name "func"; add_slot slot; operating_system Windows }
@@ -294,5 +274,24 @@ let tests = testList "Functions tests" [
 
     test "Not setting the functions name causes an error" {
         Expect.throws (fun () -> functions { storage_account_name "foo" } |> ignore) "Not setting functions name should throw"
+    }
+    
+    test "Can deploy slots only" {
+        let resources = webApp{ name "test"; add_slot "deploy"; deploy_production_slot Disabled } |> getResources
+        let sites = 
+            resources
+            |> List.choose (function | :? Arm.Web.Site as site -> Some site | _ -> None)
+        Expect.hasLength sites 1 "There should only be one site - the slot"
+        Expect.equal (Slot <| (ResourceName "test") / "deploy") sites.[0].SiteType "Site resource should have been the deploy slot"
+    
+        let genResources = 
+            resources 
+            |> List.map (Serialization.toJson >> Serialization.ofJson<GenericArmResource>)
+            
+        let mustNotContain = "[resourceId('Microsoft.Web/sites', 'test')]"
+        for res in genResources do
+            if res.dependsOn <> null then
+                for dep in res.dependsOn do
+                    Expect.notEqual mustNotContain dep $"Resource {res.name} depends on {mustNotContain} which has been removed from the template" 
     }
 ]

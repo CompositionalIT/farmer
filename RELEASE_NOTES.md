@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+## 1.6.14
+* WebApp: allow disabling deployments to the production slot of multi-slot apps
+* Functions: allow disabling deployments to the production slot of multi-slot apps
+
 ## 1.6.13
 * Container Groups: Fix to generate parameters for secure environment variables on `initContainers`.
 * Alerts: Initial support for Alerts

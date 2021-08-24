@@ -83,7 +83,7 @@ let tests = testList "Web App Tests" [
                 enable_cors [ "https://bbc.co.uk" ]
                 enable_cors_credentials
             }
-            |> getResourceAtIndex 3
+            |> getResourceAtIndex 2
         Expect.sequenceEqual wa.SiteConfig.Cors.AllowedOrigins [ "https://bbc.co.uk" ] "Allowed Origins should be *"
         Expect.equal wa.SiteConfig.Cors.SupportCredentials (Nullable true) "Support Credentials"
     }
@@ -99,7 +99,7 @@ let tests = testList "Web App Tests" [
 
     test "Automatically converts from * to AllOrigins" {
         let wa : Site =
-            webApp { name "test"; enable_cors [ "*" ] } |> getResourceAtIndex 3
+            webApp { name "test"; enable_cors [ "*" ] } |> getResourceAtIndex 2
         Expect.sequenceEqual wa.SiteConfig.Cors.AllowedOrigins [ "*" ] "Allowed Origins should be *"
     }
 
@@ -110,7 +110,7 @@ let tests = testList "Web App Tests" [
 
     test "If CORS is not enabled, ignores enable credentials" {
         let wa : Site =
-            webApp { name "test"; enable_cors_credentials } |> getResourceAtIndex 3
+            webApp { name "test"; enable_cors_credentials } |> getResourceAtIndex 2
         Expect.isNull wa.SiteConfig.Cors "Should be no CORS settings"
     }
 
@@ -206,11 +206,11 @@ let tests = testList "Web App Tests" [
         let wa : Site = webApp { name "testsite" } |> getResourceAtIndex 0
         Expect.isNull wa.Identity  "Default managed identity should be null"
 
-        let wa : Site = webApp { name "othertestsite"; system_identity } |> getResourceAtIndex 3
+        let wa : Site = webApp { name "othertestsite"; system_identity } |> getResourceAtIndex 2
         Expect.equal wa.Identity.Type (Nullable ManagedServiceIdentityType.SystemAssigned) "Should have system identity"
         Expect.isNull wa.Identity.UserAssignedIdentities "Should have no user assigned identities"
 
-        let wa : Site = webApp { name "thirdtestsite"; system_identity; add_identity (createUserAssignedIdentity "test"); add_identity (createUserAssignedIdentity "test2") } |> getResourceAtIndex 3
+        let wa : Site = webApp { name "thirdtestsite"; system_identity; add_identity (createUserAssignedIdentity "test"); add_identity (createUserAssignedIdentity "test2") } |> getResourceAtIndex 2
         Expect.equal wa.Identity.Type (Nullable ManagedServiceIdentityType.SystemAssignedUserAssigned) "Should have system identity"
         Expect.sequenceEqual (wa.Identity.UserAssignedIdentities |> Seq.map(fun r -> r.Key)) [ "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test2')]"; "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test')]" ] "Should have two user assigned identities"
         Expect.contains (wa.SiteConfig.AppSettings |> Seq.map(fun s -> s.Name, s.Value)) ("AZURE_CLIENT_ID", "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'test2')).clientId]") "Missing AZURE_CLIENT_ID"
@@ -218,7 +218,7 @@ let tests = testList "Web App Tests" [
 
     test "Unmanaged server farm is fully qualified in ARM" {
         let farm = ResourceId.create(serverFarms, ResourceName "my-asp-name", "my-asp-resource-group")
-        let wa : Site = webApp { name "test"; link_to_unmanaged_service_plan farm } |> getResourceAtIndex 2
+        let wa : Site = webApp { name "test"; link_to_unmanaged_service_plan farm } |> getResourceAtIndex 1
         Expect.equal wa.ServerFarmId "[resourceId('my-asp-resource-group', 'Microsoft.Web/serverfarms', 'my-asp-name')]" ""
     }
 
@@ -275,13 +275,13 @@ let tests = testList "Web App Tests" [
 
     test "Deploys AI configuration correctly" {
         let hasSetting key message (wa:Site) = Expect.isTrue (wa.SiteConfig.AppSettings |> Seq.exists(fun k -> k.Name = key)) message
-        let wa : Site = webApp { name "testsite" } |> getResourceAtIndex 3
+        let wa : Site = webApp { name "testsite" } |> getResourceAtIndex 2
         wa |> hasSetting "APPINSIGHTS_INSTRUMENTATIONKEY" "Missing Windows instrumentation key"
 
-        let wa : Site = webApp { name "testsite"; operating_system Linux } |> getResourceAtIndex 3
+        let wa : Site = webApp { name "testsite"; operating_system Linux } |> getResourceAtIndex 2
         wa |> hasSetting "APPINSIGHTS_INSTRUMENTATIONKEY" "Missing Linux instrumentation key"
 
-        let wa : Site = webApp { name "testsite"; app_insights_off } |> getResourceAtIndex 2
+        let wa : Site = webApp { name "testsite"; app_insights_off } |> getResourceAtIndex 1
         Expect.isEmpty wa.SiteConfig.AppSettings "Should be no settings"
     }
 
@@ -289,18 +289,18 @@ let tests = testList "Web App Tests" [
         let template = webApp { name "web"; always_on }
         Expect.equal template.CommonWebConfig.AlwaysOn true "AlwaysOn should be true"
 
-        let w:Site = webApp { name "testDefault" } |> getResourceAtIndex 3
+        let w:Site = webApp { name "testDefault" } |> getResourceAtIndex 2
         Expect.equal w.SiteConfig.AlwaysOn (Nullable false) "always on should be false by default"
     }
 
     test "Supports 32 and 64 bit worker processes" {
-        let site : Site = webApp { name "web" } |> getResourceAtIndex 3
+        let site : Site = webApp { name "web" } |> getResourceAtIndex 2
         Expect.equal site.SiteConfig.Use32BitWorkerProcess (Nullable()) "Default worker process"
 
-        let site:Site = webApp { name "web2"; worker_process Bits32 } |> getResourceAtIndex 3
+        let site:Site = webApp { name "web2"; worker_process Bits32 } |> getResourceAtIndex 2
         Expect.equal site.SiteConfig.Use32BitWorkerProcess (Nullable true) "Should use 32 bit worker process"
 
-        let site:Site = webApp { name "web3"; worker_process Bits64 } |> getResourceAtIndex 3
+        let site:Site = webApp { name "web3"; worker_process Bits64 } |> getResourceAtIndex 2
         Expect.equal site.SiteConfig.Use32BitWorkerProcess (Nullable false) "Should not use 32 bit worker process"
     }
 
@@ -358,25 +358,6 @@ let tests = testList "Web App Tests" [
         Expect.hasLength slots 1 "Should only be 1 slot"
 
         Expect.isTrue ((slots.Item 0).AppSettings.ContainsKey("setting")) "Slot should have slot setting"
-    }
-
-    test "WebApp with slot does not add settings to app service" {
-        let slot = appSlot { name "warm-up" }
-        let config = webApp {
-            name "web"
-            add_slot slot
-            setting "setting" "some value"
-        }
-
-        let sites =
-            config
-            |> getResources
-            |> getResource<Farmer.Arm.Web.Site>
-
-        // Default "production" slot is not included as it is created automatically in Azure
-        Expect.hasLength sites 2 "Should only be 1 slot and 1 site"
-
-        Expect.isFalse ((sites.[0]).AppSettings.ContainsKey("setting")) "App service should not have any settings"
     }
 
     test "WebApp adds literal settings to slots" {
@@ -549,12 +530,12 @@ let tests = testList "Web App Tests" [
 
     test "Supports keyvault reference identity" {
         let app = webApp { name "farmerWebApp"}
-        let site:Site = app |> getResourceAtIndex 3
+        let site:Site = app |> getResourceAtIndex 2
         Expect.isNull site.KeyVaultReferenceIdentity "Keyvault identity should not be set"
 
         let myId = userAssignedIdentity { name "myFarmerIdentity" }
         let app = webApp { name "farmerWebApp"; keyvault_identity myId }
-        let site:Site = app |> getResourceAtIndex 3
+        let site:Site = app |> getResourceAtIndex 2
         Expect.equal site.KeyVaultReferenceIdentity "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'myFarmerIdentity')]" "Keyvault identity should not be set"
     }
 
@@ -578,5 +559,24 @@ let tests = testList "Web App Tests" [
         let wa = resources |> getResource<Web.Site> |> List.head
 
         Expect.equal wa.HealthCheckPath (Some "/status") "Health check path should be '/status'"
+    }
+
+    test "Can deploy slots only" {
+        let resources = webApp{ name "test"; add_slot "deploy"; deploy_production_slot Disabled } |> getResources
+        let sites = 
+            resources
+            |> List.choose (function | :? Arm.Web.Site as site -> Some site | _ -> None)
+        Expect.hasLength sites 1 "There should only be one site - the slot"
+        Expect.equal (Slot <| (ResourceName "test") / "deploy") sites.[0].SiteType "Site resource should have been the deploy slot"
+
+        let genResources = 
+            resources 
+            |> List.map (Serialization.toJson >> Serialization.ofJson<GenericArmResource>)
+        
+        let mustNotContain = "[resourceId('Microsoft.Web/sites', 'test')]"
+        for res in genResources do
+            if res.dependsOn <> null then
+                for dep in res.dependsOn do
+                    Expect.notEqual mustNotContain dep $"Resource {res.name} depends on {mustNotContain} which has been removed from the template" 
     }
 ]

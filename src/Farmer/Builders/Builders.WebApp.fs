@@ -80,10 +80,14 @@ type SlotConfig =
       KeyVaultReferenceIdentity: UserAssignedIdentity option
       Tags: Map<string,string>
       Dependencies: ResourceId Set}
-    member this.ToSite (owner: Arm.Web.Site) =
+    member this.ToSite (dependOnSite) (owner: Arm.Web.Site) =
         { owner with
             SiteType = SiteType.Slot (owner.Name/this.Name)
-            Dependencies = owner.Dependencies |> Set.add (owner.ResourceType.resourceId owner.Name)
+            Dependencies = 
+                [ yield! owner.Dependencies 
+                  if dependOnSite then 
+                    owner.ResourceType.resourceId owner.Name
+                ] |> Set.ofList
             AutoSwapSlotName = this.AutoSwapSlotName
             AppSettings = owner.AppSettings |> Map.merge ( this.AppSettings |> Map.toList)
             ConnectionStrings = owner.ConnectionStrings |> Map.merge (this.ConnectionStrings |> Map.toList)
@@ -175,7 +179,8 @@ type CommonWebConfig =
       Slots : Map<string,SlotConfig>
       WorkerProcess : Bitness option
       ZipDeployPath : (string*ZipDeploy.ZipDeploySlot) option
-      HealthCheckPath: string option }
+      HealthCheckPath: string option
+      DeployProductionSlot: bool}
 
 type WebAppConfig =
     { CommonWebConfig: CommonWebConfig
@@ -426,15 +431,6 @@ type WebAppConfig =
             | None ->
                 ()
 
-            match this.SourceControlSettings with
-            | Some settings ->
-                { Website = this.Name.ResourceName
-                  Location = location
-                  Repository = settings.Repository
-                  Branch = settings.Branch
-                  ContinuousIntegration = settings.ContinuousIntegration }
-            | None ->
-                ()
 
             match this.CommonWebConfig.AppInsights with
             | Some (DeployableResource this.Name.ResourceName resourceId) ->
@@ -464,17 +460,29 @@ type WebAppConfig =
             | _ ->
                 ()
 
-            for (ExtensionName extension) in this.SiteExtensions do
-                { Name = ResourceName extension
-                  SiteName = this.Name.ResourceName
-                  Location = location }
+            let siteDependants: IArmResource list = 
+                [ for (ExtensionName extension) in this.SiteExtensions do
+                    { Name = ResourceName extension
+                      SiteName = this.Name.ResourceName
+                      Location = location }
+                 
+                  match this.SourceControlSettings with
+                  | Some settings ->
+                      { Website = this.Name.ResourceName
+                        Location = location
+                        Repository = settings.Repository
+                        Branch = settings.Branch
+                        ContinuousIntegration = settings.ContinuousIntegration } 
+                  | None ->
+                      () 
+                ]
 
-            if Map.isEmpty this.CommonWebConfig.Slots then
-                site
-            else
-                { site with AppSettings = Map.empty; ConnectionStrings = Map.empty }
-                for (_,slot) in this.CommonWebConfig.Slots |> Map.toSeq do
-                    slot.ToSite site
+            if Map.isEmpty this.CommonWebConfig.Slots || this.CommonWebConfig.DeployProductionSlot then
+                    site
+                    yield! siteDependants
+
+            for (_,slot) in this.CommonWebConfig.Slots |> Map.toSeq do
+                slot.ToSite (this.CommonWebConfig.DeployProductionSlot) site
 
             yield! (PrivateEndpoint.create location this.ResourceId ["sites"] this.PrivateEndpoints)
         ]
@@ -496,7 +504,8 @@ type WebAppBuilder() =
               Slots = Map.empty
               WorkerProcess = None
               ZipDeployPath = None
-              HealthCheckPath = None }
+              HealthCheckPath = None
+              DeployProductionSlot = true }
           Sku = Sku.F1
           WorkerSize = Small
           WorkerCount = 1
@@ -812,3 +821,7 @@ module Extensions =
         [<CustomOperation "health_check_path">]
         /// Specifies the path Azure load balancers will ping to check for unhealthy instances.
         member this.HealthCheckPath(state:'T, healthCheckPath:string) = this.Map state (fun x -> {x with HealthCheckPath = Some(healthCheckPath)})
+        
+        /// Prevent making any changes to the production slot/primary app as these could cause the app to restart causing unwanted downtime
+        [<CustomOperation "deploy_production_slot">]
+        member this.IgnoreProductionSlot(state: 'T, deploy:FeatureFlag) = this.Map state (fun x -> {x with DeployProductionSlot = deploy.AsBoolean})

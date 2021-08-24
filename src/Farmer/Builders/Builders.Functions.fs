@@ -276,12 +276,11 @@ type FunctionsConfig =
             | None ->
                 ()
 
-            if Map.isEmpty this.CommonWebConfig.Slots then
+            if Map.isEmpty this.CommonWebConfig.Slots || this.CommonWebConfig.DeployProductionSlot then
                 site
-            else
-                { site with AppSettings = Map.empty }
-                for (_, slot) in this.CommonWebConfig.Slots |> Map.toSeq do
-                    slot.ToSite site
+
+            for (_, slot) in this.CommonWebConfig.Slots |> Map.toSeq do
+                slot.ToSite (this.CommonWebConfig.DeployProductionSlot) site
         ]
 
 type FunctionsBuilder() =
@@ -301,7 +300,8 @@ type FunctionsBuilder() =
               Slots = Map.empty
               WorkerProcess = None
               ZipDeployPath = None
-              HealthCheckPath = None }
+              HealthCheckPath = None
+              DeployProductionSlot = true}
           StorageAccount = derived (fun config ->
             let storage = config.Name.ResourceName.Map (sprintf "%sstorage") |> sanitiseStorage |> ResourceName
             storageAccounts.resourceId storage)

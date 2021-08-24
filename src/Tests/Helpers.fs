@@ -4,6 +4,13 @@ module TestHelpers
 open Farmer
 open Microsoft.Rest.Serialization
 
+[<CLIMutable>]
+type GenericArmResource = 
+    { ``type``: string
+      name: string
+      dependsOn: string[]
+      location: string }
+
 let createSimpleDeployment parameters =
     { Location = Location.NorthEurope
       PostDeployTasks = []
