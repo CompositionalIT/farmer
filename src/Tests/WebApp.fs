@@ -73,7 +73,7 @@ let tests = testList "Web App Tests" [
         ]
         let parameters = wa :> IParameters
 
-        Expect.equal wa.ConnectionStrings (Map expected) "Missing connections"
+        Expect.equal wa.ConnectionStrings (Map expected |> Some) "Missing connections"
         Expect.equal parameters.SecureParameters [ SecureParameter "a" ] "Missing parameter"
     }
     test "CORS works correctly" {
@@ -151,7 +151,7 @@ let tests = testList "Web App Tests" [
         ]
 
         Expect.equal site.Identity.SystemAssigned Enabled "System Identity should be enabled"
-        Expect.containsAll site.AppSettings expectedSettings "Incorrect settings"
+        Expect.containsAll site.AppSettings.Value expectedSettings "Incorrect settings"
 
         Expect.sequenceEqual kv.Dependencies [ ResourceId.create(sites, site.Name) ] "Key Vault dependencies are wrong"
         Expect.equal kv.Name (ResourceName (site.Name.Value + "vault")) "Key Vault name is wrong"
@@ -187,7 +187,7 @@ let tests = testList "Web App Tests" [
         ]
 
         Expect.equal site.Identity.SystemAssigned Enabled "System Identity should be enabled"
-        Expect.containsAll site.AppSettings expectedSettings "Incorrect settings"
+        Expect.containsAll site.AppSettings.Value expectedSettings "Incorrect settings"
 
         Expect.equal wa.CommonWebConfig.Identity.SystemAssigned Enabled "System Identity should be turned on"
 
@@ -357,7 +357,7 @@ let tests = testList "Web App Tests" [
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
 
-        Expect.isTrue ((slots.Item 0).AppSettings.ContainsKey("setting")) "Slot should have slot setting"
+        Expect.isTrue ((slots.Item 0).AppSettings.Value.ContainsKey("setting")) "Slot should have slot setting"
     }
 
     test "WebApp with slot does not add settings to app service" {
@@ -366,6 +366,7 @@ let tests = testList "Web App Tests" [
             name "web"
             add_slot slot
             setting "setting" "some value"
+            connection_string "DB"
         }
 
         let sites =
@@ -376,7 +377,8 @@ let tests = testList "Web App Tests" [
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength sites 2 "Should only be 1 slot and 1 site"
 
-        Expect.isFalse ((sites.[0]).AppSettings.ContainsKey("setting")) "App service should not have any settings"
+        Expect.isNone ((sites.[0]).AppSettings) "App service should not have any settings"
+        Expect.isNone ((sites.[0]).ConnectionStrings) "App service should not have any settings"
     }
 
     test "WebApp adds literal settings to slots" {
@@ -410,7 +412,7 @@ let tests = testList "Web App Tests" [
               "DOCKER_REGISTRY_SERVER_PASSWORD"
               "DOCKER_REGISTRY_SERVER_URL"
               "DOCKER_REGISTRY_SERVER_USERNAME"]
-            |> List.map(settings.ContainsKey)
+            |> List.map(settings.Value.ContainsKey)
         Expect.allEqual expectation true "Slot should have all literal settings"
     }
 
@@ -435,8 +437,8 @@ let tests = testList "Web App Tests" [
         Expect.hasLength slots 1 "Should only be 1 slot"
 
         let settings = (slots.Item 0).AppSettings;
-        Expect.isTrue (settings.ContainsKey("slot")) "Slot should have slot setting"
-        Expect.isTrue (settings.ContainsKey("appService")) "Slot should have app service setting"
+        Expect.isTrue (settings.Value.ContainsKey("slot")) "Slot should have slot setting"
+        Expect.isTrue (settings.Value.ContainsKey("appService")) "Slot should have app service setting"
     }
 
     test "WebApp with slot, slot settings override app service setting" {
@@ -459,7 +461,7 @@ let tests = testList "Web App Tests" [
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
 
-        let (hasValue, value) = (slots.Item 0).AppSettings.TryGetValue("override");
+        let (hasValue, value) = (slots.Item 0).AppSettings.Value.TryGetValue("override");
 
         Expect.isTrue hasValue "Slot should have app service setting"
         Expect.equal value.Value "overridden" "Slot should have correct app service value"
@@ -482,7 +484,7 @@ let tests = testList "Web App Tests" [
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
 
-        Expect.isTrue ((slots.Item 0).ConnectionStrings.ContainsKey("connection_string")) "Slot should have app service connection string"
+        Expect.isTrue ((slots.Item 0).ConnectionStrings.Value.ContainsKey("connection_string")) "Slot should have app service connection string"
     }
 
     test "WebApp with different connection strings on slot and service adds both to slot" {
@@ -505,7 +507,7 @@ let tests = testList "Web App Tests" [
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
 
-        Expect.equal ((slots.Item 0).ConnectionStrings.Count) 2 "Slot should have two connection strings"
+        Expect.equal ((slots.Item 0).ConnectionStrings.Value.Count) 2 "Slot should have two connection strings"
     }
 
     test "WebApp with slots and identity applies identity to slots" {

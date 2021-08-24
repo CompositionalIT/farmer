@@ -44,8 +44,8 @@ let tests = testList "Functions tests" [
 
         Expect.isFalse (resources |> List.exists (fun r -> r.ResourceId.Type = storageAccounts)) "Storage Account should not exist"
         Expect.isFalse (site.Dependencies |> Set.contains externalStorageAccount) "Should not be a dependency"
-        Expect.stringContains site.AppSettings.["AzureWebJobsStorage"].Value "foo" "Web Jobs Storage setting should have storage account name"
-        Expect.stringContains site.AppSettings.["AzureWebJobsDashboard"].Value "foo" "Web Jobs Dashboard setting should have storage account name"
+        Expect.stringContains site.AppSettings.Value.["AzureWebJobsStorage"].Value "foo" "Web Jobs Storage setting should have storage account name"
+        Expect.stringContains site.AppSettings.Value.["AzureWebJobsDashboard"].Value "foo" "Web Jobs Dashboard setting should have storage account name"
     }
     test "Handles identity correctly" {
         let f : Site = functions { name "testfunc" } |> getResourceAtIndex 0
@@ -92,7 +92,7 @@ let tests = testList "Functions tests" [
         ]
 
         Expect.equal site.Identity.SystemAssigned Enabled "System Identity should be enabled"
-        Expect.containsAll site.AppSettings expectedSettings "Incorrect settings"
+        Expect.containsAll site.AppSettings.Value expectedSettings "Incorrect settings"
 
         Expect.equal wa.CommonWebConfig.Identity.SystemAssigned Enabled "System Identity should be turned on"
 
@@ -111,7 +111,7 @@ let tests = testList "Functions tests" [
         let f = functions { name "func"; use_runtime (FunctionsRuntime.DotNetIsolated) }
         let resources = (f :> IBuilder).BuildResources Location.WestEurope
         let site = resources.[3] :?> Web.Site
-        Expect.equal site.AppSettings.["FUNCTIONS_WORKER_RUNTIME"] (LiteralSetting "dotnet-isolated") "Should use dotnet-isolated functions runtime"
+        Expect.equal site.AppSettings.Value.["FUNCTIONS_WORKER_RUNTIME"] (LiteralSetting "dotnet-isolated") "Should use dotnet-isolated functions runtime"
     }
 
     test "FunctionsApp supports adding slots" {
@@ -165,7 +165,7 @@ let tests = testList "Functions tests" [
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
 
-        Expect.isTrue ((slots.Item 0).AppSettings.ContainsKey("setting")) "Slot should have slot setting"
+        Expect.isTrue ((slots.Item 0).AppSettings.Value.ContainsKey("setting")) "Slot should have slot setting"
     }
 
     test "Functions App with slot does not add settings to app service" {
@@ -185,7 +185,7 @@ let tests = testList "Functions tests" [
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
 
-        Expect.isFalse (sites.[0].AppSettings.ContainsKey("setting")) "App service should not have any settings"
+        Expect.isFalse (sites.[0].AppSettings.Value.ContainsKey("setting")) "App service should not have any settings"
     }
 
     test "Functions App adds literal settings to slots" {
@@ -210,7 +210,7 @@ let tests = testList "Functions tests" [
             "AzureWebJobsDashboard"
             "APPINSIGHTS_INSTRUMENTATIONKEY"
             "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING"
-            "WEBSITE_CONTENTSHARE"] |> List.map(settings.ContainsKey)
+            "WEBSITE_CONTENTSHARE"] |> List.map(settings.Value.ContainsKey)
         Expect.allEqual expectation true "Slot should have all literal settings"
     }
 
@@ -235,8 +235,8 @@ let tests = testList "Functions tests" [
         Expect.hasLength slots 1 "Should only be 1 slot"
 
         let settings = (slots.Item 0).AppSettings;
-        Expect.isTrue (settings.ContainsKey("slot")) "Slot should have slot setting"
-        Expect.isTrue (settings.ContainsKey("appService")) "Slot should have app service setting"
+        Expect.isTrue (settings.Value.ContainsKey("slot")) "Slot should have slot setting"
+        Expect.isTrue (settings.Value.ContainsKey("appService")) "Slot should have app service setting"
     }
 
     test "Functions App with slot, slot settings override app service setting" {
@@ -259,7 +259,7 @@ let tests = testList "Functions tests" [
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
 
-        let (hasValue, value) = (slots.Item 0).AppSettings.TryGetValue("override");
+        let (hasValue, value) = (slots.Item 0).AppSettings.Value.TryGetValue("override");
 
         Expect.isTrue hasValue "Slot should have app service setting"
         Expect.equal value.Value "overridden" "Slot should have correct app service value"
@@ -271,9 +271,9 @@ let tests = testList "Functions tests" [
             publish_as (DockerContainer (docker (new Uri("http://www.farmer.io")) "Robert Lewandowski" "do it")) }
         let resources = (f :> IBuilder).BuildResources Location.WestEurope
         let site = resources.[3] :?> Web.Site
-        Expect.equal site.AppSettings.["DOCKER_REGISTRY_SERVER_URL"] (LiteralSetting "http://www.farmer.io/") ""
-        Expect.equal site.AppSettings.["DOCKER_REGISTRY_SERVER_USERNAME"] (LiteralSetting "Robert Lewandowski") ""
-        Expect.equal site.AppSettings.["DOCKER_REGISTRY_SERVER_PASSWORD"] (LiteralSetting "[parameters('Robert Lewandowski-password')]") ""
+        Expect.equal site.AppSettings.Value.["DOCKER_REGISTRY_SERVER_URL"] (LiteralSetting "http://www.farmer.io/") ""
+        Expect.equal site.AppSettings.Value.["DOCKER_REGISTRY_SERVER_USERNAME"] (LiteralSetting "Robert Lewandowski") ""
+        Expect.equal site.AppSettings.Value.["DOCKER_REGISTRY_SERVER_PASSWORD"] (LiteralSetting "[parameters('Robert Lewandowski-password')]") ""
         Expect.equal site.AppCommandLine (Some "do it") ""
     }
 
