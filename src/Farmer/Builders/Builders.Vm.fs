@@ -105,13 +105,14 @@ type VmConfig =
 
             // VNET
             match this.VNet with
-            | DeployableResource this _ ->
+            | DeployableResource this vnet ->
                 { Name = vnetName
                   Location = location
                   AddressSpacePrefixes = [ this.AddressPrefix ]
                   Subnets = [
                       { Name = subnetName.Name
                         Prefix = this.SubnetPrefix
+                        VirtualNetwork = Some (Managed vnet)
                         NetworkSecurityGroup = nsgId |> Option.map(fun x -> Managed x)
                         Delegations = []
                         ServiceEndpoints = []

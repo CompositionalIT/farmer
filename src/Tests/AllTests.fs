@@ -57,6 +57,7 @@ let allTests =
                 VirtualWan.tests
                 WebApp.tests
                 Dashboards.tests
+                Alerts.tests
             ]
             testList "Control" [
                 if (hasEnv "TF_BUILD" "True" && notEnv "BUILD_REASON" "PullRequest") || hasEnv "FARMER_E2E" "True" then
