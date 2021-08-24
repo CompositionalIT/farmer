@@ -378,7 +378,7 @@ let tests = testList "Web App Tests" [
         Expect.hasLength sites 2 "Should only be 1 slot and 1 site"
 
         Expect.isNone ((sites.[0]).AppSettings) "App service should not have any settings"
-        Expect.isNone ((sites.[0]).ConnectionStrings) "App service should not have any settings"
+        Expect.isNone ((sites.[0]).ConnectionStrings) "App service should not have any connection strings"
     }
 
     test "WebApp adds literal settings to slots" {

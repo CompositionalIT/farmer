@@ -185,7 +185,8 @@ let tests = testList "Functions tests" [
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
 
-        Expect.isFalse (sites.[0].AppSettings.Value.ContainsKey("setting")) "App service should not have any settings"
+        Expect.isNone (sites.[0].AppSettings) "App service should not have any settings"
+        Expect.isNone (sites.[0].ConnectionStrings) "App service should not have any connection strings"
     }
 
     test "Functions App adds literal settings to slots" {
