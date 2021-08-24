@@ -158,9 +158,7 @@ let tests = testList "KeyVault" [
             }
         let template =
             arm {
-                add_resources [
-                    additionalPolicies
-                ]
+                add_resource additionalPolicies
             }
         let jobj = JObject.Parse(template.Template |> Writer.toJson)
         let name = jobj.SelectToken("resources[0].name")
@@ -188,9 +186,7 @@ let tests = testList "KeyVault" [
                 }
             let template =
                 arm {
-                    add_resources [
-                        additionalPolicies
-                    ]
+                    add_resource additionalPolicies
                 }
             template |> Writer.quickWrite |> ignore
         ) "Should have failed to build the key vault policy addition resource"

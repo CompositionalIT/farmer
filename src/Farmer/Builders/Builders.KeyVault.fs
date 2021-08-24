@@ -376,11 +376,9 @@ let keyVault = KeyVaultBuilder()
 
 /// Configuration for adding access policies to an existing key vault.
 type KeyVaultAddPoliciesConfig =
-    {
-        KeyVault : LinkedResource option
-        TenantId : string option
-        AccessPolicies : AccessPolicyConfig list
-    }
+    { KeyVault : LinkedResource option
+      TenantId : string option
+      AccessPolicies : AccessPolicyConfig list }
     interface IBuilder with
         member this.BuildResources _ =
             match this.KeyVault with
@@ -410,11 +408,9 @@ type KeyVaultAddPoliciesConfig =
 /// Builder for adding policies to an existing key vault.
 type KeyVaultAddPoliciesBuilder() =
     member _.Yield _ =
-        {
-            KeyVault = None
-            TenantId = None
-            AccessPolicies = []
-        }
+        { KeyVault = None
+          TenantId = None
+          AccessPolicies = [] }
     /// The key vault where the policies should be added.
     [<CustomOperation "key_vault">]
     member _.KeyVault (state:KeyVaultAddPoliciesConfig, kv:Vault) =
