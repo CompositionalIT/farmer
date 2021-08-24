@@ -1,10 +1,10 @@
 [<AutoOpen>]
 module Farmer.Builders.ContainerService
 
+open System
 open Farmer
-open Farmer.Arm.ContainerService
+open Farmer.Arm
 open Farmer.Identity
-open Farmer.LoadBalancer
 open Farmer.Vm
 
 type AgentPoolConfig =
@@ -17,7 +17,18 @@ type AgentPoolConfig =
       VmSize : VMSize
       VirtualNetworkName : ResourceName option
       SubnetName : ResourceName option }
-
+    static member Default =
+        { Name = ResourceName.Empty
+          Count = 1
+          // Default for CNI is 30, Kubenet default is 110
+          // https://docs.microsoft.com/en-us/azure/aks/configure-azure-cni#maximum-pods-per-node
+          MaxPods = None
+          Mode = System
+          OsDiskSize = 0<Gb>
+          OsType = OS.Linux
+          VirtualNetworkName = None
+          SubnetName = None
+          VmSize = Standard_DS2_v2 }
 type ApiServerAccessProfileConfig =
     { AuthorizedIPRanges : string list
       EnablePrivateCluster : bool option }
@@ -53,11 +64,18 @@ type AksConfig =
             // VM itself
             { Name = this.Name
               Location = location
-              DnsPrefix = this.DnsPrefix
+              DnsPrefix =
+                  if String.IsNullOrWhiteSpace this.DnsPrefix then
+                      $"{this.Name.Value}-%x{this.Name.Value.GetHashCode()}"
+                  else this.DnsPrefix
               EnableRBAC = this.EnableRBAC
               Identity = this.Identity
               AgentPoolProfiles =
-                this.AgentPools
+                match this.AgentPools with
+                | [] ->
+                    [ { AgentPoolConfig.Default with Count = 3 } ]
+                | agentPools ->
+                    agentPools
                 |> List.map (fun agentPool ->
                     {| Name = agentPool.Name
                        Count = agentPool.Count
@@ -102,19 +120,7 @@ type AksConfig =
         ]
 
 type AgentPoolBuilder() =
-    member _.Yield _ =
-        { Name = ResourceName.Empty
-          Count = 1
-          // Default for CNI is 30, Kubenet default is 110
-          // https://docs.microsoft.com/en-us/azure/aks/configure-azure-cni#maximum-pods-per-node
-          MaxPods = None
-          Mode = System
-          OsDiskSize = 0<Gb>
-          OsType = OS.Linux
-          VirtualNetworkName = None
-          SubnetName = None
-          VmSize = Standard_DS2_v2
-        }
+    member _.Yield _ = AgentPoolConfig.Default
     /// Sets the name of the agent pool.
     [<CustomOperation "name">]
     member _.Name(state:AgentPoolConfig, name) = { state with Name = ResourceName name }
@@ -229,8 +235,8 @@ type AksBuilder() =
         | BasicLoadBalancer, PrivateClusterEnabled ->
             invalidArg "sku" "Private cluster requires a standard SKU load balancer."
         | _ -> ()
-        if System.String.IsNullOrWhiteSpace config.ServicePrincipalClientID then
-            raiseFarmer "Missing ServicePrincipalClientID on ManagedCluster."
+        if String.IsNullOrWhiteSpace config.ServicePrincipalClientID then
+            raiseFarmer "Missing ServicePrincipalClientID on ManagedCluster - specify 'service_principal_use_msi' or 'service_principal_client_id' to assign one."
         config
     /// Sets the name of the AKS cluster.
     [<CustomOperation "name">]
@@ -242,9 +248,7 @@ type AksBuilder() =
     [<CustomOperation "enable_rbac">]
     member _.EnableRBAC(state:AksConfig) = { state with EnableRBAC = true }
     /// Sets the managed identity on this cluster.
-    [<CustomOperation "add_identity">]
-    member _.AddIdentity(state:AksConfig, identity:UserAssignedIdentity) = { state with Identity = state.Identity + identity }
-    member this.AddIdentity(state, identity:UserAssignedIdentityConfig) = this.AddIdentity(state, identity.UserAssignedIdentity)
+    interface IIdentity<AksConfig> with member _.Add state updater = { state with Identity = updater state.Identity }
     /// Adds agent pools to the AKS cluster.
     [<CustomOperation "add_agent_pools">]
     member _.AddAgentPools(state:AksConfig, pools) = { state with AgentPools = state.AgentPools @ pools }
