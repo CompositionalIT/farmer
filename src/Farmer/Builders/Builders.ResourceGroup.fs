@@ -4,54 +4,53 @@ module Farmer.Builders.ResourceGroup
 open Farmer
 open Farmer.Arm.ResourceGroup
 
-type ResourceGroupConfig = 
+type ResourceGroupConfig =
     { Name: ArmExpression
       Dependencies: ResourceId Set
       Parameters : string Set
       Outputs : Map<string, string>
       Location : Location
-      Resources : IArmResource list 
+      Resources : IArmResource list
       Mode: DeploymentMode
       Tags: Map<string,string> }
     member this.ResourceId = resourceGroupDeployment.resourceId (this.Name.Eval())
-    member private this.ContentDeployment = 
+    member private this.ContentDeployment =
         if this.Parameters.IsEmpty && this.Outputs.IsEmpty && this.Resources.IsEmpty then
             None // this resource group has no content so there's nothing to deploy
         else
-            let innerOutputs = 
+            let innerOutputs =
                 this.Resources
                 |> List.collect 
-                    (function 
-                    | :? ResourceGroupDeployment as rg -> 
-                        Map.toList rg.Outputs 
+                    (function
+                    | :? ResourceGroupDeployment as rg ->
+                        Map.toList rg.Outputs
                         |> List.map fst
-                        |> List.map (fun key -> $"{ rg.Name.Eval()}.{key}",$"[reference('{rg.Name.Eval()}').outputs['{key}'].value]")
-                    | _ -> 
+                        |> List.map (fun key -> $"{rg.Name.Eval()}.{key}",$"[reference('{rg.Name.Eval()}').outputs['{key}'].value]")
+                    | _ ->
                         [] )
                 |> Map.ofList
-               
             { ResourceGroupDeployment.Name = this.Name
               Dependencies = this.Dependencies
               Outputs = Map.merge (Map.toList this.Outputs) innerOutputs // New values overwrite old values so supply this.Outputs as newValues
               Location  = this.Location
               Resources = this.Resources
               Mode = this.Mode
-              Tags = this.Tags } 
+              Tags = this.Tags }
             |> Some
     member this.Template = 
         this.ContentDeployment
         |> Option.map (fun x -> x.Template)
-        |> Option.defaultValue 
+        |> Option.defaultValue
             { Parameters = List.empty
               Outputs = List.empty
               Resources = List.empty }
 
-    interface IDeploymentSource with 
-        member this.Deployment= 
+    interface IDeploymentSource with
+        member this.Deployment=
             { Location=this.Location
               Template = this.Template
-              PostDeployTasks = 
-                    this.Resources 
+              PostDeployTasks =
+                    this.Resources
                     |> List.choose (function | :? IPostDeploy as pd -> Some pd |_ -> None)
               RequiredResourceGroups =
                     this.Resources
@@ -59,10 +58,10 @@ type ResourceGroupConfig =
               Tags = this.Tags }
     interface IBuilder with
         member this.ResourceId = this.ResourceId
-        member this.BuildResources loc = 
-            [ match this.ContentDeployment with 
+        member this.BuildResources loc =
+            [ match this.ContentDeployment with
               | Some x -> x
-              | None -> () 
+              | None -> ()
             ]
 
 type ResourceGroupBuilder() =
@@ -75,7 +74,6 @@ type ResourceGroupBuilder() =
           Location = Location.WestEurope
           Mode = Incremental
           Tags = Map.empty }
-          
     /// Creates an output value that will be returned by the ARM template.
     [<CustomOperation "name">]
     member _.SetName(state:ResourceGroupConfig, name:string ) = {state with Name = ArmExpression.literal name}
