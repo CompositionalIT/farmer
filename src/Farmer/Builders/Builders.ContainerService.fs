@@ -17,19 +17,18 @@ type AgentPoolConfig =
       VmSize : VMSize
       VirtualNetworkName : ResourceName option
       SubnetName : ResourceName option }
-    static member Default = {
-            Name = ResourceName.Empty
-            Count = 1
-            // Default for CNI is 30, Kubenet default is 110
-            // https://docs.microsoft.com/en-us/azure/aks/configure-azure-cni#maximum-pods-per-node
-            MaxPods = None
-            Mode = System
-            OsDiskSize = 0<Gb>
-            OsType = OS.Linux
-            VirtualNetworkName = None
-            SubnetName = None
-            VmSize = Standard_DS2_v2
-        }
+    static member Default =
+        { Name = ResourceName.Empty
+          Count = 1
+          // Default for CNI is 30, Kubenet default is 110
+          // https://docs.microsoft.com/en-us/azure/aks/configure-azure-cni#maximum-pods-per-node
+          MaxPods = None
+          Mode = System
+          OsDiskSize = 0<Gb>
+          OsType = OS.Linux
+          VirtualNetworkName = None
+          SubnetName = None
+          VmSize = Standard_DS2_v2 }
 type ApiServerAccessProfileConfig =
     { AuthorizedIPRanges : string list
       EnablePrivateCluster : bool option }
@@ -73,8 +72,10 @@ type AksConfig =
               Identity = this.Identity
               AgentPoolProfiles =
                 match this.AgentPools with
-                | [] -> [ { AgentPoolConfig.Default with Count = 3 } ]
-                | agentPools -> agentPools
+                | [] ->
+                    [ { AgentPoolConfig.Default with Count = 3 } ]
+                | agentPools ->
+                    agentPools
                 |> List.map (fun agentPool ->
                     {| Name = agentPool.Name
                        Count = agentPool.Count
