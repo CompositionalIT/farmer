@@ -1,5 +1,7 @@
 Release Notes
 =============
+#vNext
+* Dashboads: Fixes for complex dashboards: custom parts and monitor parts.
 
 ## 1.6.13
 * Alerts: Initial support for Alerts

@@ -63,9 +63,9 @@ type DashboardBuilder() =
         { state with LensParts = ({ position = position; metadata = vmPart}) :: state.LensParts }
 
     [<CustomOperation "add_webtest_results_part">]
-    /// Create webtest results part for the dashboard
-    member __.WebtestResultPart(state:DashboardConfig, (position, virtualMachineName)) = 
-        let vmPart = generateWebtestResultPart virtualMachineName
+    /// Create webtest results part for the dashboard. Parameter: Application Insights name.
+    member __.WebtestResultPart(state:DashboardConfig, (position, applicationInsightsName)) = 
+        let vmPart = generateWebtestResultPart applicationInsightsName
         { state with LensParts = ({ position = position; metadata = vmPart}) :: state.LensParts }
 
     [<CustomOperation "add_metrics_chart">]
