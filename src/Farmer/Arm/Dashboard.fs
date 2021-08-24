@@ -2,6 +2,7 @@
 module Farmer.Arm.Dashboard
 
 open Farmer
+open Farmer.Insights
 
 let dashboard = ResourceType("Microsoft.Portal/dashboards", "2020-09-01-preview")
 
@@ -26,22 +27,6 @@ type LensPart = {
     position : LensPosition
     metadata : LensMetadata
 }
-
-type ChartDurationInterval =
-| ISO8601DurationFormat of string
-    static member OneHour = ISO8601DurationFormat "PT1H"
-    static member FiveMinutes = ISO8601DurationFormat "PT5M"
-    static member OneMinute = ISO8601DurationFormat "PT1M"
-
-type ChartResources = 
-| ChartResouce of string
-    static member PercentageCPU = ChartResouce "Percentage CPU"
-    static member DiskReadOperationsPerSec = ChartResouce "Disk Read Operations/Sec"
-    static member DiskWriteOperationsPerSec = ChartResouce "Disk Write Operations/Sec"
-    static member DiskReadBytes = ChartResouce "Disk Read Bytes"
-    static member DiskWriteBytes = ChartResouce "Disk Write Bytes"
-    static member NetworkIn = ChartResouce "Network In"
-    static member NetworkOut = ChartResouce "Network Out"
 
 type MarkdownPartParameters = {title:string; subtitle:string; content:string}
 /// Generates a MarkdownPart
@@ -88,16 +73,16 @@ let generateWebtestResultPart (applicationInsightsName:string) = {
     isAdapter = Some true
     defaultMenuItemId = None
 }
-type MetrixChartParameters = { resourceId:ResourceId; metrics: ChartResources list; interval : ChartDurationInterval }
+type MetrixChartParameters = { resourceId:ResourceId; metrics: MetricsName list; interval : IsoDateTime }
 /// Generates a MetricsChartPart for a resource given in parameters
 let generateMetricsChartPart (chartProperties:MetrixChartParameters) = {
     ``type`` = "Extension/Microsoft_Azure_Monitoring/PartType/MetricsChartPart"
     inputs = [ {| name = "queryInputs"
                   value = {| id = chartProperties.resourceId.ArmExpression.Eval(); chartType = 0;
-                             timespan = {| duration = match chartProperties.interval with | ISO8601DurationFormat dur -> dur
+                             timespan = {| duration = match chartProperties.interval with | IsoDateTime dur -> dur
                                            start = null; ``end`` = null |}
                              metrics = chartProperties.metrics |> List.map(function 
-                                            ChartResouce m -> {| name = m; resourceId = chartProperties.resourceId.ArmExpression.Eval() |})
+                                            MetricsName m -> {| name = m; resourceId = chartProperties.resourceId.ArmExpression.Eval() |})
                           |} |}  ]
     settings = None
     filters = None

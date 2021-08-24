@@ -2,6 +2,7 @@ module Dashboards
 
 open Expecto
 open Farmer
+open Farmer.Insights
 open Farmer.Builders
 
 let tests = testList "Dashboards" [
@@ -28,8 +29,8 @@ let tests = testList "Dashboards" [
             )
             add_metrics_chart (
                 { x = 0; y = 4; rowSpan = 3; colSpan = 11 },
-                { interval = Farmer.Arm.Dashboard.ChartDurationInterval.OneHour; 
-                   metrics = [ Farmer.Arm.Dashboard.ChartResources.PercentageCPU ]; 
+                { interval = System.TimeSpan(1,0,0) |> IsoDateTime.OfTimeSpan; 
+                   metrics = [ MetricsName.PercentageCPU ]; 
                    resourceId = vmId }
             )
             add_virtual_machine_icon ({ x = 9; y = 7; rowSpan = 2; colSpan = 2 }, vmId)
@@ -77,7 +78,7 @@ let tests = testList "Dashboards" [
                                        itemDataModel = {| id = $"defaultAiChartDiv{System.Guid.NewGuid()}"; grouping = null; chartHeight = 1;
                                                           priorPeriod = false; horizontalBars = true; showOther = false; palette = "multiColor";
                                                           jsonDefinitionId = ""; yAxisOptions = {| options = 1 |}; 
-                                                          appliedISOGrain = Farmer.Arm.Dashboard.ChartDurationInterval.OneMinute;
+                                                          appliedISOGrain = System.TimeSpan(0,1,0) |> IsoDateTime.OfTimeSpan;
                                                           title = chartTitle; titleKind = "Auto"
                                                           visualization = {| chartType = 2; legend = null; axis = null |}
                                                           metrics = [

@@ -42,6 +42,8 @@ The Virtual Network module contains four builders
 | prefix                                  | Subnet prefix in CIDR notation (e.g. 192.168.100.0/24)                 |
 | network_security_group                  | Specify the network security group from the same deployment.           |
 | link_to_network_security_group          | Specify an existing network security group for this subnet.            |
+| link_to_vnet                            | Link a standalone subnet to a vnet in the same template.               |
+| link_to_unmanaged_vnet                  | Link a standalone subnet to an existing vnet that is already deployed. |
 | add_delegations                         | Adds one or more delegations to this subnet.                           |
 | add_service_endpoints                   | Adds one or more service endpoints to this subnet.                     |
 | associate_service_endpoint_policies     | Associates a subnet with an existing service policy.                   |
