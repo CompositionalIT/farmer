@@ -40,7 +40,7 @@
 
   <ItemGroup>
     <PackageReference Update="FSharp.Core" Version="5.0.0" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All"/>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
   </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
     <PackageReference Include="System.Text.Json" Version="5.0.1" />
@@ -65,6 +65,7 @@
     <Compile Include="Arm/DiagnosticSetting.fs" />
     <Compile Include="Arm/ManagedIdentity.fs" />
     <Compile Include="Arm/LogAnalytics.fs" />
+    <Compile Include="Arm\Alert.fs" />
     <Compile Include="Arm/Storage.fs" />
     <Compile Include="Arm/Cache.fs" />
     <Compile Include="Arm/Cdn.fs" />
@@ -110,6 +111,7 @@
     <Compile Include="Builders/Builders.ResourceGroup.fs" />
     <Compile Include="Builders/Builders.LogAnalytics.fs" />
     <Compile Include="Builders/Builders.Helpers.fs" />
+    <Compile Include="Builders\Builders.Alert.fs" />
     <Compile Include="Builders/Builders.PostgreSQL.fs" />
     <Compile Include="Builders/Builders.Cdn.fs" />
     <Compile Include="Builders/Builders.ContainerGroups.fs" />
