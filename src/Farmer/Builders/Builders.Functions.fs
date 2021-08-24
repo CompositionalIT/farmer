@@ -171,8 +171,8 @@ type FunctionsConfig =
                   Location = location
                   Cors = this.CommonWebConfig.Cors
                   Tags = this.Tags
-                  ConnectionStrings = Map.empty
-                  AppSettings =functionsSettings
+                  ConnectionStrings = None
+                  AppSettings = Some functionsSettings
                   Identity = this.CommonWebConfig.Identity
                   KeyVaultReferenceIdentity = this.CommonWebConfig.KeyVaultReferenceIdentity
                   Kind =
@@ -279,7 +279,7 @@ type FunctionsConfig =
             if Map.isEmpty this.CommonWebConfig.Slots then
                 site
             else
-                { site with AppSettings = Map.empty }
+                { site with AppSettings = None; ConnectionStrings = None }
                 for (_, slot) in this.CommonWebConfig.Slots |> Map.toSeq do
                     slot.ToSite site
         ]
