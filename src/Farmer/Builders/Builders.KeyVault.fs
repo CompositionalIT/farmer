@@ -39,8 +39,9 @@ type NetworkAcl =
       DefaultAction : DefaultAction option
       Bypass : Bypass option }
 
-type SecretConfig =
+and SecretConfig =
     { Key : string
+      Vault: LinkedResource Option
       Value : SecretValue
       ContentType : string option
       Enabled : bool option
@@ -50,6 +51,7 @@ type SecretConfig =
       Tags: Map<string,string> }
     static member internal createUnsafe key =
         { Key = key
+          Vault = None
           Value = ParameterSecret(SecureParameter key)
           ContentType = None
           Enabled = None
@@ -57,7 +59,6 @@ type SecretConfig =
           ExpirationDate = None
           Dependencies = Set.empty
           Tags = Map.empty }
-
     static member internal isValid key =
         let charRulesPassed =
             let charRules = [ Char.IsLetterOrDigit; (=) '-' ]
@@ -71,11 +72,9 @@ type SecretConfig =
             raiseFarmer $"Key Vault key names must be a 1-127 character string, starting with a letter and containing only 0-9, a-z, A-Z, and -. '{key}' is invalid."
         else
             ()
-
     static member create (key:string) =
         SecretConfig.isValid key
         SecretConfig.createUnsafe key
-
     static member create (key, expression) =
         { SecretConfig.create key with
             Value = ExpressionSecret expression
@@ -84,6 +83,33 @@ type SecretConfig =
                 | Some owner -> Set.ofList [ owner ]
                 | None -> raiseFarmer $"The supplied ARM expression ('{expression.Value}') has no resource owner. You should explicitly set this using WithOwner(), supplying the Resource Name of the owner."
         }
+    member this.ResourceName = this.Vault |> Option.map (fun x -> x.Name / this.Key)
+    member this.ResourceId= this.ResourceName |> Option.map secrets.resourceId
+    static member private HandleNoVault () = failwith "Secret must be linked to a vault in order to add it to a deployment"
+    interface IBuilder with 
+        member this.ResourceId = 
+            match this.ResourceId with
+            | None -> SecretConfig.HandleNoVault()
+            | Some id -> id
+        member this.BuildResources location = 
+            [ match this.ResourceName with
+              | None -> SecretConfig.HandleNoVault()
+              | Some name -> 
+                  { Name = name
+                    Value = this.Value
+                    ContentType = this.ContentType
+                    Enabled = this.Enabled
+                    ActivationDate = this.ActivationDate
+                    ExpirationDate = this.ExpirationDate
+                    Location = location
+                    Dependencies = 
+                      match this.Vault with
+                      | Some (Managed id) -> this.Dependencies.Add id
+                      | Some (Unmanaged _) -> this.Dependencies
+                      | None -> SecretConfig.HandleNoVault()
+                    Tags = this.Tags }
+            ]
+
 
 type KeyVaultConfig =
     { Name : ResourceName
@@ -95,7 +121,7 @@ type KeyVaultConfig =
       Uri : Uri option
       Secrets : SecretConfig list
       Tags: Map<string,string>  }
-
+      member this.ResourceId = vaults.resourceId this.Name
       /// References the Key Vault URI after deployment.
       member this.VaultUri =
         let kvUriId = ResourceId.create(vaults, this.Name)
@@ -103,7 +129,7 @@ type KeyVaultConfig =
         |> ArmExpression.create
 
       interface IBuilder with
-        member this.ResourceId = vaults.resourceId this.Name
+        member this.ResourceId = this.ResourceId
         member this.BuildResources location = [
             let keyVault =
                 { Name = this.Name
@@ -145,16 +171,10 @@ type KeyVaultConfig =
 
             keyVault
 
-            for secret in this.Secrets do
-                { Name = ResourceName $"{this.Name.Value}/{secret.Key}"
-                  Value = secret.Value
-                  ContentType = secret.ContentType
-                  Enabled = secret.Enabled
-                  ActivationDate = secret.ActivationDate
-                  ExpirationDate = secret.ExpirationDate
-                  Location = location
-                  Dependencies = secret.Dependencies.Add (vaults.resourceId this.Name)
-                  Tags = secret.Tags }
+            yield! 
+                this.Secrets
+                |> List.map (fun s -> {s with Vault = Some (Managed this.ResourceId)})
+                |> List.collect ( fun s -> (s:> IBuilder).BuildResources location )
         ]
 
 type AccessPolicyBuilder() =
@@ -368,6 +388,9 @@ type SecretBuilder() =
     member _.ActivationDate(state:SecretConfig, activationDate) = { state with ActivationDate = Some activationDate }
     [<CustomOperation "expiration_date">]
     member _.ExpirationDate(state:SecretConfig, expirationDate) = { state with ExpirationDate = Some expirationDate }
+    [<CustomOperation "link_to_unmanaged_keyvault">]
+    member _.LinkToKeyVault(state:SecretConfig, keyVault) = { state with Vault = Some (Unmanaged keyVault) }
+
     interface ITaggable<SecretConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     interface IDependable<SecretConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
