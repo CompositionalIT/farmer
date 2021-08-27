@@ -1,5 +1,7 @@
 Release Notes
 =============
+## 1.6.14
+* Key Vaults: Allow deploying standalone secrets without a KeyVault in the same deployment
 
 ## 1.6.13
 * Alerts: Initial support for Alerts
