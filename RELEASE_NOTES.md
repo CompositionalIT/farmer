@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## vNext
+* Container Service (AKS): Adds `kubelet_identity` operator to suppor a user assigned identity for kubelet.
+
 ## 1.6.13
 * Alerts: Initial support for Alerts
 * Container Groups: Fix to generate parameters for secure environment variables on `initContainers`.

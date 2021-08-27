@@ -3,7 +3,7 @@ module Farmer.Arm.RoleAssignment
 
 open Farmer
 
-let roleAssignments = ResourceType ("Microsoft.Authorization/roleAssignments", "2020-04-01-preview")
+let roleAssignments = ResourceType ("Microsoft.Authorization/roleAssignments", "2021-04-01-preview")
 
 [<RequireQualifiedAccess>]
 type PrincipalType =
@@ -56,12 +56,12 @@ type RoleAssignment =
             ]
 
             {| roleAssignments.Create(this.Name, dependsOn = dependencies) with
+                scope =
+                    match this with
+                    | { Scope = ResourceGroup } -> null
+                    | { Scope = SpecificResource resourceId } -> resourceId.Eval()
                 properties =
                     {| roleDefinitionId = this.RoleDefinitionId.ArmValue.Eval()
                        principalId = this.PrincipalId.ArmExpression.Eval()
-                       scope =
-                        match this with
-                        | { Scope = ResourceGroup } -> null
-                        | { Scope = SpecificResource resourceId } -> resourceId.Eval()
                        principalType = this.PrincipalType.ArmValue |}
             |}:> _
