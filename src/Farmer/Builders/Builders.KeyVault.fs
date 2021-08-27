@@ -39,7 +39,7 @@ type NetworkAcl =
       DefaultAction : DefaultAction option
       Bypass : Bypass option }
 
-and SecretConfig =
+type SecretConfig =
     { Key : string
       Vault: LinkedResource Option
       Value : SecretValue
