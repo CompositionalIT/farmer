@@ -1,7 +1,7 @@
 Release Notes
 =============
 
-## vNext
+## 1.6.14
 * Container Service (AKS): Adds `kubelet_identity` operator to suppor a user assigned identity for kubelet.
 
 ## 1.6.13
