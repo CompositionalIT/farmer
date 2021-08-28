@@ -41,7 +41,7 @@ type NetworkAcl =
 
 type SecretConfig =
     { Key : string
-      Vault: LinkedResource Option
+      Vault: LinkedResource option
       Value : SecretValue
       ContentType : string option
       Enabled : bool option
