@@ -12,16 +12,18 @@ open Farmer.AzureFirewall
 
 let tests =
     testList "ARM Writer Regression Tests" [
+        let compareDeploymentToJson (deployment:ResourceGroupConfig) jsonFile =
+            let path = __SOURCE_DIRECTORY__ + "/test-data/" + jsonFile
+            let expected = File.ReadAllText path
+            let actual = deployment.Template |> Writer.toJson
+            Expect.equal (actual.Trim()) (expected.Trim()) (sprintf "ARM template generation has changed! Either fix the writer, or update the contents of the generated file (%s)" path)
+
         let compareResourcesToJson (resources:IBuilder list) jsonFile =
             let template = arm {
                 location Location.NorthEurope
                 add_resources resources
             }
-
-            let path = __SOURCE_DIRECTORY__ + "/test-data/" + jsonFile
-            let expected = File.ReadAllText path
-            let actual = template.Template |> Writer.toJson
-            Expect.equal (actual.Trim()) (expected.Trim()) (sprintf "ARM template generation has changed! Either fix the writer, or update the contents of the generated file (%s)" path)
+            compareDeploymentToJson template jsonFile
 
         test "Generates lots of resources" {
             let number = string 1979
@@ -300,5 +302,53 @@ let tests =
                 depends_on [(vhub :>IBuilder).ResourceId]
             }
             compareResourcesToJson [ firewall; vhub; vwan ] "azure-firewall.json"
+        }
+
+        test "AKS" {
+            let kubeletMsi = createUserAssignedIdentity "kubeletIdentity"
+            let clusterMsi = createUserAssignedIdentity "clusterIdentity"
+            let assignMsiRoleNameExpr = ArmExpression.create($"guid(concat(resourceGroup().id, '{clusterMsi.ResourceId.Name.Value}', '{Roles.ManagedIdentityOperator.Id}'))")
+            let assignMsiRole =
+                { Name =
+                    assignMsiRoleNameExpr.Eval()
+                    |> ResourceName
+                  RoleDefinitionId = Roles.ManagedIdentityOperator
+                  PrincipalId = clusterMsi.PrincipalId
+                  PrincipalType = PrincipalType.ServicePrincipal
+                  Scope = ResourceGroup
+                  Dependencies = Set [ clusterMsi.ResourceId ] }
+            let myAcr = containerRegistry { name "farmercontainerregistry1234" }
+            let myAcrResId = (myAcr :> IBuilder).ResourceId
+            let acrPullRoleNameExpr = ArmExpression.create($"guid(concat(resourceGroup().id, '{kubeletMsi.ResourceId.Name.Value}', '{Roles.AcrPull.Id}'))")
+            let acrPullRole =
+                { Name = acrPullRoleNameExpr.Eval() |> ResourceName
+                  RoleDefinitionId = Roles.AcrPull
+                  PrincipalId = kubeletMsi.PrincipalId
+                  PrincipalType = PrincipalType.ServicePrincipal
+                  Scope = AssignmentScope.SpecificResource myAcrResId
+                  Dependencies = Set [ kubeletMsi.ResourceId ] }
+
+            let myAks = aks {
+                name "aks-cluster"
+                dns_prefix "aks-cluster-223d2976"
+                add_identity clusterMsi
+                service_principal_use_msi
+                kubelet_identity kubeletMsi
+                depends_on clusterMsi
+                depends_on myAcr
+                depends_on_expression assignMsiRoleNameExpr
+                depends_on_expression acrPullRoleNameExpr
+            }
+            let template =
+                arm {
+                    location Location.EastUS
+                    add_resource kubeletMsi
+                    add_resource clusterMsi
+                    add_resource myAcr
+                    add_resource myAks
+                    add_resource assignMsiRole
+                    add_resource acrPullRole
+                }
+            compareDeploymentToJson template "aks-with-acr.json"
         }
     ]

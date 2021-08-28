@@ -66,7 +66,7 @@ let generateVirtualMachinePart (vmId:ResourceId) = {
 /// Generates a webtest part
 let generateWebtestResultPart (applicationInsightsName:string) = {
     ``type`` = "Extension/AppInsightsExtension/PartType/AllWebTestsResponseTimeFullGalleryAdapterPart"
-    inputs = [ {| name = "ComponentId"; value = {| Name = applicationInsightsName; SubscriptionId = "[ subscription().subscriptionId ]"; ResourceGroup = "[ resourceGroup().id ]" |} |} ]
+    inputs = [ {| name = "ComponentId"; value = {| Name = applicationInsightsName; SubscriptionId = "[ subscription().subscriptionId ]"; ResourceGroup = "[ resourceGroup().name ]" |} |} ]
     settings = null
     filters = null
     asset = { idInputName = "ComponentId"; ``type`` = "ApplicationInsights" }

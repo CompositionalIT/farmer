@@ -9,9 +9,27 @@ let managedClusters = ResourceType ("Microsoft.ContainerService/managedClusters"
 
 type AgentPoolMode = System | User
 
+/// Additional identity settings for the managed cluster, such as the identity for kubelet to pull container images.
+type ManagedClusterIdentityProfile =
+    { KubeletIdentity : ResourceId option }
+    member internal this.ToArmJson =
+        {| kubeletIdentity =
+            match this.KubeletIdentity with
+            | Some kubeletIdentity ->
+                {| resourceId = kubeletIdentity.Eval()
+                   clientId = ArmExpression.reference(kubeletIdentity.Type, kubeletIdentity).Map(fun r -> r + ".clientId").Eval()
+                   objectId = ArmExpression.reference(kubeletIdentity.Type, kubeletIdentity).Map(fun r -> r + ".principalId").Eval()
+                |}
+            | None -> Unchecked.defaultof<_>
+        |}
+    member internal this.Dependencies = [ this.KubeletIdentity ] |> List.choose id
+
 type ManagedCluster =
     { Name : ResourceName
       Location : Location
+      Dependencies : ResourceId Set
+      /// Dependencies that are expressed in ARM functions instead of a resource Id
+      DependencyExpressions : ArmExpression Set
       AgentPoolProfiles :
         {| Name : ResourceName
            Count : int
@@ -26,6 +44,7 @@ type ManagedCluster =
       DnsPrefix : string
       EnableRBAC : bool
       Identity : ManagedIdentity
+      IdentityProfile : ManagedClusterIdentityProfile option
       ApiServerAccessProfile :
        {| AuthorizedIPRanges : string list
           EnablePrivateCluster : bool option |} option
@@ -54,14 +73,21 @@ type ManagedCluster =
     interface IArmResource with
         member this.ResourceId = managedClusters.resourceId this.Name
         member this.JsonModel =
-            let dependencies = [
-                yield!
+            let dependencies =
+                [
                     this.AgentPoolProfiles
                     |> List.choose (fun pool -> pool.VirtualNetworkName)
                     |> List.map virtualNetworks.resourceId
-                yield! this.Identity.Dependencies
-            ]
-            {| managedClusters.Create(this.Name, this.Location, dependencies) with
+                    this.Identity.Dependencies
+                    this.IdentityProfile
+                         |> Option.map (fun identityProfile -> identityProfile.Dependencies)
+                         |> Option.defaultValue []
+                ] |> Seq.concat |> Set.ofSeq |> Set.union this.Dependencies
+            {| managedClusters.Create(this.Name, this.Location) with
+                   dependsOn = [ 
+                       dependencies |> Seq.map (fun r -> r.Eval())
+                       this.DependencyExpressions |> Seq.map (fun r -> r.Eval())
+                       ] |> Seq.concat
                    identity = // If using MSI but no identity was set, then enable the system identity like the CLI
                        if this.ServicePrincipalProfile.ClientId = "msi"
                           && this.Identity.SystemAssigned = FeatureFlag.Disabled
@@ -88,6 +114,10 @@ type ManagedCluster =
                                |})
                           dnsPrefix = this.DnsPrefix
                           enableRBAC = this.EnableRBAC
+                          identityProfile =
+                              match this.IdentityProfile with
+                              | Some identityProfile -> identityProfile.ToArmJson
+                              | None -> Unchecked.defaultof<_>
                           apiServerAccessProfile =
                               match this.ApiServerAccessProfile with
                               | Some apiServerProfile ->
