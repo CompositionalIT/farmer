@@ -161,8 +161,8 @@ type Site =
     { SiteType : SiteType
       Location : Location
       ServicePlan : ResourceId
-      AppSettings : Map<string, Setting> Option
-      ConnectionStrings : Map<string, (Setting * ConnectionStringKind)> Option
+      AppSettings : Map<string, Setting> option
+      ConnectionStrings : Map<string, (Setting * ConnectionStringKind)> option
       AlwaysOn : bool
       WorkerProcess : Bitness option
       HTTPSOnly : bool
