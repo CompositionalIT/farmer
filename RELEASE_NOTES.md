@@ -1,5 +1,7 @@
 Release Notes
 =============
+## 1.6.14
+* WebApp/Functions: no longer overwrites production slot settings when using a multi-slot deploy
 
 ## 1.6.14
 * Container Service (AKS): Adds `kubelet_identity` operator to suppor a user assigned identity for kubelet.
