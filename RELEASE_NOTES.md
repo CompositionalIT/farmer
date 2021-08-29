@@ -1,6 +1,7 @@
 Release Notes
 =============
 ## 1.6.15
+* Key Vaults: Allow deploying standalone secrets without a KeyVault in the same deployment
 * WebApp/Functions: no longer overwrites production slot settings when using a multi-slot deploy
 
 ## 1.6.14
