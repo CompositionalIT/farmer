@@ -85,8 +85,8 @@ type SlotConfig =
             SiteType = SiteType.Slot (owner.Name/this.Name)
             Dependencies = owner.Dependencies |> Set.add (owner.ResourceType.resourceId owner.Name)
             AutoSwapSlotName = this.AutoSwapSlotName
-            AppSettings = owner.AppSettings |> Map.merge ( this.AppSettings |> Map.toList)
-            ConnectionStrings = owner.ConnectionStrings |> Map.merge (this.ConnectionStrings |> Map.toList)
+            AppSettings = owner.AppSettings |> Option.map (Map.merge ( this.AppSettings |> Map.toList))
+            ConnectionStrings = owner.ConnectionStrings |> Option.map (Map.merge (this.ConnectionStrings |> Map.toList))
             Identity = this.Identity + owner.Identity
             KeyVaultReferenceIdentity = this.KeyVaultReferenceIdentity |> Option.orElse owner.KeyVaultReferenceIdentity}
 
@@ -324,9 +324,9 @@ type WebAppConfig =
                   KeyVaultReferenceIdentity = this.CommonWebConfig.KeyVaultReferenceIdentity
                   Cors = this.CommonWebConfig.Cors
                   Tags = this.Tags
-                  ConnectionStrings = this.ConnectionStrings
+                  ConnectionStrings = Some this.ConnectionStrings
                   WorkerProcess = this.CommonWebConfig.WorkerProcess
-                  AppSettings = siteSettings
+                  AppSettings = Some siteSettings
                   Kind = [
                     "app"
                     match this.CommonWebConfig.OperatingSystem with Linux -> "linux" | Windows -> ()
@@ -472,7 +472,7 @@ type WebAppConfig =
             if Map.isEmpty this.CommonWebConfig.Slots then
                 site
             else
-                { site with AppSettings = Map.empty; ConnectionStrings = Map.empty }
+                { site with AppSettings = None; ConnectionStrings = None } // Don't deploy production slot settings as they could cause an app restart
                 for (_,slot) in this.CommonWebConfig.Slots |> Map.toSeq do
                     slot.ToSite site
 
