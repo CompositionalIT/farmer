@@ -12,8 +12,8 @@ type EndpointConfig =
     { Name : ResourceName
       Status : FeatureFlag
       Target : EndpointTarget
-      Weight : int
-      Priority : int
+      Weight : int option
+      Priority : int option
       Dependencies: Set<ResourceId> }
 
 type TrafficManagerConfig =
@@ -58,8 +58,8 @@ type EndpointBuilder() =
         { Name = ResourceName.Empty
           Status = Enabled
           Target = EndpointTarget.Website ResourceName.Empty
-          Weight = 1
-          Priority = 1
+          Weight = None
+          Priority = None
           Dependencies = Set.empty }
 
     member _.Run (state:EndpointConfig) =
@@ -72,7 +72,7 @@ type EndpointBuilder() =
 
     /// Sets the weight of the Endpoint
     [<CustomOperation "weight">]
-    member _.Weight(state:EndpointConfig, weight) = { state with Weight = weight }
+    member _.Weight(state:EndpointConfig, weight) = { state with Weight = Some weight }
 
     /// Disables the Endpoint
     [<CustomOperation "disable_endpoint">]
@@ -84,7 +84,7 @@ type EndpointBuilder() =
 
     /// Sets the priority of the Endpoint
     [<CustomOperation "priority">]
-    member _.Priority(state:EndpointConfig, priority) = { state with Priority = priority }
+    member _.Priority(state:EndpointConfig, priority) = { state with Priority = Some priority }
 
     /// Sets the target of the Endpoint to a web app
     [<CustomOperation "target_webapp">]
