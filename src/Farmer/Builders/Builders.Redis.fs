@@ -36,7 +36,7 @@ type RedisConfig =
         ]
 
 type RedisBuilder() =
-    member __.Yield _ =
+    member _.Yield _ =
         { Name = ResourceName.Empty
           Sku = Basic
           Capacity = 1
@@ -45,7 +45,7 @@ type RedisBuilder() =
           ShardCount = None
           MinimumTlsVersion = None
           Tags = Map.empty }
-    member __.Run (state:RedisConfig) =
+    member _.Run (state:RedisConfig) =
         { state with
             Capacity =
                 match state with
@@ -62,31 +62,31 @@ type RedisBuilder() =
         }
     /// Sets the name of the Redis instance.
     [<CustomOperation "name">]
-    member __.Name(state:RedisConfig, name) = { state with Name = name }
+    member _.Name(state:RedisConfig, name) = { state with Name = name }
     member this.Name(state:RedisConfig, name) = this.Name(state, ResourceName name)
     /// Sets the sku of the Redis instance.
     [<CustomOperation "sku">]
-    member __.Sku(state:RedisConfig, sku) = { state with Sku = sku }
+    member _.Sku(state:RedisConfig, sku) = { state with Sku = sku }
     /// Sets the capacity of the Redis instance.
     [<CustomOperation "capacity">]
-    member __.Capacity(state:RedisConfig, capacity) =
+    member _.Capacity(state:RedisConfig, capacity) =
         { state with Capacity = capacity }
     /// Adds a custom setting to the Redis configuration
     [<CustomOperation "setting">]
-    member __.AddSetting(state:RedisConfig, key, value) = { state with RedisConfiguration = state.RedisConfiguration.Add(key, value) }
+    member _.AddSetting(state:RedisConfig, key, value) = { state with RedisConfiguration = state.RedisConfiguration.Add(key, value) }
     member this.AddSetting(state:RedisConfig, key, value:int) = this.AddSetting(state, key, string value)
     /// Adds a list of custom settings in the form "key" "value" to the Redis configuration.
     [<CustomOperation "settings">]
-    member __.AddSettings(state:RedisConfig, settings: (string*int) list) =
+    member this.AddSettings(state:RedisConfig, settings: (string*int) list) =
         settings
-        |> List.fold (fun state (key,value) -> __.AddSetting(state, key, value)) state
+        |> List.fold (fun state (key,value) -> this.AddSetting(state, key, value)) state
     /// Specifies whether the non-ssl Redis server port (6379) is enabled.
     [<CustomOperation "enable_non_ssl_port">]
-    member __.EnableNonSsl(state:RedisConfig) = { state with NonSslEnabled = Some true }
+    member _.EnableNonSsl(state:RedisConfig) = { state with NonSslEnabled = Some true }
     [<CustomOperation "shard_count">]
-    member __.ShardCount(state:RedisConfig, shardCount) = { state with ShardCount = Some shardCount }
+    member _.ShardCount(state:RedisConfig, shardCount) = { state with ShardCount = Some shardCount }
     [<CustomOperation "minimum_tls_version">]
-    member __.MinimumTlsVersion(state:RedisConfig, tlsVersion) = { state with MinimumTlsVersion = Some tlsVersion }
+    member _.MinimumTlsVersion(state:RedisConfig, tlsVersion) = { state with MinimumTlsVersion = Some tlsVersion }
     interface ITaggable<RedisConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let redis = RedisBuilder()

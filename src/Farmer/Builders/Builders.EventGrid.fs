@@ -130,7 +130,7 @@ type EventGridBuilder() =
     member _.Name (state:EventGridConfig<'T>, name) = { state with TopicName = ResourceName name }
     [<CustomOperation "source">]
     member _.Source(state:EventGridConfig<_>, source:StorageAccountConfig) = EventGridBuilder.ChangeTopic<StorageEvent>(state, source.Name.ResourceName, Topics.StorageAccount)
-    member _.Source(state:EventGridConfig<_>, source:WebAppConfig) = EventGridBuilder.ChangeTopic<AppServiceEvent>(state, source.Name, Topics.AppService)
+    member _.Source(state:EventGridConfig<_>, source:WebAppConfig) = EventGridBuilder.ChangeTopic<AppServiceEvent>(state, source.Name.ResourceName, Topics.AppService)
     member _.Source(state:EventGridConfig<_>, source:KeyVaultConfig) = EventGridBuilder.ChangeTopic<KeyVaultEvent>(state, source.Name, Topics.KeyVault)
     member _.Source(state:EventGridConfig<_>, source:SignalRConfig) = EventGridBuilder.ChangeTopic<SignalRServiceEvent>(state, source.Name, Topics.SignalR)
     member _.Source(state:EventGridConfig<_>, source:MapsConfig) = EventGridBuilder.ChangeTopic<MapsEvent>(state, source.Name, Topics.MapsAccount)
@@ -146,7 +146,7 @@ type EventGridBuilder() =
     member _.AddWebSubscription(state:EventGridConfig<'T>, webAppName:ResourceName, webHookEndpoint:Uri, events) =
         EventGridBuilder.AddSub(state, webHookEndpoint.LocalPath + "-webhook", webAppName, WebHook webHookEndpoint, events)
     member this.AddWebSubscription(state:EventGridConfig<_>, webApp:WebAppConfig, route, events) =
-        this.AddWebSubscription(state, webApp.Name, Uri $"https://{webApp.Endpoint}/%s{route}", events)
+        this.AddWebSubscription(state, webApp.Name.ResourceName, Uri $"https://{webApp.Endpoint}/%s{route}", events)
     [<CustomOperation "add_eventhub_subscriber">]
     member _.AddEventHubSubscription(state:EventGridConfig<'T>, eventHub:EventHubConfig, events:EventGridEvent<_> list) =
         EventGridBuilder.AddSub(state, eventHub.Name.Value + "-eventhub", eventHub.EventHubNamespaceName, EventHub eventHub.Name, events)

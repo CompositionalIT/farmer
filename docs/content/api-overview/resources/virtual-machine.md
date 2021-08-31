@@ -27,14 +27,14 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 |username|Sets the admin username of the VM (note: the password is supplied as a securestring parameter to the generated ARM template).|
 |password_parameter|Sets the name of the parameter which contains the admin password for this VM. defaults to "password-for-<VM-name>"|
 |operating_system|Sets the operating system of the VM. A set of samples is provided in the `CommonImages` module.|
-|os_disk|Sets the size and type of the OS disk for the VM.|
+|os_disk|Sets the size and type of the OS disk for the VM. Note: The default is non-SSD.|
 |add_disk|Adds a data disk to the VM with a specific size and type.|
 |add_ssd_disk|Adds a SSD data disk to the VM with a specific size.|
 |add_slow_disk|Adds a conventional (non-SSD) data disk to the VM with a specific size.|
 |domain_name_prefix|Sets the prefix for the domain name of the VM.|
 |address_prefix|Sets the IP address prefix of the VM.|
 |subnet_prefix|Sets the subnet prefix of the VM.|
-|custom_script|Executes the supplied inline custom script on the VM.|
+|custom_script|Executes the supplied inline custom script on the VM. Supports only one command. Alternatively you can connect VM e.g. with Powershell Invoke-AzVMRunCommand.|
 |custom_script_files|Uploads the supplied set of files, specified by URI, to the VM on creation.|
 |custom_data|Sets the custom data field for the VM.|
 |public_ip|Specifies or removes the public IP for this VM|
@@ -56,6 +56,7 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 |VnetName|Provides the resource name of the Virtual Network (VNet)|
 |SubnetName|Provides the resource name of the subnet|
 |IpName|Provides the resource name of the IP Address|
+|PublicIpAddress|Returns an ARM expression to retrieve public IP address of the virtual machine.|
 |Hostname|Returns an ARM expression to retrieve the fully-qualified domain name from the virtual machine's DNS settings."|
 
 #### Example

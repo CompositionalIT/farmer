@@ -2,7 +2,7 @@
   <PropertyGroup>
     <!-- General -->
     <AssemblyName>Farmer</AssemblyName>
-    <Version>1.6.8</Version>
+    <Version>1.6.15</Version>
     <Description>Farmer makes authoring ARM templates easy!</Description>
     <Copyright>Copyright 2019-2021 Compositional IT Ltd.</Copyright>
     <Company>Compositional IT</Company>
@@ -40,7 +40,7 @@
 
   <ItemGroup>
     <PackageReference Update="FSharp.Core" Version="5.0.0" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All"/>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
   </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
     <PackageReference Include="System.Text.Json" Version="5.0.1" />
@@ -65,6 +65,7 @@
     <Compile Include="Arm/DiagnosticSetting.fs" />
     <Compile Include="Arm/ManagedIdentity.fs" />
     <Compile Include="Arm/LogAnalytics.fs" />
+    <Compile Include="Arm\Alert.fs" />
     <Compile Include="Arm/Storage.fs" />
     <Compile Include="Arm/Cache.fs" />
     <Compile Include="Arm/Cdn.fs" />
@@ -84,6 +85,7 @@
     <Compile Include="Arm/DocumentDb.fs" />
     <Compile Include="Arm/EventHub.fs" />
     <Compile Include="Arm/Insights.fs" />
+    <Compile Include="Arm\AvailabilityTest.fs" />
     <Compile Include="Arm/KeyVault.fs" />
     <Compile Include="Arm\LoadBalancer.fs" />
     <Compile Include="Arm/RoleAssignment.fs" />
@@ -101,6 +103,7 @@
     <Compile Include="Arm/TrafficManager.fs" />
     <Compile Include="Arm/AzureFirewall.fs" />
     <Compile Include="Arm/VirtualHub.fs" />
+    <Compile Include="Arm\Dashboard.fs" />
     <Compile Include="IdentityExtensions.fs" />
 
     <Compile Include="Builders/Extensions.fs" />
@@ -108,6 +111,7 @@
     <Compile Include="Builders/Builders.ResourceGroup.fs" />
     <Compile Include="Builders/Builders.LogAnalytics.fs" />
     <Compile Include="Builders/Builders.Helpers.fs" />
+    <Compile Include="Builders\Builders.Alert.fs" />
     <Compile Include="Builders/Builders.PostgreSQL.fs" />
     <Compile Include="Builders/Builders.Cdn.fs" />
     <Compile Include="Builders/Builders.ContainerGroups.fs" />
@@ -125,6 +129,7 @@
     <Compile Include="Builders/Builders.Vm.fs" />
     <Compile Include="Builders/Builders.ServicePlan.fs" />
     <Compile Include="Builders/Builders.AppInsights.fs" />
+    <Compile Include="Builders\Builders.AvailabilityTest.fs" />
     <Compile Include="Builders/Builders.WebApp.fs" />
     <Compile Include="Builders/Builders.Functions.fs" />
     <Compile Include="Builders/Builders.Sql.fs" />
@@ -149,6 +154,7 @@
     <Compile Include="Builders/Builders.TrafficManager.fs" />
     <Compile Include="Builders/Builders.VirtualHub.fs" />
     <Compile Include="Builders/Builders.AzureFirewall.fs" />
+    <Compile Include="Builders\Builders.Dashboard.fs" />
     <Compile Include="Aliases.fs" />
   </ItemGroup>
 </Project>

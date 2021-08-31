@@ -9,7 +9,7 @@ type NonEmptyList<'T> =
 module NonEmptyList =
     let create list =
         match list with
-        | [] -> failwith "This list must always have at least one item in it."
+        | [] -> raiseFarmer "This list must always have at least one item in it."
         | list -> NonEmptyList list
 
 [<AutoOpen>]
@@ -72,6 +72,7 @@ module DataLocationExtensions =
         static member Europe = DataLocation "Europe"
         static member UnitedKingdom = DataLocation "United Kingdom"
         static member UnitedStates = DataLocation "United States"
+
 
 type OS = Windows | Linux
 
@@ -293,6 +294,7 @@ module Vm =
     let WindowsServer_2012R2Datacenter = makeWindowsVm "2012-R2-Datacenter"
     let WindowsServer_2012Datacenter = makeWindowsVm "2012-Datacenter"
     let WindowsServer_2008R2SP1 = makeWindowsVm "2008-R2-SP1"
+    let Windows10Pro = makeVm Windows "Windows-10" "MicrosoftWindowsDesktop" "20h2-pro"
     /// The type of disk to use.
     type DiskType =
         | StandardSSD_LRS
@@ -304,8 +306,11 @@ module Vm =
     type DiskInfo = { Size : int; DiskType : DiskType }
 
 module internal Validation =
+    // ANDs two validation rules
     let (<+>) a b v = a v && b v
+    /// ORs two validation rules
     let (<|>) a b v = a v || b v
+    /// Combines two validation rules. Both OK -> OK, otherwise Error.
     let (<!>) a b e s =
         match a e s, b e s with
         | Ok _, Ok _ -> Ok ()
@@ -314,19 +319,18 @@ module internal Validation =
 
     let isNonEmpty entity s = if String.IsNullOrWhiteSpace s then Error $"%s{entity} cannot be empty" else Ok()
     let isNotAGuid entity (s: string) =
-        let success, _ = Guid.TryParse s
-        if success then
-            Error $"%s{entity} cannot be a GUID"
-        else Ok()
-    let notLongerThan max entity (s:string) = if s.Length > max then Error $"%s{entity} max length is %d{max}, but here is {s.Length} ('{s}')" else Ok()
-    let notShorterThan min entity (s:string) = if s.Length < min then Error $"%s{entity} min length is %d{min}, but here is {s.Length} ('{s}')" else Ok()
+        match Guid.TryParse s with
+        | true, _ -> Error $"%s{entity} cannot be a GUID"
+        | false, _ -> Ok()
+    let notLongerThan max entity (s:string) = if s.Length > max then Error $"%s{entity} max length is %d{max}, but here is {s.Length}" else Ok()
+    let notShorterThan min entity (s:string) = if s.Length < min then Error $"%s{entity} min length is %d{min}, but here is {s.Length}" else Ok()
     let lengthBetween min max entity (s:string) = s |> notLongerThan max entity |> Result.bind (fun _ -> s |> notShorterThan min entity)
-    let containsOnly (message, predicate) entity (s:string) = if s |> Seq.exists (predicate >> not) then Error $"%s{entity} can only contain %s{message} ('{s}')" else Ok()
-    let cannotContain (message, predicate) entity (s:string) = if s |> Seq.exists predicate then Error $"%s{entity} do not allow %s{message} ('{s}')" else Ok()
-    let startsWith (message, predicate) entity (s:string) = if not (predicate s.[0]) then Error $"%s{entity} must start with %s{message} ('{s}')" else Ok()
-    let endsWith (message, predicate) entity (s:string) = if not (predicate s.[s.Length - 1]) then Error $"%s{entity} must end with %s{message} ('{s}')" else Ok()
-    let cannotStartWith (message, predicate) entity (s:string) = if predicate s.[0] then Error $"%s{entity} cannot start with %s{message} ('{s}')" else Ok()
-    let cannotEndWith (message, predicate) entity (s:string) = if predicate s.[s.Length - 1] then Error $"%s{entity} cannot end with %s{message} ('{s}')" else Ok()
+    let containsOnly (message, predicate) entity (s:string) = if s |> Seq.exists (predicate >> not) then Error $"%s{entity} can only contain %s{message}" else Ok()
+    let cannotContain (message, predicate) entity (s:string) = if s |> Seq.exists predicate then Error $"%s{entity} do not allow %s{message}" else Ok()
+    let startsWith (message, predicate) entity (s:string) = if not (predicate s.[0]) then Error $"%s{entity} must start with %s{message}" else Ok()
+    let endsWith (message, predicate) entity (s:string) = if not (predicate s.[s.Length - 1]) then Error $"%s{entity} must end with %s{message}" else Ok()
+    let cannotStartWith (message, predicate) entity (s:string) = if predicate s.[0] then Error $"%s{entity} cannot start with %s{message}" else Ok()
+    let cannotEndWith (message, predicate) entity (s:string) = if predicate s.[s.Length - 1] then Error $"%s{entity} cannot end with %s{message}" else Ok()
     let cannotEndsWith (predicate: (string * string) seq) entity (s:string) =
         let matches =
             predicate
@@ -337,27 +341,33 @@ module internal Validation =
         | [] -> Ok()
         | predicatesThatFailes ->
             let message = System.String.Join(", ", predicatesThatFailes)
-            Error $"%s{entity} cannot end with %s{message} ('{s}')"
-    let arb (message, predicate) entity s = if predicate s then Error $"%s{entity} %s{message} ('%s{s}')" else Ok()
+            Error $"%s{entity} cannot end with %s{message}"
+    let arb (message, predicate) entity s = if predicate s then Error $"%s{entity} %s{message}" else Ok()
     let containsOnlyM containers =
         containers
         |> List.map containsOnly
         |> List.reduce (<!>)
+    let nonEmptyLengthBetween a b = isNonEmpty <!> lengthBetween a b
+
     let lowercaseLetters = "lowercase letters", Char.IsLetter >> not <|> Char.IsLower
     let aLetterOrNumber = "an alphanumeric character", Char.IsLetterOrDigit
     let lettersOrNumbers = "alphanumeric characters", Char.IsLetterOrDigit
     let letters = "letters", Char.IsLetter
-    let aDash = "a dash", ((=) '-')
-    let lettersNumbersOrDash = "alphanumeric characters or the dash", Char.IsLetterOrDigit <|> (snd aDash)
-    let nonEmptyLengthBetween a b = isNonEmpty <!> lengthBetween a b
-    let validate entity text rules =
+    let dash = "a dash (-)", ((=) '-')
+    let lettersNumbersOrDash = "alphanumeric characters or the dash (-)", Char.IsLetterOrDigit <|> (snd dash)
+    let validate entity inputValue rules =
         rules
-        |> Seq.choose (fun v ->
-            match v entity text with
-            | Error m -> Some (Error m)
+        |> Seq.choose (fun rule ->
+            match rule entity inputValue with
+            | Error msg -> Some msg
             | Ok _ -> None)
         |> Seq.tryHead
-        |> Option.defaultValue (Ok text)
+        |> Option.map(fun errorMessage ->
+            let inputValueDescription =
+                if String.IsNullOrWhiteSpace inputValue then ""
+                else $". The invalid value is '{inputValue}'"
+            Error $"{errorMessage}{inputValueDescription}")
+        |> Option.defaultValue (Ok inputValue)
 
 module CosmosDbValidation =
     open Validation
@@ -380,7 +390,7 @@ module ServiceBusValidation =
         private | ServiceBusName of ResourceName
         static member Create (name: string) =
             [ nonEmptyLengthBetween 6 50
-              containsOnlyM [ lettersNumbersOrDash ]
+              containsOnly lettersNumbersOrDash
               startsWith letters
               isNotAGuid
               cannotEndsWith [ ("a dash", "-"); ("a sb postfix", "-sb"); ("a management postfix", "-mgmt") ]
@@ -389,6 +399,22 @@ module ServiceBusValidation =
             |> Result.map (ResourceName >> ServiceBusName)
 
         member this.ResourceName = match this with ServiceBusName name -> name
+
+module Insights =
+
+    /// https://docs.microsoft.com/en-us/azure/azure-monitor/essentials/metrics-supported
+    type MetricsName = 
+    | MetricsName of string
+        static member PercentageCPU = MetricsName "Percentage CPU"
+        static member DiskReadOperationsPerSec = MetricsName "Disk Read Operations/Sec"
+        static member DiskWriteOperationsPerSec = MetricsName "Disk Write Operations/Sec"
+        static member DiskReadBytes = MetricsName "Disk Read Bytes"
+        static member DiskWriteBytes = MetricsName "Disk Write Bytes"
+        static member MemoryAvailable = MetricsName "Available Memory Bytes"
+        static member NetworkIn = MetricsName "Network In"
+        static member NetworkOut = MetricsName "Network Out"
+        static member SQL_DB_DTU = MetricsName "dtu_consumption_percent"
+        static member SQL_DB_Size = MetricsName "storage_percent"
 
 module Storage =
     open Validation
@@ -401,6 +427,7 @@ module Storage =
             |> validate "Storage account names" name
             |> Result.map (ResourceName >> StorageAccountName)
 
+        static member internal Empty = StorageAccountName ResourceName.Empty
         static member Create (ResourceName name) = StorageAccountName.Create name
         member this.ResourceName = match this with StorageAccountName name -> name
 
@@ -530,8 +557,6 @@ module Storage =
     type LastAccessTimeTrackingPolicy = {
         Enabled : bool
         TrackingGranularityInDays : int
-        // Name : enum //AccessTimeTracking is the only possible value
-        // BlobType : string [] //blockBlob is the only possible value
     }
 
     type ChangeFeed = {
@@ -593,6 +618,21 @@ module WebApp =
     module Extensions =
         /// The Microsoft.AspNetCore.AzureAppServices logging extension.
         let Logging = ExtensionName "Microsoft.AspNetCore.AzureAppServices.SiteExtension"
+    open Validation
+    type WebAppName =
+        private | WebAppName of ResourceName
+        static member Create name =
+            [
+                nonEmptyLengthBetween 2 60
+                containsOnly lettersNumbersOrDash
+                cannotStartWith dash
+                cannotEndWith dash
+            ]
+            |> validate "Web App site names" name
+            |> Result.map (ResourceName >> WebAppName)
+        static member internal Empty = WebAppName ResourceName.Empty
+        static member Create (ResourceName name) = WebAppName.Create name
+        member this.ResourceName = match this with WebAppName name -> name
 
 module CognitiveServices =
     /// Type of SKU. See https://docs.microsoft.com/en-us/rest/api/cognitiveservices/accountmanagement/resourceskus/list
@@ -823,15 +863,25 @@ module Sql =
         private | SqlAccountName of ResourceName
         static member Create name =
             [ nonEmptyLengthBetween 1 63
-              cannotStartWith aDash
-              cannotEndWith aDash
+              cannotStartWith dash
+              cannotEndWith dash
               containsOnlyM [ lowercaseLetters; lettersNumbersOrDash ]
             ]
             |> validate "SQL account names" name
             |> Result.map (ResourceName >> SqlAccountName)
 
+        static member internal Empty = SqlAccountName ResourceName.Empty
         static member Create (ResourceName name) = SqlAccountName.Create name
         member this.ResourceName = match this with SqlAccountName name -> name
+
+    type GeoReplicationSettings = { 
+        /// Suffix name for server and database name
+        NameSuffix : string
+        /// Replication location, different from the original one
+        Location : Farmer.Location
+        /// Override database Skus
+        DbSku : DtuSku option
+    }
 
 /// Represents a role that can be granted to an identity.
 type RoleId =
@@ -1598,11 +1648,16 @@ module Dns =
           ExpireTime : int64 option
           MinimumTTL : int64 option }
 
+    [<RequireQualifiedAccess>]
+    type NsRecords =
+        | Records of string list
+        | SourceZone of ResourceId
+
     type DnsRecordType =
         | A of TargetResource : ResourceId option * ARecords : string list
         | AAAA of TargetResource : ResourceId option * AaaaRecords : string list
         | CName of TargetResource : ResourceId option * CNameRecord : string option
-        | NS of NsRecords : string list
+        | NS of NsRecords
         | PTR of PtrRecords : string list
         | TXT of TxtRecords : string list
         | MX of {| Preference : int; Exchange : string |} list
@@ -1724,6 +1779,34 @@ module VirtualHub =
                     | Managed resId
                     | Unmanaged resId -> resId.Eval()
 
+module AvailabilityTest =
+    /// Availability test types: WebsiteUrl or CustomWebtestXml
+    type WebTestType =
+    /// Raw Visual Stuido WebTest XML
+    | CustomWebtestXml of string
+    /// URL of website that the test will ping
+    | WebsiteUrl of System.Uri
+
+    /// Availability test sites, from where the webtest is run
+    type TestSiteLocation =
+    | AvailabilityTestSite of Farmer.Location
+        static member NorthCentralUS = Farmer.Location "us-il-ch1-azr" |> AvailabilityTestSite
+        static member WestEurope = Farmer.Location "emea-nl-ams-azr" |> AvailabilityTestSite
+        static member SoutheastAsia = Farmer.Location "apac-sg-sin-azr" |> AvailabilityTestSite
+        static member WestUS = Farmer.Location "us-ca-sjc-azr" |> AvailabilityTestSite
+        static member SouthCentralUS = Farmer.Location "us-tx-sn1-azr" |> AvailabilityTestSite
+        static member EastUS = Farmer.Location "us-va-ash-azr" |> AvailabilityTestSite
+        static member EastAsia = Farmer.Location "apac-hk-hkn-azr" |> AvailabilityTestSite
+        static member NorthEurope = Farmer.Location "emea-gb-db3-azr" |> AvailabilityTestSite
+        static member JapanEast = Farmer.Location "apac-jp-kaw-edge" |> AvailabilityTestSite
+        static member AustraliaEast = Farmer.Location "emea-au-syd-edge" |> AvailabilityTestSite
+        static member FranceCentralSouth = Farmer.Location "emea-ch-zrh-edge" |> AvailabilityTestSite
+        static member FranceCentral = Farmer.Location "emea-fr-pra-edge" |> AvailabilityTestSite
+        static member UKSouth = Farmer.Location "emea-ru-msa-edge" |> AvailabilityTestSite
+        static member UKWest = Farmer.Location "emea-se-sto-edge" |> AvailabilityTestSite
+        static member BrazilSouth = Farmer.Location "latam-br-gru-edge" |> AvailabilityTestSite
+        static member CentralUS = Farmer.Location "us-fl-mia-edge" |> AvailabilityTestSite
+
 namespace Farmer.DiagnosticSettings
 
 open Farmer
@@ -1745,7 +1828,7 @@ type RetentionPolicy =
     static member Create (retentionPeriod, ?enabled) =
         match retentionPeriod with
         | OutOfBounds days ->
-            failwith $"The retention period must be between 1 and 365 days. It is currently {days}."
+            raiseFarmer $"The retention period must be between 1 and 365 days. It is currently {days}."
         | InBounds _ ->
             { Enabled = defaultArg enabled true
               RetentionPeriod = retentionPeriod }

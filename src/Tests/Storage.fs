@@ -134,24 +134,24 @@ let tests = testList "Storage Tests" [
         let check (v:string) m = Expect.equal (StorageAccountName.Create v) (Error ("Storage account names " + m))
 
         check "" "cannot be empty" "Name too short"
-        check "zz" "min length is 3, but here is 2 ('zz')" "Name too short"
-        check "abcdefghij1234567890abcde" "max length is 24, but here is 25 ('abcdefghij1234567890abcde')" "Name too long"
-        check "zzzT" "can only contain lowercase letters ('zzzT')" "Upper case character allowed"
-        check "zzz!" "can only contain alphanumeric characters ('zzz!')" "Non alpha numeric character allowed"
+        check "zz" "min length is 3, but here is 2. The invalid value is 'zz'" "Name too short"
+        check "abcdefghij1234567890abcde" "max length is 24, but here is 25. The invalid value is 'abcdefghij1234567890abcde'" "Name too long"
+        check "zzzT" "can only contain lowercase letters. The invalid value is 'zzzT'" "Upper case character allowed"
+        check "zzz!" "can only contain alphanumeric characters. The invalid value is 'zzz!'" "Non alpha numeric character allowed"
         Expect.equal (StorageResourceName.Create("abcdefghij1234567890abcd").OkValue.ResourceName) (ResourceName "abcdefghij1234567890abcd") "Should have created a valid storage account name"
     }
     test "Rejects invalid storage resource names" {
         let check (v:string) m = Expect.equal (StorageResourceName.Create v) (Error ("Storage resource names " + m))
 
         check "" "cannot be empty" "Name too short"
-        check "zz" "min length is 3, but here is 2 ('zz')" "Name too short"
+        check "zz" "min length is 3, but here is 2. The invalid value is 'zz'" "Name too short"
         let longName = Array.init 64 (fun _ -> 'a') |> String
-        check longName ("max length is 63, but here is 64 ('" + longName + "')") "Name too long"
-        check "zzzT" "can only contain lowercase letters ('zzzT')" "Upper case character allowed"
-        check "zz!z" "can only contain alphanumeric characters or the dash ('zz!z')" "Bad character allowed"
-        check "zzz--z" "do not allow consecutive dashes ('zzz--z')" "Double dash allowed"
-        check "-zz" "must start with an alphanumeric character ('-zz')" "Start with dash"
-        check "zz-" "must end with an alphanumeric character ('zz-')" "End with dash"
+        check longName $"max length is 63, but here is 64. The invalid value is '{longName}'" "Name too long"
+        check "zzzT" "can only contain lowercase letters. The invalid value is 'zzzT'" "Upper case character allowed"
+        check "zz!z" "can only contain alphanumeric characters or the dash (-). The invalid value is 'zz!z'" "Bad character allowed"
+        check "zzz--z" "do not allow consecutive dashes. The invalid value is 'zzz--z'" "Double dash allowed"
+        check "-zz" "must start with an alphanumeric character. The invalid value is '-zz'" "Start with dash"
+        check "zz-" "must end with an alphanumeric character. The invalid value is 'zz-'" "End with dash"
 
         Expect.equal (StorageResourceName.Create("abcdefghij1234567890abcd").OkValue.ResourceName) (ResourceName "abcdefghij1234567890abcd") "Should have created a valid storage resource name"
     }
@@ -204,46 +204,46 @@ let tests = testList "Storage Tests" [
         Expect.equal builder.WebsitePrimaryEndpoint.Value "reference(resourceId('Microsoft.Storage/storageAccounts', 'foo'), '2019-06-01').primaryEndpoints.web" "Zone names are not fixed and should be related to a storage account name"
     }
     test "Creates different SKU kinds correctly" {
-        let account = storageAccount { sku (Blobs (BlobReplication.LRS, Some DefaultAccessTier.Hot)) }
+        let account = storageAccount { name "storage"; sku (Blobs (BlobReplication.LRS, Some DefaultAccessTier.Hot)) }
         let resource = arm { add_resource account } |> getStorageResource
         Expect.equal resource.Kind "BlobStorage" "Kind"
         Expect.equal resource.AccessTier (Nullable AccessTier.Hot) "Access Tier"
         Expect.equal resource.Sku.Name "Standard_LRS" "Sku Name"
 
-        let account = storageAccount { sku (Files BasicReplication.ZRS) }
+        let account = storageAccount { name "storage"; sku (Files BasicReplication.ZRS) }
         let resource = arm { add_resource account } |> getStorageResource
         Expect.equal resource.Kind "FileStorage" "Kind"
         Expect.equal resource.Sku.Name "Premium_ZRS" "Sku Name"
 
-        let account = storageAccount { sku (BlockBlobs BasicReplication.LRS) }
+        let account = storageAccount { name "storage"; sku (BlockBlobs BasicReplication.LRS) }
         let resource = arm { add_resource account } |> getStorageResource
         Expect.equal resource.Kind "BlockBlobStorage" "Kind"
         Expect.equal resource.Sku.Name "Premium_LRS" "Sku Name"
 
-        let account = storageAccount { sku (GeneralPurpose (V1 V1Replication.RAGRS)) }
+        let account = storageAccount { name "storage"; sku (GeneralPurpose (V1 V1Replication.RAGRS)) }
         let resource = arm { add_resource account } |> getStorageResource
         Expect.equal resource.Kind "Storage" "Kind"
         Expect.equal resource.Sku.Name "Standard_RAGRS" "Sku Name"
 
-        let account = storageAccount { sku (GeneralPurpose (V2 (V2Replication.LRS Premium, Some Cool))) }
+        let account = storageAccount { name "storage"; sku (GeneralPurpose (V2 (V2Replication.LRS Premium, Some Cool))) }
         let resource = arm { add_resource account } |> getStorageResource
         Expect.equal resource.Kind "StorageV2" "Kind"
         Expect.equal resource.Sku.Name "Premium_LRS" "Sku Name"
     }
     test "Sets blob access tier correctly different SKU kinds correctly" {
-        let account = storageAccount { default_blob_access_tier DefaultAccessTier.Cool }
+        let account = storageAccount { name "storage"; default_blob_access_tier DefaultAccessTier.Cool }
         let resource = arm { add_resource account } |> getStorageResource
         Expect.equal resource.AccessTier (Nullable AccessTier.Cool) "Access Tier"
 
-        let account = storageAccount { default_blob_access_tier Hot }
+        let account = storageAccount { name "storage"; default_blob_access_tier Hot }
         let resource = arm { add_resource account } |> getStorageResource
         Expect.equal resource.AccessTier (Nullable AccessTier.Hot) "Access Tier"
 
-        let account = storageAccount { sku (GeneralPurpose (V2 (V2Replication.LRS Premium, None))) }
+        let account = storageAccount { name "storage"; sku (GeneralPurpose (V2 (V2Replication.LRS Premium, None))) }
         let resource = arm { add_resource account } |> getStorageResource
         Expect.equal resource.AccessTier (Nullable ()) "Access Tier"
 
-        let account = storageAccount { sku (Blobs (BlobReplication.LRS, Some Hot)) }
+        let account = storageAccount { name "storage"; sku (Blobs (BlobReplication.LRS, Some Hot)) }
         let resource = arm { add_resource account } |> getStorageResource
         Expect.equal resource.AccessTier (Nullable AccessTier.Hot) "Access Tier"
     }
@@ -251,6 +251,7 @@ let tests = testList "Storage Tests" [
         Expect.throws
             (fun _ ->
                 storageAccount {
+                    name "storage"
                     sku (BlockBlobs BasicReplication.LRS)
                     default_blob_access_tier Cool
                 } |> ignore)
@@ -285,6 +286,7 @@ let tests = testList "Storage Tests" [
     }
     test "Sets CORS correctly" {
         let account = storageAccount {
+            name "storage"
             add_cors_rules [
                 StorageService.Blobs, CorsRule.AllowAll
                 StorageService.Blobs, { CorsRule.AllowAll with AllowedOrigins = Specific [ Uri "https://compositional-it.com" ] }
@@ -315,6 +317,7 @@ let tests = testList "Storage Tests" [
 
     test "Policies" {
         let account = storageAccount {
+            name "storage"
             add_policies [
                 StorageService.Blobs, [
                     Policy.Restore { Enabled = true; Days = 5 }
@@ -355,6 +358,7 @@ let tests = testList "Storage Tests" [
 
     test "Versioning" {
         let account = storageAccount {
+            name "storage"
             enable_versioning [ StorageService.Blobs, true ]
         }
         let properties = (account |> findPropertiesResource "blobServices").properties
@@ -370,5 +374,9 @@ let tests = testList "Storage Tests" [
             }
             arm { add_resource account } |> getStorageResource
         Expect.equal resource.MinimumTlsVersion "TLS1_2" "Min TLS version is wrong"
+    }
+
+    test "Must set a storage account name" {
+        Expect.throws (fun () -> storageAccount { sku Sku.Standard_ZRS } |> ignore) "Must set a name on a storage account"
     }
 ]

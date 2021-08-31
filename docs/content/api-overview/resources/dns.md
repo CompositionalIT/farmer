@@ -98,7 +98,8 @@ In addition, each record builder has its own custom keywords:
 
 | Keyword | Purpose |
 |-|-|
-| add_nsd_names | Add NS values to this record set. |
+| add_nsd_names | Add NS values to this record set. (Subdomain NameServers) |
+| add_nsd_reference | Reference NS records from another DNS Zone. (Subdomain NameServers) |
 
 #### PTR Record Builder Keywords
 
@@ -125,10 +126,15 @@ In addition, each record builder has its own custom keywords:
 | retry_time | Sets the retry time for the record in seconds |
 | serial_number | Sets the serial number for the record |
 
+#### Configuration Members
+
+| Member | Purpose |
+|-|-|
+| NameServers | Gets the ARM expression path to the NameServers. When evaluated, will return a JSON array as string.
+
 #### Example
 ```fsharp
-#r @"./libs/Newtonsoft.Json.dll"
-#r @"../../src/Farmer/bin/Debug/netstandard2.0/Farmer.dll"
+#r "nuget: Farmer"
 
 open Farmer
 open Farmer.Builders

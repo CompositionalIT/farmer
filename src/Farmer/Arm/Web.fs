@@ -15,6 +15,8 @@ let staticSites = ResourceType("Microsoft.Web/staticSites", "2019-12-01-preview"
 let siteExtensions = ResourceType("Microsoft.Web/sites/siteextensions", "2020-06-01")
 let slots = ResourceType ("Microsoft.Web/sites/slots", "2020-09-01")
 
+let private mapOrNull f = Option.map (Map.toList >> List.map f) >> Option.defaultValue Unchecked.defaultof<_>
+
 type ServerFarm =
     { Name : ResourceName
       Location : Location
@@ -108,10 +110,10 @@ module ZipDeploy =
     open System.IO
     open System.IO.Compression
 
-    type ZipDeploySlot = 
+    type ZipDeploySlot =
         | ProductionSlot
         | NamedSlot of name: string
-        member this.ToOption = 
+        member this.ToOption =
             match this with
             | ProductionSlot -> None
             | NamedSlot n -> Some n
@@ -143,13 +145,24 @@ module ZipDeploy =
                 packageFilename
             | DeployZip zipFilePath ->
                 zipFilePath
+type SiteType =
+    | Slot of ResourceName
+    | Site of WebAppName
+    member this.ResourceName =
+        match this with
+        | Slot r -> r
+        | Site r -> r.ResourceName
+    member this.ResourceType =
+        match this with
+        | Slot _ -> slots
+        | Site _ -> sites
+
 type Site =
-    { Type: ResourceType
-      Name : ResourceName
+    { SiteType : SiteType
       Location : Location
       ServicePlan : ResourceId
-      AppSettings : Map<string, Setting>
-      ConnectionStrings : Map<string, (Setting * ConnectionStringKind)>
+      AppSettings : Map<string, Setting> option
+      ConnectionStrings : Map<string, (Setting * ConnectionStringKind)> option
       AlwaysOn : bool
       WorkerProcess : Bitness option
       HTTPSOnly : bool
@@ -174,10 +187,18 @@ type Site =
       AutoSwapSlotName: string option
       ZipDeployPath : (string * ZipDeploy.ZipDeployTarget * ZipDeploy.ZipDeploySlot) option
       HealthCheckPath : string option }
+    /// Shorthand for SiteType.ResourceType
+    member this.ResourceType = this.SiteType.ResourceType
+    /// Shorthand for SiteType.ResourceName
+    member this.Name = this.SiteType.ResourceName
     interface IParameters with
         member this.SecureParameters =
-            Map.toList this.AppSettings
-            @ (Map.toList this.ConnectionStrings |> List.map(fun (k, (v,_)) -> k, v))
+            let optMapToList map = 
+                map
+                |> Option.defaultValue Map.empty
+                |> Map.toList 
+            optMapToList this.AppSettings
+            @ (optMapToList this.ConnectionStrings |> List.map(fun (k, (v,_)) -> k, v))
             |> List.choose(snd >> function
                 | ParameterSetting s -> Some s
                 | ExpressionSetting _ | LiteralSetting _ -> None)
@@ -185,29 +206,29 @@ type Site =
     interface IPostDeploy with
         member this.Run resourceGroupName =
             match this with
-            | { ZipDeployPath = Some (path, target, slot); Name = name } ->
+            | { ZipDeployPath = Some (path, target, slot); SiteType = siteType } ->
                 let path =
                     ZipDeploy.ZipDeployKind.TryParse path
                     |> Option.defaultWith (fun () ->
-                        failwith $"Path '{path}' must either be a folder to be zipped, or an existing zip.")
+                        raiseFarmer $"Path '{path}' must either be a folder to be zipped, or an existing zip.")
                 let slotName = slot.ToOption
                 printfn "Running ZIP deploy to %s for %s" (slotName |> Option.defaultValue "WebApp") path.Value
                 Some (match target with
-                      | ZipDeploy.WebApp -> Deploy.Az.zipDeployWebApp name.Value path.GetZipPath resourceGroupName slotName
-                      | ZipDeploy.FunctionApp -> Deploy.Az.zipDeployFunctionApp name.Value path.GetZipPath resourceGroupName slotName)
+                      | ZipDeploy.WebApp -> Deploy.Az.zipDeployWebApp siteType.ResourceName.Value path.GetZipPath resourceGroupName slotName
+                      | ZipDeploy.FunctionApp -> Deploy.Az.zipDeployFunctionApp siteType.ResourceName.Value path.GetZipPath resourceGroupName slotName)
             | _ ->
                 None
     interface IArmResource with
         member this.ResourceId = sites.resourceId this.Name
         member this.JsonModel =
             let dependencies = this.Dependencies + (Set this.Identity.Dependencies)
-            let keyvaultId = 
+            let keyvaultId =
                 match (this.KeyVaultReferenceIdentity, this.Identity) with
                 | Some x, _
                 // If there is no managed identity and only one user-assigned identity, we should use that be default
                 | None, {SystemAssigned = Disabled; UserAssigned = [x]} -> x.ResourceId.Eval()
                 | _ -> null
-            {| this.Type.Create(this.Name, this.Location, dependencies, this.Tags) with
+            {| this.ResourceType.Create(this.Name, this.Location, dependencies, this.Tags) with
                  kind = this.Kind
                  identity =
                      if this.Identity = ManagedIdentity.Empty then Unchecked.defaultof<_>
@@ -219,8 +240,12 @@ type Site =
                        keyVaultReferenceIdentity = keyvaultId
                        siteConfig =
                         {| alwaysOn = this.AlwaysOn
-                           appSettings = this.AppSettings |> Map.toList |> List.map(fun (k,v) -> {| name = k; value = v.Value |})
-                           connectionStrings = this.ConnectionStrings |> Map.toList |> List.map(fun (k,(v, t)) -> {| name = k; connectionString = v.Value; ``type`` = t.ToString() |})
+                           appSettings = 
+                                this.AppSettings
+                                |> mapOrNull (fun (k,v) -> {| name = k; value = v.Value |}) 
+                           connectionStrings = 
+                                this.ConnectionStrings 
+                                |> mapOrNull (fun (k,(v, t)) -> {| name = k; connectionString = v.Value; ``type`` = t.ToString() |})
                            linuxFxVersion = this.LinuxFxVersion |> Option.toObj
                            appCommandLine = this.AppCommandLine |> Option.toObj
                            netFrameworkVersion = this.NetFrameworkVersion |> Option.toObj

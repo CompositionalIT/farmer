@@ -39,7 +39,7 @@ module Az =
                 | OperatingSystem OSPlatform.OSX ->
                     "az"
                 | _ ->
-                    failwith $"OSPlatform: {RuntimeInformation.OSDescription} not supported"
+                    raiseFarmer $"OSPlatform: {RuntimeInformation.OSDescription} not supported"
         let executeAz arguments =
             try
                 let azProcess =
@@ -84,9 +84,9 @@ module Az =
     let listSubscriptions() = az "account list --all"
     let setSubscription subscriptionId = az $"account set --subscription %s{subscriptionId}"
     /// Creates a resource group.
-    let createResourceGroup location tags resourceGroup = 
-        let tagString = 
-            match Map.toList tags with 
+    let createResourceGroup location tags resourceGroup =
+        let tagString =
+            match Map.toList tags with
             | [] -> ""
             | tagList -> tagList |> Seq.map (fun (key,value) -> $"{key}={value}") |> String.concat " " |> sprintf " --tags %s"
         az $"group create -l %s{location} -n %s{resourceGroup}%s{tagString}" |> Result.ignore
@@ -226,12 +226,12 @@ let private prepareForDeployment parameters resourceGroupName (deployment:IDeplo
     let subscriptionDetails = subscriptionDetails |> Serialization.ofJson<{| id : Guid; name : string |}>
     printfn "Using subscription '%s' (%O)." subscriptionDetails.name subscriptionDetails.id
 
-    let resourceGroups = 
-        (resourceGroupName::deployment.Deployment.RequiredResourceGroups) 
+    let resourceGroups =
+        (resourceGroupName::deployment.Deployment.RequiredResourceGroups)
         |> List.distinct
         |> List.mapi (fun i x -> i,x)
     for (i,rg) in resourceGroups do
-        printfn $"Creating resource group {rg} ({i+1}/{resourceGroups.Length})..." 
+        printfn $"Creating resource group {rg} ({i+1}/{resourceGroups.Length})..."
         do! Az.createResourceGroup deployment.Deployment.Location.ArmValue deployment.Deployment.Tags rg
 
     return
@@ -281,9 +281,9 @@ let tryExecute resourceGroupName parameters (deployment:IDeploymentSource) = res
 let execute resourceGroupName parameters (deployment:IDeploymentSource) =
     match tryExecute resourceGroupName parameters deployment with
     | Ok output -> output
-    | Error message -> failwith (Az.tryGetError message)
+    | Error message -> raiseFarmer (Az.tryGetError message)
 
 let whatIf resourceGroupName parameters (deployment:IDeploymentSource) =
     match tryWhatIf resourceGroupName parameters deployment with
     | Ok output -> output
-    | Error message -> failwith message
+    | Error message -> raiseFarmer message

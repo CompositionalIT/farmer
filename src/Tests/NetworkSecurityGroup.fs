@@ -63,7 +63,7 @@ let tests = testList "NetworkSecurityGroup" [
             Expect.equal rule1.SourcePortRange "*" ""
             Expect.equal rule1.SourcePortRanges.Count 0 ""
             rule1.Validate()
-        | _ -> failwith "Unexpected number of resources in template."
+        | _ -> raiseFarmer "Unexpected number of resources in template."
     }
     test "Policy converted to security rules" {
         let webPolicy = securityRule {
@@ -93,7 +93,7 @@ let tests = testList "NetworkSecurityGroup" [
             Expect.equal rule1.SourceAddressPrefix "Internet" ""
             Expect.equal rule1.SourcePortRange "*" ""
             Expect.equal rule1.SourcePortRanges.Count 0 ""
-        | _ -> failwith "Unexpected number of resources in template."
+        | _ -> raiseFarmer "Unexpected number of resources in template."
     }
     test "Multitier Policy converted to security rules" {
         let appNet = "10.100.31.0/24"
@@ -187,6 +187,6 @@ let tests = testList "NetworkSecurityGroup" [
             Expect.equal rule4.Protocol "*" ""
             Expect.equal rule4.Priority (Nullable 400) ""
             Expect.containsAll rule4.SourceAddressPrefixes ["10.100.31.0/24"; "10.100.32.0/24"] ""
-        | _ -> failwith "Unexpected number of resources in template."
+        | _ -> raiseFarmer "Unexpected number of resources in template."
     }
 ]

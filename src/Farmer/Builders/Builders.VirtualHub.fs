@@ -20,7 +20,7 @@ type VirtualHubConfig =
               Dependencies = [
                   match this.Vwan with
                   | Some (Managed resId) -> resId // Only generate dependency if this is managed by Farmer (same template)
-                  | _ -> ()     
+                  | _ -> ()
               ] |> Set.ofList
               AddressPrefix = this.AddressPrefix
               AllowBranchToBranchTraffic = None
@@ -69,7 +69,7 @@ type VirtualHubBuilder() =
      /// The SKU of the virtual hub.
     [<CustomOperation "sku">]
     member _.Sku(state:VirtualHubConfig, sku) = { state with Sku = sku }
-    
+
 type HubRouteTableConfig =
     { Name : ResourceName
       Vhub : LinkedResource
@@ -77,7 +77,7 @@ type HubRouteTableConfig =
       Labels : string list }
     interface IBuilder with
         member this.ResourceId =
-            let vhubResourceId = 
+            let vhubResourceId =
                 match this.Vhub with
                 | Unmanaged resId
                 | Managed resId -> resId
@@ -92,7 +92,7 @@ type HubRouteTableConfig =
                 match this.Vhub with
                 | Managed resId -> resId // Only generate dependency if this is managed by Farmer (same template)
                 | _ -> ()
-                
+
                 let routeDependencies =
                     this.Routes
                     |> List.map
@@ -110,7 +110,7 @@ type HubRouteTableConfig =
               Routes = this.Routes
               Labels = this.Labels }
         ]
-        
+
 type HubRouteTableBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
@@ -143,7 +143,7 @@ type HubRouteTableBuilder() =
         | Managed resourceId
         | Unmanaged resourceId when resourceId.Name <> ResourceName.Empty ->
             state
-        | _ -> failwith $"HubRouteTable '{state.Name}' must specify link_to_vhub or link_to_unmanaged_vhub"
+        | _ -> raiseFarmer $"HubRouteTable '{state.Name}' must specify link_to_vhub or link_to_unmanaged_vhub"
 
 
 let vhub = VirtualHubBuilder()

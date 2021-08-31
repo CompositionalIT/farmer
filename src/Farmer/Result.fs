@@ -1,7 +1,16 @@
+namespace Farmer
+exception FarmerException of ErrorMessage:string with
+    override this.Message = this.ErrorMessage
+
+[<AutoOpen>]
+module Exceptions =
+    let raiseFarmer msg = msg |> FarmerException |> raise
+
 namespace global
 
 [<RequireQualifiedAccess>]
 module Result =
+    open Farmer
     open System
 
     let ofOption error = function Some s -> Ok s | None -> Error error
@@ -20,43 +29,43 @@ module Result =
         try Ok(thunk arg)
         with ex -> Error (string ex)
     // Unsafely unwraps a Result. If the Result is an Error, the Error is cascaded as an exception.
-    let get = function Ok value -> value | Error err -> failwith (err.ToString())
+    let get = function Ok value -> value | Error err -> raiseFarmer (err.ToString())
     let bindError onError = function Error s -> onError s | s -> s
 
     type ResultBuilder() =
-        member __.Return(x) = Ok x
+        member _.Return(x) = Ok x
 
-        member __.ReturnFrom(m: Result<_, _>) = m
+        member _.ReturnFrom(m: Result<_, _>) = m
 
-        member __.Bind(m, f) = Result.bind f m
-        member __.Bind((m, error): (Option<'T> * 'E), f) = m |> ofOption error |> Result.bind f
+        member _.Bind(m, f) = Result.bind f m
+        member _.Bind((m, error): (Option<'T> * 'E), f) = m |> ofOption error |> Result.bind f
 
-        member __.Zero() = None
+        member _.Zero() = None
 
-        member __.Combine(m, f) = Result.bind f m
+        member _.Combine(m, f) = Result.bind f m
 
-        member __.Delay(f: unit -> _) = f
+        member _.Delay(f: unit -> _) = f
 
-        member __.Run(f) = f()
+        member _.Run(f) = f()
 
-        member __.TryWith(m, h) =
-            try __.ReturnFrom(m)
+        member this.TryWith(m, h) =
+            try this.ReturnFrom(m)
             with e -> h e
 
-        member __.TryFinally(m, compensation) =
-            try __.ReturnFrom(m)
+        member this.TryFinally(m, compensation) =
+            try this.ReturnFrom(m)
             finally compensation()
 
-        member __.Using(res:#IDisposable, body) =
-            __.TryFinally(body res, fun () -> match res with null -> () | disp -> disp.Dispose())
+        member this.Using(res:#IDisposable, body) =
+            this.TryFinally(body res, fun () -> match res with null -> () | disp -> disp.Dispose())
 
-        member __.While(guard, f) =
+        member this.While(guard, f) =
             if not (guard()) then Ok () else
             do f() |> Core.Operators.ignore
-            __.While(guard, f)
+            this.While(guard, f)
 
-        member __.For(sequence:seq<_>, body) =
-            __.Using(sequence.GetEnumerator(), fun enum -> __.While(enum.MoveNext, __.Delay(fun () -> body enum.Current)))
+        member this.For(sequence:seq<_>, body) =
+            this.Using(sequence.GetEnumerator(), fun enum -> this.While(enum.MoveNext, this.Delay(fun () -> body enum.Current)))
 
 [<RequireQualifiedAccess>]
 module Option =
@@ -71,4 +80,3 @@ module Builders =
     type Result<'TS, 'TE> with
         /// Unsafely unwraps the Success value out of the Result.
         member this.OkValue = Result.get this
-

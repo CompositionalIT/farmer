@@ -1,10 +1,11 @@
 [<AutoOpen>]
 module Farmer.Builders.ContainerService
 
+open System
 open Farmer
-open Farmer.Arm.ContainerService
+open Farmer.Arm
+open Farmer.Arm.RoleAssignment
 open Farmer.Identity
-open Farmer.LoadBalancer
 open Farmer.Vm
 
 type AgentPoolConfig =
@@ -17,7 +18,18 @@ type AgentPoolConfig =
       VmSize : VMSize
       VirtualNetworkName : ResourceName option
       SubnetName : ResourceName option }
-
+    static member Default =
+        { Name = ResourceName.Empty
+          Count = 1
+          // Default for CNI is 30, Kubenet default is 110
+          // https://docs.microsoft.com/en-us/azure/aks/configure-azure-cni#maximum-pods-per-node
+          MaxPods = None
+          Mode = System
+          OsDiskSize = 0<Gb>
+          OsType = OS.Linux
+          VirtualNetworkName = None
+          SubnetName = None
+          VmSize = Standard_DS2_v2 }
 type ApiServerAccessProfileConfig =
     { AuthorizedIPRanges : string list
       EnablePrivateCluster : bool option }
@@ -37,9 +49,12 @@ type NetworkProfileConfig =
 type AksConfig =
     { Name : ResourceName
       AgentPools : AgentPoolConfig list
+      Dependencies : ResourceId Set
+      DependencyExpressions : ArmExpression Set
       DnsPrefix : string
       EnableRBAC : bool
       Identity : ManagedIdentity
+      IdentityProfile : ManagedClusterIdentityProfile option
       ApiServerAccessProfile : ApiServerAccessProfileConfig option
       LinuxProfile : (string * string list) option
       NetworkProfile : NetworkProfileConfig option
@@ -50,14 +65,23 @@ type AksConfig =
     interface IBuilder with
         member this.ResourceId = this.ResourceId
         member this.BuildResources location = [
-            // VM itself
             { Name = this.Name
               Location = location
-              DnsPrefix = this.DnsPrefix
+              Dependencies = this.Dependencies
+              DependencyExpressions = this.DependencyExpressions
+              DnsPrefix =
+                  if String.IsNullOrWhiteSpace this.DnsPrefix then
+                      $"{this.Name.Value}-%x{this.Name.Value.GetHashCode()}"
+                  else this.DnsPrefix
               EnableRBAC = this.EnableRBAC
               Identity = this.Identity
+              IdentityProfile = this.IdentityProfile
               AgentPoolProfiles =
-                this.AgentPools
+                match this.AgentPools with
+                | [] ->
+                    [ { AgentPoolConfig.Default with Count = 3 } ]
+                | agentPools ->
+                    agentPools
                 |> List.map (fun agentPool ->
                     {| Name = agentPool.Name
                        Count = agentPool.Count
@@ -102,19 +126,7 @@ type AksConfig =
         ]
 
 type AgentPoolBuilder() =
-    member _.Yield _ =
-        { Name = ResourceName.Empty
-          Count = 1
-          // Default for CNI is 30, Kubenet default is 110
-          // https://docs.microsoft.com/en-us/azure/aks/configure-azure-cni#maximum-pods-per-node
-          MaxPods = None
-          Mode = System
-          OsDiskSize = 0<Gb>
-          OsType = OS.Linux
-          VirtualNetworkName = None
-          SubnetName = None
-          VmSize = Standard_DS2_v2
-        }
+    member _.Yield _ = AgentPoolConfig.Default
     /// Sets the name of the agent pool.
     [<CustomOperation "name">]
     member _.Name(state:AgentPoolConfig, name) = { state with Name = ResourceName name }
@@ -196,7 +208,7 @@ let azureCniNetworkProfile = AzureCniBuilder()
 let makeLinuxProfile user sshKeys = user, sshKeys
 
 /// Match on type of load balancer for an AKS config's network profile.
-/// The default if nothing is specified is a Standard LB.  
+/// The default if nothing is specified is a Standard LB.
 let private (|BasicLoadBalancer|StandardLoadBalancer|) = function
     | Some netProfile ->
         match netProfile.LoadBalancerSku with
@@ -215,10 +227,13 @@ let private (|PrivateClusterEnabled|_|) =
 type AksBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
+          Dependencies = Set.empty
+          DependencyExpressions = Set.empty
           AgentPools = []
           DnsPrefix = ""
           EnableRBAC = false
           Identity = ManagedIdentity.Empty
+          IdentityProfile = None
           ApiServerAccessProfile = None
           LinuxProfile = None
           NetworkProfile = None
@@ -229,8 +244,8 @@ type AksBuilder() =
         | BasicLoadBalancer, PrivateClusterEnabled ->
             invalidArg "sku" "Private cluster requires a standard SKU load balancer."
         | _ -> ()
-        if System.String.IsNullOrWhiteSpace config.ServicePrincipalClientID then
-            failwith "Missing ServicePrincipalClientID on ManagedCluster."
+        if String.IsNullOrWhiteSpace config.ServicePrincipalClientID then
+            raiseFarmer "Missing ServicePrincipalClientID on ManagedCluster - specify 'service_principal_use_msi' or 'service_principal_client_id' to assign one."
         config
     /// Sets the name of the AKS cluster.
     [<CustomOperation "name">]
@@ -242,9 +257,11 @@ type AksBuilder() =
     [<CustomOperation "enable_rbac">]
     member _.EnableRBAC(state:AksConfig) = { state with EnableRBAC = true }
     /// Sets the managed identity on this cluster.
-    [<CustomOperation "add_identity">]
-    member _.AddIdentity(state:AksConfig, identity:UserAssignedIdentity) = { state with Identity = state.Identity + identity }
-    member this.AddIdentity(state, identity:UserAssignedIdentityConfig) = this.AddIdentity(state, identity.UserAssignedIdentity)
+    interface IIdentity<AksConfig> with member _.Add state updater = { state with Identity = updater state.Identity }
+    /// Support for "depends_on"
+    interface IDependable<AksConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
+    [<CustomOperation "depends_on_expression">]
+    member _.DependencyExpressions(state:AksConfig, dependencyExpr:ArmExpression) = { state with DependencyExpressions = state.DependencyExpressions.Add dependencyExpr }
     /// Adds agent pools to the AKS cluster.
     [<CustomOperation "add_agent_pools">]
     member _.AddAgentPools(state:AksConfig, pools) = { state with AgentPools = state.AgentPools @ pools }
@@ -267,6 +284,14 @@ type AksBuilder() =
             | None -> { AuthorizedIPRanges = range; EnablePrivateCluster = None }
             | Some profile -> { profile with AuthorizedIPRanges = profile.AuthorizedIPRanges @ range }
         { state with ApiServerAccessProfile = Some accessProfile }
+    /// Sets the kubelet identity for managing access to an Azure Container Registry
+    [<CustomOperation "kubelet_identity">]
+    member _.KubeletIdentity (state:AksConfig, identity:ResourceId) =
+        match state.IdentityProfile with
+        | None -> { state with IdentityProfile = Some { KubeletIdentity = Some identity }  }
+        | Some identityProfile -> { state with IdentityProfile = Some { identityProfile with KubeletIdentity = Some identity }  }
+    member this.KubeletIdentity (state:AksConfig, identity:UserAssignedIdentity.UserAssignedIdentityConfig) =
+        this.KubeletIdentity (state, identity.ResourceId)
     /// Sets the network profile for the AKS cluster.
     [<CustomOperation "network_profile">]
     member _.NetworkProfile(state:AksConfig, networkProfile) = { state with NetworkProfile = Some networkProfile }

@@ -13,17 +13,40 @@ type PeeringMode =
 type SubnetConfig =
     { Name: ResourceName
       Prefix: IPAddressCidr
+      VirtualNetwork : LinkedResource option
       NetworkSecurityGroup : LinkedResource option
       Delegations:  SubnetDelegationService list
       ServiceEndpoints: (EndpointServiceType * Location list) list
       AssociatedServiceEndpointPolicies : ResourceId list
       AllowPrivateEndpoints: FeatureFlag option
       PrivateLinkServiceNetworkPolicies: FeatureFlag option }
+    member internal this.AsSubnetResource =
+        { Name = this.Name
+          Prefix = IPAddressCidr.format this.Prefix
+          VirtualNetwork = this.VirtualNetwork
+          NetworkSecurityGroup = this.NetworkSecurityGroup
+          Delegations = this.Delegations |> List.map (fun (SubnetDelegationService(delegation)) ->
+              { Name = ResourceName delegation; ServiceName = delegation })
+          ServiceEndpoints = this.ServiceEndpoints
+          AssociatedServiceEndpointPolicies = this.AssociatedServiceEndpointPolicies
+          // PrivateEndpointNetworkPolicies prevents the use of private endpoints so 
+          // to ENable private endpoints we have to DISable PrivateEndpointNetworkPolicies
+          PrivateEndpointNetworkPolicies = this.AllowPrivateEndpoints |> Option.map FeatureFlag.invert 
+          PrivateLinkServiceNetworkPolicies = this.PrivateLinkServiceNetworkPolicies
+        }
+    interface IBuilder with
+        member this.ResourceId =
+            match this.VirtualNetwork with
+            | Some vnet ->
+                subnets.resourceId (vnet.Name, this.Name)
+            | None -> raiseFarmer "Subnet record must be linked to a virtual network to properly assign the resourceId."
+        member this.BuildResources _ = [ this.AsSubnetResource ]
 
 type SubnetBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
           Prefix = { Address = System.Net.IPAddress.Parse("10.100.0.0"); Prefix = 16 }
+          VirtualNetwork = None
           NetworkSecurityGroup = None
           Delegations = []
           ServiceEndpoints = []
@@ -52,6 +75,22 @@ type SubnetBuilder() =
         { state with NetworkSecurityGroup = Some (Unmanaged nsg) }
     member _.LinkToNetworkSecurityGroup(state:SubnetConfig, nsg:NsgConfig) =
         { state with NetworkSecurityGroup = Some (Unmanaged (nsg :> IBuilder).ResourceId) }
+    /// Links the subnet to an managed virtual network.
+    [<CustomOperation "link_to_vnet">]
+    member _.LinkToVirtualNetwork(state:SubnetConfig, vnet:IArmResource) =
+        { state with VirtualNetwork = Some (Managed (vnet.ResourceId)) }
+    member _.LinkToVirtualNetwork(state:SubnetConfig, vnet:ResourceId) =
+        { state with VirtualNetwork = Some (Managed vnet) }
+    member _.LinkToVirtualNetwork(state:SubnetConfig, vnet:NsgConfig) =
+        { state with VirtualNetwork = Some (Managed (vnet :> IBuilder).ResourceId) }
+    /// Links the subnet to an existing, externally defined virtual network.
+    [<CustomOperation "link_to_unmanaged_vnet">]
+    member _.LinkToUnmanagedVirtualNetwork(state:SubnetConfig, vnet:IArmResource) =
+        { state with VirtualNetwork = Some (Unmanaged (vnet.ResourceId)) }
+    member _.LinkToUnmanagedVirtualNetwork(state:SubnetConfig, vnet:ResourceId) =
+        { state with VirtualNetwork = Some (Unmanaged vnet) }
+    member _.LinkToUnmanagedVirtualNetwork(state:SubnetConfig, vnet:NsgConfig) =
+        { state with VirtualNetwork = Some (Unmanaged (vnet :> IBuilder).ResourceId) }
     /// Sets the network prefix in CIDR notation
     [<CustomOperation "add_delegations">]
     member _.AddDelegations(state:SubnetConfig, delegations) = { state with Delegations = state.Delegations @ delegations }
@@ -231,19 +270,7 @@ type VirtualNetworkConfig =
             { Name = this.Name
               Location = location
               AddressSpacePrefixes = this.AddressSpacePrefixes
-              Subnets = this.Subnets |> List.map (fun subnetConfig ->
-                  { Name = subnetConfig.Name
-                    Prefix = IPAddressCidr.format subnetConfig.Prefix
-                    NetworkSecurityGroup = subnetConfig.NetworkSecurityGroup
-                    Delegations = subnetConfig.Delegations |> List.map (fun (SubnetDelegationService(delegation)) ->
-                        { Name = ResourceName delegation; ServiceName = delegation })
-                    ServiceEndpoints = subnetConfig.ServiceEndpoints
-                    AssociatedServiceEndpointPolicies = subnetConfig.AssociatedServiceEndpointPolicies
-                    // PrivateEndpointNetworkPolicies prevents the use of private endpoints so 
-                    // to ENable private endpoints we have to DISable PrivateEndpointNetworkPolicies
-                    PrivateEndpointNetworkPolicies = subnetConfig.AllowPrivateEndpoints |> Option.map FeatureFlag.invert 
-                    PrivateLinkServiceNetworkPolicies = subnetConfig.PrivateLinkServiceNetworkPolicies
-                    })
+              Subnets = this.Subnets |> List.map (fun subnetConfig -> subnetConfig.AsSubnetResource)
               Tags = this.Tags
             }
             for {RemoteVNet=remote; Direction=direction; Access=access; Transit=transit; DependsOn = deps} in this.Peers do
@@ -325,6 +352,7 @@ type VirtualNetworkBuilder() =
                 |> List.map (fun ((name, delegations, serviceEndpoints, serviceEndpointPolicies, allowPrivateEndpoints, privateLinkServiceNetworkPolicies, nsg), cidr) ->
                     { Name = ResourceName name
                       Prefix = cidr
+                      VirtualNetwork = Some (Managed (virtualNetworks.resourceId state.Name))
                       NetworkSecurityGroup = nsg
                       Delegations = delegations
                       ServiceEndpoints = serviceEndpoints

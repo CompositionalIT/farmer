@@ -23,6 +23,7 @@ The SQL Azure module contains two builders - `sqlServer`, used to create SQL Azu
 | elastic_pool_database_min_max | Sets the optional minimum and maximum DTUs for the elastic pool for each database. |
 | elastic_pool_capacity | Sets the optional disk size in MB for the elastic pool for each database. |
 | min_tls_version | Sets the minium TLS version for the SQL server |
+| geo_replicate | Geo-replicate all the databases in this server to another location, having NameSuffix after original server and database names. |
 
 #### SQL Server Configuration Members
 | Member | Purpose |

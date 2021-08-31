@@ -34,33 +34,33 @@ type FunctionsConfig =
       ExtensionVersion : FunctionsExtensionVersion }
     member this.Name = this.CommonWebConfig.Name
     /// Gets the system-created managed principal for the functions instance. It must have been enabled using enable_managed_identity.
-    member this.SystemIdentity = SystemIdentity (sites.resourceId this.Name)
+    member this.SystemIdentity = SystemIdentity (sites.resourceId this.Name.ResourceName)
     /// Gets the ARM expression path to the publishing password of this functions app.
-    member this.PublishingPassword = publishingPassword this.Name
+    member this.PublishingPassword = publishingPassword this.Name.ResourceName
     /// Gets the ARM expression path to the storage account key of this functions app.
     member this.StorageAccountKey = StorageAccount.getConnectionString this.StorageAccountName
     /// Gets the ARM expression path to the app insights key of this functions app, if it exists.
     member this.AppInsightsKey = this.AppInsightsName |> Option.map AppInsights.getInstrumentationKey
     /// Gets the default key for the functions site
     member this.DefaultKey =
-        $"listkeys(concat(resourceId('Microsoft.Web/sites', '{this.Name.Value}'), '/host/default/'),'2016-08-01').functionKeys.default"
+        $"listkeys(concat(resourceId('Microsoft.Web/sites', '{this.Name.ResourceName.Value}'), '/host/default/'),'2016-08-01').functionKeys.default"
         |> ArmExpression.create
     /// Gets the master key for the functions site
     member this.MasterKey =
-        $"listkeys(concat(resourceId('Microsoft.Web/sites', '{this.Name.Value}'), '/host/default/'),'2016-08-01').masterKey"
+        $"listkeys(concat(resourceId('Microsoft.Web/sites', '{this.Name.ResourceName.Value}'), '/host/default/'),'2016-08-01').masterKey"
         |> ArmExpression.create
     /// Gets this web app's Server Plan's full resource ID.
-    member this.ServicePlanId = this.CommonWebConfig.ServicePlan.resourceId this.Name
+    member this.ServicePlanId = this.CommonWebConfig.ServicePlan.resourceId this.Name.ResourceName
     /// Gets the Service Plan name for this web app.
     member this.ServicePlanName = this.ServicePlanId.Name
     /// Gets the App Insights name for this functions app, if it exists.
-    member this.AppInsightsName : ResourceName option = this.CommonWebConfig.AppInsights |> Option.map (fun ai -> ai.resourceId(this.Name).Name)
+    member this.AppInsightsName : ResourceName option = this.CommonWebConfig.AppInsights |> Option.map (fun ai -> ai.resourceId(this.Name.ResourceName).Name)
     /// Gets the Storage Account name for this functions app.
     member this.StorageAccountName : Storage.StorageAccountName = this.StorageAccount.resourceId(this).Name |> Storage.StorageAccountName.Create |> Result.get
     /// Gets the Resource Id for this functions app
-    member this.ResourceId = sites.resourceId this.Name
+    member this.ResourceId = sites.resourceId this.Name.ResourceName
     interface IBuilder with
-        member this.ResourceId = sites.resourceId this.Name
+        member this.ResourceId = sites.resourceId this.Name.ResourceName
         member this.BuildResources location = [
             let keyVault, secrets =
                 match this.CommonWebConfig.SecretStore with
@@ -133,7 +133,7 @@ type FunctionsConfig =
 
                 if this.CommonWebConfig.OperatingSystem = Windows then
                     "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING", StorageAccount.getConnectionString this.StorageAccountName |> ArmExpression.Eval
-                    "WEBSITE_CONTENTSHARE", this.Name.Value.ToLower()
+                    "WEBSITE_CONTENTSHARE", this.Name.ResourceName.Value.ToLower()
                 match this.PublishAs with
                 | DockerContainer { User = us; Password = pass; Url = url } ->
                     yield! [
@@ -144,8 +144,8 @@ type FunctionsConfig =
 
                 | _ -> ()
               ]
-            
-            let functionsSettings = 
+
+            let functionsSettings =
                 basicSettings
                 |> List.map Setting.AsLiteral
                 |> List.append (
@@ -166,14 +166,13 @@ type FunctionsConfig =
                 |> Map
 
             let site =
-                { Type = Arm.Web.sites
-                  Name = this.Name
+                { SiteType = Site this.Name
                   ServicePlan = this.ServicePlanId
                   Location = location
                   Cors = this.CommonWebConfig.Cors
                   Tags = this.Tags
-                  ConnectionStrings = Map.empty
-                  AppSettings =functionsSettings
+                  ConnectionStrings = Some Map.empty
+                  AppSettings = Some functionsSettings
                   Identity = this.CommonWebConfig.Identity
                   KeyVaultReferenceIdentity = this.CommonWebConfig.KeyVaultReferenceIdentity
                   Kind =
@@ -184,7 +183,7 @@ type FunctionsConfig =
                     yield! this.Dependencies
 
                     match this.CommonWebConfig.AppInsights with
-                    | Some (DependableResource this.Name resourceId) -> resourceId
+                    | Some (DependableResource this.Name.ResourceName resourceId) -> resourceId
                     | _ -> ()
 
                     for setting in this.CommonWebConfig.Settings do
@@ -193,7 +192,7 @@ type FunctionsConfig =
                         | ParameterSetting _ | LiteralSetting _ -> ()
 
                     match this.CommonWebConfig.ServicePlan with
-                    | DependableResource this.Name resourceId -> resourceId
+                    | DependableResource this.Name.ResourceName resourceId -> resourceId
                     | _ -> ()
 
                     match this.StorageAccount with
@@ -227,7 +226,7 @@ type FunctionsConfig =
                   Metadata = []
                   AutoSwapSlotName = None
                   ZipDeployPath = this.CommonWebConfig.ZipDeployPath |> Option.map (fun (path, slot) -> path, ZipDeploy.ZipDeployTarget.FunctionApp, slot)
-                  AppCommandLine = 
+                  AppCommandLine =
                     match this.PublishAs with
                     | DockerContainer { StartupCommand = sc } ->
                         Some sc
@@ -236,7 +235,7 @@ type FunctionsConfig =
                   HealthCheckPath = this.CommonWebConfig.HealthCheckPath }
 
             match this.CommonWebConfig.ServicePlan with
-            | DeployableResource this.Name resourceId ->
+            | DeployableResource this.Name.ResourceName resourceId ->
                 { Name = resourceId.Name
                   Location = location
                   Sku = Sku.Y1
@@ -257,38 +256,38 @@ type FunctionsConfig =
                   NetworkAcls = None
                   StaticWebsite = None
                   EnableHierarchicalNamespace = None
-                  MinTlsVersion = None 
+                  MinTlsVersion = None
                   Tags = this.Tags }
             | _ ->
                 ()
 
             match this.CommonWebConfig.AppInsights with
-            | Some (DeployableResource this.Name resourceId) ->
+            | Some (DeployableResource this.Name.ResourceName resourceId) ->
                 { Name = resourceId.Name
                   Location = location
                   DisableIpMasking = false
                   SamplingPercentage = 100
                   LinkedWebsite =
                     match this.CommonWebConfig.OperatingSystem with
-                    | Windows -> Some this.Name
+                    | Windows -> Some this.Name.ResourceName
                     | Linux -> None
                   Tags = this.Tags }
             | Some _
             | None ->
                 ()
-            
+
             if Map.isEmpty this.CommonWebConfig.Slots then
                 site
             else
-                {site with AppSettings = Map.empty}
+                { site with AppSettings = None; ConnectionStrings = None }
                 for (_, slot) in this.CommonWebConfig.Slots |> Map.toSeq do
-                    slot.ToArm site
+                    slot.ToSite site
         ]
 
 type FunctionsBuilder() =
     member _.Yield _ =
-        { FunctionsConfig.CommonWebConfig = 
-            { Name = ResourceName.Empty
+        { FunctionsConfig.CommonWebConfig =
+            { Name = WebAppName.Empty
               AlwaysOn = false
               AppInsights = Some (derived (fun name -> components.resourceId (name-"ai")))
               Cors = None
@@ -299,18 +298,21 @@ type FunctionsBuilder() =
               SecretStore = AppService
               ServicePlan = derived (fun name -> serverFarms.resourceId (name-"farm"))
               Settings = Map.empty
-              Slots = Map.empty 
+              Slots = Map.empty
               WorkerProcess = None
               ZipDeployPath = None
               HealthCheckPath = None }
           StorageAccount = derived (fun config ->
-            let storage = config.Name.Map (sprintf "%sstorage") |> sanitiseStorage |> ResourceName
+            let storage = config.Name.ResourceName.Map (sprintf "%sstorage") |> sanitiseStorage |> ResourceName
             storageAccounts.resourceId storage)
           Runtime = DotNet
           ExtensionVersion = V3
           Dependencies = Set.empty
           PublishAs = Code
           Tags = Map.empty }
+    member _.Run (state:FunctionsConfig) =
+        if state.Name.ResourceName = ResourceName.Empty then raiseFarmer "No Functions instance name has been set."
+        state
     /// Do not create an automatic storage account; instead, link to a storage account that is created outside of this Functions instance.
     [<CustomOperation "link_to_storage_account">]
     member _.LinkToStorageAccount(state:FunctionsConfig, name) = { state with StorageAccount = managed storageAccounts name }

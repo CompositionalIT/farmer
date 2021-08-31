@@ -213,4 +213,97 @@ let tests = testList "DNS Zone" [
         let tmAresourceId = jobj.SelectToken("resources[?(@.name=='farmer.com/tm-cname')].properties.targetResource.id") |> string
         Expect.equal tmAresourceId "[resourceId('Microsoft.Network/trafficManagerProfiles', 'my-tm')]" "Incorrect ID on target resource"
     }
+    test "DNS zone get NameServers" {
+        let zone =
+            dnsZone { name "farmer.com" }
+        
+        let template =
+            arm {
+                add_resources [ zone ]
+                output "nameservers" zone.NameServers
+            }
+        let expected = "[string(reference(resourceId('Microsoft.Network/dnsZones', 'farmer.com'), '2018-05-01').nameServers)]"
+        let jobj = template.Template |> Writer.toJson |> JObject.Parse
+        let nsArm = jobj.SelectToken("outputs.nameservers.value").ToString()
+        Expect.equal nsArm expected "Nameservers not gotten"
+    }
+    test "Delegate subdomain to another zone" {
+        let nsrecords = "[reference(resourceId('Microsoft.Network/dnsZones/NS', 'subdomain.farmer.com', '@'), '2018-05-01').NSRecords]"
+        let subdomainZone = dnsZone {
+            name "subdomain.farmer.com"
+            zone_type Dns.Public
+            add_records [
+                aRecord {
+                    name "aName"
+                    ttl 7200
+                    add_ipv4_addresses [ "192.168.0.1"; "192.168.0.2" ]
+                }
+            ]
+        }
+
+        let template =
+            arm {
+                add_resources [
+                    subdomainZone
+                    // When delegating lookups to another DNS zone, you add an NS record to your existing zone and reference the delegated zone to get it's NSRecords.
+                    nsRecord {
+                        name "subdomain"
+                        link_to_unmanaged_dns_zone (Farmer.Arm.Dns.zones.resourceId "farmer.com")
+                        ttl (int (TimeSpan.FromDays 2.).TotalSeconds)
+                        add_nsd_reference subdomainZone
+                    }
+                ]
+            }
+        let jobj = template.Template |> Writer.toJson |> JObject.Parse
+        let delegatedNsRecord = jobj.SelectToken("resources[?(@.name=='farmer.com/subdomain')].properties.NSRecords") |> string
+        Expect.equal delegatedNsRecord nsrecords "Incorrect reference generated for NS record of delegated subdomain."
+    }
+    test "Delegate subdomain to a zone in another group and subscription" {
+        let fakeSubId = "8231b360-0d7f-460c-b421-62146c4716b3"
+        let nsrecords = $"[reference(resourceId('{fakeSubId}', 'res-group', 'Microsoft.Network/dnsZones/NS', 'subdomain.farmer.com', '@'), '2018-05-01').NSRecords]"
+        let template =
+            arm {
+                add_resources [
+                    nsRecord {
+                        name "subdomain"
+                        link_to_unmanaged_dns_zone (Farmer.Arm.Dns.zones.resourceId "farmer.com")
+                        ttl (int (TimeSpan.FromDays 2.).TotalSeconds)
+                        add_nsd_reference (ResourceId.create (Farmer.Arm.Dns.zones, ResourceName "subdomain.farmer.com", "res-group", fakeSubId))
+                    }
+                ]
+            }
+        let jobj = template.Template |> Writer.toJson |> JObject.Parse
+        let delegatedNsRecord = jobj.SelectToken("resources[?(@.name=='farmer.com/subdomain')].properties.NSRecords") |> string
+        Expect.equal delegatedNsRecord nsrecords "Incorrect reference generated for NS record of delegated subdomain in different group/subscription."
+    }
+    test "Disallow adding NSD reference after NSD names are added to prevent overwriting" {
+        Expect.throws ( fun _ ->
+            arm {
+                add_resources [
+                    nsRecord {
+                        name "subdomain"
+                        link_to_unmanaged_dns_zone (Farmer.Arm.Dns.zones.resourceId "farmer.com")
+                        ttl (int (TimeSpan.FromDays 2.).TotalSeconds)
+                        add_nsd_names [ "ns01.foo.bar " ]
+                        add_nsd_reference (Farmer.Arm.Dns.zones.resourceId "subdomain.farmer.com")
+                    }
+                ]
+            } |> ignore
+        ) "Should fail when add_nsd_records was already called"
+    }
+    test "Disallow adding NSD records after NSD reference to prevent overwriting" {
+        Expect.throws ( fun _ ->
+            arm {
+                add_resources [
+                    nsRecord {
+                        name "subdomain"
+                        link_to_unmanaged_dns_zone (Farmer.Arm.Dns.zones.resourceId "farmer.com")
+                        ttl (int (TimeSpan.FromDays 2.).TotalSeconds)
+                        add_nsd_reference (Farmer.Arm.Dns.zones.resourceId "subdomain.farmer.com")
+                        add_nsd_names [ "ns01.foo.bar " ]
+                    }
+                ]
+            } |> ignore
+        ) "Should fail when add_nsd_reference was already called"
+    }
 ]

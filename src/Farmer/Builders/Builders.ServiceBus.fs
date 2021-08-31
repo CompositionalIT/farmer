@@ -59,7 +59,7 @@ type ServiceBusQueueBuilder() =
     [<CustomOperation "enable_partition">] member _.EnablePartition(state:ServiceBusQueueConfig) = { state with EnablePartitioning = Some true }
     /// Add authorization rule on the queue.
     [<CustomOperation "add_authorization_rule">]
-    member __.AddAuthorizationRule(state:ServiceBusQueueConfig, name, rights) = { state with AuthorizationRules = state.AuthorizationRules.Add(ResourceName name, Set rights) }
+    member _.AddAuthorizationRule(state:ServiceBusQueueConfig, name, rights) = { state with AuthorizationRules = state.AuthorizationRules.Add(ResourceName name, Set rights) }
 
 type ServiceBusSubscriptionConfig =
     { Name : ResourceName
@@ -139,7 +139,7 @@ type ServiceBusTopicConfig =
               Dependencies = [
                 match this.Namespace with
                 | Managed resId -> resId // Only generate dependency if this is managed by Farmer (same template)
-                | _ -> ()                  
+                | _ -> ()
               ] |> Set.ofList
               Namespace =
                 match this.Namespace with
@@ -206,7 +206,7 @@ type ServiceBusTopicBuilder() =
         { state with Namespace = Unmanaged(namespaces.resourceId namespaceName) }
     member this.LinkToUnmanagedNamespace (state:ServiceBusTopicConfig, namespaceName) =
         { state with Namespace = Unmanaged(namespaces.resourceId(ResourceName namespaceName)) }
-    
+
 
 type ServiceBusConfig =
     { Name : ResourceName
@@ -279,7 +279,7 @@ type ServiceBusBuilder() =
           Queues = Map.empty
           Topics = Map.empty
           Dependencies = Set.empty
-          AuthorizationRules = Map.empty  
+          AuthorizationRules = Map.empty
           Tags = Map.empty }
     member _.Run (state:ServiceBusConfig) =
         let isBetween min max v = v >= min && v <= max
@@ -287,9 +287,9 @@ type ServiceBusBuilder() =
             let queue = queue.Value
 
             match queue.DuplicateDetection, state.Sku with
-            | Some _, Basic -> failwith $"Duplicate Detection cannot be set when creating a queue using the Basic tier (queue '{queue.Name.Value}' fails this check)."
+            | Some _, Basic -> raiseFarmer $"Duplicate Detection cannot be set when creating a queue using the Basic tier (queue '{queue.Name.Value}' fails this check)."
             | _ -> ()
-            queue.LockDuration |> Option.iter(fun lockDuration -> if lockDuration > TimeSpan(0,5,0) then failwith "Lock duration name must not be more than 5 minutes.")
+            queue.LockDuration |> Option.iter(fun lockDuration -> if lockDuration > TimeSpan(0,5,0) then raiseFarmer "Lock duration name must not be more than 5 minutes.")
 
         state
     /// The name of the namespace that holds the queue.
@@ -315,7 +315,7 @@ type ServiceBusBuilder() =
         }
     /// Add authorization rule on the namespace.
     [<CustomOperation "add_authorization_rule">]
-    member __.AddAuthorizationRule(state:ServiceBusConfig, name, rights) = { state with AuthorizationRules = state.AuthorizationRules.Add(ResourceName name, Set rights) }
+    member _.AddAuthorizationRule(state:ServiceBusConfig, name, rights) = { state with AuthorizationRules = state.AuthorizationRules.Add(ResourceName name, Set rights) }
     interface ITaggable<ServiceBusConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let serviceBus = ServiceBusBuilder()

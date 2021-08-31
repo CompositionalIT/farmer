@@ -26,6 +26,7 @@ type SqlAzureConfig =
            PerDbLimits : {| Min: int<DTU>; Max : int<DTU> |} option
            Capacity : int<Mb> option |}
       Databases : SqlAzureDbConfig list
+      GeoReplicaServer : GeoReplicationSettings option
       Tags: Map<string,string>  }
     /// Gets a basic .NET connection string using the administrator username / password.
     member this.ConnectionString (database:SqlAzureDbConfig) =
@@ -40,7 +41,7 @@ type SqlAzureConfig =
         this.Databases
         |> List.tryFind(fun db -> db.Name = databaseName)
         |> Option.map this.ConnectionString
-        |> Option.defaultWith(fun _ -> failwith $"Unknown database name {databaseName.Value}")
+        |> Option.defaultWith(fun _ -> raiseFarmer $"Unknown database name {databaseName.Value}")
     member this.ConnectionString databaseName = this.ConnectionString (ResourceName databaseName)
     /// The key of the parameter that is required by Farmer for the SQL password.
     member this.PasswordParameter = $"password-for-{this.Name.ResourceName.Value}"
@@ -96,6 +97,61 @@ type SqlAzureConfig =
                   Sku = this.ElasticPoolSettings.Sku
                   MaxSizeBytes = this.ElasticPoolSettings.Capacity |> Option.map Mb.toBytes
                   MinMax = this.ElasticPoolSettings.PerDbLimits |> Option.map(fun l -> l.Min, l.Max) }
+
+            match this.GeoReplicaServer with
+            | Some replica ->
+                if replica.Location.ArmValue = location.ArmValue then
+                    raiseFarmer $"Geo-replica cannot be deployed to the same location than the main database {this.Name}: {location.ArmValue}"
+                else
+                let replicaServerName =
+                    match (this.Name.ResourceName.Value + replica.NameSuffix) |> SqlAccountName.Create with
+                    | Ok x -> x
+                    | Error e -> raiseFarmer e
+
+                { ServerName = replicaServerName
+                  Location = replica.Location
+                  Credentials =
+                    {| Username = this.AdministratorCredentials.UserName
+                       Password = this.AdministratorCredentials.Password |}
+                  MinTlsVersion = this.MinTlsVersion
+                  Tags = this.Tags
+                }
+                for database in this.Databases do
+                    let geoSku =
+                        match replica.DbSku, database.Sku with
+                        | Some relicaSku, _ -> relicaSku.Name, relicaSku.Edition
+                        | None, Some dbSku -> dbSku.Name, dbSku.Edition
+                        | None, None -> this.ElasticPoolSettings.Sku.Name, this.ElasticPoolSettings.Sku.Edition
+
+                    let primaryDatabaseFullId =
+                        ArmExpression.create(
+                            $"concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Sql/servers/', '{this.Name.ResourceName.Value}', '/databases/','{database.Name.Value}')"
+                        ).Eval()
+
+                    {| apiVersion = "2021-02-01-preview"
+                       location = replica.Location.ArmValue
+                       dependsOn = [ Farmer.ResourceId.create(Farmer.Arm.Sql.servers, replicaServerName.ResourceName).Eval(); ]
+                       name = $"{replicaServerName.ResourceName.Value}/{database.Name.Value + replica.NameSuffix}"
+                       ``type`` = Farmer.Arm.Sql.databases.Type
+                       sku =
+                           {|  name = fst geoSku
+                               tier = snd geoSku
+                           |}
+                       properties =
+                           {|   createMode = "OnlineSecondary"
+                                secondaryType = "Geo"
+                                sourceDatabaseId = primaryDatabaseFullId
+                                zoneRedundant = false
+                                licenseType = ""
+                                readScale = "Disabled"
+                                highAvailabilityReplicaCount = 0
+                                minCapacity = ""
+                                autoPauseDelay = ""
+                                requestedBackupStorageRedundancy = ""
+
+                           |}
+                    |} |> Farmer.Resource.ofObj
+            | None -> ()
         ]
 
 type SqlDbBuilder() =
@@ -128,7 +184,7 @@ type SqlDbBuilder() =
                     Some (VCore (v, AzureHybridBenefit))
                 | Some (DTU _)
                 | None ->
-                    failwith "You can only set licensing on VCore databases. Ensure that you have already set the SKU to a VCore model."
+                    raiseFarmer "You can only set licensing on VCore databases. Ensure that you have already set the SKU to a VCore model."
         }
     /// Sets the maximum size of the database, if this database is not part of an elastic pool.
     [<CustomOperation "db_size">]
@@ -138,13 +194,13 @@ type SqlDbBuilder() =
     member _.UseEncryption(state:SqlAzureDbConfig) = { state with Encryption = Enabled }
     /// Adds a custom firewall rule given a name, start and end IP address range.
     member _.Run (state:SqlAzureDbConfig) =
-        if state.Name = ResourceName.Empty then failwith "You must set a database name."
+        if state.Name = ResourceName.Empty then raiseFarmer "You must set a database name."
         state
 
 type SqlServerBuilder() =
     let makeIp (text:string) = IPAddress.Parse text
-    member __.Yield _ =
-        { Name = (SqlAccountName.Create "defaultvalue").OkValue
+    member _.Yield _ =
+        { Name = SqlAccountName.Empty
           AdministratorCredentials = {| UserName = ""; Password = SecureParameter "" |}
           ElasticPoolSettings =
             {| Name = None
@@ -154,11 +210,13 @@ type SqlServerBuilder() =
           Databases = []
           FirewallRules = []
           MinTlsVersion = None
+          GeoReplicaServer = None
           Tags = Map.empty  }
-    member __.Run state : SqlAzureConfig =
+    member _.Run state : SqlAzureConfig =
+        if state.Name.ResourceName = ResourceName.Empty then raiseFarmer "No SQL Server account name has been set."
         { state with
             AdministratorCredentials =
-                if System.String.IsNullOrWhiteSpace state.AdministratorCredentials.UserName then failwith $"You must specify the admin_username for SQL Server instance {state.Name.ResourceName.Value}"
+                if System.String.IsNullOrWhiteSpace state.AdministratorCredentials.UserName then raiseFarmer $"You must specify the admin_username for SQL Server instance {state.Name.ResourceName.Value}"
                 {| state.AdministratorCredentials with
                     Password = SecureParameter state.PasswordParameter |} }
     /// Sets the name of the SQL server.
@@ -183,7 +241,7 @@ type SqlServerBuilder() =
     member _.AddDatabases(state:SqlAzureConfig, databases) = { state with Databases = state.Databases @ databases }
     /// Adds a firewall rule that enables access to a specific IP Address range.
     [<CustomOperation "add_firewall_rule">]
-    member __.AddFirewallRule(state:SqlAzureConfig, name, startRange, endRange) =
+    member _.AddFirewallRule(state:SqlAzureConfig, name, startRange, endRange) =
         { state with
             FirewallRules =
                 {| Name = ResourceName name
@@ -192,7 +250,7 @@ type SqlServerBuilder() =
                 :: state.FirewallRules }
     /// Adds a firewall rules that enables access to a specific IP Address range.
     [<CustomOperation "add_firewall_rules">]
-    member __.AddFirewallRules(state:SqlAzureConfig, listOfRules:(string*string*string) list) =
+    member _.AddFirewallRules(state:SqlAzureConfig, listOfRules:(string*string*string) list) =
         let newRules =
             listOfRules |> List.map(fun (name, startRange, endRange) ->
                 {| Name = ResourceName name
@@ -205,7 +263,7 @@ type SqlServerBuilder() =
         this.AddFirewallRule(state, "allow-azure-services", "0.0.0.0", "0.0.0.0")
     /// Sets the admin username of the server (note: the password is supplied as a securestring parameter to the generated ARM template).
     [<CustomOperation "admin_username">]
-    member __.AdminUsername(state:SqlAzureConfig, username) =
+    member _.AdminUsername(state:SqlAzureConfig, username) =
         { state with
             AdministratorCredentials =
                 {| state.AdministratorCredentials with
@@ -215,6 +273,12 @@ type SqlServerBuilder() =
     [<CustomOperation "min_tls_version">]
     member _.SetMinTlsVersion(state:SqlAzureConfig, minTlsVersion) =
         { state with MinTlsVersion = Some minTlsVersion }
+
+    /// Geo-replicate all the databases in this server to another location, having NameSuffix after original server and database names.
+    [<CustomOperation "geo_replicate">]
+    member _.SetGeoReplication(state:SqlAzureConfig, replicaSettings) =
+        { state with GeoReplicaServer = Some replicaSettings }
+
     interface ITaggable<SqlAzureConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let sqlServer = SqlServerBuilder()

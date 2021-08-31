@@ -66,7 +66,7 @@ let tests = testList "KeyVault" [
         let a = webApp { name "test" }
         let v = keyVault { add_access_policy (AccessPolicy.create a.SystemIdentity.PrincipalId) } :> IBuilder
         let vault = v.BuildResources Location.NorthEurope |> List.head :?> Farmer.Arm.KeyVault.Vault
-        Expect.sequenceEqual vault.Dependencies [ ResourceId.create(Arm.Web.sites, a.Name) ] "Web App dependency"
+        Expect.sequenceEqual vault.Dependencies [ ResourceId.create(Arm.Web.sites, a.Name.ResourceName) ] "Web App dependency"
     }
     
     test "Create a basic key vault" {
@@ -141,5 +141,63 @@ let tests = testList "KeyVault" [
         let jobj = JObject.Parse(json)
         let purgeProtection = jobj.SelectToken("resources[0].properties.enablePurgeProtection")
         Expect.equal (purgeProtection |> string |> Boolean.Parse) true "Purge protection not enabled"
+    }
+    test "Add access policies on existing key vault" {
+        let additionalPolicies =
+            keyVaultAddPolicies {
+                key_vault (Farmer.Arm.KeyVault.vaults.resourceId "existing-vault")
+                add_access_policies [
+                    accessPolicy {
+                        object_id (Guid "ad731a70-fd25-452f-b9d8-a0c0ae8033af")
+                        application_id (Guid "12ef53f8-98a0-4513-b081-6b5e70db76e1")
+                        certificate_permissions [ KeyVault.Certificate.List ]
+                        secret_permissions KeyVault.Secret.All
+                        key_permissions [ KeyVault.Key.List ]
+                    }
+                ]
+            }
+        let template =
+            arm {
+                add_resource additionalPolicies
+            }
+        let jobj = JObject.Parse(template.Template |> Writer.toJson)
+        let name = jobj.SelectToken("resources[0].name")
+        Expect.equal (name |> string) "existing-vault/add" "Incorrect name for adding kv access policies"
+        let dependsOn = jobj.SelectToken("resources[0].dependsOn") :?> JArray
+        Expect.hasLength dependsOn 0 "Should have no dependencies"
+        let accessPolicies = jobj.SelectToken("resources[0].properties.accessPolicies") :?> JArray
+        Expect.hasLength accessPolicies 1 "Should include one access policy to add to the key vault"
+        let tenant = jobj.SelectToken("resources[0].properties.accessPolicies[0].tenantId") |> string
+        Expect.equal tenant "[subscription().tenantId]" "If tenant was not specified, access policies default to target subscription's tenant"
+    }
+    test "Adding access policies on existing key vault without specifying the key vault fails" {
+        Expect.throws (fun _ ->
+            let additionalPolicies =
+                keyVaultAddPolicies {
+                    add_access_policies [
+                        accessPolicy {
+                            object_id (Guid "ad731a70-fd25-452f-b9d8-a0c0ae8033af")
+                            application_id (Guid "12ef53f8-98a0-4513-b081-6b5e70db76e1")
+                            certificate_permissions [ KeyVault.Certificate.List ]
+                            secret_permissions KeyVault.Secret.All
+                            key_permissions [ KeyVault.Key.List ]
+                        }
+                    ]
+                }
+            let template =
+                arm {
+                    add_resource additionalPolicies
+                }
+            template |> Writer.quickWrite |> ignore
+        ) "Should have failed to build the key vault policy addition resource"
+    }
+    test "Standalone secret can be added as resource" {
+        let vaultId = (Arm.KeyVault.vaults.resourceId (ResourceName "my-kv"))
+        let secret = secret { name "my-secret"; content_type "ConnectionString"; link_to_unmanaged_keyvault (Arm.KeyVault.vaults.resourceId "my-kv")}
+        let resources = (arm { add_resource secret }).Template.Resources
+        Expect.hasLength resources 1 "Should only be one resource"
+        match resources.[0] with
+        | :? Arm.KeyVault.Vaults.Secret as secret -> ()
+        | x -> failwith $"resource was expected to be of type {typeof<Arm.KeyVault.Vaults.Secret>} but was {x.GetType()}"
     }
 ]

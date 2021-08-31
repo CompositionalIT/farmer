@@ -12,16 +12,18 @@ open Farmer.AzureFirewall
 
 let tests =
     testList "ARM Writer Regression Tests" [
+        let compareDeploymentToJson (deployment:ResourceGroupConfig) jsonFile =
+            let path = __SOURCE_DIRECTORY__ + "/test-data/" + jsonFile
+            let expected = File.ReadAllText path
+            let actual = deployment.Template |> Writer.toJson
+            Expect.equal (actual.Trim()) (expected.Trim()) (sprintf "ARM template generation has changed! Either fix the writer, or update the contents of the generated file (%s)" path)
+
         let compareResourcesToJson (resources:IBuilder list) jsonFile =
             let template = arm {
                 location Location.NorthEurope
                 add_resources resources
             }
-
-            let path = __SOURCE_DIRECTORY__ + "/test-data/" + jsonFile
-            let expected = File.ReadAllText path
-            let actual = template.Template |> Writer.toJson
-            Expect.equal (actual.Trim()) (expected.Trim()) (sprintf "ARM template generation has changed! Either fix the writer, or update the contents of the generated file (%s)" path)
+            compareDeploymentToJson template jsonFile
 
         test "Generates lots of resources" {
             let number = string 1979
@@ -35,7 +37,7 @@ let tests =
             let containerGroup = containerGroup { name ("farmeraci" + number); add_instances [ containerInstance { name "webserver"; image "nginx:latest"; add_ports ContainerGroup.PublicPort [ 80us ]; add_volume_mount "source-code" "/src/farmer" } ]; add_volumes [ volume_mount.git_repo "source-code" (System.Uri "https://github.com/CompositionalIT/farmer") ] }
             let vm = vm{ name "farmervm"; username "farmer-admin" }
             let dockerFunction = functions {
-                name "docker_func"
+                name "docker-func"
                 publish_as (
                     DockerContainer {
                         Url = new Uri("http://www.farmer.io")
@@ -174,8 +176,6 @@ let tests =
     }
 """
             let resource = arm { add_resource (Resource.ofJson json) } |> Storage.getStorageResource
-            printfn "%A" resource
-
             Expect.equal resource.Name "jsontest" "Account name is wrong"
             Expect.equal resource.Sku.Name "Standard_LRS" "SKU is wrong"
             Expect.equal resource.Kind "StorageV2" "Kind"
@@ -280,7 +280,7 @@ let tests =
                 }
             compareResourcesToJson [ myVnet; lb ] "load-balancer.json"
         }
-        
+
         test "AzureFirewall" {
             let vwan = vwan {
                 name "farmer-vwan"
@@ -302,5 +302,53 @@ let tests =
                 depends_on [(vhub :>IBuilder).ResourceId]
             }
             compareResourcesToJson [ firewall; vhub; vwan ] "azure-firewall.json"
+        }
+
+        test "AKS" {
+            let kubeletMsi = createUserAssignedIdentity "kubeletIdentity"
+            let clusterMsi = createUserAssignedIdentity "clusterIdentity"
+            let assignMsiRoleNameExpr = ArmExpression.create($"guid(concat(resourceGroup().id, '{clusterMsi.ResourceId.Name.Value}', '{Roles.ManagedIdentityOperator.Id}'))")
+            let assignMsiRole =
+                { Name =
+                    assignMsiRoleNameExpr.Eval()
+                    |> ResourceName
+                  RoleDefinitionId = Roles.ManagedIdentityOperator
+                  PrincipalId = clusterMsi.PrincipalId
+                  PrincipalType = PrincipalType.ServicePrincipal
+                  Scope = ResourceGroup
+                  Dependencies = Set [ clusterMsi.ResourceId ] }
+            let myAcr = containerRegistry { name "farmercontainerregistry1234" }
+            let myAcrResId = (myAcr :> IBuilder).ResourceId
+            let acrPullRoleNameExpr = ArmExpression.create($"guid(concat(resourceGroup().id, '{kubeletMsi.ResourceId.Name.Value}', '{Roles.AcrPull.Id}'))")
+            let acrPullRole =
+                { Name = acrPullRoleNameExpr.Eval() |> ResourceName
+                  RoleDefinitionId = Roles.AcrPull
+                  PrincipalId = kubeletMsi.PrincipalId
+                  PrincipalType = PrincipalType.ServicePrincipal
+                  Scope = AssignmentScope.SpecificResource myAcrResId
+                  Dependencies = Set [ kubeletMsi.ResourceId ] }
+
+            let myAks = aks {
+                name "aks-cluster"
+                dns_prefix "aks-cluster-223d2976"
+                add_identity clusterMsi
+                service_principal_use_msi
+                kubelet_identity kubeletMsi
+                depends_on clusterMsi
+                depends_on myAcr
+                depends_on_expression assignMsiRoleNameExpr
+                depends_on_expression acrPullRoleNameExpr
+            }
+            let template =
+                arm {
+                    location Location.EastUS
+                    add_resource kubeletMsi
+                    add_resource clusterMsi
+                    add_resource myAcr
+                    add_resource myAks
+                    add_resource assignMsiRole
+                    add_resource acrPullRole
+                }
+            compareDeploymentToJson template "aks-with-acr.json"
         }
     ]

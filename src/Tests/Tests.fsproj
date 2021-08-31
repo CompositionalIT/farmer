@@ -10,6 +10,8 @@
     <Content Include="test-data\*.json" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="Helpers.fs" />
     <Compile Include="AppInsights.fs" />
+    <Compile Include="Alerts.fs" />
+    <Compile Include="AvailabilityTests.fs" />
     <Compile Include="AzureFirewall.fs" />
     <Compile Include="DiagnosticSettings.fs" />
     <Compile Include="Common.fs" />
@@ -28,6 +30,7 @@
     <Compile Include="Network.fs" />
     <Compile Include="LoadBalancer.fs" />
     <Compile Include="NetworkSecurityGroup.fs" />
+    <Compile Include="ResourceGroup.fs" />
     <Compile Include="Storage.fs" />
     <Compile Include="ServiceBus.fs" />
     <Compile Include="IotHub.fs" />
@@ -53,6 +56,7 @@
     <Compile Include="JsonRegression.fs" />
     <Compile Include="Types.fs" />
     <Compile Include="TrafficManager.fs" />
+    <Compile Include="Dashboards.fs" />
     <Compile Include="AllTests.fs" />
   </ItemGroup>
 

@@ -1,9 +1,42 @@
 Release Notes
 =============
-## vNext
-* WebApp/Functions: Web Apps and Functions now 'health_check_path' support. The "Configure the time that an unhealthy instance remains in the load balancer before it is removed" setting is not configurable via ARM, and defaults to ten minutes.
+## 1.6.15
+* Key Vaults: Allow deploying standalone secrets without a KeyVault in the same deployment
+* WebApp/Functions: no longer overwrites production slot settings when using a multi-slot deploy
+
+## 1.6.14
+* Container Service (AKS): Adds `kubelet_identity` operator to suppor a user assigned identity for kubelet.
+
+## 1.6.13
+* Alerts: Initial support for Alerts
+* Container Groups: Fix to generate parameters for secure environment variables on `initContainers`.
+* Container Service (AKS): Simplify `aks` builder with defaults for node pool and DNS prefix.
+* Dashboads: Fixes for complex dashboards: custom parts and monitor parts.
+* Key Vaults: Support for adding access policies on an existing key vault with `keyVaultAddPolicies`.
+* Virtual Networks: support for adding subnets to existing virtual networks.
+
+## 1.6.12
+* Custom FarmerException raised for all exceptions.
+* Dashboards: Changed the API to use non-anonymous record.
+* Improve validation error messages.
+* SQL Server: geo_replicate changed the API to use non-anonymous record.
+* WebApp/Functions: Web Apps and Functions now 'health_check_path' support.
+
+## 1.6.11
+* Container Groups: Use `ip_config` to name the IP configuration for a container group's subnet.
+* DNS Zone: Added configuration member of NameServers
+* DNS Zone: Support for delegating a subdomain to another DNS Zone with `add_nsd_reference`.
+* Functions: Validation on functions name.
+* Resource groups: Added `outputs` keyword
+* Virtual Machine: Added configuration member PublicIpAddress
+* WebApp: Validation on site name.
+
+## 1.6.10
+* Azure SQL Server: geo_replicate parameter to geo-replicate the server databases
+* App Insights: Support for Availability tests, VS WebTests
 
 ## 1.6.9
+* Resource Groups: Support for creating resource groups for deployments targeting a subscription.
 * WebApp: Slots now inherit user assigned identities from their owning webApp
 
 ## 1.6.8

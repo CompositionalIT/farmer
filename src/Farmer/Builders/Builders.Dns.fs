@@ -16,13 +16,13 @@ type DnsZoneRecordConfig =
       Zone : LinkedResource option }
     static member Create(name, ttl, zone, recordType, ?dependencies:Set<ResourceId>) =
         { Name =
-              if name = ResourceName.Empty then failwith "You must set a DNS zone name"
+              if name = ResourceName.Empty then raiseFarmer "You must set a DNS zone name"
               name
           Dependencies = dependencies |> Option.defaultValue Set.empty
           TTL =
               match ttl with
               | Some ttl -> ttl
-              | None -> failwith "You must set a TTL"
+              | None -> raiseFarmer "You must set a TTL"
           Zone = zone
           Type = recordType }
     interface IBuilder with
@@ -30,7 +30,7 @@ type DnsZoneRecordConfig =
             match this.Zone with
             | Some zone ->
                 this.Type.ResourceType.resourceId (zone.Name, this.Name)
-            | None -> failwith "DNS record must be linked to a zone to properly assign the resourceId."
+            | None -> raiseFarmer "DNS record must be linked to a zone to properly assign the resourceId."
         member this.BuildResources _ =
             match this.Zone with
             | Some zone ->
@@ -41,12 +41,12 @@ type DnsZoneRecordConfig =
                       TTL = this.TTL
                       Type = this.Type }
                 ]
-            | None -> failwith "DNS record must be linked to a zone."
+            | None -> raiseFarmer "DNS record must be linked to a zone."
 
 type CNameRecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; CName : string option; TTL: int option; Zone: LinkedResource option; TargetResource: ResourceId option }
 type ARecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; Ipv4Addresses : string list; TTL: int option; Zone: LinkedResource option; TargetResource: ResourceId option  }
 type AaaaRecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; Ipv6Addresses : string list; TTL: int option; Zone: LinkedResource option; TargetResource: ResourceId option }
-type NsRecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; NsdNames : string list; TTL: int option; Zone: LinkedResource option }
+type NsRecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; NsdNames : NsRecords; TTL: int option; Zone: LinkedResource option }
 type PtrRecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; PtrdNames : string list; TTL: int option; Zone: LinkedResource option; }
 type TxtRecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; TxtValues : string list; TTL: int option; Zone: LinkedResource option; }
 type MxRecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; MxValues : {| Preference : int; Exchange : string |} list; TTL: int option; Zone: LinkedResource option; }
@@ -63,6 +63,41 @@ type SoaRecordProperties =
       MinimumTTL : int64 option
       TTL: int option
       Zone: LinkedResource option }
+
+type DnsZone =
+    static member getNameServers (resourceId:ResourceId) =
+        ArmExpression
+            .reference(zones, resourceId)
+            .Map(fun r -> r + ".nameServers")
+            .WithOwner(resourceId)
+        |> ArmExpression.string
+
+    static member getNameServers (name:ResourceName, ?resourceGroup) =
+        DnsZone.getNameServers(ResourceId.create (zones, name, ?group = resourceGroup))
+
+type DnsZoneConfig =
+    { Name : ResourceName
+      Dependencies : Set<ResourceId>
+      ZoneType : DnsZoneType
+      Records : DnsZoneRecordConfig list }
+
+    /// Gets the ARM expression path to the NameServers. When evaluated, will return a JSON array as string. E.g.: """["ns1-01.azure-dns.com.","ns2-01.azure-dns.net.","ns3-01.azure-dns.org.","ns4-01.azure-dns.info."]"""
+    member this.NameServers = DnsZone.getNameServers this.Name
+
+    interface IBuilder with
+        member this.ResourceId = zones.resourceId this.Name
+        member this.BuildResources _ = [
+            { DnsZone.Name = this.Name
+              Dependencies = this.Dependencies
+              Properties = {| ZoneType = this.ZoneType |> string |} }
+
+            for record in this.Records do
+                { DnsRecord.Name = record.Name
+                  Dependencies = record.Dependencies
+                  Zone = Managed (zones.resourceId this.Name)
+                  TTL = record.TTL
+                  Type = record.Type }
+        ]
 
 type DnsCNameRecordBuilder() =
     member _.Yield _ = { CNameRecordProperties.CName = None; Name = ResourceName.Empty; Dependencies = Set.empty; TTL = None; Zone = None; TargetResource = None }
@@ -99,7 +134,7 @@ type DnsCNameRecordBuilder() =
 
     /// Enable support for additional dependencies.
     interface IDependable<CNameRecordProperties> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
-    
+
 type DnsARecordBuilder() =
     member _.Yield _ = { ARecordProperties.Ipv4Addresses = []; Name = ResourceName "@"; Dependencies = Set.empty; TTL = None; Zone = None; TargetResource = None }
     member _.Run(state : ARecordProperties)  = DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, A(state.TargetResource, state.Ipv4Addresses), state.Dependencies)
@@ -173,7 +208,7 @@ type DnsAaaaRecordBuilder() =
     interface IDependable<AaaaRecordProperties> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
 type DnsNsRecordBuilder() =
-    member _.Yield _ = { NsRecordProperties.NsdNames = []; Name = ResourceName "@"; Dependencies = Set.empty; TTL = None; Zone = None }
+    member _.Yield _ = { NsRecordProperties.NsdNames = NsRecords.Records []; Name = ResourceName "@"; Dependencies = Set.empty; TTL = None; Zone = None }
     member _.Run(state : NsRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, NS state.NsdNames, state.Dependencies)
 
     /// Sets the name of the record set.
@@ -181,9 +216,32 @@ type DnsNsRecordBuilder() =
     member _.RecordName(state:NsRecordProperties, name) = { state with Name = name }
     member this.RecordName(state:NsRecordProperties, name:string) = this.RecordName(state, ResourceName name)
 
-    /// Add NSD names
+    /// Add NSD names (Subdomain NameServers)
     [<CustomOperation "add_nsd_names">]
-    member _.RecordNsdNames(state:NsRecordProperties, nsdNames) = { state with NsdNames = state.NsdNames @ nsdNames }
+    member _.RecordNsdNames(state:NsRecordProperties, nsdNames) =
+        match state.NsdNames with
+        | NsRecords.SourceZone _ ->
+            raiseFarmer "Cannot add 'add_nsd_names' when using 'add_nsd_reference' to reference another zone's nameservers."
+        | NsRecords.Records existingNsdNames ->
+            { state with NsdNames = NsRecords.Records(existingNsdNames @ nsdNames) }
+
+    /// Ensure no nsd records were already added that will be overwritten by the reference.
+    member private this.validateNsdReference (state:NsRecordProperties) =
+        match state.NsdNames with
+        | NsRecords.Records records when records <> [] ->
+            raiseFarmer "Cannot 'add_nsd_reference' when using 'add_nsd_names' to add a zone's nameservers."
+        | _ -> ()
+    /// Reference another DNS zone's nameservers.
+    [<CustomOperation "add_nsd_reference">]
+    member this.RecordNsdNameReference(state:NsRecordProperties, dnsZoneResourceId:ResourceId) =
+        this.validateNsdReference state
+        { state with NsdNames = NsRecords.SourceZone dnsZoneResourceId }
+    member this.RecordNsdNameReference(state:NsRecordProperties, dnsZoneResourceId:IArmResource) =
+        this.validateNsdReference state
+        { state with NsdNames = NsRecords.SourceZone dnsZoneResourceId.ResourceId }
+    member this.RecordNsdNameReference(state:NsRecordProperties, dnsZoneConfig:DnsZoneConfig) =
+        this.validateNsdReference state
+        { state with NsdNames = NsRecords.SourceZone (dnsZoneConfig :> IBuilder).ResourceId }
 
     /// Sets the TTL of the record.
     [<CustomOperation "ttl">]
@@ -203,8 +261,8 @@ type DnsNsRecordBuilder() =
     interface IDependable<NsRecordProperties> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
 type DnsPtrRecordBuilder() =
-    member __.Yield _ = { PtrRecordProperties.PtrdNames = []; Name = ResourceName "@"; Dependencies = Set.empty; TTL = None; Zone = None }
-    member __.Run(state : PtrRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, PTR state.PtrdNames, state.Dependencies)
+    member _.Yield _ = { PtrRecordProperties.PtrdNames = []; Name = ResourceName "@"; Dependencies = Set.empty; TTL = None; Zone = None }
+    member _.Run(state : PtrRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, PTR state.PtrdNames, state.Dependencies)
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
@@ -404,37 +462,16 @@ type DnsSoaRecordBuilder() =
     /// Enable support for additional dependencies.
     interface IDependable<SoaRecordProperties> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
-type DnsZoneConfig =
-    { Name : ResourceName
-      Dependencies : Set<ResourceId>
-      ZoneType : DnsZoneType
-      Records : DnsZoneRecordConfig list }
-
-    interface IBuilder with
-        member this.ResourceId = zones.resourceId this.Name
-        member this.BuildResources _ = [
-            { DnsZone.Name = this.Name
-              Dependencies = this.Dependencies
-              Properties = {| ZoneType = this.ZoneType |> string |} }
-
-            for record in this.Records do
-                { DnsRecord.Name = record.Name
-                  Dependencies = record.Dependencies
-                  Zone = Managed (zones.resourceId this.Name)
-                  TTL = record.TTL
-                  Type = record.Type }
-        ]
-
 type DnsZoneBuilder() =
-    member __.Yield _ =
+    member _.Yield _ =
         { DnsZoneConfig.Name = ResourceName ""
           Dependencies = Set.empty
           Records = []
           ZoneType = Public }
-    member __.Run(state) : DnsZoneConfig =
+    member _.Run(state) : DnsZoneConfig =
         { state with
             Name =
-                if state.Name = ResourceName.Empty then failwith "You must set a DNS zone name"
+                if state.Name = ResourceName.Empty then raiseFarmer "You must set a DNS zone name"
                 else state.Name }
     /// Sets the name of the DNS Zone.
     [<CustomOperation "name">]

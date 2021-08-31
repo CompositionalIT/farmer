@@ -13,6 +13,7 @@ let allTests =
         testList "All Tests" [
             testList "Builders" [
                 AppInsights.tests
+                AppInsightsAvailability.tests
                 if notEnv "BUILD_REASON" "PullRequest" then
                     AzCli.tests
                 AzureFirewall.tests
@@ -42,6 +43,7 @@ let allTests =
                 Maps.tests
                 NetworkSecurityGroup.tests
                 PostgreSQL.tests
+                ResourceGroup.tests
                 ServiceBus.tests
                 SignalR.tests
                 Sql.tests
@@ -54,6 +56,8 @@ let allTests =
                 VirtualNetworkGateway.tests
                 VirtualWan.tests
                 WebApp.tests
+                Dashboards.tests
+                Alerts.tests
             ]
             testList "Control" [
                 if (hasEnv "TF_BUILD" "True" && notEnv "BUILD_REASON" "PullRequest") || hasEnv "FARMER_E2E" "True" then

@@ -45,12 +45,58 @@ type SubnetDelegation =
 type Subnet =
     { Name : ResourceName
       Prefix : string
+      VirtualNetwork : LinkedResource option
       NetworkSecurityGroup : LinkedResource option
       Delegations : SubnetDelegation list
       ServiceEndpoints : (Network.EndpointServiceType * Location list) list
       AssociatedServiceEndpointPolicies : ResourceId list 
       PrivateEndpointNetworkPolicies: FeatureFlag option
       PrivateLinkServiceNetworkPolicies: FeatureFlag option }
+    member internal this.JsonModelProperties =
+        {| addressPrefix = this.Prefix
+           networkSecurityGroup = 
+               this.NetworkSecurityGroup
+               |> Option.map(fun nsg -> {| id = nsg.ResourceId.ArmExpression.Eval() |}) 
+               |> Option.defaultValue Unchecked.defaultof<_> 
+           delegations =
+               this.Delegations
+               |> List.map (fun delegation ->
+                   {| name = delegation.Name.Value
+                      properties = {| serviceName = delegation.ServiceName |}
+                   |})
+           serviceEndpoints =
+               if this.ServiceEndpoints.IsEmpty then
+                   Unchecked.defaultof<_>
+               else
+                   this.ServiceEndpoints
+                   |> List.map (fun (Network.EndpointServiceType(serviceEndpoint), locations) ->
+                       {| service = serviceEndpoint
+                          locations = locations |> List.map (fun location ->location.ArmValue) |})
+           serviceEndpointPolicies =
+               if this.AssociatedServiceEndpointPolicies.IsEmpty then
+                   Unchecked.defaultof<_>
+               else
+                   this.AssociatedServiceEndpointPolicies
+                   |> List.map (fun policyId -> {| id = policyId.ArmExpression.Eval() |})
+           privateEndpointNetworkPolicies = this.PrivateEndpointNetworkPolicies |> Option.map (fun x->x.ArmValue) |> Option.defaultValue Unchecked.defaultof<_>
+           privateLinkServiceNetworkPolicies = this.PrivateLinkServiceNetworkPolicies |> Option.map (fun x->x.ArmValue) |> Option.defaultValue Unchecked.defaultof<_>
+        |}
+    interface IArmResource with
+        member this.JsonModel =
+            match this.VirtualNetwork with
+            | Some (Managed vnet) ->
+                {| subnets.Create(vnet.Name / this.Name, dependsOn=[vnet]) with
+                    properties = this.JsonModelProperties |} :> _
+            | Some (Unmanaged vnet) ->
+                {| subnets.Create(vnet.Name / this.Name) with
+                    properties = this.JsonModelProperties |} :> _
+            | None -> raiseFarmer "Subnet record must be linked to a virtual network to properly assign the resourceId."
+        member this.ResourceId =
+            match this.VirtualNetwork with
+            | Some vnet ->
+                subnets.resourceId (vnet.Name, this.Name)
+            | None -> raiseFarmer "Subnet record must be linked to a virtual network to properly assign the resourceId."
+
 
 type VirtualNetwork =
     { Name : ResourceName
@@ -72,39 +118,9 @@ type VirtualNetwork =
                 properties =
                     {| addressSpace = {| addressPrefixes = this.AddressSpacePrefixes |}
                        subnets =
-                        this.Subnets
-                        |> List.map(fun subnet ->
-                            {| name = subnet.Name.Value
-                               properties =
-                                {| addressPrefix = subnet.Prefix
-                                   networkSecurityGroup = 
-                                       subnet.NetworkSecurityGroup
-                                       |> Option.map(fun nsg -> {| id = nsg.ResourceId.ArmExpression.Eval() |}) 
-                                       |> Option.defaultValue Unchecked.defaultof<_> 
-                                   delegations =
-                                       subnet.Delegations
-                                       |> List.map (fun delegation ->
-                                           {| name = delegation.Name.Value
-                                              properties = {| serviceName = delegation.ServiceName |}
-                                           |})
-                                   serviceEndpoints =
-                                       if subnet.ServiceEndpoints.IsEmpty then
-                                           Unchecked.defaultof<_>
-                                       else
-                                           subnet.ServiceEndpoints
-                                           |> List.map (fun (Network.EndpointServiceType(serviceEndpoint), locations) ->
-                                               {| service = serviceEndpoint
-                                                  locations = locations |> List.map (fun location ->location.ArmValue) |})
-                                   serviceEndpointPolicies =
-                                       if subnet.AssociatedServiceEndpointPolicies.IsEmpty then
-                                           Unchecked.defaultof<_>
-                                       else
-                                           subnet.AssociatedServiceEndpointPolicies
-                                           |> List.map (fun policyId -> {| id = policyId.ArmExpression.Eval() |})
-                                   privateEndpointNetworkPolicies = subnet.PrivateEndpointNetworkPolicies |> Option.map (fun x->x.ArmValue) |> Option.defaultValue Unchecked.defaultof<_>
-                                   privateLinkServiceNetworkPolicies = subnet.PrivateLinkServiceNetworkPolicies |> Option.map (fun x->x.ArmValue) |> Option.defaultValue Unchecked.defaultof<_>
-                                |}
-                            |})
+                           this.Subnets
+                           |> List.map(fun subnet ->
+                               {| name = subnet.Name.Value; properties = subnet.JsonModelProperties |})
                     |}
             |} :> _
 
@@ -306,7 +322,7 @@ type NetworkProfile =
       Location : Location
       Dependencies : ResourceId Set
       ContainerNetworkInterfaceConfigurations :
-        {| IpConfigs : {| SubnetName : ResourceName |} list
+        {| IpConfigs : {| Name : ResourceName;  SubnetName : ResourceName |} list
         |} list
       VirtualNetwork : ResourceId
       Tags: Map<string,string> }
@@ -323,7 +339,7 @@ type NetworkProfile =
                                 {| ipConfigurations =
                                    containerIfConfig.IpConfigs
                                    |> List.mapi (fun index ipConfig ->
-                                    {| name = $"ipconfig{index + 1}"
+                                    {| name = (ipConfig.Name.IfEmpty $"ipconfig{index + 1}").Value
                                        properties =
                                         {| subnet =
                                             {| id =

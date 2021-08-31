@@ -300,6 +300,25 @@ let tests = testList "Container Group" [
         Expect.hasLength deployment.Template.Parameters 1 "Should have a secure parameter for environment variable"
         Expect.equal (deployment.Template.Parameters.Head.ArmExpression.Eval()) "[parameters('secret-foo')]" "Generated incorrect secure parameter."
     }
+    test "Secure environment variables are generated for init containers" {
+        let cg = containerGroup {
+            name "myapp"
+            add_init_containers [
+                initContainer {
+                    name "nginx"
+                    image "nginx:1.17.6-alpine"
+                    env_vars [
+                        EnvVar.createSecure "foo" "secret-init"
+                    ]
+                }
+            ]
+        }
+        let deployment = arm {
+            add_resource cg
+        }
+        Expect.hasLength deployment.Template.Parameters 1 "Should have a secure parameter for initContainer environment variable"
+        Expect.equal (deployment.Template.Parameters.Head.ArmExpression.Eval()) "[parameters('secret-init')]" "Generated incorrect secure parameter."
+    }
     test "Secure parameters for secret volume is generated correctly" {
         let cg = containerGroup {
             name "myapp"
@@ -439,6 +458,35 @@ let tests = testList "Container Group" [
         let subnetId = jobj.SelectToken("..subnet.id") |> string
         let expectedSubnetId = "[resourceId('other-res-group', 'Microsoft.Network/virtualNetworks/subnets', 'containerNet', 'ContainerSubnet')]"
         Expect.equal subnetId expectedSubnetId "Generated incorrect subnet ID."
+    }
+    test "Container network profile allows naming of ip configs" {
+        let template =
+            arm {
+                add_resources [
+                    vnet {
+                        name "containernet"
+                        add_address_spaces [
+                            "10.30.40.0/20"
+                        ]
+                        add_subnets [
+                            subnet {
+                                name "ContainerSubnet"
+                                prefix "10.40.41.0/24"
+                                add_delegations [ SubnetDelegationService.ContainerGroups ]
+                            }
+                        ]
+                    }
+                    networkProfile {
+                        name "netprofile"
+                        vnet "containernet"
+                        ip_config "ipconfigProfile" "ContainerSubnet"
+                    }
+                ]
+            }
+        let json = template.Template |> Writer.toJson
+        let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+        let ipConfigName = jobj.SelectToken("resources[?(@.name=='netprofile')].properties.containerNetworkInterfaceConfigurations[0].properties.ipConfigurations[0].name")
+        Expect.equal (string ipConfigName) "ipconfigProfile" "netprofile ipConfiguration has wrong name"
     }
     test "Can link a network profile directly to a container group" {
         let profile = networkProfile { name "netprofile" }

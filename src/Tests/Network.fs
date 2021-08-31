@@ -298,4 +298,61 @@ let tests = testList "Network Tests" [
         Expect.isNotNull vnet.Subnets.[0].NetworkSecurityGroup "Subnet missing NSG"
         Expect.equal vnet.Subnets.[0].NetworkSecurityGroup.Id "[resourceId('Microsoft.Network/networkSecurityGroups', 'my-nsg')]" "Incorrect security group for subnet"
     }
+    test "Add subnet linked to managed vnet" {
+        let vnetName = "my-vnet"
+        let servicesSubnet = "services"
+        let subnetResource = 
+            subnet {
+                name servicesSubnet
+                link_to_vnet (virtualNetworks.resourceId vnetName)
+                prefix "10.28.0.0/24"
+            }
+        Expect.equal
+            ((subnetResource :> IBuilder).ResourceId.Eval())
+            "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'my-vnet', 'services')]"
+            "Incorrect resourceId on subnet"
+        let template = arm {
+            add_resources [ subnetResource ]
+        }
+        let jobj = template.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
+        let dependsOn = jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualNetworks/subnets')].dependsOn" :?> Newtonsoft.Json.Linq.JArray
+        Expect.hasLength dependsOn 1 "Linking to managed vnet should have dependency on the vnet"
+        let subnet = jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualNetworks/subnets')].name"
+        Expect.equal (string subnet) "my-vnet/services" "Incorrect name on subnet"
+    }
+    test "Add subnet linked to existing (unmanaged) vnet" {
+        let vnetName = "my-vnet"
+        let servicesSubnet = "services"
+        let subnetResource = 
+            subnet {
+                name servicesSubnet
+                link_to_unmanaged_vnet (virtualNetworks.resourceId vnetName)
+                prefix "10.28.0.0/24"
+            }
+        Expect.equal
+            ((subnetResource :> IBuilder).ResourceId.Eval())
+            "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'my-vnet', 'services')]"
+            "Incorrect resourceId on subnet"
+        let template = arm {
+            add_resources [ subnetResource ]
+        }
+        let jobj = template.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
+        let dependsOn = jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualNetworks/subnets')].dependsOn" :?> Newtonsoft.Json.Linq.JArray
+        Expect.isNull dependsOn "Linking to unmanaged vnet should have no dependencies"
+        let subnet = jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualNetworks/subnets')].name"
+        Expect.equal (string subnet) "my-vnet/services" "Incorrect name on subnet"
+    }
+    test "Standalone subnet without linked vnet not allowed" {
+        Expect.throws(fun _ ->
+            let template = arm {
+                add_resources [
+                    subnet {
+                        name "foo"
+                        prefix "10.28.0.0/24"
+                    }
+                ]
+            }
+            template.Template |> Writer.toJson |> ignore
+        ) "Adding a subnet resource without linking to a vnet is not allowed"
+    }
 ]

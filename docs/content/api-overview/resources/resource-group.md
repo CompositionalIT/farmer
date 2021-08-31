@@ -1,6 +1,6 @@
 ---
 title: "Resource Group"
-date: 2020-02-05T08:53:46+01:00
+date: 2021-08-05T17:30:25-04:00
 weight: 1
 chapter: false
 ---
@@ -14,10 +14,15 @@ The Resource Group builder is always the top-level element of your deployment. I
 | location | Sets the default location of all resources. |
 | add_resource | Adds a resource to the template. |
 | add_resources | Adds a collection of resources to the template. |
+| add_arm_resources | Adds a collection of lower-level IArmResources to the template. |
 | output | Creates an output value that will be returned by the ARM template. Since Farmer does not require variables, and the only parameters supported are secure strings, these will typically be an ARM expressions that are generated at deployment-time, such as the publishing password of a web app or the fully-qualified domain name of a SQL instance etc. |
+| outputs | Create multiple outputs. |
 | add_tag | Add a tag to the resource group for top-level instances or to the deployment for nested resource groups |
 | add_tags | Add multiple tags to the resource group for top-level instances or to the deployment for nested resource groups |
 | name | the name of the resource group (only used for nested resource group deployments) |
+
+#### Utilities
+* The `createResourceGroup` function is used to define a resource group deployment resource by name and location, useful when deploying to a subscription.
 
 #### Example
 ```fsharp
@@ -29,6 +34,9 @@ let deployment =
         // Assume myStorageAccount and myWebApp have been defined...
         add_resource myStorageAccount
         add_resource myWebApp
+
+        // Assuming the role assignments have been defined....
+        add_arm_resources [ roleAssignment1; roleAssignment2 ]
 
         add_resource (resourceGroup {
             name "nestedResourceGroup"
