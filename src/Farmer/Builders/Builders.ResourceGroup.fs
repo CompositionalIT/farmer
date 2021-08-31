@@ -5,7 +5,7 @@ open Farmer
 open Farmer.Arm.ResourceGroup
 
 type ResourceGroupConfig = 
-    { Name: ArmExpression
+    { Name: string Option
       Dependencies: ResourceId Set
       Parameters : string Set
       Outputs : Map<string, string>
@@ -13,7 +13,7 @@ type ResourceGroupConfig =
       Resources : IArmResource list 
       Mode: DeploymentMode
       Tags: Map<string,string> }
-    member this.ResourceId = resourceGroupDeployment.resourceId (this.Name.Eval())
+    member this.ResourceId = resourceGroupDeployment.resourceId (this.Name |> Option.defaultValue "farmer-deploy")
     member private this.ContentDeployment = 
         if this.Parameters.IsEmpty && this.Outputs.IsEmpty && this.Resources.IsEmpty then
             None // this resource group has no content so there's nothing to deploy
@@ -25,12 +25,12 @@ type ResourceGroupConfig =
                     | :? ResourceGroupDeployment as rg -> 
                         Map.toList rg.Outputs 
                         |> List.map fst
-                        |> List.map (fun key -> $"{ rg.Name.Eval()}.{key}",$"[reference('{rg.Name.Eval()}').outputs['{key}'].value]")
+                        |> List.map (fun key -> $"{rg.ResourceId.Name.Value}.{key}",$"[reference('{rg.ResourceId.Name.Value}').outputs['{key}'].value]")
                     | _ -> 
                         [] )
                 |> Map.ofList
                
-            { ResourceGroupDeployment.Name = this.Name
+            { ResourceGroupDeployment.Name = this.ResourceId.Name
               Dependencies = this.Dependencies
               Outputs = Map.merge (Map.toList this.Outputs) innerOutputs // New values overwrite old values so supply this.Outputs as newValues
               Location  = this.Location
@@ -67,7 +67,7 @@ type ResourceGroupConfig =
 
 type ResourceGroupBuilder() =
     member __.Yield _ =
-        { Name = ArmExpression.Empty
+        { Name = None
           Dependencies = Set.empty
           Parameters = Set.empty
           Outputs = Map.empty
@@ -78,8 +78,7 @@ type ResourceGroupBuilder() =
           
     /// Creates an output value that will be returned by the ARM template.
     [<CustomOperation "name">]
-    member _.SetName(state:ResourceGroupConfig, name:string ) = {state with Name = ArmExpression.literal name}
-    member _.SetName(state:ResourceGroupConfig, name:ArmExpression ) = {state with Name = name}
+    member __.SetName(state:ResourceGroupConfig, name) = { state with Name = Some name }
     /// Creates an output value that will be returned by the ARM template.
     [<CustomOperation "output">]
     member __.Output (state, outputName, outputValue) : ResourceGroupConfig = { state with Outputs = state.Outputs.Add(outputName, outputValue) }

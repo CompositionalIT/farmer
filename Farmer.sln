@@ -65,8 +65,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tutorials", "tutorials", "{
 		samples\scripts\tutorials\webapp-keyvault.fsx = samples\scripts\tutorials\webapp-keyvault.fsx
 	EndProjectSection
 EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "SampleApp", "samples\SampleApp\SampleApp.fsproj", "{5FE55431-98D0-446C-A664-DD4E9D097AC9}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -81,10 +79,6 @@ Global
 		{D68F5B81-6F18-4FC7-B9FD-2113EE7614CE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D68F5B81-6F18-4FC7-B9FD-2113EE7614CE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D68F5B81-6F18-4FC7-B9FD-2113EE7614CE}.Release|Any CPU.Build.0 = Release|Any CPU
-		{5FE55431-98D0-446C-A664-DD4E9D097AC9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5FE55431-98D0-446C-A664-DD4E9D097AC9}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5FE55431-98D0-446C-A664-DD4E9D097AC9}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5FE55431-98D0-446C-A664-DD4E9D097AC9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -92,7 +86,6 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{C3991DD2-B728-4EDD-ACD1-2C1470309481} = {47438D72-1C5F-49EB-B7E5-B597F565B14B}
 		{0053093F-A18C-4FAC-A138-9F5D60CFA24F} = {C3991DD2-B728-4EDD-ACD1-2C1470309481}
-		{5FE55431-98D0-446C-A664-DD4E9D097AC9} = {47438D72-1C5F-49EB-B7E5-B597F565B14B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {63B0361D-FC8A-40CF-B988-5BE797ADD2CE}

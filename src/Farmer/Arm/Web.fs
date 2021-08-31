@@ -14,8 +14,6 @@ let sourceControls = ResourceType ("Microsoft.Web/sites/sourcecontrols", "2019-0
 let staticSites = ResourceType("Microsoft.Web/staticSites", "2019-12-01-preview")
 let siteExtensions = ResourceType("Microsoft.Web/sites/siteextensions", "2020-06-01")
 let slots = ResourceType ("Microsoft.Web/sites/slots", "2020-09-01")
-let certificates = ResourceType("Microsoft.Web/certificates", "2019-08-01")
-let hostNameBindings = ResourceType("Microsoft.Web/sites/hostNameBindings", "2020-12-01")
 
 type ServerFarm =
     { Name : ResourceName
@@ -300,59 +298,6 @@ type StaticSite =
         member this.SecureParameters = [
             this.RepositoryToken
         ]
-
-type SslState = 
-    | SslDisabled
-    | SniBased of thumbprint: ArmExpression
-
-type HostNameBinding =
-    { Location: Location
-      SiteId: LinkedResource
-      DomainName: string
-      SslState: SslState }
-        member this.SiteResourceId = 
-            match this.SiteId with 
-            | Managed id -> id.Name
-            | Unmanaged id -> id.Name
-        member this.ResourceName =
-            this.SiteResourceId / this.DomainName
-        member this.Dependencies = 
-            [ match this.SiteId with
-              | Managed resid -> resid
-              | _ -> () ]
-        member this.ResourceId = 
-            hostNameBindings.resourceId (this.SiteResourceId, ResourceName this.DomainName)
-        interface IArmResource with
-            member this.ResourceId = hostNameBindings.resourceId this.ResourceName
-            member this.JsonModel =
-                {| hostNameBindings.Create(this.ResourceName, this.Location, this.Dependencies) with
-                    properties =
-                        match this.SslState with 
-                        | SniBased thumbprint -> 
-                            {| sslState = "SniEnabled"
-                               thumbprint = thumbprint.Eval() |} :> obj
-                        | SslDisabled -> {| |} :> obj
-                |} :> _
-
-type Certificate =
-    { Location: Location
-      SiteId: ResourceId
-      ServicePlanId: ResourceId
-      DomainName: string }
-        member this.ResourceName = this.SiteId.Name.Map (sprintf "%s-cert")
-        member this.Thumbprint =
-            ArmExpression.reference(certificates.resourceId this.ResourceName).Map(sprintf "%s.Thumbprint")
-        interface IArmResource with
-            member this.ResourceId = certificates.resourceId this.ResourceName
-            member this.JsonModel =
-                {| certificates.Create(
-                        this.ResourceName,
-                        this.Location, 
-                        [this.SiteId; this.ServicePlanId; hostNameBindings.resourceId(this.SiteId.Name,ResourceName this.DomainName)]) with
-                    properties =
-                        {| serverFarmId = this.ServicePlanId.Eval()
-                           canonicalName = this.DomainName |}
-                |} :> _
 
 [<AutoOpen>]
 module SiteExtensions =
