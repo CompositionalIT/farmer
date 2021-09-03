@@ -377,9 +377,9 @@ Other resources that are useful:
 
 ```
 
-- [Azure DNS](https://docs.microsoft.com/en-us/azure/dns/dns-overview): The benefit of Azure DNS comes when you want to have a version history of your domain name settings, you want to programmatically manage the DNS to e.g. automatically verify SSL-certifiaction renewal, and route the traffic to Azure Traffic Manager
+- [Azure DNS](https://docs.microsoft.com/en-us/azure/dns/dns-overview): The benefit of Azure DNS comes when you want to have a version history of your domain name settings, you want to programmatically manage the DNS to e.g. automatically verify SSL-certifiaction renewal, and route the traffic to Azure Traffic Manager. 
 ```fsharp
-    let dnsZoneName = "mydomain.com"
+    let dnsZoneName = "mydomain321.com" // Your domain here
     let dns = dnsZone {
         name dnsZoneName
         zone_type Dns.Public
@@ -443,6 +443,7 @@ After adding these, you have to modify the deployment, e.g.:
 ```fsharp
     let deployment = arm {
         location deployLocation
+        add_resource ai // added
         add_resource contentDelivery //added
         add_resource dns //added
         add_resource trafficMgr //added
@@ -453,8 +454,8 @@ After adding these, you have to modify the deployment, e.g.:
         outputs (virtualMachines 
                  |> List.filter (fun vm -> vm.PublicIpAddress.IsSome)
                  |> List.mapi (fun idx vm -> $"{vmNamePrefix}{idx+1}", vm.PublicIpAddress.Value))
-        output "appInsights-InstrumentationKey" ai.InstrumentationKey //added, outputs.["appInsights-InstrumentationKey"]
-        output "dns-nameServers" dns.NameServers //added, outputs.["dns-nameServers"]
+        output "appInsights-InstrumentationKey" ai.InstrumentationKey //added, outputs.["appInsights-InstrumentationKey"], you need this to send events to AI
+        output "dns-nameServers" dns.NameServers //added, outputs.["dns-nameServers"], you need these to register your domain.
     }
 ```
 
