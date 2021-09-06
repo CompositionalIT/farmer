@@ -35,7 +35,7 @@ type ServiceBusQueueConfig =
             MaxSizeInMegabytes = this.MaxSizeInMegabytes
             EnablePartitioning = this.EnablePartitioning }
           for rule in this.AuthorizationRules do
-            { QueueAuthorizationRule.Name = rule.Key.Map(fun rule -> $"{this.Name.Value}/{this.Name.Value}/%s{rule}")
+            { QueueAuthorizationRule.Name = rule.Key.Map(fun name -> $"{this.Namespace.Name.Value}/{this.Name.Value}/%s{name}")
               Location = location
               Dependencies = [
                 namespaces.resourceId this.Name
@@ -160,6 +160,7 @@ type ServiceBusSubscriptionBuilder() =
     /// Automatically forward to a queue or topic
     [<CustomOperation "forward_to">]
     member _.ForwardTo(state:ServiceBusSubscriptionConfig, target) = { state with ForwardTo = Some (ResourceName target) }
+    member _.ForwardTo(state:ServiceBusSubscriptionConfig, target:ServiceBusQueueConfig) = { state with ForwardTo = Some target.Name }
     /// Adds filtering rules for a subscription
     [<CustomOperation "add_filters">]
     member _.AddFilters(state:ServiceBusSubscriptionConfig, filters) = { state with Rules = state.Rules @ filters }
@@ -337,3 +338,6 @@ let serviceBus = ServiceBusBuilder()
 let topic = ServiceBusTopicBuilder()
 let queue = ServiceBusQueueBuilder()
 let subscription = ServiceBusSubscriptionBuilder()
+
+type ServiceBusSubscriptionBuilder with
+  member _.ForwardTo(state:ServiceBusSubscriptionConfig, target:ServiceBusTopicConfig) = { state with ForwardTo = Some target.Name }

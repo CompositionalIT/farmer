@@ -1,11 +1,11 @@
-#r "nuget:Farmer"
+#r "../../src/Farmer/bin/Debug/net5.0/Farmer.dll"
 
 open Farmer
 open Farmer.Builders
 open Farmer.ServiceBus
 
 let myServiceBus = serviceBus {
-    name "allMyQueues"
+    name "rsptest-allMyQueues"
     sku Standard
     add_queues [
         queue { name "queuenumberone" }
@@ -32,4 +32,4 @@ let deployment = arm {
 }
 
 deployment
-|> Deploy.execute "service-bus-test" []
+|> Deploy.execute "rsptest-sb" []
