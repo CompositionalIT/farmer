@@ -326,6 +326,21 @@ let tests = testList "Web App Tests" [
         Expect.hasLength slots 1 "Should only be 1 slot"
     }
 
+    test "WebApp with slot and zip_deploy_slot does not have ZipDeployPath on slot" {
+        let slot = appSlot { name "warm-up" }
+        let site:WebAppConfig = webApp { name "slots"; add_slot slot; zip_deploy_slot "warm-up" "test.zip" }
+        Expect.isTrue (site.CommonWebConfig.Slots.ContainsKey "warm-up") "Config should contain slot"
+
+        let slots =
+            site
+            |> getResources
+            |> getResource<Arm.Web.Site>
+            |> List.filter (fun x -> x.ResourceType = Arm.Web.slots)
+        // Default "production" slot is not included as it is created automatically in Azure
+        Expect.hasLength slots 1 "Should only be 1 slot"
+        Expect.isNone slots.[0].ZipDeployPath "Zip Deploy Path should be set to None"
+    }
+
     test "WebApp with slot that has system assigned identity adds identity to slot" {
         let slot = appSlot { name "warm-up"; system_identity }
         let site:WebAppConfig = webApp { name "webapp"; add_slot slot }
