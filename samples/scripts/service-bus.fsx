@@ -4,32 +4,35 @@ open Farmer
 open Farmer.Builders
 open Farmer.ServiceBus
 
-let myServiceBus = serviceBus {
-    name "rsptest-allMyQueues"
-    sku Standard
-    add_queues [
-        queue { name "queuenumberone" }
-        queue { name "queuenumbertwo" }
-    ]
-    add_topics [
-        topic {
-            name "thetopic"
-            add_subscriptions [
-                subscription {
-                    name "thesub"
-                    forward_to "queuenumberone"
-                }
-            ]
-        }
-    ]
+// let myServiceBus =
+//   serviceBus {
+//     name "rsptest-allMyQueues"
+//     sku Standard
+//     add_queues [ queue { name "queuenumberone" } ]
+
+//     add_topics [ topic {
+//                    name "thetopic"
+//                    add_subscriptions []
+//                  } ]
+//   }
+
+let q = queue {
+  name "queuenumbertwo"
+  link_to_unmanaged_namespace "rsptest-allMyQueues"
 }
 
-let deployment = arm {
+let sub = subscription {
+  name "thesub"
+  forward_to "queuenumberone"
+  link_to_unmanaged_topic "rsptest-allMyQueues/thetopic"
+  depends_on q
+}
+
+let deployment =
+  arm {
     location Location.NorthEurope
-    add_resource myServiceBus
-    output "NamespaceDefaultConnectionString" myServiceBus.NamespaceDefaultConnectionString
-    output "DefaultSharedAccessPolicyPrimaryKey" myServiceBus.DefaultSharedAccessPolicyPrimaryKey
-}
+    add_resource sub
+    add_resource q
+  }
 
-deployment
-|> Deploy.execute "rsptest-sb" []
+deployment |> Deploy.execute "rsptest-sb" []

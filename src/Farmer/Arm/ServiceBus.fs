@@ -19,8 +19,7 @@ module Namespaces =
         let rules = ResourceType ("Rules", "2017-04-01")
         type Subscription =
             { Name : ResourceName
-              Namespace : ResourceName
-              Topic : ResourceName
+              Topic : LinkedResource
               LockDuration : IsoDateTime option
               DuplicateDetectionHistoryTimeWindow : IsoDateTime option
               DefaultMessageTimeToLive : IsoDateTime option
@@ -28,11 +27,12 @@ module Namespaces =
               MaxDeliveryCount : int option
               Session : bool option
               DeadLetteringOnMessageExpiration : bool option
-              Rules : Rule list }
+              Rules : Rule list
+              DependsOn: Set<ResourceId> }
             interface IArmResource with
-                member this.ResourceId = subscriptions.resourceId (this.Namespace/this.Topic/this.Name)
+                member this.ResourceId = subscriptions.resourceId (this.Topic.FullName/this.Name)
                 member this.JsonModel =
-                    {| subscriptions.Create(this.Namespace/this.Topic/this.Name, dependsOn = [ topics.resourceId(this.Namespace, this.Topic) ]) with
+                    {| subscriptions.Create(this.Topic.FullName/this.Name, dependsOn = Set.addIfManaged this.Topic this.DependsOn ) with
                         properties =
                          {| defaultMessageTimeToLive = tryGetIso this.DefaultMessageTimeToLive
                             requiresDuplicateDetection =
@@ -67,7 +67,7 @@ module Namespaces =
 
     type Queue =
         { Name : ResourceName
-          Namespace : ResourceName
+          Namespace : LinkedResource
           LockDuration : IsoDateTime option
           DuplicateDetectionHistoryTimeWindow : IsoDateTime option
           Session : bool option
@@ -77,9 +77,9 @@ module Namespaces =
           MaxSizeInMegabytes : int<Mb> option
           EnablePartitioning : bool option}
         interface IArmResource with
-            member this.ResourceId = queues.resourceId (this.Namespace/this.Name)
+            member this.ResourceId = queues.resourceId (this.Namespace.Name/this.Name)
             member this.JsonModel =
-                {| queues.Create(this.Namespace/this.Name, dependsOn = [ namespaces.resourceId this.Namespace ]) with
+                {| queues.Create(this.Namespace.Name/this.Name, dependsOn = (Set.addIfManaged this.Namespace Set.empty)) with
                     properties =
                      {| lockDuration = tryGetIso this.LockDuration
                         requiresDuplicateDetection =

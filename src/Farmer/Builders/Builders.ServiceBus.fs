@@ -21,11 +21,11 @@ type ServiceBusQueueConfig =
       EnablePartitioning : bool option
       AuthorizationRules : Map<ResourceName, AuthorizationRuleRight Set>}
     interface IBuilder with
-      member this.ResourceId = queues.resourceId this.Name
+      member this.ResourceId = queues.resourceId (this.Namespace.FullName/this.Name)
       member this.BuildResources location = 
         [
           { Name = this.Name
-            Namespace = this.Namespace.Name
+            Namespace = this.Namespace
             LockDuration = this.LockDuration |> Option.map IsoDateTime.OfTimeSpan
             DuplicateDetectionHistoryTimeWindow = this.DuplicateDetection |> Option.map IsoDateTime.OfTimeSpan
             Session = this.Session
@@ -101,14 +101,14 @@ type ServiceBusSubscriptionConfig =
       MaxDeliveryCount : int option
       Session : bool option
       DeadLetteringOnMessageExpiration : bool option
-      Rules : Rule list }
+      Rules : Rule list 
+      DependsOn: Set<ResourceId> }
     interface IBuilder with
-      member this.ResourceId = subscriptions.resourceId this.Name
+      member this.ResourceId = subscriptions.resourceId (this.Topic.FullName/this.Name)
       member this.BuildResources location = 
         [
           { Name = this.Name
-            Namespace = this.Topic.Name
-            Topic = this.Topic.ResourceId.Segments.Head
+            Topic = this.Topic
             LockDuration = this.LockDuration |> Option.map IsoDateTime.OfTimeSpan
             DuplicateDetectionHistoryTimeWindow = this.DuplicateDetection |> Option.map IsoDateTime.OfTimeSpan
             DefaultMessageTimeToLive = this.DefaultMessageTimeToLive |> Option.map IsoDateTime.OfTimeSpan
@@ -116,7 +116,8 @@ type ServiceBusSubscriptionConfig =
             MaxDeliveryCount = this.MaxDeliveryCount
             Session = this.Session
             DeadLetteringOnMessageExpiration = this.DeadLetteringOnMessageExpiration
-            Rules = this.Rules }
+            Rules = this.Rules 
+            DependsOn = this.DependsOn}
           ]
 
 type ServiceBusSubscriptionBuilder() =
@@ -130,7 +131,8 @@ type ServiceBusSubscriptionBuilder() =
           MaxDeliveryCount = None
           Session = None
           DeadLetteringOnMessageExpiration = None
-          Rules = List.empty }
+          Rules = List.empty
+          DependsOn = Set.empty }
 
     /// The name of the queue.
     [<CustomOperation "name">]
@@ -172,10 +174,12 @@ type ServiceBusSubscriptionBuilder() =
     member this.AddCorrelationFilter(state:ServiceBusSubscriptionConfig, name, properties) = this.AddFilters(state, [ Rule.CreateCorrelationFilter(name, properties) ])
     /// Instead of creating or modifying a namespace, configure this subscription to point to another unmanaged namespace instance.
     [<CustomOperation "link_to_unmanaged_topic">]
-    member this.LinkToUnmanagedNamespace (state:ServiceBusSubscriptionConfig, topicName:ResourceName) =
+    member this.LinkToUnmanagedTopic (state:ServiceBusSubscriptionConfig, topicName:ResourceName) =
         { state with Topic = Unmanaged(topics.resourceId topicName) }
-    member this.LinkToUnmanagedNamespace (state:ServiceBusSubscriptionConfig, topicName) =
+    member this.LinkToUnmanagedTopic (state:ServiceBusSubscriptionConfig, topicName) =
         { state with Topic = Unmanaged(topics.resourceId(ResourceName topicName)) }
+    interface IDependable<ServiceBusSubscriptionConfig> with
+      member _.Add state resIds = {state with DependsOn = state.DependsOn + resIds }
 
 type ServiceBusTopicConfig =
     { Name : ResourceName
