@@ -323,7 +323,9 @@ let tests = testList "Web App Tests" [
             |> getResource<Arm.Web.Site>
             |> List.filter (fun x -> x.ResourceType = Arm.Web.slots)
         // Default "production" slot is not included as it is created automatically in Azure
-        Expect.hasLength slots 1 "Should only be 1 slot"
+
+        Expect.hasLength slots 1 "Should only be 1 slot" 
+        Expect.isNone slots.[0].ZipDeployPath "ZipDeployPath should be set to None" 
     }
 
     test "WebApp with slot that has system assigned identity adds identity to slot" {
