@@ -72,7 +72,7 @@ module Namespaces =
           DuplicateDetectionHistoryTimeWindow : IsoDateTime option
           Session : bool option
           DeadLetteringOnMessageExpiration : bool option
-          DefaultMessageTimeToLive : IsoDateTime
+          DefaultMessageTimeToLive : IsoDateTime option
           MaxDeliveryCount : int option
           MaxSizeInMegabytes : int<Mb> option
           EnablePartitioning : bool option}
@@ -87,7 +87,7 @@ module Namespaces =
                             | Some _ -> Nullable true
                             | None -> Nullable()
                         duplicateDetectionHistoryTimeWindow = tryGetIso this.DuplicateDetectionHistoryTimeWindow
-                        defaultMessageTimeToLive = this.DefaultMessageTimeToLive.Value
+                        defaultMessageTimeToLive = tryGetIso this.DefaultMessageTimeToLive
                         requiresSession = this.Session |> Option.toNullable
                         deadLetteringOnMessageExpiration = this.DeadLetteringOnMessageExpiration |> Option.toNullable
                         maxDeliveryCount = this.MaxDeliveryCount |> Option.toNullable

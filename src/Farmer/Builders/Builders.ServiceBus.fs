@@ -10,6 +10,7 @@ open System
 
 type ServiceBusQueueConfig =
     { Name : ResourceName
+      Namespace : LinkedResource
       LockDuration : TimeSpan option
       DuplicateDetection : TimeSpan option
       DefaultMessageTimeToLive : TimeSpan option
@@ -19,10 +20,33 @@ type ServiceBusQueueConfig =
       MaxSizeInMegabytes : int<Mb> option
       EnablePartitioning : bool option
       AuthorizationRules : Map<ResourceName, AuthorizationRuleRight Set>}
-
+    interface IBuilder with
+      member this.ResourceId = queues.resourceId this.Name
+      member this.BuildResources location = 
+        [
+          { Name = this.Name
+            Namespace = this.Namespace.Name
+            LockDuration = this.LockDuration |> Option.map IsoDateTime.OfTimeSpan
+            DuplicateDetectionHistoryTimeWindow = this.DuplicateDetection |> Option.map IsoDateTime.OfTimeSpan
+            Session = this.Session
+            DeadLetteringOnMessageExpiration = this.DeadLetteringOnMessageExpiration
+            DefaultMessageTimeToLive = this.DefaultMessageTimeToLive |> Option.map IsoDateTime.OfTimeSpan
+            MaxDeliveryCount = this.MaxDeliveryCount
+            MaxSizeInMegabytes = this.MaxSizeInMegabytes
+            EnablePartitioning = this.EnablePartitioning }
+          for rule in this.AuthorizationRules do
+            { QueueAuthorizationRule.Name = rule.Key.Map(fun rule -> $"{this.Name.Value}/{this.Name.Value}/%s{rule}")
+              Location = location
+              Dependencies = [
+                namespaces.resourceId this.Name
+                queues.resourceId (this.Name, this.Name)
+              ]
+              Rights = rule.Value }
+        ]
 type ServiceBusQueueBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
+          Namespace = Managed (namespaces.resourceId ResourceName.Empty)
           LockDuration = None
           DuplicateDetection = None
           Session = None
@@ -60,10 +84,16 @@ type ServiceBusQueueBuilder() =
     /// Add authorization rule on the queue.
     [<CustomOperation "add_authorization_rule">]
     member _.AddAuthorizationRule(state:ServiceBusQueueConfig, name, rights) = { state with AuthorizationRules = state.AuthorizationRules.Add(ResourceName name, Set rights) }
+    /// Instead of creating or modifying a namespace, configure this subscription to point to another unmanaged namespace instance.
+    [<CustomOperation "link_to_unmanaged_namespace">]
+    member this.LinkToUnmanagedNamespace (state:ServiceBusQueueConfig, namespaceName:ResourceName) =
+        { state with Namespace = Unmanaged(namespaces.resourceId namespaceName) }
+    member this.LinkToUnmanagedNamespace (state:ServiceBusQueueConfig, namespaceName) =
+        { state with Namespace = Unmanaged(namespaces.resourceId(ResourceName namespaceName)) }
 
 type ServiceBusSubscriptionConfig =
     { Name : ResourceName
-
+      Topic : LinkedResource
       LockDuration : TimeSpan option
       DuplicateDetection : TimeSpan option
       DefaultMessageTimeToLive : TimeSpan option
@@ -72,10 +102,27 @@ type ServiceBusSubscriptionConfig =
       Session : bool option
       DeadLetteringOnMessageExpiration : bool option
       Rules : Rule list }
+    interface IBuilder with
+      member this.ResourceId = subscriptions.resourceId this.Name
+      member this.BuildResources location = 
+        [
+          { Name = this.Name
+            Namespace = this.Topic.Name.BranchName
+            Topic = this.Topic.Name.LeafName
+            LockDuration = this.LockDuration |> Option.map IsoDateTime.OfTimeSpan
+            DuplicateDetectionHistoryTimeWindow = this.DuplicateDetection |> Option.map IsoDateTime.OfTimeSpan
+            DefaultMessageTimeToLive = this.DefaultMessageTimeToLive |> Option.map IsoDateTime.OfTimeSpan
+            ForwardTo = this.ForwardTo
+            MaxDeliveryCount = this.MaxDeliveryCount
+            Session = this.Session
+            DeadLetteringOnMessageExpiration = this.DeadLetteringOnMessageExpiration
+            Rules = this.Rules }
+          ]
 
 type ServiceBusSubscriptionBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
+          Topic = Managed (namespaces.resourceId ResourceName.Empty)
           LockDuration = None
           DuplicateDetection = None
           DefaultMessageTimeToLive = None
@@ -122,7 +169,12 @@ type ServiceBusSubscriptionBuilder() =
     /// Adds a correlation filtering rule for a subscription
     [<CustomOperation "add_correlation_filter">]
     member this.AddCorrelationFilter(state:ServiceBusSubscriptionConfig, name, properties) = this.AddFilters(state, [ Rule.CreateCorrelationFilter(name, properties) ])
-
+    /// Instead of creating or modifying a namespace, configure this subscription to point to another unmanaged namespace instance.
+    [<CustomOperation "link_to_unmanaged_topic">]
+    member this.LinkToUnmanagedNamespace (state:ServiceBusSubscriptionConfig, topicName:ResourceName) =
+        { state with Topic = Unmanaged(topics.resourceId topicName) }
+    member this.LinkToUnmanagedNamespace (state:ServiceBusSubscriptionConfig, topicName) =
+        { state with Topic = Unmanaged(topics.resourceId(ResourceName topicName)) }
 
 type ServiceBusTopicConfig =
     { Name : ResourceName
@@ -132,8 +184,9 @@ type ServiceBusTopicConfig =
       EnablePartitioning : bool option
       MaxSizeInMegabytes : int<Mb> option
       Subscriptions : Map<ResourceName, ServiceBusSubscriptionConfig> }
+    member this.ResourceId = topics.resourceId (this.Namespace.Name, this.Name)
     interface IBuilder with
-        member this.ResourceId = topics.resourceId (this.Namespace.Name, this.Name)
+        member this.ResourceId = this.ResourceId
         member this.BuildResources location = [
             { Name = this.Name
               Dependencies = [
@@ -150,21 +203,8 @@ type ServiceBusTopicConfig =
               EnablePartitioning = this.EnablePartitioning
               MaxSizeInMegabytes = this.MaxSizeInMegabytes }
             for subscription in this.Subscriptions do
-                let subscription = subscription.Value
-                { Name = subscription.Name
-                  Namespace =
-                        match this.Namespace with
-                        | Managed resId
-                        | Unmanaged resId -> resId.Name
-                  Topic = this.Name
-                  LockDuration = subscription.LockDuration |> Option.map IsoDateTime.OfTimeSpan
-                  DuplicateDetectionHistoryTimeWindow = subscription.DuplicateDetection |> Option.map IsoDateTime.OfTimeSpan
-                  DefaultMessageTimeToLive = subscription.DefaultMessageTimeToLive |> Option.map IsoDateTime.OfTimeSpan
-                  ForwardTo = subscription.ForwardTo
-                  MaxDeliveryCount = subscription.MaxDeliveryCount
-                  Session = subscription.Session
-                  DeadLetteringOnMessageExpiration = subscription.DeadLetteringOnMessageExpiration
-                  Rules = subscription.Rules }
+                let subscription = {subscription.Value with Topic = Managed this.ResourceId }:> IBuilder
+                yield! subscription.BuildResources location
         ]
 
 type ServiceBusTopicBuilder() =
@@ -206,8 +246,7 @@ type ServiceBusTopicBuilder() =
         { state with Namespace = Unmanaged(namespaces.resourceId namespaceName) }
     member this.LinkToUnmanagedNamespace (state:ServiceBusTopicConfig, namespaceName) =
         { state with Namespace = Unmanaged(namespaces.resourceId(ResourceName namespaceName)) }
-
-
+    
 type ServiceBusConfig =
     { Name : ResourceName
       Sku : Sku
@@ -231,36 +270,12 @@ type ServiceBusConfig =
               Tags = this.Tags  }
 
             for queue in this.Queues do
-              let queue = queue.Value
-              { Name = queue.Name
-                Namespace = this.Name
-                LockDuration = queue.LockDuration |> Option.map IsoDateTime.OfTimeSpan
-                DuplicateDetectionHistoryTimeWindow = queue.DuplicateDetection |> Option.map IsoDateTime.OfTimeSpan
-                Session = queue.Session
-                DeadLetteringOnMessageExpiration = queue.DeadLetteringOnMessageExpiration
-                DefaultMessageTimeToLive =
-                    match queue.DefaultMessageTimeToLive, this.Sku with
-                    | None, Basic -> TimeSpan.FromDays 14.
-                    | None, (Standard | Premium _) -> TimeSpan.MaxValue
-                    | Some ttl, _ -> ttl
-                    |> IsoDateTime.OfTimeSpan
-                MaxDeliveryCount = queue.MaxDeliveryCount
-                MaxSizeInMegabytes = queue.MaxSizeInMegabytes
-                EnablePartitioning = queue.EnablePartitioning }
-              for rule in queue.AuthorizationRules do
-                { QueueAuthorizationRule.Name = rule.Key.Map(fun rule -> $"{this.Name.Value}/{queue.Name.Value}/%s{rule}")
-                  Location = location
-                  Dependencies = [
-                    namespaces.resourceId this.Name
-                    queues.resourceId (this.Name, queue.Name)
-                  ]
-                  Rights = rule.Value }
-
+              let queue = {queue.Value with Namespace = Managed(namespaces.resourceId this.Name)} :> IBuilder
+              yield! queue.BuildResources location
 
             for topic in this.Topics do
                 let topic = {topic.Value with Namespace = Managed(namespaces.resourceId this.Name)} :> IBuilder
-                for topicResource in topic.BuildResources location do
-                    topicResource
+                yield! topic.BuildResources location
 
             for rule in this.AuthorizationRules do
               { Name = rule.Key.Map(fun rule -> $"{this.Name.Value}/%s{rule}")
