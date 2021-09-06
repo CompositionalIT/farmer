@@ -124,7 +124,7 @@ let tests = testList "Service Bus Tests" [
                     add_queues [ queue { name "my-queue" } ]
                 } |> getResourceAtIndex 1
 
-            Expect.equal (queue.DefaultMessageTimeToLive.GetValueOrDefault TimeSpan.MinValue).TotalDays 14. "Default TTL should be 14 days"
+            Expect.isNone (Option.ofNullable queue.DefaultMessageTimeToLive) "The default TTL should be null"
         }
 
         test "Set TTL by timespan for Basic queue" {
@@ -150,7 +150,7 @@ let tests = testList "Service Bus Tests" [
                     add_queues [ queue { name "my-queue" } ]
                 } |> getResourceAtIndex 1
 
-            Expect.equal (queue.DefaultMessageTimeToLive.GetValueOrDefault TimeSpan.MinValue).TotalDays TimeSpan.MaxValue.TotalDays "Default TTL should be max value"
+            Expect.isNone (Option.ofNullable queue.DefaultMessageTimeToLive) "Default TTL should be null"
         }
 
         test "Max size set for queue" {

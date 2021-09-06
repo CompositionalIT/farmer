@@ -14,8 +14,6 @@ type ResourceName =
         | r when r = ResourceName.Empty -> ResourceName fallbackValue
         | r -> r
     member this.Map mapper = match this with ResourceName r -> ResourceName (mapper r)
-    member this.BranchName = this.Map (fun x -> match x.LastIndexOf('/') with | -1 -> "" | i-> x.Substring(0,i))
-    member this.LeafName= this.Map (fun x -> match x.LastIndexOf('/') with | -1 -> "" | i-> x.Substring(i+1))
 
     static member (/) (a:ResourceName, b:string) = ResourceName(a.Value + "/" + b)
     static member (/) (a:ResourceName, b:ResourceName) = a / b.Value

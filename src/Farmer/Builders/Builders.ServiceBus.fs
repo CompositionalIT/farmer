@@ -107,8 +107,8 @@ type ServiceBusSubscriptionConfig =
       member this.BuildResources location = 
         [
           { Name = this.Name
-            Namespace = this.Topic.Name.BranchName
-            Topic = this.Topic.Name.LeafName
+            Namespace = this.Topic.Name
+            Topic = this.Topic.ResourceId.Segments.Head
             LockDuration = this.LockDuration |> Option.map IsoDateTime.OfTimeSpan
             DuplicateDetectionHistoryTimeWindow = this.DuplicateDetection |> Option.map IsoDateTime.OfTimeSpan
             DefaultMessageTimeToLive = this.DefaultMessageTimeToLive |> Option.map IsoDateTime.OfTimeSpan
