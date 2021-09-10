@@ -21,7 +21,7 @@ Create a new deployment application:
 2. Using the dotnet SDK, create a new console application: `dotnet new console -lang F#`.
 3. Install FAKE (which will be using to deploy the database) and Farmer:
 
-```
+```console
 dotnet add package Farmer
 dotnet add package Fake.Sql.SqlPackage
 dotnet add package Fake.DotNet.Cli
@@ -149,7 +149,7 @@ Youc could add
                             Location = Location.NorthEurope 
                             NameSuffix = "-geo"})
 ```
-... ro geo-replicate the SQL Server database to have a backup on a different location.
+... to geo-replicate the SQL Server database to have a backup on a different location.
 
 Relevant Farmer API documentation:
 - [SQL Server](https://compositionalit.github.io/farmer/api-overview/resources/sql/)
@@ -279,7 +279,7 @@ The complexity rules for VM-password: Supplied password must be between 8-123 ch
 
 To set environment variables you can do e.g.:
 
-```
+```console
 set vm-password-test=...
 set db-password-test=...
 ```
@@ -472,8 +472,8 @@ Relevant Farmer API documentation:
 #### Connecting the VMs
 
 If you want to manually connect VMs, this script already created remote desktop connection files for you.
-If you want to automatically run scripts in VMs, you can do it e.g. with `Invoke-AzVMRunCommand`,
-but you need to have Azure Cli installed and connected (`powershell -ExecutionPolicy Unrestricted -Command "Connect-AzAccount -Force`):
+If you want to automatically run scripts in VMs, you can do it e.g. with [`Invoke-AzVMRunCommand`](https://docs.microsoft.com/en-us/azure/virtual-machines/windows/run-command),
+but you need to have [Azure Cli](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) installed and connected (`powershell -ExecutionPolicy Unrestricted -Command "Connect-AzAccount -Force`):
 ```fsharp
     let runShell = fun (command, args) ->
         try
@@ -506,4 +506,45 @@ but you need to have Azure Cli installed and connected (`powershell -ExecutionPo
     Console.WriteLine ("VM installation complete at " + DateTime.Now.ToLongTimeString())
 ```
 
+You have the `installStuff.ps1` locally, and then `Invoke-AzVMRunCommand` will transfer it to the VM automatically and execute the commands.
+The path it transfers the script will be something like `C:\Packages\Plugins\Microsoft.CPlat.Core.RunCommandWindows\(version)\Downloads\script0.ps1`.
+Example of the file content what you could have in your `installStuff.ps1`:
+
+```powershell
+# Do whatever installations here...
+# Some parameters:
+param ($myScriptParam1, $myScriptParam2)
+# Some variables:
+$httpPortToOpen = 80
+$httpsPortsToOpen = 443,12345
+
+# Save current directory
+pushd
+
+# Install Nuget
+Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
+
+#Show file extensions
+reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced /v HideFileExt /t REG_DWORD /d 0 /f
+
+#Install chocolatey
+iex ((new-object net.webclient).DownloadString('https://chocolatey.org/install.ps1'))
+
+#Install dotnet
+cd ${Env:ALLUSERSPROFILE}\chocolatey\bin
+.\choco.exe install dotnet -y
+
+#Go back to original directory
+Pop-Location
+
+#Open Windows firewall ports
+netsh advfirewall firewall add rule name="Open Port HTTP $httpPortToOpen" dir=in action=allow protocol=TCP localport=$httpPortToOpen
+Foreach ($httpPortToOpen in $httpPortsToOpen)
+{
+    netsh advfirewall firewall add rule name="Open Port HTTPS $httpsPortToOpen" dir=in action=allow protocol=TCP localport=$httpsPortToOpen
+}
+#...and so on...
+```
+
+Keep the security in mind when installing stuff to your VMs.
 Happy managing!
