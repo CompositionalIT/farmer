@@ -294,6 +294,8 @@ The .sql-files will be in a ".sqlproj" project that is compiled into a .dacpac-f
 
 You can get SSDT for [Visual Studio 2019](https://docs.microsoft.com/en-us/sql/ssdt/download-sql-server-data-tools-ssdt?view=sql-server-ver15) or Azure Data Studio via the SQL Database Projects Extension.
 
+For non-Windows machine you can build a dacpac file by creating a normal .fsproj class library, and changing it to use Sdk `<Project Sdk="MSBuild.Sdk.SqlProj/1.16.2">` as described in [here](https://erikej.github.io/efcore/2020/05/11/ssdt-dacpac-netcore.html) with [more details](https://github.com/rr-wfm/MSBuild.Sdk.SqlProj).
+
 Farmer has deployed an empty database for you (or updated the existing settings), but now you would want to insert/update the database schema, tables, procedures, etc.
 
 A way to install the dacpac-file to created database (or do a schema comparison), is using [FAKE](https://fake.build/sql-sqlpackage.html).
