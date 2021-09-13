@@ -29,6 +29,7 @@ type ResourceGroupConfig =
                     | _ ->
                         [] )
                 |> Map.ofList
+
             { ResourceGroupDeployment.Name = this.ResourceId.Name
               Dependencies = this.Dependencies
               Outputs = Map.merge (Map.toList this.Outputs) innerOutputs // New values overwrite old values so supply this.Outputs as newValues
