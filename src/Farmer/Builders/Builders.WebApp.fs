@@ -495,7 +495,7 @@ type WebAppConfig =
 
                 // nested deployment to update hostname binding with specified SSL options
                 yield! (resourceGroup { 
-                    name (ArmExpression.create "resourceGroup().name")
+                    name "[resourceGroup().name]"
                     location resourceLocation
                     add_resource { hostNameBinding with
                                     SiteId =
