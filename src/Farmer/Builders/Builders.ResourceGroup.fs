@@ -20,7 +20,7 @@ type ResourceGroupConfig =
         else
             let innerOutputs =
                 this.Resources
-                |> List.collect 
+                |> List.collect
                     (function
                     | :? ResourceGroupDeployment as rg ->
                         Map.toList rg.Outputs
