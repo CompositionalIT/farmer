@@ -32,7 +32,10 @@ type ResourceGroupDeployment =
                 (function 
                 | :? ResourceGroupDeployment as rg -> rg.RequiredResourceGroups 
                 | _ ->  [])
-        List.distinct (this.Name.Value :: nestedRgs)        
+        if this.Name.Value.[0] = '[' then
+            List.distinct nestedRgs
+        else 
+            List.distinct (this.Name.Value :: nestedRgs)     
     member this.Template = 
         { Parameters = this.Parameters
           Outputs = this.Outputs |> Map.toList
