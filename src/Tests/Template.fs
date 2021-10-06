@@ -229,8 +229,8 @@ let tests = testList "Template" [
         Expect.isTrue (innerDeployment.Template.Resources.[0] :? Arm.Storage.StorageAccount) "The only resource in the inner deployment should be a storageAccount"
     }
     test "Nested resource group outputs are copied to outer deployments" {
-        let inner1 = resourceGroup { name "inner1"; output "foo" "bax" }
-        let inner2 = resourceGroup { name "inner2"; output "foo" "bay" }
+        let inner1 = resourceGroup { name "inner1"; deployment_name "inner1"; output "foo" "bax" }
+        let inner2 = resourceGroup { name "inner2"; deployment_name "inner2"; output "foo" "bay" }
         let outer = arm  {
             add_resource inner1
             add_resource inner2
