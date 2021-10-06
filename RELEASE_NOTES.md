@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.6.17
+* Container Groups: Use an ARM expression to populate a secure environment variable.
+
 ## 1.6.16
 * Traffic Manager: allow priority and weight to be optional for endpoints.
 

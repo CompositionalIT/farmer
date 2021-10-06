@@ -64,9 +64,10 @@ type DeploymentScript =
                         | Cleanup.OnExpiration _ -> "OnExpiration"
                         | Cleanup.Always -> "Always"
                        environmentVariables = [
-                         for (key, value) in Map.toSeq this.EnvironmentVariables do
+                         for key, value in Map.toSeq this.EnvironmentVariables do
                              match value with
                              | EnvValue v -> {| name = key; value = v; secureValue = null |}
+                             | SecureEnvExpression armExpression ->  {| name = key; value = null; secureValue = armExpression.Eval() |}
                              | SecureEnvValue v -> {| name = key; value = null; secureValue = v.ArmExpression.Eval() |}
                        ]
                        forceUpdateTag = this.ForceUpdateTag |> Option.toNullable
