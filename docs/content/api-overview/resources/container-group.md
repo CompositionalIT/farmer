@@ -102,6 +102,11 @@ open Farmer
 open Farmer.Builders
 open Farmer.ContainerGroup
 
+let storage =
+    storageAccount {
+        name "mystorage"
+    }
+
 let nginx = containerInstance {
     name "nginx"
     image "nginx:1.17.6-alpine"
@@ -110,8 +115,9 @@ let nginx = containerInstance {
     memory 0.5<Gb>
     cpu_cores 1
     env_vars [
-        env_var "CONTENT_PATH" "/www"
-        secure_env_var "SECRET_PASSWORD" "shhhhhh!"
+        EnvVar.create "CONTENT_PATH" "/www"
+        EnvVar.createSecure "SECRET_PASSWORD" "shhhhhh!"
+        EnvVar.createSecureExpression "STORAGE_CONN_STRING" storage.Key
     ]
     add_volume_mount "secret-files" "/config/secrets"
     add_volume_mount "source-code" "/src/farmer"
