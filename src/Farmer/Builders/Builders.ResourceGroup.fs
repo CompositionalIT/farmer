@@ -40,7 +40,7 @@ type ResourceGroupConfig =
             match this.TargetResourceGroup with
             | Some v -> v
             | None -> ()
-            "farmer-deploy"
+            "deployment"
             deploymentIndex() |> string
         ]
         |> String.concat "-"
