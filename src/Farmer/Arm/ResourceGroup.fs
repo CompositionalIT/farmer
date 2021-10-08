@@ -16,6 +16,7 @@ type ResourceGroupDeployment =
       Outputs : Map<string, string>
       Location : Location
       Resources : IArmResource list
+      SubscriptionId : System.Guid option
       Mode: DeploymentMode
       Tags: Map<string,string> }
     member this.ResourceId = resourceGroupDeployment.resourceId this.Name
@@ -45,6 +46,7 @@ type ResourceGroupDeployment =
             {| resourceGroupDeployment.Create(this.Name, this.Location, dependsOn = this.Dependencies, tags = this.Tags ) with
                 location = null // location is not supported for nested resource groups
                 resourceGroup = this.Name.Value
+                subscriptionId = this.SubscriptionId |> Option.map string<System.Guid> |> Option.toObj
                 properties = 
                     {|  template = TemplateGeneration.processTemplate this.Template
                         parameters = 

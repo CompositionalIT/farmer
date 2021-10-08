@@ -11,6 +11,7 @@ type ResourceGroupConfig =
       Outputs : Map<string, string>
       Location : Location
       Resources : IArmResource list
+      SubscriptionId : System.Guid option
       Mode: DeploymentMode
       Tags: Map<string,string> }
     member this.ResourceId = resourceGroupDeployment.resourceId (this.Name |> Option.defaultValue "farmer-deploy")
@@ -35,6 +36,7 @@ type ResourceGroupConfig =
               Outputs = Map.merge (Map.toList this.Outputs) innerOutputs // New values overwrite old values so supply this.Outputs as newValues
               Location  = this.Location
               Resources = this.Resources
+              SubscriptionId = this.SubscriptionId
               Mode = this.Mode
               Tags = this.Tags }
             |> Some
@@ -65,13 +67,14 @@ type ResourceGroupConfig =
               | None -> ()
             ]
 
-type ResourceGroupBuilder() =
+type DeploymentBuilder() =
     member _.Yield _ =
         { Name = None
           Dependencies = Set.empty
           Parameters = Set.empty
           Outputs = Map.empty
           Resources = List.empty
+          SubscriptionId = None
           Location = Location.WestEurope
           Mode = Incremental
           Tags = Map.empty }
@@ -111,36 +114,44 @@ type ResourceGroupBuilder() =
 
     /// Adds a builder's ARM resources to the ARM template.
     [<CustomOperation "add_resource">]
-    member _.AddResource (state:ResourceGroupConfig, input:IBuilder) = ResourceGroupBuilder.AddResources(state, input.BuildResources state.Location)
-    member _.AddResource (state:ResourceGroupConfig, input:Builder) = ResourceGroupBuilder.AddResources(state, input state.Location)
-    member _.AddResource (state:ResourceGroupConfig, input:IArmResource) = ResourceGroupBuilder.AddResources(state, [ input ])
+    member _.AddResource (state:ResourceGroupConfig, input:IBuilder) = DeploymentBuilder.AddResources(state, input.BuildResources state.Location)
+    member _.AddResource (state:ResourceGroupConfig, input:Builder) = DeploymentBuilder.AddResources(state, input state.Location)
+    member _.AddResource (state:ResourceGroupConfig, input:IArmResource) = DeploymentBuilder.AddResources(state, [ input ])
     member _.AddResource (state:ResourceGroupConfig, input:IBuilder option) = 
         match input with
-        | Some inp -> ResourceGroupBuilder.AddResources(state, inp.BuildResources state.Location)
+        | Some inp -> DeploymentBuilder.AddResources(state, inp.BuildResources state.Location)
         | None -> state
     member _.AddResource (state:ResourceGroupConfig, input:Builder option) = 
         match input with
-        | Some inp -> ResourceGroupBuilder.AddResources(state, inp state.Location)
+        | Some inp -> DeploymentBuilder.AddResources(state, inp state.Location)
         | None -> state
     member _.AddResource (state:ResourceGroupConfig, input:IArmResource option) = 
         match input with
-        | Some inp -> ResourceGroupBuilder.AddResources(state, [ inp ])
+        | Some inp -> DeploymentBuilder.AddResources(state, [ inp ])
         | None -> state
 
     [<CustomOperation "add_resources">]
     member this.AddResources(state:ResourceGroupConfig, input:IBuilder list) =
         let resources = input |> List.collect(fun i -> i.BuildResources state.Location)
-        ResourceGroupBuilder.AddResources(state, resources)
+        DeploymentBuilder.AddResources(state, resources)
 
     [<CustomOperation "add_arm_resources">]
     member this.AddArmResources(state:ResourceGroupConfig, input:IArmResource list) =
-        ResourceGroupBuilder.AddResources(state, input)
+        DeploymentBuilder.AddResources(state, input)
 
     [<CustomOperation "depends_on">]
     member this.AddDepenencies(state:ResourceGroupConfig, dependencies: ResourceId list) =
         {state with Dependencies = Set.union state.Dependencies (Set.ofList dependencies) }
-
     interface ITaggable<ResourceGroupConfig> with member _.Add state tags = {state with Tags = state.Tags |> Map.merge tags}
+
+type ResourceGroupBuilder () =
+    inherit DeploymentBuilder ()
+    /// Sets the subscription ID for a nested deployment
+    [<CustomOperation "subscription_id">]
+    member this.SubscriptionId(state:ResourceGroupConfig, subscriptionId:System.Guid) =
+        { state with SubscriptionId = Some subscriptionId }
+    member this.SubscriptionId(state:ResourceGroupConfig, subscriptionId:string) =
+        { state with SubscriptionId = Some (System.Guid subscriptionId) }
 
 let resourceGroup = ResourceGroupBuilder()
 
