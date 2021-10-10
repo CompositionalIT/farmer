@@ -287,4 +287,87 @@ let tests = testList "Template" [
         let actual = jobj.SelectToken("$.resources[?(@.name=='inner1')].subscriptionId") |> string
         Expect.equal actual "0c3054fb-f576-4458-acff-f2c29c4123e4" "Nested deployment didn't have correct subscriptionId"
     }
+    test "Simple parameter serializes correctly for nested deployment" {
+        let p1 = ParameterValue(Name="param1", Value="value1")
+        let expectedP1 = """{
+  "param1": {
+    "value": "value1"
+  }
+}"""
+        let p1Json = dict [ p1.Key, p1.ParamValue ] |> Serialization.toJson
+        Expect.equal p1Json expectedP1 "p1 didn't serialize correctly"
+    }
+    test "Key Vault reference parameter serializes correctly for nested deployment" {
+        let kvRef1 = KeyVaultReference("param1", vaults.resourceId "myvault", "secret1")
+        let kvRef1Json = dict [ kvRef1.Key, kvRef1.ParamValue ] |> Serialization.toJson
+        let expected = """{
+  "param1": {
+    "reference": {
+      "keyVault": {
+        "id": "[resourceId('Microsoft.KeyVault/vaults', 'myvault')]"
+      },
+      "secretName": "secret1"
+    }
+  }
+}"""
+        Expect.equal kvRef1Json expected "Key vault reference parameter didn't serialize correctly" 
+    }
+    test "Can add simple parameters to nested deployment" {
+        let inner1 = resourceGroup { 
+            name "inner1"
+            add_resources [
+                vm { name "vm"; username "foo" }
+            ]
+            add_parameter_values [
+                "param1", "value1"
+                "param2", "value2"
+            ]
+        }
+        let outer = arm  {
+            add_resource inner1
+        }
+        
+        let deployment = outer |> findAzureResources<Models.Deployment> dummyClient.SerializationSettings
+        let nestedParamsObj = deployment.[0].Properties.Parameters :?> JObject
+        let nestedParams = 
+            nestedParamsObj.Properties()
+            |> Seq.map (fun x -> x.Name, x.Value.SelectToken(".value").ToString())
+            |> Map.ofSeq
+
+        Expect.equal nestedParams.["param1"] "value1" "Parameter 'param1' not passed to nested template"
+        Expect.equal nestedParams.["param2"] "value2" "Parameters 'param2' not passed to nested template"
+    }
+    test "Can add key vault reference parameters to nested deployment" {
+        let inner1 = resourceGroup { 
+            name "farmer-nested-params"
+            add_resources [
+                vm { name "vm"; username "foo" }
+            ]
+            add_secret_references [
+                "password-for-vm", vaults.resourceId "myvault", "vm-password"
+            ]
+        }
+        let outer = arm  {
+            add_resource inner1
+        }
+        
+        let deployment = outer |> findAzureResources<Models.Deployment> dummyClient.SerializationSettings
+        let nestedParamsObj = deployment.[0].Properties.Parameters :?> JObject
+        let nestedParams = 
+            nestedParamsObj.Properties()
+            |> Seq.map (fun x -> x.Name, x.Value.SelectToken(".reference").ToString())
+            |> Map.ofSeq
+
+        let expected = """{
+  "keyVault": {
+    "id": "[resourceId('Microsoft.KeyVault/vaults', 'myvault')]"
+  },
+  "secretName": "vm-password"
+}"""
+        Expect.equal nestedParams.["password-for-vm"] expected "Parameter 'password-for-vm' keyvault reference incorrect in nested template."
+        let fullTemplate = outer.Template |> Writer.toJson
+        let jobjTemplate = JObject.Parse fullTemplate
+        let parametersJson = jobjTemplate.SelectToken("$.parameters") |> string<JToken>
+        Expect.equal parametersJson "{}" "Outer template should not have parameter that is passed to inner template"
+    }
 ]

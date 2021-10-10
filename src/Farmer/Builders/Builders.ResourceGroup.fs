@@ -11,6 +11,7 @@ type ResourceGroupConfig =
       Outputs : Map<string, string>
       Location : Location
       Resources : IArmResource list
+      ParameterValues : ParameterValue list
       SubscriptionId : System.Guid option
       Mode: DeploymentMode
       Tags: Map<string,string> }
@@ -36,6 +37,7 @@ type ResourceGroupConfig =
               Outputs = Map.merge (Map.toList this.Outputs) innerOutputs // New values overwrite old values so supply this.Outputs as newValues
               Location  = this.Location
               Resources = this.Resources
+              ParameterValues = this.ParameterValues
               SubscriptionId = this.SubscriptionId
               Mode = this.Mode
               Tags = this.Tags }
@@ -74,6 +76,7 @@ type DeploymentBuilder() =
           Parameters = Set.empty
           Outputs = Map.empty
           Resources = List.empty
+          ParameterValues = List.empty
           SubscriptionId = None
           Location = Location.WestEurope
           Mode = Incremental
@@ -152,6 +155,12 @@ type ResourceGroupBuilder () =
         { state with SubscriptionId = Some subscriptionId }
     member this.SubscriptionId(state:ResourceGroupConfig, subscriptionId:string) =
         { state with SubscriptionId = Some (System.Guid subscriptionId) }
+    [<CustomOperation "add_parameter_values">]
+    member this.AddParameterValues(state:ResourceGroupConfig, parameters:(string*string) list) =
+        { state with ParameterValues = state.ParameterValues @ (parameters |> List.map ParameterValue) }
+    [<CustomOperation "add_secret_references">]
+    member this.AddKeyVaultSecretReferences(state:ResourceGroupConfig, parameters:(string*ResourceId*string) list) =
+        { state with ParameterValues = state.ParameterValues @ (parameters |> List.map KeyVaultReference) }
 
 let resourceGroup = ResourceGroupBuilder()
 

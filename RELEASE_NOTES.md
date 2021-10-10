@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.6.18
+* Resource Groups: Provide input parameters and key vault references to nested deployments.
+
 ## 1.6.17
 * Container Groups: Use an ARM expression to populate a secure environment variable.
 * Resource Groups: Specify the target subscription for nested deployments.

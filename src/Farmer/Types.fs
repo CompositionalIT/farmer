@@ -167,6 +167,8 @@ type SecureParameter =
     member this.Value = match this with SecureParameter value -> value
     /// Gets an ARM expression reference to the parameter e.g. parameters('my-password')
     member this.ArmExpression = $"parameters('{this.Value}')" |> ArmExpression.create
+    /// Gets the key for this parameter in the ARM template 'parameters' dictionary.
+    member this.Key = match this with SecureParameter name -> name
 
 /// Exposes parameters which are required by a specific IArmResource.
 type IParameters =
