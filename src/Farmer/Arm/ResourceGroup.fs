@@ -3,15 +3,18 @@ module Farmer.Arm.ResourceGroup
 
 open Farmer
 open Farmer.Writer
+open System.Threading
 
 let resourceGroupDeployment = ResourceType ("Microsoft.Resources/deployments","2020-10-01")
 let resourceGroups = ResourceType ("Microsoft.Resources/resourceGroups", "2021-04-01")
+
 
 type DeploymentMode = Incremental|Complete
 
 /// Represents all configuration information to generate an ARM template.
 type ResourceGroupDeployment =
-    { Name: ResourceName
+    { TargetResourceGroup: ResourceName
+      DeploymentName: ResourceName
       Dependencies: ResourceId Set
       Outputs : Map<string, string>
       Location : Location
@@ -19,7 +22,7 @@ type ResourceGroupDeployment =
       SubscriptionId : System.Guid option
       Mode: DeploymentMode
       Tags: Map<string,string> }
-    member this.ResourceId = resourceGroupDeployment.resourceId this.Name
+    member this.ResourceId = resourceGroupDeployment.resourceId this.DeploymentName
     member this.Parameters = 
           [ for resource in this.Resources do
                 match resource with
@@ -33,7 +36,7 @@ type ResourceGroupDeployment =
                 (function 
                 | :? ResourceGroupDeployment as rg -> rg.RequiredResourceGroups 
                 | _ ->  [])
-        List.distinct (this.Name.Value :: nestedRgs)        
+        List.distinct (this.TargetResourceGroup.Value :: nestedRgs)        
     member this.Template = 
         { Parameters = this.Parameters
           Outputs = this.Outputs |> Map.toList
@@ -41,11 +44,11 @@ type ResourceGroupDeployment =
     interface IParameters with 
         member this.SecureParameters = this.Parameters
     interface IArmResource with
-        member this.ResourceId = resourceGroupDeployment.resourceId this.Name
+        member this.ResourceId = this.ResourceId
         member this.JsonModel = 
-            {| resourceGroupDeployment.Create(this.Name, this.Location, dependsOn = this.Dependencies, tags = this.Tags ) with
+            {| resourceGroupDeployment.Create(this.DeploymentName, this.Location, dependsOn = this.Dependencies, tags = this.Tags ) with
                 location = null // location is not supported for nested resource groups
-                resourceGroup = this.Name.Value
+                resourceGroup = this.TargetResourceGroup.Value
                 subscriptionId = this.SubscriptionId |> Option.map string<System.Guid> |> Option.toObj
                 properties = 
                     {|  template = TemplateGeneration.processTemplate this.Template

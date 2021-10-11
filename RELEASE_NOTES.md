@@ -1,5 +1,7 @@
 Release Notes
 =============
+## vNext
+* Resource Groups: Add support for multiple nested deployments targetting the same resource group
 
 ## 1.6.17
 * Container Groups: Use an ARM expression to populate a secure environment variable.
