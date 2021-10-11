@@ -12,8 +12,8 @@ type Endpoint =
     { Name : ResourceName
       Status: FeatureFlag
       Target : EndpointTarget
-      Weight: int
-      Priority: int
+      Weight: int option
+      Priority: int option
       Location: Location option }
     member this.JsonModel =
         {| name = this.Name.Value
@@ -23,8 +23,8 @@ type Endpoint =
                 | Website _ -> azureEndpoints.Type
            properties =
                 {| endpointStatus = this.Status.ArmValue
-                   weight = this.Weight
-                   priority = this.Priority
+                   weight = this.Weight |> Option.toNullable
+                   priority = this.Priority |> Option.toNullable
                    endpointLocation =
                         this.Location
                         |> Option.map (fun l -> l.ArmValue)

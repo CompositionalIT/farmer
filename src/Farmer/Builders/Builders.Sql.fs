@@ -130,7 +130,7 @@ type SqlAzureConfig =
 
                     {| apiVersion = "2021-02-01-preview"
                        location = replica.Location.ArmValue
-                       dependsOn = [ Farmer.ResourceId.create(Farmer.Arm.Sql.servers, replicaServerName.ResourceName).Eval(); ]
+                       dependsOn = [ Farmer.ResourceId.create(Farmer.Arm.Sql.servers, replicaServerName.ResourceName).Eval(); primaryDatabaseFullId ]
                        name = $"{replicaServerName.ResourceName.Value}/{database.Name.Value + replica.NameSuffix}"
                        ``type`` = Farmer.Arm.Sql.databases.Type
                        sku =

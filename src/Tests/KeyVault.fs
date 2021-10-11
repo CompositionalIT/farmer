@@ -191,4 +191,13 @@ let tests = testList "KeyVault" [
             template |> Writer.quickWrite |> ignore
         ) "Should have failed to build the key vault policy addition resource"
     }
+    test "Standalone secret can be added as resource" {
+        let vaultId = (Arm.KeyVault.vaults.resourceId (ResourceName "my-kv"))
+        let secret = secret { name "my-secret"; content_type "ConnectionString"; link_to_unmanaged_keyvault (Arm.KeyVault.vaults.resourceId "my-kv")}
+        let resources = (arm { add_resource secret }).Template.Resources
+        Expect.hasLength resources 1 "Should only be one resource"
+        match resources.[0] with
+        | :? Arm.KeyVault.Vaults.Secret as secret -> ()
+        | x -> failwith $"resource was expected to be of type {typeof<Arm.KeyVault.Vaults.Secret>} but was {x.GetType()}"
+    }
 ]
