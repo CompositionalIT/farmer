@@ -273,4 +273,19 @@ let tests = testList "Template" [
 
         Expect.equal nestedParams.["password-for-vm"] "[parameters('password-for-vm')]" "Parameters not correctly proxied to nested template"
     }
+    test "Can specify subscriptionId on nested deployment" {
+        let inner1 = resourceGroup { 
+            name "inner1"
+            deployment_name "inner1-deployment"
+            add_resource (vm { name "vm"; username "foo" })
+            subscription_id "0c3054fb-f576-4458-acff-f2c29c4123e4"
+        }
+        let deployment = arm {
+            add_resource inner1
+        }
+        let json = deployment.Template |> Writer.toJson
+        let jobj = JObject.Parse json
+        let actual = jobj.SelectToken("$.resources[?(@.name=='inner1-deployment')].subscriptionId") |> string
+        Expect.equal actual "0c3054fb-f576-4458-acff-f2c29c4123e4" "Nested deployment didn't have correct subscriptionId"
+    }
 ]

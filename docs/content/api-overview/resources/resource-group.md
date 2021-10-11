@@ -20,6 +20,7 @@ The Resource Group builder is always the top-level element of your deployment. I
 | add_tag | Add a tag to the resource group for top-level instances or to the deployment for nested resource groups |
 | add_tags | Add multiple tags to the resource group for top-level instances or to the deployment for nested resource groups |
 | name | the name of the resource group (only used for nested resource group deployments) |
+| subscription_id | On nested resource group deployments, specify the target subscription. |
 | deployment_name | allows manual customisation of the deployment name. By default this will be generated for you. (only used for nested resource group deployments)| 
 
 #### Utilities

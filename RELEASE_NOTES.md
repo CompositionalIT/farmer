@@ -3,6 +3,10 @@ Release Notes
 ## vNext
 * Resource Groups: Add support for multiple nested deployments targetting the same resource group
 
+## 1.6.17
+* Container Groups: Use an ARM expression to populate a secure environment variable.
+* Resource Groups: Specify the target subscription for nested deployments.
+
 ## 1.6.16
 * Traffic Manager: allow priority and weight to be optional for endpoints.
 
