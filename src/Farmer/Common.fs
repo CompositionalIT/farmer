@@ -997,6 +997,7 @@ module KeyVault =
             match this with
             | Standard -> "standard"
             | Premium -> "premium"
+
 module ExpressRoute =
     type Tier = Standard | Premium
     type Family = UnlimitedData | MeteredData
@@ -1109,13 +1110,22 @@ module ApplicationGateway =
             | OWASP -> "OWASP"
 
     [<RequireQualifiedAccess>]
+    type PolicyType =
+        | Custom
+        | Predefined
+        member this.ArmValue =
+            match this with
+            | Custom -> "Custom"
+            | Predefined -> "Predefined"
+
+    [<RequireQualifiedAccess>]
     type Protocol =
         | Http
         | Https
         member this.ArmValue =
             match this with
-            | Http -> "HTTP"
-            | Https -> "HTTPS"
+            | Http -> "Http"
+            | Https -> "Https"
 
     [<RequireQualifiedAccess>]
     type RedirectType =

@@ -27,21 +27,17 @@ type ApplicationGateway =
         {| Name : ResourceName
            Port : uint16 |} list
       FrontendIpConfigs :
-        {|  Name : ResourceName
-            PrivateIpAllocationMethod : PrivateIpAddress.AllocationMethod
-            PublicIp : ResourceId option |} list
-      BackendAddressPools : 
         {| Name : ResourceName
-           BackendAddresses: 
-            {| Fqdn: string
-               IpAddress: string |} list |} list
+           PrivateIpAllocationMethod : PrivateIpAddress.AllocationMethod
+           PublicIp : ResourceId option |} list
+      BackendAddressPools : ResourceName list
       BackendHttpSettingsCollection : 
         {| Name: ResourceName
            AffinityCookieName: string
            AuthenticationCertificates: ResourceName list
            ConnectionDraining:
-                {| DrainTimeoutInSeconds: int<Seconds>
-                   Enabled: bool |}
+            {| DrainTimeoutInSeconds: int<Seconds>
+               Enabled: bool |}
            CookieBasedAffinity: FeatureFlag
            HostName: string
            Path: string
@@ -81,7 +77,9 @@ type ApplicationGateway =
       Probes :
           {|  /// Name of the probe
               Name : ResourceName
-              /// Protocol
+              Host: string
+              Port: uint16
+              Path: string
               Protocol : Protocol
               IntervalInSeconds : int<Seconds>
               TimeoutInSeconds : int<Seconds>
@@ -144,7 +142,7 @@ type ApplicationGateway =
            DisabledSslProtocols: string list
            MinProtocolVersion: string
            PolicyName: string
-           PolicyType: string |}
+           PolicyType: PolicyType |}
       SslProfiles:
           {| Name: ResourceName
              ClientAuthConfiguration: 
@@ -154,7 +152,7 @@ type ApplicationGateway =
                   DisabledSslProtocols: string list
                   MinProtocolVersion: string
                   PolicyName: string
-                  PolicyType: string |}
+                  PolicyType: PolicyType |}
              TrustedClientCertificates: ResourceName list
           |} list
       TrustedClientCertificates:
@@ -190,11 +188,11 @@ type ApplicationGateway =
                {| MatchVariable: string
                   Selector: string
                   SelectorMatchOperator: string |} list
-             FileUploadLimitInMb: int<Mb>
-             FirewallMode: FirewallMode
+             FileUploadLimitInMb: int<Mb> option
+             FirewallMode: FirewallMode option
              // MaxRequestBodySize: int // ??
-             MaxRequestBodySizeInKb: int<Kb>
-             RequestBodyCheck: bool
+             MaxRequestBodySizeInKb: int<Kb> option
+             RequestBodyCheck: bool option
              RuleSetType: RuleSetType
              RuleSetVersion: string |}
       Zones: string list
@@ -227,22 +225,28 @@ type ApplicationGateway =
                                    |}
                             |}
                         )
-                        // backendAddressPools = this.BackendAddressPools |> List.map (fun backend ->
-                        //     {| name = backend.Value |}
-                        // )
-                        // probes = this.Probes |> List.map (fun probe ->
-                        //     {|
-                        //         name = probe.Name.Value
-                        //         properties =
-                        //             {|
-                        //                 protocol = probe.Protocol.ArmValue
-                        //                 port = probe.Port
-                        //                 requestPath = probe.RequestPath
-                        //                 intervalInSeconds = probe.IntervalInSeconds
-                        //                 numberOfProbes = probe.NumberOfProbes
-                        //             |}
-                        //     |}
-                        // )
+                        backendAddressPools = this.BackendAddressPools |> List.map (fun backend ->
+                            {| name = backend.Value |}
+                        )
+                        probes = this.Probes |> List.map (fun probe ->
+                            {|
+                                name = probe.Name.Value
+                                properties =
+                                    {|
+                                        host = probe.Host
+                                        port = probe.Port
+                                        path = probe.Path
+                                        protocol = probe.Protocol.ArmValue
+                                        pickHostNameFromBackendHttpSettings = probe.PickHostNameFromBackendHttpSettings
+                                        ``match`` = {| body = probe.Match.Body
+                                                       statusCodes = probe.Match.StatusCodes |}
+                                        minServers = probe.MinServers
+                                        interval = probe.IntervalInSeconds
+                                        timeoutInSeconds = probe.TimeoutInSeconds
+                                        unhealthyThreshold = probe.UnhealthyThreshold
+                                    |}
+                            |}
+                        )
                     |}
             |} :> _
 
@@ -253,10 +257,7 @@ type BackendAddressPool =
         ApplicationGateway : ResourceName
         /// Addresses of backend services.
         ApplicationGatewayBackendAddresses :
-            {|  /// Unique name for the backend address
-                Name : ResourceName
-                /// Resource ID of a virtual network where the backend IP can be found.
-                VirtualNetwork : LinkedResource option
+            {|  Fqdn : string
                 /// IP Address of the backend resource in the pool
                 IpAddress : System.Net.IPAddress
             |} list
@@ -267,25 +268,15 @@ type BackendAddressPool =
             let dependencies =
                 seq {
                     yield ApplicationGateways.resourceId this.ApplicationGateway
-                    for addr in this.ApplicationGatewayBackendAddresses do
-                        match addr.VirtualNetwork with
-                        | Some (Managed vnetId) -> yield vnetId
-                        | _ -> ()
                 } |> Set.ofSeq
             {| ApplicationGatewayBackendAddressPools.Create(this.Name, dependsOn=dependencies) with
                 name = $"{this.ApplicationGateway.Value}/{this.Name.Value}"
                 properties =
                     {| ApplicationGatewayBackendAddresses = this.ApplicationGatewayBackendAddresses |> List.map (fun addr ->
-                        {|  name = addr.Name.Value
-                            properties =
-                                {| ipAddress = string addr.IpAddress
-                                   virtualNetwork =
-                                       match addr.VirtualNetwork with
-                                       | Some (Managed vnetId) -> {| id = vnetId.Eval() |}
-                                       | Some (Unmanaged vnetId) -> {| id = vnetId.Eval() |}
-                                       | None -> Unchecked.defaultof<_>
-                                |}
-                            |}
-                        )
+                        {|  properties =
+                                {| fqdn = addr.Fqdn
+                                   ipAddress = string addr.IpAddress |}
+                        |}
+                       )
                     |}
             |} :> _
