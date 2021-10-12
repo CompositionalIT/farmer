@@ -225,12 +225,12 @@ let tests = testList "Template" [
         Expect.isTrue (template.Template.Resources.[0] :? Arm.ResourceGroup.ResourceGroupDeployment) "The only resource should be a resourceGroupDeployment"
         let innerDeployment = template.Template.Resources.[0] :?> Arm.ResourceGroup.ResourceGroupDeployment
         Expect.hasLength innerDeployment.Resources 1 "Inner template should have 1 resource"
-        Expect.equal innerDeployment.Name.Value "inner" "Inner template name is incorrect"
+        Expect.equal innerDeployment.TargetResourceGroup.Value "inner" "Inner template name is incorrect"
         Expect.isTrue (innerDeployment.Template.Resources.[0] :? Arm.Storage.StorageAccount) "The only resource in the inner deployment should be a storageAccount"
     }
     test "Nested resource group outputs are copied to outer deployments" {
-        let inner1 = resourceGroup { name "inner1"; output "foo" "bax" }
-        let inner2 = resourceGroup { name "inner2"; output "foo" "bay" }
+        let inner1 = resourceGroup { name "inner1"; deployment_name "inner1"; output "foo" "bax" }
+        let inner2 = resourceGroup { name "inner2"; deployment_name "inner2"; output "foo" "bay" }
         let outer = arm  {
             add_resource inner1
             add_resource inner2
@@ -276,6 +276,7 @@ let tests = testList "Template" [
     test "Can specify subscriptionId on nested deployment" {
         let inner1 = resourceGroup { 
             name "inner1"
+            deployment_name "inner1-deployment"
             add_resource (vm { name "vm"; username "foo" })
             subscription_id "0c3054fb-f576-4458-acff-f2c29c4123e4"
         }
@@ -284,7 +285,7 @@ let tests = testList "Template" [
         }
         let json = deployment.Template |> Writer.toJson
         let jobj = JObject.Parse json
-        let actual = jobj.SelectToken("$.resources[?(@.name=='inner1')].subscriptionId") |> string
+        let actual = jobj.SelectToken("$.resources[?(@.name=='inner1-deployment')].subscriptionId") |> string
         Expect.equal actual "0c3054fb-f576-4458-acff-f2c29c4123e4" "Nested deployment didn't have correct subscriptionId"
     }
     test "Simple parameter serializes correctly for nested deployment" {

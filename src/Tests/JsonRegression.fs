@@ -73,6 +73,7 @@ let tests =
             }
             let nestedResourceGroup = resourceGroup{
                 name "nested-resources"
+                deployment_name "nested-resources"
                 location Location.UKSouth
                 add_resources [cosmos; cosmosMongo; vm]
             }
