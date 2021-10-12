@@ -78,6 +78,7 @@ type OS = Windows | Linux
 
 type [<Measure>] Gb
 type [<Measure>] Mb
+type [<Measure>] Kb
 type [<Measure>] Mbps
 type [<Measure>] Seconds
 type [<Measure>] Hours
@@ -1042,6 +1043,44 @@ module LoadBalancer =
             | TCP -> "Tcp"
             | HTTP -> "Http"
             | HTTPS -> "Https"
+
+module ApplicationGateway =
+    [<RequireQualifiedAccess>]
+    type Tier =
+        | Standard
+        | Standard_v2
+        | WAF
+        | WAF_v2
+
+    [<RequireQualifiedAccess>]
+    type Sku =
+        | Standard_Large
+        | Standard_Medium
+        | Standard_Small
+        | Standard_v2
+        | WAF_Large
+        | WAF_Medium
+        | WAF_v2
+
+    type ApplicationGatewaySku = {
+        Name : Sku
+        Capacity : int
+        Tier: Tier
+    }
+
+    [<RequireQualifiedAccess>]
+    type RuleType =
+        | Basic
+        | PathBasedRouting
+
+    [<RequireQualifiedAccess>]
+    type FirewallMode =
+        | Detection
+        | Prevention
+
+    [<RequireQualifiedAccess>]
+    type RuleSetTypes =
+        | OWASP
 
 module VirtualNetworkGateway =
     [<RequireQualifiedAccess>]

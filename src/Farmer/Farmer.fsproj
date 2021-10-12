@@ -62,6 +62,7 @@
     <Compile Include="Deploy.fs" />
     <Compile Include="Arm\ResourceGroup.fs" />
 
+    <Compile Include="Arm/ApplicationGateway.fs" />
     <Compile Include="Arm/DiagnosticSetting.fs" />
     <Compile Include="Arm/ManagedIdentity.fs" />
     <Compile Include="Arm/LogAnalytics.fs" />
