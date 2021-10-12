@@ -1051,6 +1051,12 @@ module ApplicationGateway =
         | Standard_v2
         | WAF
         | WAF_v2
+        member this.ArmValue =
+            match this with
+            | Standard -> ""
+            | Standard_v2 -> ""
+            | WAF -> ""
+            | WAF_v2 -> ""
 
     [<RequireQualifiedAccess>]
     type Sku =
@@ -1061,6 +1067,15 @@ module ApplicationGateway =
         | WAF_Large
         | WAF_Medium
         | WAF_v2
+        member this.ArmValue =
+            match this with
+            | Standard_Large -> "Standard_Large"
+            | Standard_Medium -> "Standard_Medium"
+            | Standard_Small -> "Standard_Small"
+            | Standard_v2 -> "Standard_v2"
+            | WAF_Large -> "WAF_Large"
+            | WAF_Medium -> "WAF_Medium"
+            | WAF_v2 -> "WAF_v2"
 
     type ApplicationGatewaySku = {
         Name : Sku
@@ -1072,15 +1087,49 @@ module ApplicationGateway =
     type RuleType =
         | Basic
         | PathBasedRouting
+        member this.ArmValue =
+            match this with
+            | Basic -> "Basic"
+            | PathBasedRouting -> "PathBasedRouting"
 
     [<RequireQualifiedAccess>]
     type FirewallMode =
         | Detection
         | Prevention
+        member this.ArmValue =
+            match this with
+            | Detection -> "Detection"
+            | Prevention -> "Prevention"
 
     [<RequireQualifiedAccess>]
-    type RuleSetTypes =
+    type RuleSetType =
         | OWASP
+        member this.ArmValue =
+            match this with
+            | OWASP -> "OWASP"
+
+    [<RequireQualifiedAccess>]
+    type Protocol =
+        | Http
+        | Https
+        member this.ArmValue =
+            match this with
+            | Http -> "HTTP"
+            | Https -> "HTTPS"
+
+    [<RequireQualifiedAccess>]
+    type RedirectType =
+        | Found
+        | Moved
+        | TemporaryRedirect
+        | PermanentRedirect
+        member this.ArmValue =
+            match this with
+            | Found -> "Found"
+            | Moved -> "Moved"
+            | TemporaryRedirect -> "TemporaryRedirect"
+            | PermanentRedirect -> "PermanentRedirect"
+
 
 module VirtualNetworkGateway =
     [<RequireQualifiedAccess>]

@@ -36,17 +36,16 @@ type ApplicationGateway =
             {| Fqdn: string
                IpAddress: string |} list |} list
       BackendHttpSettingsCollection : 
-        {| Name: ResourcName
+        {| Name: ResourceName
            AffinityCookieName: string
            AuthenticationCertificates: ResourceName list
-           ConnectionDraining: {|
-             DrainTimeoutInSeconds: int<Seconds>
-             Enabled: bool
-           |}
+           ConnectionDraining:
+                {| DrainTimeoutInSeconds: int<Seconds>
+                   Enabled: bool |}
            CookieBasedAffinity: FeatureFlag
            HostName: string
            Path: string
-           Port: unit16
+           Port: uint16
            Protocol: Protocol
            CookieBasedAffinity: FeatureFlag
            PickHostNameFromBackendAddress: bool
@@ -89,10 +88,9 @@ type ApplicationGateway =
               UnhealthyThreshold : uint16
               PickHostNameFromBackendHttpSettings : bool
               MinServers : uint16
-              Match : {|
-                  Body: string
-                  StatusCodes: strubg list
-              |}
+              Match :
+                {| Body: string
+                   StatusCodes: string list |}
           |} list
       RedirectConfigurations:
         {| Name: ResourceName
@@ -105,10 +103,10 @@ type ApplicationGateway =
            TargetUrl: string
            UrlPathMaps: ResourceName list |} list
       RequestRoutingRules : 
-        {|  Name: ResourceName,
-            RuleType: RuleType,
-            HttpListener: ResourceName,
-            BackendAddressPool: ResourceName,
+        {|  Name: ResourceName
+            RuleType: RuleType
+            HttpListener: ResourceName
+            BackendAddressPool: ResourceName
             BackendHttpSettings: ResourceName
             RedirectConfiguration: ResourceName
             RewriteRuleSet: ResourceName
@@ -141,13 +139,12 @@ type ApplicationGateway =
            Data: string
            KeyVaultSecretId: string
            Password: string |} list
-      SslPolicy: {|
-          CipherSuites: string list
-          DisabledSslProtocols: string list
-          MinProtocolVersion: string
-          PolicyName: string
-          PolicyType: string
-      |}
+      SslPolicy:
+        {| CipherSuites: string list
+           DisabledSslProtocols: string list
+           MinProtocolVersion: string
+           PolicyName: string
+           PolicyType: string |}
       SslProfiles:
           {| Name: ResourceName
              ClientAuthConfiguration: 
@@ -186,13 +183,13 @@ type ApplicationGateway =
           |} list
       WebApplicationFirewallConfiguration:
           {| DisabledRuleGroups:
-              {| RuleGroupName: string
-                 Rules: [ int ] |} list
+               {| RuleGroupName: string
+                  Rules: int list |} list
              Enabled: bool
              Exclusions:
-             {|  MatchVariable: string
-                 Selector: string
-                 SelectorMatchOperator: string |} list
+               {| MatchVariable: string
+                  Selector: string
+                  SelectorMatchOperator: string |} list
              FileUploadLimitInMb: int<Mb>
              FirewallMode: FirewallMode
              // MaxRequestBodySize: int // ??
@@ -210,7 +207,7 @@ type ApplicationGateway =
                 sku =
                     {|
                         name = this.Sku.Name.ArmValue
-                        capacity = this.Sku.Capacity.ArmValue
+                        capacity = this.Sku.Capacity
                         tier = this.Sku.Tier.ArmValue
                     |}
                 properties =
@@ -230,22 +227,22 @@ type ApplicationGateway =
                                    |}
                             |}
                         )
-                        backendAddressPools = this.BackendAddressPools |> List.map (fun backend ->
-                            {| name = backend.Value |}
-                        )
-                        probes = this.Probes |> List.map (fun probe ->
-                            {|
-                                name = probe.Name.Value
-                                properties =
-                                    {|
-                                        protocol = probe.Protocol.ArmValue
-                                        port = probe.Port
-                                        requestPath = probe.RequestPath
-                                        intervalInSeconds = probe.IntervalInSeconds
-                                        numberOfProbes = probe.NumberOfProbes
-                                    |}
-                            |}
-                        )
+                        // backendAddressPools = this.BackendAddressPools |> List.map (fun backend ->
+                        //     {| name = backend.Value |}
+                        // )
+                        // probes = this.Probes |> List.map (fun probe ->
+                        //     {|
+                        //         name = probe.Name.Value
+                        //         properties =
+                        //             {|
+                        //                 protocol = probe.Protocol.ArmValue
+                        //                 port = probe.Port
+                        //                 requestPath = probe.RequestPath
+                        //                 intervalInSeconds = probe.IntervalInSeconds
+                        //                 numberOfProbes = probe.NumberOfProbes
+                        //             |}
+                        //     |}
+                        // )
                     |}
             |} :> _
 
