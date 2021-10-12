@@ -11,6 +11,8 @@ let ApplicationGatewayBackendHttpSettingsCollection = ResourceType ("Microsoft.N
 let ApplicationGatewayBackendAddressPools = ResourceType ("Microsoft.Network/applicationGateways/backendAddressPools", "2020-11-01")
 let ApplicationGatewayProbes = ResourceType ("Microsoft.Network/applicationGateways/probes", "2020-11-01")
 let ApplicationGatewayRequestRoutingRules = ResourceType ("Microsoft.Network/applicationGateways/requestRoutingRules", "2020-11-01")
+let ApplicationGatewayTrustedRootCertificates = ResourceType ("Microsoft.Network/applicationGateways/trustedRootCertificates", "2020-11-01")
+let ApplicationGatewayAuthenticationCertificates = ResourceType ("Microsoft.Network/applicationGateways/authenticationCertificates", "2020-11-01")
 
 
 type ApplicationGateway =
@@ -46,14 +48,15 @@ type ApplicationGateway =
            CookieBasedAffinity: FeatureFlag
            PickHostNameFromBackendAddress: bool
            RequestTimeoutInSeconds: int<Seconds>
-           Probe: ResourceName list
+           Probe: ResourceName
+           ProbeEnabled : bool
            TrustedRootCertificates : ResourceName list |} list
       CustomErrorConfigurations:
           {| CustomErrorPageUrl: string
              StatusCode: string |} list
       EnableFips: bool
       EnableHttp2: bool
-      FirewallPolicy: ResourceName
+      FirewallPolicy: ResourceName option
       ForceFirewallPolicyAssociation: bool
       GatewayIPConfigurations:
           {| Name: ResourceName
@@ -247,6 +250,44 @@ type ApplicationGateway =
                                     |}
                             |}
                         )
+                        backendHttpSettingsCollection = this.BackendHttpSettingsCollection |> List.map (fun settings ->
+                            {|
+                              name = settings.Name.Value
+                              properties = 
+                                {|
+                                    affinityCookieName = settings.AffinityCookieName
+                                    authenticationCertificates = settings.AuthenticationCertificates |> List.map (fun cert ->
+                                      ResourceId.create(ApplicationGatewayAuthenticationCertificates, cert)
+                                    )
+                                    connectionDraining =
+                                        {|
+                                          drainTimeoutInSec = settings.ConnectionDraining.DrainTimeoutInSeconds
+                                          enabled = settings.ConnectionDraining.Enabled
+                                        |}
+                                    cookieBasedAffinity = settings.CookieBasedAffinity
+                                    hostName = settings.HostName
+                                    path = settings.Path
+                                    pickHostNameFromBackendAddress = settings.PickHostNameFromBackendAddress
+                                    port = settings.Port
+                                    probe = ResourceId.create(ApplicationGatewayProbes,settings.Probe)
+                                    probeEnabled = settings.ProbeEnabled
+                                    protocol = settings.Protocol.ArmValue
+                                    requestTimeout = settings.RequestTimeoutInSeconds
+                                    trustedRootCertificates = settings.TrustedRootCertificates |> List.map (fun cert ->
+                                      ResourceId.create(ApplicationGatewayTrustedRootCertificates, cert)
+                                    )
+                                |}
+                            |}
+                        )
+                        customErrorConfigurations = this.CustomErrorConfigurations |> List.map (fun conf ->
+                          {|
+                            customErrorPageUrl = conf.CustomErrorPageUrl
+                            statusCode = conf.StatusCode
+                          |}
+                        )
+                        enableFips = this.EnableFips
+                        enableHttp2 = this.EnableHttp2
+                        //firewallPolicy = ResourceId.create(AzureFirewall.az) // TODO: Figure out what this is
                     |}
             |} :> _
 
