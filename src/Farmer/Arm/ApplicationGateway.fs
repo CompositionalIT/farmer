@@ -206,7 +206,7 @@ type ApplicationGateway =
              MaxRequestBodySizeInKb: int<Kb> option
              RequestBodyCheck: bool option
              RuleSetType: RuleSetType
-             RuleSetVersion: string |}
+             RuleSetVersion: string |} option
       Zones: uint16 list
       Dependencies: Set<ResourceId>
       Tags: Map<string,string> }
@@ -460,30 +460,31 @@ type ApplicationGateway =
                                    |}
                             |}
                         )
-                        webApplicationFirewallConfiguration = 
+                        webApplicationFirewallConfiguration = this.WebApplicationFirewallConfiguration |> Option.map (fun cfg ->
                             {|
-                              disabledRuleGroups = this.WebApplicationFirewallConfiguration.DisabledRuleGroups |> List.map (fun ruleGroup ->
+                              disabledRuleGroups = cfg.DisabledRuleGroups |> List.map (fun ruleGroup ->
                                 {|
                                   ruleGroupName = ruleGroup.RuleGroupName
                                   rules = ruleGroup.Rules
                                 |}
                               )
-                              enabled = this.WebApplicationFirewallConfiguration.Enabled
-                              exclusions = this.WebApplicationFirewallConfiguration.Exclusions |> List.map (fun e ->
+                              enabled = cfg.Enabled
+                              exclusions = cfg.Exclusions |> List.map (fun e ->
                                 {|
                                   matchVariable = e.MatchVariable
                                   selector = e.Selector
                                   selectorMatchOperator = e.SelectorMatchOperator
                                 |}
                               )
-                              fileUploadLimitInMb = this.WebApplicationFirewallConfiguration.FileUploadLimitInMb
-                              firewallMode = this.WebApplicationFirewallConfiguration.FirewallMode |> Option.map FirewallMode.toString
-                              maxRequestBodySize = this.WebApplicationFirewallConfiguration.MaxRequestBodySize |> Option.defaultValue Unchecked.defaultof<_>
-                              maxRequestBodySizeInKb = this.WebApplicationFirewallConfiguration.MaxRequestBodySizeInKb |> Option.defaultValue Unchecked.defaultof<_>
-                              requestBodyCheck = this.WebApplicationFirewallConfiguration.RequestBodyCheck |> Option.defaultValue Unchecked.defaultof<_>
-                              ruleSetType = this.WebApplicationFirewallConfiguration.RuleSetType.ArmValue
-                              ruleSetVersion = this.WebApplicationFirewallConfiguration.RuleSetVersion
+                              fileUploadLimitInMb = cfg.FileUploadLimitInMb
+                              firewallMode = cfg.FirewallMode |> Option.map FirewallMode.toString
+                              maxRequestBodySize = cfg.MaxRequestBodySize |> Option.defaultValue Unchecked.defaultof<_>
+                              maxRequestBodySizeInKb = cfg.MaxRequestBodySizeInKb |> Option.defaultValue Unchecked.defaultof<_>
+                              requestBodyCheck = cfg.RequestBodyCheck |> Option.defaultValue Unchecked.defaultof<_>
+                              ruleSetType = cfg.RuleSetType.ArmValue
+                              ruleSetVersion = cfg.RuleSetVersion
                             |}
+                        ) |> Option.defaultValue Unchecked.defaultof<_>
                         zones = this.Zones |> List.map string
                     |}
             |} :> _
