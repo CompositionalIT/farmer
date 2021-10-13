@@ -373,7 +373,7 @@ type Certificate =
                 {| certificates.Create(
                         this.ResourceName,
                         this.Location, 
-                        [this.SiteId; this.ServicePlanId; hostNameBindings.resourceId(this.SiteId.Name,ResourceName this.DomainName)]) with
+                        [this.SiteId; hostNameBindings.resourceId(this.SiteId.Name,ResourceName this.DomainName)]) with
                     properties =
                         {| serverFarmId = this.ServicePlanId.Eval()
                            canonicalName = this.DomainName |}
