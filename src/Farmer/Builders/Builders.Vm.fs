@@ -128,15 +128,24 @@ type VmConfig =
                 ()
 
             // IP Address
+            let mustBeStandardAndStatic = this.Zone |> Option.isSome
             match this.PublicIpId with
             | Some resId ->
               { Name = resId.Name
                 Location = location
                 AllocationMethod =
-                    match this.IpAllocation with
-                    | Some x -> x
-                    | None -> PublicIpAddress.AllocationMethod.Dynamic
-                Sku = PublicIpAddress.Sku.Basic
+                    if mustBeStandardAndStatic then PublicIpAddress.AllocationMethod.Static
+                    else
+                        match this.IpAllocation with
+                        | Some x -> x
+                        | None -> PublicIpAddress.AllocationMethod.Dynamic
+                Sku =
+                    if mustBeStandardAndStatic then PublicIpAddress.Sku.Standard
+                    else PublicIpAddress.Sku.Basic
+                Zones =
+                    match this.Zone with
+                    | Some z -> [z]
+                    | None -> List.Empty
                 DomainNameLabel = this.DomainNamePrefix
                 Tags = this.Tags }
             | _ -> ()

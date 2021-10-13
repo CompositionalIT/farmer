@@ -137,13 +137,16 @@
       "location": "northeurope",
       "name": "isaacsVM-ip",
       "properties": {
-        "publicIPAllocationMethod": "Dynamic"
+        "publicIPAllocationMethod": "Static"
       },
       "sku": {
-        "name": "Basic"
+        "name": "Standard"
       },
       "tags": {},
-      "type": "Microsoft.Network/publicIPAddresses"
+      "type": "Microsoft.Network/publicIPAddresses",
+      "zones": [
+        "3"
+      ]
     },
     {
       "apiVersion": "2019-06-01",

@@ -9,13 +9,14 @@ open Microsoft.Azure.Management.Compute.Models
 open Microsoft.Rest
 open System
 open Microsoft.Azure.Management.WebSites.Models
+type PublicIPAddress = Microsoft.Azure.Management.Network.Models.PublicIPAddress
 
 /// Client instance needed to get the serializer settings.
 let client = new ComputeManagementClient(Uri "http://management.azure.com", TokenCredentials "NotNullOrWhiteSpace")
 
 let tests = testList "Virtual Machine" [
     test "Can create a basic virtual machine" {
-        let resource =
+        let deployment =
             let myVm = vm {
                 name "isaacsVM"
                 username "isaac"
@@ -27,18 +28,28 @@ let tests = testList "Virtual Machine" [
                 diagnostics_support
             }
             arm { add_resource myVm }
+
+        let vm =
+            deployment
             |> findAzureResources<VirtualMachine> client.SerializationSettings
             |> List.find(fun r -> r.StorageProfile |> isNull |> not)
 
-        resource.Validate()
+        let ip =
+            deployment
+            |> findAzureResources<PublicIPAddress> client.SerializationSettings
+            |> List.find(fun r -> r.Type = "Microsoft.Network/publicIPAddresses")
 
-        Expect.equal resource.StorageProfile.OsDisk.DiskSizeGB (Nullable 128) "Incorrect OS disk size"
-        Expect.equal resource.StorageProfile.ImageReference.Offer WindowsServer_2012Datacenter.Offer.ArmValue "Incorrect Offer"
-        Expect.equal resource.StorageProfile.DataDisks.Count 2 "Incorrect number of data disks"
-        Expect.equal resource.OsProfile.AdminUsername "isaac" "Incorrect username"
-        Expect.equal resource.NetworkProfile.NetworkInterfaces.[0].Id "[resourceId('Microsoft.Network/networkInterfaces', 'isaacsVM-nic')]" "Incorrect NIC reference"
-        Expect.isTrue (resource.DiagnosticsProfile.BootDiagnostics.Enabled.GetValueOrDefault false) "Boot Diagnostics should be enabled"
-        Expect.isNull resource.Zones "Zones should be null"
+        vm.Validate()
+
+        Expect.equal vm.StorageProfile.OsDisk.DiskSizeGB (Nullable 128) "Incorrect OS disk size"
+        Expect.equal vm.StorageProfile.ImageReference.Offer WindowsServer_2012Datacenter.Offer.ArmValue "Incorrect Offer"
+        Expect.equal vm.StorageProfile.DataDisks.Count 2 "Incorrect number of data disks"
+        Expect.equal vm.OsProfile.AdminUsername "isaac" "Incorrect username"
+        Expect.equal vm.NetworkProfile.NetworkInterfaces.[0].Id "[resourceId('Microsoft.Network/networkInterfaces', 'isaacsVM-nic')]" "Incorrect NIC reference"
+        Expect.isTrue (vm.DiagnosticsProfile.BootDiagnostics.Enabled.GetValueOrDefault false) "Boot Diagnostics should be enabled"
+        Expect.isNull vm.Zones "Zones should be null"
+        Expect.equal ip.PublicIPAllocationMethod "Dynamic" "Default IP Allocation Method should be Dynamic"
+        Expect.equal ip.Sku.Name "Basic" "Default IP Sku should be Basic"
     }
     test "Create a zone" {
         let deployment =
@@ -48,7 +59,10 @@ let tests = testList "Virtual Machine" [
             }
         let json = deployment.Template |> Writer.toJson
         let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
-        Expect.equal (jobj.SelectToken("resources[?(@.type=='Microsoft.Compute/virtualMachines')].zones").ToString(Newtonsoft.Json.Formatting.None)) "[\"3\"]" "Should be [\"3\"]"
+        Expect.equal (jobj.SelectToken("resources[?(@.type=='Microsoft.Compute/virtualMachines')].zones").ToString(Newtonsoft.Json.Formatting.None)) "[\"3\"]" "Virtual Machine Zones should be [\"3\"]"
+        Expect.equal (jobj.SelectToken("resources[?(@.type=='Microsoft.Network/publicIPAddresses')].zones").ToString(Newtonsoft.Json.Formatting.None)) "[\"3\"]" "Public IP Address Zones should be [\"3\"]"
+        Expect.equal (jobj.SelectToken("resources[?(@.type=='Microsoft.Network/publicIPAddresses')].properties.publicIPAllocationMethod").ToString()) "Static" "Public IP Addresses with Zones can only be Static"
+        Expect.equal (jobj.SelectToken("resources[?(@.type=='Microsoft.Network/publicIPAddresses')].sku.name").ToString()) "Standard" "Public IP Addresses with Zones can only be the Standard Sku"
     }
     test "Creates a parameter for the password" {
         let deployment =

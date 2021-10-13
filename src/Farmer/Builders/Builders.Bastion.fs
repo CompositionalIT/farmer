@@ -18,6 +18,7 @@ type BastionConfig =
                 // IP Address
                 { Name = publicIpName
                   Location = location
+                  Zones = []
                   AllocationMethod = AllocationMethod.Static
                   Sku = PublicIpAddress.Sku.Standard
                   DomainNameLabel = None

@@ -22,6 +22,7 @@ type PublicIpAddress =
     { Name : ResourceName
       Location : Location
       Sku : PublicIpAddress.Sku
+      Zones: int list
       AllocationMethod : PublicIpAddress.AllocationMethod
       DomainNameLabel : string option
       Tags: Map<string,string>  }
@@ -30,6 +31,9 @@ type PublicIpAddress =
         member this.JsonModel =
             {| publicIPAddresses.Create(this.Name, this.Location, tags = this.Tags) with
                 sku = {| name = this.Sku.ArmValue |}
+                zones =
+                    if this.Zones = List.Empty then Unchecked.defaultof<_>
+                    else this.Zones |> List.map string
                 properties =
                     {| publicIPAllocationMethod = this.AllocationMethod.ArmValue
                        dnsSettings =

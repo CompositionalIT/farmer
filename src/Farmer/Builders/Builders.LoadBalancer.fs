@@ -29,6 +29,7 @@ type FrontendIpConfig =
                 Name = resId.Name
                 AllocationMethod = AllocationMethod.Static
                 Location = location
+                Zones = []
                 Sku =
                     match lbSku with
                     | Farmer.LoadBalancer.Sku.Basic ->

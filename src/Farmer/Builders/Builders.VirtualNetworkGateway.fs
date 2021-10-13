@@ -47,6 +47,7 @@ type VNetGatewayConfig =
                     Name = ResourceName $"{this.Name.Value}-ip"
                     AllocationMethod = AllocationMethod.Dynamic
                     Location = location
+                    Zones = []
                     Sku = PublicIpAddress.Sku.Basic
                     DomainNameLabel = None
                     Tags = this.Tags }
