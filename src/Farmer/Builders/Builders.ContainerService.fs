@@ -4,6 +4,7 @@ module Farmer.Builders.ContainerService
 open System
 open Farmer
 open Farmer.Arm
+open Farmer.Arm.ContainerService.AddonProfiles
 open Farmer.Arm.RoleAssignment
 open Farmer.Identity
 open Farmer.Vm
@@ -48,6 +49,7 @@ type NetworkProfileConfig =
 
 type AksConfig =
     { Name : ResourceName
+      AddonProfiles : AddonProfileConfig option
       AgentPools : AgentPoolConfig list
       Dependencies : ResourceId Set
       DependencyExpressions : ArmExpression Set
@@ -67,6 +69,7 @@ type AksConfig =
         member this.BuildResources location = [
             { Name = this.Name
               Location = location
+              AddOnProfiles = this.AddonProfiles
               Dependencies = this.Dependencies
               DependencyExpressions = this.DependencyExpressions
               DnsPrefix =
@@ -229,6 +232,7 @@ type AksBuilder() =
         { Name = ResourceName.Empty
           Dependencies = Set.empty
           DependencyExpressions = Set.empty
+          AddonProfiles = None
           AgentPools = []
           DnsPrefix = ""
           EnableRBAC = false
@@ -284,6 +288,80 @@ type AksBuilder() =
             | None -> { AuthorizedIPRanges = range; EnablePrivateCluster = None }
             | Some profile -> { profile with AuthorizedIPRanges = profile.AuthorizedIPRanges @ range }
         { state with ApiServerAccessProfile = Some accessProfile }
+    /// Enable or disable the ACI Connector addon.
+    [<CustomOperation "addon_aci_connector">]
+    member _.AddonAciConnector(state:AksConfig, enabled:bool) =
+        let aciConn:AciConnectorLinux option = Some { Enabled = enabled }
+        { state
+            with AddonProfiles =
+                  match state.AddonProfiles with
+                  | None -> Some { AddonProfileConfig.Default with AciConnectorLinux = aciConn }
+                  | Some addons -> Some { addons with AciConnectorLinux = aciConn }
+        }
+    /// Enable or disable the HTTP application routing addon.
+    [<CustomOperation "addon_http_application_routing">]
+    member _.AddonHttpApplicationRouting(state:AksConfig, enabled:bool) =
+        let routing:HttpApplicationRouting option = Some { Enabled = enabled }
+        { state
+            with AddonProfiles =
+                  match state.AddonProfiles with
+                  | None -> Some { AddonProfileConfig.Default with HttpApplicationRouting = routing }
+                  | Some addons -> Some { addons with HttpApplicationRouting = routing }
+        }
+    [<CustomOperation "addon_ingress_app_gateway">]
+    member _.AddonIngressApplicationGateway(state:AksConfig, enabled:bool, appGatewayId:ResourceId, identity:UserAssignedIdentityConfig) =
+        let appGateway =
+            {
+                Enabled = enabled
+                ApplicationGatewayId = Some appGatewayId
+                Identity = Some identity.UserAssignedIdentity
+            } |> Some
+        { state
+            with AddonProfiles =
+                  match state.AddonProfiles with
+                  | None ->
+                      Some { AddonProfileConfig.Default
+                             with IngressApplicationGateway = appGateway }
+                  | Some addons -> Some { addons with IngressApplicationGateway = appGateway }
+        }
+    /// Enable or disable the Kubernetes dashboard.
+    [<CustomOperation "addon_kube_dashboard">]
+    member _.AddonKubeDashboard(state:AksConfig, enabled:bool) =
+        let dashboard = Some { Enabled = enabled }
+        { state
+            with AddonProfiles =
+                  match state.AddonProfiles with
+                  | None -> Some { AddonProfileConfig.Default with KubeDashboard = dashboard }
+                  | Some addons -> Some { addons with KubeDashboard = dashboard }
+        }
+    /// Disable the OMS agent addon to send data to a log analytics workspace.
+    [<CustomOperation "addon_oms_agent_enabled">]
+    member _.AddonOmsAgentEnabled(state:AksConfig, logAnalyticsWorkspaceId:ResourceId) =
+        let oms =
+            {
+                Enabled = true
+                LogAnalyticsWorkspaceId = Some logAnalyticsWorkspaceId
+            } |> Some
+        { state
+            with AddonProfiles =
+                  match state.AddonProfiles with
+                  | None -> Some { AddonProfileConfig.Default with OmsAgent = oms }
+                  | Some addons -> Some { addons with OmsAgent = oms }
+        }
+    /// Disable the OMS agent addon on an existing cluster.
+    [<CustomOperation "addon_oms_agent_disabled">]
+    member _.AddonOmsAgentEnabled(state:AksConfig) =
+        let oms =
+            {
+                Enabled = false
+                LogAnalyticsWorkspaceId = None
+            } |> Some
+        { state
+            with AddonProfiles =
+                  match state.AddonProfiles with
+                  | None -> Some { AddonProfileConfig.Default with OmsAgent = oms }
+                  | Some addons -> Some { addons with OmsAgent = oms }
+        }
     /// Sets the kubelet identity for managing access to an Azure Container Registry
     [<CustomOperation "kubelet_identity">]
     member _.KubeletIdentity (state:AksConfig, identity:ResourceId) =

@@ -7,6 +7,89 @@ open Farmer.Vm
 
 let managedClusters = ResourceType ("Microsoft.ContainerService/managedClusters", "2021-03-01")
 
+module AddonProfiles =
+    type AciConnectorLinux = {
+        Enabled : bool
+    }
+        with member internal this.ToArmJson = {| enabled = this.Enabled |}
+    type HttpApplicationRouting = {
+        Enabled : bool
+    }
+        with member internal this.ToArmJson = {| enabled = this.Enabled |}
+    type IngressApplicationGateway = {
+        ApplicationGatewayId : ResourceId option
+        Enabled : bool
+        Identity : UserAssignedIdentity option
+    }
+        with member internal this.ToArmJson =
+                {| enabled = this.Enabled
+                   config =
+                       match this.ApplicationGatewayId with
+                       | None -> Unchecked.defaultof<_>
+                       | Some resId -> {| applicationGatewayId = resId.Eval() |}
+                   identity =
+                       match this.Identity, this.ApplicationGatewayId with
+                       | Some userIdentity, Some resId ->
+                           {| clientId = userIdentity.ClientId.Eval()
+                              objectId = userIdentity.PrincipalId.ArmExpression.Eval()
+                              resourceId = resId.Eval()
+                             |}
+                       | _, _ -> Unchecked.defaultof<_>
+                |}
+    type KubeDashboard = {
+        Enabled : bool
+    }
+        with member internal this.ToArmJson = {| enabled = this.Enabled |}
+    type OmsAgent = {
+        Enabled : bool
+        LogAnalyticsWorkspaceId : ResourceId option
+    }
+        with member internal this.ToArmJson =
+                {| enabled = this.Enabled
+                   config =
+                       match this.LogAnalyticsWorkspaceId with
+                       | None -> Unchecked.defaultof<_>
+                       | Some resId -> {| logAnalyticsWorkspaceResourceID = resId.Eval() |}
+                |}
+    type AddonProfileConfig = {
+        AciConnectorLinux : AciConnectorLinux option
+        HttpApplicationRouting : HttpApplicationRouting option
+        IngressApplicationGateway : IngressApplicationGateway option
+        KubeDashboard : KubeDashboard option
+        OmsAgent : OmsAgent option
+    }
+        with
+            static member Default =
+                {
+                    AciConnectorLinux = None
+                    HttpApplicationRouting = None
+                    IngressApplicationGateway = None
+                    KubeDashboard = None
+                    OmsAgent = None
+                }
+
+    let toArmJson (config:AddonProfileConfig) =
+        {| aciConnectorLinux =
+            match config.AciConnectorLinux with
+            | None -> Unchecked.defaultof<_>
+            | Some aciConn -> aciConn.ToArmJson
+           httpApplicationRouting =
+            match config.HttpApplicationRouting with
+            | None -> Unchecked.defaultof<_>
+            | Some routing -> routing.ToArmJson
+           ingressApplicationGateway =
+            match config.IngressApplicationGateway with
+            | None -> Unchecked.defaultof<_>
+            | Some appGateway -> appGateway.ToArmJson
+           kubeDashboard =
+            match config.KubeDashboard with
+            | None -> Unchecked.defaultof<_>
+            | Some dashboard -> dashboard.ToArmJson
+           omsagent =
+            match config.OmsAgent with
+            | None -> Unchecked.defaultof<_>
+            | Some oms -> oms.ToArmJson
+        |}
 type AgentPoolMode = System | User
 
 /// Additional identity settings for the managed cluster, such as the identity for kubelet to pull container images.
@@ -30,6 +113,7 @@ type ManagedCluster =
       Dependencies : ResourceId Set
       /// Dependencies that are expressed in ARM functions instead of a resource Id
       DependencyExpressions : ArmExpression Set
+      AddOnProfiles : AddonProfiles.AddonProfileConfig option
       AgentPoolProfiles :
         {| Name : ResourceName
            Count : int
@@ -96,7 +180,9 @@ type ManagedCluster =
                        else
                            this.Identity.ToArmJson
                    properties =
-                       {| agentPoolProfiles =
+                       {| addonProfiles =
+                            this.AddOnProfiles |> Option.map AddonProfiles.toArmJson |> Option.defaultValue Unchecked.defaultof<_>
+                          agentPoolProfiles =
                            this.AgentPoolProfiles
                            |> List.mapi (fun idx agent ->
                                {| name = if agent.Name = ResourceName.Empty then $"nodepool{idx + 1}"
