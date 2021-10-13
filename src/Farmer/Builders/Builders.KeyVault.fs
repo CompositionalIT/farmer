@@ -110,6 +110,48 @@ type SecretConfig =
                     Tags = this.Tags }
             ]
 
+type JSONWEbKeyCurveName =
+    { P256 : string
+      P256K : string
+      P384 : string
+      P521 : string }
+
+type JsonWebKeyType =
+    { EC : string
+      ECHSM : string
+      RSA : string
+      RSAHSM : string
+      Oct : string
+      OctHSM : string }
+
+type DeletionRecoveryLevel =
+    { CustomizedRecoverable : string
+      CustomizedRecoverablePlusProtectedSubscription : string
+      CustomizedRecoverablePlusPurgeable : string
+      Purgeable : string
+      Recoverable : string
+      RecoverablePlusProtectedSubscription : string
+      RecoverablePlusPurgeable : string }
+
+type KeyAttributes =
+    { Created : DateTime
+      Enabled : bool
+      Exp : DateTime
+      NBF : DateTime
+      RecoverableDays : int
+      RecoveryLevel : DeletionRecoveryLevel
+      Updated : DateTime }
+
+type KeyConfig =
+    { VaultName: ResourceName
+      KeyName: string
+      Attributes: KeyAttributes option
+      CRV: JSONWEbKeyCurveName option
+      KeyOps: Key Set option
+      KeySize: int option
+      KTY: JsonWebKeyType option
+      PublicExponent: int option
+      Tags: Object option }
 
 type KeyVaultConfig =
     { Name : ResourceName

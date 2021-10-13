@@ -8,6 +8,7 @@ open System
 let secrets = ResourceType ("Microsoft.KeyVault/vaults/secrets", "2019-09-01")
 let accessPolicies = ResourceType ("Microsoft.KeyVault/vaults/accessPolicies", "2019-09-01")
 let vaults = ResourceType ("Microsoft.KeyVault/vaults", "2019-09-01")
+let keys = ResourceType ("Microsfot.keyVault/vaults/keys", "2019-09-01")
 
 module Vaults =
     type Secret =
