@@ -1,6 +1,7 @@
 [<AutoOpen>]
 module Farmer.Builders.ApplicationGateway
 
+open System
 open Farmer
 open Farmer.Arm.Network
 open Farmer.PublicIpAddress
@@ -16,7 +17,7 @@ open Farmer.ApplicationGateway
 //X *Frontend ports
 // Autoscale
 // *Probes
-// *Backend address pools
+//X *Backend address pools
 // *Backend HTTP settings
 // *Http listeners
 // *Request routing rules
@@ -24,12 +25,10 @@ open Farmer.ApplicationGateway
 // Diagnostics settings
 // Project
 
-
-
 type GatewayIpConfig = 
     {
         Name: ResourceName
-        Subnet: LinkedResource option
+        Subnet: LinkedResource option // TODO Can this not be an option??
     }
     static member BuildResource gatewayIp =
         {|
@@ -69,7 +68,7 @@ type FrontendIpConfig =
                 frontend.PublicIp
                 |> Option.map (function | Managed resId -> resId | Unmanaged resId -> resId)
         |}
-    static member BuildIp (frontend:FrontendIpConfig) (agwSku:ApplicationGateway.Sku) (location:Location) : PublicIpAddress option =
+    static member BuildIp (frontend:FrontendIpConfig) (location:Location) : PublicIpAddress option =
         match frontend.PublicIp with
         | Some (Managed resId) ->
             {
@@ -77,13 +76,6 @@ type FrontendIpConfig =
                 AllocationMethod = AllocationMethod.Static
                 Location = location
                 Sku = PublicIpAddress.Sku.Standard
-                    // TODO how to match this? App Gateway SKUs are different from load balancer
-                    // Azure Portal only allows Standard
-                    // match agwSku with
-                    // | Farmer.ApplicationGateway.Sku.Basic ->
-                    //     PublicIpAddress.Sku.Basic
-                    // | Farmer.ApplicationGateway.Sku.Standard ->
-                    //     PublicIpAddress.Sku.Standard
                 DomainNameLabel = None
                 Tags = Map.empty
             } |> Some
@@ -123,7 +115,7 @@ type FrontendPortConfig =
             Port = frontendPort.Port
         |}
 
-type FrontendPortBuilder = 
+type FrontendPortBuilder () = 
     member _.Yield _ =
         {
             Name = ResourceName.Empty
@@ -136,36 +128,115 @@ type FrontendPortBuilder =
     member _.Port(state:FrontendPortConfig, port) =
         { state with Port = port }
 
+let frontendPort = FrontendPortBuilder()
+
+type BackendAddressPoolConfig =
+    {
+        Name: ResourceName
+        ApplicationGateway: ResourceName
+        BackendAddresses:
+            {|  Fqdn : string
+                IpAddress : System.Net.IPAddress
+            |} list
+    }
+    interface IBuilder with
+        member this.ResourceId = ApplicationGatewayBackendAddressPools.resourceId (this.ApplicationGateway, this.Name)
+        member this.BuildResources _ =
+            if String.IsNullOrWhiteSpace (this.ApplicationGateway.Value) then
+                raiseFarmer "Application Gateway must be specified for backend address pool."
+            else
+                [
+                    { Name = this.Name
+                      ApplicationGateway = this.ApplicationGateway
+                      ApplicationGatewayBackendAddresses = this.BackendAddresses
+                    }
+                ]
+
+type BackendAddressPoolBuilder () =
+    member _.Yield _ = 
+        {
+            Name = ResourceName.Empty
+            ApplicationGateway = ResourceName.Empty
+            BackendAddresses = []
+        }
+    [<CustomOperation "name">]
+    member _.Name (state:BackendAddressPoolConfig, name) = 
+        { state with Name = name }
+    [<CustomOperation "application_gateway">]
+    member _.ApplicationGateway (state:BackendAddressPoolConfig, applicationGateway) = 
+        { state with ApplicationGateway = applicationGateway }
+    [<CustomOperation "add_backend_addresses">]
+    member _.BackendAddresses (state:BackendAddressPoolConfig, backendAddresses) = 
+        { state with BackendAddresses = state.BackendAddresses @ backendAddresses }
+
+let backendAddressPool = BackendAddressPoolBuilder()
+
 type AppGatewayConfig =
     { Name : ResourceName
       Sku: ApplicationGatewaySku
       GatewayIpConfigs: GatewayIpConfig list
       FrontendIpConfigs: FrontendIpConfig list
       FrontendPorts: FrontendPortConfig list
+      BackendAddressPools: BackendAddressPoolConfig list
+      Dependencies: Set<ResourceId>
+      Tags: Map<string,string>
      }
-    // // TODO - Still missing properties for the below
-    // interface IBuilder with
-    //     member this.ResourceId = ApplicationGateways.resourceId this.Name
-    //     member this.BuildResources location =
-    //         let frontendPublicIps =
-    //             this.FrontendIpConfigs
-    //             |> List.map (fun frontend -> FrontendIpConfig.BuildIp frontend this.Name.Value this.Sku.Name location)
-    //             |> List.choose id
-    //         {
-    //             Name = this.Name
-    //             Location = location
-    //             Sku = this.Sku
-    //             GatewayIPConfigurations = this.GatewayIpConfigs |> List.map GatewayIpConfigs.BuildResource
-    //             FrontendIpConfigs = this.FrontendIpConfigs |> List.map FrontendIpConfig.BuildResource
-    //             FrontendPorts = this.FrontendPorts |> List.Map FrontendPortConfig.BuildResource
-    //             Dependencies =
-    //                 frontendPublicIps
-    //                 |> List.map (fun pip -> publicIPAddresses.resourceId pip.Name)
-    //                 |> Set.ofList
-    //                 |> Set.union this.Dependencies
-    //             Tags = this.Tags
-    //         } :> IArmResource
-    //         :: (frontendPublicIps |> Seq.cast<IArmResource> |> List.ofSeq)
+    interface IBuilder with
+        member this.ResourceId = ApplicationGateways.resourceId this.Name
+        member this.BuildResources location =
+            let frontendPublicIps =
+                this.FrontendIpConfigs
+                |> List.map (fun frontend -> FrontendIpConfig.BuildIp frontend location)
+                |> List.choose id
+            let backendPools =
+                this.BackendAddressPools
+                |> List.map (fun pool -> { pool with ApplicationGateway = this.Name })
+                |> List.map (fun be -> (be :> IBuilder).BuildResources location)
+                |> List.concat
+            {
+                Name = this.Name
+                Location = location
+                Sku = this.Sku
+                GatewayIPConfigurations = this.GatewayIpConfigs |> List.map GatewayIpConfig.BuildResource
+                FrontendIpConfigs = this.FrontendIpConfigs |> List.map FrontendIpConfig.BuildResource
+                FrontendPorts = this.FrontendPorts |> List.map FrontendPortConfig.BuildResource
+                BackendAddressPools = this.BackendAddressPools |> List.map (fun p -> p.Name)
+
+                Dependencies =
+                    frontendPublicIps
+                    |> List.map (fun pip -> publicIPAddresses.resourceId pip.Name)
+                    |> Set.ofList
+                    |> Set.union this.Dependencies
+                Tags = this.Tags
+
+                // TODO Implement properties below
+                Identity = Unchecked.defaultof<_>
+                AuthenticationCertificates = Unchecked.defaultof<_>
+                AutoscaleConfiguration = Unchecked.defaultof<_>
+                // BackendAddressPools = Unchecked.defaultof<_>
+                BackendHttpSettingsCollection = Unchecked.defaultof<_>
+                CustomErrorConfigurations = Unchecked.defaultof<_>
+                EnableFips = Unchecked.defaultof<_>
+                EnableHttp2 = Unchecked.defaultof<_>
+                FirewallPolicy = Unchecked.defaultof<_>
+                ForceFirewallPolicyAssociation = Unchecked.defaultof<_>
+                HttpListeners = Unchecked.defaultof<_>
+                Probes = Unchecked.defaultof<_>
+                RedirectConfigurations = Unchecked.defaultof<_>
+                RequestRoutingRules = Unchecked.defaultof<_>
+                RewriteRuleSets = Unchecked.defaultof<_>
+                SslCertificates = Unchecked.defaultof<_>
+                SslPolicy = Unchecked.defaultof<_>
+                SslProfiles = Unchecked.defaultof<_>
+                TrustedClientCertificates = Unchecked.defaultof<_>
+                TrustedRootCertificates = Unchecked.defaultof<_>
+                UrlPathMaps = Unchecked.defaultof<_>
+                WebApplicationFirewallConfiguration = Unchecked.defaultof<_>
+                Zones = Unchecked.defaultof<_>
+                
+            } :> IArmResource
+            :: backendPools
+            @ (frontendPublicIps |> Seq.cast<IArmResource> |> List.ofSeq)
             
 
 type AppGatewayBuilder() =
@@ -179,6 +250,9 @@ type AppGatewayBuilder() =
         GatewayIpConfigs = []
         FrontendIpConfigs = []
         FrontendPorts = []
+        BackendAddressPools = []
+        Dependencies = Set.empty
+        Tags = Map.empty
     }
     [<CustomOperation "name">]
     member _.Name (state:AppGatewayConfig, name) =
@@ -197,6 +271,9 @@ type AppGatewayBuilder() =
         { state with FrontendIpConfigs = state.FrontendIpConfigs @ frontends }
     [<CustomOperation "add_frontend_ports">]
     member _.AddFrontendPorts (state:AppGatewayConfig, frontendPorts) =
-        { state with FrontendPorts = state.FrontendPorts @ frontendPorts}
+        { state with FrontendPorts = state.FrontendPorts @ frontendPorts }
+    [<CustomOperation "add_backend_address_pools">]
+    member _.AddBackendAddresspools (state:AppGatewayConfig, backendAddressPools) =
+        { state with BackendAddressPools = state.BackendAddressPools @ backendAddressPools }
 
 let appGateway = AppGatewayBuilder()
