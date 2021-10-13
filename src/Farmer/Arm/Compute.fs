@@ -51,6 +51,7 @@ type CustomScriptExtension =
 type VirtualMachine =
     { Name : ResourceName
       Location : Location
+      Zone: int option
       StorageAccount : ResourceName option
       Size : VMSize
       Credentials : {| Username : string; Password : SecureParameter |}
@@ -144,4 +145,8 @@ type VirtualMachine =
                         | None ->
                             box {| bootDiagnostics = {| enabled = false |} |}
                 |}
+                zones =
+                    match this.Zone with
+                    | Some zone -> [zone.ToString()]
+                    | None -> Unchecked.defaultof<_>
             |} :> _

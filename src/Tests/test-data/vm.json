@@ -76,7 +76,10 @@
         }
       },
       "tags": {},
-      "type": "Microsoft.Compute/virtualMachines"
+      "type": "Microsoft.Compute/virtualMachines",
+      "zones": [
+        "3"
+      ]
     },
     {
       "apiVersion": "2018-11-01",

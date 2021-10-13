@@ -38,6 +38,17 @@ let tests = testList "Virtual Machine" [
         Expect.equal resource.OsProfile.AdminUsername "isaac" "Incorrect username"
         Expect.equal resource.NetworkProfile.NetworkInterfaces.[0].Id "[resourceId('Microsoft.Network/networkInterfaces', 'isaacsVM-nic')]" "Incorrect NIC reference"
         Expect.isTrue (resource.DiagnosticsProfile.BootDiagnostics.Enabled.GetValueOrDefault false) "Boot Diagnostics should be enabled"
+        Expect.isNull resource.Zones "Zones should be null"
+    }
+    test "Create a zone" {
+        let deployment =
+            arm {
+                add_resources
+                    [ vm { name "isaacsVM"; username "foo"; zone 3 }]
+            }
+        let json = deployment.Template |> Writer.toJson
+        let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+        Expect.equal (jobj.SelectToken("resources[?(@.type=='Microsoft.Compute/virtualMachines')].zones").ToString(Newtonsoft.Json.Formatting.None)) "[\"3\"]" "Should be [\"3\"]"
     }
     test "Creates a parameter for the password" {
         let deployment =
