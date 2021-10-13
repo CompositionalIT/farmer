@@ -63,7 +63,7 @@ type ApplicationGateway =
              StatusCode: string |} list
       EnableFips: bool
       EnableHttp2: bool
-      FirewallPolicy: ResourceName option
+      FirewallPolicy: ResourceId option
       ForceFirewallPolicyAssociation: bool
       GatewayIPConfigurations:
           {| Name: ResourceName
@@ -76,7 +76,7 @@ type ApplicationGateway =
               CustomErrorConfigurations:  
                 {| CustomErrorPageUrl: string
                    SstatusCode: string |} list
-              FirewallPolicy : ResourceName
+              FirewallPolicy : ResourceId
               FrontendPort : ResourceName
               RequireServerNameIndication : bool
               HostNames : string list
@@ -147,23 +147,23 @@ type ApplicationGateway =
       SslCertificates:
         {| Name: ResourceName
            Data: string
-           KeyVaultSecretId: string
+           KeyVaultSecretId: ResourceId
            Password: string |} list
       SslPolicy:
-        {| CipherSuites: string list
-           DisabledSslProtocols: string list
-           MinProtocolVersion: string
-           PolicyName: string
+        {| CipherSuites: CipherSuite list
+           DisabledSslProtocols: SslProtocol list
+           MinProtocolVersion: SslProtocol
+           PolicyName: PolicyName
            PolicyType: PolicyType |} option
       SslProfiles:
           {| Name: ResourceName
              ClientAuthConfiguration: 
                {| VerifyClientCertIssuerDN: bool |}
              SslPolicy: 
-               {| CipherSuites: string list
-                  DisabledSslProtocols: string list
-                  MinProtocolVersion: string
-                  PolicyName: string
+               {| CipherSuites: CipherSuite list
+                  DisabledSslProtocols: SslProtocol list
+                  MinProtocolVersion: SslProtocol
+                  PolicyName: PolicyName
                   PolicyType: PolicyType |} option
              TrustedClientCertificates: ResourceName list
           |} list
@@ -173,7 +173,7 @@ type ApplicationGateway =
       TrustedRootCertificates:
           {| Name: ResourceName
              Data: string
-             KeyVaultSecretId: string |} list
+             KeyVaultSecretId: ResourceId |} list
       UrlPathMaps:
           {| Name: ResourceName
              DefaultBackendAddressPool: ResourceName
@@ -185,7 +185,7 @@ type ApplicationGateway =
                   Name: ResourceName
                   BackendAddressPool: ResourceName
                   BackendHttpSettings: ResourceName
-                  FirewallPolicy: ResourceName
+                  FirewallPolicy: ResourceId
                   Paths: string list
                   RedirectConfiguration: ResourceName
                   RewriteRuleSet: ResourceName
@@ -202,12 +202,12 @@ type ApplicationGateway =
                   SelectorMatchOperator: string |} list
              FileUploadLimitInMb: int<Mb> option
              FirewallMode: FirewallMode option
-             // MaxRequestBodySize: int // ??
+             MaxRequestBodySize: int option
              MaxRequestBodySizeInKb: int<Kb> option
              RequestBodyCheck: bool option
              RuleSetType: RuleSetType
              RuleSetVersion: string |}
-      Zones: string list
+      Zones: uint16 list
       Dependencies: Set<ResourceId>
       Tags: Map<string,string> }
     interface IArmResource with
@@ -271,7 +271,7 @@ type ApplicationGateway =
                         )
                         enableFips = this.EnableFips
                         enableHttp2 = this.EnableHttp2
-                        firewallPolicy = this.FirewallPolicy |> Option.map (Arm.AzureFirewall.azureFirewallPolicies.resourceId >> ResourceId.Eval) |> Option.toObj
+                        firewallPolicy = this.FirewallPolicy |> Option.map ResourceId.Eval |> Option.toObj
                         frontendPorts = this.FrontendPorts |> List.map (fun frontend ->
                             {|
                                 name = frontend.Name.Value
@@ -392,13 +392,13 @@ type ApplicationGateway =
                         )
                         sslPolicy = this.SslPolicy |> Option.map (fun sslPolicy ->
                             {|
-                              cipherSuites = sslPolicy.CipherSuites
-                              disabledSslProtocols = sslPolicy.DisabledSslProtocols
-                              minProtocolVersion = sslPolicy.MinProtocolVersion
-                              policyName = sslPolicy.PolicyName
+                              cipherSuites = sslPolicy.CipherSuites |> List.map CipherSuite.toString
+                              disabledSslProtocols = sslPolicy.DisabledSslProtocols |> List.map SslProtocol.toString
+                              minProtocolVersion = sslPolicy.MinProtocolVersion.ArmValue
+                              policyName = sslPolicy.PolicyName.ArmValue
                               policyType = sslPolicy.PolicyType.ArmValue
                             |}
-                        )
+                        ) |> Option.defaultValue Unchecked.defaultof<_>
                         sslProfiles = this.SslProfiles |> List.map (fun sslProfile ->
                             {| 
                               name = sslProfile.Name.Value
@@ -406,21 +406,85 @@ type ApplicationGateway =
                                 {|
                                   clientAuthConfiguration =
                                     {| verifyClientCertIssuerDN = sslProfile.ClientAuthConfiguration.VerifyClientCertIssuerDN |}
-                                  sslPolicy = sslProfile.SslPolicy |> Option.map (fun policy ->
+                                  sslPolicy = sslProfile.SslPolicy |> Option.map (fun sslPolicy ->
                                       {|
-                                        cipherSuites = policy.CipherSuites
-                                        disabledSslProtocols = policy.DisabledSslProtocols
-                                        minProtocolVersion = policy.MinProtocolVersion
-                                        policyName = policy.PolicyName
-                                        policyType = policy.PolicyType
+                                          cipherSuites = sslPolicy.CipherSuites |> List.map CipherSuite.toString
+                                          disabledSslProtocols = sslPolicy.DisabledSslProtocols |> List.map SslProtocol.toString
+                                          minProtocolVersion = sslPolicy.MinProtocolVersion.ArmValue
+                                          policyName = sslPolicy.PolicyName.ArmValue
+                                          policyType = sslPolicy.PolicyType.ArmValue
                                       |}
-                                  )
+                                  ) |> Option.defaultValue Unchecked.defaultof<_>
                                   trustedClientCertificates =
                                     sslProfile.TrustedClientCertificates 
                                     |> List.map (ApplicationGatewayTrustedRootCertificates.resourceId >> ResourceId.Eval)
                                 |}
                             |}
                         )
+                        trustedClientCertificates = this.TrustedClientCertificates |> List.map (fun cert ->
+                          {| name = cert.Name.Value
+                             properties = 
+                                {| data = cert.Data |}
+                          |}
+                        )
+                        trustedRootCertificates = this.TrustedRootCertificates |> List.map (fun cert ->
+                          {| name = cert.Name.Value
+                             properties = 
+                                {| data = cert.Data
+                                   keyVaultSecretId = cert.KeyVaultSecretId |> ResourceId.Eval |}
+                          |}
+                        )
+                        urlPathMaps = this.UrlPathMaps |> List.map (fun pathMap ->
+                            {|
+                                name = pathMap.Name.Value
+                                properties =
+                                    {|
+                                       defaultBackendAddressPool = ApplicationGatewayBackendAddressPools.resourceId pathMap.DefaultBackendAddressPool |> ResourceId.Eval
+                                       defaultBackendHttpSettings = ApplicationGatewayBackendHttpSettingsCollection.resourceId pathMap.DefaultBackendHttpSettings |> ResourceId.Eval
+                                       defaultRedirectConfiguration = ApplicationGatewayRedirectConfigurations.resourceId pathMap.DefaultRedirectConfiguration |> ResourceId.Eval
+                                       defaultRewriteRuleSet = ApplicationGatewayRewriteRuleSets.resourceId pathMap.DefaultRewriteRuleSet |> ResourceId.Eval
+                                       pathRules = pathMap.PathRules |> List.map (fun pathRule ->
+                                          {|
+                                              name = pathRule.Name.Value
+                                              properties =
+                                              {|
+                                                backendAddressPool = ApplicationGatewayBackendAddressPools.resourceId pathRule.BackendAddressPool |> ResourceId.Eval
+                                                backendHttpSettings = ApplicationGatewayBackendHttpSettingsCollection.resourceId pathRule.BackendHttpSettings |> ResourceId.Eval
+                                                firewallPolicy = pathRule.FirewallPolicy |> ResourceId.Eval
+                                                redirectConfiguration = ApplicationGatewayRedirectConfigurations.resourceId pathRule.RedirectConfiguration |> ResourceId.Eval
+                                                rewriteRuleSet = ApplicationGatewayRewriteRuleSets.resourceId pathRule.RewriteRuleSet |> ResourceId.Eval
+                                                paths = pathRule.Paths
+                                              |}
+                                          |}
+                                       )
+                                   |}
+                            |}
+                        )
+                        webApplicationFirewallConfiguration = 
+                            {|
+                              disabledRuleGroups = this.WebApplicationFirewallConfiguration.DisabledRuleGroups |> List.map (fun ruleGroup ->
+                                {|
+                                  ruleGroupName = ruleGroup.RuleGroupName
+                                  rules = ruleGroup.Rules
+                                |}
+                              )
+                              enabled = this.WebApplicationFirewallConfiguration.Enabled
+                              exclusions = this.WebApplicationFirewallConfiguration.Exclusions |> List.map (fun e ->
+                                {|
+                                  matchVariable = e.MatchVariable
+                                  selector = e.Selector
+                                  selectorMatchOperator = e.SelectorMatchOperator
+                                |}
+                              )
+                              fileUploadLimitInMb = this.WebApplicationFirewallConfiguration.FileUploadLimitInMb
+                              firewallMode = this.WebApplicationFirewallConfiguration.FirewallMode |> Option.map FirewallMode.toString
+                              maxRequestBodySize = this.WebApplicationFirewallConfiguration.MaxRequestBodySize |> Option.defaultValue Unchecked.defaultof<_>
+                              maxRequestBodySizeInKb = this.WebApplicationFirewallConfiguration.MaxRequestBodySizeInKb |> Option.defaultValue Unchecked.defaultof<_>
+                              requestBodyCheck = this.WebApplicationFirewallConfiguration.RequestBodyCheck |> Option.defaultValue Unchecked.defaultof<_>
+                              ruleSetType = this.WebApplicationFirewallConfiguration.RuleSetType.ArmValue
+                              ruleSetVersion = this.WebApplicationFirewallConfiguration.RuleSetVersion
+                            |}
+                        zones = this.Zones |> List.map string
                     |}
             |} :> _
 

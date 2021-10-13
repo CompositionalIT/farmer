@@ -1097,10 +1097,10 @@ module ApplicationGateway =
     type FirewallMode =
         | Detection
         | Prevention
-        member this.ArmValue =
-            match this with
+        static member toString = function
             | Detection -> "Detection"
             | Prevention -> "Prevention"
+        member this.ArmValue = FirewallMode.toString this
 
     [<RequireQualifiedAccess>]
     type RuleSetType =
@@ -1108,6 +1108,92 @@ module ApplicationGateway =
         member this.ArmValue =
             match this with
             | OWASP -> "OWASP"
+
+    [<RequireQualifiedAccess>]
+    type CipherSuite =
+        | TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA
+        | TLS_DHE_DSS_WITH_AES_128_CBC_SHA
+        | TLS_DHE_DSS_WITH_AES_128_CBC_SHA256
+        | TLS_DHE_DSS_WITH_AES_256_CBC_SHA
+        | TLS_DHE_DSS_WITH_AES_256_CBC_SHA256
+        | TLS_DHE_RSA_WITH_AES_128_CBC_SHA
+        | TLS_DHE_RSA_WITH_AES_128_GCM_SHA256
+        | TLS_DHE_RSA_WITH_AES_256_CBC_SHA
+        | TLS_DHE_RSA_WITH_AES_256_GCM_SHA384
+        | TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
+        | TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
+        | TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+        | TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA
+        | TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384
+        | TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+        | TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+        | TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+        | TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+        | TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+        | TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
+        | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        | TLS_RSA_WITH_3DES_EDE_CBC_SHA
+        | TLS_RSA_WITH_AES_128_CBC_SHA
+        | TLS_RSA_WITH_AES_128_CBC_SHA256
+        | TLS_RSA_WITH_AES_128_GCM_SHA256
+        | TLS_RSA_WITH_AES_256_CBC_SHA
+        | TLS_RSA_WITH_AES_256_CBC_SHA256
+        | TLS_RSA_WITH_AES_256_GCM_SHA384
+        static member toString = function
+            | TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA -> "TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA"
+            | TLS_DHE_DSS_WITH_AES_128_CBC_SHA -> "TLS_DHE_DSS_WITH_AES_128_CBC_SHA"
+            | TLS_DHE_DSS_WITH_AES_128_CBC_SHA256 -> "TLS_DHE_DSS_WITH_AES_128_CBC_SHA256"
+            | TLS_DHE_DSS_WITH_AES_256_CBC_SHA -> "TLS_DHE_DSS_WITH_AES_256_CBC_SHA"
+            | TLS_DHE_DSS_WITH_AES_256_CBC_SHA256 -> "TLS_DHE_DSS_WITH_AES_256_CBC_SHA256"
+            | TLS_DHE_RSA_WITH_AES_128_CBC_SHA -> "TLS_DHE_RSA_WITH_AES_128_CBC_SHA"
+            | TLS_DHE_RSA_WITH_AES_128_GCM_SHA256 -> "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256"
+            | TLS_DHE_RSA_WITH_AES_256_CBC_SHA -> "TLS_DHE_RSA_WITH_AES_256_CBC_SHA"
+            | TLS_DHE_RSA_WITH_AES_256_GCM_SHA384 -> "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384"
+            | TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA -> "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA"
+            | TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 -> "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
+            | TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 -> "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256"
+            | TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA -> "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA"
+            | TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384 -> "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384"
+            | TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 -> "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384"
+            | TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA -> "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA"
+            | TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256 -> "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256"
+            | TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 -> "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+            | TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA -> "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA"
+            | TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384 -> "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384"
+            | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 -> "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
+            | TLS_RSA_WITH_3DES_EDE_CBC_SHA -> "TLS_RSA_WITH_3DES_EDE_CBC_SHA"
+            | TLS_RSA_WITH_AES_128_CBC_SHA -> "TLS_RSA_WITH_AES_128_CBC_SHA"
+            | TLS_RSA_WITH_AES_128_CBC_SHA256 -> "TLS_RSA_WITH_AES_128_CBC_SHA256"
+            | TLS_RSA_WITH_AES_128_GCM_SHA256 -> "TLS_RSA_WITH_AES_128_GCM_SHA256"
+            | TLS_RSA_WITH_AES_256_CBC_SHA -> "TLS_RSA_WITH_AES_256_CBC_SHA"
+            | TLS_RSA_WITH_AES_256_CBC_SHA256 -> "TLS_RSA_WITH_AES_256_CBC_SHA256"
+            | TLS_RSA_WITH_AES_256_GCM_SHA384 -> "TLS_RSA_WITH_AES_256_GCM_SHA384"
+        member this.ArmValue = CipherSuite.toString this
+        
+
+    [<RequireQualifiedAccess>]
+    type SslProtocol =
+        | TLSv1_0
+        | TLSv1_1
+        | TLSv1_2
+        static member toString = function
+            | TLSv1_0 -> "TLSv1_0"
+            | TLSv1_1 -> "TLSv1_1"
+            | TLSv1_2 -> "TLSv1_2"
+        member this.ArmValue = SslProtocol.toString this
+
+    [<RequireQualifiedAccess>]
+    type PolicyName =
+        | Custom of string
+        | AppGwSslPolicy20150501
+        | AppGwSslPolicy20170401
+        | AppGwSslPolicy20170401S
+        static member toString this = function
+            | Custom name -> name
+            | AppGwSslPolicy20150501 -> "AppGwSslPolicy20150501"
+            | AppGwSslPolicy20170401 -> "AppGwSslPolicy20170401"
+            | AppGwSslPolicy20170401S -> "AppGwSslPolicy20170401S"
+        member this.ArmValue = PolicyName.toString this
 
     [<RequireQualifiedAccess>]
     type PolicyType =
