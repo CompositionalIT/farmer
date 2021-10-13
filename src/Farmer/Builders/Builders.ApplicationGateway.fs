@@ -4,18 +4,16 @@ module Farmer.Builders.ApplicationGateway
 open Farmer
 open Farmer.Arm.Network
 open Farmer.PublicIpAddress
-// open Farmer.Arm.ApplicationGateway
-// open Farmer.Arm.Network
-// open Farmer.PublicIpAddress
+open Farmer.Arm.ApplicationGateway
+open Farmer.ApplicationGateway
 
-// Location?
-
+// Desired Properties: 
 // Zones
-// *Skus
+//X *Skus
 //X *IP config
 //X *Frontend IP config
 // *SSL certificates
-// *Frontend ports
+//X *Frontend ports
 // Autoscale
 // *Probes
 // *Backend address pools
@@ -71,19 +69,21 @@ type FrontendIpConfig =
                 frontend.PublicIp
                 |> Option.map (function | Managed resId -> resId | Unmanaged resId -> resId)
         |}
-    static member BuildIp (frontend:FrontendIpConfig) (lbName:string) (lbSku:LoadBalancer.Sku) (location:Location) : PublicIpAddress option =
+    static member BuildIp (frontend:FrontendIpConfig) (agwSku:ApplicationGateway.Sku) (location:Location) : PublicIpAddress option =
         match frontend.PublicIp with
         | Some (Managed resId) ->
             {
                 Name = resId.Name
                 AllocationMethod = AllocationMethod.Static
                 Location = location
-                Sku =
-                    match lbSku with
-                    | Farmer.LoadBalancer.Sku.Basic ->
-                        PublicIpAddress.Sku.Basic
-                    | Farmer.LoadBalancer.Sku.Standard ->
-                        PublicIpAddress.Sku.Standard
+                Sku = PublicIpAddress.Sku.Standard
+                    // TODO how to match this? App Gateway SKUs are different from load balancer
+                    // Azure Portal only allows Standard
+                    // match agwSku with
+                    // | Farmer.ApplicationGateway.Sku.Basic ->
+                    //     PublicIpAddress.Sku.Basic
+                    // | Farmer.ApplicationGateway.Sku.Standard ->
+                    //     PublicIpAddress.Sku.Standard
                 DomainNameLabel = None
                 Tags = Map.empty
             } |> Some
@@ -112,27 +112,52 @@ type FrontendIpBuilder () =
 
 let frontend = FrontendIpBuilder()
 
+type FrontendPortConfig = 
+    {
+        Name: ResourceName
+        Port: uint16
+    }
+    static member BuildResource frontendPort =
+        {|
+            Name = frontendPort.Name
+            Port = frontendPort.Port
+        |}
+
+type FrontendPortBuilder = 
+    member _.Yield _ =
+        {
+            Name = ResourceName.Empty
+            Port = uint16 80
+        }
+    [<CustomOperation "name">]
+    member _.Name(state:FrontendPortConfig, name) =
+        { state with Name = ResourceName name }
+    [<CustomOperation "port">]
+    member _.Port(state:FrontendPortConfig, port) =
+        { state with Port = port }
+
 type AppGatewayConfig =
     { Name : ResourceName
-    //   Sku: AppGatewaySku
-      IpConfigs: GatewayIpConfig list
+      Sku: ApplicationGatewaySku
+      GatewayIpConfigs: GatewayIpConfig list
       FrontendIpConfigs: FrontendIpConfig list
+      FrontendPorts: FrontendPortConfig list
      }
+    // // TODO - Still missing properties for the below
     // interface IBuilder with
-    //     member this.ResourceId = appGateways.resourceId this.Name
+    //     member this.ResourceId = ApplicationGateways.resourceId this.Name
     //     member this.BuildResources location =
-            
     //         let frontendPublicIps =
     //             this.FrontendIpConfigs
     //             |> List.map (fun frontend -> FrontendIpConfig.BuildIp frontend this.Name.Value this.Sku.Name location)
     //             |> List.choose id
-            
     //         {
     //             Name = this.Name
     //             Location = location
-    //             // Sku = this.Sku
-    //             IpConfigs = this.IpConfigs |> List.map IpConfigs.BuildResource
+    //             Sku = this.Sku
+    //             GatewayIPConfigurations = this.GatewayIpConfigs |> List.map GatewayIpConfigs.BuildResource
     //             FrontendIpConfigs = this.FrontendIpConfigs |> List.map FrontendIpConfig.BuildResource
+    //             FrontendPorts = this.FrontendPorts |> List.Map FrontendPortConfig.BuildResource
     //             Dependencies =
     //                 frontendPublicIps
     //                 |> List.map (fun pip -> publicIPAddresses.resourceId pip.Name)
@@ -140,31 +165,38 @@ type AppGatewayConfig =
     //                 |> Set.union this.Dependencies
     //             Tags = this.Tags
     //         } :> IArmResource
-    //         @ (frontendPublicIps |> Seq.cast<IArmResource> |> List.ofSeq)
+    //         :: (frontendPublicIps |> Seq.cast<IArmResource> |> List.ofSeq)
             
 
 type AppGatewayBuilder() =
     member _.Yield _ : AppGatewayConfig = {
         Name = ResourceName.Empty
-        // Sku = {
-        //     Name = AppGateway.Sku.Basic
-        //     Tier = AppGateway.Tier.Regional // TODO where is this defined? (in ApplicationGateway.fs)
-        // }
-        IpConfigs = []
+        Sku = {
+            Name = Sku.Standard_v2
+            Capacity = 1 // TODO - what value?
+            Tier = Tier.Standard_v2
+        }
+        GatewayIpConfigs = []
         FrontendIpConfigs = []
+        FrontendPorts = []
     }
     [<CustomOperation "name">]
     member _.Name (state:AppGatewayConfig, name) =
         { state with Name = ResourceName name }
-    // [<CustomOperation "sku">]
-    // member _.Sku (state:AppGatewayConfig, skuName) = 
-    //     { state with Sku = { state.Sku with Name = skuName}}
-    // TODO sku tier
+    [<CustomOperation "sku">]
+    member _.Sku (state:AppGatewayConfig, skuName) = 
+        { state with Sku = { state.Sku with Name = skuName}}
+    [<CustomOperation "tier">]
+    member _.Tier(state:AppGatewayConfig, skuTier) = 
+        { state with Sku = { state.Sku with Tier = skuTier } }
     [<CustomOperation "add_ip_configs">]
     member _.AddIpConfigs (state:AppGatewayConfig, ipConfigs) =
-        { state with IpConfigs = state.IpConfigs @ ipConfigs }
+        { state with GatewayIpConfigs = state.GatewayIpConfigs @ ipConfigs }
     [<CustomOperation "add_frontends">]
     member _.AddFrontends (state:AppGatewayConfig, frontends) =
         { state with FrontendIpConfigs = state.FrontendIpConfigs @ frontends }
+    [<CustomOperation "add_frontend_ports">]
+    member _.AddFrontendPorts (state:AppGatewayConfig, frontendPorts) =
+        { state with FrontendPorts = state.FrontendPorts @ frontendPorts}
 
 let appGateway = AppGatewayBuilder()
