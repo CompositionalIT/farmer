@@ -56,7 +56,8 @@ type ApplicationGateway =
            RequestTimeoutInSeconds: int<Seconds>
            Probe: ResourceName
            ProbeEnabled : bool
-           TrustedRootCertificates : ResourceName list |} list
+           TrustedRootCertificates : ResourceName list
+       |} list
       CustomErrorConfigurations:
           {| CustomErrorPageUrl: string
              StatusCode: string |} list
@@ -66,7 +67,7 @@ type ApplicationGateway =
       ForceFirewallPolicyAssociation: bool
       GatewayIPConfigurations:
           {| Name: ResourceName
-             Subnet: ResourceName |} list
+             Subnet: ResourceId option |} list
       HttpListeners :
           {|  /// Name of the listener
               Name : ResourceName
@@ -153,7 +154,7 @@ type ApplicationGateway =
            DisabledSslProtocols: string list
            MinProtocolVersion: string
            PolicyName: string
-           PolicyType: PolicyType |}
+           PolicyType: PolicyType |} option
       SslProfiles:
           {| Name: ResourceName
              ClientAuthConfiguration: 
@@ -163,7 +164,7 @@ type ApplicationGateway =
                   DisabledSslProtocols: string list
                   MinProtocolVersion: string
                   PolicyName: string
-                  PolicyType: PolicyType |}
+                  PolicyType: PolicyType |} option
              TrustedClientCertificates: ResourceName list
           |} list
       TrustedClientCertificates:
@@ -282,7 +283,7 @@ type ApplicationGateway =
                             {|
                                 name = gwip.Name.Value
                                 properties = 
-                                    {| subnet = Arm.Network.subnets.resourceId gwip.Subnet |> ResourceId.Eval |}
+                                    {| subnet = gwip.Subnet |> Option.map ResourceId.Eval |> Option.toObj |}
                             |}
                         )
                         frontendIPConfigurations = this.FrontendIpConfigs |> List.map (fun frontend ->
@@ -386,6 +387,37 @@ type ApplicationGateway =
                                             ruleSequence = rule.RuleSequence
                                         |}
                                     )
+                                |}
+                            |}
+                        )
+                        sslPolicy = this.SslPolicy |> Option.map (fun sslPolicy ->
+                            {|
+                              cipherSuites = sslPolicy.CipherSuites
+                              disabledSslProtocols = sslPolicy.DisabledSslProtocols
+                              minProtocolVersion = sslPolicy.MinProtocolVersion
+                              policyName = sslPolicy.PolicyName
+                              policyType = sslPolicy.PolicyType.ArmValue
+                            |}
+                        )
+                        sslProfiles = this.SslProfiles |> List.map (fun sslProfile ->
+                            {| 
+                              name = sslProfile.Name.Value
+                              properties =
+                                {|
+                                  clientAuthConfiguration =
+                                    {| verifyClientCertIssuerDN = sslProfile.ClientAuthConfiguration.VerifyClientCertIssuerDN |}
+                                  sslPolicy = sslProfile.SslPolicy |> Option.map (fun policy ->
+                                      {|
+                                        cipherSuites = policy.CipherSuites
+                                        disabledSslProtocols = policy.DisabledSslProtocols
+                                        minProtocolVersion = policy.MinProtocolVersion
+                                        policyName = policy.PolicyName
+                                        policyType = policy.PolicyType
+                                      |}
+                                  )
+                                  trustedClientCertificates =
+                                    sslProfile.TrustedClientCertificates 
+                                    |> List.map (ApplicationGatewayTrustedRootCertificates.resourceId >> ResourceId.Eval)
                                 |}
                             |}
                         )
