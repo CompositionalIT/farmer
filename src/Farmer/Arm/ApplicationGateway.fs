@@ -2,29 +2,35 @@ module Farmer.Arm.ApplicationGateway
 
 open Farmer
 open Farmer.ApplicationGateway
+open Farmer.Identity
 
 let ApplicationGateways = ResourceType ("Microsoft.Network/applicationGateways", "2020-11-01")
+let ApplicationGatewayAuthenticationCertificates = ResourceType ("Microsoft.Network/applicationGateways/authenticationCertificates", "2020-11-01")
+let ApplicationGatewayBackendHttpSettingsCollection = ResourceType ("Microsoft.Network/applicationGateways/backendHttpSettingsCollection", "2020-11-01")
+let ApplicationGatewayBackendAddressPools = ResourceType ("Microsoft.Network/applicationGateways/backendAddressPools", "2020-11-01")
 let ApplicationGatewayFrontendIPConfigurations = ResourceType ("Microsoft.Network/applicationGateways/frontendIPConfigurations", "2020-11-01")
 let ApplicationGatewayFrontendPorts = ResourceType ("Microsoft.Network/applicationGateways/frontendPorts", "2020-11-01")
 let ApplicationGatewayHttpListeners = ResourceType ("Microsoft.Network/applicationGateways/httpListeners", "2020-11-01")
-let ApplicationGatewayBackendHttpSettingsCollection = ResourceType ("Microsoft.Network/applicationGateways/backendHttpSettingsCollection", "2020-11-01")
-let ApplicationGatewayBackendAddressPools = ResourceType ("Microsoft.Network/applicationGateways/backendAddressPools", "2020-11-01")
+let ApplicationGatewayPathRules = ResourceType ("Microsoft.Network/applicationGateways/pathRule", "2020-11-01")
 let ApplicationGatewayProbes = ResourceType ("Microsoft.Network/applicationGateways/probes", "2020-11-01")
+let ApplicationGatewayRedirectConfigurations = ResourceType ("Microsoft.Network/applicationGateways/redirectConfigurations", "2020-11-01")
 let ApplicationGatewayRequestRoutingRules = ResourceType ("Microsoft.Network/applicationGateways/requestRoutingRules", "2020-11-01")
+let ApplicationGatewayRewriteRuleSets = ResourceType ("Microsoft.Network/applicationGateways/rewriteRuleSets", "2020-11-01")
 let ApplicationGatewayTrustedRootCertificates = ResourceType ("Microsoft.Network/applicationGateways/trustedRootCertificates", "2020-11-01")
-let ApplicationGatewayAuthenticationCertificates = ResourceType ("Microsoft.Network/applicationGateways/authenticationCertificates", "2020-11-01")
+let ApplicationGatewayUrlPathMaps = ResourceType ("Microsoft.Network/applicationGateways/urlPathMap", "2020-11-01")
 
 
 type ApplicationGateway =
     { Name : ResourceName
       Location : Location
       Sku : ApplicationGatewaySku
+      Identity: ManagedIdentity
       AuthenticationCertificates:
         {| Name: ResourceName
            Data: string |} list
       AutoscaleConfiguration:
-        {| MaxCapacity: int
-           MinCapacity: int |}
+        {| MaxCapacity: int option
+           MinCapacity: int |} option
       FrontendPorts : 
         {| Name : ResourceName
            Port : uint16 |} list
@@ -134,7 +140,9 @@ type ApplicationGateway =
                      Pattern: string
                      Variable: string |} list
                  Name: string
-                 RuleSequence: int |} list |}
+                 RuleSequence: int 
+             |} list 
+         |} list
       SslCertificates:
         {| Name: ResourceName
            Data: string
@@ -205,19 +213,83 @@ type ApplicationGateway =
         member this.ResourceId = ApplicationGateways.resourceId this.Name
         member this.JsonModel =
             {| ApplicationGateways.Create (this.Name, this.Location, this.Dependencies, this.Tags) with
-                sku =
-                    {|
-                        name = this.Sku.Name.ArmValue
-                        capacity = this.Sku.Capacity
-                        tier = this.Sku.Tier.ArmValue
-                    |}
+                identity =
+                    if this.Identity = ManagedIdentity.Empty then Unchecked.defaultof<_>
+                    else this.Identity.ToArmJson
                 properties =
                     {|
-                        frontendPorts = this.FrontendIpConfigs |> List.map (fun frontend ->
+                        sku =
+                            {|
+                                name = this.Sku.Name.ArmValue
+                                capacity = this.Sku.Capacity
+                                tier = this.Sku.Tier.ArmValue
+                            |}
+                        autoscaleConfiguration = this.AutoscaleConfiguration |> Option.map (fun a -> 
+                            {|
+                                maxCapacity = a.MaxCapacity
+                                minCapacity = a.MinCapacity
+                            |}
+                        ) |> Option.defaultValue Unchecked.defaultof<_>
+                        backendAddressPools = this.BackendAddressPools |> List.map (fun backend ->
+                            {| name = backend.Value |}
+                        )
+                        backendHttpSettingsCollection = this.BackendHttpSettingsCollection |> List.map (fun settings ->
+                            {|
+                              name = settings.Name.Value
+                              properties = 
+                                {|
+                                    affinityCookieName = settings.AffinityCookieName
+                                    authenticationCertificates = 
+                                        settings.AuthenticationCertificates
+                                        |> List.map (ApplicationGatewayAuthenticationCertificates.resourceId >> ResourceId.Eval)
+                                    connectionDraining =
+                                        {|
+                                          drainTimeoutInSec = settings.ConnectionDraining.DrainTimeoutInSeconds
+                                          enabled = settings.ConnectionDraining.Enabled
+                                        |}
+                                    cookieBasedAffinity = settings.CookieBasedAffinity
+                                    hostName = settings.HostName
+                                    path = settings.Path
+                                    pickHostNameFromBackendAddress = settings.PickHostNameFromBackendAddress
+                                    port = settings.Port
+                                    probe = ApplicationGatewayProbes.resourceId settings.Probe |> ResourceId.Eval
+                                    probeEnabled = settings.ProbeEnabled
+                                    protocol = settings.Protocol.ArmValue
+                                    requestTimeout = settings.RequestTimeoutInSeconds
+                                    trustedRootCertificates = 
+                                        settings.TrustedRootCertificates
+                                        |> List.map (ApplicationGatewayTrustedRootCertificates.resourceId >> ResourceId.Eval)
+                                |}
+                            |}
+                        )
+                        customErrorConfigurations = this.CustomErrorConfigurations |> List.map (fun conf ->
+                          {|
+                            customErrorPageUrl = conf.CustomErrorPageUrl
+                            statusCode = conf.StatusCode
+                          |}
+                        )
+                        enableFips = this.EnableFips
+                        enableHttp2 = this.EnableHttp2
+                        firewallPolicy = this.FirewallPolicy |> Option.map (Arm.AzureFirewall.azureFirewallPolicies.resourceId >> ResourceId.Eval) |> Option.toObj
+                        frontendPorts = this.FrontendPorts |> List.map (fun frontend ->
+                            {|
+                                name = frontend.Name.Value
+                                properties = 
+                                    {| port = frontend.Port |}
+                            |}
+                        )
+                        gatewayIPConfigurations = this.GatewayIPConfigurations |> List.map (fun gwip ->
+                            {|
+                                name = gwip.Name.Value
+                                properties = 
+                                    {| subnet = Arm.Network.subnets.resourceId gwip.Subnet |> ResourceId.Eval |}
+                            |}
+                        )
+                        frontendIPConfigurations = this.FrontendIpConfigs |> List.map (fun frontend ->
                             let allocationMethod, ip =
                                 match frontend.PrivateIpAllocationMethod with
-                                    | PrivateIpAddress.DynamicPrivateIp -> "Dynamic", null
-                                    | PrivateIpAddress.StaticPrivateIp ip -> "Static", string ip
+                                | PrivateIpAddress.DynamicPrivateIp -> "Dynamic", null
+                                | PrivateIpAddress.StaticPrivateIp ip -> "Static", string ip
                             {| name = frontend.Name.Value
                                properties =
                                    {|  privateIPAllocationMethod = allocationMethod
@@ -227,9 +299,6 @@ type ApplicationGateway =
                                            |> Option.defaultValue Unchecked.defaultof<_>
                                    |}
                             |}
-                        )
-                        backendAddressPools = this.BackendAddressPools |> List.map (fun backend ->
-                            {| name = backend.Value |}
                         )
                         probes = this.Probes |> List.map (fun probe ->
                             {|
@@ -250,44 +319,76 @@ type ApplicationGateway =
                                     |}
                             |}
                         )
-                        backendHttpSettingsCollection = this.BackendHttpSettingsCollection |> List.map (fun settings ->
+                        redirectConfigurations = this.RedirectConfigurations |> List.map (fun cfg ->
                             {|
-                              name = settings.Name.Value
-                              properties = 
+                                name = cfg.Name.Value
+                                properties = 
+                                    {|
+                                        includePath = cfg.IncludePath
+                                        includeQueryString = cfg.IncludeQueryString
+                                        pathRules = cfg.PathRules |> List.map (ApplicationGatewayPathRules.resourceId >> ResourceId.Eval)
+                                        redirectType = cfg.RedirectType.ArmValue
+                                        requestRoutingRules = cfg.RequestRoutingRules |> List.map (ApplicationGatewayRequestRoutingRules.resourceId >> ResourceId.Eval)
+                                        targetListener = ApplicationGatewayHttpListeners.resourceId cfg.TargetListener |> ResourceId.Eval
+                                        targetUrl = cfg.TargetUrl
+                                        urlPathMaps = cfg.UrlPathMaps |> List.map (ApplicationGatewayUrlPathMaps.resourceId >> ResourceId.Eval)
+                                    |}
+                            |}
+                        )
+                        requestRoutingRules = this.RequestRoutingRules |> List.map (fun routingRule ->
+                            {|
+                                name = routingRule.Name.Value
+                                properties = 
+                                    {|
+                                        backendAddressPool = ApplicationGatewayBackendAddressPools.resourceId routingRule.BackendAddressPool |> ResourceId.Eval
+                                        backendHttpSettings = ApplicationGatewayBackendHttpSettingsCollection.resourceId routingRule.BackendHttpSettings |> ResourceId.Eval
+                                        httpListener = ApplicationGatewayHttpListeners.resourceId routingRule.HttpListener |> ResourceId.Eval
+                                        priority = routingRule.Priority
+                                        redirectConfiguration = ApplicationGatewayRedirectConfigurations.resourceId routingRule.RedirectConfiguration |> ResourceId.Eval
+                                        rewriteRuleSet = ApplicationGatewayRewriteRuleSets.resourceId routingRule.RewriteRuleSet |> ResourceId.Eval
+                                        ruleType = routingRule.RuleType
+                                        urlPathMap = ApplicationGatewayUrlPathMaps.resourceId routingRule.UrlPathMap |> ResourceId.Eval
+                                    |}
+                            |}
+                        )
+                        rewriteRuleSets = this.RewriteRuleSets |> List.map (fun ruleSet ->
+                            {|
+                              name = ruleSet.Name.Value
+                              properties =
                                 {|
-                                    affinityCookieName = settings.AffinityCookieName
-                                    authenticationCertificates = settings.AuthenticationCertificates |> List.map (fun cert ->
-                                      ResourceId.create(ApplicationGatewayAuthenticationCertificates, cert)
-                                    )
-                                    connectionDraining =
+                                    rewriteRules = ruleSet.RewriteRules |> List.map (fun rule ->
                                         {|
-                                          drainTimeoutInSec = settings.ConnectionDraining.DrainTimeoutInSeconds
-                                          enabled = settings.ConnectionDraining.Enabled
+                                            actionSet = 
+                                                {|  requestHeaderConfigurations = rule.ActionSet.RequestHeaderConfigurations |> List.map (fun cfg ->
+                                                        {| headerName = cfg.HeaderName
+                                                           headerValue = cfg.HeaderValue |}
+                                                    )
+                                                    responseHeaderConfigurations = rule.ActionSet.ResponseHeaderConfigurations |> List.map (fun cfg ->
+                                                        {| headerName = cfg.HeaderName
+                                                           headerValue = cfg.HeaderValue |}
+                                                    )
+                                                    urlConfiguration = 
+                                                        {|
+                                                          modifiedPath = rule.ActionSet.UrlConfiguration.ModifiedPath
+                                                          modifiedQueryString = rule.ActionSet.UrlConfiguration.ModifiedQueryString
+                                                          reroute = rule.ActionSet.UrlConfiguration.Reroute
+                                                        |}
+                                                |}
+                                            conditions = rule.Conditions |> List.map (fun c ->
+                                                {|
+                                                  ignoreCase = c.IgnoreCase
+                                                  negate = c.Negate
+                                                  pattern = c.Pattern
+                                                  variable = c.Variable
+                                                |}
+                                            )
+                                            name = rule.Name
+                                            ruleSequence = rule.RuleSequence
                                         |}
-                                    cookieBasedAffinity = settings.CookieBasedAffinity
-                                    hostName = settings.HostName
-                                    path = settings.Path
-                                    pickHostNameFromBackendAddress = settings.PickHostNameFromBackendAddress
-                                    port = settings.Port
-                                    probe = ResourceId.create(ApplicationGatewayProbes,settings.Probe)
-                                    probeEnabled = settings.ProbeEnabled
-                                    protocol = settings.Protocol.ArmValue
-                                    requestTimeout = settings.RequestTimeoutInSeconds
-                                    trustedRootCertificates = settings.TrustedRootCertificates |> List.map (fun cert ->
-                                      ResourceId.create(ApplicationGatewayTrustedRootCertificates, cert)
                                     )
                                 |}
                             |}
                         )
-                        customErrorConfigurations = this.CustomErrorConfigurations |> List.map (fun conf ->
-                          {|
-                            customErrorPageUrl = conf.CustomErrorPageUrl
-                            statusCode = conf.StatusCode
-                          |}
-                        )
-                        enableFips = this.EnableFips
-                        enableHttp2 = this.EnableHttp2
-                        //firewallPolicy = ResourceId.create(AzureFirewall.az) // TODO: Figure out what this is
                     |}
             |} :> _
 

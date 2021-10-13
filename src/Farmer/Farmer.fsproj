@@ -62,7 +62,6 @@
     <Compile Include="Deploy.fs" />
     <Compile Include="Arm\ResourceGroup.fs" />
 
-    <Compile Include="Arm/ApplicationGateway.fs" />
     <Compile Include="Arm/DiagnosticSetting.fs" />
     <Compile Include="Arm/ManagedIdentity.fs" />
     <Compile Include="Arm/LogAnalytics.fs" />
@@ -103,6 +102,7 @@
     <Compile Include="Arm/VirtualWan.fs" />
     <Compile Include="Arm/TrafficManager.fs" />
     <Compile Include="Arm/AzureFirewall.fs" />
+    <Compile Include="Arm/ApplicationGateway.fs" />
     <Compile Include="Arm/VirtualHub.fs" />
     <Compile Include="Arm\Dashboard.fs" />
     <Compile Include="IdentityExtensions.fs" />
