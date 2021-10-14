@@ -162,49 +162,49 @@ type VaultAddPolicies =
             |} :> _
 
 module Keys =
-
     type JSONWebKeyCurveName =
-      | JSONWebKeyCurveName of string
-      member this.ArmValue = match this with JSONWebKeyCurveName name -> name
-    [<AutoOpen>]
-    module JSONWebKeyCurveNameExtensions =
-      type JSONWebKeyCurveName with
-        static member P256 = JSONWebKeyCurveName "P-256"
-        static member P256K = JSONWebKeyCurveName "P-256K"
-        static member P384 = JSONWebKeyCurveName "P-384"
-        static member P521 = JSONWebKeyCurveName "P-521"
-
+        | P256
+        | P256K
+        | P384
+        | P521
+        static member ArmValue = function
+          | P256 -> "P-256"
+          | P256K -> "P-256K"
+          | P384 -> "P-384"
+          | P521 -> "P-521"
     type JsonWebKeyType =
-        | JsonWebKeyType of string
-        member this.ArmValue = match this with JsonWebKeyType t -> t
-
-    [<AutoOpen>]
-    module JsonWebKeyTypeExtensions =
-      type JsonWebKeyType with
-        static member EC = JsonWebKeyType "EC"
-        static member ECHSM = JsonWebKeyType "EC-HSM"
-        static member RSA = JsonWebKeyType "RSA"
-        static member RSAHSM = JsonWebKeyType "RSA-HSM"
+        | EC
+        | ECHSM
+        | RSA
+        | RSAHSM
+        static member ArmValue = function
+          | EC -> "EC"
+          | ECHSM -> "EC-HSM"
+          | RSA -> "RSA"
+          | RSAHSM -> "RSA-HSM"
     type KeyAttributes =
         { Enabled : bool
           Exp : DateTime
           NBF : DateTime }
-        static member ArmValue(a: KeyAttributes) =  {| enabled = a.Enabled; exp = a.Exp; nbf = a.NBF |}
+        static member ArmValue(a: KeyAttributes) =
+          {| enabled = a.Enabled
+             exp = DateTimeOffset(a.Exp).ToUnixTimeSeconds()
+             nbf = DateTimeOffset(a.NBF).ToUnixTimeSeconds() |}
 
     type JsonWebKeyOperation =
-        | KeyOp of string
-        static member ArmValue(op: JsonWebKeyOperation) = match op with KeyOp op -> op
-
-    [<AutoOpen>]
-    module JsonWebKeyOperationExtensions =
-      type JsonWebKeyOperation with
-          static member Encrypt = KeyOp "encrypt"
-          static member Decrypt = KeyOp "decrypt"
-          static member WrapKey = KeyOp "wrapKey"
-          static member UnwrapKey = KeyOp "unwrapKey"
-          static member Sign = KeyOp "sign"
-          static member Verify = KeyOp "verify"
-
+       | Encrypt
+       | Decrypt
+       | WrapKey
+       | UnwrapKey
+       | Sign
+       | Verify
+        static member ArmValue = function
+           | Encrypt -> "encrypt"
+           | Decrypt -> "decrypt"
+           | WrapKey -> "wrapKey"
+           | UnwrapKey -> "unwrapKey"
+           | Sign -> "sign"
+           | Verify -> "verify"
     type KeyVaultKey =
         { VaultName : ResourceName
           KeyName : ResourceName
@@ -223,8 +223,8 @@ module Keys =
               {| keys.Create(this.Name, this.Location, tags = this.Tags) with
                    properties =
                      {| attributes = this.Attributes |> Option.map KeyAttributes.ArmValue |> Option.defaultValue Unchecked.defaultof<_>
-                        curveName = this.CurveName
-                        kty = this.KTY
+                        curveName =  this.CurveName |> Option.map JSONWebKeyCurveName.ArmValue |> Option.defaultValue Unchecked.defaultof<_>
+                        kty = this.KTY |> Option.map JsonWebKeyType.ArmValue |> Option.defaultValue Unchecked.defaultof<_>
                         key_ops = this.KeyOps |> Option.map JsonWebKeyOperation.ArmValue |> Option.defaultValue Unchecked.defaultof<_>
-                        key_size = this.KeySize |}
+                        key_size = this.KeySize |> Option.defaultValue Unchecked.defaultof<_> |}
               |} :> _

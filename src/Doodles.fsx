@@ -9,10 +9,10 @@ let key:KeyVaultKey = {
     KeyName = ResourceName "World"
     Attributes = None
     Location = Location.EastUS
-    CRV = None
-    KeyOps = None
+    CurveName = Some JSONWebKeyCurveName.P256
+    KeyOps = Some JsonWebKeyOperation.Encrypt
     KeySize = None
-    KTY = None
+    KTY = Some JsonWebKeyType.RSAHSM
     Tags = Map.empty
 }
 
