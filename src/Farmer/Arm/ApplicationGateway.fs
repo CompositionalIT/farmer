@@ -45,7 +45,7 @@ type ApplicationGateway =
            PrivateIpAllocationMethod : PrivateIpAddress.AllocationMethod
            PublicIp : ResourceId option |} list
       BackendAddressPools : ResourceName list
-      BackendHttpSettingsCollection : 
+      BackendHttpSettingsCollection :
         {| Name: ResourceName
            AffinityCookieName: string option
            AuthenticationCertificates: ResourceName list
@@ -57,7 +57,6 @@ type ApplicationGateway =
            Path: string option
            Port: uint16
            Protocol: Protocol
-           CookieBasedAffinity: FeatureFlag
            PickHostNameFromBackendAddress: bool
            RequestTimeoutInSeconds: int<Seconds>
            Probe: ResourceName option
