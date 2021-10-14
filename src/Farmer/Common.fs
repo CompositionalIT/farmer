@@ -1080,7 +1080,7 @@ module ApplicationGateway =
 
     type ApplicationGatewaySku = {
         Name : Sku
-        Capacity : int
+        Capacity : int option
         Tier: Tier
     }
 

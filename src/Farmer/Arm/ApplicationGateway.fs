@@ -228,7 +228,7 @@ type ApplicationGateway =
                         sku =
                             {|
                                 name = this.Sku.Name.ArmValue
-                                capacity = this.Sku.Capacity
+                                capacity = this.Sku.Capacity |> Option.toNullable
                                 tier = this.Sku.Tier.ArmValue
                             |}
                         autoscaleConfiguration = this.AutoscaleConfiguration |> Option.map (fun a -> 
