@@ -1054,10 +1054,10 @@ module ApplicationGateway =
         | WAF_v2
         member this.ArmValue =
             match this with
-            | Standard -> ""
-            | Standard_v2 -> ""
-            | WAF -> ""
-            | WAF_v2 -> ""
+            | Standard -> "Standard"
+            | Standard_v2 -> "Standard_v2"
+            | WAF -> "WAF"
+            | WAF_v2 -> "WAF_v2"
 
     [<RequireQualifiedAccess>]
     type Sku =

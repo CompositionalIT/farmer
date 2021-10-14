@@ -86,8 +86,8 @@ type ApplicationGateway =
               RequireServerNameIndication : bool
               HostNames : string list
               Protocol : Protocol
-              SslCertificate : ResourceName
-              SslProfile : ResourceName
+              SslCertificate : ResourceName option
+              SslProfile : ResourceName option
           |} list
       Probes :
           {|  /// Name of the probe
@@ -103,7 +103,7 @@ type ApplicationGateway =
               MinServers : uint16 option
               Match :
                 {| Body: string option
-                   StatusCodes: uint16 list |}
+                   StatusCodes: uint16 list |} option
           |} list
       RedirectConfigurations:
         {| Name: ResourceName
@@ -254,12 +254,12 @@ type ApplicationGateway =
                                           enabled = drain.Enabled
                                         |}
                                     )
-                                    cookieBasedAffinity = settings.CookieBasedAffinity
+                                    cookieBasedAffinity = settings.CookieBasedAffinity.ArmValue
                                     hostName = settings.HostName |> Option.toObj
                                     path = settings.Path |> Option.toObj
                                     pickHostNameFromBackendAddress = settings.PickHostNameFromBackendAddress
                                     port = settings.Port
-                                    probe = settings.Probe |> Option.map (ApplicationGatewayProbes.resourceId >> ResourceId.asId)
+                                    probe = settings.Probe |> Option.map (ApplicationGatewayProbes.resourceId >> ResourceId.asId) |> Option.defaultValue Unchecked.defaultof<_>
                                     probeEnabled = settings.ProbeEnabled
                                     protocol = settings.Protocol.ArmValue
                                     requestTimeout = settings.RequestTimeoutInSeconds
@@ -306,11 +306,11 @@ type ApplicationGateway =
                                   firewallPolicy = listener.FirewallPolicy |> Option.map ResourceId.asId |> Option.defaultValue Unchecked.defaultof<_>
                                   frontendIPConfiguration = listener.FrontendIpConfiguration |> ApplicationGatewayFrontendIPConfigurations.resourceId |> ResourceId.asId
                                   frontendPort = listener.FrontendPort |> ApplicationGatewayFrontendPorts.resourceId |> ResourceId.asId
-                                  hostName = listener.HostNames
+                                  hostNames = listener.HostNames
                                   protocol = listener.Protocol.ArmValue
                                   requireServerNameIndication = listener.RequireServerNameIndication
-                                  sslCertificate = listener.SslCertificate |> ApplicationGatewaySslCertificates.resourceId |> ResourceId.asId
-                                  sslProfile = listener.SslProfile |> ApplicationGatewaySslProfiles.resourceId |> ResourceId.asId
+                                  sslCertificate = listener.SslCertificate |> Option.map (ApplicationGatewaySslCertificates.resourceId >> ResourceId.asId) |> Option.defaultValue Unchecked.defaultof<_>
+                                  sslProfile = listener.SslProfile |> Option.map (ApplicationGatewaySslProfiles.resourceId >> ResourceId.asId) |> Option.defaultValue Unchecked.defaultof<_>
                                 |}
                           |}
                         )
@@ -339,8 +339,10 @@ type ApplicationGateway =
                                         path = probe.Path
                                         protocol = probe.Protocol.ArmValue
                                         pickHostNameFromBackendHttpSettings = probe.PickHostNameFromBackendHttpSettings
-                                        ``match`` = {| body = probe.Match.Body |> Option.toObj
-                                                       statusCodes = probe.Match.StatusCodes |> List.map string |}
+                                        ``match`` = probe.Match |> Option.map (fun m ->
+                                            {| body = m.Body |> Option.toObj
+                                               statusCodes = m.StatusCodes |> List.map string |}
+                                        )
                                         minServers = probe.MinServers |> Option.toNullable
                                         interval = probe.IntervalInSeconds
                                         timeoutInSeconds = probe.TimeoutInSeconds
@@ -375,7 +377,7 @@ type ApplicationGateway =
                                         priority = routingRule.Priority |> Option.toNullable
                                         redirectConfiguration =  routingRule.RedirectConfiguration |> Option.map (ApplicationGatewayRedirectConfigurations.resourceId >> ResourceId.asId) |> Option.defaultValue Unchecked.defaultof<_>
                                         rewriteRuleSet = routingRule.RewriteRuleSet |> Option.map (ApplicationGatewayRewriteRuleSets.resourceId >> ResourceId.asId) |> Option.defaultValue Unchecked.defaultof<_>
-                                        ruleType = routingRule.RuleType
+                                        ruleType = routingRule.RuleType.ArmValue
                                         urlPathMap = routingRule.UrlPathMap |> Option.map (ApplicationGatewayUrlPathMaps.resourceId >> ResourceId.asId) |> Option.defaultValue Unchecked.defaultof<_>
                                     |}
                             |}
@@ -550,11 +552,9 @@ type BackendAddressPool =
             {| ApplicationGatewayBackendAddressPools.Create(this.Name, dependsOn=dependencies) with
                 name = $"{this.ApplicationGateway.Value}/{this.Name.Value}"
                 properties =
-                    {| ApplicationGatewayBackendAddresses = this.ApplicationGatewayBackendAddresses |> List.map (fun addr ->
-                        {|  properties =
-                                {| fqdn = addr.Fqdn
-                                   ipAddress = string addr.IpAddress |}
-                        |}
+                    {| backendAddresses = this.ApplicationGatewayBackendAddresses |> List.map (fun addr ->
+                        {| fqdn = addr.Fqdn
+                           ipAddress = string addr.IpAddress |}
                        )
                     |}
             |} :> _
