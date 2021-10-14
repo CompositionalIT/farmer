@@ -232,15 +232,15 @@ type BackendHttpSettingsConfig =
         AffinityCookieName: string option
         AuthenticationCertificates: ResourceName list
         ConnectionDraining: ConnectionDrainingConfig option
-        CookieBasedAffinity: FeatureFlag option
+        CookieBasedAffinity: FeatureFlag
         HostName: string option
         Path: string option
-        Port: uint16 option
-        Protocol: Protocol option
-        PickHostNameFromBackendAddress: bool option
-        RequestTimeoutInSeconds: int<Seconds> option
+        Port: uint16
+        Protocol: Protocol
+        PickHostNameFromBackendAddress: bool
+        RequestTimeoutInSeconds: int<Seconds>
         Probe: ResourceName option
-        ProbeEnabled : bool option
+        ProbeEnabled : bool
         TrustedRootCertificates : ResourceName list
     }
     static member BuildResource backendHttpSettings =
@@ -268,15 +268,15 @@ type BackendHttpSettingsBuilder () =
             AffinityCookieName = None
             AuthenticationCertificates = []
             ConnectionDraining = None
-            CookieBasedAffinity = None //FeatureFlag.Disabled
+            CookieBasedAffinity = FeatureFlag.Disabled
             HostName = None
             Path = None
-            Port = None // 0us
-            Protocol = None // Protocol.Http
-            PickHostNameFromBackendAddress = None // false
-            RequestTimeoutInSeconds = None // 0
+            Port = 80us
+            Protocol = Protocol.Http
+            PickHostNameFromBackendAddress = false
+            RequestTimeoutInSeconds = 500<Seconds>
             Probe = None // ResourceName.Empty
-            ProbeEnabled = None
+            ProbeEnabled = false
             TrustedRootCertificates = []
         }
     [<CustomOperation "name">]
@@ -293,7 +293,7 @@ type BackendHttpSettingsBuilder () =
         { state with ConnectionDraining = Some connDraining }
     [<CustomOperation "cookie_based_affinity">]
     member _.CookieBasedAffinity (state:BackendHttpSettingsConfig, cookieBasedAffinity) =
-        { state with CookieBasedAffinity = Some cookieBasedAffinity }
+        { state with CookieBasedAffinity = cookieBasedAffinity }
     [<CustomOperation "host_name">]
     member _.HostName (state:BackendHttpSettingsConfig, name) =
         { state with HostName = Some name }
@@ -302,22 +302,22 @@ type BackendHttpSettingsBuilder () =
         { state with Path = Some path }
     [<CustomOperation "port">]
     member _.Port (state:BackendHttpSettingsConfig, port) =
-        { state with Port = Some (uint16 port) }
+        { state with Port = uint16 port }
     [<CustomOperation "protocol">]
     member _.Protocol (state:BackendHttpSettingsConfig, protocol) =
-        { state with Protocol = Some protocol }
+        { state with Protocol = protocol }
     [<CustomOperation "pick_host_name_from_backend_address">]
     member _.PickHostNameFromBackendAddress (state:BackendHttpSettingsConfig, pickHostNameFromBackendAddress) =
-        { state with PickHostNameFromBackendAddress = Some pickHostNameFromBackendAddress }
+        { state with PickHostNameFromBackendAddress = pickHostNameFromBackendAddress }
     [<CustomOperation "request_timeout">]
     member _.RequestTimeoutInSeconds (state:BackendHttpSettingsConfig, reqTimeout) =
-        { state with RequestTimeoutInSeconds = Some reqTimeout }
+        { state with RequestTimeoutInSeconds = reqTimeout }
     [<CustomOperation "probe">]
     member _.Probe (state:BackendHttpSettingsConfig, probe:string) =
         { state with Probe = Some (ResourceName probe) }
     [<CustomOperation "probe_enabled">]
     member _.ProbeEnabled (state:BackendHttpSettingsConfig, probeEnabled) =
-        { state with ProbeEnabled = Some probeEnabled }
+        { state with ProbeEnabled = probeEnabled }
     [<CustomOperation "trusted_root_certs">]
     member _.TrustedRootCertificates (state:BackendHttpSettingsConfig, trustedRootCerts) =
         { state with TrustedRootCertificates = state.TrustedRootCertificates @ (trustedRootCerts |> List.map (fun rootCert -> ResourceName rootCert)) }

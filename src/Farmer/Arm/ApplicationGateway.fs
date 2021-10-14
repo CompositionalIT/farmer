@@ -57,7 +57,6 @@ type ApplicationGateway =
            Path: string option
            Port: uint16
            Protocol: Protocol
-           CookieBasedAffinity: FeatureFlag
            PickHostNameFromBackendAddress: bool
            RequestTimeoutInSeconds: int<Seconds>
            Probe: ResourceName option
