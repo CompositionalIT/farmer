@@ -227,7 +227,6 @@ module Keys =
                      {| attributes = this.Attributes |> Option.map KeyAttributes.ArmValue |> Option.defaultValue Unchecked.defaultof<_>
                         curveName = this.CurveName
                         kty = this.KTY
-                        key_ops = this.KeyOps |> Option.map KeyOp.ArmValue |> Option.defaultValue Unchecked.defaultof<_>
-
+                        key_ops = this.KeyOps |> Option.map JsonWebKeyOperation.ArmValue |> Option.defaultValue Unchecked.defaultof<_>
                         key_size = this.KeySize |}
               |} :> _
