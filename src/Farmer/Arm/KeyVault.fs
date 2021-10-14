@@ -229,5 +229,5 @@ module Keys =
                         curveName =  this.CurveName |> armValue JSONWebKeyCurveName.ArmValue
                         kty = this.KTY |> armValue JsonWebKeyType.ArmValue
                         key_ops = this.KeyOps |> armValue JsonWebKeyOperation.ArmValue
-                        key_size = this.KeySize |> Option.defaultValue Unchecked.defaultof<_> |}
+                        key_size = this.KeySize |> Option.defaultValue 2048 |}
               |} :> _
