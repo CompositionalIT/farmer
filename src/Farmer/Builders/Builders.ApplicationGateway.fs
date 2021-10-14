@@ -8,27 +8,10 @@ open Farmer.PublicIpAddress
 open Farmer.Arm.ApplicationGateway
 open Farmer.ApplicationGateway
 
-// Desired Properties: 
-// Zones
-//X *Skus
-//X *IP config
-//X *Frontend IP config
-// *SSL certificates
-//X *Frontend ports
-// Autoscale
-// *Probes
-//X *Backend address pools
-//X *Backend HTTP settings
-// *Http listeners
-// *Request routing rules
-// Web application firewall configuration
-// Diagnostics settings
-// Project
-
 type GatewayIpConfig = 
     {
         Name: ResourceName
-        Subnet: LinkedResource option // TODO Can this not be an option??
+        Subnet: LinkedResource option 
     }
     static member BuildResource gatewayIp =
         {|
