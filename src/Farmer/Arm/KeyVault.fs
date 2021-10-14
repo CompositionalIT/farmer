@@ -169,10 +169,10 @@ module Keys =
     [<AutoOpen>]
     module JSONWebKeyCurveNameExtensions =
       type JSONWebKeyCurveName with
-        static member P256 = JSONWebKeyCurveName "P256"
-        static member P256K = JSONWebKeyCurveName "P256K"
-        static member P384 = JSONWebKeyCurveName "P384"
-        static member P521 = JSONWebKeyCurveName "P521"
+        static member P256 = JSONWebKeyCurveName "P-256"
+        static member P256K = JSONWebKeyCurveName "P-256K"
+        static member P384 = JSONWebKeyCurveName "P-384"
+        static member P521 = JSONWebKeyCurveName "P-521"
 
     type JsonWebKeyType =
         | JsonWebKeyType of string
@@ -190,16 +190,16 @@ module Keys =
     type KeyAttributes =
         { Enabled : bool
           Exp : DateTime
-          NBF : DateTime}
-        member this.ArmValue =  {| enabled = this.Enabled; exp = this.Exp; nbf = this.NBF |}
+          NBF : DateTime }
+        static member ArmValue(a: KeyAttributes) =  {| enabled = a.Enabled; exp = a.Exp; nbf = a.NBF |}
 
-    type KeyOp =
+    type JsonWebKeyOperation =
         | KeyOp of string
-        member this.ArmValue = match this with KeyOp op -> op
+        static member ArmValue(op: JsonWebKeyOperation) = match op with KeyOp op -> op
 
     [<AutoOpen>]
-    module KeyOpExtensions =
-      type KeyOp with
+    module JsonWebKeyOperationExtensions =
+      type JsonWebKeyOperation with
           static member Encrypt = KeyOp "encrypt"
           static member Decrypt = KeyOp "decrypt"
           static member WrapKey = KeyOp "wrapKey"
@@ -210,31 +210,24 @@ module Keys =
     type KeyVaultKey =
         { VaultName : ResourceName
           KeyName : ResourceName
+          Location : Location
           Attributes : KeyAttributes option
-          CRV : JSONWebKeyCurveName option
-          KeyOps : KeyOp option
+          CurveName : JSONWebKeyCurveName option
+          KeyOps : JsonWebKeyOperation option
           KeySize : int option
           KTY : JsonWebKeyType option
           Tags : Map<string, string> }
-        member this.ResourceId = keys.resourceId (this.VaultName / this.KeyName)
-
+        member this.Name = this.VaultName / this.KeyName
+        member this.ResourceId = keys.resourceId this.Name
         interface IArmResource with
             member this.ResourceId = this.ResourceId
             member this.JsonModel =
-              {| name = (this.VaultName / this.KeyName).Value
-                 ``type`` = "Microsoft.KeyVault/vaults/keys"
-                 apiVersion = "2019-09-01"
-                 tags = this.Tags
-                 properties =
-                   {| attributes =
-                        match this.Attributes with
-                        | Some a -> a.ArmValue
-                        | None -> Unchecked.defaultof<_>
-                      crv = this.CRV
-                      kty = this.KTY
-                      key_ops =
-                        match this.KeyOps with
-                        | Some keyOps -> keyOps.ArmValue
-                        | None -> Unchecked.defaultof<_>
-                      key_size = this.KeySize |}
+              {| keys.Create(this.Name, this.Location, tags = this.Tags) with
+                   properties =
+                     {| attributes = this.Attributes |> Option.map KeyAttributes.ArmValue |> Option.defaultValue Unchecked.defaultof<_>
+                        curveName = this.CurveName
+                        kty = this.KTY
+                        key_ops = this.KeyOps |> Option.map KeyOp.ArmValue |> Option.defaultValue Unchecked.defaultof<_>
+
+                        key_size = this.KeySize |}
               |} :> _
