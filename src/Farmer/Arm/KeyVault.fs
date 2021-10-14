@@ -161,3 +161,96 @@ type VaultAddPolicies =
                     |}
             |} :> _
 
+module Keys =
+
+    type JSONWebKeyCurveName =
+      | JSONWebKeyCurveName of string
+          member this.ArmValue = match this with JSONWebKeyCurveName name -> name
+
+    [<AutoOpen>]
+    module JSONWebKeyCurveNameExtensions =
+      type JSONWebKeyCurveName with
+        static member P256 = JSONWebKeyCurveName "P256"
+        static member P256K = JSONWebKeyCurveName "P256K"
+        static member P384 = JSONWebKeyCurveName "P384"
+        static member P521 = JSONWebKeyCurveName "P521"
+
+    type JsonWebKeyType =
+        | JsonWebKeyType of string
+            member this.ArmValue = match this with JsonWebKeyType t -> t
+
+    [<AutoOpen>]
+    module JsonWebKeyTypeExtensions =
+      type JsonWebKeyType with
+        static member EC = JsonWebKeyType "EC"
+        static member ECHSM = JsonWebKeyType "EC-HSM"
+        static member RSA = JsonWebKeyType "RSA"
+        static member RSAHSM = JsonWebKeyType "RSA-HSM"
+        static member Oct = JsonWebKeyType "oct"
+        static member OctHSM = JsonWebKeyType "oct-HSM"
+
+    type DeletionRecoveryLevel =
+        | DeletionRecoveryLevel of string
+            member this.ArmValue = match this with DeletionRecoveryLevel level -> level
+
+    [<AutoOpen>]
+    module DeletionRecoveryLevelExtensions =
+      type DeletionRecoveryLevel with
+          static member CustomizedRecoverable = DeletionRecoveryLevel "CustomizedRecoverable"
+          static member CustomizedRecoverablePlusProtectedSubscription = DeletionRecoveryLevel "CustomizedRecoverable+ProtectedSubscription"
+          static member CustomizedRecoverablePlusPurgeable = DeletionRecoveryLevel "CustomizedRecoverable+Purgeable"
+          static member Purgeable = DeletionRecoveryLevel "Purgeable"
+          static member Recoverable = DeletionRecoveryLevel "Recoverable"
+          static member RecoverablePlusProtectedSubscription = DeletionRecoveryLevel "Recoverable+ProtectedSubscription"
+          static member RecoverablePlusPurgeable = DeletionRecoveryLevel "Recoverable+Purgeable"
+
+    type KeyAttributes =
+        { Enabled : bool
+          Exp : DateTime
+          NBF : DateTime}
+
+    type KeyOp =
+        | KeyOp of string
+            member this.ArmValue = match this with KeyOp op -> op
+
+    [<AutoOpen>]
+    module KeyOpExtensions =
+      type KeyOp with
+          static member Encrypt = KeyOp "encrypt"
+          static member Decrypt = KeyOp "decrypt"
+          static member WrapKey = KeyOp "wrapKey"
+          static member UnwrapKey = KeyOp "unwrapKey"
+          static member Sign = KeyOp "sign"
+          static member Verify = KeyOp "verify"
+
+    type KeyVaultKey =
+        { VaultName : ResourceName
+          KeyName : ResourceName
+          Attributes : KeyAttributes option
+          CRV : JSONWebKeyCurveName option
+          KeyOps : KeyOp option
+          KeySize : int option
+          KTY : JsonWebKeyType option
+          Tags : Object option }
+        member this.ResourceId = keys.resourceId (this.VaultName / this.KeyName)
+
+        interface IArmResource with
+            member this.ResourceId = this.ResourceId
+            member this.JsonModel =
+              {| name = (this.VaultName / this.KeyName).Value
+                 ``type`` = "Microsoft.KeyVault/vaults/keys"
+                 apiVersion = "2019-09-01"
+                 tags = this.Tags
+                 properties =
+                   {| attributes =
+                        match this.Attributes with
+                        | Some a -> {| enabled = a.Enabled; exp = a.Exp; nbf = a.NBF |}
+                        | None -> Unchecked.defaultof<_>
+                      crv = this.CRV
+                      kty = this.KTY
+                      key_ops =
+                        match this.KeyOps with
+                        | Some keyOps -> keyOps.ArmValue
+                        | None -> Unchecked.defaultof<_>
+                      key_size = this.KeySize |}
+              |} :> _
