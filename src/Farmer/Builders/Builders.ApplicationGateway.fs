@@ -197,7 +197,7 @@ type ConnectionDrainingConfig =
 type ConnectionDrainingBuilder () = 
     member _.Yield _ =
         {
-            DrainTimeoutInSeconds = 0<Seconds> // TODO value?
+            DrainTimeoutInSeconds = 0<Seconds>
             Enabled = false
         }
     [<CustomOperation "drain_timeout">]
@@ -285,7 +285,7 @@ type BackendHttpSettingsBuilder () =
         { state with Path = Some path }
     [<CustomOperation "port">]
     member _.Port (state:BackendHttpSettingsConfig, port) =
-        { state with Port = uint16 port }
+        { state with Port = port }
     [<CustomOperation "protocol">]
     member _.Protocol (state:BackendHttpSettingsConfig, protocol) =
         { state with Protocol = protocol }
@@ -380,7 +380,7 @@ type AppGatewayBuilder() =
         Name = ResourceName.Empty
         Sku = {
             Name = Sku.Standard_v2
-            Capacity = 1 // TODO - what value?
+            Capacity = None
             Tier = Tier.Standard_v2
         }
         GatewayIpConfigs = []
@@ -396,10 +396,13 @@ type AppGatewayBuilder() =
         { state with Name = ResourceName name }
     [<CustomOperation "sku">]
     member _.Sku (state:AppGatewayConfig, skuName) = 
-        { state with Sku = { state.Sku with Name = skuName}}
+        { state with Sku = { state.Sku with Name = skuName }}
     [<CustomOperation "tier">]
-    member _.Tier(state:AppGatewayConfig, skuTier) = 
-        { state with Sku = { state.Sku with Tier = skuTier } }
+    member _.Tier (state:AppGatewayConfig, skuTier) = 
+        { state with Sku = { state.Sku with Tier = skuTier }}
+    [<CustomOperation "sku_capacity">]
+    member _.SkuCapacity (state:AppGatewayConfig, skuCapacity) =
+        { state with Sku = { state.Sku with Capacity = Some skuCapacity }}
     [<CustomOperation "add_ip_configs">]
     member _.AddIpConfigs (state:AppGatewayConfig, ipConfigs) =
         { state with GatewayIpConfigs = state.GatewayIpConfigs @ ipConfigs }

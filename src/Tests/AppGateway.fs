@@ -30,6 +30,7 @@ let tests = testList "Application Gateway Tests" [
                 name "ag"
                 sku Sku.Standard_v2
                 tier Tier.Standard_v2
+                sku_capacity 1
                 add_ip_configs [
                     gatewayIp {
                         name "gatewayIpConfig"
@@ -41,7 +42,6 @@ let tests = testList "Application Gateway Tests" [
                         name "my-frontend-ip"
                         private_ip_allocation_method (PrivateIpAddress.StaticPrivateIp (System.Net.IPAddress.Parse "10.0.0.1")) // ??
                         link_to_public_ip "my-pip"
-                        // TODO public_ip created here.
                     }
                 ]
                 add_backend_address_pools [
@@ -70,7 +70,7 @@ let tests = testList "Application Gateway Tests" [
                         cookie_based_affinity FeatureFlag.Enabled
                         host_name "my-host-name"
                         path "my-path"
-                        port 80
+                        port (uint16 80)
                         protocol Protocol.Https
                         pick_host_name_from_backend_address true
                         request_timeout 500<Seconds>
