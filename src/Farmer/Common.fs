@@ -1085,6 +1085,15 @@ module ApplicationGateway =
     }
 
     [<RequireQualifiedAccess>]
+    type HttpStatusCode =
+        | HttpStatus403
+        | HttpStatus502
+        static member toString = function
+            | HttpStatus403 -> "HttpStatus403"
+            | HttpStatus502 -> "HttpStatus502"
+        member this.ArmValue = HttpStatusCode.toString this
+
+    [<RequireQualifiedAccess>]
     type RuleType =
         | Basic
         | PathBasedRouting

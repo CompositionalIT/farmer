@@ -16,6 +16,8 @@ let ApplicationGatewayProbes = ResourceType ("Microsoft.Network/applicationGatew
 let ApplicationGatewayRedirectConfigurations = ResourceType ("Microsoft.Network/applicationGateways/redirectConfigurations", "2020-11-01")
 let ApplicationGatewayRequestRoutingRules = ResourceType ("Microsoft.Network/applicationGateways/requestRoutingRules", "2020-11-01")
 let ApplicationGatewayRewriteRuleSets = ResourceType ("Microsoft.Network/applicationGateways/rewriteRuleSets", "2020-11-01")
+let ApplicationGatewaySslCertificates = ResourceType ("Microsoft.Network/applicationGateways/sslCertificates", "2020-11-01")
+let ApplicationGatewaySslProfiles = ResourceType ("Microsoft.Network/applicationGateways/sslProfiles", "2020-11-01")
 let ApplicationGatewayTrustedRootCertificates = ResourceType ("Microsoft.Network/applicationGateways/trustedRootCertificates", "2020-11-01")
 let ApplicationGatewayUrlPathMaps = ResourceType ("Microsoft.Network/applicationGateways/urlPathMap", "2020-11-01")
 
@@ -64,7 +66,7 @@ type ApplicationGateway =
        |} list
       CustomErrorConfigurations:
           {| CustomErrorPageUrl: string
-             StatusCode: string |} list
+             StatusCode: HttpStatusCode |} list
       EnableFips: bool
       EnableHttp2: bool
       FirewallPolicy: ResourceId option
@@ -79,8 +81,8 @@ type ApplicationGateway =
               BackendAddressPool : ResourceName
               CustomErrorConfigurations:  
                 {| CustomErrorPageUrl: string
-                   SstatusCode: string |} list
-              FirewallPolicy : ResourceId
+                   StatusCode: HttpStatusCode |} list
+              FirewallPolicy : ResourceId option
               FrontendPort : ResourceName
               RequireServerNameIndication : bool
               HostNames : string list
@@ -102,7 +104,7 @@ type ApplicationGateway =
               MinServers : uint16 option
               Match :
                 {| Body: string option
-                   StatusCodes: string list |}
+                   StatusCodes: uint16 list |}
           |} list
       RedirectConfigurations:
         {| Name: ResourceName
@@ -271,7 +273,7 @@ type ApplicationGateway =
                         customErrorConfigurations = this.CustomErrorConfigurations |> List.map (fun conf ->
                           {|
                             customErrorPageUrl = conf.CustomErrorPageUrl
-                            statusCode = conf.StatusCode
+                            statusCode = conf.StatusCode.ArmValue
                           |}
                         )
                         enableFips = this.EnableFips
@@ -290,6 +292,28 @@ type ApplicationGateway =
                                 properties = 
                                     {| subnet = gwip.Subnet |> Option.map ResourceId.asId |> Option.defaultValue Unchecked.defaultof<_> |}
                             |}
+                        )
+                        httpListeners = this.HttpListeners |> List.map (fun listener ->
+                          {|
+                            name = listener.Name.Value
+                            properties = 
+                                {|
+                                  customErrorConfigurations = listener.CustomErrorConfigurations |> List.map (fun cfg ->
+                                    {|
+                                      customErrorPageUrl = cfg.CustomErrorPageUrl
+                                      statusCode = cfg.StatusCode.ArmValue
+                                    |}
+                                  )
+                                  firewallPolicy = listener.FirewallPolicy |> Option.map ResourceId.asId |> Option.defaultValue Unchecked.defaultof<_>
+                                  frontendIPConfiguration = listener.FrontendIpConfiguration |> ApplicationGatewayFrontendIPConfigurations.resourceId |> ResourceId.asId
+                                  frontendPort = listener.FrontendPort |> ApplicationGatewayFrontendPorts.resourceId |> ResourceId.asId
+                                  hostName = listener.HostNames
+                                  protocol = listener.Protocol.ArmValue
+                                  requireServerNameIndication = listener.RequireServerNameIndication
+                                  sslCertificate = listener.SslCertificate |> ApplicationGatewaySslCertificates.resourceId |> ResourceId.asId
+                                  sslProfile = listener.SslProfile |> ApplicationGatewaySslProfiles.resourceId |> ResourceId.asId
+                                |}
+                          |}
                         )
                         frontendIPConfigurations = this.FrontendIpConfigs |> List.map (fun frontend ->
                             let allocationMethod, ip =
@@ -317,7 +341,7 @@ type ApplicationGateway =
                                         protocol = probe.Protocol.ArmValue
                                         pickHostNameFromBackendHttpSettings = probe.PickHostNameFromBackendHttpSettings
                                         ``match`` = {| body = probe.Match.Body |> Option.toObj
-                                                       statusCodes = probe.Match.StatusCodes |}
+                                                       statusCodes = probe.Match.StatusCodes |> List.map string |}
                                         minServers = probe.MinServers |> Option.toNullable
                                         interval = probe.IntervalInSeconds
                                         timeoutInSeconds = probe.TimeoutInSeconds
