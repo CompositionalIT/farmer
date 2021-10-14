@@ -165,8 +165,7 @@ module Keys =
 
     type JSONWebKeyCurveName =
       | JSONWebKeyCurveName of string
-          member this.ArmValue = match this with JSONWebKeyCurveName name -> name
-
+      member this.ArmValue = match this with JSONWebKeyCurveName name -> name
     [<AutoOpen>]
     module JSONWebKeyCurveNameExtensions =
       type JSONWebKeyCurveName with
@@ -177,7 +176,7 @@ module Keys =
 
     type JsonWebKeyType =
         | JsonWebKeyType of string
-            member this.ArmValue = match this with JsonWebKeyType t -> t
+        member this.ArmValue = match this with JsonWebKeyType t -> t
 
     [<AutoOpen>]
     module JsonWebKeyTypeExtensions =
@@ -188,30 +187,15 @@ module Keys =
         static member RSAHSM = JsonWebKeyType "RSA-HSM"
         static member Oct = JsonWebKeyType "oct"
         static member OctHSM = JsonWebKeyType "oct-HSM"
-
-    type DeletionRecoveryLevel =
-        | DeletionRecoveryLevel of string
-            member this.ArmValue = match this with DeletionRecoveryLevel level -> level
-
-    [<AutoOpen>]
-    module DeletionRecoveryLevelExtensions =
-      type DeletionRecoveryLevel with
-          static member CustomizedRecoverable = DeletionRecoveryLevel "CustomizedRecoverable"
-          static member CustomizedRecoverablePlusProtectedSubscription = DeletionRecoveryLevel "CustomizedRecoverable+ProtectedSubscription"
-          static member CustomizedRecoverablePlusPurgeable = DeletionRecoveryLevel "CustomizedRecoverable+Purgeable"
-          static member Purgeable = DeletionRecoveryLevel "Purgeable"
-          static member Recoverable = DeletionRecoveryLevel "Recoverable"
-          static member RecoverablePlusProtectedSubscription = DeletionRecoveryLevel "Recoverable+ProtectedSubscription"
-          static member RecoverablePlusPurgeable = DeletionRecoveryLevel "Recoverable+Purgeable"
-
     type KeyAttributes =
         { Enabled : bool
           Exp : DateTime
           NBF : DateTime}
+        member this.ArmValue =  {| enabled = this.Enabled; exp = this.Exp; nbf = this.NBF |}
 
     type KeyOp =
         | KeyOp of string
-            member this.ArmValue = match this with KeyOp op -> op
+        member this.ArmValue = match this with KeyOp op -> op
 
     [<AutoOpen>]
     module KeyOpExtensions =
@@ -231,7 +215,7 @@ module Keys =
           KeyOps : KeyOp option
           KeySize : int option
           KTY : JsonWebKeyType option
-          Tags : Object option }
+          Tags : Map<string, string> }
         member this.ResourceId = keys.resourceId (this.VaultName / this.KeyName)
 
         interface IArmResource with
@@ -244,7 +228,7 @@ module Keys =
                  properties =
                    {| attributes =
                         match this.Attributes with
-                        | Some a -> {| enabled = a.Enabled; exp = a.Exp; nbf = a.NBF |}
+                        | Some a -> a.ArmValue
                         | None -> Unchecked.defaultof<_>
                       crv = this.CRV
                       kty = this.KTY
