@@ -185,8 +185,6 @@ module Keys =
         static member ECHSM = JsonWebKeyType "EC-HSM"
         static member RSA = JsonWebKeyType "RSA"
         static member RSAHSM = JsonWebKeyType "RSA-HSM"
-        static member Oct = JsonWebKeyType "oct"
-        static member OctHSM = JsonWebKeyType "oct-HSM"
     type KeyAttributes =
         { Enabled : bool
           Exp : DateTime
