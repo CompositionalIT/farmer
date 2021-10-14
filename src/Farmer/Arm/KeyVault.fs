@@ -205,6 +205,9 @@ module Keys =
            | UnwrapKey -> "unwrapKey"
            | Sign -> "sign"
            | Verify -> "verify"
+
+    let private armValue (a: 'a option) armValue =
+      a |> Option.map armValue |> Option.defaultValue Unchecked.defaultof<_>
     type KeyVaultKey =
         { VaultName : ResourceName
           KeyName : ResourceName
@@ -222,9 +225,9 @@ module Keys =
             member this.JsonModel =
               {| keys.Create(this.Name, this.Location, tags = this.Tags) with
                    properties =
-                     {| attributes = this.Attributes |> Option.map KeyAttributes.ArmValue |> Option.defaultValue Unchecked.defaultof<_>
-                        curveName =  this.CurveName |> Option.map JSONWebKeyCurveName.ArmValue |> Option.defaultValue Unchecked.defaultof<_>
-                        kty = this.KTY |> Option.map JsonWebKeyType.ArmValue |> Option.defaultValue Unchecked.defaultof<_>
-                        key_ops = this.KeyOps |> Option.map JsonWebKeyOperation.ArmValue |> Option.defaultValue Unchecked.defaultof<_>
+                     {| attributes = armValue this.Attributes KeyAttributes.ArmValue
+                        curveName =  armValue this.CurveName JSONWebKeyCurveName.ArmValue
+                        kty = armValue this.KTY JsonWebKeyType.ArmValue
+                        key_ops = armValue this.KeyOps JsonWebKeyOperation.ArmValue
                         key_size = this.KeySize |> Option.defaultValue Unchecked.defaultof<_> |}
               |} :> _
