@@ -8,7 +8,7 @@ open System
 let secrets = ResourceType ("Microsoft.KeyVault/vaults/secrets", "2019-09-01")
 let accessPolicies = ResourceType ("Microsoft.KeyVault/vaults/accessPolicies", "2019-09-01")
 let vaults = ResourceType ("Microsoft.KeyVault/vaults", "2019-09-01")
-let keys = ResourceType ("Microsfot.keyVault/vaults/keys", "2019-09-01")
+let keys = ResourceType ("Microsoft.keyVault/vaults/keys", "2019-09-01")
 
 module Vaults =
     type Secret =
@@ -223,7 +223,7 @@ module Keys =
         interface IArmResource with
             member this.ResourceId = this.ResourceId
             member this.JsonModel =
-              {| keys.Create(this.Name, this.Location, tags = this.Tags) with
+              {| keys.Create(this.Name, this.Location, [vaults.resourceId this.VaultName], this.Tags) with
                    properties =
                      {| attributes = armValue this.Attributes KeyAttributes.ArmValue
                         curveName =  armValue this.CurveName JSONWebKeyCurveName.ArmValue
