@@ -45,7 +45,7 @@ type ApplicationGateway =
            PrivateIpAllocationMethod : PrivateIpAddress.AllocationMethod
            PublicIp : ResourceId option |} list
       BackendAddressPools : ResourceName list
-      BackendHttpSettingsCollection : 
+      BackendHttpSettingsCollection :
         {| Name: ResourceName
            AffinityCookieName: string option
            AuthenticationCertificates: ResourceName list

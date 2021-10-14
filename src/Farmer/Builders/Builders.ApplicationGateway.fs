@@ -18,7 +18,7 @@ open Farmer.ApplicationGateway
 // Autoscale
 // *Probes
 //X *Backend address pools
-// *Backend HTTP settings
+//X *Backend HTTP settings
 // *Http listeners
 // *Request routing rules
 // Web application firewall configuration
@@ -171,6 +171,109 @@ type BackendAddressPoolBuilder () =
 
 let backendAddressPool = BackendAddressPoolBuilder()
 
+type BackendHttpSettingsConfig = 
+    {
+        Name: ResourceName
+        AffinityCookieName: string option
+        AuthenticationCertificates: ResourceName list
+        ConnectionDraining:
+            {| 
+                DrainTimeoutInSeconds: int<Seconds>
+                Enabled: bool 
+            |} option
+        CookieBasedAffinity: FeatureFlag option
+        HostName: string option
+        Path: string option
+        Port: uint16 option
+        Protocol: Protocol option
+        PickHostNameFromBackendAddress: bool option
+        RequestTimeoutInSeconds: int<Seconds> option
+        Probe: ResourceName option
+        ProbeEnabled : bool option
+        TrustedRootCertificates : ResourceName list
+    }
+    static member BuildResource backendHttpSettings =
+        {|
+            Name = backendHttpSettings.Name
+            AffinityCookieName = backendHttpSettings.AffinityCookieName
+            AuthenticationCertificates = backendHttpSettings.AuthenticationCertificates
+            ConnectionDraining = backendHttpSettings.ConnectionDraining
+            CookieBasedAffinity = backendHttpSettings.CookieBasedAffinity
+            HostName = backendHttpSettings.HostName
+            Path = backendHttpSettings.Path
+            Port = backendHttpSettings.Port
+            Protocol = backendHttpSettings.Protocol
+            PickHostNameFromBackendAddress = backendHttpSettings.PickHostNameFromBackendAddress
+            RequestTimeoutInSeconds = backendHttpSettings.RequestTimeoutInSeconds
+            Probe = backendHttpSettings.Probe
+            ProbeEnabled = backendHttpSettings.ProbeEnabled
+            TrustedRootCertificates = backendHttpSettings.TrustedRootCertificates
+        |}
+
+type BackendHttpSettingsBuilder () =
+    member _.Yield _ = 
+        {
+            Name = ResourceName.Empty
+            AffinityCookieName = None
+            AuthenticationCertificates = []
+            ConnectionDraining = None
+            CookieBasedAffinity = None //FeatureFlag.Disabled
+            HostName = None
+            Path = None
+            Port = None // 0us
+            Protocol = None // Protocol.Http
+            PickHostNameFromBackendAddress = None // false
+            RequestTimeoutInSeconds = None // 0
+            Probe = None // ResourceName.Empty
+            ProbeEnabled = None
+            TrustedRootCertificates = []
+        }
+    [<CustomOperation "name">]
+    member _.Name (state:BackendHttpSettingsConfig, name) =
+        { state with Name = ResourceName name }
+    [<CustomOperation "affinity_cookie_name">]
+    member _.AffinityCookieName (state:BackendHttpSettingsConfig, name) =
+        { state with AffinityCookieName = name }
+    [<CustomOperation "add_auth_certs">]
+    member _.AddAuthCerts (state:BackendHttpSettingsConfig, authCerts) =
+        { state with AuthenticationCertificates = state.AuthenticationCertificates @ authCerts }
+    // TODO complex object?
+    [<CustomOperation "connection_draining">]
+    member _.ConnectionDraining (state:BackendHttpSettingsConfig, connDraining) =
+        { state with ConnectionDraining = connDraining }
+    [<CustomOperation "host_name">]
+    member _.HostName (state:BackendHttpSettingsConfig, name) =
+        { state with HostName = name }
+    [<CustomOperation "path">]
+    member _.Path (state:BackendHttpSettingsConfig, path) =
+        { state with Path = path }
+    [<CustomOperation "port">]
+    member _.Port (state:BackendHttpSettingsConfig, port) =
+        { state with Port = port }
+    [<CustomOperation "protocol">]
+    member _.Protocol (state:BackendHttpSettingsConfig, protocol) =
+        { state with Protocol = protocol }
+    [<CustomOperation "cookie_based_affinity">]
+    member _.CookieBasedAffinity (state:BackendHttpSettingsConfig, cookieBasedAffinity) =
+        { state with CookieBasedAffinity = cookieBasedAffinity }
+    [<CustomOperation "pick_host_name_from_backend_address">]
+    member _.PickHostNameFromBackendAddress (state:BackendHttpSettingsConfig, pickHostNameFromBackendAddress) =
+        { state with PickHostNameFromBackendAddress = pickHostNameFromBackendAddress }
+    [<CustomOperation "request_timeout">]
+    member _.RequestTimeoutInSeconds (state:BackendHttpSettingsConfig, reqTimeout) =
+        { state with RequestTimeoutInSeconds = reqTimeout }
+    [<CustomOperation "probe">]
+    member _.Probe (state:BackendHttpSettingsConfig, probe) =
+        { state with Probe = probe }
+    [<CustomOperation "probe_enabled">]
+    member _.ProbeEnabled (state:BackendHttpSettingsConfig, probeEnabled) =
+        { state with ProbeEnabled = probeEnabled }
+    [<CustomOperation "trusted_root_certs">]
+    member _.TrustedRootCertificates (state:BackendHttpSettingsConfig, trustedRootCertificates) =
+        { state with TrustedRootCertificates = trustedRootCertificates }
+    
+let backendHttpSettings = BackendHttpSettingsBuilder()
+
 type AppGatewayConfig =
     { Name : ResourceName
       Sku: ApplicationGatewaySku
@@ -178,6 +281,7 @@ type AppGatewayConfig =
       FrontendIpConfigs: FrontendIpConfig list
       FrontendPorts: FrontendPortConfig list
       BackendAddressPools: BackendAddressPoolConfig list
+      BackendHttpSettingsCollection: BackendHttpSettingsConfig list
       Dependencies: Set<ResourceId>
       Tags: Map<string,string>
      }
@@ -201,6 +305,7 @@ type AppGatewayConfig =
                 FrontendIpConfigs = this.FrontendIpConfigs |> List.map FrontendIpConfig.BuildResource
                 FrontendPorts = this.FrontendPorts |> List.map FrontendPortConfig.BuildResource
                 BackendAddressPools = this.BackendAddressPools |> List.map (fun p -> p.Name)
+                BackendHttpSettingsCollection = this.BackendHttpSettingsCollection |> List.map BackendHttpSettingsConfig.BuildResource
 
                 Dependencies =
                     frontendPublicIps
@@ -213,8 +318,6 @@ type AppGatewayConfig =
                 Identity = Unchecked.defaultof<_>
                 AuthenticationCertificates = Unchecked.defaultof<_>
                 AutoscaleConfiguration = Unchecked.defaultof<_>
-                // BackendAddressPools = Unchecked.defaultof<_>
-                BackendHttpSettingsCollection = Unchecked.defaultof<_>
                 CustomErrorConfigurations = Unchecked.defaultof<_>
                 EnableFips = Unchecked.defaultof<_>
                 EnableHttp2 = Unchecked.defaultof<_>
@@ -251,6 +354,7 @@ type AppGatewayBuilder() =
         FrontendIpConfigs = []
         FrontendPorts = []
         BackendAddressPools = []
+        BackendHttpSettingsCollection = []
         Dependencies = Set.empty
         Tags = Map.empty
     }
@@ -275,5 +379,8 @@ type AppGatewayBuilder() =
     [<CustomOperation "add_backend_address_pools">]
     member _.AddBackendAddresspools (state:AppGatewayConfig, backendAddressPools) =
         { state with BackendAddressPools = state.BackendAddressPools @ backendAddressPools }
+    [<CustomOperation "add_backend_https_settings_collection">]
+    member _.AddBackendHttpSettingsCollection (state:AppGatewayConfig, backendHttpSettings) = 
+        { state with BackendHttpSettingsCollection = state.BackendHttpSettingsCollection @ backendHttpSettings }
 
 let appGateway = AppGatewayBuilder()
