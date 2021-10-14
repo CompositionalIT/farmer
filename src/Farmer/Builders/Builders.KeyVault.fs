@@ -86,15 +86,15 @@ type SecretConfig =
     member this.ResourceName = this.Vault |> Option.map (fun x -> x.Name / this.Key)
     member this.ResourceId= this.ResourceName |> Option.map secrets.resourceId
     static member private HandleNoVault () = failwith "Secret must be linked to a vault in order to add it to a deployment"
-    interface IBuilder with 
-        member this.ResourceId = 
+    interface IBuilder with
+        member this.ResourceId =
             match this.ResourceId with
             | None -> SecretConfig.HandleNoVault()
             | Some id -> id
-        member this.BuildResources location = 
+        member this.BuildResources location =
             [ match this.ResourceName with
-              | None -> SecretConfig.HandleNoVault()
-              | Some name -> 
+               | None -> SecretConfig.HandleNoVault()
+               | Some name ->
                   { Name = name
                     Value = this.Value
                     ContentType = this.ContentType
@@ -102,7 +102,7 @@ type SecretConfig =
                     ActivationDate = this.ActivationDate
                     ExpirationDate = this.ExpirationDate
                     Location = location
-                    Dependencies = 
+                    Dependencies =
                       match this.Vault with
                       | Some (Managed id) -> this.Dependencies.Add id
                       | Some (Unmanaged _) -> this.Dependencies
@@ -110,28 +110,45 @@ type SecretConfig =
                     Tags = this.Tags }
             ]
 
-type JSONWEbKeyCurveName =
-    { P256 : string
-      P256K : string
-      P384 : string
-      P521 : string }
+type JSONWebKeyCurveName =
+  | JSONWEbKeyCurveName of string
+    member this.ArmValue = match this with JSONWEbKeyCurveName name -> name
+
+[<AutoOpen>]
+module JSONWebKeyCurveNameExtensions =
+  type JSONWebKeyCurveName with
+    static member P256 = JSONWEbKeyCurveName "P256"
+    static member P256K = JSONWEbKeyCurveName "P256K"
+    static member P384 = JSONWEbKeyCurveName "P384"
+    static member P521 = JSONWEbKeyCurveName "P521"
 
 type JsonWebKeyType =
-    { EC : string
-      ECHSM : string
-      RSA : string
-      RSAHSM : string
-      Oct : string
-      OctHSM : string }
+    | JsonWebKeyType of string
+      member this.ArmValue = match this with JsonWebKeyType t -> t
+
+[<AutoOpen>]
+module JsonWebKeyTypeExtensions =
+  type JsonWebKeyType with
+    static member EC = JsonWebKeyType "EC"
+    static member ECHSM = JsonWebKeyType "EC-HSM"
+    static member RSA = JsonWebKeyType "RSA"
+    static member RSAHSM = JsonWebKeyType "RSA-HSM"
+    static member Oct = JsonWebKeyType "oct"
+    static member OctHSM = JsonWebKeyType "oct-HSM"
 
 type DeletionRecoveryLevel =
-    { CustomizedRecoverable : string
-      CustomizedRecoverablePlusProtectedSubscription : string
-      CustomizedRecoverablePlusPurgeable : string
-      Purgeable : string
-      Recoverable : string
-      RecoverablePlusProtectedSubscription : string
-      RecoverablePlusPurgeable : string }
+    | DeletionRecoveryLevel of string
+      member this.ArmValue = match this with DeletionRecoveryLevel level -> level
+[<AutoOpen>]
+module DeletionRecoveryLevelExtensions =
+  type DeletionRecoveryLevel with
+      static member CustomizedRecoverable = DeletionRecoveryLevel "CustomizedRecoverable"
+      static member CustomizedRecoverablePlusProtectedSubscription = DeletionRecoveryLevel "CustomizedRecoverable+ProtectedSubscription"
+      static member CustomizedRecoverablePlusPurgeable = DeletionRecoveryLevel "CustomizedRecoverable+Purgeable"
+      static member Purgeable = DeletionRecoveryLevel "Purgeable"
+      static member Recoverable = DeletionRecoveryLevel "Recoverable"
+      static member RecoverablePlusProtectedSubscription = DeletionRecoveryLevel "Recoverable+ProtectedSubscription"
+      static member RecoverablePlusPurgeable = DeletionRecoveryLevel "Recoverable+Purgeable"
 
 type KeyAttributes =
     { Created : DateTime
@@ -143,15 +160,32 @@ type KeyAttributes =
       Updated : DateTime }
 
 type KeyConfig =
-    { VaultName: ResourceName
-      KeyName: string
-      Attributes: KeyAttributes option
-      CRV: JSONWEbKeyCurveName option
-      KeyOps: Key Set option
-      KeySize: int option
-      KTY: JsonWebKeyType option
-      PublicExponent: int option
-      Tags: Object option }
+    { VaultName : ResourceName
+      KeyName : ResourceName
+      Attributes : KeyAttributes option
+      CRV : JSONWebKeyCurveName option
+      KeyOps : Key Set option
+      KeySize : int option
+      KTY : JsonWebKeyType option
+      PublicExponent : int
+      Tags : Object option }
+    member this.ResourceId = keys.resourceId (this.VaultName / this.KeyName)
+
+    interface IArmResource with
+        member this.ResourceId = this.ResourceId
+        member this.JsonModel =
+          {| name = (this.VaultName / this.KeyName).Value
+             ``type`` = "Microsoft.KeyVault/vaults/keys"
+             apiVersion = "2019-09-01"
+             tags = this.Tags
+             properties =
+               {| attributes = this.Attributes
+                  crv = this.CRV
+                  kty = this.KTY
+                  key_ops = this.KeyOps
+                  key_size = this.KeySize |}
+          |} :> _
+
 
 type KeyVaultConfig =
     { Name : ResourceName
@@ -213,7 +247,7 @@ type KeyVaultConfig =
 
             keyVault
 
-            yield! 
+            yield!
                 this.Secrets
                 |> List.map (fun s -> {s with Vault = Some (Managed this.ResourceId)})
                 |> List.collect ( fun s -> (s:> IBuilder).BuildResources location )
@@ -464,7 +498,7 @@ type KeyVaultAddPoliciesConfig =
                             |})
                     }
                 ]
-            
+
         member this.ResourceId =
             match this.KeyVault with
             | None -> raiseFarmer "Key vault policy addition must be linked to a key vault to properly assign the resourceId."
