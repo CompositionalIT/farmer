@@ -48,8 +48,8 @@ type GatewayIpBuilder() =
     member _.Name(state:GatewayIpConfig, name) =
         { state with Name = ResourceName name }
     [<CustomOperation "link_to_subnet">]
-    member _.LinktoSubnet(state:GatewayIpConfig, subnet) =
-        { state with Subnet = Some (Unmanaged subnet) }
+    member _.LinktoSubnet(state:GatewayIpConfig, subnet:string) =
+        { state with Subnet = Some (Unmanaged (virtualNetworks.resourceId (ResourceName subnet))) }
 
 let gatewayIp = GatewayIpBuilder()
 
@@ -100,9 +100,9 @@ type FrontendIpBuilder () =
     member _.PublicIp(state:FrontendIpConfig, publicIp) = { state with PublicIp = Some (Managed (Farmer.Arm.Network.publicIPAddresses.resourceId (ResourceName publicIp))) }
     /// Links the frontend to an existing public IP.
     [<CustomOperation "link_to_public_ip">]
-    member _.LinkToPublicIp(state:FrontendIpConfig, publicIp) = { state with PublicIp = Some (Unmanaged publicIp) }
+    member _.LinkToPublicIp(state:FrontendIpConfig, publicIp:string) = { state with PublicIp = Some (Unmanaged (virtualNetworks.resourceId (ResourceName publicIp))) }
 
-let frontend = FrontendIpBuilder()
+let frontendIp = FrontendIpBuilder()
 
 type FrontendPortConfig = 
     {
@@ -130,14 +130,37 @@ type FrontendPortBuilder () =
 
 let frontendPort = FrontendPortBuilder()
 
+type BackendAddressConfig = 
+    {
+        Fqdn : string
+        IpAddress : System.Net.IPAddress
+    }
+    static member BuildResource backendAddress = 
+        {|
+            Fqdn = backendAddress.Fqdn
+            IpAddress = backendAddress.IpAddress
+        |}
+
+type BackendAddressBuilder () =
+    member _.Yield _ =
+        {
+            Fqdn = ""
+            IpAddress = System.Net.IPAddress.None
+        }
+    [<CustomOperation "fqdn">]
+    member _.Fqdn (state:BackendAddressConfig, fqdn) =
+        { state with Fqdn = fqdn }
+    [<CustomOperation "ip_address">]
+    member _.IpAddress (state:BackendAddressConfig, ipAddress:string) =
+        { state with IpAddress = System.Net.IPAddress.Parse ipAddress }
+
+let backendAddress = BackendAddressBuilder()
+
 type BackendAddressPoolConfig =
     {
         Name: ResourceName
         ApplicationGateway: ResourceName
-        BackendAddresses:
-            {|  Fqdn : string
-                IpAddress : System.Net.IPAddress
-            |} list
+        BackendAddresses: BackendAddressConfig list
     }
     interface IBuilder with
         member this.ResourceId = ApplicationGatewayBackendAddressPools.resourceId (this.ApplicationGateway, this.Name)
@@ -148,7 +171,13 @@ type BackendAddressPoolConfig =
                 [
                     { Name = this.Name
                       ApplicationGateway = this.ApplicationGateway
-                      ApplicationGatewayBackendAddresses = this.BackendAddresses
+                      ApplicationGatewayBackendAddresses = 
+                        this.BackendAddresses |> List.map (fun backendAddress ->
+                            {|
+                                Fqdn = backendAddress.Fqdn
+                                IpAddress = backendAddress.IpAddress
+                            |}
+                      )
                     }
                 ]
 
@@ -161,26 +190,48 @@ type BackendAddressPoolBuilder () =
         }
     [<CustomOperation "name">]
     member _.Name (state:BackendAddressPoolConfig, name) = 
-        { state with Name = name }
+        { state with Name = ResourceName name }
     [<CustomOperation "application_gateway">]
     member _.ApplicationGateway (state:BackendAddressPoolConfig, applicationGateway) = 
-        { state with ApplicationGateway = applicationGateway }
+        { state with ApplicationGateway = ResourceName applicationGateway }
     [<CustomOperation "add_backend_addresses">]
     member _.BackendAddresses (state:BackendAddressPoolConfig, backendAddresses) = 
         { state with BackendAddresses = state.BackendAddresses @ backendAddresses }
 
-let backendAddressPool = BackendAddressPoolBuilder()
+let appGatewayBackendAddressPool = BackendAddressPoolBuilder()
+
+type ConnectionDrainingConfig = 
+    {
+        DrainTimeoutInSeconds: int<Seconds>
+        Enabled: bool 
+    }
+    static member BuildResource connDraining = 
+        {|
+            DrainTimeoutInSeconds = connDraining.DrainTimeoutInSeconds
+            Enabled = connDraining.Enabled
+        |}
+
+type ConnectionDrainingBuilder () = 
+    member _.Yield _ =
+        {
+            DrainTimeoutInSeconds = 0<Seconds> // TODO value?
+            Enabled = false
+        }
+    [<CustomOperation "drain_timeout">]
+    member _.DrainTimeoutInSeconds (state:ConnectionDrainingConfig, timeout) =
+        { state with DrainTimeoutInSeconds = timeout }
+    [<CustomOperation "enabled">]
+    member _.Enabled (state:ConnectionDrainingConfig, enabled) = 
+        { state with Enabled = enabled }
+
+let connectionDraining = ConnectionDrainingBuilder()
 
 type BackendHttpSettingsConfig = 
     {
         Name: ResourceName
         AffinityCookieName: string option
         AuthenticationCertificates: ResourceName list
-        ConnectionDraining:
-            {| 
-                DrainTimeoutInSeconds: int<Seconds>
-                Enabled: bool 
-            |} option
+        ConnectionDraining: ConnectionDrainingConfig option
         CookieBasedAffinity: FeatureFlag option
         HostName: string option
         Path: string option
@@ -197,7 +248,7 @@ type BackendHttpSettingsConfig =
             Name = backendHttpSettings.Name
             AffinityCookieName = backendHttpSettings.AffinityCookieName
             AuthenticationCertificates = backendHttpSettings.AuthenticationCertificates
-            ConnectionDraining = backendHttpSettings.ConnectionDraining
+            ConnectionDraining = backendHttpSettings.ConnectionDraining |> Option.map ConnectionDrainingConfig.BuildResource
             CookieBasedAffinity = backendHttpSettings.CookieBasedAffinity
             HostName = backendHttpSettings.HostName
             Path = backendHttpSettings.Path
@@ -233,44 +284,43 @@ type BackendHttpSettingsBuilder () =
         { state with Name = ResourceName name }
     [<CustomOperation "affinity_cookie_name">]
     member _.AffinityCookieName (state:BackendHttpSettingsConfig, name) =
-        { state with AffinityCookieName = name }
+        { state with AffinityCookieName = Some name }
     [<CustomOperation "add_auth_certs">]
     member _.AddAuthCerts (state:BackendHttpSettingsConfig, authCerts) =
-        { state with AuthenticationCertificates = state.AuthenticationCertificates @ authCerts }
-    // TODO complex object?
+        { state with AuthenticationCertificates = state.AuthenticationCertificates @ (authCerts |> List.map (fun authCert -> ResourceName authCert)) }
     [<CustomOperation "connection_draining">]
     member _.ConnectionDraining (state:BackendHttpSettingsConfig, connDraining) =
-        { state with ConnectionDraining = connDraining }
-    [<CustomOperation "host_name">]
-    member _.HostName (state:BackendHttpSettingsConfig, name) =
-        { state with HostName = name }
-    [<CustomOperation "path">]
-    member _.Path (state:BackendHttpSettingsConfig, path) =
-        { state with Path = path }
-    [<CustomOperation "port">]
-    member _.Port (state:BackendHttpSettingsConfig, port) =
-        { state with Port = port }
-    [<CustomOperation "protocol">]
-    member _.Protocol (state:BackendHttpSettingsConfig, protocol) =
-        { state with Protocol = protocol }
+        { state with ConnectionDraining = Some connDraining }
     [<CustomOperation "cookie_based_affinity">]
     member _.CookieBasedAffinity (state:BackendHttpSettingsConfig, cookieBasedAffinity) =
-        { state with CookieBasedAffinity = cookieBasedAffinity }
+        { state with CookieBasedAffinity = Some cookieBasedAffinity }
+    [<CustomOperation "host_name">]
+    member _.HostName (state:BackendHttpSettingsConfig, name) =
+        { state with HostName = Some name }
+    [<CustomOperation "path">]
+    member _.Path (state:BackendHttpSettingsConfig, path) =
+        { state with Path = Some path }
+    [<CustomOperation "port">]
+    member _.Port (state:BackendHttpSettingsConfig, port) =
+        { state with Port = Some (uint16 port) }
+    [<CustomOperation "protocol">]
+    member _.Protocol (state:BackendHttpSettingsConfig, protocol) =
+        { state with Protocol = Some protocol }
     [<CustomOperation "pick_host_name_from_backend_address">]
     member _.PickHostNameFromBackendAddress (state:BackendHttpSettingsConfig, pickHostNameFromBackendAddress) =
-        { state with PickHostNameFromBackendAddress = pickHostNameFromBackendAddress }
+        { state with PickHostNameFromBackendAddress = Some pickHostNameFromBackendAddress }
     [<CustomOperation "request_timeout">]
     member _.RequestTimeoutInSeconds (state:BackendHttpSettingsConfig, reqTimeout) =
-        { state with RequestTimeoutInSeconds = reqTimeout }
+        { state with RequestTimeoutInSeconds = Some reqTimeout }
     [<CustomOperation "probe">]
-    member _.Probe (state:BackendHttpSettingsConfig, probe) =
-        { state with Probe = probe }
+    member _.Probe (state:BackendHttpSettingsConfig, probe:string) =
+        { state with Probe = Some (ResourceName probe) }
     [<CustomOperation "probe_enabled">]
     member _.ProbeEnabled (state:BackendHttpSettingsConfig, probeEnabled) =
-        { state with ProbeEnabled = probeEnabled }
+        { state with ProbeEnabled = Some probeEnabled }
     [<CustomOperation "trusted_root_certs">]
-    member _.TrustedRootCertificates (state:BackendHttpSettingsConfig, trustedRootCertificates) =
-        { state with TrustedRootCertificates = trustedRootCertificates }
+    member _.TrustedRootCertificates (state:BackendHttpSettingsConfig, trustedRootCerts) =
+        { state with TrustedRootCertificates = state.TrustedRootCertificates @ (trustedRootCerts |> List.map (fun rootCert -> ResourceName rootCert)) }
     
 let backendHttpSettings = BackendHttpSettingsBuilder()
 
