@@ -1,4 +1,3 @@
-open Farmer.KeyVault
 #r "../../src/Tests/bin/Debug/net5.0/Farmer.dll"
 
 open Farmer
