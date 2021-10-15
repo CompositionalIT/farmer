@@ -8,6 +8,7 @@ weight: 11
 ### Overview
 The KeyVault package contains *four* builders, for the different components used by KeyVault: One for **access policies**, one for **secrets**, one for the overall **keyvault** container, and one for **adding access policies** to an existing key vault.
 
+* Keys (`Microsoft.KeyVault/vaults/keys`)
 * KeyVault (`Microsoft.KeyVault/vaults`)
 * Secrets (`Microsoft.KeyVault/vaults/secrets`)
 * AccessPolicies (`Microsoft.KeyVault/vaults/accessPolicies`)
