@@ -538,7 +538,7 @@ type BackendAddressPool =
         /// Name of the load balancer where this pool will be added.
         ApplicationGateway : ResourceName
         /// Addresses of backend services.
-        ApplicationGatewayBackendAddresses :
+        BackendAddresses :
             {|  Fqdn : string
                 /// IP Address of the backend resource in the pool
                 IpAddress : System.Net.IPAddress
@@ -554,7 +554,7 @@ type BackendAddressPool =
             {| ApplicationGatewayBackendAddressPools.Create(this.Name, dependsOn=dependencies) with
                 name = $"{this.ApplicationGateway.Value}/{this.Name.Value}"
                 properties =
-                    {| backendAddresses = this.ApplicationGatewayBackendAddresses |> List.map (fun addr ->
+                    {| backendAddresses = this.BackendAddresses |> List.map (fun addr ->
                         {| fqdn = addr.Fqdn
                            ipAddress = string addr.IpAddress |}
                        )

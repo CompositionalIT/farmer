@@ -152,9 +152,9 @@ type BackendAddressPoolConfig =
                 raiseFarmer "Application Gateway must be specified for backend address pool."
             else
                 [
-                    { Name = this.Name
+                    { Arm.ApplicationGateway.BackendAddressPool.Name = this.Name
                       ApplicationGateway = this.ApplicationGateway
-                      ApplicationGatewayBackendAddresses = 
+                      BackendAddresses = 
                         this.BackendAddresses |> List.map (fun backendAddress ->
                             {|
                                 Fqdn = backendAddress.Fqdn

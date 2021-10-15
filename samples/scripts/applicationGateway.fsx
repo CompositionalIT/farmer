@@ -1,3 +1,4 @@
+open Farmer.KeyVault
 #r "../../src/Tests/bin/Debug/net5.0/Farmer.dll"
 
 open Farmer
@@ -12,9 +13,9 @@ open Farmer.Arm.ApplicationGateway
 
 let gwPolicy = securityRule {
     name "app-gw"
-    description "Public web server access"
+    description "GatewayManager"
     services [ NetworkService ("GatewayManager", Range (65200us,65535us)) ]
-    add_source_tag NetworkSecurity.TCP "Internet"
+    add_source_tag NetworkSecurity.TCP "GatewayManager"
     add_destination_any
 }
 let appPolicy = securityRule {
@@ -42,7 +43,6 @@ let publicIp =
             |}
         properties =
             {|
-                ipAddress = "168.62.39.164"
                 publicIPAddressVersion = "IPv4"
                 publicIPAllocationMethod = "Static"
                 idleTimeoutInMinutes = 4
@@ -61,7 +61,7 @@ let net = vnet {
             space "10.28.0.0/16"
             subnets [
                 subnetSpec {
-                    name "web"
+                    name "gw"
                     size 24
                     network_security_group myNsg
                 }
@@ -86,14 +86,14 @@ let backendPool =
     {
         Name = ResourceName "agw-be-pool"
         ApplicationGateway = ResourceName "agw-test"
-        ApplicationGatewayBackendAddresses = [
+        BackendAddresses = [
             {|
                 Fqdn = Unchecked.defaultof<_>
-                IpAddress = System.Net.IPAddress.Parse "10.0.1.4"
+                IpAddress = System.Net.IPAddress.Parse "10.28.1.4"
             |}
             {|
                 Fqdn = Unchecked.defaultof<_>
-                IpAddress = System.Net.IPAddress.Parse "10.0.1.5"
+                IpAddress = System.Net.IPAddress.Parse "10.28.1.5"
             |}
         ]
     }
@@ -112,7 +112,7 @@ let (agw:ApplicationGateway) = {
     FrontendIpConfigs = [
         {|
             Name = ResourceName "frontend-ip"
-            PublicIp = Some (publicIPAddresses.resourceId "agw-pip")
+            PublicIp = Some (publicIPAddresses.resourceId publicIp.name)
             PrivateIpAllocationMethod = PrivateIpAddress.DynamicPrivateIp
         |}
     ]
@@ -130,7 +130,7 @@ let (agw:ApplicationGateway) = {
     HttpListeners = [
         {|
             Name = ResourceName "http-listener"
-            BackendAddressPool = ResourceName "agw-be-pool"
+            BackendAddressPool = backendPool.Name
             FrontendIpConfiguration = ResourceName "frontend-ip"
             FrontendPort = ResourceName "port-80"
             Protocol = Protocol.Http
@@ -148,7 +148,7 @@ let (agw:ApplicationGateway) = {
             Name = ResourceName "rr"
             RuleType = RuleType.Basic
             HttpListener = ResourceName "http-listener"
-            BackendAddressPool = ResourceName "agw-be-pool"
+            BackendAddressPool = backendPool.Name
             BackendHttpSettings = ResourceName "bp-default-web-80-9090-web"
             RedirectConfiguration = None
             RewriteRuleSet = None
@@ -159,12 +159,6 @@ let (agw:ApplicationGateway) = {
     RedirectConfigurations = []
     RewriteRuleSets = []
     SslCertificates = [
-        {|
-            Data = None
-            Password = None
-            Name = ResourceName "cert"
-            KeyVaultSecretId = "https://avs-scripting-dev-kv.vault.azure.net/secrets/avs-scripting-dev-eastus-cloudapp-azure-com"
-        |}
     ]
     SslPolicy = None
     SslProfiles = []
@@ -208,7 +202,10 @@ let (agw:ApplicationGateway) = {
     ]
     AuthenticationCertificates = []
     AutoscaleConfiguration = None
-    Dependencies = Set.empty
+    Dependencies = [
+        Arm.NetworkSecurityGroup.networkSecurityGroups.resourceId myNsg.Name
+        net.ResourceId
+    ] |> Set.ofList
     Tags = Map.empty
 }
 
