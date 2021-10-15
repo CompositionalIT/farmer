@@ -9,21 +9,6 @@ open Farmer.ApplicationGateway
 open Farmer.Arm.Network
 open Farmer.Arm.ApplicationGateway
 
-let backendPool =
-    {
-        Name = ResourceName "agw-be-pool"
-        ApplicationGateway = ResourceName "agw-test"
-        ApplicationGatewayBackendAddresses = [
-            {|
-                Fqdn = Unchecked.defaultof<_>
-                IpAddress = System.Net.IPAddress.Parse "10.0.1.4"
-            |}
-            {|
-                Fqdn = Unchecked.defaultof<_>
-                IpAddress = System.Net.IPAddress.Parse "10.0.1.5"
-            |}
-        ]
-    }
 
 let gwPolicy = securityRule {
     name "app-gw"
@@ -43,6 +28,32 @@ let myNsg = nsg {
     name "agw-nsg"
     add_rules [ gwPolicy; appPolicy ]
 }
+
+let publicIp = 
+    {|
+        ``type`` = "Microsoft.Network/publicIPAddresses"
+        apiVersion = "2020-11-01"
+        name = "agw-pip"
+        location = "eastus"
+        sku =
+            {|
+                name = "Standard"
+                tier = "Regional"
+            |}
+        properties =
+            {|
+                ipAddress = "168.62.39.164"
+                publicIPAddressVersion = "IPv4"
+                publicIPAllocationMethod = "Static"
+                idleTimeoutInMinutes = 4
+                dnsSettings =
+                    {|
+                        domainNameLabel = "agw-pip"
+                        fqdn = "agw-pip.eastus.cloudapp.azure.com"
+                    |}
+            |}
+    |}
+
 let net = vnet {
     name "agw-vnet"
     build_address_spaces [
@@ -67,21 +78,41 @@ let net = vnet {
         }
     ]
 }
+let msi = userAssignedIdentity {
+            name "agw-msi"
+        }
+
+let backendPool =
+    {
+        Name = ResourceName "agw-be-pool"
+        ApplicationGateway = ResourceName "agw-test"
+        ApplicationGatewayBackendAddresses = [
+            {|
+                Fqdn = Unchecked.defaultof<_>
+                IpAddress = System.Net.IPAddress.Parse "10.0.1.4"
+            |}
+            {|
+                Fqdn = Unchecked.defaultof<_>
+                IpAddress = System.Net.IPAddress.Parse "10.0.1.5"
+            |}
+        ]
+    }
+
 let (agw:ApplicationGateway) = {
     Name = ResourceName "agw-test"
     Location = Location.EastUS
     Sku = { Name = Sku.Standard_v2; Tier = Tier.Standard_v2; Capacity = Some 2 }
-    Identity = ManagedIdentity.Empty
+    Identity = ManagedIdentity.create(Farmer.Arm.ManagedIdentity.userAssignedIdentities.resourceId msi.Name)
     GatewayIPConfigurations = [
         {| 
             Name = ResourceName "agw-gwip"
-            Subnet = subnets.resourceId net.Subnets.[0].Name |> Some
+            Subnet = subnets.resourceId (net.Name, net.Subnets.[0].Name) |> Some
         |}
     ]
     FrontendIpConfigs = [
         {|
             Name = ResourceName "frontend-ip"
-            PublicIp = Some (publicIPAddresses.resourceId "agw-test-pip")
+            PublicIp = Some (publicIPAddresses.resourceId "agw-pip")
             PrivateIpAllocationMethod = PrivateIpAddress.DynamicPrivateIp
         |}
     ]
@@ -92,8 +123,8 @@ let (agw:ApplicationGateway) = {
         |}
     ]
     CustomErrorConfigurations = []
-    EnableFips = false
-    EnableHttp2 = false
+    EnableFips = None
+    EnableHttp2 = None
     FirewallPolicy = None
     ForceFirewallPolicyAssociation = false
     HttpListeners = [
@@ -118,7 +149,7 @@ let (agw:ApplicationGateway) = {
             RuleType = RuleType.Basic
             HttpListener = ResourceName "http-listener"
             BackendAddressPool = ResourceName "agw-be-pool"
-            BackendHttpSettings = ResourceName "agw-settings"
+            BackendHttpSettings = ResourceName "bp-default-web-80-9090-web"
             RedirectConfiguration = None
             RewriteRuleSet = None
             UrlPathMap = None
@@ -185,9 +216,11 @@ let (agw:ApplicationGateway) = {
 arm {
     location Location.EastUS
     add_resources [
+        msi
         net
         myNsg
     ]
+    add_resource (Resource.ofObj publicIp)
     add_resource agw
     add_resource backendPool
 } |> Writer.quickWrite "AGW"
