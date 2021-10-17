@@ -200,4 +200,50 @@ let tests = testList "KeyVault" [
         | :? Arm.KeyVault.Vaults.Secret as secret -> ()
         | x -> failwith $"resource was expected to be of type {typeof<Arm.KeyVault.Vaults.Secret>} but was {x.GetType()}"
     }
+    test "Adding keys with key vault" {
+        let vault =
+            keyVault {
+                name "TestFarmVault"
+                tenant_id Subscription.TenantId
+                add_keys [
+                    key {
+                        name "testKeyInlineRsa"
+                        key_type KeyType.RSA_4096
+                        key_operations [ KeyOperation.Encrypt; KeyOperation.Sign; KeyOperation.Verify ]
+                    }
+                    key {
+                        name "testKeyInlineEc"
+                        key_type KeyType.EC_P256
+                    }
+                ]
+            }
+        let deployment = arm { add_resource vault }
+        let jobj = JObject.Parse (deployment.Template |> Writer.toJson)
+        let rsaKey = jobj.SelectToken("$.resources[?(@.name=='TestFarmVault/testKeyInlineRsa')]")
+        Expect.isNotNull rsaKey "Unable to find 'testKeyInlineRsa'"
+        Expect.equal (int rsaKey.["properties"].["keySize"]) 4096 "Incorrect RSA key size"
+        Expect.equal (string rsaKey.["properties"].["kty"]) "RSA" "Incorrect RSA key type"
+        Expect.isNull rsaKey.["properties"].["curveName"] "RSA key should not have curveName"
+        let ecKey = jobj.SelectToken("$.resources[?(@.name=='TestFarmVault/testKeyInlineEc')]")
+        Expect.isNotNull ecKey "Unable to find 'testKeyInlineEc'"
+        Expect.equal (string ecKey.["properties"].["kty"]) "EC" "Incorrect EC key type"
+        Expect.equal (string ecKey.["properties"].["curveName"]) "P-256" "Incorrect EC curveName"
+        Expect.isNull ecKey.["properties"].["keySize"] "Elliptic curve key should not have keySize"
+    }
+    test "Adding standalone keys to key vault" {
+        let vault = keyVault { name "TestFarmVault" }
+        let myKey = key {
+            name "testKey"
+            key_type KeyType.RSA_4096
+            link_to_unmanaged_keyvault vault
+            key_operations [ KeyOperation.Encrypt ]
+        }
+        let deployment = arm { add_resource myKey }
+        let jobj = JObject.Parse (deployment.Template |> Writer.toJson)
+        let key = jobj.SelectToken("$.resources[?(@.name=='TestFarmVault/testKey')]")
+        Expect.isNotNull key "Unable to find 'testKey'"
+        Expect.equal (int key.["properties"].["keySize"]) 4096 "Incorrect RSA key size"
+        Expect.equal (string key.["properties"].["kty"]) "RSA" "Incorrect RSA key type"
+        Expect.isEmpty key.["dependsOn"] "Standalone key should not have dependsOn"
+    }
 ]
