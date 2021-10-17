@@ -51,7 +51,7 @@ let tests = testList "KeyVault" [
     }
     test "Creates key vault secrets correctly" {
         let parameterSecret = SecretConfig.create "test"
-        Expect.equal parameterSecret.Key "test" "Invalid name of simple secret"
+        Expect.equal parameterSecret.SecretName "test" "Invalid name of simple secret"
         Expect.equal parameterSecret.Value (ParameterSecret (SecureParameter "test")) "Invalid value of parameter secret"
 
         let sa = storageAccount { name "storage" }

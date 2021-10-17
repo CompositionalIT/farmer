@@ -1,9 +1,8 @@
-#r @"..\..\src\Farmer\bin\Debug\net5.0\Farmer.dll"
+#r @"../../src/Farmer/bin/Debug/net5.0/Farmer.dll"
 
 open Farmer
 open Farmer.Builders
 open Farmer.KeyVault
-open Farmer.Arm.KeyVault.Keys
 
 let vault =
     keyVault {
@@ -15,20 +14,22 @@ let vault =
     }
 
 
-let key: KeyVaultKey = {
+let key: Arm.KeyVault.Vaults.Key = {
     VaultName = vault.Name
     KeyName = ResourceName "TestKey"
     Attributes = None
     Location = Location.EastUS
-    CurveName = Some JSONWebKeyCurveName.P256
-    KeyOps = Some JsonWebKeyOperation.Encrypt
+    CurveName = Some KeyCurveName.P256
+    KeyOps = Some KeyOperation.Encrypt
     KeySize = None
-    KTY = Some JsonWebKeyType.RSAHSM
+    KTY = Some KeyType.RSA
+    Dependencies = Set.empty
     Tags = Map.empty
 }
 
 let deployment = arm {
     location Location.EastUS
+    add_resource vault
     add_resource key
 }
 

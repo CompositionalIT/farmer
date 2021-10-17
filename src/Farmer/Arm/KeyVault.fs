@@ -42,6 +42,32 @@ module Vaults =
                             |}
                         |}
                 |} :> _
+    let private armValue armValue (a: 'a option) =
+      a |> Option.map armValue |> Option.defaultValue Unchecked.defaultof<_>
+    type Key =
+        { VaultName : ResourceName
+          KeyName : ResourceName
+          Location : Location
+          Attributes : KeyAttributes option
+          CurveName : KeyCurveName option
+          KeyOps : KeyOperation option
+          KeySize : int option
+          KTY : KeyType option
+          Dependencies : ResourceId Set
+          Tags : Map<string, string> }
+        member this.Name = this.VaultName / this.KeyName
+        member this.ResourceId = keys.resourceId this.Name
+        interface IArmResource with
+            member this.ResourceId = this.ResourceId
+            member this.JsonModel =
+              {| keys.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
+                   properties =
+                     {| attributes = this.Attributes |> armValue  KeyAttributes.ArmValue
+                        curveName =  this.CurveName |> armValue KeyCurveName.ArmValue
+                        kty = this.KTY |> armValue KeyType.ArmValue
+                        key_ops = this.KeyOps |> armValue KeyOperation.ArmValue
+                        key_size = this.KeySize |> Option.defaultValue 2048 |}
+              |} :> _
 
 type CreateMode = Recover | Default
 type Vault =
@@ -160,74 +186,3 @@ type VaultAddPolicies =
                        |]
                     |}
             |} :> _
-
-module Keys =
-    type JSONWebKeyCurveName =
-        | P256
-        | P256K
-        | P384
-        | P521
-        static member ArmValue = function
-          | P256 -> "P-256"
-          | P256K -> "P-256K"
-          | P384 -> "P-384"
-          | P521 -> "P-521"
-    type JsonWebKeyType =
-        | EC
-        | ECHSM
-        | RSA
-        | RSAHSM
-        static member ArmValue = function
-          | EC -> "EC"
-          | ECHSM -> "EC-HSM"
-          | RSA -> "RSA"
-          | RSAHSM -> "RSA-HSM"
-    type KeyAttributes =
-        { Enabled : bool
-          Exp : DateTime
-          NBF : DateTime }
-        static member ArmValue(a: KeyAttributes) =
-          {| enabled = a.Enabled
-             exp = DateTimeOffset(a.Exp).ToUnixTimeSeconds()
-             nbf = DateTimeOffset(a.NBF).ToUnixTimeSeconds() |}
-
-    type JsonWebKeyOperation =
-       | Encrypt
-       | Decrypt
-       | WrapKey
-       | UnwrapKey
-       | Sign
-       | Verify
-        static member ArmValue = function
-           | Encrypt -> "encrypt"
-           | Decrypt -> "decrypt"
-           | WrapKey -> "wrapKey"
-           | UnwrapKey -> "unwrapKey"
-           | Sign -> "sign"
-           | Verify -> "verify"
-
-    let private armValue armValue (a: 'a option) =
-      a |> Option.map armValue |> Option.defaultValue Unchecked.defaultof<_>
-    type KeyVaultKey =
-        { VaultName : ResourceName
-          KeyName : ResourceName
-          Location : Location
-          Attributes : KeyAttributes option
-          CurveName : JSONWebKeyCurveName option
-          KeyOps : JsonWebKeyOperation option
-          KeySize : int option
-          KTY : JsonWebKeyType option
-          Tags : Map<string, string> }
-        member this.Name = this.VaultName / this.KeyName
-        member this.ResourceId = keys.resourceId this.Name
-        interface IArmResource with
-            member this.ResourceId = this.ResourceId
-            member this.JsonModel =
-              {| keys.Create(this.Name, this.Location, [vaults.resourceId this.VaultName], this.Tags) with
-                   properties =
-                     {| attributes = this.Attributes |> armValue  KeyAttributes.ArmValue
-                        curveName =  this.CurveName |> armValue JSONWebKeyCurveName.ArmValue
-                        kty = this.KTY |> armValue JsonWebKeyType.ArmValue
-                        key_ops = this.KeyOps |> armValue JsonWebKeyOperation.ArmValue
-                        key_size = this.KeySize |> Option.defaultValue 2048 |}
-              |} :> _

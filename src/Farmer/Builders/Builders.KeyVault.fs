@@ -11,7 +11,7 @@ type AccessPolicyConfig =
     { ObjectId : ArmExpression
       ApplicationId : Guid option
       Permissions :
-        {| Keys : Key Set
+        {| Keys : KeyVault.Key Set
            Secrets : KeyVault.Secret Set
            Certificates : Certificate Set
            Storage : Storage Set |}
@@ -40,7 +40,7 @@ type NetworkAcl =
       Bypass : Bypass option }
 
 type SecretConfig =
-    { Key : string
+    { SecretName : string
       Vault: LinkedResource option
       Value : SecretValue
       ContentType : string option
@@ -50,7 +50,7 @@ type SecretConfig =
       Dependencies : ResourceId Set
       Tags: Map<string,string> }
     static member internal createUnsafe key =
-        { Key = key
+        { SecretName = key
           Vault = None
           Value = ParameterSecret(SecureParameter key)
           ContentType = None
@@ -72,18 +72,18 @@ type SecretConfig =
             raiseFarmer $"Key Vault key names must be a 1-127 character string, starting with a letter and containing only 0-9, a-z, A-Z, and -. '{key}' is invalid."
         else
             ()
-    static member create (key:string) =
-        SecretConfig.isValid key
-        SecretConfig.createUnsafe key
-    static member create (key, expression) =
-        { SecretConfig.create key with
+    static member create (secretName:string) =
+        SecretConfig.isValid secretName
+        SecretConfig.createUnsafe secretName
+    static member create (secretName, expression) =
+        { SecretConfig.create secretName with
             Value = ExpressionSecret expression
             Dependencies =
                 match expression.Owner with
                 | Some owner -> Set.ofList [ owner ]
                 | None -> raiseFarmer $"The supplied ARM expression ('{expression.Value}') has no resource owner. You should explicitly set this using WithOwner(), supplying the Resource Name of the owner."
         }
-    member this.ResourceName = this.Vault |> Option.map (fun x -> x.Name / this.Key)
+    member this.ResourceName = this.Vault |> Option.map (fun x -> x.Name / this.SecretName)
     member this.ResourceId= this.ResourceName |> Option.map secrets.resourceId
     static member private HandleNoVault () = failwith "Secret must be linked to a vault in order to add it to a deployment"
     interface IBuilder with
@@ -370,11 +370,11 @@ type KeyVaultBuilder() =
 
 type SecretBuilder() =
     member _.Run(state:SecretConfig) =
-        SecretConfig.isValid state.Key
+        SecretConfig.isValid state.SecretName
         state
     member _.Yield (_:unit) = SecretConfig.createUnsafe ""
     [<CustomOperation "name">]
-    member _.Name(state:SecretConfig, name) = { state with Key = name; Value = ParameterSecret(SecureParameter name) }
+    member _.Name(state:SecretConfig, name) = { state with SecretName = name; Value = ParameterSecret(SecureParameter name) }
     [<CustomOperation "value">]
     member _.Value(state:SecretConfig, value) = { state with Value = ExpressionSecret value }
     [<CustomOperation "content_type">]

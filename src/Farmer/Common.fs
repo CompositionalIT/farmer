@@ -998,6 +998,49 @@ module KeyVault =
             | Standard -> "standard"
             | Premium -> "premium"
 
+    type KeyCurveName =
+        | P256
+        | P256K
+        | P384
+        | P521
+        static member ArmValue = function
+          | P256 -> "P-256"
+          | P256K -> "P-256K"
+          | P384 -> "P-384"
+          | P521 -> "P-521"
+    type KeyType =
+        | EC
+        | ECHSM
+        | RSA
+        | RSAHSM
+        static member ArmValue = function
+          | EC -> "EC"
+          | ECHSM -> "EC-HSM"
+          | RSA -> "RSA"
+          | RSAHSM -> "RSA-HSM"
+    type KeyAttributes =
+        { Enabled : bool
+          Exp : DateTime
+          NBF : DateTime }
+        static member ArmValue(a: KeyAttributes) =
+          {| enabled = a.Enabled
+             exp = DateTimeOffset(a.Exp).ToUnixTimeSeconds()
+             nbf = DateTimeOffset(a.NBF).ToUnixTimeSeconds() |}
+    type KeyOperation =
+       | Encrypt
+       | Decrypt
+       | WrapKey
+       | UnwrapKey
+       | Sign
+       | Verify
+        static member ArmValue = function
+           | Encrypt -> "encrypt"
+           | Decrypt -> "decrypt"
+           | WrapKey -> "wrapKey"
+           | UnwrapKey -> "unwrapKey"
+           | Sign -> "sign"
+           | Verify -> "verify"
+
 module ExpressRoute =
     type Tier = Standard | Premium
     type Family = UnlimitedData | MeteredData
