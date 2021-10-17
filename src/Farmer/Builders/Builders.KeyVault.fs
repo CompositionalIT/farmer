@@ -117,7 +117,6 @@ type SecretConfig =
           ActivationDate : DateTime option
           ExpirationDate : DateTime option
           KeyOps : KeyOperation list
-          KeySize : int
           KTY : KeyType
           Dependencies : ResourceId Set
           Tags : Map<string, string> }
@@ -136,7 +135,6 @@ type SecretConfig =
                     { KeyName = this.KeyName
                       VaultName = this.vault.Name
                       KeyOps = this.KeyOps
-                      KeySize = this.KeySize
                       KTY = this.KTY
                       Location = location
                       Enabled = this.Enabled
@@ -430,8 +428,7 @@ type KeyBuilder() =
           ActivationDate = None
           ExpirationDate = None
           KeyOps = []
-          KeySize = 2048
-          KTY = KeyType.RSA
+          KTY = KeyType.RSA_2048
           Dependencies = Set.empty
           Tags = Map.empty }
     [<CustomOperation "name">]
@@ -446,8 +443,6 @@ type KeyBuilder() =
     member _.ExpirationDate(state:KeyConfig, expirationDate) = { state with ExpirationDate = Some expirationDate }
     [<CustomOperation "key_operations">]
     member _.KeyOperations(state:KeyConfig, keyOperations:KeyOperation list) = { state with KeyOps = keyOperations }
-    [<CustomOperation "key_size">]
-    member _.KeySize(state:KeyConfig, keySize:int) = { state with KeySize = keySize }
     [<CustomOperation "key_type">]
     member _.KeyType(state:KeyConfig, keyType:KeyType) = { state with KTY = keyType }
     [<CustomOperation "link_to_unmanaged_keyvault">]

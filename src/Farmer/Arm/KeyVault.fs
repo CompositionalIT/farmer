@@ -52,7 +52,6 @@ module Vaults =
           ActivationDate : DateTime option
           ExpirationDate : DateTime option
           KeyOps : KeyOperation list
-          KeySize : int
           KTY : KeyType
           Dependencies : ResourceId Set
           Tags : Map<string, string> }
@@ -75,7 +74,11 @@ module Vaults =
                         keyOps =
                             if this.KeyOps.IsEmpty then Unchecked.defaultof<_>
                             else this.KeyOps |> List.map KeyOperation.ArmValue
-                        keySize = this.KeySize |}
+                        keySize =
+                            match this.KTY with
+                            | RSA (RsaKeyLength keySize) -> box keySize
+                            | RSAHSM (RsaKeyLength keySize) -> box keySize
+                            | _ -> null |}
               |} :> _
 
 type CreateMode = Recover | Default

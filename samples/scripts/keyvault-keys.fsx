@@ -9,18 +9,23 @@ let vault =
         name "TestFarmVault"
         sku Sku.Standard
         tenant_id Subscription.TenantId
-        add_secret "simpleSecret"
         add_tag "test" "test"
         add_keys [
             key {
                 name "testKeyInline1"
+                key_type KeyType.RSA_4096
+            }
+            key {
+                name "testKeyInline2"
+                key_type KeyType.EC_P256
             }
         ]
     }
 
 
 let myKey = key {
-    name "TestKey"
+    name "testKey3"
+    key_type KeyType.RSA_4096
     link_to_unmanaged_keyvault vault
     key_operations [ KeyOperation.Encrypt ]
 }
