@@ -998,6 +998,50 @@ module KeyVault =
             | Standard -> "standard"
             | Premium -> "premium"
 
+    type KeyCurveName =
+        | P256
+        | P256K
+        | P384
+        | P521
+        static member ArmValue = function
+          | P256 -> "P-256"
+          | P256K -> "P-256K"
+          | P384 -> "P-384"
+          | P521 -> "P-521"
+    type RsaKeyLength = RsaKeyLength of int
+    type KeyType =
+        | EC of KeyCurveName
+        | ECHSM of KeyCurveName
+        | RSA of RsaKeyLength
+        | RSAHSM of RsaKeyLength
+        static member ArmValue = function
+          | EC _ -> "EC"
+          | ECHSM _ -> "EC-HSM"
+          | RSA _ -> "RSA"
+          | RSAHSM _ -> "RSA-HSM"
+        static member RSA_2048 = RSA (RsaKeyLength 2048)
+        static member  RSA_3072 = RSA (RsaKeyLength 3072)
+        static member  RSA_4096 = RSA (RsaKeyLength 4096)
+        static member  EC_P256 = EC P256
+        static member  EC_P384 = EC P384
+        static member  EC_P521 = EC P521
+        static member  EC_P256K = EC P256K
+
+    type KeyOperation =
+       | Encrypt
+       | Decrypt
+       | WrapKey
+       | UnwrapKey
+       | Sign
+       | Verify
+        static member ArmValue = function
+           | Encrypt -> "encrypt"
+           | Decrypt -> "decrypt"
+           | WrapKey -> "wrapKey"
+           | UnwrapKey -> "unwrapKey"
+           | Sign -> "sign"
+           | Verify -> "verify"
+
 module ExpressRoute =
     type Tier = Standard | Premium
     type Family = UnlimitedData | MeteredData
