@@ -11,26 +11,24 @@ let vault =
         tenant_id Subscription.TenantId
         add_secret "simpleSecret"
         add_tag "test" "test"
+        add_keys [
+            key {
+                name "testKeyInline1"
+            }
+        ]
     }
 
 
-let key: Arm.KeyVault.Vaults.Key = {
-    VaultName = vault.Name
-    KeyName = ResourceName "TestKey"
-    Attributes = None
-    Location = Location.EastUS
-    CurveName = Some KeyCurveName.P256
-    KeyOps = Some KeyOperation.Encrypt
-    KeySize = None
-    KTY = Some KeyType.RSA
-    Dependencies = Set.empty
-    Tags = Map.empty
+let myKey = key {
+    name "TestKey"
+    link_to_unmanaged_keyvault vault
+    key_operations [ KeyOperation.Encrypt ]
 }
 
 let deployment = arm {
     location Location.EastUS
     add_resource vault
-    add_resource key
+    add_resource myKey
 }
 
 deployment

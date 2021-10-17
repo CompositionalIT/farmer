@@ -48,11 +48,12 @@ module Vaults =
         { VaultName : ResourceName
           KeyName : ResourceName
           Location : Location
-          Attributes : KeyAttributes option
-          CurveName : KeyCurveName option
-          KeyOps : KeyOperation option
-          KeySize : int option
-          KTY : KeyType option
+          Enabled : bool option
+          ActivationDate : DateTime option
+          ExpirationDate : DateTime option
+          KeyOps : KeyOperation list
+          KeySize : int
+          KTY : KeyType
           Dependencies : ResourceId Set
           Tags : Map<string, string> }
         member this.Name = this.VaultName / this.KeyName
@@ -62,11 +63,19 @@ module Vaults =
             member this.JsonModel =
               {| keys.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
                    properties =
-                     {| attributes = this.Attributes |> armValue  KeyAttributes.ArmValue
-                        curveName =  this.CurveName |> armValue KeyCurveName.ArmValue
-                        kty = this.KTY |> armValue KeyType.ArmValue
-                        key_ops = this.KeyOps |> armValue KeyOperation.ArmValue
-                        key_size = this.KeySize |> Option.defaultValue 2048 |}
+                     {| attributes =
+                          {| enabled = this.Enabled |> Option.toNullable
+                             exp = this.ExpirationDate |> Option.map (fun exp -> DateTimeOffset(exp).ToUnixTimeSeconds())
+                             nbf = this.ActivationDate |> Option.map (fun nbf -> DateTimeOffset(nbf).ToUnixTimeSeconds()) |}
+                        curveName =
+                            match this.KTY with
+                            | EC curveName | ECHSM curveName -> curveName |> KeyCurveName.ArmValue
+                            | _ -> null
+                        kty = this.KTY |> KeyType.ArmValue
+                        keyOps =
+                            if this.KeyOps.IsEmpty then Unchecked.defaultof<_>
+                            else this.KeyOps |> List.map KeyOperation.ArmValue
+                        keySize = this.KeySize |}
               |} :> _
 
 type CreateMode = Recover | Default

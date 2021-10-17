@@ -1009,23 +1009,16 @@ module KeyVault =
           | P384 -> "P-384"
           | P521 -> "P-521"
     type KeyType =
-        | EC
-        | ECHSM
+        | EC of KeyCurveName
+        | ECHSM of KeyCurveName
         | RSA
         | RSAHSM
         static member ArmValue = function
-          | EC -> "EC"
-          | ECHSM -> "EC-HSM"
+          | EC _ -> "EC"
+          | ECHSM _ -> "EC-HSM"
           | RSA -> "RSA"
           | RSAHSM -> "RSA-HSM"
-    type KeyAttributes =
-        { Enabled : bool
-          Exp : DateTime
-          NBF : DateTime }
-        static member ArmValue(a: KeyAttributes) =
-          {| enabled = a.Enabled
-             exp = DateTimeOffset(a.Exp).ToUnixTimeSeconds()
-             nbf = DateTimeOffset(a.NBF).ToUnixTimeSeconds() |}
+
     type KeyOperation =
        | Encrypt
        | Decrypt
