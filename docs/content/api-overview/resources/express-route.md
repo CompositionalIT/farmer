@@ -37,6 +37,7 @@ An ExpressRoute circuit is a dedicated link to Azure to provide communication wi
 | Member | Purpose |
 |-|-|
 | ServiceKey | An ARM expression path to get the service key on the newly created circuit. |
+| AuthorizationKey <name> | An ARM expression path to get an authorization key by name. |
 
 #### Example
 
@@ -70,5 +71,6 @@ let circuit = expressRoute {
 arm {
     add_resource circuit
     output "er-service-key" circuit.ServiceKey
+    output "auth-key" (er.AuthorizationKey "authkey1")
 }
 ```

@@ -35,37 +35,54 @@ let tests = testList "ExpressRoute" [
     }
 
     test "Can create an ExR with one private peering and one authorization" {
-        let resource =
-            let er = expressRoute {
-                name "my-circuit"
-                service_provider "My ISP"
-                peering_location "My ISP's Location"
-                add_peerings [
-                    peering {
-                        azure_asn 65412
-                        peer_asn 39917L
-                        vlan 199
-                        primary_prefix (IPAddressCidr.parse "10.99.250.0/30")
-                        secondary_prefix (IPAddressCidr.parse "10.99.250.4/30")
-                    }
-                ]
-                add_authorizations [
-                    "myauth"
-                ]
-                enable_global_reach
+        let er = expressRoute {
+            name "my-circuit"
+            service_provider "My ISP"
+            peering_location "My ISP's Location"
+            add_peerings [
+                peering {
+                    azure_asn 65412
+                    peer_asn 39917L
+                    vlan 199
+                    primary_prefix (IPAddressCidr.parse "10.99.250.0/30")
+                    secondary_prefix (IPAddressCidr.parse "10.99.250.4/30")
+                }
+            ]
+            add_authorizations [
+                "myauth"
+            ]
+            enable_global_reach
+        }
+
+        let deployment =
+            arm {
+                add_resource er
+                output "auth-key" (er.AuthorizationKey "myauth")
             }
-            
-            arm { add_resource er }
+
+        let circuit =
+            deployment
             |> findAzureResources<ExpressRouteCircuit> client.SerializationSettings
             |> List.head
 
-        Expect.hasLength resource.Peerings 1 "Circuit has incorrect number of peerings"
-        Expect.equal resource.Peerings.[0].AzureASN (Nullable 65412) ""
-        Expect.equal resource.Peerings.[0].PeerASN (Nullable 39917L) ""
-        Expect.equal resource.Peerings.[0].VlanId (Nullable 199) ""
-        Expect.equal resource.Peerings.[0].PrimaryPeerAddressPrefix "10.99.250.0/30" ""
-        Expect.hasLength resource.Authorizations 1 "Circuit has incorrect number of authorization"
-        Expect.equal resource.Authorizations.[0].Name "myauth" "Missing authorization in request"
+        Expect.hasLength circuit.Peerings 1 "Circuit has incorrect number of peerings"
+        Expect.equal circuit.Peerings.[0].AzureASN (Nullable 65412) ""
+        Expect.equal circuit.Peerings.[0].PeerASN (Nullable 39917L) ""
+        Expect.equal circuit.Peerings.[0].VlanId (Nullable 199) ""
+        Expect.equal circuit.Peerings.[0].PrimaryPeerAddressPrefix "10.99.250.0/30" ""
+        
+        let auth =
+            deployment
+            |> findAzureResources<ExpressRouteCircuitAuthorization> client.SerializationSettings
+            |> List.item 1
+
+        Expect.equal auth.Name "my-circuit/myauth" "Missing authorization in request"
+        
+        Expect.hasLength deployment.Outputs 1 "Missing deployment output for authorization key"
+        Expect.equal
+            deployment.Outputs.["auth-key"]
+            "[reference(resourceId('Microsoft.Network/expressRouteCircuits/authorizations', 'my-circuit', 'myauth')).authorizationKey]"
+            "Incorrect auth key reference"
     }
 
     test "Can create an ExR with global reach, premium tier, unlimited data" {

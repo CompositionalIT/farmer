@@ -80,15 +80,22 @@ type ExpressRouteConfig =
     /// Authorizations requested on this circuit
     Authorizations : ResourceName list
     Tags: Map<string,string>  }
+
     /// Returns the service key on the newly created circuit.
     member this.ServiceKey =
         let erId = ResourceId.create(Arm.Network.expressRouteCircuits, this.Name)
         $"reference({erId.ArmExpression.Value}).serviceKey"
         |> ArmExpression.create
 
+    /// Returns an authorization key by name.
+    member this.AuthorizationKey (authKeyName:string) =
+        let erAuthId = expressRouteCircuitAuthorizations.resourceId (this.Name, ResourceName authKeyName)
+        $"reference({erAuthId.ArmExpression.Value}).authorizationKey"
+        |> ArmExpression.create
+
     interface IBuilder with
         member this.ResourceId = expressRouteCircuits.resourceId this.Name
-        member this.BuildResources location = [
+        member this.BuildResources location =
             { Name = this.Name
               Location = location
               Tier = this.Tier
@@ -107,10 +114,13 @@ type ExpressRouteConfig =
                          SharedKey = peering.SharedKey
                          VlanId = peering.VlanId |}
               ]
-              Authorizations = this.Authorizations |> List.map (fun authName -> {| Name = authName |})
               Tags = this.Tags
-            }
-        ]
+            } :> _
+            ::
+            (this.Authorizations |> List.map (fun a ->
+                { ExpressRouteCircuitAuthorization.Name = a
+                  Circuit = (Managed (expressRouteCircuits.resourceId this.Name))
+                } :> IArmResource) )
 
 type ExpressRouteBuilder() =
     member _.Yield _ =
