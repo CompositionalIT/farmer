@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.6.19
+* ExpressRoute: create authorization keys on newly created circuits.
+
 ## 1.6.18
 * Resource Groups: Add support for multiple nested deployments targetting the same resource group
 * Resource Groups: Provide input parameters and key vault references to nested deployments.
