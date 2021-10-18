@@ -34,13 +34,13 @@ let tests = testList "ExpressRoute" [
         Expect.equal resource.GlobalReachEnabled (Nullable false) ""
     }
 
-    test "Can create an ExR with one private peering" {
+    test "Can create an ExR with one private peering and one authorization" {
         let resource =
             let er = expressRoute {
                 name "my-circuit"
                 service_provider "My ISP"
                 peering_location "My ISP's Location"
-                add_peering (
+                add_peerings [
                     peering {
                         azure_asn 65412
                         peer_asn 39917L
@@ -48,18 +48,24 @@ let tests = testList "ExpressRoute" [
                         primary_prefix (IPAddressCidr.parse "10.99.250.0/30")
                         secondary_prefix (IPAddressCidr.parse "10.99.250.4/30")
                     }
-                )
+                ]
+                add_authorizations [
+                    "myauth"
+                ]
                 enable_global_reach
             }
-
+            
             arm { add_resource er }
             |> findAzureResources<ExpressRouteCircuit> client.SerializationSettings
             |> List.head
 
+        Expect.hasLength resource.Peerings 1 "Circuit has incorrect number of peerings"
         Expect.equal resource.Peerings.[0].AzureASN (Nullable 65412) ""
         Expect.equal resource.Peerings.[0].PeerASN (Nullable 39917L) ""
         Expect.equal resource.Peerings.[0].VlanId (Nullable 199) ""
         Expect.equal resource.Peerings.[0].PrimaryPeerAddressPrefix "10.99.250.0/30" ""
+        Expect.hasLength resource.Authorizations 1 "Circuit has incorrect number of authorization"
+        Expect.equal resource.Authorizations.[0].Name "myauth" "Missing authorization in request"
     }
 
     test "Can create an ExR with global reach, premium tier, unlimited data" {
@@ -70,7 +76,7 @@ let tests = testList "ExpressRoute" [
                 peering_location "My ISP's Location"
                 tier Premium
                 family UnlimitedData
-                add_peering (
+                add_peerings [
                     peering {
                         azure_asn 65412
                         peer_asn 39917L
@@ -78,7 +84,7 @@ let tests = testList "ExpressRoute" [
                         primary_prefix (IPAddressCidr.parse "10.99.250.0/30")
                         secondary_prefix (IPAddressCidr.parse "10.99.250.4/30")
                     }
-                )
+                ]
                 enable_global_reach
             }
 

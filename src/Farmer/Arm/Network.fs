@@ -372,6 +372,8 @@ type ExpressRouteCircuit =
            SharedKey : string option
            VlanId : int
         |} list
+      Authorizations :
+        {| Name : ResourceName |} list
       Tags: Map<string,string>  }
 
     interface IArmResource with
@@ -396,6 +398,7 @@ type ExpressRouteCircuit =
                                    sharedKey = peer.SharedKey |}
                             |}
                        ]
+                       authorizations = this.Authorizations |> List.map (fun auth -> {| name = auth.Name.Value |} )
                        serviceProviderProperties =
                         {| serviceProviderName = this.ServiceProviderName
                            peeringLocation = this.PeeringLocation

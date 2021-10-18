@@ -77,6 +77,8 @@ type ExpressRouteConfig =
     GlobalReachEnabled : bool
     /// Peerings on this circuit
     Peerings : ExpressRouteCircuitPeeringConfig list
+    /// Authorizations requested on this circuit
+    Authorizations : ResourceName list
     Tags: Map<string,string>  }
     /// Returns the service key on the newly created circuit.
     member this.ServiceKey =
@@ -105,6 +107,7 @@ type ExpressRouteConfig =
                          SharedKey = peering.SharedKey
                          VlanId = peering.VlanId |}
               ]
+              Authorizations = this.Authorizations |> List.map (fun authName -> {| Name = authName |})
               Tags = this.Tags
             }
         ]
@@ -119,6 +122,7 @@ type ExpressRouteBuilder() =
         Bandwidth = 50<Mbps>
         GlobalReachEnabled = false
         Peerings = []
+        Authorizations = []
         Tags = Map.empty}
     /// Sets the name of the circuit
     [<CustomOperation "name">]
@@ -135,12 +139,19 @@ type ExpressRouteBuilder() =
     /// Sets the peering location for this circuit.
     [<CustomOperation "peering_location">]
     member _.PeeringLocation(state:ExpressRouteConfig, location) = { state with PeeringLocation = location }
-    /// Sets the tier of the circuit (standard or premium).
+    /// Sets the bandwidth of the circuit (50 Mbps to 10 Gpbs).
     [<CustomOperation "bandwidth">]
     member _.Bandwidth(state:ExpressRouteConfig, bandwidth) = { state with Bandwidth = bandwidth }
-    /// Sets the tier of the circuit (standard or premium).
+    /// Adds a peering on the circuit.
     [<CustomOperation "add_peering">]
     member _.AddPeering(state:ExpressRouteConfig, peering) = { state with Peerings = peering :: state.Peerings }
+    /// Adds peerings on the circuit.
+    [<CustomOperation "add_peerings">]
+    member _.AddPeerings(state:ExpressRouteConfig, peerings) = { state with Peerings = state.Peerings @ peerings }
+    /// Adds authorization names to request.
+    [<CustomOperation "add_authorizations">]
+    member _.AddAuthorizations(state:ExpressRouteConfig, authorizations:string list) =
+        { state with Authorizations = state.Authorizations @ (authorizations |> List.map ResourceName) }
     /// Enables Global Reach on the circuit
     [<CustomOperation "enable_global_reach">]
     member _.EnableGlobalReach(state:ExpressRouteConfig) = { state with GlobalReachEnabled = true }
