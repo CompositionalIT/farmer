@@ -1129,6 +1129,11 @@ module ApplicationGateway =
     }
 
     [<RequireQualifiedAccess>]
+    type BackendAddress =
+        | Ip of System.Net.IPAddress
+        | Fqdn of string
+
+    [<RequireQualifiedAccess>]
     type HttpStatusCode =
         | HttpStatus403
         | HttpStatus502

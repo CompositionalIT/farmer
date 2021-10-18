@@ -124,59 +124,23 @@ type BackendAddressConfig =
             IpAddress = backendAddress.IpAddress
         |}
 
-type BackendAddressBuilder () =
-    member _.Yield _ =
-        {
-            Fqdn = ""
-            IpAddress = System.Net.IPAddress.None
-        }
-    [<CustomOperation "fqdn">]
-    member _.Fqdn (state:BackendAddressConfig, fqdn) =
-        { state with Fqdn = fqdn }
-    [<CustomOperation "ip_address">]
-    member _.IpAddress (state:BackendAddressConfig, ipAddress:string) =
-        { state with IpAddress = System.Net.IPAddress.Parse ipAddress }
-
-let backendAddress = BackendAddressBuilder()
+let backend_fqdn (fqdn:string) = BackendAddress.Fqdn fqdn
+let backend_ip_address (ip:string) = BackendAddress.Ip (System.Net.IPAddress.Parse ip)
 
 type BackendAddressPoolConfig =
     {
         Name: ResourceName
-        ApplicationGateway: ResourceName
-        BackendAddresses: BackendAddressConfig list
+        BackendAddresses: BackendAddress list
     }
-    interface IBuilder with
-        member this.ResourceId = ApplicationGatewayBackendAddressPools.resourceId (this.ApplicationGateway, this.Name)
-        member this.BuildResources _ =
-            if String.IsNullOrWhiteSpace (this.ApplicationGateway.Value) then
-                raiseFarmer "Application Gateway must be specified for backend address pool."
-            else
-                [
-                    { Arm.ApplicationGateway.BackendAddressPool.Name = this.Name
-                      ApplicationGateway = this.ApplicationGateway
-                      BackendAddresses = 
-                        this.BackendAddresses |> List.map (fun backendAddress ->
-                            {|
-                                Fqdn = backendAddress.Fqdn
-                                IpAddress = backendAddress.IpAddress
-                            |}
-                      )
-                    }
-                ]
-
 type BackendAddressPoolBuilder () =
     member _.Yield _ = 
         {
             Name = ResourceName.Empty
-            ApplicationGateway = ResourceName.Empty
             BackendAddresses = []
         }
     [<CustomOperation "name">]
     member _.Name (state:BackendAddressPoolConfig, name) = 
         { state with Name = ResourceName name }
-    [<CustomOperation "application_gateway">]
-    member _.ApplicationGateway (state:BackendAddressPoolConfig, applicationGateway) = 
-        { state with ApplicationGateway = ResourceName applicationGateway }
     [<CustomOperation "add_backend_addresses">]
     member _.BackendAddresses (state:BackendAddressPoolConfig, backendAddresses) = 
         { state with BackendAddresses = state.BackendAddresses @ backendAddresses }
@@ -325,11 +289,6 @@ type AppGatewayConfig =
                 this.FrontendIpConfigs
                 |> List.map (fun frontend -> FrontendIpConfig.BuildIp frontend location)
                 |> List.choose id
-            let backendPools =
-                this.BackendAddressPools
-                |> List.map (fun pool -> { pool with ApplicationGateway = this.Name })
-                |> List.map (fun be -> (be :> IBuilder).BuildResources location)
-                |> List.concat
             {
                 Name = this.Name
                 Location = location
@@ -337,7 +296,7 @@ type AppGatewayConfig =
                 GatewayIPConfigurations = this.GatewayIpConfigs |> List.map GatewayIpConfig.BuildResource
                 FrontendIpConfigs = this.FrontendIpConfigs |> List.map FrontendIpConfig.BuildResource
                 FrontendPorts = this.FrontendPorts |> List.map FrontendPortConfig.BuildResource
-                BackendAddressPools = this.BackendAddressPools |> List.map (fun p -> p.Name)
+                BackendAddressPools = this.BackendAddressPools |> List.map (fun p -> {| Name = p.Name; Addresses = p.BackendAddresses |})
                 BackendHttpSettingsCollection = this.BackendHttpSettingsCollection |> List.map BackendHttpSettingsConfig.BuildResource
 
                 Dependencies =
@@ -371,8 +330,7 @@ type AppGatewayConfig =
                 Zones = Unchecked.defaultof<_>
                 
             } :> IArmResource
-            :: backendPools
-            @ (frontendPublicIps |> Seq.cast<IArmResource> |> List.ofSeq)
+            :: (frontendPublicIps |> Seq.cast<IArmResource> |> List.ofSeq)
             
 
 type AppGatewayBuilder() =

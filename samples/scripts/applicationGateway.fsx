@@ -47,8 +47,8 @@ let publicIp =
                 idleTimeoutInMinutes = 4
                 dnsSettings =
                     {|
-                        domainNameLabel = "agw-pip"
-                        fqdn = "agw-pip.eastus.cloudapp.azure.com"
+                        domainNameLabel = "farmer-agw-pip"
+                        fqdn = "farmer-agw-pip.eastus.cloudapp.azure.com"
                     |}
             |}
     |}
@@ -81,21 +81,7 @@ let msi = userAssignedIdentity {
             name "agw-msi"
         }
 
-let backendPool =
-    {
-        Name = ResourceName "agw-be-pool"
-        ApplicationGateway = ResourceName "agw-test"
-        BackendAddresses = [
-            {|
-                Fqdn = Unchecked.defaultof<_>
-                IpAddress = System.Net.IPAddress.Parse "10.28.1.4"
-            |}
-            {|
-                Fqdn = Unchecked.defaultof<_>
-                IpAddress = System.Net.IPAddress.Parse "10.28.1.5"
-            |}
-        ]
-    }
+let backendPoolName = ResourceName "agw-be-pool"
 
 let (agw:ApplicationGateway) = {
     Name = ResourceName "agw-test"
@@ -129,7 +115,7 @@ let (agw:ApplicationGateway) = {
     HttpListeners = [
         {|
             Name = ResourceName "http-listener"
-            BackendAddressPool = backendPool.Name
+            BackendAddressPool = backendPoolName
             FrontendIpConfiguration = ResourceName "frontend-ip"
             FrontendPort = ResourceName "port-80"
             Protocol = Protocol.Http
@@ -141,13 +127,21 @@ let (agw:ApplicationGateway) = {
             SslProfile = None
         |}
     ]
-    BackendAddressPools = [ backendPool.Name ]
+    BackendAddressPools =
+        [
+            {| Name = backendPoolName
+               Addresses = [
+                   BackendAddress.Ip (System.Net.IPAddress.Parse "10.28.1.4")
+                   BackendAddress.Ip (System.Net.IPAddress.Parse "10.28.1.5")
+               ]
+            |}
+        ]     
     RequestRoutingRules = [
         {|
             Name = ResourceName "rr"
             RuleType = RuleType.Basic
             HttpListener = ResourceName "http-listener"
-            BackendAddressPool = backendPool.Name
+            BackendAddressPool = backendPoolName
             BackendHttpSettings = ResourceName "bp-default-web-80-9090-web"
             RedirectConfiguration = None
             RewriteRuleSet = None
@@ -218,5 +212,4 @@ arm {
     ]
     add_resource (Resource.ofObj publicIp)
     add_resource agw
-    add_resource backendPool
 } |> Writer.quickWrite "AGW"

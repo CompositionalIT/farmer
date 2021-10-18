@@ -47,12 +47,9 @@ let tests = testList "Application Gateway Tests" [
                 add_backend_address_pools [
                     appGatewayBackendAddressPool {
                         name "my-backend-address-pool"
-                        application_gateway "ag"
                         add_backend_addresses [
-                            backendAddress {
-                                fqdn "test"
-                                ip_address "10.0.0.1"
-                            }
+                            backend_ip_address "10.0.0.1"
+                            backend_fqdn "test-backend-ip"
                         ]
                     }
                 ]

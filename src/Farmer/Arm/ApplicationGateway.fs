@@ -46,7 +46,10 @@ type ApplicationGateway =
         {| Name : ResourceName
            PrivateIpAllocationMethod : PrivateIpAddress.AllocationMethod
            PublicIp : ResourceId option |} list
-      BackendAddressPools : ResourceName list
+      BackendAddressPools :
+        {| Name : ResourceName
+           Addresses : BackendAddress list
+        |} list
       BackendHttpSettingsCollection :
         {| Name: ResourceName
            AffinityCookieName: string option
@@ -239,7 +242,13 @@ type ApplicationGateway =
                             |}
                         ) |> Option.defaultValue Unchecked.defaultof<_>
                         backendAddressPools = this.BackendAddressPools |> List.map (fun backend ->
-                            {| name = backend.Value |}
+                            {| name = backend.Name.Value
+                               properties =
+                                 {| backendAddresses = backend.Addresses |> List.map (function
+                                      | BackendAddress.Ip ip -> {| fqdn = null; ipAddress = string ip |}
+                                      | BackendAddress.Fqdn fqdn -> {| fqdn = fqdn; ipAddress = null |} )
+                                 |}
+                            |}
                         )
                         backendHttpSettingsCollection = this.BackendHttpSettingsCollection |> List.map (fun settings ->
                             {|
@@ -530,33 +539,4 @@ type ApplicationGateway =
                         ) |> Option.defaultValue Unchecked.defaultof<_>
                     |}
                 zones = this.Zones |> List.map string
-            |} :> _
-
-type BackendAddressPool =
-    {   /// Name of the backend address pool
-        Name : ResourceName
-        /// Name of the load balancer where this pool will be added.
-        ApplicationGateway : ResourceName
-        /// Addresses of backend services.
-        BackendAddresses :
-            {|  Fqdn : string
-                /// IP Address of the backend resource in the pool
-                IpAddress : System.Net.IPAddress
-            |} list
-    }
-    interface IArmResource with
-        member this.ResourceId = ApplicationGatewayBackendAddressPools.resourceId (this.ApplicationGateway, this.Name)
-        member this.JsonModel =
-            let dependencies =
-                seq {
-                    yield ApplicationGateways.resourceId this.ApplicationGateway
-                } |> Set.ofSeq
-            {| ApplicationGatewayBackendAddressPools.Create(this.Name, dependsOn=dependencies) with
-                name = $"{this.ApplicationGateway.Value}/{this.Name.Value}"
-                properties =
-                    {| backendAddresses = this.BackendAddresses |> List.map (fun addr ->
-                        {| fqdn = addr.Fqdn
-                           ipAddress = string addr.IpAddress |}
-                       )
-                    |}
             |} :> _
