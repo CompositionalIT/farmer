@@ -17,6 +17,13 @@ let gwPolicy = securityRule {
     add_source_tag NetworkSecurity.TCP "GatewayManager"
     add_destination_any
 }
+let gwInternetPolicy = securityRule {
+    name "inet-gw"
+    description "Internet to gateway"
+    services [ "http", 80 ]
+    add_source_tag NetworkSecurity.TCP "Internet"
+    add_destination_network "10.28.0.0/24"
+}
 let appPolicy = securityRule {
     name "app-servers"
     description "Internal app server access"
@@ -26,7 +33,7 @@ let appPolicy = securityRule {
 }
 let myNsg = nsg {
     name "agw-nsg"
-    add_rules [ gwPolicy; appPolicy ]
+    add_rules [ gwPolicy; gwInternetPolicy; appPolicy ]
 }
 
 let publicIp = 
