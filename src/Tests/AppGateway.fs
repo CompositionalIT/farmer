@@ -53,7 +53,7 @@ let tests = testList "Application Gateway Tests" [
                         ]
                     }
                 ]
-                add_backend_https_settings_collection [
+                add_backend_http_settings_collection [
                     backendHttpSettings {
                         name "my-backend-http-settings"
                         affinity_cookie_name "my-cookie"
