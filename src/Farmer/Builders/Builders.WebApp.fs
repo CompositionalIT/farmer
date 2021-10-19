@@ -165,6 +165,7 @@ type CommonWebConfig =
       AlwaysOn : bool
       AppInsights : ResourceRef<ResourceName> option
       Cors : Cors option
+      FTPState : FTPState
       HTTPSOnly : bool
       Identity : Identity.ManagedIdentity
       KeyVaultReferenceIdentity: UserAssignedIdentity Option
@@ -317,6 +318,7 @@ type WebAppConfig =
                   Location = location
                   ServicePlan = this.ServicePlanId
                   HTTPSOnly = this.CommonWebConfig.HTTPSOnly
+                  FTPState = this.CommonWebConfig.FTPState
                   HTTP20Enabled = this.HTTP20Enabled
                   ClientAffinityEnabled = this.ClientAffinityEnabled
                   WebSocketsEnabled = this.WebSocketsEnabled
@@ -488,6 +490,7 @@ type WebAppBuilder() =
               Cors = None
               HTTPSOnly = false
               Identity = ManagedIdentity.Empty
+              FTPState = FTPState.AllAllowed
               KeyVaultReferenceIdentity = None
               OperatingSystem = Windows
               SecretStore = AppService
@@ -808,6 +811,10 @@ module Extensions =
         /// Disables http for this webapp so that only https is used.
         [<CustomOperation "https_only">]
         member this.HttpsOnly(state:'T) = this.Map state (fun x -> { x with HTTPSOnly = true })
+
+        /// Allows to enable or disable FTP and FTPS
+        [<CustomOperation "ftp_state">]
+        member this.FTPState(state:'T, ftpState:FTPState) = this.Map state (fun x -> { x with FTPState = ftpState })
 
         [<CustomOperation "health_check_path">]
         /// Specifies the path Azure load balancers will ping to check for unhealthy instances.

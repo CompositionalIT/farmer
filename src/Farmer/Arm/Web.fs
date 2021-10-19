@@ -157,6 +157,13 @@ type SiteType =
         | Slot _ -> slots
         | Site _ -> sites
 
+
+[<RequireQualifiedAccess>]
+type FTPState =
+    | AllAllowed
+    | FtpsOnly
+    | Disabled
+
 type Site =
     { SiteType : SiteType
       Location : Location
@@ -166,6 +173,7 @@ type Site =
       AlwaysOn : bool
       WorkerProcess : Bitness option
       HTTPSOnly : bool
+      FTPState : FTPState
       HTTP20Enabled : bool option
       ClientAffinityEnabled : bool option
       WebSocketsEnabled : bool option
@@ -193,10 +201,10 @@ type Site =
     member this.Name = this.SiteType.ResourceName
     interface IParameters with
         member this.SecureParameters =
-            let optMapToList map = 
+            let optMapToList map =
                 map
                 |> Option.defaultValue Map.empty
-                |> Map.toList 
+                |> Map.toList
             optMapToList this.AppSettings
             @ (optMapToList this.ConnectionStrings |> List.map(fun (k, (v,_)) -> k, v))
             |> List.choose(snd >> function
@@ -236,15 +244,20 @@ type Site =
                  properties =
                     {| serverFarmId = this.ServicePlan.Eval()
                        httpsOnly = this.HTTPSOnly
+                       ftp_state =
+                           match this.FTPState with
+                           | FTPState.AllAllowed -> "AllAllowed"
+                           | FTPState.FtpsOnly -> "FtpsOnly"
+                           | FTPState.Disabled -> "Disabled"
                        clientAffinityEnabled = match this.ClientAffinityEnabled with Some v -> box v | None -> null
                        keyVaultReferenceIdentity = keyvaultId
                        siteConfig =
                         {| alwaysOn = this.AlwaysOn
-                           appSettings = 
+                           appSettings =
                                 this.AppSettings
-                                |> mapOrNull (fun (k,v) -> {| name = k; value = v.Value |}) 
-                           connectionStrings = 
-                                this.ConnectionStrings 
+                                |> mapOrNull (fun (k,v) -> {| name = k; value = v.Value |})
+                           connectionStrings =
+                                this.ConnectionStrings
                                 |> mapOrNull (fun (k,(v, t)) -> {| name = k; connectionString = v.Value; ``type`` = t.ToString() |})
                            linuxFxVersion = this.LinuxFxVersion |> Option.toObj
                            appCommandLine = this.AppCommandLine |> Option.toObj
