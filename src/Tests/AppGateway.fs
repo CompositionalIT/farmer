@@ -24,7 +24,7 @@ let tests = testList "Application Gateway Tests" [
         // Expect.equal resource.Name "ag" "Name did not match"
     }
 
-    test "Complex App gateway" {
+    ftest "Complex App gateway" {
         let ag =
             appGateway {
                 name "ag"
@@ -34,7 +34,7 @@ let tests = testList "Application Gateway Tests" [
                 add_ip_configs [
                     gatewayIp {
                         name "gatewayIpConfig"
-                        link_to_subnet "my-subnet"
+                        link_to_subnet "my-vnet" "my-subnet"
                     }
                 ]
                 add_frontends [
@@ -79,6 +79,8 @@ let tests = testList "Application Gateway Tests" [
                     }
                 ]
             }
+        let deployment = arm { add_resource ag }
+        deployment.Template |> Writer.toJson |> ignore
         ()
         // let resource =
         //     arm { add_resource ag }

@@ -32,7 +32,7 @@ type ApplicationGateway =
     { Name : ResourceName
       Location : Location
       Sku : ApplicationGatewaySku
-      Identity: ManagedIdentity
+      Identity : ManagedIdentity
       AuthenticationCertificates:
         {| Name: ResourceName
            Data: string |} list
@@ -220,13 +220,17 @@ type ApplicationGateway =
       Zones: uint16 list
       Dependencies: Set<ResourceId>
       Tags: Map<string,string> }
+    member private this.dependencies =
+        [
+            this.FrontendIpConfigs |> Seq.map (fun ipconfig -> ipconfig.PublicIp) |> Seq.choose id |> Set.ofSeq
+            this.Identity.Dependencies |> Set.ofList
+            this.Dependencies
+        ] |> Set.unionMany
     interface IArmResource with
         member this.ResourceId = ApplicationGateways.resourceId this.Name
         member this.JsonModel =
-            {| ApplicationGateways.Create (this.Name, this.Location, this.Dependencies, this.Tags) with
-                identity =
-                    if this.Identity = ManagedIdentity.Empty then Unchecked.defaultof<_>
-                    else this.Identity.ToArmJson
+            {| ApplicationGateways.Create (this.Name, this.Location, this.dependencies, this.Tags) with
+                identity = this.Identity.ToArmJson
                 properties =
                     {|
                         sku =

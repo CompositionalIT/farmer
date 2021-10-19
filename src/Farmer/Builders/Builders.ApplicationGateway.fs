@@ -20,6 +20,11 @@ type GatewayIpConfig =
                 gatewayIp.Subnet
                 |> Option.map (function | Managed resId -> resId | Unmanaged resId -> resId)
         |}
+    static member Dependencies gatewayIp =
+        seq {
+            gatewayIp.Subnet
+            |> Option.bind (function | Managed resId -> Some resId | Unmanaged _ -> None)
+        } |> Seq.choose id |> Set.ofSeq
 
 type GatewayIpBuilder() = 
     member _.Yield _ =
@@ -31,8 +36,10 @@ type GatewayIpBuilder() =
     member _.Name(state:GatewayIpConfig, name) =
         { state with Name = ResourceName name }
     [<CustomOperation "link_to_subnet">]
-    member _.LinktoSubnet(state:GatewayIpConfig, subnet:string) =
-        { state with Subnet = Some (Unmanaged (virtualNetworks.resourceId (ResourceName subnet))) }
+    member _.LinktoSubnet(state:GatewayIpConfig, vnet:ResourceName, subnet:ResourceName) =
+        { state with Subnet = Some (Unmanaged (subnets.resourceId (vnet, subnet))) }
+    member _.LinktoSubnet(state:GatewayIpConfig, vnet:string, subnet:string) =
+        { state with Subnet = Some (Unmanaged (subnets.resourceId (ResourceName vnet, ResourceName subnet))) }
 
 let gatewayIp = GatewayIpBuilder()
 
@@ -108,10 +115,78 @@ type FrontendPortBuilder () =
     member _.Name(state:FrontendPortConfig, name) =
         { state with Name = ResourceName name }
     [<CustomOperation "port">]
-    member _.Port(state:FrontendPortConfig, port) =
+    member _.Port(state:FrontendPortConfig, port:uint16) =
         { state with Port = port }
+    member _.Port(state:FrontendPortConfig, port:int) =
+        { state with Port = uint16 port }
 
 let frontendPort = FrontendPortBuilder()
+
+type HttpListenerConfig =
+    { Name : ResourceName
+      FrontendIpConfiguration : ResourceName
+      BackendAddressPool : ResourceName
+      CustomErrorConfigurations:  
+        {| CustomErrorPageUrl: string
+           StatusCode: HttpStatusCode |} list
+      FirewallPolicy : ResourceId option
+      FrontendPort : ResourceName
+      RequireServerNameIndication : bool
+      HostNames : string list
+      Protocol : Protocol
+      SslCertificate : ResourceName option
+      SslProfile : ResourceName option    
+    }
+    static member BuildResource (listener:HttpListenerConfig) =
+        {|
+            Name = listener.Name
+            BackendAddressPool = listener.BackendAddressPool
+            FrontendIpConfiguration = listener.FrontendIpConfiguration
+            FrontendPort = listener.FrontendPort
+            Protocol = listener.Protocol
+            HostNames = listener.HostNames
+            RequireServerNameIndication = listener.RequireServerNameIndication
+            CustomErrorConfigurations = listener.CustomErrorConfigurations
+            FirewallPolicy = listener.FirewallPolicy
+            SslCertificate = listener.SslCertificate
+            SslProfile = listener.SslProfile
+        |}
+
+type HttpListenerBuilder() =
+    member _.Yield _ =
+        { Name = ResourceName.Empty
+          BackendAddressPool = ResourceName.Empty
+          FrontendIpConfiguration = ResourceName.Empty
+          FrontendPort = ResourceName.Empty
+          Protocol = Protocol.Http
+          HostNames = []
+          RequireServerNameIndication = false
+          CustomErrorConfigurations = []
+          FirewallPolicy = None
+          SslCertificate = None
+          SslProfile = None }
+    [<CustomOperation "name">]
+    member _.Name(state:HttpListenerConfig, name) =
+        { state with Name = ResourceName name }
+    [<CustomOperation "backend_pool">]
+    member _.BackendPool(state:HttpListenerConfig, backendPool:BackendAddressPoolConfig) =
+        { state with BackendAddressPool = backendPool.Name }
+    member _.BackendPool(state:HttpListenerConfig, backendPool:string) =
+        { state with BackendAddressPool = ResourceName backendPool }
+    [<CustomOperation "frontend_ip">]
+    member _.FrontendIp(state:HttpListenerConfig, frontendIp:FrontendIpConfig) =
+        { state with FrontendIpConfiguration = frontendIp.Name }
+    member _.FrontendIp(state:HttpListenerConfig, frontendIp:string) =
+        { state with FrontendIpConfiguration = ResourceName frontendIp }
+    [<CustomOperation "frontend_port">]
+    member _.FrontendPort(state:HttpListenerConfig, frontendPort:string) =
+        { state with FrontendPort = ResourceName frontendPort }
+    member _.FrontendPort(state:HttpListenerConfig, frontendPort:FrontendPortConfig) =
+        { state with FrontendPort = frontendPort.Name }
+    [<CustomOperation "protocol">]
+    member _.Protocol(state:HttpListenerConfig, protocol) =
+        { state with Protocol = protocol }
+let httpListener = HttpListenerBuilder()
 
 type BackendAddressConfig = 
     {
@@ -146,6 +221,65 @@ type BackendAddressPoolBuilder () =
         { state with BackendAddresses = state.BackendAddresses @ backendAddresses }
 
 let appGatewayBackendAddressPool = BackendAddressPoolBuilder()
+
+type AppGatewayProbeConfig =
+    { Name : ResourceName
+      Host: string
+      Port: uint16 option
+      Path: string
+      Protocol : Protocol
+      IntervalInSeconds : int<Seconds>
+      TimeoutInSeconds : int<Seconds>
+      UnhealthyThreshold : uint16
+      PickHostNameFromBackendHttpSettings : bool
+      MinServers : uint16 option
+    }
+    static member BuildResource (probe:AppGatewayProbeConfig) =
+        {| Name = probe.Name
+           Host = probe.Host
+           Port = probe.Port
+           Path = probe.Path
+           Protocol = probe.Protocol
+           IntervalInSeconds = probe.IntervalInSeconds
+           TimeoutInSeconds = probe.TimeoutInSeconds
+           UnhealthyThreshold = probe.UnhealthyThreshold
+           PickHostNameFromBackendHttpSettings = probe.PickHostNameFromBackendHttpSettings
+           MinServers = probe.MinServers
+           Match = None
+        |}
+
+type AppGatewayProbeBuilder() =
+    member _.Yield _ =
+        { Name = ResourceName.Empty
+          Host = "localhost"
+          Path = "/"
+          Port = None
+          Protocol = Protocol.Http
+          IntervalInSeconds = 30<Seconds>
+          TimeoutInSeconds = 30<Seconds>
+          UnhealthyThreshold = 3us
+          PickHostNameFromBackendHttpSettings = false
+          MinServers = None
+        }
+    [<CustomOperation "name">]
+    member _.Name (state:AppGatewayProbeConfig, name) =
+        { state with Name = ResourceName name }
+    [<CustomOperation "host">]
+    member _.Host (state:AppGatewayProbeConfig, host) =
+        { state with Host = host }
+    [<CustomOperation "path">]
+    member _.Path (state:AppGatewayProbeConfig, path) =
+        { state with Path = path }
+    [<CustomOperation "port">]
+    member _.Port (state:AppGatewayProbeConfig, port:uint16) =
+        { state with Port = Some port }
+    member _.Port (state:AppGatewayProbeConfig, port:int) =
+        { state with Port = Some (uint16 port) }
+    [<CustomOperation "protocol">]
+    member _.Protocol (state:AppGatewayProbeConfig, protocol) =
+        { state with Protocol = protocol }
+
+let appGatewayProbe = AppGatewayProbeBuilder()
 
 type ConnectionDrainingConfig = 
     {
@@ -250,6 +384,8 @@ type BackendHttpSettingsBuilder () =
     [<CustomOperation "port">]
     member _.Port (state:BackendHttpSettingsConfig, port) =
         { state with Port = port }
+    member _.Port (state:BackendHttpSettingsConfig, port:int) =
+        { state with Port = uint16 port }
     [<CustomOperation "protocol">]
     member _.Protocol (state:BackendHttpSettingsConfig, protocol) =
         { state with Protocol = protocol }
@@ -262,6 +398,8 @@ type BackendHttpSettingsBuilder () =
     [<CustomOperation "probe">]
     member _.Probe (state:BackendHttpSettingsConfig, probe:string) =
         { state with Probe = Some (ResourceName probe) }
+    member _.Probe (state:BackendHttpSettingsConfig, probe:AppGatewayProbeConfig) =
+        { state with Probe = Some probe.Name }
     [<CustomOperation "probe_enabled">]
     member _.ProbeEnabled (state:BackendHttpSettingsConfig, probeEnabled) =
         { state with ProbeEnabled = probeEnabled }
@@ -271,14 +409,74 @@ type BackendHttpSettingsBuilder () =
     
 let backendHttpSettings = BackendHttpSettingsBuilder()
 
+type RequestRoutingRuleConfig =
+    { Name: ResourceName
+      RuleType: RuleType
+      HttpListener: ResourceName
+      BackendAddressPool: ResourceName
+      BackendHttpSettings: ResourceName
+      RedirectConfiguration: ResourceName option
+      RewriteRuleSet: ResourceName option
+      UrlPathMap: ResourceName option
+      Priority: int option
+    }
+        static member BuildResource (rule:RequestRoutingRuleConfig) =
+            {| Name = rule.Name
+               RuleType = rule.RuleType
+               HttpListener = rule.HttpListener
+               BackendAddressPool = rule.BackendAddressPool
+               BackendHttpSettings = rule.BackendHttpSettings
+               RedirectConfiguration = rule.RedirectConfiguration
+               RewriteRuleSet = rule.RewriteRuleSet
+               UrlPathMap = rule.UrlPathMap
+               Priority = rule.Priority
+            |}
+
+type BasicRequestRoutingRuleBuilder() =
+    member _.Yield _ =
+        { Name = ResourceName.Empty
+          RuleType = RuleType.Basic
+          HttpListener = ResourceName.Empty
+          BackendAddressPool = ResourceName.Empty
+          BackendHttpSettings = ResourceName.Empty
+          RedirectConfiguration = None
+          RewriteRuleSet = None
+          UrlPathMap = None
+          Priority = None
+        }
+    [<CustomOperation "name">]
+    member _.Name (state:RequestRoutingRuleConfig, name) =
+        { state with Name = ResourceName name }
+    [<CustomOperation "http_listener">]
+    member _.HttpListener (state:RequestRoutingRuleConfig, listener:string) =
+        { state with HttpListener = ResourceName listener }
+    member _.HttpListener (state:RequestRoutingRuleConfig, listener:HttpListenerConfig) =
+        { state with HttpListener = listener.Name }
+    [<CustomOperation "backend_address_pool">]
+    member _.BackendAddressPool (state:RequestRoutingRuleConfig, backendAddressPool:string) =
+        { state with BackendAddressPool = ResourceName backendAddressPool }
+    member _.BackendAddressPool (state:RequestRoutingRuleConfig, backendAddressPool:BackendAddressPoolConfig) =
+        { state with BackendAddressPool = backendAddressPool.Name }
+    [<CustomOperation "backend_http_settings">]
+    member _.BackendHttpSettings (state:RequestRoutingRuleConfig, httpSettings:string) =
+        { state with BackendHttpSettings = ResourceName httpSettings }
+    member _.BackendHttpSettings (state:RequestRoutingRuleConfig, httpSettings:BackendHttpSettingsConfig) =
+        { state with BackendHttpSettings = httpSettings.Name }
+
+let basicRequestRoutingRule = BasicRequestRoutingRuleBuilder()
+
 type AppGatewayConfig =
     { Name : ResourceName
       Sku: ApplicationGatewaySku
+      Identity : Identity.ManagedIdentity
       GatewayIpConfigs: GatewayIpConfig list
       FrontendIpConfigs: FrontendIpConfig list
       FrontendPorts: FrontendPortConfig list
       BackendAddressPools: BackendAddressPoolConfig list
       BackendHttpSettingsCollection: BackendHttpSettingsConfig list
+      HttpListeners: HttpListenerConfig list
+      Probes: AppGatewayProbeConfig list
+      RequestRoutingRules: RequestRoutingRuleConfig list
       Dependencies: Set<ResourceId>
       Tags: Map<string,string>
      }
@@ -293,11 +491,15 @@ type AppGatewayConfig =
                 Name = this.Name
                 Location = location
                 Sku = this.Sku
+                Identity = this.Identity
                 GatewayIPConfigurations = this.GatewayIpConfigs |> List.map GatewayIpConfig.BuildResource
                 FrontendIpConfigs = this.FrontendIpConfigs |> List.map FrontendIpConfig.BuildResource
                 FrontendPorts = this.FrontendPorts |> List.map FrontendPortConfig.BuildResource
                 BackendAddressPools = this.BackendAddressPools |> List.map (fun p -> {| Name = p.Name; Addresses = p.BackendAddresses |})
                 BackendHttpSettingsCollection = this.BackendHttpSettingsCollection |> List.map BackendHttpSettingsConfig.BuildResource
+                HttpListeners = this.HttpListeners |> List.map HttpListenerConfig.BuildResource
+                Probes = this.Probes |> List.map AppGatewayProbeConfig.BuildResource
+                RequestRoutingRules = this.RequestRoutingRules |> List.map RequestRoutingRuleConfig.BuildResource
 
                 Dependencies =
                     frontendPublicIps
@@ -307,27 +509,23 @@ type AppGatewayConfig =
                 Tags = this.Tags
 
                 // TODO Implement properties below
-                Identity = Unchecked.defaultof<_>
-                AuthenticationCertificates = Unchecked.defaultof<_>
-                AutoscaleConfiguration = Unchecked.defaultof<_>
-                CustomErrorConfigurations = Unchecked.defaultof<_>
-                EnableFips = Unchecked.defaultof<_>
-                EnableHttp2 = Unchecked.defaultof<_>
-                FirewallPolicy = Unchecked.defaultof<_>
-                ForceFirewallPolicyAssociation = Unchecked.defaultof<_>
-                HttpListeners = Unchecked.defaultof<_>
-                Probes = Unchecked.defaultof<_>
-                RedirectConfigurations = Unchecked.defaultof<_>
-                RequestRoutingRules = Unchecked.defaultof<_>
-                RewriteRuleSets = Unchecked.defaultof<_>
-                SslCertificates = Unchecked.defaultof<_>
-                SslPolicy = Unchecked.defaultof<_>
-                SslProfiles = Unchecked.defaultof<_>
-                TrustedClientCertificates = Unchecked.defaultof<_>
-                TrustedRootCertificates = Unchecked.defaultof<_>
-                UrlPathMaps = Unchecked.defaultof<_>
-                WebApplicationFirewallConfiguration = Unchecked.defaultof<_>
-                Zones = Unchecked.defaultof<_>
+                AuthenticationCertificates = []
+                AutoscaleConfiguration = None
+                CustomErrorConfigurations = []
+                EnableFips = None
+                EnableHttp2 = None
+                FirewallPolicy = None
+                ForceFirewallPolicyAssociation = false
+                RedirectConfigurations = []
+                RewriteRuleSets = []
+                SslCertificates = []
+                SslPolicy = None
+                SslProfiles = []
+                TrustedClientCertificates = []
+                TrustedRootCertificates = []
+                UrlPathMaps = []
+                WebApplicationFirewallConfiguration = None
+                Zones = []
                 
             } :> IArmResource
             :: (frontendPublicIps |> Seq.cast<IArmResource> |> List.ofSeq)
@@ -341,11 +539,15 @@ type AppGatewayBuilder() =
             Capacity = None
             Tier = Tier.Standard_v2
         }
+        Identity = Identity.ManagedIdentity.Empty
         GatewayIpConfigs = []
         FrontendIpConfigs = []
         FrontendPorts = []
         BackendAddressPools = []
         BackendHttpSettingsCollection = []
+        HttpListeners = []
+        Probes = []
+        RequestRoutingRules = []
         Dependencies = Set.empty
         Tags = Map.empty
     }
@@ -361,6 +563,12 @@ type AppGatewayBuilder() =
     [<CustomOperation "sku_capacity">]
     member _.SkuCapacity (state:AppGatewayConfig, skuCapacity) =
         { state with Sku = { state.Sku with Capacity = Some skuCapacity }}
+    /// Sets the managed identity on this Application Gateway.
+    interface IIdentity<AppGatewayConfig> with member _.Add state updater = { state with Identity = updater state.Identity }
+    /// Support for adding tags to this Application Gateway.
+    interface ITaggable<AppGatewayConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
+    /// Support for adding dependencies to this Application Gateway.
+    interface IDependable<AppGatewayConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
     [<CustomOperation "add_ip_configs">]
     member _.AddIpConfigs (state:AppGatewayConfig, ipConfigs) =
         { state with GatewayIpConfigs = state.GatewayIpConfigs @ ipConfigs }
@@ -371,10 +579,19 @@ type AppGatewayBuilder() =
     member _.AddFrontendPorts (state:AppGatewayConfig, frontendPorts) =
         { state with FrontendPorts = state.FrontendPorts @ frontendPorts }
     [<CustomOperation "add_backend_address_pools">]
-    member _.AddBackendAddresspools (state:AppGatewayConfig, backendAddressPools) =
+    member _.AddBackendAddressPools (state:AppGatewayConfig, backendAddressPools) =
         { state with BackendAddressPools = state.BackendAddressPools @ backendAddressPools }
-    [<CustomOperation "add_backend_https_settings_collection">]
-    member _.AddBackendHttpSettingsCollection (state:AppGatewayConfig, backendHttpSettings) = 
+    [<CustomOperation "add_backend_http_settings_collection">]
+    member _.AddBackendHttpSettingsCollection (state:AppGatewayConfig, backendHttpSettings:BackendHttpSettingsConfig list) = 
         { state with BackendHttpSettingsCollection = state.BackendHttpSettingsCollection @ backendHttpSettings }
+    [<CustomOperation "add_http_listeners">]
+    member _.AddHttpListeners (state:AppGatewayConfig, httpListeners:HttpListenerConfig list) = 
+        { state with HttpListeners = state.HttpListeners @ httpListeners }
+    [<CustomOperation "add_probes">]
+    member _.AddProbes (state:AppGatewayConfig, probes) = 
+        { state with Probes = state.Probes @ probes }
+    [<CustomOperation "add_request_routing_rules">]
+    member _.AddRequestRoutingRules (state:AppGatewayConfig, reqRoutingRules:RequestRoutingRuleConfig list) = 
+        { state with RequestRoutingRules = state.RequestRoutingRules @ reqRoutingRules }
 
 let appGateway = AppGatewayBuilder()

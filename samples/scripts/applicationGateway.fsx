@@ -36,30 +36,6 @@ let myNsg = nsg {
     add_rules [ gwPolicy; gwInternetPolicy; appPolicy ]
 }
 
-let publicIp = 
-    {|
-        ``type`` = "Microsoft.Network/publicIPAddresses"
-        apiVersion = "2020-11-01"
-        name = "agw-pip"
-        location = "eastus"
-        sku =
-            {|
-                name = "Standard"
-                tier = "Regional"
-            |}
-        properties =
-            {|
-                publicIPAddressVersion = "IPv4"
-                publicIPAllocationMethod = "Static"
-                idleTimeoutInMinutes = 4
-                dnsSettings =
-                    {|
-                        domainNameLabel = "farmer-agw-pip"
-                        fqdn = "farmer-agw-pip.eastus.cloudapp.azure.com"
-                    |}
-            |}
-    |}
-
 let net = vnet {
     name "agw-vnet"
     build_address_spaces [
@@ -84,11 +60,113 @@ let net = vnet {
         }
     ]
 }
-let msi = userAssignedIdentity {
-            name "agw-msi"
-        }
+let msi = createUserAssignedIdentity "agw-msi"
 
 let backendPoolName = ResourceName "agw-be-pool"
+
+let myAppGateway =
+    appGateway {
+        name "agw-bldr-test"
+        sku_capacity 2
+        add_identity msi
+        add_ip_configs [
+            gatewayIp {
+                name "agw-gwip"
+                link_to_subnet net.Name net.Subnets.[0].Name
+            }
+        ]
+        add_frontends [
+            frontendIp {
+                name "frontend-ip"
+                public_ip "agw-bldr-pip"
+            }
+        ]
+        add_frontend_ports [
+            frontendPort {
+                name "port-80"
+                port 80
+            }
+        ]
+        add_http_listeners [
+            httpListener {
+                name "http-listener"
+                frontend_ip "frontend-ip"
+                frontend_port "port-80"
+                backend_pool backendPoolName.Value
+            }
+        ]
+        add_backend_address_pools [
+            appGatewayBackendAddressPool {
+                name backendPoolName.Value
+                add_backend_addresses [
+                    backend_ip_address "10.28.1.4"
+                    backend_ip_address "10.28.1.5"
+                ]
+            }
+        ]
+        add_backend_http_settings_collection [
+            backendHttpSettings {
+                name "bp-default-web-80-9090-web"
+                port 9090us
+                probe "agw-probe"
+                protocol Protocol.Http
+                request_timeout 30<Seconds>
+            }
+        ]
+        add_request_routing_rules [
+            basicRequestRoutingRule {
+                name "rr"
+                http_listener "http-listener"
+                backend_address_pool backendPoolName.Value
+                backend_http_settings "bp-default-web-80-9090-web"
+            }
+        ]
+        add_probes [
+            appGatewayProbe {
+                name "agw-probe"
+                host "localhost"
+                path "/"
+                port 8080
+                protocol Protocol.Http
+            }
+        ]
+        depends_on myNsg
+        depends_on net
+   }
+
+arm {
+    location Location.EastUS
+    add_resources [
+        msi
+        net
+        myNsg
+        myAppGateway
+    ]
+} |> Writer.quickWrite "AGW-bldr"
+
+let publicIp = 
+    {|
+        ``type`` = "Microsoft.Network/publicIPAddresses"
+        apiVersion = "2020-11-01"
+        name = "agw-pip"
+        location = "eastus"
+        sku =
+            {|
+                name = "Standard"
+                tier = "Regional"
+            |}
+        properties =
+            {|
+                publicIPAddressVersion = "IPv4"
+                publicIPAllocationMethod = "Static"
+                idleTimeoutInMinutes = 4
+                dnsSettings =
+                    {|
+                        domainNameLabel = "farmer-agw-pip"
+                        fqdn = "farmer-agw-pip.eastus.cloudapp.azure.com"
+                    |}
+            |}
+    |}
 
 let (agw:ApplicationGateway) = {
     Name = ResourceName "agw-test"
