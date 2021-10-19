@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+## vNext
+* ServiceBus: Allow Service Bus Queues/Topics/Subscriptions to be linked to unmanaged namespaces
+* Allow adding custom dependencies to Subscriptions
+
 ## 1.6.18
 * Resource Groups: Add support for multiple nested deployments targetting the same resource group
 * Resource Groups: Provide input parameters and key vault references to nested deployments.
