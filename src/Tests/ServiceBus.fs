@@ -223,6 +223,16 @@ let tests = testList "Service Bus Tests" [
             Expect.equal sbAuthorizationRule.Rights.Count 1 "Wrong number of rights"
             Expect.equal sbAuthorizationRule.Rights.[0] (Nullable AccessRights.Manage) "Wrong rights"
         }
+
+        test "Queue IArmResource has correct resourceId for unmanaged namespace" {
+            let resource = 
+                queue {
+                    name "my-queue"
+                    link_to_unmanaged_namespace "my-bus"
+                }
+                |> getResources |> getResource |> List.head :> IArmResource
+            Expect.equal (resource.ResourceId.Eval()) "[resourceId('Microsoft.ServiceBus/namespaces/queues', 'my-bus', 'my-queue')]" ""
+        }
     ]
 
     testList "Topic Tests" [
@@ -488,6 +498,7 @@ let tests = testList "Service Bus Tests" [
             Expect.equal (resource.ResourceId.Eval()) $"[resourceId('Microsoft.ServiceBus/namespaces/topics', 'my-bus', '{topicName}')]" ""
         }
     ]
+
     testList "Namespace AuthorizationRule Tests" [
         test "AuthorizationRule should not be present by default" {
             let sbAuthorizationRules =
