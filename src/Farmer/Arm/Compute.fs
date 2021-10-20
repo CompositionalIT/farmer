@@ -147,6 +147,6 @@ type VirtualMachine =
                 |}
                 zones =
                     match this.Zone with
-                    | Some zone -> [zone.ToString()]
+                    | Some zone -> [ string<int> zone ]
                     | None -> Unchecked.defaultof<_>
             |} :> _
