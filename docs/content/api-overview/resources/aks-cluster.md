@@ -30,6 +30,10 @@ The AKS builder (`aks`) constructs AKS clusters.
 | service_principal_use_msi | Enables the AKS cluster to use the managed identity service principal instead of an external client secret. |
 | windows_username | Sets the windows admin username for the AKS cluster. |
 | add_api_server_authorized_ip_ranges | Adds IP address CIDR ranges to be allowed Kubernetes API access. |
+| addon_aci_connector | Enables or disables the ACI connector addon.
+| addon_http_application_routing | Enables or disables the HTTP application routing addon |
+| addon_ingress_app_gateway | Enables or disables the addon for an application gateway ingress controller. |
+| addon_kube_dashboard | Enables or disables the addon for the Kubernetes dashboard. |
 
 #### Agent Pool Builder keywords
 The Agent Pool builder (`agentPool`) constructs agent pools in the AKS cluster.
