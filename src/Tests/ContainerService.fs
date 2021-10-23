@@ -241,7 +241,7 @@ let tests = testList "AKS" [
         let kubeletIdentityClientId = jobj.SelectToken("resources[?(@.name=='aks-cluster')].properties.identityProfile.kubeletIdentity.clientId") |> string
         Expect.equal kubeletIdentityClientId "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'kubeletIdentity'), '2018-11-30').clientId]" "Incorrect kubelet identity reference."
     }
-    ftest "Basic AKS cluster with addons" {
+    test "Basic AKS cluster with addons" {
         let appGatewayMsi = createUserAssignedIdentity "appGatewayIdentity"
         let myAks = aks {
             name "aks-cluster"
