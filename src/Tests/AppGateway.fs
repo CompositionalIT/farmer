@@ -27,30 +27,31 @@ let tests = testList "Application Gateway Tests" [
     }
 
     test "Complex App gateway" {
-        let gwPolicy = securityRule {
-            name "app-gw"
-            description "GatewayManager"
-            services [ NetworkService ("GatewayManager", Range (65200us,65535us)) ]
-            add_source_tag NetworkSecurity.TCP "GatewayManager"
-            add_destination_any
-        }
-        let gwInternetPolicy = securityRule {
-            name "inet-gw"
-            description "Internet to gateway"
-            services [ "http", 80 ]
-            add_source_tag NetworkSecurity.TCP "Internet"
-            add_destination_network "10.28.0.0/24"
-        }
-        let appPolicy = securityRule {
-            name "app-servers"
-            description "Internal app server access"
-            services [ "http", 80 ]
-            add_source_network NetworkSecurity.TCP "10.28.0.0/24"
-            add_destination_network "10.28.1.0/24"
-        }
         let myNsg = nsg {
             name "agw-nsg"
-            add_rules [ gwPolicy; gwInternetPolicy; appPolicy ]
+            add_rules [
+                securityRule {
+                    name "app-gw"
+                    description "GatewayManager"
+                    services [ NetworkService ("GatewayManager", Range (65200us,65535us)) ]
+                    add_source_tag NetworkSecurity.TCP "GatewayManager"
+                    add_destination_any
+                }
+                securityRule {
+                    name "inet-gw"
+                    description "Internet to gateway"
+                    services [ "http", 80 ]
+                    add_source_tag NetworkSecurity.TCP "Internet"
+                    add_destination_network "10.28.0.0/24"
+                }
+                securityRule {
+                    name "app-servers"
+                    description "Internal app server access"
+                    services [ "http", 80 ]
+                    add_source_network NetworkSecurity.TCP "10.28.0.0/24"
+                    add_destination_network "10.28.1.0/24"
+                }
+            ]
         }
 
         let net = vnet {

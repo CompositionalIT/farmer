@@ -481,7 +481,7 @@ type AppGatewayConfig =
       Tags: Map<string,string>
      }
     interface IBuilder with
-        member this.ResourceId = ApplicationGateways.resourceId this.Name
+        member this.ResourceId = applicationGateways.resourceId this.Name
         member this.BuildResources location =
             let frontendPublicIps =
                 this.FrontendIpConfigs

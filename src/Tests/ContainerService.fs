@@ -248,7 +248,7 @@ let tests = testList "AKS" [
             service_principal_use_msi
             addon_http_application_routing true
             addon_aci_connector true
-            addon_ingress_app_gateway true (Farmer.Arm.ApplicationGateway.ApplicationGateways.resourceId "foo") appGatewayMsi
+            addon_ingress_app_gateway true (Farmer.Arm.ApplicationGateway.applicationGateways.resourceId "foo") appGatewayMsi
         }
         let template = arm { add_resource myAks }
         let json = template.Template |> Writer.toJson
