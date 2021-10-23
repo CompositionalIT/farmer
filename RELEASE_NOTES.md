@@ -1,6 +1,11 @@
 Release Notes
 =============
 
+## 1.6.19
+* Application Gateways: support for creating application gateways.
+* Container Service (AKS): support for various addons, including the application gateway ingress controller.
+* Key Vaults: Add keys to new or existing key vaults.
+
 ## 1.6.18
 * Resource Groups: Add support for multiple nested deployments targetting the same resource group
 * Resource Groups: Provide input parameters and key vault references to nested deployments.
