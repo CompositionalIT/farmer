@@ -324,6 +324,10 @@ type AksBuilder() =
                              with IngressApplicationGateway = appGateway }
                   | Some addons -> Some { addons with IngressApplicationGateway = appGateway }
         }
+    member this.AddonIngressApplicationGateway(state:AksConfig, enabled:bool, appGateway:IBuilder, identity:UserAssignedIdentityConfig) =
+        this.AddonIngressApplicationGateway(state, enabled, appGateway.ResourceId, identity)
+    member this.AddonIngressApplicationGateway(state:AksConfig, enabled:bool, appGateway:ApplicationGateway.ApplicationGateway, identity:UserAssignedIdentityConfig) =
+        this.AddonIngressApplicationGateway(state, enabled, (appGateway :> IArmResource).ResourceId, identity)
     /// Enable or disable the Kubernetes dashboard.
     [<CustomOperation "addon_kube_dashboard">]
     member _.AddonKubeDashboard(state:AksConfig, enabled:bool) =

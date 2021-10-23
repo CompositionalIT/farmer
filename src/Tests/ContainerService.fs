@@ -242,13 +242,14 @@ let tests = testList "AKS" [
         Expect.equal kubeletIdentityClientId "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'kubeletIdentity'), '2018-11-30').clientId]" "Incorrect kubelet identity reference."
     }
     test "Basic AKS cluster with addons" {
-        let appGatewayMsi = createUserAssignedIdentity "appGatewayIdentity"
+        let myAppGateway = appGateway { name "app-gw" }
+        let appGatewayMsi = createUserAssignedIdentity "app-gw-msi"
         let myAks = aks {
             name "aks-cluster"
             service_principal_use_msi
             addon_http_application_routing true
             addon_aci_connector true
-            addon_ingress_app_gateway true (Farmer.Arm.ApplicationGateway.applicationGateways.resourceId "foo") appGatewayMsi
+            addon_ingress_app_gateway true myAppGateway appGatewayMsi
         }
         let template = arm { add_resource myAks }
         let json = template.Template |> Writer.toJson
@@ -265,13 +266,13 @@ let tests = testList "AKS" [
         Expect.equal httpAppRouting expectedHttpAppRouting "Unexpected value for addonProfiles.httpApplicationRouting."
         let expectedAppGateway = """{
   "config": {
-    "applicationGatewayId": "[resourceId('Microsoft.Network/applicationGateways', 'foo')]"
+    "applicationGatewayId": "[resourceId('Microsoft.Network/applicationGateways', 'app-gw')]"
   },
   "enabled": true,
   "identity": {
-    "clientId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'appGatewayIdentity')).clientId]",
-    "objectId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'appGatewayIdentity')).principalId]",
-    "resourceId": "[resourceId('Microsoft.Network/applicationGateways', 'foo')]"
+    "clientId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'app-gw-msi')).clientId]",
+    "objectId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'app-gw-msi')).principalId]",
+    "resourceId": "[resourceId('Microsoft.Network/applicationGateways', 'app-gw')]"
   }
 }"""
         let appGatewayIngress = jobj.SelectToken("resources[?(@.name=='aks-cluster')].properties.addonProfiles.ingressApplicationGateway") |> string
