@@ -5,12 +5,12 @@ chapter: false
 weight: 1
 ---
 
-This step will get you up and running by incorporate something quickly and easily into the Farmer pipeline that emits a valid [Azure Container Registry](https://azure.microsoft.com/en-us/services/container-registry/).
+This step will get you up and running by incorporating something quickly and easily into the Farmer pipeline that emits a valid [Azure Container Registry](https://azure.microsoft.com/en-us/services/container-registry/).
 
 ### Step 1.1: Prototype and test using an fsx file
 Technically this step is not necessary but it is the quickest way to get a working deployment from which you can iterate upon.
 
-Start by looking at [this sample](https://github.com/Azure/azure-quickstart-templates/blob/master/101-container-registry-geo-replication/azuredeploy.json) and identifying the section of JSON that relates to the resource we want - in our case, the `Microsoft.ContainerRegistry/registries` resource.
+Start by looking at [this sample](https://github.com/Azure/azure-quickstart-templates/blob/master/quickstarts/microsoft.containerregistry/container-registry-geo-replication/azuredeploy.json) and identifying the section of JSON that relates to the resource we want - in our case, the `Microsoft.ContainerRegistry/registries` resource.
 
 > In VSCode, the use of `#r "nuget:..."` syntax can be enabled by going to `Settings > F# > Fsi Extra Parameters` and adding `--langversion:preview` to the `FSharp.fsiExtraParameters` list (.NET 5 only). VS2019 and Rider already support this feature natively.
 > If you are not using .NET 5, manually build Farmer and reference the dll manually - see the `samples` folder for examples.
