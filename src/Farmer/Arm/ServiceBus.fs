@@ -29,10 +29,11 @@ module Namespaces =
               DeadLetteringOnMessageExpiration : bool option
               Rules : Rule list
               DependsOn: Set<ResourceId> }
+            member private this.ResourceName = this.Topic.Name/this.Topic.ResourceId.Segments.[0]/this.Name
             interface IArmResource with
-                member this.ResourceId = subscriptions.resourceId (this.Topic.FullName/this.Name)
+                member this.ResourceId = subscriptions.resourceId (this.ResourceName)
                 member this.JsonModel =
-                    {| subscriptions.Create(this.Topic.FullName/this.Name, dependsOn = Set.addIfManaged this.Topic this.DependsOn ) with
+                    {| subscriptions.Create(this.ResourceName, dependsOn = LinkedResource.addToSetIfManaged this.Topic this.DependsOn ) with
                         properties =
                          {| defaultMessageTimeToLive = tryGetIso this.DefaultMessageTimeToLive
                             requiresDuplicateDetection =
@@ -76,10 +77,11 @@ module Namespaces =
           MaxDeliveryCount : int option
           MaxSizeInMegabytes : int<Mb> option
           EnablePartitioning : bool option}
+        member private this.ResourceName = this.Namespace.Name/this.Name
         interface IArmResource with
-            member this.ResourceId = queues.resourceId (this.Namespace.Name/this.Name)
+            member this.ResourceId = queues.resourceId (this.ResourceName)
             member this.JsonModel =
-                {| queues.Create(this.Namespace.Name/this.Name, dependsOn = (Set.addIfManaged this.Namespace Set.empty)) with
+                {| queues.Create(this.ResourceName, dependsOn = (LinkedResource.addToSetIfManaged this.Namespace Set.empty)) with
                     properties =
                      {| lockDuration = tryGetIso this.LockDuration
                         requiresDuplicateDetection =

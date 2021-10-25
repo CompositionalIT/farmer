@@ -21,7 +21,7 @@ type ServiceBusQueueConfig =
       EnablePartitioning : bool option
       AuthorizationRules : Map<ResourceName, AuthorizationRuleRight Set>}
     interface IBuilder with
-      member this.ResourceId = queues.resourceId (this.Namespace.FullName/this.Name)
+      member this.ResourceId = queues.resourceId (this.Namespace.Name/this.Name)
       member this.BuildResources location = 
         [
           { Name = this.Name
@@ -104,7 +104,7 @@ type ServiceBusSubscriptionConfig =
       Rules : Rule list 
       DependsOn: Set<ResourceId> }
     interface IBuilder with
-      member this.ResourceId = subscriptions.resourceId (this.Topic.FullName/this.Name)
+      member this.ResourceId = subscriptions.resourceId (this.Topic.Name/this.Topic.ResourceId.Segments.[0]/this.Name)
       member this.BuildResources location = 
         [
           { Name = this.Name

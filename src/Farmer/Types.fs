@@ -14,6 +14,11 @@ type ResourceName =
         | r when r = ResourceName.Empty -> ResourceName fallbackValue
         | r -> r
     member this.Map mapper = match this with ResourceName r -> ResourceName (mapper r)
+    
+    static member (/) (a:ResourceName, b:string) = ResourceName(a.Value + "/" + b)
+    static member (/) (a:ResourceName, b:ResourceName) = a / b.Value
+    static member (-) (a:ResourceName, b:string) = ResourceName(a.Value + "-" + b)
+    static member (-) (a:ResourceName, b:ResourceName) = a - b.Value
 
 [<AutoOpen>]
 module ResourceName =
@@ -21,24 +26,6 @@ module ResourceName =
     let (|NullOrEmpty|_|) (text:string) = if System.String.IsNullOrEmpty text then Some NullOrEmpty else None
     let (|Parsed|_|) parser (text:string) = match parser text with true, x -> Some (Parsed x) | false, _ -> None
     let (|Unparsed|_|) parser (text:string) = match parser text with true, _ -> None | false, _ -> Some Unparsed
-
-type ResourceName with
-  static member (/) (a:ResourceName, b:string) = 
-    match a with
-    | EmptyResourceName -> ResourceName b
-    | a -> ResourceName(a.Value + "/" + b)
-  static member (/) (a:ResourceName, b:ResourceName) =
-    match (a,b) with
-    | (EmptyResourceName, EmptyResourceName) -> ResourceName.Empty 
-    | (a, EmptyResourceName)  
-    | (EmptyResourceName, a) -> a
-    | (a,b) -> a / b.Value
-  static member (-) (a:ResourceName, b:string) = ResourceName(a.Value + "-" + b)
-  static member (-) (a:ResourceName, b:ResourceName) = a - b.Value
-  static member concat (parts: ResourceName list) =
-    match parts with 
-    | [] -> ResourceName.Empty
-    | fst::rest -> Seq.fold (/) fst rest
 
 type Location =
     | Location of string
@@ -60,7 +47,6 @@ type ResourceId =
       Subscription : string option
       Name : ResourceName
       Segments : ResourceName list }
-    member this.FullName = this.Name / ResourceName.concat this.Segments
     static member create (resourceType:ResourceType, name:ResourceName, ?group:string, ?subscription:string) =
         { Type = resourceType; ResourceGroup = group; Subscription = subscription; Name = name; Segments = [] }
     static member create (resourceType:ResourceType, name:ResourceName, [<ParamArray>] resourceSegments:ResourceName []) =
@@ -224,7 +210,12 @@ type LinkedResource =
         | Managed resId
         | Unmanaged resId -> resId
     member this.Name = this.ResourceId.Name
-    member this.FullName = this.ResourceId.FullName
+    
+    static member addToSetIfManaged = 
+        function
+        | Managed x -> Set.add x
+        | _ -> id
+
 
 /// A reference to another Azure resource that may or may not be created by Farmer.
 type ResourceRef<'TConfig> =
@@ -264,13 +255,6 @@ module ResourceRef =
         | LinkedResource (Managed r)
         | LinkedResource (Unmanaged r) ->
             Some r
-
-    [<RequireQualifiedAccess>]
-    module Set =
-      let addIfManaged =
-        function
-        | Managed x -> Set.add x
-        | _ -> id
 
 /// Whether a specific feature is active or not.
 type FeatureFlag =
