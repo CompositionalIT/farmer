@@ -57,7 +57,7 @@ which generates JSON looking something like this:
 * **Template**: Represents an ARM template with parameters, outputs and zero, one or many resources.
 * **Location**: An Azure Region where a service exists.
 * **Deployment**: Represents the deployment of an ARM template to a specific Location and Resource Group name.
-* **Builder**: In Farmer, an `IBuilder` represents provides the capability of creating a smart type that helps model a resource *or a collection of resources* into associated `IArmResource` objects required for constructing the ARM template. For example, Farmer's WebApp builder provides a logical abstraction on top of several ARM resources: Web App, Server Farm and Application Insights.
+* **Builder**: In Farmer, an `IBuilder` provides the capability of creating a smart type that helps model a resource *or a collection of resources* into associated `IArmResource` objects required for constructing the ARM template. For example, Farmer's WebApp builder provides a logical abstraction on top of several ARM resources: Web App, Server Farm and Application Insights.
 
 ### Requirements
 * Minimum version is 2.5.0 of Azure CLI
