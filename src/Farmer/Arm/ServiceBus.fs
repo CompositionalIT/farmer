@@ -74,6 +74,7 @@ module Namespaces =
           Session : bool option
           DeadLetteringOnMessageExpiration : bool option
           DefaultMessageTimeToLive : IsoDateTime option
+          ForwardTo : ResourceName option
           MaxDeliveryCount : int option
           MaxSizeInMegabytes : int<Mb> option
           EnablePartitioning : bool option}
@@ -92,6 +93,7 @@ module Namespaces =
                         defaultMessageTimeToLive = tryGetIso this.DefaultMessageTimeToLive
                         requiresSession = this.Session |> Option.toNullable
                         deadLetteringOnMessageExpiration = this.DeadLetteringOnMessageExpiration |> Option.toNullable
+                        forwardTo = this.ForwardTo |> Option.map (fun x -> x.Value) |> Option.toObj
                         maxDeliveryCount = this.MaxDeliveryCount |> Option.toNullable
                         maxSizeInMegabytes = this.MaxSizeInMegabytes |> Option.toNullable
                         enablePartitioning = this.EnablePartitioning |> Option.toNullable |}

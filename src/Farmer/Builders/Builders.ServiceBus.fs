@@ -8,12 +8,18 @@ open Namespaces
 open Topics
 open System
 
+module CommonMembers=
+    type IForwardTo<'TState> =
+        abstract member SetForwardTo : 'TState -> ResourceName option -> 'TState
+open CommonMembers
+
 type ServiceBusQueueConfig =
     { Name : ResourceName
       Namespace : LinkedResource
       LockDuration : TimeSpan option
       DuplicateDetection : TimeSpan option
       DefaultMessageTimeToLive : TimeSpan option
+      ForwardTo : ResourceName option
       Session : bool option
       DeadLetteringOnMessageExpiration : bool option
       MaxDeliveryCount : int option
@@ -31,6 +37,7 @@ type ServiceBusQueueConfig =
             Session = this.Session
             DeadLetteringOnMessageExpiration = this.DeadLetteringOnMessageExpiration
             DefaultMessageTimeToLive = this.DefaultMessageTimeToLive |> Option.map IsoDateTime.OfTimeSpan
+            ForwardTo = this.ForwardTo
             MaxDeliveryCount = this.MaxDeliveryCount
             MaxSizeInMegabytes = this.MaxSizeInMegabytes
             EnablePartitioning = this.EnablePartitioning }
@@ -52,6 +59,7 @@ type ServiceBusQueueBuilder() =
           Session = None
           DeadLetteringOnMessageExpiration = None
           DefaultMessageTimeToLive = None
+          ForwardTo = None
           MaxDeliveryCount = None
           MaxSizeInMegabytes = None
           EnablePartitioning = None
@@ -90,7 +98,8 @@ type ServiceBusQueueBuilder() =
         { state with Namespace = Unmanaged(namespaces.resourceId namespaceName) }
     member this.LinkToUnmanagedNamespace (state:ServiceBusQueueConfig, namespaceName) =
         { state with Namespace = Unmanaged(namespaces.resourceId(ResourceName namespaceName)) }
-
+    interface IForwardTo<ServiceBusQueueConfig> with
+        member this.SetForwardTo state resource = {state with ForwardTo = resource}
 type ServiceBusSubscriptionConfig =
     { Name : ResourceName
       Topic : LinkedResource
@@ -160,9 +169,6 @@ type ServiceBusSubscriptionBuilder() =
     [<CustomOperation "enable_dead_letter_on_message_expiration">]
     member _.DeadLetteringOnMessageExpiration(state:ServiceBusSubscriptionConfig) = { state with DeadLetteringOnMessageExpiration = Some true }
     /// Automatically forward to a queue or topic
-    [<CustomOperation "forward_to">]
-    member _.ForwardTo(state:ServiceBusSubscriptionConfig, target) = { state with ForwardTo = Some (ResourceName target) }
-    member _.ForwardTo(state:ServiceBusSubscriptionConfig, target:ServiceBusQueueConfig) = { state with ForwardTo = Some target.Name }
     /// Adds filtering rules for a subscription
     [<CustomOperation "add_filters">]
     member _.AddFilters(state:ServiceBusSubscriptionConfig, filters) = { state with Rules = state.Rules @ filters }
@@ -178,6 +184,8 @@ type ServiceBusSubscriptionBuilder() =
         { state with Topic = Unmanaged(topics.resourceId topicName) }
     member this.LinkToUnmanagedTopic (state:ServiceBusSubscriptionConfig, topicName) =
         { state with Topic = Unmanaged(topics.resourceId(ResourceName topicName)) }
+    interface IForwardTo<ServiceBusSubscriptionConfig> with
+        member this.SetForwardTo state resource = {state with ForwardTo = resource}
     interface IDependable<ServiceBusSubscriptionConfig> with
       member _.Add state resIds = {state with DependsOn = state.DependsOn + resIds }
 
@@ -343,5 +351,10 @@ let topic = ServiceBusTopicBuilder()
 let queue = ServiceBusQueueBuilder()
 let subscription = ServiceBusSubscriptionBuilder()
 
-type ServiceBusSubscriptionBuilder with
-  member _.ForwardTo(state:ServiceBusSubscriptionConfig, target:ServiceBusTopicConfig) = { state with ForwardTo = Some target.Name }
+type IForwardTo<'TState> with
+    [<CustomOperation "forward_to">]
+    member this.ForwardTo(state:'TState, target) = this.SetForwardTo state target
+    member this.ForwardTo(state:'TState, target) = this.SetForwardTo state (Some target)
+    member this.ForwardTo(state:'TState, target) = this.SetForwardTo state (Some (ResourceName target))
+    member this.ForwardTo(state:'TState, target:ServiceBusQueueConfig) = this.SetForwardTo state (Some target.Name)
+    member this.ForwardTo(state:'TState, target:ServiceBusTopicConfig) = this.SetForwardTo state (Some target.Name)
