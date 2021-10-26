@@ -14,7 +14,7 @@ type ResourceName =
         | r when r = ResourceName.Empty -> ResourceName fallbackValue
         | r -> r
     member this.Map mapper = match this with ResourceName r -> ResourceName (mapper r)
-
+    
     static member (/) (a:ResourceName, b:string) = ResourceName(a.Value + "/" + b)
     static member (/) (a:ResourceName, b:ResourceName) = a / b.Value
     static member (-) (a:ResourceName, b:string) = ResourceName(a.Value + "-" + b)
@@ -26,6 +26,7 @@ module ResourceName =
     let (|NullOrEmpty|_|) (text:string) = if System.String.IsNullOrEmpty text then Some NullOrEmpty else None
     let (|Parsed|_|) parser (text:string) = match parser text with true, x -> Some (Parsed x) | false, _ -> None
     let (|Unparsed|_|) parser (text:string) = match parser text with true, _ -> None | false, _ -> Some Unparsed
+
 type Location =
     | Location of string
     member this.ArmValue = match this with Location location -> location.ToLower()
@@ -52,7 +53,11 @@ type ResourceId =
         { Type = resourceType; Name = name; ResourceGroup = None; Subscription = None; Segments = List.ofArray resourceSegments }
 
 type ResourceType with
-    member this.resourceId name = ResourceId.create (this, name)
+    member this.resourceId (name:ResourceName) = 
+      match name.Value.Split('/') with
+      | [||] | [| _ |] -> ResourceId.create (this, name)
+      | arr ->  
+        ResourceId.create (this, (ResourceName arr.[0]), (Array.map ResourceName arr.[1..]))
     member this.resourceId name = this.resourceId (ResourceName name)
     member this.resourceId (firstSegment, [<ParamArray>] remainingSegments:ResourceName []) = ResourceId.create (this, firstSegment, remainingSegments)
 
@@ -170,6 +175,8 @@ type SecureParameter =
     member this.Value = match this with SecureParameter value -> value
     /// Gets an ARM expression reference to the parameter e.g. parameters('my-password')
     member this.ArmExpression = $"parameters('{this.Value}')" |> ArmExpression.create
+    /// Gets the key for this parameter in the ARM template 'parameters' dictionary.
+    member this.Key = match this with SecureParameter name -> name
 
 /// Exposes parameters which are required by a specific IArmResource.
 type IParameters =
@@ -206,6 +213,12 @@ type LinkedResource =
         | Managed resId
         | Unmanaged resId -> resId
     member this.Name = this.ResourceId.Name
+    
+    static member addToSetIfManaged = 
+        function
+        | Managed x -> Set.add x
+        | _ -> id
+
 
 /// A reference to another Azure resource that may or may not be created by Farmer.
 type ResourceRef<'TConfig> =

@@ -98,7 +98,7 @@ let generateMonitorChartPart (chartProperties : MonitorChartParameters) = {
     inputs = [ box <| {| name = "sharedTimeRange"; isOptional = true |};
                box <| {| name = "options"
                          value = {| v2charts = true
-                                    charts = [ chartProperties.chartInputs ] |} |} ]
+                                    charts = chartProperties.chartInputs |} |} ]
     settings = {| content = {| options = {| chart = chartProperties.chartSettings |} |} |}
     filters = chartProperties.filters
     asset = Unchecked.defaultof<LensAsset>

@@ -253,7 +253,7 @@ let tests = testList "Web App Tests" [
         Expect.equal sx.SiteName (ResourceName "siteX") "Extension knows the site name"
         Expect.equal sx.Location Location.WestEurope "Location is correct"
         Expect.equal sx.Name (ResourceName "extensionA") "Extension name is correct"
-        Expect.equal r.ResourceId.ArmExpression.Value "resourceId('Microsoft.Web/sites/siteextensions', 'siteX/extensionA')" "Resource name composed of site name and extension name"
+        Expect.equal r.ResourceId.ArmExpression.Value "resourceId('Microsoft.Web/sites/siteextensions', 'siteX', 'extensionA')" "Resource name composed of site name and extension name"
     }
 
     test "Handles multiple add_extension correctly" {

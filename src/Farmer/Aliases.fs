@@ -1,4 +1,4 @@
 ﻿[<AutoOpen>]
 module Farmer.Aliases
 
-let arm = Farmer.Builders.ResourceGroup.resourceGroup
+let arm = Farmer.Builders.ResourceGroup.DeploymentBuilder ()

@@ -1,5 +1,21 @@
 Release Notes
 =============
+
+## vNext
+* ServiceBus: Allow Service Bus Queues/Topics/Subscriptions to be linked to unmanaged namespaces
+* Allow adding custom dependencies to Subscriptions
+
+## 1.6.18
+* Resource Groups: Add support for multiple nested deployments targetting the same resource group
+* Resource Groups: Provide input parameters and key vault references to nested deployments.
+
+## 1.6.17
+* Container Groups: Use an ARM expression to populate a secure environment variable.
+* Resource Groups: Specify the target subscription for nested deployments.
+
+## 1.6.16
+* Traffic Manager: allow priority and weight to be optional for endpoints.
+
 ## 1.6.15
 * Key Vaults: Allow deploying standalone secrets without a KeyVault in the same deployment
 * WebApp/Functions: no longer overwrites production slot settings when using a multi-slot deploy
