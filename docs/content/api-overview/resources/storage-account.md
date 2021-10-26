@@ -58,10 +58,11 @@ The `StorageAccount` type contains helper methods to quickly create ARM expressi
 ```fsharp
 open Farmer
 open Farmer.Builders
+open Farmer.Storage
 
 let storage = storageAccount {
     name "isaacssuperstorage"
-    sku Storage.Premium_LRS
+    sku Storage.Sku.Premium_LRS
     add_public_container "mypubliccontainer"
     add_private_container "myprivatecontainer"
     add_blob_container "myblobcontainer"
@@ -87,7 +88,7 @@ let storage = storageAccount {
             Policy.DeleteRetention { Enabled = true; Days = 10 }
             Policy.LastAccessTimeTracking { Enabled = true; TrackingGranularityInDays = 12 }
             Policy.ContainerDeleteRetention { Enabled = true; Days = 11 }
-            Policy.ChangeFeed { Enabled = true; RetentionInDays = 30 } ]
+            Policy.ChangeFeed { Enabled = true; RetentionInDays = 30 }
         ]
     ]
     enable_versioning [ StorageService.Blobs, true ]

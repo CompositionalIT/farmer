@@ -340,6 +340,69 @@ let tests = testList "Container Group" [
         Expect.hasLength deployment.Template.Parameters 1 "Should have a secure parameter for secret volume"
         Expect.equal (deployment.Template.Parameters.Head.ArmExpression.Eval()) "[parameters('secret-foo')]" "Generated incorrect secure parameter."
     }
+    /// Test creates a storage account and container group where the storage account connection string
+    /// is passed as an ARM expression in a secure environment variable.
+    test "Secure environment variables created from ARM expressions" {
+        let script = """
+#r "nuget: Azure.Storage.Blobs"
+
+open System
+open Azure.Storage.Blobs
+
+async {
+    while true do
+        try
+            let connectionString = Environment.GetEnvironmentVariable ("AZURE_STORAGE_CONNECTION_STRING")
+            let blobServiceClient = BlobServiceClient (connectionString)
+            let containerName = "quickstartblobs" + Guid.NewGuid().ToString()
+            do! blobServiceClient.CreateBlobContainerAsync (containerName) |> Async.AwaitTask |> Async.Ignore
+            Console.WriteLine "Created container."
+        with
+        | ex -> Console.Error.WriteLine ex
+        do! Async.Sleep 30_000
+} |> Async.RunSynchronously
+"""
+        let storage =
+            storageAccount {
+                name "containerdata1234"
+            }
+        let app =
+            containerGroup {
+                name "myapp"
+                depends_on storage
+                add_instances [
+                    containerInstance {
+                        name "app"
+                        image "mcr.microsoft.com/dotnet/sdk:5.0"
+                        add_volume_mount "script" "/app/src"
+                        command_line ("dotnet fsi /app/src/main.fsx".Split null |> List.ofArray)
+                        env_vars [
+                            EnvVar.createSecureExpression "AZURE_STORAGE_CONNECTION_STRING" storage.Key
+                        ]
+                    }
+                ]
+                add_volumes [
+                    volume_mount.secret_string "script" "main.fsx" script
+                ]
+            }
+        let deployment = 
+            arm {
+                location Location.EastUS
+                add_resources [
+                    storage
+                    app
+                ]
+            }
+        let json = deployment.Template |> Writer.toJson
+        let jobj = JObject.Parse json
+        let parameters = jobj.["parameters"]
+        Expect.hasLength parameters 0 "Expected no parameters emitted with a SecureEnvExpression"
+        let envVars = jobj.SelectToken("$.resources[?(@.name=='myapp')].properties.containers[?(@.name=='app')].properties.environmentVariables") :?> JArray
+        Expect.hasLength envVars 1 "Expected to have an environment variable on the 'app' container"
+        let firstEnvVar = envVars.[0]
+        Expect.equal (firstEnvVar.["name"] |> string) "AZURE_STORAGE_CONNECTION_STRING" "Incorrect env var name"
+        Expect.equal (firstEnvVar.["secureValue"] |> string) "[concat('DefaultEndpointsProtocol=https;AccountName=containerdata1234;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', 'containerdata1234'), '2017-10-01').keys[0].value)]" "Incorrect env var expression value"
+    }
     test "Container with liveness and readiness probes" {
 
         let cg =

@@ -94,8 +94,11 @@ type EnvVar =
     | EnvValue of string
     /// Use for secret environment variables to be surfaced in the container securely. These will be provided as secure parameters to the ARM template.
     | SecureEnvValue of SecureParameter
+    /// Use for secret environment variables that get their value from an ARM Expression. These will be an ARM expression in the template, but value used in a secure context.
+    | SecureEnvExpression of ArmExpression
     static member create (name:string) (value:string) = name, EnvValue value
     static member createSecure (name:string) (paramName:string) = name, SecureEnvValue (SecureParameter paramName)
+    static member createSecureExpression (name:string) (armExpression:ArmExpression) = name, SecureEnvExpression armExpression
 
 module Mb =
     let toBytes (mb:int<Mb>) = int64 mb * 1024L * 1024L

@@ -118,11 +118,13 @@ type ContainerGroup =
                 for envVar in container.EnvironmentVariables do
                     match envVar.Value with
                     | SecureEnvValue p -> p
+                    | SecureEnvExpression _ -> ()
                     | EnvValue _ -> ()
             for container in this.InitContainers do
                 for envVar in container.EnvironmentVariables do
                     match envVar.Value with
                     | SecureEnvValue p -> p
+                    | SecureEnvExpression _ -> ()
                     | EnvValue _ -> ()
             for volume in this.Volumes do
                 match volume.Value with
@@ -156,6 +158,8 @@ type ContainerGroup =
                                               match value with
                                               | EnvValue value ->
                                                 {| name = key; value = value; secureValue = null |}
+                                              | SecureEnvExpression armExpression ->
+                                                {| name = key; value = null; secureValue = armExpression.Eval() |}
                                               | SecureEnvValue value ->
                                                 {| name = key; value = null; secureValue = value.ArmExpression.Eval() |}
                                       ]
@@ -183,6 +187,8 @@ type ContainerGroup =
                                               match value with
                                               | EnvValue value ->
                                                 {| name = key; value = value; secureValue = null |}
+                                              | SecureEnvExpression armExpression ->
+                                                {| name = key; value = null; secureValue = armExpression.Eval() |}
                                               | SecureEnvValue value ->
                                                 {| name = key; value = null; secureValue = value.ArmExpression.Eval() |}
                                       ]
@@ -233,7 +239,7 @@ type ContainerGroup =
                             |> Option.map(fun path -> box {| id = path.Eval() |})
                             |> Option.toObj
                           volumes = [
-                            for (key, value) in Map.toSeq this.Volumes do
+                            for key, value in Map.toSeq this.Volumes do
                                 match key, value with
                                 |  volumeName, Volume.AzureFileShare (shareName, accountName) ->
                                     {| name = volumeName
