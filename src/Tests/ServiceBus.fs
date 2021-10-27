@@ -124,7 +124,7 @@ let tests = testList "Service Bus Tests" [
                     add_queues [ queue { name "my-queue" } ]
                 } |> getResourceAtIndex 1
 
-            Expect.equal (queue.DefaultMessageTimeToLive.GetValueOrDefault TimeSpan.MinValue).TotalDays 14. "Default TTL should be 14 days"
+            Expect.isNone (Option.ofNullable queue.DefaultMessageTimeToLive) "The default TTL should be null"
         }
 
         test "Set TTL by timespan for Basic queue" {
@@ -150,7 +150,7 @@ let tests = testList "Service Bus Tests" [
                     add_queues [ queue { name "my-queue" } ]
                 } |> getResourceAtIndex 1
 
-            Expect.equal (queue.DefaultMessageTimeToLive.GetValueOrDefault TimeSpan.MinValue).TotalDays TimeSpan.MaxValue.TotalDays "Default TTL should be max value"
+            Expect.isNone (Option.ofNullable queue.DefaultMessageTimeToLive) "Default TTL should be null"
         }
 
         test "Max size set for queue" {
@@ -222,6 +222,16 @@ let tests = testList "Service Bus Tests" [
             Expect.equal sbAuthorizationRule.Name "serviceBus/my-queue/my-rule" "Name is wrong"
             Expect.equal sbAuthorizationRule.Rights.Count 1 "Wrong number of rights"
             Expect.equal sbAuthorizationRule.Rights.[0] (Nullable AccessRights.Manage) "Wrong rights"
+        }
+
+        test "Queue IArmResource has correct resourceId for unmanaged namespace" {
+            let resource = 
+                queue {
+                    name "my-queue"
+                    link_to_unmanaged_namespace "my-bus"
+                }
+                |> getResources |> getResource |> List.head :> IArmResource
+            Expect.equal (resource.ResourceId.Eval()) "[resourceId('Microsoft.ServiceBus/namespaces/queues', 'my-bus', 'my-queue')]" ""
         }
     ]
 
@@ -488,6 +498,7 @@ let tests = testList "Service Bus Tests" [
             Expect.equal (resource.ResourceId.Eval()) $"[resourceId('Microsoft.ServiceBus/namespaces/topics', 'my-bus', '{topicName}')]" ""
         }
     ]
+
     testList "Namespace AuthorizationRule Tests" [
         test "AuthorizationRule should not be present by default" {
             let sbAuthorizationRules =
