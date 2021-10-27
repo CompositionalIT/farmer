@@ -1,12 +1,14 @@
 [<AutoOpen>]
 module Farmer.Arm.Network
 
+open System.Net.Mail
 open Farmer
 open Farmer.ExpressRoute
 open Farmer.VirtualNetworkGateway
 
 let connections = ResourceType ("Microsoft.Network/connections", "2020-04-01")
 let expressRouteCircuits = ResourceType ("Microsoft.Network/expressRouteCircuits", "2019-02-01")
+let expressRouteCircuitAuthorizations = ResourceType ("Microsoft.Network/expressRouteCircuits/authorizations", "2019-02-01")
 let networkInterfaces = ResourceType ("Microsoft.Network/networkInterfaces", "2018-11-01")
 let networkProfiles = ResourceType ("Microsoft.Network/networkProfiles", "2020-04-01")
 let publicIPAddresses = ResourceType ("Microsoft.Network/publicIPAddresses", "2018-11-01")
@@ -49,15 +51,15 @@ type Subnet =
       NetworkSecurityGroup : LinkedResource option
       Delegations : SubnetDelegation list
       ServiceEndpoints : (Network.EndpointServiceType * Location list) list
-      AssociatedServiceEndpointPolicies : ResourceId list 
+      AssociatedServiceEndpointPolicies : ResourceId list
       PrivateEndpointNetworkPolicies: FeatureFlag option
       PrivateLinkServiceNetworkPolicies: FeatureFlag option }
     member internal this.JsonModelProperties =
         {| addressPrefix = this.Prefix
-           networkSecurityGroup = 
+           networkSecurityGroup =
                this.NetworkSecurityGroup
-               |> Option.map(fun nsg -> {| id = nsg.ResourceId.ArmExpression.Eval() |}) 
-               |> Option.defaultValue Unchecked.defaultof<_> 
+               |> Option.map(fun nsg -> {| id = nsg.ResourceId.ArmExpression.Eval() |})
+               |> Option.defaultValue Unchecked.defaultof<_>
            delegations =
                this.Delegations
                |> List.map (fun delegation ->
@@ -253,7 +255,7 @@ type Connection =
                             match this.VNetGateway2ResourceId with
                             | Some vng2 -> box {| id = vng2.Eval() |}
                             | None -> null
-                        localNetworkGateway1 =
+                        localNetworkGateway2 =
                             match this.LocalNetworkGatewayResourceId with
                             | Some lng -> box {| id = lng.Eval() |}
                             | None -> null
@@ -286,36 +288,36 @@ type NetworkInterface =
                     | _ -> ()
                 if this.NetworkSecurityGroup.IsSome then this.NetworkSecurityGroup.Value
             ]
-            let props = 
+            let props =
                     {| ipConfigurations =
                         this.IpConfigs
                         |> List.mapi(fun index ipConfig ->
                             {| name = $"ipconfig{index + 1}"
                                properties =
-                                let allocationMethod, ip = 
-                                    match this.PrivateIpAllocation with 
+                                let allocationMethod, ip =
+                                    match this.PrivateIpAllocation with
                                     | Some (StaticPrivateIp ip) -> "Static", string ip
                                     | _ -> "Dynamic", null
                                 {| privateIPAllocationMethod = allocationMethod
                                    privateIPAddress = ip
-                                   publicIPAddress = 
-                                       ipConfig.PublicIpAddress 
-                                       |> Option.map(fun pip -> {| id = pip.ResourceId.ArmExpression.Eval() |}) 
-                                       |> Option.defaultValue Unchecked.defaultof<_> 
+                                   publicIPAddress =
+                                       ipConfig.PublicIpAddress
+                                       |> Option.map(fun pip -> {| id = pip.ResourceId.ArmExpression.Eval() |})
+                                       |> Option.defaultValue Unchecked.defaultof<_>
                                    subnet = {| id = subnets.resourceId(this.VirtualNetwork, ipConfig.SubnetName).Eval() |}
                                 |}
                             |})
                     |}
             match this.NetworkSecurityGroup with
-            | None -> 
+            | None ->
                 {| networkInterfaces.Create(this.Name, this.Location, dependsOn, this.Tags) with
                     properties = props
                 |} :> _
-            | Some nsg -> 
+            | Some nsg ->
                 {| networkInterfaces.Create(this.Name, this.Location, dependsOn, this.Tags) with
                     properties = {| props with networkSecurityGroup = {| id = nsg.Eval() |} |}
                 |} :> _
-                
+
 
 type NetworkProfile =
     { Name : ResourceName
@@ -403,6 +405,17 @@ type ExpressRouteCircuit =
                        globalReachEnabled = this.GlobalReachEnabled |}
             |} :> _
 
+type ExpressRouteCircuitAuthorization =
+    { Name : ResourceName
+      Circuit : LinkedResource }
+    interface IArmResource with
+        member this.ResourceId = expressRouteCircuitAuthorizations.resourceId (this.Circuit.Name, this.Name)
+        member this.JsonModel =
+            expressRouteCircuitAuthorizations.Create(
+                this.Circuit.Name / this.Name,
+                dependsOn=[this.Circuit.ResourceId])
+            :> _
+
 type PrivateEndpoint =
   { Name: ResourceName
     Location: Location
@@ -420,7 +433,7 @@ type PrivateEndpoint =
   interface IArmResource with
     member this.ResourceId = privateEndpoints.resourceId this.Name
     member this.JsonModel =
-      let dependencies = 
+      let dependencies =
         [ match this.Subnet with | Managed x -> x | _ -> ()
           match this.Resource with | Managed x -> x | _ -> () ]
       {| privateEndpoints.Create(this.Name, this.Location, dependencies) with
@@ -431,24 +444,24 @@ type PrivateEndpoint =
                     {| name = this.Name.Value
                        properties =
                            {| privateLinkServiceId = this.Resource.ResourceId.Eval()
-                              groupIds = this.GroupIds |} 
-                    |} 
+                              groupIds = this.GroupIds |}
+                    |}
                   ]
              |}
       |} :> _
 
-type GatewayTransit = 
+type GatewayTransit =
     | UseRemoteGateway
     | UseLocalGateway
     | GatewayTransitDisabled
 
-type PeerAccess = 
+type PeerAccess =
     | AccessDenied
     | AccessOnly
     | ForwardOnly
     | AccessAndForward
 
-type NetworkPeering = 
+type NetworkPeering =
     { Location: Location
       OwningVNet: LinkedResource
       RemoteVNet: LinkedResource
@@ -459,14 +472,14 @@ type NetworkPeering =
     member this.Name = this.OwningVNet.Name / $"peering-%s{this.RemoteVNet.Name.Value}"
     interface IArmResource with
         member this.ResourceId = virtualNetworkPeering.resourceId this.Name
-        member this.JsonModel = 
+        member this.JsonModel =
             let deps = [
                 match this.OwningVNet with | Managed id -> id | _ -> ()
                 match this.RemoteVNet with | Managed id -> id | _ -> ()
                 yield! this.DependsOn
             ]
             {| virtualNetworkPeering.Create(this.Name,this.Location,deps) with
-                properties = 
+                properties =
                     {| allowVirtualNetworkAccess = match this.RemoteAccess with | AccessOnly | AccessAndForward -> true | _ -> false
                        allowForwardedTraffic = match this.RemoteAccess with | ForwardOnly | AccessAndForward -> true | _ -> false
                        allowGatewayTransit = match this.GatewayTransit with | UseLocalGateway| UseRemoteGateway -> true | _ -> false
