@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## vNext
+* Functions: fixed bug preventing references to AppIsnights or storage accounts in other resource groups
+
 ## 1.6.18
 * Resource Groups: Add support for multiple nested deployments targetting the same resource group
 * Resource Groups: Provide input parameters and key vault references to nested deployments.
