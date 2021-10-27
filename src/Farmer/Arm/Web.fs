@@ -173,7 +173,7 @@ type Site =
       AlwaysOn : bool
       WorkerProcess : Bitness option
       HTTPSOnly : bool
-      FTPState : FTPState
+      FTPState : FTPState option
       HTTP20Enabled : bool option
       ClientAffinityEnabled : bool option
       WebSocketsEnabled : bool option
@@ -246,9 +246,10 @@ type Site =
                        httpsOnly = this.HTTPSOnly
                        ftp_state =
                            match this.FTPState with
-                           | FTPState.AllAllowed -> "AllAllowed"
-                           | FTPState.FtpsOnly -> "FtpsOnly"
-                           | FTPState.Disabled -> "Disabled"
+                           | Some FTPState.AllAllowed -> "AllAllowed"
+                           | Some FTPState.FtpsOnly -> "FtpsOnly"
+                           | Some FTPState.Disabled -> "Disabled"
+                           | None -> null
                        clientAffinityEnabled = match this.ClientAffinityEnabled with Some v -> box v | None -> null
                        keyVaultReferenceIdentity = keyvaultId
                        siteConfig =

@@ -165,7 +165,7 @@ type CommonWebConfig =
       AlwaysOn : bool
       AppInsights : ResourceRef<ResourceName> option
       Cors : Cors option
-      FTPState : FTPState
+      FTPState : FTPState option
       HTTPSOnly : bool
       Identity : Identity.ManagedIdentity
       KeyVaultReferenceIdentity: UserAssignedIdentity Option
@@ -490,7 +490,7 @@ type WebAppBuilder() =
               Cors = None
               HTTPSOnly = false
               Identity = ManagedIdentity.Empty
-              FTPState = FTPState.AllAllowed
+              FTPState = None
               KeyVaultReferenceIdentity = None
               OperatingSystem = Windows
               SecretStore = AppService
@@ -814,7 +814,7 @@ module Extensions =
 
         /// Allows to enable or disable FTP and FTPS
         [<CustomOperation "ftp_state">]
-        member this.FTPState(state:'T, ftpState:FTPState) = this.Map state (fun x -> { x with FTPState = ftpState })
+        member this.FTPState(state:'T, ftpState:FTPState) = this.Map state (fun x -> { x with FTPState = Some ftpState })
 
         [<CustomOperation "health_check_path">]
         /// Specifies the path Azure load balancers will ping to check for unhealthy instances.
