@@ -8,20 +8,36 @@ weight: 11
 ### Overview
 The KeyVault package contains *four* builders, for the different components used by KeyVault: One for **access policies**, one for **secrets**, one for the overall **keyvault** container, and one for **adding access policies** to an existing key vault.
 
+* Keys (`Microsoft.KeyVault/vaults/keys`)
 * KeyVault (`Microsoft.KeyVault/vaults`)
 * Secrets (`Microsoft.KeyVault/vaults/secrets`)
 * AccessPolicies (`Microsoft.KeyVault/vaults/accessPolicies`)
 
+#### Key Builder
+The `key` builder allows you to generate RSA and elliptical curve keys in the key vault.
+
+| Keyword | Purpose |
+|-|-|
+| name | Sets the name of the key to generate. |
+| key_operations | Sets the operations that they generated key can be used to perform. |
+| key_type | Sets the type of key. Helpers are defined for many typical types: RSA_2048, RSA_3072, RSA_4096, EC_P256, EC_P384, EC_P521, EC_P256K |
+| status | Enables or disables the key (defaults to 'Enabled'). |
+| activation_date | Sets the activation date of the key. |
+| expiration_date | Sets the expiration date of the key. |
+| link_to_unmanaged_keyvault | Links this key to an existing keyvault and allows the key to be deployed standalone |
+| depends_on | [Sets the dependencies of the key vault.](../../dependencies/) |
+| add_tag | Adds a tag to the secret. |
+| add_tags | Adds multiple tags to the secret. |
+
 #### Secret Builder
-The secret builder allows you to store secrets into key vault. Values for a secret are passed by Secure String parameters.
+The `secret` builder allows you to store secrets into key vault. Values for a secret are passed by Secure String parameters.
 
 | Keyword | Purpose |
 |-|-|
 | name | Sets the name of the secret. |
 | value | Sets the name of the secure string parameter that will contain the value of the secret. |
 | content_type | Sets the content type of the secret. |
-| enable_secret | Enables the secret. |
-| disable_secret | Disables the secret. |
+| status | Enables or disables the secret (defaults to 'Enabled'). |
 | activation_date | Sets the activation date of the secret. |
 | expiration_date | Sets the expiration date of the secret. |
 | link_to_unmanaged_keyvault | Links this secret to an existing keyvault and allows the secret to be deployed standalone |
@@ -30,7 +46,7 @@ The secret builder allows you to store secrets into key vault. Values for a secr
 | add_tags | Adds multiple tags to the secret. |
 
 #### Access Policy Builder
-The Access Policy builder allows you to create access policies for key vault.
+The `accessPolicy` builder allows you to create access policies for key vault.
 
 | Keyword | Purpose |
 |-|-|
@@ -42,7 +58,7 @@ The Access Policy builder allows you to create access policies for key vault.
 | certificate_permissions | Sets the Certificate permissions of the permission set. |
 
 #### Key Vault Builder
-The Key Vault builder contains access policies, secrets, and configuration information to create a full key vault account.
+The `keyVault` builder contains access policies, secrets, and configuration information to create a full key vault account.
 
 | Keyword | Purpose |
 |-|-|
@@ -113,7 +129,7 @@ let policy =
 let complexSecret = secret {
     name "myComplexSecret"
     content_type "application/text"
-    enable_secret
+    status Enabled
     activation_date (DateTime.Today.AddDays -1.)
     expiration_date (DateTime.Today.AddDays 1.)
 }
@@ -140,6 +156,16 @@ let vault =
         add_secret complexSecret
         add_secret "simpleSecret"
         add_secrets [ "firstSecret"; "secondSecret"]
+        add_keys [
+            key {
+                name "myRsaKey"
+                key_type KeyType.RSA_4096
+            }
+            key {
+                name "myRllipticalCurveKey"
+                key_type KeyType.EC_P256
+            }
+        ]
     }
 
 arm {

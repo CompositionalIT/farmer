@@ -2,6 +2,7 @@
 
 open Farmer
 open Farmer.Builders
+open Farmer.Network
 open Farmer.LoadBalancer
 open Farmer.Arm.Network
 open Farmer.Arm.LoadBalancer
@@ -55,12 +56,12 @@ let backendPool =
             {|
                 Name = ResourceName "group1"
                 IpAddress = System.Net.IPAddress.Parse "10.0.1.4"
-                VirtualNetwork = Some (virtualNetworks.resourceId "ha-container-group-vnet")
+                VirtualNetwork = Some (virtualNetworks.resourceId "ha-container-group-vnet" |> Unmanaged)
             |}
             {|
                 Name = ResourceName "group2"
                 IpAddress = System.Net.IPAddress.Parse "10.0.1.5"
-                VirtualNetwork = Some (virtualNetworks.resourceId "ha-container-group-vnet")
+                VirtualNetwork = Some (virtualNetworks.resourceId "ha-container-group-vnet" |> Unmanaged)
             |}
         ]
     }

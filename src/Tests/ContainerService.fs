@@ -1,6 +1,7 @@
 module ContainerService
 
 open Expecto
+open Farmer.Arm.ContainerService.AddonProfiles
 open Farmer.Arm.RoleAssignment
 open Farmer.Builders
 open Farmer
@@ -239,5 +240,49 @@ let tests = testList "AKS" [
         Expect.equal identity "UserAssigned" "Should have a UserAssigned identity."
         let kubeletIdentityClientId = jobj.SelectToken("resources[?(@.name=='aks-cluster')].properties.identityProfile.kubeletIdentity.clientId") |> string
         Expect.equal kubeletIdentityClientId "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'kubeletIdentity'), '2018-11-30').clientId]" "Incorrect kubelet identity reference."
+    }
+    test "Basic AKS cluster with addons" {
+        let myAppGateway = appGateway { name "app-gw" }
+        let appGatewayMsi = createUserAssignedIdentity "app-gw-msi"
+        let myAks = aks {
+            name "aks-cluster"
+            service_principal_use_msi
+            addons [
+                AciConnectorLinux Enabled
+                HttpApplicationRouting Enabled
+                KubeDashboard Enabled
+                IngressApplicationGateway {
+                    Status = Enabled
+                    ApplicationGatewayId = (myAppGateway :> IBuilder).ResourceId
+                    Identity = Some appGatewayMsi.UserAssignedIdentity
+                }
+            ]
+        }
+        let template = arm { add_resource myAks }
+        let json = template.Template |> Writer.toJson
+        let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+        let expectedAciConn = """{
+  "enabled": true
+}"""
+        let aciConnector = jobj.SelectToken("resources[?(@.name=='aks-cluster')].properties.addonProfiles.aciConnectorLinux") |> string
+        Expect.equal aciConnector expectedAciConn "Unexpected value for addonProfiles.aciConnectorLinux."
+        let expectedHttpAppRouting = """{
+  "enabled": true
+}"""
+        let httpAppRouting = jobj.SelectToken("resources[?(@.name=='aks-cluster')].properties.addonProfiles.httpApplicationRouting") |> string
+        Expect.equal httpAppRouting expectedHttpAppRouting "Unexpected value for addonProfiles.httpApplicationRouting."
+        let expectedAppGateway = """{
+  "config": {
+    "applicationGatewayId": "[resourceId('Microsoft.Network/applicationGateways', 'app-gw')]"
+  },
+  "enabled": true,
+  "identity": {
+    "clientId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'app-gw-msi')).clientId]",
+    "objectId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'app-gw-msi')).principalId]",
+    "resourceId": "[resourceId('Microsoft.Network/applicationGateways', 'app-gw')]"
+  }
+}"""
+        let appGatewayIngress = jobj.SelectToken("resources[?(@.name=='aks-cluster')].properties.addonProfiles.ingressApplicationGateway") |> string
+        Expect.equal appGatewayIngress expectedAppGateway "Unexpected value for addonProfiles.ingressApplicationGateway."
     }
 ]
