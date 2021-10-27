@@ -1585,14 +1585,20 @@ module DeliveryPolicy =
             | ToUppercase -> [ "Uppercase" ]
 
     type CacheBehaviour =
-        | Override
+        | Override of TimeSpan
         | BypassCache
-        | SetIfMissing
+        | SetIfMissing of TimeSpan
         member this.ArmValue =
             match this with
-            | Override -> "Override"
-            | BypassCache -> "BypassCache"
-            | SetIfMissing -> "SetIfMissing"
+            | Override t ->
+                             {| Behaviour = "Override"
+                                CacheDuration = Some(t) |}
+            | BypassCache ->
+                             {| Behaviour = "BypassCache"
+                                CacheDuration = None |}
+            | SetIfMissing t ->
+                             {| Behaviour = "SetIfMissing"
+                                CacheDuration = Some(t) |}
 
     type QueryStringCacheBehavior =
         | Include
