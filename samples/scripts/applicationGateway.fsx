@@ -1,4 +1,4 @@
-#r "../../src/Farmer/bin/Debug/net5.0/Farmer.dll"
+#r "nuget: Farmer"
 
 open Farmer
 
