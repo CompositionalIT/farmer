@@ -19,8 +19,7 @@ module Namespaces =
         let rules = ResourceType ("Rules", "2017-04-01")
         type Subscription =
             { Name : ResourceName
-              Namespace : ResourceName
-              Topic : ResourceName
+              Topic : LinkedResource
               LockDuration : IsoDateTime option
               DuplicateDetectionHistoryTimeWindow : IsoDateTime option
               DefaultMessageTimeToLive : IsoDateTime option
@@ -28,11 +27,13 @@ module Namespaces =
               MaxDeliveryCount : int option
               Session : bool option
               DeadLetteringOnMessageExpiration : bool option
-              Rules : Rule list }
+              Rules : Rule list
+              DependsOn: Set<ResourceId> }
+            member private this.ResourceName = this.Topic.Name/this.Topic.ResourceId.Segments.[0]/this.Name
             interface IArmResource with
-                member this.ResourceId = subscriptions.resourceId (this.Namespace/this.Topic/this.Name)
+                member this.ResourceId = subscriptions.resourceId (this.ResourceName)
                 member this.JsonModel =
-                    {| subscriptions.Create(this.Namespace/this.Topic/this.Name, dependsOn = [ topics.resourceId(this.Namespace, this.Topic) ]) with
+                    {| subscriptions.Create(this.ResourceName, dependsOn = LinkedResource.addToSetIfManaged this.Topic this.DependsOn ) with
                         properties =
                          {| defaultMessageTimeToLive = tryGetIso this.DefaultMessageTimeToLive
                             requiresDuplicateDetection =
@@ -67,19 +68,21 @@ module Namespaces =
 
     type Queue =
         { Name : ResourceName
-          Namespace : ResourceName
+          Namespace : LinkedResource
           LockDuration : IsoDateTime option
           DuplicateDetectionHistoryTimeWindow : IsoDateTime option
           Session : bool option
           DeadLetteringOnMessageExpiration : bool option
-          DefaultMessageTimeToLive : IsoDateTime
+          DefaultMessageTimeToLive : IsoDateTime option
+          ForwardTo : ResourceName option
           MaxDeliveryCount : int option
           MaxSizeInMegabytes : int<Mb> option
           EnablePartitioning : bool option}
+        member private this.ResourceName = this.Namespace.Name/this.Name
         interface IArmResource with
-            member this.ResourceId = queues.resourceId (this.Namespace/this.Name)
+            member this.ResourceId = queues.resourceId (this.ResourceName)
             member this.JsonModel =
-                {| queues.Create(this.Namespace/this.Name, dependsOn = [ namespaces.resourceId this.Namespace ]) with
+                {| queues.Create(this.ResourceName, dependsOn = (LinkedResource.addToSetIfManaged this.Namespace Set.empty)) with
                     properties =
                      {| lockDuration = tryGetIso this.LockDuration
                         requiresDuplicateDetection =
@@ -87,9 +90,10 @@ module Namespaces =
                             | Some _ -> Nullable true
                             | None -> Nullable()
                         duplicateDetectionHistoryTimeWindow = tryGetIso this.DuplicateDetectionHistoryTimeWindow
-                        defaultMessageTimeToLive = this.DefaultMessageTimeToLive.Value
+                        defaultMessageTimeToLive = tryGetIso this.DefaultMessageTimeToLive
                         requiresSession = this.Session |> Option.toNullable
                         deadLetteringOnMessageExpiration = this.DeadLetteringOnMessageExpiration |> Option.toNullable
+                        forwardTo = this.ForwardTo |> Option.map (fun x -> x.Value) |> Option.toObj
                         maxDeliveryCount = this.MaxDeliveryCount |> Option.toNullable
                         maxSizeInMegabytes = this.MaxSizeInMegabytes |> Option.toNullable
                         enablePartitioning = this.EnablePartitioning |> Option.toNullable |}

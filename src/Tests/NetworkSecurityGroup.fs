@@ -17,6 +17,7 @@ let tests = testList "NetworkSecurityGroup" [
             let nsg =
                 { Name = ResourceName "my-nsg"
                   Location = Location.WestEurope
+                  SecurityRules = []
                   Tags = Map.empty }
             arm { add_resource nsg }
             |> findAzureResources<NetworkSecurityGroup> client.SerializationSettings
@@ -28,11 +29,12 @@ let tests = testList "NetworkSecurityGroup" [
             let nsg =
                 { Name = ResourceName "my-nsg"
                   Location = Location.WestEurope
+                  SecurityRules = []
                   Tags = Map.empty }
             let acceptRule =
                 { Name = ResourceName "accept-web"
                   Description = Some (sprintf "Rule created on %s" (DateTimeOffset.Now.Date.ToShortDateString()))
-                  SecurityGroup = nsg
+                  SecurityGroup = nsg.Name
                   Protocol = TCP
                   SourcePorts = Set [ AnyPort ]
                   DestinationPorts = Set [ Port 80us; Port 443us ]
@@ -78,11 +80,11 @@ let tests = testList "NetworkSecurityGroup" [
             name "my-nsg"
             add_rules [ webPolicy ]
         }
-        let rules = arm { add_resource myNsg } |> findAzureResources<SecurityRule> client.SerializationSettings
-        match rules with
-        | [ _; rule1 ] ->
+        let nsg = arm { add_resource myNsg } |> findAzureResources<NetworkSecurityGroup> client.SerializationSettings
+        match nsg.Head.SecurityRules |> List.ofSeq with
+        | [ rule1 ] ->
             rule1.Validate()
-            Expect.equal rule1.Name "my-nsg/web-servers" ""
+            Expect.equal rule1.Name "web-servers" ""
             Expect.equal rule1.Access "Allow" ""
             Expect.equal rule1.DestinationAddressPrefixes.[0] "10.100.30.0/24" ""
             Expect.equal rule1.DestinationPortRanges.[0] "80" ""
@@ -138,12 +140,13 @@ let tests = testList "NetworkSecurityGroup" [
                 blockOutbound
             ]
         }
-        let rules = arm { add_resource myNsg } |> findAzureResources<SecurityRule> client.SerializationSettings
-        match rules with
-        | [ _; rule1; rule2; rule3; rule4 ] ->
+        let nsg = arm { add_resource myNsg } |> findAzureResources<NetworkSecurityGroup> client.SerializationSettings
+        printfn "%A" nsg
+        match nsg.Head.SecurityRules |> List.ofSeq with
+        | [ rule1; rule2; rule3; rule4 ] ->
             // Web server access
             rule1.Validate()
-            Expect.equal rule1.Name "my-nsg/web-servers" ""
+            Expect.equal rule1.Name "web-servers" ""
             Expect.equal rule1.Access "Allow" ""
             Expect.equal rule1.DestinationAddressPrefixes.[0] "10.100.30.0/24" ""
             Expect.equal rule1.DestinationPortRanges.[0] "80" ""
@@ -157,7 +160,7 @@ let tests = testList "NetworkSecurityGroup" [
             Expect.equal rule1.SourcePortRanges.Count 0 ""
             // App server access
             rule2.Validate()
-            Expect.equal rule2.Name "my-nsg/app-servers" ""
+            Expect.equal rule2.Name "app-servers" ""
             Expect.equal rule2.Access "Allow" ""
             Expect.equal rule2.DestinationAddressPrefixes.[0] "10.100.31.0/24" ""
             Expect.equal rule2.DestinationPortRanges.[0] "8080" ""
@@ -168,7 +171,7 @@ let tests = testList "NetworkSecurityGroup" [
             Expect.equal rule2.SourcePortRanges.Count 0 ""
             // DB server access
             rule3.Validate()
-            Expect.equal rule3.Name "my-nsg/db-servers" ""
+            Expect.equal rule3.Name "db-servers" ""
             Expect.equal rule3.Access "Allow" ""
             Expect.equal rule3.DestinationAddressPrefixes.[0] "10.100.32.0/24" ""
             Expect.equal rule3.DestinationPortRanges.[0] "5432" ""
@@ -179,7 +182,7 @@ let tests = testList "NetworkSecurityGroup" [
             Expect.equal rule3.SourcePortRanges.Count 0 ""
             // Block Internet access
             rule4.Validate()
-            Expect.equal rule4.Name "my-nsg/no-internet" ""
+            Expect.equal rule4.Name "no-internet" ""
             Expect.equal rule4.Access "Deny" ""
             Expect.equal rule4.DestinationAddressPrefix "Internet" ""
             Expect.equal rule4.DestinationPortRange "*" ""

@@ -157,6 +157,13 @@ type SiteType =
         | Slot _ -> slots
         | Site _ -> sites
 
+
+[<RequireQualifiedAccess>]
+type FTPState =
+    | AllAllowed
+    | FtpsOnly
+    | Disabled
+
 type Site =
     { SiteType : SiteType
       Location : Location
@@ -166,6 +173,7 @@ type Site =
       AlwaysOn : bool
       WorkerProcess : Bitness option
       HTTPSOnly : bool
+      FTPState : FTPState option
       HTTP20Enabled : bool option
       ClientAffinityEnabled : bool option
       WebSocketsEnabled : bool option
@@ -193,10 +201,10 @@ type Site =
     member this.Name = this.SiteType.ResourceName
     interface IParameters with
         member this.SecureParameters =
-            let optMapToList map = 
+            let optMapToList map =
                 map
                 |> Option.defaultValue Map.empty
-                |> Map.toList 
+                |> Map.toList
             optMapToList this.AppSettings
             @ (optMapToList this.ConnectionStrings |> List.map(fun (k, (v,_)) -> k, v))
             |> List.choose(snd >> function
@@ -240,12 +248,18 @@ type Site =
                        keyVaultReferenceIdentity = keyvaultId
                        siteConfig =
                         {| alwaysOn = this.AlwaysOn
-                           appSettings = 
+                           appSettings =
                                 this.AppSettings
-                                |> mapOrNull (fun (k,v) -> {| name = k; value = v.Value |}) 
-                           connectionStrings = 
-                                this.ConnectionStrings 
+                                |> mapOrNull (fun (k,v) -> {| name = k; value = v.Value |})
+                           connectionStrings =
+                                this.ConnectionStrings
                                 |> mapOrNull (fun (k,(v, t)) -> {| name = k; connectionString = v.Value; ``type`` = t.ToString() |})
+                           ftpsState =
+                               match this.FTPState with
+                               | Some FTPState.AllAllowed -> "AllAllowed"
+                               | Some FTPState.FtpsOnly -> "FtpsOnly"
+                               | Some FTPState.Disabled -> "Disabled"
+                               | None -> null
                            linuxFxVersion = this.LinuxFxVersion |> Option.toObj
                            appCommandLine = this.AppCommandLine |> Option.toObj
                            netFrameworkVersion = this.NetFrameworkVersion |> Option.toObj

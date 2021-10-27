@@ -90,7 +90,7 @@ type FunctionsConfig =
                                 | ExpressionSetting expr -> SecretConfig.create (setting.Key, expr) |> Some
                             match secret with
                             | Some secret ->
-                                { Secret.Name = vaultName.Name/secret.Key
+                                { Secret.Name = vaultName.Name/secret.SecretName
                                   Value = secret.Value
                                   ContentType = secret.ContentType
                                   Enabled = secret.Enabled
@@ -212,6 +212,7 @@ type FunctionsConfig =
                         ()
                   ]
                   HTTPSOnly = this.CommonWebConfig.HTTPSOnly
+                  FTPState = this.CommonWebConfig.FTPState
                   AlwaysOn = this.CommonWebConfig.AlwaysOn
                   HTTP20Enabled = None
                   ClientAffinityEnabled = None
@@ -291,6 +292,7 @@ type FunctionsBuilder() =
               AlwaysOn = false
               AppInsights = Some (derived (fun name -> components.resourceId (name-"ai")))
               Cors = None
+              FTPState = None
               HTTPSOnly = false
               Identity = ManagedIdentity.Empty
               KeyVaultReferenceIdentity = None

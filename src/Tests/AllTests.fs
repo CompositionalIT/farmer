@@ -12,6 +12,7 @@ let allTests =
     testSequencedGroup "" <|
         testList "All Tests" [
             testList "Builders" [
+                AppGateway.tests
                 AppInsights.tests
                 AppInsightsAvailability.tests
                 if notEnv "BUILD_REASON" "PullRequest" then
