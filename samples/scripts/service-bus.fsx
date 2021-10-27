@@ -1,34 +1,36 @@
-#r "nuget:Farmer"
+#r "../../src/Farmer/bin/Debug/net5.0/Farmer.dll"
 
 open Farmer
 open Farmer.Builders
 open Farmer.ServiceBus
 
-let myServiceBus = serviceBus {
+let initialServiceBus = serviceBus {
     name "allMyQueues"
     sku Standard
-    add_queues [
-        queue { name "queuenumberone" }
-        queue { name "queuenumbertwo" }
-    ]
     add_topics [
         topic {
-            name "thetopic"
-            add_subscriptions [
-                subscription {
-                    name "thesub"
-                    forward_to "queuenumberone"
-                }
-            ]
+            name "existing-topic"
         }
     ]
 }
 
+let followUpDeployment = resourceGroup {
+    name "service-bus-test"
+    add_resource (topic{
+        name "new-topic"
+        link_to_unmanaged_namespace "allMyQueues"
+    })
+    add_resource (subscription{
+        name "af.new-topic"
+        link_to_unmanaged_topic "allMyQueues/existing-topic"
+        forward_to "new-topic"
+    })
+    depends_on initialServiceBus
+}
 let deployment = arm {
     location Location.NorthEurope
-    add_resource myServiceBus
-    output "NamespaceDefaultConnectionString" myServiceBus.NamespaceDefaultConnectionString
-    output "DefaultSharedAccessPolicyPrimaryKey" myServiceBus.DefaultSharedAccessPolicyPrimaryKey
+    add_resource initialServiceBus
+    add_resource followUpDeployment
 }
 
 deployment
