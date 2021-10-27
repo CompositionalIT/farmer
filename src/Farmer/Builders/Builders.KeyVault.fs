@@ -91,23 +91,23 @@ type SecretConfig =
             match this.ResourceId with
             | None -> SecretConfig.HandleNoVault()
             | Some id -> id
-        member this.BuildResources location =
-            [ match this.ResourceName with
-               | None -> SecretConfig.HandleNoVault()
-               | Some name ->
-                  { Name = name
-                    Value = this.Value
-                    ContentType = this.ContentType
-                    Enabled = this.Enabled
-                    ActivationDate = this.ActivationDate
-                    ExpirationDate = this.ExpirationDate
-                    Location = location
-                    Dependencies =
-                      match this.Vault with
-                      | Some (Managed id) -> this.Dependencies.Add id
-                      | Some (Unmanaged _) -> this.Dependencies
-                      | None -> SecretConfig.HandleNoVault()
-                    Tags = this.Tags }
+        member this.BuildResources location = [
+            match this.ResourceName with
+            | None -> SecretConfig.HandleNoVault()
+            | Some name ->
+                { Name = name
+                  Value = this.Value
+                  ContentType = this.ContentType
+                  Enabled = this.Enabled
+                  ActivationDate = this.ActivationDate
+                  ExpirationDate = this.ExpirationDate
+                  Location = location
+                  Dependencies =
+                    match this.Vault with
+                    | Some (Managed id) -> this.Dependencies.Add id
+                    | Some (Unmanaged _) -> this.Dependencies
+                    | None -> SecretConfig.HandleNoVault()
+                  Tags = this.Tags }
             ]
 
     type KeyConfig =
