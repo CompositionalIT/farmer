@@ -21,8 +21,7 @@ The `key` builder allows you to generate RSA and elliptical curve keys in the ke
 | name | Sets the name of the key to generate. |
 | key_operations | Sets the operations that they generated key can be used to perform. |
 | key_type | Sets the type of key. Helpers are defined for many typical types: RSA_2048, RSA_3072, RSA_4096, EC_P256, EC_P384, EC_P521, EC_P256K |
-| enable_key | Enables the key. |
-| disable_key | Disables the key. |
+| status | Enables or disables the key (defaults to 'Enabled'). |
 | activation_date | Sets the activation date of the key. |
 | expiration_date | Sets the expiration date of the key. |
 | link_to_unmanaged_keyvault | Links this key to an existing keyvault and allows the key to be deployed standalone |
@@ -38,8 +37,7 @@ The `secret` builder allows you to store secrets into key vault. Values for a se
 | name | Sets the name of the secret. |
 | value | Sets the name of the secure string parameter that will contain the value of the secret. |
 | content_type | Sets the content type of the secret. |
-| enable_secret | Enables the secret. |
-| disable_secret | Disables the secret. |
+| status | Enables or disables the secret (defaults to 'Enabled'). |
 | activation_date | Sets the activation date of the secret. |
 | expiration_date | Sets the expiration date of the secret. |
 | link_to_unmanaged_keyvault | Links this secret to an existing keyvault and allows the secret to be deployed standalone |
@@ -131,7 +129,7 @@ let policy =
 let complexSecret = secret {
     name "myComplexSecret"
     content_type "application/text"
-    enable_secret
+    status Enabled
     activation_date (DateTime.Today.AddDays -1.)
     expiration_date (DateTime.Today.AddDays 1.)
 }

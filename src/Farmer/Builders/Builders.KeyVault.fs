@@ -433,10 +433,8 @@ type KeyBuilder() =
           Tags = Map.empty }
     [<CustomOperation "name">]
     member _.Name(state:KeyConfig, name) = { state with KeyName = ResourceName name }
-    [<CustomOperation "enable_key">]
-    member _.Enabled(state:KeyConfig) = { state with Enabled = Some true }
-    [<CustomOperation "disable_key">]
-    member _.Disabled(state:KeyConfig) = { state with Enabled = Some false }
+    [<CustomOperation "status">]
+    member _.Enabled(state:KeyConfig, featureFlag:FeatureFlag) = { state with Enabled = Some featureFlag.AsBoolean }
     [<CustomOperation "activation_date">]
     member _.ActivationDate(state:KeyConfig, activationDate) = { state with ActivationDate = Some activationDate }
     [<CustomOperation "expiration_date">]
@@ -464,10 +462,12 @@ type SecretBuilder() =
     member _.Value(state:SecretConfig, value) = { state with Value = ExpressionSecret value }
     [<CustomOperation "content_type">]
     member _.ContentType(state:SecretConfig, contentType) = { state with ContentType = Some contentType }
-    [<CustomOperation "enable_secret">]
-    member _.Enabled(state:SecretConfig) = { state with Enabled = Some true }
-    [<CustomOperation "disable_secret">]
-    member _.Disabled(state:SecretConfig) = { state with Enabled = Some false }
+    [<CustomOperation "enable_secret">] // Leaving in for compatibility - should use FeatureFlag
+    member _.EnableSecret(state:SecretConfig) = { state with Enabled = Some true }
+    [<CustomOperation "disable_secret">] // Leaving in for compatibility - should use FeatureFlag
+    member _.DisableSecret(state:SecretConfig) = { state with Enabled = Some false }
+    [<CustomOperation "status">]
+    member _.Enabled(state:SecretConfig, featureFlag:FeatureFlag) = { state with Enabled = Some featureFlag.AsBoolean }
     [<CustomOperation "activation_date">]
     member _.ActivationDate(state:SecretConfig, activationDate) = { state with ActivationDate = Some activationDate }
     [<CustomOperation "expiration_date">]

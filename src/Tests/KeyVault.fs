@@ -208,11 +208,13 @@ let tests = testList "KeyVault" [
                 add_keys [
                     key {
                         name "testKeyInlineRsa"
+                        status Enabled
                         key_type KeyType.RSA_4096
                         key_operations [ KeyOperation.Encrypt; KeyOperation.Sign; KeyOperation.Verify ]
                     }
                     key {
                         name "testKeyInlineEc"
+                        status Disabled
                         key_type KeyType.EC_P256
                     }
                 ]
