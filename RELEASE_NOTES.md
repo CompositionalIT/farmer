@@ -2,6 +2,9 @@ Release Notes
 =============
 
 ## 1.6.19
+* ExpressRoute: create authorization keys on newly created circuits.
+* ServiceBus: Allow Service Bus Queues/Topics/Subscriptions to be linked to unmanaged namespaces
+* ServiceBus: Allow adding custom dependencies to Subscriptions
 * WebApp/Functions: Adds 'ftp_state' for controlling FTP access for deployments.
 
 ## 1.6.18

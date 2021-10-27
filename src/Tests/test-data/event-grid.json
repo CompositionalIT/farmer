@@ -54,9 +54,7 @@
         "[resourceId('Microsoft.ServiceBus/namespaces', 'farmereventpubservicebusns')]"
       ],
       "name": "farmereventpubservicebusns/events",
-      "properties": {
-        "defaultMessageTimeToLive": "P14D"
-      },
+      "properties": {},
       "type": "Microsoft.ServiceBus/namespaces/queues"
     },
     {
