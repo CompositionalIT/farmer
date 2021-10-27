@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.6.19
+* WebApp/Functions: Adds 'ftp_state' for controlling FTP access for deployments.
+
 ## 1.6.18
 * Resource Groups: Add support for multiple nested deployments targetting the same resource group
 * Resource Groups: Provide input parameters and key vault references to nested deployments.

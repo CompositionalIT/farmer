@@ -302,4 +302,18 @@ let tests = testList "Functions tests" [
     test "Not setting the functions name causes an error" {
         Expect.throws (fun () -> functions { storage_account_name "foo" } |> ignore) "Not setting functions name should throw"
     }
+
+    test "Sets ftp state correctly in builder" {
+        let f = functions { name "test"; ftp_state FTPState.Disabled } :> IBuilder
+        let site = f.BuildResources Location.NorthEurope |> List.item 3 :?> Web.Site
+        Expect.equal site.FTPState (Some FTPState.Disabled) "Incorrect FTP state set"
+    }
+
+    test "Sets ftp state correctly to 'disabled'" {
+        let f = functions { name "test"; ftp_state FTPState.Disabled } :> IBuilder
+        let deployment = arm { add_resource f }
+        let jobj = Newtonsoft.Json.Linq.JObject.Parse (deployment.Template |> Writer.toJson)
+        let ftpsStateValue = jobj.SelectToken "resources[?(@.name=='test')].properties.siteConfig.ftpsState" |> string
+        Expect.equal ftpsStateValue "Disabled" $"Incorrect value ('{ftpsStateValue}') set for ftpsState in generated template"
+    }
 ]

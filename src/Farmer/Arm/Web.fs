@@ -244,12 +244,6 @@ type Site =
                  properties =
                     {| serverFarmId = this.ServicePlan.Eval()
                        httpsOnly = this.HTTPSOnly
-                       ftp_state =
-                           match this.FTPState with
-                           | Some FTPState.AllAllowed -> "AllAllowed"
-                           | Some FTPState.FtpsOnly -> "FtpsOnly"
-                           | Some FTPState.Disabled -> "Disabled"
-                           | None -> null
                        clientAffinityEnabled = match this.ClientAffinityEnabled with Some v -> box v | None -> null
                        keyVaultReferenceIdentity = keyvaultId
                        siteConfig =
@@ -260,6 +254,12 @@ type Site =
                            connectionStrings =
                                 this.ConnectionStrings
                                 |> mapOrNull (fun (k,(v, t)) -> {| name = k; connectionString = v.Value; ``type`` = t.ToString() |})
+                           ftpsState =
+                               match this.FTPState with
+                               | Some FTPState.AllAllowed -> "AllAllowed"
+                               | Some FTPState.FtpsOnly -> "FtpsOnly"
+                               | Some FTPState.Disabled -> "Disabled"
+                               | None -> null
                            linuxFxVersion = this.LinuxFxVersion |> Option.toObj
                            appCommandLine = this.AppCommandLine |> Option.toObj
                            netFrameworkVersion = this.NetFrameworkVersion |> Option.toObj
