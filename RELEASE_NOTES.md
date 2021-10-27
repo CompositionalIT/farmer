@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## v-next
+* CDN rules: Only make CacheDuration required for Override and SetIfMissing and not BypassCache when creating cache_expiration action
+
 ## 1.6.19
 * ExpressRoute: create authorization keys on newly created circuits.
 * ServiceBus: Allow Service Bus Queues/Topics/Subscriptions to be linked to unmanaged namespaces
