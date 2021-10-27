@@ -247,9 +247,16 @@ let tests = testList "AKS" [
         let myAks = aks {
             name "aks-cluster"
             service_principal_use_msi
-            addon_http_application_routing true
-            addon_aci_connector true
-            addon_ingress_app_gateway true myAppGateway appGatewayMsi
+            addons [
+                AciConnectorLinux Enabled
+                HttpApplicationRouting Enabled
+                KubeDashboard Enabled
+                IngressApplicationGateway {
+                    Status = Enabled
+                    ApplicationGatewayId = (myAppGateway :> IBuilder).ResourceId
+                    Identity = Some appGatewayMsi.UserAssignedIdentity
+                }
+            ]
         }
         let template = arm { add_resource myAks }
         let json = template.Template |> Writer.toJson

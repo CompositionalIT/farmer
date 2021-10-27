@@ -9,47 +9,48 @@ let managedClusters = ResourceType ("Microsoft.ContainerService/managedClusters"
 
 module AddonProfiles =
     type AciConnectorLinux = {
-        Enabled : bool
+        Status : FeatureFlag
     }
-        with member internal this.ToArmJson = {| enabled = this.Enabled |}
+        with member internal this.ToArmJson = {| enabled = this.Status.AsBoolean |}
     type HttpApplicationRouting = {
-        Enabled : bool
+        Status : FeatureFlag
     }
-        with member internal this.ToArmJson = {| enabled = this.Enabled |}
+        with member internal this.ToArmJson = {| enabled = this.Status.AsBoolean |}
     type IngressApplicationGateway = {
-        ApplicationGatewayId : ResourceId option
-        Enabled : bool
+        Status : FeatureFlag
+        ApplicationGatewayId : ResourceId
         Identity : UserAssignedIdentity option
     }
         with member internal this.ToArmJson =
-                {| enabled = this.Enabled
+                {| enabled = this.Status.AsBoolean
                    config =
-                       match this.ApplicationGatewayId with
-                       | None -> Unchecked.defaultof<_>
-                       | Some resId -> {| applicationGatewayId = resId.Eval() |}
+                       match this.Status with
+                       | Disabled -> Unchecked.defaultof<_>
+                       | Enabled -> {| applicationGatewayId = this.ApplicationGatewayId.Eval() |}
                    identity =
-                       match this.Identity, this.ApplicationGatewayId with
-                       | Some userIdentity, Some resId ->
+                       match this.Status, this.Identity with
+                       | Disabled, _
+                       | Enabled, None -> Unchecked.defaultof<_>
+                       | Enabled, Some userIdentity ->
                            {| clientId = userIdentity.ClientId.Eval()
                               objectId = userIdentity.PrincipalId.ArmExpression.Eval()
-                              resourceId = resId.Eval()
-                             |}
-                       | _, _ -> Unchecked.defaultof<_>
+                              resourceId = this.ApplicationGatewayId.Eval() |}
                 |}
     type KubeDashboard = {
-        Enabled : bool
+        Status : FeatureFlag
     }
-        with member internal this.ToArmJson = {| enabled = this.Enabled |}
+        with member internal this.ToArmJson = {| enabled = this.Status.AsBoolean |}
     type OmsAgent = {
-        Enabled : bool
+        Status : FeatureFlag
         LogAnalyticsWorkspaceId : ResourceId option
     }
         with member internal this.ToArmJson =
-                {| enabled = this.Enabled
+                {| enabled = this.Status.AsBoolean
                    config =
-                       match this.LogAnalyticsWorkspaceId with
-                       | None -> Unchecked.defaultof<_>
-                       | Some resId -> {| logAnalyticsWorkspaceResourceID = resId.Eval() |}
+                       match this.Status, this.LogAnalyticsWorkspaceId with
+                       | Disabled, _
+                       | Enabled, None -> Unchecked.defaultof<_>
+                       | Enabled, Some resId -> {| logAnalyticsWorkspaceResourceID = resId.Eval() |}
                 |}
     type AddonProfileConfig = {
         AciConnectorLinux : AciConnectorLinux option
