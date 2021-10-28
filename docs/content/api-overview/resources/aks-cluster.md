@@ -23,12 +23,14 @@ The AKS builder (`aks`) constructs AKS clusters.
 | add_agent_pool | Adds an agent pool to the AKS cluster. |
 | add_identity | Adds a managed identity to the the AKS cluster. |
 | system_identity | Activates the system identity of the AKS cluster. |
+| kubelet_identity | Assigns a user assigned identity to the kubelet user that pulls container images. |
 | network_profile | Sets the network profile for the AKS cluster. |
 | linux_profile | Sets the linux profile for the AKS cluster. |
 | service_principal_client_id | Sets the client id of the service principal for the AKS cluster. |
 | service_principal_use_msi | Enables the AKS cluster to use the managed identity service principal instead of an external client secret. |
 | windows_username | Sets the windows admin username for the AKS cluster. |
 | add_api_server_authorized_ip_ranges | Adds IP address CIDR ranges to be allowed Kubernetes API access. |
+| addon | A list with the configuration of all addons on the cluster (AciConnectorLinux, HttpApplicationRouting, KubeDashboard, IngressApplicationGateway, OmsAgent). |
 
 #### Agent Pool Builder keywords
 The Agent Pool builder (`agentPool`) constructs agent pools in the AKS cluster.
@@ -97,4 +99,56 @@ let myAks = aks {
         }
     )
 }
+```
+#### Using user asssigned identities and connecting to container registry
+```fsharp
+// Create an identity for kubelet (used to connect to container registry)
+let kubeletMsi = createUserAssignedIdentity "kubeletIdentity"
+// Create an identity for the AKS cluster
+let clusterMsi = createUserAssignedIdentity "clusterIdentity"
+// Give the AKS cluster's identity rights to assign a the kubelet MSI
+let assignMsiRoleNameExpr = ArmExpression.create($"guid(concat(resourceGroup().id, '{clusterMsi.ResourceId.Name.Value}', '{Roles.ManagedIdentityOperator.Id}'))")
+let assignMsiRole =
+    { Name =
+        assignMsiRoleNameExpr.Eval()
+        |> ResourceName
+        RoleDefinitionId = Roles.ManagedIdentityOperator
+        PrincipalId = clusterMsi.PrincipalId
+        PrincipalType = PrincipalType.ServicePrincipal
+        Scope = ResourceGroup
+        Dependencies = Set [ clusterMsi.ResourceId ] }
+// Create a container image registry
+let myAcr = containerRegistry { name "mycontainerregistry" }
+let myAcrResId = (myAcr :> IBuilder).ResourceId
+// Assign the AcrPull role on that registry to the identity used for kubelet.
+let acrPullRoleNameExpr = ArmExpression.create($"guid(concat(resourceGroup().id, '{kubeletMsi.ResourceId.Name.Value}', '{Roles.AcrPull.Id}'))")
+let acrPullRole =
+    { Name = acrPullRoleNameExpr.Eval() |> ResourceName
+        RoleDefinitionId = Roles.AcrPull
+        PrincipalId = kubeletMsi.PrincipalId
+        PrincipalType = PrincipalType.ServicePrincipal
+        Scope = AssignmentScope.SpecificResource myAcrResId
+        Dependencies = Set [ kubeletMsi.ResourceId ] }
+
+// Create the cluster and assign the cluster and kubelet identities.
+let myAks = aks {
+    name "aks-cluster"
+    add_identity clusterMsi
+    service_principal_use_msi
+    kubelet_identity kubeletMsi
+    depends_on clusterMsi
+    depends_on myAcr
+    depends_on_expression assignMsiRoleNameExpr
+    depends_on_expression acrPullRoleNameExpr
+}
+// A template to deploy the MSI's, role assignemnts, container registry and AKS.
+let template =
+    arm {
+        add_resource kubeletMsi
+        add_resource clusterMsi
+        add_resource myAcr
+        add_resource myAks
+        add_resource assignMsiRole
+        add_resource acrPullRole
+    }
 ```

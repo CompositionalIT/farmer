@@ -1,6 +1,33 @@
 Release Notes
 =============
 
+## 1.6.19
+* Application Gateways: support for creating application gateways.
+* Container Service (AKS): support for various addons, including the application gateway ingress controller.
+* ExpressRoute: create authorization keys on newly created circuits.
+* Key Vaults: Add keys to new or existing key vaults.
+* ServiceBus: Allow Service Bus Queues/Topics/Subscriptions to be linked to unmanaged namespaces
+* ServiceBus: Allow adding custom dependencies to Subscriptions
+* WebApp/Functions: Adds 'ftp_state' for controlling FTP access for deployments.
+
+## 1.6.18
+* Resource Groups: Add support for multiple nested deployments targetting the same resource group
+* Resource Groups: Provide input parameters and key vault references to nested deployments.
+
+## 1.6.17
+* Container Groups: Use an ARM expression to populate a secure environment variable.
+* Resource Groups: Specify the target subscription for nested deployments.
+
+## 1.6.16
+* Traffic Manager: allow priority and weight to be optional for endpoints.
+
+## 1.6.15
+* Key Vaults: Allow deploying standalone secrets without a KeyVault in the same deployment
+* WebApp/Functions: no longer overwrites production slot settings when using a multi-slot deploy
+
+## 1.6.14
+* Container Service (AKS): Adds `kubelet_identity` operator to suppor a user assigned identity for kubelet.
+
 ## 1.6.13
 * Alerts: Initial support for Alerts
 * Container Groups: Fix to generate parameters for secure environment variables on `initContainers`.

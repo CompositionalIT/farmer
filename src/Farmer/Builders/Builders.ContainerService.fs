@@ -4,6 +4,8 @@ module Farmer.Builders.ContainerService
 open System
 open Farmer
 open Farmer.Arm
+open Farmer.Arm.ContainerService.AddonProfiles
+open Farmer.Arm.RoleAssignment
 open Farmer.Identity
 open Farmer.Vm
 
@@ -45,12 +47,48 @@ type NetworkProfileConfig =
       /// for the cluster or peer vnets. Defaults to 10.244.0.0/16.
       ServiceCidr : IPAddressCidr option }
 
+type AddonConfig =
+    | AciConnectorLinux of FeatureFlag
+    | HttpApplicationRouting of FeatureFlag
+    | IngressApplicationGateway of IngressApplicationGateway
+    | KubeDashboard of FeatureFlag
+    | OmsAgent of OmsAgent
+    with
+        static member BuildConfig (addons:AddonConfig list) : AddonProfileConfig =
+            {
+                // TODO: Clean up with active pattern
+                AciConnectorLinux =
+                    addons
+                    |> List.tryFind(function | AciConnectorLinux _ -> true | _ -> false)
+                    |> function | Some (AciConnectorLinux status) -> Some { AciConnectorLinux.Status = status } | _ -> None
+                HttpApplicationRouting =
+                    addons
+                    |> List.tryFind(function | HttpApplicationRouting _ -> true | _ -> false)
+                    |> function | Some (HttpApplicationRouting status) -> Some { HttpApplicationRouting.Status = status } | _ -> None
+                IngressApplicationGateway =
+                    addons
+                    |> List.tryFind(function | IngressApplicationGateway _ -> true | _ -> false)
+                    |> function | Some (IngressApplicationGateway gw) -> Some gw | _ -> None
+                KubeDashboard =
+                    addons
+                    |> List.tryFind(function | KubeDashboard _ -> true | _ -> false)
+                    |> function | Some (KubeDashboard status) -> Some { KubeDashboard.Status = status } | _ -> None
+                OmsAgent =
+                    addons
+                    |> List.tryFind(function | OmsAgent _ -> true | _ -> false)
+                    |> function | Some (OmsAgent oms) -> Some oms | _ -> None
+            }
+
 type AksConfig =
     { Name : ResourceName
+      AddonProfiles : AddonConfig list
       AgentPools : AgentPoolConfig list
+      Dependencies : ResourceId Set
+      DependencyExpressions : ArmExpression Set
       DnsPrefix : string
       EnableRBAC : bool
       Identity : ManagedIdentity
+      IdentityProfile : ManagedClusterIdentityProfile option
       ApiServerAccessProfile : ApiServerAccessProfileConfig option
       LinuxProfile : (string * string list) option
       NetworkProfile : NetworkProfileConfig option
@@ -61,15 +99,21 @@ type AksConfig =
     interface IBuilder with
         member this.ResourceId = this.ResourceId
         member this.BuildResources location = [
-            // VM itself
             { Name = this.Name
               Location = location
+              AddOnProfiles =
+                  match this.AddonProfiles with
+                  | [] -> None
+                  | addons -> addons |> AddonConfig.BuildConfig |> Some
+              Dependencies = this.Dependencies
+              DependencyExpressions = this.DependencyExpressions
               DnsPrefix =
                   if String.IsNullOrWhiteSpace this.DnsPrefix then
                       $"{this.Name.Value}-%x{this.Name.Value.GetHashCode()}"
                   else this.DnsPrefix
               EnableRBAC = this.EnableRBAC
               Identity = this.Identity
+              IdentityProfile = this.IdentityProfile
               AgentPoolProfiles =
                 match this.AgentPools with
                 | [] ->
@@ -221,10 +265,14 @@ let private (|PrivateClusterEnabled|_|) =
 type AksBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
+          Dependencies = Set.empty
+          DependencyExpressions = Set.empty
+          AddonProfiles = []
           AgentPools = []
           DnsPrefix = ""
           EnableRBAC = false
           Identity = ManagedIdentity.Empty
+          IdentityProfile = None
           ApiServerAccessProfile = None
           LinuxProfile = None
           NetworkProfile = None
@@ -249,6 +297,10 @@ type AksBuilder() =
     member _.EnableRBAC(state:AksConfig) = { state with EnableRBAC = true }
     /// Sets the managed identity on this cluster.
     interface IIdentity<AksConfig> with member _.Add state updater = { state with Identity = updater state.Identity }
+    /// Support for "depends_on"
+    interface IDependable<AksConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
+    [<CustomOperation "depends_on_expression">]
+    member _.DependencyExpressions(state:AksConfig, dependencyExpr:ArmExpression) = { state with DependencyExpressions = state.DependencyExpressions.Add dependencyExpr }
     /// Adds agent pools to the AKS cluster.
     [<CustomOperation "add_agent_pools">]
     member _.AddAgentPools(state:AksConfig, pools) = { state with AgentPools = state.AgentPools @ pools }
@@ -271,6 +323,18 @@ type AksBuilder() =
             | None -> { AuthorizedIPRanges = range; EnablePrivateCluster = None }
             | Some profile -> { profile with AuthorizedIPRanges = profile.AuthorizedIPRanges @ range }
         { state with ApiServerAccessProfile = Some accessProfile }
+    /// Enables any addons.
+    [<CustomOperation "addons">]
+    member _.Addons(state:AksConfig, addons:AddonConfig list) =
+        { state with AddonProfiles = addons }
+    /// Sets the kubelet identity for managing access to an Azure Container Registry
+    [<CustomOperation "kubelet_identity">]
+    member _.KubeletIdentity (state:AksConfig, identity:ResourceId) =
+        match state.IdentityProfile with
+        | None -> { state with IdentityProfile = Some { KubeletIdentity = Some identity }  }
+        | Some identityProfile -> { state with IdentityProfile = Some { identityProfile with KubeletIdentity = Some identity }  }
+    member this.KubeletIdentity (state:AksConfig, identity:UserAssignedIdentity.UserAssignedIdentityConfig) =
+        this.KubeletIdentity (state, identity.ResourceId)
     /// Sets the network profile for the AKS cluster.
     [<CustomOperation "network_profile">]
     member _.NetworkProfile(state:AksConfig, networkProfile) = { state with NetworkProfile = Some networkProfile }

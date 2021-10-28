@@ -17,6 +17,8 @@ let slots = ResourceType ("Microsoft.Web/sites/slots", "2020-09-01")
 let certificates = ResourceType("Microsoft.Web/certificates", "2019-08-01")
 let hostNameBindings = ResourceType("Microsoft.Web/sites/hostNameBindings", "2020-12-01")
 
+let private mapOrNull f = Option.map (Map.toList >> List.map f) >> Option.defaultValue Unchecked.defaultof<_>
+
 type ServerFarm =
     { Name : ResourceName
       Location : Location
@@ -157,15 +159,23 @@ type SiteType =
         | Slot _ -> slots
         | Site _ -> sites
 
+
+[<RequireQualifiedAccess>]
+type FTPState =
+    | AllAllowed
+    | FtpsOnly
+    | Disabled
+
 type Site =
     { SiteType : SiteType
       Location : Location
       ServicePlan : ResourceId
-      AppSettings : Map<string, Setting>
-      ConnectionStrings : Map<string, (Setting * ConnectionStringKind)>
+      AppSettings : Map<string, Setting> option
+      ConnectionStrings : Map<string, (Setting * ConnectionStringKind)> option
       AlwaysOn : bool
       WorkerProcess : Bitness option
       HTTPSOnly : bool
+      FTPState : FTPState option
       HTTP20Enabled : bool option
       ClientAffinityEnabled : bool option
       WebSocketsEnabled : bool option
@@ -193,8 +203,12 @@ type Site =
     member this.Name = this.SiteType.ResourceName
     interface IParameters with
         member this.SecureParameters =
-            Map.toList this.AppSettings
-            @ (Map.toList this.ConnectionStrings |> List.map(fun (k, (v,_)) -> k, v))
+            let optMapToList map =
+                map
+                |> Option.defaultValue Map.empty
+                |> Map.toList
+            optMapToList this.AppSettings
+            @ (optMapToList this.ConnectionStrings |> List.map(fun (k, (v,_)) -> k, v))
             |> List.choose(snd >> function
                 | ParameterSetting s -> Some s
                 | ExpressionSetting _ | LiteralSetting _ -> None)
@@ -236,8 +250,18 @@ type Site =
                        keyVaultReferenceIdentity = keyvaultId
                        siteConfig =
                         {| alwaysOn = this.AlwaysOn
-                           appSettings = this.AppSettings |> Map.toList |> List.map(fun (k,v) -> {| name = k; value = v.Value |})
-                           connectionStrings = this.ConnectionStrings |> Map.toList |> List.map(fun (k,(v, t)) -> {| name = k; connectionString = v.Value; ``type`` = t.ToString() |})
+                           appSettings =
+                                this.AppSettings
+                                |> mapOrNull (fun (k,v) -> {| name = k; value = v.Value |})
+                           connectionStrings =
+                                this.ConnectionStrings
+                                |> mapOrNull (fun (k,(v, t)) -> {| name = k; connectionString = v.Value; ``type`` = t.ToString() |})
+                           ftpsState =
+                               match this.FTPState with
+                               | Some FTPState.AllAllowed -> "AllAllowed"
+                               | Some FTPState.FtpsOnly -> "FtpsOnly"
+                               | Some FTPState.Disabled -> "Disabled"
+                               | None -> null
                            linuxFxVersion = this.LinuxFxVersion |> Option.toObj
                            appCommandLine = this.AppCommandLine |> Option.toObj
                            netFrameworkVersion = this.NetFrameworkVersion |> Option.toObj

@@ -85,8 +85,8 @@ type SlotConfig =
             SiteType = SiteType.Slot (owner.Name/this.Name)
             Dependencies = owner.Dependencies |> Set.add (owner.ResourceType.resourceId owner.Name)
             AutoSwapSlotName = this.AutoSwapSlotName
-            AppSettings = owner.AppSettings |> Map.merge ( this.AppSettings |> Map.toList)
-            ConnectionStrings = owner.ConnectionStrings |> Map.merge (this.ConnectionStrings |> Map.toList)
+            AppSettings = owner.AppSettings |> Option.map (Map.merge ( this.AppSettings |> Map.toList))
+            ConnectionStrings = owner.ConnectionStrings |> Option.map (Map.merge (this.ConnectionStrings |> Map.toList))
             Identity = this.Identity + owner.Identity
             KeyVaultReferenceIdentity = this.KeyVaultReferenceIdentity |> Option.orElse owner.KeyVaultReferenceIdentity}
 
@@ -165,6 +165,7 @@ type CommonWebConfig =
       AlwaysOn : bool
       AppInsights : ResourceRef<ResourceName> option
       Cors : Cors option
+      FTPState : FTPState option
       HTTPSOnly : bool
       Identity : Identity.ManagedIdentity
       KeyVaultReferenceIdentity: UserAssignedIdentity Option
@@ -243,7 +244,7 @@ type WebAppConfig =
                                 | ExpressionSetting expr -> SecretConfig.create (setting.Key, expr) |> Some
                             match secret with
                             | Some secret ->
-                                { Secret.Name = vaultName.Name/secret.Key
+                                { Secret.Name = vaultName.Name/secret.SecretName
                                   Value = secret.Value
                                   ContentType = secret.ContentType
                                   Enabled = secret.Enabled
@@ -318,6 +319,7 @@ type WebAppConfig =
                   Location = location
                   ServicePlan = this.ServicePlanId
                   HTTPSOnly = this.CommonWebConfig.HTTPSOnly
+                  FTPState = this.CommonWebConfig.FTPState
                   HTTP20Enabled = this.HTTP20Enabled
                   ClientAffinityEnabled = this.ClientAffinityEnabled
                   WebSocketsEnabled = this.WebSocketsEnabled
@@ -325,9 +327,9 @@ type WebAppConfig =
                   KeyVaultReferenceIdentity = this.CommonWebConfig.KeyVaultReferenceIdentity
                   Cors = this.CommonWebConfig.Cors
                   Tags = this.Tags
-                  ConnectionStrings = this.ConnectionStrings
+                  ConnectionStrings = Some this.ConnectionStrings
                   WorkerProcess = this.CommonWebConfig.WorkerProcess
-                  AppSettings = siteSettings
+                  AppSettings = Some siteSettings
                   Kind = [
                     "app"
                     match this.CommonWebConfig.OperatingSystem with Linux -> "linux" | Windows -> ()
@@ -473,7 +475,7 @@ type WebAppConfig =
             if Map.isEmpty this.CommonWebConfig.Slots then
                 site
             else
-                { site with AppSettings = Map.empty; ConnectionStrings = Map.empty }
+                { site with AppSettings = None; ConnectionStrings = None } // Don't deploy production slot settings as they could cause an app restart
                 for (_,slot) in this.CommonWebConfig.Slots |> Map.toSeq do
                     slot.ToSite site
 
@@ -529,6 +531,7 @@ type WebAppBuilder() =
               Cors = None
               HTTPSOnly = false
               Identity = ManagedIdentity.Empty
+              FTPState = None
               KeyVaultReferenceIdentity = None
               OperatingSystem = Windows
               SecretStore = AppService
@@ -855,6 +858,10 @@ module Extensions =
         /// Disables http for this webapp so that only https is used.
         [<CustomOperation "https_only">]
         member this.HttpsOnly(state:'T) = this.Map state (fun x -> { x with HTTPSOnly = true })
+
+        /// Allows to enable or disable FTP and FTPS
+        [<CustomOperation "ftp_state">]
+        member this.FTPState(state:'T, ftpState:FTPState) = this.Map state (fun x -> { x with FTPState = Some ftpState })
 
         [<CustomOperation "health_check_path">]
         /// Specifies the path Azure load balancers will ping to check for unhealthy instances.

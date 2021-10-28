@@ -1,6 +1,8 @@
 module ContainerService
 
 open Expecto
+open Farmer.Arm.ContainerService.AddonProfiles
+open Farmer.Arm.RoleAssignment
 open Farmer.Builders
 open Farmer
 open Microsoft.Azure.Management.Compute.Models
@@ -186,5 +188,101 @@ let tests = testList "AKS" [
         let authIpRanges = jobj.SelectToken("resources[?(@.name=='k8s-cluster')].properties.apiServerAccessProfile.authorizedIPRanges")
         Expect.hasLength authIpRanges 1 ""
         Expect.equal (authIpRanges.[0].ToString()) "88.77.66.0/24" "Got incorrect value for authorized IP ranges."
+    }
+    test "AKS with MSI and Kubelet identity" {
+        let kubeletMsi = createUserAssignedIdentity "kubeletIdentity"
+        let clusterMsi = createUserAssignedIdentity "clusterIdentity"
+        let assignMsiRoleNameExpr = ArmExpression.create($"guid(concat(resourceGroup().id, '{clusterMsi.ResourceId.Name.Value}', '{Roles.ManagedIdentityOperator.Id}'))")
+        let assignMsiRole =
+            { Name =
+                assignMsiRoleNameExpr.Eval()
+                |> ResourceName
+              RoleDefinitionId = Roles.ManagedIdentityOperator
+              PrincipalId = clusterMsi.PrincipalId
+              PrincipalType = PrincipalType.ServicePrincipal
+              Scope = ResourceGroup
+              Dependencies = Set [ clusterMsi.ResourceId ] }
+        let myAcr = containerRegistry { name "farmercontainerregistry1234" }
+        let myAcrResId = (myAcr :> IBuilder).ResourceId
+        let acrPullRoleNameExpr = ArmExpression.create($"guid(concat(resourceGroup().id, '{kubeletMsi.ResourceId.Name.Value}', '{Roles.AcrPull.Id}'))")
+        let acrPullRole =
+            { Name = acrPullRoleNameExpr.Eval() |> ResourceName
+              RoleDefinitionId = Roles.AcrPull
+              PrincipalId = kubeletMsi.PrincipalId
+              PrincipalType = PrincipalType.ServicePrincipal
+              Scope = AssignmentScope.SpecificResource myAcrResId
+              Dependencies = Set [ kubeletMsi.ResourceId ] }
+
+        let myAks = aks {
+            name "aks-cluster"
+            dns_prefix "aks-cluster-223d2976"
+            add_identity clusterMsi
+            service_principal_use_msi
+            kubelet_identity kubeletMsi
+            depends_on clusterMsi
+            depends_on myAcr
+            depends_on_expression assignMsiRoleNameExpr
+            depends_on_expression acrPullRoleNameExpr
+        }
+        let template =
+            arm {
+                location Location.EastUS
+                add_resource kubeletMsi
+                add_resource clusterMsi
+                add_resource myAcr
+                add_resource myAks
+                add_resource assignMsiRole
+                add_resource acrPullRole
+            }
+        let json = template.Template |> Writer.toJson
+        let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+        let identity = jobj.SelectToken("resources[?(@.name=='aks-cluster')].identity.type") |> string
+        Expect.equal identity "UserAssigned" "Should have a UserAssigned identity."
+        let kubeletIdentityClientId = jobj.SelectToken("resources[?(@.name=='aks-cluster')].properties.identityProfile.kubeletIdentity.clientId") |> string
+        Expect.equal kubeletIdentityClientId "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'kubeletIdentity'), '2018-11-30').clientId]" "Incorrect kubelet identity reference."
+    }
+    test "Basic AKS cluster with addons" {
+        let myAppGateway = appGateway { name "app-gw" }
+        let appGatewayMsi = createUserAssignedIdentity "app-gw-msi"
+        let myAks = aks {
+            name "aks-cluster"
+            service_principal_use_msi
+            addons [
+                AciConnectorLinux Enabled
+                HttpApplicationRouting Enabled
+                KubeDashboard Enabled
+                IngressApplicationGateway {
+                    Status = Enabled
+                    ApplicationGatewayId = (myAppGateway :> IBuilder).ResourceId
+                    Identity = Some appGatewayMsi.UserAssignedIdentity
+                }
+            ]
+        }
+        let template = arm { add_resource myAks }
+        let json = template.Template |> Writer.toJson
+        let jobj = Newtonsoft.Json.Linq.JObject.Parse(json)
+        let expectedAciConn = """{
+  "enabled": true
+}"""
+        let aciConnector = jobj.SelectToken("resources[?(@.name=='aks-cluster')].properties.addonProfiles.aciConnectorLinux") |> string
+        Expect.equal aciConnector expectedAciConn "Unexpected value for addonProfiles.aciConnectorLinux."
+        let expectedHttpAppRouting = """{
+  "enabled": true
+}"""
+        let httpAppRouting = jobj.SelectToken("resources[?(@.name=='aks-cluster')].properties.addonProfiles.httpApplicationRouting") |> string
+        Expect.equal httpAppRouting expectedHttpAppRouting "Unexpected value for addonProfiles.httpApplicationRouting."
+        let expectedAppGateway = """{
+  "config": {
+    "applicationGatewayId": "[resourceId('Microsoft.Network/applicationGateways', 'app-gw')]"
+  },
+  "enabled": true,
+  "identity": {
+    "clientId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'app-gw-msi')).clientId]",
+    "objectId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'app-gw-msi')).principalId]",
+    "resourceId": "[resourceId('Microsoft.Network/applicationGateways', 'app-gw')]"
+  }
+}"""
+        let appGatewayIngress = jobj.SelectToken("resources[?(@.name=='aks-cluster')].properties.addonProfiles.ingressApplicationGateway") |> string
+        Expect.equal appGatewayIngress expectedAppGateway "Unexpected value for addonProfiles.ingressApplicationGateway."
     }
 ]

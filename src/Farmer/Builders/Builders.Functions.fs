@@ -90,7 +90,7 @@ type FunctionsConfig =
                                 | ExpressionSetting expr -> SecretConfig.create (setting.Key, expr) |> Some
                             match secret with
                             | Some secret ->
-                                { Secret.Name = vaultName.Name/secret.Key
+                                { Secret.Name = vaultName.Name/secret.SecretName
                                   Value = secret.Value
                                   ContentType = secret.ContentType
                                   Enabled = secret.Enabled
@@ -171,8 +171,8 @@ type FunctionsConfig =
                   Location = location
                   Cors = this.CommonWebConfig.Cors
                   Tags = this.Tags
-                  ConnectionStrings = Map.empty
-                  AppSettings =functionsSettings
+                  ConnectionStrings = Some Map.empty
+                  AppSettings = Some functionsSettings
                   Identity = this.CommonWebConfig.Identity
                   KeyVaultReferenceIdentity = this.CommonWebConfig.KeyVaultReferenceIdentity
                   Kind =
@@ -212,6 +212,7 @@ type FunctionsConfig =
                         ()
                   ]
                   HTTPSOnly = this.CommonWebConfig.HTTPSOnly
+                  FTPState = this.CommonWebConfig.FTPState
                   AlwaysOn = this.CommonWebConfig.AlwaysOn
                   HTTP20Enabled = None
                   ClientAffinityEnabled = None
@@ -279,7 +280,7 @@ type FunctionsConfig =
             if Map.isEmpty this.CommonWebConfig.Slots then
                 site
             else
-                { site with AppSettings = Map.empty }
+                { site with AppSettings = None; ConnectionStrings = None }
                 for (_, slot) in this.CommonWebConfig.Slots |> Map.toSeq do
                     slot.ToSite site
         ]
@@ -291,6 +292,7 @@ type FunctionsBuilder() =
               AlwaysOn = false
               AppInsights = Some (derived (fun name -> components.resourceId (name-"ai")))
               Cors = None
+              FTPState = None
               HTTPSOnly = false
               Identity = ManagedIdentity.Empty
               KeyVaultReferenceIdentity = None

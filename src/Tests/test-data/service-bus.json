@@ -23,9 +23,7 @@
         "[resourceId('Microsoft.ServiceBus/namespaces', 'farmer-bus')]"
       ],
       "name": "farmer-bus/queue1",
-      "properties": {
-        "defaultMessageTimeToLive": "P10675199DT2H48M5.4775807S"
-      },
+      "properties": {},
       "type": "Microsoft.ServiceBus/namespaces/queues"
     },
     {

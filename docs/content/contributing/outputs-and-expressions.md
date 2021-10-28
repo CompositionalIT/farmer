@@ -19,7 +19,7 @@ let buildKey accountName : ArmExpression =
         $"concat('DefaultEndpointsProtocol=https;AccountName={accountName};AccountKey=', listKeys('{accountName}', '2017-10-01').keys[0].value)"
 
     // Wrap the raw value in an ARM Expression and return it
-    ArmExpression rawValue
+    ArmExpression.create rawValue
 ```
 
 Notice that you do *not* wrap the expression in square brackets [ ]; Farmer will do this when writing out the ARM template.

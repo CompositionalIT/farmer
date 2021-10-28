@@ -66,7 +66,7 @@ let generateVirtualMachinePart (vmId:ResourceId) = {
 /// Generates a webtest part
 let generateWebtestResultPart (applicationInsightsName:string) = {
     ``type`` = "Extension/AppInsightsExtension/PartType/AllWebTestsResponseTimeFullGalleryAdapterPart"
-    inputs = [ {| name = "ComponentId"; value = {| Name = applicationInsightsName; SubscriptionId = "[ subscription().subscriptionId ]"; ResourceGroup = "[ resourceGroup().id ]" |} |} ]
+    inputs = [ {| name = "ComponentId"; value = {| Name = applicationInsightsName; SubscriptionId = "[ subscription().subscriptionId ]"; ResourceGroup = "[ resourceGroup().name ]" |} |} ]
     settings = null
     filters = null
     asset = { idInputName = "ComponentId"; ``type`` = "ApplicationInsights" }
@@ -98,7 +98,7 @@ let generateMonitorChartPart (chartProperties : MonitorChartParameters) = {
     inputs = [ box <| {| name = "sharedTimeRange"; isOptional = true |};
                box <| {| name = "options"
                          value = {| v2charts = true
-                                    charts = [ chartProperties.chartInputs ] |} |} ]
+                                    charts = chartProperties.chartInputs |} |} ]
     settings = {| content = {| options = {| chart = chartProperties.chartSettings |} |} |}
     filters = chartProperties.filters
     asset = Unchecked.defaultof<LensAsset>
