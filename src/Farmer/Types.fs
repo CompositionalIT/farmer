@@ -146,6 +146,7 @@ type ResourceId with
 
     /// Evaluates the expression for emitting into an ARM template. That is, wraps it in [].
     member this.Eval() = this.ArmExpression.Eval()
+    static member Eval (resourceId: ResourceId) = resourceId.ArmExpression.Eval()
 
 type ArmExpression with
     static member reference (resourceId:ResourceId) =

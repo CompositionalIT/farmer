@@ -25,7 +25,7 @@ let tests = testList "Functions tests" [
         let storage = resources.[1] :?> Storage.StorageAccount
 
         Expect.contains site.Dependencies (storageAccounts.resourceId "foo") "Storage account has not been added a dependency"
-        Expect.equal f.StorageAccountName.ResourceName.Value "foo" "Incorrect storage account name on site"
+        Expect.equal f.StorageAccountId.Name.Value "foo" "Incorrect storage account name on site"
         Expect.equal storage.Name.ResourceName.Value "foo" "Incorrect storage account name"
     }
     test "Implicitly sets dependency on connection string" {
@@ -301,5 +301,50 @@ let tests = testList "Functions tests" [
 
     test "Not setting the functions name causes an error" {
         Expect.throws (fun () -> functions { storage_account_name "foo" } |> ignore) "Not setting functions name should throw"
+    }
+
+    test "Sets ftp state correctly in builder" {
+        let f = functions { name "test"; ftp_state FTPState.Disabled } :> IBuilder
+        let site = f.BuildResources Location.NorthEurope |> List.item 3 :?> Web.Site
+        Expect.equal site.FTPState (Some FTPState.Disabled) "Incorrect FTP state set"
+    }
+
+    test "Sets ftp state correctly to 'disabled'" {
+        let f = functions { name "test"; ftp_state FTPState.Disabled } :> IBuilder
+        let deployment = arm { add_resource f }
+        let jobj = Newtonsoft.Json.Linq.JObject.Parse (deployment.Template |> Writer.toJson)
+        let ftpsStateValue = jobj.SelectToken "resources[?(@.name=='test')].properties.siteConfig.ftpsState" |> string
+        Expect.equal ftpsStateValue "Disabled" $"Incorrect value ('{ftpsStateValue}') set for ftpsState in generated template"
+    }
+    
+    test "Correctly supports unmanaged storage account" {
+        let functionsApp = functions{
+            name "func"
+            link_to_unmanaged_storage_account (ResourceId.create (Farmer.Arm.Storage.storageAccounts, ResourceName "accountName", group="shared-group"))
+        } 
+        let template = arm{ add_resource functionsApp}
+        let jsn = template.Template |> Writer.toJson 
+        let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+
+        let appSettings = 
+            jobj.SelectTokens "$..resources[?(@type=='Microsoft.Web/sites')].properties.siteConfig.appSettings.[*]"
+            |> Seq.map (fun x-> x.ToObject<{|name:string;value:string|}> ())
+        Expect.contains appSettings {|name="AzureWebJobsDashboard"; value="[concat('DefaultEndpointsProtocol=https;AccountName=accountName;AccountKey=', listKeys(resourceId('shared-group', 'Microsoft.Storage/storageAccounts', 'accountName'), '2017-10-01').keys[0].value)]"|} "Invalid value for AzureWebJobsDashboard"
+        
+    }
+
+    test "Correctly supports unmanaged App Insights" {
+        let functionsApp = functions{
+            name "func"
+            link_to_unmanaged_app_insights (ResourceId.create (Farmer.Arm.Insights.components, ResourceName "theName", group="shared-group"))
+        } 
+        let template = arm{ add_resource functionsApp}
+        let jsn = template.Template |> Writer.toJson 
+        let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+
+        let appSettings = 
+            jobj.SelectTokens "$..resources[?(@type=='Microsoft.Web/sites')].properties.siteConfig.appSettings.[*]"
+            |> Seq.map (fun x-> x.ToObject<{|name:string;value:string|}> ())
+        Expect.contains appSettings {|name="APPINSIGHTS_INSTRUMENTATIONKEY"; value="[reference(resourceId('shared-group', 'Microsoft.Insights/components', 'theName'), '2014-04-01').InstrumentationKey]"|} "Invalid value for APPINSIGHTS_INSTRUMENTATIONKEY"
     }
 ]

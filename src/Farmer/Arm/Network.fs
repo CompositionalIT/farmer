@@ -1,12 +1,14 @@
 [<AutoOpen>]
 module Farmer.Arm.Network
 
+open System.Net.Mail
 open Farmer
 open Farmer.ExpressRoute
 open Farmer.VirtualNetworkGateway
 
 let connections = ResourceType ("Microsoft.Network/connections", "2020-04-01")
 let expressRouteCircuits = ResourceType ("Microsoft.Network/expressRouteCircuits", "2019-02-01")
+let expressRouteCircuitAuthorizations = ResourceType ("Microsoft.Network/expressRouteCircuits/authorizations", "2019-02-01")
 let networkInterfaces = ResourceType ("Microsoft.Network/networkInterfaces", "2018-11-01")
 let networkProfiles = ResourceType ("Microsoft.Network/networkProfiles", "2020-04-01")
 let publicIPAddresses = ResourceType ("Microsoft.Network/publicIPAddresses", "2018-11-01")
@@ -402,6 +404,17 @@ type ExpressRouteCircuit =
                            bandwidthInMbps = this.Bandwidth |}
                        globalReachEnabled = this.GlobalReachEnabled |}
             |} :> _
+
+type ExpressRouteCircuitAuthorization =
+    { Name : ResourceName
+      Circuit : LinkedResource }
+    interface IArmResource with
+        member this.ResourceId = expressRouteCircuitAuthorizations.resourceId (this.Circuit.Name, this.Name)
+        member this.JsonModel =
+            expressRouteCircuitAuthorizations.Create(
+                this.Circuit.Name / this.Name,
+                dependsOn=[this.Circuit.ResourceId])
+            :> _
 
 type PrivateEndpoint =
   { Name: ResourceName

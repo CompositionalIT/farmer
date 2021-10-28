@@ -81,10 +81,10 @@ type SecurityRuleBuilder () =
 
 let securityRule = SecurityRuleBuilder()
 
-let internal buildNsgRule (nsg:NetworkSecurityGroup) (rule:SecurityRuleConfig) (priority:int) =
+let internal buildNsgRule (nsgName:ResourceName) (rule:SecurityRuleConfig) (priority:int) =
     { Name = rule.Name
       Description = None
-      SecurityGroup = nsg
+      SecurityGroup = nsgName
       Protocol =
         let protocols = rule.Sources |> List.map(fun (protocol, _, _) -> protocol) |> Set
         if protocols.Count > 1 then AnyProtocol else protocols |> Seq.head
@@ -106,17 +106,15 @@ type NsgConfig =
     interface IBuilder with
         member this.ResourceId = networkSecurityGroups.resourceId this.Name
         member this.BuildResources location = [
-            let securityGroup =
-                { Name = this.Name
-                  Location = location
-                  Tags = this.Tags  }
-
-            // NSG
-            securityGroup
-
-            // Policy Rules
-            for priority, rule in List.indexed this.SecurityRules do
-                buildNsgRule securityGroup rule ((priority + 1) * 100)
+            { Name = this.Name
+              Location = location
+              SecurityRules =
+                seq {
+                // Policy Rules
+                for priority, rule in List.indexed this.SecurityRules do
+                    buildNsgRule this.Name rule ((priority + 1) * 100)
+                } |> List.ofSeq
+              Tags = this.Tags  }
         ]
 type NsgBuilder() =
     member _.Yield _ =
