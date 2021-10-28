@@ -314,7 +314,7 @@ let tests = testList "Web App Tests" [
 
     test "WebApp supports adding slots" {
         let slot = appSlot { name "warm-up" }
-        let site:WebAppConfig = webApp { name "slots"; add_slot slot }
+        let site:WebAppConfig = webApp { name "slots"; add_slot slot; zip_deploy "test.zip" }
         Expect.isTrue (site.CommonWebConfig.Slots.ContainsKey "warm-up") "Config should contain slot"
 
         let slots =
@@ -323,7 +323,8 @@ let tests = testList "Web App Tests" [
             |> getResource<Arm.Web.Site>
             |> List.filter (fun x -> x.ResourceType = Arm.Web.slots)
         // Default "production" slot is not included as it is created automatically in Azure
-        Expect.hasLength slots 1 "Should only be 1 slot"
+        Expect.hasLength slots 1 "Should only be 1 slot" 
+        Expect.isNone slots.[0].ZipDeployPath "ZipDeployPath should be set to None" 
     }
 
     test "WebApp with slot that has system assigned identity adds identity to slot" {
@@ -586,5 +587,90 @@ let tests = testList "Web App Tests" [
         let wa = resources |> getResource<Web.Site> |> List.head
 
         Expect.equal wa.HealthCheckPath (Some "/status") "Health check path should be '/status'"
+    }
+
+    test "Supports secure custom domains with custom certificate" {
+        let webappName = "test"
+        let thumbprint = ArmExpression.literal "1111583E8FABEF4C0BEF694CBC41C28FB81CD111"
+        let resources = webApp { name webappName; custom_domain ("customDomain.io",thumbprint) } |> getResources
+        let wa = resources |> getResource<Web.Site> |> List.head
+
+        //Testing certificate
+        let cert = resources |> getResource<Web.Certificate> |> List.head
+        let expectedDomainName = "customDomain.io"
+        Expect.equal cert.DomainName expectedDomainName $"Certificate domain name should have {expectedDomainName}"
+
+        //Testing HostnameBinding
+        let hostnameBinding = resources |> getResource<Web.HostNameBinding> |> List.head
+        let expectedSslState = SslState.SslDisabled
+        let exepectedSiteId = (Managed (Arm.Web.sites.resourceId wa.Name))
+        Expect.equal hostnameBinding.DomainName expectedDomainName $"HostnameBinding domain name should have {expectedDomainName}"
+        Expect.equal hostnameBinding.SslState expectedSslState $"HostnameBinding should have a {expectedSslState} Ssl state"
+        Expect.equal hostnameBinding.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
+
+        //Testing ResourceGroupDeployment
+        let resourceGroupDeployment = resources |> getResource<ResourceGroup.ResourceGroupDeployment> |> List.head
+        let innerResource = resourceGroupDeployment.Resources |> getResource<Web.HostNameBinding> |> List.head
+        let innerExpectedSslState = SslState.SniBased thumbprint
+        Expect.equal resourceGroupDeployment.Resources.Length 1 "resourceGroupDeployment stage should only contain one resource"
+        Expect.equal resourceGroupDeployment.Dependencies.Count 2 "resourceGroupDeployment stage should only contain two dependencies"
+        Expect.equal innerResource.SslState innerExpectedSslState $"hostnameBinding should have a {innerExpectedSslState} Ssl state inside the resourceGroupDeployment template"
+    }
+
+    test "Supports secure custom domains with app service managed certificate" {
+        let webappName = "test"
+        let resources = webApp { name webappName; custom_domain "customDomain.io" } |> getResources
+        let wa = resources |> getResource<Web.Site> |> List.head
+
+        //Testing certificate
+        let cert = resources |> getResource<Web.Certificate> |> List.head
+        let expectedDomainName = "customDomain.io"
+        Expect.equal cert.DomainName expectedDomainName $"Certificate domain name should have {expectedDomainName}"
+
+        //Testing HostnameBinding
+        let hostnameBinding = resources |> getResource<Web.HostNameBinding> |> List.head
+        let expectedSslState = SslState.SslDisabled
+        let exepectedSiteId = (Managed (Arm.Web.sites.resourceId wa.Name))
+        Expect.equal hostnameBinding.DomainName expectedDomainName $"HostnameBinding domain name should have {expectedDomainName}"
+        Expect.equal hostnameBinding.SslState expectedSslState $"HostnameBinding should have a {expectedSslState} Ssl state"
+        Expect.equal hostnameBinding.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
+
+        //Testing ResourceGroupDeployment
+        let resourceGroupDeployment = resources |> getResource<ResourceGroup.ResourceGroupDeployment> |> List.head
+        let innerResource = resourceGroupDeployment.Resources |> getResource<Web.HostNameBinding> |> List.head
+        let innerExpectedSslState = SslState.SniBased cert.Thumbprint
+        Expect.equal resourceGroupDeployment.Resources.Length 1 "resourceGroupDeployment stage should only contain one resource"
+        Expect.equal resourceGroupDeployment.Dependencies.Count 2 "resourceGroupDeployment stage should only contain two dependencies"
+        Expect.equal innerResource.SslState innerExpectedSslState $"hostnameBinding should have a {innerExpectedSslState} Ssl state inside the resourceGroupDeployment template"
+    }
+
+    test "Supports insecure custom domains" {
+        let webappName = "test"
+        let resources = webApp { name webappName; custom_domain (DomainConfig.InsecureDomain "customDomain.io") } |> getResources
+        let wa = resources |> getResource<Web.Site> |> List.head
+
+        //Testing HostnameBinding
+        let hostnameBinding = resources |> getResource<Web.HostNameBinding> |> List.head
+        let expectedSslState = SslState.SslDisabled
+        let exepectedSiteId = (Managed (Arm.Web.sites.resourceId wa.Name))
+        let expectedDomainName = "customDomain.io"
+
+        Expect.equal hostnameBinding.DomainName expectedDomainName $"HostnameBinding domain name should have {expectedDomainName}"
+        Expect.equal hostnameBinding.SslState expectedSslState $"HostnameBinding should have a {expectedSslState} Ssl state"
+        Expect.equal hostnameBinding.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
+
+        let nestedDeployments = resources |> getResource<ResourceGroupDeployment>
+        Expect.isEmpty nestedDeployments $"Only secured domains need nested deployments"
+    }
+
+    test "Supports no domains" {
+        let webappName = "test"
+        let resources = webApp { name webappName; custom_domain NoDomain } |> getResources
+        let wa = resources |> getResource<Web.Site> |> List.head
+
+        //Testing HostnameBinding
+        let hostnameBinding = resources |> getResource<Web.HostNameBinding>
+
+        Expect.equal hostnameBinding.Length 0 $"There should not be a hostname binding as a result of choosing the 'NoDomain' option"
     }
 ]
