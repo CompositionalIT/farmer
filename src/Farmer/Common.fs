@@ -1592,13 +1592,13 @@ module DeliveryPolicy =
             match this with
             | Override t ->
                              {| Behaviour = "Override"
-                                CacheDuration = Some(t) |}
+                                CacheDuration = Some t |}
             | BypassCache ->
                              {| Behaviour = "BypassCache"
                                 CacheDuration = None |}
             | SetIfMissing t ->
                              {| Behaviour = "SetIfMissing"
-                                CacheDuration = Some(t) |}
+                                CacheDuration = Some t |}
 
     type QueryStringCacheBehavior =
         | Include

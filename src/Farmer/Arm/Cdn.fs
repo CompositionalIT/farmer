@@ -243,7 +243,7 @@ module CdnRule =
           HttpHeaderValue: string }
 
     type Action =
-        | CacheExpiration of {| CacheBehaviour: CacheBehaviour ;|}
+        | CacheExpiration of {| CacheBehaviour: CacheBehaviour |}
         | CacheKeyQueryString of {| Behaviour: QueryStringCacheBehavior ; Parameters: string |}
         | ModifyRequestHeader of ModifyHeader
         | ModifyResponseHeader of ModifyHeader
