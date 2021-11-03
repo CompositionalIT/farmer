@@ -36,6 +36,7 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 |subnet_prefix|Sets the subnet prefix of the VM.|
 |custom_script|Executes the supplied inline custom script on the VM. Supports only one command. Alternatively you can connect VM e.g. with Powershell Invoke-AzVMRunCommand.|
 |custom_script_files|Uploads the supplied set of files, specified by URI, to the VM on creation.|
+|aad_ssh_login|Adds the `AADSSHLoginForLinux` extension on Linux VM's (requires `system_identity`).|
 |custom_data|Sets the custom data field for the VM.|
 |public_ip|Specifies or removes the public IP for this VM|
 |ip_allocation|Sets the public IP as Dynamic or Static. Default is Dynamic.|

@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.6.20
+* Virtual Machine: Adds support for the `AADSSHLoginForLinux` extension for Azure AD login over SSH on Linux VM's.
+
 ## 1.6.19
 * Application Gateways: support for creating application gateways.
 * Container Service (AKS): support for various addons, including the application gateway ingress controller.

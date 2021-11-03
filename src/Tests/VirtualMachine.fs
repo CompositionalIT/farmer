@@ -200,4 +200,25 @@ let tests = testList "Virtual Machine" [
         let vmNsgId = jobj.SelectToken($"resources[?(@.name=='{vmName}-nic')].properties.networkSecurityGroup.id").ToString()
         Expect.isFalse (String.IsNullOrEmpty vmNsgId) "NSG not attached"
     }
+    
+    test "Enables Azure AD SSH access on Linux virtual machine" {
+        let template =
+            let myVm = vm {
+                name "myvm"
+                username "ubuntu"
+                vm_size Standard_B1s
+                operating_system UbuntuServer_1804LTS
+                system_identity
+                aad_ssh_login Enabled
+            }
+            arm { location Location.EastUS; add_resource myVm }
+        let jobj = Newtonsoft.Json.Linq.JObject.Parse (template.Template |> Writer.toJson)
+        let extensionResource = jobj.SelectToken("resources[?(@.name=='myvm/AADSSHLoginForLinux')]")
+        Expect.sequenceEqual
+            (extensionResource.["dependsOn"] :?> Newtonsoft.Json.Linq.JArray)
+            (Newtonsoft.Json.Linq.JArray ["[resourceId('Microsoft.Compute/virtualMachines', 'myvm')]" ])
+            $"Missing or incorrect extension dependency."
+        Expect.equal (string extensionResource.["properties"].["type"]) "AADSSHLoginForLinux" $"Missing or incorrect extension type."
+        Expect.equal (string extensionResource.["properties"].["typeHandlerVersion"]) "1.0" $"Missing or incorrect extension typeHandlerVersion."
+    }
 ]
