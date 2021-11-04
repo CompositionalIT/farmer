@@ -38,9 +38,9 @@ type FunctionsConfig =
     /// Gets the ARM expression path to the publishing password of this functions app.
     member this.PublishingPassword = publishingPassword this.Name.ResourceName
     /// Gets the ARM expression path to the storage account key of this functions app.
-    member this.StorageAccountKey = StorageAccount.getConnectionString this.StorageAccountName
+    member this.StorageAccountKey = StorageAccount.getConnectionString this.StorageAccountId
     /// Gets the ARM expression path to the app insights key of this functions app, if it exists.
-    member this.AppInsightsKey = this.AppInsightsName |> Option.map AppInsights.getInstrumentationKey
+    member this.AppInsightsKey = this.AppInsightsId |> Option.map AppInsights.getInstrumentationKey
     /// Gets the default key for the functions site
     member this.DefaultKey =
         $"listkeys(concat(resourceId('Microsoft.Web/sites', '{this.Name.ResourceName.Value}'), '/host/default/'),'2016-08-01').functionKeys.default"
@@ -54,9 +54,15 @@ type FunctionsConfig =
     /// Gets the Service Plan name for this web app.
     member this.ServicePlanName = this.ServicePlanId.Name
     /// Gets the App Insights name for this functions app, if it exists.
+    [<Obsolete("Prefer AppInsightsId instead as this property ignores resource groups")>]
     member this.AppInsightsName : ResourceName option = this.CommonWebConfig.AppInsights |> Option.map (fun ai -> ai.resourceId(this.Name.ResourceName).Name)
     /// Gets the Storage Account name for this functions app.
+    [<Obsolete("Prefer StorageAccountId instead as this property ignores resource groups")>]
     member this.StorageAccountName : Storage.StorageAccountName = this.StorageAccount.resourceId(this).Name |> Storage.StorageAccountName.Create |> Result.get
+    /// Gets the App Insights resourceId for this functions app, if it exists.
+    member this.AppInsightsId: ResourceId option = this.CommonWebConfig.AppInsights |> Option.map (fun ai -> ai.resourceId(this.Name.ResourceName))
+    /// Gets the Storage Account resourceId for this functions app.
+    member this.StorageAccountId: ResourceId = this.StorageAccount.resourceId(this)
     /// Gets the Resource Id for this functions app
     member this.ResourceId = sites.resourceId this.Name.ResourceName
     interface IBuilder with
@@ -126,13 +132,13 @@ type FunctionsConfig =
                 "FUNCTIONS_WORKER_RUNTIME", functionsRuntime
                 "WEBSITE_NODE_DEFAULT_VERSION", "10.14.1"
                 "FUNCTIONS_EXTENSION_VERSION", match this.ExtensionVersion with V1 -> "~1" | V2 -> "~2" | V3 -> "~3"
-                "AzureWebJobsStorage", StorageAccount.getConnectionString this.StorageAccountName |> ArmExpression.Eval
-                "AzureWebJobsDashboard", StorageAccount.getConnectionString this.StorageAccountName |> ArmExpression.Eval
+                "AzureWebJobsStorage", StorageAccount.getConnectionString this.StorageAccountId|> ArmExpression.Eval
+                "AzureWebJobsDashboard", StorageAccount.getConnectionString this.StorageAccountId|> ArmExpression.Eval
 
                 yield! this.AppInsightsKey |> Option.mapList (fun key -> "APPINSIGHTS_INSTRUMENTATIONKEY", key |> ArmExpression.Eval)
 
                 if this.CommonWebConfig.OperatingSystem = Windows then
-                    "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING", StorageAccount.getConnectionString this.StorageAccountName |> ArmExpression.Eval
+                    "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING", StorageAccount.getConnectionString this.StorageAccountId|> ArmExpression.Eval
                     "WEBSITE_CONTENTSHARE", this.Name.ResourceName.Value.ToLower()
                 match this.PublishAs with
                 | DockerContainer { User = us; Password = pass; Url = url } ->

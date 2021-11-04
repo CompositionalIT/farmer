@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## vNext
+* Functions: fixed bug preventing references to AppIsnights or storage accounts in other resource groups
+
 ## 1.6.20
 * CDN rules: Only make CacheDuration required for Override and SetIfMissing and not BypassCache when creating cache_expiration action
 
