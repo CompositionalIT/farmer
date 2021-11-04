@@ -200,7 +200,26 @@ let tests = testList "Virtual Machine" [
         let vmNsgId = jobj.SelectToken($"resources[?(@.name=='{vmName}-nic')].properties.networkSecurityGroup.id").ToString()
         Expect.isFalse (String.IsNullOrEmpty vmNsgId) "NSG not attached"
     }
-    
+
+    test "Link new VM to existing vnet" {
+        let template =
+            let myVm = vm {
+                name "myvm"
+                username "azureuser"
+                link_to_unmanaged_vnet "myvnet"
+                subnet_name "default"
+            }
+            arm { add_resource myVm }
+        let jobj = Newtonsoft.Json.Linq.JObject.Parse (template.Template |> Writer.toJson)
+        let vmResource = jobj.SelectToken("resources[?(@.name=='myvm')]")
+        let dependsOn = (vmResource.["dependsOn"] :?> Newtonsoft.Json.Linq.JArray)
+        Expect.hasLength dependsOn 1 "Incorrect number of VM dependencies"
+        Expect.sequenceEqual
+            dependsOn
+            (Newtonsoft.Json.Linq.JArray ["[resourceId('Microsoft.Network/networkInterfaces', 'myvm-nic')]" ])
+            $"VM should only depend on its NIC, not also the vnet: {dependsOn}"
+    }
+
     test "Enables Azure AD SSH access on Linux virtual machine" {
         let template =
             let myVm = vm {
@@ -211,7 +230,7 @@ let tests = testList "Virtual Machine" [
                 system_identity
                 aad_ssh_login Enabled
             }
-            arm { location Location.EastUS; add_resource myVm }
+            arm { add_resource myVm }
         let jobj = Newtonsoft.Json.Linq.JObject.Parse (template.Template |> Writer.toJson)
         let extensionResource = jobj.SelectToken("resources[?(@.name=='myvm/AADSSHLoginForLinux')]")
         Expect.sequenceEqual

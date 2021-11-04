@@ -3,6 +3,7 @@ Release Notes
 
 ## 1.6.20
 * Virtual Machine: Adds support for the `AADSSHLoginForLinux` extension for Azure AD login over SSH on Linux VM's.
+* Virtual Machine: Enables a VM to be deployed on an existing vnet.
 
 ## 1.6.19
 * Application Gateways: support for creating application gateways.

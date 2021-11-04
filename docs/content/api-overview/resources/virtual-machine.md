@@ -48,6 +48,8 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 |private_ip_allocation| Sets the private ip as Dynamic or Static default is dynamic.|
 |network_security_group| Sets the Network Security Group (NSG) for VM/NIC. Enables you to create and share firewall rule sets.|
 |link_to_network_security_group| Specify an existing Network Security Group (NSG) for VM/NIC.             |
+|link_to_vnet|Attaches the VM NIC to a vnet that is deployed in this same template|
+|link_to_unmanaged_vnet|Attaches the VM NIC to a vnet that is already deployed|
 
 #### Configuration Members
 
