@@ -53,6 +53,12 @@ type FunctionsConfig =
     member this.ServicePlanId = this.CommonWebConfig.ServicePlan.resourceId this.Name.ResourceName
     /// Gets the Service Plan name for this web app.
     member this.ServicePlanName = this.ServicePlanId.Name
+    /// Gets the App Insights name for this functions app, if it exists.
+    [<Obsolete("Prefer AppInsightsId instead as this property ignores resource groups")>]
+    member this.AppInsightsName : ResourceName option = this.CommonWebConfig.AppInsights |> Option.map (fun ai -> ai.resourceId(this.Name.ResourceName).Name)
+    /// Gets the Storage Account name for this functions app.
+    [<Obsolete("Prefer StorageAccountId instead as this property ignores resource groups")>]
+    member this.StorageAccountName : Storage.StorageAccountName = this.StorageAccount.resourceId(this).Name |> Storage.StorageAccountName.Create |> Result.get
     /// Gets the App Insights resourceId for this functions app, if it exists.
     member this.AppInsightsId: ResourceId option = this.CommonWebConfig.AppInsights |> Option.map (fun ai -> ai.resourceId(this.Name.ResourceName))
     /// Gets the Storage Account resourceId for this functions app.
