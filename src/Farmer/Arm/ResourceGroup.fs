@@ -60,7 +60,8 @@ type ResourceGroupDeployment =
                 (function 
                 | :? ResourceGroupDeployment as rg -> rg.RequiredResourceGroups 
                 | _ ->  [])
-        if this.Name.Value.[0] = '[' then
+        // Ignore this target resourcegroup if it is an ARM expression caluclated at deploy-time
+        if this.TargetResourceGroup.Value.[0] = '[' then
             List.distinct nestedRgs
         else 
             List.distinct (this.TargetResourceGroup.Value :: nestedRgs)
