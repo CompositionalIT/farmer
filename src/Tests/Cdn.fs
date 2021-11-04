@@ -93,7 +93,7 @@ let tests = testList "CDN tests" [
             cdn {
                 name "test"
                 add_endpoints [ endpoint {
-                    add_rules [ cdnRule{ name "test-rule"; order 2; when_request_body Contains ["content"] ToLowercase; when_device_type EqualityOperator.Equals Mobile;  modify_response_header  Append "headerName" "headerValue" }]
+                    add_rules [ cdnRule{ name "test-rule"; order 2; when_request_body Contains ["content"] ToLowercase; when_device_type EqualityOperator.Equals Mobile;  modify_response_header  Append "headerName" "headerValue"; cache_expiration BypassCache }]
                 } ]
             }
             |> getResourceAtIndex 1
@@ -101,6 +101,6 @@ let tests = testList "CDN tests" [
         Expect.equal rule.Name "test-rule" "Incorrect rule name"
         Expect.equal rule.Order 2 "Incorrect rule order"
         Expect.hasLength rule.Conditions 2 "Incorrect number of conditions"
-        Expect.hasLength rule.Actions 1 "Incorrect number of actions"
+        Expect.hasLength rule.Actions 2 "Incorrect number of actions"
     }
 ]

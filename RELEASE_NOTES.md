@@ -2,6 +2,7 @@ Release Notes
 =============
 
 ## 1.6.20
+* CDN rules: Only make CacheDuration required for Override and SetIfMissing and not BypassCache when creating cache_expiration action
 * Virtual Machine: Adds support for the `AADSSHLoginForLinux` extension for Azure AD login over SSH on Linux VM's.
 * Virtual Machine: Enables a VM to be deployed on an existing vnet.
 
