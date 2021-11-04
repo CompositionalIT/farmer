@@ -1,7 +1,7 @@
 Release Notes
 =============
 
-## v-next
+## 1.6.20
 * CDN rules: Only make CacheDuration required for Override and SetIfMissing and not BypassCache when creating cache_expiration action
 
 ## 1.6.19
