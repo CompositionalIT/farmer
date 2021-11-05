@@ -60,7 +60,7 @@ type ResourceGroupDeployment =
                 (function 
                 | :? ResourceGroupDeployment as rg -> rg.RequiredResourceGroups 
                 | _ ->  [])
-        List.distinct (this.TargetResourceGroup.Value :: nestedRgs)        
+        List.distinct (this.TargetResourceGroup.Value :: nestedRgs)
     member this.Template = 
         { Parameters = this.Parameters
           Outputs = this.Outputs |> Map.toList
