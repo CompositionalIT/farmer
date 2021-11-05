@@ -60,7 +60,11 @@ type ResourceGroupDeployment =
                 (function 
                 | :? ResourceGroupDeployment as rg -> rg.RequiredResourceGroups 
                 | _ ->  [])
-        List.distinct (this.TargetResourceGroup.Value :: nestedRgs)        
+        // Ignore this target resourcegroup if it is an ARM expression caluclated at deploy-time
+        if this.TargetResourceGroup.Value.[0] = '[' then
+            List.distinct nestedRgs
+        else 
+            List.distinct (this.TargetResourceGroup.Value :: nestedRgs)
     member this.Template = 
         { Parameters = this.Parameters
           Outputs = this.Outputs |> Map.toList
