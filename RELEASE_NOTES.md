@@ -1,11 +1,10 @@
 Release Notes
 =============
 
-## vNext
-* Functions: fixed bug preventing references to AppIsnights or storage accounts in other resource groups
-
 ## 1.6.20
 * CDN rules: Only make CacheDuration required for Override and SetIfMissing and not BypassCache when creating cache_expiration action
+* WebApps/Functions: Fixed bug preventing references to AppInsights or storage accounts in other resource groups
+* WebApps: Supports custom domains with app service managed certificates
 
 ## 1.6.19
 * Application Gateways: support for creating application gateways.
@@ -39,7 +38,6 @@ Release Notes
 * Container Groups: Fix to generate parameters for secure environment variables on `initContainers`.
 * Container Service (AKS): Simplify `aks` builder with defaults for node pool and DNS prefix.
 * Dashboads: Fixes for complex dashboards: custom parts and monitor parts.
-* WebApp: Supports custom domains with app service managed certificates
 * Key Vaults: Support for adding access policies on an existing key vault with `keyVaultAddPolicies`.
 * Virtual Networks: support for adding subnets to existing virtual networks.
 
