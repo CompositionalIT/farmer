@@ -22,6 +22,12 @@ stages:
     pool:
       vmImage: $(imageName)
     steps:
+    - task: UseDotNet@2
+      displayName: 'Use .NET Core SDK'
+      inputs:
+        packageType: sdk
+        useGlobalJson: true
+        installationPath: $(Agent.ToolsDirectory)/dotnet
     - task: DotNetCoreCLI@2
       displayName: 'Restore'
       inputs:
