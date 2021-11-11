@@ -26,6 +26,15 @@ type ImageRegistryAuthentication =
 /// Credentials for the container registry will be listed by ARM expression.
 | ListCredentials of ResourceId
 
+type Gpu =
+    { Count: int
+      Sku: ContainerInstanceGpu.Sku } 
+    member internal this.JsonModel =
+        {|
+            count = this.Count
+            sku = string this.Sku
+        |}
+
 /// Defines a command or HTTP request to get the status of a container.
 type ContainerProbe =
     { Exec : string list
@@ -68,6 +77,7 @@ type ContainerGroup =
            Ports : uint16 Set
            Cpu : float
            Memory : float<Gb>
+           Gpu : Gpu option
            EnvironmentVariables: Map<string, EnvVar>
            VolumeMounts : Map<string,string>
            LivenessProbe : ContainerProbe option
@@ -168,7 +178,9 @@ type ContainerGroup =
                                       resources =
                                        {| requests =
                                            {| cpu = container.Cpu
-                                              memoryInGB = container.Memory |}
+                                              memoryInGB = container.Memory
+                                              gpu = container.Gpu |> Option.map (fun g -> g.JsonModel |> box) |> Option.defaultValue null
+                                           |}
                                        |}
                                       volumeMounts =
                                           container.VolumeMounts

@@ -684,6 +684,12 @@ module BingSearch =
         | S8
         | S9
 
+module ContainerInstanceGpu =
+    type Sku =
+        | K80
+        | P100
+        | V100
+
 module ContainerRegistry =
     /// Container Registry SKU
     type Sku =

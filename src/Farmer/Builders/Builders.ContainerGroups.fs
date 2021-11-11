@@ -45,6 +45,8 @@ type ContainerInstanceConfig =
       Cpu : float
       /// Max gigabytes of memory the container instance may use
       Memory : float<Gb>
+      // Container instances gpu
+      Gpu : Gpu option
       /// Environment variables for the container
       EnvironmentVariables : Map<string, EnvVar>
       /// Liveness probe for checking the container's health.
@@ -107,6 +109,7 @@ type ContainerGroupConfig =
                        Ports = instance.Ports |> Map.toSeq |> Seq.map fst |> Set
                        Cpu = instance.Cpu
                        Memory = instance.Memory
+                       Gpu = instance.Gpu
                        EnvironmentVariables = instance.EnvironmentVariables
                        LivenessProbe = instance.LivenessProbe
                        ReadinessProbe = instance.ReadinessProbe
@@ -130,6 +133,10 @@ type ContainerGroupConfig =
               Tags = this.Tags
               Dependencies = this.Dependencies }
         ]
+
+type ContainerGpuConfig = 
+    { Count: int
+      Sku: ContainerInstanceGpu.Sku }
 
 type ContainerProbeType = LivenessProbe | ReadinessProbe
 type ContainerProbeConfig =
@@ -264,6 +271,7 @@ type ContainerInstanceBuilder() =
           Ports = Map.empty
           Cpu = 1.0
           Memory = 1.5<Gb>
+          Gpu = None
           EnvironmentVariables = Map.empty
           LivenessProbe = None
           ReadinessProbe = None
@@ -296,6 +304,10 @@ type ContainerInstanceBuilder() =
     /// Sets the maximum gigabytes of memory the container instance may use
     [<CustomOperationAttribute "memory">]
     member _.Memory (state:ContainerInstanceConfig, memory) = { state with Memory = memory }
+    /// Enables container instances with gpus
+    [<CustomOperationAttribute "gpu">]
+    member _.Gpu (state:ContainerInstanceConfig, (gpu:ContainerGpuConfig)) = { state with Gpu = Some { Count = gpu.Count
+                                                                                                       Sku = gpu.Sku } }
     [<CustomOperation "env_vars">]
     member _.EnvironmentVariables(state:ContainerInstanceConfig, envVars) =
         { state with EnvironmentVariables = Map.ofList envVars }
@@ -372,6 +384,18 @@ let liveness = ProbeBuilder(LivenessProbe)
 let readiness = ProbeBuilder(ReadinessProbe)
 [<System.Obsolete "Compatibility only due to spelling error - please use 'liveness'">]
 let liveliness = ProbeBuilder(LivenessProbe)
+
+type GpuBuilder () =
+    member _.Yield _ =
+        {
+            Count = 1
+            Sku = ContainerInstanceGpu.Sku.K80
+        } : ContainerGpuConfig
+    [<CustomOperation "count">]
+    member _.Count(state:ContainerGpuConfig, count) = { state with Count = count }
+    [<CustomOperation "sku">]
+    member _.Sku(state:ContainerGpuConfig, sku) = { state with Sku = sku }
+let containerInstanceGpu = GpuBuilder()
 
 type InitContainerBuilder() =
     member _.Yield _ =
