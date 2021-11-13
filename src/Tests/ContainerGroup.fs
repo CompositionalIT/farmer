@@ -596,7 +596,7 @@ async {
                     }
                 ]
             } |> asAzureResource
-        let gpu = group.Containers[0].Resources.Requests.Gpu
+        let gpu = group.Containers.[0].Resources.Requests.Gpu
         Expect.equal gpu.Count 1 "Wrong amount of GPUs"
         Expect.equal gpu.Sku "V100" "Wrong SKU"
     }
