@@ -26,4 +26,3 @@ let template = arm {
 }
 
 Writer.quickWrite "container-instance" template
-
