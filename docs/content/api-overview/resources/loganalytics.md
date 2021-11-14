@@ -17,6 +17,7 @@ The Log Analytics builder is used to create Work space instances.
 | ---------------- | --------------------------------------------------------------- |
 | name             | Sets the name of the log analytics instance.                    |
 | retention_period | Sets the retention period for logs in days.                     |
+| location         | Sets the location for then logs analytics instance.             |
 | enable_ingestion | Enables ingestion network traffic.                              |
 | enable_query     | Enables query network traffic.                                  |
 | daily_cap        | Specifies an upper limit on the amount of data to ingest daily. |

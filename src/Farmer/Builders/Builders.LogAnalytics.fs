@@ -15,18 +15,20 @@ type WorkspaceConfig =
       IngestionSupport: FeatureFlag option
       QuerySupport: FeatureFlag option
       DailyCap : int<Gb> option
+      Location : Location option
       Tags: Map<string,string> }
     interface IBuilder with
         member this.ResourceId = workspaces.resourceId this.Name
-        member this.BuildResources location = [
-            { Name = this.Name
-              Location = location
-              RetentionPeriod = this.RetentionPeriod
-              IngestionSupport = this.IngestionSupport
-              QuerySupport = this.QuerySupport
-              DailyCap = this.DailyCap
-              Tags = this.Tags }
-        ]
+        member this.BuildResources location = 
+            let resource : Workspace =
+                { Name = this.Name
+                  Location = this.Location |> Option.defaultValue location
+                  RetentionPeriod = this.RetentionPeriod
+                  IngestionSupport = this.IngestionSupport
+                  QuerySupport = this.QuerySupport
+                  DailyCap = this.DailyCap
+                  Tags = this.Tags }
+            [ resource ]
 
 type WorkspaceBuilder() =
     member _.Yield _ =
@@ -35,6 +37,7 @@ type WorkspaceBuilder() =
           DailyCap = None
           IngestionSupport = None
           QuerySupport = None
+          Location = None
           Tags = Map.empty }
 
     member _.Run (state:WorkspaceConfig) =
@@ -55,6 +58,10 @@ type WorkspaceBuilder() =
     [<CustomOperation "retention_period">]
     member _.RetentionInDays(state: WorkspaceConfig, retentionInDays) =
         { state with RetentionPeriod = Some retentionInDays }
+
+    /// Sets the location  of the Log Analytics workspace.
+    [<CustomOperation "location">]
+    member _.Location (state: WorkspaceConfig, location) = { state with Location = Some location }        
 
     /// Enables Log Analytics ingestion
     [<CustomOperation "enable_ingestion">]
