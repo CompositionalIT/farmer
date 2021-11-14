@@ -9,6 +9,15 @@ let private (|InBounds|OutOfBounds|) days =
     elif days > 730<Days> then OutOfBounds days
     else InBounds days
 
+type LogAnalytics =
+    static member getCustomerId (resourceId:ResourceId) =
+        ArmExpression
+            .reference(workspaces, resourceId)
+            .Map(fun r -> r + ".customerId")
+            .WithOwner(resourceId)
+    static member getCustomerId (name:ResourceName, ?resourceGroup) =
+        LogAnalytics.getCustomerId(ResourceId.create (workspaces, name, ?group = resourceGroup))
+
 type WorkspaceConfig =
     { Name: ResourceName
       RetentionPeriod: int<Days> option
@@ -16,6 +25,10 @@ type WorkspaceConfig =
       QuerySupport: FeatureFlag option
       DailyCap : int<Gb> option
       Tags: Map<string,string> }
+      
+    /// Gets the ARM expression path to the customer ID of this LogAnalytics instance.
+    member this.CustomerId = LogAnalytics.getCustomerId this.Name
+
     interface IBuilder with
         member this.ResourceId = workspaces.resourceId this.Name
         member this.BuildResources location = [
