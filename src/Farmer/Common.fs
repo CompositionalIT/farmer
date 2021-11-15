@@ -1652,6 +1652,8 @@ module Cdn =
     | Standard_ChinaCdn
     | Standard_Microsoft
     | Standard_Verizon
+    | Premium_AzureFrontDoor 
+    | Standard_AzureFrontDoor
 
     type QueryStringCachingBehaviour =
     | IgnoreQueryString
