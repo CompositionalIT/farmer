@@ -22,7 +22,7 @@ type DockerInfo = {
 type PublishAs =
     | Code
     | DockerContainer of DockerInfo
-type FunctionsExtensionVersion = V1 | V2 | V3
+type FunctionsExtensionVersion = V1 | V2 | V3 | V4
 
 type FunctionsConfig =
     { CommonWebConfig: CommonWebConfig
