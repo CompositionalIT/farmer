@@ -261,9 +261,9 @@ type CdnRuleBuilder () =
                              CaseTransform = caseTransform |} ] }
 
     [<CustomOperation "cache_expiration">]
-    member _.CacheExpiration(state: CdnRuleConfig, cacheBehaviour, ?cacheDuration) =
+    member _.CacheExpiration(state: CdnRuleConfig, cacheBehaviour) =
         { state with
-              Actions = state.Actions @ [ CacheExpiration {| CacheBehaviour = cacheBehaviour ; CacheDuration = cacheDuration |} ] }
+              Actions = state.Actions @ [ CacheExpiration {| CacheBehaviour = cacheBehaviour |} ] }
     [<CustomOperation "cache_key_query_string">]
     member _.CacheKeyQueryString(state: CdnRuleConfig, behaviour, parameters) =
         { state with

@@ -1,8 +1,12 @@
 Release Notes
 =============
 
-## vNext
-* Functions: fixed bug preventing references to AppIsnights or storage accounts in other resource groups
+## 1.6.20
+* CDN rules: Only make CacheDuration required for Override and SetIfMissing and not BypassCache when creating cache_expiration action
+* Virtual Machine: Adds support for the `AADSSHLoginForLinux` extension for Azure AD login over SSH on Linux VM's.
+* Virtual Machine: Enables a VM to be deployed on an existing virtual network.
+* WebApps/Functions: Fixed bug preventing references to AppInsights or storage accounts in other resource groups
+* WebApps: Supports custom domains with app service managed certificates
 
 ## 1.6.19
 * Application Gateways: support for creating application gateways.

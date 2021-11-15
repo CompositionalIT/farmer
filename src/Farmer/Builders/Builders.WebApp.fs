@@ -481,44 +481,44 @@ type WebAppConfig =
                     slot.ToSite site
 
             match this.CustomDomain with
-                       | SecureDomain (customDomain, certOptions) ->
-                           let hostNameBinding =
-                               { Location = location
-                                 SiteId =  Managed (Arm.Web.sites.resourceId this.Name.ResourceName)
-                                 DomainName = customDomain
-                                 SslState = SslDisabled } // Initially create non-secure host name binding, we link the certificate in a nested deployment below
-                           let cert =
-                               { Location = location
-                                 SiteId = this.ResourceId
-                                 ServicePlanId = this.ServicePlanId
-                                 DomainName = customDomain }
-                           hostNameBinding
-                           cert
-                           let resourceLocation = location
+            | SecureDomain (customDomain, certOptions) ->
+                let hostNameBinding =
+                    { Location = location
+                      SiteId =  Managed (Arm.Web.sites.resourceId this.Name.ResourceName)
+                      DomainName = customDomain
+                      SslState = SslDisabled } // Initially create non-secure host name binding, we link the certificate in a nested deployment below
+                let cert =
+                    { Location = location
+                      SiteId = this.ResourceId
+                      ServicePlanId = this.ServicePlanId
+                      DomainName = customDomain }
+                hostNameBinding
+                cert
+                let resourceLocation = location
 
-                           // nested deployment to update hostname binding with specified SSL options
-                           yield! (resourceGroup { 
-                               name "[resourceGroup().name]"
-                               location resourceLocation
-                               add_resource { hostNameBinding with
-                                               SiteId =
-                                                   match hostNameBinding.SiteId with 
-                                                   | Managed id -> Unmanaged id
-                                                   | x -> x 
-                                               SslState = 
-                                                   match certOptions with
-                                                   | AppManagedCertificate -> SniBased cert.Thumbprint
-                                                   | CustomCertificate thumbprint -> SniBased thumbprint
-                                             }
-                               depends_on [ Arm.Web.certificates.resourceId cert.ResourceName
-                                            hostNameBinding.ResourceId ]
-                           } :> IBuilder).BuildResources location
-                       | InsecureDomain customDomain -> 
-                           { Location = location
-                             SiteId =  Managed (Arm.Web.sites.resourceId this.Name.ResourceName)
-                             DomainName = customDomain
-                             SslState = SslDisabled }
-                       | NoDomain -> ()
+                // nested deployment to update hostname binding with specified SSL options
+                yield! (resourceGroup { 
+                    name "[resourceGroup().name]"
+                    location resourceLocation
+                    add_resource { hostNameBinding with
+                                    SiteId =
+                                        match hostNameBinding.SiteId with 
+                                        | Managed id -> Unmanaged id
+                                        | x -> x 
+                                    SslState = 
+                                        match certOptions with
+                                        | AppManagedCertificate -> SniBased cert.Thumbprint
+                                        | CustomCertificate thumbprint -> SniBased thumbprint
+                                  }
+                    depends_on [ Arm.Web.certificates.resourceId cert.ResourceName
+                                 hostNameBinding.ResourceId ]
+                } :> IBuilder).BuildResources location
+            | InsecureDomain customDomain -> 
+                { Location = location
+                  SiteId =  Managed (Arm.Web.sites.resourceId this.Name.ResourceName)
+                  DomainName = customDomain
+                  SslState = SslDisabled }
+            | NoDomain -> ()
 
             yield! (PrivateEndpoint.create location this.ResourceId ["sites"] this.PrivateEndpoints)
         ]

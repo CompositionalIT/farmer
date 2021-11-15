@@ -33,6 +33,7 @@ type VmConfig =
       CustomData : string option
       DisablePasswordAuthentication : bool option
       SshPathAndPublicKeys : (string * string ) list option
+      AadSshLogin : FeatureFlag
 
       VNet : ResourceRef<VmConfig>
       AddressPrefix : string
@@ -169,6 +170,18 @@ type VmConfig =
                 ()
             | None, _ ->
                 raiseFarmer $"You have supplied custom script files {this.CustomScriptFiles} but no script. Custom script files are not automatically executed; you must provide an inline script which acts as a bootstrapper using the custom_script keyword."
+
+            /// Azure AD SSH login extension
+            match this.AadSshLogin with
+            | FeatureFlag.Enabled when this.Image.OS = Linux && this.Identity.SystemAssigned = Disabled ->
+                raiseFarmer "AAD SSH login requires that system assigned identity be enabled on the virtual machine."
+            | FeatureFlag.Enabled when this.Image.OS = Windows ->
+                raiseFarmer "AAD SSH login is only supported for Linux Virtual Machines"
+            | FeatureFlag.Enabled ->
+                { AadSshLoginExtension.Location = location
+                  VirtualMachine = this.Name
+                  Tags = this.Tags }
+            | FeatureFlag.Disabled -> ()
         ]
 
 type VirtualMachineBuilder() =
@@ -188,6 +201,7 @@ type VirtualMachineBuilder() =
           CustomData = None
           DisablePasswordAuthentication = None
           SshPathAndPublicKeys = None
+          AadSshLogin = FeatureFlag.Disabled
           OsDisk = { Size = 128; DiskType = Standard_LRS }
           AddressPrefix = "10.0.0.0/16"
           SubnetPrefix = "10.0.0.0/24"
@@ -269,6 +283,11 @@ type VirtualMachineBuilder() =
     member this.LinkToVNet(state:VmConfig, name) = this.LinkToVNet(state, ResourceName name)
     member this.LinkToVNet(state:VmConfig, vnet:Arm.Network.VirtualNetwork) = this.LinkToVNet(state, vnet.Name)
     member this.LinkToVNet(state:VmConfig, vnet:VirtualNetworkConfig) = this.LinkToVNet(state, vnet.Name)
+    [<CustomOperation "link_to_unmanaged_vnet">]
+    member _.LinkToUnmanagedVNet(state:VmConfig, name:ResourceName) = { state with VNet = LinkedResource (Unmanaged (virtualNetworks.resourceId name)) }
+    member this.LinkToUnmanagedVNet(state:VmConfig, name) = this.LinkToUnmanagedVNet(state, ResourceName name)
+    member this.LinkToUnmanagedVNet(state:VmConfig, vnet:Arm.Network.VirtualNetwork) = this.LinkToUnmanagedVNet(state, vnet.Name)
+    member this.LinkToUnmanagedVNet(state:VmConfig, vnet:VirtualNetworkConfig) = this.LinkToUnmanagedVNet(state, vnet.Name)
 
     [<CustomOperation "custom_script">]
     member _.CustomScript(state:VmConfig, script:string) =
@@ -295,6 +314,10 @@ type VirtualMachineBuilder() =
     member _.AddAuthorizedKeys(state:VmConfig, sshObjects: (string * string) list) = { state with SshPathAndPublicKeys = Some sshObjects }
     [<CustomOperation "add_authorized_key">]
     member this.AddAuthorizedKey(state:VmConfig, path: string, keyData: string) = this.AddAuthorizedKeys(state, [(path, keyData)])
+    /// Azure AD login extension may be enabled for Linux VM's.
+    [<CustomOperation "aad_ssh_login">]
+    member this.AadSshLoginEnabled(state:VmConfig, featureFlag:FeatureFlag) =
+        { state with AadSshLogin = featureFlag }
 
     [<CustomOperation "public_ip">]
     /// Set the public IP for this VM
