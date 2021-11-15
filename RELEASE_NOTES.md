@@ -31,6 +31,7 @@ Release Notes
 ## 1.6.15
 * Key Vaults: Allow deploying standalone secrets without a KeyVault in the same deployment
 * WebApp/Functions: no longer overwrites production slot settings when using a multi-slot deploy
+* WebApp: Supports custom domains with app service managed certificates
 
 ## 1.6.14
 * Container Service (AKS): Adds `kubelet_identity` operator to suppor a user assigned identity for kubelet.
