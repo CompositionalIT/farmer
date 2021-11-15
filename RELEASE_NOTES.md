@@ -1,7 +1,7 @@
 Release Notes
 =============
 
-## vNext
+## 1.6.21
 * CDN: Adds new SKU types for Azure Front Door Standard/Premium
 
 ## 1.6.20
