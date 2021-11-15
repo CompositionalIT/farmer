@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## vNext
+* CDN: Adds new SKU types for Azure Front Door Standard/Premium
+
 ## 1.6.20
 * CDN rules: Only make CacheDuration required for Override and SetIfMissing and not BypassCache when creating cache_expiration action
 * Virtual Machine: Adds support for the `AADSSHLoginForLinux` extension for Azure AD login over SSH on Linux VM's.
