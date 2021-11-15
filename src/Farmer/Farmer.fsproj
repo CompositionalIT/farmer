@@ -157,6 +157,7 @@
     <Compile Include="Builders/Builders.AzureFirewall.fs" />
     <Compile Include="Builders\Builders.Dashboard.fs" />
     <Compile Include="Builders/Builders.ApplicationGateway.fs" />
+    <Compile Include="Builders/Builders.ContainerApps.fs" />
     <Compile Include="Aliases.fs" />
   </ItemGroup>
 </Project>
