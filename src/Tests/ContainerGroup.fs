@@ -4,7 +4,6 @@ open Expecto
 open Farmer
 open Farmer.Identity
 open Farmer.ContainerGroup
-open Farmer.ContainerInstanceGpu
 open Farmer.Arm.ContainerInstance
 open Farmer.Builders
 open Farmer.Network
@@ -592,7 +591,7 @@ async {
                     containerInstance {
                         name "foo"
                         gpu ( containerInstanceGpu { count 1
-                                                     sku V100 } )
+                                                     sku Gpu.V100 } )
                     }
                 ]
             } |> asAzureResource

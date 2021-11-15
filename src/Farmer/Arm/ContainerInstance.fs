@@ -26,9 +26,9 @@ type ImageRegistryAuthentication =
 /// Credentials for the container registry will be listed by ARM expression.
 | ListCredentials of ResourceId
 
-type Gpu =
+type ContainerInstanceGpu =
     { Count: int
-      Sku: ContainerInstanceGpu.Sku } 
+      Sku: Gpu.Sku } 
     member internal this.JsonModel =
         {|
             count = this.Count
@@ -77,7 +77,7 @@ type ContainerGroup =
            Ports : uint16 Set
            Cpu : float
            Memory : float<Gb>
-           Gpu : Gpu option
+           Gpu : ContainerInstanceGpu option
            EnvironmentVariables: Map<string, EnvVar>
            VolumeMounts : Map<string,string>
            LivenessProbe : ContainerProbe option

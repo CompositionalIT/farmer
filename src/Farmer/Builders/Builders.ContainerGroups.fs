@@ -46,7 +46,7 @@ type ContainerInstanceConfig =
       /// Max gigabytes of memory the container instance may use
       Memory : float<Gb>
       // Container instances gpu
-      Gpu : Gpu option
+      Gpu : ContainerInstanceGpu option
       /// Environment variables for the container
       EnvironmentVariables : Map<string, EnvVar>
       /// Liveness probe for checking the container's health.
@@ -136,7 +136,7 @@ type ContainerGroupConfig =
 
 type ContainerGpuConfig = 
     { Count: int
-      Sku: ContainerInstanceGpu.Sku }
+      Sku: Gpu.Sku }
 
 type ContainerProbeType = LivenessProbe | ReadinessProbe
 type ContainerProbeConfig =
@@ -389,7 +389,7 @@ type GpuBuilder () =
     member _.Yield _ =
         {
             Count = 1
-            Sku = ContainerInstanceGpu.Sku.K80
+            Sku = Gpu.Sku.K80
         } : ContainerGpuConfig
     [<CustomOperation "count">]
     member _.Count(state:ContainerGpuConfig, count) = { state with Count = count }

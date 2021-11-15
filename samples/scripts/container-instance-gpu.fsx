@@ -2,7 +2,7 @@
 
 open Farmer
 open Farmer.Builders
-open Farmer.ContainerInstanceGpu
+open Farmer.ContainerGroup
 
 let template = arm {
     location Location.WestEurope
@@ -18,7 +18,7 @@ let template = arm {
                     memory 12.0<Gb>
                     cpu_cores 4.0
                     gpu ( containerInstanceGpu { count 1
-                                                 sku V100 } )
+                                                 sku Gpu.V100 } )
                 }
             ]
         }

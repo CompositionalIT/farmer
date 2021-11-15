@@ -684,12 +684,6 @@ module BingSearch =
         | S8
         | S9
 
-module ContainerInstanceGpu =
-    type Sku =
-        | K80
-        | P100
-        | V100
-
 module ContainerRegistry =
     /// Container Registry SKU
     type Sku =
@@ -965,6 +959,12 @@ module ContainerGroup =
         | GitRepo of Repository:Uri * Directory:string option * Revision:string option
         /// Mounts a volume containing secret files.
         | Secret of SecretFile list
+
+    module Gpu =
+        type Sku =
+            | K80
+            | P100
+            | V100
 
 module ContainerService =
     type NetworkPlugin =
