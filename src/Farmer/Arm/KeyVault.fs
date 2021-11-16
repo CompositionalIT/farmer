@@ -157,7 +157,7 @@ type Vault =
                         {| defaultAction = this.DefaultAction  |> Option.map string |> Option.toObj
                            bypass = this.Bypass  |> Option.map string |> Option.toObj
                            ipRules = this.IpRules
-                           virtualNetworkRules = this.VnetRules |}
+                           virtualNetworkRules = this.VnetRules |> List.map (fun rule -> {| id = rule |}) |}
                     |}
             |} :> _
 
