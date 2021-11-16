@@ -1,5 +1,7 @@
 Release Notes
 =============
+## vNext
+* Functions: fix for .Net isolated functions hosted on linux
 
 ## 1.6.21
 * CDN: Adds new SKU types for Azure Front Door Standard/Premium
