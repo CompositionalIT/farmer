@@ -12,7 +12,19 @@ open Farmer.Arm.KeyVault
 open Farmer.Arm.KeyVault.Vaults
 open System
 
-type FunctionsRuntime = DotNet | DotNetIsolated | Node | Java | Python
+type FunctionsRuntime = 
+    | DotNetCore of version: string 
+    | DotNet of version: string 
+    | DotNetIsolated of version: string
+    | Node 
+    | Java 
+    | Python
+    static member DotNetCore31 = DotNetCore "3.1"
+    static member DotNet50 = DotNet "5.0"
+    static member DotNet50Isolated = DotNetIsolated "5.0"
+    static member DotNet60 = DotNet "6.0"
+    static member DotNet60Isolated = DotNetIsolated "6.0"
+
 type DockerInfo = {
     User: string
     Password: SecureParameter
@@ -124,8 +136,9 @@ type FunctionsConfig =
 
             let functionsRuntime =
                 match this.Runtime with
-                | DotNetIsolated -> "dotnet-isolated"
-                | DotNet -> "dotnet"
+                | DotNetCore _ -> "dotnet"
+                | DotNetIsolated _ -> "dotnet-isolated"
+                | DotNet _ -> "dotnet"
                 | other -> (string other).ToLower()
 
             let basicSettings = [
@@ -223,7 +236,15 @@ type FunctionsConfig =
                   HTTP20Enabled = None
                   ClientAffinityEnabled = None
                   WebSocketsEnabled = None
-                  LinuxFxVersion = None
+                  LinuxFxVersion = 
+                    match this.CommonWebConfig.OperatingSystem with
+                    | Windows -> None
+                    | Linux ->
+                      match this.Runtime with
+                      | DotNetCore version -> Some $"DOTNETCORE|{version}"
+                      | DotNet version -> Some $"DOTNET|{version}"
+                      | DotNetIsolated version -> Some $"DOTNET-ISOLATED|{version}"
+                      | _ -> None
                   NetFrameworkVersion = None
                   JavaVersion = None
                   JavaContainer = None
@@ -313,7 +334,7 @@ type FunctionsBuilder() =
           StorageAccount = derived (fun config ->
             let storage = config.Name.ResourceName.Map (sprintf "%sstorage") |> sanitiseStorage |> ResourceName
             storageAccounts.resourceId storage)
-          Runtime = DotNet
+          Runtime = DotNet "3.1"
           ExtensionVersion = V3
           Dependencies = Set.empty
           PublishAs = Code

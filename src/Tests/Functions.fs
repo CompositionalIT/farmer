@@ -108,11 +108,13 @@ let tests = testList "Functions tests" [
         Expect.equal secrets.[1].Value (ExpressionSecret sa.Key) "Incorrect secret value"
         Expect.sequenceEqual secrets.[1].Dependencies [ vaults.resourceId "testfuncvault"; storageAccounts.resourceId "teststorage" ] "Incorrect secret dependencies"
     }
-
+    
     test "Supports dotnet-isolated runtime" {
-        let f = functions { name "func"; use_runtime (FunctionsRuntime.DotNetIsolated) }
+        let f = functions { name "func"; use_runtime (FunctionsRuntime.DotNet50Isolated); operating_system Linux }
         let resources = (f :> IBuilder).BuildResources Location.WestEurope
         let site = resources.[3] :?> Web.Site
+        Expect.equal site.LinuxFxVersion (Some "DOTNET-ISOLATED|5.0") "Should set linux fx runtime"
+
         let settings = Expect.wantSome site.AppSettings "AppSettings should be set"
         Expect.equal settings.["FUNCTIONS_WORKER_RUNTIME"] (LiteralSetting "dotnet-isolated") "Should use dotnet-isolated functions runtime"
     }
