@@ -13,7 +13,7 @@ type Ingress = {
     TargetPort : int
     Transport : string
 }
- 
+
 type DaprSettings = {
     AppId :string
 }
@@ -30,6 +30,7 @@ type Resources = {
 
 [<RequireQualifiedAccess>]
 type ScaleRuleType =
+| EventHubs of {| ConsumerGroup : string; UnprocessedEventThreshold: int; CheckpointBlobContainerName: string; EventHubConnectionSecretRef : string; StorageConnectionSecretRef : string |}
 | ServiceBus of {| QueueName : string; MessageCount: int; SecretRef : string |}
 | Http of {| ConcurrentRequests : int |}
 | Custom of obj
@@ -170,6 +171,33 @@ type ContainerAppConfig =
                                                         custom = customRule
                                                     |}
                                                     :> obj
+                                                | ScaleRuleType.EventHubs settings ->
+                                                    {|
+                                                        name = rule.Name
+                                                        custom =
+                                                            {|
+                                                                // https://keda.sh/docs/scalers/azure-event-hub/
+                                                                ``type`` = "azure-eventhub"
+                                                                metadata =
+                                                                    {|
+                                                                        consumerGroup = settings.ConsumerGroup
+                                                                        unprocessedEventThreshold = string settings.UnprocessedEventThreshold
+                                                                        blobContainer = settings.CheckpointBlobContainerName
+                                                                        checkpointStrategy = "blobMetadata"
+                                                                    |}
+                                                                auth = [|
+                                                                    {|
+                                                                        secretRef = settings.EventHubConnectionSecretRef
+                                                                        triggerParameter = "connection"
+                                                                    |}
+                                                                    {|
+                                                                        secretRef = settings.StorageConnectionSecretRef
+                                                                        triggerParameter = "storageConnection"
+                                                                    |}
+                                                                |]
+                                                            |}
+                                                    |}
+                                                    :> obj
                                                 | ScaleRuleType.ServiceBus settings ->
                                                     {|
                                                         name = rule.Name
@@ -190,6 +218,7 @@ type ContainerAppConfig =
                                                                 |]
                                                             |}
                                                     |}
+                                                    :> obj
                                                 | ScaleRuleType.Http settings ->
                                                     {|
                                                         name = rule.Name
@@ -201,6 +230,7 @@ type ContainerAppConfig =
                                                                     |}
                                                             |}
                                                     |}
+                                                    :> obj
                                         |]
                                     |}
                                 dapr =
