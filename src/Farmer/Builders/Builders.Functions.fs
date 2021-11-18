@@ -12,18 +12,16 @@ open Farmer.Arm.KeyVault
 open Farmer.Arm.KeyVault.Vaults
 open System
 
-type FunctionsRuntime = 
-    | DotNetCore of version: string 
-    | DotNet of version: string 
-    | DotNetIsolated of version: string
-    | Node 
-    | Java 
-    | Python
-    static member DotNetCore31 = DotNetCore "3.1"
-    static member DotNet50 = DotNet "5.0"
-    static member DotNet50Isolated = DotNetIsolated "5.0"
-    static member DotNet60 = DotNet "6.0"
-    static member DotNet60Isolated = DotNetIsolated "6.0"
+type FunctionsRuntime = DotNetCore | DotNet | DotNetIsolated | Node | Java | Python
+type VersionedFunctionsRuntime =  FunctionsRuntime * string option
+type FunctionsRuntime with
+    // These values are defined on FunctionsRuntime to reduce the need for users to be aware of the distinction 
+    // between FunctionsRuntime and VersionedFunctionsRuntime as well as to provide parity with WebApp runtime
+    static member DotNetCore31 = DotNetCore, Some "3.1"
+    static member DotNet50 = DotNet, Some "5.0"
+    static member DotNet50Isolated = DotNetIsolated, Some "5.0"
+    static member DotNet60 = DotNet,Some "6.0"
+    static member DotNet60Isolated = DotNetIsolated, Some"6.0"
 
 type DockerInfo = {
     User: string
@@ -41,10 +39,11 @@ type FunctionsConfig =
       Tags : Map<string, string>
       Dependencies : ResourceId Set
       StorageAccount : ResourceRef<FunctionsConfig>
-      Runtime : FunctionsRuntime
+      VersionedRuntime : VersionedFunctionsRuntime
       PublishAs : PublishAs
       ExtensionVersion : FunctionsExtensionVersion }
     member this.Name = this.CommonWebConfig.Name
+    member this.Runtime = fst this.VersionedRuntime
     /// Gets the system-created managed principal for the functions instance. It must have been enabled using enable_managed_identity.
     member this.SystemIdentity = SystemIdentity (sites.resourceId this.Name.ResourceName)
     /// Gets the ARM expression path to the publishing password of this functions app.
@@ -136,9 +135,9 @@ type FunctionsConfig =
 
             let functionsRuntime =
                 match this.Runtime with
-                | DotNetCore _ -> "dotnet"
-                | DotNetIsolated _ -> "dotnet-isolated"
-                | DotNet _ -> "dotnet"
+                | DotNetCore -> "dotnet"
+                | DotNetIsolated -> "dotnet-isolated"
+                | DotNet -> "dotnet"
                 | other -> (string other).ToLower()
 
             let basicSettings = [
@@ -240,10 +239,10 @@ type FunctionsConfig =
                     match this.CommonWebConfig.OperatingSystem with
                     | Windows -> None
                     | Linux ->
-                      match this.Runtime with
-                      | DotNetCore version -> Some $"DOTNETCORE|{version}"
-                      | DotNet version -> Some $"DOTNET|{version}"
-                      | DotNetIsolated version -> Some $"DOTNET-ISOLATED|{version}"
+                      match this.VersionedRuntime with
+                      | DotNetCore, Some version  -> Some $"DOTNETCORE|{version}"
+                      | DotNet, Some version -> Some $"DOTNET|{version}"
+                      | DotNetIsolated, Some version -> Some $"DOTNET-ISOLATED|{version}"
                       | _ -> None
                   NetFrameworkVersion = None
                   JavaVersion = None
@@ -334,7 +333,7 @@ type FunctionsBuilder() =
           StorageAccount = derived (fun config ->
             let storage = config.Name.ResourceName.Map (sprintf "%sstorage") |> sanitiseStorage |> ResourceName
             storageAccounts.resourceId storage)
-          Runtime = DotNet "3.1"
+          VersionedRuntime = FunctionsRuntime.DotNetCore31
           ExtensionVersion = V3
           Dependencies = Set.empty
           PublishAs = Code
@@ -353,7 +352,8 @@ type FunctionsBuilder() =
     member _.StorageAccountName(state:FunctionsConfig, name) = { state with StorageAccount = named storageAccounts (ResourceName name) }
     /// Sets the runtime of the Functions host.
     [<CustomOperation "use_runtime">]
-    member _.Runtime(state:FunctionsConfig, runtime) = { state with Runtime = runtime }
+    member _.Runtime(state:FunctionsConfig, runtime) = { state with VersionedRuntime = runtime, None }
+    member _.Runtime(state:FunctionsConfig, runtime) = { state with VersionedRuntime = runtime }
     /// Sets the Publish as Code or Docker container information.
     [<CustomOperation "publish_as">]
     member _.PublishAs(state:FunctionsConfig, publishAs) = { state with PublishAs = publishAs }
