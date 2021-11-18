@@ -960,6 +960,12 @@ module ContainerGroup =
         /// Mounts a volume containing secret files.
         | Secret of SecretFile list
 
+    module Gpu =
+        type Sku =
+            | K80
+            | P100
+            | V100
+
 module ContainerService =
     type NetworkPlugin =
         | Kubenet
