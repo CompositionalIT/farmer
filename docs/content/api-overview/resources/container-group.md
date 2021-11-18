@@ -43,6 +43,7 @@ The Container Instance builder (`containerInstance`) is used to define one or mo
 | add_ports | Sets the ports the container exposes. |
 | cpu_cores | Sets the maximum CPU cores the container may use. |
 | memory | Sets the maximum gigabytes of memory the container may use. |
+| gpu | Adds one or more GPUs to the container. |
 | env_vars | Sets a list of environment variables for the container. |
 | add_volume_mount | Adds a volume mount on a container from a volume in the container group. |
 | probes | Adds liveliness and readiness probes to a container. |
@@ -69,6 +70,12 @@ The Network Profile builder (`networkProfile`) is used to define a network profi
 | subnet | Name of the subnet in the virtual network where the container group should attach. |
 | ip_config | Name of the IP configuration and subnet in the virtual network where the container group should attach. |
 | add_ip_configs | Adds multiple IP configurations to connect the container group to multiple subnets. |
+
+#### GPU Builder
+| Keyword | Purpose |
+|-|-|
+| count | the amount of GPUs attached to the container |
+| sku | SKU for the GPU |
 
 #### Liveness Probe Builder
 The Liveness Probe builder (`liveness`) is used to define a liveness probe for a container instance to determine if it is healthy.

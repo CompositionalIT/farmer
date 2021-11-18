@@ -3,7 +3,8 @@ Release Notes
 
 ## 1.6.21
 * CDN: Adds new SKU types for Azure Front Door Standard/Premium
-* KeyVault: Fixed bug where adding vnetRules to KeyVault did not work.
+* Key Vaults: Fixed bug where adding vnetRules to KeyVault did not work.
+* Support for GPUs in Azure Container Instances
 
 ## 1.6.20
 * CDN rules: Only make CacheDuration required for Override and SetIfMissing and not BypassCache when creating cache_expiration action
