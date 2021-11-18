@@ -23,6 +23,7 @@ type PublishAs =
     | Code
     | DockerContainer of DockerInfo
 type FunctionsExtensionVersion = V1 | V2 | V3 | V4
+    with member internal this.ArmValue = match this with | V1 -> "~1" | V2 -> "~2" | V3 -> "~3" | V4 -> "~4"
 
 type FunctionsConfig =
     { CommonWebConfig: CommonWebConfig
@@ -131,7 +132,7 @@ type FunctionsConfig =
             let basicSettings = [
                 "FUNCTIONS_WORKER_RUNTIME", functionsRuntime
                 "WEBSITE_NODE_DEFAULT_VERSION", "10.14.1"
-                "FUNCTIONS_EXTENSION_VERSION", match this.ExtensionVersion with V1 -> "~1" | V2 -> "~2" | V3 -> "~3"
+                "FUNCTIONS_EXTENSION_VERSION", this.ExtensionVersion.ArmValue
                 "AzureWebJobsStorage", StorageAccount.getConnectionString this.StorageAccountId|> ArmExpression.Eval
                 "AzureWebJobsDashboard", StorageAccount.getConnectionString this.StorageAccountId|> ArmExpression.Eval
 
