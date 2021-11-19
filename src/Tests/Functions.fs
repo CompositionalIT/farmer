@@ -110,7 +110,7 @@ let tests = testList "Functions tests" [
     }
     
     test "Supports dotnet-isolated runtime" {
-        let f = functions { name "func"; use_runtime (FunctionsRuntime.DotNet50Isolated); }
+        let f = functions { name "func"; use_runtime (FunctionsRuntime.DotNetIsolated); }
         let resources = (f :> IBuilder).BuildResources Location.WestEurope
         let site = resources.[3] :?> Web.Site
         let settings = Expect.wantSome site.AppSettings "AppSettings should be set"
