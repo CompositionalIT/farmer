@@ -1,5 +1,7 @@
 Release Notes
 =============
+## vNext
+* Functions: fix for .Net isolated functions hosted on linux
 
 ## 1.6.21
 * Alerts: Extend a list of possible criteria's time aggregations and operators
