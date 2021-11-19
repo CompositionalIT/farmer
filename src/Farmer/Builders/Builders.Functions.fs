@@ -252,7 +252,7 @@ type FunctionsConfig =
                       match this.VersionedRuntime with
                       | DotNet, Some version -> 
                         match Double.TryParse(version) with
-                        | true, versionNo when versionNo < 5 -> Some $"DOTNETCORE|{version}"
+                        | true, versionNo when versionNo < 4.0 -> Some $"DOTNETCORE|{version}"
                         | _ -> Some $"DOTNET|{version}"
                       | DotNetIsolated, Some version -> Some $"DOTNET-ISOLATED|{version}"
                       | _, Some version -> Some $"{functionsRuntime.ToUpper()}|{version}"
