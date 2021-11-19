@@ -12,16 +12,27 @@ open Farmer.Arm.KeyVault
 open Farmer.Arm.KeyVault.Vaults
 open System
 
-type FunctionsRuntime = DotNetCore | DotNet | DotNetIsolated | Node | Java | Python
+type FunctionsRuntime = DotNet | DotNetIsolated | Node | Java | Python
 type VersionedFunctionsRuntime =  FunctionsRuntime * string option
 type FunctionsRuntime with
     // These values are defined on FunctionsRuntime to reduce the need for users to be aware of the distinction 
     // between FunctionsRuntime and VersionedFunctionsRuntime as well as to provide parity with WebApp runtime
-    static member DotNetCore31 = DotNetCore, Some "3.1"
+    static member DotNetCore31 = DotNet, Some "3.1"
     static member DotNet50 = DotNet, Some "5.0"
     static member DotNet50Isolated = DotNetIsolated, Some "5.0"
     static member DotNet60 = DotNet,Some "6.0"
     static member DotNet60Isolated = DotNetIsolated, Some"6.0"
+    static member Node14 = Node, Some "14-lts"
+    static member Node12 = Node, Some "12-lts"
+    static member Node10 = Node, Some "10-lts"
+    static member Node10_1 = Node, Some "10.1"
+    static member Node10_6 = Node, Some "10.6"
+    static member Node10_14 = Node, Some "10.14"
+    static member Java8 = Java, Some "8-jre8"
+    static member Java11 = Java, Some "11-java11"
+    static member Python38 = Python, Some "3.8"
+    static member Python37 = Python, Some "3.7"
+    static member Python36 = Python, Some "3.6"
 
 type DockerInfo = {
     User: string
@@ -135,7 +146,6 @@ type FunctionsConfig =
 
             let functionsRuntime =
                 match this.Runtime with
-                | DotNetCore -> "dotnet"
                 | DotNetIsolated -> "dotnet-isolated"
                 | DotNet -> "dotnet"
                 | other -> (string other).ToLower()
@@ -240,10 +250,13 @@ type FunctionsConfig =
                     | Windows -> None
                     | Linux ->
                       match this.VersionedRuntime with
-                      | DotNetCore, Some version  -> Some $"DOTNETCORE|{version}"
-                      | DotNet, Some version -> Some $"DOTNET|{version}"
+                      | DotNet, Some version -> 
+                        match Double.TryParse(version) with
+                        | true, versionNo when versionNo < 5 -> Some $"DOTNETCORE|{version}"
+                        | _ -> Some $"DOTNET|{version}"
                       | DotNetIsolated, Some version -> Some $"DOTNET-ISOLATED|{version}"
-                      | _ -> None
+                      | _, Some version -> Some $"{functionsRuntime.ToUpper()}|{version}"
+                      | _, None -> None
                   NetFrameworkVersion = None
                   JavaVersion = None
                   JavaContainer = None

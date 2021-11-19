@@ -110,13 +110,28 @@ let tests = testList "Functions tests" [
     }
     
     test "Supports dotnet-isolated runtime" {
-        let f = functions { name "func"; use_runtime (FunctionsRuntime.DotNet50Isolated); operating_system Linux }
+        let f = functions { name "func"; use_runtime (FunctionsRuntime.DotNet50Isolated); }
         let resources = (f :> IBuilder).BuildResources Location.WestEurope
         let site = resources.[3] :?> Web.Site
-        Expect.equal site.LinuxFxVersion (Some "DOTNET-ISOLATED|5.0") "Should set linux fx runtime"
-
         let settings = Expect.wantSome site.AppSettings "AppSettings should be set"
         Expect.equal settings.["FUNCTIONS_WORKER_RUNTIME"] (LiteralSetting "dotnet-isolated") "Should use dotnet-isolated functions runtime"
+    }
+    
+    test "Sets LinuxFxVersion correctly for dotnet runtimes" {
+        let getLinuxFxVersion f = 
+          let resources = (f :> IBuilder).BuildResources Location.WestEurope
+          let site = resources.[3] :?> Web.Site
+          site.LinuxFxVersion
+          
+        let f = functions { name "func"; use_runtime (FunctionsRuntime.DotNet50Isolated); operating_system Linux }
+        Expect.equal (getLinuxFxVersion f) (Some "DOTNET-ISOLATED|5.0") "Should set linux fx runtime"
+          
+        let f = functions { name "func"; use_runtime (FunctionsRuntime.DotNet60Isolated); operating_system Linux }
+        Expect.equal (getLinuxFxVersion f) (Some "DOTNET-ISOLATED|6.0") "Should set linux fx runtime"
+          
+        let f = functions { name "func"; use_runtime (FunctionsRuntime.DotNetCore31); operating_system Linux }
+        Expect.equal (getLinuxFxVersion f) (Some "DOTNETCORE|3.1") "Should set linux fx runtime"
+
     }
 
     test "FunctionsApp supports adding slots" {
