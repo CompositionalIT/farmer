@@ -40,6 +40,6 @@ let myAnalytics = logAnalytics {
 
 let deployment = arm {
     location Location.WestEurope
-    add_resource myRegistry
+    add_resource myAnalytics
 }
 ```

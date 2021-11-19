@@ -960,6 +960,12 @@ module ContainerGroup =
         /// Mounts a volume containing secret files.
         | Secret of SecretFile list
 
+    module Gpu =
+        type Sku =
+            | K80
+            | P100
+            | V100
+
 module ContainerService =
     type NetworkPlugin =
         | Kubenet
@@ -1652,6 +1658,8 @@ module Cdn =
     | Standard_ChinaCdn
     | Standard_Microsoft
     | Standard_Verizon
+    | Premium_AzureFrontDoor 
+    | Standard_AzureFrontDoor
 
     type QueryStringCachingBehaviour =
     | IgnoreQueryString

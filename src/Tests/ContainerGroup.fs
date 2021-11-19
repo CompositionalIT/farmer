@@ -385,7 +385,7 @@ async {
                     volume_mount.secret_string "script" "main.fsx" script
                 ]
             }
-        let deployment = 
+        let deployment =
             arm {
                 location Location.EastUS
                 add_resources [
@@ -582,5 +582,21 @@ async {
         let jobj = json |> Newtonsoft.Json.Linq.JObject.Parse
         let dependencies = jobj.SelectToken "resources[?(@.name=='myContainerGroup')].dependsOn"
         Expect.sequenceEqual dependencies [JValue "[resourceId('Microsoft.Storage/storageAccounts', 'containerstorage')]"] "Did not have correct dependencies"
+    }
+
+    test "Adds GPU to container instance" {
+        let group =
+            containerGroup {
+                add_instances [
+                    containerInstance {
+                        name "foo"
+                        gpu ( containerInstanceGpu { count 1
+                                                     sku Gpu.V100 } )
+                    }
+                ]
+            } |> asAzureResource
+        let gpu = group.Containers.[0].Resources.Requests.Gpu
+        Expect.equal gpu.Count 1 "Wrong amount of GPUs"
+        Expect.equal gpu.Sku "V100" "Wrong SKU"
     }
 ]
