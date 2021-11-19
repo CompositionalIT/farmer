@@ -20,8 +20,11 @@ type AlertSeverity =
 | Verbose
 
 type MetricComparison =
+| Equals
 | GreaterThan
+| GreaterThanOrEqual
 | LessThan
+| LessThanOrEqual
 
 type MetricAggregation =
 | Average
@@ -41,7 +44,20 @@ type ResourceCriteria = {
     MetricName : MetricsName
     /// Threshold to exceed to hit the alert
     Threshold : int
-    /// GreaterThan or LessThan
+    /// Equals, GreaterThan, GreaterThanOrEqual, LessThan or LessThanOrEqual
+    Comparison : MetricComparison
+    /// Average, Count, Total, Maximum, Minimum
+    Aggregation : MetricAggregation
+}
+
+type CustomMetricCriteria = {
+    /// Resource type name. Default value is "Azure.ApplicationInsights"
+    MetricNamespace : ResourceType option
+    /// Name of the metric
+    MetricName : MetricsName
+    /// Threshold to exceed to hit the alert
+    Threshold : int
+    /// Equals, GreaterThan, GreaterThanOrEqual, LessThan or LessThanOrEqual
     Comparison : MetricComparison
     /// Average, Count, Total, Maximum, Minimum
     Aggregation : MetricAggregation
@@ -53,6 +69,7 @@ type MetricAlertCriteria =
 | MultipleResourceMultipleMetricCriteria of MultiCriterias : obj list
 /// If avg of metric x is going over threshold for selected windowSize time. E.g. if average of VM CPU is going over 80% for 15 minutes -> alert
 | SingleResourceMultipleMetricCriteria of Criterias : ResourceCriteria list
+| SingleResourceMultipleCustomMetricCriteria of Criterias : CustomMetricCriteria list
 /// If webtest is failing at the same time from x different locations
 | WebtestLocationAvailabilityCriteria of AiComponentId:Farmer.ResourceId * WebTestId:Farmer.ResourceId * FailedLocationCount:int 
 
@@ -60,6 +77,22 @@ type AlertAction = {
     actionGroupId : string
     webHookProperties : obj
 }
+
+let mapResourceCriteriaOperator (comparison: MetricComparison) =
+    match comparison with
+    | Equals -> "Equals"
+    | GreaterThan -> "GreaterThan"
+    | GreaterThanOrEqual -> "GreaterThanOrEqual"
+    | LessThan -> "LessThan"
+    | LessThanOrEqual -> "LessThanOrEqual"
+
+let mapResourceCriteriaTimeAggregation (aggregation: MetricAggregation) =
+    match aggregation with
+    | Average -> "Average"
+    | Count -> "Count"
+    | Maximum -> "Maximum"
+    | Minimum -> "Minimum"
+    | Total -> "Total"
 
 let createCriteria (criteria:MetricAlertCriteria) =
     match criteria with
@@ -72,17 +105,23 @@ let createCriteria (criteria:MetricAlertCriteria) =
                 name = "Metric1"
                 metricNamespace = resourcecriteria.MetricNamespace.Type
                 metricName = resourcecriteria.MetricName |> (function | MetricsName n -> n)
-                operator = match resourcecriteria.Comparison with
-                           | GreaterThan -> "GreaterThan"
-                           | LessThan -> "LessThan"
-                timeAggregation =
-                    match resourcecriteria.Aggregation with
-                    | Average -> "Average"
-                    | Count -> "Count"
-                    | Maximum -> "Maximum"
-                    | Minimum -> "Minimum"
-                    | Total -> "Total"
+                operator = resourcecriteria.Comparison |> mapResourceCriteriaOperator
+                timeAggregation = resourcecriteria.Aggregation |> mapResourceCriteriaTimeAggregation
                 criterionType = "StaticThresholdCriterion"
+            |})
+           ``odata.type`` = "Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria" |} :> obj
+    | SingleResourceMultipleCustomMetricCriteria criterias ->
+        {| allOf = criterias |> List.map(fun resourcecriteria ->
+            {|  threshold = resourcecriteria.Threshold
+                name = "Metric1"
+                metricNamespace = resourcecriteria.MetricNamespace 
+                    |> Option.defaultValue (ResourceType("Azure.ApplicationInsights", ""))
+                    |> (fun resourceType -> resourceType.Type)
+                metricName = resourcecriteria.MetricName |> (function | MetricsName n -> n)
+                operator = resourcecriteria.Comparison |> mapResourceCriteriaOperator
+                timeAggregation = resourcecriteria.Aggregation |> mapResourceCriteriaTimeAggregation
+                criterionType = "StaticThresholdCriterion"
+                skipMetricValidation = true
             |})
            ``odata.type`` = "Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria" |} :> obj
     | WebtestLocationAvailabilityCriteria (componentId, webTestId, failedLocationCount) ->

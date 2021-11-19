@@ -2,6 +2,8 @@ Release Notes
 =============
 
 ## 1.6.21
+* Alerts: Extend a list of possible criteria's time aggregations and operators
+* Alerts: Support of custom metric alerts
 * CDN: Adds new SKU types for Azure Front Door Standard/Premium
 * Key Vaults: Fixed bug where adding vnetRules to KeyVault did not work.
 * Support for GPUs in Azure Container Instances
