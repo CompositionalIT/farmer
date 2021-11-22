@@ -71,8 +71,8 @@ type ServiceBusQueueBuilder() =
     [<CustomOperation "lock_duration_minutes">] member _.LockDurationMinutes(state:ServiceBusQueueConfig, duration) = { state with LockDuration = Some (TimeSpan.FromMinutes (float duration)) }
     /// Whether to enable duplicate detection, and if so, how long to check for.ServiceBusQueueConfig
     [<CustomOperation "duplicate_detection">]
-    member _.DuplicateDetection(state:ServiceBusQueueConfig, maxTimeWindow) = { state with DuplicateDetection = maxTimeWindow }
-    member _.DuplicateDetection(state:ServiceBusQueueConfig, maxTimeWindow) = { state with DuplicateDetection = Some maxTimeWindow }
+    member _.DuplicateDetectionTs(state:ServiceBusQueueConfig, maxTimeWindow) = { state with DuplicateDetection = maxTimeWindow }
+    member _.DuplicateDetectionTs(state:ServiceBusQueueConfig, maxTimeWindow) = { state with DuplicateDetection = Some maxTimeWindow }
     /// Whether to enable duplicate detection, and if so, how long to check for.ServiceBusQueueConfig
     [<CustomOperation "duplicate_detection_minutes">]
     member _.DuplicateDetection(state:ServiceBusQueueConfig, maxTimeWindow) = { state with DuplicateDetection = Some (TimeSpan.FromMinutes (float maxTimeWindow)) }
@@ -239,8 +239,8 @@ type ServiceBusTopicBuilder() =
     [<CustomOperation "name">] member _.Name(state:ServiceBusTopicConfig, name) = { state with Name = ResourceName name }
     /// Whether to enable duplicate detection, and if so, how long to check for.ServiceBusQueueConfig
     [<CustomOperation "duplicate_detection">]
-    member _.DuplicateDetection(state:ServiceBusTopicConfig, maxTimeWindow) = { state with DuplicateDetection = maxTimeWindow }
-    member _.DuplicateDetection(state:ServiceBusTopicConfig, maxTimeWindow) = { state with DuplicateDetection = Some maxTimeWindow }
+    member _.DuplicateDetectionTs(state:ServiceBusTopicConfig, maxTimeWindow) = { state with DuplicateDetection = maxTimeWindow }
+    member _.DuplicateDetectionTs(state:ServiceBusTopicConfig, maxTimeWindow) = { state with DuplicateDetection = Some maxTimeWindow }
     /// Whether to enable duplicate detection, and if so, how long to check for.ServiceBusQueueConfig
     [<CustomOperation "duplicate_detection_minutes">]
     member _.DuplicateDetection(state:ServiceBusTopicConfig, maxTimeWindow) = { state with DuplicateDetection = Some (TimeSpan.FromMinutes (float maxTimeWindow)) }
