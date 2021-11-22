@@ -1,7 +1,7 @@
 Release Notes
 =============
 ## 1.6.22
-* Service Bus: Added additional overloads to topic.name and topic.duplicate_detection
+* Service Bus: Added additional overloads for topic.duplicate_detection and queue.duplicate_detection
 
 ## 1.6.21
 * Alerts: Extend a list of possible criteria for time aggregations and operators
