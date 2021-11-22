@@ -231,9 +231,15 @@ type ServiceBusTopicBuilder() =
           Subscriptions = Map.empty }
 
     /// The name of the queue.
-    [<CustomOperation "name">] member _.Name(state:ServiceBusTopicConfig, name) = { state with Name = ResourceName name }
+    [<CustomOperation "name">] 
+    member _.Name(state:ServiceBusTopicConfig, name) = { state with Name = name }
+    member _.Name(state:ServiceBusTopicConfig, name) = { state with Name = ResourceName name }
     /// Whether to enable duplicate detection, and if so, how long to check for.ServiceBusQueueConfig
-    [<CustomOperation "duplicate_detection_minutes">] member _.DuplicateDetection(state:ServiceBusTopicConfig, maxTimeWindow) = { state with DuplicateDetection = Some (TimeSpan.FromMinutes (float maxTimeWindow)) }
+    [<CustomOperation "duplicate_detection">]
+    member _.DuplicateDetection(state:ServiceBusTopicConfig, maxTimeWindow) = { state with DuplicateDetection = maxTimeWindow }
+    member _.DuplicateDetection(state:ServiceBusTopicConfig, maxTimeWindow) = { state with DuplicateDetection = Some maxTimeWindow }
+    [<CustomOperation "duplicate_detection_minutes">]
+    member _.DuplicateDetection(state:ServiceBusTopicConfig, maxTimeWindow) = { state with DuplicateDetection = Some (TimeSpan.FromMinutes (float maxTimeWindow)) }
     /// The maximum size for the topic in megabytes.
     [<CustomOperation "max_topic_size">]
     member _.MaxTopicSize(state:ServiceBusTopicConfig, maxTopicSize:int<Mb>) = { state with MaxSizeInMegabytes = Some maxTopicSize }
