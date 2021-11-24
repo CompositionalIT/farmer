@@ -3,6 +3,7 @@ module Farmer.Builders.SignalR
 
 open Farmer
 open Farmer.Arm.SignalRService
+open Farmer.Builders
 open Farmer.Helpers
 open Farmer.SignalR
 
@@ -11,6 +12,7 @@ type SignalRConfig =
       Sku : Sku
       Capacity : int option
       AllowedOrigins : string list
+      ServiceMode : ServiceMode
       Tags: Map<string,string> }
     member this.ResourceId = signalR.resourceId this.Name
     interface IBuilder with
@@ -21,6 +23,7 @@ type SignalRConfig =
               Sku = this.Sku
               Capacity = this.Capacity
               AllowedOrigins = this.AllowedOrigins
+              ServiceMode = this.ServiceMode
               Tags = this.Tags  }
         ]
     member this.Key =
@@ -33,6 +36,7 @@ type SignalRBuilder() =
           Sku = Free
           Capacity = None
           AllowedOrigins = []
+          ServiceMode = Default
           Tags = Map.empty  }
     member _.Run(state:SignalRConfig) =
         { state with Name = state.Name |> sanitiseSignalR |> ResourceName }
@@ -50,6 +54,9 @@ type SignalRBuilder() =
     /// Sets the allowed origins of the Azure SignalR instance.
     [<CustomOperation("allowed_origins")>]
     member _.AllowedOrigins(state:SignalRConfig, allowedOrigins) = { state with AllowedOrigins = allowedOrigins}
+    /// Sets the service mode of the Azure SignalR instance.
+    [<CustomOperation("serviceMode")>]
+    member _.ServiceMode(state:SignalRConfig, serviceMode) = { state with ServiceMode = serviceMode }
     interface ITaggable<SignalRConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let signalR = SignalRBuilder()
