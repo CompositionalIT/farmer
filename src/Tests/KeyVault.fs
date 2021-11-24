@@ -248,4 +248,18 @@ let tests = testList "KeyVault" [
         Expect.equal (string key.["properties"].["kty"]) "RSA" "Incorrect RSA key type"
         Expect.isEmpty key.["dependsOn"] "Standalone key should not have dependsOn"
     }
+
+    test "Should add vnet rule correctly to key vault" {
+        let vnetId = "/subscriptions/..."
+        let vault = keyVault {
+            name "TestFarmVault"
+            add_vnet_rule vnetId
+        }
+        let deployment = arm { add_resource vault }
+        let jobj = JObject.Parse (deployment.Template |> Writer.toJson)
+        let rules = jobj.SelectToken("resources[0].properties.networkAcls.virtualNetworkRules")
+        Expect.isNonEmpty (rules :?> JArray) "Should have at least one network rule setup"
+        let ruleId = string rules.[0].["id"]
+        Expect.equal vnetId ruleId "The setup network rule should match the used vnetId"
+    }
 ]

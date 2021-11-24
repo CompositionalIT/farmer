@@ -1,6 +1,14 @@
 Release Notes
 =============
 
+## 1.6.21
+* Alerts: Extend a list of possible criteria for time aggregations and operators
+* Alerts: Support of custom metric alerts
+* CDN: Adds new SKU types for Azure Front Door Standard/Premium
+* Functions: Fix for .NET isolated functions hosted on Linux
+* Key Vaults: Fixed bug where adding vnetRules to KeyVault did not work.
+* Support for GPUs in Azure Container Instances
+
 ## 1.6.20
 * CDN rules: Only make CacheDuration required for Override and SetIfMissing and not BypassCache when creating cache_expiration action
 * Virtual Machine: Adds support for the `AADSSHLoginForLinux` extension for Azure AD login over SSH on Linux VM's.

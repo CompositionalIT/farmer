@@ -73,6 +73,10 @@ type AlertBuilder() =
     /// The rule criteria that defines the conditions of the alert rule.
     member __.SingleCriteria(state:AlertConfig, criteria) = { state with Criteria = SingleResourceMultipleMetricCriteria criteria }
 
+    [<CustomOperation "single_resource_multiple_custom_metric_criteria">]
+    /// The rule criteria that defines the conditions of the alert rule based on Application Insights custom metric.
+    member __.SingleCustomMetricCriteria(state:AlertConfig, criteria) = { state with Criteria = SingleResourceMultipleCustomMetricCriteria criteria }
+
     [<CustomOperation "multiple_resource_multiple_metric_criteria">]
     /// The rule criterias that defines the conditions of the alert rule.
     member __.MultiCriteria(state:AlertConfig, criteria) = { state with Criteria = MultipleResourceMultipleMetricCriteria criteria }
