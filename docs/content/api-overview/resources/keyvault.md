@@ -115,6 +115,7 @@ As applications grow, more components often need access to a key vault. The `key
 ```fsharp
 open Farmer
 open Farmer.Builders
+open Farmer.KeyVault
 open System
 
 let policy =
