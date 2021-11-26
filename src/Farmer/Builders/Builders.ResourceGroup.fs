@@ -42,7 +42,7 @@ type ResourceGroupConfig =
       | Some rg when rg.[0]='[' -> 
         // TargetResourceGroup can be an ARM expression when doing nested deployments such as when creating App-managed certificates in the WebApp builder.
         // Because the value is not known when we generate the template, we must use the ARM concat function to append a suffix to prevent deployment errors
-        $"[concat({rg},'deployment-{deploymentIndex()}]"
+        $"[concat({rg.Trim([|'[';']'|])},'deployment-{deploymentIndex()}')]"
       | Some rg -> 
         $"{rg}-deployment-{deploymentIndex()}"
       | None -> 
