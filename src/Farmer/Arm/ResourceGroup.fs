@@ -53,14 +53,17 @@ type ResourceGroupDeployment =
                 | :? IParameters as p -> yield! p.SecureParameters
                 | _ -> ()
           ] |> List.distinct
-    member this.RequiredResourceGroups = 
+    member this.RequiredResourceGroups: string list = 
         let nestedRgs = 
             this.Resources 
             |> List.collect 
                 (function 
                 | :? ResourceGroupDeployment as rg -> rg.RequiredResourceGroups 
                 | _ ->  [])
-        List.distinct (this.TargetResourceGroup.Value :: nestedRgs)
+        if this.TargetResourceGroup.Value.[0] = '[' then
+            List.distinct nestedRgs
+        else 
+            List.distinct (this.TargetResourceGroup.Value :: nestedRgs)
     member this.Template = 
         { Parameters = this.Parameters
           Outputs = this.Outputs |> Map.toList

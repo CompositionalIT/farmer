@@ -6,7 +6,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="5.0.0" />
     <ProjectReference Include="..\..\src\Farmer\Farmer.fsproj"/>
     <Compile Include="Program.fs" />
   </ItemGroup>
