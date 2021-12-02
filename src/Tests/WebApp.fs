@@ -312,6 +312,12 @@ let tests = testList "Web App Tests" [
         Expect.equal site.SiteConfig.NetFrameworkVersion "v5.0" "Wrong dotnet version"
     }
 
+    test "Supports .NET 6 EAP" {
+        let app = webApp { name "net6"; runtime_stack Runtime.DotNet60 }
+        let site:Site = app |> getResourceAtIndex 2
+        Expect.equal site.SiteConfig.NetFrameworkVersion "v6.0" "Wrong dotnet version"
+    }
+
     test "WebApp supports adding slots" {
         let slot = appSlot { name "warm-up" }
         let site:WebAppConfig = webApp { name "slots"; add_slot slot; zip_deploy "test.zip" }
