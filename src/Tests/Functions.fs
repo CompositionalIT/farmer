@@ -364,4 +364,38 @@ let tests = testList "Functions tests" [
             |> Seq.map (fun x-> x.ToObject<{|name:string;value:string|}> ())
         Expect.contains appSettings {|name="APPINSIGHTS_INSTRUMENTATIONKEY"; value="[reference(resourceId('shared-group', 'Microsoft.Insights/components', 'theName'), '2014-04-01').InstrumentationKey]"|} "Invalid value for APPINSIGHTS_INSTRUMENTATIONKEY"
     }
+    
+    test "Supports adding ip restriction" {
+        let ip = System.Net.IPAddress.Parse "1.2.3.4"
+        let resources = functions { name "test"; add_allowed_ip_restriction "test-rule" ip } |> getResources
+        let site = resources |> getResource<Web.Site> |> List.head
+
+        let expectedRestriction = IpSecurityRestriction.Create "test-rule" ip Allow
+        Expect.equal site.IpSecurityRestrictions [ expectedRestriction ] "Should add expected ip security restriction"
+    }
+    test "Supports adding ip restriction for denied ip" {
+        let ip = System.Net.IPAddress.Parse "1.2.3.4"
+        let resources = functions { name "test"; add_denied_ip_restriction "test-rule" ip } |> getResources
+        let site = resources |> getResource<Web.Site> |> List.head
+
+        let expectedRestriction = IpSecurityRestriction.Create "test-rule" ip Deny
+        Expect.equal site.IpSecurityRestrictions [ expectedRestriction ] "Should add denied ip security restriction"
+    }
+    test "Supports adding different ip restrictions to site and slot" {
+        let siteIp = System.Net.IPAddress.Parse "1.2.3.4"
+        let slotIp = System.Net.IPAddress.Parse "4.3.2.1"
+        let warmupSlot = appSlot { name "warm-up"; add_allowed_ip_restriction "slot-rule" slotIp }
+        let resources = functions { name "test"; add_slot warmupSlot; add_allowed_ip_restriction "site-rule" siteIp } |> getResources
+        let slot =
+            resources
+            |> getResource<Arm.Web.Site>
+            |> List.filter (fun x -> x.ResourceType = Arm.Web.slots)
+            |> List.head
+        let site = resources |> getResource<Web.Site> |> List.head
+
+        let expectedSlotRestriction = IpSecurityRestriction.Create "slot-rule" slotIp Allow
+        let expectedSiteRestriction = IpSecurityRestriction.Create "site-rule" siteIp Allow
+        Expect.equal slot.IpSecurityRestrictions [ expectedSlotRestriction ] "Slot should have correct allowed ip security restriction"
+        Expect.equal site.IpSecurityRestrictions [ expectedSiteRestriction ] "Site should have correct allowed ip security restriction"
+    }
 ]
