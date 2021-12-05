@@ -66,14 +66,17 @@ type ContainerAppConfig =
 
     interface IParameters with
         member this.SecureParameters =
-            this.Settings
-            |> Map.toList
-            |> List.choose(fun (_,value) ->
-                match value with
-                | ParameterSetting s -> Some s
-                | ExpressionSetting _
-                | LiteralSetting _ ->
-                    None)
+            let containerSettings = this.DockerImage.Value
+            let settings =
+                this.Settings
+                |> Map.toList
+                |> List.choose(fun (_,value) ->
+                    match value with
+                    | ParameterSetting s -> Some s
+                    | ExpressionSetting _
+                    | LiteralSetting _ ->
+                        None)
+            SecureParameter $"docker-password-for-{containerSettings.RegistryName}" :: settings
 
     interface IArmResource with
         member this.ResourceId = containerAppResourceType.resourceId this.Name
@@ -89,8 +92,8 @@ type ContainerAppConfig =
                                     secrets = [|
                                         yield
                                             {|
-                                                name = $"container-registry-password-for-{containerRegistry}"
-                                                value = $"[parameters('docker-password-for-{containerRegistry}')]"
+                                                name = $"container-registry-password-for-{containerSettings.RegistryName}"
+                                                value = $"[parameters('docker-password-for-{containerSettings.RegistryName}')]"
                                             |}
                                         for secret in this.Secrets -> {| name = secret.Name; value = secret.Value |}
                                     |]
