@@ -543,6 +543,19 @@ let tests = testList "Web App Tests" [
         Expect.containsAll (theSlot.Identity.UserAssigned) [identity18.UserAssignedIdentity; identity21.UserAssignedIdentity] "Slot should have both user assigned identities"
         Expect.equal theSlot.KeyVaultReferenceIdentity (Some identity21.UserAssignedIdentity) "Slot should have correct keyvault identity"
     }
+    
+    test "WebApp with slot can use AutoSwapSlotName" {
+        let warmupSlot = appSlot { name "warm-up"; autoSlotSwapName "production" }
+        let site:WebAppConfig = webApp { name "slots"; add_slot warmupSlot }
+        Expect.isTrue (site.CommonWebConfig.Slots.ContainsKey "warm-up") "Config should contain slot"
+
+        let slot: Site =
+            site
+            |> getResourceAtIndex 4
+        
+        Expect.equal slot.Name "slots/warm-up" "Should be expected slot"
+        Expect.equal slot.SiteConfig.AutoSwapSlotName "production" "Should use provided auto swap slot name"
+    }
 
     test "Supports private endpoints" {
         let subnet = ResourceId.create(Network.subnets,ResourceName "subnet")

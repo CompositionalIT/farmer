@@ -3,6 +3,7 @@ Release Notes
 
 ## 1.6.22
 * WebApp: Fixed deployment name for nested template in app-managed certificate deployments
+* WebApp/Functions: Fix autoSwapSlotName for app slots.
 
 ## 1.6.21
 * Alerts: Extend a list of possible criteria for time aggregations and operators

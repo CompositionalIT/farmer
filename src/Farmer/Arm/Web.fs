@@ -287,6 +287,10 @@ type Site =
                                            supportCredentials = credentials |> Option.toNullable |})
                             |> Option.toObj
                            healthCheckPath = this.HealthCheckPath |> Option.toObj
+                           autoSwapSlotName =
+                               match this.AutoSwapSlotName with
+                               | None -> null
+                               | Some name -> name
                         |}
                     |}
             |} :> _
