@@ -364,4 +364,29 @@ let tests = testList "Functions tests" [
             |> Seq.map (fun x-> x.ToObject<{|name:string;value:string|}> ())
         Expect.contains appSettings {|name="APPINSIGHTS_INSTRUMENTATIONKEY"; value="[reference(resourceId('shared-group', 'Microsoft.Insights/components', 'theName'), '2014-04-01').InstrumentationKey]"|} "Invalid value for APPINSIGHTS_INSTRUMENTATIONKEY"
     }
+
+    test "Supports slot settings" {
+        let functionsApp = functions { name "test"; 
+                                       settings ["standard_config" , "config_value"; "sticky_config", "sticky_config_value"; "another_sticky_config", "another_sticky_config_value"]; 
+                                       slot_setting_names [ "sticky_config"; "another_sticky_config" ]} 
+
+        let scn = functionsApp |> getResources |> getResource<Web.SlotConfigName> |> List.head
+
+        let template = arm{ add_resource functionsApp}
+        let jobj = template.Template |> Writer.toJson  |> Newtonsoft.Json.Linq.JObject.Parse
+
+        let appSettingNames = 
+            jobj.SelectTokens $"$..resources[?(@name=='{functionsApp.Name.ResourceName.Value}/slotconfignames')].properties.appSettingNames[*]" 
+            |> Seq.map (fun x -> x.ToString())
+
+        let dependencies = 
+            jobj.SelectTokens $"$..resources[?(@name=='{functionsApp.Name.ResourceName.Value}/slotconfignames')].dependsOn[*]" 
+            |> Seq.map (fun x -> x.ToString())
+
+        Expect.sequenceEqual scn.SlotSettingNames ["sticky_config"; "another_sticky_config"] "Slot config names should be set"
+        Expect.equal scn.SiteName (ResourceName "test") "Parent name should be set"
+        Expect.sequenceEqual appSettingNames  [ "sticky_config"; "another_sticky_config"] "Slot config name should be present in template"
+        Expect.sequenceEqual dependencies  [ $"[resourceId('Microsoft.Web/sites', '{functionsApp.Name.ResourceName.Value}')]"] "Slot config names resource should depend on web site"
+
+    }
 ]

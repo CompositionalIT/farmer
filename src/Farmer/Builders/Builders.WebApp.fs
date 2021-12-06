@@ -176,7 +176,8 @@ type CommonWebConfig =
       Slots : Map<string,SlotConfig>
       WorkerProcess : Bitness option
       ZipDeployPath : (string*ZipDeploy.ZipDeploySlot) option
-      HealthCheckPath: string option }
+      HealthCheckPath: string option
+      SlotSettingNames: string list }
 
 type WebAppConfig =
     { CommonWebConfig: CommonWebConfig
@@ -519,6 +520,12 @@ type WebAppConfig =
                   SslState = SslDisabled }
             | NoDomain -> ()
 
+            if this.CommonWebConfig.SlotSettingNames <> List.Empty then
+                {
+                    SiteName = this.Name.ResourceName;
+                    SlotSettingNames = this.CommonWebConfig.SlotSettingNames;
+                }
+
             yield! (PrivateEndpoint.create location this.ResourceId ["sites"] this.PrivateEndpoints)
         ]
 
@@ -540,7 +547,8 @@ type WebAppBuilder() =
               Slots = Map.empty
               WorkerProcess = None
               ZipDeployPath = None
-              HealthCheckPath = None }
+              HealthCheckPath = None
+              SlotSettingNames = List.empty }
           Sku = Sku.F1
           WorkerSize = Small
           WorkerCount = 1
@@ -866,3 +874,7 @@ module Extensions =
         [<CustomOperation "health_check_path">]
         /// Specifies the path Azure load balancers will ping to check for unhealthy instances.
         member this.HealthCheckPath(state:'T, healthCheckPath:string) = this.Map state (fun x -> {x with HealthCheckPath = Some(healthCheckPath)})
+
+        [<CustomOperation "slot_setting_names">]
+        //Set sticky configuration names
+        member this.SlotSettingNames(state:'T, stickyConfigNames: string list) = this.Map state (fun x -> {x with CommonWebConfig.SlotSettingNames = stickyConfigNames })
