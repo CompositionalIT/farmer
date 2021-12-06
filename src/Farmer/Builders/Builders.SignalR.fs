@@ -55,7 +55,7 @@ type SignalRBuilder() =
     [<CustomOperation("allowed_origins")>]
     member _.AllowedOrigins(state:SignalRConfig, allowedOrigins) = { state with AllowedOrigins = allowedOrigins}
     /// Sets the service mode of the Azure SignalR instance.
-    [<CustomOperation("serviceMode")>]
+    [<CustomOperation("service_mode")>]
     member _.ServiceMode(state:SignalRConfig, serviceMode) = { state with ServiceMode = serviceMode }
     interface ITaggable<SignalRConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
