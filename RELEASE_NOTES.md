@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## vNext
+* Support deployment slot settings.
+
 ## 1.6.21
 * Alerts: Extend a list of possible criteria for time aggregations and operators
 * Alerts: Support of custom metric alerts
