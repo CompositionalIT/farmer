@@ -611,6 +611,8 @@ let tests = testList "Web App Tests" [
         let resourceGroupDeployment = resources |> getResource<ResourceGroup.ResourceGroupDeployment> |> List.head
         let innerResource = resourceGroupDeployment.Resources |> getResource<Web.HostNameBinding> |> List.head
         let innerExpectedSslState = SslState.SniBased thumbprint
+        Expect.stringStarts resourceGroupDeployment.DeploymentName.Value "[concat" "resourceGroupDeployment name should start as a valid ARM expression"
+        Expect.stringEnds resourceGroupDeployment.DeploymentName.Value ")]" "resourceGroupDeployment stage should end as a valid ARM expression"
         Expect.equal resourceGroupDeployment.Resources.Length 1 "resourceGroupDeployment stage should only contain one resource"
         Expect.equal resourceGroupDeployment.Dependencies.Count 2 "resourceGroupDeployment stage should only contain two dependencies"
         Expect.equal innerResource.SslState innerExpectedSslState $"hostnameBinding should have a {innerExpectedSslState} Ssl state inside the resourceGroupDeployment template"
