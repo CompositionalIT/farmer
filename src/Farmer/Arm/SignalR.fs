@@ -12,6 +12,7 @@ type SignalR =
       Sku : Sku
       Capacity : int option
       AllowedOrigins : string list
+      ServiceMode : ServiceMode
       Tags: Map<string,string>  }
     interface IArmResource with
         member this.ResourceId = signalR.resourceId this.Name
@@ -30,5 +31,9 @@ type SignalR =
                     {| cors =
                         match this.AllowedOrigins with
                         | [] -> null
-                        | aos -> box {| allowedOrigins = aos |} |}
+                        | aos -> box {| allowedOrigins = aos |}
+                       features = [
+                        {| flag = "ServiceMode"
+                           value = this.ServiceMode.ToString() |}
+                        ] |}
             |} :> _
