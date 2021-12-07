@@ -177,7 +177,7 @@ type CommonWebConfig =
       WorkerProcess : Bitness option
       ZipDeployPath : (string*ZipDeploy.ZipDeploySlot) option
       HealthCheckPath: string option
-      SlotSettingNames: string list }
+      SlotSettingNames: List<string>}
 
 type WebAppConfig =
     { CommonWebConfig: CommonWebConfig
@@ -874,7 +874,15 @@ module Extensions =
         [<CustomOperation "health_check_path">]
         /// Specifies the path Azure load balancers will ping to check for unhealthy instances.
         member this.HealthCheckPath(state:'T, healthCheckPath:string) = this.Map state (fun x -> {x with HealthCheckPath = Some(healthCheckPath)})
-
-        [<CustomOperation "slot_setting_names">]
-        //Set sticky configuration names
-        member this.SlotSettingNames(state:'T, stickyConfigNames: string list) = this.Map state (fun x -> {x with CommonWebConfig.SlotSettingNames = stickyConfigNames })
+        /// Adds slot  settings
+        [<CustomOperation "slot_setting">]
+        member this.AddSlotSetting (state:'T, key, value) =
+            let current = this.Get state
+            { current with Settings = current.Settings.Add(key, LiteralSetting value); SlotSettingNames = List.append current.SlotSettingNames [key] }
+            |> this.Wrap state
+        [<CustomOperation "slot_settings">]
+        member this.AddSlotSettings(state:'T, settings: (string*string) list) =
+            let current = this.Get state
+            settings
+            |> List.fold (fun (state:CommonWebConfig) (key, value: string) -> { state with Settings = state.Settings.Add(key, LiteralSetting value); SlotSettingNames = List.append state.SlotSettingNames [key] }) current
+            |> this.Wrap state

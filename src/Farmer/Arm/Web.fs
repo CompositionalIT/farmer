@@ -394,7 +394,7 @@ type Certificate =
 
 type SlotConfigName = 
     { SiteName : ResourceName
-      SlotSettingNames: string list }
+      SlotSettingNames: List<string> }
     interface IArmResource with
         member this.ResourceId = config.resourceId(this.SiteName/"slotconfignames")
         member this.JsonModel =
