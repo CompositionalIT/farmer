@@ -17,7 +17,7 @@ The Service Bus builder creates service bus namespaces and their associated queu
 | Queue | name | The name of the queue. |
 | Queue | lock_duration_minutes | The length of time that a lock can be held on a message. |
 | Queue | max_delivery_count | The maximum number of times a message can be delivered before dead lettering. |
-| Topic | duplicate_detection | Whether to enable duplicate detection, and if so, how long to check for. |
+| Queue | duplicate_detection | Whether to enable duplicate detection, and if so, how long to check for. |
 | Queue | duplicate_detection_minutes | Whether to enable duplicate detection, and if so, how long to check for in minutes. |
 | Queue | enable_session | Enables session support. |
 | Queue | enable_dead_letter_on_message_expiration | Enables dead lettering of messages that expire. |

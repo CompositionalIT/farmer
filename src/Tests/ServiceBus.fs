@@ -98,7 +98,7 @@ let tests = testList "Service Bus Tests" [
                     add_queues [
                         queue {
                             name "my-queue"
-                            duplicate_detection (TimeSpan.FromSeconds(900))
+                            duplicate_detection (TimeSpan.FromSeconds(900.))
                         }
                     ]
                 }
@@ -296,7 +296,7 @@ let tests = testList "Service Bus Tests" [
                     add_topics [
                         topic {
                             name "my-topic"
-                            duplicate_detection_minutes None
+                            duplicate_detection None
                         }
                     ]
                 } |> getResourceAtIndex 1
@@ -311,7 +311,7 @@ let tests = testList "Service Bus Tests" [
                     add_topics [
                         topic {
                             name "my-topic"
-                            duplicate_detection_minutes (TimeSpan.FromSeconds(900))
+                            duplicate_detection (TimeSpan.FromSeconds(900.))
                         }
                     ]
                 } |> getResourceAtIndex 1
