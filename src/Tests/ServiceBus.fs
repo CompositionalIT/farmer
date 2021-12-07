@@ -317,7 +317,7 @@ let tests = testList "Service Bus Tests" [
                 } |> getResourceAtIndex 1
             Expect.equal topic.Name "my-bus/my-topic" "Name not set"
             Expect.equal topic.RequiresDuplicateDetection (Nullable true) "Duplicate detection not set"
-            Expect.equal topic.DuplicateDetectionHistoryTimeWindow (Nullable (TimeSpan.FromMinutes 15)) "Duplicate detection time incorrect"
+            Expect.equal topic.DuplicateDetectionHistoryTimeWindow (Nullable (TimeSpan.FromMinutes 15.)) "Duplicate detection time incorrect"
         }
         test "Can create a topic with a max size" {
             let topic:SBTopic =
