@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+## 1.6.22
+* WebApp: Fixed deployment name for nested template in app-managed certificate deployments
+* WebApp/Functions: Support for deployment slot settings with `slot_setting` and `slot_settings`
+
 ## 1.6.21
 * Alerts: Extend a list of possible criteria for time aggregations and operators
 * Alerts: Support of custom metric alerts
