@@ -55,6 +55,8 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Web App | add_private_endpoints | Adds private endpoints for this Webapp to the given subnets |
 | Web App | add_slot | Adds a deployment slot to the app |
 | Web App | add_slots | Adds multiple deployment slots to the app |
+| Web App | slot_setting | Sets a deployment slot setting of the web app in the form "key" "value". |
+| Web App | slot_settings | Sets a list of deployment slot setting of the web app as tuples in the form of ("key", "value"). |
 | Web App | health_check_path | Sets the path to your functions health check endpoint, which Azure load balancers will ping to determine which instances are healthy.|
 | Web App | custom_domain | Adds custom domain to the app, containing an app service managed certificate |
 | Service Plan | service_plan_name | Sets the name of the service plan. If not set, uses the name of the web app postfixed with "-plan". |

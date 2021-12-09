@@ -9,7 +9,7 @@ open System
 
 let serverFarms = ResourceType ("Microsoft.Web/serverfarms", "2018-02-01")
 let sites = ResourceType ("Microsoft.Web/sites", "2020-06-01")
-let config = ResourceType ("Microsoft.Web/sites/config", "2016-08-01")
+let config = ResourceType ("Microsoft.Web/sites/config", "2020-06-01")
 let sourceControls = ResourceType ("Microsoft.Web/sites/sourcecontrols", "2019-08-01")
 let staticSites = ResourceType ("Microsoft.Web/staticSites", "2019-12-01-preview")
 let siteExtensions = ResourceType ("Microsoft.Web/sites/siteextensions", "2020-06-01")
@@ -399,6 +399,17 @@ type Certificate =
                         {| serverFarmId = this.ServicePlanId.ResourceId.Eval()
                            canonicalName = this.DomainName |}
                 |}
+
+type SlotConfigName = 
+    { SiteName : ResourceName
+      SlotSettingNames: List<string> }
+    interface IArmResource with
+        member this.ResourceId = config.resourceId(this.SiteName/"slotconfignames")
+        member this.JsonModel =
+            {| config.Create(this.SiteName/"slotconfignames", dependsOn = [ sites.resourceId  this.SiteName]) with
+                kind = "string"
+                properties = {| appSettingNames = this.SlotSettingNames |}
+            |} :> _
 
 [<AutoOpen>]
 module SiteExtensions =
