@@ -339,7 +339,7 @@ type ContainerAppBuilder() =
 let containerApp = ContainerAppBuilder()
 
 // Create a reference to the full ARM registries type and version.
-let containerEnvironmentResourceType = ResourceType ("Microsoft.Web/kubeenvironments", "2021-02-01")
+let containerEnvironmentResourceType = ResourceType ("Microsoft.Web/kubeEnvironments", "2021-02-01")
 
 type ContainerEnvironmentConfig =
     { Name : ResourceName
