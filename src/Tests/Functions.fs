@@ -388,10 +388,10 @@ let tests = testList "Functions tests" [
            
         let settings = Expect.wantSome ws.AppSettings "AppSettings should be set"
         Expect.containsAll  settings  expectedSettings "App settings should contain the slot settings"
-        Expect.sequenceEqual scn.SlotSettingNames ["sticky_config"; "another_sticky_config"] "Slot config names should be set"
+        Expect.containsAll scn.SlotSettingNames ["sticky_config"; "another_sticky_config"] "Slot config names should be set"
         Expect.equal scn.SiteName (ResourceName "test") "Parent name should be set"
-        Expect.sequenceEqual appSettingNames  [ "sticky_config"; "another_sticky_config"] "Slot config names should be present in template"
-        Expect.sequenceEqual dependencies  [ $"[resourceId('Microsoft.Web/sites', '{functionsApp.Name.ResourceName.Value}')]"] "Slot config names resource should depend on web site"
+        Expect.containsAll appSettingNames  [ "sticky_config"; "another_sticky_config"] "Slot config names should be present in template"
+        Expect.containsAll dependencies  [ $"[resourceId('Microsoft.Web/sites', '{functionsApp.Name.ResourceName.Value}')]"] "Slot config names resource should depend on web site"
 
     }
 
@@ -417,10 +417,10 @@ let tests = testList "Functions tests" [
              
         let settings = Expect.wantSome ws.AppSettings "AppSettings should be set"
         Expect.containsAll  settings  expectedSettings "App settings should contain the slot setting"
-        Expect.sequenceEqual scn.SlotSettingNames ["sticky_config"] "Slot config name should be set"
+        Expect.containsAll scn.SlotSettingNames ["sticky_config"] "Slot config name should be set"
         Expect.equal scn.SiteName (ResourceName "test") "Parent name should be set"
-        Expect.sequenceEqual appSettingNames  [ "sticky_config" ] "Slot config name should be present in template"
-        Expect.sequenceEqual dependencies  [ $"[resourceId('Microsoft.Web/sites', '{functionsApp.Name.ResourceName.Value}')]"] "Slot config names resource should depend on web site"
+        Expect.containsAll appSettingNames  [ "sticky_config" ] "Slot config name should be present in template"
+        Expect.containsAll dependencies  [ $"[resourceId('Microsoft.Web/sites', '{functionsApp.Name.ResourceName.Value}')]"] "Slot config names resource should depend on web site"
 
     }
 ]

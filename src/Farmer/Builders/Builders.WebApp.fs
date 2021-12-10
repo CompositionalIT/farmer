@@ -179,7 +179,7 @@ type CommonWebConfig =
       WorkerProcess : Bitness option
       ZipDeployPath : (string*ZipDeploy.ZipDeploySlot) option
       HealthCheckPath: string option
-      SlotSettingNames: List<string> }
+      SlotSettingNames: string Set }
 
 type WebAppConfig =
     { CommonWebConfig: CommonWebConfig
@@ -542,7 +542,7 @@ type WebAppConfig =
                   SslState = SslDisabled }
             | NoDomain -> ()
             
-            if this.CommonWebConfig.SlotSettingNames <> List.Empty then
+            if this.CommonWebConfig.SlotSettingNames <> Set.empty then
                 {
                     SiteName = this.Name.ResourceName;
                     SlotSettingNames = this.CommonWebConfig.SlotSettingNames;
@@ -570,7 +570,7 @@ type WebAppBuilder() =
               WorkerProcess = None
               ZipDeployPath = None
               HealthCheckPath = None
-              SlotSettingNames = List.empty }
+              SlotSettingNames = Set.empty }
           Sku = Sku.F1
           WorkerSize = Small
           WorkerCount = 1
@@ -901,11 +901,11 @@ module Extensions =
         [<CustomOperation "slot_setting">]
         member this.AddSlotSetting (state:'T, key, value) =
             let current = this.Get state
-            { current with Settings = current.Settings.Add(key, LiteralSetting value); SlotSettingNames = List.append current.SlotSettingNames [key] }
+            { current with Settings = current.Settings.Add(key, LiteralSetting value); SlotSettingNames =current.SlotSettingNames.Add(key) }
             |> this.Wrap state
         [<CustomOperation "slot_settings">]
         member this.AddSlotSettings(state:'T, settings: (string*string) list) =
             let current = this.Get state
             settings
-            |> List.fold (fun (state:CommonWebConfig) (key, value: string) -> { state with Settings = state.Settings.Add(key, LiteralSetting value); SlotSettingNames = List.append state.SlotSettingNames [key] }) current
+            |> List.fold (fun (state:CommonWebConfig) (key, value: string) -> { state with Settings = state.Settings.Add(key, LiteralSetting value); SlotSettingNames = state.SlotSettingNames.Add(key) }) current
             |> this.Wrap state

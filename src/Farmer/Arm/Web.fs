@@ -402,7 +402,7 @@ type Certificate =
 
 type SlotConfigName = 
     { SiteName : ResourceName
-      SlotSettingNames: List<string> }
+      SlotSettingNames: string Set }
     interface IArmResource with
         member this.ResourceId = config.resourceId(this.SiteName/"slotconfignames")
         member this.JsonModel =
