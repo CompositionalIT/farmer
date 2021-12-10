@@ -90,6 +90,40 @@ let tests = testList "Service Bus Tests" [
             Expect.equal (queue.DefaultMessageTimeToLive.GetValueOrDefault TimeSpan.MinValue).TotalDays 10. "Default TTL incorrect"
             Expect.equal queue.MaxDeliveryCount (Nullable 3) "Max delivery count incorrect"
         }
+        test "Can set duplicate dection from a TimeSpan" {
+            let queue =
+                serviceBus {
+                    name "my-bus"
+                    sku ServiceBus.Standard
+                    add_queues [
+                        queue {
+                            name "my-queue"
+                            duplicate_detection (TimeSpan.FromSeconds(900.))
+                        }
+                    ]
+                }
+            let queue : SBQueue = queue |> getResourceAtIndex 1
+
+            Expect.isTrue (queue.RequiresDuplicateDetection.GetValueOrDefault false) "Duplicate detection should be enabled"
+            Expect.equal queue.DuplicateDetectionHistoryTimeWindow (Nullable(TimeSpan(0, 15, 0))) "Duplicate detection window incorrect"
+        }
+        test "Can set duplicate detection to None" {
+            let queue =
+                serviceBus {
+                    name "my-bus"
+                    sku ServiceBus.Standard
+                    add_queues [
+                        queue {
+                            name "my-queue"
+                            duplicate_detection None
+                        }
+                    ]
+                }
+            let queue : SBQueue = queue |> getResourceAtIndex 1
+
+            Expect.equal queue.RequiresDuplicateDetection (Nullable()) "Duplicate detection should be null"
+            Expect.equal queue.DuplicateDetectionHistoryTimeWindow (Nullable()) "Duplicate detection window incorrect"
+        }
 
         test "Cannot set duplicate detection on basic tier" {
             Expect.throws (fun () ->
@@ -254,6 +288,36 @@ let tests = testList "Service Bus Tests" [
             Expect.equal topic.DuplicateDetectionHistoryTimeWindow (Nullable (TimeSpan.FromMinutes 3.)) "Duplicate detection time not set"
             Expect.equal topic.DefaultMessageTimeToLive (Nullable (TimeSpan.FromDays 2.)) "Time to live not set"
             Expect.equal topic.EnablePartitioning (Nullable true) "Paritition not set"
+        }
+        test "Can set duplicate detection to None" {
+            let topic:SBTopic =
+                serviceBus {
+                    name "my-bus"
+                    add_topics [
+                        topic {
+                            name "my-topic"
+                            duplicate_detection None
+                        }
+                    ]
+                } |> getResourceAtIndex 1
+            Expect.equal topic.Name "my-bus/my-topic" "Name not set"
+            Expect.equal topic.RequiresDuplicateDetection (Nullable()) "Duplicate detection set"
+            Expect.equal topic.DuplicateDetectionHistoryTimeWindow (Nullable()) "Duplicate detection time not null"
+        }
+        test "Can set duplicate using a timespan" {
+            let topic:SBTopic =
+                serviceBus {
+                    name "my-bus"
+                    add_topics [
+                        topic {
+                            name "my-topic"
+                            duplicate_detection (TimeSpan.FromSeconds(900.))
+                        }
+                    ]
+                } |> getResourceAtIndex 1
+            Expect.equal topic.Name "my-bus/my-topic" "Name not set"
+            Expect.equal topic.RequiresDuplicateDetection (Nullable true) "Duplicate detection not set"
+            Expect.equal topic.DuplicateDetectionHistoryTimeWindow (Nullable (TimeSpan.FromMinutes 15.)) "Duplicate detection time incorrect"
         }
         test "Can create a topic with a max size" {
             let topic:SBTopic =

@@ -13,6 +13,27 @@ open Farmer.Arm.KeyVault.Vaults
 open System
 
 type FunctionsRuntime = DotNet | DotNetIsolated | Node | Java | Python
+type VersionedFunctionsRuntime =  FunctionsRuntime * string option
+type FunctionsRuntime with
+    // These values are defined on FunctionsRuntime to reduce the need for users to be aware of the distinction 
+    // between FunctionsRuntime and VersionedFunctionsRuntime as well as to provide parity with WebApp runtime
+    static member DotNetCore31 = DotNet, Some "3.1"
+    static member DotNet50 = DotNet, Some "5.0"
+    static member DotNet50Isolated = DotNetIsolated, Some "5.0"
+    static member DotNet60 = DotNet,Some "6.0"
+    static member DotNet60Isolated = DotNetIsolated, Some"6.0"
+    static member Node14 = Node, Some "14-lts"
+    static member Node12 = Node, Some "12-lts"
+    static member Node10 = Node, Some "10-lts"
+    static member Node10_1 = Node, Some "10.1"
+    static member Node10_6 = Node, Some "10.6"
+    static member Node10_14 = Node, Some "10.14"
+    static member Java8 = Java, Some "8-jre8"
+    static member Java11 = Java, Some "11-java11"
+    static member Python38 = Python, Some "3.8"
+    static member Python37 = Python, Some "3.7"
+    static member Python36 = Python, Some "3.6"
+
 type DockerInfo = {
     User: string
     Password: SecureParameter
@@ -22,17 +43,19 @@ type DockerInfo = {
 type PublishAs =
     | Code
     | DockerContainer of DockerInfo
-type FunctionsExtensionVersion = V1 | V2 | V3
+type FunctionsExtensionVersion = V1 | V2 | V3 | V4
+    with member internal this.ArmValue = match this with | V1 -> "~1" | V2 -> "~2" | V3 -> "~3" | V4 -> "~4"
 
 type FunctionsConfig =
     { CommonWebConfig: CommonWebConfig
       Tags : Map<string, string>
       Dependencies : ResourceId Set
       StorageAccount : ResourceRef<FunctionsConfig>
-      Runtime : FunctionsRuntime
+      VersionedRuntime : VersionedFunctionsRuntime
       PublishAs : PublishAs
       ExtensionVersion : FunctionsExtensionVersion }
     member this.Name = this.CommonWebConfig.Name
+    member this.Runtime = fst this.VersionedRuntime
     /// Gets the system-created managed principal for the functions instance. It must have been enabled using enable_managed_identity.
     member this.SystemIdentity = SystemIdentity (sites.resourceId this.Name.ResourceName)
     /// Gets the ARM expression path to the publishing password of this functions app.
@@ -131,7 +154,7 @@ type FunctionsConfig =
             let basicSettings = [
                 "FUNCTIONS_WORKER_RUNTIME", functionsRuntime
                 "WEBSITE_NODE_DEFAULT_VERSION", "10.14.1"
-                "FUNCTIONS_EXTENSION_VERSION", match this.ExtensionVersion with V1 -> "~1" | V2 -> "~2" | V3 -> "~3"
+                "FUNCTIONS_EXTENSION_VERSION", this.ExtensionVersion.ArmValue
                 "AzureWebJobsStorage", StorageAccount.getConnectionString this.StorageAccountId|> ArmExpression.Eval
                 "AzureWebJobsDashboard", StorageAccount.getConnectionString this.StorageAccountId|> ArmExpression.Eval
 
@@ -223,7 +246,18 @@ type FunctionsConfig =
                   HTTP20Enabled = None
                   ClientAffinityEnabled = None
                   WebSocketsEnabled = None
-                  LinuxFxVersion = None
+                  LinuxFxVersion = 
+                    match this.CommonWebConfig.OperatingSystem with
+                    | Windows -> None
+                    | Linux ->
+                      match this.VersionedRuntime with
+                      | DotNet, Some version -> 
+                        match Double.TryParse(version) with
+                        | true, versionNo when versionNo < 4.0 -> Some $"DOTNETCORE|{version}"
+                        | _ -> Some $"DOTNET|{version}"
+                      | DotNetIsolated, Some version -> Some $"DOTNET-ISOLATED|{version}"
+                      | _, Some version -> Some $"{functionsRuntime.ToUpper()}|{version}"
+                      | _, None -> None
                   NetFrameworkVersion = None
                   JavaVersion = None
                   JavaContainer = None
@@ -313,7 +347,7 @@ type FunctionsBuilder() =
           StorageAccount = derived (fun config ->
             let storage = config.Name.ResourceName.Map (sprintf "%sstorage") |> sanitiseStorage |> ResourceName
             storageAccounts.resourceId storage)
-          Runtime = DotNet
+          VersionedRuntime = FunctionsRuntime.DotNetCore31
           ExtensionVersion = V3
           Dependencies = Set.empty
           PublishAs = Code
@@ -332,7 +366,8 @@ type FunctionsBuilder() =
     member _.StorageAccountName(state:FunctionsConfig, name) = { state with StorageAccount = named storageAccounts (ResourceName name) }
     /// Sets the runtime of the Functions host.
     [<CustomOperation "use_runtime">]
-    member _.Runtime(state:FunctionsConfig, runtime) = { state with Runtime = runtime }
+    member _.Runtime(state:FunctionsConfig, runtime) = { state with VersionedRuntime = runtime, None }
+    member _.Runtime(state:FunctionsConfig, runtime) = { state with VersionedRuntime = runtime }
     /// Sets the Publish as Code or Docker container information.
     [<CustomOperation "publish_as">]
     member _.PublishAs(state:FunctionsConfig, publishAs) = { state with PublishAs = publishAs }

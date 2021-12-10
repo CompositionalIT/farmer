@@ -23,6 +23,13 @@ The Log Analytics builder is used to create Work space instances.
 | add_tags         | Adds a set of tags to the resource                              |
 | add_tag          | Adds a tag to the resource                                      |
 
+#### Configuration Members
+
+| Member | Purpose |
+|-|-|
+| CustomerID | Gets the ARM expression path to the customer ID of this LogAnalytics instance. |
+| CustomerID | Gets the ARM expression path to the primary shared key of this LogAnalytics instance. |
+
 #### Example
 
 ```fsharp
@@ -40,6 +47,6 @@ let myAnalytics = logAnalytics {
 
 let deployment = arm {
     location Location.WestEurope
-    add_resource myRegistry
+    add_resource myAnalytics
 }
 ```

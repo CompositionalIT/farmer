@@ -17,7 +17,8 @@ The Service Bus builder creates service bus namespaces and their associated queu
 | Queue | name | The name of the queue. |
 | Queue | lock_duration_minutes | The length of time that a lock can be held on a message. |
 | Queue | max_delivery_count | The maximum number of times a message can be delivered before dead lettering. |
-| Queue | duplicate_detection_minutes | Whether to enable duplicate detection, and if so, how long to check for. |
+| Queue | duplicate_detection | Whether to enable duplicate detection, and if so, how long to check for. |
+| Queue | duplicate_detection_minutes | Whether to enable duplicate detection, and if so, how long to check for in minutes. |
 | Queue | enable_session | Enables session support. |
 | Queue | enable_dead_letter_on_message_expiration | Enables dead lettering of messages that expire. |
 | Queue | enable_partition | Enables partition support on the queue. |
@@ -40,7 +41,8 @@ The Service Bus builder creates service bus namespaces and their associated queu
 | Subscription | add_sql_filter | Adds a filter to a subscription using SQL syntax. |
 | Subscription | add_correlation_filter | Adds a filter to a subscription using header value correlation. |
 | Topic | name | The name of the topic. |
-| Topic | duplicate_detection_minutes | Whether to enable duplicate detection, and if so, how long to check for. |
+| Topic | duplicate_detection | Whether to enable duplicate detection, and if so, how long to check for. |
+| Topic | duplicate_detection_minutes | Whether to enable duplicate detection, and if so, how long to check for in minutes. |
 | Topic | enable_partition | Enables partition support on the topic. |
 | Topic | max_topic_size | Maximum size for the topic in Megabytes e.g. `1024<Mb>`. |
 | Topic | message_ttl | Time To Live (TTL) value for messages expressed as a TimeSpan or a TimeSpan string, such as '01:30:00' 1 hour, 30 minutes, or as an integer days e.g. `4<Days>`. |

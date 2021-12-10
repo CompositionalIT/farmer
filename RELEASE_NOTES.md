@@ -1,5 +1,18 @@
 Release Notes
 =============
+## 1.6.22
+* Service Bus: Added additional overloads for topic.duplicate_detection and queue.duplicate_detection
+
+## 1.6.22
+* WebApp: Fixed deployment name for nested template in app-managed certificate deployments
+
+## 1.6.21
+* Alerts: Extend a list of possible criteria for time aggregations and operators
+* Alerts: Support of custom metric alerts
+* CDN: Adds new SKU types for Azure Front Door Standard/Premium
+* Functions: Fix for .NET isolated functions hosted on Linux
+* Key Vaults: Fixed bug where adding vnetRules to KeyVault did not work.
+* Support for GPUs in Azure Container Instances
 
 ## 1.6.20
 * CDN rules: Only make CacheDuration required for Override and SetIfMissing and not BypassCache when creating cache_expiration action

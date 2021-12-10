@@ -12,8 +12,8 @@ let tests = testList "Alerts" [
         let vmAlert = alert { 
             name "myVmAlert2"
             description "Alert if VM CPU goes over 80% for 15 minutes"
-            frequency (System.TimeSpan(0,5,0) |> IsoDateTime.OfTimeSpan)
-            window (System.TimeSpan(0,15,0) |> IsoDateTime.OfTimeSpan)
+            frequency (System.TimeSpan.FromMinutes(5.0) |> IsoDateTime.OfTimeSpan)
+            window (System.TimeSpan.FromMinutes(15.0) |> IsoDateTime.OfTimeSpan)
             add_linked_resource vm
             severity AlertSeverity.Warning
             single_resource_multiple_metric_criteria [
@@ -43,8 +43,8 @@ let tests = testList "Alerts" [
         let myAlert = alert { 
                 name "myDbAlert"
                 description "Alert if DB DTU goes over 80% for 5 minutes"
-                frequency (System.TimeSpan(0,5,0) |> IsoDateTime.OfTimeSpan)
-                window (System.TimeSpan(0,5,0) |> IsoDateTime.OfTimeSpan)
+                frequency (System.TimeSpan.FromMinutes(5.0) |> IsoDateTime.OfTimeSpan)
+                window (System.TimeSpan.FromMinutes(5.0) |> IsoDateTime.OfTimeSpan)
                 add_linked_resource resId
                 severity AlertSeverity.Error
                 single_resource_multiple_metric_criteria [
@@ -80,8 +80,8 @@ let tests = testList "Alerts" [
         let webAlert = alert { 
             name "myWebAlert"
             description "Alert if Google is failing 5 mins on both 2 locations"
-            frequency (System.TimeSpan(0,1,0) |> IsoDateTime.OfTimeSpan)
-            window (System.TimeSpan(0,5,0) |> IsoDateTime.OfTimeSpan)
+            frequency (System.TimeSpan.FromMinutes(1.0) |> IsoDateTime.OfTimeSpan)
+            window (System.TimeSpan.FromMinutes(5.0) |> IsoDateTime.OfTimeSpan)
             add_linked_resources [aiId; webId]
             severity AlertSeverity.Warning
             webtest_location_availability_criteria (aiId.ResourceId, webId.ResourceId, 2)
@@ -94,4 +94,64 @@ let tests = testList "Alerts" [
         Expect.equal freq "PT1M" "Wrong frequency"
     }
 
+    test "Create a custom metric alert based on Azure ApplicationInsights" {
+        let alertName = "myCustomAlert"
+        let ai = appInsights { name "ai" }
+        let customAlert = alert { 
+            name alertName
+            description "Alert based on MyCustomMetric"
+            frequency (System.TimeSpan.FromMinutes(1.0) |> IsoDateTime.OfTimeSpan)
+            window (System.TimeSpan.FromMinutes(5.0) |> IsoDateTime.OfTimeSpan)
+            add_linked_resource ai
+            severity AlertSeverity.Warning
+            single_resource_multiple_custom_metric_criteria [
+                {
+                    MetricNamespace = None
+                    MetricName = MetricsName "MyCustomMetric"
+                    Threshold = 20
+                    Comparison = GreaterThan
+                    Aggregation = Average
+                }
+            ]
+        }
+
+        let template = arm { add_resources [ ai; customAlert ] }
+        let jsn = template.Template |> Writer.toJson 
+        let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+        let allOf = jobj.SelectToken($"resources[?(@.name=='{alertName}')].properties.criteria.allOf[0]")
+        Expect.isNotNull allOf "allOf not found"
+        Expect.equal (allOf.Item("metricName").ToString()) "MyCustomMetric" "Wrong target metric namespace"
+        Expect.equal (allOf.Item("metricNamespace").ToString()) "Azure.ApplicationInsights" "Wrong target metric namespace"
+        Expect.equal (allOf.Item("skipMetricValidation").ToObject<bool>()) true "Wrong value of skipMetricValidation"
+        let targ = jobj.SelectToken($"resources[?(@.name=='{alertName}')].properties.targetResourceType").ToString()
+        Expect.equal targ Farmer.Arm.Insights.components.Type "Wrong target resource type"
+    }
+
+    test "Create a custom metric alert based on custom namespace" {
+        let alertName = "myCustomAlert"
+        let customAlert = alert { 
+            name alertName
+            description "Alert based on MyCustomMetric"
+            frequency (System.TimeSpan.FromMinutes(1.0) |> IsoDateTime.OfTimeSpan)
+            window (System.TimeSpan.FromMinutes(5.0) |> IsoDateTime.OfTimeSpan)
+            severity AlertSeverity.Warning
+            single_resource_multiple_custom_metric_criteria [
+                {
+                    MetricNamespace = Some (ResourceType("MyCustomNamespace", ""))
+                    MetricName = MetricsName "MyCustomMetric"
+                    Threshold = 20
+                    Comparison = GreaterThan
+                    Aggregation = Average
+                }
+            ]
+        }
+
+        let template = arm { add_resources [ customAlert ] }
+        let jsn = template.Template |> Writer.toJson 
+        let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+        let allOf = jobj.SelectToken($"resources[?(@.name=='{alertName}')].properties.criteria.allOf[0]")
+        Expect.isNotNull allOf "allOf not found"
+        Expect.equal (allOf.Item("metricName").ToString()) "MyCustomMetric" "Wrong target metric namespace"
+        Expect.equal (allOf.Item("metricNamespace").ToString()) "MyCustomNamespace" "Wrong target custom metric namespace"
+    }
 ]
