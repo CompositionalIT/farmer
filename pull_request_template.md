@@ -15,3 +15,8 @@ I have read the [contributing guidelines](CONTRIBUTING.md) and have completed th
 * [ ] **Checked the coding standards** outlined in the [contributions guide](CONTRIBUTING.md) and ensured my code adheres to them.
 
 If I haven't completed any of the tasks above, I include the reasons why here:
+
+Below is a minimal example configuration that includes the new features, which can be used to deploy to Azure:
+
+```fsharp
+```
