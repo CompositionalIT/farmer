@@ -22,16 +22,17 @@ type ContainerEnvironmentConfig =
     { Name : ResourceName
       InternalLoadBalancerState : FeatureFlag
       Containers : ContainerAppConfig list
-      LogAnalytics : WorkspaceConfig option }
+      LogAnalytics : ResourceName option }
     interface IBuilder with
         member this.ResourceId = containerApps.resourceId this.Name
         member this.BuildResources location = [
             { Name = this.Name
               InternalLoadBalancerState = this.InternalLoadBalancerState
               LogAnalytics =
-                //Hack: Fix
-                {| CustomerId = this.LogAnalytics.Value.CustomerId
-                   PrimarySharedKey = this.LogAnalytics.Value.PrimarySharedKey |}
+                //TODO: Create a default LAW if none is supplied.
+                match this.LogAnalytics with
+                | Some name -> name
+                | None -> raiseFarmer "The LogAnalytics connections was not set. Please supply one using the log_analytics_instance keyword."
               Location = location }
 
             for container in this.Containers do
@@ -48,7 +49,7 @@ type ContainerEnvironmentConfig =
                   DockerImage =
                     match container.DockerImage with
                     | Some image -> image
-                    | None -> raiseFarmer "No Docker image was supplied. You must supply an image."
+                    | None -> raiseFarmer "The container image settings were not set. Please use the docker_image keyword of the containerApp builder."
                   Location = location }
         ]
 
@@ -60,12 +61,7 @@ type ContainerEnvironmentBuilder() =
           LogAnalytics = None }
 
     member _.Run (state:ContainerEnvironmentConfig) =
-        match state.LogAnalytics with
-        | None ->
-            //TODO: Create a default LAW if none is supplied.
-            raiseFarmer $"The LogAnalytics connections was not set. Please supply one using the log_analytics_instance."
-        | _ ->
-            state
+        state
 
     /// Sets the name of the Azure Container App Environment.
     [<CustomOperation "name">]
@@ -74,7 +70,7 @@ type ContainerEnvironmentBuilder() =
     /// Sets the Log Analytics workspace of the Azure Container App.
     [<CustomOperation "log_analytics_instance">]
     member _.SetLogAnalytics  (state:ContainerEnvironmentConfig, logAnalytics:WorkspaceConfig) =
-        { state with LogAnalytics = Some logAnalytics }
+        { state with LogAnalytics = Some logAnalytics.Name }
 
     /// Sets the InternalLoadBalancerEnabled property of the Azure Container App Environment.
     [<CustomOperation "internal_load_balancer_state">]
@@ -103,11 +99,6 @@ type ContainerAppBuilder () =
           EnvironmentVariables = Map.empty
           DaprConfig = None
           Resources = {| CPU = Some 0.25<VCores>; Memory = Some 0.5<Gb> |} }
-
-    member _.Run (state:ContainerAppConfig) =
-            match state.DockerImage with
-            | None -> raiseFarmer $"The container image settings were not set. Please use the docker_image function of the containerApp builder."
-            | _ -> state
 
     /// Sets the name of the Azure Container App.
     [<CustomOperation "name">]

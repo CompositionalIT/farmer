@@ -560,12 +560,9 @@ module ContainerApp =
         { Name : ResourceName
           Location : Location
           InternalLoadBalancerState : FeatureFlag
-          //HACK: These should not be ARM expressions.
-          LogAnalytics : {| CustomerId : ArmExpression; PrimarySharedKey : ArmExpression |} }
-
+          LogAnalytics : ResourceName }
         interface IArmResource with
             member this.ResourceId = kubeEnvironments.resourceId this.Name
-
             member this.JsonModel =
                 {| kubeEnvironments.Create(this.Name, this.Location) with
                     kind = "containerenvironment"
@@ -575,8 +572,8 @@ module ContainerApp =
                            appLogsConfiguration =
                             {| destination = "log-analytics"
                                logAnalyticsConfiguration =
-                               {| customerId = this.LogAnalytics.CustomerId.Eval()
-                                  sharedKey = this.LogAnalytics.PrimarySharedKey.Eval() |}
+                               {| customerId = LogAnalytics.getCustomerId(this.LogAnalytics).Eval()
+                                  sharedKey = LogAnalytics.getPrimarySharedKey(this.LogAnalytics).Eval() |}
                             |}
                         |}
                 |} :> _
