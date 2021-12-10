@@ -4,6 +4,7 @@ open Expecto
 open Farmer
 open Farmer.Builders
 open Newtonsoft.Json.Linq
+open Farmer.ContainerApp
 
 let fullContainerAppDeployment =
     let xmasLogs = logAnalytics {
@@ -15,32 +16,34 @@ let fullContainerAppDeployment =
     let containerEnv =
         containerEnvironment {
             name "xmascontainers"
-            logAnalytics xmasLogs
+            log_analytics_instance xmasLogs
             add_containers [
                 containerApp {
                     name "http"
-                    activeRevisionsMode ActiveRevisionsMode.Single
+                    active_revision_mode ActiveRevisionsMode.Single
                     docker_image containerRegistryDomain containerRegistry "http" version
                     replicas 1 5
-                    setting "ServiceBusQueueName" "wishrequests"
-                    secret_setting "ServiceBusConnectionKey"
-                    ingress { External = true; TargetPort = 80; Transport = "auto" }
-                    dapr { AppId = "http" }
-                    add_scale_rule "http-rule" (ScaleRuleType.Http {| ConcurrentRequests = 100 |})
+                    add_env_variable "ServiceBusQueueName" "wishrequests"
+                    add_app_secret "ServiceBusConnectionKey"
+                    ingress_visibility External
+                    ingress_target_port 80us
+                    ingress_transport Auto
+                    dapr_app_id "http"
+                    add_scale_rule "http-rule" (ScaleRule.Http { ConcurrentRequests = 100 })
                 }
                 containerApp {
                     name "servicebus"
-                    activeRevisionsMode ActiveRevisionsMode.Single
+                    active_revision_mode ActiveRevisionsMode.Single
                     docker_image containerRegistryDomain containerRegistry "servicebus" version
                     replicas 0 3
-                    setting "ServiceBusQueueName" "wishrequests"
-                    secret_setting "ServiceBusConnectionKey"
+                    add_env_variable "ServiceBusQueueName" "wishrequests"
+                    add_app_secret "ServiceBusConnectionKey"
                     add_scale_rule 
                         "sb-keda-scale" 
-                        (ScaleRuleType.ServiceBus {| 
+                        (ScaleRule.ServiceBus {
                             QueueName = "wishrequests"
                             MessageCount = 5
-                            SecretRef = "servicebusconnectionkey" |})
+                            SecretRef = "servicebusconnectionkey" })
                 }
             ]
         }
@@ -96,7 +99,7 @@ let tests = testList "Container Apps" [
         Expect.equal (httpContainer.["image"] |> string ) "myregistry.azurecr.io/myimage/http:1.0.0" "Incorrect container image"
         Expect.equal (httpContainer.["name"] |> string ) "http" "Incorrect container name"
         Expect.equal (httpContainer.SelectToken("resources.cpu") |> float ) 0.25 "Incorrect container cpu resources"
-        Expect.equal (httpContainer.SelectToken("resources.memory") |> string ) "0.5Gi" "Incorrect container memory resources"
+        Expect.equal (httpContainer.SelectToken("resources.memory") |> string ) "0.50Gi" "Incorrect container memory resources"
 
         let scale = httpContainerApp.SelectToken("properties.template.scale")
         Expect.isNotNull scale "properties.scale was null"

@@ -2,305 +2,152 @@
 module Farmer.Builders.ContainerApps
 
 open Farmer
-
-type Secret = {
-    Name : string
-    Value : string
-}
-
-type Ingress = {
-    External : bool
-    TargetPort : int
-    Transport : string
-}
-
-type DaprSettings = {
-    AppId :string
-}
-
-[<RequireQualifiedAccess>]
-type EnvironmentVariable =
-| SecretRef of string * string
-| Value of string * string
-
-type Resources = {
-    CPU : float
-    Memory : string
-}
-
-[<RequireQualifiedAccess>]
-type ScaleRuleType =
-| EventHubs of {| ConsumerGroup : string; UnprocessedEventThreshold: int; CheckpointBlobContainerName: string; EventHubConnectionSecretRef : string; StorageConnectionSecretRef : string |}
-| ServiceBus of {| QueueName : string; MessageCount: int; SecretRef : string |}
-| Http of {| ConcurrentRequests : int |}
-| Custom of obj
-
-type ScaleRule = {
-    Name : string
-    Type : ScaleRuleType
-}
-
-[<RequireQualifiedAccess>]
-type ActiveRevisionsMode =
-| Single
-| Multiple
-
-// Create a reference to the full ARM registries type and version.
-let containerAppResourceType = ResourceType ("Microsoft.Web/containerApps", "2021-03-01")
+open Farmer.ContainerApp
+open Farmer.Arm.Web
+open Farmer.Arm.Web.ContainerApp
 
 type ContainerAppConfig =
     { Name : ResourceName
-      ContainerEnvironment : ResourceId option
-      Secrets : Secret list
       ActiveRevisionsMode : ActiveRevisionsMode
-      Resources : Resources option
-      Ingress : Ingress option
-      ScaleRules : ScaleRule list
-      MinReplicas : int
-      MaxReplicas : int
-      Settings : Map<string, Setting>
-      DaprSettings : DaprSettings option
-      EnvironmentVariables : EnvironmentVariable list
-      DockerImage : {| RegistryDomain : string; RegistryName : string; ContainerName : string; Version:string |} option
-      Location : Location }
+      Resources : {| CPU : float<VCores> option; Memory : float<Gb> option |}
+      IngressConfig : IngressConfig
+      ScaleRules : Map<string, ScaleRule>
+      Replicas : {| Min : int; Max : int |}
+      DaprConfig : {| AppId : string |} option
+      Secrets : List<SecureParameter>
+      EnvironmentVariables : Map<string, EnvVar>
+      DockerImage : {| RegistryDomain : string; RegistryName : string; ContainerName : string; Version:string |} option }
 
-    interface IParameters with
-        member this.SecureParameters =
-            let containerSettings = this.DockerImage.Value
-            let settings =
-                this.Settings
-                |> Map.toList
-                |> List.choose(fun (_,value) ->
-                    match value with
-                    | ParameterSetting s -> Some s
-                    | ExpressionSetting _
-                    | LiteralSetting _ ->
-                        None)
-            SecureParameter $"docker-password-for-{containerSettings.RegistryName}" :: settings
+type ContainerEnvironmentConfig =
+    { Name : ResourceName
+      InternalLoadBalancerState : FeatureFlag
+      Containers : ContainerAppConfig list
+      LogAnalytics : WorkspaceConfig option }
+    interface IBuilder with
+        member this.ResourceId = containerApps.resourceId this.Name
+        member this.BuildResources location = [
+            { Name = this.Name
+              InternalLoadBalancerState = this.InternalLoadBalancerState
+              LogAnalytics =
+                //Hack: Fix
+                {| CustomerId = this.LogAnalytics.Value.CustomerId
+                   PrimarySharedKey = this.LogAnalytics.Value.PrimarySharedKey |}
+              Location = location }
 
-    interface IArmResource with
-        member this.ResourceId = containerAppResourceType.resourceId this.Name
-        member this.JsonModel =
-            let containerSettings = this.DockerImage.Value
-            {|  containerAppResourceType.Create(this.Name, this.Location) with
-                    kind = "containerapp"
-                    properties =
-                        {|
-                            kubeEnvironmentId = this.ContainerEnvironment.Value.Eval()
-                            configuration =
-                                {|
-                                    secrets = [|
-                                        yield
-                                            {|
-                                                name = $"container-registry-password-for-{containerSettings.RegistryName}"
-                                                value = $"[parameters('docker-password-for-{containerSettings.RegistryName}')]"
-                                            |}
-                                        for secret in this.Secrets -> {| name = secret.Name; value = secret.Value |}
-                                    |]
-                                    activeRevisionsMode =
-                                        match this.ActiveRevisionsMode with
-                                        | ActiveRevisionsMode.Single -> "Single"
-                                        | ActiveRevisionsMode.Multiple -> "Multiple"
-                                    registries =
-                                        [|
-                                            {|
-                                                server = containerSettings.RegistryDomain
-                                                username = containerSettings.RegistryName
-                                                passwordSecretRef = $"container-registry-password-for-{containerSettings.RegistryName}"
-                                            |}
-                                        |]
-                                    ingress =
-                                        match this.Ingress with
-                                        | Some ingress ->
-                                            {|
-                                                external = ingress.External
-                                                targetPort = ingress.TargetPort
-                                                transport = ingress.Transport
-                                            |}
-                                            :> obj
-                                        | _ -> null
+            for container in this.Containers do
+                { Name = container.Name
+                  Environment = kubeEnvironments.resourceId this.Name
+                  ActiveRevisionsMode = container.ActiveRevisionsMode
+                  Resources = container.Resources
+                  IngressConfig = container.IngressConfig
+                  ScaleRules = container.ScaleRules
+                  Replicas = container.Replicas
+                  DaprConfig = container.DaprConfig
+                  Secrets = container.Secrets
+                  EnvironmentVariables = container.EnvironmentVariables
+                  DockerImage =
+                    match container.DockerImage with
+                    | Some image -> image
+                    | None -> raiseFarmer "No Docker image was supplied. You must supply an image."
+                  Location = location }
+        ]
 
-                                    |}
-                            template =
-                                {|
-                                    containers = [|
-                                        {|
-                                            image = $"{containerSettings.RegistryDomain}/{containerSettings.RegistryName}/{containerSettings.ContainerName}:{containerSettings.Version}"
-                                            name = this.Name.Value
-                                            env =
-                                                [|
-                                                    for env in this.EnvironmentVariables do
-                                                        match env with
-                                                        | EnvironmentVariable.SecretRef(name,secretRef) ->
-                                                            [ "name", name
-                                                              "secretref", secretRef
-                                                            ]
-                                                            |> readOnlyDict
-                                                        | EnvironmentVariable.Value(name,v) ->
-                                                            [ "name", name
-                                                              "value", v
-                                                            ]
-                                                            |> readOnlyDict
-                                                |]
-                                            resources =
-                                                match this.Resources with
-                                                | Some resources ->
-                                                    {|
-                                                        cpu = resources.CPU
-                                                        memory = resources.Memory
-                                                    |}
-                                                    :> obj
-                                                | None ->
-                                                    {|
-                                                        cpu = 0.25
-                                                        memory = "0.5Gi"
-                                                    |}
-                                                    :> obj
-                                        |}
-                                    |]
-                                    scale =
-                                        {|
-                                            minReplicas = this.MinReplicas
-                                            maxReplicas = this.MaxReplicas
-                                            rules = [|
-                                                for rule in this.ScaleRules do
-                                                    match rule.Type with
-                                                    | ScaleRuleType.Custom customRule ->
-                                                        {|
-                                                            name = rule.Name
-                                                            custom = customRule
-                                                        |}
-                                                        :> obj
-                                                    | ScaleRuleType.EventHubs settings ->
-                                                        {|
-                                                            name = rule.Name
-                                                            custom =
-                                                                {|
-                                                                    // https://keda.sh/docs/scalers/azure-event-hub/
-                                                                    ``type`` = "azure-eventhub"
-                                                                    metadata =
-                                                                        {|
-                                                                            consumerGroup = settings.ConsumerGroup
-                                                                            unprocessedEventThreshold = string settings.UnprocessedEventThreshold
-                                                                            blobContainer = settings.CheckpointBlobContainerName
-                                                                            checkpointStrategy = "blobMetadata"
-                                                                        |}
-                                                                    auth = [|
-                                                                        {|
-                                                                            secretRef = settings.EventHubConnectionSecretRef
-                                                                            triggerParameter = "connection"
-                                                                        |}
-                                                                        {|
-                                                                            secretRef = settings.StorageConnectionSecretRef
-                                                                            triggerParameter = "storageConnection"
-                                                                        |}
-                                                                    |]
-                                                                |}
-                                                        |}
-                                                        :> obj
-                                                    | ScaleRuleType.ServiceBus settings ->
-                                                        {|
-                                                            name = rule.Name
-                                                            custom =
-                                                                {|
-                                                                    // https://keda.sh/docs/scalers/azure-service-bus/
-                                                                    ``type`` = "azure-servicebus"
-                                                                    metadata =
-                                                                        {|
-                                                                            queueName = settings.QueueName
-                                                                            messageCount = string settings.MessageCount
-                                                                        |}
-                                                                    auth = [|
-                                                                        {|
-                                                                            secretRef = settings.SecretRef
-                                                                            triggerParameter = "connection"
-                                                                        |}
-                                                                    |]
-                                                                |}
-                                                        |}
-                                                        :> obj
-                                                    | ScaleRuleType.Http settings ->
-                                                        {|
-                                                            name = rule.Name
-                                                            http =
-                                                                {|
-                                                                    metadata =
-                                                                        {|
-                                                                            concurrentRequests = string settings.ConcurrentRequests
-                                                                        |}
-                                                                |}
-                                                        |}
-                                                        :> obj
-                                            |]
-                                        |}
-                                    dapr =
-                                        match this.DaprSettings with
-                                        | Some settings ->
-                                            {|
-                                                enabled = true
-                                                appId = settings.AppId
-                                            |}
-                                            :> obj
-                                        | None ->
-                                            {|
-                                                enabled = false
-                                            |}
-                                            :> obj
-                                |}
-                    |}
-            |} :> _ // upcast to obj
-
-
-type ContainerAppBuilder() =
+type ContainerEnvironmentBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
-          ContainerEnvironment = None
-          Secrets = []
+          InternalLoadBalancerState = Disabled
+          Containers = []
+          LogAnalytics = None }
+
+    member _.Run (state:ContainerEnvironmentConfig) =
+        match state.LogAnalytics with
+        | None ->
+            //TODO: Create a default LAW if none is supplied.
+            raiseFarmer $"The LogAnalytics connections was not set. Please supply one using the log_analytics_instance."
+        | _ ->
+            state
+
+    /// Sets the name of the Azure Container App Environment.
+    [<CustomOperation "name">]
+    member _.Name  (state:ContainerEnvironmentConfig, name:string) = { state with Name = ResourceName name }
+
+    /// Sets the Log Analytics workspace of the Azure Container App.
+    [<CustomOperation "log_analytics_instance">]
+    member _.SetLogAnalytics  (state:ContainerEnvironmentConfig, logAnalytics:WorkspaceConfig) =
+        { state with LogAnalytics = Some logAnalytics }
+
+    /// Sets the InternalLoadBalancerEnabled property of the Azure Container App Environment.
+    [<CustomOperation "internal_load_balancer_state">]
+    member _.SetInternalLoadBalancerState  (state:ContainerEnvironmentConfig, internalLoadBalancerState:FeatureFlag) =
+        { state with InternalLoadBalancerState = internalLoadBalancerState }
+
+    /// Adds a container to the Azure Container App Environment.
+    [<CustomOperation "add_container">]
+    member _.AddContainer  (state:ContainerEnvironmentConfig, container:ContainerAppConfig) =
+        { state with Containers = container :: state.Containers }
+
+    /// Adds multiple containers to the Azure Container App Environment.
+    [<CustomOperation "add_containers">]
+    member _.AddContainers  (state:ContainerEnvironmentConfig, containers:ContainerAppConfig list) =
+        { state with Containers = containers @ state.Containers }
+
+type ContainerAppBuilder () =
+    member _.Yield _ =
+        { Name = ResourceName.Empty
           ActiveRevisionsMode = ActiveRevisionsMode.Single
           DockerImage = None
-          EnvironmentVariables = []
-          MinReplicas = 1
-          MaxReplicas = 1
-          ScaleRules = []
-          Settings = Map.empty
-          Ingress = None
-          DaprSettings = None
-          Resources = None
-          Location = Location.NorthEurope }
+          Replicas = {| Min = 1; Max = 1 |}
+          ScaleRules = Map.empty
+          Secrets = []
+          IngressConfig = { Visibility = None; TargetPort = None; Transport = None }
+          EnvironmentVariables = Map.empty
+          DaprConfig = None
+          Resources = {| CPU = Some 0.25<VCores>; Memory = Some 0.5<Gb> |} }
 
     member _.Run (state:ContainerAppConfig) =
             match state.DockerImage with
             | None -> raiseFarmer $"The container image settings were not set. Please use the docker_image function of the containerApp builder."
-            | _ ->
-                state
+            | _ -> state
 
     /// Sets the name of the Azure Container App.
     [<CustomOperation "name">]
-    member _.Name(state: ContainerAppConfig, name:string) = { state with Name = ResourceName name }
+    member _.ResourceName (state:ContainerAppConfig, name:string) = { state with Name = ResourceName name }
 
     /// Adds a scale rule to the Azure Container App.
     [<CustomOperation "add_scale_rule">]
-    member _.AddScaleRule(state: ContainerAppConfig, name:string, rule) =
-        { state with ScaleRules = { Name = name; Type = rule} :: state.ScaleRules }
+    member _.AddScaleRule (state:ContainerAppConfig, name:string, rule) =
+        { state with ScaleRules = state.ScaleRules.Add (name, rule) }
 
-    /// Sets the ingress settings of the Azure Container App.
-    [<CustomOperation "ingress">]
-    member _.SetIngress(state: ContainerAppConfig, ingress:Ingress) =
-        { state with Ingress = Some ingress }
+    /// Configures the ingress of the Azure Container App.
+    [<CustomOperation "ingress_visibility">]
+    member _.SetIngressVisibility (state:ContainerAppConfig, visibility) =
+        { state with IngressConfig = { state.IngressConfig with Visibility = Some visibility } }
 
-    /// Sets the dapr settings of the Azure Container App.
-    [<CustomOperation "dapr">]
-    member _.SetDapr(state: ContainerAppConfig, dapr:DaprSettings) =
-        { state with DaprSettings = Some dapr }
+    /// Configures the ingress of the Azure Container App.
+    [<CustomOperation "ingress_target_port">]
+    member _.SetIngressTargetPort (state:ContainerAppConfig, targetPort) =
+        { state with IngressConfig = { state.IngressConfig with TargetPort = Some targetPort } }
+
+    /// Configures the ingress of the Azure Container App.
+    [<CustomOperation "ingress_transport">]
+    member _.SetIngressTransport (state:ContainerAppConfig, transport) =
+        { state with IngressConfig = { state.IngressConfig with Transport = Some transport } }
+
+    /// Configures Dapr in the Azure Container App.
+    [<CustomOperation "dapr_app_id">]
+    member _.SetDaprAppId (state:ContainerAppConfig, appId) =
+        { state with
+            DaprConfig = state.DaprConfig |> Option.map (fun c -> {| c with AppId = appId |})
+        }
 
     /// Sets the replicas settings of the Azure Container App.
     [<CustomOperation "replicas">]
-    member _.SetReplicas(state: ContainerAppConfig, minReplicas:int, maxReplicas: int) =
-        { state with MinReplicas = minReplicas; MaxReplicas = maxReplicas }
+    member _.SetReplicas (state:ContainerAppConfig, minReplicas:int, maxReplicas: int) =
+        { state with Replicas = {| Min = minReplicas; Max = maxReplicas |} }
 
-    [<CustomOperation "docker_image">]
     /// Set docker credentials
-    member _.SetDockerImage(state:ContainerAppConfig, registryDomain, registryName, containerName, version) =
+    [<CustomOperation "docker_image">]
+    member _.SetDockerImage (state:ContainerAppConfig, registryDomain, registryName, containerName, version) =
         { state with
             DockerImage =
                 Some {| RegistryDomain = registryDomain
@@ -308,118 +155,33 @@ type ContainerAppBuilder() =
                         ContainerName = containerName
                         Version = version |} }
 
-    /// Sets the environment of the Azure Container App.
-    [<CustomOperation "activeRevisionsMode">]
-    member _.SetActiveRevisionsMode(state: ContainerAppConfig, mode:ActiveRevisionsMode) = { state with ActiveRevisionsMode = mode }
+    /// Sets the active revision mode of the Azure Container App.
+    [<CustomOperation "active_revision_mode">]
+    member _.SetActiveRevisionsMode (state:ContainerAppConfig, mode:ActiveRevisionsMode) = { state with ActiveRevisionsMode = mode }
 
-    /// Adds secrets to the Azure Container App.
-    [<CustomOperation "add_secrets">]
-    member _.AddSecrets(state: ContainerAppConfig, secrets) = { state with Secrets = secrets @ state.Secrets }
+    /// Adds application secrets to the Azure Container App.
+    [<CustomOperation "add_app_secrets">]
+    member _.AddSecrets (state:ContainerAppConfig, secrets) =
+        { state with Secrets = state.Secrets @ (secrets |> List.map SecureParameter) }
 
-    /// Adds a secret to the Azure Container App.
-    [<CustomOperation "add_secret">]
-    member _.AddSecret(state: ContainerAppConfig, secret) = { state with Secrets = secret :: state.Secrets }
+    /// Adds an application secret to the Azure Container App.
+    [<CustomOperation "add_app_secret">]
+    member _.AddSecret (state:ContainerAppConfig, key) =
+        { state with Secrets = SecureParameter key :: state.Secrets }
 
-    /// Creates a setting for the Azure Container App whose value will be supplied as a secret parameter.
-    [<CustomOperation "secret_setting">]
-    member _.AddSecretSetting (state:ContainerAppConfig, key) =
+    /// Adds a secure environment variable to the Azure Container App environment variables.
+    [<CustomOperation "add_secure_env_variable">]
+    member _.AddSecretRefEnvironmentVariable (state:ContainerAppConfig, name) =
         { state with
-            Settings = state.Settings.Add(key, ParameterSetting (SecureParameter key))
-            Secrets = { Name = key.ToLower(); Value = $"[parameters('{key}')]" } :: state.Secrets
-            EnvironmentVariables = EnvironmentVariable.SecretRef(key,key.ToLower()) :: state.EnvironmentVariables }
+            EnvironmentVariables = state.EnvironmentVariables.Add (EnvVar.createSecure name $"secure-env-{name}")
+        }
 
-    /// Adds a secretRef to the Azure Container App environment variables.
-    [<CustomOperation "add_secretref_variable">]
-    member _.AddSecretRefEnvironmentVariable(state: ContainerAppConfig, name, secretRef) = { state with EnvironmentVariables = EnvironmentVariable.SecretRef(name,secretRef) :: state.EnvironmentVariables }
-
-    /// Adds a variable to the Azure Container App environment variables.
-    [<CustomOperation "setting">]
-    member _.AddEnvironmentVariable(state: ContainerAppConfig, name, v) = { state with EnvironmentVariables = EnvironmentVariable.Value(name,v) :: state.EnvironmentVariables }
-
-let containerApp = ContainerAppBuilder()
-
-// Create a reference to the full ARM registries type and version.
-let containerEnvironmentResourceType = ResourceType ("Microsoft.Web/kubeEnvironments", "2021-02-01")
-
-type ContainerEnvironmentConfig =
-    { Name : ResourceName
-      Location : Location
-      InternalLoadBalancerEnabled : bool
-      Containers : ContainerAppConfig list
-      LogAnalytics : WorkspaceConfig option }
-
-    interface IBuilder with
-        member this.ResourceId = containerAppResourceType.resourceId this.Name
-        member this.BuildResources location = [
-            this
-            for container in this.Containers do
-                container
-        ]
-
-    interface IArmResource with
-        member this.ResourceId = containerEnvironmentResourceType.resourceId this.Name
-
-        member this.JsonModel =        
-            let logAnalytics = this.LogAnalytics.Value
-            {|  containerEnvironmentResourceType.Create(this.Name, this.Location) with
-                    kind = "containerenvironment"
-                    properties =
-                        {|
-                            ``type`` = "managed"
-                            internalLoadBalancerEnabled = this.InternalLoadBalancerEnabled
-                            appLogsConfiguration =
-                                {|
-                                    destination = "log-analytics"
-                                    logAnalyticsConfiguration =
-                                        {|
-                                            customerId = logAnalytics.CustomerId.Eval()
-                                            sharedKey = logAnalytics.PrimarySharedKey.Eval()
-                                        |}
-                                |}
-                        |}
-            |} :> _ // upcast to obj
-
-
-type ContainerEnvironmentBuilder() =
-    member _.Yield _ =
-        { Name = ResourceName.Empty
-          Location = Location.NorthEurope
-          InternalLoadBalancerEnabled = false
-          Containers = []
-          LogAnalytics = None }
-
-    member _.Run (state:ContainerEnvironmentConfig) =
-        match state.LogAnalytics with
-        | None -> raiseFarmer $"The LogAnalytics connections was not set. Please use the logAnalytics function of the containerEnvironment builder."
-        | _ ->
-            state
-
-    /// Sets the name of the Azure Container App Environment.
-    [<CustomOperation "name">]
-    member _.Name(state: ContainerEnvironmentConfig, name:string) = { state with Name = ResourceName name }
-
-    /// Sets the environment of the Azure Container App.
-    [<CustomOperation "logAnalytics">]
-    member _.SetLogAnalytics(state: ContainerEnvironmentConfig, logAnalytics:WorkspaceConfig) =
-        { state with LogAnalytics = Some logAnalytics }
-
-    /// Sets the InternalLoadBalancerEnabled property of the Azure Container App Environment.
-    [<CustomOperation "internalLoadBalancerEnabled">]
-    member _.SetInternalLoadBalancerEnabled(state: ContainerEnvironmentConfig, internalLoadBalancerEnabled) =
-        { state with InternalLoadBalancerEnabled = internalLoadBalancerEnabled }
-
-    /// Adds a container to the Azure Container App Environment.
-    [<CustomOperation "add_container">]
-    member _.AddContainer(state: ContainerEnvironmentConfig, container:ContainerAppConfig) =
-        { state with Containers = { container with ContainerEnvironment = Some (state :> IArmResource).ResourceId } :: state.Containers }
-
-    /// Adds multiple containers to the Azure Container App Environment.
-    [<CustomOperation "add_containers">]
-    member _.AddContainers(state: ContainerEnvironmentConfig, containers:ContainerAppConfig list) =
+    /// Adds a public environment variable to the Azure Container App environment variables.
+    [<CustomOperation "add_env_variable">]
+    member _.AddEnvironmentVariable (state:ContainerAppConfig, name, value) =
         { state with
-            Containers =
-                containers
-                |> List.map (fun container -> { container with ContainerEnvironment = Some (state :> IArmResource).ResourceId })
-                |> List.append state.Containers }
+            EnvironmentVariables = state.EnvironmentVariables.Add (EnvVar.create name value)
+        }
 
 let containerEnvironment = ContainerEnvironmentBuilder()
+let containerApp = ContainerAppBuilder()

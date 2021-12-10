@@ -166,12 +166,9 @@ type ContainerGroup =
                                       environmentVariables = [
                                           for key, value in Map.toSeq container.EnvironmentVariables do
                                               match value with
-                                              | EnvValue value ->
-                                                {| name = key; value = value; secureValue = null |}
-                                              | SecureEnvExpression armExpression ->
-                                                {| name = key; value = null; secureValue = armExpression.Eval() |}
-                                              | SecureEnvValue value ->
-                                                {| name = key; value = null; secureValue = value.ArmExpression.Eval() |}
+                                              | EnvValue value -> {| name = key; value = value; secureValue = null |}
+                                              | SecureEnvExpression armExpression -> {| name = key; value = null; secureValue = armExpression.Eval() |}
+                                              | SecureEnvValue value -> {| name = key; value = null; secureValue = value.ArmExpression.Eval() |}
                                       ]
                                       livenessProbe = container.LivenessProbe |> Option.map (fun p -> p.JsonModel |> box) |> Option.defaultValue null
                                       readinessProbe = container.ReadinessProbe |> Option.map (fun p -> p.JsonModel |> box) |> Option.defaultValue null
@@ -197,12 +194,9 @@ type ContainerGroup =
                                       environmentVariables = [
                                           for key, value in Map.toSeq container.EnvironmentVariables do
                                               match value with
-                                              | EnvValue value ->
-                                                {| name = key; value = value; secureValue = null |}
-                                              | SecureEnvExpression armExpression ->
-                                                {| name = key; value = null; secureValue = armExpression.Eval() |}
-                                              | SecureEnvValue value ->
-                                                {| name = key; value = null; secureValue = value.ArmExpression.Eval() |}
+                                              | EnvValue value -> {| name = key; value = value; secureValue = null |}
+                                              | SecureEnvExpression armExpression -> {| name = key; value = null; secureValue = armExpression.Eval() |}
+                                              | SecureEnvValue value -> {| name = key; value = null; secureValue = value.ArmExpression.Eval() |}
                                       ]
                                       volumeMounts =
                                           container.VolumeMounts

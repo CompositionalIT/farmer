@@ -1,4 +1,4 @@
-﻿namespace Farmer
+namespace Farmer
 
 open System
 
@@ -90,10 +90,11 @@ type IsoDateTime =
     member this.Value = match this with IsoDateTime value -> value
 type TransmissionProtocol = TCP | UDP
 type TlsVersion = Tls10 | Tls11 | Tls12
+/// Represents an environment variable that can be set, typically on Docker container services.
 type EnvVar =
-    /// Use for non-secret environment variables to be surfaced in the container. These will be stored in cleartext in the ARM template.
+    /// Use for non-secret environment variables. These will be stored in cleartext in the ARM template.
     | EnvValue of string
-    /// Use for secret environment variables to be surfaced in the container securely. These will be provided as secure parameters to the ARM template.
+    /// Use for secret environment variables. These will be provided as secure parameters to the ARM template.
     | SecureEnvValue of SecureParameter
     /// Use for secret environment variables that get their value from an ARM Expression. These will be an ARM expression in the template, but value used in a secure context.
     | SecureEnvExpression of ArmExpression
@@ -407,7 +408,7 @@ module ServiceBusValidation =
 module Insights =
 
     /// https://docs.microsoft.com/en-us/azure/azure-monitor/essentials/metrics-supported
-    type MetricsName = 
+    type MetricsName =
     | MetricsName of string
         static member PercentageCPU = MetricsName "Percentage CPU"
         static member DiskReadOperationsPerSec = MetricsName "Disk Read Operations/Sec"
@@ -878,7 +879,7 @@ module Sql =
         static member Create (ResourceName name) = SqlAccountName.Create name
         member this.ResourceName = match this with SqlAccountName name -> name
 
-    type GeoReplicationSettings = { 
+    type GeoReplicationSettings = {
         /// Suffix name for server and database name
         NameSuffix : string
         /// Replication location, different from the original one
@@ -1233,7 +1234,7 @@ module ApplicationGateway =
             | TLS_RSA_WITH_AES_256_CBC_SHA256 -> "TLS_RSA_WITH_AES_256_CBC_SHA256"
             | TLS_RSA_WITH_AES_256_GCM_SHA384 -> "TLS_RSA_WITH_AES_256_GCM_SHA384"
         member this.ArmValue = CipherSuite.toString this
-        
+
 
     [<RequireQualifiedAccess>]
     type SslProtocol =
@@ -1659,7 +1660,7 @@ module Cdn =
     | Standard_ChinaCdn
     | Standard_Microsoft
     | Standard_Verizon
-    | Premium_AzureFrontDoor 
+    | Premium_AzureFrontDoor
     | Standard_AzureFrontDoor
 
     type QueryStringCachingBehaviour =
@@ -2067,6 +2068,23 @@ module AvailabilityTest =
         static member BrazilSouth = Farmer.Location "latam-br-gru-edge" |> AvailabilityTestSite
         static member CentralUS = Farmer.Location "us-fl-mia-edge" |> AvailabilityTestSite
 
+module ContainerApp =
+    type EventHubScaleRule = { ConsumerGroup : string; UnprocessedEventThreshold: int; CheckpointBlobContainerName: string; EventHubConnectionSecretRef : string; StorageConnectionSecretRef : string }
+    type ServiceBusScaleRule = { QueueName : string; MessageCount: int; SecretRef : string }
+    type HttpScaleRule = { ConcurrentRequests : int }
+    [<RequireQualifiedAccess>]
+    type ScaleRule =
+        | EventHubs of EventHubScaleRule
+        | ServiceBus of ServiceBusScaleRule
+        | Http of HttpScaleRule
+        | Custom of obj
+    type Transport = HTTP1 | HTTP2 | Auto
+    type Visibility = External | Internal
+    [<RequireQualifiedAccess>]
+    type ActiveRevisionsMode =
+        | Single
+        | Multiple
+
 namespace Farmer.DiagnosticSettings
 
 open Farmer
@@ -2117,4 +2135,3 @@ type LogSetting =
 
 /// Represents the kind of destination for log analytics
 type LogAnalyticsDestination = AzureDiagnostics | Dedicated
-

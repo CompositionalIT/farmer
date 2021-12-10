@@ -1,4 +1,4 @@
-﻿[<AutoOpen>]
+[<AutoOpen>]
 module Farmer.Builders.LogAnalytics
 
 open Farmer
@@ -10,21 +10,23 @@ let private (|InBounds|OutOfBounds|) days =
     else InBounds days
 
 type LogAnalytics =
-    static member getCustomerId (resourceId:ResourceId) =
+    static member getCustomerId resourceId =
         ArmExpression
             .reference(workspaces, resourceId)
             .Map(fun r -> r + ".customerId")
             .WithOwner(resourceId)
-    static member getCustomerId (name:ResourceName, ?resourceGroup) =
-        LogAnalytics.getCustomerId(ResourceId.create (workspaces, name, ?group = resourceGroup))
 
-    static member getPrimarySharedKey (resourceId:ResourceId) =
+    static member getCustomerId (name, ?resourceGroup) =
+        LogAnalytics.getCustomerId (ResourceId.create (workspaces, name, ?group = resourceGroup))
+
+    static member getPrimarySharedKey resourceId =
         ArmExpression
             .listKeys(workspaces, resourceId)
             .Map(fun r -> r + ".primarySharedKey")
             .WithOwner(resourceId)
-    static member getPrimarySharedKey (name:ResourceName, ?resourceGroup) =
-        LogAnalytics.getPrimarySharedKey(ResourceId.create (workspaces, name, ?group = resourceGroup))
+
+    static member getPrimarySharedKey (name, ?resourceGroup) =
+        LogAnalytics.getPrimarySharedKey (ResourceId.create (workspaces, name, ?group = resourceGroup))
 
 type WorkspaceConfig =
     { Name: ResourceName
