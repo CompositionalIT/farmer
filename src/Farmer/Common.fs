@@ -1429,6 +1429,7 @@ module Maps =
 
 module SignalR =
     type Sku = Free | Standard
+    type ServiceMode = Default | Serverless | Classic
 
 module DataLake =
     type Sku =
