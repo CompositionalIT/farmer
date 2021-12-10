@@ -7,9 +7,7 @@ open Newtonsoft.Json.Linq
 open Farmer.ContainerApp
 
 let fullContainerAppDeployment =
-    let xmasLogs = logAnalytics {
-        name "xmaslogs"
-    }
+    let xmasLogs = logAnalytics { name "xmaslogs" }
     let containerRegistryDomain = "myregistry.azurecr.io"
     let containerRegistry = "myimage"
     let version = "1.0.0"
@@ -56,6 +54,12 @@ let fullContainerAppDeployment =
 let tests = testList "Container Apps" [
     let jsonTemplate = fullContainerAppDeployment.Template |> Writer.toJson
     let jobj = JObject.Parse jsonTemplate
+
+    test "Container automatically creates a log analytics workspace" {
+        let env : IBuilder = containerEnvironment { name "testca" }
+        let resources = env.BuildResources Location.NorthEurope
+        Expect.exists resources (fun r -> r.ResourceId.Name.Value = "testca-workspace") "No Log Analytics workspace was created."
+    }
 
     test "Full container environment parameters" {
         Expect.hasLength jobj.["parameters"] 2 "Expecting 2 parameters"

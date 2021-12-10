@@ -22,18 +22,29 @@ type ContainerEnvironmentConfig =
     { Name : ResourceName
       InternalLoadBalancerState : FeatureFlag
       Containers : ContainerAppConfig list
-      LogAnalytics : ResourceName option }
+      LogAnalytics : ResourceRef<ContainerEnvironmentConfig> }
     interface IBuilder with
         member this.ResourceId = containerApps.resourceId this.Name
         member this.BuildResources location = [
             { Name = this.Name
               InternalLoadBalancerState = this.InternalLoadBalancerState
-              LogAnalytics =
-                //TODO: Create a default LAW if none is supplied.
-                match this.LogAnalytics with
-                | Some name -> name
-                | None -> raiseFarmer "The LogAnalytics connections was not set. Please supply one using the log_analytics_instance keyword."
+              LogAnalytics = this.LogAnalytics.resourceId(this).Name
               Location = location }
+
+            match this.LogAnalytics with
+            | DeployableResource this resourceId ->
+                let workspaceConfig =
+                    { Name = resourceId.Name
+                      RetentionPeriod = None
+                      IngestionSupport = None
+                      QuerySupport = None
+                      DailyCap = None
+                      Tags = Map.empty }
+                    :> IBuilder
+                yield! workspaceConfig.BuildResources location
+            | _ ->
+                ()
+
 
             for container in this.Containers do
                 { Name = container.Name
@@ -58,7 +69,7 @@ type ContainerEnvironmentBuilder() =
         { Name = ResourceName.Empty
           InternalLoadBalancerState = Disabled
           Containers = []
-          LogAnalytics = None }
+          LogAnalytics = ResourceRef.derived (fun cfg -> Arm.LogAnalytics.workspaces.resourceId(cfg.Name - "workspace")) }
 
     member _.Run (state:ContainerEnvironmentConfig) =
         state
@@ -70,7 +81,7 @@ type ContainerEnvironmentBuilder() =
     /// Sets the Log Analytics workspace of the Azure Container App.
     [<CustomOperation "log_analytics_instance">]
     member _.SetLogAnalytics  (state:ContainerEnvironmentConfig, logAnalytics:WorkspaceConfig) =
-        { state with LogAnalytics = Some logAnalytics.Name }
+        { state with LogAnalytics = ResourceRef.unmanaged (Arm.LogAnalytics.workspaces.resourceId logAnalytics.Name) }
 
     /// Sets the InternalLoadBalancerEnabled property of the Azure Container App Environment.
     [<CustomOperation "internal_load_balancer_state">]
