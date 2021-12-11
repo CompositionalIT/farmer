@@ -2080,10 +2080,12 @@ module ContainerApp =
         | Custom of obj
     type Transport = HTTP1 | HTTP2 | Auto
     type Visibility = External | Internal
-    [<RequireQualifiedAccess>]
-    type ActiveRevisionsMode =
-        | Single
-        | Multiple
+    type ActiveRevisionsMode = Single | Multiple
+    type DockerImageKind =
+        | PrivateImage of {| RegistryDomain : string; RegistryName : string; ContainerName : string; Version:string |}
+        | PublicImage of image:string
+    
+
 
 namespace Farmer.DiagnosticSettings
 

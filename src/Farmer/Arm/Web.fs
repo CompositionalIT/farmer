@@ -421,18 +421,23 @@ module ContainerApp =
           DaprConfig : {| AppId : string |} option
           Secrets : SecureParameter list
           EnvironmentVariables : Map<string, EnvVar>
-          DockerImage : {| RegistryDomain : string; RegistryName : string; ContainerName : string; Version:string |}
+          DockerImage : DockerImageKind
           Location : Location }
-        member private this.DockerPassword = SecureParameter $"docker-password-for-{this.DockerImage.RegistryName}"
-        member private this.ContainerRegistryPassword = $"container-registry-password-for-{this.DockerImage.RegistryName}"
+        static member private DockerPassword registryName = SecureParameter $"docker-password-for-%s{registryName}"
+        static member private ContainerRegistryPassword registryName = $"container-registry-password-for-%s{registryName}"
 
         interface IParameters with
-            member this.SecureParameters = this.DockerPassword :: this.Secrets
+            member this.SecureParameters = [
+                yield! this.Secrets
+                match this.DockerImage with
+                | PublicImage _ -> ()
+                | PrivateImage image -> ContainerApp.DockerPassword image.RegistryName
+            ]
 
         interface IArmResource with
             member this.ResourceId = containerApps.resourceId this.Name
             member this.JsonModel =
-                {|  containerApps.Create(this.Name, this.Location) with
+                {|  containerApps.Create(this.Name, this.Location, [ this.Environment ]) with
                         kind = "containerapp"
                         properties =
                             {|
@@ -440,8 +445,13 @@ module ContainerApp =
                                 configuration =
                                     {|
                                         secrets = [|
-                                            {| name = this.ContainerRegistryPassword // TODO: This looks suspicious
-                                               value = this.DockerPassword.ArmExpression.Eval() |}
+                                            match this.DockerImage with
+                                            | PublicImage _ ->
+                                                ()
+                                            | PrivateImage image ->
+                                                // TODO: This looks suspicious
+                                                {| name = ContainerApp.ContainerRegistryPassword image.RegistryName
+                                                   value = ContainerApp.DockerPassword(image.RegistryName).ArmExpression.Eval() |}
                                             for setting in this.Secrets do
                                                 {| name = setting.Key
                                                    value = setting.Value |}
@@ -450,11 +460,16 @@ module ContainerApp =
                                             match this.ActiveRevisionsMode with
                                             | ActiveRevisionsMode.Single -> "Single"
                                             | ActiveRevisionsMode.Multiple -> "Multiple"
-                                        registries = [|
-                                            {| server = this.DockerImage.RegistryDomain
-                                               username = this.DockerImage.RegistryName
-                                               passwordSecretRef = this.ContainerRegistryPassword |}
-                                        |]
+                                        registries =
+                                            match this.DockerImage with
+                                            | PublicImage _ ->
+                                                null
+                                            | PrivateImage image ->
+                                                [|
+                                                    {| server = image.RegistryDomain
+                                                       username = image.RegistryName
+                                                       passwordSecretRef = ContainerApp.ContainerRegistryPassword image.RegistryName |}
+                                                |]
                                         ingress =
                                             {| external =
                                                 match this.IngressConfig.Visibility with
@@ -474,7 +489,10 @@ module ContainerApp =
                                 template =
                                     {| containers = [|
                                            {|
-                                               image = $"{this.DockerImage.RegistryDomain}/{this.DockerImage.RegistryName}/{this.DockerImage.ContainerName}:{this.DockerImage.Version}"
+                                               image =
+                                                match this.DockerImage with
+                                                | PrivateImage image -> $"{image.RegistryDomain}/{image.RegistryName}/{image.ContainerName}:{image.Version}"
+                                                | PublicImage image -> image
                                                name = this.Name.Value
                                                env = [|
                                                    for env in this.EnvironmentVariables do
@@ -560,11 +578,11 @@ module ContainerApp =
         { Name : ResourceName
           Location : Location
           InternalLoadBalancerState : FeatureFlag
-          LogAnalytics : ResourceName }
+          LogAnalytics : ResourceId }
         interface IArmResource with
             member this.ResourceId = kubeEnvironments.resourceId this.Name
             member this.JsonModel =
-                {| kubeEnvironments.Create(this.Name, this.Location) with
+                {| kubeEnvironments.Create(this.Name, this.Location, [ this.LogAnalytics ]) with
                     kind = "containerenvironment"
                     properties =
                         {| ``type`` = "managed"

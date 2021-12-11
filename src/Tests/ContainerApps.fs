@@ -19,7 +19,7 @@ let fullContainerAppDeployment =
                 containerApp {
                     name "http"
                     active_revision_mode ActiveRevisionsMode.Single
-                    docker_image containerRegistryDomain containerRegistry "http" version
+                    private_docker_image containerRegistryDomain containerRegistry "http" version
                     replicas 1 5
                     add_env_variable "ServiceBusQueueName" "wishrequests"
                     add_app_secret "ServiceBusConnectionKey"
@@ -32,7 +32,7 @@ let fullContainerAppDeployment =
                 containerApp {
                     name "servicebus"
                     active_revision_mode ActiveRevisionsMode.Single
-                    docker_image containerRegistryDomain containerRegistry "servicebus" version
+                    private_docker_image containerRegistryDomain containerRegistry "servicebus" version
                     replicas 0 3
                     add_env_variable "ServiceBusQueueName" "wishrequests"
                     add_app_secret "ServiceBusConnectionKey"

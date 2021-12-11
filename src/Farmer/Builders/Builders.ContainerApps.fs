@@ -16,7 +16,7 @@ type ContainerAppConfig =
       DaprConfig : {| AppId : string |} option
       Secrets : List<SecureParameter>
       EnvironmentVariables : Map<string, EnvVar>
-      DockerImage : {| RegistryDomain : string; RegistryName : string; ContainerName : string; Version:string |} option }
+      DockerImage : DockerImageKind option } 
 
 type ContainerEnvironmentConfig =
     { Name : ResourceName
@@ -28,7 +28,7 @@ type ContainerEnvironmentConfig =
         member this.BuildResources location = [
             { Name = this.Name
               InternalLoadBalancerState = this.InternalLoadBalancerState
-              LogAnalytics = this.LogAnalytics.resourceId(this).Name
+              LogAnalytics = this.LogAnalytics.resourceId this
               Location = location }
 
             match this.LogAnalytics with
@@ -44,7 +44,6 @@ type ContainerEnvironmentConfig =
                 yield! workspaceConfig.BuildResources location
             | _ ->
                 ()
-
 
             for container in this.Containers do
                 { Name = container.Name
@@ -148,14 +147,22 @@ type ContainerAppBuilder () =
         { state with Replicas = {| Min = minReplicas; Max = maxReplicas |} }
 
     /// Set docker credentials
-    [<CustomOperation "docker_image">]
+    [<CustomOperation "private_docker_image">]
     member _.SetDockerImage (state:ContainerAppConfig, registryDomain, registryName, containerName, version) =
         { state with
             DockerImage =
-                Some {| RegistryDomain = registryDomain
-                        RegistryName = registryName
-                        ContainerName = containerName
-                        Version = version |} }
+                Some (
+                    PrivateImage
+                        {| RegistryDomain = registryDomain
+                           RegistryName = registryName
+                           ContainerName = containerName
+                           Version = version |}
+                )
+        }
+
+    [<CustomOperation "public_docker_image">]
+    member _.SetDockerImage (state:ContainerAppConfig, path) =
+        { state with DockerImage = Some (PublicImage path) }
 
     /// Sets the active revision mode of the Azure Container App.
     [<CustomOperation "active_revision_mode">]
