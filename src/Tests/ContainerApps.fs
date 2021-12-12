@@ -22,7 +22,7 @@ let fullContainerAppDeployment =
                     private_docker_image containerRegistryDomain containerRegistry "http" version
                     replicas 1 5
                     add_env_variable "ServiceBusQueueName" "wishrequests"
-                    add_app_secret "ServiceBusConnectionKey"
+                    add_secret_parameter "ServiceBusConnectionKey"
                     ingress_visibility External
                     ingress_target_port 80us
                     ingress_transport Auto
@@ -35,8 +35,8 @@ let fullContainerAppDeployment =
                     private_docker_image containerRegistryDomain containerRegistry "servicebus" version
                     replicas 0 3
                     add_env_variable "ServiceBusQueueName" "wishrequests"
-                    add_app_secret "ServiceBusConnectionKey"
-                    add_scale_rule 
+                    add_secret_parameter "ServiceBusConnectionKey"
+                    add_scale_rule
                         "sb-keda-scale" 
                         (ScaleRule.ServiceBus {
                             QueueName = "wishrequests"

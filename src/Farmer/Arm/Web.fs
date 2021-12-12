@@ -406,29 +406,34 @@ module SiteExtensions =
 
 module ContainerApp =
     open Farmer.ContainerApp
+    open Farmer.ContainerAppValidation
     type IngressConfig =
         { Visibility : Visibility option
-          TargetPort : uint16 option
+          TargetPort : uint16
           Transport : Transport option }
     type ContainerApp =
         { Name : ResourceName
           Environment : ResourceId
           ActiveRevisionsMode : ActiveRevisionsMode
           Resources : {| CPU : float<VCores> option; Memory : float<Gb> option |}
-          IngressConfig : IngressConfig
+          IngressConfig : IngressConfig option
           ScaleRules : Map<string, ScaleRule>
-          Replicas : {| Min : int; Max : int |}
+          Replicas : {| Min : int; Max : int |} option
           DaprConfig : {| AppId : string |} option
-          Secrets : SecureParameter list
+          Secrets : Map<ContainerAppSettingKey, SecretValue>
           EnvironmentVariables : Map<string, EnvVar>
           DockerImage : DockerImageKind
-          Location : Location }
+          Location : Location
+          Dependencies : Set<ResourceId> }
         static member private DockerPassword registryName = SecureParameter $"docker-password-for-%s{registryName}"
         static member private ContainerRegistryPassword registryName = $"container-registry-password-for-%s{registryName}"
 
         interface IParameters with
             member this.SecureParameters = [
-                yield! this.Secrets
+                for secret in this.Secrets do
+                    match secret.Value with
+                    | ParameterSecret sp -> sp
+                    | ExpressionSecret _ -> ()
                 match this.DockerImage with
                 | PublicImage _ -> ()
                 | PrivateImage image -> ContainerApp.DockerPassword image.RegistryName
@@ -437,152 +442,193 @@ module ContainerApp =
         interface IArmResource with
             member this.ResourceId = containerApps.resourceId this.Name
             member this.JsonModel =
-                {|  containerApps.Create(this.Name, this.Location, [ this.Environment ]) with
-                        kind = "containerapp"
-                        properties =
-                            {|
-                                kubeEnvironmentId = this.Environment.Eval()
-                                configuration =
-                                    {|
-                                        secrets = [|
-                                            match this.DockerImage with
-                                            | PublicImage _ ->
-                                                ()
-                                            | PrivateImage image ->
-                                                // TODO: This looks suspicious
-                                                {| name = ContainerApp.ContainerRegistryPassword image.RegistryName
-                                                   value = ContainerApp.DockerPassword(image.RegistryName).ArmExpression.Eval() |}
-                                            for setting in this.Secrets do
-                                                {| name = setting.Key
-                                                   value = setting.Value |}
-                                        |]
-                                        activeRevisionsMode =
-                                            match this.ActiveRevisionsMode with
-                                            | ActiveRevisionsMode.Single -> "Single"
-                                            | ActiveRevisionsMode.Multiple -> "Multiple"
-                                        registries =
-                                            match this.DockerImage with
-                                            | PublicImage _ ->
-                                                null
-                                            | PrivateImage image ->
-                                                [|
-                                                    {| server = image.RegistryDomain
-                                                       username = image.RegistryName
-                                                       passwordSecretRef = ContainerApp.ContainerRegistryPassword image.RegistryName |}
-                                                |]
-                                        ingress =
-                                            {| external =
-                                                match this.IngressConfig.Visibility with
-                                                | Some External -> box true
-                                                | Some Internal -> box false
-                                                | None -> null
-                                               targetPort = this.IngressConfig.TargetPort |> Option.toNullable
-                                               transport =
-                                                match this.IngressConfig.Transport with
-                                                | Some HTTP1 -> "http"
-                                                | Some HTTP2 -> "http2"
-                                                | Some Auto -> "auto"
-                                                | None -> null
-                                            |}
-                                        |}
-
-                                template =
-                                    {| containers = [|
-                                           {|
-                                               image =
-                                                match this.DockerImage with
-                                                | PrivateImage image -> $"{image.RegistryDomain}/{image.RegistryName}/{image.ContainerName}:{image.Version}"
-                                                | PublicImage image -> image
-                                               name = this.Name.Value
-                                               env = [|
-                                                   for env in this.EnvironmentVariables do
-                                                       match env.Value with
-                                                       | EnvValue value -> {| name = env.Key; value = value; secretref = null |}
-                                                       | SecureEnvExpression armExpression -> {| name = env.Key; value = null; secretref = armExpression.Eval() |}
-                                                       | SecureEnvValue value -> {| name = env.Key; value = null; secretref = value.ArmExpression.Eval() |}
-                                                |]
-                                               resources =
-                                                    {| cpu = this.Resources.CPU |> Option.toNullable
-                                                       memory = this.Resources.Memory |> Option.map (sprintf "%.2fGi") |> Option.toObj |}
-                                                   :> obj
-                                           |}
+                let dependencies = this.Dependencies.Add this.Environment
+                {| containerApps.Create(this.Name, this.Location, dependencies) with
+                       kind = "containerapp"
+                       properties =
+                           {|
+                               kubeEnvironmentId = this.Environment.Eval()
+                               configuration =
+                                   {|
+                                       secrets = [|
+                                           match this.DockerImage with
+                                           | PublicImage _ ->
+                                               ()
+                                           | PrivateImage image ->
+                                               // TODO: This looks suspicious
+                                               {| name = ContainerApp.ContainerRegistryPassword image.RegistryName
+                                                  value = ContainerApp.DockerPassword(image.RegistryName).ArmExpression.Eval() |}
+                                           for setting in this.Secrets do
+                                               {| name = setting.Key.Value
+                                                  value = setting.Value.Value |}
                                        |]
-                                       scale =
-                                           {| minReplicas = this.Replicas.Min
-                                              maxReplicas = this.Replicas.Max
-                                              rules = [|
-                                                  for rule in this.ScaleRules do
-                                                      match rule.Value with
-                                                      | ScaleRule.Custom customRule ->
-                                                          {| name = rule.Key
-                                                             custom = customRule |}
-                                                          :> obj
-                                                      | ScaleRule.EventHubs settings ->
-                                                          {| name = rule.Key
-                                                             custom =
-                                                                 {| // https://keda.sh/docs/scalers/azure-event-hub/
-                                                                    ``type`` = "azure-eventhub"
-                                                                    metadata =
-                                                                        {| consumerGroup = settings.ConsumerGroup
-                                                                           unprocessedEventThreshold = string settings.UnprocessedEventThreshold
-                                                                           blobContainer = settings.CheckpointBlobContainerName
-                                                                           checkpointStrategy = "blobMetadata" |}
-                                                                    auth = [|
-                                                                        {| secretRef = settings.EventHubConnectionSecretRef
-                                                                           triggerParameter = "connection" |}
-                                                                        {| secretRef = settings.StorageConnectionSecretRef
-                                                                           triggerParameter = "storageConnection" |}
-                                                                    |]
-                                                                 |}
-                                                          |}
-                                                          :> obj
-                                                      | ScaleRule.ServiceBus settings ->
-                                                          {| name = rule.Key
-                                                             custom =
-                                                                 {| // https://keda.sh/docs/scalers/azure-service-bus/
-                                                                    ``type`` = "azure-servicebus"
-                                                                    metadata =
-                                                                        {| queueName = settings.QueueName
-                                                                           messageCount = string settings.MessageCount |}
-                                                                    auth = [|
-                                                                        {| secretRef = settings.SecretRef
-                                                                           triggerParameter = "connection" |}
-                                                                    |]
-                                                                 |}
-                                                          |}
-                                                          :> obj
-                                                      | ScaleRule.Http settings ->
-                                                          {| name = rule.Key
-                                                             http =
-                                                                 {| metadata =
-                                                                     {| concurrentRequests = string settings.ConcurrentRequests |}
-                                                                 |}
-                                                          |}
-                                                          :> obj
-                                              |]
-                                           |}
-                                       dapr =
-                                           match this.DaprConfig with
-                                           | Some settings ->
-                                               {| enabled = true
-                                                  appId = settings.AppId |}
-                                               :> obj
+                                       activeRevisionsMode =
+                                           match this.ActiveRevisionsMode with
+                                           | ActiveRevisionsMode.Single -> "Single"
+                                           | ActiveRevisionsMode.Multiple -> "Multiple"
+                                       registries =
+                                           match this.DockerImage with
+                                           | PublicImage _ ->
+                                               null
+                                           | PrivateImage image ->
+                                               [|
+                                                   {| server = image.RegistryDomain
+                                                      username = image.RegistryName
+                                                      passwordSecretRef = ContainerApp.ContainerRegistryPassword image.RegistryName |}
+                                               |]
+                                       ingress =
+                                           match this.IngressConfig with
+                                           | Some ingressConfig ->
+                                               {| external =
+                                                   match ingressConfig.Visibility with
+                                                   | Some External -> box true
+                                                   | Some Internal -> box false
+                                                   | None -> null
+                                                  targetPort = ingressConfig.TargetPort
+                                                  transport =
+                                                   match ingressConfig.Transport with
+                                                   | Some HTTP1 -> "http"
+                                                   | Some HTTP2 -> "http2"
+                                                   | Some Auto -> "auto"
+                                                   | None -> null
+                                               |} :> obj
                                            | None ->
-                                               {| enabled = false |}
-                                               :> obj
-                                    |}
-                        |}
+                                               null
+                                       |}
+
+                               template =
+                                   {| containers = [|
+                                          {|
+                                              image =
+                                               match this.DockerImage with
+                                               | PrivateImage image -> $"{image.RegistryDomain}/{image.RegistryName}/{image.ContainerName}:{image.Version}"
+                                               | PublicImage image -> image
+                                              name = this.Name.Value
+                                              env = [|
+                                                  for env in this.EnvironmentVariables do
+                                                      match env.Value with
+                                                      | EnvValue value -> {| name = env.Key; value = value; secretref = null |}
+                                                      | SecureEnvExpression armExpr -> {| name = env.Key; value = null; secretref = armExpr.Eval() |}
+                                                      | SecureEnvValue parameter -> {| name = env.Key; value = null; secretref = env.Key |}
+                                               |]
+                                              resources =
+                                                   {| cpu = this.Resources.CPU |> Option.toNullable
+                                                      memory = this.Resources.Memory |> Option.map (sprintf "%.2fGi") |> Option.toObj |}
+                                                  :> obj
+                                          |}
+                                      |]
+                                      scale =
+                                          {| minReplicas = this.Replicas |> Option.map (fun c -> c.Min) |> Option.toNullable
+                                             maxReplicas = this.Replicas |> Option.map (fun c -> c.Max) |> Option.toNullable
+                                             rules = [|
+                                                 for rule in this.ScaleRules do
+                                                     match rule.Value with
+                                                     | ScaleRule.Custom customRule ->
+                                                        {| name = rule.Key
+                                                           custom = customRule |}
+                                                        :> obj
+                                                     | ScaleRule.EventHub settings ->
+                                                        {| name = rule.Key
+                                                           custom =
+                                                               {| // https://keda.sh/docs/scalers/azure-event-hub/
+                                                                  ``type`` = "azure-eventhub"
+                                                                  metadata =
+                                                                      {| consumerGroup = settings.ConsumerGroup
+                                                                         unprocessedEventThreshold = string settings.UnprocessedEventThreshold
+                                                                         blobContainer = settings.CheckpointBlobContainerName
+                                                                         checkpointStrategy = "blobMetadata" |}
+                                                                  auth = [|
+                                                                      {| secretRef = settings.EventHubConnectionSecretRef
+                                                                         triggerParameter = "connection" |}
+                                                                      {| secretRef = settings.StorageConnectionSecretRef
+                                                                         triggerParameter = "storageConnection" |}
+                                                                  |]
+                                                               |}
+                                                        |}
+                                                        :> obj
+                                                     | ScaleRule.ServiceBus settings ->
+                                                        {| name = rule.Key
+                                                           custom =
+                                                               {| // https://keda.sh/docs/scalers/azure-service-bus/
+                                                                  ``type`` = "azure-servicebus"
+                                                                  metadata =
+                                                                      {| queueName = settings.QueueName
+                                                                         messageCount = string settings.MessageCount |}
+                                                                  auth = [|
+                                                                      {| secretRef = settings.SecretRef
+                                                                         triggerParameter = "connection" |}
+                                                                  |]
+                                                               |}
+                                                        |}
+                                                        :> obj
+                                                     | ScaleRule.Http settings ->
+                                                        {| name = rule.Key
+                                                           http =
+                                                               {| metadata =
+                                                                   {| concurrentRequests = string settings.ConcurrentRequests |}
+                                                               |}
+                                                        |}
+                                                        :> obj
+                                                     | ScaleRule.CPU settings ->
+                                                       {| name = rule.Key
+                                                          custom =
+                                                              {| ``type`` = "cpu"
+                                                                 metadata = {|
+                                                                   ``type`` = match settings with CpuUtilisation _ -> "Utilisation" | CpuAverageValue _ -> "AverageValue"
+                                                                   value = match settings with CpuUtilisation v | CpuAverageValue v -> v |> string
+                                                                 |}
+                                                              |}
+                                                       |}
+                                                       :> obj
+                                                     | ScaleRule.Memory settings ->
+                                                       {| name = rule.Key
+                                                          custom =
+                                                              {| ``type`` = "memory"
+                                                                 metadata = {|
+                                                                   ``type`` = match settings with MemoryUtilisation _ -> "Utilisation" | MemoryAverageValue _ -> "AverageValue"
+                                                                   value = match settings with MemoryUtilisation v | MemoryAverageValue v -> v |> string
+                                                                 |}
+                                                              |}
+                                                       |}
+                                                       :> obj
+                                                     | ScaleRule.StorageQueue settings ->
+                                                       {| name = rule.Key
+                                                          custom =
+                                                              {| ``type`` = "azure-queue"
+                                                                 metadata = {|
+                                                                   queueName = settings.QueueName
+                                                                   queueLength = string settings.QueueLength
+                                                                   connectionFromEnv = settings.StorageConnectionSecretRef
+                                                                   accountName = settings.AccountName
+                                                                 |}
+                                                              |}                                                             
+                                                       |}
+                                             |]
+                                          |}
+                                      dapr =
+                                          match this.DaprConfig with
+                                          | Some settings ->
+                                              {| enabled = true
+                                                 appId = settings.AppId |}
+                                              :> obj
+                                          | None ->
+                                              {| enabled = false |}
+                                              :> obj
+                                   |}
+                       |}
                 |} :> _
 
     type KubeEnvironment =
         { Name : ResourceName
           Location : Location
           InternalLoadBalancerState : FeatureFlag
-          LogAnalytics : ResourceId }
+          LogAnalytics : ResourceId
+          Dependencies: Set<ResourceId>
+          Tags: Map<string,string> }
         interface IArmResource with
             member this.ResourceId = kubeEnvironments.resourceId this.Name
             member this.JsonModel =
-                {| kubeEnvironments.Create(this.Name, this.Location, [ this.LogAnalytics ]) with
+                {| kubeEnvironments.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
                     kind = "containerenvironment"
                     properties =
                         {| ``type`` = "managed"

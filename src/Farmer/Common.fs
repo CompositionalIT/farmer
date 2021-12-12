@@ -359,7 +359,9 @@ module internal Validation =
     let lettersOrNumbers = "alphanumeric characters", Char.IsLetterOrDigit
     let letters = "letters", Char.IsLetter
     let dash = "a dash (-)", ((=) '-')
+    let dot = "a dash (.)", ((=) '.')
     let lettersNumbersOrDash = "alphanumeric characters or the dash (-)", Char.IsLetterOrDigit <|> (snd dash)
+    let lettersNumbersDashOrDot = "alphanumeric characters, a dash (-) or a dot (.)", Char.IsLetterOrDigit <|> (snd dash) <|> (snd dot)
     let validate entity inputValue rules =
         rules
         |> Seq.choose (fun rule ->
@@ -404,6 +406,20 @@ module ServiceBusValidation =
             |> Result.map (ResourceName >> ServiceBusName)
 
         member this.ResourceName = match this with ServiceBusName name -> name
+
+module ContainerAppValidation =
+    open Validation
+    type ContainerAppSettingKey =
+        private | ContainerAppSettingKey of string
+        static member Create (name:string) =
+            [ containsOnly lettersNumbersDashOrDot
+              startsWith aLetterOrNumber
+              endsWith aLetterOrNumber
+              containsOnly lowercaseLetters
+            ]
+            |> validate "Container App Setting Key" name
+            |> Result.map ContainerAppSettingKey
+        member this.Value = match this with ContainerAppSettingKey value -> value
 
 module Insights =
 
@@ -2069,14 +2085,21 @@ module AvailabilityTest =
         static member CentralUS = Farmer.Location "us-fl-mia-edge" |> AvailabilityTestSite
 
 module ContainerApp =
+    //type SecretRef = SecretRef of string
     type EventHubScaleRule = { ConsumerGroup : string; UnprocessedEventThreshold: int; CheckpointBlobContainerName: string; EventHubConnectionSecretRef : string; StorageConnectionSecretRef : string }
     type ServiceBusScaleRule = { QueueName : string; MessageCount: int; SecretRef : string }
     type HttpScaleRule = { ConcurrentRequests : int }
+    type StorageQueueScaleRule = { QueueName : string; QueueLength: int; StorageConnectionSecretRef : string; AccountName : string }
+    type CpuScaleRule = CpuUtilisation of int | CpuAverageValue of int
+    type MemoryScaleRule = MemoryUtilisation of int | MemoryAverageValue of int
     [<RequireQualifiedAccess>]
     type ScaleRule =
-        | EventHubs of EventHubScaleRule
+        | EventHub of EventHubScaleRule
         | ServiceBus of ServiceBusScaleRule
         | Http of HttpScaleRule
+        | CPU of CpuScaleRule
+        | Memory of MemoryScaleRule
+        | StorageQueue of StorageQueueScaleRule
         | Custom of obj
     type Transport = HTTP1 | HTTP2 | Auto
     type Visibility = External | Internal
