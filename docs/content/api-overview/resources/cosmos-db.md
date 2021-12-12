@@ -31,6 +31,7 @@ The CosmosDB builder abstracts the idea of account and database into one. If you
 | Account | consistency_policy | Sets the consistency policy of the database. |
 | Account | failover_policy | Sets the failover policy of the database. |
 | Account | free_tier | Registers this server with the free pricing tier, if supported and allowed by Azure. |
+| Account | serverless | Enables the "serverless" capacity mode. |
 
 #### Cosmos Container Builder
 The container builder allows you to create and configure a specific container that is attached to a cosmos database.

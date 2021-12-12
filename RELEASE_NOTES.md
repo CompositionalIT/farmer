@@ -5,6 +5,7 @@ Release Notes
 * Log Analytics: Add CustomerId configuration member to Log Analytics
 * Service Bus: Added additional overloads for topic.duplicate_detection and queue.duplicate_detection
 * WebApp: Fixed deployment name for nested template in app-managed certificate deployments
+* CosmosDb: Add support for serverless capacity mode.
 
 ## 1.6.21
 * Alerts: Extend a list of possible criteria for time aggregations and operators

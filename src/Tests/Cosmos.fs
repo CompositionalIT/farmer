@@ -28,6 +28,15 @@ let tests = testList "Cosmos" [
         Expect.isTrue (json.Contains("EnableServerless")) "Serverless template should contain 'EnableServerless'."
         Expect.isFalse (json.Contains("throughput")) "Serverless template should not contain 'throughput'."
     }
+    test "Serverless template should include one locations.location with filled locationName" {
+        let t = arm { add_resource (cosmosDb { name "foo"; serverless; }) }
+        let jobj = t.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
+        let locationJOjb = jobj.SelectToken("$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts')].properties.locations[0]") 
+        Expect.isNotEmpty (locationJOjb |> string) "location should be filled"
+        
+        let locationName = locationJOjb.SelectToken("locationName") |> string
+        Expect.isNotEmpty locationName "location should be filled"
+    }
     test "Shared throughput should include 'throughput' and exclude 'EnableServerless'" {
         let t = arm { add_resource (cosmosDb { name "foo"; throughput 400<CosmosDb.RU>; }) }
         let json = t.Template |> Writer.toJson
@@ -36,7 +45,7 @@ let tests = testList "Cosmos" [
     }
     test "DB properties are correctly evaluated" {
         let db = cosmosDb { name "test" }
-        Expect.equal (db.Endpoint.Eval()) "[reference(resourceId('Microsoft.DocumentDb/databaseAccounts', 'test-account'), '2021-01-15').documentEndpoint]" "Endpoint is incorrect"
+        Expect.equal (db.Endpoint.Eval()) "[reference(resourceId('Microsoft.DocumentDb/databaseAccounts', 'test-account'), '2021-04-15').documentEndpoint]" "Endpoint is incorrect"
         Expect.equal (db.PrimaryKey.Eval()) "[listKeys(resourceId('Microsoft.DocumentDb/databaseAccounts', 'test-account'), providers('Microsoft.DocumentDb','databaseAccounts').apiVersions[0]).primaryMasterKey]" "Primary Key is incorrect"
         Expect.equal (db.SecondaryKey.Eval()) "[listKeys(resourceId('Microsoft.DocumentDb/databaseAccounts', 'test-account'), providers('Microsoft.DocumentDb','databaseAccounts').apiVersions[0]).secondaryMasterKey]" "Secondary Key is incorrect"
         Expect.equal (db.PrimaryReadonlyKey.Eval()) "[listKeys(resourceId('Microsoft.DocumentDb/databaseAccounts', 'test-account'), providers('Microsoft.DocumentDb','databaseAccounts').apiVersions[0]).primaryreadonlyMasterKey]" "Primary Readonly Key is incorrect"
