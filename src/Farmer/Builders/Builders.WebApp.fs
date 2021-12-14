@@ -492,7 +492,18 @@ type WebAppConfig =
                       ServicePlanId = this.ServicePlanId
                       DomainName = customDomain }
                 hostNameBinding
-                cert
+                match this.CommonWebConfig.ServicePlan with
+                | LinkedResource res -> 
+                    match res.ResourceId.ResourceGroup with
+                    | Some rgName -> 
+                        let rg = 
+                            resourceGroup { 
+                                name rgName
+                                add_resource cert
+                            }
+                        yield! ((rg :> IBuilder).BuildResources location)
+                    | None -> cert
+                | _ -> cert
                 let resourceLocation = location
 
                 // nested deployment to update hostname binding with specified SSL options
