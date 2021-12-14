@@ -159,7 +159,7 @@ type ContainerAppBuilder () =
     member this.AddQueueScaleRule (state, name, account:StorageAccountConfig, queueName:string, queueLength : int) =
         let state = this.AddEnvironmentVariable (state, $"scalerule-{name}-queue-name", queueName)
         let secretRef = $"scalerule-{name}-connection"
-        let state = this.AddSecret(state, secretRef, account.Key)
+        let state = this.AddSecretExpression(state, secretRef, account.Key)
         this.AddScaleRule(state, name, ScaleRule.StorageQueue { QueueName = queueName; QueueLength = queueLength; StorageConnectionSecretRef = secretRef; AccountName = account.Name.ResourceName.Value })
 
     /// Configures the ingress of the Azure Container App.
@@ -230,7 +230,7 @@ type ContainerAppBuilder () =
 
     /// Adds an application secret to the Azure Container App.
     [<CustomOperation "add_secret_parameter">]
-    member _.AddSecret (state:ContainerAppConfig, key) =
+    member _.AddSecretParameter (state:ContainerAppConfig, key) =
         let key = (ContainerAppSettingKey.Create key).OkValue
         { state with
             Secrets = state.Secrets.Add (key, ParameterSecret (SecureParameter key.Value))
@@ -239,7 +239,7 @@ type ContainerAppBuilder () =
 
     /// Adds an application secret to the Azure Container App.
     [<CustomOperation "add_secret_expression">]
-    member _.AddSecret (state:ContainerAppConfig, key, expression) =
+    member _.AddSecretExpression (state:ContainerAppConfig, key, expression) =
         let key = (ContainerAppSettingKey.Create key).OkValue
         { state with
             Secrets = state.Secrets.Add (key, ExpressionSecret expression)
