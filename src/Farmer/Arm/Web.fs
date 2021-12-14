@@ -378,8 +378,9 @@ type Certificate =
       ServicePlanId: LinkedResource
       DomainName: string }
         member this.ResourceName = this.SiteId.Name.Map (sprintf "%s-cert")
-        member this.Thumbprint =
-            ArmExpression.reference(certificates.resourceId this.ResourceName).Map(sprintf "%s.Thumbprint")
+        member this.Thumbprint = this.GetThumbprintReference None
+        member this.GetThumbprintReference certificateResourceGroup =
+            ArmExpression.reference({certificates.resourceId this.ResourceName with ResourceGroup = certificateResourceGroup}).Map(sprintf "%s.Thumbprint")
         interface IArmResource with
             member this.ResourceId = certificates.resourceId this.ResourceName
             member this.JsonModel =

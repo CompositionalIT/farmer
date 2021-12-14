@@ -525,7 +525,7 @@ type WebAppConfig =
                                         | x -> x 
                                     SslState = 
                                         match certOptions with
-                                        | AppManagedCertificate -> SniBased cert.Thumbprint
+                                        | AppManagedCertificate -> SniBased (cert.GetThumbprintReference aspRgName)
                                         | CustomCertificate thumbprint -> SniBased thumbprint
                                   }
                     depends_on certRg
