@@ -130,28 +130,16 @@ type ContainerAppBuilder () =
     [<CustomOperation "add_scale_rule">]
     member _.AddScaleRule (state:ContainerAppConfig, name, rule:ScaleRule) =
         { state with ScaleRules = state.ScaleRules.Add (name, rule) }
-
-    [<CustomOperation "add_scale_rule">]
     member this.AddScaleRule (state, name, rule:HttpScaleRule) =
         this.AddScaleRule(state, name, ScaleRule.Http rule)
-
-    [<CustomOperation "add_scale_rule">]
     member this.AddScaleRule (state, name, rule:ServiceBusScaleRule) =
         this.AddScaleRule(state, name, ScaleRule.ServiceBus rule)
-
-    [<CustomOperation "add_scale_rule">]
     member this.AddScaleRule (state, name, rule:EventHubScaleRule) =
         this.AddScaleRule(state, name, ScaleRule.EventHub rule)
-
-    [<CustomOperation "add_scale_rule">]
     member this.AddScaleRule (state, name, rule:CpuScaleRule) =
         this.AddScaleRule(state, name, ScaleRule.CPU rule)
-
-    [<CustomOperation "add_scale_rule">]
     member this.AddScaleRule (state, name, rule:MemoryScaleRule) =
         this.AddScaleRule(state, name, ScaleRule.Memory rule)
-
-    [<CustomOperation "add_scale_rule">]
     member this.AddScaleRule (state, name, rule:StorageQueueScaleRule) =
         this.AddScaleRule(state, name, ScaleRule.StorageQueue rule)
 
