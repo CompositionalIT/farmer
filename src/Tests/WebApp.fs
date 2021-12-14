@@ -593,9 +593,10 @@ let tests = testList "Web App Tests" [
         let thumbprint = ArmExpression.literal "1111583E8FABEF4C0BEF694CBC41C28FB81CD111"
         let resources = webApp { name webappName; custom_domain ("customDomain.io",thumbprint) } |> getResources
         let wa = resources |> getResource<Web.Site> |> List.head
+        let nested = resources |> getResource<ResourceGroup.ResourceGroupDeployment>
 
         //Testing certificate
-        let cert = resources |> getResource<Web.Certificate> |> List.head
+        let cert = nested.[0].Resources |> getResource<Web.Certificate> |> List.head
         let expectedDomainName = "customDomain.io"
         Expect.equal cert.DomainName expectedDomainName $"Certificate domain name should have {expectedDomainName}"
 
@@ -608,13 +609,13 @@ let tests = testList "Web App Tests" [
         Expect.equal hostnameBinding.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
 
         //Testing ResourceGroupDeployment
-        let resourceGroupDeployment = resources |> getResource<ResourceGroup.ResourceGroupDeployment> |> List.head
-        let innerResource = resourceGroupDeployment.Resources |> getResource<Web.HostNameBinding> |> List.head
+        let bindingDeployment = nested.[1]
+        let innerResource = bindingDeployment.Resources |> getResource<Web.HostNameBinding> |> List.head
         let innerExpectedSslState = SslState.SniBased thumbprint
-        Expect.stringStarts resourceGroupDeployment.DeploymentName.Value "[concat" "resourceGroupDeployment name should start as a valid ARM expression"
-        Expect.stringEnds resourceGroupDeployment.DeploymentName.Value ")]" "resourceGroupDeployment stage should end as a valid ARM expression"
-        Expect.equal resourceGroupDeployment.Resources.Length 1 "resourceGroupDeployment stage should only contain one resource"
-        Expect.equal resourceGroupDeployment.Dependencies.Count 2 "resourceGroupDeployment stage should only contain two dependencies"
+        Expect.stringStarts bindingDeployment.DeploymentName.Value "[concat" "resourceGroupDeployment name should start as a valid ARM expression"
+        Expect.stringEnds bindingDeployment.DeploymentName.Value ")]" "resourceGroupDeployment stage should end as a valid ARM expression"
+        Expect.equal bindingDeployment.Resources.Length 1 "resourceGroupDeployment stage should only contain one resource"
+        Expect.equal bindingDeployment.Dependencies.Count 1 "resourceGroupDeployment stage should only contain one dependencies"
         Expect.equal innerResource.SslState innerExpectedSslState $"hostnameBinding should have a {innerExpectedSslState} Ssl state inside the resourceGroupDeployment template"
     }
 
@@ -622,9 +623,10 @@ let tests = testList "Web App Tests" [
         let webappName = "test"
         let resources = webApp { name webappName; custom_domain "customDomain.io" } |> getResources
         let wa = resources |> getResource<Web.Site> |> List.head
+        let nested = resources |> getResource<ResourceGroup.ResourceGroupDeployment>
 
         //Testing certificate
-        let cert = resources |> getResource<Web.Certificate> |> List.head
+        let cert = nested.[0].Resources |> getResource<Web.Certificate> |> List.head
         let expectedDomainName = "customDomain.io"
         Expect.equal cert.DomainName expectedDomainName $"Certificate domain name should have {expectedDomainName}"
 
@@ -637,11 +639,11 @@ let tests = testList "Web App Tests" [
         Expect.equal hostnameBinding.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
 
         //Testing ResourceGroupDeployment
-        let resourceGroupDeployment = resources |> getResource<ResourceGroup.ResourceGroupDeployment> |> List.head
-        let innerResource = resourceGroupDeployment.Resources |> getResource<Web.HostNameBinding> |> List.head
+        let bindingDeployment = nested.[1]
+        let innerResource = bindingDeployment.Resources |> getResource<Web.HostNameBinding> |> List.head
         let innerExpectedSslState = SslState.SniBased cert.Thumbprint
-        Expect.equal resourceGroupDeployment.Resources.Length 1 "resourceGroupDeployment stage should only contain one resource"
-        Expect.equal resourceGroupDeployment.Dependencies.Count 2 "resourceGroupDeployment stage should only contain two dependencies"
+        Expect.equal bindingDeployment.Resources.Length 1 "resourceGroupDeployment stage should only contain one resource"
+        Expect.equal bindingDeployment.Dependencies.Count 1 "resourceGroupDeployment stage should only contain one dependencies"
         Expect.equal innerResource.SslState innerExpectedSslState $"hostnameBinding should have a {innerExpectedSslState} Ssl state inside the resourceGroupDeployment template"
     }
 
