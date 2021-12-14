@@ -208,7 +208,7 @@ type ContainerAppBuilder () =
 
     /// Set docker credentials
     [<CustomOperation "private_docker_image">]
-    member _.SetDockerImage (state:ContainerAppConfig, registryDomain, registryName, containerName, version) =
+    member _.SetPrivateDockerImage (state:ContainerAppConfig, registryDomain, registryName, containerName, version) =
         { state with
             DockerImage =
                 Some (
@@ -221,7 +221,7 @@ type ContainerAppBuilder () =
         }
 
     [<CustomOperation "public_docker_image">]
-    member _.SetDockerImage (state:ContainerAppConfig, path) =
+    member _.SetPublicDockerImage (state:ContainerAppConfig, path) =
         { state with DockerImage = Some (PublicImage path) }
 
     /// Sets the active revision mode of the Azure Container App.
