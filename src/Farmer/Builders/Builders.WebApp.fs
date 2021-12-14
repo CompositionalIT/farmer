@@ -502,7 +502,7 @@ type WebAppConfig =
                 // however, when they are in different resource groups this is required to make the deployment succeed (there is an ARM bug which causes a Not Found / Conflict otherwise)
                 // To keep the code simple, I opted to always nest the certificate deployment. - TheRSP 2021-12-14
                 let certRg = resourceGroup { 
-                    name (aspRgName |> Option.defaultValue "[resourceGroup()]")
+                    name (aspRgName |> Option.defaultValue "[resourceGroup().name]")
                     add_resource 
                       { cert with
                           SiteId = Unmanaged cert.SiteId.ResourceId
