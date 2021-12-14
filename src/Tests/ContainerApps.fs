@@ -22,7 +22,7 @@ let fullContainerAppDeployment =
                     private_docker_image containerRegistryDomain containerRegistry "http" version
                     replicas 1 5
                     add_env_variable "ServiceBusQueueName" "wishrequests"
-                    add_secret_parameter "ServiceBusConnectionKey"
+                    add_secret_parameter "servicebusconnectionkey"
                     ingress_visibility External
                     ingress_target_port 80us
                     ingress_transport Auto
@@ -35,7 +35,7 @@ let fullContainerAppDeployment =
                     private_docker_image containerRegistryDomain containerRegistry "servicebus" version
                     replicas 0 3
                     add_env_variable "ServiceBusQueueName" "wishrequests"
-                    add_secret_parameter "ServiceBusConnectionKey"
+                    add_secret_parameter "servicebusconnectionkey"
                     add_scale_rule
                         "sb-keda-scale" 
                         (ScaleRule.ServiceBus {
@@ -63,7 +63,7 @@ let tests = testList "Container Apps" [
 
     test "Full container environment parameters" {
         Expect.hasLength jobj.["parameters"] 2 "Expecting 2 parameters"
-        Expect.isNotNull (jobj.SelectToken("parameters.ServiceBusConnectionKey")) "Missing 'ServiceBusConnectionKey' parameter"
+        Expect.isNotNull (jobj.SelectToken("parameters.servicebusconnectionkey")) "Missing 'servicebusconnectionkey' parameter"
         // This is really the parameter for the whole container registry, so we might want to name the paramter soemthing like my-registry.azurecr.io-password
         Expect.isNotNull (jobj.SelectToken("parameters.docker-password-for-myimage")) "Missing 'docker-password-for-myimage' parameter"
     }
