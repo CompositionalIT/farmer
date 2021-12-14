@@ -374,8 +374,8 @@ type HostNameBinding =
 
 type Certificate =
     { Location: Location
-      SiteId: ResourceId
-      ServicePlanId: ResourceId
+      SiteId: LinkedResource
+      ServicePlanId: LinkedResource
       DomainName: string }
         member this.ResourceName = this.SiteId.Name.Map (sprintf "%s-cert")
         member this.Thumbprint =
@@ -383,12 +383,16 @@ type Certificate =
         interface IArmResource with
             member this.ResourceId = certificates.resourceId this.ResourceName
             member this.JsonModel =
+                let dependencies = 
+                  match this.SiteId with 
+                  | Managed r -> [ r ; {hostNameBindings.resourceId(r.Name,ResourceName this.DomainName) with ResourceGroup = r.ResourceGroup }]
+                  | _ -> []
                 {| certificates.Create(
                         this.ResourceName,
                         this.Location, 
-                        [this.SiteId; hostNameBindings.resourceId(this.SiteId.Name,ResourceName this.DomainName)]) with
+                        dependencies ) with
                     properties =
-                        {| serverFarmId = this.ServicePlanId.Eval()
+                        {| serverFarmId = this.ServicePlanId.ResourceId.Eval()
                            canonicalName = this.DomainName |}
                 |} :> _
 
