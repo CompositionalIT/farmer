@@ -573,10 +573,10 @@ module ContainerApp =
                                                        {| name = rule.Key
                                                           custom =
                                                               {| ``type`` = "cpu"
-                                                                 metadata = {|
-                                                                   ``type`` = match settings with CpuUtilisation _ -> "Utilisation" | CpuAverageValue _ -> "AverageValue"
-                                                                   value = match settings with CpuUtilisation v | CpuAverageValue v -> v |> string
-                                                                 |}
+                                                                 metadata =
+                                                                   {| ``type`` = match settings with CpuUtilisation _ -> "Utilisation" | CpuAverageValue _ -> "AverageValue"
+                                                                      value = match settings with CpuUtilisation v | CpuAverageValue v -> v |> string
+                                                                   |}
                                                               |}
                                                        |}
                                                        :> obj
@@ -584,10 +584,10 @@ module ContainerApp =
                                                        {| name = rule.Key
                                                           custom =
                                                               {| ``type`` = "memory"
-                                                                 metadata = {|
-                                                                   ``type`` = match settings with MemoryUtilisation _ -> "Utilisation" | MemoryAverageValue _ -> "AverageValue"
-                                                                   value = match settings with MemoryUtilisation v | MemoryAverageValue v -> v |> string
-                                                                 |}
+                                                                 metadata =
+                                                                   {| ``type`` = match settings with MemoryUtilisation _ -> "Utilisation" | MemoryAverageValue _ -> "AverageValue"
+                                                                      value = match settings with MemoryUtilisation v | MemoryAverageValue v -> v |> string
+                                                                   |}
                                                               |}
                                                        |}
                                                        :> obj
@@ -595,12 +595,12 @@ module ContainerApp =
                                                        {| name = rule.Key
                                                           custom =
                                                               {| ``type`` = "azure-queue"
-                                                                 metadata = {|
-                                                                   queueName = settings.QueueName
-                                                                   queueLength = string settings.QueueLength
-                                                                   connectionFromEnv = settings.StorageConnectionSecretRef
-                                                                   accountName = settings.AccountName
-                                                                 |}
+                                                                 metadata =
+                                                                   {| queueName = settings.QueueName
+                                                                      queueLength = string settings.QueueLength
+                                                                      connectionFromEnv = settings.StorageConnectionSecretRef
+                                                                      accountName = settings.AccountName
+                                                                   |}
                                                               |}                                                             
                                                        |}
                                              |]
