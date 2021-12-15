@@ -36,7 +36,7 @@ type ContainerInstanceConfig =
     { /// The name of the container instance
       Name : ResourceName
       /// The container instance image
-      Image : string
+      Image : Containers.DockerImage option
       /// The commands to execute within the container instance in exec form
       Command : string list
       /// List of ports the container instance listens on
@@ -61,7 +61,7 @@ type InitContainerConfig =
     { /// The name of the container instance
       Name : ResourceName
       /// The container instance image
-      Image : string
+      Image : Containers.DockerImage option
       /// The commands to execute within the container instance in exec form
       Command : string list
       /// Environment variables for the container
@@ -103,17 +103,20 @@ type ContainerGroupConfig =
               Name = this.Name
               ContainerInstances = [
                 for instance in this.Instances do
-                    {| Name = instance.Name
-                       Image = instance.Image
-                       Command = instance.Command
-                       Ports = instance.Ports |> Map.toSeq |> Seq.map fst |> Set
-                       Cpu = instance.Cpu
-                       Memory = instance.Memory
-                       Gpu = instance.Gpu
-                       EnvironmentVariables = instance.EnvironmentVariables
-                       LivenessProbe = instance.LivenessProbe
-                       ReadinessProbe = instance.ReadinessProbe
-                       VolumeMounts = instance.VolumeMounts |}
+                    match instance.Image with
+                    | None -> raiseFarmer $"Missing image tag for container named '{instance.Name}'."
+                    | Some image ->
+                        {| Name = instance.Name
+                           Image = image
+                           Command = instance.Command
+                           Ports = instance.Ports |> Map.toSeq |> Seq.map fst |> Set
+                           Cpu = instance.Cpu
+                           Memory = instance.Memory
+                           Gpu = instance.Gpu
+                           EnvironmentVariables = instance.EnvironmentVariables
+                           LivenessProbe = instance.LivenessProbe
+                           ReadinessProbe = instance.ReadinessProbe
+                           VolumeMounts = instance.VolumeMounts |}
               ]
               OperatingSystem = this.OperatingSystem
               RestartPolicy = this.RestartPolicy
@@ -121,11 +124,14 @@ type ContainerGroupConfig =
               ImageRegistryCredentials = this.ImageRegistryCredentials
               InitContainers = [
                   for initContainer in this.InitContainers do
-                      {| Name = initContainer.Name
-                         Image = initContainer.Image
-                         Command = initContainer.Command
-                         EnvironmentVariables = initContainer.EnvironmentVariables
-                         VolumeMounts = initContainer.VolumeMounts |}
+                    match initContainer.Image with
+                    | None -> raiseFarmer $"Missing image tag for initContainer named '{initContainer.Name}'."
+                    | Some image ->
+                        {| Name = initContainer.Name
+                           Image = image
+                           Command = initContainer.Command
+                           EnvironmentVariables = initContainer.EnvironmentVariables
+                           VolumeMounts = initContainer.VolumeMounts |}
               ]
               IpAddress = this.IpAddress
               NetworkProfile = this.NetworkProfile
@@ -266,7 +272,7 @@ let registry (server:string) (username:string) =
 type ContainerInstanceBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
-          Image = ""
+          Image = None
           Command = List.empty
           Ports = Map.empty
           Cpu = 1.0
@@ -280,9 +286,14 @@ type ContainerInstanceBuilder() =
     [<CustomOperation "name">]
     member _.Name(state:ContainerInstanceConfig, name) = { state with Name = name }
     member this.Name(state:ContainerInstanceConfig, name) = this.Name(state, ResourceName name)
-    /// Sets the image of the container instance.
+    /// Sets the image of the container instance as a docker image tag.
     [<CustomOperation "image">]
-    member _.Image (state:ContainerInstanceConfig, image) = { state with Image = image }
+    member _.Image (state:ContainerInstanceConfig, image:string) =
+        { state with Image = Some (Containers.DockerImage.Parse image) }
+    /// Sets the image of the container instance from image tag parts.
+    [<CustomOperation "docker_image">]
+    member _.DockerImage(state:ContainerInstanceConfig, registryDomain:string, repositoryName:string, containerName:string, version:string) =
+        { state with Image = Containers.DockerImage.PrivateImage (registryDomain, repositoryName, containerName, version) |> Some }
     static member private AddPorts (state:ContainerInstanceConfig, accessibility, ports) =
         { state with
             Ports =
@@ -400,7 +411,7 @@ let containerInstanceGpu = GpuBuilder()
 type InitContainerBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
-          Image = ""
+          Image = None
           Command = List.empty
           EnvironmentVariables = Map.empty
           VolumeMounts = Map.empty }
@@ -410,7 +421,11 @@ type InitContainerBuilder() =
     member this.Name(state:InitContainerConfig, name) = this.Name(state, ResourceName name)
     /// Sets the image of the init container.
     [<CustomOperation "image">]
-    member _.Image (state:InitContainerConfig, image) = { state with Image = image }
+    member _.Image (state:InitContainerConfig, image:string) = { state with Image = Some (Containers.DockerImage.Parse image) }
+    /// Sets the image of the container instance.
+    [<CustomOperation "docker_image">]
+    member _.DockerImage(state:ContainerInstanceConfig, registryDomain:string, repositoryName:string, containerName:string, version:string) =
+        { state with Image = Containers.DockerImage.PrivateImage (registryDomain, repositoryName, containerName, version) |> Some }
     /// Sets the environment variables for the init container.
     [<CustomOperation "env_vars">]
     member _.EnvironmentVariables(state:InitContainerConfig, envVars) =

@@ -72,7 +72,7 @@ type ContainerGroup =
       Location : Location
       ContainerInstances :
         {| Name : ResourceName
-           Image : string
+           Image : Containers.DockerImage
            Command : string list
            Ports : uint16 Set
            Cpu : float
@@ -89,7 +89,7 @@ type ContainerGroup =
       ImageRegistryCredentials : ImageRegistryAuthentication list
       InitContainers :
         {| Name : ResourceName
-           Image : string
+           Image : Containers.DockerImage
            Command : string list
            EnvironmentVariables: Map<string, EnvVar>
            VolumeMounts : Map<string,string>
@@ -160,7 +160,7 @@ type ContainerGroup =
                            |> List.map (fun container ->
                                {| name = container.Name.Value.ToLowerInvariant ()
                                   properties =
-                                   {| image = container.Image
+                                   {| image = container.Image.Tag
                                       command = container.Command
                                       ports = container.Ports |> Set.map (fun port -> {| port = port |})
                                       environmentVariables = [
@@ -192,7 +192,7 @@ type ContainerGroup =
                            |> List.map (fun container ->
                                {| name = container.Name.Value.ToLowerInvariant ()
                                   properties =
-                                   {| image = container.Image
+                                   {| image = container.Image.Tag
                                       command = container.Command
                                       environmentVariables = [
                                           for key, value in Map.toSeq container.EnvironmentVariables do

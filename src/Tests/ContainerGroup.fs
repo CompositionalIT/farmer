@@ -23,7 +23,7 @@ let nginx = containerInstance {
 }
 let fsharpApp = containerInstance {
     name "fsharpApp"
-    image "myapp:1.7.2"
+    image "myrepo/myapp:1.7.2"
     add_ports PublicPort [ 8080us ]
     memory 1.5<Gb>
     cpu_cores 2
@@ -141,7 +141,9 @@ let tests = testList "Container Group" [
 
         Expect.hasLength group.Containers 2 "Should be two containers"
         Expect.equal group.Containers.[0].Name "nginx" "Incorrect container name"
+        Expect.equal group.Containers.[0].Image "nginx:1.17.6-alpine" "Incorrect image tag generated on first container instance"
         Expect.equal group.Containers.[1].Name "fsharpapp" "Incorrect container name"
+        Expect.equal group.Containers.[1].Image "myrepo/myapp:1.7.2" "Incorrect image tag generated on second container instance"
         Expect.equal group.Containers.[1].Resources.Requests.MemoryInGB 1.5 "Incorrect memory"
         Expect.equal group.Containers.[1].Resources.Requests.Cpu 2.0 "Incorrect CPU count"
     }
@@ -160,6 +162,7 @@ let tests = testList "Container Group" [
                 add_instances [
                     containerInstance {
                         name "foo"
+                        image "testrepo"
                         add_ports PublicPort [ 123us ]
                         add_ports InternalPort [ 123us ]
                     }
@@ -590,13 +593,16 @@ async {
                 add_instances [
                     containerInstance {
                         name "foo"
+                        image "myrepo/gpucontainers"
                         gpu ( containerInstanceGpu { count 1
                                                      sku Gpu.V100 } )
                     }
                 ]
             } |> asAzureResource
-        let gpu = group.Containers.[0].Resources.Requests.Gpu
+        let container = group.Containers |> Seq.head
+        let gpu = container.Resources.Requests.Gpu
         Expect.equal gpu.Count 1 "Wrong amount of GPUs"
         Expect.equal gpu.Sku "V100" "Wrong SKU"
+        Expect.equal container.Image "myrepo/gpucontainers" "Incorrect image tag"
     }
 ]

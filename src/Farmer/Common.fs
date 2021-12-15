@@ -935,6 +935,47 @@ module Identity =
         static member (+) (managedIdentity, userAssignedIdentity:UserAssignedIdentity) =
             { managedIdentity with UserAssigned = userAssignedIdentity :: managedIdentity.UserAssigned }
 
+module Containers =
+    type DockerImage =
+        { RegistryDomain : string option
+          RepositoryName : string
+          ContainerName : string option
+          Version:string option }
+        /// Generates a fully qualified docker image tag.
+        member this.Tag =
+            let fullyQualifiedName =
+                seq {
+                    this.RegistryDomain
+                    this.RepositoryName |> Some
+                    this.ContainerName
+                 } |> Seq.choose id |> String.concat "/"
+            match this.Version with
+            | Some version when String.IsNullOrWhiteSpace(version) -> fullyQualifiedName
+            | Some version -> $"{fullyQualifiedName}:{version}"
+            | None -> fullyQualifiedName
+        /// Official image, such as 'nginx'
+        static member OfficialImage (repositoryName:string, ?version:string) =
+            { RegistryDomain = None; RepositoryName = repositoryName; ContainerName = None; Version = version}
+        /// Image from a private registry.
+        static member PrivateImage (registry:string, repositoryName:string, ?containerName:string, ?version:string) =
+            { RegistryDomain = Some registry; RepositoryName = repositoryName; ContainerName = containerName; Version = version}
+        /// Parses an image tag into a DockerImage record.
+        static member Parse (tag:string) =
+            match tag.Split([|':'|], StringSplitOptions.RemoveEmptyEntries) with
+            | [| repo; version |] ->
+                match repo.Split([|'/'|], StringSplitOptions.RemoveEmptyEntries) with
+                | [| registry; repo; container |] -> DockerImage.PrivateImage(registry, repo, containerName=container, version=version)
+                | [| registry; repo |] -> DockerImage.PrivateImage(registry, repo, version=version)
+                | [| repo |] -> DockerImage.OfficialImage(repo, version=version)
+                | _ -> raiseFarmer $"Malformed docker image tag - incorrect number of repository segments: '{tag}'"
+            | [| repo |] ->
+                match repo.Split([|'/'|], StringSplitOptions.RemoveEmptyEntries) with
+                | [| registry; repo; container |] -> DockerImage.PrivateImage(registry, repo, containerName=container)
+                | [| registry; repo |] -> DockerImage.PrivateImage(registry, repo)
+                | [| repo |] -> DockerImage.OfficialImage(repo)
+                | _ -> raiseFarmer $"Malformed docker image tag - incorrect number of repository segments: '{tag}'"
+            | _ -> raiseFarmer $"Malformed docker image tag - incorrect number of version segments: '{tag}'"
+
 module ContainerGroup =
     type PortAccess = PublicPort | InternalPort
     type RestartPolicy = NeverRestart | AlwaysRestart | RestartOnFailure
