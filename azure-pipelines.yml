@@ -49,6 +49,14 @@ stages:
         command: 'test'
         arguments: '-v n -c release -l trx --collect:"XPlat Code Coverage"'
     - task: PublishCodeCoverageResults@1
+      displayName: "Publish Code Coverage"
+      condition:  and(succeeded(), not(eq(variables['build.reason'], 'PullRequest')))
+      inputs:
+        codeCoverageTool: 'Cobertura'
+        summaryFileLocation: '$(Build.SourcesDirectory)/src/Tests/TestResults/*/coverage.cobertura.xml'
+    - task: PublishCodeCoverageResults@1
+      displayName: "Publish PR Code Coverage"
+      condition:  and(succeeded(), eq(variables['build.reason'], 'PullRequest'))
       inputs:
         codeCoverageTool: 'Cobertura'
         summaryFileLocation: '$(Agent.TempDirectory)/*/coverage.cobertura.xml'
