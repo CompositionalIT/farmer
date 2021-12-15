@@ -2,6 +2,7 @@ Release Notes
 =============
 
 ## 1.6.22
+* Log Analytics: Add CustomerId configuration member to Log Analytics
 * Service Bus: Added additional overloads for topic.duplicate_detection and queue.duplicate_detection
 * WebApp: Fixed deployment name for nested template in app-managed certificate deployments
 
