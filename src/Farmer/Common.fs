@@ -952,6 +952,19 @@ module Identity =
         static member (+) (managedIdentity, userAssignedIdentity:UserAssignedIdentity) =
             { managedIdentity with UserAssigned = userAssignedIdentity :: managedIdentity.UserAssigned }
 
+/// Credential for accessing an image registry.
+type ImageRegistryCredential =
+    { Server : string
+      Username : string
+      Password : SecureParameter }
+
+[<RequireQualifiedAccess>]
+type ImageRegistryAuthentication =
+/// Credentials for the container registry are included with the password as a template parameter.
+| Credential of ImageRegistryCredential
+/// Credentials for the container registry will be listed by ARM expression.
+| ListCredentials of ResourceId
+
 module ContainerGroup =
     type PortAccess = PublicPort | InternalPort
     type RestartPolicy = NeverRestart | AlwaysRestart | RestartOnFailure

@@ -2,6 +2,7 @@
 module Farmer.Arm.Web
 
 open Farmer
+open Farmer.ContainerApp
 open Farmer.Identity
 open Farmer.WebApp
 open System
@@ -411,22 +412,24 @@ module ContainerApp =
         { Visibility : Visibility option
           TargetPort : uint16
           Transport : Transport option }
+    type Container =
+        { Name : string
+          DockerImage : DockerImageKind
+          Resources : {| CPU : float<VCores> option; Memory : float<Gb> option |} }
     type ContainerApp =
         { Name : ResourceName
           Environment : ResourceId
           ActiveRevisionsMode : ActiveRevisionsMode
-          Resources : {| CPU : float<VCores> option; Memory : float<Gb> option |}
           IngressConfig : IngressConfig option
           ScaleRules : Map<string, ScaleRule>
           Replicas : {| Min : int; Max : int |} option
           DaprConfig : {| AppId : string |} option
           Secrets : Map<ContainerAppSettingKey, SecretValue>
           EnvironmentVariables : Map<string, EnvVar>
-          DockerImage : DockerImageKind
+          ImageRegistryCredentials : ImageRegistryAuthentication list
+          Containers : Container list
           Location : Location
           Dependencies : Set<ResourceId> }
-        static member private DockerPassword registryName = SecureParameter $"docker-password-for-%s{registryName}"
-        static member private ContainerRegistryPassword registryName = $"container-registry-password-for-%s{registryName}"
 
         interface IParameters with
             member this.SecureParameters = [
@@ -434,9 +437,11 @@ module ContainerApp =
                     match secret.Value with
                     | ParameterSecret sp -> sp
                     | ExpressionSecret _ -> ()
-                match this.DockerImage with
-                | PublicImage _ -> ()
-                | PrivateImage image -> ContainerApp.DockerPassword image.RegistryName
+                for credential in this.ImageRegistryCredentials do
+                    match credential with
+                    | ImageRegistryAuthentication.Credential credential ->
+                        credential.Password
+                    | ImageRegistryAuthentication.ListCredentials _ -> ()
             ]
 
         interface IArmResource with
@@ -451,13 +456,14 @@ module ContainerApp =
                                configuration =
                                    {|
                                        secrets = [|
-                                           match this.DockerImage with
-                                           | PublicImage _ ->
-                                               ()
-                                           | PrivateImage image ->
-                                               // TODO: This looks suspicious
-                                               {| name = ContainerApp.ContainerRegistryPassword image.RegistryName
-                                                  value = ContainerApp.DockerPassword(image.RegistryName).ArmExpression.Eval() |}
+                                           for cred in this.ImageRegistryCredentials do
+                                               match cred with
+                                               | ImageRegistryAuthentication.Credential cred ->
+                                                   {| name = cred.Server
+                                                      value = cred.Password.ArmExpression.Eval() |}
+                                               | ImageRegistryAuthentication.ListCredentials resourceId ->
+                                                   {| name = ArmExpression.create($"reference({resourceId.ArmExpression.Value}, '2019-05-01').loginServer").Eval()
+                                                      value = ArmExpression.create($"listCredentials({resourceId.ArmExpression.Value}, '2019-05-01').passwords[0].value").Eval() |}
                                            for setting in this.Secrets do
                                                {| name = setting.Key.Value
                                                   value = setting.Value.Value |}
@@ -466,16 +472,18 @@ module ContainerApp =
                                            match this.ActiveRevisionsMode with
                                            | ActiveRevisionsMode.Single -> "Single"
                                            | ActiveRevisionsMode.Multiple -> "Multiple"
-                                       registries =
-                                           match this.DockerImage with
-                                           | PublicImage _ ->
-                                               null
-                                           | PrivateImage image ->
-                                               [|
-                                                   {| server = image.RegistryDomain
-                                                      username = image.RegistryName
-                                                      passwordSecretRef = ContainerApp.ContainerRegistryPassword image.RegistryName |}
-                                               |]
+                                       registries = [|
+                                           for cred in this.ImageRegistryCredentials do
+                                               match cred with
+                                               | ImageRegistryAuthentication.Credential cred ->
+                                                   {| server = cred.Server
+                                                      username = cred.Username
+                                                      passwordSecretRef = cred.Password.ArmExpression.Eval() |}
+                                               | ImageRegistryAuthentication.ListCredentials resourceId ->
+                                                   {| server = ArmExpression.create($"reference({resourceId.ArmExpression.Value}, '2019-05-01').loginServer").Eval()
+                                                      username = ArmExpression.create($"listCredentials({resourceId.ArmExpression.Value}, '2019-05-01').username").Eval()
+                                                      passwordSecretRef = ArmExpression.create($"listCredentials({resourceId.ArmExpression.Value}, '2019-05-01').passwords[0].value").Eval() |}
+                                       |]
                                        ingress =
                                            match this.IngressConfig with
                                            | Some ingressConfig ->
@@ -498,23 +506,24 @@ module ContainerApp =
 
                                template =
                                    {| containers = [|
-                                          {|
-                                              image =
-                                               match this.DockerImage with
-                                               | PrivateImage image -> $"{image.RegistryDomain}/{image.RegistryName}/{image.ContainerName}:{image.Version}"
-                                               | PublicImage image -> image
-                                              name = this.Name.Value
-                                              env = [|
+                                         for container in this.Containers do
+                                             {|
+                                                image =
+                                                    match container.DockerImage with
+                                                    | PrivateImage image -> $"{image.RegistryDomain}/{image.ContainerName}:{image.Version}"
+                                                    | PublicImage image -> image
+                                                name = container.Name
+                                                env = [|
                                                   for env in this.EnvironmentVariables do
                                                       match env.Value with
                                                       | EnvValue value -> {| name = env.Key; value = value; secretref = null |}
                                                       | SecureEnvExpression armExpr -> {| name = env.Key; value = null; secretref = armExpr.Eval() |}
                                                       | SecureEnvValue parameter -> {| name = env.Key; value = null; secretref = env.Key |}
-                                               |]
-                                              resources =
-                                                   {| cpu = this.Resources.CPU |> Option.toNullable
-                                                      memory = this.Resources.Memory |> Option.map (sprintf "%.2fGi") |> Option.toObj |}
-                                                  :> obj
+                                                 |]
+                                                resources =
+                                                   {| cpu = container.Resources.CPU |> Option.toNullable
+                                                      memory = container.Resources.Memory |> Option.map (sprintf "%.2fGi") |> Option.toObj |}
+                                                   :> obj
                                           |}
                                       |]
                                       scale =

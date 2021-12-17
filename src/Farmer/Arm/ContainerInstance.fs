@@ -14,18 +14,6 @@ type ContainerGroupIpAddress =
         {| Protocol : TransmissionProtocol
            Port : uint16 |} Set }
 
-type ImageRegistryCredential =
-    { Server : string
-      Username : string
-      Password : SecureParameter }
-
-[<RequireQualifiedAccess>]
-type ImageRegistryAuthentication =
-/// Credentials for the container registry are included with the password as a template parameter.
-| Credential of ImageRegistryCredential
-/// Credentials for the container registry will be listed by ARM expression.
-| ListCredentials of ResourceId
-
 type ContainerInstanceGpu =
     { Count: int
       Sku: Gpu.Sku } 

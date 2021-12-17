@@ -2,28 +2,42 @@
 module Farmer.Builders.ContainerApps
 
 open Farmer
+open Farmer.Builders
 open Farmer.ContainerApp
 open Farmer.ContainerAppValidation
 open Farmer.Arm.Web
 open Farmer.Arm.Web.ContainerApp
 
+type ContainerConfig =
+    { ContainerName : string
+      DockerImage : DockerImageKind option
+      Resources : {| CPU : float<VCores> option; Memory : float<Gb> option |} }
+    member internal this.BuildContainer : Container =
+        match this.DockerImage with
+        | Some dockerImage ->
+            { Name = this.ContainerName
+              DockerImage = dockerImage
+              Resources = this.Resources }
+        | None -> raiseFarmer $"Container '{this.ContainerName}' requires a docker image."
+
 type ContainerAppConfig =
     { Name : ResourceName
       ActiveRevisionsMode : ActiveRevisionsMode
-      Resources : {| CPU : float<VCores> option; Memory : float<Gb> option |}
       IngressConfig : IngressConfig option
       ScaleRules : Map<string, ScaleRule>
       Replicas : {| Min : int; Max : int |} option
       DaprConfig : {| AppId : string |} option
       Secrets : Map<ContainerAppSettingKey, SecretValue>
       EnvironmentVariables : Map<string, EnvVar>
-      DockerImage : DockerImageKind option
+      /// Credentials for image registries used by containers in this environment.
+      ImageRegistryCredentials : ImageRegistryAuthentication list
+      Containers : ContainerConfig list
       Dependencies : Set<ResourceId> } 
 
 type ContainerEnvironmentConfig =
     { Name : ResourceName
       InternalLoadBalancerState : FeatureFlag
-      Containers : ContainerAppConfig list
+      ContainerApps : ContainerAppConfig list
       LogAnalytics : ResourceRef<ContainerEnvironmentConfig>
       Dependencies: Set<ResourceId>
       Tags: Map<string,string> }
@@ -52,30 +66,27 @@ type ContainerEnvironmentConfig =
             | _ ->
                 ()
 
-            for container in this.Containers do
-                { Name = container.Name
+            for containerApp in this.ContainerApps do
+                { Name = containerApp.Name
                   Environment = kubeEnvironments.resourceId this.Name
-                  ActiveRevisionsMode = container.ActiveRevisionsMode
-                  Resources = container.Resources
-                  IngressConfig = container.IngressConfig
-                  ScaleRules = container.ScaleRules
-                  Replicas = container.Replicas
-                  DaprConfig = container.DaprConfig
-                  Secrets = container.Secrets
-                  EnvironmentVariables = container.EnvironmentVariables
-                  DockerImage =
-                    match container.DockerImage with
-                    | Some image -> image
-                    | None -> raiseFarmer "The container image settings were not set. Please use the docker_image keyword of the containerApp builder."
+                  ActiveRevisionsMode = containerApp.ActiveRevisionsMode
+                  IngressConfig = containerApp.IngressConfig
+                  ScaleRules = containerApp.ScaleRules
+                  Replicas = containerApp.Replicas
+                  DaprConfig = containerApp.DaprConfig
+                  Secrets = containerApp.Secrets
+                  EnvironmentVariables = containerApp.EnvironmentVariables
+                  ImageRegistryCredentials = containerApp.ImageRegistryCredentials
+                  Containers = containerApp.Containers |> List.map (fun c -> c.BuildContainer)
                   Location = location
-                  Dependencies = container.Dependencies }
+                  Dependencies = containerApp.Dependencies }
         ]
 
 type ContainerEnvironmentBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
           InternalLoadBalancerState = Disabled
-          Containers = []
+          ContainerApps = []
           LogAnalytics = ResourceRef.derived (fun cfg -> Arm.LogAnalytics.workspaces.resourceId(cfg.Name - "workspace"))
           Dependencies = Set.empty
           Tags = Map.empty }
@@ -96,13 +107,13 @@ type ContainerEnvironmentBuilder() =
 
     /// Adds a container to the Azure Container App Environment.
     [<CustomOperation "add_container">]
-    member _.AddContainer  (state:ContainerEnvironmentConfig, container:ContainerAppConfig) =
-        { state with Containers = container :: state.Containers }
+    member _.AddContainerApp  (state:ContainerEnvironmentConfig, containerApp:ContainerAppConfig) =
+        { state with ContainerApps = containerApp :: state.ContainerApps }
 
     /// Adds multiple containers to the Azure Container App Environment.
     [<CustomOperation "add_containers">]
-    member _.AddContainers  (state:ContainerEnvironmentConfig, containers:ContainerAppConfig list) =
-        { state with Containers = containers @ state.Containers }
+    member _.AddContainerApps  (state:ContainerEnvironmentConfig, containerApps:ContainerAppConfig list) =
+        { state with ContainerApps = containerApps @ state.ContainerApps }
     /// Support for adding tags to this Container App Environment.
     interface ITaggable<ContainerEnvironmentConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     /// Support for adding dependencies to this Container App Environment.
@@ -112,14 +123,14 @@ type ContainerAppBuilder () =
     member _.Yield _ =
         { Name = ResourceName.Empty
           ActiveRevisionsMode = ActiveRevisionsMode.Single
-          DockerImage = None
+          ImageRegistryCredentials = []
+          Containers = []
           Replicas = None
           ScaleRules = Map.empty
           Secrets = Map.empty
           IngressConfig = None
           EnvironmentVariables = Map.empty
           DaprConfig = None
-          Resources = {| CPU = Some 0.25<VCores>; Memory = Some 0.5<Gb> |}
           Dependencies = Set.empty }
 
     /// Sets the name of the Azure Container App.
@@ -194,23 +205,20 @@ type ContainerAppBuilder () =
     member _.SetReplicas (state:ContainerAppConfig, minReplicas:int, maxReplicas: int) =
         { state with Replicas = Some {| Min = minReplicas; Max = maxReplicas |} }
 
-    /// Set docker credentials
-    [<CustomOperation "private_docker_image">]
-    member _.SetPrivateDockerImage (state:ContainerAppConfig, registryDomain, registryName, containerName, version) =
-        { state with
-            DockerImage =
-                Some (
-                    PrivateImage
-                        {| RegistryDomain = registryDomain
-                           RegistryName = registryName
-                           ContainerName = containerName
-                           Version = version |}
-                )
-        }
+    /// Adds container image registry credentials for images in this container app.
+    [<CustomOperation "add_registry_credentials">]
+    member _.AddRegistryCredentials(state:ContainerAppConfig, credentials) =
+        { state with ImageRegistryCredentials = state.ImageRegistryCredentials @ (credentials |> List.map ImageRegistryAuthentication.Credential) }
 
-    [<CustomOperation "public_docker_image">]
-    member _.SetPublicDockerImage (state:ContainerAppConfig, path) =
-        { state with DockerImage = Some (PublicImage path) }
+    /// Reference container registries to import their admin credential at deployment time.
+    [<CustomOperation "reference_registry_credentials">]
+    member _.ReferenceRegistryCredentials(state:ContainerAppConfig, resourceIds) =
+        { state with ImageRegistryCredentials = state.ImageRegistryCredentials @ (resourceIds |> List.map ImageRegistryAuthentication.ListCredentials) }
+
+    /// Adds one or more containers to the container app.
+    [<CustomOperation "add_containers">]
+    member _.AddContainers(state:ContainerAppConfig, containers:ContainerConfig list) =
+        { state with Containers = state.Containers @ containers }
 
     /// Sets the active revision mode of the Azure Container App.
     [<CustomOperation "active_revision_mode">]
@@ -248,5 +256,32 @@ type ContainerAppBuilder () =
     /// Support for adding dependencies to this Container App.
     interface IDependable<ContainerAppConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
+type ContainerBuilder () =
+    member _.Yield _ =
+        { ContainerName = ""
+          DockerImage = None
+          Resources = {| CPU = Some 0.25<VCores>; Memory = Some 0.5<Gb> |} }
+    /// Set docker credentials
+    [<CustomOperation "container_name">]
+    member _.ContainerName (state:ContainerConfig, name) =
+        { state with ContainerName = name }
+
+        /// Set docker credentials
+    [<CustomOperation "private_docker_image">]
+    member _.SetPrivateDockerImage (state:ContainerConfig, registryDomain, registryName, containerName, version) =
+        { state with
+            DockerImage =
+                Some (PrivateImage
+                    {| RegistryDomain = registryDomain
+                       RegistryName = registryName
+                       ContainerName = containerName
+                       Version = version |})
+        }
+
+    [<CustomOperation "public_docker_image">]
+    member _.SetPublicDockerImage (state:ContainerConfig, path) =
+        { state with DockerImage = Some (PublicImage path) }
+
 let containerEnvironment = ContainerEnvironmentBuilder()
 let containerApp = ContainerAppBuilder()
+let container = ContainerBuilder()
