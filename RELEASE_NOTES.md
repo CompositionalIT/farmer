@@ -1,9 +1,14 @@
 Release Notes
 =============
+
+## 1.6.23
+* ContainerApps: Adds support for [containerApps](https://docs.microsoft.com/azure/container-apps/overview).
+
 ## 1.6.22
+* Log Analytics: Add CustomerId configuration member to Log Analytics
 * Service Bus: Added additional overloads for topic.duplicate_detection and queue.duplicate_detection
 * WebApp: Fixed deployment name for nested template in app-managed certificate deployments
-* ContainerApps: Adds support for [containerApps](https://docs.microsoft.com/azure/container-apps/overview).
+* WebApps/Functions: Added support for .NET 6 runtimes with new Runtime.DotNet60.
 
 ## 1.6.21
 * Alerts: Extend a list of possible criteria for time aggregations and operators
