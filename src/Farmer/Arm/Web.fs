@@ -459,10 +459,10 @@ module ContainerApp =
                                            for cred in this.ImageRegistryCredentials do
                                                match cred with
                                                | ImageRegistryAuthentication.Credential cred ->
-                                                   {| name = cred.Server
+                                                   {| name = cred.Username
                                                       value = cred.Password.ArmExpression.Eval() |}
                                                | ImageRegistryAuthentication.ListCredentials resourceId ->
-                                                   {| name = ArmExpression.create($"reference({resourceId.ArmExpression.Value}, '2019-05-01').loginServer").Eval()
+                                                   {| name = ArmExpression.create($"listCredentials({resourceId.ArmExpression.Value}, '2019-05-01').username").Eval()
                                                       value = ArmExpression.create($"listCredentials({resourceId.ArmExpression.Value}, '2019-05-01').passwords[0].value").Eval() |}
                                            for setting in this.Secrets do
                                                {| name = setting.Key.Value
@@ -478,11 +478,11 @@ module ContainerApp =
                                                | ImageRegistryAuthentication.Credential cred ->
                                                    {| server = cred.Server
                                                       username = cred.Username
-                                                      passwordSecretRef = cred.Password.ArmExpression.Eval() |}
+                                                      passwordSecretRef = cred.Username |}
                                                | ImageRegistryAuthentication.ListCredentials resourceId ->
                                                    {| server = ArmExpression.create($"reference({resourceId.ArmExpression.Value}, '2019-05-01').loginServer").Eval()
                                                       username = ArmExpression.create($"listCredentials({resourceId.ArmExpression.Value}, '2019-05-01').username").Eval()
-                                                      passwordSecretRef = ArmExpression.create($"listCredentials({resourceId.ArmExpression.Value}, '2019-05-01').passwords[0].value").Eval() |}
+                                                      passwordSecretRef = ArmExpression.create($"listCredentials({resourceId.ArmExpression.Value}, '2019-05-01').username").Eval() |}
                                        |]
                                        ingress =
                                            match this.IngressConfig with

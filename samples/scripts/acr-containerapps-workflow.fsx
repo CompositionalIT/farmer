@@ -50,7 +50,7 @@ let buildImage =
             [
                 "set -eux"
                 $"echo {encodedDockerfile} | base64 -d > Dockerfile"
-                $"az acr build --registry $ACR_NAME --image fsharpwebapp/http:1.0.0 ."
+                $"az acr build --registry $ACR_NAME --image fsharpwebapp:1.0.0 ."
             ] |> String.concat " ; "
         )
     }
@@ -68,6 +68,9 @@ let containerEnv =
             containerApp {
                 name "http"
                 active_revision_mode ActiveRevisionsMode.Single
+                reference_registry_credentials [
+                    Farmer.Arm.ContainerRegistry.registries.resourceId myAcr.Name
+                ]
                 add_containers [
                     container {
                         container_name "fsharpwebapp"

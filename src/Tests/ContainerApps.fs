@@ -100,13 +100,13 @@ let tests = testList "Container Apps" [
         let registries = httpContainerApp.SelectToken("properties.configuration.registries")
         Expect.hasLength registries 1 "Expected 1 registry"
         let firstRegistry = registries |> Seq.head
-        Expect.equal (firstRegistry.SelectToken("passwordSecretRef") |> string) "[parameters('myregistry.azurecr.io-password')]" "Incorrect registry password secretRef"
+        Expect.equal (firstRegistry.SelectToken("passwordSecretRef") |> string) "myregistry" "Incorrect registry password secretRef"
         Expect.equal (firstRegistry.SelectToken("server") |> string) "myregistry.azurecr.io" "Incorrect registry"
         // The value here doesn't seem quite right. Is it really supposed to be the name of the repository in the registry?
         Expect.equal (firstRegistry.SelectToken("username") |> string) "myregistry" "Incorrect registry username"
         let secrets = httpContainerApp.SelectToken("properties.configuration.secrets")
         Expect.hasLength secrets 2 "Expecting 2 secrets"
-        Expect.equal (secrets.[0].["name"] |> string) "myregistry.azurecr.io" "Incorrect name for registry password secret"
+        Expect.equal (secrets.[0].["name"] |> string) "myregistry" "Incorrect name for registry password secret"
         Expect.equal (secrets.[0].["value"] |> string) "[parameters('myregistry.azurecr.io-password')]" "Incorrect password parameter for registry password secret"
         Expect.equal (httpContainerApp.SelectToken("properties.kubeEnvironmentId") |> string) "[resourceId('Microsoft.Web/kubeEnvironments', 'kubecontainerenv')]" "Incorrect kube environment Id"
 
