@@ -306,12 +306,6 @@ let tests = testList "Web App Tests" [
         Expect.equal site.SiteConfig.Use32BitWorkerProcess (Nullable false) "Should not use 32 bit worker process"
     }
 
-    test "Supports .NET 5" {
-        let app = webApp { name "net5"; runtime_stack Runtime.DotNet50 }
-        let site:Site = app |> getResourceAtIndex 2
-        Expect.equal site.SiteConfig.NetFrameworkVersion "v5.0" "Wrong dotnet version"
-    }
-
     test "Supports .NET 6" {
         let app = webApp { name "net6"; runtime_stack Runtime.DotNet60 }
         let site:Site = app |> getResourceAtIndex 2
