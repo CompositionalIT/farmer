@@ -13,7 +13,7 @@ The SQL Azure module contains two builders - `sqlServer`, used to create SQL Azu
 #### SQL Server Builder Keywords
 | Keyword | Purpose |
 |-|-|
-| server_name | Sets the name of the SQL server. |
+| name | Sets the name of the SQL server. |
 | add_firewall_rule | Adds a custom firewall rule given a name, start and end IP address range. |
 | add_firewall_rules | As add_firewall_rule but a list of rules |
 | enable_azure_firewall | Adds a firewall rule that enables access to other Azure services. |
