@@ -70,7 +70,7 @@ module DatabaseAccounts =
     type SqlDatabase =
         { Name : ResourceName
           Account : ResourceName
-          Throughput : int<RU> option
+          CapacityMode : CapacityMode
           Kind: DatabaseKind }
         interface IArmResource with
             member this.ResourceId = sqlDatabases.resourceId (this.Account/this.Name)
@@ -82,7 +82,11 @@ module DatabaseAccounts =
                 {| resource.Create(this.Account/this.Name, dependsOn = [ databaseAccounts.resourceId this.Account ]) with
                        properties =
                            {| resource = {| id = this.Name.Value |}
-                              options = {| throughput = this.Throughput |> Option.map string |> Option.defaultValue null |} 
+                              options =
+                                  {| throughput =
+                                      match this.CapacityMode with
+                                      | ProvisionedThroughput t ->  t |> string
+                                      | Serverless -> null |} 
                            |}
                 |} :> _
 
@@ -93,7 +97,7 @@ type DatabaseAccount =
       FailoverPolicy : FailoverPolicy
       PublicNetworkAccess : FeatureFlag
       FreeTier : bool
-      Serverless : bool
+      CapacityMode : CapacityMode
       Kind : DatabaseKind
       Tags: Map<string,string>  }
     member this.MaxStatelessPrefix =
@@ -144,13 +148,13 @@ type DatabaseAccount =
                           enableMultipleWriteLocations = this.EnableMultipleWriteLocations |> Option.toNullable
                           locations =
                             match this.FailoverLocations with
-                            | [] when this.Serverless -> box [{| locationName = this.Location.ArmValue |}]
+                            | [] when this.CapacityMode = Serverless -> box [{| locationName = this.Location.ArmValue |}]
                             | [] -> null
                             | locations -> box locations
                           publicNetworkAccess = string this.PublicNetworkAccess
                           enableFreeTier = this.FreeTier
                           capabilities =
-                            if this.Serverless then box [{| name = "EnableServerless" |}]
+                            if this.CapacityMode = Serverless then box [{| name = "EnableServerless" |}]
                             else null
                        |} |> box
             |} :> _

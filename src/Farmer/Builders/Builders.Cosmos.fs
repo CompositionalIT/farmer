@@ -28,16 +28,16 @@ type CosmosDbContainerConfig =
       Indexes : (string * (IndexDataType * IndexKind) list) list
       UniqueKeys : Set<string list>
       ExcludedPaths : string list }
+    
 type CosmosDbConfig =
     { AccountName : ResourceRef<CosmosDbConfig>
       AccountConsistencyPolicy : ConsistencyPolicy
       AccountFailoverPolicy : FailoverPolicy
       DbName : ResourceName
-      DbThroughput : int<RU> option
+      CapacityMode : CapacityMode
       Containers : CosmosDbContainerConfig list
       PublicNetworkAccess : FeatureFlag
       FreeTier : bool
-      Serverless : bool
       Tags: Map<string,string>
       Kind: DatabaseKind }
     member private this.AccountResourceId = this.AccountName.resourceId this
@@ -61,10 +61,10 @@ type CosmosDbConfig =
                   Location = location
                   Kind = this.Kind
                   ConsistencyPolicy = this.AccountConsistencyPolicy
+                  CapacityMode = this.CapacityMode
                   PublicNetworkAccess = this.PublicNetworkAccess
                   FailoverPolicy = this.AccountFailoverPolicy
                   FreeTier = this.FreeTier
-                  Serverless = this.Serverless
                   Tags = this.Tags }
             | _ ->
                 ()
@@ -72,7 +72,7 @@ type CosmosDbConfig =
             // Database
             { Name = this.DbName
               Account = this.AccountResourceId.Name
-              Throughput = this.DbThroughput
+              CapacityMode = this.CapacityMode
               Kind = this.Kind }
 
             // Containers
@@ -154,11 +154,10 @@ type CosmosDbBuilder() =
             |> databaseAccounts.resourceId)
           AccountConsistencyPolicy = Eventual
           AccountFailoverPolicy = NoFailover
-          DbThroughput = Some 400<RU>
+          CapacityMode = ProvisionedThroughput 400<RU>
           Containers = []
           PublicNetworkAccess = Enabled
           FreeTier = false
-          Serverless = false
           Tags = Map.empty
           Kind = DatabaseKind.Document }
 
@@ -180,9 +179,8 @@ type CosmosDbBuilder() =
     /// Sets the failover policy of the database.
     [<CustomOperation "failover_policy">]
     member _.FailoverPolicy(state:CosmosDbConfig, failoverPolicy:FailoverPolicy) = { state with AccountFailoverPolicy = failoverPolicy }
-    /// Sets the throughput of the server. NOTE: Setting this also disables 'serverless' mode.
-    [<CustomOperation "throughput">]
-    member __.Throughput(state:CosmosDbConfig, throughput) = { state with DbThroughput = Some throughput; Serverless = false }
+    [<CustomOperation "capacityMode">]
+    member _.CapacityMode(state:CosmosDbConfig, capacityMode) = { state with CapacityMode = capacityMode }
     /// Sets the storage kind
     [<CustomOperation "kind">]
     member _.StorageKind(state:CosmosDbConfig, kind) = { state with Kind = kind }
@@ -198,9 +196,6 @@ type CosmosDbBuilder() =
     /// Enables the use of CosmosDB free tier (one per subscription).
     [<CustomOperation "free_tier">]
     member _.FreeTier(state:CosmosDbConfig) = { state with FreeTier = true }
-    /// Enables the "serverless" consumption plan. NOTE: Setting this also disables 'throughput'.
-    [<CustomOperation "serverless">]
-    member __.Serverless(state:CosmosDbConfig) = { state with Serverless = true; DbThroughput = None }
 
     interface ITaggable<CosmosDbConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 

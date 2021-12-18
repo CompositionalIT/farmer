@@ -22,14 +22,14 @@ let tests = testList "Cosmos" [
         Expect.contains container.UniqueKeys ["/FirstName"] "UniqueKeys should contain /FirstName"
         Expect.contains container.UniqueKeys ["/LastName"] "UniqueKeys should contain /LastName"
     }
-    test "Serverless template should include 'EnableServerless' and exclude 'throughput'" {
-        let t = arm { add_resource (cosmosDb { name "foo"; serverless; }) }
+    test "Serverless template should include 'EnableServerless' and should not contains 'throughput'" {
+        let t = arm { add_resource (cosmosDb { name "foo"; capacityMode CosmosDb.Serverless; }) }
         let json = t.Template |> Writer.toJson
         Expect.isTrue (json.Contains("EnableServerless")) "Serverless template should contain 'EnableServerless'."
         Expect.isFalse (json.Contains("throughput")) "Serverless template should not contain 'throughput'."
     }
     test "Serverless template should include one locations.location with filled locationName" {
-        let t = arm { add_resource (cosmosDb { name "foo"; serverless; }) }
+        let t = arm { add_resource (cosmosDb { name "foo"; capacityMode CosmosDb.Serverless; }) }
         let jobj = t.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
         let locationJOjb = jobj.SelectToken("$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts')].properties.locations[0]") 
         Expect.isNotEmpty (locationJOjb |> string) "location should be filled"
@@ -37,8 +37,8 @@ let tests = testList "Cosmos" [
         let locationName = locationJOjb.SelectToken("locationName") |> string
         Expect.isNotEmpty locationName "location should be filled"
     }
-    test "Shared throughput should include 'throughput' and exclude 'EnableServerless'" {
-        let t = arm { add_resource (cosmosDb { name "foo"; throughput 400<CosmosDb.RU>; }) }
+    test "ProvisionedThroughput template should include 'throughput' and should not contain 'EnableServerless'" {
+        let t = arm { add_resource (cosmosDb { name "foo"; capacityMode (CosmosDb.ProvisionedThroughput 400<CosmosDb.RU>); }) }
         let json = t.Template |> Writer.toJson
         Expect.isTrue (json.Contains("\"throughput\": \"400\"")) "Shared throughput template should contain 'throughput'."
         Expect.isFalse (json.Contains("EnableServerless")) "Shared throughput template should not contain 'EnableServerless'."

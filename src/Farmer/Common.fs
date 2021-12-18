@@ -1429,6 +1429,10 @@ module CosmosDb =
     /// A request unit.
     [<Measure>]
     type RU
+    /// The capacity mode for CosmosDB account
+    type CapacityMode =
+        | ProvisionedThroughput of int<RU>
+        | Serverless
 
 module PostgreSQL =
     type Sku =
