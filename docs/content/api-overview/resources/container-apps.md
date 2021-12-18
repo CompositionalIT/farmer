@@ -27,8 +27,7 @@ The Container Apps builder (`containerApp`) is used to define one or more contai
 
 | Keyword | Purpose |
 |-|-|
-| name | Sets the name of the container instance. |
-| docker_image | Sets the container image. |
+| name | Sets the name of the container app. |
 | add_scale_rule | Adds rules for how the container app should automatically scale. |
 | ingress | Sets the ingress traffic allowed by port. |
 | dapr | Configures the dapr settings for the app. |
@@ -40,16 +39,23 @@ The Container Apps builder (`containerApp`) is used to define one or more contai
 | add_secretref_variable | Adds a secretRef to the Azure Container App environment variables. |
 | setting | Adds a variable to the Azure Container App environment variables. |
 
+#### Container Builder
+The Container builder (`container`) is used to define one or more containers for a container app.
+
+| Keyword | Purpose |
+|-|-|
+| name | Sets the name of the container. |
+| public_docker_image | Sets a public container image. |
+| private_docker_image | Sets a private container image. |
+| cpu_cores | Specifies the CPU cores allocated to the container (maximum 2.0). |
+| memory | Specifies the memory in gigabytes allocated to the container (maximum 4.0). |
+
 
 #### Example
 
 ```fsharp
 open Farmer
 open Farmer.Builders
-
-let containerLogs = logAnalytics {
-    name "mycontainerlogs"
-}
 
 containerEnvironment {
     name "my-container-app"
@@ -58,7 +64,22 @@ containerEnvironment {
         containerApp {
             name "httpservice"
             activeRevisionsMode ActiveRevisionsMode.Single
-            docker_image containerRegistryDomain containerRegistry "myimage" version
+            reference_registry_credentials [
+                Farmer.Arm.ContainerRegistry.registries.resourceId "myazurecontainerregistry"
+            ]
+            add_containers [
+                container {
+                    container_name "myservice1"
+                    public_docker_image containerRegistryDomain containerRegistry "myimage1" version
+                    memory 0.2<Gb>
+                }
+                container {
+                    container_name "myservice2"
+                    public_docker_image containerRegistryDomain containerRegistry "myimage2" version
+                    cpu_cores 0.5<VCores>
+                    memory 1.0<Gb>
+                }
+            ]
             replicas 1 5
             ingress { External = true; TargetPort = 80; Transport = "auto" }
             dapr { AppId = "httpservice" }

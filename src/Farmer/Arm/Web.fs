@@ -508,10 +508,7 @@ module ContainerApp =
                                    {| containers = [|
                                          for container in this.Containers do
                                              {|
-                                                image =
-                                                    match container.DockerImage with
-                                                    | PrivateImage image -> $"{image.RegistryDomain}/{image.ContainerName}:{image.Version}"
-                                                    | PublicImage image -> image
+                                                image = container.DockerImage.ImageTag
                                                 name = container.Name
                                                 env = [|
                                                   for env in this.EnvironmentVariables do

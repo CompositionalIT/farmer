@@ -260,7 +260,7 @@ type ContainerBuilder () =
     member _.Yield _ =
         { ContainerName = ""
           DockerImage = None
-          Resources = {| CPU = Some 0.25<VCores>; Memory = Some 0.5<Gb> |} }
+          Resources = {| CPU = Some 0.2<VCores>; Memory = Some 0.5<Gb> |} }
     /// Set docker credentials
     [<CustomOperation "container_name">]
     member _.ContainerName (state:ContainerConfig, name) =
@@ -268,19 +268,28 @@ type ContainerBuilder () =
 
         /// Set docker credentials
     [<CustomOperation "private_docker_image">]
-    member _.SetPrivateDockerImage (state:ContainerConfig, registryDomain, registryName, containerName, version) =
+    member _.SetPrivateDockerImage (state:ContainerConfig, registry, containerName, version:string) =
         { state with
-            DockerImage =
-                Some (PrivateImage
-                    {| RegistryDomain = registryDomain
-                       RegistryName = registryName
-                       ContainerName = containerName
-                       Version = version |})
+            DockerImage = Some (PrivateImage (registry, containerName, Some version))
         }
 
     [<CustomOperation "public_docker_image">]
-    member _.SetPublicDockerImage (state:ContainerConfig, path) =
-        { state with DockerImage = Some (PublicImage path) }
+    member _.SetPublicDockerImage (state:ContainerConfig, containerName, version:string) =
+        { state with DockerImage = Some (PublicImage (containerName, Some version)) }
+
+    [<CustomOperation "cpu_cores">]
+    member _.CpuCores (state:ContainerConfig, cpuCount:float<VCores>) =
+        let numCores = cpuCount / 1.<VCores>
+        if numCores > 2. then raiseFarmer $"'{state.ContainerName}' exceeds maximum CPU cores of 2.0 for containers in containerApps."
+        let roundedCpuCount = System.Math.Round(numCores, 1) * 1.<VCores>
+        { state with Resources = {| state.Resources with CPU = Some roundedCpuCount |} }
+
+    [<CustomOperation "memory">]
+    member _.Memory (state:ContainerConfig, memory:float<Gb>) =
+        let memory = memory / 1.<Gb>
+        if memory > 4. then raiseFarmer $"'{state.ContainerName}' exceeds maximum memory of 4.0 Gb for containers in containerApps."
+        let roundedMemory = System.Math.Round(memory, 2) * 1.<Gb>
+        { state with Resources = {| state.Resources with Memory = Some roundedMemory |} }
 
 let containerEnvironment = ContainerEnvironmentBuilder()
 let containerApp = ContainerAppBuilder()

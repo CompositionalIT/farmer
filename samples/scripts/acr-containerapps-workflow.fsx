@@ -74,11 +74,12 @@ let containerEnv =
                 add_containers [
                     container {
                         container_name "fsharpwebapp"
-                        private_docker_image $"{myAcr.Name.Value}.azurecr.io" myAcr.Name.Value "fsharpwebapp" version
+                        private_docker_image $"{myAcr.Name.Value}.azurecr.io" "fsharpwebapp" version
                     }
                     container {
                         container_name "http-frontend"
-                        public_docker_image "nginx"
+                        public_docker_image "nginx" "latest"
+                        memory 0.2<Gb>
                     }
                 ]
                 replicas 1 5

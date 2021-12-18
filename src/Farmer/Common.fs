@@ -2118,8 +2118,17 @@ module ContainerApp =
     type Visibility = External | Internal
     type ActiveRevisionsMode = Single | Multiple
     type DockerImageKind =
-        | PrivateImage of {| RegistryDomain : string; RegistryName : string; ContainerName : string; Version:string |}
-        | PublicImage of image:string
+        | PrivateImage of RegistryDomain : string * ContainerName : string *  Version:string option
+        | PublicImage of ContainerName:string * Version:string option 
+            member this.ImageTag =
+                match this with
+                | PrivateImage (registry, container, version) ->
+                    let version = version |> Option.defaultValue "latest"
+                    $"{registry}/{container}:{version}"
+                | PublicImage (container, version) ->
+                    let version = version |> Option.defaultValue "latest"
+                    $"{container}:{version}"
+
     
 
 
