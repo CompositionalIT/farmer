@@ -1,4 +1,4 @@
-﻿[<AutoOpen>]
+[<AutoOpen>]
 module Farmer.Builders.LogAnalytics
 
 open Farmer
@@ -16,6 +16,13 @@ type WorkspaceConfig =
       QuerySupport: FeatureFlag option
       DailyCap : int<Gb> option
       Tags: Map<string,string> }
+
+    /// Gets the ARM expression path to the customer ID of this LogAnalytics instance.
+    member this.CustomerId = LogAnalytics.getCustomerId this.Name
+
+    /// Gets the ARM expression path to the primary shared key of this LogAnalytics instance.
+    member this.PrimarySharedKey = LogAnalytics.getPrimarySharedKey this.Name
+
     interface IBuilder with
         member this.ResourceId = workspaces.resourceId this.Name
         member this.BuildResources location = [

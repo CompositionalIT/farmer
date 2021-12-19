@@ -3,7 +3,7 @@
 open Expecto
 open Farmer
 open Farmer.Builders
-open Farmer.Arm.TrafficManager
+open Farmer.Builders.TrafficManager
 open Microsoft.Azure.Management.TrafficManager
 open System
 open Microsoft.Rest
@@ -41,5 +41,33 @@ let tests = testList "Traffic Manager" [
         Expect.equal resource.MonitorConfig.Protocol (Nullable Models.MonitorProtocol.HTTP) "Default MonitorConfig MonitorProtocol is incorrect"
         Expect.equal resource.MonitorConfig.TimeoutInSeconds (Nullable (int64 10)) "Default MonitorConfig TimeoutInSeconds is incorrect"
         Expect.equal resource.MonitorConfig.ToleratedNumberOfFailures (Nullable (int64 3)) "Default MonitorConfig TimeoutInSeconds is incorrect"
+    }
+    test "Basic Traffic Manager profile with performance routing and equal priority endpoints" {
+        let tmName = "test-tm"
+        let resource =
+            let tm = trafficManager {
+                name tmName
+                add_endpoints [
+                    endpoint {
+                        name "someapp-eastus"
+                        target_external "eastus.farmer.com" Location.EastUS
+                    }
+                    endpoint {
+                        name "someapp-westeurope"
+                        target_external "westeurope.farmer.com" Location.WestEurope
+                    }
+                ]
+            }
+
+            arm { add_resource tm }
+            |> findAzureResources<Models.Profile> dummyClient.SerializationSettings
+            |> List.head
+
+        Expect.equal resource.Name tmName "Profile name does not match"
+        Expect.equal resource.TrafficRoutingMethod (Nullable Models.TrafficRoutingMethod.Performance) "Default TrafficRoutingMethod is incorrect"
+        Expect.equal resource.Endpoints.Count 2 "Incorrect number of endpoints"
+        for endpoint in resource.Endpoints do
+            Expect.isFalse endpoint.Priority.HasValue "Should not have a value for priority"
+            Expect.isFalse endpoint.Weight.HasValue "Should not have a value for weight"
     }
 ]

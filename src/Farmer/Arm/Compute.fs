@@ -48,6 +48,23 @@ type CustomScriptExtension =
                         |} :> _
             |} :> _
 
+type AadSshLoginExtension =
+    { Location : Location
+      VirtualMachine : ResourceName
+      Tags: Map<string,string>  }
+    member this.Name = "AADSSHLoginForLinux"
+    interface IArmResource with
+        member this.ResourceId = extensions.resourceId (this.VirtualMachine/this.Name)
+        member this.JsonModel =
+            {| extensions.Create(this.VirtualMachine/this.Name, this.Location, [ virtualMachines.resourceId this.VirtualMachine ], this.Tags) with
+                properties =
+                    {| publisher = "Microsoft.Azure.ActiveDirectory"
+                       ``type`` = "AADSSHLoginForLinux"
+                       typeHandlerVersion = "1.0"
+                       autoUpgradeMinorVersion = true
+                    |}
+            |} :> _
+
 type VirtualMachine =
     { Name : ResourceName
       Location : Location

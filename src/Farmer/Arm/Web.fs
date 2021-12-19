@@ -2,18 +2,22 @@
 module Farmer.Arm.Web
 
 open Farmer
+open Farmer.ContainerApp
 open Farmer.Identity
 open Farmer.WebApp
-open Farmer.Identity
 open System
 
 let serverFarms = ResourceType ("Microsoft.Web/serverfarms", "2018-02-01")
 let sites = ResourceType ("Microsoft.Web/sites", "2020-06-01")
 let config = ResourceType ("Microsoft.Web/sites/config", "2016-08-01")
 let sourceControls = ResourceType ("Microsoft.Web/sites/sourcecontrols", "2019-08-01")
-let staticSites = ResourceType("Microsoft.Web/staticSites", "2019-12-01-preview")
-let siteExtensions = ResourceType("Microsoft.Web/sites/siteextensions", "2020-06-01")
+let staticSites = ResourceType ("Microsoft.Web/staticSites", "2019-12-01-preview")
+let siteExtensions = ResourceType ("Microsoft.Web/sites/siteextensions", "2020-06-01")
 let slots = ResourceType ("Microsoft.Web/sites/slots", "2020-09-01")
+let certificates = ResourceType ("Microsoft.Web/certificates", "2019-08-01")
+let hostNameBindings = ResourceType ("Microsoft.Web/sites/hostNameBindings", "2020-12-01")
+let containerApps = ResourceType ("Microsoft.Web/containerApps", "2021-03-01")
+let kubeEnvironments = ResourceType ("Microsoft.Web/kubeEnvironments", "2021-02-01")
 
 let private mapOrNull f = Option.map (Map.toList >> List.map f) >> Option.defaultValue Unchecked.defaultof<_>
 
@@ -157,6 +161,13 @@ type SiteType =
         | Slot _ -> slots
         | Site _ -> sites
 
+
+[<RequireQualifiedAccess>]
+type FTPState =
+    | AllAllowed
+    | FtpsOnly
+    | Disabled
+
 type Site =
     { SiteType : SiteType
       Location : Location
@@ -166,6 +177,7 @@ type Site =
       AlwaysOn : bool
       WorkerProcess : Bitness option
       HTTPSOnly : bool
+      FTPState : FTPState option
       HTTP20Enabled : bool option
       ClientAffinityEnabled : bool option
       WebSocketsEnabled : bool option
@@ -193,10 +205,10 @@ type Site =
     member this.Name = this.SiteType.ResourceName
     interface IParameters with
         member this.SecureParameters =
-            let optMapToList map = 
+            let optMapToList map =
                 map
                 |> Option.defaultValue Map.empty
-                |> Map.toList 
+                |> Map.toList
             optMapToList this.AppSettings
             @ (optMapToList this.ConnectionStrings |> List.map(fun (k, (v,_)) -> k, v))
             |> List.choose(snd >> function
@@ -240,12 +252,18 @@ type Site =
                        keyVaultReferenceIdentity = keyvaultId
                        siteConfig =
                         {| alwaysOn = this.AlwaysOn
-                           appSettings = 
+                           appSettings =
                                 this.AppSettings
-                                |> mapOrNull (fun (k,v) -> {| name = k; value = v.Value |}) 
-                           connectionStrings = 
-                                this.ConnectionStrings 
+                                |> mapOrNull (fun (k,v) -> {| name = k; value = v.Value |})
+                           connectionStrings =
+                                this.ConnectionStrings
                                 |> mapOrNull (fun (k,(v, t)) -> {| name = k; connectionString = v.Value; ``type`` = t.ToString() |})
+                           ftpsState =
+                               match this.FTPState with
+                               | Some FTPState.AllAllowed -> "AllAllowed"
+                               | Some FTPState.FtpsOnly -> "FtpsOnly"
+                               | Some FTPState.Disabled -> "Disabled"
+                               | None -> null
                            linuxFxVersion = this.LinuxFxVersion |> Option.toObj
                            appCommandLine = this.AppCommandLine |> Option.toObj
                            netFrameworkVersion = this.NetFrameworkVersion |> Option.toObj
@@ -323,6 +341,58 @@ type StaticSite =
         member this.SecureParameters = [
             this.RepositoryToken
         ]
+type SslState =
+    | SslDisabled
+    | SniBased of thumbprint: ArmExpression
+
+type HostNameBinding =
+    { Location: Location
+      SiteId: LinkedResource
+      DomainName: string
+      SslState: SslState }
+        member this.SiteResourceId =
+            match this.SiteId with
+            | Managed id -> id.Name
+            | Unmanaged id -> id.Name
+        member this.ResourceName =
+            this.SiteResourceId / this.DomainName
+        member this.Dependencies =
+            [ match this.SiteId with
+              | Managed resid -> resid
+              | _ -> () ]
+        member this.ResourceId =
+            hostNameBindings.resourceId (this.SiteResourceId, ResourceName this.DomainName)
+        interface IArmResource with
+            member this.ResourceId = hostNameBindings.resourceId this.ResourceName
+            member this.JsonModel =
+                {| hostNameBindings.Create(this.ResourceName, this.Location, this.Dependencies) with
+                    properties =
+                        match this.SslState with
+                        | SniBased thumbprint ->
+                            {| sslState = "SniEnabled"
+                               thumbprint = thumbprint.Eval() |} :> obj
+                        | SslDisabled -> {| |} :> obj
+                |} :> _
+
+type Certificate =
+    { Location: Location
+      SiteId: ResourceId
+      ServicePlanId: ResourceId
+      DomainName: string }
+        member this.ResourceName = this.SiteId.Name.Map (sprintf "%s-cert")
+        member this.Thumbprint =
+            ArmExpression.reference(certificates.resourceId this.ResourceName).Map(sprintf "%s.Thumbprint")
+        interface IArmResource with
+            member this.ResourceId = certificates.resourceId this.ResourceName
+            member this.JsonModel =
+                {| certificates.Create(
+                        this.ResourceName,
+                        this.Location,
+                        [this.SiteId; hostNameBindings.resourceId(this.SiteId.Name,ResourceName this.DomainName)]) with
+                    properties =
+                        {| serverFarmId = this.ServicePlanId.Eval()
+                           canonicalName = this.DomainName |}
+                |} :> _
 
 [<AutoOpen>]
 module SiteExtensions =
@@ -334,3 +404,246 @@ module SiteExtensions =
             member this.ResourceId = siteExtensions.resourceId(this.SiteName/this.Name)
             member this.JsonModel =
                 siteExtensions.Create(this.SiteName/this.Name, this.Location, [ sites.resourceId this.SiteName ]) :> _
+
+module ContainerApp =
+    open Farmer.ContainerApp
+    open Farmer.ContainerAppValidation
+    type IngressConfig =
+        { Visibility : Visibility option
+          TargetPort : uint16
+          Transport : Transport option }
+    type Container =
+        { Name : string
+          DockerImage : DockerImageKind
+          Resources : {| CPU : float<VCores> option; Memory : float<Gb> option |} }
+    type ContainerApp =
+        { Name : ResourceName
+          Environment : ResourceId
+          ActiveRevisionsMode : ActiveRevisionsMode
+          IngressConfig : IngressConfig option
+          ScaleRules : Map<string, ScaleRule>
+          Replicas : {| Min : int; Max : int |} option
+          DaprConfig : {| AppId : string |} option
+          Secrets : Map<ContainerAppSettingKey, SecretValue>
+          EnvironmentVariables : Map<string, EnvVar>
+          ImageRegistryCredentials : ImageRegistryAuthentication list
+          Containers : Container list
+          Location : Location
+          Dependencies : Set<ResourceId> }
+
+        interface IParameters with
+            member this.SecureParameters = [
+                for secret in this.Secrets do
+                    match secret.Value with
+                    | ParameterSecret sp -> sp
+                    | ExpressionSecret _ -> ()
+                for credential in this.ImageRegistryCredentials do
+                    match credential with
+                    | ImageRegistryAuthentication.Credential credential ->
+                        credential.Password
+                    | ImageRegistryAuthentication.ListCredentials _ -> ()
+            ]
+
+        interface IArmResource with
+            member this.ResourceId = containerApps.resourceId this.Name
+            member this.JsonModel =
+                let dependencies = this.Dependencies.Add this.Environment
+                {| containerApps.Create(this.Name, this.Location, dependencies) with
+                       kind = "containerapp"
+                       properties =
+                           {|
+                               kubeEnvironmentId = this.Environment.Eval()
+                               configuration =
+                                   {|
+                                       secrets = [|
+                                           for cred in this.ImageRegistryCredentials do
+                                               match cred with
+                                               | ImageRegistryAuthentication.Credential cred ->
+                                                   {| name = cred.Username
+                                                      value = cred.Password.ArmExpression.Eval() |}
+                                               | ImageRegistryAuthentication.ListCredentials resourceId ->
+                                                   {| name = ArmExpression.create($"listCredentials({resourceId.ArmExpression.Value}, '2019-05-01').username").Eval()
+                                                      value = ArmExpression.create($"listCredentials({resourceId.ArmExpression.Value}, '2019-05-01').passwords[0].value").Eval() |}
+                                           for setting in this.Secrets do
+                                               {| name = setting.Key.Value
+                                                  value = setting.Value.Value |}
+                                       |]
+                                       activeRevisionsMode =
+                                           match this.ActiveRevisionsMode with
+                                           | ActiveRevisionsMode.Single -> "Single"
+                                           | ActiveRevisionsMode.Multiple -> "Multiple"
+                                       registries = [|
+                                           for cred in this.ImageRegistryCredentials do
+                                               match cred with
+                                               | ImageRegistryAuthentication.Credential cred ->
+                                                   {| server = cred.Server
+                                                      username = cred.Username
+                                                      passwordSecretRef = cred.Username |}
+                                               | ImageRegistryAuthentication.ListCredentials resourceId ->
+                                                   {| server = ArmExpression.create($"reference({resourceId.ArmExpression.Value}, '2019-05-01').loginServer").Eval()
+                                                      username = ArmExpression.create($"listCredentials({resourceId.ArmExpression.Value}, '2019-05-01').username").Eval()
+                                                      passwordSecretRef = ArmExpression.create($"listCredentials({resourceId.ArmExpression.Value}, '2019-05-01').username").Eval() |}
+                                       |]
+                                       ingress =
+                                           match this.IngressConfig with
+                                           | Some ingressConfig ->
+                                               {| external =
+                                                   match ingressConfig.Visibility with
+                                                   | Some External -> box true
+                                                   | Some Internal -> box false
+                                                   | None -> null
+                                                  targetPort = ingressConfig.TargetPort
+                                                  transport =
+                                                   match ingressConfig.Transport with
+                                                   | Some HTTP1 -> "http"
+                                                   | Some HTTP2 -> "http2"
+                                                   | Some Auto -> "auto"
+                                                   | None -> null
+                                               |} :> obj
+                                           | None ->
+                                               null
+                                       |}
+
+                               template =
+                                   {| containers = [|
+                                         for container in this.Containers do
+                                             {|
+                                                image = container.DockerImage.ImageTag
+                                                name = container.Name
+                                                env = [|
+                                                  for env in this.EnvironmentVariables do
+                                                      match env.Value with
+                                                      | EnvValue value -> {| name = env.Key; value = value; secretref = null |}
+                                                      | SecureEnvExpression armExpr -> {| name = env.Key; value = null; secretref = armExpr.Eval() |}
+                                                      | SecureEnvValue parameter -> {| name = env.Key; value = null; secretref = env.Key |}
+                                                 |]
+                                                resources =
+                                                   {| cpu = container.Resources.CPU |> Option.toNullable
+                                                      memory = container.Resources.Memory |> Option.map (sprintf "%.2fGi") |> Option.toObj |}
+                                                   :> obj
+                                          |}
+                                      |]
+                                      scale =
+                                          {| minReplicas = this.Replicas |> Option.map (fun c -> c.Min) |> Option.toNullable
+                                             maxReplicas = this.Replicas |> Option.map (fun c -> c.Max) |> Option.toNullable
+                                             rules = [|
+                                                 for rule in this.ScaleRules do
+                                                     match rule.Value with
+                                                     | ScaleRule.Custom customRule ->
+                                                        {| name = rule.Key
+                                                           custom = customRule |}
+                                                        :> obj
+                                                     | ScaleRule.EventHub settings ->
+                                                        {| name = rule.Key
+                                                           custom =
+                                                               {| // https://keda.sh/docs/scalers/azure-event-hub/
+                                                                  ``type`` = "azure-eventhub"
+                                                                  metadata =
+                                                                      {| consumerGroup = settings.ConsumerGroup
+                                                                         unprocessedEventThreshold = string settings.UnprocessedEventThreshold
+                                                                         blobContainer = settings.CheckpointBlobContainerName
+                                                                         checkpointStrategy = "blobMetadata" |}
+                                                                  auth = [|
+                                                                      {| secretRef = settings.EventHubConnectionSecretRef
+                                                                         triggerParameter = "connection" |}
+                                                                      {| secretRef = settings.StorageConnectionSecretRef
+                                                                         triggerParameter = "storageConnection" |}
+                                                                  |]
+                                                               |}
+                                                        |}
+                                                        :> obj
+                                                     | ScaleRule.ServiceBus settings ->
+                                                        {| name = rule.Key
+                                                           custom =
+                                                               {| // https://keda.sh/docs/scalers/azure-service-bus/
+                                                                  ``type`` = "azure-servicebus"
+                                                                  metadata =
+                                                                      {| queueName = settings.QueueName
+                                                                         messageCount = string settings.MessageCount |}
+                                                                  auth = [|
+                                                                      {| secretRef = settings.SecretRef
+                                                                         triggerParameter = "connection" |}
+                                                                  |]
+                                                               |}
+                                                        |}
+                                                        :> obj
+                                                     | ScaleRule.Http settings ->
+                                                        {| name = rule.Key
+                                                           http =
+                                                               {| metadata =
+                                                                   {| concurrentRequests = string settings.ConcurrentRequests |}
+                                                               |}
+                                                        |}
+                                                        :> obj
+                                                     | ScaleRule.CPU settings ->
+                                                       {| name = rule.Key
+                                                          custom =
+                                                              {| ``type`` = "cpu"
+                                                                 metadata =
+                                                                   {| ``type`` = match settings with CpuUtilisation _ -> "Utilisation" | CpuAverageValue _ -> "AverageValue"
+                                                                      value = match settings with CpuUtilisation v | CpuAverageValue v -> v |> string
+                                                                   |}
+                                                              |}
+                                                       |}
+                                                       :> obj
+                                                     | ScaleRule.Memory settings ->
+                                                       {| name = rule.Key
+                                                          custom =
+                                                              {| ``type`` = "memory"
+                                                                 metadata =
+                                                                   {| ``type`` = match settings with MemoryUtilisation _ -> "Utilisation" | MemoryAverageValue _ -> "AverageValue"
+                                                                      value = match settings with MemoryUtilisation v | MemoryAverageValue v -> v |> string
+                                                                   |}
+                                                              |}
+                                                       |}
+                                                       :> obj
+                                                     | ScaleRule.StorageQueue settings ->
+                                                       {| name = rule.Key
+                                                          custom =
+                                                              {| ``type`` = "azure-queue"
+                                                                 metadata =
+                                                                   {| queueName = settings.QueueName
+                                                                      queueLength = string settings.QueueLength
+                                                                      connectionFromEnv = settings.StorageConnectionSecretRef
+                                                                      accountName = settings.AccountName
+                                                                   |}
+                                                              |}                                                             
+                                                       |}
+                                             |]
+                                          |}
+                                      dapr =
+                                          match this.DaprConfig with
+                                          | Some settings ->
+                                              {| enabled = true
+                                                 appId = settings.AppId |}
+                                              :> obj
+                                          | None ->
+                                              {| enabled = false |}
+                                              :> obj
+                                   |}
+                       |}
+                |} :> _
+
+    type KubeEnvironment =
+        { Name : ResourceName
+          Location : Location
+          InternalLoadBalancerState : FeatureFlag
+          LogAnalytics : ResourceId
+          Dependencies: Set<ResourceId>
+          Tags: Map<string,string> }
+        interface IArmResource with
+            member this.ResourceId = kubeEnvironments.resourceId this.Name
+            member this.JsonModel =
+                {| kubeEnvironments.Create(this.Name, this.Location, this.Dependencies, this.Tags) with
+                    kind = "containerenvironment"
+                    properties =
+                        {| ``type`` = "managed"
+                           internalLoadBalancerEnabled = this.InternalLoadBalancerState.AsBoolean
+                           appLogsConfiguration =
+                            {| destination = "log-analytics"
+                               logAnalyticsConfiguration =
+                               {| customerId = LogAnalytics.getCustomerId(this.LogAnalytics).Eval()
+                                  sharedKey = LogAnalytics.getPrimarySharedKey(this.LogAnalytics).Eval() |}
+                            |}
+                        |}
+                |} :> _

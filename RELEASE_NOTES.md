@@ -1,5 +1,50 @@
 Release Notes
 =============
+
+## 1.6.23
+* ContainerApps: Adds support for [containerApps](https://docs.microsoft.com/azure/container-apps/overview).
+* WebApps/Functions: Added support for .NET 6 runtimes with new Runtime.DotNet60.
+
+## 1.6.22
+* Log Analytics: Add CustomerId configuration member to Log Analytics
+* Service Bus: Added additional overloads for topic.duplicate_detection and queue.duplicate_detection
+* WebApp: Fixed deployment name for nested template in app-managed certificate deployments
+
+## 1.6.21
+* Alerts: Extend a list of possible criteria for time aggregations and operators
+* Alerts: Support of custom metric alerts
+* CDN: Adds new SKU types for Azure Front Door Standard/Premium
+* Functions: Fix for .NET isolated functions hosted on Linux
+* Key Vaults: Fixed bug where adding vnetRules to KeyVault did not work.
+* Support for GPUs in Azure Container Instances
+
+## 1.6.20
+* CDN rules: Only make CacheDuration required for Override and SetIfMissing and not BypassCache when creating cache_expiration action
+* Virtual Machine: Adds support for the `AADSSHLoginForLinux` extension for Azure AD login over SSH on Linux VM's.
+* Virtual Machine: Enables a VM to be deployed on an existing virtual network.
+* WebApps/Functions: Fixed bug preventing references to AppInsights or storage accounts in other resource groups
+* WebApps: Supports custom domains with app service managed certificates
+
+## 1.6.19
+* Application Gateways: support for creating application gateways.
+* Container Service (AKS): support for various addons, including the application gateway ingress controller.
+* ExpressRoute: create authorization keys on newly created circuits.
+* Key Vaults: Add keys to new or existing key vaults.
+* ServiceBus: Allow Service Bus Queues/Topics/Subscriptions to be linked to unmanaged namespaces
+* ServiceBus: Allow adding custom dependencies to Subscriptions
+* WebApp/Functions: Adds 'ftp_state' for controlling FTP access for deployments.
+
+## 1.6.18
+* Resource Groups: Add support for multiple nested deployments targetting the same resource group
+* Resource Groups: Provide input parameters and key vault references to nested deployments.
+
+## 1.6.17
+* Container Groups: Use an ARM expression to populate a secure environment variable.
+* Resource Groups: Specify the target subscription for nested deployments.
+
+## 1.6.16
+* Traffic Manager: allow priority and weight to be optional for endpoints.
+
 ## 1.6.15
 * Key Vaults: Allow deploying standalone secrets without a KeyVault in the same deployment
 * WebApp/Functions: no longer overwrites production slot settings when using a multi-slot deploy

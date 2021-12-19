@@ -30,6 +30,7 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Web App | settings | Sets a list of app setting of the web app as tuples in the form of ("key", "value"). |
 | Web App | connection_string | Creates a connection string whose value is supplied as secret parameter, or as an ARM expression in the tupled form of ("key", expr). |
 | Web App | connection_strings | Creates a set of connection strings of the web app whose values will be supplied as secret parameters. |
+| Web App | ftp_state | Allows to enable or disable FTP and FTPS. |
 | Web App | https_only | Disables http for this webapp so that only HTTPS is used. |
 | Web App | enable_http2 | Configures the webapp to allow clients to connect over http2.0. |
 | Web App | disable_client_affinity | Stops the webapp from sending client affinity cookies. |
@@ -55,6 +56,7 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Web App | add_slot | Adds a deployment slot to the app |
 | Web App | add_slots | Adds multiple deployment slots to the app |
 | Web App | health_check_path | Sets the path to your functions health check endpoint, which Azure load balancers will ping to determine which instances are healthy.|
+| Web App | custom_domain | Adds custom domain to the app, containing an app service managed certificate |
 | Service Plan | service_plan_name | Sets the name of the service plan. If not set, uses the name of the web app postfixed with "-plan". |
 | Service Plan | runtime_stack | Sets the runtime stack. |
 | Service Plan | operating_system | Sets the operating system. If Linux, App Insights configuration settings will be omitted as they are not supported by Azure App Service. |

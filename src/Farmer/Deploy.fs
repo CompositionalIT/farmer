@@ -1,4 +1,4 @@
-﻿module Farmer.Deploy
+module Farmer.Deploy
 
 open System
 open System.Collections.Generic
@@ -146,7 +146,6 @@ module Az =
             | _ ->
                 error
         with _ ->
-            printfn "BAD"
             error
 
 /// Represents an Azure subscription
@@ -229,6 +228,8 @@ let private prepareForDeployment parameters resourceGroupName (deployment:IDeplo
     let resourceGroups =
         (resourceGroupName::deployment.Deployment.RequiredResourceGroups)
         |> List.distinct
+        // Filter out any resource groups that are an ARM expression calculated at deploy-time
+        |> List.filter (fun resGroupName -> not(resGroupName.StartsWith("[")))
         |> List.mapi (fun i x -> i,x)
     for (i,rg) in resourceGroups do
         printfn $"Creating resource group {rg} ({i+1}/{resourceGroups.Length})..."

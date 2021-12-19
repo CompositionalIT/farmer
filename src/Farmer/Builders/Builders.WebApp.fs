@@ -51,6 +51,7 @@ type Runtime =
     static member Java8WildFly14 = Java (Java8, WildFly14)
     static member Java8Tomcat90 = Java (Java8, JavaHost.Tomcat90)
     static member Java8Tomcat85 = Java (Java8, JavaHost.Tomcat85)
+    static member DotNet60 = DotNet "6.0"
     static member DotNet50 = DotNet "5.0"
     static member AspNet47 = AspNet "4.0"
     static member AspNet35 = AspNet "2.0"
@@ -166,6 +167,7 @@ type CommonWebConfig =
       AlwaysOn : bool
       AppInsights : ResourceRef<ResourceName> option
       Cors : Cors option
+      FTPState : FTPState option
       HTTPSOnly : bool
       Identity : Identity.ManagedIdentity
       KeyVaultReferenceIdentity: UserAssignedIdentity Option
@@ -199,7 +201,8 @@ type WebAppConfig =
       DockerAcrCredentials : {| RegistryName : string; Password : SecureParameter |} option
       AutomaticLoggingExtension : bool
       SiteExtensions : ExtensionName Set
-      PrivateEndpoints: (LinkedResource * string option) Set }
+      PrivateEndpoints: (LinkedResource * string option) Set 
+      CustomDomain : DomainConfig }
     member this.Name = this.CommonWebConfig.Name
     /// Gets this web app's Server Plan's full resource ID.
     member this.ServicePlanId = this.CommonWebConfig.ServicePlan.resourceId this.Name.ResourceName
@@ -243,7 +246,7 @@ type WebAppConfig =
                                 | ExpressionSetting expr -> SecretConfig.create (setting.Key, expr) |> Some
                             match secret with
                             | Some secret ->
-                                { Secret.Name = vaultName.Name/secret.Key
+                                { Secret.Name = vaultName.Name/secret.SecretName
                                   Value = secret.Value
                                   ContentType = secret.ContentType
                                   Enabled = secret.Enabled
@@ -318,6 +321,7 @@ type WebAppConfig =
                   Location = location
                   ServicePlan = this.ServicePlanId
                   HTTPSOnly = this.CommonWebConfig.HTTPSOnly
+                  FTPState = this.CommonWebConfig.FTPState
                   HTTP20Enabled = this.HTTP20Enabled
                   ClientAffinityEnabled = this.ClientAffinityEnabled
                   WebSocketsEnabled = this.WebSocketsEnabled
@@ -379,7 +383,8 @@ type WebAppConfig =
                   NetFrameworkVersion =
                     match this.Runtime with
                     | AspNet version
-                    | DotNet ("5.0" as version) ->
+                    | DotNet ("5.0" as version)
+                    | DotNet ("6.0" as version) ->
                         Some $"v{version}"
                     | _ ->
                         None
@@ -477,6 +482,46 @@ type WebAppConfig =
                 for (_,slot) in this.CommonWebConfig.Slots |> Map.toSeq do
                     slot.ToSite site
 
+            match this.CustomDomain with
+            | SecureDomain (customDomain, certOptions) ->
+                let hostNameBinding =
+                    { Location = location
+                      SiteId =  Managed (Arm.Web.sites.resourceId this.Name.ResourceName)
+                      DomainName = customDomain
+                      SslState = SslDisabled } // Initially create non-secure host name binding, we link the certificate in a nested deployment below
+                let cert =
+                    { Location = location
+                      SiteId = this.ResourceId
+                      ServicePlanId = this.ServicePlanId
+                      DomainName = customDomain }
+                hostNameBinding
+                cert
+                let resourceLocation = location
+
+                // nested deployment to update hostname binding with specified SSL options
+                yield! (resourceGroup { 
+                    name "[resourceGroup().name]"
+                    location resourceLocation
+                    add_resource { hostNameBinding with
+                                    SiteId =
+                                        match hostNameBinding.SiteId with 
+                                        | Managed id -> Unmanaged id
+                                        | x -> x 
+                                    SslState = 
+                                        match certOptions with
+                                        | AppManagedCertificate -> SniBased cert.Thumbprint
+                                        | CustomCertificate thumbprint -> SniBased thumbprint
+                                  }
+                    depends_on [ Arm.Web.certificates.resourceId cert.ResourceName
+                                 hostNameBinding.ResourceId ]
+                } :> IBuilder).BuildResources location
+            | InsecureDomain customDomain -> 
+                { Location = location
+                  SiteId =  Managed (Arm.Web.sites.resourceId this.Name.ResourceName)
+                  DomainName = customDomain
+                  SslState = SslDisabled }
+            | NoDomain -> ()
+
             yield! (PrivateEndpoint.create location this.ResourceId ["sites"] this.PrivateEndpoints)
         ]
 
@@ -489,6 +534,7 @@ type WebAppBuilder() =
               Cors = None
               HTTPSOnly = false
               Identity = ManagedIdentity.Empty
+              FTPState = None
               KeyVaultReferenceIdentity = None
               OperatingSystem = Windows
               SecretStore = AppService
@@ -517,7 +563,8 @@ type WebAppBuilder() =
           DockerAcrCredentials = None
           AutomaticLoggingExtension = true
           SiteExtensions = Set.empty
-          PrivateEndpoints = Set.empty}
+          PrivateEndpoints = Set.empty
+          CustomDomain = NoDomain}
     member _.Run(state:WebAppConfig) =
         if state.Name.ResourceName = ResourceName.Empty then raiseFarmer "No Web App name has been set."
         { state with
@@ -615,6 +662,11 @@ type WebAppBuilder() =
     /// Automatically add the ASP.NET Core logging extension.
     [<CustomOperation "automatic_logging_extension">]
     member _.DefaultLogging (state:WebAppConfig, setting) = { state with AutomaticLoggingExtension = setting }
+    //Add Custom domain to you web app
+    [<CustomOperation "custom_domain">]
+    member _.CustomDomain(state:WebAppConfig, domainConfig) = { state with CustomDomain = domainConfig }
+    member _.CustomDomain(state:WebAppConfig, customDomain) = { state with CustomDomain = SecureDomain (customDomain,AppManagedCertificate) }
+    member _.CustomDomain(state:WebAppConfig, (customDomain,thumbprint)) = { state with CustomDomain = SecureDomain (customDomain,CustomCertificate thumbprint) }
 
     interface IPrivateEndpoints<WebAppConfig> with member _.Add state endpoints = { state with PrivateEndpoints = state.PrivateEndpoints |> Set.union endpoints}
     interface ITaggable<WebAppConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
@@ -809,6 +861,10 @@ module Extensions =
         /// Disables http for this webapp so that only https is used.
         [<CustomOperation "https_only">]
         member this.HttpsOnly(state:'T) = this.Map state (fun x -> { x with HTTPSOnly = true })
+
+        /// Allows to enable or disable FTP and FTPS
+        [<CustomOperation "ftp_state">]
+        member this.FTPState(state:'T, ftpState:FTPState) = this.Map state (fun x -> { x with FTPState = Some ftpState })
 
         [<CustomOperation "health_check_path">]
         /// Specifies the path Azure load balancers will ping to check for unhealthy instances.

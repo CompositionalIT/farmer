@@ -14,17 +14,14 @@ type ContainerGroupIpAddress =
         {| Protocol : TransmissionProtocol
            Port : uint16 |} Set }
 
-type ImageRegistryCredential =
-    { Server : string
-      Username : string
-      Password : SecureParameter }
-
-[<RequireQualifiedAccess>]
-type ImageRegistryAuthentication =
-/// Credentials for the container registry are included with the password as a template parameter.
-| Credential of ImageRegistryCredential
-/// Credentials for the container registry will be listed by ARM expression.
-| ListCredentials of ResourceId
+type ContainerInstanceGpu =
+    { Count: int
+      Sku: Gpu.Sku } 
+    member internal this.JsonModel =
+        {|
+            count = this.Count
+            sku = string this.Sku
+        |}
 
 /// Defines a command or HTTP request to get the status of a container.
 type ContainerProbe =
@@ -68,6 +65,7 @@ type ContainerGroup =
            Ports : uint16 Set
            Cpu : float
            Memory : float<Gb>
+           Gpu : ContainerInstanceGpu option
            EnvironmentVariables: Map<string, EnvVar>
            VolumeMounts : Map<string,string>
            LivenessProbe : ContainerProbe option
@@ -118,11 +116,13 @@ type ContainerGroup =
                 for envVar in container.EnvironmentVariables do
                     match envVar.Value with
                     | SecureEnvValue p -> p
+                    | SecureEnvExpression _ -> ()
                     | EnvValue _ -> ()
             for container in this.InitContainers do
                 for envVar in container.EnvironmentVariables do
                     match envVar.Value with
                     | SecureEnvValue p -> p
+                    | SecureEnvExpression _ -> ()
                     | EnvValue _ -> ()
             for volume in this.Volumes do
                 match volume.Value with
@@ -154,17 +154,18 @@ type ContainerGroup =
                                       environmentVariables = [
                                           for key, value in Map.toSeq container.EnvironmentVariables do
                                               match value with
-                                              | EnvValue value ->
-                                                {| name = key; value = value; secureValue = null |}
-                                              | SecureEnvValue value ->
-                                                {| name = key; value = null; secureValue = value.ArmExpression.Eval() |}
+                                              | EnvValue value -> {| name = key; value = value; secureValue = null |}
+                                              | SecureEnvExpression armExpression -> {| name = key; value = null; secureValue = armExpression.Eval() |}
+                                              | SecureEnvValue value -> {| name = key; value = null; secureValue = value.ArmExpression.Eval() |}
                                       ]
                                       livenessProbe = container.LivenessProbe |> Option.map (fun p -> p.JsonModel |> box) |> Option.defaultValue null
                                       readinessProbe = container.ReadinessProbe |> Option.map (fun p -> p.JsonModel |> box) |> Option.defaultValue null
                                       resources =
                                        {| requests =
                                            {| cpu = container.Cpu
-                                              memoryInGB = container.Memory |}
+                                              memoryInGB = container.Memory
+                                              gpu = container.Gpu |> Option.map (fun g -> g.JsonModel |> box) |> Option.defaultValue null
+                                           |}
                                        |}
                                       volumeMounts =
                                           container.VolumeMounts
@@ -181,10 +182,9 @@ type ContainerGroup =
                                       environmentVariables = [
                                           for key, value in Map.toSeq container.EnvironmentVariables do
                                               match value with
-                                              | EnvValue value ->
-                                                {| name = key; value = value; secureValue = null |}
-                                              | SecureEnvValue value ->
-                                                {| name = key; value = null; secureValue = value.ArmExpression.Eval() |}
+                                              | EnvValue value -> {| name = key; value = value; secureValue = null |}
+                                              | SecureEnvExpression armExpression -> {| name = key; value = null; secureValue = armExpression.Eval() |}
+                                              | SecureEnvValue value -> {| name = key; value = null; secureValue = value.ArmExpression.Eval() |}
                                       ]
                                       volumeMounts =
                                           container.VolumeMounts
@@ -233,7 +233,7 @@ type ContainerGroup =
                             |> Option.map(fun path -> box {| id = path.Eval() |})
                             |> Option.toObj
                           volumes = [
-                            for (key, value) in Map.toSeq this.Volumes do
+                            for key, value in Map.toSeq this.Volumes do
                                 match key, value with
                                 |  volumeName, Volume.AzureFileShare (shareName, accountName) ->
                                     {| name = volumeName

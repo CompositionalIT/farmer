@@ -243,7 +243,7 @@ module CdnRule =
           HttpHeaderValue: string }
 
     type Action =
-        | CacheExpiration of {| CacheBehaviour: CacheBehaviour ; CacheDuration: TimeSpan option |}
+        | CacheExpiration of {| CacheBehaviour: CacheBehaviour |}
         | CacheKeyQueryString of {| Behaviour: QueryStringCacheBehavior ; Parameters: string |}
         | ModifyRequestHeader of ModifyHeader
         | ModifyResponseHeader of ModifyHeader
@@ -276,13 +276,14 @@ module CdnRule =
           
             match this with
             | CacheExpiration a ->
+                let armValue = a.CacheBehaviour.ArmValue
                 map
                     "CacheExpiration"
                     "#Microsoft.Azure.Cdn.Models.DeliveryRuleCacheExpirationActionParameters"
                     (Map.empty<_, obj>
-                        .Add("cacheBehavior", a.CacheBehaviour.ArmValue)
+                        .Add("cacheBehavior", armValue.Behaviour)
                         .Add("cacheType", "All")
-                        .Add("cacheDuration", a.CacheDuration |> Option.map (fun d -> d.ToString "d\.hh\:mm\:ss") |> Option.toObj ))
+                        .Add("cacheDuration", armValue.CacheDuration |> Option.map (fun d -> d.ToString "d\.hh\:mm\:ss") |> Option.toObj ))
             | CacheKeyQueryString a ->
                 map
                     "CacheKeyQueryString"

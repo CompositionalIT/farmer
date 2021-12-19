@@ -1,4 +1,4 @@
-﻿namespace Farmer
+namespace Farmer
 
 open System
 
@@ -78,6 +78,7 @@ type OS = Windows | Linux
 
 type [<Measure>] Gb
 type [<Measure>] Mb
+type [<Measure>] Kb
 type [<Measure>] Mbps
 type [<Measure>] Seconds
 type [<Measure>] Hours
@@ -89,13 +90,17 @@ type IsoDateTime =
     member this.Value = match this with IsoDateTime value -> value
 type TransmissionProtocol = TCP | UDP
 type TlsVersion = Tls10 | Tls11 | Tls12
+/// Represents an environment variable that can be set, typically on Docker container services.
 type EnvVar =
-    /// Use for non-secret environment variables to be surfaced in the container. These will be stored in cleartext in the ARM template.
+    /// Use for non-secret environment variables. These will be stored in cleartext in the ARM template.
     | EnvValue of string
-    /// Use for secret environment variables to be surfaced in the container securely. These will be provided as secure parameters to the ARM template.
+    /// Use for secret environment variables. These will be provided as secure parameters to the ARM template.
     | SecureEnvValue of SecureParameter
+    /// Use for secret environment variables that get their value from an ARM Expression. These will be an ARM expression in the template, but value used in a secure context.
+    | SecureEnvExpression of ArmExpression
     static member create (name:string) (value:string) = name, EnvValue value
     static member createSecure (name:string) (paramName:string) = name, SecureEnvValue (SecureParameter paramName)
+    static member createSecureExpression (name:string) (armExpression:ArmExpression) = name, SecureEnvExpression armExpression
 
 module Mb =
     let toBytes (mb:int<Mb>) = int64 mb * 1024L * 1024L
@@ -354,7 +359,9 @@ module internal Validation =
     let lettersOrNumbers = "alphanumeric characters", Char.IsLetterOrDigit
     let letters = "letters", Char.IsLetter
     let dash = "a dash (-)", ((=) '-')
+    let dot = "a dash (.)", ((=) '.')
     let lettersNumbersOrDash = "alphanumeric characters or the dash (-)", Char.IsLetterOrDigit <|> (snd dash)
+    let lettersNumbersDashOrDot = "alphanumeric characters, a dash (-) or a dot (.)", Char.IsLetterOrDigit <|> (snd dash) <|> (snd dot)
     let validate entity inputValue rules =
         rules
         |> Seq.choose (fun rule ->
@@ -400,10 +407,24 @@ module ServiceBusValidation =
 
         member this.ResourceName = match this with ServiceBusName name -> name
 
+module ContainerAppValidation =
+    open Validation
+    type ContainerAppSettingKey =
+        private | ContainerAppSettingKey of string
+        static member Create (name:string) =
+            [ containsOnly lettersNumbersDashOrDot
+              startsWith aLetterOrNumber
+              endsWith aLetterOrNumber
+              containsOnly lowercaseLetters
+            ]
+            |> validate "Container App Setting Key" name
+            |> Result.map ContainerAppSettingKey
+        member this.Value = match this with ContainerAppSettingKey value -> value
+
 module Insights =
 
     /// https://docs.microsoft.com/en-us/azure/azure-monitor/essentials/metrics-supported
-    type MetricsName = 
+    type MetricsName =
     | MetricsName of string
         static member PercentageCPU = MetricsName "Percentage CPU"
         static member DiskReadOperationsPerSec = MetricsName "Disk Read Operations/Sec"
@@ -874,7 +895,7 @@ module Sql =
         static member Create (ResourceName name) = SqlAccountName.Create name
         member this.ResourceName = match this with SqlAccountName name -> name
 
-    type GeoReplicationSettings = { 
+    type GeoReplicationSettings = {
         /// Suffix name for server and database name
         NameSuffix : string
         /// Replication location, different from the original one
@@ -931,6 +952,19 @@ module Identity =
         static member (+) (managedIdentity, userAssignedIdentity:UserAssignedIdentity) =
             { managedIdentity with UserAssigned = userAssignedIdentity :: managedIdentity.UserAssigned }
 
+/// Credential for accessing an image registry.
+type ImageRegistryCredential =
+    { Server : string
+      Username : string
+      Password : SecureParameter }
+
+[<RequireQualifiedAccess>]
+type ImageRegistryAuthentication =
+/// Credentials for the container registry are included with the password as a template parameter.
+| Credential of ImageRegistryCredential
+/// Credentials for the container registry will be listed by ARM expression.
+| ListCredentials of ResourceId
+
 module ContainerGroup =
     type PortAccess = PublicPort | InternalPort
     type RestartPolicy = NeverRestart | AlwaysRestart | RestartOnFailure
@@ -955,6 +989,12 @@ module ContainerGroup =
         | GitRepo of Repository:Uri * Directory:string option * Revision:string option
         /// Mounts a volume containing secret files.
         | Secret of SecretFile list
+
+    module Gpu =
+        type Sku =
+            | K80
+            | P100
+            | V100
 
 module ContainerService =
     type NetworkPlugin =
@@ -993,6 +1033,51 @@ module KeyVault =
             match this with
             | Standard -> "standard"
             | Premium -> "premium"
+
+    type KeyCurveName =
+        | P256
+        | P256K
+        | P384
+        | P521
+        static member ArmValue = function
+          | P256 -> "P-256"
+          | P256K -> "P-256K"
+          | P384 -> "P-384"
+          | P521 -> "P-521"
+    type RsaKeyLength = RsaKeyLength of int
+    type KeyType =
+        | EC of KeyCurveName
+        | ECHSM of KeyCurveName
+        | RSA of RsaKeyLength
+        | RSAHSM of RsaKeyLength
+        static member ArmValue = function
+          | EC _ -> "EC"
+          | ECHSM _ -> "EC-HSM"
+          | RSA _ -> "RSA"
+          | RSAHSM _ -> "RSA-HSM"
+        static member RSA_2048 = RSA (RsaKeyLength 2048)
+        static member  RSA_3072 = RSA (RsaKeyLength 3072)
+        static member  RSA_4096 = RSA (RsaKeyLength 4096)
+        static member  EC_P256 = EC P256
+        static member  EC_P384 = EC P384
+        static member  EC_P521 = EC P521
+        static member  EC_P256K = EC P256K
+
+    type KeyOperation =
+       | Encrypt
+       | Decrypt
+       | WrapKey
+       | UnwrapKey
+       | Sign
+       | Verify
+        static member ArmValue = function
+           | Encrypt -> "encrypt"
+           | Decrypt -> "decrypt"
+           | WrapKey -> "wrapKey"
+           | UnwrapKey -> "unwrapKey"
+           | Sign -> "sign"
+           | Verify -> "verify"
+
 module ExpressRoute =
     type Tier = Standard | Premium
     type Family = UnlimitedData | MeteredData
@@ -1039,6 +1124,202 @@ module LoadBalancer =
             | TCP -> "Tcp"
             | HTTP -> "Http"
             | HTTPS -> "Https"
+
+module ApplicationGateway =
+    [<RequireQualifiedAccess>]
+    type Tier =
+        | Standard
+        | Standard_v2
+        | WAF
+        | WAF_v2
+        member this.ArmValue =
+            match this with
+            | Standard -> "Standard"
+            | Standard_v2 -> "Standard_v2"
+            | WAF -> "WAF"
+            | WAF_v2 -> "WAF_v2"
+
+    [<RequireQualifiedAccess>]
+    type Sku =
+        | Standard_Large
+        | Standard_Medium
+        | Standard_Small
+        | Standard_v2
+        | WAF_Large
+        | WAF_Medium
+        | WAF_v2
+        member this.ArmValue =
+            match this with
+            | Standard_Large -> "Standard_Large"
+            | Standard_Medium -> "Standard_Medium"
+            | Standard_Small -> "Standard_Small"
+            | Standard_v2 -> "Standard_v2"
+            | WAF_Large -> "WAF_Large"
+            | WAF_Medium -> "WAF_Medium"
+            | WAF_v2 -> "WAF_v2"
+
+    type ApplicationGatewaySku = {
+        Name : Sku
+        Capacity : int option
+        Tier: Tier
+    }
+
+    [<RequireQualifiedAccess>]
+    type BackendAddress =
+        | Ip of System.Net.IPAddress
+        | Fqdn of string
+
+    [<RequireQualifiedAccess>]
+    type HttpStatusCode =
+        | HttpStatus403
+        | HttpStatus502
+        static member toString = function
+            | HttpStatus403 -> "HttpStatus403"
+            | HttpStatus502 -> "HttpStatus502"
+        member this.ArmValue = HttpStatusCode.toString this
+
+    [<RequireQualifiedAccess>]
+    type RuleType =
+        | Basic
+        | PathBasedRouting
+        member this.ArmValue =
+            match this with
+            | Basic -> "Basic"
+            | PathBasedRouting -> "PathBasedRouting"
+
+    [<RequireQualifiedAccess>]
+    type FirewallMode =
+        | Detection
+        | Prevention
+        static member toString = function
+            | Detection -> "Detection"
+            | Prevention -> "Prevention"
+        member this.ArmValue = FirewallMode.toString this
+
+    [<RequireQualifiedAccess>]
+    type RuleSetType =
+        | OWASP
+        member this.ArmValue =
+            match this with
+            | OWASP -> "OWASP"
+
+    [<RequireQualifiedAccess>]
+    type CipherSuite =
+        | TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA
+        | TLS_DHE_DSS_WITH_AES_128_CBC_SHA
+        | TLS_DHE_DSS_WITH_AES_128_CBC_SHA256
+        | TLS_DHE_DSS_WITH_AES_256_CBC_SHA
+        | TLS_DHE_DSS_WITH_AES_256_CBC_SHA256
+        | TLS_DHE_RSA_WITH_AES_128_CBC_SHA
+        | TLS_DHE_RSA_WITH_AES_128_GCM_SHA256
+        | TLS_DHE_RSA_WITH_AES_256_CBC_SHA
+        | TLS_DHE_RSA_WITH_AES_256_GCM_SHA384
+        | TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
+        | TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
+        | TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+        | TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA
+        | TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384
+        | TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+        | TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+        | TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+        | TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+        | TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+        | TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
+        | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        | TLS_RSA_WITH_3DES_EDE_CBC_SHA
+        | TLS_RSA_WITH_AES_128_CBC_SHA
+        | TLS_RSA_WITH_AES_128_CBC_SHA256
+        | TLS_RSA_WITH_AES_128_GCM_SHA256
+        | TLS_RSA_WITH_AES_256_CBC_SHA
+        | TLS_RSA_WITH_AES_256_CBC_SHA256
+        | TLS_RSA_WITH_AES_256_GCM_SHA384
+        static member toString = function
+            | TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA -> "TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA"
+            | TLS_DHE_DSS_WITH_AES_128_CBC_SHA -> "TLS_DHE_DSS_WITH_AES_128_CBC_SHA"
+            | TLS_DHE_DSS_WITH_AES_128_CBC_SHA256 -> "TLS_DHE_DSS_WITH_AES_128_CBC_SHA256"
+            | TLS_DHE_DSS_WITH_AES_256_CBC_SHA -> "TLS_DHE_DSS_WITH_AES_256_CBC_SHA"
+            | TLS_DHE_DSS_WITH_AES_256_CBC_SHA256 -> "TLS_DHE_DSS_WITH_AES_256_CBC_SHA256"
+            | TLS_DHE_RSA_WITH_AES_128_CBC_SHA -> "TLS_DHE_RSA_WITH_AES_128_CBC_SHA"
+            | TLS_DHE_RSA_WITH_AES_128_GCM_SHA256 -> "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256"
+            | TLS_DHE_RSA_WITH_AES_256_CBC_SHA -> "TLS_DHE_RSA_WITH_AES_256_CBC_SHA"
+            | TLS_DHE_RSA_WITH_AES_256_GCM_SHA384 -> "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384"
+            | TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA -> "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA"
+            | TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 -> "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
+            | TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 -> "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256"
+            | TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA -> "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA"
+            | TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384 -> "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384"
+            | TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 -> "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384"
+            | TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA -> "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA"
+            | TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256 -> "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256"
+            | TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 -> "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+            | TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA -> "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA"
+            | TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384 -> "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384"
+            | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 -> "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
+            | TLS_RSA_WITH_3DES_EDE_CBC_SHA -> "TLS_RSA_WITH_3DES_EDE_CBC_SHA"
+            | TLS_RSA_WITH_AES_128_CBC_SHA -> "TLS_RSA_WITH_AES_128_CBC_SHA"
+            | TLS_RSA_WITH_AES_128_CBC_SHA256 -> "TLS_RSA_WITH_AES_128_CBC_SHA256"
+            | TLS_RSA_WITH_AES_128_GCM_SHA256 -> "TLS_RSA_WITH_AES_128_GCM_SHA256"
+            | TLS_RSA_WITH_AES_256_CBC_SHA -> "TLS_RSA_WITH_AES_256_CBC_SHA"
+            | TLS_RSA_WITH_AES_256_CBC_SHA256 -> "TLS_RSA_WITH_AES_256_CBC_SHA256"
+            | TLS_RSA_WITH_AES_256_GCM_SHA384 -> "TLS_RSA_WITH_AES_256_GCM_SHA384"
+        member this.ArmValue = CipherSuite.toString this
+
+
+    [<RequireQualifiedAccess>]
+    type SslProtocol =
+        | TLSv1_0
+        | TLSv1_1
+        | TLSv1_2
+        static member toString = function
+            | TLSv1_0 -> "TLSv1_0"
+            | TLSv1_1 -> "TLSv1_1"
+            | TLSv1_2 -> "TLSv1_2"
+        member this.ArmValue = SslProtocol.toString this
+
+    [<RequireQualifiedAccess>]
+    type PolicyName =
+        | Custom of string
+        | AppGwSslPolicy20150501
+        | AppGwSslPolicy20170401
+        | AppGwSslPolicy20170401S
+        static member toString this = function
+            | Custom name -> name
+            | AppGwSslPolicy20150501 -> "AppGwSslPolicy20150501"
+            | AppGwSslPolicy20170401 -> "AppGwSslPolicy20170401"
+            | AppGwSslPolicy20170401S -> "AppGwSslPolicy20170401S"
+        member this.ArmValue = PolicyName.toString this
+
+    [<RequireQualifiedAccess>]
+    type PolicyType =
+        | Custom
+        | Predefined
+        member this.ArmValue =
+            match this with
+            | Custom -> "Custom"
+            | Predefined -> "Predefined"
+
+    [<RequireQualifiedAccess>]
+    type Protocol =
+        | Http
+        | Https
+        member this.ArmValue =
+            match this with
+            | Http -> "Http"
+            | Https -> "Https"
+
+    [<RequireQualifiedAccess>]
+    type RedirectType =
+        | Found
+        | Moved
+        | TemporaryRedirect
+        | PermanentRedirect
+        member this.ArmValue =
+            match this with
+            | Found -> "Found"
+            | Moved -> "Moved"
+            | TemporaryRedirect -> "TemporaryRedirect"
+            | PermanentRedirect -> "PermanentRedirect"
+
 
 module VirtualNetworkGateway =
     [<RequireQualifiedAccess>]
@@ -1178,6 +1459,7 @@ module Maps =
 
 module SignalR =
     type Sku = Free | Standard
+    type ServiceMode = Default | Serverless | Classic
 
 module DataLake =
     type Sku =
@@ -1407,6 +1689,8 @@ module Cdn =
     | Standard_ChinaCdn
     | Standard_Microsoft
     | Standard_Verizon
+    | Premium_AzureFrontDoor
+    | Standard_AzureFrontDoor
 
     type QueryStringCachingBehaviour =
     | IgnoreQueryString
@@ -1582,14 +1866,20 @@ module DeliveryPolicy =
             | ToUppercase -> [ "Uppercase" ]
 
     type CacheBehaviour =
-        | Override
+        | Override of TimeSpan
         | BypassCache
-        | SetIfMissing
+        | SetIfMissing of TimeSpan
         member this.ArmValue =
             match this with
-            | Override -> "Override"
-            | BypassCache -> "BypassCache"
-            | SetIfMissing -> "SetIfMissing"
+            | Override t ->
+                             {| Behaviour = "Override"
+                                CacheDuration = Some t |}
+            | BypassCache ->
+                             {| Behaviour = "BypassCache"
+                                CacheDuration = None |}
+            | SetIfMissing t ->
+                             {| Behaviour = "SetIfMissing"
+                                CacheDuration = Some t |}
 
     type QueryStringCacheBehavior =
         | Include
@@ -1807,6 +2097,41 @@ module AvailabilityTest =
         static member BrazilSouth = Farmer.Location "latam-br-gru-edge" |> AvailabilityTestSite
         static member CentralUS = Farmer.Location "us-fl-mia-edge" |> AvailabilityTestSite
 
+module ContainerApp =
+    //type SecretRef = SecretRef of string
+    type EventHubScaleRule = { ConsumerGroup : string; UnprocessedEventThreshold: int; CheckpointBlobContainerName: string; EventHubConnectionSecretRef : string; StorageConnectionSecretRef : string }
+    type ServiceBusScaleRule = { QueueName : string; MessageCount: int; SecretRef : string }
+    type HttpScaleRule = { ConcurrentRequests : int }
+    type StorageQueueScaleRule = { QueueName : string; QueueLength: int; StorageConnectionSecretRef : string; AccountName : string }
+    type CpuScaleRule = CpuUtilisation of int | CpuAverageValue of int
+    type MemoryScaleRule = MemoryUtilisation of int | MemoryAverageValue of int
+    [<RequireQualifiedAccess>]
+    type ScaleRule =
+        | EventHub of EventHubScaleRule
+        | ServiceBus of ServiceBusScaleRule
+        | Http of HttpScaleRule
+        | CPU of CpuScaleRule
+        | Memory of MemoryScaleRule
+        | StorageQueue of StorageQueueScaleRule
+        | Custom of obj
+    type Transport = HTTP1 | HTTP2 | Auto
+    type Visibility = External | Internal
+    type ActiveRevisionsMode = Single | Multiple
+    type DockerImageKind =
+        | PrivateImage of RegistryDomain : string * ContainerName : string *  Version:string option
+        | PublicImage of ContainerName:string * Version:string option 
+            member this.ImageTag =
+                match this with
+                | PrivateImage (registry, container, version) ->
+                    let version = version |> Option.defaultValue "latest"
+                    $"{registry}/{container}:{version}"
+                | PublicImage (container, version) ->
+                    let version = version |> Option.defaultValue "latest"
+                    $"{container}:{version}"
+
+    
+
+
 namespace Farmer.DiagnosticSettings
 
 open Farmer
@@ -1857,4 +2182,3 @@ type LogSetting =
 
 /// Represents the kind of destination for log analytics
 type LogAnalyticsDestination = AzureDiagnostics | Dedicated
-
