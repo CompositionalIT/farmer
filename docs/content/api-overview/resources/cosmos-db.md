@@ -22,16 +22,15 @@ The CosmosDB builder abstracts the idea of account and database into one. If you
 |-|-|-|
 | Database | name | Sets the name of the database. |
 | Database | link_to_account | Instructs Farmer to link this database to an existing Cosmos DB account rather than creating a new one. |
-| Database | throughput | Sets the throughput of the account. |
 | Database | add_containers | Adds a list of containers to the database. |
 | Account | account_name | Sets the name of the CosmosDB account. |
+| Account | capacityMode | Sets the capacity mode with either `ProvisionedThroughput` or `Serverless`. |
 | Account | api (not yet implemented) | Sets the API and data model to use -- currently defaults to "Core (SQL)". |
 | Account | enable_public_network_access | Enables public network access for the account. |
 | Account | disable_public_network_access | Disables public network access for the account. |
 | Account | consistency_policy | Sets the consistency policy of the database. |
 | Account | failover_policy | Sets the failover policy of the database. |
 | Account | free_tier | Registers this server with the free pricing tier, if supported and allowed by Azure. |
-| Account | serverless | Enables the "serverless" capacity mode. |
 
 #### Cosmos Container Builder
 The container builder allows you to create and configure a specific container that is attached to a cosmos database.
@@ -51,7 +50,7 @@ open Farmer.Builders
 let myCosmosDb = cosmosDb {
     name "isaacsappdb"
     account_name "isaacscosmosdb"
-    throughput 400<CosmosDb.RU>
+    capacityMode (ProvisionedThroughput 400<RU>)
     failover_policy CosmosDb.NoFailover
     consistency_policy (CosmosDb.BoundedStaleness(500, 1000))
     add_containers [
