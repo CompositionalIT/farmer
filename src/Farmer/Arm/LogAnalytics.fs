@@ -1,4 +1,4 @@
-﻿[<AutoOpen>]
+[<AutoOpen>]
 module Farmer.Arm.LogAnalytics
 
 open Farmer
@@ -30,3 +30,22 @@ type Workspace =
                        publicNetworkAccessForQuery =
                         this.QuerySupport |> Option.map(fun f -> f.ArmValue) |> Option.toObj |}
             |} :> _
+
+type LogAnalytics =
+    static member getCustomerId resourceId =
+        ArmExpression
+            .reference(workspaces, resourceId)
+            .Map(fun r -> r + ".customerId")
+            .WithOwner(resourceId)
+
+    static member getCustomerId (name, ?resourceGroup) =
+        LogAnalytics.getCustomerId (ResourceId.create (workspaces, name, ?group = resourceGroup))
+
+    static member getPrimarySharedKey resourceId =
+        ArmExpression
+            .listKeys(workspaces, resourceId)
+            .Map(fun r -> r + ".primarySharedKey")
+            .WithOwner(resourceId)
+
+    static member getPrimarySharedKey (name, ?resourceGroup) =
+        LogAnalytics.getPrimarySharedKey (ResourceId.create (workspaces, name, ?group = resourceGroup))

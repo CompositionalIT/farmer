@@ -1,4 +1,4 @@
-﻿module Farmer.Deploy
+module Farmer.Deploy
 
 open System
 open System.Collections.Generic
@@ -146,7 +146,6 @@ module Az =
             | _ ->
                 error
         with _ ->
-            printfn "BAD"
             error
 
 /// Represents an Azure subscription

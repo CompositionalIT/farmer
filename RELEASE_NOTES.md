@@ -4,6 +4,10 @@ Release Notes
 ## 1.7.0
 * CosmosDb: Add support for serverless capacity mode.
 
+## 1.6.23
+* ContainerApps: Adds support for [containerApps](https://docs.microsoft.com/azure/container-apps/overview).
+* WebApps/Functions: Added support for .NET 6 runtimes with new Runtime.DotNet60.
+
 ## 1.6.22
 * Log Analytics: Add CustomerId configuration member to Log Analytics
 * Service Bus: Added additional overloads for topic.duplicate_detection and queue.duplicate_detection
