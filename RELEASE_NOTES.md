@@ -1,5 +1,7 @@
 Release Notes
 =============
+## vNext
+* Revert back to targetting NET Standard 2 only.
 
 ## 1.6.23
 * WebApps/Functions: Added support for .NET 6 runtimes with new Runtime.DotNet60.
