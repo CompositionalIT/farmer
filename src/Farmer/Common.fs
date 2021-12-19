@@ -1429,8 +1429,8 @@ module CosmosDb =
     /// A request unit.
     [<Measure>]
     type RU
-    /// The capacity mode for CosmosDB account
-    type CapacityMode =
+    /// The throughput for CosmosDB account
+    type Throughput =
         | ProvisionedThroughput of int<RU>
         | Serverless
 

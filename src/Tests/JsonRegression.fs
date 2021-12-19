@@ -51,7 +51,7 @@ let tests =
             let cosmos = cosmosDb {
                 name "testdb"
                 account_name "testaccount"
-                capacityMode 400<CosmosDb.RU>
+                throughput 400<CosmosDb.RU>
                 failover_policy CosmosDb.NoFailover
                 consistency_policy (CosmosDb.BoundedStaleness(500, 1000))
                 add_containers [
@@ -67,7 +67,7 @@ let tests =
                 name "testdbmongo"
                 account_name "testaccountmongo"
                 kind Mongo
-                capacityMode 400<CosmosDb.RU>
+                throughput 400<CosmosDb.RU>
                 failover_policy CosmosDb.NoFailover
                 consistency_policy (CosmosDb.BoundedStaleness(500, 1000))
             }

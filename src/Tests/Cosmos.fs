@@ -23,13 +23,13 @@ let tests = testList "Cosmos" [
         Expect.contains container.UniqueKeys ["/LastName"] "UniqueKeys should contain /LastName"
     }
     test "Serverless template should include 'EnableServerless' and should not contains 'throughput'" {
-        let t = arm { add_resource (cosmosDb { name "foo"; capacityMode CosmosDb.Serverless; }) }
+        let t = arm { add_resource (cosmosDb { name "foo"; throughput CosmosDb.Serverless; }) }
         let json = t.Template |> Writer.toJson
         Expect.isTrue (json.Contains("EnableServerless")) "Serverless template should contain 'EnableServerless'."
         Expect.isFalse (json.Contains("throughput")) "Serverless template should not contain 'throughput'."
     }
     test "Serverless template should include one locations.location with filled locationName" {
-        let t = arm { add_resource (cosmosDb { name "foo"; capacityMode CosmosDb.Serverless; }) }
+        let t = arm { add_resource (cosmosDb { name "foo"; throughput CosmosDb.Serverless; }) }
         let jobj = t.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
         let locationJOjb = jobj.SelectToken("$.resources[?(@.type=='Microsoft.DocumentDb/databaseAccounts')].properties.locations[0]") 
         Expect.isNotEmpty (locationJOjb |> string) "location should be filled"
@@ -38,7 +38,7 @@ let tests = testList "Cosmos" [
         Expect.isNotEmpty locationName "location should be filled"
     }
     test "ProvisionedThroughput template should include 'throughput' and should not contain 'EnableServerless'" {
-        let t = arm { add_resource (cosmosDb { name "foo"; capacityMode 400<CosmosDb.RU>; }) }
+        let t = arm { add_resource (cosmosDb { name "foo"; throughput 400<CosmosDb.RU>; }) }
         let json = t.Template |> Writer.toJson
         Expect.isTrue (json.Contains("\"throughput\": \"400\"")) "Shared throughput template should contain 'throughput'."
         Expect.isFalse (json.Contains("EnableServerless")) "Shared throughput template should not contain 'EnableServerless'."

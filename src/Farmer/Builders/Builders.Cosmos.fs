@@ -34,7 +34,7 @@ type CosmosDbConfig =
       AccountConsistencyPolicy : ConsistencyPolicy
       AccountFailoverPolicy : FailoverPolicy
       DbName : ResourceName
-      CapacityMode : CapacityMode
+      DbThroughput : Throughput
       Containers : CosmosDbContainerConfig list
       PublicNetworkAccess : FeatureFlag
       FreeTier : bool
@@ -61,7 +61,7 @@ type CosmosDbConfig =
                   Location = location
                   Kind = this.Kind
                   ConsistencyPolicy = this.AccountConsistencyPolicy
-                  CapacityMode = this.CapacityMode
+                  DbThroughput = this.DbThroughput
                   PublicNetworkAccess = this.PublicNetworkAccess
                   FailoverPolicy = this.AccountFailoverPolicy
                   FreeTier = this.FreeTier
@@ -72,7 +72,7 @@ type CosmosDbConfig =
             // Database
             { Name = this.DbName
               Account = this.AccountResourceId.Name
-              CapacityMode = this.CapacityMode
+              Throughput = this.DbThroughput
               Kind = this.Kind }
 
             // Containers
@@ -154,7 +154,7 @@ type CosmosDbBuilder() =
             |> databaseAccounts.resourceId)
           AccountConsistencyPolicy = Eventual
           AccountFailoverPolicy = NoFailover
-          CapacityMode = ProvisionedThroughput 400<RU>
+          DbThroughput = ProvisionedThroughput 400<RU>
           Containers = []
           PublicNetworkAccess = Enabled
           FreeTier = false
@@ -179,9 +179,10 @@ type CosmosDbBuilder() =
     /// Sets the failover policy of the database.
     [<CustomOperation "failover_policy">]
     member _.FailoverPolicy(state:CosmosDbConfig, failoverPolicy:FailoverPolicy) = { state with AccountFailoverPolicy = failoverPolicy }
-    [<CustomOperation "capacityMode">]
-    member _.CapacityMode(state:CosmosDbConfig, capacityMode) = { state with CapacityMode = capacityMode }
-    member _.CapacityMode(state:CosmosDbConfig, throughput) = { state with CapacityMode = ProvisionedThroughput throughput }
+    /// Sets the throughput of the server.
+    [<CustomOperation "throughput">]
+    member _.Throughput(state:CosmosDbConfig, throughput) = { state with DbThroughput = throughput }
+    member _.Throughput(state:CosmosDbConfig, throughput) = { state with DbThroughput = ProvisionedThroughput throughput }
     /// Sets the storage kind
     [<CustomOperation "kind">]
     member _.StorageKind(state:CosmosDbConfig, kind) = { state with Kind = kind }

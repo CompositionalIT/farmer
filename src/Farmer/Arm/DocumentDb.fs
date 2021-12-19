@@ -70,7 +70,7 @@ module DatabaseAccounts =
     type SqlDatabase =
         { Name : ResourceName
           Account : ResourceName
-          CapacityMode : CapacityMode
+          Throughput : Throughput
           Kind: DatabaseKind }
         interface IArmResource with
             member this.ResourceId = sqlDatabases.resourceId (this.Account/this.Name)
@@ -84,7 +84,7 @@ module DatabaseAccounts =
                            {| resource = {| id = this.Name.Value |}
                               options =
                                   {| throughput =
-                                      match this.CapacityMode with
+                                      match this.Throughput with
                                       | ProvisionedThroughput t ->  t |> string
                                       | Serverless -> null |} 
                            |}
@@ -97,7 +97,7 @@ type DatabaseAccount =
       FailoverPolicy : FailoverPolicy
       PublicNetworkAccess : FeatureFlag
       FreeTier : bool
-      CapacityMode : CapacityMode
+      DbThroughput : Throughput
       Kind : DatabaseKind
       Tags: Map<string,string>  }
     member this.MaxStatelessPrefix =
@@ -148,13 +148,13 @@ type DatabaseAccount =
                           enableMultipleWriteLocations = this.EnableMultipleWriteLocations |> Option.toNullable
                           locations =
                             match this.FailoverLocations with
-                            | [] when this.CapacityMode = Serverless -> box [{| locationName = this.Location.ArmValue |}]
+                            | [] when this.DbThroughput = Serverless -> box [{| locationName = this.Location.ArmValue |}]
                             | [] -> null
                             | locations -> box locations
                           publicNetworkAccess = string this.PublicNetworkAccess
                           enableFreeTier = this.FreeTier
                           capabilities =
-                            if this.CapacityMode = Serverless then box [{| name = "EnableServerless" |}]
+                            if this.DbThroughput = Serverless then box [{| name = "EnableServerless" |}]
                             else null
                        |} |> box
             |} :> _
