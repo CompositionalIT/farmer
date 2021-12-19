@@ -50,7 +50,7 @@ open Farmer.Builders
 let myCosmosDb = cosmosDb {
     name "isaacsappdb"
     account_name "isaacscosmosdb"
-    capacityMode (ProvisionedThroughput 400<RU>)
+    capacityMode 400<RU>
     failover_policy CosmosDb.NoFailover
     consistency_policy (CosmosDb.BoundedStaleness(500, 1000))
     add_containers [

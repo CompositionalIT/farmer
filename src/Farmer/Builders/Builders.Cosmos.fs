@@ -181,6 +181,7 @@ type CosmosDbBuilder() =
     member _.FailoverPolicy(state:CosmosDbConfig, failoverPolicy:FailoverPolicy) = { state with AccountFailoverPolicy = failoverPolicy }
     [<CustomOperation "capacityMode">]
     member _.CapacityMode(state:CosmosDbConfig, capacityMode) = { state with CapacityMode = capacityMode }
+    member _.CapacityMode(state:CosmosDbConfig, throughput) = { state with CapacityMode = ProvisionedThroughput throughput }
     /// Sets the storage kind
     [<CustomOperation "kind">]
     member _.StorageKind(state:CosmosDbConfig, kind) = { state with Kind = kind }
