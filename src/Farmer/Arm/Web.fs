@@ -406,12 +406,7 @@ module SiteExtensions =
                 siteExtensions.Create(this.SiteName/this.Name, this.Location, [ sites.resourceId this.SiteName ]) :> _
 
 module ContainerApp =
-    open Farmer.ContainerApp
     open Farmer.ContainerAppValidation
-    type IngressConfig =
-        { Visibility : Visibility option
-          TargetPort : uint16
-          Transport : Transport option }
     type Container =
         { Name : string
           DockerImage : DockerImageKind
@@ -420,7 +415,7 @@ module ContainerApp =
         { Name : ResourceName
           Environment : ResourceId
           ActiveRevisionsMode : ActiveRevisionsMode
-          IngressConfig : IngressConfig option
+          IngressMode : IngressMode option
           ScaleRules : Map<string, ScaleRule>
           Replicas : {| Min : int; Max : int |} option
           DaprConfig : {| AppId : string |} option
@@ -470,8 +465,8 @@ module ContainerApp =
                                        |]
                                        activeRevisionsMode =
                                            match this.ActiveRevisionsMode with
-                                           | ActiveRevisionsMode.Single -> "Single"
-                                           | ActiveRevisionsMode.Multiple -> "Multiple"
+                                           | Single -> "Single"
+                                           | Multiple -> "Multiple"
                                        registries = [|
                                            for cred in this.ImageRegistryCredentials do
                                                match cred with
@@ -485,23 +480,22 @@ module ContainerApp =
                                                       passwordSecretRef = ArmExpression.create($"listCredentials({resourceId.ArmExpression.Value}, '2019-05-01').username").Eval() |}
                                        |]
                                        ingress =
-                                           match this.IngressConfig with
-                                           | Some ingressConfig ->
-                                               {| external =
-                                                   match ingressConfig.Visibility with
-                                                   | Some External -> box true
-                                                   | Some Internal -> box false
-                                                   | None -> null
-                                                  targetPort = ingressConfig.TargetPort
-                                                  transport =
-                                                   match ingressConfig.Transport with
-                                                   | Some HTTP1 -> "http"
-                                                   | Some HTTP2 -> "http2"
-                                                   | Some Auto -> "auto"
-                                                   | None -> null
-                                               |} :> obj
-                                           | None ->
-                                               null
+                                            match this.IngressMode with
+                                            | Some InternalOnly ->
+                                                box {| external = false |}
+                                            | Some (External (targetPort, transport)) ->
+                                                box
+                                                    {| external = true
+                                                       targetPort = targetPort
+                                                       transport =
+                                                        match transport with
+                                                        | Some HTTP1 -> "http"
+                                                        | Some HTTP2 -> "http2"
+                                                        | Some Auto -> "auto"
+                                                        | None -> null
+                                                    |}
+                                            | None ->
+                                                null
                                        |}
 
                                template =
@@ -515,7 +509,7 @@ module ContainerApp =
                                                       match env.Value with
                                                       | EnvValue value -> {| name = env.Key; value = value; secretref = null |}
                                                       | SecureEnvExpression armExpr -> {| name = env.Key; value = null; secretref = armExpr.Eval() |}
-                                                      | SecureEnvValue parameter -> {| name = env.Key; value = null; secretref = env.Key |}
+                                                      | SecureEnvValue _ -> {| name = env.Key; value = null; secretref = env.Key |}
                                                  |]
                                                 resources =
                                                    {| cpu = container.Resources.CPU |> Option.toNullable
@@ -580,8 +574,8 @@ module ContainerApp =
                                                           custom =
                                                               {| ``type`` = "cpu"
                                                                  metadata =
-                                                                   {| ``type`` = match settings with CpuUtilisation _ -> "Utilisation" | CpuAverageValue _ -> "AverageValue"
-                                                                      value = match settings with CpuUtilisation v | CpuAverageValue v -> v |> string
+                                                                   {| ``type`` = match settings with Utilisation _ -> "Utilisation" | AverageValue _ -> "AverageValue"
+                                                                      value = match settings with Utilisation v -> v.Utilisation |> string | AverageValue v -> v.AverageValue |> string
                                                                    |}
                                                               |}
                                                        |}
@@ -591,8 +585,8 @@ module ContainerApp =
                                                           custom =
                                                               {| ``type`` = "memory"
                                                                  metadata =
-                                                                   {| ``type`` = match settings with MemoryUtilisation _ -> "Utilisation" | MemoryAverageValue _ -> "AverageValue"
-                                                                      value = match settings with MemoryUtilisation v | MemoryAverageValue v -> v |> string
+                                                                   {| ``type`` = match settings with Utilisation _ -> "Utilisation" | AverageValue _ -> "AverageValue"
+                                                                      value = match settings with Utilisation v -> v.Utilisation |> string | AverageValue v -> v.AverageValue |> string
                                                                    |}
                                                               |}
                                                        |}
@@ -607,7 +601,7 @@ module ContainerApp =
                                                                       connectionFromEnv = settings.StorageConnectionSecretRef
                                                                       accountName = settings.AccountName
                                                                    |}
-                                                              |}                                                             
+                                                              |}
                                                        |}
                                              |]
                                           |}
