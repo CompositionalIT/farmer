@@ -1,4 +1,4 @@
-#r "../../src/Farmer/bin/Debug/net5.0/Farmer.dll"
+#r "nuget: Farmer"
 #r "nuget: FSharp.Text.Docker"
 
 open System
@@ -75,10 +75,13 @@ let containerEnv =
                     container {
                         container_name "fsharpwebapp"
                         private_docker_image $"{myAcr.Name.Value}.azurecr.io" "fsharpwebapp" version
+                        cpu_cores 0.3<VCores>
+                        memory 0.8<Gb>
                     }
                     container {
                         container_name "http-frontend"
                         public_docker_image "nginx" "latest"
+                        cpu_cores 0.2<VCores>
                         memory 0.2<Gb>
                     }
                 ]
