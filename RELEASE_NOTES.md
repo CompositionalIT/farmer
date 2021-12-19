@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.6.24
+* WebApps: Fix zip deployments for web app with slots.
+
 ## 1.6.23
 * ContainerApps: Adds support for [containerApps](https://docs.microsoft.com/azure/container-apps/overview).
 * WebApps/Functions: Added support for .NET 6 runtimes with new Runtime.DotNet60.
