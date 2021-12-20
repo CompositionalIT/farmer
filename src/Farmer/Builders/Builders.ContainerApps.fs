@@ -23,7 +23,7 @@ type ContainerConfig =
 type ContainerAppConfig =
     { Name : ResourceName
       ActiveRevisionsMode : ActiveRevisionsMode
-      IngressConfig : IngressConfig option
+      IngressMode : IngressMode option
       ScaleRules : Map<string, ScaleRule>
       Replicas : {| Min : int; Max : int |} option
       DaprConfig : {| AppId : string |} option
@@ -32,7 +32,7 @@ type ContainerAppConfig =
       /// Credentials for image registries used by containers in this environment.
       ImageRegistryCredentials : ImageRegistryAuthentication list
       Containers : ContainerConfig list
-      Dependencies : Set<ResourceId> } 
+      Dependencies : Set<ResourceId> }
 
 type ContainerEnvironmentConfig =
     { Name : ResourceName
@@ -47,7 +47,7 @@ type ContainerEnvironmentConfig =
             let logAnalyticsResourceId = this.LogAnalytics.resourceId this
             { Name = this.Name
               InternalLoadBalancerState = this.InternalLoadBalancerState
-              LogAnalytics = logAnalyticsResourceId 
+              LogAnalytics = logAnalyticsResourceId
               Location = location
               Dependencies = this.Dependencies.Add logAnalyticsResourceId
               Tags = this.Tags }
@@ -70,7 +70,7 @@ type ContainerEnvironmentConfig =
                 { Name = containerApp.Name
                   Environment = kubeEnvironments.resourceId this.Name
                   ActiveRevisionsMode = containerApp.ActiveRevisionsMode
-                  IngressConfig = containerApp.IngressConfig
+                  IngressMode = containerApp.IngressMode
                   ScaleRules = containerApp.ScaleRules
                   Replicas = containerApp.Replicas
                   DaprConfig = containerApp.DaprConfig
@@ -100,7 +100,7 @@ type ContainerEnvironmentBuilder() =
     member _.SetLogAnalytics  (state:ContainerEnvironmentConfig, logAnalytics:WorkspaceConfig) =
         { state with LogAnalytics = ResourceRef.unmanaged (Arm.LogAnalytics.workspaces.resourceId logAnalytics.Name) }
 
-    /// Sets the InternalLoadBalancerEnabled property of the Azure Container App Environment.
+    /// Sets whether an internal load balancer should be used for load balancing traffic to container app replicas.
     [<CustomOperation "internal_load_balancer_state">]
     member _.SetInternalLoadBalancerState  (state:ContainerEnvironmentConfig, internalLoadBalancerState:FeatureFlag) =
         { state with InternalLoadBalancerState = internalLoadBalancerState }
@@ -128,7 +128,7 @@ type ContainerAppBuilder () =
           Replicas = None
           ScaleRules = Map.empty
           Secrets = Map.empty
-          IngressConfig = None
+          IngressMode = None
           EnvironmentVariables = Map.empty
           DaprConfig = None
           Dependencies = Set.empty }
@@ -138,37 +138,50 @@ type ContainerAppBuilder () =
     member _.ResourceName (state:ContainerAppConfig, name:string) = { state with Name = ResourceName name }
 
     /// Adds a scale rule to the Azure Container App.
-    [<CustomOperation "add_scale_rule">]
-    member _.AddScaleRule (state:ContainerAppConfig, name, rule:ScaleRule) =
-        { state with ScaleRules = state.ScaleRules.Add (name, rule) }
-    member this.AddScaleRule (state, name, rule:HttpScaleRule) =
-        this.AddScaleRule(state, name, ScaleRule.Http rule)
-    member this.AddScaleRule (state, name, rule:ServiceBusScaleRule) =
-        this.AddScaleRule(state, name, ScaleRule.ServiceBus rule)
-    member this.AddScaleRule (state, name, rule:EventHubScaleRule) =
-        this.AddScaleRule(state, name, ScaleRule.EventHub rule)
-    member this.AddScaleRule (state, name, rule:CpuScaleRule) =
-        this.AddScaleRule(state, name, ScaleRule.CPU rule)
-    member this.AddScaleRule (state, name, rule:MemoryScaleRule) =
-        this.AddScaleRule(state, name, ScaleRule.Memory rule)
-    member this.AddScaleRule (state, name, rule:StorageQueueScaleRule) =
-        this.AddScaleRule(state, name, ScaleRule.StorageQueue rule)
-
+    [<CustomOperation "add_http_scale_rule">]
+    member _.AddHttpScaleRule (state:ContainerAppConfig, name, rule:HttpScaleRule) =
+        { state with ScaleRules = state.ScaleRules.Add (name, ScaleRule.Http rule) }
+    [<CustomOperation "add_servicebus_scale_rule">]
+    member _.AddServiceBusScaleRule (state:ContainerAppConfig, name, rule:ServiceBusScaleRule) =
+        { state with ScaleRules = state.ScaleRules.Add (name, ScaleRule.ServiceBus rule) }
+    [<CustomOperation "add_eventhub_scale_rule">]
+    member _.AddEventHubScaleRule (state:ContainerAppConfig, name, rule:EventHubScaleRule) =
+        { state with ScaleRules = state.ScaleRules.Add (name, ScaleRule.EventHub rule) }
+    [<CustomOperation "add_cpu_scale_rule">]
+    member _.AddCpuScaleRule (state:ContainerAppConfig, name, rule) =
+        { state with ScaleRules = state.ScaleRules.Add (name, ScaleRule.CPU (Utilisation rule)) }
+    member _.AddCpuScaleRule (state:ContainerAppConfig, name, rule) =
+        { state with ScaleRules = state.ScaleRules.Add (name, ScaleRule.CPU (AverageValue rule)) }
+    [<CustomOperation "add_memory_scale_rule">]
+    member _.AddMemScaleRule (state:ContainerAppConfig, name, rule) =
+        { state with ScaleRules = state.ScaleRules.Add (name, ScaleRule.Memory (Utilisation rule)) }
+    member _.AddMemScaleRule (state:ContainerAppConfig, name, rule) =
+        { state with ScaleRules = state.ScaleRules.Add (name, ScaleRule.Memory (AverageValue rule)) }
     [<CustomOperation "add_queue_scale_rule">]
-    member this.AddQueueScaleRule (state, name, account:StorageAccountConfig, queueName:string, queueLength : int) =
+    member this.AddQueueScaleRule (state:ContainerAppConfig, name, storageAccount:StorageAccountConfig, queueName:string, queueLength : int) =
         let state = this.AddEnvironmentVariable (state, $"scalerule-{name}-queue-name", queueName)
         let secretRef = $"scalerule-{name}-connection"
-        let state = this.AddSecretExpression(state, secretRef, account.Key)
-        this.AddScaleRule(state, name, ScaleRule.StorageQueue { QueueName = queueName; QueueLength = queueLength; StorageConnectionSecretRef = secretRef; AccountName = account.Name.ResourceName.Value })
+        let state : ContainerAppConfig = this.AddSecretExpression(state, secretRef, storageAccount.Key)
+        let queueRule =
+            {
+                QueueName = queueName
+                QueueLength = queueLength
+                StorageConnectionSecretRef = secretRef
+                AccountName = storageAccount.Name.ResourceName.Value
+            }
+        { state with ScaleRules = state.ScaleRules.Add (name, ScaleRule.StorageQueue queueRule) }
+    [<CustomOperation "add_custom_scale_rule">]
+    member _.AddCustomScaleRule (state:ContainerAppConfig, name, rule) =
+        { state with ScaleRules = state.ScaleRules.Add (name, ScaleRule.Custom rule) }
 
-    /// Configures the ingress of the Azure Container App.
-    [<CustomOperation "ingress_visibility">]
-    member _.SetIngressVisibility (state:ContainerAppConfig, visibility) =
+    /// Actives or deactivates the ingress of the Azure Container App.
+    [<CustomOperation "ingress_state">]
+    member _.SetIngressVisibility (state:ContainerAppConfig, enabled) =
         { state with
-            IngressConfig =
-                state.IngressConfig
-                |> Option.defaultValue { Visibility = None; TargetPort = 80us; Transport = None }
-                |> fun cfg -> { cfg with Visibility = Some visibility }
+            IngressMode =
+                match enabled with
+                | Enabled -> External (80us, None)
+                | Disabled -> InternalOnly
                 |> Some
         }
 
@@ -176,21 +189,23 @@ type ContainerAppBuilder () =
     [<CustomOperation "ingress_target_port">]
     member _.SetIngressTargetPort (state:ContainerAppConfig, targetPort) =
         { state with
-            IngressConfig =
-                state.IngressConfig
-                |> Option.defaultValue { Visibility = None; TargetPort = 80us; Transport = None }
-                |> fun cfg -> { cfg with TargetPort = targetPort }
-                |> Some
+            IngressMode =
+                let existingTransport =
+                    match state.IngressMode with
+                    | Some (External (_, transport)) -> transport
+                    | Some InternalOnly | None -> None
+                Some (External (targetPort, existingTransport))
         }
     /// Configures the ingress of the Azure Container App.
     [<CustomOperation "ingress_transport">]
     member _.SetIngressTransport (state:ContainerAppConfig, transport) =
         { state with
-            IngressConfig =
-                state.IngressConfig
-                |> Option.defaultValue { Visibility = None; TargetPort = 80us; Transport = None }
-                |> fun cfg -> { cfg with Transport = Some transport }
-                |> Some
+            IngressMode =
+                let existingPort =
+                    match state.IngressMode with
+                    | Some (External (port, _)) -> port
+                    | Some InternalOnly | None -> 80us
+                Some (External (existingPort, Some transport))
         }
 
     /// Configures Dapr in the Azure Container App.
@@ -200,7 +215,7 @@ type ContainerAppBuilder () =
             DaprConfig = state.DaprConfig |> Option.map (fun c -> {| c with AppId = appId |})
         }
 
-    /// Sets the replicas settings of the Azure Container App.
+    /// Sets the minimum and maximum replicas to scale the container app.
     [<CustomOperation "replicas">]
     member _.SetReplicas (state:ContainerAppConfig, minReplicas:int, maxReplicas: int) =
         { state with Replicas = Some {| Min = minReplicas; Max = maxReplicas |} }
@@ -253,6 +268,16 @@ type ContainerAppBuilder () =
             EnvironmentVariables = state.EnvironmentVariables.Add (EnvVar.create name value)
         }
 
+    [<CustomOperation "add_simple_container">]
+    member this.AddSimpleContainer (state:ContainerAppConfig, dockerImage, dockerVersion) =
+        let container =
+            {
+                ContainerConfig.ContainerName = state.Name.Value
+                DockerImage = Some (PublicImage (dockerImage, Some dockerVersion))
+                Resources = {| CPU = None; Memory = None; |}
+            }
+        this.AddContainers(state, [ container ])
+
     /// Support for adding dependencies to this Container App.
     interface IDependable<ContainerAppConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
@@ -260,9 +285,9 @@ type ContainerBuilder () =
     member _.Yield _ =
         { ContainerName = ""
           DockerImage = None
-          Resources = {| CPU = Some 0.2<VCores>; Memory = Some 0.5<Gb> |} }
+          Resources = {| CPU = None; Memory = None |} }
     /// Set docker credentials
-    [<CustomOperation "container_name">]
+    [<CustomOperation "name">]
     member _.ContainerName (state:ContainerConfig, name) =
         { state with ContainerName = name }
 

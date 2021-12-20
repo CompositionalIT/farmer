@@ -2103,23 +2103,24 @@ module ContainerApp =
     type ServiceBusScaleRule = { QueueName : string; MessageCount: int; SecretRef : string }
     type HttpScaleRule = { ConcurrentRequests : int }
     type StorageQueueScaleRule = { QueueName : string; QueueLength: int; StorageConnectionSecretRef : string; AccountName : string }
-    type CpuScaleRule = CpuUtilisation of int | CpuAverageValue of int
-    type MemoryScaleRule = MemoryUtilisation of int | MemoryAverageValue of int
+    type UtilisationRule = { Utilisation : int }
+    type AverageValueRule = { AverageValue : int }
+    type MetricScaleRule = Utilisation of UtilisationRule | AverageValue of AverageValueRule
     [<RequireQualifiedAccess>]
     type ScaleRule =
         | EventHub of EventHubScaleRule
         | ServiceBus of ServiceBusScaleRule
         | Http of HttpScaleRule
-        | CPU of CpuScaleRule
-        | Memory of MemoryScaleRule
+        | CPU of MetricScaleRule
+        | Memory of MetricScaleRule
         | StorageQueue of StorageQueueScaleRule
         | Custom of obj
     type Transport = HTTP1 | HTTP2 | Auto
-    type Visibility = External | Internal
+    type IngressMode = External of port:uint16 * Transport option | InternalOnly
     type ActiveRevisionsMode = Single | Multiple
     type DockerImageKind =
         | PrivateImage of RegistryDomain : string * ContainerName : string *  Version:string option
-        | PublicImage of ContainerName:string * Version:string option 
+        | PublicImage of ContainerName:string * Version:string option
             member this.ImageTag =
                 match this with
                 | PrivateImage (registry, container, version) ->
@@ -2128,9 +2129,6 @@ module ContainerApp =
                 | PublicImage (container, version) ->
                     let version = version |> Option.defaultValue "latest"
                     $"{container}:{version}"
-
-    
-
 
 namespace Farmer.DiagnosticSettings
 
