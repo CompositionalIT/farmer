@@ -32,7 +32,42 @@ type ContainerAppConfig =
       /// Credentials for image registries used by containers in this environment.
       ImageRegistryCredentials : ImageRegistryAuthentication list
       Containers : ContainerConfig list
-      Dependencies : Set<ResourceId> } 
+      Dependencies : Set<ResourceId> }
+
+/// The total resources in a container app must equal one of these combinations.
+/// https://docs.microsoft.com/azure/container-apps/containers#configuration
+let private supportedTotalResources =
+    [
+        {| CPU = Some 0.25<VCores>; Memory = Some 0.5<Gb> |}
+        {| CPU = Some 0.5<VCores>; Memory = Some 1.0<Gb> |}
+        {| CPU = Some 0.75<VCores>; Memory = Some 1.5<Gb> |}
+        {| CPU = Some 1.0<VCores>; Memory = Some 2.0<Gb> |}
+        {| CPU = Some 1.25<VCores>; Memory = Some 2.5<Gb> |}
+        {| CPU = Some 1.5<VCores>; Memory = Some 3.0<Gb> |}
+        {| CPU = Some 1.75<VCores>; Memory = Some 3.5<Gb> |}
+        {| CPU = Some 2.0<VCores>; Memory = Some 4.0<Gb> |}
+    ]
+
+/// Calculates the sum of requested resources for all containers in the containerApp.
+let private calculateTotalResources (containerApp:ContainerAppConfig) =
+    let totalCpu =
+        containerApp.Containers
+        |> List.sumBy (fun container -> container.Resources.CPU |> Option.defaultValue 0.25<VCores>)
+
+    let totalMemory =
+        containerApp.Containers
+        |> List.sumBy (fun container -> container.Resources.Memory |> Option.defaultValue 0.5<Gb>)
+
+    {| CPU = Some totalCpu; Memory = Some totalMemory |}
+
+/// Validates that the total of resources requested for all containers is a supported amount.
+let private validateTotalResources (containerApp:ContainerAppConfig) =
+    let totalRequested = calculateTotalResources containerApp
+    if not (supportedTotalResources |> List.contains totalRequested) then
+        let supportedTotalsMessage =
+            supportedTotalResources |> Seq.map (fun resources -> $"'CPU: {resources.CPU.Value} cores, Memory: {resources.Memory.Value} Gb'")
+            |> String.concat ", "
+        raiseFarmer $"Resources for all containers in container app '{containerApp.Name.Value}' total 'CPU: {totalRequested.CPU.Value} cores, Memory: {totalRequested.Memory.Value} Gb' but must total one of the following: {supportedTotalsMessage}"
 
 type ContainerEnvironmentConfig =
     { Name : ResourceName
@@ -67,6 +102,8 @@ type ContainerEnvironmentConfig =
                 ()
 
             for containerApp in this.ContainerApps do
+                // Ensure total resources is a supported amount.
+                validateTotalResources containerApp
                 { Name = containerApp.Name
                   Environment = kubeEnvironments.resourceId this.Name
                   ActiveRevisionsMode = containerApp.ActiveRevisionsMode
@@ -260,7 +297,7 @@ type ContainerBuilder () =
     member _.Yield _ =
         { ContainerName = ""
           DockerImage = None
-          Resources = {| CPU = Some 0.2<VCores>; Memory = Some 0.5<Gb> |} }
+          Resources = {| CPU = None; Memory = None |} }
     /// Set docker credentials
     [<CustomOperation "container_name">]
     member _.ContainerName (state:ContainerConfig, name) =
@@ -281,7 +318,7 @@ type ContainerBuilder () =
     member _.CpuCores (state:ContainerConfig, cpuCount:float<VCores>) =
         let numCores = cpuCount / 1.<VCores>
         if numCores > 2. then raiseFarmer $"'{state.ContainerName}' exceeds maximum CPU cores of 2.0 for containers in containerApps."
-        let roundedCpuCount = System.Math.Round(numCores, 1) * 1.<VCores>
+        let roundedCpuCount = System.Math.Round(numCores, 2) * 1.<VCores>
         { state with Resources = {| state.Resources with CPU = Some roundedCpuCount |} }
 
     [<CustomOperation "memory">]

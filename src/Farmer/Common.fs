@@ -2129,9 +2129,6 @@ module ContainerApp =
                     let version = version |> Option.defaultValue "latest"
                     $"{container}:{version}"
 
-    
-
-
 namespace Farmer.DiagnosticSettings
 
 open Farmer
