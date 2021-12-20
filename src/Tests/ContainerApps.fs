@@ -10,7 +10,6 @@ let fullContainerAppDeployment =
     let containerLogs = logAnalytics { name "containerlogs" }
     let containerRegistryDomain = "myregistry.azurecr.io"
     let containerRegistryUsername = "myregistry"
-    let containerRepository = "myimage"
     let version = "1.0.0"
     let containerEnv =
         containerEnvironment {
@@ -19,13 +18,13 @@ let fullContainerAppDeployment =
             add_containers [
                 containerApp {
                     name "http"
-                    active_revision_mode ActiveRevisionsMode.Single
+                    active_revision_mode Single
                     add_registry_credentials [
                         registry containerRegistryDomain containerRegistryUsername
                     ]
                     add_containers [
                         container {
-                            container_name "http"
+                            name "http"
                             private_docker_image containerRegistryDomain "http" version
                             cpu_cores 0.5<VCores>
                             memory 1.0<Gb>
@@ -34,30 +33,29 @@ let fullContainerAppDeployment =
                     replicas 1 5
                     add_env_variable "ServiceBusQueueName" "wishrequests"
                     add_secret_parameter "servicebusconnectionkey"
-                    ingress_visibility External
+                    ingress_state Enabled
                     ingress_target_port 80us
                     ingress_transport Auto
                     dapr_app_id "http"
-                    add_scale_rule "http-rule" (ScaleRule.Http { ConcurrentRequests = 100 })
+                    add_http_scale_rule "http-rule" { ConcurrentRequests = 100 }
                 }
                 containerApp {
                     name "servicebus"
-                    active_revision_mode ActiveRevisionsMode.Single
+                    active_revision_mode Single
                     add_containers [
                         container {
-                            container_name "servicebus"
+                            name "servicebus"
                             private_docker_image containerRegistryDomain "servicebus" version
                         }
                     ]
                     replicas 0 3
                     add_env_variable "ServiceBusQueueName" "wishrequests"
                     add_secret_parameter "servicebusconnectionkey"
-                    add_scale_rule
-                        "sb-keda-scale" 
-                        (ScaleRule.ServiceBus {
-                            QueueName = "wishrequests"
-                            MessageCount = 5
-                            SecretRef = "servicebusconnectionkey" })
+                    add_servicebus_scale_rule
+                        "sb-keda-scale"
+                        { QueueName = "wishrequests"
+                          MessageCount = 5
+                          SecretRef = "servicebusconnectionkey" }
                 }
             ]
         }
@@ -85,7 +83,7 @@ let tests = testList "Container Apps" [
     test "Full container environment kubeEnvironment" {
         let kubeEnv = jobj.SelectToken("resources[?(@.name=='kubecontainerenv')]")
         Expect.equal (kubeEnv.["type"] |> string) "Microsoft.Web/kubeEnvironments" "Incorrect type for kuberenetes environment"
-        Expect.equal (kubeEnv.["kind"] |> string) "containerenvironment" "Incorrect kind for kuberenetes environment"        
+        Expect.equal (kubeEnv.["kind"] |> string) "containerenvironment" "Incorrect kind for kuberenetes environment"
         let kubeEnvAppLogConfig = jobj.SelectToken("resources[?(@.name=='kubecontainerenv')].properties.appLogsConfiguration")
         Expect.equal (kubeEnvAppLogConfig.["destination"] |> string) "log-analytics" "Incorrect type for app log config"
         let kubeEnvLogAnalyticsCustomerId = jobj.SelectToken("resources[?(@.name=='kubecontainerenv')].properties.appLogsConfiguration.logAnalyticsConfiguration")
