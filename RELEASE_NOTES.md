@@ -1,5 +1,7 @@
 Release Notes
 =============
+## vNext
+* Revert back to targetting NET Standard 2 only.
 
 ## 1.6.23
 * ContainerApps: Adds support for [containerApps](https://docs.microsoft.com/azure/container-apps/overview).
