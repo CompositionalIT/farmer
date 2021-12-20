@@ -1,6 +1,8 @@
 Release Notes
 =============
 ## vNext
+* ContainerApps: Eagerly validate whether all containers in an app have a valid CPU/RAM combination.
+* ContainerApps: Correctly round CPU to 2DP.
 * Revert back to targetting NET Standard 2 only.
 
 ## 1.6.23

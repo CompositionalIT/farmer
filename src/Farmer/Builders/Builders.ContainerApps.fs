@@ -11,7 +11,7 @@ open Farmer.Arm.Web.ContainerApp
 type ContainerConfig =
     { ContainerName : string
       DockerImage : DockerImageKind option
-      Resources : {| CPU : float<VCores> option; Memory : float<Gb> option |} }
+      Resources : {| CPU : float<VCores>; Memory : float<Gb> |} }
     member internal this.BuildContainer : Container =
         match this.DockerImage with
         | Some dockerImage ->
@@ -119,6 +119,20 @@ type ContainerEnvironmentBuilder() =
     /// Support for adding dependencies to this Container App Environment.
     interface IDependable<ContainerEnvironmentConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
+let private supportedResourceCombinations =
+    Set [
+        0.25<VCores>, 0.5<Gb>
+        0.5<VCores>, 1.0<Gb>
+        0.75<VCores>, 1.5<Gb>
+        1.0<VCores>, 2.0<Gb>
+        1.25<VCores>, 2.5<Gb>
+        1.5<VCores>, 3.0<Gb>
+        1.75<VCores>, 3.5<Gb>
+        2.0<VCores>, 4.<Gb>
+    ]
+
+let private defaultResources = {| CPU = 0.25<VCores>; Memory = 0.5<Gb> |}
+
 type ContainerAppBuilder () =
     member _.Yield _ =
         { Name = ResourceName.Empty
@@ -132,6 +146,21 @@ type ContainerAppBuilder () =
           EnvironmentVariables = Map.empty
           DaprConfig = None
           Dependencies = Set.empty }
+
+
+    member _.Run (state:ContainerAppConfig) =
+        let resourceTotals =
+            state.Containers
+            |> List.fold (fun (cpu, ram) container ->
+                cpu + container.Resources.CPU, ram + container.Resources.Memory
+            ) (0.<VCores>, 0.<Gb>)
+
+        let describe (cpu, ram) = $"({cpu}VCores, {ram}Gb)"
+        if not (supportedResourceCombinations.Contains resourceTotals) then
+            let supported = Set.toList supportedResourceCombinations |> List.map describe |> String.concat "; "
+            raiseFarmer $"The container app '{state.Name.Value}' has an invalid combination of CPU and Memory {describe resourceTotals}. All the containers within a container app must have a combined CPU & RAM combination that matches one of the following: [ {supported} ]."
+
+        state
 
     /// Sets the name of the Azure Container App.
     [<CustomOperation "name">]
@@ -274,7 +303,7 @@ type ContainerAppBuilder () =
             {
                 ContainerConfig.ContainerName = state.Name.Value
                 DockerImage = Some (PublicImage (dockerImage, Some dockerVersion))
-                Resources = {| CPU = None; Memory = None; |}
+                Resources = defaultResources
             }
         this.AddContainers(state, [ container ])
 
@@ -285,7 +314,7 @@ type ContainerBuilder () =
     member _.Yield _ =
         { ContainerName = ""
           DockerImage = None
-          Resources = {| CPU = None; Memory = None |} }
+          Resources = defaultResources }
     /// Set docker credentials
     [<CustomOperation "name">]
     member _.ContainerName (state:ContainerConfig, name) =
@@ -295,26 +324,26 @@ type ContainerBuilder () =
     [<CustomOperation "private_docker_image">]
     member _.SetPrivateDockerImage (state:ContainerConfig, registry, containerName, version:string) =
         { state with
-            DockerImage = Some (PrivateImage (registry, containerName, Some version))
+            DockerImage = Some (PrivateImage (registry, containerName, Option.ofObj version))
         }
 
     [<CustomOperation "public_docker_image">]
     member _.SetPublicDockerImage (state:ContainerConfig, containerName, version:string) =
-        { state with DockerImage = Some (PublicImage (containerName, Some version)) }
+        { state with DockerImage = Some (PublicImage (containerName, Option.ofObj version)) }
 
     [<CustomOperation "cpu_cores">]
     member _.CpuCores (state:ContainerConfig, cpuCount:float<VCores>) =
         let numCores = cpuCount / 1.<VCores>
         if numCores > 2. then raiseFarmer $"'{state.ContainerName}' exceeds maximum CPU cores of 2.0 for containers in containerApps."
-        let roundedCpuCount = System.Math.Round(numCores, 1) * 1.<VCores>
-        { state with Resources = {| state.Resources with CPU = Some roundedCpuCount |} }
+        let roundedCpuCount = System.Math.Round(numCores, 2) * 1.<VCores>
+        { state with Resources = {| state.Resources with CPU = roundedCpuCount |} }
 
     [<CustomOperation "memory">]
     member _.Memory (state:ContainerConfig, memory:float<Gb>) =
         let memory = memory / 1.<Gb>
         if memory > 4. then raiseFarmer $"'{state.ContainerName}' exceeds maximum memory of 4.0 Gb for containers in containerApps."
         let roundedMemory = System.Math.Round(memory, 2) * 1.<Gb>
-        { state with Resources = {| state.Resources with Memory = Some roundedMemory |} }
+        { state with Resources = {| state.Resources with Memory = roundedMemory |} }
 
 let containerEnvironment = ContainerEnvironmentBuilder()
 let containerApp = ContainerAppBuilder()

@@ -26,7 +26,7 @@ let fullContainerAppDeployment =
                         container {
                             name "http"
                             private_docker_image containerRegistryDomain "http" version
-                            cpu_cores 0.5<VCores>
+                            cpu_cores 0.25<VCores>
                             memory 0.5<Gb>
                         }
                     ]
@@ -115,7 +115,7 @@ let tests = testList "Container Apps" [
         let httpContainer = containers |> Seq.head
         Expect.equal (httpContainer.["image"] |> string ) "myregistry.azurecr.io/http:1.0.0" "Incorrect container image"
         Expect.equal (httpContainer.["name"] |> string ) "http" "Incorrect container name"
-        Expect.equal (httpContainer.SelectToken("resources.cpu") |> float ) 0.5 "Incorrect container cpu resources"
+        Expect.equal (httpContainer.SelectToken("resources.cpu") |> float ) 0.25 "Incorrect container cpu resources"
         Expect.equal (httpContainer.SelectToken("resources.memory") |> string ) "0.50Gi" "Incorrect container memory resources"
 
         let scale = httpContainerApp.SelectToken("properties.template.scale")

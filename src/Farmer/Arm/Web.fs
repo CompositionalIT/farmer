@@ -410,7 +410,7 @@ module ContainerApp =
     type Container =
         { Name : string
           DockerImage : DockerImageKind
-          Resources : {| CPU : float<VCores> option; Memory : float<Gb> option |} }
+          Resources : {| CPU : float<VCores>; Memory : float<Gb> |} }
     type ContainerApp =
         { Name : ResourceName
           Environment : ResourceId
@@ -512,8 +512,8 @@ module ContainerApp =
                                                       | SecureEnvValue _ -> {| name = env.Key; value = null; secretref = env.Key |}
                                                  |]
                                                 resources =
-                                                   {| cpu = container.Resources.CPU |> Option.toNullable
-                                                      memory = container.Resources.Memory |> Option.map (sprintf "%.2fGi") |> Option.toObj |}
+                                                   {| cpu = container.Resources.CPU
+                                                      memory = container.Resources.Memory |> sprintf "%.2fGi" |}
                                                    :> obj
                                           |}
                                       |]
