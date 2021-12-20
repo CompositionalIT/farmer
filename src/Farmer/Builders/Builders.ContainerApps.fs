@@ -335,7 +335,7 @@ type ContainerBuilder () =
     member _.CpuCores (state:ContainerConfig, cpuCount:float<VCores>) =
         let numCores = cpuCount / 1.<VCores>
         if numCores > 2. then raiseFarmer $"'{state.ContainerName}' exceeds maximum CPU cores of 2.0 for containers in containerApps."
-        let roundedCpuCount = System.Math.Round(numCores, 1) * 1.<VCores>
+        let roundedCpuCount = System.Math.Round(numCores, 2) * 1.<VCores>
         { state with Resources = {| state.Resources with CPU = roundedCpuCount |} }
 
     [<CustomOperation "memory">]

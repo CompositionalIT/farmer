@@ -1,5 +1,8 @@
 Release Notes
 =============
+## vNext
+* ContainerApps: Eagerly validate whether all containers in an app have a valid CPU/RAM combination.
+* ContainerApps: Correctly round CPU to 2DP.
 
 ## 1.6.23
 * ContainerApps: Adds support for [containerApps](https://docs.microsoft.com/azure/container-apps/overview).
