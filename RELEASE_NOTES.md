@@ -1,10 +1,21 @@
 Release Notes
 =============
 
+
+## 1.6.25
+* WebApp: Create App-managed certificates in the same resource group as the ASP to avoid ARM bug
+
+## 1.6.24
+* ContainerApps: Eagerly validate whether all containers in an app have a valid CPU/RAM combination.
+* ContainerApps: Correctly round CPU to 2DP.
+* Revert back to targetting NET Standard 2 only.
+
 ## 1.6.23
-* WebApp: Create App-managed certificates in  the same resource group as the ASP to avoid ARM bug
+* ContainerApps: Adds support for [containerApps](https://docs.microsoft.com/azure/container-apps/overview).
+* WebApps/Functions: Added support for .NET 6 runtimes with new Runtime.DotNet60.
 
 ## 1.6.22
+* Log Analytics: Add CustomerId configuration member to Log Analytics
 * Service Bus: Added additional overloads for topic.duplicate_detection and queue.duplicate_detection
 * WebApp: Fixed deployment name for nested template in app-managed certificate deployments
 

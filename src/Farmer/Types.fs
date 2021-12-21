@@ -56,8 +56,7 @@ type ResourceType with
     member this.resourceId (name:ResourceName) =
       match name.Value.Split('/') with
       | [||] | [| _ |] -> ResourceId.create (this, name)
-      | arr ->
-        ResourceId.create (this, (ResourceName arr.[0]), (Array.map ResourceName arr.[1..]))
+      | parts -> ResourceId.create (this, (ResourceName parts.[0]), (Array.map ResourceName parts.[1..]))
     member this.resourceId name = this.resourceId (ResourceName name)
     member this.resourceId (firstSegment, [<ParamArray>] remainingSegments:ResourceName []) = ResourceId.create (this, firstSegment, remainingSegments)
 
@@ -178,7 +177,7 @@ type SecureParameter =
     | SecureParameter of name:string
     member this.Value = match this with SecureParameter value -> value
     /// Gets an ARM expression reference to the parameter e.g. parameters('my-password')
-    member this.ArmExpression = $"parameters('{this.Value}')" |> ArmExpression.create
+    member this.ArmExpression = ArmExpression.create $"parameters('{this.Value}')"
     /// Gets the key for this parameter in the ARM template 'parameters' dictionary.
     member this.Key = match this with SecureParameter name -> name
 
