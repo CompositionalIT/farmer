@@ -1,6 +1,7 @@
 module ContainerApps
 
 open Expecto
+open FsCheck
 open Farmer
 open Farmer.Builders
 open Newtonsoft.Json.Linq
@@ -65,7 +66,7 @@ let fullContainerAppDeployment =
         ]
     }
 
-let tests = testList "Container Apps" [
+let standardTests = testList "Standard Tests" [
     let jsonTemplate = fullContainerAppDeployment.Template |> Writer.toJson
     let jobj = JObject.Parse jsonTemplate
 
@@ -123,4 +124,75 @@ let tests = testList "Container Apps" [
         Expect.equal (scale.["minReplicas"] |> int) 1 "Incorrect min replicas"
         Expect.equal (scale.["maxReplicas"] |> int) 5 "Incorrect max replicas"
     }
+]
+
+type Inputs = PositiveInt * float<VCores> * float<Gb>
+type ValidInput = ValidInput of Inputs
+type InvalidInput = InvalidInput of Inputs
+
+let basicGen = gen {
+    let! (ContainerAppResourceLevel (cores,gb)) = Gen.elements ResourceLevels.AllLevels
+    let! containers = Arb.Default.PositiveInt () |> Arb.filter(fun (PositiveInt s) -> s < 20) |> Arb.toGen
+    return containers, cores, gb
+}
+
+let shrinker checker (con:PositiveInt, cor, mem) =
+    [
+        if con.Get > 1 then PositiveInt (con.Get - 1), cor, mem
+        if cor > 0.25<VCores> then con, cor - 0.25<VCores>, mem - 0.5<Gb>
+    ]
+    |> List.filter checker
+
+type ResourceArb =
+    static member IsValid (PositiveInt con, cor, mem) =
+        let cores = ResourceLevels.AllLevels |> Seq.map(fun (ContainerAppResourceLevel (cores, _)) -> cores) |> Seq.find (fun cores -> float cores > float con * 0.05) <= cor
+        let memory = ResourceLevels.AllLevels |> Seq.map(fun (ContainerAppResourceLevel (_, mem)) -> mem) |> Seq.find (fun mem -> float mem > float con * 0.01) <= mem
+        cores && memory
+
+    static member ValidInputs () =
+        { new Arbitrary<ValidInput> () with
+            override _.Generator = basicGen |> Gen.filter ResourceArb.IsValid |> Gen.map ValidInput
+            override _.Shrinker (ValidInput inputs) = inputs |> shrinker ResourceArb.IsValid |> Seq.map ValidInput
+        }
+    static member InvalidInputs () =
+        { new Arbitrary<InvalidInput> () with
+            override _.Generator = basicGen |> Gen.filter (ResourceArb.IsValid >> not) |> Gen.map InvalidInput
+            override _.Shrinker (InvalidInput inputs) = inputs |> shrinker (ResourceArb.IsValid >> not) |> Seq.map InvalidInput
+        }
+
+let config = { FsCheckConfig.defaultConfig with arbitrary = [ typeof<ResourceArb> ] }
+
+let pbTests = testList "Property Based Tests" [
+    testPropertyWithConfig config "totals always equal input" <| fun (ValidInput(PositiveInt containers, cores, memory)) ->
+        let split = ResourceOptimisation.optimise containers (cores, memory)
+        match split with
+        | Ok split ->
+            let correctCores = split |> List.sumBy (fun s -> s.CPU) |> decimal = decimal cores
+            let correctRam = split |> List.sumBy (fun s -> s.Memory) |> decimal = decimal memory
+            correctCores && correctRam
+        | Error msg ->
+            failwith msg
+
+    testPropertyWithConfig config "gives back correct number of resource allocations" <| fun (ValidInput(PositiveInt containers, cores, memory)) ->
+        let split = ResourceOptimisation.optimise containers (cores, memory)
+        match split with
+        | Ok split -> split.Length = containers
+        | Error msg -> failwith msg
+
+    testPropertyWithConfig config "never generates an invalid resource allocation" <| fun (ValidInput(PositiveInt containers, cores, memory)) ->
+        let split = ResourceOptimisation.optimise containers (cores, memory)
+        match split with
+        | Ok split -> split |> List.forall(fun s -> s.CPU >= 0.05<VCores> && s.Memory >= 0.01<Gb>)
+        | Error msg -> failwith msg
+
+    testPropertyWithConfig config "fails if the inputs are invalid" <| fun (InvalidInput(PositiveInt containers, cores, memory)) ->
+        let split = ResourceOptimisation.optimise containers (cores, memory)
+        match split with
+        | Ok _ -> failwith "Should have failed."
+        | Error _ -> true
+]
+
+let tests = testList "Container Apps" [
+    standardTests
+    pbTests
 ]

@@ -63,7 +63,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="expecto" Version="9.0.0" />
+    <PackageReference Include="expecto" Version="9.0.4" />
+    <PackageReference Include="Expecto.FsCheck" Version="9.0.4" />
     <PackageReference Include="Microsoft.Azure.Management.Cdn" Version="6.1.0" />
     <PackageReference Include="Microsoft.Azure.Management.Dns" Version="3.0.1" />
     <PackageReference Include="Microsoft.Azure.Management.CognitiveServices" Version="7.0.0" />
@@ -88,7 +89,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="YoloDev.Expecto.TestSdk" Version="0.9.1" />
+      <PackageReference Include="YoloDev.Expecto.TestSdk" Version="0.9.1" />
     <PackageReference Update="FSharp.Core" Version="5.0.0" />
   </ItemGroup>
 

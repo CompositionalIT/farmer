@@ -2129,6 +2129,27 @@ module ContainerApp =
                 | PublicImage (container, version) ->
                     let version = version |> Option.defaultValue "latest"
                     $"{container}:{version}"
+    type ContainerAppResourceLevel = ContainerAppResourceLevel of cores:float<VCores> * memory:float<Gb>
+    module ResourceLevels =
+        let ``CPUs = 0.25, RAM = 0.5`` = ContainerAppResourceLevel (0.25<VCores>, 0.5<Gb>)
+        let ``CPUs = 0.5, RAM = 1.0`` = ContainerAppResourceLevel (0.5<VCores>, 1.0<Gb>)
+        let ``CPUs = 0.75, RAM = 1.5`` = ContainerAppResourceLevel (0.75<VCores>, 1.5<Gb>)
+        let ``CPUs = 1.0, RAM = 2.0`` = ContainerAppResourceLevel (1.0<VCores>, 2.0<Gb>)
+        let ``CPUs = 1.25, RAM = 2.5`` = ContainerAppResourceLevel (1.25<VCores>, 2.5<Gb>)
+        let ``CPUs = 1.5, RAM = 3.0`` = ContainerAppResourceLevel (1.5<VCores>, 3.0<Gb>)
+        let ``CPUs = 1.75, RAM = 3.5`` = ContainerAppResourceLevel (1.75<VCores>, 3.5<Gb>)
+        let ``CPUs = 2.0, RAM = 4.0`` = ContainerAppResourceLevel (2.0<VCores>, 4.<Gb>)
+
+        let AllLevels = Set [
+            ``CPUs = 0.25, RAM = 0.5``
+            ``CPUs = 0.5, RAM = 1.0``
+            ``CPUs = 0.75, RAM = 1.5``
+            ``CPUs = 1.0, RAM = 2.0``
+            ``CPUs = 1.25, RAM = 2.5``
+            ``CPUs = 1.5, RAM = 3.0``
+            ``CPUs = 1.75, RAM = 3.5``
+            ``CPUs = 2.0, RAM = 4.0``
+        ]
 
 namespace Farmer.DiagnosticSettings
 

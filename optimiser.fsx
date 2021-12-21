@@ -19,6 +19,10 @@ let resourceMinimums =
     ]
 
 
+let cores = 1.75
+let containers = 5.
+
+
 let optimise containers (cores:float<VCores>, memory:float<Gb>) =
     let containers = float containers
     let minCores = resourceMinimums |> List.tryFind (fun (cores, _) -> float cores > containers * 0.05) |> Option.map fst
@@ -31,18 +35,19 @@ let optimise containers (cores:float<VCores>, memory:float<Gb>) =
             let cores = float cores
             let memory = float memory
 
-            let vcoresPerContainer = Math.Round ((cores / containers) * 20., MidpointRounding.ToZero) / 20.
+            let vcoresPerContainer = Math.Truncate ((cores / containers) * 20.) / 20.
             let remainingCores = cores - (vcoresPerContainer * containers)
 
-            let gbPerContainer = Math.Round ((memory / containers) * 100., MidpointRounding.ToZero) / 100.
+            let gbPerContainer = Math.Truncate ((memory / containers) * 100.) / 100.
             let remainingGb = memory - (gbPerContainer * containers)
 
-            Ok
-                [
-                    for container in 1. .. containers do
-                        if container = 1. then (vcoresPerContainer + remainingCores) * 1.<VCores>, (gbPerContainer + remainingGb) * 1.<Gb>
-                        else vcoresPerContainer * 1.<VCores>, gbPerContainer * 1.<Gb>
-                ]
+            Ok [
+                for container in 1. .. containers do
+                    if container = 1. then
+                        (vcoresPerContainer + remainingCores) * 1.<VCores>, (gbPerContainer + remainingGb) * 1.<Gb>
+                    else
+                        vcoresPerContainer * 1.<VCores>, gbPerContainer * 1.<Gb>
+            ]
     | None, _ ->
         Error "Insufficient cores"
     | _, None ->
@@ -128,4 +133,4 @@ type ResourceArb =
 
 let config = { Config.Default with Arbitrary = [ typeof<ResourceArb> ] }
 
-Check.All<Tests>(config)
+Check.All<Tests> config
