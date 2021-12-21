@@ -7,13 +7,15 @@ open Farmer.Arm.ManagedIdentity
 
 type UserAssignedIdentityConfig =
     { Name : ResourceName
-      Tags : Map<string, string> }
+      Tags : Map<string, string>
+      ActiveDirectoryGroups: string Set }
     interface IBuilder with
         member this.ResourceId = this.ResourceId
         member this.BuildResources location = [
             { UserAssignedIdentity.Name = this.Name
               Location = location
-              Tags = this.Tags }
+              Tags = this.Tags
+              ActiveDirectoryGroups = this.ActiveDirectoryGroups}
         ]
     member this.ResourceId = userAssignedIdentities.resourceId this.Name
     member this.UserAssignedIdentity = UserAssignedIdentity this.ResourceId
@@ -23,10 +25,14 @@ type UserAssignedIdentityConfig =
 type UserAssignedIdentityBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
-          Tags = Map.empty }
+          Tags = Map.empty
+          ActiveDirectoryGroups = Set.empty }
     /// Sets the name of the user assigned identity.
     [<CustomOperation "name">]
     member _.Name(state:UserAssignedIdentityConfig, name) = { state with Name = ResourceName name }
+    /// Adds the user assigned identity to the specified active directory group
+    [<CustomOperation "add_to_ad_group">]
+    member _.AddToGroup(state: UserAssignedIdentityConfig, groupName) = { state with ActiveDirectoryGroups = Set.add groupName state.ActiveDirectoryGroups }
     /// Adds tags to the user assigned identity.
     interface ITaggable<UserAssignedIdentityConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
