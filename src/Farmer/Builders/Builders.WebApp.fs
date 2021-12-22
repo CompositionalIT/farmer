@@ -384,7 +384,8 @@ type WebAppConfig =
                   NetFrameworkVersion =
                     match this.Runtime with
                     | AspNet version
-                    | DotNet version ->
+                    | DotNet ("5.0" as version)
+                    | DotNet ("6.0" as version) ->
                         Some $"v{version}"
                     | _ ->
                         None

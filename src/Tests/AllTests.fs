@@ -23,6 +23,7 @@ let allTests =
                 Cdn.tests
                 CognitiveServices.tests
                 CommunicationServices.tests
+                ContainerApps.tests
                 ContainerGroup.tests
                 ContainerRegistry.tests
                 ContainerService.tests

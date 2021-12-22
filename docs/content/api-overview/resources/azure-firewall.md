@@ -2,7 +2,7 @@
 title: "Azure Firewall"
 date: 2021-07-07T11:22:17-05:00
 chapter: false
-weight: 21
+weight: 1
 ---
 
 #### Overview
@@ -34,7 +34,7 @@ let firewall = azureFirewall {
     name "farmer_firewall"
     sku SkuName.AZFW_Hub SkuTier.Standard
     public_ip_reservation_count 2
-    link_to_unmanaged_vhub (virtualHubs.resourceId "unmanaged-vhub") 
+    link_to_unmanaged_vhub (virtualHubs.resourceId "unmanaged-vhub")
 }
 
 let deployment = arm {
