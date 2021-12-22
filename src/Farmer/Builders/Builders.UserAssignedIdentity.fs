@@ -30,9 +30,12 @@ type UserAssignedIdentityBuilder() =
     /// Sets the name of the user assigned identity.
     [<CustomOperation "name">]
     member _.Name(state:UserAssignedIdentityConfig, name) = { state with Name = ResourceName name }
-    /// Adds the user assigned identity to the specified active directory group
+    /// Adds the user assigned identity to the specified active directory groups. This happens as an Az script after the ARM deployment has completed.
+    [<CustomOperation "add_to_ad_groups">]
+    member _.AddToGroups(state: UserAssignedIdentityConfig, groupNames) = { state with ActiveDirectoryGroups = Set.union (Set.ofSeq groupNames) state.ActiveDirectoryGroups }
+    /// Adds the user assigned identity to the specified active directory group. This happens as an Az script after the ARM deployment has completed.
     [<CustomOperation "add_to_ad_group">]
-    member _.AddToGroup(state: UserAssignedIdentityConfig, groupName) = { state with ActiveDirectoryGroups = Set.add groupName state.ActiveDirectoryGroups }
+    member this.AddToGroup(state: UserAssignedIdentityConfig, groupName) = this.AddToGroups(state, [groupName])
     /// Adds tags to the user assigned identity.
     interface ITaggable<UserAssignedIdentityConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
