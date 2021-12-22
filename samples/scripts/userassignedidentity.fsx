@@ -16,4 +16,3 @@ arm {
     //add_resource bastion
 }
 |> Deploy.execute "aad-identity-group" []
-//|> Writer.quickWrite "hub-and-spoke"
