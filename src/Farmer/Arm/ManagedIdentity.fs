@@ -22,35 +22,46 @@ type UserAssignedIdentity =
             if this.ActiveDirectoryGroups.IsEmpty 
             then None // There are no groups to add this identity to so we can skip the post-deploy action
             else 
-                // get the object id of the user assigned identity
-                let identityId =
-                    result {
-                        let! identityResponse = az $"identity show -g {rg} --name {this.Name.Value} --query \"principalId\""
-                        return Serialization.ofJson<string> identityResponse
-                    }
-
-                let results : Result<string,string> seq =
-                    [for group in this.ActiveDirectoryGroups do
-                        // There is no add-if-not-contains method for AAD groups and the add method will fail if the identity is already contained in the group
-                        // Because of this, we need to check if the group already contains the id before we add it.
+                result {
+                    let (ResourceName idName) = this.Name
+                    // get the object id of the user assigned identity
+                    let! identityId =
+                        printfn $"Getting object id for identity '{idName}'"
                         result {
-                            let! inGroup =
-                                az $"ad group member check -g {group} --member-id {identityId} --query \"value\""
-                                |> Result.map Serialization.ofJson<bool>
-
-                            return! 
-                                if not inGroup then 
-                                     az $"ad group member add -g {group} --member-id {identityId}"
-                                     |> Result.map (fun _ -> $"Successfully added to group '{group}'")
-                                else 
-                                    // We consider the member already being in the group as a successful result even though we haven't done anything as this represents 
-                                    // the resultant state of azure being as requested
-                                    Result.Ok $"Already in group '{group}'"
+                            let! identityResponse = az $"identity show -g {rg} --name {idName} --query \"principalId\""
+                            return Serialization.ofJson<string> identityResponse
                         }
-                    ]
-                Result.sequence results
-                |> Result.map (String.concat "; ")
-                |> Some
+
+                    let! results =
+                        [for group in this.ActiveDirectoryGroups do
+                            // There is no add-if-not-contains method for AAD groups and the add method will fail if the identity is already contained in the group
+                            // Because of this, we need to check if the group already contains the id before we add it.
+                            result {
+                                // Print the start of the line - we add a result to this line later on
+                                printf $"Adding identity '{idName}' ({identityId}) to group '{group}'..."
+                                let! inGroup =
+                                    az $"ad group member check -g {group} --member-id {identityId} --query \"value\""
+                                    |> Result.map Serialization.ofJson<bool>
+
+                                let addedToGroup = 
+                                    if not inGroup then 
+                                        az $"ad group member add -g {group} --member-id {identityId}"
+                                        |> Result.map (fun _ -> $"{idName} added to group '{group}'")
+                                    else 
+                                        // We consider the member already being in the group as a successful result even though we haven't done anything as this represents 
+                                        // the resultant state of azure being as requested
+                                        Result.Ok $"{idName} already in group '{group}'"
+
+                                do 
+                                    match addedToGroup with
+                                    | Ok s -> printfn $"OK: {s}"
+                                    | Error s -> printfn $"Error: {s}"
+
+                                return! addedToGroup
+                            }
+                        ] |> Result.sequence 
+                    return String.concat "; " results
+                } |> Some
             
 
 /// Builds the JSON ARM value for a resource's identity.

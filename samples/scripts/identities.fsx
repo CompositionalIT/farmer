@@ -1,4 +1,4 @@
-#r @"..\..\src\Farmer\bin\Debug\net5.0\Farmer.dll"
+#r @"..\..\src\Farmer\bin\Debug\netstandard2.0\Farmer.dll"
 
 open Farmer
 open Farmer.Builders
@@ -7,7 +7,7 @@ open Farmer.Arm.Network
 let myIdentity =
     userAssignedIdentity {
         name "rsp-test-identity"
-        add_to_group "codat-integration-apps"
+        add_to_ad_group "codat-integration-apps"
     }
 
 
