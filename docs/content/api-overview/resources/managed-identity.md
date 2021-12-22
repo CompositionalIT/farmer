@@ -70,6 +70,14 @@ to one or more resources.
 | add_tag | Adds a tag to the user assigned identity resource. |
 | add_tags | Adds multiple tags to the user assigned identity resource. |
 
+#### Post-deployment Builder Keywords
+The Web App builder contains special commands that are executed *after* the ARM deployment is completed.
+
+| Keyword | Purpose |
+|-|-|
+| add_to_ad_group | Specify the name of an existing AAD user group to automatically add the user assigned identity to that group after the deployment is complete. Note that this will *not* create the user group and will fail if the user group does not exist. |
+| add_to_ad_groups | Specify the names of existing AAD user groups to automatically add the user assigned identity to those groups after the deployment is complete. Note that this will *not* create any user groups and will fail if any group does not exist. |
+
 #### Helper Methods
 Because the User Assigned Identity builder is so simple, we also provide a simple builder function to create identities as an alternative to using the standard builder syntax:
 
@@ -113,10 +121,11 @@ In this example, a web app needs access to a Storage Account with a specific rol
 By creating a user assigned identity, unlike a system identity, we can also apply this identity onto other resources so that they, too, can "share" the permissions and identity. In this example, we also apply the identity onto a container group.
 
 ```fsharp
-// Create a user assigned identity
+// Create a user assigned identity and have it added to the "my-container-apps" AAD group
 let sharedIdentity =
     userAssignedIdentity {
         name "container-group-identity"
+        add_to_ad_group "my-container-apps"
     }
 
 // Apply it onto the web app

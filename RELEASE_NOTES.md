@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.6.25
+* UserAssignedIdentities: added add_to_ad_group(s) operators for automatic AAD group membership
+
 ## 1.6.24
 * ContainerApps: Eagerly validate whether all containers in an app have a valid CPU/RAM combination.
 * ContainerApps: Correctly round CPU to 2DP.
