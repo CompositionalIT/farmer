@@ -1,4 +1,4 @@
-﻿namespace Farmer
+namespace Farmer
 
 open System
 
@@ -90,10 +90,11 @@ type IsoDateTime =
     member this.Value = match this with IsoDateTime value -> value
 type TransmissionProtocol = TCP | UDP
 type TlsVersion = Tls10 | Tls11 | Tls12
+/// Represents an environment variable that can be set, typically on Docker container services.
 type EnvVar =
-    /// Use for non-secret environment variables to be surfaced in the container. These will be stored in cleartext in the ARM template.
+    /// Use for non-secret environment variables. These will be stored in cleartext in the ARM template.
     | EnvValue of string
-    /// Use for secret environment variables to be surfaced in the container securely. These will be provided as secure parameters to the ARM template.
+    /// Use for secret environment variables. These will be provided as secure parameters to the ARM template.
     | SecureEnvValue of SecureParameter
     /// Use for secret environment variables that get their value from an ARM Expression. These will be an ARM expression in the template, but value used in a secure context.
     | SecureEnvExpression of ArmExpression
@@ -358,7 +359,9 @@ module internal Validation =
     let lettersOrNumbers = "alphanumeric characters", Char.IsLetterOrDigit
     let letters = "letters", Char.IsLetter
     let dash = "a dash (-)", ((=) '-')
+    let dot = "a dash (.)", ((=) '.')
     let lettersNumbersOrDash = "alphanumeric characters or the dash (-)", Char.IsLetterOrDigit <|> (snd dash)
+    let lettersNumbersDashOrDot = "alphanumeric characters, a dash (-) or a dot (.)", Char.IsLetterOrDigit <|> (snd dash) <|> (snd dot)
     let validate entity inputValue rules =
         rules
         |> Seq.choose (fun rule ->
@@ -404,10 +407,24 @@ module ServiceBusValidation =
 
         member this.ResourceName = match this with ServiceBusName name -> name
 
+module ContainerAppValidation =
+    open Validation
+    type ContainerAppSettingKey =
+        private | ContainerAppSettingKey of string
+        static member Create (name:string) =
+            [ containsOnly lettersNumbersDashOrDot
+              startsWith aLetterOrNumber
+              endsWith aLetterOrNumber
+              containsOnly lowercaseLetters
+            ]
+            |> validate "Container App Setting Key" name
+            |> Result.map ContainerAppSettingKey
+        member this.Value = match this with ContainerAppSettingKey value -> value
+
 module Insights =
 
     /// https://docs.microsoft.com/en-us/azure/azure-monitor/essentials/metrics-supported
-    type MetricsName = 
+    type MetricsName =
     | MetricsName of string
         static member PercentageCPU = MetricsName "Percentage CPU"
         static member DiskReadOperationsPerSec = MetricsName "Disk Read Operations/Sec"
@@ -878,7 +895,7 @@ module Sql =
         static member Create (ResourceName name) = SqlAccountName.Create name
         member this.ResourceName = match this with SqlAccountName name -> name
 
-    type GeoReplicationSettings = { 
+    type GeoReplicationSettings = {
         /// Suffix name for server and database name
         NameSuffix : string
         /// Replication location, different from the original one
@@ -975,6 +992,19 @@ module Containers =
                 | [| repo |] -> DockerImage.OfficialImage(repo)
                 | _ -> raiseFarmer $"Malformed docker image tag - incorrect number of repository segments: '{tag}'"
             | _ -> raiseFarmer $"Malformed docker image tag - incorrect number of version segments: '{tag}'"
+
+/// Credential for accessing an image registry.
+type ImageRegistryCredential =
+    { Server : string
+      Username : string
+      Password : SecureParameter }
+
+[<RequireQualifiedAccess>]
+type ImageRegistryAuthentication =
+/// Credentials for the container registry are included with the password as a template parameter.
+| Credential of ImageRegistryCredential
+/// Credentials for the container registry will be listed by ARM expression.
+| ListCredentials of ResourceId
 
 module ContainerGroup =
     type PortAccess = PublicPort | InternalPort
@@ -1274,7 +1304,7 @@ module ApplicationGateway =
             | TLS_RSA_WITH_AES_256_CBC_SHA256 -> "TLS_RSA_WITH_AES_256_CBC_SHA256"
             | TLS_RSA_WITH_AES_256_GCM_SHA384 -> "TLS_RSA_WITH_AES_256_GCM_SHA384"
         member this.ArmValue = CipherSuite.toString this
-        
+
 
     [<RequireQualifiedAccess>]
     type SslProtocol =
@@ -1700,7 +1730,7 @@ module Cdn =
     | Standard_ChinaCdn
     | Standard_Microsoft
     | Standard_Verizon
-    | Premium_AzureFrontDoor 
+    | Premium_AzureFrontDoor
     | Standard_AzureFrontDoor
 
     type QueryStringCachingBehaviour =
@@ -2108,6 +2138,39 @@ module AvailabilityTest =
         static member BrazilSouth = Farmer.Location "latam-br-gru-edge" |> AvailabilityTestSite
         static member CentralUS = Farmer.Location "us-fl-mia-edge" |> AvailabilityTestSite
 
+module ContainerApp =
+    //type SecretRef = SecretRef of string
+    type EventHubScaleRule = { ConsumerGroup : string; UnprocessedEventThreshold: int; CheckpointBlobContainerName: string; EventHubConnectionSecretRef : string; StorageConnectionSecretRef : string }
+    type ServiceBusScaleRule = { QueueName : string; MessageCount: int; SecretRef : string }
+    type HttpScaleRule = { ConcurrentRequests : int }
+    type StorageQueueScaleRule = { QueueName : string; QueueLength: int; StorageConnectionSecretRef : string; AccountName : string }
+    type UtilisationRule = { Utilisation : int }
+    type AverageValueRule = { AverageValue : int }
+    type MetricScaleRule = Utilisation of UtilisationRule | AverageValue of AverageValueRule
+    [<RequireQualifiedAccess>]
+    type ScaleRule =
+        | EventHub of EventHubScaleRule
+        | ServiceBus of ServiceBusScaleRule
+        | Http of HttpScaleRule
+        | CPU of MetricScaleRule
+        | Memory of MetricScaleRule
+        | StorageQueue of StorageQueueScaleRule
+        | Custom of obj
+    type Transport = HTTP1 | HTTP2 | Auto
+    type IngressMode = External of port:uint16 * Transport option | InternalOnly
+    type ActiveRevisionsMode = Single | Multiple
+    type DockerImageKind =
+        | PrivateImage of RegistryDomain : string * ContainerName : string *  Version:string option
+        | PublicImage of ContainerName:string * Version:string option
+            member this.ImageTag =
+                match this with
+                | PrivateImage (registry, container, version) ->
+                    let version = version |> Option.defaultValue "latest"
+                    $"{registry}/{container}:{version}"
+                | PublicImage (container, version) ->
+                    let version = version |> Option.defaultValue "latest"
+                    $"{container}:{version}"
+
 namespace Farmer.DiagnosticSettings
 
 open Farmer
@@ -2158,4 +2221,3 @@ type LogSetting =
 
 /// Represents the kind of destination for log analytics
 type LogAnalyticsDestination = AzureDiagnostics | Dedicated
-

@@ -2,7 +2,7 @@
 title: "Application Gateway"
 date: 2021-10-23T10:47:02-05:00
 chapter: false
-weight: 5
+weight: 1
 ---
 
 #### Overview
@@ -140,7 +140,7 @@ let myAppGateway =
             backend_address_pool backendPool
             backend_http_settings backendSettings
         }
-    
+
     appGateway {
         name "app-gw"
         sku_capacity 2

@@ -14,18 +14,6 @@ type ContainerGroupIpAddress =
         {| Protocol : TransmissionProtocol
            Port : uint16 |} Set }
 
-type ImageRegistryCredential =
-    { Server : string
-      Username : string
-      Password : SecureParameter }
-
-[<RequireQualifiedAccess>]
-type ImageRegistryAuthentication =
-/// Credentials for the container registry are included with the password as a template parameter.
-| Credential of ImageRegistryCredential
-/// Credentials for the container registry will be listed by ARM expression.
-| ListCredentials of ResourceId
-
 type ContainerInstanceGpu =
     { Count: int
       Sku: Gpu.Sku } 
@@ -166,12 +154,9 @@ type ContainerGroup =
                                       environmentVariables = [
                                           for key, value in Map.toSeq container.EnvironmentVariables do
                                               match value with
-                                              | EnvValue value ->
-                                                {| name = key; value = value; secureValue = null |}
-                                              | SecureEnvExpression armExpression ->
-                                                {| name = key; value = null; secureValue = armExpression.Eval() |}
-                                              | SecureEnvValue value ->
-                                                {| name = key; value = null; secureValue = value.ArmExpression.Eval() |}
+                                              | EnvValue value -> {| name = key; value = value; secureValue = null |}
+                                              | SecureEnvExpression armExpression -> {| name = key; value = null; secureValue = armExpression.Eval() |}
+                                              | SecureEnvValue value -> {| name = key; value = null; secureValue = value.ArmExpression.Eval() |}
                                       ]
                                       livenessProbe = container.LivenessProbe |> Option.map (fun p -> p.JsonModel |> box) |> Option.defaultValue null
                                       readinessProbe = container.ReadinessProbe |> Option.map (fun p -> p.JsonModel |> box) |> Option.defaultValue null
@@ -197,12 +182,9 @@ type ContainerGroup =
                                       environmentVariables = [
                                           for key, value in Map.toSeq container.EnvironmentVariables do
                                               match value with
-                                              | EnvValue value ->
-                                                {| name = key; value = value; secureValue = null |}
-                                              | SecureEnvExpression armExpression ->
-                                                {| name = key; value = null; secureValue = armExpression.Eval() |}
-                                              | SecureEnvValue value ->
-                                                {| name = key; value = null; secureValue = value.ArmExpression.Eval() |}
+                                              | EnvValue value -> {| name = key; value = value; secureValue = null |}
+                                              | SecureEnvExpression armExpression -> {| name = key; value = null; secureValue = armExpression.Eval() |}
+                                              | SecureEnvValue value -> {| name = key; value = null; secureValue = value.ArmExpression.Eval() |}
                                       ]
                                       volumeMounts =
                                           container.VolumeMounts
