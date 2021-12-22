@@ -2,7 +2,7 @@
 title: "Load Balancer"
 date: 2021-05-20T13:04:00-04:00
 chapter: false
-weight: 21
+weight: 12
 ---
 
 #### Overview

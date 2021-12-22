@@ -28,7 +28,7 @@ type ServiceBusQueueConfig =
       AuthorizationRules : Map<ResourceName, AuthorizationRuleRight Set>}
     interface IBuilder with
       member this.ResourceId = queues.resourceId (this.Namespace.Name/this.Name)
-      member this.BuildResources location = 
+      member this.BuildResources location =
         [
           { Name = this.Name
             Namespace = this.Namespace
@@ -69,8 +69,13 @@ type ServiceBusQueueBuilder() =
     [<CustomOperation "name">] member _.Name(state:ServiceBusQueueConfig, name) = { state with Name = ResourceName name }
     /// The length of time that a lock can be held on a message.
     [<CustomOperation "lock_duration_minutes">] member _.LockDurationMinutes(state:ServiceBusQueueConfig, duration) = { state with LockDuration = Some (TimeSpan.FromMinutes (float duration)) }
-    /// The maximum number of times a message can be delivered before dead lettering.
-    [<CustomOperation "duplicate_detection_minutes">] member _.DuplicateDetection(state:ServiceBusQueueConfig, maxTimeWindow) = { state with DuplicateDetection = Some (TimeSpan.FromMinutes (float maxTimeWindow)) }
+    /// Whether to enable duplicate detection, and if so, how long to check for.ServiceBusQueueConfig
+    [<CustomOperation "duplicate_detection">]
+    member _.DuplicateDetectionTs(state:ServiceBusQueueConfig, maxTimeWindow) = { state with DuplicateDetection = maxTimeWindow }
+    member _.DuplicateDetectionTs(state:ServiceBusQueueConfig, maxTimeWindow) = { state with DuplicateDetection = Some maxTimeWindow }
+    /// Whether to enable duplicate detection, and if so, how long to check for.ServiceBusQueueConfig
+    [<CustomOperation "duplicate_detection_minutes">]
+    member _.DuplicateDetection(state:ServiceBusQueueConfig, maxTimeWindow) = { state with DuplicateDetection = Some (TimeSpan.FromMinutes (float maxTimeWindow)) }
     /// The maximum size for the queue in megabytes.
     [<CustomOperation "max_queue_size">]
     member _.MaxTopicSize(state:ServiceBusQueueConfig, maxTopicSize:int<Mb>) = { state with MaxSizeInMegabytes = Some maxTopicSize }
@@ -110,11 +115,11 @@ type ServiceBusSubscriptionConfig =
       MaxDeliveryCount : int option
       Session : bool option
       DeadLetteringOnMessageExpiration : bool option
-      Rules : Rule list 
+      Rules : Rule list
       DependsOn: Set<ResourceId> }
     interface IBuilder with
       member this.ResourceId = subscriptions.resourceId (this.Topic.Name/this.Topic.ResourceId.Segments.[0]/this.Name)
-      member this.BuildResources location = 
+      member this.BuildResources location =
         [
           { Name = this.Name
             Topic = this.Topic
@@ -125,7 +130,7 @@ type ServiceBusSubscriptionConfig =
             MaxDeliveryCount = this.MaxDeliveryCount
             Session = this.Session
             DeadLetteringOnMessageExpiration = this.DeadLetteringOnMessageExpiration
-            Rules = this.Rules 
+            Rules = this.Rules
             DependsOn = this.DependsOn}
           ]
 
@@ -233,7 +238,12 @@ type ServiceBusTopicBuilder() =
     /// The name of the queue.
     [<CustomOperation "name">] member _.Name(state:ServiceBusTopicConfig, name) = { state with Name = ResourceName name }
     /// Whether to enable duplicate detection, and if so, how long to check for.ServiceBusQueueConfig
-    [<CustomOperation "duplicate_detection_minutes">] member _.DuplicateDetection(state:ServiceBusTopicConfig, maxTimeWindow) = { state with DuplicateDetection = Some (TimeSpan.FromMinutes (float maxTimeWindow)) }
+    [<CustomOperation "duplicate_detection">]
+    member _.DuplicateDetectionTs(state:ServiceBusTopicConfig, maxTimeWindow) = { state with DuplicateDetection = maxTimeWindow }
+    member _.DuplicateDetectionTs(state:ServiceBusTopicConfig, maxTimeWindow) = { state with DuplicateDetection = Some maxTimeWindow }
+    /// Whether to enable duplicate detection, and if so, how long to check for.ServiceBusQueueConfig
+    [<CustomOperation "duplicate_detection_minutes">]
+    member _.DuplicateDetection(state:ServiceBusTopicConfig, maxTimeWindow) = { state with DuplicateDetection = Some (TimeSpan.FromMinutes (float maxTimeWindow)) }
     /// The maximum size for the topic in megabytes.
     [<CustomOperation "max_topic_size">]
     member _.MaxTopicSize(state:ServiceBusTopicConfig, maxTopicSize:int<Mb>) = { state with MaxSizeInMegabytes = Some maxTopicSize }
@@ -259,7 +269,7 @@ type ServiceBusTopicBuilder() =
         { state with Namespace = Unmanaged(namespaces.resourceId namespaceName) }
     member this.LinkToUnmanagedNamespace (state:ServiceBusTopicConfig, namespaceName) =
         { state with Namespace = Unmanaged(namespaces.resourceId(ResourceName namespaceName)) }
-    
+
 type ServiceBusConfig =
     { Name : ResourceName
       Sku : Sku
@@ -267,7 +277,7 @@ type ServiceBusConfig =
       Queues : Map<ResourceName, ServiceBusQueueConfig>
       Topics : Map<ResourceName, ServiceBusTopicConfig>
       AuthorizationRules : Map<ResourceName, AuthorizationRuleRight Set>
-      Tags: Map<string,string>  }
+      Tags: Map<string,string> }
     member private this.GetKeyPath property =
         let expr = $"listkeys(resourceId('Microsoft.ServiceBus/namespaces/authorizationRules', '{this.Name.Value}', 'RootManageSharedAccessKey'), '2017-04-01').{property}"
         ArmExpression.create(expr, namespaces.resourceId this.Name)
@@ -283,18 +293,18 @@ type ServiceBusConfig =
               Tags = this.Tags  }
 
             for queue in this.Queues do
-              let queue = {queue.Value with Namespace = Managed(namespaces.resourceId this.Name)} :> IBuilder
+              let queue = { queue.Value with Namespace = Managed(namespaces.resourceId this.Name) } :> IBuilder
               yield! queue.BuildResources location
 
             for topic in this.Topics do
-                let topic = {topic.Value with Namespace = Managed(namespaces.resourceId this.Name)} :> IBuilder
+                let topic = { topic.Value with Namespace = Managed(namespaces.resourceId this.Name) } :> IBuilder
                 yield! topic.BuildResources location
 
             for rule in this.AuthorizationRules do
               { Name = rule.Key.Map(fun rule -> $"{this.Name.Value}/%s{rule}")
                 Location = location
                 Dependencies = [
-                  namespaces.resourceId this.Name
+                    namespaces.resourceId this.Name
                 ]
                 Rights = rule.Value }
         ]
@@ -332,7 +342,7 @@ type ServiceBusBuilder() =
         { state with
             Queues =
                 (state.Queues, queues)
-                ||> List.fold(fun state (queue:ServiceBusQueueConfig) -> state.Add(queue.Name, queue))
+                ||> List.fold(fun queueState (queue:ServiceBusQueueConfig) -> queueState.Add (queue.Name, queue))
         }
     [<CustomOperation "add_topics">]
     member _.AddTopics(state:ServiceBusConfig, topics) =
