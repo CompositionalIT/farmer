@@ -32,7 +32,8 @@ type ContainerAppConfig =
       /// Credentials for image registries used by containers in this environment.
       ImageRegistryCredentials : ImageRegistryAuthentication list
       Containers : ContainerConfig list
-      Dependencies : Set<ResourceId> }
+      Dependencies : Set<ResourceId>
+      ResourceAllocation : ContainerAppResourceLevel option }
 
 type ContainerEnvironmentConfig =
     { Name : ResourceName
@@ -119,19 +120,47 @@ type ContainerEnvironmentBuilder() =
     /// Support for adding dependencies to this Container App Environment.
     interface IDependable<ContainerEnvironmentConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
-let private supportedResourceCombinations =
-    Set [
-        0.25<VCores>, 0.5<Gb>
-        0.5<VCores>, 1.0<Gb>
-        0.75<VCores>, 1.5<Gb>
-        1.0<VCores>, 2.0<Gb>
-        1.25<VCores>, 2.5<Gb>
-        1.5<VCores>, 3.0<Gb>
-        1.75<VCores>, 3.5<Gb>
-        2.0<VCores>, 4.<Gb>
-    ]
-
 let private defaultResources = {| CPU = 0.25<VCores>; Memory = 0.5<Gb> |}
+
+[<System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)>]
+module ResourceOptimisation =
+    open System
+    let supportedResourceCombinations = ResourceLevels.AllLevels |> Set.toList
+    let MIN_CORE_SIZE = 0.05
+    let MIN_RAM_SIZE = 0.01
+
+    let optimise (containers:int) (cores:float<VCores>, memory:float<Gb>) =
+        let containers = float containers
+        let requiredMinCores = supportedResourceCombinations |> List.map (fun (ContainerAppResourceLevel (cores, _)) -> cores) |> List.tryFind (fun cores -> float cores > containers * MIN_CORE_SIZE)
+        let requiredMinRam = supportedResourceCombinations |> List.map (fun (ContainerAppResourceLevel (_, ram)) -> ram) |> List.tryFind (fun ram -> float ram > containers * MIN_RAM_SIZE)
+
+        match requiredMinCores, requiredMinRam with
+        | Some minCores, Some minRam ->
+            if minCores > cores then Error $"Insufficient cores (minimum is {minCores}VCores)."
+            elif minRam > memory then Error $"Insufficient memory (minimum is {minRam}Gb)."
+            else
+                let cores = float cores
+                let memory = float memory
+
+                let vcoresPerContainer = Math.Truncate ((cores / containers) * 20.) / 20.
+                let remainingCores = cores - (vcoresPerContainer * containers)
+
+                let gbPerContainer = Math.Truncate ((memory / containers) * 100.) / 100.
+                let remainingGb = memory - (gbPerContainer * containers)
+
+                Ok [
+                    for container in 1. .. containers do
+                        if container = 1. then
+                            {| CPU = (vcoresPerContainer + remainingCores) * 1.<VCores>
+                               Memory = (gbPerContainer + remainingGb) * 1.<Gb> |}
+                        else
+                            {| CPU = vcoresPerContainer * 1.<VCores>
+                               Memory = gbPerContainer * 1.<Gb> |}
+                ]
+        | None, _ ->
+            Error "Insufficient cores"
+        | _, None ->
+            Error "Insufficient memory"
 
 type ContainerAppBuilder () =
     member _.Yield _ =
@@ -145,27 +174,50 @@ type ContainerAppBuilder () =
           IngressMode = None
           EnvironmentVariables = Map.empty
           DaprConfig = None
-          Dependencies = Set.empty }
-
+          Dependencies = Set.empty
+          ResourceAllocation = None }
 
     member _.Run (state:ContainerAppConfig) =
+        let state =
+            match state.ResourceAllocation with
+            | Some (ContainerAppResourceLevel (cores, memory)) ->
+                if state.Containers |> List.exists (fun r -> r.Resources <> defaultResources) then
+                    raiseFarmer "You have set resource allocation at the Container App level, but also set the resource levels of some individual containers. If you are using Container App Resource Allocation, you cannot set resources of individual containers."
+
+                let split = ResourceOptimisation.optimise state.Containers.Length (cores, memory)
+                match split with
+                | Ok resources ->
+                    let containersAndResources = List.zip state.Containers resources
+
+                    { state with
+                        Containers = [
+                            for (container, resources) in containersAndResources do
+                                { container with Resources = resources }
+                        ]
+                    }
+                | Error msg ->
+                    raiseFarmer msg
+            | None ->
+                state
+
         let resourceTotals =
             state.Containers
             |> List.fold (fun (cpu, ram) container ->
                 cpu + container.Resources.CPU, ram + container.Resources.Memory
             ) (0.<VCores>, 0.<Gb>)
+            |> ContainerAppResourceLevel
 
-        let describe (cpu, ram) = $"({cpu}VCores, {ram}Gb)"
-        if not (supportedResourceCombinations.Contains resourceTotals) then
-            let supported = Set.toList supportedResourceCombinations |> List.map describe |> String.concat "; "
+        let describe (ContainerAppResourceLevel (cpu, ram)) = $"({cpu}VCores, {ram}Gb)"
+        if not (ResourceLevels.AllLevels.Contains resourceTotals) then
+            let supported = Set.toList ResourceLevels.AllLevels |> List.map describe |> String.concat "; "
             raiseFarmer $"The container app '{state.Name.Value}' has an invalid combination of CPU and Memory {describe resourceTotals}. All the containers within a container app must have a combined CPU & RAM combination that matches one of the following: [ {supported} ]."
 
         state
 
     /// Sets the name of the Azure Container App.
     [<CustomOperation "name">]
-    member _.ResourceName (state:ContainerAppConfig, name:string) = { state with Name = ResourceName name }
-
+    member _.ResourceName (state:ContainerAppConfig, name:string) =
+        { state with Name = ResourceName name }
     /// Adds a scale rule to the Azure Container App.
     [<CustomOperation "add_http_scale_rule">]
     member _.AddHttpScaleRule (state:ContainerAppConfig, name, rule:HttpScaleRule) =
@@ -307,14 +359,21 @@ type ContainerAppBuilder () =
             }
         this.AddContainers(state, [ container ])
 
+    [<CustomOperation "allocate_resources">]
+    /// Allocates resources equally to all containers in the container app.
+    member _.ShareResources (state:ContainerAppConfig, resourceLevel:ContainerAppResourceLevel) =
+        { state with ResourceAllocation = Some resourceLevel }
+
     /// Support for adding dependencies to this Container App.
-    interface IDependable<ContainerAppConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
+    interface IDependable<ContainerAppConfig> with
+        member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
 type ContainerBuilder () =
     member _.Yield _ =
         { ContainerName = ""
           DockerImage = None
           Resources = defaultResources }
+
     /// Set docker credentials
     [<CustomOperation "name">]
     member _.ContainerName (state:ContainerConfig, name) =
@@ -345,6 +404,6 @@ type ContainerBuilder () =
         let roundedMemory = System.Math.Round(memory, 2) * 1.<Gb>
         { state with Resources = {| state.Resources with Memory = roundedMemory |} }
 
-let containerEnvironment = ContainerEnvironmentBuilder()
-let containerApp = ContainerAppBuilder()
-let container = ContainerBuilder()
+let containerEnvironment = ContainerEnvironmentBuilder ()
+let containerApp = ContainerAppBuilder ()
+let container = ContainerBuilder ()
