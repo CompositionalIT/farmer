@@ -287,10 +287,7 @@ type Site =
                                            supportCredentials = credentials |> Option.toNullable |})
                             |> Option.toObj
                            healthCheckPath = this.HealthCheckPath |> Option.toObj
-                           autoSwapSlotName =
-                               match this.AutoSwapSlotName with
-                               | None -> null
-                               | Some name -> name
+                           autoSwapSlotName = this.AutoSwapSlotName |> Option.toObj
                         |}
                     |}
             |} :> _
@@ -343,7 +340,7 @@ type StaticSite =
         member this.SecureParameters = [
             this.RepositoryToken
         ]
-type SslState = 
+type SslState =
     | SslDisabled
     | SniBased of thumbprint: ArmExpression
 
@@ -352,25 +349,25 @@ type HostNameBinding =
       SiteId: LinkedResource
       DomainName: string
       SslState: SslState }
-        member this.SiteResourceId = 
-            match this.SiteId with 
+        member this.SiteResourceId =
+            match this.SiteId with
             | Managed id -> id.Name
             | Unmanaged id -> id.Name
         member this.ResourceName =
             this.SiteResourceId / this.DomainName
-        member this.Dependencies = 
+        member this.Dependencies =
             [ match this.SiteId with
               | Managed resid -> resid
               | _ -> () ]
-        member this.ResourceId = 
+        member this.ResourceId =
             hostNameBindings.resourceId (this.SiteResourceId, ResourceName this.DomainName)
         interface IArmResource with
             member this.ResourceId = hostNameBindings.resourceId this.ResourceName
             member this.JsonModel =
                 {| hostNameBindings.Create(this.ResourceName, this.Location, this.Dependencies) with
                     properties =
-                        match this.SslState with 
-                        | SniBased thumbprint -> 
+                        match this.SslState with
+                        | SniBased thumbprint ->
                             {| sslState = "SniEnabled"
                                thumbprint = thumbprint.Eval() |} :> obj
                         | SslDisabled -> {| |} :> obj
@@ -389,7 +386,7 @@ type Certificate =
             member this.JsonModel =
                 {| certificates.Create(
                         this.ResourceName,
-                        this.Location, 
+                        this.Location,
                         [this.SiteId; hostNameBindings.resourceId(this.SiteId.Name,ResourceName this.DomainName)]) with
                     properties =
                         {| serverFarmId = this.ServicePlanId.Eval()
