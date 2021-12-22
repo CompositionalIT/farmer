@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.6.25
+* WebApp/Functions: Fix autoSwapSlotName for app slots.
+
 ## 1.6.24
 * ContainerApps: Eagerly validate whether all containers in an app have a valid CPU/RAM combination.
 * ContainerApps: Correctly round CPU to 2DP.
@@ -14,7 +17,6 @@ Release Notes
 * Log Analytics: Add CustomerId configuration member to Log Analytics
 * Service Bus: Added additional overloads for topic.duplicate_detection and queue.duplicate_detection
 * WebApp: Fixed deployment name for nested template in app-managed certificate deployments
-* WebApp/Functions: Fix autoSwapSlotName for app slots.
 
 ## 1.6.21
 * Alerts: Extend a list of possible criteria for time aggregations and operators
