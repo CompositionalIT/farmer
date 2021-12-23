@@ -2,6 +2,7 @@ Release Notes
 =============
 
 ## 1.6.25
+* WebApp/Functions: Fix autoSwapSlotName for app slots.
 * UserAssignedIdentities: added add_to_ad_group(s) operators for automatic AAD group membership
 
 ## 1.6.24
