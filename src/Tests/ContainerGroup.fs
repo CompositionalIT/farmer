@@ -106,10 +106,10 @@ let tests = testList "Container Group" [
             } |> asAzureResource
 
         let containerInstance = group.Containers.[0]
-        Expect.equal containerInstance.Image "mcr.microsoft.com/azuredocs/aci-wordcount" "Incorrect containerInstance image"
+        Expect.equal containerInstance.Image "mcr.microsoft.com/azuredocs/aci-wordcount:latest" "Incorrect containerInstance image"
         Expect.equal containerInstance.Name "hamlet" "Incorrect containerInstance name"
         let initContainer = group.InitContainers.[0]
-        Expect.equal initContainer.Image "busybox" "Incorrect initContainer image"
+        Expect.equal initContainer.Image "busybox:latest" "Incorrect initContainer image"
         Expect.equal initContainer.Name "init" "Incorrect initContainer name"
     }
 
@@ -603,6 +603,6 @@ async {
         let gpu = container.Resources.Requests.Gpu
         Expect.equal gpu.Count 1 "Wrong amount of GPUs"
         Expect.equal gpu.Sku "V100" "Wrong SKU"
-        Expect.equal container.Image "myrepo/gpucontainers" "Incorrect image tag"
+        Expect.equal container.Image "myrepo/gpucontainers:latest" "Incorrect image tag"
     }
 ]

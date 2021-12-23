@@ -10,7 +10,7 @@ open Farmer.Arm.Web.ContainerApp
 
 type ContainerConfig =
     { ContainerName : string
-      DockerImage : DockerImageKind option
+      DockerImage : Containers.DockerImage option
       Resources : {| CPU : float<VCores>; Memory : float<Gb> |} }
     member internal this.BuildContainer : Container =
         match this.DockerImage with
@@ -302,7 +302,7 @@ type ContainerAppBuilder () =
         let container =
             {
                 ContainerConfig.ContainerName = state.Name.Value
-                DockerImage = Some (PublicImage (dockerImage, Some dockerVersion))
+                DockerImage = Some (Containers.PublicImage (dockerImage, Some dockerVersion))
                 Resources = defaultResources
             }
         this.AddContainers(state, [ container ])
@@ -324,12 +324,12 @@ type ContainerBuilder () =
     [<CustomOperation "private_docker_image">]
     member _.SetPrivateDockerImage (state:ContainerConfig, registry, containerName, version:string) =
         { state with
-            DockerImage = Some (PrivateImage (registry, containerName, Option.ofObj version))
+            DockerImage = Some (Containers.PrivateImage (registry, containerName, Option.ofObj version))
         }
 
     [<CustomOperation "public_docker_image">]
     member _.SetPublicDockerImage (state:ContainerConfig, containerName, version:string) =
-        { state with DockerImage = Some (PublicImage (containerName, Option.ofObj version)) }
+        { state with DockerImage = Some (Containers.PublicImage (containerName, Option.ofObj version)) }
 
     [<CustomOperation "cpu_cores">]
     member _.CpuCores (state:ContainerConfig, cpuCount:float<VCores>) =

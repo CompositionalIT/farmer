@@ -954,42 +954,28 @@ module Identity =
 
 module Containers =
     type DockerImage =
-        { RegistryDomain : string option
-          RepositoryName : string
-          ContainerName : string option
-          Version:string option }
-        /// Generates a fully qualified docker image tag.
-        member this.Tag =
-            let fullyQualifiedName =
-                seq {
-                    this.RegistryDomain
-                    this.RepositoryName |> Some
-                    this.ContainerName
-                 } |> Seq.choose id |> String.concat "/"
-            match this.Version with
-            | Some version when String.IsNullOrWhiteSpace(version) -> fullyQualifiedName
-            | Some version -> $"{fullyQualifiedName}:{version}"
-            | None -> fullyQualifiedName
-        /// Official image, such as 'nginx'
-        static member OfficialImage (repositoryName:string, ?version:string) =
-            { RegistryDomain = None; RepositoryName = repositoryName; ContainerName = None; Version = version}
-        /// Image from a private registry.
-        static member PrivateImage (registry:string, repositoryName:string, ?containerName:string, ?version:string) =
-            { RegistryDomain = Some registry; RepositoryName = repositoryName; ContainerName = containerName; Version = version}
+        | PrivateImage of RegistryDomain : string * ContainerName : string *  Version:string option
+        | PublicImage of ContainerName:string * Version:string option
+            member this.ImageTag =
+                match this with
+                | PrivateImage (registry, container, version) ->
+                    let version = version |> Option.defaultValue "latest"
+                    $"{registry}/{container}:{version}"
+                | PublicImage (container, version) ->
+                    let version = version |> Option.defaultValue "latest"
+                    $"{container}:{version}"
         /// Parses an image tag into a DockerImage record.
         static member Parse (tag:string) =
             match tag.Split([|':'|], StringSplitOptions.RemoveEmptyEntries) with
             | [| repo; version |] ->
-                match repo.Split([|'/'|], StringSplitOptions.RemoveEmptyEntries) with
-                | [| registry; repo; container |] -> DockerImage.PrivateImage(registry, repo, containerName=container, version=version)
-                | [| registry; repo |] -> DockerImage.PrivateImage(registry, repo, version=version)
-                | [| repo |] -> DockerImage.OfficialImage(repo, version=version)
+                match repo.Split([|'/'|], StringSplitOptions.RemoveEmptyEntries) |> List.ofArray with
+                | first::rest when (first.Contains ".") -> DockerImage.PrivateImage(first, (rest |> String.concat "/"), Version=Some version)
+                | _ -> DockerImage.PublicImage(repo, Version=Some version)
                 | _ -> raiseFarmer $"Malformed docker image tag - incorrect number of repository segments: '{tag}'"
             | [| repo |] ->
-                match repo.Split([|'/'|], StringSplitOptions.RemoveEmptyEntries) with
-                | [| registry; repo; container |] -> DockerImage.PrivateImage(registry, repo, containerName=container)
-                | [| registry; repo |] -> DockerImage.PrivateImage(registry, repo)
-                | [| repo |] -> DockerImage.OfficialImage(repo)
+                match repo.Split([|'/'|], StringSplitOptions.RemoveEmptyEntries) |> List.ofArray with
+                | first::rest when (first.Contains ".") -> DockerImage.PrivateImage(first, (rest |> String.concat "/"), None)
+                | _ -> DockerImage.PublicImage(repo, None)
                 | _ -> raiseFarmer $"Malformed docker image tag - incorrect number of repository segments: '{tag}'"
             | _ -> raiseFarmer $"Malformed docker image tag - incorrect number of version segments: '{tag}'"
 
@@ -2159,17 +2145,6 @@ module ContainerApp =
     type Transport = HTTP1 | HTTP2 | Auto
     type IngressMode = External of port:uint16 * Transport option | InternalOnly
     type ActiveRevisionsMode = Single | Multiple
-    type DockerImageKind =
-        | PrivateImage of RegistryDomain : string * ContainerName : string *  Version:string option
-        | PublicImage of ContainerName:string * Version:string option
-            member this.ImageTag =
-                match this with
-                | PrivateImage (registry, container, version) ->
-                    let version = version |> Option.defaultValue "latest"
-                    $"{registry}/{container}:{version}"
-                | PublicImage (container, version) ->
-                    let version = version |> Option.defaultValue "latest"
-                    $"{container}:{version}"
 
 namespace Farmer.DiagnosticSettings
 

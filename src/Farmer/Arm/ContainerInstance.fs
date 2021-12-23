@@ -148,7 +148,7 @@ type ContainerGroup =
                            |> List.map (fun container ->
                                {| name = container.Name.Value.ToLowerInvariant ()
                                   properties =
-                                   {| image = container.Image.Tag
+                                   {| image = container.Image.ImageTag
                                       command = container.Command
                                       ports = container.Ports |> Set.map (fun port -> {| port = port |})
                                       environmentVariables = [
@@ -177,7 +177,7 @@ type ContainerGroup =
                            |> List.map (fun container ->
                                {| name = container.Name.Value.ToLowerInvariant ()
                                   properties =
-                                   {| image = container.Image.Tag
+                                   {| image = container.Image.ImageTag
                                       command = container.Command
                                       environmentVariables = [
                                           for key, value in Map.toSeq container.EnvironmentVariables do

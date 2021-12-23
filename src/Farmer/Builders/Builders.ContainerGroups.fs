@@ -290,10 +290,14 @@ type ContainerInstanceBuilder() =
     [<CustomOperation "image">]
     member _.Image (state:ContainerInstanceConfig, image:string) =
         { state with Image = Some (Containers.DockerImage.Parse image) }
-    /// Sets the image of the container instance from image tag parts.
-    [<CustomOperation "docker_image">]
-    member _.DockerImage(state:ContainerInstanceConfig, registryDomain:string, repositoryName:string, containerName:string, version:string) =
-        { state with Image = Containers.DockerImage.PrivateImage (registryDomain, repositoryName, containerName, version) |> Some }
+    /// Sets the image to a private docker image.
+    [<CustomOperation "private_docker_image">]
+    member _.PrivateDockerImage(state:ContainerInstanceConfig, registry:string, containerName:string, version:string) =
+        { state with Image = Containers.DockerImage.PrivateImage (registry, containerName, Some version) |> Some }
+    /// Sets the image to a public docker image.
+    [<CustomOperation "public_docker_image">]
+    member _.PublicDockerImage(state:ContainerInstanceConfig, containerName:string, version:string) =
+        { state with Image = Containers.DockerImage.PublicImage (containerName, Some version) |> Some }
     static member private AddPorts (state:ContainerInstanceConfig, accessibility, ports) =
         { state with
             Ports =
@@ -422,10 +426,14 @@ type InitContainerBuilder() =
     /// Sets the image of the init container.
     [<CustomOperation "image">]
     member _.Image (state:InitContainerConfig, image:string) = { state with Image = Some (Containers.DockerImage.Parse image) }
-    /// Sets the image of the container instance.
-    [<CustomOperation "docker_image">]
-    member _.DockerImage(state:ContainerInstanceConfig, registryDomain:string, repositoryName:string, containerName:string, version:string) =
-        { state with Image = Containers.DockerImage.PrivateImage (registryDomain, repositoryName, containerName, version) |> Some }
+    /// Sets the image to a private docker image.
+    [<CustomOperation "private_docker_image">]
+    member _.PrivateDockerImage(state:InitContainerConfig, registry:string, containerName:string, version:string) =
+        { state with Image = Containers.DockerImage.PrivateImage (registry, containerName, Some version) |> Some }
+    /// Sets the image to a public docker image.
+    [<CustomOperation "public_docker_image">]
+    member _.PublicDockerImage(state:InitContainerConfig, containerName:string, version:string) =
+        { state with Image = Containers.DockerImage.PublicImage (containerName, Some version) |> Some }
     /// Sets the environment variables for the init container.
     [<CustomOperation "env_vars">]
     member _.EnvironmentVariables(state:InitContainerConfig, envVars) =
