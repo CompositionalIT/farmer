@@ -1,8 +1,8 @@
 Release Notes
 =============
 
-
 ## 1.6.25
+* WebApp/Functions: Fix autoSwapSlotName for app slots.
 * WebApp: Create App-managed certificates in the same resource group as the ASP to avoid ARM bug
 
 ## 1.6.24
