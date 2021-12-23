@@ -40,16 +40,8 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
-<<<<<<< HEAD
-  </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' != 'net6.0' ">
     <PackageReference Update="FSharp.Core" Version="5.0.0" />
-  </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
-    <PackageReference Include="System.Text.Json" Version="5.0.1" />
-=======
     <PackageReference Include="System.Text.Json" Version="5" />
->>>>>>> f0998b85d954757cdb98537b2a33e50759366a0c
   </ItemGroup>
   <ItemGroup>
     <None Include="../../Icon.jpg">
