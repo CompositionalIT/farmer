@@ -2,6 +2,7 @@ module Common
 
 open Expecto
 open Farmer
+
 let tests = testList "Common" [
     test "IPAddressCidr creates correct range" {
         let cidr = IPAddressCidr.parse "192.168.0.0/24"
@@ -50,5 +51,35 @@ let tests = testList "Common" [
         let innerCidr = IPAddressCidr.parse "192.168.1.0/24"
         let outerCidr = IPAddressCidr.parse "10.0.0.0/16"
         Expect.isFalse (outerCidr |> IPAddressCidr.contains innerCidr) ""
+    }
+
+    test "Docker image tag generation" {
+        let officialNginx = Containers.DockerImage.PublicImage ("nginx", None)
+        Expect.equal officialNginx.ImageTag "nginx:latest" "Official image generated with incorrect tag"
+        let officialNginxVersion = Containers.DockerImage.PublicImage ("nginx", Some "1.21.4")
+        Expect.equal officialNginxVersion.ImageTag "nginx:1.21.4" "Official versioned image generated with incorrect tag"
+        let privateRepo = Containers.DockerImage.PrivateImage ("my.azurecr.io", "foo", None)
+        Expect.equal privateRepo.ImageTag "my.azurecr.io/foo:latest" "Private image generated with incorrect tag"
+        let privateRepoVersion = Containers.DockerImage.PrivateImage ("my.azurecr.io", "foo", Version=Some "1.2.3")
+        Expect.equal privateRepoVersion.ImageTag "my.azurecr.io/foo:1.2.3" "Private versioned image generated with incorrect tag"
+        let privateRepoNamedContainer = Containers.DockerImage.PrivateImage ("my.azurecr.io", "foo/bar", None)
+        Expect.equal privateRepoNamedContainer.ImageTag "my.azurecr.io/foo/bar:latest" "Private named container image generated with incorrect tag"
+        let privateRepoNamedContainerVersion = Containers.DockerImage.PrivateImage ("my.azurecr.io", "foo/bar", Some "1.2.3")
+        Expect.equal privateRepoNamedContainerVersion.ImageTag "my.azurecr.io/foo/bar:1.2.3" "Private named and versioned container image generated with incorrect tag"
+    }
+
+    test "Docker image tag parsing" {
+        let officialNginx = Containers.DockerImage.Parse "nginx"
+        Expect.equal officialNginx.ImageTag "nginx:latest" "Official image generated with incorrect tag"
+        let officialNginxVersion = Containers.DockerImage.Parse "nginx:1.21.4"
+        Expect.equal officialNginxVersion.ImageTag "nginx:1.21.4" "Official versioned image generated with incorrect tag"
+        let privateRepo = Containers.DockerImage.Parse "my.azurecr.io/foo"
+        Expect.equal privateRepo.ImageTag "my.azurecr.io/foo:latest" "Private image generated with incorrect tag"
+        let privateRepoVersion = Containers.DockerImage.Parse "my.azurecr.io/foo:1.2.3"
+        Expect.equal privateRepoVersion.ImageTag "my.azurecr.io/foo:1.2.3" "Private versioned image generated with incorrect tag"
+        let privateRepoNamedContainer = Containers.DockerImage.Parse "my.azurecr.io/foo/bar"
+        Expect.equal privateRepoNamedContainer.ImageTag "my.azurecr.io/foo/bar:latest" "Private named container image generated with incorrect tag"
+        let privateRepoNamedContainerVersion = Containers.DockerImage.Parse "my.azurecr.io/foo/bar:1.2.3"
+        Expect.equal privateRepoNamedContainerVersion.ImageTag "my.azurecr.io/foo/bar:1.2.3" "Private named and versioned container image generated with incorrect tag"
     }
 ]

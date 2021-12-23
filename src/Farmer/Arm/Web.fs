@@ -410,7 +410,7 @@ module ContainerApp =
     open Farmer.ContainerAppValidation
     type Container =
         { Name : string
-          DockerImage : DockerImageKind
+          DockerImage : Containers.DockerImage
           Resources : {| CPU : float<VCores>; Memory : float<Gb> |} }
     type ContainerApp =
         { Name : ResourceName
