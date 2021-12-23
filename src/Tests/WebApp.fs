@@ -306,10 +306,10 @@ let tests = testList "Web App Tests" [
         Expect.equal site.SiteConfig.Use32BitWorkerProcess (Nullable false) "Should not use 32 bit worker process"
     }
 
-    test "Supports .NET 5 EAP" {
-        let app = webApp { name "net5"; runtime_stack Runtime.DotNet50 }
+    test "Supports .NET 6" {
+        let app = webApp { name "net6"; runtime_stack Runtime.DotNet60 }
         let site:Site = app |> getResourceAtIndex 2
-        Expect.equal site.SiteConfig.NetFrameworkVersion "v5.0" "Wrong dotnet version"
+        Expect.equal site.SiteConfig.NetFrameworkVersion "v6.0" "Wrong dotnet version"
     }
 
     test "WebApp supports adding slots" {
@@ -542,6 +542,19 @@ let tests = testList "Web App Tests" [
         Expect.hasLength (theSlot.Identity.UserAssigned) 2 "Slot should have 2 user-assigned identities"
         Expect.containsAll (theSlot.Identity.UserAssigned) [identity18.UserAssignedIdentity; identity21.UserAssignedIdentity] "Slot should have both user assigned identities"
         Expect.equal theSlot.KeyVaultReferenceIdentity (Some identity21.UserAssignedIdentity) "Slot should have correct keyvault identity"
+    }
+    
+    test "WebApp with slot can use AutoSwapSlotName" {
+        let warmupSlot = appSlot { name "warm-up"; autoSlotSwapName "production" }
+        let site:WebAppConfig = webApp { name "slots"; add_slot warmupSlot }
+        Expect.isTrue (site.CommonWebConfig.Slots.ContainsKey "warm-up") "Config should contain slot"
+
+        let slot: Site =
+            site
+            |> getResourceAtIndex 4
+        
+        Expect.equal slot.Name "slots/warm-up" "Should be expected slot"
+        Expect.equal slot.SiteConfig.AutoSwapSlotName "production" "Should use provided auto swap slot name"
     }
 
     test "Supports private endpoints" {
