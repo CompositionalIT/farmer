@@ -64,4 +64,4 @@ type DiagnosticSettings =
                         this.Sinks.LogAnalyticsWorkspace
                         |> Option.map (fun (resource,_) -> resource.Eval())
                         |> Option.toObj |}
-            |} :> _
+            |}

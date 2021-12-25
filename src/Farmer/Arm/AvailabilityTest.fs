@@ -81,4 +81,4 @@ type AvailabilityTest =
                         Configuration =
                         {|  WebTest = System.Text.RegularExpressions.Regex.Replace(testString.Replace("\r\n","").Replace("\n",""), @"\s+", " ") |}
                     |}
-                |} :> _
+                |}

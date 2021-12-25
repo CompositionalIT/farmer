@@ -13,7 +13,7 @@ type UserAssignedIdentity =
 
     interface IArmResource with
         member this.ResourceId = userAssignedIdentities.resourceId this.Name
-        member this.JsonModel = userAssignedIdentities.Create(this.Name, this.Location, [], this.Tags) :> _
+        member this.JsonModel = userAssignedIdentities.Create(this.Name, this.Location, [], this.Tags)
 
 /// Builds the JSON ARM value for a resource's identity.
 let toArmJson = function

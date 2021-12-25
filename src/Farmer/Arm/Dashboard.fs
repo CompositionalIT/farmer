@@ -9,7 +9,7 @@ let dashboard = ResourceType("Microsoft.Portal/dashboards", "2020-09-01-preview"
 type DashboardMetadata =
 | EmptyMetadata
 | CustomMetadata of obj
-| Cache24h 
+| Cache24h
 
 type LensAsset = { idInputName : string;  ``type`` : string }
 type LensMetadata = {
@@ -35,7 +35,7 @@ let generateMarkdownPart (markdownProperties:MarkdownPartParameters) = {
     inputs = List.empty
     settings = {| content = markdownProperties.content; title = markdownProperties.title; subtitle = markdownProperties.subtitle |} :> obj
     filters = null
-    asset = Unchecked.defaultof<LensAsset> 
+    asset = Unchecked.defaultof<LensAsset>
     isAdapter = System.Nullable()
     defaultMenuItemId = null
 }
@@ -47,7 +47,7 @@ let generateVideoPart (videoProperties:VideoPartParameters) = {
     inputs = List.empty
     settings = {| content = {| settings = {| title = videoProperties.title; subtitle = videoProperties.subtitle; src = videoProperties.url; autoplay= false |} |} |} :> obj
     filters = null
-    asset = Unchecked.defaultof<LensAsset> 
+    asset = Unchecked.defaultof<LensAsset>
     isAdapter = System.Nullable()
     defaultMenuItemId = null
 }
@@ -81,7 +81,7 @@ let generateMetricsChartPart (chartProperties:MetrixChartParameters) = {
                   value = {| id = chartProperties.resourceId.ArmExpression.Eval(); chartType = 0;
                              timespan = {| duration = match chartProperties.interval with | IsoDateTime dur -> dur
                                            start = null; ``end`` = null |}
-                             metrics = chartProperties.metrics |> List.map(function 
+                             metrics = chartProperties.metrics |> List.map(function
                                             MetricsName m -> {| name = m; resourceId = chartProperties.resourceId.ArmExpression.Eval() |})
                           |} |}  ]
     settings = null
@@ -117,7 +117,7 @@ type Dashboard =
         member this.ResourceId = dashboard.resourceId this.Name
         member this.JsonModel =
 
-            let dahsboardTitle = 
+            let dahsboardTitle =
                 match this.Title with
                 | Some title -> title
                 | None -> this.Name.Value
@@ -132,7 +132,7 @@ type Dashboard =
                             match this.Metadata with
                             | EmptyMetadata -> {||} :> obj
                             | CustomMetadata metad -> metad
-                            | Cache24h -> 
+                            | Cache24h ->
                                 {| model =
                                     {| timeRange =
                                          {| ``type`` = "MsPortalFx.Composition.Configuration.ValueTypes.TimeRange"; value = {| relative = {| duration = 24; timeUnit = 1 |} |} |}
@@ -142,7 +142,7 @@ type Dashboard =
                                                                                   displayCache = {| name = "UTC Time"; value = "Past 24 hours" |}
                                            |} |} |}
                                     |}
-                                |} :> _
+                                |}
                           lenses = [ {| order = "0"; parts = this.LensParts |} ]
                        |}
-                |} :> _
+                |}

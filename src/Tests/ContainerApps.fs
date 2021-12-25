@@ -70,7 +70,7 @@ let tests = testList "Container Apps" [
     let jobj = JObject.Parse jsonTemplate
 
     test "Container automatically creates a log analytics workspace" {
-        let env : IBuilder = containerEnvironment { name "testca" } :> _
+        let env : IBuilder = containerEnvironment { name "testca" }
         let resources = env.BuildResources Location.NorthEurope
         Expect.exists resources (fun r -> r.ResourceId.Name.Value = "testca-workspace") "No Log Analytics workspace was created."
     }

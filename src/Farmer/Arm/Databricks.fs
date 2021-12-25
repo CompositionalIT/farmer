@@ -67,4 +67,4 @@ type Workspace =
                             ()
                         ]
                     |}
-            |} :> _
+            |}
