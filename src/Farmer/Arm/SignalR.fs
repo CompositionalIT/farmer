@@ -36,4 +36,4 @@ type SignalR =
                         {| flag = "ServiceMode"
                            value = this.ServiceMode.ToString() |}
                         ] |}
-            |} :> _
+            |}

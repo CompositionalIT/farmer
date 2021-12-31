@@ -65,7 +65,7 @@ module DatabaseAccounts =
                                        |}
                                    |}
                                |}
-                    |} :> _
+                    |}
 
     type SqlDatabase =
         { Name : ResourceName
@@ -83,7 +83,7 @@ module DatabaseAccounts =
                        properties =
                            {| resource = {| id = this.Name.Value |}
                               options = {| throughput = string this.Throughput |} |}
-                |} :> _
+                |}
 
 type DatabaseAccount =
     { Name : ResourceName
@@ -147,4 +147,4 @@ type DatabaseAccount =
                           publicNetworkAccess = string this.PublicNetworkAccess
                           enableFreeTier = this.FreeTier
                        |} |> box
-            |} :> _
+            |}

@@ -41,4 +41,4 @@ type Redis =
                            |> Option.toObj
                          redisConfiguration = this.RedisConfiguration
                      |}
-            |} :> _
+            |}

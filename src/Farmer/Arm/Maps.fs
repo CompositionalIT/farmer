@@ -20,4 +20,4 @@ type Maps =
                         match this.Sku with
                         | S0 -> "S0"
                         | S1 -> "S1" |}
-            |} :> _
+            |}

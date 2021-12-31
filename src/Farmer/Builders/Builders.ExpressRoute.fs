@@ -115,7 +115,7 @@ type ExpressRouteConfig =
                          VlanId = peering.VlanId |}
               ]
               Tags = this.Tags
-            } :> _
+            }
             ::
             (this.Authorizations |> List.map (fun a ->
                 { ExpressRouteCircuitAuthorization.Name = a
