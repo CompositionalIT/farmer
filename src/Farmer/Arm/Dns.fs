@@ -38,10 +38,10 @@ type DnsZone =
         member this.JsonModel =
             {| zones.Create(this.Name, Location.Global, this.Dependencies) with
                 properties = {| zoneType = this.Properties.ZoneType |}
-            |} :> _
+            |}
 
 module DnsRecords =
-    let private sourceZoneNSRecordReference (zoneResourceId:ResourceId) : ArmExpression = 
+    let private sourceZoneNSRecordReference (zoneResourceId:ResourceId) : ArmExpression =
         let sourceZoneResId =
             { zoneResourceId with
                 Segments = [ ResourceName "@" ]
@@ -50,7 +50,7 @@ module DnsRecords =
             .reference(nsRecord, sourceZoneResId)
             .Map(fun r -> r + ".NSRecords")
             .WithOwner(sourceZoneResId)
-        
+
 
     type DnsRecord =
         { Name : ResourceName
@@ -88,17 +88,17 @@ module DnsRecords =
                         | PTR records -> "PTRRecords", records |> List.map (fun ptr -> {| ptrdname = ptr |}) |> box
                         | A (_, records) -> "ARecords", records |> List.map (fun a -> {| ipv4Address = a |}) |> box
                         | AAAA (_, records) -> "AAAARecords", records |> List.map (fun aaaa -> {| ipv6Address = aaaa |}) |> box
-                        | SRV records -> 
-                            let records = 
-                                records 
+                        | SRV records ->
+                            let records =
+                                records
                                 |> List.map (fun srv ->
                                     {| priority = srv.Priority |> Option.toNullable
                                        weight = srv.Weight |> Option.toNullable
                                        port = srv.Port |> Option.toNullable
                                        target =  Option.toObj srv.Target |})
                             "SRVRecords", box records
-                        | SOA record -> 
-                            let record = 
+                        | SOA record ->
+                            let record =
                                 {| host = Option.toObj record.Host
                                    email = Option.toObj record.Email
                                    serialNumber = record.SerialNumber |> Option.toNullable
@@ -109,4 +109,4 @@ module DnsRecords =
                             "SOARecord", box record
                         | CName (_, None) -> ()
                     ] |> Map
-                |} :> _
+                |}

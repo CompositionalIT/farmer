@@ -65,7 +65,7 @@ module DatabaseAccounts =
                                        |}
                                    |}
                                |}
-                    |} :> _
+                    |}
 
     type SqlDatabase =
         { Name : ResourceName
@@ -85,10 +85,10 @@ module DatabaseAccounts =
                               options =
                                   {| throughput =
                                       match this.Throughput with
-                                      | ProvisionedThroughput t ->  t |> string
+                                      | Provisioned t -> string t
                                       | Serverless -> null |} 
                            |}
-                |} :> _
+                |}
 
 type DatabaseAccount =
     { Name : ResourceName
@@ -157,4 +157,4 @@ type DatabaseAccount =
                             if this.DbThroughput = Serverless then box [{| name = "EnableServerless" |}]
                             else null
                        |} |> box
-            |} :> _
+            |}

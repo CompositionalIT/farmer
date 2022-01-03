@@ -20,4 +20,4 @@ type Accounts =
                 sku = {| name = string this.Sku |}
                 kind = kind
                 properties = {| statisticsEnabled = this.Statistics.AsBoolean |}
-            |} :> _
+            |}

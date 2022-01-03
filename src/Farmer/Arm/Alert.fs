@@ -71,7 +71,7 @@ type MetricAlertCriteria =
 | SingleResourceMultipleMetricCriteria of Criterias : ResourceCriteria list
 | SingleResourceMultipleCustomMetricCriteria of Criterias : CustomMetricCriteria list
 /// If webtest is failing at the same time from x different locations
-| WebtestLocationAvailabilityCriteria of AiComponentId:Farmer.ResourceId * WebTestId:Farmer.ResourceId * FailedLocationCount:int 
+| WebtestLocationAvailabilityCriteria of AiComponentId:Farmer.ResourceId * WebTestId:Farmer.ResourceId * FailedLocationCount:int
 
 type AlertAction = {
     actionGroupId : string
@@ -97,7 +97,7 @@ let mapResourceCriteriaTimeAggregation (aggregation: MetricAggregation) =
 let createCriteria (criteria:MetricAlertCriteria) =
     match criteria with
     | MultipleResourceMultipleMetricCriteria (multicriteria:obj list) ->
-        {| allOf = multicriteria 
+        {| allOf = multicriteria
            ``odata.type`` = "Microsoft.Azure.Monitor.MultipleResourceMultipleMetricCriteria" |} :> obj
     | SingleResourceMultipleMetricCriteria criterias ->
         {| allOf = criterias |> List.map(fun resourcecriteria ->
@@ -114,7 +114,7 @@ let createCriteria (criteria:MetricAlertCriteria) =
         {| allOf = criterias |> List.map(fun resourcecriteria ->
             {|  threshold = resourcecriteria.Threshold
                 name = "Metric1"
-                metricNamespace = resourcecriteria.MetricNamespace 
+                metricNamespace = resourcecriteria.MetricNamespace
                     |> Option.defaultValue (ResourceType("Azure.ApplicationInsights", ""))
                     |> (fun resourceType -> resourceType.Type)
                 metricName = resourcecriteria.MetricName |> (function | MetricsName n -> n)
@@ -167,7 +167,7 @@ type AlertData =
                        enabled = true
                        scopes = scopes
                        evaluationFrequency = this.Frequency |> (function | IsoDateTime x -> x)
-                       windowSize = this.Window|> (function | IsoDateTime x -> x) 
+                       windowSize = this.Window|> (function | IsoDateTime x -> x)
                        criteria = this.Criteria |> createCriteria
                        autoMitigate = true
                        targetResourceType =
@@ -176,4 +176,4 @@ type AlertData =
                            | _ -> null
                        actions = this.Actions
                    |}
-            |} :> _
+            |}

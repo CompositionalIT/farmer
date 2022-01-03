@@ -1,13 +1,13 @@
 ---
 title: "Dashboard"
 date: 2021-08-13T07:00:46+01:00
-weight: 1
+weight: 4
 chapter: false
 ---
 
 #### Overview
 
-Dashboards are a focused and organized view of your cloud resources in the Azure portal. Use dashboards as a workspace where you can monitor resources and quickly launch tasks for day-to-day operations. 
+Dashboards are a focused and organized view of your cloud resources in the Azure portal. Use dashboards as a workspace where you can monitor resources and quickly launch tasks for day-to-day operations.
 
 * Microsoft.Portal dashboards (`Microsoft.Portal/dashboards`)
 
@@ -36,8 +36,8 @@ open Farmer.Builders
 
 let vm = vm { name "foo"; username "foo" }
 let vmId = (vm :> IBuilder).ResourceId
-let dash = dashboard { 
-    name "myDashboard" 
+let dash = dashboard {
+    name "myDashboard"
     title "Monitoring"
     depends_on vm
     add_markdown_part (
@@ -54,8 +54,8 @@ let dash = dashboard {
     )
     add_metrics_chart (
         { x = 0; y = 4; rowSpan = 3; colSpan = 11 },
-        { interval = (System.TimeSpan(1,0,0) |> IsoDateTime.OfTimeSpan); 
-          metrics = [ Farmer.Arm.Dashboard.ChartResources.PercentageCPU ]; 
+        { interval = (System.TimeSpan(1,0,0) |> IsoDateTime.OfTimeSpan);
+          metrics = [ Farmer.Arm.Dashboard.ChartResources.PercentageCPU ];
           resourceId = vmId }
     )
     add_virtual_machine_icon ({ x = 9; y = 7; rowSpan = 2; colSpan = 2 }, vmId)

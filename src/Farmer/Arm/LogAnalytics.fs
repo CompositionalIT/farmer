@@ -29,7 +29,7 @@ type Workspace =
                         this.IngestionSupport |> Option.map(fun f -> f.ArmValue) |> Option.toObj
                        publicNetworkAccessForQuery =
                         this.QuerySupport |> Option.map(fun f -> f.ArmValue) |> Option.toObj |}
-            |} :> _
+            |}
 
 type LogAnalytics =
     static member getCustomerId resourceId =

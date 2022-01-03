@@ -37,7 +37,7 @@ let tests = testList "Cosmos" [
         let locationName = locationJOjb.SelectToken("locationName") |> string
         Expect.isNotEmpty locationName "location should be filled"
     }
-    test "ProvisionedThroughput template should include 'throughput' and should not contain 'EnableServerless'" {
+    test "Provisioned template should include 'throughput' and should not contain 'EnableServerless'" {
         let t = arm { add_resource (cosmosDb { name "foo"; throughput 400<CosmosDb.RU>; }) }
         let json = t.Template |> Writer.toJson
         Expect.isTrue (json.Contains("\"throughput\": \"400\"")) "Shared throughput template should contain 'throughput'."

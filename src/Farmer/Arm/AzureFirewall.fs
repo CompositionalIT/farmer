@@ -50,5 +50,5 @@ type AzureFirewall =
                      virtualHub = this.VirtualHub |>  Option.map (fun resId -> box {| id = resId.ArmExpression.Eval() |}) |> Option.defaultValue null
                      firewallPolicy = this.FirewallPolicy |>  Option.map (fun resId -> box {| id = resId.ArmExpression.Eval() |}) |> Option.defaultValue null
                      hubIPAddresses = this.HubIPAddresses |> Option.map (fun x -> box x.JsonModel) |> Option.defaultValue null |}
-            |} :> _
+            |}
 

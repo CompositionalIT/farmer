@@ -154,7 +154,7 @@ type CosmosDbBuilder() =
             |> databaseAccounts.resourceId)
           AccountConsistencyPolicy = Eventual
           AccountFailoverPolicy = NoFailover
-          DbThroughput = ProvisionedThroughput 400<RU>
+          DbThroughput = Provisioned 400<RU>
           Containers = []
           PublicNetworkAccess = Enabled
           FreeTier = false
@@ -182,7 +182,7 @@ type CosmosDbBuilder() =
     /// Sets the throughput of the server.
     [<CustomOperation "throughput">]
     member _.Throughput(state:CosmosDbConfig, throughput) = { state with DbThroughput = throughput }
-    member _.Throughput(state:CosmosDbConfig, throughput) = { state with DbThroughput = ProvisionedThroughput throughput }
+    member _.Throughput(state:CosmosDbConfig, throughput) = { state with DbThroughput = Provisioned throughput }
     /// Sets the storage kind
     [<CustomOperation "kind">]
     member _.StorageKind(state:CosmosDbConfig, kind) = { state with Kind = kind }
