@@ -148,7 +148,7 @@ type DatabaseAccount =
                           enableMultipleWriteLocations = this.EnableMultipleWriteLocations |> Option.toNullable
                           locations =
                             match this.FailoverLocations, this.Serverless with
-                            | [], Enabled -> box [{| locationName = this.Location.ArmValue |}]
+                            | [], Enabled -> box [ {| locationName = this.Location.ArmValue |} ]
                             | [], Disabled -> null
                             | locations, _ -> box locations
                           publicNetworkAccess = string this.PublicNetworkAccess
