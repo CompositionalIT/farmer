@@ -147,10 +147,10 @@ type DatabaseAccount =
                           enableAutomaticFailover = this.EnableAutomaticFailover |> Option.toNullable
                           enableMultipleWriteLocations = this.EnableMultipleWriteLocations |> Option.toNullable
                           locations =
-                            match this.FailoverLocations with
-                            | [] when this.DbThroughput = Serverless -> box [{| locationName = this.Location.ArmValue |}]
-                            | [] -> null
-                            | locations -> box locations
+                            match this.FailoverLocations, this.DbThroughput with
+                            | [], Serverless -> box [{| locationName = this.Location.ArmValue |}]
+                            | [], Provisioned _ -> null
+                            | locations, _ -> box locations
                           publicNetworkAccess = string this.PublicNetworkAccess
                           enableFreeTier = this.FreeTier
                           capabilities =
