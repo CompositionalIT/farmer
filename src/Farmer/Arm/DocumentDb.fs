@@ -97,7 +97,7 @@ type DatabaseAccount =
       FailoverPolicy : FailoverPolicy
       PublicNetworkAccess : FeatureFlag
       FreeTier : bool
-      DbThroughput : Throughput
+      Serverless : FeatureFlag
       Kind : DatabaseKind
       Tags: Map<string,string>  }
     member this.MaxStatelessPrefix =
@@ -147,14 +147,14 @@ type DatabaseAccount =
                           enableAutomaticFailover = this.EnableAutomaticFailover |> Option.toNullable
                           enableMultipleWriteLocations = this.EnableMultipleWriteLocations |> Option.toNullable
                           locations =
-                            match this.FailoverLocations, this.DbThroughput with
-                            | [], Serverless -> box [{| locationName = this.Location.ArmValue |}]
-                            | [], Provisioned _ -> null
+                            match this.FailoverLocations, this.Serverless with
+                            | [], Enabled -> box [{| locationName = this.Location.ArmValue |}]
+                            | [], Disabled -> null
                             | locations, _ -> box locations
                           publicNetworkAccess = string this.PublicNetworkAccess
                           enableFreeTier = this.FreeTier
                           capabilities =
-                            if this.DbThroughput = Serverless then box [{| name = "EnableServerless" |}]
+                            if this.Serverless = Enabled then box [ {| name = "EnableServerless" |} ]
                             else null
                        |} |> box
             |}

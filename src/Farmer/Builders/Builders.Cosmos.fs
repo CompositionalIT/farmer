@@ -61,7 +61,10 @@ type CosmosDbConfig =
                   Location = location
                   Kind = this.Kind
                   ConsistencyPolicy = this.AccountConsistencyPolicy
-                  DbThroughput = this.DbThroughput
+                  Serverless =
+                    match this.DbThroughput with
+                    | Serverless -> Enabled
+                    | Provisioned _ -> Disabled
                   PublicNetworkAccess = this.PublicNetworkAccess
                   FailoverPolicy = this.AccountFailoverPolicy
                   FreeTier = this.FreeTier
