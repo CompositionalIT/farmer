@@ -952,6 +952,33 @@ module Identity =
         static member (+) (managedIdentity, userAssignedIdentity:UserAssignedIdentity) =
             { managedIdentity with UserAssigned = userAssignedIdentity :: managedIdentity.UserAssigned }
 
+module Containers =
+    type DockerImage =
+        | PrivateImage of RegistryDomain : string * ContainerName : string *  Version:string option
+        | PublicImage of ContainerName:string * Version:string option
+            member this.ImageTag =
+                match this with
+                | PrivateImage (registry, container, version) ->
+                    let version = version |> Option.defaultValue "latest"
+                    $"{registry}/{container}:{version}"
+                | PublicImage (container, version) ->
+                    let version = version |> Option.defaultValue "latest"
+                    $"{container}:{version}"
+        /// Parses an image tag into a DockerImage record.
+        static member Parse (tag:string) =
+            match tag.Split([|':'|], StringSplitOptions.RemoveEmptyEntries) with
+            | [| repo; version |] ->
+                match repo.Split([|'/'|], StringSplitOptions.RemoveEmptyEntries) |> List.ofArray with
+                | first::rest when (first.Contains ".") -> DockerImage.PrivateImage(first, (rest |> String.concat "/"), Version=Some version)
+                | _ -> DockerImage.PublicImage(repo, Version=Some version)
+                | _ -> raiseFarmer $"Malformed docker image tag - incorrect number of repository segments: '{tag}'"
+            | [| repo |] ->
+                match repo.Split([|'/'|], StringSplitOptions.RemoveEmptyEntries) |> List.ofArray with
+                | first::rest when (first.Contains ".") -> DockerImage.PrivateImage(first, (rest |> String.concat "/"), None)
+                | _ -> DockerImage.PublicImage(repo, None)
+                | _ -> raiseFarmer $"Malformed docker image tag - incorrect number of repository segments: '{tag}'"
+            | _ -> raiseFarmer $"Malformed docker image tag - incorrect number of version segments: '{tag}'"
+
 /// Credential for accessing an image registry.
 type ImageRegistryCredential =
     { Server : string
@@ -2118,17 +2145,6 @@ module ContainerApp =
     type Transport = HTTP1 | HTTP2 | Auto
     type IngressMode = External of port:uint16 * Transport option | InternalOnly
     type ActiveRevisionsMode = Single | Multiple
-    type DockerImageKind =
-        | PrivateImage of RegistryDomain : string * ContainerName : string *  Version:string option
-        | PublicImage of ContainerName:string * Version:string option
-            member this.ImageTag =
-                match this with
-                | PrivateImage (registry, container, version) ->
-                    let version = version |> Option.defaultValue "latest"
-                    $"{registry}/{container}:{version}"
-                | PublicImage (container, version) ->
-                    let version = version |> Option.defaultValue "latest"
-                    $"{container}:{version}"
 
 namespace Farmer.DiagnosticSettings
 

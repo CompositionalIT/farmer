@@ -42,7 +42,8 @@ type DeploymentScriptConfig =
             if this.CustomIdentity.IsNone then
                 { Name = generatedIdentityId.Name
                   Location = location
-                  Tags = Map.empty }
+                  Tags = Map.empty
+                  ActiveDirectoryGroups = Set.empty }
 
             let identity =
                 this.CustomIdentity
