@@ -4,10 +4,10 @@ module Farmer.Arm.DocumentDb
 open Farmer
 open Farmer.CosmosDb
 
-let containers = ResourceType ("Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers", "2021-01-15")
-let sqlDatabases = ResourceType ("Microsoft.DocumentDb/databaseAccounts/sqlDatabases", "2021-01-15")
-let mongoDatabases = ResourceType ("Microsoft.DocumentDb/databaseAccounts/mongodbDatabases", "2021-01-15")
-let databaseAccounts = ResourceType ("Microsoft.DocumentDb/databaseAccounts", "2021-01-15")
+let containers = ResourceType ("Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers", "2021-04-15")
+let sqlDatabases = ResourceType ("Microsoft.DocumentDb/databaseAccounts/sqlDatabases", "2021-04-15")
+let mongoDatabases = ResourceType ("Microsoft.DocumentDb/databaseAccounts/mongodbDatabases", "2021-04-15")
+let databaseAccounts = ResourceType ("Microsoft.DocumentDb/databaseAccounts", "2021-04-15")
 
 type DatabaseKind =
     | Document
@@ -70,7 +70,7 @@ module DatabaseAccounts =
     type SqlDatabase =
         { Name : ResourceName
           Account : ResourceName
-          Throughput : int<RU>
+          Throughput : Throughput
           Kind: DatabaseKind }
         interface IArmResource with
             member this.ResourceId = sqlDatabases.resourceId (this.Account/this.Name)
@@ -82,7 +82,12 @@ module DatabaseAccounts =
                 {| resource.Create(this.Account/this.Name, dependsOn = [ databaseAccounts.resourceId this.Account ]) with
                        properties =
                            {| resource = {| id = this.Name.Value |}
-                              options = {| throughput = string this.Throughput |} |}
+                              options =
+                                  {| throughput =
+                                      match this.Throughput with
+                                      | Provisioned t -> string t
+                                      | Serverless -> null |} 
+                           |}
                 |}
 
 type DatabaseAccount =
@@ -92,6 +97,7 @@ type DatabaseAccount =
       FailoverPolicy : FailoverPolicy
       PublicNetworkAccess : FeatureFlag
       FreeTier : bool
+      Serverless : FeatureFlag
       Kind : DatabaseKind
       Tags: Map<string,string>  }
     member this.MaxStatelessPrefix =
@@ -139,12 +145,16 @@ type DatabaseAccount =
                             |}
                           databaseAccountOfferType = "Standard"
                           enableAutomaticFailover = this.EnableAutomaticFailover |> Option.toNullable
-                          autoenableMultipleWriteLocations = this.EnableMultipleWriteLocations |> Option.toNullable
+                          enableMultipleWriteLocations = this.EnableMultipleWriteLocations |> Option.toNullable
                           locations =
-                            match this.FailoverLocations with
-                            | [] -> null
-                            | locations -> box locations
+                            match this.FailoverLocations, this.Serverless with
+                            | [], Enabled -> box [ {| locationName = this.Location.ArmValue |} ]
+                            | [], Disabled -> null
+                            | locations, _ -> box locations
                           publicNetworkAccess = string this.PublicNetworkAccess
                           enableFreeTier = this.FreeTier
+                          capabilities =
+                            if this.Serverless = Enabled then box [ {| name = "EnableServerless" |} ]
+                            else null
                        |} |> box
             |}

@@ -519,7 +519,7 @@
           },
           "resources": [
             {
-              "apiVersion": "2021-01-15",
+              "apiVersion": "2021-04-15",
               "kind": "GlobalDocumentDB",
               "location": "uksouth",
               "name": "testaccount",
@@ -537,7 +537,7 @@
               "type": "Microsoft.DocumentDb/databaseAccounts"
             },
             {
-              "apiVersion": "2021-01-15",
+              "apiVersion": "2021-04-15",
               "dependsOn": [
                 "[resourceId('Microsoft.DocumentDb/databaseAccounts', 'testaccount')]"
               ],
@@ -553,7 +553,7 @@
               "type": "Microsoft.DocumentDb/databaseAccounts/sqlDatabases"
             },
             {
-              "apiVersion": "2021-01-15",
+              "apiVersion": "2021-04-15",
               "dependsOn": [
                 "[resourceId('Microsoft.DocumentDb/databaseAccounts/sqlDatabases', 'testaccount', 'testdb')]"
               ],
@@ -595,7 +595,7 @@
               "type": "Microsoft.DocumentDb/databaseAccounts/sqlDatabases/containers"
             },
             {
-              "apiVersion": "2021-01-15",
+              "apiVersion": "2021-04-15",
               "kind": "MongoDB",
               "location": "uksouth",
               "name": "testaccountmongo",
@@ -613,7 +613,7 @@
               "type": "Microsoft.DocumentDb/databaseAccounts"
             },
             {
-              "apiVersion": "2021-01-15",
+              "apiVersion": "2021-04-15",
               "dependsOn": [
                 "[resourceId('Microsoft.DocumentDb/databaseAccounts', 'testaccountmongo')]"
               ],
