@@ -18,4 +18,4 @@ type Accounts =
                 sku = {| name = string this.Sku |}
                 kind = this.Kind.ToString().Replace("_", ".")
                 properties = {||}
-            |} :> _
+            |}

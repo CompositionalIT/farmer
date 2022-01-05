@@ -31,7 +31,7 @@ module Servers =
             member this.JsonModel =
                 {|  databases.Create(this.Server/this.Name, dependsOn = [ servers.resourceId this.Server ]) with
                         properties = {|  charset = this.Charset; collation = this.Collation |}
-                |} :> _
+                |}
 
     type FirewallRule =
         { Name : ResourceName
@@ -44,7 +44,7 @@ module Servers =
             member this.JsonModel =
                 {| firewallRules.Create(this.Server/this.Name, this.Location, [ servers.resourceId this.Server ]) with
                     properties = {| startIpAddress = string this.Start; endIpAddress = string this.End; |}
-                |} :> _
+                |}
 
 type Server =
     { Name : ResourceName
@@ -96,4 +96,4 @@ type Server =
             {| servers.Create(this.Name, this.Location, tags = (this.Tags |> Map.add "displayName" this.Name.Value)) with
                     sku = this.Sku
                     properties = this.GetProperties()
-            |} :> _
+            |}

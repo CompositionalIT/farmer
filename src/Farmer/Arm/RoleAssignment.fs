@@ -64,4 +64,4 @@ type RoleAssignment =
                     {| roleDefinitionId = this.RoleDefinitionId.ArmValue.Eval()
                        principalId = this.PrincipalId.ArmExpression.Eval()
                        principalType = this.PrincipalType.ArmValue |}
-            |}:> _
+            |}

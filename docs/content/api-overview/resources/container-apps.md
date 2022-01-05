@@ -17,10 +17,12 @@ The Container Environment builder (`containerEnvironment`) defines settings for 
 | Keyword | Purpose |
 |-|-|
 | name | Sets the name of the container environment. |
+| log_analytics_instance | Specifies a Log Analytics workspace where container logs should be sent. If none is provided, one will automatically be created. |
+| internal_load_balancer_state | Sets whether an internal load balancer should be used for load balancing traffic to container app replicas. |
 | add_container | Adds a single container app to the environment. |
 | add_containers | Adds one or more container apps to the environment. |
-| logAnalytics | Specifies a Log Analytics workspace where container logs should be sent. |
-| internalLoadBalancerEnabled | Indicates if an internal load balancer should be used for load balancing traffic to container app replicas. |
+
+> Also supports Tagging and Dependencies.
 
 #### Container Apps Builder
 The Container Apps builder (`containerApp`) is used to define one or more container apps to add to the container environment.
@@ -28,16 +30,35 @@ The Container Apps builder (`containerApp`) is used to define one or more contai
 | Keyword | Purpose |
 |-|-|
 | name | Sets the name of the container app. |
-| add_scale_rule | Adds rules for how the container app should automatically scale. |
-| ingress | Sets the ingress traffic allowed by port. |
-| dapr | Configures the dapr settings for the app. |
-| replicas | Minimum and maximum replicas to scale the container app. |
-| activeRevisionsMode | Indicates whether multiple version of a container app can be active at once.|
-| add_secret | Adds a single Kubernetes secret that can be to referenced in the container. |
-| add_secrets | Adds multiple Kubernetes secrets that can be to referenced in the container. |
-| secret_setting | Creates a setting for the Azure Container App whose value will be supplied as a secret parameter. |
-| add_secretref_variable | Adds a secretRef to the Azure Container App environment variables. |
-| setting | Adds a variable to the Azure Container App environment variables. |
+| ingress_state | Activates or deactivates the ingress of the Azure Container App. |
+| ingress_target_port | Activates the ingress of the Azure Container App and sets the target port. |
+| ingress_transport | Activates the ingress of the Azure Container App and sets the transport mode. |
+| dapr_app_id | Sets the dapr app id for the app. |
+| replicas | Sets the minimum and maximum replicas to scale the container app. |
+| active_revision_mode | Indicates whether multiple version of a container app can be active at once.|
+| add_registry_credentials | Adds container image registry credentials for images in this container app, which are a list of server and usernames. Passwords are supplied as secure parameters. |
+| reference_registry_credentials | Adds container image registry credentials for images in this container app in the form of a list of Azure resource ids. |
+| add_containers | Adds a list of containers to this container app. All containers in the app share resources and scaling. |
+| add_simple_container | Adds a single container that references a public docker image and version. |
+| add_secret_parameter | Adds an application secret to the entire container app. This is passed as a secure parameter to the template, and an environment variable is automatically created which references the secret. |
+| add_secret_expression | As per `add_secret_parameter`, but the value is sourced from an ARM expression instead of as a parameter. Useful for e.g. storage keys etc. |
+| add_env_variable | Adds a static, plain text environment variable. |
+
+##### Scale Rules
+
+The Container App Builder supports a number of KEDA scale rules out of the box:
+
+| Scale Rule Keyword | Purpose |
+|-|-|
+| add_http_scale_rule | Adds a scale rule for HTTP concurrent requests. |
+| add_cpu_scale_rule | Adds a scale rule for CPU usage, either utilisation or average value. |
+| add_memory_scale_rule | Adds a scale rule for Memory usage, either utilisation or average value. |
+| add_servicebus_scale_rule | Adds a scale rule for service bus queues message count. |
+| add_eventhub_scale_rule | Adds a scale rule for event hub events. |
+| add_queue_scale_rule | Adds a scale rule for Azure Storage Queue length. |
+| add_custom_scale_rule | Adds a custom scale rule. Provide an object that matches the KEDA specification. |
+
+> The Azure Storage Queue Scale Rule integration is "smart" - provide a reference to the storage account, queue name and length threshold; all appropriate settings and secrets will be automatically configured for you.
 
 #### Container Builder
 The Container builder (`container`) is used to define one or more containers for a container app.
@@ -50,40 +71,40 @@ The Container builder (`container`) is used to define one or more containers for
 | cpu_cores | Specifies the CPU cores allocated to the container (maximum 2.0). |
 | memory | Specifies the memory in gigabytes allocated to the container (maximum 4.0). |
 
-
 #### Example
 
 ```fsharp
 open Farmer
 open Farmer.Builders
+open Farmer.Arm
 
 containerEnvironment {
     name "my-container-app"
-    logAnalytics containerLogs
     add_containers [
         containerApp {
             name "httpservice"
             activeRevisionsMode ActiveRevisionsMode.Single
             reference_registry_credentials [
-                Farmer.Arm.ContainerRegistry.registries.resourceId "myazurecontainerregistry"
+                ContainerRegistry.registries.resourceId "myazurecontainerregistry"
             ]
             add_containers [
                 container {
-                    container_name "myservice1"
+                    name "myservice1"
                     public_docker_image containerRegistryDomain containerRegistry "myimage1" version
                     memory 0.2<Gb>
                 }
                 container {
-                    container_name "myservice2"
+                    name "myservice2"
                     public_docker_image containerRegistryDomain containerRegistry "myimage2" version
                     cpu_cores 0.5<VCores>
                     memory 1.0<Gb>
                 }
             ]
             replicas 1 5
-            ingress { External = true; TargetPort = 80; Transport = "auto" }
-            dapr { AppId = "httpservice" }
-            add_scale_rule "http-rule" (ScaleRuleType.Http {| ConcurrentRequests = 100 |})
+            ingress_target_port 80us
+            ingress_transport Auto
+            dapr_app_id "httpservice"
+            add_http_scale_rule "http-rule" { ConcurrentRequests = 100 }
         }
     ]
 }

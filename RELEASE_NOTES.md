@@ -1,8 +1,15 @@
 Release Notes
 =============
 
+## 1.6.25
+* CosmosDb: Add support for serverless capacity mode.
+* WebApps/Functions: Fix autoSwapSlotName for app slots.
+* WebApps/Functions: Fix zip deployments for web app with slots.
+
 ## 1.6.24
-* WebApps: Fix zip deployments for web app with slots.
+* ContainerApps: Eagerly validate whether all containers in an app have a valid CPU/RAM combination.
+* ContainerApps: Correctly round CPU to 2DP.
+* Revert back to targetting NET Standard 2 only.
 
 ## 1.6.23
 * ContainerApps: Adds support for [containerApps](https://docs.microsoft.com/azure/container-apps/overview).

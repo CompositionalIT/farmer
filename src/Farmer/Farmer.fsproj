@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <!-- General -->
     <AssemblyName>Farmer</AssemblyName>
@@ -9,7 +9,7 @@
     <Authors>Isaac Abraham and contributors</Authors>
 
     <!-- Build settings -->
-    <TargetFrameworks>netstandard2.0; net5.0</TargetFrameworks>
+    <TargetFramework>netstandard2.0</TargetFramework>
     <DebugType>portable</DebugType>
     <OutputType>Library</OutputType>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -41,9 +41,7 @@
   <ItemGroup>
     <PackageReference Update="FSharp.Core" Version="5.0.0" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
-  </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
-    <PackageReference Include="System.Text.Json" Version="5.0.1" />
+    <PackageReference Include="System.Text.Json" Version="5" />
   </ItemGroup>
   <ItemGroup>
     <None Include="../../Icon.jpg">

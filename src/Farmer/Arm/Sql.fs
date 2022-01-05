@@ -29,13 +29,13 @@ type Server =
                  {| administratorLogin = this.Credentials.Username
                     administratorLoginPassword = this.Credentials.Password.ArmExpression.Eval()
                     version = "12.0"
-                    minimalTlsVersion = 
+                    minimalTlsVersion =
                         match this.MinTlsVersion with
                         | Some Tls10 -> "1.0"
                         | Some Tls11 -> "1.1"
                         | Some Tls12 -> "1.2"
                         | None -> null |}
-            |} :> _
+            |}
 
 module Servers =
     type ElasticPool =
@@ -56,7 +56,7 @@ module Servers =
                          | Some (min, max) -> box {| minCapacity = min; maxCapacity = max |}
                          | None -> null
                      |}
-                    sku = {| name = this.Sku.Name; tier = this.Sku.Edition; size = string this.Sku.Capacity |} |} :> _
+                    sku = {| name = this.Sku.Name; tier = this.Sku.Edition; size = string this.Sku.Capacity |} |}
 
     type FirewallRule =
         { Name : ResourceName
@@ -71,7 +71,7 @@ module Servers =
                     properties =
                      {| startIpAddress = string this.Start
                         endIpAddress = string this.End |}
-                |} :> _
+                |}
 
     type Database =
         { Name : ResourceName
@@ -109,7 +109,7 @@ module Servers =
                             | Standalone _ -> null
                             | Pool pool -> elasticPools.resourceId(this.Server.ResourceName, pool).Eval()
                         |}
-                |} :> _
+                |}
 
     module Databases =
         type TransparentDataEncryption =
@@ -122,4 +122,4 @@ module Servers =
                    {| transparentDataEncryption.Create(this.Name, dependsOn = [ databases.resourceId(this.Server.ResourceName, this.Database) ]) with
                         comments = "Transparent Data Encryption"
                         properties = {| status = string Enabled |}
-                   |} :> _
+                   |}
