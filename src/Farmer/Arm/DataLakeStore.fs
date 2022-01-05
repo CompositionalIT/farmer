@@ -19,4 +19,4 @@ type Account =
                  properties =
                   {| newTier = this.Sku.ToString()
                      encryptionState = this.EncryptionState.ToString() |}
-            |} :> _
+            |}

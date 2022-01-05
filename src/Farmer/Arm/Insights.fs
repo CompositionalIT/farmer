@@ -31,4 +31,4 @@ type Components =
                        | None -> null
                      DisableIpMasking = this.DisableIpMasking
                      SamplingPercentage = this.SamplingPercentage |}
-            |} :> _
+            |}

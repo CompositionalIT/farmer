@@ -18,4 +18,4 @@ type Registries =
             {| registries.Create(this.Name, this.Location, tags = this.Tags) with
                  sku = {| name = this.Sku.ToString() |}
                  properties = {| adminUserEnabled = this.AdminUserEnabled |}
-            |} :> _
+            |}

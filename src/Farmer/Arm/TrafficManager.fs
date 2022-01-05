@@ -66,4 +66,4 @@ type Profile =
                                toleratedNumberOfFailures = this.MonitorConfig.ToleratedNumberOfFailures
                                timeoutInSeconds = int this.MonitorConfig.TimeoutInSeconds |}
                           endpoints = this.Endpoints |> List.map (fun e -> e.JsonModel) |}
-            |} :> _
+            |}

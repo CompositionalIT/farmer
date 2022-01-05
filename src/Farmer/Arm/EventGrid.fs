@@ -54,7 +54,7 @@ type Topic =
                 properties =
                     {| source = sourceResourceId.Eval()
                        topicType = this.TopicType.Value |}
-             |} :> _
+             |}
 
 type Subscription<'T> =
     { Name : ResourceName
@@ -84,25 +84,25 @@ type Subscription<'T> =
                           | EventHub hubName ->
                             {| endpointType = "EventHub"
                                properties = {| resourceId = Namespaces.eventHubs.resourceId(this.Destination, hubName).Eval() |}
-                            |} :> _
+                            |}
                           | StorageQueue queueName ->
                             {| endpointType = "StorageQueue"
                                properties =
                                 {| resourceId = (storageAccounts.resourceId this.Destination).Eval()
                                    queueName = queueName.Value |}
-                            |} :> _
+                            |}
                           | ServiceBus (Queue { Queue = queue; Bus = bus}) ->
                             {| endpointType = "ServiceBusQueue"
                                properties =
                                 {| resourceId = (ServiceBus.queues.resourceId (bus, queue)).Eval()
                                    queueName = queue.Value |}
-                            |} :> _
+                            |}
                           | ServiceBus (Topic { Topic = topic; Bus = bus}) ->
                             {| endpointType = "ServiceBusTopic"
                                properties =
                                 {| resourceId = (ServiceBus.topics.resourceId (bus, topic)).Eval()
                                    queueName = topic.Value |}
-                            |} :> _
+                            |}
                       filter = {| includedEventTypes = [ for event in this.Events do event.Value ] |}
                    |}
-            |} :> _
+            |}

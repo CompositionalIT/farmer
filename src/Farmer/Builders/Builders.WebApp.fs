@@ -89,7 +89,8 @@ type SlotConfig =
             AppSettings = owner.AppSettings |> Option.map (Map.merge ( this.AppSettings |> Map.toList))
             ConnectionStrings = owner.ConnectionStrings |> Option.map (Map.merge (this.ConnectionStrings |> Map.toList))
             Identity = this.Identity + owner.Identity
-            KeyVaultReferenceIdentity = this.KeyVaultReferenceIdentity |> Option.orElse owner.KeyVaultReferenceIdentity}
+            KeyVaultReferenceIdentity = this.KeyVaultReferenceIdentity |> Option.orElse owner.KeyVaultReferenceIdentity
+            ZipDeployPath = None }
 
 type SlotBuilder() =
     member this.Yield _ =

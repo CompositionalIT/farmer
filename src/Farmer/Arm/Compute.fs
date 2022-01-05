@@ -45,8 +45,8 @@ type CustomScriptExtension =
                                 this.ScriptContents
                                 |> Encoding.UTF8.GetBytes
                                 |> Convert.ToBase64String |}
-                        |} :> _
-            |} :> _
+                        |}
+            |}
 
 type AadSshLoginExtension =
     { Location : Location
@@ -63,7 +63,7 @@ type AadSshLoginExtension =
                        typeHandlerVersion = "1.0"
                        autoUpgradeMinorVersion = true
                     |}
-            |} :> _
+            |}
 
 type VirtualMachine =
     { Name : ResourceName
@@ -161,4 +161,4 @@ type VirtualMachine =
                         | None ->
                             box {| bootDiagnostics = {| enabled = false |} |}
                 |}
-            |} :> _
+            |}

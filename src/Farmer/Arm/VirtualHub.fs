@@ -75,7 +75,7 @@ type VirtualHub =
                        sku = this.VirtualHubSku.ArmValue
                        virtualWan = this.Vwan |> Option.map (fun resId -> box {| id = resId.ArmExpression.Eval() |}) |> Option.defaultValue null
                     |}
-            |}:> _
+            |}
 
 open Farmer.VirtualHub.HubRouteTable
 type HubRoute =
@@ -106,4 +106,4 @@ type HubRouteTable =
                       routes = this.Routes |> List.map (fun r -> r.JsonModel)
                       labels = this.Labels
                     |}
-            |} :> _
+            |}
