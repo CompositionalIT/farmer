@@ -5,6 +5,7 @@ Release Notes
 * CosmosDb: Add support for serverless capacity mode.
 * WebApps/Functions: Fix autoSwapSlotName for app slots.
 * WebApps/Functions: Fix zip deployments for web app with slots.
+* WebApp: Create App-managed certificates in the same resource group as the ASP to avoid ARM bug
 
 ## 1.6.24
 * ContainerApps: Eagerly validate whether all containers in an app have a valid CPU/RAM combination.

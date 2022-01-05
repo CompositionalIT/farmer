@@ -491,13 +491,32 @@ type WebAppConfig =
                       SslState = SslDisabled } // Initially create non-secure host name binding, we link the certificate in a nested deployment below
                 let cert =
                     { Location = location
-                      SiteId = this.ResourceId
-                      ServicePlanId = this.ServicePlanId
+                      SiteId = Managed this.ResourceId
+                      ServicePlanId = Managed this.ServicePlanId
                       DomainName = customDomain }
                 hostNameBinding
-                cert
-                let resourceLocation = location
 
+                // Get the resource group which contains the app service plan
+                let aspRgName = 
+                  match this.CommonWebConfig.ServicePlan with
+                  | LinkedResource linked -> linked.ResourceId.ResourceGroup
+                  | _ -> None
+                // Create a nested resource group deployment for the certificate - this isn't strictly necessary when the app & app service plan are in the same resource group
+                // however, when they are in different resource groups this is required to make the deployment succeed (there is an ARM bug which causes a Not Found / Conflict otherwise)
+                // To keep the code simple, I opted to always nest the certificate deployment. - TheRSP 2021-12-14
+                let certRg = resourceGroup { 
+                    name (aspRgName |> Option.defaultValue "[resourceGroup().name]")
+                    add_resource 
+                      { cert with
+                          SiteId = Unmanaged cert.SiteId.ResourceId
+                          ServicePlanId = Unmanaged cert.ServicePlanId.ResourceId }
+                    depends_on cert.SiteId
+                    depends_on (hostNameBindings.resourceId(cert.SiteId.Name, ResourceName cert.DomainName))
+                }
+                yield! ((certRg :> IBuilder).BuildResources location)
+
+                // Need to rename `location` binding to prevent conflict with `location` operator in resource group
+                let resourceLocation = location
                 // nested deployment to update hostname binding with specified SSL options
                 yield! (resourceGroup { 
                     name "[resourceGroup().name]"
@@ -509,11 +528,10 @@ type WebAppConfig =
                                         | x -> x 
                                     SslState = 
                                         match certOptions with
-                                        | AppManagedCertificate -> SniBased cert.Thumbprint
+                                        | AppManagedCertificate -> SniBased (cert.GetThumbprintReference aspRgName)
                                         | CustomCertificate thumbprint -> SniBased thumbprint
                                   }
-                    depends_on [ Arm.Web.certificates.resourceId cert.ResourceName
-                                 hostNameBinding.ResourceId ]
+                    depends_on certRg
                 } :> IBuilder).BuildResources location
             | InsecureDomain customDomain -> 
                 { Location = location
