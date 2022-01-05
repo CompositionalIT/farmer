@@ -3,7 +3,8 @@ Release Notes
 
 ## 1.6.25
 * CosmosDb: Add support for serverless capacity mode.
-* WebApp/Functions: Fix autoSwapSlotName for app slots.
+* WebApps/Functions: Fix autoSwapSlotName for app slots.
+* WebApps/Functions: Fix zip deployments for web app with slots.
 
 ## 1.6.24
 * ContainerApps: Eagerly validate whether all containers in an app have a valid CPU/RAM combination.
