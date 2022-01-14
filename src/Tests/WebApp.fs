@@ -312,6 +312,12 @@ let tests = testList "Web App Tests" [
         Expect.equal site.SiteConfig.NetFrameworkVersion "v6.0" "Wrong dotnet version"
     }
 
+    test "Supports .NET 5 on Linux" {
+        let app = webApp { name "net5"; operating_system Linux; runtime_stack Runtime.DotNet50 }
+        let site:Site = app |> getResourceAtIndex 2
+        Expect.equal site.SiteConfig.LinuxFxVersion "DOTNETCORE|5.0" "Wrong dotnet version"
+    }
+
     test "WebApp supports adding slots" {
         let slot = appSlot { name "warm-up" }
         let site:WebAppConfig = webApp { name "slots"; add_slot slot }
@@ -558,7 +564,7 @@ let tests = testList "Web App Tests" [
         Expect.containsAll (theSlot.Identity.UserAssigned) [identity18.UserAssignedIdentity; identity21.UserAssignedIdentity] "Slot should have both user assigned identities"
         Expect.equal theSlot.KeyVaultReferenceIdentity (Some identity21.UserAssignedIdentity) "Slot should have correct keyvault identity"
     }
-    
+
     test "WebApp with slot can use AutoSwapSlotName" {
         let warmupSlot = appSlot { name "warm-up"; autoSlotSwapName "production" }
         let site:WebAppConfig = webApp { name "slots"; add_slot warmupSlot }
@@ -567,7 +573,7 @@ let tests = testList "Web App Tests" [
         let slot: Site =
             site
             |> getResourceAtIndex 4
-        
+
         Expect.equal slot.Name "slots/warm-up" "Should be expected slot"
         Expect.equal slot.SiteConfig.AutoSwapSlotName "production" "Should use provided auto swap slot name"
     }

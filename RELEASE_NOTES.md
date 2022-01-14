@@ -1,5 +1,7 @@
 Release Notes
 =============
+## 1.6.26
+* WebApp/Functions: Fix .NET on Linux deployments
 
 ## 1.6.25
 * CosmosDb: Add support for serverless capacity mode.
