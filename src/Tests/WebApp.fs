@@ -700,14 +700,25 @@ let tests = testList "Web App Tests" [
         Expect.isEmpty nestedDeployments $"Only secured domains need nested deployments"
     }
 
-    test "Supports no domains" {
+    test "Supports multiple custom domains" {
         let webappName = "test"
-        let resources = webApp { name webappName; custom_domain NoDomain } |> getResources
+        let resources = 
+            webApp {
+                name webappName
+                custom_domain "secure.io"
+                custom_domain (DomainConfig.InsecureDomain "insecure.io") 
+            } |> getResources
         let wa = resources |> getResource<Web.Site> |> List.head
 
-        //Testing HostnameBinding
-        let hostnameBinding = resources |> getResource<Web.HostNameBinding>
+        let exepectedSiteId = (Managed (Arm.Web.sites.resourceId wa.Name))
 
-        Expect.equal hostnameBinding.Length 0 $"There should not be a hostname binding as a result of choosing the 'NoDomain' option"
+        //Testing HostnameBinding
+        let hostnameBindings = resources |> getResource<Web.HostNameBinding> 
+        let secureBinding = hostnameBindings |> List.filter (fun x->x.DomainName = "secure.io") |> List.head
+        let insecureBinding = hostnameBindings |> List.filter (fun x->x.DomainName = "insecure.io") |> List.head
+        
+        Expect.equal secureBinding.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
+        Expect.equal insecureBinding.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
+
     }
 ]
