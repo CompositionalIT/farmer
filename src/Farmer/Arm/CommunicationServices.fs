@@ -15,4 +15,4 @@ type Resource =
         member this.JsonModel =
             {| resource.Create(this.Name, this.Location, tags = this.Tags) with
                 properties = {| dataLocation = this.DataLocation.ArmValue |}
-            |} :> _
+            |}

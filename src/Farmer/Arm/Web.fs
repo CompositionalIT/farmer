@@ -108,7 +108,7 @@ type ServerFarm =
                          reserved = this.Reserved
                          maximumElasticWorkerCount = this.MaximumElasticWorkerCount |> Option.toNullable |}
                  kind = this.Kind |> Option.toObj
-            |} :> _
+            |}
 
 module ZipDeploy =
     open System.IO
@@ -292,7 +292,7 @@ type Site =
                            autoSwapSlotName = this.AutoSwapSlotName |> Option.toObj
                         |}
                     |}
-            |} :> _
+            |}
 
 module Sites =
     type SourceControl =
@@ -310,7 +310,7 @@ module Sites =
                         {| repoUrl = this.Repository.ToString()
                            branch = this.Branch
                            isManualIntegration = this.ContinuousIntegration.AsBoolean |> not |}
-                |} :> _
+                |}
 
 type StaticSite =
     { Name : ResourceName
@@ -337,7 +337,7 @@ type StaticSite =
                 sku =
                  {| Tier = "Free"
                     Name = "Free" |}
-            |} :> _
+            |}
     interface IParameters with
         member this.SecureParameters = [
             this.RepositoryToken
@@ -373,7 +373,7 @@ type HostNameBinding =
                             {| sslState = "SniEnabled"
                                thumbprint = thumbprint.Eval() |} :> obj
                         | SslDisabled -> {| |} :> obj
-                |} :> _
+                |}
 
 type Certificate =
     { Location: Location
@@ -398,7 +398,7 @@ type Certificate =
                     properties =
                         {| serverFarmId = this.ServicePlanId.ResourceId.Eval()
                            canonicalName = this.DomainName |}
-                |} :> _
+                |}
 
 type SlotConfigName = 
     { SiteName : ResourceName
@@ -420,7 +420,7 @@ module SiteExtensions =
         interface IArmResource with
             member this.ResourceId = siteExtensions.resourceId(this.SiteName/this.Name)
             member this.JsonModel =
-                siteExtensions.Create(this.SiteName/this.Name, this.Location, [ sites.resourceId this.SiteName ]) :> _
+                siteExtensions.Create(this.SiteName/this.Name, this.Location, [ sites.resourceId this.SiteName ])
 
 module ContainerApp =
     open Farmer.ContainerAppValidation
@@ -633,7 +633,7 @@ module ContainerApp =
                                               :> obj
                                    |}
                        |}
-                |} :> _
+                |}
 
     type KubeEnvironment =
         { Name : ResourceName
@@ -657,4 +657,4 @@ module ContainerApp =
                                   sharedKey = LogAnalytics.getPrimarySharedKey(this.LogAnalytics).Eval() |}
                             |}
                         |}
-                |} :> _
+                |}

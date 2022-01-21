@@ -28,12 +28,13 @@ type CosmosDbContainerConfig =
       Indexes : (string * (IndexDataType * IndexKind) list) list
       UniqueKeys : Set<string list>
       ExcludedPaths : string list }
+    
 type CosmosDbConfig =
     { AccountName : ResourceRef<CosmosDbConfig>
       AccountConsistencyPolicy : ConsistencyPolicy
       AccountFailoverPolicy : FailoverPolicy
       DbName : ResourceName
-      DbThroughput : int<RU>
+      DbThroughput : Throughput
       Containers : CosmosDbContainerConfig list
       PublicNetworkAccess : FeatureFlag
       FreeTier : bool
@@ -60,6 +61,10 @@ type CosmosDbConfig =
                   Location = location
                   Kind = this.Kind
                   ConsistencyPolicy = this.AccountConsistencyPolicy
+                  Serverless =
+                    match this.DbThroughput with
+                    | Serverless -> Enabled
+                    | Provisioned _ -> Disabled
                   PublicNetworkAccess = this.PublicNetworkAccess
                   FailoverPolicy = this.AccountFailoverPolicy
                   FreeTier = this.FreeTier
@@ -152,7 +157,7 @@ type CosmosDbBuilder() =
             |> databaseAccounts.resourceId)
           AccountConsistencyPolicy = Eventual
           AccountFailoverPolicy = NoFailover
-          DbThroughput = 400<RU>
+          DbThroughput = Provisioned 400<RU>
           Containers = []
           PublicNetworkAccess = Enabled
           FreeTier = false
@@ -180,6 +185,7 @@ type CosmosDbBuilder() =
     /// Sets the throughput of the server.
     [<CustomOperation "throughput">]
     member _.Throughput(state:CosmosDbConfig, throughput) = { state with DbThroughput = throughput }
+    member _.Throughput(state:CosmosDbConfig, throughput) = { state with DbThroughput = Provisioned throughput }
     /// Sets the storage kind
     [<CustomOperation "kind">]
     member _.StorageKind(state:CosmosDbConfig, kind) = { state with Kind = kind }
@@ -195,6 +201,7 @@ type CosmosDbBuilder() =
     /// Enables the use of CosmosDB free tier (one per subscription).
     [<CustomOperation "free_tier">]
     member _.FreeTier(state:CosmosDbConfig) = { state with FreeTier = true }
+
     interface ITaggable<CosmosDbConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let cosmosDb = CosmosDbBuilder()

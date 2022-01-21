@@ -73,7 +73,7 @@ type SecurityRule =
             let dependsOn = [ networkSecurityGroups.resourceId this.SecurityGroup ]
             {| securityRules.Create(this.SecurityGroup/this.Name, dependsOn = dependsOn) with
                 properties = this.PropertiesModel
-            |} :> _
+            |}
 
 type NetworkSecurityGroup =
     { Name : ResourceName
@@ -82,14 +82,14 @@ type NetworkSecurityGroup =
       Tags: Map<string,string>  }
     interface IArmResource with
         member this.ResourceId = networkSecurityGroups.resourceId this.Name
-        member this.JsonModel = 
+        member this.JsonModel =
             {| networkSecurityGroups.Create(this.Name, this.Location, tags = this.Tags) with
                 properties =
-                    {| securityRules = 
+                    {| securityRules =
                         this.SecurityRules |> List.map (fun rule ->
                             {| name = rule.Name.Value
                                ``type`` = securityRules.Type
                                properties = rule.PropertiesModel
                             |} )
                     |}
-            |} :> _
+            |}

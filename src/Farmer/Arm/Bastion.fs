@@ -32,4 +32,4 @@ type BastionHost =
                                    |}
                                |})
                     |}
-            |} :> _
+            |}

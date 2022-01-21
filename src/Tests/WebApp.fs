@@ -318,6 +318,12 @@ let tests = testList "Web App Tests" [
         Expect.equal site.SiteConfig.NetFrameworkVersion "v6.0" "Wrong dotnet version"
     }
 
+    test "Supports .NET 5 on Linux" {
+        let app = webApp { name "net5"; operating_system Linux; runtime_stack Runtime.DotNet50 }
+        let site:Site = app |> getResourceAtIndex 2
+        Expect.equal site.SiteConfig.LinuxFxVersion "DOTNETCORE|5.0" "Wrong dotnet version"
+    }
+
     test "WebApp supports adding slots" {
         let slot = appSlot { name "warm-up" }
         let site:WebAppConfig = webApp { name "slots"; add_slot slot; zip_deploy "test.zip" }
@@ -329,8 +335,22 @@ let tests = testList "Web App Tests" [
             |> getResource<Arm.Web.Site>
             |> List.filter (fun x -> x.ResourceType = Arm.Web.slots)
         // Default "production" slot is not included as it is created automatically in Azure
-        Expect.hasLength slots 1 "Should only be 1 slot" 
-        Expect.isNone slots.[0].ZipDeployPath "ZipDeployPath should be set to None" 
+        Expect.hasLength slots 1 "Should only be 1 slot"
+    }
+
+    test "WebApp with slot and zip_deploy_slot does not have ZipDeployPath on slot" {
+        let slot = appSlot { name "warm-up" }
+        let site:WebAppConfig = webApp { name "slots"; add_slot slot; zip_deploy_slot "warm-up" "test.zip" }
+        Expect.isTrue (site.CommonWebConfig.Slots.ContainsKey "warm-up") "Config should contain slot"
+
+        let slots =
+            site
+            |> getResources
+            |> getResource<Arm.Web.Site>
+            |> List.filter (fun x -> x.ResourceType = Arm.Web.slots)
+        // Default "production" slot is not included as it is created automatically in Azure
+        Expect.hasLength slots 1 "Should only be 1 slot"
+        Expect.isNone slots.[0].ZipDeployPath "Zip Deploy Path should be set to None"
     }
 
     test "WebApp with slot that has system assigned identity adds identity to slot" {
@@ -550,7 +570,7 @@ let tests = testList "Web App Tests" [
         Expect.containsAll (theSlot.Identity.UserAssigned) [identity18.UserAssignedIdentity; identity21.UserAssignedIdentity] "Slot should have both user assigned identities"
         Expect.equal theSlot.KeyVaultReferenceIdentity (Some identity21.UserAssignedIdentity) "Slot should have correct keyvault identity"
     }
-    
+
     test "WebApp with slot can use AutoSwapSlotName" {
         let warmupSlot = appSlot { name "warm-up"; autoSlotSwapName "production" }
         let site:WebAppConfig = webApp { name "slots"; add_slot warmupSlot }
@@ -559,7 +579,7 @@ let tests = testList "Web App Tests" [
         let slot: Site =
             site
             |> getResourceAtIndex 4
-        
+
         Expect.equal slot.Name "slots/warm-up" "Should be expected slot"
         Expect.equal slot.SiteConfig.AutoSwapSlotName "production" "Should use provided auto swap slot name"
     }
@@ -686,15 +706,26 @@ let tests = testList "Web App Tests" [
         Expect.isEmpty nestedDeployments $"Only secured domains need nested deployments"
     }
 
-    test "Supports no domains" {
+    test "Supports multiple custom domains" {
         let webappName = "test"
-        let resources = webApp { name webappName; custom_domain NoDomain } |> getResources
+        let resources = 
+            webApp {
+                name webappName
+                custom_domain "secure.io"
+                custom_domain (DomainConfig.InsecureDomain "insecure.io") 
+            } |> getResources
         let wa = resources |> getResource<Web.Site> |> List.head
 
-        //Testing HostnameBinding
-        let hostnameBinding = resources |> getResource<Web.HostNameBinding>
+        let exepectedSiteId = (Managed (Arm.Web.sites.resourceId wa.Name))
 
-        Expect.equal hostnameBinding.Length 0 $"There should not be a hostname binding as a result of choosing the 'NoDomain' option"
+        //Testing HostnameBinding
+        let hostnameBindings = resources |> getResource<Web.HostNameBinding> 
+        let secureBinding = hostnameBindings |> List.filter (fun x->x.DomainName = "secure.io") |> List.head
+        let insecureBinding = hostnameBindings |> List.filter (fun x->x.DomainName = "insecure.io") |> List.head
+        
+        Expect.equal secureBinding.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
+        Expect.equal insecureBinding.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
+
     }
     
     test "Supports slot settings" {

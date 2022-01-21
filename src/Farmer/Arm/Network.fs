@@ -38,7 +38,7 @@ type PublicIpAddress =
                         match this.DomainNameLabel with
                         | Some label -> box {| domainNameLabel = label.ToLower() |}
                         | None -> null |}
-            |} :> _
+            |}
 
 type SubnetDelegation =
     { Name : ResourceName
@@ -88,10 +88,10 @@ type Subnet =
             match this.VirtualNetwork with
             | Some (Managed vnet) ->
                 {| subnets.Create(vnet.Name / this.Name, dependsOn=[vnet]) with
-                    properties = this.JsonModelProperties |} :> _
+                    properties = this.JsonModelProperties |}
             | Some (Unmanaged vnet) ->
                 {| subnets.Create(vnet.Name / this.Name) with
-                    properties = this.JsonModelProperties |} :> _
+                    properties = this.JsonModelProperties |}
             | None -> raiseFarmer "Subnet record must be linked to a virtual network to properly assign the resourceId."
         member this.ResourceId =
             match this.VirtualNetwork with
@@ -124,7 +124,7 @@ type VirtualNetwork =
                            |> List.map(fun subnet ->
                                {| name = subnet.Name.Value; properties = subnet.JsonModelProperties |})
                     |}
-            |} :> _
+            |}
 
 type VPNClientProtocol =
     | IkeV2
@@ -224,7 +224,7 @@ type VirtualNetworkGateway =
                             | None -> null
                         activeActive = this.IpConfigs |> List.length > 1
                      |}
-            |} :> _
+            |}
 
 type Connection =
     { Name : ResourceName
@@ -264,7 +264,7 @@ type Connection =
                             | Some peerId -> box {| id = peerId |}
                             | None -> null
                      |}
-            |} :> _
+            |}
 
 type NetworkInterface =
     { Name : ResourceName
@@ -312,11 +312,11 @@ type NetworkInterface =
             | None ->
                 {| networkInterfaces.Create(this.Name, this.Location, dependsOn, this.Tags) with
                     properties = props
-                |} :> _
+                |}
             | Some nsg ->
                 {| networkInterfaces.Create(this.Name, this.Location, dependsOn, this.Tags) with
                     properties = {| props with networkSecurityGroup = {| id = nsg.Eval() |} |}
-                |} :> _
+                |}
 
 
 type NetworkProfile =
@@ -354,7 +354,7 @@ type NetworkProfile =
                             |}
                         )
                     |}
-            |} :> _
+            |}
 
 type ExpressRouteCircuit =
     { Name : ResourceName
@@ -403,7 +403,7 @@ type ExpressRouteCircuit =
                            peeringLocation = this.PeeringLocation
                            bandwidthInMbps = this.Bandwidth |}
                        globalReachEnabled = this.GlobalReachEnabled |}
-            |} :> _
+            |}
 
 type ExpressRouteCircuitAuthorization =
     { Name : ResourceName
@@ -414,7 +414,7 @@ type ExpressRouteCircuitAuthorization =
             expressRouteCircuitAuthorizations.Create(
                 this.Circuit.Name / this.Name,
                 dependsOn=[this.Circuit.ResourceId])
-            :> _
+
 
 type PrivateEndpoint =
   { Name: ResourceName
@@ -448,7 +448,7 @@ type PrivateEndpoint =
                     |}
                   ]
              |}
-      |} :> _
+      |}
 
 type GatewayTransit =
     | UseRemoteGateway
@@ -486,4 +486,4 @@ type NetworkPeering =
                        useRemoteGateways = match this.GatewayTransit with | UseRemoteGateway -> true | _ -> false
                        remoteVirtualNetwork = {| id = match this.RemoteVNet with | Managed id | Unmanaged id -> id.ArmExpression.Eval() |}
                     |}
-            |} :> _
+            |}

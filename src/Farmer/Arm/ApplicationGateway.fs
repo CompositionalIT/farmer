@@ -25,8 +25,8 @@ let applicationGatewayUrlPathMaps = ResourceType ("Microsoft.Network/application
 module private ResourceId =
     let asId (resourceId: ResourceId) =
         {| id = resourceId.Eval() |}
-    
-let private curry a b = a,b 
+
+let private curry a b = a,b
 
 type ApplicationGateway =
     { Name : ResourceName
@@ -39,7 +39,7 @@ type ApplicationGateway =
       AutoscaleConfiguration:
         {| MaxCapacity: int option
            MinCapacity: int |} option
-      FrontendPorts : 
+      FrontendPorts :
         {| Name : ResourceName
            Port : uint16 |} list
       FrontendIpConfigs :
@@ -83,7 +83,7 @@ type ApplicationGateway =
               Name : ResourceName
               FrontendIpConfiguration : ResourceName
               BackendAddressPool : ResourceName
-              CustomErrorConfigurations:  
+              CustomErrorConfigurations:
                 {| CustomErrorPageUrl: string
                    StatusCode: HttpStatusCode |} list
               FirewallPolicy : ResourceId option
@@ -120,7 +120,7 @@ type ApplicationGateway =
            TargetListener: ResourceName
            TargetUrl: string
            UrlPathMaps: ResourceName list |} list
-      RequestRoutingRules : 
+      RequestRoutingRules :
         {|  Name: ResourceName
             RuleType: RuleType
             HttpListener: ResourceName
@@ -131,13 +131,13 @@ type ApplicationGateway =
             UrlPathMap: ResourceName option
             Priority: int option
         |} list
-      RewriteRuleSets: 
+      RewriteRuleSets:
         {|  Name: ResourceName
             RewriteRules:
-              {| ActionSet: 
+              {| ActionSet:
                   {| RequestHeaderConfigurations:
                        {| HeaderName: string
-                          HeaderValue: string |} list 
+                          HeaderValue: string |} list
                      ResponseHeaderConfigurations:
                        {| HeaderName: string
                           HeaderValue: string |} list
@@ -151,8 +151,8 @@ type ApplicationGateway =
                      Pattern: string
                      Variable: string |} list
                  Name: string
-                 RuleSequence: int 
-             |} list 
+                 RuleSequence: int
+             |} list
          |} list
       SslCertificates:
         {| Name: ResourceName
@@ -167,9 +167,9 @@ type ApplicationGateway =
            PolicyType: PolicyType |} option
       SslProfiles:
           {| Name: ResourceName
-             ClientAuthConfiguration: 
+             ClientAuthConfiguration:
                {| VerifyClientCertIssuerDN: bool |}
-             SslPolicy: 
+             SslPolicy:
                {| CipherSuites: CipherSuite list
                   DisabledSslProtocols: SslProtocol list
                   MinProtocolVersion: SslProtocol
@@ -190,7 +190,7 @@ type ApplicationGateway =
              DefaultBackendHttpSettings: ResourceName
              DefaultRedirectConfiguration: ResourceName
              DefaultRewriteRuleSet: ResourceName
-             PathRules: 
+             PathRules:
               {|
                   Name: ResourceName
                   BackendAddressPool: ResourceName
@@ -239,7 +239,7 @@ type ApplicationGateway =
                                 capacity = this.Sku.Capacity |> Option.toNullable
                                 tier = this.Sku.Tier.ArmValue
                             |}
-                        autoscaleConfiguration = this.AutoscaleConfiguration |> Option.map (fun a -> 
+                        autoscaleConfiguration = this.AutoscaleConfiguration |> Option.map (fun a ->
                             {|
                                 maxCapacity = a.MaxCapacity
                                 minCapacity = a.MinCapacity
@@ -257,10 +257,10 @@ type ApplicationGateway =
                         backendHttpSettingsCollection = this.BackendHttpSettingsCollection |> List.map (fun settings ->
                             {|
                               name = settings.Name.Value
-                              properties = 
+                              properties =
                                 {|
                                     affinityCookieName = settings.AffinityCookieName |> Option.toObj
-                                    authenticationCertificates = 
+                                    authenticationCertificates =
                                         settings.AuthenticationCertificates
                                         |> List.map (curry this.Name >> applicationGatewayAuthenticationCertificates.resourceId >> ResourceId.asId)
                                     connectionDraining = settings.ConnectionDraining |> Option.map (fun drain ->
@@ -278,7 +278,7 @@ type ApplicationGateway =
                                     probeEnabled = settings.ProbeEnabled
                                     protocol = settings.Protocol.ArmValue
                                     requestTimeout = settings.RequestTimeoutInSeconds
-                                    trustedRootCertificates = 
+                                    trustedRootCertificates =
                                         settings.TrustedRootCertificates
                                         |> List.map (curry this.Name >> applicationGatewayTrustedRootCertificates.resourceId >> ResourceId.asId)
                                 |}
@@ -296,21 +296,21 @@ type ApplicationGateway =
                         frontendPorts = this.FrontendPorts |> List.map (fun frontend ->
                             {|
                                 name = frontend.Name.Value
-                                properties = 
+                                properties =
                                     {| port = frontend.Port |}
                             |}
                         )
                         gatewayIPConfigurations = this.GatewayIPConfigurations |> List.map (fun gwip ->
                             {|
                                 name = gwip.Name.Value
-                                properties = 
+                                properties =
                                     {| subnet = gwip.Subnet |> Option.map ResourceId.asId |> Option.defaultValue Unchecked.defaultof<_> |}
                             |}
                         )
                         httpListeners = this.HttpListeners |> List.map (fun listener ->
                           {|
                             name = listener.Name.Value
-                            properties = 
+                            properties =
                                 {|
                                   customErrorConfigurations = listener.CustomErrorConfigurations |> List.map (fun cfg ->
                                     {|
@@ -368,7 +368,7 @@ type ApplicationGateway =
                         redirectConfigurations = this.RedirectConfigurations |> List.map (fun cfg ->
                             {|
                                 name = cfg.Name.Value
-                                properties = 
+                                properties =
                                     {|
                                         includePath = cfg.IncludePath
                                         includeQueryString = cfg.IncludeQueryString
@@ -384,7 +384,7 @@ type ApplicationGateway =
                         requestRoutingRules = this.RequestRoutingRules |> List.map (fun routingRule ->
                             {|
                                 name = routingRule.Name.Value
-                                properties = 
+                                properties =
                                     {|
                                         backendAddressPool = applicationGatewayBackendAddressPools.resourceId(this.Name,routingRule.BackendAddressPool) |> ResourceId.asId
                                         backendHttpSettings = applicationGatewayBackendHttpSettingsCollection.resourceId(this.Name,routingRule.BackendHttpSettings) |> ResourceId.asId
@@ -404,7 +404,7 @@ type ApplicationGateway =
                                 {|
                                     rewriteRules = ruleSet.RewriteRules |> List.map (fun rule ->
                                         {|
-                                            actionSet = 
+                                            actionSet =
                                                 {|  requestHeaderConfigurations = rule.ActionSet.RequestHeaderConfigurations |> List.map (fun cfg ->
                                                         {| headerName = cfg.HeaderName
                                                            headerValue = cfg.HeaderValue |}
@@ -413,7 +413,7 @@ type ApplicationGateway =
                                                         {| headerName = cfg.HeaderName
                                                            headerValue = cfg.HeaderValue |}
                                                     )
-                                                    urlConfiguration = 
+                                                    urlConfiguration =
                                                         {|
                                                           modifiedPath = rule.ActionSet.UrlConfiguration.ModifiedPath
                                                           modifiedQueryString = rule.ActionSet.UrlConfiguration.ModifiedQueryString
@@ -456,7 +456,7 @@ type ApplicationGateway =
                             |}
                         ) |> Option.defaultValue Unchecked.defaultof<_>
                         sslProfiles = this.SslProfiles |> List.map (fun sslProfile ->
-                            {| 
+                            {|
                               name = sslProfile.Name.Value
                               properties =
                                 {|
@@ -472,20 +472,20 @@ type ApplicationGateway =
                                       |}
                                   ) |> Option.defaultValue Unchecked.defaultof<_>
                                   trustedClientCertificates =
-                                    sslProfile.TrustedClientCertificates 
+                                    sslProfile.TrustedClientCertificates
                                     |> List.map (curry this.Name >> applicationGatewayTrustedRootCertificates.resourceId >> ResourceId.asId)
                                 |}
                             |}
                         )
                         trustedClientCertificates = this.TrustedClientCertificates |> List.map (fun cert ->
                           {| name = cert.Name.Value
-                             properties = 
+                             properties =
                                 {| data = cert.Data |}
                           |}
                         )
                         trustedRootCertificates = this.TrustedRootCertificates |> List.map (fun cert ->
                           {| name = cert.Name.Value
-                             properties = 
+                             properties =
                                 {| data = cert.Data |> Option.toObj
                                    keyVaultSecretId = cert.KeyVaultSecretId |}
                           |}
@@ -543,4 +543,4 @@ type ApplicationGateway =
                         ) |> Option.defaultValue Unchecked.defaultof<_>
                     |}
                 zones = this.Zones |> List.map string
-            |} :> _
+            |}
