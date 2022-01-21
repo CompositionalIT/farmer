@@ -1,5 +1,8 @@
 Release Notes
 =============
+## 1.6.27
+* WebApp: Allow multiple custom domains
+
 ## 1.6.26
 * WebApp/Functions: Fix .NET on Linux deployments
 
