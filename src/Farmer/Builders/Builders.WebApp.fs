@@ -201,7 +201,7 @@ type WebAppConfig =
       DockerAcrCredentials : {| RegistryName : string; Password : SecureParameter |} option
       AutomaticLoggingExtension : bool
       SiteExtensions : ExtensionName Set
-      PrivateEndpoints: (LinkedResource * string option) Set 
+      PrivateEndpoints: (LinkedResource * string option) Set
       CustomDomain : DomainConfig }
     member this.Name = this.CommonWebConfig.Name
     /// Gets this web app's Server Plan's full resource ID.
@@ -372,6 +372,7 @@ type WebAppConfig =
                         | None ->
                             match this.Runtime with
                             | DotNetCore version -> Some $"DOTNETCORE|{version}"
+                            | DotNet version -> Some $"DOTNETCORE|{version}"
                             | Node version -> Some $"NODE|{version}"
                             | Php version -> Some $"PHP|{version}"
                             | Ruby version -> Some $"RUBY|{version}"
@@ -518,22 +519,22 @@ type WebAppConfig =
                 // Need to rename `location` binding to prevent conflict with `location` operator in resource group
                 let resourceLocation = location
                 // nested deployment to update hostname binding with specified SSL options
-                yield! (resourceGroup { 
+                yield! (resourceGroup {
                     name "[resourceGroup().name]"
                     location resourceLocation
                     add_resource { hostNameBinding with
                                     SiteId =
-                                        match hostNameBinding.SiteId with 
+                                        match hostNameBinding.SiteId with
                                         | Managed id -> Unmanaged id
-                                        | x -> x 
-                                    SslState = 
+                                        | x -> x
+                                    SslState =
                                         match certOptions with
                                         | AppManagedCertificate -> SniBased (cert.GetThumbprintReference aspRgName)
                                         | CustomCertificate thumbprint -> SniBased thumbprint
                                   }
                     depends_on certRg
                 } :> IBuilder).BuildResources location
-            | InsecureDomain customDomain -> 
+            | InsecureDomain customDomain ->
                 { Location = location
                   SiteId =  Managed (Arm.Web.sites.resourceId this.Name.ResourceName)
                   DomainName = customDomain

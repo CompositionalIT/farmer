@@ -312,6 +312,12 @@ let tests = testList "Web App Tests" [
         Expect.equal site.SiteConfig.NetFrameworkVersion "v6.0" "Wrong dotnet version"
     }
 
+    test "Supports .NET 5 on Linux" {
+        let app = webApp { name "net5"; operating_system Linux; runtime_stack Runtime.DotNet50 }
+        let site:Site = app |> getResourceAtIndex 2
+        Expect.equal site.SiteConfig.LinuxFxVersion "DOTNETCORE|5.0" "Wrong dotnet version"
+    }
+
     test "WebApp supports adding slots" {
         let slot = appSlot { name "warm-up" }
         let site:WebAppConfig = webApp { name "slots"; add_slot slot }
