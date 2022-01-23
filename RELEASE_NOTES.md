@@ -1,5 +1,7 @@
 Release Notes
 =============
+## vNext
+* WebApps/Functions: Don't turn on Logging Extension for Linux App Service.
 
 ## 1.6.25
 * CosmosDb: Add support for serverless capacity mode.
