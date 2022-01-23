@@ -280,7 +280,7 @@ let tests = testList "Web App Tests" [
         let wa : Site = webApp { name "testsite" } |> getResourceAtIndex 3
         wa |> hasSetting "APPINSIGHTS_INSTRUMENTATIONKEY" "Missing Windows instrumentation key"
 
-        let wa : Site = webApp { name "testsite"; operating_system Linux } |> getResourceAtIndex 3
+        let wa : Site = webApp { name "testsite"; operating_system Linux } |> getResourceAtIndex 2
         wa |> hasSetting "APPINSIGHTS_INSTRUMENTATIONKEY" "Missing Linux instrumentation key"
 
         let wa : Site = webApp { name "testsite"; app_insights_off } |> getResourceAtIndex 2
@@ -558,7 +558,7 @@ let tests = testList "Web App Tests" [
         Expect.containsAll (theSlot.Identity.UserAssigned) [identity18.UserAssignedIdentity; identity21.UserAssignedIdentity] "Slot should have both user assigned identities"
         Expect.equal theSlot.KeyVaultReferenceIdentity (Some identity21.UserAssignedIdentity) "Slot should have correct keyvault identity"
     }
-    
+
     test "WebApp with slot can use AutoSwapSlotName" {
         let warmupSlot = appSlot { name "warm-up"; autoSlotSwapName "production" }
         let site:WebAppConfig = webApp { name "slots"; add_slot warmupSlot }
@@ -567,7 +567,7 @@ let tests = testList "Web App Tests" [
         let slot: Site =
             site
             |> getResourceAtIndex 4
-        
+
         Expect.equal slot.Name "slots/warm-up" "Should be expected slot"
         Expect.equal slot.SiteConfig.AutoSwapSlotName "production" "Should use provided auto swap slot name"
     }
@@ -703,5 +703,11 @@ let tests = testList "Web App Tests" [
         let hostnameBinding = resources |> getResource<Web.HostNameBinding>
 
         Expect.equal hostnameBinding.Length 0 $"There should not be a hostname binding as a result of choosing the 'NoDomain' option"
+    }
+
+    test "Linux automatically turns off logging extension" {
+        let wa = webApp { name "siteX"; operating_system Linux }
+        let extensions = wa |> getResources |> getResource<SiteExtension>
+        Expect.isEmpty extensions "Should not be any extensions"
     }
 ]
