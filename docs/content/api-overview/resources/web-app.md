@@ -56,7 +56,7 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Web App | add_slot | Adds a deployment slot to the app |
 | Web App | add_slots | Adds multiple deployment slots to the app |
 | Web App | health_check_path | Sets the path to your functions health check endpoint, which Azure load balancers will ping to determine which instances are healthy.|
-| Web App | custom_domain | Adds a custom domain to the app.  Optionally this can also generate an SSL certificate for the domain. This operator can be used multiple times to add multiple domains |
+| Web App | custom_domain | Adds a custom domain to the app.  By default this will produce an AppService-managed SSL certificate for your domain as well. Through the overloads of this operator, you can provide a custom certificate thumbprint or choose not to use SSL. You can use this operator multiple times to add multiple custom domains.  |
 | Service Plan | service_plan_name | Sets the name of the service plan. If not set, uses the name of the web app postfixed with "-plan". |
 | Service Plan | runtime_stack | Sets the runtime stack. |
 | Service Plan | operating_system | Sets the operating system. If Linux, App Insights configuration settings will be omitted as they are not supported by Azure App Service. |
