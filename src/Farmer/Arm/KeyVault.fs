@@ -41,7 +41,7 @@ module Vaults =
                                exp = this.ExpirationDate |> Option.map Secret.TotalSecondsSince1970 |> Option.toNullable
                             |}
                         |}
-                |} :> _
+                |}
     let private armValue armValue (a: 'a option) =
       a |> Option.map armValue |> Option.defaultValue Unchecked.defaultof<_>
     type Key =
@@ -79,7 +79,7 @@ module Vaults =
                             | RSA (RsaKeyLength keySize) -> box keySize
                             | RSAHSM (RsaKeyLength keySize) -> box keySize
                             | _ -> null |}
-              |} :> _
+              |}
 
 type CreateMode = Recover | Default
 type Vault =
@@ -159,7 +159,7 @@ type Vault =
                            ipRules = this.IpRules
                            virtualNetworkRules = this.VnetRules |> List.map (fun rule -> {| id = rule |}) |}
                     |}
-            |} :> _
+            |}
 
 type VaultAddPolicies =
     { KeyVault : LinkedResource
@@ -197,4 +197,4 @@ type VaultAddPolicies =
                             |}
                        |]
                     |}
-            |} :> _
+            |}

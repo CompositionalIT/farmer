@@ -16,7 +16,7 @@ type UserAssignedIdentity =
 
     interface IArmResource with
         member this.ResourceId = userAssignedIdentities.resourceId this.Name
-        member this.JsonModel = userAssignedIdentities.Create(this.Name, this.Location, [], this.Tags) :> _
+        member this.JsonModel = userAssignedIdentities.Create(this.Name, this.Location, [], this.Tags)
     interface IPostDeploy with
         member this.Run rg = 
             if this.ActiveDirectoryGroups.IsEmpty 

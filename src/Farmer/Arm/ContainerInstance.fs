@@ -16,7 +16,7 @@ type ContainerGroupIpAddress =
 
 type ContainerInstanceGpu =
     { Count: int
-      Sku: Gpu.Sku } 
+      Sku: Gpu.Sku }
     member internal this.JsonModel =
         {|
             count = this.Count
@@ -274,4 +274,4 @@ type ContainerGroup =
                                     |}
                           ]
                        |}
-            |} :> _
+            |}

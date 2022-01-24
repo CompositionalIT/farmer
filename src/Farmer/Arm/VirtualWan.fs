@@ -44,4 +44,4 @@ type VirtualWan =
                        disableVpnEncryption = this.DisableVpnEncryption |> Option.defaultValue false
                        office365LocalBreakoutCategory = (this.Office365LocalBreakoutCategory |> Option.defaultValue Office365LocalBreakoutCategory.None).ArmValue
                        ``type`` = this.VwanType.ArmValue |}
-            |}:> _
+            |}

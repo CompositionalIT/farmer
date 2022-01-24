@@ -76,7 +76,7 @@ type iotHubs =
                    sku =
                     {| name = this.Sku.Name
                        capacity = this.Sku.Capacity |}
-            |} :> _
+            |}
 
 type ProvisioningServices =
     { Name : ResourceName
@@ -101,4 +101,4 @@ type ProvisioningServices =
                               name = this.IotHubPath |}
                        ]
                      |}
-            |} :> _
+            |}

@@ -273,7 +273,7 @@ module CdnRule =
                         .Add("headerName", modifyHeader.HttpHeaderName)
                         .Add ("value", modifyHeader.HttpHeaderValue))
 
-          
+
             match this with
             | CacheExpiration a ->
                 let armValue = a.CacheBehaviour.ArmValue
@@ -367,7 +367,7 @@ module Profiles =
                                                     order = rule.Order
                                                     conditions = rule.Conditions |> List.map (fun c -> c.JsonModel)
                                                     actions = rule.Actions |> List.map (fun a -> a.JsonModel) |}) |} |}
-                |} :> _
+                |}
 
     module Endpoints =
         type CustomDomain =
@@ -380,4 +380,4 @@ module Profiles =
                 member this.JsonModel =
                     {| customDomains.Create (this.Profile/this.Endpoint/this.Name, dependsOn = [ endpoints.resourceId(this.Profile, this.Endpoint) ]) with
                         properties = {| hostName = this.Hostname |}
-                    |} :> _
+                    |}

@@ -169,7 +169,7 @@ type ManagedCluster =
                          |> Option.defaultValue []
                 ] |> Seq.concat |> Set.ofSeq |> Set.union this.Dependencies
             {| managedClusters.Create(this.Name, this.Location) with
-                   dependsOn = [ 
+                   dependsOn = [
                        dependencies |> Seq.map (fun r -> r.Eval())
                        this.DependencyExpressions |> Seq.map (fun r -> r.Eval())
                        ] |> Seq.concat
@@ -241,4 +241,4 @@ type ManagedCluster =
                                        adminPassword = winProfile.AdminPassword.ArmExpression.Eval() |}
                                 | None -> Unchecked.defaultof<_>
                        |}
-            |} :> _
+            |}

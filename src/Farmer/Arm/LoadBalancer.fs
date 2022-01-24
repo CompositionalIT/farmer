@@ -118,7 +118,7 @@ type LoadBalancer =
                         outboundNatRules = []
                         inboundNatPools = []
                     |}
-            |} :> _
+            |}
 type BackendAddressPool =
     {   /// Name of the backend address pool
         Name : ResourceName
@@ -161,4 +161,4 @@ type BackendAddressPool =
                             |}
                         )
                     |}
-            |} :> _
+            |}
