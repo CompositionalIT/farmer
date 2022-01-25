@@ -1,7 +1,8 @@
 Release Notes
 =============
-## 1.6.26
-* WebApp/Functions: Fix .NET on Linux deployments
+## vNext
+* WebApps/Functions: Don't turn on Logging Extension for Linux App Service.
+* WebApps/Functions: Fix .NET 5/6 on Linux deployments.
 
 ## 1.6.25
 * CosmosDb: Add support for serverless capacity mode.

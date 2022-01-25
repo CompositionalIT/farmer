@@ -280,7 +280,7 @@ let tests = testList "Web App Tests" [
         let wa : Site = webApp { name "testsite" } |> getResourceAtIndex 3
         wa |> hasSetting "APPINSIGHTS_INSTRUMENTATIONKEY" "Missing Windows instrumentation key"
 
-        let wa : Site = webApp { name "testsite"; operating_system Linux } |> getResourceAtIndex 3
+        let wa : Site = webApp { name "testsite"; operating_system Linux } |> getResourceAtIndex 2
         wa |> hasSetting "APPINSIGHTS_INSTRUMENTATIONKEY" "Missing Linux instrumentation key"
 
         let wa : Site = webApp { name "testsite"; app_insights_off } |> getResourceAtIndex 2
@@ -709,5 +709,11 @@ let tests = testList "Web App Tests" [
         let hostnameBinding = resources |> getResource<Web.HostNameBinding>
 
         Expect.equal hostnameBinding.Length 0 $"There should not be a hostname binding as a result of choosing the 'NoDomain' option"
+    }
+
+    test "Linux automatically turns off logging extension" {
+        let wa = webApp { name "siteX"; operating_system Linux }
+        let extensions = wa |> getResources |> getResource<SiteExtension>
+        Expect.isEmpty extensions "Should not be any extensions"
     }
 ]

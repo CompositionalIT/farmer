@@ -498,16 +498,16 @@ type WebAppConfig =
                 hostNameBinding
 
                 // Get the resource group which contains the app service plan
-                let aspRgName = 
+                let aspRgName =
                   match this.CommonWebConfig.ServicePlan with
                   | LinkedResource linked -> linked.ResourceId.ResourceGroup
                   | _ -> None
                 // Create a nested resource group deployment for the certificate - this isn't strictly necessary when the app & app service plan are in the same resource group
                 // however, when they are in different resource groups this is required to make the deployment succeed (there is an ARM bug which causes a Not Found / Conflict otherwise)
                 // To keep the code simple, I opted to always nest the certificate deployment. - TheRSP 2021-12-14
-                let certRg = resourceGroup { 
+                let certRg = resourceGroup {
                     name (aspRgName |> Option.defaultValue "[resourceGroup().name]")
-                    add_resource 
+                    add_resource
                       { cert with
                           SiteId = Unmanaged cert.SiteId.ResourceId
                           ServicePlanId = Unmanaged cert.ServicePlanId.ResourceId }
@@ -592,8 +592,12 @@ type WebAppBuilder() =
                 // its important to only add this extension if we're not using Web App for Containers - if we are
                 // then this will generate an error during deployment:
                 // No route registered for '/api/siteextensions/Microsoft.AspNetCore.AzureAppServices.SiteExtension'
-                | { Runtime = Runtime.DotNetCore _; AutomaticLoggingExtension = true ; DockerImage = None } ->
-                    state.SiteExtensions.Add WebApp.Extensions.Logging
+                | { Runtime = DotNetCore _
+                    AutomaticLoggingExtension = true
+                    DockerImage = None
+                    CommonWebConfig = { OperatingSystem = Windows } }
+                    ->
+                    state.SiteExtensions.Add Extensions.Logging
                 | _ ->
                     state.SiteExtensions
             DockerImage =
