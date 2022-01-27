@@ -709,7 +709,7 @@ type WebAppBuilder() =
     [<CustomOperation "custom_domains">]
     member this.AddCustomDomains(state, customDomains:string list) = customDomains |> List.fold (fun state domain -> this.AddCustomDomain(state, domain)) state
     member this.AddCustomDomains(state, domainConfigs:DomainConfig list) = domainConfigs |> List.fold (fun state domain -> this.AddCustomDomain(state, domain)) state
-     member this.AddCustomDomains(state, customDomains:(string * ArmExpression) list) = customDomains |> List.fold (fun state domain -> this.AddCustomDomain(state, domain)) state
+    member this.AddCustomDomains(state, customDomainsWithThumprint:(string * ArmExpression) list) = customDomainsWithThumprint |> List.fold (fun state domain -> this.AddCustomDomain(state, domain)) state
 
     interface IPrivateEndpoints<WebAppConfig> with member _.Add state endpoints = { state with PrivateEndpoints = state.PrivateEndpoints |> Set.union endpoints}
     interface ITaggable<WebAppConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
