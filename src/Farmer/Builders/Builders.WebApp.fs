@@ -483,21 +483,33 @@ type WebAppConfig =
                 { site with AppSettings = None; ConnectionStrings = None } // Don't deploy production slot settings as they could cause an app restart
                 for (_,slot) in this.CommonWebConfig.Slots |> Map.toSeq do
                     slot.ToSite site
-                
+            
+            let mutable dependentCustomDomainId = Option<ResourceId>.None
             for customDomain in this.CustomDomains |> Map.toSeq |> Seq.map snd do
+                // Host Name bindings must be deployed sequentially to avoid an error, as the site cannot be modified concurrently.
+                let dependsOn = 
+                    match dependentCustomDomainId with 
+                    | Some previous -> Set.ofSeq [previous]
+                    | None -> Set.empty
+
+                let hostNameBinding =
+                    { Location = location
+                      SiteId =  Managed (Arm.Web.sites.resourceId this.Name.ResourceName)
+                      DomainName = customDomain.DomainName
+                      SslState = SslDisabled // Initially create non-secure host name binding, we link the certificate in a nested deployment below if this is a secure domain.
+                      DependsOn = dependsOn }
+
+                hostNameBinding
+
+                dependentCustomDomainId <- Some hostNameBinding.ResourceId
+
                 match customDomain with
                 | SecureDomain (customDomain, certOptions) ->
-                    let hostNameBinding =
-                        { Location = location
-                          SiteId =  Managed (Arm.Web.sites.resourceId this.Name.ResourceName)
-                          DomainName = customDomain
-                          SslState = SslDisabled } // Initially create non-secure host name binding, we link the certificate in a nested deployment below
                     let cert =
                         { Location = location
                           SiteId = Managed this.ResourceId
                           ServicePlanId = Managed this.ServicePlanId
                           DomainName = customDomain }
-                    hostNameBinding
 
                     // Get the resource group which contains the app service plan
                     let aspRgName = 
@@ -514,8 +526,9 @@ type WebAppConfig =
                               SiteId = Unmanaged cert.SiteId.ResourceId
                               ServicePlanId = Unmanaged cert.ServicePlanId.ResourceId }
                         depends_on cert.SiteId
-                        depends_on (hostNameBindings.resourceId(cert.SiteId.Name, ResourceName cert.DomainName))
+                        depends_on hostNameBinding.ResourceId
                     }
+
                     yield! ((certRg :> IBuilder).BuildResources location)
 
                     // Need to rename `location` binding to prevent conflict with `location` operator in resource group
@@ -533,14 +546,12 @@ type WebAppConfig =
                                             match certOptions with
                                             | AppManagedCertificate -> SniBased (cert.GetThumbprintReference aspRgName)
                                             | CustomCertificate thumbprint -> SniBased thumbprint
+                                        DependsOn = Set.empty // Don't want the dependency in this nested template.
                                       }
                         depends_on certRg
                     } :> IBuilder).BuildResources location
-                | InsecureDomain customDomain -> 
-                    { Location = location
-                      SiteId =  Managed (Arm.Web.sites.resourceId this.Name.ResourceName)
-                      DomainName = customDomain
-                      SslState = SslDisabled }
+                | _ -> ()
+                    
             
             if this.CommonWebConfig.SlotSettingNames <> Set.empty then
                 {
@@ -694,6 +705,9 @@ type WebAppBuilder() =
     member _.AddCustomDomain(state:WebAppConfig, domainConfig:DomainConfig) = { state with CustomDomains = state.CustomDomains |> Map.add domainConfig.DomainName domainConfig }
     member this.AddCustomDomain(state:WebAppConfig, customDomain) = this.AddCustomDomain (state, SecureDomain (customDomain,AppManagedCertificate))
     member this.AddCustomDomain(state:WebAppConfig, (customDomain,thumbprint)) = this.AddCustomDomain (state, SecureDomain (customDomain,CustomCertificate thumbprint))
+    [<CustomOperation "custom_domains">]
+    member this.AddCustomDomains(state, customDomains:string list) = customDomains |> List.fold (fun state domain -> this.AddCustomDomain(state, domain)) state
+    member this.AddCustomDomains(state, domainConfigs:DomainConfig list) = domainConfigs |> List.fold (fun state domain -> this.AddCustomDomain(state, domain)) state
 
     interface IPrivateEndpoints<WebAppConfig> with member _.Add state endpoints = { state with PrivateEndpoints = state.PrivateEndpoints |> Set.union endpoints}
     interface ITaggable<WebAppConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
