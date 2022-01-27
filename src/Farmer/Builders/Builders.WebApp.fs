@@ -484,12 +484,13 @@ type WebAppConfig =
                 for (_,slot) in this.CommonWebConfig.Slots |> Map.toSeq do
                     slot.ToSite site
             
-            let mutable dependentCustomDomainId = Option<ResourceId>.None
+            // Host Name Bindings must be deployed sequentially to avoid an error, as the site cannot be modified concurrently.
+            // To do so we add a dependency to the previous binding.
+            let mutable previousHostNameBinding = None
             for customDomain in this.CustomDomains |> Map.toSeq |> Seq.map snd do
-                // Host Name bindings must be deployed sequentially to avoid an error, as the site cannot be modified concurrently.
                 let dependsOn = 
-                    match dependentCustomDomainId with 
-                    | Some previous -> Set.ofSeq [previous]
+                    match previousHostNameBinding with 
+                    | Some previous -> Set.singleton previous
                     | None -> Set.empty
 
                 let hostNameBinding =
@@ -501,7 +502,7 @@ type WebAppConfig =
 
                 hostNameBinding
 
-                dependentCustomDomainId <- Some hostNameBinding.ResourceId
+                previousHostNameBinding <- Some hostNameBinding.ResourceId
 
                 match customDomain with
                 | SecureDomain (customDomain, certOptions) ->
@@ -708,6 +709,7 @@ type WebAppBuilder() =
     [<CustomOperation "custom_domains">]
     member this.AddCustomDomains(state, customDomains:string list) = customDomains |> List.fold (fun state domain -> this.AddCustomDomain(state, domain)) state
     member this.AddCustomDomains(state, domainConfigs:DomainConfig list) = domainConfigs |> List.fold (fun state domain -> this.AddCustomDomain(state, domain)) state
+     member this.AddCustomDomains(state, customDomains:(string * ArmExpression) list) = customDomains |> List.fold (fun state domain -> this.AddCustomDomain(state, domain)) state
 
     interface IPrivateEndpoints<WebAppConfig> with member _.Add state endpoints = { state with PrivateEndpoints = state.PrivateEndpoints |> Set.union endpoints}
     interface ITaggable<WebAppConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
