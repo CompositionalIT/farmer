@@ -719,6 +719,36 @@ let tests = testList "Web App Tests" [
         
         Expect.equal secureBinding.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
         Expect.equal insecureBinding.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
+    }
 
+    test "Assigns dependencies to host names when deploying multiple custom domains" {
+        let webappName = "test"
+        let resources = 
+            webApp {
+                name webappName
+                custom_domains ["secure1.io" ; "secure2.io" ; "secure3.io"]
+            } |> getResources
+        let wa = resources |> getResource<Web.Site> |> List.head
+
+        let exepectedSiteId = (Managed (Arm.Web.sites.resourceId wa.Name))
+
+        //Testing HostnameBinding
+        let hostnameBindings = resources |> getResource<Web.HostNameBinding> 
+        let secureBinding1 = hostnameBindings |> List.filter(fun x -> x.DomainName = "secure1.io") |> List.head
+        let secureBinding2 = hostnameBindings |> List.filter(fun x -> x.DomainName = "secure2.io") |> List.head
+        let secureBinding3 = hostnameBindings |> List.filter(fun x -> x.DomainName = "secure3.io") |> List.head
+        let nestedResourceGroupHostNameUpdates = 
+            resources 
+            |> getResource<ResourceGroupDeployment> 
+            |> Seq.map(fun x -> getResource<Web.HostNameBinding>(x.Resources))
+            |> Seq.filter(fun x -> x.Length > 0)
+
+        Expect.all nestedResourceGroupHostNameUpdates (fun x -> x.Head.DependsOn.IsEmpty) "No dependencies expected on nested template"
+        Expect.equal secureBinding1.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
+        Expect.equal secureBinding2.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
+        Expect.equal secureBinding3.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
+        Expect.isEmpty secureBinding1.DependsOn "First host name binding should have no dependency"
+        Expect.contains (secureBinding2.DependsOn |> Seq.map(ResourceId.Eval)) "[resourceId('Microsoft.Web/sites/hostNameBindings', 'test', 'secure1.io')]" "Second host name binding should depend on first"
+        Expect.contains (secureBinding3.DependsOn |> Seq.map(ResourceId.Eval)) "[resourceId('Microsoft.Web/sites/hostNameBindings', 'test', 'secure2.io')]" "Third host name binding depends on second"
     }
 ]

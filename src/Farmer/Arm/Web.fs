@@ -350,7 +350,8 @@ type HostNameBinding =
     { Location: Location
       SiteId: LinkedResource
       DomainName: string
-      SslState: SslState }
+      SslState: SslState
+      DependsOn: ResourceId Set }
         member this.SiteResourceId =
             match this.SiteId with
             | Managed id -> id.Name
@@ -360,7 +361,9 @@ type HostNameBinding =
         member this.Dependencies =
             [ match this.SiteId with
               | Managed resid -> resid
-              | _ -> () ]
+              | _ -> ()
+
+              yield! this.DependsOn ]
         member this.ResourceId =
             hostNameBindings.resourceId (this.SiteResourceId, ResourceName this.DomainName)
         interface IArmResource with
