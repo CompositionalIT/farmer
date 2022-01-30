@@ -62,7 +62,7 @@ type Runtime =
 module AppSettings =
     let WebsiteNodeDefaultVersion version = "WEBSITE_NODE_DEFAULT_VERSION", version
     let RunFromPackage = "WEBSITE_RUN_FROM_PACKAGE", "1"
-    let WebSitePort (port:int) =  "WEBSITE_PORT", port.ToString()
+    let WebsitesPort (port:int) =  "WEBSITES_PORT", port.ToString()
 
 let publishingPassword (name:ResourceName) =
     let resourceId = config.resourceId (name, ResourceName "publishingCredentials")
@@ -287,7 +287,7 @@ type WebAppConfig =
                         ()
 
                     match this.DockerPort with
-                    | Some port -> AppSettings.WebSitePort port
+                    | Some port -> AppSettings.WebsitesPort port
                     | None -> ()
 
                     if this.DockerCi then "DOCKER_ENABLE_CI", "true"
