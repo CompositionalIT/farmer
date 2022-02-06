@@ -35,6 +35,8 @@ The Functions builder is used to create Azure Functions accounts. It abstracts t
 | setting | Sets an app setting of the web app in the form "key" "value". |
 | secret_setting | Sets a "secret" app setting of the function. You must supply the "key", whilst the value will be supplied as a secure parameter or an ARM expression. |
 | settings | Sets a list of app setting of the web app as tuples in the form of ("key", "value"). |
+| connection_string | Creates a connection string whose value is supplied as secret parameter, or as an ARM expression in the tupled form of ("key", expr). |
+| connection_strings | Creates a set of connection strings whose values will be supplied as secret parameters. |
 | depends_on | [Sets dependencies for the web app.](../../dependencies/) |
 | enable_cors | Enables CORS support for the app. Either specify AllOrigins or a list of valid URIs. |
 | enable_cors_credentials | Allows CORS requests with credentials. |
