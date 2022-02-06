@@ -364,4 +364,20 @@ let tests = testList "Functions tests" [
             |> Seq.map (fun x-> x.ToObject<{|name:string;value:string|}> ())
         Expect.contains appSettings {|name="APPINSIGHTS_INSTRUMENTATIONKEY"; value="[reference(resourceId('shared-group', 'Microsoft.Insights/components', 'theName'), '2014-04-01').InstrumentationKey]"|} "Invalid value for APPINSIGHTS_INSTRUMENTATIONKEY"
     }
+    
+    test "Function app correctly adds connection strings" {
+        let sa = storageAccount { name "foo" }
+        let wa =
+            let resources = functions { name "test"; connection_string "a"; connection_string ("b", sa.Key) } |> getResources
+            resources |> getResource<Web.Site> |> List.head
+
+        let expected = [
+            "a", (ParameterSetting(SecureParameter "a"), Custom)
+            "b", (ExpressionSetting sa.Key, Custom)
+        ]
+        let parameters = wa :> IParameters
+
+        Expect.equal wa.ConnectionStrings (Map expected |> Some) "Missing connections"
+        Expect.equal parameters.SecureParameters [ SecureParameter "a" ] "Missing parameter"
+    }
 ]

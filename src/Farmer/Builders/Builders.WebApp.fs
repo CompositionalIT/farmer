@@ -166,6 +166,7 @@ type CommonWebConfig =
     { Name : WebAppName
       AlwaysOn : bool
       AppInsights : ResourceRef<ResourceName> option
+      ConnectionStrings : Map<string, (Setting * ConnectionStringKind)>
       Cors : Cors option
       FTPState : FTPState option
       HTTPSOnly : bool
@@ -185,7 +186,6 @@ type WebAppConfig =
       HTTP20Enabled : bool option
       ClientAffinityEnabled : bool option
       WebSocketsEnabled: bool option
-      ConnectionStrings : Map<string, (Setting * ConnectionStringKind)>
       Dependencies : ResourceId Set
       Tags : Map<string,string>
       Sku : Sku
@@ -329,7 +329,7 @@ type WebAppConfig =
                   KeyVaultReferenceIdentity = this.CommonWebConfig.KeyVaultReferenceIdentity
                   Cors = this.CommonWebConfig.Cors
                   Tags = this.Tags
-                  ConnectionStrings = Some this.ConnectionStrings
+                  ConnectionStrings = Some this.CommonWebConfig.ConnectionStrings
                   WorkerProcess = this.CommonWebConfig.WorkerProcess
                   AppSettings = Some siteSettings
                   Kind = [
@@ -550,6 +550,7 @@ type WebAppBuilder() =
             { Name = WebAppName.Empty
               AlwaysOn = false
               AppInsights = Some (derived (fun name -> components.resourceId (name-"ai")))
+              ConnectionStrings = Map.empty
               Cors = None
               HTTPSOnly = false
               Identity = ManagedIdentity.Empty
@@ -572,7 +573,6 @@ type WebAppBuilder() =
           HTTP20Enabled = None
           ClientAffinityEnabled = None
           WebSocketsEnabled = None
-          ConnectionStrings = Map.empty
           Tags = Map.empty
           Dependencies = Set.empty
           Runtime = Runtime.DotNetCoreLts
@@ -624,17 +624,6 @@ type WebAppBuilder() =
     /// Sets the node version of the web app.
     [<CustomOperation "website_node_default_version">]
     member _.NodeVersion(state:WebAppConfig, version) = { state with WebsiteNodeDefaultVersion = Some version }
-    /// Creates a set of connection strings of the web app whose values will be supplied as secret parameters.
-    [<CustomOperation "connection_string">]
-    member _.AddConnectionString(state:WebAppConfig, key) =
-        { state with ConnectionStrings = state.ConnectionStrings.Add(key, (ParameterSetting (SecureParameter key), Custom)) }
-    member _.AddConnectionString(state:WebAppConfig, (key, value:ArmExpression)) =
-        { state with ConnectionStrings = state.ConnectionStrings.Add(key, (ExpressionSetting value, Custom)) }
-    /// Creates a set of connection strings of the web app whose values will be supplied as secret parameters.
-    [<CustomOperation "connection_strings">]
-    member this.AddConnectionStrings(state:WebAppConfig, connectionStrings) =
-        connectionStrings
-        |> List.fold (fun (state:WebAppConfig) (key:string) -> this.AddConnectionString(state, key)) state
     /// Enables HTTP 2.0 for this webapp.
     [<CustomOperation "enable_http2">]
     member _.Http20Enabled(state:WebAppConfig) = { state with HTTP20Enabled = Some true }
@@ -776,6 +765,24 @@ module Extensions =
             let current = this.Get state
             settings
             |> List.fold (fun (state:CommonWebConfig) (key, value:ArmExpression) -> { state with Settings = state.Settings.Add(key, ExpressionSetting value) }) current
+            |> this.Wrap state
+        /// Creates a set of connection strings of the web app whose values will be supplied as secret parameters.
+        [<CustomOperation "connection_string">]
+        member this.AddConnectionString(state:'T, key) =
+            let current = this.Get state
+            { current with ConnectionStrings = current.ConnectionStrings.Add(key, (ParameterSetting (SecureParameter key), Custom)) }
+            |> this.Wrap state
+        member this.AddConnectionString(state:'T, (key, value:ArmExpression)) =
+            let current = this.Get state
+            { current with ConnectionStrings = current.ConnectionStrings.Add(key, (ExpressionSetting value, Custom)) }
+            |> this.Wrap state
+        /// Creates a set of connection strings of the web app whose values will be supplied as secret parameters.
+        [<CustomOperation "connection_strings">]
+        member this.AddConnectionStrings(state:'T, connectionStrings) =
+            let current = this.Get state
+            connectionStrings
+            |> List.fold (fun (state:CommonWebConfig) (key, value:ArmExpression) ->
+               { state with ConnectionStrings = state.ConnectionStrings.Add(key, (ExpressionSetting value, Custom)) }) current 
             |> this.Wrap state
         /// Sets an app setting of the web app in the form "key" "value".
         [<CustomOperation "add_identity">]
