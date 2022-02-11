@@ -63,6 +63,7 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Service Plan | sku | Sets the sku of the service plan. |
 | Service Plan | worker_size | Sets the size of the service plan worker. |
 | Service Plan | number_of_workers | Sets the number of instances on the service plan. |
+| Service Plan | enable_zone_redundant | Enables ZoneRedundant on the service plan. |
 
 > **Farmer also comes with a dedicated Service Plan builder** that contains all of the above keywords that apply to a Service Plan.
 >

@@ -202,7 +202,8 @@ type WebAppConfig =
       AutomaticLoggingExtension : bool
       SiteExtensions : ExtensionName Set
       PrivateEndpoints: (LinkedResource * string option) Set
-      CustomDomain : DomainConfig }
+      CustomDomain : DomainConfig 
+      ZoneRedundant : bool option }
     member this.Name = this.CommonWebConfig.Name
     /// Gets this web app's Server Plan's full resource ID.
     member this.ServicePlanId = this.CommonWebConfig.ServicePlan.resourceId this.Name.ResourceName
@@ -467,6 +468,7 @@ type WebAppConfig =
                   WorkerCount = this.WorkerCount
                   MaximumElasticWorkerCount = this.MaximumElasticWorkerCount
                   OperatingSystem = this.CommonWebConfig.OperatingSystem
+                  ZoneRedundant = this.ZoneRedundant
                   Tags = this.Tags}
             | _ ->
                 ()
@@ -583,7 +585,8 @@ type WebAppBuilder() =
           AutomaticLoggingExtension = true
           SiteExtensions = Set.empty
           PrivateEndpoints = Set.empty
-          CustomDomain = NoDomain}
+          CustomDomain = NoDomain
+          ZoneRedundant = None}
     member _.Run(state:WebAppConfig) =
         if state.Name.ResourceName = ResourceName.Empty then raiseFarmer "No Web App name has been set."
         { state with
@@ -690,6 +693,9 @@ type WebAppBuilder() =
     member _.CustomDomain(state:WebAppConfig, domainConfig) = { state with CustomDomain = domainConfig }
     member _.CustomDomain(state:WebAppConfig, customDomain) = { state with CustomDomain = SecureDomain (customDomain,AppManagedCertificate) }
     member _.CustomDomain(state:WebAppConfig, (customDomain,thumbprint)) = { state with CustomDomain = SecureDomain (customDomain,CustomCertificate thumbprint) }
+    /// Enables the zone redundancy in service plan
+    [<CustomOperation "enable_zone_redundant">]
+    member this.ZoneRedundant(state:WebAppConfig) = {state with ZoneRedundant = Some true}
 
     interface IPrivateEndpoints<WebAppConfig> with member _.Add state endpoints = { state with PrivateEndpoints = state.PrivateEndpoints |> Set.union endpoints}
     interface ITaggable<WebAppConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }

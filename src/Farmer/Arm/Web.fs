@@ -29,6 +29,7 @@ type ServerFarm =
       WorkerCount : int
       MaximumElasticWorkerCount : int option
       OperatingSystem : OS
+      ZoneRedundant : bool option
       Tags: Map<string,string> }
     member this.IsDynamic =
         match this.Sku, this.WorkerSize with
@@ -106,7 +107,8 @@ type ServerFarm =
                          computeMode = if this.IsDynamic then "Dynamic" else null
                          perSiteScaling = if this.IsDynamic then Nullable() else Nullable false
                          reserved = this.Reserved
-                         maximumElasticWorkerCount = this.MaximumElasticWorkerCount |> Option.toNullable |}
+                         maximumElasticWorkerCount = this.MaximumElasticWorkerCount |> Option.toNullable
+                         zoneRedundant = this.ZoneRedundant |> Option.toNullable |}
                  kind = this.Kind |> Option.toObj
             |}
 

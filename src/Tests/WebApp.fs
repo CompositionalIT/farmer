@@ -716,4 +716,11 @@ let tests = testList "Web App Tests" [
         let extensions = wa |> getResources |> getResource<SiteExtension>
         Expect.isEmpty extensions "Should not be any extensions"
     }
+
+    test "Web App enables zoneRedundant in service plan" {
+        let resources = webApp { name "test"; enable_zone_redundant } |> getResources
+        let sf = resources |> getResource<Web.ServerFarm> |> List.head
+           
+        Expect.equal sf.ZoneRedundant (Some true) "ZoneRedundant should be enabled"
+    }
 ]
