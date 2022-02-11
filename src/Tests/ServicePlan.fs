@@ -9,11 +9,33 @@ open System
 let getResource<'T when 'T :> IArmResource> (data:IArmResource list) = data |> List.choose(function :? 'T as x -> Some x | _ -> None)
 let getResources (v:IBuilder) = v.BuildResources Location.WestEurope
 
-let tests = testList "Service Plan Tests"[
-    test "Enable zoneRedundant in service plan" {
-       let resources = webApp { name "test"; enable_zone_redundant } |> getResources
-       let sf = resources |> getResource<Web.ServerFarm> |> List.head
+let tests = testList "Service Plan Tests" [
+    test "Basic service plan does not have zone redundancy" {
+        let servicePlan = servicePlan { name "test" } 
+        let sf = servicePlan |> getResources |> getResource<Web.ServerFarm> |> List.head
+
+        let template = arm{ add_resource servicePlan}
+        let jobj = template.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
+
+        let zoneRedundant = 
+            jobj.SelectToken($"$..resources[?(@.type=='Microsoft.Web/serverfarms')].properties.zoneRedundant")
        
-       Expect.equal sf.ZoneRedundant (Some true) "ZoneRedundant should be enabled"
-   }
+        Expect.equal sf.ZoneRedundant None "ZoneRedundant should not be set"
+        Expect.isNull zoneRedundant "Template should not include zone redundancy information"
+    }
+
+    test "Enable zoneRedundant in service plan" {
+        let servicePlan = servicePlan { name "test"; enable_zone_redundant } 
+        let sf = servicePlan |> getResources |> getResource<Web.ServerFarm> |> List.head
+
+        let template = arm{ add_resource servicePlan}
+        let jobj = template.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
+
+        let zoneRedundant = 
+            jobj.SelectToken($"$..resources[?(@.type=='Microsoft.Web/serverfarms')].properties.zoneRedundant")
+       
+        Expect.equal sf.ZoneRedundant (Some true) "ZoneRedundant should be enabled"
+        Expect.isNotNull zoneRedundant "Template should include zone redundancy information"
+        Expect.equal (zoneRedundant.ToString().ToLower()) "true" "ZoneRedundant should be set to true"
+    }
 ]
