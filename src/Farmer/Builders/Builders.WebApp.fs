@@ -285,11 +285,9 @@ type WebAppConfig =
                     | Linux, Some _
                     | _ , None ->
                         ()
-
-                    match this.DockerPort with
-                    | Some port -> AppSettings.WebsitesPort port
-                    | None -> ()
-
+                        
+                    yield! this.DockerPort |> Option.mapList AppSettings.WebsitesPort
+                    
                     if this.DockerCi then "DOCKER_ENABLE_CI", "true"
                 ]
 
@@ -699,7 +697,7 @@ type WebAppBuilder() =
     member _.CustomDomain(state:WebAppConfig, (customDomain,thumbprint)) = { state with CustomDomain = SecureDomain (customDomain,CustomCertificate thumbprint) }
     /// Map specified port traffic from your docker container to port 80 for App Service
     [<CustomOperation "docker_port">]
-    member _.DockerPort(state: WebAppConfig, dockerPort:int) = { state with DockerPort = Some(dockerPort)}
+    member _.DockerPort(state: WebAppConfig, dockerPort:int) = { state with DockerPort = Some dockerPort }
     
     interface IPrivateEndpoints<WebAppConfig> with member _.Add state endpoints = { state with PrivateEndpoints = state.PrivateEndpoints |> Set.union endpoints}
     interface ITaggable<WebAppConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
