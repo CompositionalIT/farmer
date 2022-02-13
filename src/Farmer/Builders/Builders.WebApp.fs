@@ -163,12 +163,24 @@ type SlotBuilder() =
         
     /// Add Allowed ip for ip security restrictions
     [<CustomOperation "add_allowed_ip_restriction">] 
-    member this.AllowIp(state, name, ip) : SlotConfig = 
-        { state with IpSecurityRestrictions = IpSecurityRestriction.Create name ip Allow :: state.IpSecurityRestrictions }
+    member _.AllowIp(state, name, cidr:IPAddressCidr) : SlotConfig = 
+        { state with IpSecurityRestrictions = IpSecurityRestriction.Create name cidr Allow :: state.IpSecurityRestrictions }
+    member this.AllowIp(state, name, ip:Net.IPAddress) : SlotConfig = 
+        let cidr = { Address = ip; Prefix = 32 }
+        this.AllowIp(state, name, cidr)
+    member this.AllowIp(state, name, ip:string) : SlotConfig = 
+        let cidr = { Address = Net.IPAddress.Parse ip; Prefix = 32 }
+        this.AllowIp(state, name, cidr)
     /// Add Denied ip for ip security restrictions
     [<CustomOperation "add_denied_ip_restriction">] 
-    member this.DenyIp(state, name, ip) : SlotConfig = 
-        { state with IpSecurityRestrictions = IpSecurityRestriction.Create name ip Deny :: state.IpSecurityRestrictions }
+    member _.DenyIp(state, name, cidr:IPAddressCidr) : SlotConfig = 
+        { state with IpSecurityRestrictions = IpSecurityRestriction.Create name cidr Deny :: state.IpSecurityRestrictions }
+    member this.DenyIp(state, name, ip:Net.IPAddress) : SlotConfig = 
+        let cidr = { Address = ip; Prefix = 32 }
+        this.DenyIp(state, name, cidr)
+    member this.DenyIp(state, name, ip:string) : SlotConfig = 
+        let cidr = { Address = Net.IPAddress.Parse ip; Prefix = 32 }
+        this.DenyIp(state, name, cidr) 
     interface ITaggable<SlotConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     interface IDependable<SlotConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 

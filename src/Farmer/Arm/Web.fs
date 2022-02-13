@@ -277,12 +277,12 @@ type Site =
                                 match this.IpSecurityRestrictions with
                                 | [] -> null
                                 | restrictions ->
-                                restrictions
+                                    restrictions
                                     |> List.mapi (fun index restriction ->
-                                       {| ipAddress = $"%s{restriction.IpAddress.ToString()}/32"
-                                          name = restriction.Name
-                                          action = restriction.Action.ToString()
-                                          priority = index + 1 |}) |> box
+                                        {| ipAddress = IPAddressCidr.format restriction.IpAddressCidr
+                                           name = restriction.Name
+                                           action = restriction.Action.ToString()
+                                           priority = index + 1 |}) |> box
                            pythonVersion = this.PythonVersion |> Option.toObj
                            http20Enabled = this.HTTP20Enabled |> Option.toNullable
                            webSocketsEnabled = this.WebSocketsEnabled |> Option.toNullable

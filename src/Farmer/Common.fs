@@ -595,6 +595,79 @@ module Storage =
     [<RequireQualifiedAccess>]
     type StorageService = Blobs | Tables | Files | Queues
 
+/// A network represented by an IP address and CIDR prefix.
+type public IPAddressCidr =
+    { Address : System.Net.IPAddress
+      Prefix : int }
+
+/// Functions for IP networks and CIDR notation.
+module IPAddressCidr =
+    let parse (s:string) : IPAddressCidr =
+        match s.Split([|'/'|], System.StringSplitOptions.RemoveEmptyEntries) with
+        [| ip; prefix |] ->
+            { Address = System.Net.IPAddress.Parse (ip.Trim ())
+              Prefix = int prefix }
+        | _ -> raise (System.ArgumentOutOfRangeException "Malformed CIDR, expecting an IP and prefix separated by '/'")
+    let safeParse (s:string) : Result<IPAddressCidr, System.Exception> =
+        try parse s |> Ok
+        with ex -> Error ex
+    let format (cidr:IPAddressCidr) = $"{cidr.Address}/{cidr.Prefix}"
+    /// Gets uint32 representation of an IP address.
+    let private num (ip:System.Net.IPAddress) =
+        ip.GetAddressBytes() |> Array.rev |> fun bytes -> BitConverter.ToUInt32 (bytes, 0)
+    /// Gets IP address from uint32 representations
+    let private ofNum (num:uint32) =
+        num |> BitConverter.GetBytes |> Array.rev |> System.Net.IPAddress
+    let private ipRangeNums (cidr:IPAddressCidr) =
+        let ipNumber = cidr.Address |> num
+        let mask = 0xffffffffu <<< (32 - cidr.Prefix)
+        ipNumber &&& mask, ipNumber ||| (mask ^^^ 0xffffffffu)
+    /// Indicates if one CIDR block can fit entirely within another CIDR block
+    let contains (inner:IPAddressCidr) (outer:IPAddressCidr) =
+        // outer |> IPAddressCidr.contains inner
+        let innerStart, innerFinish = ipRangeNums inner
+        let outerStart, outerFinish = ipRangeNums outer
+        outerStart <= innerStart && outerFinish >= innerFinish
+    /// Calculates a range of IP addresses from an CIDR block.
+    let ipRange (cidr:IPAddressCidr) =
+        let first, last = ipRangeNums cidr
+        first |> ofNum, last |> ofNum
+    /// Sequence of IP addresses for a CIDR block.
+    let addresses (cidr:IPAddressCidr) =
+        let first, last = ipRangeNums cidr
+        seq { for i in first..last do ofNum i }
+    /// Carve a subnet out of an address space.
+    let carveAddressSpace (addressSpace:IPAddressCidr) (subnetSizes:int list) = [
+        let addressSpaceStart, addressSpaceEnd = addressSpace |> ipRangeNums
+        let mutable startAddress = addressSpaceStart |> ofNum
+        let mutable index = 0
+        for size in subnetSizes do
+                index <- index + 1
+                let cidr = { Address = startAddress; Prefix = size }
+                let first, last = cidr |> ipRangeNums
+                let overlapping = first < (startAddress |> num)
+                let last, cidr =
+                    if overlapping then
+                        let cidr = { Address = ofNum (last + 1u); Prefix = size }
+                        let _, last = cidr |> ipRangeNums
+                        last, cidr
+                    else
+                        last, cidr
+                if last <= addressSpaceEnd then
+                    startAddress <- (last + 1u) |> ofNum
+                    cidr
+                else
+                    raise (IndexOutOfRangeException $"Unable to create subnet {index} of /{size}")
+        ]
+
+    /// The first two addresses are the network address and gateway address
+    /// so not assignable.
+    let assignable (cidr:IPAddressCidr) =
+        if cidr.Prefix < 31 then // only has 2 addresses
+            cidr |> addresses |> Seq.skip 2
+        else
+            Seq.empty
+
 module WebApp =
     type WorkerSize = Small | Medium | Large | Serverless
     type Cors = AllOrigins | SpecificOrigins of origins : Uri list * allowCredentials : bool option
@@ -641,11 +714,11 @@ module WebApp =
         | Deny
     type IpSecurityRestriction =
         { Name: string 
-          IpAddress: System.Net.IPAddress
+          IpAddressCidr: IPAddressCidr
           Action: IpSecurityAction }
-        static member Create name ip action =
+        static member Create name cidr action =
             { Name = name
-              IpAddress = ip
+              IpAddressCidr = cidr
               Action = action }
     module Extensions =
         /// The Microsoft.AspNetCore.AzureAppServices logging extension.
@@ -1512,79 +1585,6 @@ module DataLake =
     | Commitment_500TB
     | Commitment_1PB
     | Commitment_5PB
-
-/// A network represented by an IP address and CIDR prefix.
-type public IPAddressCidr =
-    { Address : System.Net.IPAddress
-      Prefix : int }
-
-/// Functions for IP networks and CIDR notation.
-module IPAddressCidr =
-    let parse (s:string) : IPAddressCidr =
-        match s.Split([|'/'|], System.StringSplitOptions.RemoveEmptyEntries) with
-        [| ip; prefix |] ->
-            { Address = System.Net.IPAddress.Parse (ip.Trim ())
-              Prefix = int prefix }
-        | _ -> raise (System.ArgumentOutOfRangeException "Malformed CIDR, expecting an IP and prefix separated by '/'")
-    let safeParse (s:string) : Result<IPAddressCidr, System.Exception> =
-        try parse s |> Ok
-        with ex -> Error ex
-    let format (cidr:IPAddressCidr) = $"{cidr.Address}/{cidr.Prefix}"
-    /// Gets uint32 representation of an IP address.
-    let private num (ip:System.Net.IPAddress) =
-        ip.GetAddressBytes() |> Array.rev |> fun bytes -> BitConverter.ToUInt32 (bytes, 0)
-    /// Gets IP address from uint32 representations
-    let private ofNum (num:uint32) =
-        num |> BitConverter.GetBytes |> Array.rev |> System.Net.IPAddress
-    let private ipRangeNums (cidr:IPAddressCidr) =
-        let ipNumber = cidr.Address |> num
-        let mask = 0xffffffffu <<< (32 - cidr.Prefix)
-        ipNumber &&& mask, ipNumber ||| (mask ^^^ 0xffffffffu)
-    /// Indicates if one CIDR block can fit entirely within another CIDR block
-    let contains (inner:IPAddressCidr) (outer:IPAddressCidr) =
-        // outer |> IPAddressCidr.contains inner
-        let innerStart, innerFinish = ipRangeNums inner
-        let outerStart, outerFinish = ipRangeNums outer
-        outerStart <= innerStart && outerFinish >= innerFinish
-    /// Calculates a range of IP addresses from an CIDR block.
-    let ipRange (cidr:IPAddressCidr) =
-        let first, last = ipRangeNums cidr
-        first |> ofNum, last |> ofNum
-    /// Sequence of IP addresses for a CIDR block.
-    let addresses (cidr:IPAddressCidr) =
-        let first, last = ipRangeNums cidr
-        seq { for i in first..last do ofNum i }
-    /// Carve a subnet out of an address space.
-    let carveAddressSpace (addressSpace:IPAddressCidr) (subnetSizes:int list) = [
-        let addressSpaceStart, addressSpaceEnd = addressSpace |> ipRangeNums
-        let mutable startAddress = addressSpaceStart |> ofNum
-        let mutable index = 0
-        for size in subnetSizes do
-                index <- index + 1
-                let cidr = { Address = startAddress; Prefix = size }
-                let first, last = cidr |> ipRangeNums
-                let overlapping = first < (startAddress |> num)
-                let last, cidr =
-                    if overlapping then
-                        let cidr = { Address = ofNum (last + 1u); Prefix = size }
-                        let _, last = cidr |> ipRangeNums
-                        last, cidr
-                    else
-                        last, cidr
-                if last <= addressSpaceEnd then
-                    startAddress <- (last + 1u) |> ofNum
-                    cidr
-                else
-                    raise (IndexOutOfRangeException $"Unable to create subnet {index} of /{size}")
-        ]
-
-    /// The first two addresses are the network address and gateway address
-    /// so not assignable.
-    let assignable (cidr:IPAddressCidr) =
-        if cidr.Prefix < 31 then // only has 2 addresses
-            cidr |> addresses |> Seq.skip 2
-        else
-            Seq.empty
 
 module Network =
     type SubnetDelegationService = SubnetDelegationService of string

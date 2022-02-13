@@ -711,7 +711,7 @@ let tests = testList "Web App Tests" [
         Expect.equal hostnameBinding.Length 0 $"There should not be a hostname binding as a result of choosing the 'NoDomain' option"
     }
     test "Supports adding ip restriction for allowed ip" {
-        let ip = System.Net.IPAddress.Parse "1.2.3.4"
+        let ip = IPAddressCidr.parse "1.2.3.4/32"
         let resources = webApp { name "test"; add_allowed_ip_restriction "test-rule" ip } |> getResources
         let site = resources |> getResource<Web.Site> |> List.head
 
@@ -719,7 +719,7 @@ let tests = testList "Web App Tests" [
         Expect.equal site.IpSecurityRestrictions [ expectedRestriction ] "Should add allowed ip security restriction"
     }
     test "Supports adding ip restriction for denied ip" {
-        let ip = System.Net.IPAddress.Parse "1.2.3.4"
+        let ip = IPAddressCidr.parse "1.2.3.4/32"
         let resources = webApp { name "test"; add_denied_ip_restriction "test-rule" ip } |> getResources
         let site = resources |> getResource<Web.Site> |> List.head
 
@@ -727,8 +727,8 @@ let tests = testList "Web App Tests" [
         Expect.equal site.IpSecurityRestrictions [ expectedRestriction ] "Should add denied ip security restriction"
     }
     test "Supports adding different ip restrictions to site and slot" {
-        let siteIp = System.Net.IPAddress.Parse "1.2.3.4"
-        let slotIp = System.Net.IPAddress.Parse "4.3.2.1"
+        let siteIp = IPAddressCidr.parse "1.2.3.4/32"
+        let slotIp = IPAddressCidr.parse "4.3.2.1/32"
         let warmupSlot = appSlot { name "warm-up"; add_allowed_ip_restriction "slot-rule" slotIp }
         let resources = webApp { name "test"; add_slot warmupSlot; add_allowed_ip_restriction "site-rule" siteIp } |> getResources
         let slot =
