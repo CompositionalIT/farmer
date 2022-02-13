@@ -51,6 +51,7 @@ type Runtime =
     static member Java8WildFly14 = Java (Java8, WildFly14)
     static member Java8Tomcat90 = Java (Java8, JavaHost.Tomcat90)
     static member Java8Tomcat85 = Java (Java8, JavaHost.Tomcat85)
+    static member DotNet60 = DotNet "6.0"
     static member DotNet50 = DotNet "5.0"
     static member AspNet47 = AspNet "4.0"
     static member AspNet35 = AspNet "2.0"
@@ -61,6 +62,7 @@ type Runtime =
 module AppSettings =
     let WebsiteNodeDefaultVersion version = "WEBSITE_NODE_DEFAULT_VERSION", version
     let RunFromPackage = "WEBSITE_RUN_FROM_PACKAGE", "1"
+    let WebsitesPort (port:int) =  "WEBSITES_PORT", port.ToString()
 
 let publishingPassword (name:ResourceName) =
     let resourceId = config.resourceId (name, ResourceName "publishingCredentials")
@@ -90,7 +92,8 @@ type SlotConfig =
             ConnectionStrings = owner.ConnectionStrings |> Option.map (Map.merge (this.ConnectionStrings |> Map.toList))
             Identity = this.Identity + owner.Identity
             KeyVaultReferenceIdentity = this.KeyVaultReferenceIdentity |> Option.orElse owner.KeyVaultReferenceIdentity
-            IpSecurityRestrictions = this.IpSecurityRestrictions }
+            IpSecurityRestrictions = this.IpSecurityRestrictions
+            ZipDeployPath = None }
 
 type SlotBuilder() =
     member this.Yield _ =
@@ -212,8 +215,9 @@ type WebAppConfig =
       DockerAcrCredentials : {| RegistryName : string; Password : SecureParameter |} option
       AutomaticLoggingExtension : bool
       SiteExtensions : ExtensionName Set
-      PrivateEndpoints: (LinkedResource * string option) Set 
-      CustomDomain : DomainConfig }
+      PrivateEndpoints: (LinkedResource * string option) Set
+      CustomDomain : DomainConfig 
+      DockerPort: int option }
     member this.Name = this.CommonWebConfig.Name
     /// Gets this web app's Server Plan's full resource ID.
     member this.ServicePlanId = this.CommonWebConfig.ServicePlan.resourceId this.Name.ResourceName
@@ -294,7 +298,9 @@ type WebAppConfig =
                     | Linux, Some _
                     | _ , None ->
                         ()
-
+                        
+                    yield! this.DockerPort |> Option.mapList AppSettings.WebsitesPort
+                    
                     if this.DockerCi then "DOCKER_ENABLE_CI", "true"
                 ]
 
@@ -383,6 +389,7 @@ type WebAppConfig =
                         | None ->
                             match this.Runtime with
                             | DotNetCore version -> Some $"DOTNETCORE|{version}"
+                            | DotNet version -> Some $"DOTNETCORE|{version}"
                             | Node version -> Some $"NODE|{version}"
                             | Php version -> Some $"PHP|{version}"
                             | Ruby version -> Some $"RUBY|{version}"
@@ -394,7 +401,8 @@ type WebAppConfig =
                   NetFrameworkVersion =
                     match this.Runtime with
                     | AspNet version
-                    | DotNet ("5.0" as version) ->
+                    | DotNet ("5.0" as version)
+                    | DotNet ("6.0" as version) ->
                         Some $"v{version}"
                     | _ ->
                         None
@@ -502,31 +510,49 @@ type WebAppConfig =
                       SslState = SslDisabled } // Initially create non-secure host name binding, we link the certificate in a nested deployment below
                 let cert =
                     { Location = location
-                      SiteId = this.ResourceId
-                      ServicePlanId = this.ServicePlanId
+                      SiteId = Managed this.ResourceId
+                      ServicePlanId = Managed this.ServicePlanId
                       DomainName = customDomain }
                 hostNameBinding
-                cert
-                let resourceLocation = location
 
+                // Get the resource group which contains the app service plan
+                let aspRgName =
+                  match this.CommonWebConfig.ServicePlan with
+                  | LinkedResource linked -> linked.ResourceId.ResourceGroup
+                  | _ -> None
+                // Create a nested resource group deployment for the certificate - this isn't strictly necessary when the app & app service plan are in the same resource group
+                // however, when they are in different resource groups this is required to make the deployment succeed (there is an ARM bug which causes a Not Found / Conflict otherwise)
+                // To keep the code simple, I opted to always nest the certificate deployment. - TheRSP 2021-12-14
+                let certRg = resourceGroup {
+                    name (aspRgName |> Option.defaultValue "[resourceGroup().name]")
+                    add_resource
+                      { cert with
+                          SiteId = Unmanaged cert.SiteId.ResourceId
+                          ServicePlanId = Unmanaged cert.ServicePlanId.ResourceId }
+                    depends_on cert.SiteId
+                    depends_on (hostNameBindings.resourceId(cert.SiteId.Name, ResourceName cert.DomainName))
+                }
+                yield! ((certRg :> IBuilder).BuildResources location)
+
+                // Need to rename `location` binding to prevent conflict with `location` operator in resource group
+                let resourceLocation = location
                 // nested deployment to update hostname binding with specified SSL options
-                yield! (resourceGroup { 
+                yield! (resourceGroup {
                     name "[resourceGroup().name]"
                     location resourceLocation
                     add_resource { hostNameBinding with
                                     SiteId =
-                                        match hostNameBinding.SiteId with 
+                                        match hostNameBinding.SiteId with
                                         | Managed id -> Unmanaged id
-                                        | x -> x 
-                                    SslState = 
+                                        | x -> x
+                                    SslState =
                                         match certOptions with
-                                        | AppManagedCertificate -> SniBased cert.Thumbprint
+                                        | AppManagedCertificate -> SniBased (cert.GetThumbprintReference aspRgName)
                                         | CustomCertificate thumbprint -> SniBased thumbprint
                                   }
-                    depends_on [ Arm.Web.certificates.resourceId cert.ResourceName
-                                 hostNameBinding.ResourceId ]
+                    depends_on certRg
                 } :> IBuilder).BuildResources location
-            | InsecureDomain customDomain -> 
+            | InsecureDomain customDomain ->
                 { Location = location
                   SiteId =  Managed (Arm.Web.sites.resourceId this.Name.ResourceName)
                   DomainName = customDomain
@@ -576,7 +602,8 @@ type WebAppBuilder() =
           AutomaticLoggingExtension = true
           SiteExtensions = Set.empty
           PrivateEndpoints = Set.empty
-          CustomDomain = NoDomain}
+          CustomDomain = NoDomain 
+          DockerPort = None }
     member _.Run(state:WebAppConfig) =
         if state.Name.ResourceName = ResourceName.Empty then raiseFarmer "No Web App name has been set."
         { state with
@@ -585,8 +612,12 @@ type WebAppBuilder() =
                 // its important to only add this extension if we're not using Web App for Containers - if we are
                 // then this will generate an error during deployment:
                 // No route registered for '/api/siteextensions/Microsoft.AspNetCore.AzureAppServices.SiteExtension'
-                | { Runtime = Runtime.DotNetCore _; AutomaticLoggingExtension = true ; DockerImage = None } ->
-                    state.SiteExtensions.Add WebApp.Extensions.Logging
+                | { Runtime = DotNetCore _
+                    AutomaticLoggingExtension = true
+                    DockerImage = None
+                    CommonWebConfig = { OperatingSystem = Windows } }
+                    ->
+                    state.SiteExtensions.Add Extensions.Logging
                 | _ ->
                     state.SiteExtensions
             DockerImage =
@@ -679,7 +710,10 @@ type WebAppBuilder() =
     member _.CustomDomain(state:WebAppConfig, domainConfig) = { state with CustomDomain = domainConfig }
     member _.CustomDomain(state:WebAppConfig, customDomain) = { state with CustomDomain = SecureDomain (customDomain,AppManagedCertificate) }
     member _.CustomDomain(state:WebAppConfig, (customDomain,thumbprint)) = { state with CustomDomain = SecureDomain (customDomain,CustomCertificate thumbprint) }
-
+    /// Map specified port traffic from your docker container to port 80 for App Service
+    [<CustomOperation "docker_port">]
+    member _.DockerPort(state: WebAppConfig, dockerPort:int) = { state with DockerPort = Some dockerPort }
+    
     interface IPrivateEndpoints<WebAppConfig> with member _.Add state endpoints = { state with PrivateEndpoints = state.PrivateEndpoints |> Set.union endpoints}
     interface ITaggable<WebAppConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     interface IDependable<WebAppConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }

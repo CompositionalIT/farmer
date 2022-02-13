@@ -38,7 +38,7 @@ type Namespace =
                              | ManualInflate -> false)
                          |> Option.toNullable
                         maximumThroughputUnits = this.MaxThroughputUnits |> Option.toNullable |}
-            |} :> _
+            |}
 module Namespaces =
     let eventHubs = ResourceType ("Microsoft.EventHub/namespaces/eventhubs", "2017-04-01")
     let authorizationRules = ResourceType ("Microsoft.EventHub/namespaces/AuthorizationRules", "2017-04-01")
@@ -74,7 +74,7 @@ module Namespaces =
                             | None ->
                                 null
                         |}
-               |} :> _
+               |}
     module EventHubs =
         let authorizationRules = ResourceType ("Microsoft.EventHub/namespaces/eventhubs/AuthorizationRules", "2017-04-01")
         let consumerGroups = ResourceType ("Microsoft.EventHub/namespaces/eventhubs/consumergroups", "2017-04-01")
@@ -85,7 +85,7 @@ module Namespaces =
               Dependencies : ResourceId list }
             interface IArmResource with
                 member this.ResourceId = consumerGroups.resourceId (this.EventHub/this.ConsumerGroupName)
-                member this.JsonModel = consumerGroups.Create(this.EventHub/this.ConsumerGroupName, this.Location, this.Dependencies) :> _
+                member this.JsonModel = consumerGroups.Create(this.EventHub/this.ConsumerGroupName, this.Location, this.Dependencies)
 
         type AuthorizationRule =
             { Name : ResourceName
@@ -97,4 +97,4 @@ module Namespaces =
                 member this.JsonModel =
                     {| authorizationRules.Create(this.Name, this.Location, this.Dependencies) with
                         properties = {| rights = this.Rights |> Set.map string |> Set.toList |}
-                    |} :> _
+                    |}

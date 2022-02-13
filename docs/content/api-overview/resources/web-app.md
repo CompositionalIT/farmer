@@ -59,6 +59,7 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Web App | custom_domain | Adds custom domain to the app, containing an app service managed certificate |
 | Web App | add_allowed_ip_restriction | Adds an 'allow' rule for an ip |
 | Web App | add_denied_ip_restriction | Adds an 'deny' rule for an ip |
+| Web App | docker_port | Adds `WEBSITES_PORT` setting to map custom docker port to app service port 80 |
 | Service Plan | service_plan_name | Sets the name of the service plan. If not set, uses the name of the web app postfixed with "-plan". |
 | Service Plan | runtime_stack | Sets the runtime stack. |
 | Service Plan | operating_system | Sets the operating system. If Linux, App Insights configuration settings will be omitted as they are not supported by Azure App Service. |

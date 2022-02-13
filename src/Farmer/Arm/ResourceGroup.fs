@@ -53,15 +53,15 @@ type ResourceGroupDeployment =
                 | :? IParameters as p -> yield! p.SecureParameters
                 | _ -> ()
           ] |> List.distinct
-    member this.RequiredResourceGroups = 
-        let nestedRgs = 
-            this.Resources 
-            |> List.collect 
-                (function 
-                | :? ResourceGroupDeployment as rg -> rg.RequiredResourceGroups 
+    member this.RequiredResourceGroups =
+        let nestedRgs =
+            this.Resources
+            |> List.collect
+                (function
+                | :? ResourceGroupDeployment as rg -> rg.RequiredResourceGroups
                 | _ ->  [])
         List.distinct (this.TargetResourceGroup.Value :: nestedRgs)
-    member this.Template = 
+    member this.Template =
         { Parameters = this.Parameters
           Outputs = this.Outputs |> Map.toList
           Resources = this.Resources }
@@ -73,12 +73,12 @@ type ResourceGroupDeployment =
             this.Parameters |> List.where(fun p -> inputParameterKeys |> Set.contains p.Key |> not)
     interface IArmResource with
         member this.ResourceId = this.ResourceId
-        member this.JsonModel = 
+        member this.JsonModel =
             {| resourceGroupDeployment.Create(this.DeploymentName, this.Location, dependsOn = this.Dependencies, tags = this.Tags ) with
                 location = null // location is not supported for nested resource groups
                 resourceGroup = this.TargetResourceGroup.Value
                 subscriptionId = this.SubscriptionId |> Option.map string<System.Guid> |> Option.toObj
-                properties = 
+                properties =
                     {|  template = TemplateGeneration.processTemplate this.Template
                         parameters =
                             let parameters = Dictionary<string,obj>()
@@ -88,13 +88,13 @@ type ResourceGroupDeployment =
                             for inputParam in this.ParameterValues do
                                 parameters.[inputParam.Key] <- inputParam.ParamValue
                             parameters
-                        mode = 
+                        mode =
                           match this.Mode with
                           | Incremental -> "Incremental"
                           | Complete -> "Complete"
                         expressionEvaluationOptions = {| scope = "Inner" |}
                     |}
-            |} :> _
+            |}
 
 /// Resource Group as a subscription level resource - only for use in deployments targeting a subscription.
 type ResourceGroup =
@@ -106,5 +106,5 @@ type ResourceGroup =
         member this.JsonModel =
             {| resourceGroups.Create (this.Name, this.Location, this.Dependencies, this.Tags) with
                 properties = {| |}
-            |} :> _
+            |}
         member this.ResourceId = resourceGroups.resourceId this.Name

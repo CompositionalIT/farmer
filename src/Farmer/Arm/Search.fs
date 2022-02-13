@@ -35,4 +35,4 @@ type SearchService =
                  {| replicaCount = this.ReplicaCount
                     partitionCount = this.PartitionCount
                     hostingMode = this.HostingMode |}
-            |} :> _
+            |}

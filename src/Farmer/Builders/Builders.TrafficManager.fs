@@ -62,9 +62,6 @@ type EndpointBuilder() =
           Priority = None
           Dependencies = Set.empty }
 
-    member _.Run (state:EndpointConfig) =
-        state
-
     /// Sets the name of the Endpoint
     [<CustomOperation "name">]
     member _.Name(state:EndpointConfig, name) = { state with Name = name }

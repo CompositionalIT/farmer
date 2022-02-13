@@ -137,7 +137,7 @@ type StorageAccount =
                         | Some Tls12 -> "TLS1_2"
                         | None -> null
                     |}
-            |} :> _
+            |}
     interface IPostDeploy with
         member this.Run _ =
             this.StaticWebsite
@@ -234,7 +234,7 @@ type StorageService =
                             |> Option.map resolvePolicy
                             |> Option.defaultValue null
                     |}
-            |} :> _
+            |}
 
 module BlobServices =
     type Container =
@@ -251,7 +251,7 @@ module BlobServices =
                          | Private -> "None"
                          | Container -> "Container"
                          | Blob -> "Blob" |}
-                |} :> _
+                |}
 
 module FileShares =
     type FileShare =
@@ -263,7 +263,7 @@ module FileShares =
             member this.JsonModel =
                 {| fileShares.Create(this.StorageAccount/"default"/this.Name.ResourceName, dependsOn = [ storageAccounts.resourceId this.StorageAccount ]) with
                     properties = {| shareQuota = this.ShareQuota |> Option.defaultValue 5120<Gb> |}
-                |} :> _
+                |}
 
 module Tables =
     type Table =
@@ -272,7 +272,7 @@ module Tables =
         interface IArmResource with
             member this.ResourceId = tables.resourceId (this.StorageAccount/"default"/this.Name.ResourceName)
             member this.JsonModel =
-                tables.Create(this.StorageAccount/"default"/this.Name.ResourceName, dependsOn = [ storageAccounts.resourceId this.StorageAccount ]) :> _
+                tables.Create(this.StorageAccount/"default"/this.Name.ResourceName, dependsOn = [ storageAccounts.resourceId this.StorageAccount ])
 
 module Queues =
     type Queue =
@@ -281,7 +281,7 @@ module Queues =
         interface IArmResource with
             member this.ResourceId = queues.resourceId (this.StorageAccount/"default"/this.Name.ResourceName)
             member this.JsonModel =
-                queues.Create(this.StorageAccount/"default"/this.Name.ResourceName, dependsOn = [ storageAccounts.resourceId this.StorageAccount ]) :> _
+                queues.Create(this.StorageAccount/"default"/this.Name.ResourceName, dependsOn = [ storageAccounts.resourceId this.StorageAccount ])
 
 module ManagementPolicies =
     type ManagementPolicy =
@@ -324,4 +324,4 @@ module ManagementPolicies =
                              ]
                          |}
                      |}
-                |} :> _
+                |}

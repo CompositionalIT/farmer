@@ -64,7 +64,7 @@ module Namespaces =
                                         sqlFilter = null |}
                             |}
                         ]
-                    |} :> _
+                    |}
 
     type Queue =
         { Name : ResourceName
@@ -97,7 +97,7 @@ module Namespaces =
                         maxDeliveryCount = this.MaxDeliveryCount |> Option.toNullable
                         maxSizeInMegabytes = this.MaxSizeInMegabytes |> Option.toNullable
                         enablePartitioning = this.EnablePartitioning |> Option.toNullable |}
-                |} :> _
+                |}
     type QueueAuthorizationRule =
         { Name : ResourceName
           Location : Location
@@ -108,7 +108,7 @@ module Namespaces =
             member this.JsonModel =
                 {| queueAuthorizationRules.Create(this.Name, this.Location, this.Dependencies) with
                     properties = {| rights = this.Rights |> Set.map string |> Set.toList |}
-                |} :> _
+                |}
 
     type NamespaceAuthorizationRule =
         { Name : ResourceName
@@ -120,7 +120,7 @@ module Namespaces =
             member this.JsonModel =
                 {| namespaceAuthorizationRules.Create(this.Name, this.Location, this.Dependencies) with
                     properties = {| rights = this.Rights |> Set.map string |> Set.toList |}
-                |} :> _
+                |}
 
     type Topic =
         { Name : ResourceName
@@ -143,7 +143,7 @@ module Namespaces =
                            duplicateDetectionHistoryTimeWindow = tryGetIso this.DuplicateDetectionHistoryTimeWindow
                            enablePartitioning = this.EnablePartitioning |> Option.toNullable
                            maxSizeInMegabytes = this.MaxSizeInMegabytes |> Option.toNullable |}
-                |} :> _
+                |}
 
 type Namespace =
     { Name : ResourceName
@@ -166,4 +166,4 @@ type Namespace =
                      {| name = this.Sku.NameArmValue
                         tier = this.Sku.TierArmValue
                         capacity = this.Capacity |> Option.toNullable |}
-            |} :> _
+            |}

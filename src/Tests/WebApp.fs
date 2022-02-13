@@ -280,7 +280,7 @@ let tests = testList "Web App Tests" [
         let wa : Site = webApp { name "testsite" } |> getResourceAtIndex 3
         wa |> hasSetting "APPINSIGHTS_INSTRUMENTATIONKEY" "Missing Windows instrumentation key"
 
-        let wa : Site = webApp { name "testsite"; operating_system Linux } |> getResourceAtIndex 3
+        let wa : Site = webApp { name "testsite"; operating_system Linux } |> getResourceAtIndex 2
         wa |> hasSetting "APPINSIGHTS_INSTRUMENTATIONKEY" "Missing Linux instrumentation key"
 
         let wa : Site = webApp { name "testsite"; app_insights_off } |> getResourceAtIndex 2
@@ -306,10 +306,16 @@ let tests = testList "Web App Tests" [
         Expect.equal site.SiteConfig.Use32BitWorkerProcess (Nullable false) "Should not use 32 bit worker process"
     }
 
-    test "Supports .NET 5 EAP" {
-        let app = webApp { name "net5"; runtime_stack Runtime.DotNet50 }
+    test "Supports .NET 6" {
+        let app = webApp { name "net6"; runtime_stack Runtime.DotNet60 }
         let site:Site = app |> getResourceAtIndex 2
-        Expect.equal site.SiteConfig.NetFrameworkVersion "v5.0" "Wrong dotnet version"
+        Expect.equal site.SiteConfig.NetFrameworkVersion "v6.0" "Wrong dotnet version"
+    }
+
+    test "Supports .NET 5 on Linux" {
+        let app = webApp { name "net5"; operating_system Linux; runtime_stack Runtime.DotNet50 }
+        let site:Site = app |> getResourceAtIndex 2
+        Expect.equal site.SiteConfig.LinuxFxVersion "DOTNETCORE|5.0" "Wrong dotnet version"
     }
 
     test "WebApp supports adding slots" {
@@ -324,6 +330,21 @@ let tests = testList "Web App Tests" [
             |> List.filter (fun x -> x.ResourceType = Arm.Web.slots)
         // Default "production" slot is not included as it is created automatically in Azure
         Expect.hasLength slots 1 "Should only be 1 slot"
+    }
+
+    test "WebApp with slot and zip_deploy_slot does not have ZipDeployPath on slot" {
+        let slot = appSlot { name "warm-up" }
+        let site:WebAppConfig = webApp { name "slots"; add_slot slot; zip_deploy_slot "warm-up" "test.zip" }
+        Expect.isTrue (site.CommonWebConfig.Slots.ContainsKey "warm-up") "Config should contain slot"
+
+        let slots =
+            site
+            |> getResources
+            |> getResource<Arm.Web.Site>
+            |> List.filter (fun x -> x.ResourceType = Arm.Web.slots)
+        // Default "production" slot is not included as it is created automatically in Azure
+        Expect.hasLength slots 1 "Should only be 1 slot"
+        Expect.isNone slots.[0].ZipDeployPath "Zip Deploy Path should be set to None"
     }
 
     test "WebApp with slot that has system assigned identity adds identity to slot" {
@@ -544,6 +565,19 @@ let tests = testList "Web App Tests" [
         Expect.equal theSlot.KeyVaultReferenceIdentity (Some identity21.UserAssignedIdentity) "Slot should have correct keyvault identity"
     }
 
+    test "WebApp with slot can use AutoSwapSlotName" {
+        let warmupSlot = appSlot { name "warm-up"; autoSlotSwapName "production" }
+        let site:WebAppConfig = webApp { name "slots"; add_slot warmupSlot }
+        Expect.isTrue (site.CommonWebConfig.Slots.ContainsKey "warm-up") "Config should contain slot"
+
+        let slot: Site =
+            site
+            |> getResourceAtIndex 4
+
+        Expect.equal slot.Name "slots/warm-up" "Should be expected slot"
+        Expect.equal slot.SiteConfig.AutoSwapSlotName "production" "Should use provided auto swap slot name"
+    }
+
     test "Supports private endpoints" {
         let subnet = ResourceId.create(Network.subnets,ResourceName "subnet")
         let app = webApp { name "farmerWebApp"; add_private_endpoint (Managed subnet, "myWebApp-ep")}
@@ -593,9 +627,10 @@ let tests = testList "Web App Tests" [
         let thumbprint = ArmExpression.literal "1111583E8FABEF4C0BEF694CBC41C28FB81CD111"
         let resources = webApp { name webappName; custom_domain ("customDomain.io",thumbprint) } |> getResources
         let wa = resources |> getResource<Web.Site> |> List.head
+        let nested = resources |> getResource<ResourceGroup.ResourceGroupDeployment>
 
         //Testing certificate
-        let cert = resources |> getResource<Web.Certificate> |> List.head
+        let cert = nested.[0].Resources |> getResource<Web.Certificate> |> List.head
         let expectedDomainName = "customDomain.io"
         Expect.equal cert.DomainName expectedDomainName $"Certificate domain name should have {expectedDomainName}"
 
@@ -608,13 +643,13 @@ let tests = testList "Web App Tests" [
         Expect.equal hostnameBinding.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
 
         //Testing ResourceGroupDeployment
-        let resourceGroupDeployment = resources |> getResource<ResourceGroup.ResourceGroupDeployment> |> List.head
-        let innerResource = resourceGroupDeployment.Resources |> getResource<Web.HostNameBinding> |> List.head
+        let bindingDeployment = nested.[1]
+        let innerResource = bindingDeployment.Resources |> getResource<Web.HostNameBinding> |> List.head
         let innerExpectedSslState = SslState.SniBased thumbprint
-        Expect.stringStarts resourceGroupDeployment.DeploymentName.Value "[concat" "resourceGroupDeployment name should start as a valid ARM expression"
-        Expect.stringEnds resourceGroupDeployment.DeploymentName.Value ")]" "resourceGroupDeployment stage should end as a valid ARM expression"
-        Expect.equal resourceGroupDeployment.Resources.Length 1 "resourceGroupDeployment stage should only contain one resource"
-        Expect.equal resourceGroupDeployment.Dependencies.Count 2 "resourceGroupDeployment stage should only contain two dependencies"
+        Expect.stringStarts bindingDeployment.DeploymentName.Value "[concat" "resourceGroupDeployment name should start as a valid ARM expression"
+        Expect.stringEnds bindingDeployment.DeploymentName.Value ")]" "resourceGroupDeployment stage should end as a valid ARM expression"
+        Expect.equal bindingDeployment.Resources.Length 1 "resourceGroupDeployment stage should only contain one resource"
+        Expect.equal bindingDeployment.Dependencies.Count 1 "resourceGroupDeployment stage should only contain one dependencies"
         Expect.equal innerResource.SslState innerExpectedSslState $"hostnameBinding should have a {innerExpectedSslState} Ssl state inside the resourceGroupDeployment template"
     }
 
@@ -622,9 +657,10 @@ let tests = testList "Web App Tests" [
         let webappName = "test"
         let resources = webApp { name webappName; custom_domain "customDomain.io" } |> getResources
         let wa = resources |> getResource<Web.Site> |> List.head
+        let nested = resources |> getResource<ResourceGroup.ResourceGroupDeployment>
 
         //Testing certificate
-        let cert = resources |> getResource<Web.Certificate> |> List.head
+        let cert = nested.[0].Resources |> getResource<Web.Certificate> |> List.head
         let expectedDomainName = "customDomain.io"
         Expect.equal cert.DomainName expectedDomainName $"Certificate domain name should have {expectedDomainName}"
 
@@ -637,11 +673,11 @@ let tests = testList "Web App Tests" [
         Expect.equal hostnameBinding.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
 
         //Testing ResourceGroupDeployment
-        let resourceGroupDeployment = resources |> getResource<ResourceGroup.ResourceGroupDeployment> |> List.head
-        let innerResource = resourceGroupDeployment.Resources |> getResource<Web.HostNameBinding> |> List.head
+        let bindingDeployment = nested.[1]
+        let innerResource = bindingDeployment.Resources |> getResource<Web.HostNameBinding> |> List.head
         let innerExpectedSslState = SslState.SniBased cert.Thumbprint
-        Expect.equal resourceGroupDeployment.Resources.Length 1 "resourceGroupDeployment stage should only contain one resource"
-        Expect.equal resourceGroupDeployment.Dependencies.Count 2 "resourceGroupDeployment stage should only contain two dependencies"
+        Expect.equal bindingDeployment.Resources.Length 1 "resourceGroupDeployment stage should only contain one resource"
+        Expect.equal bindingDeployment.Dependencies.Count 1 "resourceGroupDeployment stage should only contain one dependencies"
         Expect.equal innerResource.SslState innerExpectedSslState $"hostnameBinding should have a {innerExpectedSslState} Ssl state inside the resourceGroupDeployment template"
     }
 
@@ -707,4 +743,28 @@ let tests = testList "Web App Tests" [
         Expect.equal slot.IpSecurityRestrictions [ expectedSlotRestriction ] "Slot should have correct allowed ip security restriction"
         Expect.equal site.IpSecurityRestrictions [ expectedSiteRestriction ] "Site should have correct allowed ip security restriction"
     }
+
+    test "Linux automatically turns off logging extension" {
+        let wa = webApp { name "siteX"; operating_system Linux }
+        let extensions = wa |> getResources |> getResource<SiteExtension>
+        Expect.isEmpty extensions "Should not be any extensions"
+    }
+
+    test "Supports docker ports with WEBSITES_PORT"{
+        let wa = webApp { name "testApp"; docker_port 8080; }
+        let port = Expect.wantSome wa.DockerPort "Docker port should be set"
+        Expect.equal port 8080 "Docker port should 8080"
+        
+        let site = wa |> getResources|> getResource<Web.Site> |> List.head
+
+        let settings = Expect.wantSome site.AppSettings "AppSettings should be set"
+        let (hasValue, value) = settings.TryGetValue("WEBSITES_PORT");
+      
+        Expect.isTrue hasValue "WEBSITES_PORT should be set"
+        Expect.equal value.Value "8080" "WEBSITES_PORT should be 8080"
+
+        let defaultWa = webApp { name "testApp"; }
+        Expect.isNone defaultWa.DockerPort "Docker port should not be set"
+    }
+
 ]

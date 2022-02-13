@@ -95,4 +95,4 @@ type DeploymentScript =
                         this.Timeout
                         |> Option.map Xml.XmlConvert.ToString
                         |> Option.toObj |}
-            |} :> _
+            |}

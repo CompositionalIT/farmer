@@ -15,7 +15,8 @@ type StorageAccount =
         ArmExpression.create(expr, storageAccount)
     /// Gets an ARM Expression connection string for any Storage Account.
     static member getConnectionString (storageAccountName:StorageAccountName, ?group) =
-        StorageAccount.getConnectionString (ResourceId.create (storageAccounts, storageAccountName.ResourceName, ?group = group))
+        let resourceId = ResourceId.create (storageAccounts, storageAccountName.ResourceName, ?group = group)
+        StorageAccount.getConnectionString(resourceId).WithOwner(resourceId)
 
 type StoragePolicy =
     { CoolBlobAfter : int<Days> option
@@ -57,7 +58,7 @@ type StorageAccountConfig =
       /// Tags to apply to the storage account
       Tags: Map<string,string> }
     /// Gets the ARM expression path to the key of this storage account.
-    member this.Key = StorageAccount.getConnectionString this.Name
+    member this.Key = StorageAccount.getConnectionString(this.Name)
     /// Gets the Primary endpoint for static website (if enabled)
     member this.WebsitePrimaryEndpoint =
         ArmExpression
