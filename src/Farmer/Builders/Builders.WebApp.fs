@@ -62,6 +62,7 @@ type Runtime =
 module AppSettings =
     let WebsiteNodeDefaultVersion version = "WEBSITE_NODE_DEFAULT_VERSION", version
     let RunFromPackage = "WEBSITE_RUN_FROM_PACKAGE", "1"
+    let WebsitesPort (port:int) =  "WEBSITES_PORT", port.ToString()
 
 let publishingPassword (name:ResourceName) =
     let resourceId = config.resourceId (name, ResourceName "publishingCredentials")
@@ -202,7 +203,8 @@ type WebAppConfig =
       AutomaticLoggingExtension : bool
       SiteExtensions : ExtensionName Set
       PrivateEndpoints: (LinkedResource * string option) Set
-      CustomDomain : DomainConfig }
+      CustomDomain : DomainConfig 
+      DockerPort: int option }
     member this.Name = this.CommonWebConfig.Name
     /// Gets this web app's Server Plan's full resource ID.
     member this.ServicePlanId = this.CommonWebConfig.ServicePlan.resourceId this.Name.ResourceName
@@ -283,7 +285,9 @@ type WebAppConfig =
                     | Linux, Some _
                     | _ , None ->
                         ()
-
+                        
+                    yield! this.DockerPort |> Option.mapList AppSettings.WebsitesPort
+                    
                     if this.DockerCi then "DOCKER_ENABLE_CI", "true"
                 ]
 
@@ -583,7 +587,8 @@ type WebAppBuilder() =
           AutomaticLoggingExtension = true
           SiteExtensions = Set.empty
           PrivateEndpoints = Set.empty
-          CustomDomain = NoDomain}
+          CustomDomain = NoDomain 
+          DockerPort = None }
     member _.Run(state:WebAppConfig) =
         if state.Name.ResourceName = ResourceName.Empty then raiseFarmer "No Web App name has been set."
         { state with
@@ -679,7 +684,10 @@ type WebAppBuilder() =
     member _.CustomDomain(state:WebAppConfig, domainConfig) = { state with CustomDomain = domainConfig }
     member _.CustomDomain(state:WebAppConfig, customDomain) = { state with CustomDomain = SecureDomain (customDomain,AppManagedCertificate) }
     member _.CustomDomain(state:WebAppConfig, (customDomain,thumbprint)) = { state with CustomDomain = SecureDomain (customDomain,CustomCertificate thumbprint) }
-
+    /// Map specified port traffic from your docker container to port 80 for App Service
+    [<CustomOperation "docker_port">]
+    member _.DockerPort(state: WebAppConfig, dockerPort:int) = { state with DockerPort = Some dockerPort }
+    
     interface IPrivateEndpoints<WebAppConfig> with member _.Add state endpoints = { state with PrivateEndpoints = state.PrivateEndpoints |> Set.union endpoints}
     interface ITaggable<WebAppConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     interface IDependable<WebAppConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
