@@ -164,7 +164,7 @@ type SlotBuilder() =
     /// Add Allowed ip for ip security restrictions
     [<CustomOperation "add_allowed_ip_restriction">] 
     member _.AllowIp(state, name, cidr:IPAddressCidr) : SlotConfig = 
-        { state with IpSecurityRestrictions = IpSecurityRestriction.Create name cidr Allow :: state.IpSecurityRestrictions }
+        { state with IpSecurityRestrictions = state.IpSecurityRestrictions @ [IpSecurityRestriction.Create name cidr Allow] }
     member this.AllowIp(state, name, ip:Net.IPAddress) : SlotConfig = 
         let cidr = { Address = ip; Prefix = 32 }
         this.AllowIp(state, name, cidr)
@@ -174,7 +174,7 @@ type SlotBuilder() =
     /// Add Denied ip for ip security restrictions
     [<CustomOperation "add_denied_ip_restriction">] 
     member _.DenyIp(state, name, cidr:IPAddressCidr) : SlotConfig = 
-        { state with IpSecurityRestrictions = IpSecurityRestriction.Create name cidr Deny :: state.IpSecurityRestrictions }
+        { state with IpSecurityRestrictions = state.IpSecurityRestrictions @ [IpSecurityRestriction.Create name cidr Deny] }
     member this.DenyIp(state, name, ip:Net.IPAddress) : SlotConfig = 
         let cidr = { Address = ip; Prefix = 32 }
         this.DenyIp(state, name, cidr)
