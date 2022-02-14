@@ -1,6 +1,7 @@
 Release Notes
 =============
 ## vNext
+* Functions: Make connection_string available for Azure Functions in addtion to WebApps.
 * WebApps/Functions: Don't turn on Logging Extension for Linux App Service.
 * WebApps/Functions: Fix .NET 5/6 on Linux deployments.
 
