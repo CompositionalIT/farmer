@@ -717,14 +717,6 @@ let tests = testList "Web App Tests" [
         Expect.isEmpty extensions "Should not be any extensions"
     }
 
-
-    test "Web App enables zoneRedundant in service plan" {
-        let resources = webApp { name "test"; enable_zone_redundant } |> getResources
-        let sf = resources |> getResource<Web.ServerFarm> |> List.head
-           
-        Expect.equal sf.ZoneRedundant (Some true) "ZoneRedundant should be enabled"
-    }
-
     test "Supports docker ports with WEBSITES_PORT"{
         let wa = webApp { name "testApp"; docker_port 8080; }
         let port = Expect.wantSome wa.DockerPort "Docker port should be set"
@@ -742,4 +734,10 @@ let tests = testList "Web App Tests" [
         Expect.isNone defaultWa.DockerPort "Docker port should not be set"
     }
 
+    test "Web App enables zoneRedundant in service plan" {
+        let resources = webApp { name "test"; zone_redundant Enabled } |> getResources
+        let sf = resources |> getResource<Web.ServerFarm> |> List.head
+
+        Expect.equal sf.ZoneRedundant (Some Enabled) "ZoneRedundant should be enabled"
+    }
 ]

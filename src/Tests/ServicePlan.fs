@@ -25,7 +25,7 @@ let tests = testList "Service Plan Tests" [
     }
 
     test "Enable zoneRedundant in service plan" {
-        let servicePlan = servicePlan { name "test"; enable_zone_redundant } 
+        let servicePlan = servicePlan { name "test"; zone_redundant Enabled } 
         let sf = servicePlan |> getResources |> getResource<Web.ServerFarm> |> List.head
 
         let template = arm{ add_resource servicePlan}
@@ -34,8 +34,23 @@ let tests = testList "Service Plan Tests" [
         let zoneRedundant = 
             jobj.SelectToken($"$..resources[?(@.type=='Microsoft.Web/serverfarms')].properties.zoneRedundant")
        
-        Expect.equal sf.ZoneRedundant (Some true) "ZoneRedundant should be enabled"
+        Expect.equal sf.ZoneRedundant (Some Enabled) "ZoneRedundant should be enabled"
         Expect.isNotNull zoneRedundant "Template should include zone redundancy information"
         Expect.equal (zoneRedundant.ToString().ToLower()) "true" "ZoneRedundant should be set to true"
+    }
+
+    test "Disable zoneRedundant in service plan" {
+        let servicePlan = servicePlan { name "test"; zone_redundant Disabled } 
+        let sf = servicePlan |> getResources |> getResource<Web.ServerFarm> |> List.head
+
+        let template = arm{ add_resource servicePlan}
+        let jobj = template.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
+
+        let zoneRedundant = 
+            jobj.SelectToken($"$..resources[?(@.type=='Microsoft.Web/serverfarms')].properties.zoneRedundant")
+       
+        Expect.equal sf.ZoneRedundant (Some Disabled) "ZoneRedundant should be disabled"
+        Expect.isNotNull zoneRedundant "Template should include zone redundancy information"
+        Expect.equal (zoneRedundant.ToString().ToLower()) "false" "ZoneRedundant should be set to false"
     }
 ]

@@ -12,7 +12,7 @@ type ServicePlanConfig =
       WorkerCount : int
       MaximumElasticWorkerCount : int option
       OperatingSystem : OS
-      ZoneRedundant : bool option
+      ZoneRedundant : FeatureFlag option
       Tags : Map<string,string> }
     interface IBuilder with
         member this.ResourceId = serverFarms.resourceId this.Name
@@ -59,8 +59,8 @@ type ServicePlanBuilder() =
     [<CustomOperation "serverless">]
     /// Configures this server farm to host serverless functions, not web apps.
     member _.Serverless(state:ServicePlanConfig) = { state with Sku = Dynamic; WorkerSize = Serverless }
-    [<CustomOperation "enable_zone_redundant">]
-    member _.ZoneRedundant(state:ServicePlanConfig) = {state with ZoneRedundant = Some true}
+    [<CustomOperation "zone_redundant">]
+    member _.ZoneRedundant(state:ServicePlanConfig, flag:FeatureFlag) = {state with ZoneRedundant = Some flag}
     interface ITaggable<ServicePlanConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
 let servicePlan = ServicePlanBuilder()

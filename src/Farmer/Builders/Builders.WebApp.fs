@@ -204,9 +204,8 @@ type WebAppConfig =
       SiteExtensions : ExtensionName Set
       PrivateEndpoints: (LinkedResource * string option) Set
       CustomDomain : DomainConfig 
-      ZoneRedundant : bool option 
-      DockerPort: int option }
-
+      DockerPort: int option
+      ZoneRedundant : FeatureFlag option }
     member this.Name = this.CommonWebConfig.Name
     /// Gets this web app's Server Plan's full resource ID.
     member this.ServicePlanId = this.CommonWebConfig.ServicePlan.resourceId this.Name.ResourceName
@@ -591,8 +590,8 @@ type WebAppBuilder() =
           SiteExtensions = Set.empty
           PrivateEndpoints = Set.empty
           CustomDomain = NoDomain
-          ZoneRedundant = None
-          DockerPort = None }
+          DockerPort = None
+          ZoneRedundant = None }
 
     member _.Run(state:WebAppConfig) =
         if state.Name.ResourceName = ResourceName.Empty then raiseFarmer "No Web App name has been set."
@@ -700,12 +699,12 @@ type WebAppBuilder() =
     member _.CustomDomain(state:WebAppConfig, domainConfig) = { state with CustomDomain = domainConfig }
     member _.CustomDomain(state:WebAppConfig, customDomain) = { state with CustomDomain = SecureDomain (customDomain,AppManagedCertificate) }
     member _.CustomDomain(state:WebAppConfig, (customDomain,thumbprint)) = { state with CustomDomain = SecureDomain (customDomain,CustomCertificate thumbprint) }
-    /// Enables the zone redundancy in service plan
-    [<CustomOperation "enable_zone_redundant">]
-    member this.ZoneRedundant(state:WebAppConfig) = {state with ZoneRedundant = Some true}
     /// Map specified port traffic from your docker container to port 80 for App Service
     [<CustomOperation "docker_port">]
     member _.DockerPort(state: WebAppConfig, dockerPort:int) = { state with DockerPort = Some dockerPort }
+    /// Enables the zone redundancy in service plan
+    [<CustomOperation "zone_redundant">]
+    member this.ZoneRedundant(state:WebAppConfig, flag:FeatureFlag) = {state with ZoneRedundant = Some flag}
 
     interface IPrivateEndpoints<WebAppConfig> with member _.Add state endpoints = { state with PrivateEndpoints = state.PrivateEndpoints |> Set.union endpoints}
     interface ITaggable<WebAppConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
