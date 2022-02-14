@@ -1,7 +1,10 @@
 Release Notes
 =============
 ## vNext
+* WebApp: Support custom port for docker container with `docker_port`
 * WebApps/Functions: Don't turn on Logging Extension for Linux App Service.
+
+## 1.6.26
 * WebApps/Functions: Fix .NET 5/6 on Linux deployments.
 * ServicePlan/WebApp: Support for enabling ZoneDedundant
 
