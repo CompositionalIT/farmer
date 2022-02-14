@@ -2,6 +2,7 @@ Release Notes
 =============
 ## vNext
 * WebApp: Support custom port for docker container with `docker_port`
+* WebApp/Functions: Add support for ip-restriction rules
 
 ## 1.6.26
 * WebApps/Functions: Don't turn on Logging Extension for Linux App Service.
@@ -26,7 +27,6 @@ Release Notes
 * Log Analytics: Add CustomerId configuration member to Log Analytics
 * Service Bus: Added additional overloads for topic.duplicate_detection and queue.duplicate_detection
 * WebApp: Fixed deployment name for nested template in app-managed certificate deployments
-* WebApp/Functions: Add support for ip-restriction rules
 
 ## 1.6.21
 * Alerts: Extend a list of possible criteria for time aggregations and operators
