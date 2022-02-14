@@ -20,6 +20,9 @@ Release Notes
 * WebApps: Allow multiple custom domains
 * WebApps: Support custom port for docker container with `docker_port`
 
+## 1.6.27
+* Deployment Scripts: Escape parameters passed to the az deployment command (breaking change). Any previously escaped parameters need to be unescaped before passing to the execute or whatIf functions.
+
 ## 1.6.26
 * WebApps/Functions: Fix .NET 5/6 on Linux deployments.
 
