@@ -3,6 +3,7 @@ Release Notes
 
 ## 1.6.29
 * CLI: include `--only-show-error` option when executing Azure CLI commands.
+* PostgreSQL: Added possibility to set vnet rules for PostgreSQL.
 
 ## 1.6.28
 * ServicePlan/WebApp: Support for enabling ZoneDedundant
