@@ -280,7 +280,7 @@ let tests = testList "Web App Tests" [
         let wa : Site = webApp { name "testsite" } |> getResourceAtIndex 3
         wa |> hasSetting "APPINSIGHTS_INSTRUMENTATIONKEY" "Missing Windows instrumentation key"
 
-        let wa : Site = webApp { name "testsite"; operating_system Linux } |> getResourceAtIndex 3
+        let wa : Site = webApp { name "testsite"; operating_system Linux } |> getResourceAtIndex 2
         wa |> hasSetting "APPINSIGHTS_INSTRUMENTATIONKEY" "Missing Linux instrumentation key"
 
         let wa : Site = webApp { name "testsite"; app_insights_off } |> getResourceAtIndex 2
@@ -751,4 +751,61 @@ let tests = testList "Web App Tests" [
         Expect.contains (secureBinding2.DependsOn |> Seq.map(ResourceId.Eval)) "[resourceId('Microsoft.Web/sites/hostNameBindings', 'test', 'secure1.io')]" "Second host name binding should depend on first"
         Expect.contains (secureBinding3.DependsOn |> Seq.map(ResourceId.Eval)) "[resourceId('Microsoft.Web/sites/hostNameBindings', 'test', 'secure2.io')]" "Third host name binding depends on second"
     }
+    test "Supports adding ip restriction for allowed ip" {
+        let ip = IPAddressCidr.parse "1.2.3.4/32"
+        let resources = webApp { name "test"; add_allowed_ip_restriction "test-rule" ip } |> getResources
+        let site = resources |> getResource<Web.Site> |> List.head
+
+        let expectedRestriction = IpSecurityRestriction.Create "test-rule" ip Allow
+        Expect.equal site.IpSecurityRestrictions [ expectedRestriction ] "Should add allowed ip security restriction"
+    }
+    test "Supports adding ip restriction for denied ip" {
+        let ip = IPAddressCidr.parse "1.2.3.4/32"
+        let resources = webApp { name "test"; add_denied_ip_restriction "test-rule" ip } |> getResources
+        let site = resources |> getResource<Web.Site> |> List.head
+
+        let expectedRestriction = IpSecurityRestriction.Create "test-rule" ip Deny
+        Expect.equal site.IpSecurityRestrictions [ expectedRestriction ] "Should add denied ip security restriction"
+    }
+    test "Supports adding different ip restrictions to site and slot" {
+        let siteIp = IPAddressCidr.parse "1.2.3.4/32"
+        let slotIp = IPAddressCidr.parse "4.3.2.1/32"
+        let warmupSlot = appSlot { name "warm-up"; add_allowed_ip_restriction "slot-rule" slotIp }
+        let resources = webApp { name "test"; add_slot warmupSlot; add_allowed_ip_restriction "site-rule" siteIp } |> getResources
+        let slot =
+            resources
+            |> getResource<Arm.Web.Site>
+            |> List.filter (fun x -> x.ResourceType = Arm.Web.slots)
+            |> List.head
+        let site = resources |> getResource<Web.Site> |> List.head
+
+        let expectedSlotRestriction = IpSecurityRestriction.Create "slot-rule" slotIp Allow
+        let expectedSiteRestriction = IpSecurityRestriction.Create "site-rule" siteIp Allow
+        Expect.equal slot.IpSecurityRestrictions [ expectedSlotRestriction ] "Slot should have correct allowed ip security restriction"
+        Expect.equal site.IpSecurityRestrictions [ expectedSiteRestriction ] "Site should have correct allowed ip security restriction"
+    }
+
+    test "Linux automatically turns off logging extension" {
+        let wa = webApp { name "siteX"; operating_system Linux }
+        let extensions = wa |> getResources |> getResource<SiteExtension>
+        Expect.isEmpty extensions "Should not be any extensions"
+    }
+
+    test "Supports docker ports with WEBSITES_PORT"{
+        let wa = webApp { name "testApp"; docker_port 8080; }
+        let port = Expect.wantSome wa.DockerPort "Docker port should be set"
+        Expect.equal port 8080 "Docker port should 8080"
+        
+        let site = wa |> getResources|> getResource<Web.Site> |> List.head
+
+        let settings = Expect.wantSome site.AppSettings "AppSettings should be set"
+        let (hasValue, value) = settings.TryGetValue("WEBSITES_PORT");
+      
+        Expect.isTrue hasValue "WEBSITES_PORT should be set"
+        Expect.equal value.Value "8080" "WEBSITES_PORT should be 8080"
+
+        let defaultWa = webApp { name "testApp"; }
+        Expect.isNone defaultWa.DockerPort "Docker port should not be set"
+    }
+
 ]

@@ -200,7 +200,7 @@ type FunctionsConfig =
                   Location = location
                   Cors = this.CommonWebConfig.Cors
                   Tags = this.Tags
-                  ConnectionStrings = Some Map.empty
+                  ConnectionStrings = Some this.CommonWebConfig.ConnectionStrings
                   AppSettings = Some functionsSettings
                   Identity = this.CommonWebConfig.Identity
                   KeyVaultReferenceIdentity = this.CommonWebConfig.KeyVaultReferenceIdentity
@@ -273,7 +273,8 @@ type FunctionsConfig =
                         Some sc
                     | _ -> None
                   WorkerProcess = this.CommonWebConfig.WorkerProcess
-                  HealthCheckPath = this.CommonWebConfig.HealthCheckPath }
+                  HealthCheckPath = this.CommonWebConfig.HealthCheckPath
+                  IpSecurityRestrictions = this.CommonWebConfig.IpSecurityRestrictions }
 
             match this.CommonWebConfig.ServicePlan with
             | DeployableResource this.Name.ResourceName resourceId ->
@@ -331,6 +332,7 @@ type FunctionsBuilder() =
             { Name = WebAppName.Empty
               AlwaysOn = false
               AppInsights = Some (derived (fun name -> components.resourceId (name-"ai")))
+              ConnectionStrings = Map.empty
               Cors = None
               FTPState = None
               HTTPSOnly = false
@@ -343,7 +345,8 @@ type FunctionsBuilder() =
               Slots = Map.empty
               WorkerProcess = None
               ZipDeployPath = None
-              HealthCheckPath = None }
+              HealthCheckPath = None 
+              IpSecurityRestrictions = [] }
           StorageAccount = derived (fun config ->
             let storage = config.Name.ResourceName.Map (sprintf "%sstorage") |> sanitiseStorage |> ResourceName
             storageAccounts.resourceId storage)

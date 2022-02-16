@@ -1,10 +1,15 @@
 Release Notes
 =============
+
 ## 1.6.27
+* Functions: Make connection_string available for Azure Functions in addition to WebApps.
+* WebApp: Support custom port for docker container with `docker_port`
+* WebApps/Functions: Add support for ip-restriction rules
+* WebApps/Functions: Don't turn on Logging Extension for Linux App Service.
 * WebApp: Allow multiple custom domains
 
 ## 1.6.26
-* WebApp/Functions: Fix .NET on Linux deployments
+* WebApps/Functions: Fix .NET 5/6 on Linux deployments.
 
 ## 1.6.25
 * CosmosDb: Add support for serverless capacity mode.
