@@ -81,7 +81,8 @@ type SlotConfig =
       Identity: ManagedIdentity
       KeyVaultReferenceIdentity: UserAssignedIdentity option
       Tags: Map<string,string>
-      Dependencies: ResourceId Set}
+      Dependencies: ResourceId Set
+      IpSecurityRestrictions: IpSecurityRestriction list }
     member this.ToSite (owner: Arm.Web.Site) =
         { owner with
             SiteType = SiteType.Slot (owner.Name/this.Name)
@@ -91,6 +92,7 @@ type SlotConfig =
             ConnectionStrings = owner.ConnectionStrings |> Option.map (Map.merge (this.ConnectionStrings |> Map.toList))
             Identity = this.Identity + owner.Identity
             KeyVaultReferenceIdentity = this.KeyVaultReferenceIdentity |> Option.orElse owner.KeyVaultReferenceIdentity
+            IpSecurityRestrictions = this.IpSecurityRestrictions
             ZipDeployPath = None }
 
 type SlotBuilder() =
@@ -102,7 +104,8 @@ type SlotBuilder() =
           Identity = ManagedIdentity.Empty
           KeyVaultReferenceIdentity =  None
           Tags = Map.empty
-          Dependencies = Set.empty}
+          Dependencies = Set.empty
+          IpSecurityRestrictions = [] }
 
     [<CustomOperation "name">]
     member this.Name (state,name) : SlotConfig = {state with Name = name}
@@ -157,6 +160,27 @@ type SlotBuilder() =
     member this.AddConnectionStrings(state, connectionStrings:string list) :SlotConfig =
         connectionStrings
         |> List.fold (fun state key -> this.AddConnectionString(state, key)) state
+        
+    /// Add Allowed ip for ip security restrictions
+    [<CustomOperation "add_allowed_ip_restriction">] 
+    member _.AllowIp(state, name, cidr:IPAddressCidr) : SlotConfig = 
+        { state with IpSecurityRestrictions = state.IpSecurityRestrictions @ [IpSecurityRestriction.Create name cidr Allow] }
+    member this.AllowIp(state, name, ip:Net.IPAddress) : SlotConfig = 
+        let cidr = { Address = ip; Prefix = 32 }
+        this.AllowIp(state, name, cidr)
+    member this.AllowIp(state, name, ip:string) : SlotConfig = 
+        let cidr = { Address = Net.IPAddress.Parse ip; Prefix = 32 }
+        this.AllowIp(state, name, cidr)
+    /// Add Denied ip for ip security restrictions
+    [<CustomOperation "add_denied_ip_restriction">] 
+    member _.DenyIp(state, name, cidr:IPAddressCidr) : SlotConfig = 
+        { state with IpSecurityRestrictions = state.IpSecurityRestrictions @ [IpSecurityRestriction.Create name cidr Deny] }
+    member this.DenyIp(state, name, ip:Net.IPAddress) : SlotConfig = 
+        let cidr = { Address = ip; Prefix = 32 }
+        this.DenyIp(state, name, cidr)
+    member this.DenyIp(state, name, ip:string) : SlotConfig = 
+        let cidr = { Address = Net.IPAddress.Parse ip; Prefix = 32 }
+        this.DenyIp(state, name, cidr) 
     interface ITaggable<SlotConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     interface IDependable<SlotConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
@@ -180,7 +204,8 @@ type CommonWebConfig =
       Slots : Map<string,SlotConfig>
       WorkerProcess : Bitness option
       ZipDeployPath : (string*ZipDeploy.ZipDeploySlot) option
-      HealthCheckPath: string option }
+      HealthCheckPath: string option
+      IpSecurityRestrictions: IpSecurityRestriction list }
 
 type WebAppConfig =
     { CommonWebConfig: CommonWebConfig
@@ -428,6 +453,7 @@ type WebAppConfig =
                   AutoSwapSlotName = None
                   ZipDeployPath = this.CommonWebConfig.ZipDeployPath |> Option.map (fun (path,slot) -> path, ZipDeploy.ZipDeployTarget.WebApp, slot )
                   HealthCheckPath = this.CommonWebConfig.HealthCheckPath
+                  IpSecurityRestrictions = this.CommonWebConfig.IpSecurityRestrictions
                 }
 
             match keyVault with
@@ -567,7 +593,8 @@ type WebAppBuilder() =
               Slots = Map.empty
               WorkerProcess = None
               ZipDeployPath = None
-              HealthCheckPath = None }
+              HealthCheckPath = None
+              IpSecurityRestrictions = [] }
           Sku = Sku.F1
           WorkerSize = Small
           WorkerCount = 1
@@ -907,3 +934,11 @@ module Extensions =
         [<CustomOperation "health_check_path">]
         /// Specifies the path Azure load balancers will ping to check for unhealthy instances.
         member this.HealthCheckPath(state:'T, healthCheckPath:string) = this.Map state (fun x -> {x with HealthCheckPath = Some(healthCheckPath)})
+        /// Add Allowed ip for ip security restrictions
+        [<CustomOperation "add_allowed_ip_restriction">] 
+        member this.AllowIp(state:'T, name, ip) = 
+            this.Map state (fun x -> { x with IpSecurityRestrictions = IpSecurityRestriction.Create name ip Allow :: x.IpSecurityRestrictions })
+        /// Add Denied ip for ip security restrictions
+        [<CustomOperation "add_denied_ip_restriction">] 
+        member this.DenyIp(state:'T, name, ip) = 
+            this.Map state (fun x -> { x with IpSecurityRestrictions = IpSecurityRestriction.Create name ip Deny :: x.IpSecurityRestrictions })
