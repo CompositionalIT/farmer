@@ -687,8 +687,6 @@ let tests = testList "Web App Tests" [
         let resources = webApp { name webappName; custom_domain (DomainConfig.InsecureDomain "customDomain.io") } |> getResources
         let wa = resources |> getResource<Web.Site> |> List.head
 
-        let exepectedSiteId = (Managed (Arm.Web.sites.resourceId wa.Name))
-
         //Testing HostnameBinding
         let hostnameBinding = resources |> getResource<Web.HostNameBinding> |> List.head
         let expectedSslState = SslState.SslDisabled
