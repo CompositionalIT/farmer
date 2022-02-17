@@ -14,7 +14,6 @@ Release Notes
 ## 1.6.26
 * WebApps/Functions: Fix .NET 5/6 on Linux deployments.
 
-
 ## 1.6.25
 * CosmosDb: Add support for serverless capacity mode.
 * WebApps/Functions: Fix autoSwapSlotName for app slots.
