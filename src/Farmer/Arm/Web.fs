@@ -200,7 +200,8 @@ type Site =
       Metadata : List<string * string>
       AutoSwapSlotName: string option
       ZipDeployPath : (string * ZipDeploy.ZipDeployTarget * ZipDeploy.ZipDeploySlot) option
-      HealthCheckPath : string option }
+      HealthCheckPath : string option
+      IpSecurityRestrictions : IpSecurityRestriction list }
     /// Shorthand for SiteType.ResourceType
     member this.ResourceType = this.SiteType.ResourceType
     /// Shorthand for SiteType.ResourceName
@@ -274,6 +275,16 @@ type Site =
                            javaContainer = this.JavaContainer |> Option.toObj
                            javaContainerVersion = this.JavaContainerVersion |> Option.toObj
                            phpVersion = this.PhpVersion |> Option.toObj
+                           ipSecurityRestrictions = 
+                                match this.IpSecurityRestrictions with
+                                | [] -> null
+                                | restrictions ->
+                                    restrictions
+                                    |> List.mapi (fun index restriction ->
+                                        {| ipAddress = IPAddressCidr.format restriction.IpAddressCidr
+                                           name = restriction.Name
+                                           action = restriction.Action.ToString()
+                                           priority = index + 1 |}) |> box
                            pythonVersion = this.PythonVersion |> Option.toObj
                            http20Enabled = this.HTTP20Enabled |> Option.toNullable
                            webSocketsEnabled = this.WebSocketsEnabled |> Option.toNullable
@@ -352,7 +363,8 @@ type HostNameBinding =
     { Location: Location
       SiteId: LinkedResource
       DomainName: string
-      SslState: SslState }
+      SslState: SslState
+      DependsOn: ResourceId Set }
         member this.SiteResourceId =
             match this.SiteId with
             | Managed id -> id.Name
@@ -362,7 +374,9 @@ type HostNameBinding =
         member this.Dependencies =
             [ match this.SiteId with
               | Managed resid -> resid
-              | _ -> () ]
+              | _ -> ()
+
+              yield! this.DependsOn ]
         member this.ResourceId =
             hostNameBindings.resourceId (this.SiteResourceId, ResourceName this.DomainName)
         interface IArmResource with
@@ -382,7 +396,7 @@ type Certificate =
       SiteId: LinkedResource
       ServicePlanId: LinkedResource
       DomainName: string }
-        member this.ResourceName = this.SiteId.Name.Map (sprintf "%s-cert")
+        member this.ResourceName = ResourceName this.DomainName
         member this.Thumbprint = this.GetThumbprintReference None
         member this.GetThumbprintReference certificateResourceGroup =
             ArmExpression.reference({certificates.resourceId this.ResourceName with ResourceGroup = certificateResourceGroup}).Map(sprintf "%s.Thumbprint")

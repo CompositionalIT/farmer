@@ -244,7 +244,11 @@ type CertificateOptions =
 type DomainConfig =
     | SecureDomain of domain:string * cert:CertificateOptions
     | InsecureDomain of domain:string
-    | NoDomain
+    member this.DomainName = 
+        match this with 
+        | SecureDomain (domainName,_)
+        | InsecureDomain (domainName) -> domainName
+
 
 [<AutoOpen>]
 module ResourceRef =
