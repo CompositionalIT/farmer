@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.6.28
+* ServicePlan/WebApp: Support for enabling ZoneDedundant
+
 ## 1.6.27
 * Functions: Make `connection_string` available for Azure Functions in addition to WebApps.
 * WebApps/Functions: Add support for ip-restriction rules
@@ -10,7 +13,6 @@ Release Notes
 
 ## 1.6.26
 * WebApps/Functions: Fix .NET 5/6 on Linux deployments.
-* ServicePlan/WebApp: Support for enabling ZoneDedundant
 
 ## 1.6.25
 * CosmosDb: Add support for serverless capacity mode.
