@@ -808,4 +808,10 @@ let tests = testList "Web App Tests" [
         Expect.isNone defaultWa.DockerPort "Docker port should not be set"
     }
 
+    test "Web App enables zoneRedundant in service plan" {
+        let resources = webApp { name "test"; zone_redundant Enabled } |> getResources
+        let sf = resources |> getResource<Web.ServerFarm> |> List.head
+
+        Expect.equal sf.ZoneRedundant (Some Enabled) "ZoneRedundant should be enabled"
+    }
 ]

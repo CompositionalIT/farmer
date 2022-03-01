@@ -10,6 +10,7 @@ Release Notes
 
 ## 1.6.26
 * WebApps/Functions: Fix .NET 5/6 on Linux deployments.
+* ServicePlan/WebApp: Support for enabling ZoneDedundant
 
 ## 1.6.25
 * CosmosDb: Add support for serverless capacity mode.
