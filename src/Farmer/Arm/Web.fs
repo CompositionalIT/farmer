@@ -29,6 +29,7 @@ type ServerFarm =
       WorkerCount : int
       MaximumElasticWorkerCount : int option
       OperatingSystem : OS
+      ZoneRedundant : FeatureFlag option
       Tags: Map<string,string> }
     member this.IsDynamic =
         match this.Sku, this.WorkerSize with
@@ -106,7 +107,8 @@ type ServerFarm =
                          computeMode = if this.IsDynamic then "Dynamic" else null
                          perSiteScaling = if this.IsDynamic then Nullable() else Nullable false
                          reserved = this.Reserved
-                         maximumElasticWorkerCount = this.MaximumElasticWorkerCount |> Option.toNullable |}
+                         maximumElasticWorkerCount = this.MaximumElasticWorkerCount |> Option.toNullable
+                         zoneRedundant = this.ZoneRedundant |> Option.map(fun f -> f.AsBoolean) |> Option.toNullable |}
                  kind = this.Kind |> Option.toObj
             |}
 
@@ -198,7 +200,8 @@ type Site =
       Metadata : List<string * string>
       AutoSwapSlotName: string option
       ZipDeployPath : (string * ZipDeploy.ZipDeployTarget * ZipDeploy.ZipDeploySlot) option
-      HealthCheckPath : string option }
+      HealthCheckPath : string option
+      IpSecurityRestrictions : IpSecurityRestriction list }
     /// Shorthand for SiteType.ResourceType
     member this.ResourceType = this.SiteType.ResourceType
     /// Shorthand for SiteType.ResourceName
@@ -272,6 +275,16 @@ type Site =
                            javaContainer = this.JavaContainer |> Option.toObj
                            javaContainerVersion = this.JavaContainerVersion |> Option.toObj
                            phpVersion = this.PhpVersion |> Option.toObj
+                           ipSecurityRestrictions = 
+                                match this.IpSecurityRestrictions with
+                                | [] -> null
+                                | restrictions ->
+                                    restrictions
+                                    |> List.mapi (fun index restriction ->
+                                        {| ipAddress = IPAddressCidr.format restriction.IpAddressCidr
+                                           name = restriction.Name
+                                           action = restriction.Action.ToString()
+                                           priority = index + 1 |}) |> box
                            pythonVersion = this.PythonVersion |> Option.toObj
                            http20Enabled = this.HTTP20Enabled |> Option.toNullable
                            webSocketsEnabled = this.WebSocketsEnabled |> Option.toNullable
