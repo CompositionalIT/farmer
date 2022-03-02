@@ -517,24 +517,16 @@ type WebAppConfig =
                     slot.ToSite site
             
             // Host Name Bindings must be deployed sequentially to avoid an error, as the site cannot be modified concurrently.
-            // To do so we add a dependency to the previous binding.
-            let mutable previousHostNameBinding = None
+            // To do so we add a dependency to the previous binding deployment.
+            let mutable previousHostNameBindingRg = None
             for customDomain in this.CustomDomains |> Map.toSeq |> Seq.map snd do
-                let dependsOn = 
-                    match previousHostNameBinding with 
-                    | Some previous -> Set.singleton previous
-                    | None -> Set.empty
-
                 let hostNameBinding =
                     { Location = location
                       SiteId =  Managed (Arm.Web.sites.resourceId this.Name.ResourceName)
                       DomainName = customDomain.DomainName
-                      SslState = SslDisabled // Initially create non-secure host name binding, we link the certificate in a nested deployment below
-                      DependsOn = dependsOn }
+                      SslState = SslDisabled } // Initially create non-secure host name binding, we link the certificate in a nested deployment below
 
                 hostNameBinding
-
-                previousHostNameBinding <- Some hostNameBinding.ResourceId
 
                 match customDomain with
                 | SecureDomain (customDomain, certOptions) ->
@@ -566,8 +558,10 @@ type WebAppConfig =
 
                     // Need to rename `location` binding to prevent conflict with `location` operator in resource group
                     let resourceLocation = location
+                    
                     // nested deployment to update hostname binding with specified SSL options
-                    yield! (resourceGroup { 
+                    let dependsOn = [ Some certRg.ResourceId ; previousHostNameBindingRg ] |> List.choose id
+                    let hostNameResourceGroup = resourceGroup { 
                         name "[resourceGroup().name]"
                         location resourceLocation
                         add_resource { hostNameBinding with
@@ -579,10 +573,13 @@ type WebAppConfig =
                                             match certOptions with
                                             | AppManagedCertificate -> SniBased (cert.GetThumbprintReference aspRgName)
                                             | CustomCertificate thumbprint -> SniBased thumbprint
-                                        DependsOn = Set.empty // Don't want the dependency in this nested template.
                                       }
-                        depends_on certRg
-                    } :> IBuilder).BuildResources location
+                        depends_on dependsOn
+                     }
+
+                    yield! ((hostNameResourceGroup :> IBuilder).BuildResources location)
+
+                    previousHostNameBindingRg <- Some hostNameResourceGroup.ResourceId 
                 | _ -> ()
 
             if this.CommonWebConfig.SlotSettingNames <> Set.empty then
