@@ -1,7 +1,18 @@
 Release Notes
 =============
+
+## 1.6.28
+* ServicePlan/WebApp: Support for enabling ZoneDedundant
+
+## 1.6.27
+* Functions: Make `connection_string` available for Azure Functions in addition to WebApps.
+* WebApps/Functions: Add support for ip-restriction rules
+* WebApps/Functions: Don't turn on Logging Extension for Linux App Service.
+* WebApps: Allow multiple custom domains
+* WebApps: Support custom port for docker container with `docker_port`
+
 ## 1.6.26
-* WebApp/Functions: Fix .NET on Linux deployments
+* WebApps/Functions: Fix .NET 5/6 on Linux deployments.
 
 ## 1.6.25
 * CosmosDb: Add support for serverless capacity mode.
