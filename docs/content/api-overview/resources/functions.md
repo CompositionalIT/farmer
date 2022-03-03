@@ -35,6 +35,8 @@ The Functions builder is used to create Azure Functions accounts. It abstracts t
 | setting | Sets an app setting of the web app in the form "key" "value". |
 | secret_setting | Sets a "secret" app setting of the function. You must supply the "key", whilst the value will be supplied as a secure parameter or an ARM expression. |
 | settings | Sets a list of app setting of the web app as tuples in the form of ("key", "value"). |
+| connection_string | Creates a connection string whose value is supplied as secret parameter, or as an ARM expression in the tupled form of ("key", expr). |
+| connection_strings | Creates a set of connection strings whose values will be supplied as secret parameters. |
 | depends_on | [Sets dependencies for the web app.](../../dependencies/) |
 | enable_cors | Enables CORS support for the app. Either specify AllOrigins or a list of valid URIs. |
 | enable_cors_credentials | Allows CORS requests with credentials. |
@@ -48,6 +50,8 @@ The Functions builder is used to create Azure Functions accounts. It abstracts t
 | slot_setting | Sets a deployment slot setting of the function in the form "key" "value". |
 | slot_settings | Sets a list of deployment slot setting of the function as tuples in the form of ("key", "value"). |
 | health_check_path | Sets the path to your functions health check endpoint, which Azure load balancers will ping to determine which instances are healthy.|
+| add_allowed_ip_restriction | Adds an 'allow' rule for an ip |
+| add_denied_ip_restriction | Adds an 'deny' rule for an ip |
 
 #### Post-deployment Builder Keywords
 The Functions builder contains special commands that are executed *after* the ARM deployment is completed.

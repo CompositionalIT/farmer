@@ -280,7 +280,7 @@ let tests = testList "Web App Tests" [
         let wa : Site = webApp { name "testsite" } |> getResourceAtIndex 3
         wa |> hasSetting "APPINSIGHTS_INSTRUMENTATIONKEY" "Missing Windows instrumentation key"
 
-        let wa : Site = webApp { name "testsite"; operating_system Linux } |> getResourceAtIndex 3
+        let wa : Site = webApp { name "testsite"; operating_system Linux } |> getResourceAtIndex 2
         wa |> hasSetting "APPINSIGHTS_INSTRUMENTATIONKEY" "Missing Linux instrumentation key"
 
         let wa : Site = webApp { name "testsite"; app_insights_off } |> getResourceAtIndex 2
@@ -720,8 +720,8 @@ let tests = testList "Web App Tests" [
 
         //Testing HostnameBinding
         let hostnameBindings = resources |> getResource<Web.HostNameBinding> 
-        let secureBinding = hostnameBindings |> List.filter (fun x->x.DomainName = "secure.io") |> List.head
-        let insecureBinding = hostnameBindings |> List.filter (fun x->x.DomainName = "insecure.io") |> List.head
+        let secureBinding = hostnameBindings |> List.filter (fun x -> x.DomainName = "secure.io") |> List.head
+        let insecureBinding = hostnameBindings |> List.filter (fun x -> x.DomainName = "insecure.io") |> List.head
         
         Expect.equal secureBinding.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
         Expect.equal insecureBinding.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
@@ -738,26 +738,71 @@ let tests = testList "Web App Tests" [
 
         let exepectedSiteId = (Managed (Arm.Web.sites.resourceId wa.Name))
 
-        //Testing HostnameBinding
+        // Testing HostnameBinding
         let hostnameBindings = resources |> getResource<Web.HostNameBinding> 
         let secureBinding1 = hostnameBindings |> List.filter(fun x -> x.DomainName = "secure1.io") |> List.head
         let secureBinding2 = hostnameBindings |> List.filter(fun x -> x.DomainName = "secure2.io") |> List.head
         let secureBinding3 = hostnameBindings |> List.filter(fun x -> x.DomainName = "secure3.io") |> List.head
-        let nestedResourceGroupHostNameUpdates = 
-            resources 
-            |> getResource<ResourceGroupDeployment> 
-            |> Seq.map(fun x -> getResource<Web.HostNameBinding>(x.Resources))
-            |> Seq.filter(fun x -> x.Length > 0)
 
-        Expect.all nestedResourceGroupHostNameUpdates (fun x -> x.Head.DependsOn.IsEmpty) "No dependencies expected on nested template"
         Expect.equal secureBinding1.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
         Expect.equal secureBinding2.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
         Expect.equal secureBinding3.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
-        Expect.isEmpty secureBinding1.DependsOn "First host name binding should have no dependency"
-        Expect.contains (secureBinding2.DependsOn |> Seq.map(ResourceId.Eval)) "[resourceId('Microsoft.Web/sites/hostNameBindings', 'test', 'secure1.io')]" "Second host name binding should depend on first"
-        Expect.contains (secureBinding3.DependsOn |> Seq.map(ResourceId.Eval)) "[resourceId('Microsoft.Web/sites/hostNameBindings', 'test', 'secure2.io')]" "Third host name binding depends on second"
+
+        // Testing dependencies.
+        let nestedHostNameResourceGroups = 
+            resources 
+            |> getResource<ResourceGroupDeployment> 
+            |> Seq.filter(fun x -> getResource<Web.HostNameBinding>(x.Resources) |> Seq.isEmpty |> not)
+            |> Seq.toList
+
+        let dependentHostNameResourceGroups = 
+            nestedHostNameResourceGroups
+            |> Seq.map(fun rg -> rg.Dependencies |> Seq.filter(fun dep -> nestedHostNameResourceGroups |> Seq.exists(fun x -> x.DeploymentName = dep.Name)))
+            |> Seq.map(fun deps -> deps |> Seq.map(fun dep -> dep.Name))
+            |> Seq.toList
+
+        Expect.hasLength nestedHostNameResourceGroups 3 "Should have three host name deploys"
+        Expect.isEmpty dependentHostNameResourceGroups[0] "First host name binding should not depend on another"
+        Expect.contains dependentHostNameResourceGroups[1] nestedHostNameResourceGroups[0].ResourceId.Name "Second host name binding should depend on first deploy"
+        Expect.contains dependentHostNameResourceGroups[2] nestedHostNameResourceGroups[1].ResourceId.Name "Third host name binding should depend on second deploy"
     }
-    
+
+    test "Supports adding ip restriction for allowed ip" {
+        let ip = IPAddressCidr.parse "1.2.3.4/32"
+        let resources = webApp { name "test"; add_allowed_ip_restriction "test-rule" ip } |> getResources
+        let site = resources |> getResource<Web.Site> |> List.head
+
+        let expectedRestriction = IpSecurityRestriction.Create "test-rule" ip Allow
+        Expect.equal site.IpSecurityRestrictions [ expectedRestriction ] "Should add allowed ip security restriction"
+    }
+
+    test "Supports adding ip restriction for denied ip" {
+        let ip = IPAddressCidr.parse "1.2.3.4/32"
+        let resources = webApp { name "test"; add_denied_ip_restriction "test-rule" ip } |> getResources
+        let site = resources |> getResource<Web.Site> |> List.head
+
+        let expectedRestriction = IpSecurityRestriction.Create "test-rule" ip Deny
+        Expect.equal site.IpSecurityRestrictions [ expectedRestriction ] "Should add denied ip security restriction"
+    }
+
+    test "Supports adding different ip restrictions to site and slot" {
+        let siteIp = IPAddressCidr.parse "1.2.3.4/32"
+        let slotIp = IPAddressCidr.parse "4.3.2.1/32"
+        let warmupSlot = appSlot { name "warm-up"; add_allowed_ip_restriction "slot-rule" slotIp }
+        let resources = webApp { name "test"; add_slot warmupSlot; add_allowed_ip_restriction "site-rule" siteIp } |> getResources
+        let slot =
+            resources
+            |> getResource<Arm.Web.Site>
+            |> List.filter (fun x -> x.ResourceType = Arm.Web.slots)
+            |> List.head
+        let site = resources |> getResource<Web.Site> |> List.head
+
+        let expectedSlotRestriction = IpSecurityRestriction.Create "slot-rule" slotIp Allow
+        let expectedSiteRestriction = IpSecurityRestriction.Create "site-rule" siteIp Allow
+        Expect.equal slot.IpSecurityRestrictions [ expectedSlotRestriction ] "Slot should have correct allowed ip security restriction"
+        Expect.equal site.IpSecurityRestrictions [ expectedSiteRestriction ] "Site should have correct allowed ip security restriction"
+    }
+
     test "Supports slot settings" {
         let webApp = webApp { name "test"; slot_settings [ "sticky_config", "sticky_config_value"; "another_sticky_config", "another_sticky_config_value" ]} 
 
@@ -815,5 +860,5 @@ let tests = testList "Web App Tests" [
           Expect.containsAll appSettingNames  [ "sticky_config" ] "Slot config name should be present in template"
           Expect.containsAll dependencies  [ $"[resourceId('Microsoft.Web/sites', '{webApp.Name.ResourceName.Value}')]"] "Slot config names resource should depend on web site"
 
-      }
+    }
 ]
