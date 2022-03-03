@@ -579,7 +579,7 @@ type WebAppConfig =
 
                     yield! ((hostNameResourceGroup :> IBuilder).BuildResources location)
 
-                    previousHostNameBindingRg <- Some hostNameResourceGroup.ResourceId 
+                    previousHostNameBindingRg <- Some hostNameResourceGroup.ResourceId
                 | _ -> ()
 
             if this.CommonWebConfig.SlotSettingNames <> Set.empty then
