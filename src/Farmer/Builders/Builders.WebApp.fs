@@ -649,6 +649,8 @@ type WebAppBuilder() =
                     CommonWebConfig = { OperatingSystem = Windows } }
                     ->
                     state.SiteExtensions.Add Extensions.Logging
+                | { AutomaticLoggingExtension = false } ->
+                    state.SiteExtensions.Remove WebApp.Extensions.Logging
                 | _ ->
                     state.SiteExtensions
             DockerImage =
