@@ -561,7 +561,7 @@ type WebAppConfig =
                     // Create a nested resource group deployment for the certificate - this isn't strictly necessary when the app & app service plan are in the same resource group
                     // however, when they are in different resource groups this is required to make the deployment succeed (there is an ARM bug which causes a Not Found / Conflict otherwise)
                     // To keep the code simple, I opted to always nest the certificate deployment. - TheRSP 2021-12-14
-                    let cerificateDeployment = resourceGroup { 
+                    let certificateDeployment = resourceGroup { 
                         name (aspRgName |> Option.defaultValue "[resourceGroup().name]")
                         add_resource 
                           { cert with
@@ -571,9 +571,8 @@ type WebAppConfig =
                         depends_on hostNameBindingDeployment.ResourceId
                     }
 
-                    yield! ((cerificateDeployment :> IBuilder).BuildResources location)
+                    yield! ((certificateDeployment :> IBuilder).BuildResources location)
 
-                    
                     // Deployment to update hostname binding with specified SSL options
                     let hostNameCertificateLinkingDeployment = resourceGroup { 
                         name "[resourceGroup().name]"
@@ -588,7 +587,7 @@ type WebAppConfig =
                                             | AppManagedCertificate -> SniBased (cert.GetThumbprintReference aspRgName)
                                             | CustomCertificate thumbprint -> SniBased thumbprint
                                       }
-                        depends_on cerificateDeployment.ResourceId
+                        depends_on certificateDeployment.ResourceId
                      }
 
                     yield! ((hostNameCertificateLinkingDeployment :> IBuilder).BuildResources location)
