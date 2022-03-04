@@ -516,9 +516,13 @@ type WebAppConfig =
                 for (_,slot) in this.CommonWebConfig.Slots |> Map.toSeq do
                     slot.ToSite site
             
+            
+            // Need to rename `location` binding to prevent conflict with `location` operator in resource group
+            let resourceLocation = location
+
             // Host Name Bindings must be deployed sequentially to avoid an error, as the site cannot be modified concurrently.
             // To do so we add a dependency to the previous binding deployment.
-            let mutable previousHostNameBindingRg = None
+            let mutable previousHostNameCertificateLinkingDeployment = None
             for customDomain in this.CustomDomains |> Map.toSeq |> Seq.map snd do
                 let hostNameBinding =
                     { Location = location
@@ -526,7 +530,19 @@ type WebAppConfig =
                       DomainName = customDomain.DomainName
                       SslState = SslDisabled } // Initially create non-secure host name binding, we link the certificate in a nested deployment below
 
-                hostNameBinding
+                let dependsOn : ResourceId list = 
+                  match previousHostNameCertificateLinkingDeployment with
+                  | Some previous -> [ previous ]
+                  | None -> []
+
+                let hostNameBindingDeployment = resourceGroup {
+                    name "[resourceGroup().name]"
+                    location resourceLocation
+                    add_resource hostNameBinding
+                    depends_on dependsOn
+                }
+
+                yield! ((hostNameBindingDeployment :> IBuilder).BuildResources location)
 
                 match customDomain with
                 | SecureDomain (customDomain, certOptions) ->
@@ -541,27 +557,25 @@ type WebAppConfig =
                       match this.CommonWebConfig.ServicePlan with
                       | LinkedResource linked -> linked.ResourceId.ResourceGroup
                       | _ -> None
+
                     // Create a nested resource group deployment for the certificate - this isn't strictly necessary when the app & app service plan are in the same resource group
                     // however, when they are in different resource groups this is required to make the deployment succeed (there is an ARM bug which causes a Not Found / Conflict otherwise)
                     // To keep the code simple, I opted to always nest the certificate deployment. - TheRSP 2021-12-14
-                    let certRg = resourceGroup { 
+                    let cerificateDeployment = resourceGroup { 
                         name (aspRgName |> Option.defaultValue "[resourceGroup().name]")
                         add_resource 
                           { cert with
                               SiteId = Unmanaged cert.SiteId.ResourceId
                               ServicePlanId = Unmanaged cert.ServicePlanId.ResourceId }
                         depends_on cert.SiteId
-                        depends_on hostNameBinding.ResourceId
+                        depends_on hostNameBindingDeployment.ResourceId
                     }
 
-                    yield! ((certRg :> IBuilder).BuildResources location)
+                    yield! ((cerificateDeployment :> IBuilder).BuildResources location)
 
-                    // Need to rename `location` binding to prevent conflict with `location` operator in resource group
-                    let resourceLocation = location
                     
-                    // nested deployment to update hostname binding with specified SSL options
-                    let dependsOn = [ Some certRg.ResourceId ; previousHostNameBindingRg ] |> List.choose id
-                    let hostNameResourceGroup = resourceGroup { 
+                    // Deployment to update hostname binding with specified SSL options
+                    let hostNameCertificateLinkingDeployment = resourceGroup { 
                         name "[resourceGroup().name]"
                         location resourceLocation
                         add_resource { hostNameBinding with
@@ -574,12 +588,12 @@ type WebAppConfig =
                                             | AppManagedCertificate -> SniBased (cert.GetThumbprintReference aspRgName)
                                             | CustomCertificate thumbprint -> SniBased thumbprint
                                       }
-                        depends_on dependsOn
+                        depends_on cerificateDeployment.ResourceId
                      }
 
-                    yield! ((hostNameResourceGroup :> IBuilder).BuildResources location)
+                    yield! ((hostNameCertificateLinkingDeployment :> IBuilder).BuildResources location)
 
-                    previousHostNameBindingRg <- Some hostNameResourceGroup.ResourceId
+                    previousHostNameCertificateLinkingDeployment <- Some hostNameCertificateLinkingDeployment.ResourceId
                 | _ -> ()
 
             if this.CommonWebConfig.SlotSettingNames <> Set.empty then

@@ -633,23 +633,23 @@ let tests = testList "Web App Tests" [
         let thumbprint = ArmExpression.literal "1111583E8FABEF4C0BEF694CBC41C28FB81CD111"
         let resources = webApp { name webappName; custom_domain ("customDomain.io",thumbprint) } |> getResources
         let wa = resources |> getResource<Web.Site> |> List.head
-        let nested = resources |> getResource<ResourceGroup.ResourceGroupDeployment>
-
-        //Testing certificate
-        let cert = nested.[0].Resources |> getResource<Web.Certificate> |> List.head
+        let nested = resources |> getResource<ResourceGroupDeployment>
         let expectedDomainName = "customDomain.io"
-        Expect.equal cert.DomainName expectedDomainName $"Certificate domain name should have {expectedDomainName}"
 
-        //Testing HostnameBinding
-        let hostnameBinding = resources |> getResource<Web.HostNameBinding> |> List.head
+        // Testing HostnameBinding
+        let hostnameBinding = nested.[0].Resources |> getResource<Web.HostNameBinding> |> List.head
         let expectedSslState = SslState.SslDisabled
         let exepectedSiteId = (Managed (Arm.Web.sites.resourceId wa.Name))
         Expect.equal hostnameBinding.DomainName expectedDomainName $"HostnameBinding domain name should have {expectedDomainName}"
         Expect.equal hostnameBinding.SslState expectedSslState $"HostnameBinding should have a {expectedSslState} Ssl state"
         Expect.equal hostnameBinding.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
 
-        //Testing ResourceGroupDeployment
-        let bindingDeployment = nested.[1]
+        // Testing certificate
+        let cert = nested.[1].Resources |> getResource<Web.Certificate> |> List.head
+        Expect.equal cert.DomainName expectedDomainName $"Certificate domain name should have {expectedDomainName}"
+
+        // Testing hostname/certificate link.
+        let bindingDeployment = nested.[2]
         let innerResource = bindingDeployment.Resources |> getResource<Web.HostNameBinding> |> List.head
         let innerExpectedSslState = SslState.SniBased thumbprint
         Expect.stringStarts bindingDeployment.DeploymentName.Value "[concat" "resourceGroupDeployment name should start as a valid ARM expression"
@@ -664,22 +664,22 @@ let tests = testList "Web App Tests" [
         let resources = webApp { name webappName; custom_domain "customDomain.io" } |> getResources
         let wa = resources |> getResource<Web.Site> |> List.head
         let nested = resources |> getResource<ResourceGroup.ResourceGroupDeployment>
-
-        //Testing certificate
-        let cert = nested.[0].Resources |> getResource<Web.Certificate> |> List.head
         let expectedDomainName = "customDomain.io"
-        Expect.equal cert.DomainName expectedDomainName $"Certificate domain name should have {expectedDomainName}"
-
-        //Testing HostnameBinding
-        let hostnameBinding = resources |> getResource<Web.HostNameBinding> |> List.head
+        
+        // Testing HostnameBinding
+        let hostnameBinding = nested.[0].Resources |> getResource<Web.HostNameBinding> |> List.head
         let expectedSslState = SslState.SslDisabled
         let exepectedSiteId = (Managed (Arm.Web.sites.resourceId wa.Name))
         Expect.equal hostnameBinding.DomainName expectedDomainName $"HostnameBinding domain name should have {expectedDomainName}"
         Expect.equal hostnameBinding.SslState expectedSslState $"HostnameBinding should have a {expectedSslState} Ssl state"
         Expect.equal hostnameBinding.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
+        
+        // Testing certificate
+        let cert = nested.[1].Resources |> getResource<Web.Certificate> |> List.head
+        Expect.equal cert.DomainName expectedDomainName $"Certificate domain name should have {expectedDomainName}"
 
-        //Testing ResourceGroupDeployment
-        let bindingDeployment = nested.[1]
+        // Testing hostname/certificate link.
+        let bindingDeployment = nested.[2]
         let innerResource = bindingDeployment.Resources |> getResource<Web.HostNameBinding> |> List.head
         let innerExpectedSslState = SslState.SniBased cert.Thumbprint
         Expect.equal bindingDeployment.Resources.Length 1 "resourceGroupDeployment stage should only contain one resource"
@@ -693,7 +693,12 @@ let tests = testList "Web App Tests" [
         let wa = resources |> getResource<Web.Site> |> List.head
 
         //Testing HostnameBinding
-        let hostnameBinding = resources |> getResource<Web.HostNameBinding> |> List.head
+        let hostnameBinding = 
+            resources 
+              |> getResource<ResourceGroupDeployment>
+              |> Seq.map(fun x -> getResource<Web.HostNameBinding>(x.Resources))
+              |> Seq.concat
+              |> Seq.head
         let expectedSslState = SslState.SslDisabled
         let exepectedSiteId = (Managed (Arm.Web.sites.resourceId wa.Name))
         let expectedDomainName = "customDomain.io"
@@ -701,9 +706,6 @@ let tests = testList "Web App Tests" [
         Expect.equal hostnameBinding.DomainName expectedDomainName $"HostnameBinding domain name should have {expectedDomainName}"
         Expect.equal hostnameBinding.SslState expectedSslState $"HostnameBinding should have a {expectedSslState} Ssl state"
         Expect.equal hostnameBinding.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
-
-        let nestedDeployments = resources |> getResource<ResourceGroupDeployment>
-        Expect.isEmpty nestedDeployments $"Only secured domains need nested deployments"
     }
 
     test "Supports multiple custom domains" {
@@ -719,15 +721,19 @@ let tests = testList "Web App Tests" [
         let exepectedSiteId = (Managed (Arm.Web.sites.resourceId wa.Name))
 
         //Testing HostnameBinding
-        let hostnameBindings = resources |> getResource<Web.HostNameBinding> 
-        let secureBinding = hostnameBindings |> List.filter (fun x -> x.DomainName = "secure.io") |> List.head
-        let insecureBinding = hostnameBindings |> List.filter (fun x -> x.DomainName = "insecure.io") |> List.head
+        let hostnameBindings = 
+            resources 
+              |> getResource<ResourceGroupDeployment>
+              |> Seq.map(fun x -> getResource<Web.HostNameBinding>(x.Resources))
+              |> Seq.concat
+        let secureBinding = hostnameBindings |> Seq.filter (fun x -> x.DomainName = "secure.io") |> Seq.head
+        let insecureBinding = hostnameBindings |> Seq.filter (fun x -> x.DomainName = "insecure.io") |> Seq.head
         
         Expect.equal secureBinding.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
         Expect.equal insecureBinding.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
     }
 
-    test "Assigns dependencies to host names when deploying multiple custom domains" {
+    test "Assigns dependencies to previous deployment when deploying multiple custom domains" {
         let webappName = "test"
         let resources = 
             webApp {
@@ -739,7 +745,13 @@ let tests = testList "Web App Tests" [
         let exepectedSiteId = (Managed (Arm.Web.sites.resourceId wa.Name))
 
         // Testing HostnameBinding
-        let hostnameBindings = resources |> getResource<Web.HostNameBinding> 
+        let hostnameBindings = 
+          resources 
+            |> getResource<ResourceGroupDeployment>
+            |> Seq.map(fun x -> getResource<Web.HostNameBinding>(x.Resources))
+            |> Seq.concat
+            |> Seq.toList
+
         let secureBinding1 = hostnameBindings |> List.filter(fun x -> x.DomainName = "secure1.io") |> List.head
         let secureBinding2 = hostnameBindings |> List.filter(fun x -> x.DomainName = "secure2.io") |> List.head
         let secureBinding3 = hostnameBindings |> List.filter(fun x -> x.DomainName = "secure3.io") |> List.head
@@ -749,22 +761,18 @@ let tests = testList "Web App Tests" [
         Expect.equal secureBinding3.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
 
         // Testing dependencies.
-        let nestedHostNameResourceGroups = 
-            resources 
-            |> getResource<ResourceGroupDeployment> 
-            |> Seq.filter(fun x -> getResource<Web.HostNameBinding>(x.Resources) |> Seq.isEmpty |> not)
-            |> Seq.toList
+        let deployments = resources |> getResource<ResourceGroupDeployment> |> Seq.toList
 
-        let dependentHostNameResourceGroups = 
-            nestedHostNameResourceGroups
-            |> Seq.map(fun rg -> rg.Dependencies |> Seq.filter(fun dep -> nestedHostNameResourceGroups |> Seq.exists(fun x -> x.DeploymentName = dep.Name)))
+        let dependencies =
+          deployments
+            |> Seq.map(fun rg -> rg.Dependencies |> Seq.filter(fun dep -> deployments |> Seq.exists(fun x -> x.DeploymentName = dep.Name)))
             |> Seq.map(fun deps -> deps |> Seq.map(fun dep -> dep.Name))
             |> Seq.toList
 
-        Expect.hasLength nestedHostNameResourceGroups 3 "Should have three host name deploys"
-        Expect.isEmpty dependentHostNameResourceGroups[0] "First host name binding should not depend on another"
-        Expect.contains dependentHostNameResourceGroups[1] nestedHostNameResourceGroups[0].ResourceId.Name "Second host name binding should depend on first deploy"
-        Expect.contains dependentHostNameResourceGroups[2] nestedHostNameResourceGroups[1].ResourceId.Name "Third host name binding should depend on second deploy"
+        Expect.hasLength deployments 9 "Should have three deploys per custom domain"
+        Expect.isEmpty dependencies[0] "First deploy should not depend on another"
+
+        seq { 1 .. 1 .. 8 } |> Seq.iter(fun x -> Expect.contains dependencies[x] deployments[x - 1].ResourceId.Name "Each subsequent deploy should depend on previous deploy")
     }
 
     test "Supports adding ip restriction for allowed ip" {
