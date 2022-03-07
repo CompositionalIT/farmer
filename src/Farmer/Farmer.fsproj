@@ -21,7 +21,8 @@
     <PackageTags>azure;resource-manager;template;dsl;fsharp;infrastructure-as-code</PackageTags>
     <PackageReleaseNotes>https://raw.githubusercontent.com/CompositionalIT/farmer/master/RELEASE_NOTES.md</PackageReleaseNotes>
     <PackageProjectUrl>https://compositionalit.github.io/farmer</PackageProjectUrl>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageReadmeFile>readme.md</PackageReadmeFile>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/CompositionalIT/farmer</RepositoryUrl>
@@ -48,6 +49,11 @@
       <Pack>true</Pack>
       <PackagePath>$(PackageIconUrl)</PackagePath>
     </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="../../LICENSE" Pack="true" PackagePath="" />
+    <None Include="../../readme.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
   <ItemGroup>
