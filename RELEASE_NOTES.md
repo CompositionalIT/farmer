@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.6.29
+* CLI: include `--only-show-error` option when executing Azure CLI commands.
+
 ## 1.6.28
 * ServicePlan/WebApp: Support for enabling ZoneDedundant
 
