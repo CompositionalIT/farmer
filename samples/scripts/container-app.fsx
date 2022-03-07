@@ -30,8 +30,8 @@ let env =
                     container {
                         name "queuereaderapp"
                         public_docker_image "mcr.microsoft.com/azuredocs/containerapps-queuereader" ""
-                        cpu_cores 1.0<VCores>
-                        memory 1.0<Gb>
+                        cpu_cores 0.25<VCores>
+                        memory 0.5<Gb>
                     }
                 ]
                 replicas 1 10
