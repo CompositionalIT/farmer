@@ -733,7 +733,7 @@ let tests = testList "Web App Tests" [
         Expect.equal insecureBinding.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
     }
 
-    test "Assigns dependencies to previous deployment when deploying multiple custom domains" {
+    test "Assigns correct dependencies when deploying multiple custom domains" {
         let webappName = "test"
         let resources = 
             webApp {
@@ -763,16 +763,23 @@ let tests = testList "Web App Tests" [
         // Testing dependencies.
         let deployments = resources |> getResource<ResourceGroupDeployment> |> Seq.toList
 
-        let dependencies =
+        let dependenciesOnOtherDeployments =
           deployments
             |> Seq.map(fun rg -> rg.Dependencies |> Seq.filter(fun dep -> deployments |> Seq.exists(fun x -> x.DeploymentName = dep.Name)))
             |> Seq.map(fun deps -> deps |> Seq.map(fun dep -> dep.Name))
             |> Seq.toList
 
+        let siteDependency =
+           deployments[0].Dependencies
+           |> Set.filter(fun x -> x.Type = wa.ResourceType)
+           |> Set.map(fun x -> x.Name)
+           |> Seq.head
+           
         Expect.hasLength deployments 9 "Should have three deploys per custom domain"
-        Expect.isEmpty dependencies[0] "First deploy should not depend on another"
+        Expect.isEmpty dependenciesOnOtherDeployments[0] "First deploy should not depend on another"
+        Expect.equal siteDependency.Value webappName "First deployment should have a dependency on the site"
 
-        seq { 1 .. 1 .. 8 } |> Seq.iter(fun x -> Expect.contains dependencies[x] deployments[x - 1].ResourceId.Name "Each subsequent deploy should depend on previous deploy")
+        seq { 1 .. 1 .. 8 } |> Seq.iter(fun x -> Expect.contains dependenciesOnOtherDeployments[x] deployments[x - 1].ResourceId.Name "Each subsequent deploy should depend on previous deploy")
     }
 
     test "Supports adding ip restriction for allowed ip" {
