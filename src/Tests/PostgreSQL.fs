@@ -56,6 +56,14 @@ type FirewallResource =
         properties: {| endIpAddress: string; startIpAddress: string |}
         location: string }
 
+type VnetResource =
+    {   name: string
+        apiVersion: string
+        ``type`` : string
+        dependsOn : string array
+        properties: {| virtualNetworkSubnetId: string |}
+        location: string }
+
 let runBuilder<'T> = toTypedTemplate<'T> Location.NorthEurope
 
 module Expect =
@@ -144,7 +152,7 @@ let tests = testList "PostgreSQL Database Service" [
             |> Serialization.ofJson<TypedArmTemplate<FirewallResource>>
             |> fun r -> r.Resources
             |> Seq.find(fun r -> r.name = "testdb/allow-azure-services")
-        let expectedFwRuleRes =
+        let expectedFwRuleRes : FirewallResource =
             { name = "testdb/allow-azure-services"
               ``type`` = "Microsoft.DBforPostgreSQL/servers/firewallrules"
               apiVersion = "2017-12-01"
@@ -152,6 +160,81 @@ let tests = testList "PostgreSQL Database Service" [
               location = "northeurope"
               properties = {| startIpAddress = "0.0.0.0"; endIpAddress = "0.0.0.0" |} }
         Expect.equal actual expectedFwRuleRes "Firewall is incorrect"
+    }
+
+    test "Vnet rule are correctly set" {
+        let subscriptionId = "sid-subid"
+        let resourceGroup = "rg-abc"
+        let vnetName = "vnetid"
+        let networkResourceId = $"/subscriptions/%s{subscriptionId}/resourceGroups/%s{resourceGroup}/providers/Microsoft.Network/virtualNetworks/%s{vnetName}/subnets/default"
+        let vnetRuleName = "vnet-rule-name"
+        let actual = postgreSQL {
+            name "testdb"
+            admin_username "myadminuser"
+            add_vnet_rule vnetRuleName networkResourceId
+        }
+        let actual =
+            actual
+            |> toTemplate Location.NorthEurope
+            |> Writer.toJson
+            |> Serialization.ofJson<TypedArmTemplate<VnetResource>>
+            |> fun r -> r.Resources
+            |> Seq.find(fun r -> r.name = $"testdb/%s{vnetRuleName}")
+        let expectedVnetRuleResult : VnetResource =
+            { name = $"testdb/%s{vnetRuleName}"
+              ``type`` = "Microsoft.DBforPostgreSQL/servers/virtualNetworkRules"
+              apiVersion = "2017-12-01"
+              dependsOn = [| "[resourceId('Microsoft.DBforPostgreSQL/servers', 'testdb')]" |]
+              location = "northeurope"
+              properties = {| virtualNetworkSubnetId = networkResourceId |} }
+        Expect.equal actual expectedVnetRuleResult "Vnet is incorrect"
+    }
+
+    test "Vnet rules are correctly set" {
+        let subscriptionId = "sid-subid"
+        let resourceGroup = "rg-abc"
+
+        let vnetName1 = "vnetid1"
+        let networkResourceId1 = $"/subscriptions/%s{subscriptionId}/resourceGroups/%s{resourceGroup}/providers/Microsoft.Network/virtualNetworks/%s{vnetName1}/subnets/default"
+        let vnetRuleName1 = "vnet-rule-name1"
+
+        let vnetName2 = "vnetid2"
+        let networkResourceId2 = $"/subscriptions/%s{subscriptionId}/resourceGroups/%s{resourceGroup}/providers/Microsoft.Network/virtualNetworks/%s{vnetName2}/subnets/default"
+        let vnetRuleName2 = "vnet-rule-name2"
+
+        let actual = postgreSQL {
+            name "testdb"
+            admin_username "myadminuser"
+            add_vnet_rules [vnetRuleName1, networkResourceId1; vnetRuleName2, networkResourceId2]
+        }
+        let actual =
+            actual
+            |> toTemplate Location.NorthEurope
+            |> Writer.toJson
+            |> Serialization.ofJson<TypedArmTemplate<VnetResource>>
+            |> fun r -> r.Resources
+        let actual1 =
+            actual
+            |> Seq.find(fun r -> r.name = $"testdb/%s{vnetRuleName1}")
+        let actual2 =
+            actual
+            |> Seq.find(fun r -> r.name = $"testdb/%s{vnetRuleName2}")
+        let expectedVnetRuleResult1 : VnetResource =
+            { name = $"testdb/%s{vnetRuleName1}"
+              ``type`` = "Microsoft.DBforPostgreSQL/servers/virtualNetworkRules"
+              apiVersion = "2017-12-01"
+              dependsOn = [| "[resourceId('Microsoft.DBforPostgreSQL/servers', 'testdb')]" |]
+              location = "northeurope"
+              properties = {| virtualNetworkSubnetId = networkResourceId1 |} }
+        let expectedVnetRuleResult2 : VnetResource =
+            { name = $"testdb/%s{vnetRuleName2}"
+              ``type`` = "Microsoft.DBforPostgreSQL/servers/virtualNetworkRules"
+              apiVersion = "2017-12-01"
+              dependsOn = [| "[resourceId('Microsoft.DBforPostgreSQL/servers', 'testdb')]" |]
+              location = "northeurope"
+              properties = {| virtualNetworkSubnetId = networkResourceId2 |} }
+        Expect.equal actual1 expectedVnetRuleResult1 "Vnet is incorrect"
+        Expect.equal actual2 expectedVnetRuleResult2 "Vnet is incorrect"
     }
 
     test "Server name must be given" {
