@@ -3,6 +3,7 @@ module rec Farmer.Builders.WebApp
 
 open Farmer
 open Farmer.Arm
+open Farmer.Builders
 open Farmer.WebApp
 open Farmer.Arm.KeyVault.Vaults
 open Sites
@@ -205,7 +206,9 @@ type CommonWebConfig =
       WorkerProcess : Bitness option
       ZipDeployPath : (string*ZipDeploy.ZipDeploySlot) option
       HealthCheckPath: string option
-      IpSecurityRestrictions: IpSecurityRestriction list }
+      IpSecurityRestrictions: IpSecurityRestriction list 
+      RouteViaSubnet : SubnetReference option
+      PrivateEndpoints: (SubnetReference * string option) Set }
 
 type WebAppConfig =
     { CommonWebConfig: CommonWebConfig
@@ -227,7 +230,6 @@ type WebAppConfig =
       DockerAcrCredentials : {| RegistryName : string; Password : SecureParameter |} option
       AutomaticLoggingExtension : bool
       SiteExtensions : ExtensionName Set
-      PrivateEndpoints: (LinkedResource * string option) Set
       CustomDomain : DomainConfig 
       DockerPort: int option }
     member this.Name = this.CommonWebConfig.Name
@@ -454,7 +456,7 @@ type WebAppConfig =
                   ZipDeployPath = this.CommonWebConfig.ZipDeployPath |> Option.map (fun (path,slot) -> path, ZipDeploy.ZipDeployTarget.WebApp, slot )
                   HealthCheckPath = this.CommonWebConfig.HealthCheckPath
                   IpSecurityRestrictions = this.CommonWebConfig.IpSecurityRestrictions
-                }
+                  LinkToSubnet = this.CommonWebConfig.RouteViaSubnet }
 
             match keyVault with
             | Some keyVault ->
@@ -571,7 +573,13 @@ type WebAppConfig =
                   SslState = SslDisabled }
             | NoDomain -> ()
 
-            yield! (PrivateEndpoint.create location this.ResourceId ["sites"] this.PrivateEndpoints)
+            match this.CommonWebConfig.RouteViaSubnet with
+            | None -> ()
+            | Some subnetRef ->
+                { Site = site
+                  Subnet = subnetRef.ResourceId
+                  Dependencies = subnetRef.Dependency |> Option.toList }
+            yield! (PrivateEndpoint.create location this.ResourceId ["sites"] this.CommonWebConfig.PrivateEndpoints)
         ]
 
 type WebAppBuilder() =
@@ -594,7 +602,9 @@ type WebAppBuilder() =
               WorkerProcess = None
               ZipDeployPath = None
               HealthCheckPath = None
-              IpSecurityRestrictions = [] }
+              IpSecurityRestrictions = []
+              RouteViaSubnet = None 
+              PrivateEndpoints = Set.empty }
           Sku = Sku.F1
           WorkerSize = Small
           WorkerCount = 1
@@ -613,7 +623,6 @@ type WebAppBuilder() =
           DockerAcrCredentials = None
           AutomaticLoggingExtension = true
           SiteExtensions = Set.empty
-          PrivateEndpoints = Set.empty
           CustomDomain = NoDomain 
           DockerPort = None }
     member _.Run(state:WebAppConfig) =
@@ -715,7 +724,7 @@ type WebAppBuilder() =
     [<CustomOperation "docker_port">]
     member _.DockerPort(state: WebAppConfig, dockerPort:int) = { state with DockerPort = Some dockerPort }
     
-    interface IPrivateEndpoints<WebAppConfig> with member _.Add state endpoints = { state with PrivateEndpoints = state.PrivateEndpoints |> Set.union endpoints}
+    interface IPrivateEndpoints<WebAppConfig> with member _.Add state endpoints = {state with CommonWebConfig = { state.CommonWebConfig with PrivateEndpoints =  state.CommonWebConfig.PrivateEndpoints |> Set.union endpoints}}
     interface ITaggable<WebAppConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     interface IDependable<WebAppConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
     interface IServicePlanApp<WebAppConfig> with
@@ -732,7 +741,7 @@ type EndpointBuilder with
 
 /// An interface for shared capabilities between builders that work with Service Plan-style apps.
 /// In other words, Web Apps or Functions.
-type IServicePlanApp<'T> =
+type IServicePlanApp<'T> = 
     abstract member Get : 'T -> CommonWebConfig
     abstract member Wrap : 'T -> CommonWebConfig -> 'T
 
@@ -942,3 +951,17 @@ module Extensions =
         [<CustomOperation "add_denied_ip_restriction">] 
         member this.DenyIp(state:'T, name, ip) = 
             this.Map state (fun x -> { x with IpSecurityRestrictions = IpSecurityRestriction.Create name ip Deny :: x.IpSecurityRestrictions })
+        /// Integrate this app with a virtual network subnet
+        [<CustomOperation "route_via_subnet">]
+        member this.RouteViaSubnet(state:'T, subnet:SubnetReference option) = 
+            match subnet with
+            | Some subnetId ->
+                if subnetId.ResourceId.Type.Type <> Arm.Network.subnets.Type 
+                    then raiseFarmer $"given resource was not of type '{Arm.Network.subnets.Type}'."
+            | None -> ()
+            this.Map state (fun x -> {x with RouteViaSubnet = subnet})
+        member this.RouteViaSubnet(state:'T, subnetRef) = this.RouteViaSubnet (state, Some subnetRef)
+        member this.RouteViaSubnet(state:'T, subnetId:LinkedResource) = this.RouteViaSubnet (state, SubnetReference.create subnetId)
+        member this.RouteViaSubnet(state:'T, subnet:SubnetConfig) = this.RouteViaSubnet (state, SubnetReference.create subnet)
+        member this.RouteViaSubnet(state:'T, (vnet:VirtualNetworkConfig, subnetName)) = this.RouteViaSubnet (state, SubnetReference.create (vnet,subnetName))
+        member this.RouteViaSubnet(state:'T, (vnetId:LinkedResource, subnetName)) = this.RouteViaSubnet (state, SubnetReference.create (vnetId,subnetName))

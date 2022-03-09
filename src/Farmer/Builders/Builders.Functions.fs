@@ -274,7 +274,8 @@ type FunctionsConfig =
                     | _ -> None
                   WorkerProcess = this.CommonWebConfig.WorkerProcess
                   HealthCheckPath = this.CommonWebConfig.HealthCheckPath
-                  IpSecurityRestrictions = this.CommonWebConfig.IpSecurityRestrictions }
+                  IpSecurityRestrictions = this.CommonWebConfig.IpSecurityRestrictions 
+                  LinkToSubnet = this.CommonWebConfig.RouteViaSubnet }
 
             match this.CommonWebConfig.ServicePlan with
             | DeployableResource this.Name.ResourceName resourceId ->
@@ -317,6 +318,13 @@ type FunctionsConfig =
             | Some _
             | None ->
                 ()
+                
+            match this.CommonWebConfig.RouteViaSubnet with
+            | None -> ()
+            | Some subnetRef ->
+                { Site = site
+                  Subnet = subnetRef.ResourceId
+                  Dependencies = subnetRef.Dependency |> Option.toList }
 
             if Map.isEmpty this.CommonWebConfig.Slots then
                 site
@@ -346,7 +354,9 @@ type FunctionsBuilder() =
               WorkerProcess = None
               ZipDeployPath = None
               HealthCheckPath = None 
-              IpSecurityRestrictions = [] }
+              IpSecurityRestrictions = []
+              RouteViaSubnet = None
+              PrivateEndpoints = Set.empty}
           StorageAccount = derived (fun config ->
             let storage = config.Name.ResourceName.Map (sprintf "%sstorage") |> sanitiseStorage |> ResourceName
             storageAccounts.resourceId storage)
