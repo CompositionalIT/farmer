@@ -767,4 +767,30 @@ let tests = testList "Web App Tests" [
         Expect.isNone defaultWa.DockerPort "Docker port should not be set"
     }
 
+    test "Can integrate unmanaged vnet" {
+        let subnetId = Arm.Network.subnets.resourceId (ResourceName "my-vnet", ResourceName "my-subnet") 
+        let wa = webApp { name "testApp"; route_via_vnet (Unmanaged subnetId) }
+        
+        let resources = wa |> getResources
+        let site = resources |> getResource<Web.Site> |> List.head
+        let vnet = Expect.wantSome site.LinkToSubnet "LinkToSubnet was not set"
+        Expect.equal vnet (Direct (Unmanaged subnetId)) "LinkToSubnet was incorrect"
+
+        let vnetConnections = resources |> getResource<Web.VirtualNetworkConnection> 
+        Expect.hasLength vnetConnections 1 "incorrect number of Vnet connections"
+    }
+    
+    test "Can integrate managed vnet" {
+        let vnetConfig = vnet { name "my-vnet" } 
+        let wa = webApp { name "testApp"; route_via_vnet (vnetConfig, ResourceName "my-subnet") }
+            
+        let resources = wa |> getResources
+        let site = resources |> getResource<Web.Site> |> List.head
+        let vnet = Expect.wantSome site.LinkToSubnet "LinkToSubnet was not set"
+        Expect.equal vnet (ViaManagedVNet ( (Arm.Network.virtualNetworks.resourceId "my-vnet"), ResourceName "my-subnet" )) "LinkToSubnet was incorrect"
+        
+        let vnetConnections = resources |> getResource<Web.VirtualNetworkConnection> 
+        Expect.hasLength vnetConnections 1 "incorrect number of Vnet connections"
+    }
+
 ]

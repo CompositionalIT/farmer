@@ -952,16 +952,16 @@ module Extensions =
         member this.DenyIp(state:'T, name, ip) = 
             this.Map state (fun x -> { x with IpSecurityRestrictions = IpSecurityRestriction.Create name ip Deny :: x.IpSecurityRestrictions })
         /// Integrate this app with a virtual network subnet
-        [<CustomOperation "route_via_subnet">]
-        member this.RouteViaSubnet(state:'T, subnet:SubnetReference option) = 
+        [<CustomOperation "route_via_vnet">]
+        member this.RouteViaVNet(state:'T, subnet:SubnetReference option) = 
             match subnet with
             | Some subnetId ->
                 if subnetId.ResourceId.Type.Type <> Arm.Network.subnets.Type 
                     then raiseFarmer $"given resource was not of type '{Arm.Network.subnets.Type}'."
             | None -> ()
             this.Map state (fun x -> {x with RouteViaSubnet = subnet})
-        member this.RouteViaSubnet(state:'T, subnetRef) = this.RouteViaSubnet (state, Some subnetRef)
-        member this.RouteViaSubnet(state:'T, subnetId:LinkedResource) = this.RouteViaSubnet (state, SubnetReference.create subnetId)
-        member this.RouteViaSubnet(state:'T, subnet:SubnetConfig) = this.RouteViaSubnet (state, SubnetReference.create subnet)
-        member this.RouteViaSubnet(state:'T, (vnet:VirtualNetworkConfig, subnetName)) = this.RouteViaSubnet (state, SubnetReference.create (vnet,subnetName))
-        member this.RouteViaSubnet(state:'T, (vnetId:LinkedResource, subnetName)) = this.RouteViaSubnet (state, SubnetReference.create (vnetId,subnetName))
+        member this.RouteViaVNet(state:'T, subnetRef) = this.RouteViaVNet (state, Some subnetRef)
+        member this.RouteViaVNet(state:'T, subnetId:LinkedResource) = this.RouteViaVNet (state, SubnetReference.create subnetId)
+        member this.RouteViaVNet(state:'T, subnet:SubnetConfig) = this.RouteViaVNet (state, SubnetReference.create subnet)
+        member this.RouteViaVNet(state:'T, (vnet:VirtualNetworkConfig, subnetName)) = this.RouteViaVNet (state, SubnetReference.create (vnet,subnetName))
+        member this.RouteViaVNet(state:'T, (vnetId:LinkedResource, subnetName)) = this.RouteViaVNet (state, SubnetReference.create (vnetId,subnetName))
