@@ -394,23 +394,15 @@ type HostNameBinding =
       SslState: SslState
       DependsOn: ResourceId Set }
         member this.SiteResourceId =
-            match this.SiteId with
-            | Managed id -> id.Name
-            | Unmanaged id -> id.Name
+            this.SiteId.Name
         member this.ResourceName =
             this.SiteResourceId / this.DomainName
-        member this.Dependencies =
-            [ match this.SiteId with
-              | Managed resid -> resid
-              | _ -> ()
-
-              yield! this.DependsOn ]
         member this.ResourceId =
             hostNameBindings.resourceId (this.SiteResourceId, ResourceName this.DomainName)
         interface IArmResource with
             member this.ResourceId = hostNameBindings.resourceId this.ResourceName
             member this.JsonModel =
-                {| hostNameBindings.Create(this.ResourceName, this.Location, this.Dependencies) with
+                {| hostNameBindings.Create(this.ResourceName, this.Location) with
                     properties =
                         match this.SslState with
                         | SniBased thumbprint ->
@@ -443,6 +435,17 @@ type Certificate =
                         {| serverFarmId = this.ServicePlanId.ResourceId.Eval()
                            canonicalName = this.DomainName |}
                 |}
+
+type SlotConfigName = 
+    { SiteName : ResourceName
+      SlotSettingNames: string Set }
+    interface IArmResource with
+        member this.ResourceId = config.resourceId(this.SiteName/"slotconfignames")
+        member this.JsonModel =
+            {| config.Create(this.SiteName/"slotconfignames", dependsOn = [ sites.resourceId  this.SiteName]) with
+                kind = "string"
+                properties = {| appSettingNames = this.SlotSettingNames |}
+            |} :> _
 
 [<AutoOpen>]
 module SiteExtensions =

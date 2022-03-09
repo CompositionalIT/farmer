@@ -312,6 +312,12 @@ let tests = testList "Web App Tests" [
         Expect.equal site.SiteConfig.NetFrameworkVersion "v6.0" "Wrong dotnet version"
     }
 
+    test "Supports .NET 6 EAP" {
+        let app = webApp { name "net6"; runtime_stack Runtime.DotNet60 }
+        let site:Site = app |> getResourceAtIndex 2
+        Expect.equal site.SiteConfig.NetFrameworkVersion "v6.0" "Wrong dotnet version"
+    }
+
     test "Supports .NET 5 on Linux" {
         let app = webApp { name "net5"; operating_system Linux; runtime_stack Runtime.DotNet50 }
         let site:Site = app |> getResourceAtIndex 2
@@ -320,7 +326,7 @@ let tests = testList "Web App Tests" [
 
     test "WebApp supports adding slots" {
         let slot = appSlot { name "warm-up" }
-        let site:WebAppConfig = webApp { name "slots"; add_slot slot }
+        let site:WebAppConfig = webApp { name "slots"; add_slot slot; zip_deploy "test.zip" }
         Expect.isTrue (site.CommonWebConfig.Slots.ContainsKey "warm-up") "Config should contain slot"
 
         let slots =
@@ -627,23 +633,23 @@ let tests = testList "Web App Tests" [
         let thumbprint = ArmExpression.literal "1111583E8FABEF4C0BEF694CBC41C28FB81CD111"
         let resources = webApp { name webappName; custom_domain ("customDomain.io",thumbprint) } |> getResources
         let wa = resources |> getResource<Web.Site> |> List.head
-        let nested = resources |> getResource<ResourceGroup.ResourceGroupDeployment>
-
-        //Testing certificate
-        let cert = nested.[0].Resources |> getResource<Web.Certificate> |> List.head
+        let nested = resources |> getResource<ResourceGroupDeployment>
         let expectedDomainName = "customDomain.io"
-        Expect.equal cert.DomainName expectedDomainName $"Certificate domain name should have {expectedDomainName}"
 
-        //Testing HostnameBinding
-        let hostnameBinding = resources |> getResource<Web.HostNameBinding> |> List.head
+        // Testing HostnameBinding
+        let hostnameBinding = nested.[0].Resources |> getResource<Web.HostNameBinding> |> List.head
         let expectedSslState = SslState.SslDisabled
         let exepectedSiteId = (Managed (Arm.Web.sites.resourceId wa.Name))
         Expect.equal hostnameBinding.DomainName expectedDomainName $"HostnameBinding domain name should have {expectedDomainName}"
         Expect.equal hostnameBinding.SslState expectedSslState $"HostnameBinding should have a {expectedSslState} Ssl state"
         Expect.equal hostnameBinding.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
 
-        //Testing ResourceGroupDeployment
-        let bindingDeployment = nested.[1]
+        // Testing certificate
+        let cert = nested.[1].Resources |> getResource<Web.Certificate> |> List.head
+        Expect.equal cert.DomainName expectedDomainName $"Certificate domain name should have {expectedDomainName}"
+
+        // Testing hostname/certificate link.
+        let bindingDeployment = nested.[2]
         let innerResource = bindingDeployment.Resources |> getResource<Web.HostNameBinding> |> List.head
         let innerExpectedSslState = SslState.SniBased thumbprint
         Expect.stringStarts bindingDeployment.DeploymentName.Value "[concat" "resourceGroupDeployment name should start as a valid ARM expression"
@@ -658,22 +664,22 @@ let tests = testList "Web App Tests" [
         let resources = webApp { name webappName; custom_domain "customDomain.io" } |> getResources
         let wa = resources |> getResource<Web.Site> |> List.head
         let nested = resources |> getResource<ResourceGroup.ResourceGroupDeployment>
-
-        //Testing certificate
-        let cert = nested.[0].Resources |> getResource<Web.Certificate> |> List.head
         let expectedDomainName = "customDomain.io"
-        Expect.equal cert.DomainName expectedDomainName $"Certificate domain name should have {expectedDomainName}"
-
-        //Testing HostnameBinding
-        let hostnameBinding = resources |> getResource<Web.HostNameBinding> |> List.head
+        
+        // Testing HostnameBinding
+        let hostnameBinding = nested.[0].Resources |> getResource<Web.HostNameBinding> |> List.head
         let expectedSslState = SslState.SslDisabled
         let exepectedSiteId = (Managed (Arm.Web.sites.resourceId wa.Name))
         Expect.equal hostnameBinding.DomainName expectedDomainName $"HostnameBinding domain name should have {expectedDomainName}"
         Expect.equal hostnameBinding.SslState expectedSslState $"HostnameBinding should have a {expectedSslState} Ssl state"
         Expect.equal hostnameBinding.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
+        
+        // Testing certificate
+        let cert = nested.[1].Resources |> getResource<Web.Certificate> |> List.head
+        Expect.equal cert.DomainName expectedDomainName $"Certificate domain name should have {expectedDomainName}"
 
-        //Testing ResourceGroupDeployment
-        let bindingDeployment = nested.[1]
+        // Testing hostname/certificate link.
+        let bindingDeployment = nested.[2]
         let innerResource = bindingDeployment.Resources |> getResource<Web.HostNameBinding> |> List.head
         let innerExpectedSslState = SslState.SniBased cert.Thumbprint
         Expect.equal bindingDeployment.Resources.Length 1 "resourceGroupDeployment stage should only contain one resource"
@@ -687,7 +693,12 @@ let tests = testList "Web App Tests" [
         let wa = resources |> getResource<Web.Site> |> List.head
 
         //Testing HostnameBinding
-        let hostnameBinding = resources |> getResource<Web.HostNameBinding> |> List.head
+        let hostnameBinding = 
+            resources 
+              |> getResource<ResourceGroupDeployment>
+              |> Seq.map(fun x -> getResource<Web.HostNameBinding>(x.Resources))
+              |> Seq.concat
+              |> Seq.head
         let expectedSslState = SslState.SslDisabled
         let exepectedSiteId = (Managed (Arm.Web.sites.resourceId wa.Name))
         let expectedDomainName = "customDomain.io"
@@ -695,9 +706,6 @@ let tests = testList "Web App Tests" [
         Expect.equal hostnameBinding.DomainName expectedDomainName $"HostnameBinding domain name should have {expectedDomainName}"
         Expect.equal hostnameBinding.SslState expectedSslState $"HostnameBinding should have a {expectedSslState} Ssl state"
         Expect.equal hostnameBinding.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
-
-        let nestedDeployments = resources |> getResource<ResourceGroupDeployment>
-        Expect.isEmpty nestedDeployments $"Only secured domains need nested deployments"
     }
 
     test "Supports multiple custom domains" {
@@ -713,15 +721,19 @@ let tests = testList "Web App Tests" [
         let exepectedSiteId = (Managed (Arm.Web.sites.resourceId wa.Name))
 
         //Testing HostnameBinding
-        let hostnameBindings = resources |> getResource<Web.HostNameBinding> 
-        let secureBinding = hostnameBindings |> List.filter (fun x->x.DomainName = "secure.io") |> List.head
-        let insecureBinding = hostnameBindings |> List.filter (fun x->x.DomainName = "insecure.io") |> List.head
+        let hostnameBindings = 
+            resources 
+              |> getResource<ResourceGroupDeployment>
+              |> Seq.map(fun x -> getResource<Web.HostNameBinding>(x.Resources))
+              |> Seq.concat
+        let secureBinding = hostnameBindings |> Seq.filter (fun x -> x.DomainName = "secure.io") |> Seq.head
+        let insecureBinding = hostnameBindings |> Seq.filter (fun x -> x.DomainName = "insecure.io") |> Seq.head
         
         Expect.equal secureBinding.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
         Expect.equal insecureBinding.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
     }
 
-    test "Assigns dependencies to host names when deploying multiple custom domains" {
+    test "Assigns correct dependencies when deploying multiple custom domains" {
         let webappName = "test"
         let resources = 
             webApp {
@@ -732,25 +744,44 @@ let tests = testList "Web App Tests" [
 
         let exepectedSiteId = (Managed (Arm.Web.sites.resourceId wa.Name))
 
-        //Testing HostnameBinding
-        let hostnameBindings = resources |> getResource<Web.HostNameBinding> 
+        // Testing HostnameBinding
+        let hostnameBindings = 
+          resources 
+            |> getResource<ResourceGroupDeployment>
+            |> Seq.map(fun x -> getResource<Web.HostNameBinding>(x.Resources))
+            |> Seq.concat
+            |> Seq.toList
+
         let secureBinding1 = hostnameBindings |> List.filter(fun x -> x.DomainName = "secure1.io") |> List.head
         let secureBinding2 = hostnameBindings |> List.filter(fun x -> x.DomainName = "secure2.io") |> List.head
         let secureBinding3 = hostnameBindings |> List.filter(fun x -> x.DomainName = "secure3.io") |> List.head
-        let nestedResourceGroupHostNameUpdates = 
-            resources 
-            |> getResource<ResourceGroupDeployment> 
-            |> Seq.map(fun x -> getResource<Web.HostNameBinding>(x.Resources))
-            |> Seq.filter(fun x -> x.Length > 0)
 
-        Expect.all nestedResourceGroupHostNameUpdates (fun x -> x.Head.DependsOn.IsEmpty) "No dependencies expected on nested template"
         Expect.equal secureBinding1.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
         Expect.equal secureBinding2.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
         Expect.equal secureBinding3.SiteId exepectedSiteId $"HostnameBinding SiteId should be {exepectedSiteId}"
-        Expect.isEmpty secureBinding1.DependsOn "First host name binding should have no dependency"
-        Expect.contains (secureBinding2.DependsOn |> Seq.map(ResourceId.Eval)) "[resourceId('Microsoft.Web/sites/hostNameBindings', 'test', 'secure1.io')]" "Second host name binding should depend on first"
-        Expect.contains (secureBinding3.DependsOn |> Seq.map(ResourceId.Eval)) "[resourceId('Microsoft.Web/sites/hostNameBindings', 'test', 'secure2.io')]" "Third host name binding depends on second"
+
+        // Testing dependencies.
+        let deployments = resources |> getResource<ResourceGroupDeployment> |> Seq.toList
+
+        let dependenciesOnOtherDeployments =
+          deployments
+            |> Seq.map(fun rg -> rg.Dependencies |> Seq.filter(fun dep -> deployments |> Seq.exists(fun x -> x.DeploymentName = dep.Name)))
+            |> Seq.map(fun deps -> deps |> Seq.map(fun dep -> dep.Name))
+            |> Seq.toList
+
+        let siteDependency =
+           deployments[0].Dependencies
+           |> Set.filter(fun x -> x.Type = wa.ResourceType)
+           |> Set.map(fun x -> x.Name)
+           |> Seq.head
+           
+        Expect.hasLength deployments 9 "Should have three deploys per custom domain"
+        Expect.isEmpty dependenciesOnOtherDeployments[0] "First deploy should not depend on another"
+        Expect.equal siteDependency.Value webappName "First deployment should have a dependency on the site"
+
+        seq { 1 .. 1 .. 8 } |> Seq.iter(fun x -> Expect.contains dependenciesOnOtherDeployments[x] deployments[x - 1].ResourceId.Name "Each subsequent deploy should depend on previous deploy")
     }
+
     test "Supports adding ip restriction for allowed ip" {
         let ip = IPAddressCidr.parse "1.2.3.4/32"
         let resources = webApp { name "test"; add_allowed_ip_restriction "test-rule" ip } |> getResources
@@ -759,6 +790,7 @@ let tests = testList "Web App Tests" [
         let expectedRestriction = IpSecurityRestriction.Create "test-rule" ip Allow
         Expect.equal site.IpSecurityRestrictions [ expectedRestriction ] "Should add allowed ip security restriction"
     }
+
     test "Supports adding ip restriction for denied ip" {
         let ip = IPAddressCidr.parse "1.2.3.4/32"
         let resources = webApp { name "test"; add_denied_ip_restriction "test-rule" ip } |> getResources
@@ -767,6 +799,7 @@ let tests = testList "Web App Tests" [
         let expectedRestriction = IpSecurityRestriction.Create "test-rule" ip Deny
         Expect.equal site.IpSecurityRestrictions [ expectedRestriction ] "Should add denied ip security restriction"
     }
+
     test "Supports adding different ip restrictions to site and slot" {
         let siteIp = IPAddressCidr.parse "1.2.3.4/32"
         let slotIp = IPAddressCidr.parse "4.3.2.1/32"
@@ -785,59 +818,117 @@ let tests = testList "Web App Tests" [
         Expect.equal site.IpSecurityRestrictions [ expectedSiteRestriction ] "Site should have correct allowed ip security restriction"
     }
 
+    test "Supports slot settings" {
+        let webApp = webApp { name "test"; slot_settings [ "sticky_config", "sticky_config_value"; "another_sticky_config", "another_sticky_config_value" ]} 
+
+        let scn = webApp |> getResources |> getResource<Web.SlotConfigName> |> List.head
+        let ws = webApp |> getResources |> getResource<Web.Site> |> List.head
+
+        let template = arm{ add_resource webApp}
+        let jobj = template.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
+
+        let appSettingNames = 
+            jobj.SelectTokens $"$..resources[?(@name=='{webApp.Name.ResourceName.Value}/slotconfignames')].properties.appSettingNames[*]" 
+            |> Seq.map (fun x -> x.ToString())
+
+        let dependencies = 
+            jobj.SelectTokens $"$..resources[?(@name=='{webApp.Name.ResourceName.Value}/slotconfignames')].dependsOn[*]" 
+            |> Seq.map (fun x -> x.ToString())
+
+        let expectedSettings = Map [ 
+            "sticky_config", LiteralSetting "sticky_config_value"
+            "another_sticky_config", LiteralSetting "another_sticky_config_value" ]
+        
+        let settings = Expect.wantSome ws.AppSettings "AppSettings should be set"
+        Expect.containsAll  settings  expectedSettings "App settings should contain the slot settings"
+        Expect.containsAll scn.SlotSettingNames ["sticky_config"; "another_sticky_config"] "Slot config names should be set"
+        Expect.equal scn.SiteName (ResourceName "test") "Parent name should be set"
+        Expect.containsAll appSettingNames  [ "sticky_config"; "another_sticky_config"] "Slot config names should be present in template"
+        Expect.containsAll dependencies  [ $"[resourceId('Microsoft.Web/sites', '{webApp.Name.ResourceName.Value}')]"] "Slot config names resource should depend on web site"
+
+    }
+
+    test "Supports slot setting" {
+          let webApp = webApp { name "test"; slot_setting "sticky_config" "sticky_config_value" } 
+
+          let scn = webApp |> getResources |> getResource<Web.SlotConfigName> |> List.head
+          let ws = webApp |> getResources |> getResource<Web.Site> |> List.head
+
+          let template = arm{ add_resource webApp}
+          let jobj = template.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
+
+          let appSettingNames = 
+              jobj.SelectTokens $"$..resources[?(@name=='{webApp.Name.ResourceName.Value}/slotconfignames')].properties.appSettingNames[*]" 
+              |> Seq.map (fun x -> x.ToString())
+
+          let dependencies = 
+              jobj.SelectTokens $"$..resources[?(@name=='{webApp.Name.ResourceName.Value}/slotconfignames')].dependsOn[*]" 
+              |> Seq.map (fun x -> x.ToString())
+
+          let expectedSettings = Map [ 
+              "sticky_config", LiteralSetting "sticky_config_value" ]
+          
+          let settings = Expect.wantSome ws.AppSettings "AppSettings should be set"
+          Expect.containsAll  settings  expectedSettings "App settings should contain the slot setting"
+          Expect.containsAll scn.SlotSettingNames ["sticky_config"] "Slot config name should be set"
+          Expect.equal scn.SiteName (ResourceName "test") "Parent name should be set"
+          Expect.containsAll appSettingNames  [ "sticky_config" ] "Slot config name should be present in template"
+          Expect.containsAll dependencies  [ $"[resourceId('Microsoft.Web/sites', '{webApp.Name.ResourceName.Value}')]"] "Slot config names resource should depend on web site"
+
+    }
     test "Linux automatically turns off logging extension" {
-        let wa = webApp { name "siteX"; operating_system Linux }
-        let extensions = wa |> getResources |> getResource<SiteExtension>
-        Expect.isEmpty extensions "Should not be any extensions"
-    }
+           let wa = webApp { name "siteX"; operating_system Linux }
+           let extensions = wa |> getResources |> getResource<SiteExtension>
+           Expect.isEmpty extensions "Should not be any extensions"
+       }
 
-    test "Supports docker ports with WEBSITES_PORT"{
-        let wa = webApp { name "testApp"; docker_port 8080; }
-        let port = Expect.wantSome wa.DockerPort "Docker port should be set"
-        Expect.equal port 8080 "Docker port should 8080"
-        
-        let site = wa |> getResources|> getResource<Web.Site> |> List.head
+       test "Supports docker ports with WEBSITES_PORT"{
+           let wa = webApp { name "testApp"; docker_port 8080; }
+           let port = Expect.wantSome wa.DockerPort "Docker port should be set"
+           Expect.equal port 8080 "Docker port should 8080"
+           
+           let site = wa |> getResources|> getResource<Web.Site> |> List.head
 
-        let settings = Expect.wantSome site.AppSettings "AppSettings should be set"
-        let (hasValue, value) = settings.TryGetValue("WEBSITES_PORT");
-      
-        Expect.isTrue hasValue "WEBSITES_PORT should be set"
-        Expect.equal value.Value "8080" "WEBSITES_PORT should be 8080"
+           let settings = Expect.wantSome site.AppSettings "AppSettings should be set"
+           let (hasValue, value) = settings.TryGetValue("WEBSITES_PORT");
+         
+           Expect.isTrue hasValue "WEBSITES_PORT should be set"
+           Expect.equal value.Value "8080" "WEBSITES_PORT should be 8080"
 
-        let defaultWa = webApp { name "testApp"; }
-        Expect.isNone defaultWa.DockerPort "Docker port should not be set"
-    }
+           let defaultWa = webApp { name "testApp"; }
+           Expect.isNone defaultWa.DockerPort "Docker port should not be set"
+       }
 
-    test "Web App enables zoneRedundant in service plan" {
-        let resources = webApp { name "test"; zone_redundant Enabled } |> getResources
-        let sf = resources |> getResource<Web.ServerFarm> |> List.head
+       test "Web App enables zoneRedundant in service plan" {
+           let resources = webApp { name "test"; zone_redundant Enabled } |> getResources
+           let sf = resources |> getResource<Web.ServerFarm> |> List.head
 
-        Expect.equal sf.ZoneRedundant (Some Enabled) "ZoneRedundant should be enabled"
-    }
-    test "Can integrate unmanaged vnet" {
-        let subnetId = Arm.Network.subnets.resourceId (ResourceName "my-vnet", ResourceName "my-subnet") 
-        let wa = webApp { name "testApp"; route_via_vnet (Unmanaged subnetId) }
-        
-        let resources = wa |> getResources
-        let site = resources |> getResource<Web.Site> |> List.head
-        let vnet = Expect.wantSome site.LinkToSubnet "LinkToSubnet was not set"
-        Expect.equal vnet (Direct (Unmanaged subnetId)) "LinkToSubnet was incorrect"
+           Expect.equal sf.ZoneRedundant (Some Enabled) "ZoneRedundant should be enabled"
+       }
+       test "Can integrate unmanaged vnet" {
+           let subnetId = Arm.Network.subnets.resourceId (ResourceName "my-vnet", ResourceName "my-subnet") 
+           let wa = webApp { name "testApp"; route_via_vnet (Unmanaged subnetId) }
+           
+           let resources = wa |> getResources
+           let site = resources |> getResource<Web.Site> |> List.head
+           let vnet = Expect.wantSome site.LinkToSubnet "LinkToSubnet was not set"
+           Expect.equal vnet (Direct (Unmanaged subnetId)) "LinkToSubnet was incorrect"
 
-        let vnetConnections = resources |> getResource<Web.VirtualNetworkConnection> 
-        Expect.hasLength vnetConnections 1 "incorrect number of Vnet connections"
-    }
-    
-    test "Can integrate managed vnet" {
-        let vnetConfig = vnet { name "my-vnet" } 
-        let wa = webApp { name "testApp"; route_via_vnet (vnetConfig, ResourceName "my-subnet") }
-            
-        let resources = wa |> getResources
-        let site = resources |> getResource<Web.Site> |> List.head
-        let vnet = Expect.wantSome site.LinkToSubnet "LinkToSubnet was not set"
-        Expect.equal vnet (ViaManagedVNet ( (Arm.Network.virtualNetworks.resourceId "my-vnet"), ResourceName "my-subnet" )) "LinkToSubnet was incorrect"
-        
-        let vnetConnections = resources |> getResource<Web.VirtualNetworkConnection> 
-        Expect.hasLength vnetConnections 1 "incorrect number of Vnet connections"
-    }
+           let vnetConnections = resources |> getResource<Web.VirtualNetworkConnection> 
+           Expect.hasLength vnetConnections 1 "incorrect number of Vnet connections"
+       }
+       
+       test "Can integrate managed vnet" {
+           let vnetConfig = vnet { name "my-vnet" } 
+           let wa = webApp { name "testApp"; route_via_vnet (vnetConfig, ResourceName "my-subnet") }
+               
+           let resources = wa |> getResources
+           let site = resources |> getResource<Web.Site> |> List.head
+           let vnet = Expect.wantSome site.LinkToSubnet "LinkToSubnet was not set"
+           Expect.equal vnet (ViaManagedVNet ( (Arm.Network.virtualNetworks.resourceId "my-vnet"), ResourceName "my-subnet" )) "LinkToSubnet was incorrect"
+           
+           let vnetConnections = resources |> getResource<Web.VirtualNetworkConnection> 
+           Expect.hasLength vnetConnections 1 "incorrect number of Vnet connections"
+       }
 
 ]

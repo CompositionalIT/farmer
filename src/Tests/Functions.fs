@@ -364,6 +364,65 @@ let tests = testList "Functions tests" [
             |> Seq.map (fun x-> x.ToObject<{|name:string;value:string|}> ())
         Expect.contains appSettings {|name="APPINSIGHTS_INSTRUMENTATIONKEY"; value="[reference(resourceId('shared-group', 'Microsoft.Insights/components', 'theName'), '2014-04-01').InstrumentationKey]"|} "Invalid value for APPINSIGHTS_INSTRUMENTATIONKEY"
     }
+    
+    test "Supports slot settings" {
+        let functionsApp = functions { name "test"; slot_settings [ "sticky_config", "sticky_config_value"; "another_sticky_config", "another_sticky_config_value" ]} 
+
+        let scn = functionsApp |> getResources |> getResource<Web.SlotConfigName> |> List.head
+        let ws = functionsApp |> getResources |> getResource<Web.Site> |> List.head
+
+        let template = arm{ add_resource functionsApp}
+        let jobj = template.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
+
+        let appSettingNames = 
+            jobj.SelectTokens $"$..resources[?(@name=='{functionsApp.Name.ResourceName.Value}/slotconfignames')].properties.appSettingNames[*]" 
+            |> Seq.map (fun x -> x.ToString())
+
+        let dependencies = 
+            jobj.SelectTokens $"$..resources[?(@name=='{functionsApp.Name.ResourceName.Value}/slotconfignames')].dependsOn[*]" 
+            |> Seq.map (fun x -> x.ToString())
+
+        let expectedSettings = Map [ 
+            "sticky_config", LiteralSetting "sticky_config_value"
+            "another_sticky_config", LiteralSetting "another_sticky_config_value" ]
+           
+        let settings = Expect.wantSome ws.AppSettings "AppSettings should be set"
+        Expect.containsAll  settings  expectedSettings "App settings should contain the slot settings"
+        Expect.containsAll scn.SlotSettingNames ["sticky_config"; "another_sticky_config"] "Slot config names should be set"
+        Expect.equal scn.SiteName (ResourceName "test") "Parent name should be set"
+        Expect.containsAll appSettingNames  [ "sticky_config"; "another_sticky_config"] "Slot config names should be present in template"
+        Expect.containsAll dependencies  [ $"[resourceId('Microsoft.Web/sites', '{functionsApp.Name.ResourceName.Value}')]"] "Slot config names resource should depend on web site"
+
+    }
+
+    test "Supports slot setting" {
+        let functionsApp = functions { name "test"; slot_setting "sticky_config" "sticky_config_value" } 
+
+        let scn = functionsApp |> getResources |> getResource<Web.SlotConfigName> |> List.head
+        let ws = functionsApp |> getResources |> getResource<Web.Site> |> List.head
+
+        let template = arm{ add_resource functionsApp}
+        let jobj = template.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
+
+        let appSettingNames = 
+            jobj.SelectTokens $"$..resources[?(@name=='{functionsApp.Name.ResourceName.Value}/slotconfignames')].properties.appSettingNames[*]" 
+            |> Seq.map (fun x -> x.ToString())
+
+        let dependencies = 
+            jobj.SelectTokens $"$..resources[?(@name=='{functionsApp.Name.ResourceName.Value}/slotconfignames')].dependsOn[*]" 
+            |> Seq.map (fun x -> x.ToString())
+
+        let expectedSettings = Map [ 
+            "sticky_config", LiteralSetting "sticky_config_value" ]
+             
+        let settings = Expect.wantSome ws.AppSettings "AppSettings should be set"
+        Expect.containsAll  settings  expectedSettings "App settings should contain the slot setting"
+        Expect.containsAll scn.SlotSettingNames ["sticky_config"] "Slot config name should be set"
+        Expect.equal scn.SiteName (ResourceName "test") "Parent name should be set"
+        Expect.containsAll appSettingNames  [ "sticky_config" ] "Slot config name should be present in template"
+        Expect.containsAll dependencies  [ $"[resourceId('Microsoft.Web/sites', '{functionsApp.Name.ResourceName.Value}')]"] "Slot config names resource should depend on web site"
+
+    }
 
     test "Function app correctly adds connection strings" {
         let sa = storageAccount { name "foo" }
@@ -414,4 +473,30 @@ let tests = testList "Functions tests" [
         Expect.equal slot.IpSecurityRestrictions [ expectedSlotRestriction ] "Slot should have correct allowed ip security restriction"
         Expect.equal site.IpSecurityRestrictions [ expectedSiteRestriction ] "Site should have correct allowed ip security restriction"
     }
+    test "Can integrate unmanaged vnet" {
+        let subnetId = Arm.Network.subnets.resourceId (ResourceName "my-vnet", ResourceName "my-subnet") 
+        let wa = functions { name "testApp"; route_via_vnet (Unmanaged subnetId) }
+        
+        let resources = wa |> getResources
+        let site = resources |> getResource<Web.Site> |> List.head
+        let vnet = Expect.wantSome site.LinkToSubnet "LinkToSubnet was not set"
+        Expect.equal vnet (Direct (Unmanaged subnetId)) "LinkToSubnet was incorrect"
+
+        let vnetConnections = resources |> getResource<Web.VirtualNetworkConnection> 
+        Expect.hasLength vnetConnections 1 "incorrect number of Vnet connections"
+    }
+    
+    test "Can integrate managed vnet" {
+        let vnetConfig = vnet { name "my-vnet" } 
+        let wa = functions { name "testApp"; route_via_vnet (vnetConfig, ResourceName "my-subnet") }
+            
+        let resources = wa |> getResources
+        let site = resources |> getResource<Web.Site> |> List.head
+        let vnet = Expect.wantSome site.LinkToSubnet "LinkToSubnet was not set"
+        Expect.equal vnet (ViaManagedVNet ( (Arm.Network.virtualNetworks.resourceId "my-vnet"), ResourceName "my-subnet" )) "LinkToSubnet was incorrect"
+        
+        let vnetConnections = resources |> getResource<Web.VirtualNetworkConnection> 
+        Expect.hasLength vnetConnections 1 "incorrect number of Vnet connections"
+    }
+
 ]

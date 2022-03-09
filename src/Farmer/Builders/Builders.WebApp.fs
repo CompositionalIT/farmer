@@ -52,8 +52,8 @@ type Runtime =
     static member Java8WildFly14 = Java (Java8, WildFly14)
     static member Java8Tomcat90 = Java (Java8, JavaHost.Tomcat90)
     static member Java8Tomcat85 = Java (Java8, JavaHost.Tomcat85)
-    static member DotNet60 = DotNet "6.0"
     static member DotNet50 = DotNet "5.0"
+    static member DotNet60 = DotNet "6.0"
     static member AspNet47 = AspNet "4.0"
     static member AspNet35 = AspNet "2.0"
     static member Python27 = Python ("2.7", "2.7")
@@ -517,26 +517,35 @@ type WebAppConfig =
                 { site with AppSettings = None; ConnectionStrings = None } // Don't deploy production slot settings as they could cause an app restart
                 for (_,slot) in this.CommonWebConfig.Slots |> Map.toSeq do
                     slot.ToSite site
-                
-            // Host Name Bindings must be deployed sequentially to avoid an error, as the site cannot be modified concurrently.
-            // To do so we add a dependency to the previous binding.
-            let mutable previousHostNameBinding = None
-            for customDomain in this.CustomDomains |> Map.toSeq |> Seq.map snd do
-                let dependsOn = 
-                    match previousHostNameBinding with 
-                    | Some previous -> Set.singleton previous
-                    | None -> Set.empty
+            
+            
+            // Need to rename `location` binding to prevent conflict with `location` operator in resource group
+            let resourceLocation = location
 
+            // Host Name Bindings must be deployed sequentially to avoid an error, as the site cannot be modified concurrently.
+            // To do so we add a dependency to the previous binding deployment.
+            let mutable previousHostNameCertificateLinkingDeployment = None
+            for customDomain in this.CustomDomains |> Map.toSeq |> Seq.map snd do
                 let hostNameBinding =
                     { Location = location
                       SiteId =  Managed (Arm.Web.sites.resourceId this.Name.ResourceName)
                       DomainName = customDomain.DomainName
-                      SslState = SslDisabled // Initially create non-secure host name binding, we link the certificate in a nested deployment below if this is a secure domain.
-                      DependsOn = dependsOn }
+                      SslState = SslDisabled } // Initially create non-secure host name binding, we link the certificate in a nested deployment below
 
-                hostNameBinding
+                let dependsOn : ResourceId list = 
+                  match previousHostNameCertificateLinkingDeployment with
+                  | Some previous -> [ previous; this.ResourceId ]
+                  | None -> [ this.ResourceId ]
 
-                previousHostNameBinding <- Some hostNameBinding.ResourceId
+                let hostNameBindingDeployment = resourceGroup {
+                    name "[resourceGroup().name]"
+                    location resourceLocation
+                    add_resource hostNameBinding
+                    depends_on dependsOn
+                }
+
+                yield! ((hostNameBindingDeployment :> IBuilder).BuildResources location)
+
                 match customDomain with
                 | SecureDomain (customDomain, certOptions) ->
                     let cert =
@@ -544,47 +553,56 @@ type WebAppConfig =
                           SiteId = Managed this.ResourceId
                           ServicePlanId = Managed this.ServicePlanId
                           DomainName = customDomain }
-                    hostNameBinding
 
                     // Get the resource group which contains the app service plan
                     let aspRgName = 
                       match this.CommonWebConfig.ServicePlan with
                       | LinkedResource linked -> linked.ResourceId.ResourceGroup
                       | _ -> None
+
                     // Create a nested resource group deployment for the certificate - this isn't strictly necessary when the app & app service plan are in the same resource group
                     // however, when they are in different resource groups this is required to make the deployment succeed (there is an ARM bug which causes a Not Found / Conflict otherwise)
                     // To keep the code simple, I opted to always nest the certificate deployment. - TheRSP 2021-12-14
-                    let certRg = resourceGroup { 
+                    let certificateDeployment = resourceGroup { 
                         name (aspRgName |> Option.defaultValue "[resourceGroup().name]")
                         add_resource 
                           { cert with
                               SiteId = Unmanaged cert.SiteId.ResourceId
                               ServicePlanId = Unmanaged cert.ServicePlanId.ResourceId }
                         depends_on cert.SiteId
-                        depends_on hostNameBinding.ResourceId
+                        depends_on hostNameBindingDeployment.ResourceId
                     }
-                    yield! ((certRg :> IBuilder).BuildResources location)
 
-                    // Need to rename `location` binding to prevent conflict with `location` operator in resource group
-                    let resourceLocation = location
-                    // nested deployment to update hostname binding with specified SSL options
-                    yield! (resourceGroup {
+                    yield! ((certificateDeployment :> IBuilder).BuildResources location)
+
+                    // Deployment to update hostname binding with specified SSL options
+                    let hostNameCertificateLinkingDeployment = resourceGroup { 
                         name "[resourceGroup().name]"
                         location resourceLocation
                         add_resource { hostNameBinding with
                                         SiteId =
-                                            match hostNameBinding.SiteId with
+                                            match hostNameBinding.SiteId with 
                                             | Managed id -> Unmanaged id
-                                            | x -> x
-                                        SslState =
+                                            | x -> x 
+                                        SslState = 
                                             match certOptions with
                                             | AppManagedCertificate -> SniBased (cert.GetThumbprintReference aspRgName)
                                             | CustomCertificate thumbprint -> SniBased thumbprint
                                         DependsOn = Set.empty // Don't want the dependency in this nested template.
                                       }
-                        depends_on certRg
-                    } :> IBuilder).BuildResources location
+                        depends_on certificateDeployment.ResourceId
+                     }
+
+                    yield! ((hostNameCertificateLinkingDeployment :> IBuilder).BuildResources location)
+
+                    previousHostNameCertificateLinkingDeployment <- Some hostNameCertificateLinkingDeployment.ResourceId
                 | _ -> ()
+
+            if this.CommonWebConfig.SlotSettingNames <> Set.empty then
+                {
+                    SiteName = this.Name.ResourceName;
+                    SlotSettingNames = this.CommonWebConfig.SlotSettingNames;
+                }
 
             match this.CommonWebConfig.RouteViaSubnet with
             | None -> ()
@@ -654,6 +672,8 @@ type WebAppBuilder() =
                     CommonWebConfig = { OperatingSystem = Windows } }
                     ->
                     state.SiteExtensions.Add Extensions.Logging
+                | { AutomaticLoggingExtension = false } ->
+                    state.SiteExtensions.Remove WebApp.Extensions.Logging
                 | _ ->
                     state.SiteExtensions
             DockerImage =
@@ -966,6 +986,19 @@ module Extensions =
         [<CustomOperation "health_check_path">]
         /// Specifies the path Azure load balancers will ping to check for unhealthy instances.
         member this.HealthCheckPath(state:'T, healthCheckPath:string) = this.Map state (fun x -> {x with HealthCheckPath = Some(healthCheckPath)})
+        
+        /// Adds slot  settings
+        [<CustomOperation "slot_setting">]
+        member this.AddSlotSetting (state:'T, key, value) =
+            let current = this.Get state
+            { current with Settings = current.Settings.Add(key, LiteralSetting value); SlotSettingNames =current.SlotSettingNames.Add(key) }
+            |> this.Wrap state
+        [<CustomOperation "slot_settings">]
+        member this.AddSlotSettings(state:'T, settings: (string*string) list) =
+            let current = this.Get state
+            settings
+            |> List.fold (fun (state:CommonWebConfig) (key, value: string) -> { state with Settings = state.Settings.Add(key, LiteralSetting value); SlotSettingNames = state.SlotSettingNames.Add(key) }) current
+            |> this.Wrap state
         /// Add Allowed ip for ip security restrictions
         [<CustomOperation "add_allowed_ip_restriction">] 
         member this.AllowIp(state:'T, name, ip) = 

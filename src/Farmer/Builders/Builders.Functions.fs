@@ -333,6 +333,12 @@ type FunctionsConfig =
                 { site with AppSettings = None; ConnectionStrings = None }
                 for (_, slot) in this.CommonWebConfig.Slots |> Map.toSeq do
                     slot.ToSite site
+                    
+            if this.CommonWebConfig.SlotSettingNames <> Set.empty then
+                {
+                    SiteName = this.Name.ResourceName;
+                    SlotSettingNames = this.CommonWebConfig.SlotSettingNames;
+                }
         ]
 
 type FunctionsBuilder() =

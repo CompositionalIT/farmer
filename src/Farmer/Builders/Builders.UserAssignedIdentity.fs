@@ -7,13 +7,15 @@ open Farmer.Arm.ManagedIdentity
 
 type UserAssignedIdentityConfig =
     { Name : ResourceName
-      Tags : Map<string, string> }
+      Tags : Map<string, string>
+      ActiveDirectoryGroups: string Set }
     interface IBuilder with
         member this.ResourceId = this.ResourceId
         member this.BuildResources location = [
             { UserAssignedIdentity.Name = this.Name
               Location = location
-              Tags = this.Tags }
+              Tags = this.Tags
+              ActiveDirectoryGroups = this.ActiveDirectoryGroups}
         ]
     member this.ResourceId = userAssignedIdentities.resourceId this.Name
     member this.UserAssignedIdentity = UserAssignedIdentity this.ResourceId
@@ -23,10 +25,17 @@ type UserAssignedIdentityConfig =
 type UserAssignedIdentityBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
-          Tags = Map.empty }
+          Tags = Map.empty
+          ActiveDirectoryGroups = Set.empty }
     /// Sets the name of the user assigned identity.
     [<CustomOperation "name">]
     member _.Name(state:UserAssignedIdentityConfig, name) = { state with Name = ResourceName name }
+    /// Adds the user assigned identity to the specified active directory groups. This happens as an Az script after the ARM deployment has completed.
+    [<CustomOperation "add_to_ad_groups">]
+    member _.AddToGroups(state: UserAssignedIdentityConfig, groupNames) = { state with ActiveDirectoryGroups = Set.union (Set.ofSeq groupNames) state.ActiveDirectoryGroups }
+    /// Adds the user assigned identity to the specified active directory group. This happens as an Az script after the ARM deployment has completed.
+    [<CustomOperation "add_to_ad_group">]
+    member this.AddToGroup(state: UserAssignedIdentityConfig, groupName) = this.AddToGroups(state, [groupName])
     /// Adds tags to the user assigned identity.
     interface ITaggable<UserAssignedIdentityConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
 
