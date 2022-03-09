@@ -11,6 +11,7 @@ open Farmer.Arm.Storage
 open Farmer.Arm.KeyVault
 open Farmer.Arm.KeyVault.Vaults
 open System
+open Farmer.Arm
 
 type FunctionsRuntime = DotNet | DotNetIsolated | Node | Java | Python
 type VersionedFunctionsRuntime =  FunctionsRuntime * string option
@@ -326,6 +327,7 @@ type FunctionsConfig =
                 { Site = site
                   Subnet = subnetRef.ResourceId
                   Dependencies = subnetRef.Dependency |> Option.toList }
+            yield! (PrivateEndpoint.create location this.ResourceId ["sites"] this.CommonWebConfig.PrivateEndpoints)
 
             if Map.isEmpty this.CommonWebConfig.Slots then
                 site

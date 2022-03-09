@@ -35,24 +35,17 @@ type SubnetReference =
         | ViaManagedVNet (vnetId,_)
         | Direct (Managed vnetId) -> Some vnetId
         | _ -> None
-    static member private validateVNetId vnetId = 
-        if vnetId.Type.Type <> virtualNetworks.Type then 
-            raiseFarmer $"given resource was not of type '{virtualNetworks.Type}'."
-    static member private validateSubnetId subnetId = 
-        if subnetId.Type.Type <> subnets.Type then 
-            raiseFarmer $"given resource was not of type '{subnets.Type}'."
-    static member private deriveSubnetId (vnetId:ResourceId) subnetName =
-        SubnetReference.validateVNetId vnetId
-        { vnetId with Type = subnets; Segments = [subnetName] }
     static member create(vnetRef:LinkedResource, subnetName:ResourceName) = 
-        SubnetReference.validateVNetId vnetRef.ResourceId
+        if vnetRef.ResourceId.Type.Type <> virtualNetworks.Type then 
+            raiseFarmer $"given resource was not of type '{virtualNetworks.Type}'."
         match vnetRef with
         | Managed vnetId -> 
             ViaManagedVNet (vnetId, subnetName)
         | Unmanaged vnetId ->
-            Direct (Unmanaged (SubnetReference.deriveSubnetId vnetId subnetName) )
+            Direct (Unmanaged { vnetId with Type = subnets; Segments = [subnetName] } )
     static member create(subnetRef:LinkedResource) = 
-        SubnetReference.validateSubnetId subnetRef.ResourceId
+        if subnetRef.ResourceId.Type.Type <> subnets.Type then 
+            raiseFarmer $"given resource was not of type '{subnets.Type}'."
         Direct subnetRef
 
     static member create(subnetId:ResourceId) = ()
