@@ -1,5 +1,7 @@
 Release Notes
 =============
+## 1.6.28
+- WebApps/Functions: Add support for vnet integration
 
 ## 1.6.27
 * Functions: Make connection_string available for Azure Functions in addition to WebApps.
