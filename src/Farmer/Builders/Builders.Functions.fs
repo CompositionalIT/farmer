@@ -363,6 +363,7 @@ type FunctionsBuilder() =
               WorkerProcess = None
               ZipDeployPath = None
               HealthCheckPath = None 
+              SlotSettingNames = Set.empty
               IpSecurityRestrictions = []
               RouteViaSubnet = None
               PrivateEndpoints = Set.empty}

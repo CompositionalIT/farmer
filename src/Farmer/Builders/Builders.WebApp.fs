@@ -206,6 +206,7 @@ type CommonWebConfig =
       WorkerProcess : Bitness option
       ZipDeployPath : (string*ZipDeploy.ZipDeploySlot) option
       HealthCheckPath: string option
+      SlotSettingNames: string Set
       IpSecurityRestrictions: IpSecurityRestriction list 
       RouteViaSubnet : SubnetReference option
       PrivateEndpoints: (SubnetReference * string option) Set }
@@ -530,7 +531,8 @@ type WebAppConfig =
                     { Location = location
                       SiteId =  Managed (Arm.Web.sites.resourceId this.Name.ResourceName)
                       DomainName = customDomain.DomainName
-                      SslState = SslDisabled } // Initially create non-secure host name binding, we link the certificate in a nested deployment below
+                      SslState = SslDisabled
+                      DependsOn = Set.empty} // Initially create non-secure host name binding, we link the certificate in a nested deployment below
 
                 let dependsOn : ResourceId list = 
                   match previousHostNameCertificateLinkingDeployment with
@@ -633,6 +635,7 @@ type WebAppBuilder() =
               WorkerProcess = None
               ZipDeployPath = None
               HealthCheckPath = None
+              SlotSettingNames = Set.empty
               IpSecurityRestrictions = []
               RouteViaSubnet = None 
               PrivateEndpoints = Set.empty }
