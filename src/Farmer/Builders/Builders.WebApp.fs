@@ -532,8 +532,8 @@ type WebAppConfig =
 
                 let dependsOn : ResourceId list = 
                   match previousHostNameCertificateLinkingDeployment with
-                  | Some previous -> [ previous ]
-                  | None -> []
+                  | Some previous -> [ previous; this.ResourceId ]
+                  | None -> [ this.ResourceId ]
 
                 let hostNameBindingDeployment = resourceGroup {
                     name "[resourceGroup().name]"
