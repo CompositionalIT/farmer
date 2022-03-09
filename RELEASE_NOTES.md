@@ -3,11 +3,18 @@ Release Notes
 ## 1.6.28
 - WebApps/Functions: Add support for vnet integration
 
+## 1.6.29
+* CLI: include `--only-show-error` option when executing Azure CLI commands.
+
+## 1.6.28
+* ServicePlan/WebApp: Support for enabling ZoneDedundant
+
 ## 1.6.27
-* Functions: Make connection_string available for Azure Functions in addition to WebApps.
-* WebApp: Support custom port for docker container with `docker_port`
+* Functions: Make `connection_string` available for Azure Functions in addition to WebApps.
 * WebApps/Functions: Add support for ip-restriction rules
 * WebApps/Functions: Don't turn on Logging Extension for Linux App Service.
+* WebApps: Allow multiple custom domains
+* WebApps: Support custom port for docker container with `docker_port`
 
 ## 1.6.26
 * WebApps/Functions: Fix .NET 5/6 on Linux deployments.

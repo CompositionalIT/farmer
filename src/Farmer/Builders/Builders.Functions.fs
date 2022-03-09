@@ -286,6 +286,7 @@ type FunctionsConfig =
                   WorkerCount = 0
                   MaximumElasticWorkerCount = None
                   OperatingSystem = this.CommonWebConfig.OperatingSystem
+                  ZoneRedundant = None
                   Tags = this.Tags }
             | _ ->
                 ()

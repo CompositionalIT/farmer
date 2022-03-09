@@ -60,6 +60,7 @@ let allTests =
                 WebApp.tests
                 Dashboards.tests
                 Alerts.tests
+                ServicePlan.tests
             ]
             testList "Control" [
                 if (hasEnv "TF_BUILD" "True" && notEnv "BUILD_REASON" "PullRequest") || hasEnv "FARMER_E2E" "True" then

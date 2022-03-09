@@ -230,8 +230,10 @@ type WebAppConfig =
       DockerAcrCredentials : {| RegistryName : string; Password : SecureParameter |} option
       AutomaticLoggingExtension : bool
       SiteExtensions : ExtensionName Set
-      CustomDomain : DomainConfig 
-      DockerPort: int option }
+      PrivateEndpoints: (LinkedResource * string option) Set
+      CustomDomains : Map<string,DomainConfig> 
+      DockerPort: int option
+      ZoneRedundant : FeatureFlag option }
     member this.Name = this.CommonWebConfig.Name
     /// Gets this web app's Server Plan's full resource ID.
     member this.ServicePlanId = this.CommonWebConfig.ServicePlan.resourceId this.Name.ResourceName
@@ -499,6 +501,7 @@ type WebAppConfig =
                   WorkerCount = this.WorkerCount
                   MaximumElasticWorkerCount = this.MaximumElasticWorkerCount
                   OperatingSystem = this.CommonWebConfig.OperatingSystem
+                  ZoneRedundant = this.ZoneRedundant
                   Tags = this.Tags}
             | _ ->
                 ()
@@ -514,64 +517,74 @@ type WebAppConfig =
                 { site with AppSettings = None; ConnectionStrings = None } // Don't deploy production slot settings as they could cause an app restart
                 for (_,slot) in this.CommonWebConfig.Slots |> Map.toSeq do
                     slot.ToSite site
+                
+            // Host Name Bindings must be deployed sequentially to avoid an error, as the site cannot be modified concurrently.
+            // To do so we add a dependency to the previous binding.
+            let mutable previousHostNameBinding = None
+            for customDomain in this.CustomDomains |> Map.toSeq |> Seq.map snd do
+                let dependsOn = 
+                    match previousHostNameBinding with 
+                    | Some previous -> Set.singleton previous
+                    | None -> Set.empty
 
-            match this.CustomDomain with
-            | SecureDomain (customDomain, certOptions) ->
                 let hostNameBinding =
                     { Location = location
                       SiteId =  Managed (Arm.Web.sites.resourceId this.Name.ResourceName)
-                      DomainName = customDomain
-                      SslState = SslDisabled } // Initially create non-secure host name binding, we link the certificate in a nested deployment below
-                let cert =
-                    { Location = location
-                      SiteId = Managed this.ResourceId
-                      ServicePlanId = Managed this.ServicePlanId
-                      DomainName = customDomain }
+                      DomainName = customDomain.DomainName
+                      SslState = SslDisabled // Initially create non-secure host name binding, we link the certificate in a nested deployment below if this is a secure domain.
+                      DependsOn = dependsOn }
+
                 hostNameBinding
 
-                // Get the resource group which contains the app service plan
-                let aspRgName =
-                  match this.CommonWebConfig.ServicePlan with
-                  | LinkedResource linked -> linked.ResourceId.ResourceGroup
-                  | _ -> None
-                // Create a nested resource group deployment for the certificate - this isn't strictly necessary when the app & app service plan are in the same resource group
-                // however, when they are in different resource groups this is required to make the deployment succeed (there is an ARM bug which causes a Not Found / Conflict otherwise)
-                // To keep the code simple, I opted to always nest the certificate deployment. - TheRSP 2021-12-14
-                let certRg = resourceGroup {
-                    name (aspRgName |> Option.defaultValue "[resourceGroup().name]")
-                    add_resource
-                      { cert with
-                          SiteId = Unmanaged cert.SiteId.ResourceId
-                          ServicePlanId = Unmanaged cert.ServicePlanId.ResourceId }
-                    depends_on cert.SiteId
-                    depends_on (hostNameBindings.resourceId(cert.SiteId.Name, ResourceName cert.DomainName))
-                }
-                yield! ((certRg :> IBuilder).BuildResources location)
+                previousHostNameBinding <- Some hostNameBinding.ResourceId
+                match customDomain with
+                | SecureDomain (customDomain, certOptions) ->
+                    let cert =
+                        { Location = location
+                          SiteId = Managed this.ResourceId
+                          ServicePlanId = Managed this.ServicePlanId
+                          DomainName = customDomain }
+                    hostNameBinding
 
-                // Need to rename `location` binding to prevent conflict with `location` operator in resource group
-                let resourceLocation = location
-                // nested deployment to update hostname binding with specified SSL options
-                yield! (resourceGroup {
-                    name "[resourceGroup().name]"
-                    location resourceLocation
-                    add_resource { hostNameBinding with
-                                    SiteId =
-                                        match hostNameBinding.SiteId with
-                                        | Managed id -> Unmanaged id
-                                        | x -> x
-                                    SslState =
-                                        match certOptions with
-                                        | AppManagedCertificate -> SniBased (cert.GetThumbprintReference aspRgName)
-                                        | CustomCertificate thumbprint -> SniBased thumbprint
-                                  }
-                    depends_on certRg
-                } :> IBuilder).BuildResources location
-            | InsecureDomain customDomain ->
-                { Location = location
-                  SiteId =  Managed (Arm.Web.sites.resourceId this.Name.ResourceName)
-                  DomainName = customDomain
-                  SslState = SslDisabled }
-            | NoDomain -> ()
+                    // Get the resource group which contains the app service plan
+                    let aspRgName = 
+                      match this.CommonWebConfig.ServicePlan with
+                      | LinkedResource linked -> linked.ResourceId.ResourceGroup
+                      | _ -> None
+                    // Create a nested resource group deployment for the certificate - this isn't strictly necessary when the app & app service plan are in the same resource group
+                    // however, when they are in different resource groups this is required to make the deployment succeed (there is an ARM bug which causes a Not Found / Conflict otherwise)
+                    // To keep the code simple, I opted to always nest the certificate deployment. - TheRSP 2021-12-14
+                    let certRg = resourceGroup { 
+                        name (aspRgName |> Option.defaultValue "[resourceGroup().name]")
+                        add_resource 
+                          { cert with
+                              SiteId = Unmanaged cert.SiteId.ResourceId
+                              ServicePlanId = Unmanaged cert.ServicePlanId.ResourceId }
+                        depends_on cert.SiteId
+                        depends_on hostNameBinding.ResourceId
+                    }
+                    yield! ((certRg :> IBuilder).BuildResources location)
+
+                    // Need to rename `location` binding to prevent conflict with `location` operator in resource group
+                    let resourceLocation = location
+                    // nested deployment to update hostname binding with specified SSL options
+                    yield! (resourceGroup {
+                        name "[resourceGroup().name]"
+                        location resourceLocation
+                        add_resource { hostNameBinding with
+                                        SiteId =
+                                            match hostNameBinding.SiteId with
+                                            | Managed id -> Unmanaged id
+                                            | x -> x
+                                        SslState =
+                                            match certOptions with
+                                            | AppManagedCertificate -> SniBased (cert.GetThumbprintReference aspRgName)
+                                            | CustomCertificate thumbprint -> SniBased thumbprint
+                                        DependsOn = Set.empty // Don't want the dependency in this nested template.
+                                      }
+                        depends_on certRg
+                    } :> IBuilder).BuildResources location
+                | _ -> ()
 
             match this.CommonWebConfig.RouteViaSubnet with
             | None -> ()
@@ -623,8 +636,10 @@ type WebAppBuilder() =
           DockerAcrCredentials = None
           AutomaticLoggingExtension = true
           SiteExtensions = Set.empty
-          CustomDomain = NoDomain 
-          DockerPort = None }
+          PrivateEndpoints = Set.empty
+          CustomDomains = Map.empty
+          DockerPort = None
+          ZoneRedundant = None }
     member _.Run(state:WebAppConfig) =
         if state.Name.ResourceName = ResourceName.Empty then raiseFarmer "No Web App name has been set."
         { state with
@@ -717,13 +732,21 @@ type WebAppBuilder() =
     member _.DefaultLogging (state:WebAppConfig, setting) = { state with AutomaticLoggingExtension = setting }
     //Add Custom domain to you web app
     [<CustomOperation "custom_domain">]
-    member _.CustomDomain(state:WebAppConfig, domainConfig) = { state with CustomDomain = domainConfig }
-    member _.CustomDomain(state:WebAppConfig, customDomain) = { state with CustomDomain = SecureDomain (customDomain,AppManagedCertificate) }
-    member _.CustomDomain(state:WebAppConfig, (customDomain,thumbprint)) = { state with CustomDomain = SecureDomain (customDomain,CustomCertificate thumbprint) }
+    member _.AddCustomDomain(state:WebAppConfig, domainConfig:DomainConfig) = { state with CustomDomains = state.CustomDomains |> Map.add domainConfig.DomainName domainConfig }
+    member this.AddCustomDomain(state:WebAppConfig, customDomain) = this.AddCustomDomain (state, SecureDomain (customDomain,AppManagedCertificate))
+    member this.AddCustomDomain(state:WebAppConfig, (customDomain,thumbprint)) = this.AddCustomDomain (state, SecureDomain (customDomain,CustomCertificate thumbprint))
+    [<CustomOperation "custom_domains">]
+    member this.AddCustomDomains(state, customDomains:string list) = customDomains |> List.fold (fun state domain -> this.AddCustomDomain(state, domain)) state
+    member this.AddCustomDomains(state, domainConfigs:DomainConfig list) = domainConfigs |> List.fold (fun state domain -> this.AddCustomDomain(state, domain)) state
+    member this.AddCustomDomains(state, customDomainsWithThumprint:(string * ArmExpression) list) = customDomainsWithThumprint |> List.fold (fun state domain -> this.AddCustomDomain(state, domain)) state
+
     /// Map specified port traffic from your docker container to port 80 for App Service
     [<CustomOperation "docker_port">]
     member _.DockerPort(state: WebAppConfig, dockerPort:int) = { state with DockerPort = Some dockerPort }
-    
+    /// Enables the zone redundancy in service plan
+    [<CustomOperation "zone_redundant">]
+    member this.ZoneRedundant(state:WebAppConfig, flag:FeatureFlag) = {state with ZoneRedundant = Some flag}
+
     interface IPrivateEndpoints<WebAppConfig> with member _.Add state endpoints = {state with CommonWebConfig = { state.CommonWebConfig with PrivateEndpoints =  state.CommonWebConfig.PrivateEndpoints |> Set.union endpoints}}
     interface ITaggable<WebAppConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     interface IDependable<WebAppConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }

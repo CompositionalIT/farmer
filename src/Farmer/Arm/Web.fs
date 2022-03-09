@@ -31,6 +31,7 @@ type ServerFarm =
       WorkerCount : int
       MaximumElasticWorkerCount : int option
       OperatingSystem : OS
+      ZoneRedundant : FeatureFlag option
       Tags: Map<string,string> }
     member this.IsDynamic =
         match this.Sku, this.WorkerSize with
@@ -108,7 +109,8 @@ type ServerFarm =
                          computeMode = if this.IsDynamic then "Dynamic" else null
                          perSiteScaling = if this.IsDynamic then Nullable() else Nullable false
                          reserved = this.Reserved
-                         maximumElasticWorkerCount = this.MaximumElasticWorkerCount |> Option.toNullable |}
+                         maximumElasticWorkerCount = this.MaximumElasticWorkerCount |> Option.toNullable
+                         zoneRedundant = this.ZoneRedundant |> Option.map(fun f -> f.AsBoolean) |> Option.toNullable |}
                  kind = this.Kind |> Option.toObj
             |}
 
@@ -389,7 +391,8 @@ type HostNameBinding =
     { Location: Location
       SiteId: LinkedResource
       DomainName: string
-      SslState: SslState }
+      SslState: SslState
+      DependsOn: ResourceId Set }
         member this.SiteResourceId =
             match this.SiteId with
             | Managed id -> id.Name
@@ -399,7 +402,9 @@ type HostNameBinding =
         member this.Dependencies =
             [ match this.SiteId with
               | Managed resid -> resid
-              | _ -> () ]
+              | _ -> ()
+
+              yield! this.DependsOn ]
         member this.ResourceId =
             hostNameBindings.resourceId (this.SiteResourceId, ResourceName this.DomainName)
         interface IArmResource with
@@ -419,7 +424,7 @@ type Certificate =
       SiteId: LinkedResource
       ServicePlanId: LinkedResource
       DomainName: string }
-        member this.ResourceName = this.SiteId.Name.Map (sprintf "%s-cert")
+        member this.ResourceName = ResourceName this.DomainName
         member this.Thumbprint = this.GetThumbprintReference None
         member this.GetThumbprintReference certificateResourceGroup =
             ArmExpression.reference({certificates.resourceId this.ResourceName with ResourceGroup = certificateResourceGroup}).Map(sprintf "%s.Thumbprint")
