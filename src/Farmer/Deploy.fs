@@ -133,7 +133,7 @@ module Az =
         |> String.concat " "
         |> az
     let batchUploadStaticWebsite name path =
-        az $"storage blob upload-batch --account-name %s{name} --destination $web --source %s{path}"
+        az $"storage blob upload-batch --account-name %s{name} --destination $web --source %s{path} --overwrite true"
 
     type AzureErrorCode = { Code : string; Message : string }
     type AzureError = { Error : AzureErrorCode }
