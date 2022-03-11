@@ -53,6 +53,11 @@ let tests = testList "Common" [
         Expect.isFalse (outerCidr |> IPAddressCidr.contains innerCidr) ""
     }
 
+    test "IPAddressCidr default prefix is 32" {
+        let cidr = IPAddressCidr.parse "192.168.1.0"
+        Expect.equal cidr.Prefix 32 ""
+    }
+
     test "Docker image tag generation" {
         let officialNginx = Containers.DockerImage.PublicImage ("nginx", None)
         Expect.equal officialNginx.ImageTag "nginx:latest" "Official image generated with incorrect tag"
