@@ -45,7 +45,7 @@ module Az =
                 let azProcess =
                     ProcessStartInfo(
                         FileName = azCliPath.Value,
-                        Arguments = $"%s{arguments} --output json",
+                        Arguments = $"%s{arguments} --output json --only-show-errors",
                         UseShellExecute = false,
                         RedirectStandardOutput = true,
                         RedirectStandardError = true)
