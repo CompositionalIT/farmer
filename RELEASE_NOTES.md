@@ -2,7 +2,7 @@ Release Notes
 =============
 
 ## 1.6.30
-* CLI: include `--overwrite true` option when executing `az storage blob upload-batch`.
+* CLI: include `--overwrite true` option when executing `az storage blob upload-batch` with Azure CLI 2.34.0 and above.
 
 ## 1.6.29
 * CLI: include `--only-show-error` option when executing Azure CLI commands.

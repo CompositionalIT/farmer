@@ -79,7 +79,30 @@ module Az =
     let login() = az "login" |> Result.ignore
     /// Logs you into the Az CLI using the supplied service principal credentials.
     let loginWithCredentials appId secret tenantId = az $"login --service-principal --username %s{appId} --password %s{secret} --tenant %s{tenantId}"
+    /// Gets the version of Az CLI
     let version() = az "--version"
+    /// Checks that the version of the Azure CLI meets minimum version.
+    let checkVersion minimum = result {
+        let! versionOutput = version()
+        let! version =
+            versionOutput.Replace("\r\n","\n").Replace("\r","\n").Split([| "\n" |], StringSplitOptions.RemoveEmptyEntries)
+            |> Array.tryHead
+            |> Option.bind(fun text ->
+                match text.Split([| ' ' |], StringSplitOptions.RemoveEmptyEntries) with
+                | [| _; version |]
+                | [| _; version; _ |] ->
+                    Some version
+                | _ ->
+                    None)
+            |> Option.bind(fun versionText ->
+                try Some(Version versionText)
+                with _ -> None)
+            |> Result.ofOption $"Unable to determine Azure CLI version. You need to have at least {minimum} installed. Output was: %s{versionOutput}"
+        return!
+            if version < minimum then Error $"You have {version} of the Azure CLI installed, but the minimum version is {minimum}. Please upgrade."
+            else Ok version
+    }
+    
     /// Lists all subscriptions
     let listSubscriptions() = az "account list --all"
     let setSubscription subscriptionId = az $"account set --subscription %s{subscriptionId}"
@@ -133,7 +156,8 @@ module Az =
         |> String.concat " "
         |> az
     let batchUploadStaticWebsite name path =
-        az $"storage blob upload-batch --account-name %s{name} --destination $web --source %s{path} --overwrite true"
+        let overwriteParameter = checkVersion (Version "2.34.0") |> function | Ok _ -> "--overwrite true" | Error _ -> ""
+        az $"storage blob upload-batch --account-name %s{name} --destination $web --source %s{path} {overwriteParameter}"
 
     type AzureErrorCode = { Code : string; Message : string }
     type AzureError = { Error : AzureErrorCode }
@@ -163,29 +187,6 @@ let listSubscriptions() = result {
     return response |> Serialization.ofJson<Subscription array>
 }
 
-
-/// Checks that the version of the Azure CLI meets minimum version.
-let checkVersion minimum = result {
-    let! versionOutput = Az.version()
-    let! version =
-        versionOutput.Replace("\r\n","\n").Replace("\r","\n").Split([| "\n" |], StringSplitOptions.RemoveEmptyEntries)
-        |> Array.tryHead
-        |> Option.bind(fun text ->
-            match text.Split([| ' ' |], StringSplitOptions.RemoveEmptyEntries) with
-            | [| _; version |]
-            | [| _; version; _ |] ->
-                Some version
-            | _ ->
-                None)
-        |> Option.bind(fun versionText ->
-            try Some(Version versionText)
-            with _ -> None)
-        |> Result.ofOption $"Unable to determine Azure CLI version. You need to have at least {minimum} installed. Output was: %s{versionOutput}"
-    return!
-        if version < minimum then Error $"You have {version} of the Azure CLI installed, but the minimum version is {minimum}. Please upgrade."
-        else Ok version
-}
-
 /// Sets the currently active (default) subscription.
 let setSubscription (subscriptionId:Guid) =
     Az.setSubscription (subscriptionId.ToString())
@@ -206,7 +207,7 @@ let NoParameters : (string * string) list = []
 let private prepareForDeployment parameters resourceGroupName (deployment:IDeploymentSource) = result {
     do! deployment |> validateParameters parameters
 
-    let! version = checkVersion Az.MinimumVersion
+    let! version = Az.checkVersion Az.MinimumVersion
     printfn "Compatible version of Azure CLI %O detected" version
 
     prepareDeploymentFolder()
