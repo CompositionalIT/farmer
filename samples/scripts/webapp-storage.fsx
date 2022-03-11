@@ -15,6 +15,8 @@ let myWebApp = webApp {
     sku WebApp.Sku.S1
     app_insights_off
     setting "storage_key" myStorage.Key
+    add_allowed_ip_restriction "allow everything" "0.0.0.0/0"
+    add_denied_ip_restriction "deny" "1.2.3.4/31"
 }
 
 let deployment = arm {
