@@ -1,7 +1,7 @@
 Release Notes
 =============
 
-## 1.6.30
+## 1.6.31
 * VMs: Allow setting Priority and Spot Instance Settings
 
 ## 1.6.30
