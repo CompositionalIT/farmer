@@ -160,27 +160,27 @@ type SlotBuilder() =
     member this.AddConnectionStrings(state, connectionStrings:string list) :SlotConfig =
         connectionStrings
         |> List.fold (fun state key -> this.AddConnectionString(state, key)) state
-        
+
     /// Add Allowed ip for ip security restrictions
-    [<CustomOperation "add_allowed_ip_restriction">] 
-    member _.AllowIp(state, name, cidr:IPAddressCidr) : SlotConfig = 
+    [<CustomOperation "add_allowed_ip_restriction">]
+    member _.AllowIp(state, name, cidr:IPAddressCidr) : SlotConfig =
         { state with IpSecurityRestrictions = state.IpSecurityRestrictions @ [IpSecurityRestriction.Create name cidr Allow] }
-    member this.AllowIp(state, name, ip:Net.IPAddress) : SlotConfig = 
+    member this.AllowIp(state, name, ip:Net.IPAddress) : SlotConfig =
         let cidr = { Address = ip; Prefix = 32 }
         this.AllowIp(state, name, cidr)
-    member this.AllowIp(state, name, ip:string) : SlotConfig = 
+    member this.AllowIp(state, name, ip:string) : SlotConfig =
         let cidr = IPAddressCidr.parse ip
         this.AllowIp(state, name, cidr)
     /// Add Denied ip for ip security restrictions
-    [<CustomOperation "add_denied_ip_restriction">] 
-    member _.DenyIp(state, name, cidr:IPAddressCidr) : SlotConfig = 
+    [<CustomOperation "add_denied_ip_restriction">]
+    member _.DenyIp(state, name, cidr:IPAddressCidr) : SlotConfig =
         { state with IpSecurityRestrictions = state.IpSecurityRestrictions @ [IpSecurityRestriction.Create name cidr Deny] }
-    member this.DenyIp(state, name, ip:Net.IPAddress) : SlotConfig = 
+    member this.DenyIp(state, name, ip:Net.IPAddress) : SlotConfig =
         let cidr = { Address = ip; Prefix = 32 }
         this.DenyIp(state, name, cidr)
-    member this.DenyIp(state, name, ip:string) : SlotConfig = 
+    member this.DenyIp(state, name, ip:string) : SlotConfig =
         let cidr = IPAddressCidr.parse ip
-        this.DenyIp(state, name, cidr) 
+        this.DenyIp(state, name, cidr)
     interface ITaggable<SlotConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     interface IDependable<SlotConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
@@ -228,7 +228,7 @@ type WebAppConfig =
       AutomaticLoggingExtension : bool
       SiteExtensions : ExtensionName Set
       PrivateEndpoints: (LinkedResource * string option) Set
-      CustomDomains : Map<string,DomainConfig> 
+      CustomDomains : Map<string,DomainConfig>
       DockerPort: int option
       ZoneRedundant : FeatureFlag option }
     member this.Name = this.CommonWebConfig.Name
@@ -311,9 +311,9 @@ type WebAppConfig =
                     | Linux, Some _
                     | _ , None ->
                         ()
-                        
+
                     yield! this.DockerPort |> Option.mapList AppSettings.WebsitesPort
-                    
+
                     if this.DockerCi then "DOCKER_ENABLE_CI", "true"
                 ]
 
@@ -480,6 +480,8 @@ type WebAppConfig =
                   Location = location
                   DisableIpMasking = false
                   SamplingPercentage = 100
+                  Type = Classic
+                  Dependencies = Set.empty
                   LinkedWebsite =
                     match this.CommonWebConfig.OperatingSystem with
                     | Windows -> Some this.Name.ResourceName
@@ -499,7 +501,7 @@ type WebAppConfig =
                   MaximumElasticWorkerCount = this.MaximumElasticWorkerCount
                   OperatingSystem = this.CommonWebConfig.OperatingSystem
                   ZoneRedundant = this.ZoneRedundant
-                  Tags = this.Tags}
+                  Tags = this.Tags }
             | _ ->
                 ()
 
@@ -514,13 +516,13 @@ type WebAppConfig =
                 { site with AppSettings = None; ConnectionStrings = None } // Don't deploy production slot settings as they could cause an app restart
                 for (_,slot) in this.CommonWebConfig.Slots |> Map.toSeq do
                     slot.ToSite site
-                
+
             // Host Name Bindings must be deployed sequentially to avoid an error, as the site cannot be modified concurrently.
             // To do so we add a dependency to the previous binding.
             let mutable previousHostNameBinding = None
             for customDomain in this.CustomDomains |> Map.toSeq |> Seq.map snd do
-                let dependsOn = 
-                    match previousHostNameBinding with 
+                let dependsOn =
+                    match previousHostNameBinding with
                     | Some previous -> Set.singleton previous
                     | None -> Set.empty
 
@@ -544,16 +546,16 @@ type WebAppConfig =
                     hostNameBinding
 
                     // Get the resource group which contains the app service plan
-                    let aspRgName = 
+                    let aspRgName =
                       match this.CommonWebConfig.ServicePlan with
                       | LinkedResource linked -> linked.ResourceId.ResourceGroup
                       | _ -> None
                     // Create a nested resource group deployment for the certificate - this isn't strictly necessary when the app & app service plan are in the same resource group
                     // however, when they are in different resource groups this is required to make the deployment succeed (there is an ARM bug which causes a Not Found / Conflict otherwise)
                     // To keep the code simple, I opted to always nest the certificate deployment. - TheRSP 2021-12-14
-                    let certRg = resourceGroup { 
+                    let certRg = resourceGroup {
                         name (aspRgName |> Option.defaultValue "[resourceGroup().name]")
-                        add_resource 
+                        add_resource
                           { cert with
                               SiteId = Unmanaged cert.SiteId.ResourceId
                               ServicePlanId = Unmanaged cert.ServicePlanId.ResourceId }
@@ -838,7 +840,7 @@ module Extensions =
             let current = this.Get state
             connectionStrings
             |> List.fold (fun (state:CommonWebConfig) (key, value:ArmExpression) ->
-               { state with ConnectionStrings = state.ConnectionStrings.Add(key, (ExpressionSetting value, Custom)) }) current 
+               { state with ConnectionStrings = state.ConnectionStrings.Add(key, (ExpressionSetting value, Custom)) }) current
             |> this.Wrap state
         /// Sets an app setting of the web app in the form "key" "value".
         [<CustomOperation "add_identity">]
@@ -956,16 +958,16 @@ module Extensions =
         /// Specifies the path Azure load balancers will ping to check for unhealthy instances.
         member this.HealthCheckPath(state:'T, healthCheckPath:string) = this.Map state (fun x -> {x with HealthCheckPath = Some(healthCheckPath)})
         /// Add Allowed ip for ip security restrictions
-        [<CustomOperation "add_allowed_ip_restriction">] 
-        member this.AllowIp(state:'T, name, ip:IPAddressCidr) = 
+        [<CustomOperation "add_allowed_ip_restriction">]
+        member this.AllowIp(state:'T, name, ip:IPAddressCidr) =
             this.Map state (fun x -> { x with IpSecurityRestrictions = IpSecurityRestriction.Create name ip Allow :: x.IpSecurityRestrictions })
-        member this.AllowIp(state:'T, name, ip:string) = 
+        member this.AllowIp(state:'T, name, ip:string) =
             let ip = IPAddressCidr.parse ip
             this.Map state (fun x -> { x with IpSecurityRestrictions = IpSecurityRestriction.Create name ip Allow :: x.IpSecurityRestrictions })
         /// Add Denied ip for ip security restrictions
-        [<CustomOperation "add_denied_ip_restriction">] 
-        member this.DenyIp(state:'T, name, ip) = 
+        [<CustomOperation "add_denied_ip_restriction">]
+        member this.DenyIp(state:'T, name, ip) =
             this.Map state (fun x -> { x with IpSecurityRestrictions = IpSecurityRestriction.Create name ip Deny :: x.IpSecurityRestrictions })
-        member this.DenyIp(state:'T, name, ip:string) = 
+        member this.DenyIp(state:'T, name, ip:string) =
             let ip = IPAddressCidr.parse ip
             this.Map state (fun x -> { x with IpSecurityRestrictions = IpSecurityRestriction.Create name ip Deny :: x.IpSecurityRestrictions })
