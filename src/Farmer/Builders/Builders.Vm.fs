@@ -265,10 +265,9 @@ type VirtualMachineBuilder() =
     /// Sets priority of VMm. Overrides spot_instance.
     [<CustomOperation "priority">]
     member _.Priority(state:VmConfig, priority) = { state with Priority = priority }
-    /// Converts VM into a spot instance. Overides priority.
+    /// Makes VM a spot instance. Overrides priority.
     [<CustomOperation "spot_instance">]
     member _.Spot(state:VmConfig, (evictionPolicy, maxPrice)) : VmConfig = { state with Priority = Spot (evictionPolicy, maxPrice) }
-    //member _.Spot(state:VmConfig, spotSettings: EvictionPolicy * decimal) : VmConfig = { state with Priority = Spot spotSettings }
     member this.Spot(state:VmConfig, evictionPolicy:EvictionPolicy) : VmConfig = this.Spot(state,(evictionPolicy, -1m))
     member this.Spot(state:VmConfig, maxPrice) : VmConfig = this.Spot(state,(Deallocate, maxPrice))
     /// Adds a SSD data disk to the VM with a specific size.
