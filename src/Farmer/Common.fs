@@ -309,6 +309,20 @@ module Vm =
 
     /// Represents a disk in a VM.
     type DiskInfo = { Size : int; DiskType : DiskType }
+    type EvictionPolicy =
+        | Deallocate
+        | Delete
+        member this.ArmValue = match this with x -> x.ToString()
+    type BillingProfile =
+        { MaxPrice: decimal }
+    type Priority =
+        | Low
+        | Regular
+        | Spot of evictionPolicy:EvictionPolicy * maxPrice:decimal
+        member this.ArmValue =
+            match this with
+            | Spot _ -> "Spot"
+            | x -> x.ToString()
 
 module internal Validation =
     // ANDs two validation rules

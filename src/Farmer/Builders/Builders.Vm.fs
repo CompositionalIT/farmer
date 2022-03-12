@@ -18,6 +18,8 @@ type VmConfig =
     { Name : ResourceName
       DiagnosticsStorageAccount : ResourceRef<VmConfig> option
 
+      Priority: Priority
+
       Username : string option
       PasswordParameter: string option
       Image : ImageDefinition
@@ -67,6 +69,7 @@ type VmConfig =
                 |> Option.map(fun r -> r.resourceId(this).Name)
               NetworkInterfaceName = this.NicName.Name
               Size = this.Size
+              Priority = this.Priority
               Credentials =
                 match this.Username with
                 | Some username ->
@@ -189,6 +192,7 @@ type VirtualMachineBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
           DiagnosticsStorageAccount = None
+          Priority = Regular
           Size = Basic_A0
           Username = None
           PasswordParameter = None
@@ -258,6 +262,15 @@ type VirtualMachineBuilder() =
     /// Adds a data disk to the VM with a specific size and type.
     [<CustomOperation "add_disk">]
     member _.AddDisk(state:VmConfig, size, diskType) = { state with DataDisks = { Size = size; DiskType = diskType } :: state.DataDisks }
+    /// Sets priority of VMm. Overrides spot_instance.
+    [<CustomOperation "priority">]
+    member _.Priority(state:VmConfig, priority) = { state with Priority = priority }
+    /// Converts VM into a spot instance. Overides priority.
+    [<CustomOperation "spot_instance">]
+    member _.Spot(state:VmConfig, (evictionPolicy, maxPrice)) : VmConfig = { state with Priority = Spot (evictionPolicy, maxPrice) }
+    //member _.Spot(state:VmConfig, spotSettings: EvictionPolicy * decimal) : VmConfig = { state with Priority = Spot spotSettings }
+    member this.Spot(state:VmConfig, evictionPolicy:EvictionPolicy) : VmConfig = this.Spot(state,(evictionPolicy, -1m))
+    member this.Spot(state:VmConfig, maxPrice) : VmConfig = this.Spot(state,(Deallocate, maxPrice))
     /// Adds a SSD data disk to the VM with a specific size.
     [<CustomOperation "add_ssd_disk">]
     member this.AddSsd(state:VmConfig, size) = this.AddDisk(state, size, StandardSSD_LRS)
