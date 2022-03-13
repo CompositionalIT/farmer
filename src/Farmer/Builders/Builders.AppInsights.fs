@@ -11,19 +11,19 @@ type AppInsights =
             .reference(resourceId)
             .Map(fun r -> r + ".InstrumentationKey")
             .WithOwner(resourceId)
-    static member getInstrumentationKey (name:ResourceName, ?resourceGroup, ?componentsType) =
-        let componentsType = componentsType |> Option.defaultValue components
-        AppInsights.getInstrumentationKey(ResourceId.create (componentsType, name, ?group = resourceGroup))
+    static member getInstrumentationKey (name:ResourceName, ?resourceGroup, ?resourceType) =
+        let resourceType = resourceType |> Option.defaultValue components
+        AppInsights.getInstrumentationKey(ResourceId.create (resourceType, name, ?group = resourceGroup))
 
 type AppInsightsConfig =
     { Name : ResourceName
       DisableIpMasking : bool
       SamplingPercentage : int
-      Type : ComponentsType
+      InstanceKind : InstanceKind
       Dependencies : ResourceId Set
       Tags : Map<string,string> }
     /// Gets the ARM expression path to the instrumentation key of this App Insights instance.
-    member this.InstrumentationKey = AppInsights.getInstrumentationKey(this.Name, componentsType = this.Type.ComponentsType)
+    member this.InstrumentationKey = AppInsights.getInstrumentationKey(this.Name, resourceType = this.InstanceKind.ResourceType)
     interface IBuilder with
         member this.ResourceId = components.resourceId this.Name
         member this.BuildResources location = [
@@ -33,7 +33,7 @@ type AppInsightsConfig =
               DisableIpMasking = this.DisableIpMasking
               SamplingPercentage = this.SamplingPercentage
               Dependencies = this.Dependencies
-              Type = this.Type
+              InstanceKind = this.InstanceKind
               Tags = this.Tags }
         ]
 
@@ -44,7 +44,7 @@ type AppInsightsBuilder() =
           SamplingPercentage = 100
           Tags = Map.empty
           Dependencies = Set.empty
-          Type = Classic }
+          InstanceKind = Classic }
 
     [<CustomOperation "name">]
     /// Sets the name of the App Insights instance.
@@ -62,7 +62,7 @@ type AppInsightsBuilder() =
     [<CustomOperation "log_analytics_workspace">]
     member _.Workspace(state:AppInsightsConfig, workspace:ResourceId) =
         { state with
-            Type = Workspace workspace
+            InstanceKind = Workspace workspace
             Dependencies = state.Dependencies.Add workspace
         }
     member this.Workspace(state:AppInsightsConfig, workspace:WorkspaceConfig) =

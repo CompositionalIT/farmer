@@ -311,7 +311,7 @@ type FunctionsConfig =
                   DisableIpMasking = false
                   SamplingPercentage = 100
                   Dependencies = Set.empty
-                  Type = Classic
+                  InstanceKind = Classic
                   LinkedWebsite =
                     match this.CommonWebConfig.OperatingSystem with
                     | Windows -> Some this.Name.ResourceName

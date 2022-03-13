@@ -480,7 +480,7 @@ type WebAppConfig =
                   Location = location
                   DisableIpMasking = false
                   SamplingPercentage = 100
-                  Type = Classic
+                  InstanceKind = Classic
                   Dependencies = Set.empty
                   LinkedWebsite =
                     match this.CommonWebConfig.OperatingSystem with
