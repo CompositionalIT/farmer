@@ -11,6 +11,11 @@ The Container Apps builder is used to create Azure Container Apps.
 * Container Environment (`Microsoft.Web/kubeEnvironments`)
 * Container App (`Microsoft.Web/containerApps`)
 
+### Turn on Resource Provider
+Before you deploy your container app, you need to turn on the Container Apps resource provider in your Azure subscription.
+
+Get sure you have the following providers registered: `Microsoft.Kubernetes` and `Microsoft.ContainerService`.
+
 #### Container Environment Builder
 The Container Environment builder (`containerEnvironment`) defines settings for the Kubernetes envirionment that hosts the container apps.
 

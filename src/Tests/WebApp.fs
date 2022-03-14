@@ -753,11 +753,11 @@ let tests = testList "Web App Tests" [
         Expect.contains (secureBinding3.DependsOn |> Seq.map(ResourceId.Eval)) "[resourceId('Microsoft.Web/sites/hostNameBindings', 'test', 'secure2.io')]" "Third host name binding depends on second"
     }
     test "Supports adding ip restriction for allowed ip" {
-        let ip = IPAddressCidr.parse "1.2.3.4/32"
+        let ip = "1.2.3.4/32"
         let resources = webApp { name "test"; add_allowed_ip_restriction "test-rule" ip } |> getResources
         let site = resources |> getResource<Web.Site> |> List.head
 
-        let expectedRestriction = IpSecurityRestriction.Create "test-rule" ip Allow
+        let expectedRestriction = IpSecurityRestriction.Create "test-rule" (IPAddressCidr.parse ip) Allow
         Expect.equal site.IpSecurityRestrictions [ expectedRestriction ] "Should add allowed ip security restriction"
     }
     test "Supports adding ip restriction for denied ip" {
@@ -809,4 +809,10 @@ let tests = testList "Web App Tests" [
         Expect.isNone defaultWa.DockerPort "Docker port should not be set"
     }
 
+    test "Web App enables zoneRedundant in service plan" {
+        let resources = webApp { name "test"; zone_redundant Enabled } |> getResources
+        let sf = resources |> getResource<Web.ServerFarm> |> List.head
+
+        Expect.equal sf.ZoneRedundant (Some Enabled) "ZoneRedundant should be enabled"
+    }
 ]

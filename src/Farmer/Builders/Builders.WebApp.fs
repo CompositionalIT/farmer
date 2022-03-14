@@ -169,7 +169,7 @@ type SlotBuilder() =
         let cidr = { Address = ip; Prefix = 32 }
         this.AllowIp(state, name, cidr)
     member this.AllowIp(state, name, ip:string) : SlotConfig = 
-        let cidr = { Address = Net.IPAddress.Parse ip; Prefix = 32 }
+        let cidr = IPAddressCidr.parse ip
         this.AllowIp(state, name, cidr)
     /// Add Denied ip for ip security restrictions
     [<CustomOperation "add_denied_ip_restriction">] 
@@ -179,7 +179,7 @@ type SlotBuilder() =
         let cidr = { Address = ip; Prefix = 32 }
         this.DenyIp(state, name, cidr)
     member this.DenyIp(state, name, ip:string) : SlotConfig = 
-        let cidr = { Address = Net.IPAddress.Parse ip; Prefix = 32 }
+        let cidr = IPAddressCidr.parse ip
         this.DenyIp(state, name, cidr) 
     interface ITaggable<SlotConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     interface IDependable<SlotConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
@@ -229,7 +229,8 @@ type WebAppConfig =
       SiteExtensions : ExtensionName Set
       PrivateEndpoints: (LinkedResource * string option) Set
       CustomDomains : Map<string,DomainConfig> 
-      DockerPort: int option }
+      DockerPort: int option
+      ZoneRedundant : FeatureFlag option }
     member this.Name = this.CommonWebConfig.Name
     /// Gets this web app's Server Plan's full resource ID.
     member this.ServicePlanId = this.CommonWebConfig.ServicePlan.resourceId this.Name.ResourceName
@@ -497,6 +498,7 @@ type WebAppConfig =
                   WorkerCount = this.WorkerCount
                   MaximumElasticWorkerCount = this.MaximumElasticWorkerCount
                   OperatingSystem = this.CommonWebConfig.OperatingSystem
+                  ZoneRedundant = this.ZoneRedundant
                   Tags = this.Tags}
             | _ ->
                 ()
@@ -625,7 +627,8 @@ type WebAppBuilder() =
           SiteExtensions = Set.empty
           PrivateEndpoints = Set.empty
           CustomDomains = Map.empty
-          DockerPort = None }
+          DockerPort = None
+          ZoneRedundant = None }
     member _.Run(state:WebAppConfig) =
         if state.Name.ResourceName = ResourceName.Empty then raiseFarmer "No Web App name has been set."
         { state with
@@ -729,7 +732,10 @@ type WebAppBuilder() =
     /// Map specified port traffic from your docker container to port 80 for App Service
     [<CustomOperation "docker_port">]
     member _.DockerPort(state: WebAppConfig, dockerPort:int) = { state with DockerPort = Some dockerPort }
-    
+    /// Enables the zone redundancy in service plan
+    [<CustomOperation "zone_redundant">]
+    member this.ZoneRedundant(state:WebAppConfig, flag:FeatureFlag) = {state with ZoneRedundant = Some flag}
+
     interface IPrivateEndpoints<WebAppConfig> with member _.Add state endpoints = { state with PrivateEndpoints = state.PrivateEndpoints |> Set.union endpoints}
     interface ITaggable<WebAppConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     interface IDependable<WebAppConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
@@ -954,9 +960,15 @@ module Extensions =
         member this.HealthCheckPath(state:'T, healthCheckPath:string) = this.Map state (fun x -> {x with HealthCheckPath = Some(healthCheckPath)})
         /// Add Allowed ip for ip security restrictions
         [<CustomOperation "add_allowed_ip_restriction">] 
-        member this.AllowIp(state:'T, name, ip) = 
+        member this.AllowIp(state:'T, name, ip:IPAddressCidr) = 
+            this.Map state (fun x -> { x with IpSecurityRestrictions = IpSecurityRestriction.Create name ip Allow :: x.IpSecurityRestrictions })
+        member this.AllowIp(state:'T, name, ip:string) = 
+            let ip = IPAddressCidr.parse ip
             this.Map state (fun x -> { x with IpSecurityRestrictions = IpSecurityRestriction.Create name ip Allow :: x.IpSecurityRestrictions })
         /// Add Denied ip for ip security restrictions
         [<CustomOperation "add_denied_ip_restriction">] 
         member this.DenyIp(state:'T, name, ip) = 
+            this.Map state (fun x -> { x with IpSecurityRestrictions = IpSecurityRestriction.Create name ip Deny :: x.IpSecurityRestrictions })
+        member this.DenyIp(state:'T, name, ip:string) = 
+            let ip = IPAddressCidr.parse ip
             this.Map state (fun x -> { x with IpSecurityRestrictions = IpSecurityRestriction.Create name ip Deny :: x.IpSecurityRestrictions })
