@@ -45,7 +45,7 @@
       "type": "Microsoft.Web/sites/siteextensions"
     },
     {
-      "apiVersion": "2020-06-01",
+      "apiVersion": "2021-03-01",
       "dependsOn": [
         "[resourceId('Microsoft.Web/serverfarms', 'isaacdiagsuperweb-farm')]"
       ],

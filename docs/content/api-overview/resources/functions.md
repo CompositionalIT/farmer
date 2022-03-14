@@ -52,7 +52,7 @@ The Functions builder is used to create Azure Functions accounts. It abstracts t
 | health_check_path | Sets the path to your functions health check endpoint, which Azure load balancers will ping to determine which instances are healthy.|
 | add_allowed_ip_restriction | Adds an 'allow' rule for an ip |
 | add_denied_ip_restriction | Adds an 'deny' rule for an ip |
-
+| route_via_vnet | Enable the VNET integration feature in azure where all outbound traffic from the function with be sent via the specified subnet. |
 #### Post-deployment Builder Keywords
 The Functions builder contains special commands that are executed *after* the ARM deployment is completed.
 

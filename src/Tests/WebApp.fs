@@ -876,4 +876,59 @@ let tests = testList "Web App Tests" [
           Expect.containsAll dependencies  [ $"[resourceId('Microsoft.Web/sites', '{webApp.Name.ResourceName.Value}')]"] "Slot config names resource should depend on web site"
 
     }
+    test "Linux automatically turns off logging extension" {
+        let wa = webApp { name "siteX"; operating_system Linux }
+        let extensions = wa |> getResources |> getResource<SiteExtension>
+        Expect.isEmpty extensions "Should not be any extensions"
+    }
+
+    test "Supports docker ports with WEBSITES_PORT"{
+        let wa = webApp { name "testApp"; docker_port 8080; }
+        let port = Expect.wantSome wa.DockerPort "Docker port should be set"
+        Expect.equal port 8080 "Docker port should 8080"
+           
+        let site = wa |> getResources|> getResource<Web.Site> |> List.head
+
+        let settings = Expect.wantSome site.AppSettings "AppSettings should be set"
+        let (hasValue, value) = settings.TryGetValue("WEBSITES_PORT");
+         
+        Expect.isTrue hasValue "WEBSITES_PORT should be set"
+        Expect.equal value.Value "8080" "WEBSITES_PORT should be 8080"
+
+        let defaultWa = webApp { name "testApp"; }
+        Expect.isNone defaultWa.DockerPort "Docker port should not be set"
+    }
+
+    test "Web App enables zoneRedundant in service plan" {
+        let resources = webApp { name "test"; zone_redundant Enabled } |> getResources
+        let sf = resources |> getResource<Web.ServerFarm> |> List.head
+
+        Expect.equal sf.ZoneRedundant (Some Enabled) "ZoneRedundant should be enabled"
+    }
+    test "Can integrate unmanaged vnet" {
+        let subnetId = Arm.Network.subnets.resourceId (ResourceName "my-vnet", ResourceName "my-subnet") 
+        let wa = webApp { name "testApp"; route_via_vnet (Unmanaged subnetId) }
+           
+        let resources = wa |> getResources
+        let site = resources |> getResource<Web.Site> |> List.head
+        let vnet = Expect.wantSome site.LinkToSubnet "LinkToSubnet was not set"
+        Expect.equal vnet (Direct (Unmanaged subnetId)) "LinkToSubnet was incorrect"
+
+        let vnetConnections = resources |> getResource<Web.VirtualNetworkConnection> 
+        Expect.hasLength vnetConnections 1 "incorrect number of Vnet connections"
+    }
+       
+    test "Can integrate managed vnet" {
+        let vnetConfig = vnet { name "my-vnet" } 
+        let wa = webApp { name "testApp"; route_via_vnet (vnetConfig, ResourceName "my-subnet") }
+               
+        let resources = wa |> getResources
+        let site = resources |> getResource<Web.Site> |> List.head
+        let vnet = Expect.wantSome site.LinkToSubnet "LinkToSubnet was not set"
+        Expect.equal vnet (ViaManagedVNet ( (Arm.Network.virtualNetworks.resourceId "my-vnet"), ResourceName "my-subnet" )) "LinkToSubnet was incorrect"
+           
+        let vnetConnections = resources |> getResource<Web.VirtualNetworkConnection> 
+        Expect.hasLength vnetConnections 1 "incorrect number of Vnet connections"
+    }
+
 ]
