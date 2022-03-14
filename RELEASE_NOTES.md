@@ -1,8 +1,9 @@
 Release Notes
 =============
 
-## 1.6.31
-* VMs: Allow setting Priority and Spot Instance Settings
+## vNext
+* WebApps/Functions: Specify connection string types
+* VMs: Priority and Spot Instance Settings
 
 ## 1.6.30
 * WebApps/Functions: Allow adding IP restriction string with CIDR

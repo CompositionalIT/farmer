@@ -829,9 +829,12 @@ module Extensions =
             { current with ConnectionStrings = current.ConnectionStrings.Add(key, (ParameterSetting (SecureParameter key), Custom)) }
             |> this.Wrap state
         member this.AddConnectionString(state:'T, (key, value:ArmExpression)) =
+            this.AddConnectionString(state, (key, value, Custom))
+        member this.AddConnectionString(state:'T, (key, value:ArmExpression, kind)) =
             let current = this.Get state
-            { current with ConnectionStrings = current.ConnectionStrings.Add(key, (ExpressionSetting value, Custom)) }
+            { current with ConnectionStrings = current.ConnectionStrings.Add(key, (ExpressionSetting value, kind)) }
             |> this.Wrap state
+            
         /// Creates a set of connection strings of the web app whose values will be supplied as secret parameters.
         [<CustomOperation "connection_strings">]
         member this.AddConnectionStrings(state:'T, connectionStrings) =
