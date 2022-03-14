@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+## 1.6.31
+* WebApps: Fix flakey deployments of web apps with multiple custom domains.
+* Deployments: Fix `ResourceId` generation when using a resource with a template.
+
 ## 1.6.30
 * WebApps/Functions: Allow adding IP restriction string with CIDR
 
