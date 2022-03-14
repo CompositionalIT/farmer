@@ -37,8 +37,8 @@ let tests = testList "AppInsights" [
         let dependencies = json.SelectToken("resources[?(@.name=='ai')].dependsOn").Children() |> Seq.map string |> Seq.toArray
 
         Expect.equal resourceId "[resourceId('Microsoft.OperationalInsights/workspaces', 'la')]" "Incorrect workspace id"
-        Expect.equal version "2020-02-02-preview" "Incorrect API version"
-        Expect.equal ai.InstrumentationKey.Value ("reference(resourceId('Microsoft.Insights/components', 'ai'), '2020-02-02-preview').InstrumentationKey") "Incorrect Instrumentation Key reference"
+        Expect.equal version "2020-02-02" "Incorrect API version"
+        Expect.equal ai.InstrumentationKey.Value ("reference(resourceId('Microsoft.Insights/components', 'ai'), '2020-02-02').InstrumentationKey") "Incorrect Instrumentation Key reference"
         Expect.sequenceEqual dependencies [ "[resourceId('Microsoft.OperationalInsights/workspaces', 'la')]" ] "Incorrect dependencies"
    }
 ]
