@@ -391,8 +391,7 @@ type HostNameBinding =
     { Location: Location
       SiteId: LinkedResource
       DomainName: string
-      SslState: SslState
-      DependsOn: ResourceId Set }
+      SslState: SslState}
         member this.SiteResourceId =
             this.SiteId.Name
         member this.ResourceName =

@@ -531,8 +531,7 @@ type WebAppConfig =
                     { Location = location
                       SiteId =  Managed (Arm.Web.sites.resourceId this.Name.ResourceName)
                       DomainName = customDomain.DomainName
-                      SslState = SslDisabled
-                      DependsOn = Set.empty} // Initially create non-secure host name binding, we link the certificate in a nested deployment below
+                      SslState = SslDisabled } // Initially create non-secure host name binding, we link the certificate in a nested deployment below
 
                 let dependsOn : ResourceId list = 
                   match previousHostNameCertificateLinkingDeployment with
@@ -590,7 +589,6 @@ type WebAppConfig =
                                             match certOptions with
                                             | AppManagedCertificate -> SniBased (cert.GetThumbprintReference aspRgName)
                                             | CustomCertificate thumbprint -> SniBased thumbprint
-                                        DependsOn = Set.empty // Don't want the dependency in this nested template.
                                       }
                         depends_on certificateDeployment.ResourceId
                      }
