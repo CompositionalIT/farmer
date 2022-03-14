@@ -64,12 +64,13 @@ let tests = testList "Web App Tests" [
     test "Web App correctly adds connection strings" {
         let sa = storageAccount { name "foo" }
         let wa =
-            let resources = webApp { name "test"; connection_string "a"; connection_string ("b", sa.Key) } |> getResources
+            let resources = webApp { name "test"; connection_string "a"; connection_string ("b", sa.Key); connection_string ("c", ArmExpression.create("c"), SQLAzure) } |> getResources
             resources |> getResource<Web.Site> |> List.head
 
         let expected = [
             "a", (ParameterSetting(SecureParameter "a"), Custom)
             "b", (ExpressionSetting sa.Key, Custom)
+            "c", (ExpressionSetting (ArmExpression.create("c")), SQLAzure)
         ]
         let parameters = wa :> IParameters
 

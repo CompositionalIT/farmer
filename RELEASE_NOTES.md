@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## vNext
+* WebApps/Functions: Specify connection string types
+
 ## 1.6.30
 * WebApps/Functions: Allow adding IP restriction string with CIDR
 
