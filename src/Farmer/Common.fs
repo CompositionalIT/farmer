@@ -723,6 +723,12 @@ module WebApp =
             { Name = name
               IpAddressCidr = cidr
               Action = action }
+    type VirtualApplication =
+        { PhysicalPath: string 
+          PreloadEnabled: bool option }
+        static member Create physicalPath preloadEnabled =
+            { PhysicalPath = physicalPath
+              PreloadEnabled = preloadEnabled }
     module Extensions =
         /// The Microsoft.AspNetCore.AzureAppServices logging extension.
         let Logging = ExtensionName "Microsoft.AspNetCore.AzureAppServices.SiteExtension"

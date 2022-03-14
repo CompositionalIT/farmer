@@ -230,7 +230,8 @@ type WebAppConfig =
       PrivateEndpoints: (LinkedResource * string option) Set
       CustomDomains : Map<string,DomainConfig> 
       DockerPort: int option
-      ZoneRedundant : FeatureFlag option }
+      ZoneRedundant : FeatureFlag option
+      VirtualApplications : Map<string, VirtualApplication> }
     member this.Name = this.CommonWebConfig.Name
     /// Gets this web app's Server Plan's full resource ID.
     member this.ServicePlanId = this.CommonWebConfig.ServicePlan.resourceId this.Name.ResourceName
@@ -455,7 +456,7 @@ type WebAppConfig =
                   ZipDeployPath = this.CommonWebConfig.ZipDeployPath |> Option.map (fun (path,slot) -> path, ZipDeploy.ZipDeployTarget.WebApp, slot )
                   HealthCheckPath = this.CommonWebConfig.HealthCheckPath
                   IpSecurityRestrictions = this.CommonWebConfig.IpSecurityRestrictions
-                }
+                  VirtualApplications = this.VirtualApplications }
 
             match keyVault with
             | Some keyVault ->
@@ -628,7 +629,8 @@ type WebAppBuilder() =
           PrivateEndpoints = Set.empty
           CustomDomains = Map.empty
           DockerPort = None
-          ZoneRedundant = None }
+          ZoneRedundant = None
+          VirtualApplications = Map [] }
     member _.Run(state:WebAppConfig) =
         if state.Name.ResourceName = ResourceName.Empty then raiseFarmer "No Web App name has been set."
         { state with
@@ -735,6 +737,23 @@ type WebAppBuilder() =
     /// Enables the zone redundancy in service plan
     [<CustomOperation "zone_redundant">]
     member this.ZoneRedundant(state:WebAppConfig, flag:FeatureFlag) = {state with ZoneRedundant = Some flag}
+
+    member _.AddVirtualApplication(state:WebAppConfig, physicalPath, virtualPath, preloadEnabled) = 
+        { state with VirtualApplications =
+                        if state.VirtualApplications.IsEmpty
+                            then Map [ ("/", VirtualApplication.Create "site\\wwwroot" None ) ]
+                            else state.VirtualApplications
+                        |> Map.add physicalPath (VirtualApplication.Create ("site\\" + virtualPath) preloadEnabled) }
+
+    /// Adds Virtual Application definition
+    [<CustomOperation "add_virtual_application">] 
+    member this.AddVirtualApplication(state:WebAppConfig, physicalPath, virtualPath) = 
+        this.AddVirtualApplication(state, physicalPath, virtualPath, None)
+
+    /// Adds Virtual Application which is configured to be preloaded
+    [<CustomOperation "add_virtual_application_preloaded">] 
+    member this.AddVirtualApplicationPreloaded(state:WebAppConfig, physicalPath, virtualPath) = 
+        this.AddVirtualApplication(state, physicalPath, virtualPath, Some true)
 
     interface IPrivateEndpoints<WebAppConfig> with member _.Add state endpoints = { state with PrivateEndpoints = state.PrivateEndpoints |> Set.union endpoints}
     interface ITaggable<WebAppConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }

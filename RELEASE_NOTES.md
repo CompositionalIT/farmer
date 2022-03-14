@@ -6,6 +6,7 @@ Release Notes
 
 ## 1.6.30
 * WebApps/Functions: Allow adding IP restriction string with CIDR
+* WebApps: Support virtual applications with `add_virtual_application`/`add_virtual_application_preloaded`
 
 ## 1.6.29
 * CLI: include `--only-show-error` option when executing Azure CLI commands.

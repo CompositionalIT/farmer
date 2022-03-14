@@ -201,7 +201,8 @@ type Site =
       AutoSwapSlotName: string option
       ZipDeployPath : (string * ZipDeploy.ZipDeployTarget * ZipDeploy.ZipDeploySlot) option
       HealthCheckPath : string option
-      IpSecurityRestrictions : IpSecurityRestriction list }
+      IpSecurityRestrictions : IpSecurityRestriction list
+      VirtualApplications : Map<string, VirtualApplication> }
     /// Shorthand for SiteType.ResourceType
     member this.ResourceType = this.SiteType.ResourceType
     /// Shorthand for SiteType.ResourceName
@@ -303,6 +304,15 @@ type Site =
                             |> Option.toObj
                            healthCheckPath = this.HealthCheckPath |> Option.toObj
                            autoSwapSlotName = this.AutoSwapSlotName |> Option.toObj
+                           virtualApplications = 
+                                if this.VirtualApplications.IsEmpty
+                                    then null
+                                    else this.VirtualApplications
+                                            |> Seq.map (fun virtualAppKvp ->
+                                                {| virtualPath = virtualAppKvp.Key
+                                                   physicalPath = virtualAppKvp.Value.PhysicalPath
+                                                   preloadEnabled = virtualAppKvp.Value.PreloadEnabled |> Option.toNullable |})
+                                            |> box
                         |}
                     |}
             |}

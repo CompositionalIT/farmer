@@ -274,7 +274,8 @@ type FunctionsConfig =
                     | _ -> None
                   WorkerProcess = this.CommonWebConfig.WorkerProcess
                   HealthCheckPath = this.CommonWebConfig.HealthCheckPath
-                  IpSecurityRestrictions = this.CommonWebConfig.IpSecurityRestrictions }
+                  IpSecurityRestrictions = this.CommonWebConfig.IpSecurityRestrictions
+                  VirtualApplications = Map [] }
 
             match this.CommonWebConfig.ServicePlan with
             | DeployableResource this.Name.ResourceName resourceId ->
