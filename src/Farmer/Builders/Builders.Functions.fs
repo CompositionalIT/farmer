@@ -15,7 +15,7 @@ open System
 type FunctionsRuntime = DotNet | DotNetIsolated | Node | Java | Python
 type VersionedFunctionsRuntime =  FunctionsRuntime * string option
 type FunctionsRuntime with
-    // These values are defined on FunctionsRuntime to reduce the need for users to be aware of the distinction 
+    // These values are defined on FunctionsRuntime to reduce the need for users to be aware of the distinction
     // between FunctionsRuntime and VersionedFunctionsRuntime as well as to provide parity with WebApp runtime
     static member DotNetCore31 = DotNet, Some "3.1"
     static member DotNet50 = DotNet, Some "5.0"
@@ -246,12 +246,12 @@ type FunctionsConfig =
                   HTTP20Enabled = None
                   ClientAffinityEnabled = None
                   WebSocketsEnabled = None
-                  LinuxFxVersion = 
+                  LinuxFxVersion =
                     match this.CommonWebConfig.OperatingSystem with
                     | Windows -> None
                     | Linux ->
                       match this.VersionedRuntime with
-                      | DotNet, Some version -> 
+                      | DotNet, Some version ->
                         match Double.TryParse(version) with
                         | true, versionNo when versionNo < 4.0 -> Some $"DOTNETCORE|{version}"
                         | _ -> Some $"DOTNET|{version}"
@@ -311,6 +311,8 @@ type FunctionsConfig =
                   Location = location
                   DisableIpMasking = false
                   SamplingPercentage = 100
+                  Dependencies = Set.empty
+                  InstanceKind = Classic
                   LinkedWebsite =
                     match this.CommonWebConfig.OperatingSystem with
                     | Windows -> Some this.Name.ResourceName
@@ -347,7 +349,7 @@ type FunctionsBuilder() =
               Slots = Map.empty
               WorkerProcess = None
               ZipDeployPath = None
-              HealthCheckPath = None 
+              HealthCheckPath = None
               IpSecurityRestrictions = [] }
           StorageAccount = derived (fun config ->
             let storage = config.Name.ResourceName.Map (sprintf "%sstorage") |> sanitiseStorage |> ResourceName
