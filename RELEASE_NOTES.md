@@ -1,10 +1,8 @@
 Release Notes
 =============
-## vNext
-* Application Insights: Support for Workspace-enabled instances.
-
 ## 1.6.30
 * WebApps/Functions: Allow adding IP restriction string with CIDR
+* Application Insights: Support for Workspace-enabled instances.
 
 ## 1.6.29
 * CLI: include `--only-show-error` option when executing Azure CLI commands.

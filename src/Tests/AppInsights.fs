@@ -31,14 +31,13 @@ let tests = testList "AppInsights" [
         let deployment = arm {
             add_resources [ workspace; ai ]
         }
-        let json = deployment.Template |> Writer.toJson |> JObject.Parse
-        let version = json.SelectToken("resources[?(@.name=='ai')].apiVersion").ToString()
-        let resourceId = json.SelectToken("resources[?(@.name=='ai')].properties.WorkspaceResourceId").ToString()
-        let dependencies = json.SelectToken("resources[?(@.name=='ai')].dependsOn").Children() |> Seq.map string |> Seq.toArray
 
-        Expect.equal resourceId "[resourceId('Microsoft.OperationalInsights/workspaces', 'la')]" "Incorrect workspace id"
-        Expect.equal version "2020-02-02" "Incorrect API version"
+        let json = deployment.Template |> Writer.toJson |> JObject.Parse
+        let select query = json.SelectToken(query).ToString()
+
+        Expect.equal (select "resources[?(@.name=='ai')].properties.WorkspaceResourceId") "[resourceId('Microsoft.OperationalInsights/workspaces', 'la')]" "Incorrect workspace id"
+        Expect.equal (select "resources[?(@.name=='ai')].apiVersion") "2020-02-02" "Incorrect API version"
         Expect.equal ai.InstrumentationKey.Value ("reference(resourceId('Microsoft.Insights/components', 'ai'), '2020-02-02').InstrumentationKey") "Incorrect Instrumentation Key reference"
-        Expect.sequenceEqual dependencies [ "[resourceId('Microsoft.OperationalInsights/workspaces', 'la')]" ] "Incorrect dependencies"
+        Expect.sequenceEqual (json.SelectToken("resources[?(@.name=='ai')].dependsOn").Children() |> Seq.map string |> Seq.toArray) [ "[resourceId('Microsoft.OperationalInsights/workspaces', 'la')]" ] "Incorrect dependencies"
    }
 ]
