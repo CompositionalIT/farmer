@@ -28,7 +28,7 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Web App | setting | Sets an app setting of the web app in the form "key" "value". |
 | Web App | secret_setting | Sets a "secret" app setting of the web app. You must supply the "key", whilst the value will be supplied as a secure parameter. |
 | Web App | settings | Sets a list of app setting of the web app as tuples in the form of ("key", "value"). |
-| Web App | connection_string | Creates a connection string whose value is supplied as secret parameter, or as an ARM expression in the tupled form of ("key", expr). |
+| Web App | connection_string | Creates a connection string whose value is supplied as secret parameter, or as an ARM expression in the tupled form of ("key", expr), or with the connection string type ("key", expr, SQLAzure). |
 | Web App | connection_strings | Creates a set of connection strings of the web app whose values will be supplied as secret parameters. |
 | Web App | ftp_state | Allows to enable or disable FTP and FTPS. |
 | Web App | https_only | Disables http for this webapp so that only HTTPS is used. |

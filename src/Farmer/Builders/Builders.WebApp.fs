@@ -170,7 +170,7 @@ type SlotBuilder() =
         let cidr = { Address = ip; Prefix = 32 }
         this.AllowIp(state, name, cidr)
     member this.AllowIp(state, name, ip:string) : SlotConfig = 
-        let cidr = { Address = Net.IPAddress.Parse ip; Prefix = 32 }
+        let cidr = IPAddressCidr.parse ip
         this.AllowIp(state, name, cidr)
     /// Add Denied ip for ip security restrictions
     [<CustomOperation "add_denied_ip_restriction">] 
@@ -180,7 +180,7 @@ type SlotBuilder() =
         let cidr = { Address = ip; Prefix = 32 }
         this.DenyIp(state, name, cidr)
     member this.DenyIp(state, name, ip:string) : SlotConfig = 
-        let cidr = { Address = Net.IPAddress.Parse ip; Prefix = 32 }
+        let cidr = IPAddressCidr.parse ip
         this.DenyIp(state, name, cidr) 
     interface ITaggable<SlotConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     interface IDependable<SlotConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
@@ -850,9 +850,12 @@ module Extensions =
             { current with ConnectionStrings = current.ConnectionStrings.Add(key, (ParameterSetting (SecureParameter key), Custom)) }
             |> this.Wrap state
         member this.AddConnectionString(state:'T, (key, value:ArmExpression)) =
+            this.AddConnectionString(state, (key, value, Custom))
+        member this.AddConnectionString(state:'T, (key, value:ArmExpression, kind)) =
             let current = this.Get state
-            { current with ConnectionStrings = current.ConnectionStrings.Add(key, (ExpressionSetting value, Custom)) }
+            { current with ConnectionStrings = current.ConnectionStrings.Add(key, (ExpressionSetting value, kind)) }
             |> this.Wrap state
+            
         /// Creates a set of connection strings of the web app whose values will be supplied as secret parameters.
         [<CustomOperation "connection_strings">]
         member this.AddConnectionStrings(state:'T, connectionStrings) =
@@ -978,11 +981,17 @@ module Extensions =
         member this.HealthCheckPath(state:'T, healthCheckPath:string) = this.Map state (fun x -> {x with HealthCheckPath = Some(healthCheckPath)})
         /// Add Allowed ip for ip security restrictions
         [<CustomOperation "add_allowed_ip_restriction">] 
-        member this.AllowIp(state:'T, name, ip) = 
+        member this.AllowIp(state:'T, name, ip:IPAddressCidr) = 
+            this.Map state (fun x -> { x with IpSecurityRestrictions = IpSecurityRestriction.Create name ip Allow :: x.IpSecurityRestrictions })
+        member this.AllowIp(state:'T, name, ip:string) = 
+            let ip = IPAddressCidr.parse ip
             this.Map state (fun x -> { x with IpSecurityRestrictions = IpSecurityRestriction.Create name ip Allow :: x.IpSecurityRestrictions })
         /// Add Denied ip for ip security restrictions
         [<CustomOperation "add_denied_ip_restriction">] 
         member this.DenyIp(state:'T, name, ip) = 
+            this.Map state (fun x -> { x with IpSecurityRestrictions = IpSecurityRestriction.Create name ip Deny :: x.IpSecurityRestrictions })
+        member this.DenyIp(state:'T, name, ip:string) = 
+            let ip = IPAddressCidr.parse ip
             this.Map state (fun x -> { x with IpSecurityRestrictions = IpSecurityRestriction.Create name ip Deny :: x.IpSecurityRestrictions })
         /// Integrate this app with a virtual network subnet
         [<CustomOperation "vnet">]
