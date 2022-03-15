@@ -207,7 +207,7 @@ type CommonWebConfig =
       ZipDeployPath : (string*ZipDeploy.ZipDeploySlot) option
       HealthCheckPath: string option
       IpSecurityRestrictions: IpSecurityRestriction list 
-      RouteViaSubnet : SubnetReference option
+      IntegratedSubnet : SubnetReference option
       PrivateEndpoints: (SubnetReference * string option) Set }
 
 type WebAppConfig =
@@ -458,7 +458,7 @@ type WebAppConfig =
                   ZipDeployPath = this.CommonWebConfig.ZipDeployPath |> Option.map (fun (path,slot) -> path, ZipDeploy.ZipDeployTarget.WebApp, slot )
                   HealthCheckPath = this.CommonWebConfig.HealthCheckPath
                   IpSecurityRestrictions = this.CommonWebConfig.IpSecurityRestrictions
-                  LinkToSubnet = this.CommonWebConfig.RouteViaSubnet }
+                  LinkToSubnet = this.CommonWebConfig.IntegratedSubnet }
 
             match keyVault with
             | Some keyVault ->
@@ -586,7 +586,7 @@ type WebAppConfig =
                     } :> IBuilder).BuildResources location
                 | _ -> ()
 
-            match this.CommonWebConfig.RouteViaSubnet with
+            match this.CommonWebConfig.IntegratedSubnet with
             | None -> ()
             | Some subnetRef ->
                 { Site = site
@@ -616,7 +616,7 @@ type WebAppBuilder() =
               ZipDeployPath = None
               HealthCheckPath = None
               IpSecurityRestrictions = []
-              RouteViaSubnet = None 
+              IntegratedSubnet = None 
               PrivateEndpoints = Set.empty }
           Sku = Sku.F1
           WorkerSize = Small
@@ -642,6 +642,16 @@ type WebAppBuilder() =
           ZoneRedundant = None }
     member _.Run(state:WebAppConfig) =
         if state.Name.ResourceName = ResourceName.Empty then raiseFarmer "No Web App name has been set."
+        match state.CommonWebConfig with
+        | { ServicePlan = LinkedResource _ } -> () // can't validate as validation dependent on linked resource
+        | { IntegratedSubnet = None } -> () // no VNet to validate
+        | _ ->
+            match state.Sku with
+            | Standard _ -> ()
+            | Premium _ | PremiumV2 _| PremiumV3 _ -> ()
+            | ElasticPremium _ -> ()
+            | Isolated _ -> ()
+            | other -> raiseFarmer $"Web apps with SKU '%A{other}' do not support vnet integration."
         { state with
             SiteExtensions =
                 match state with
@@ -982,7 +992,7 @@ module Extensions =
                 if subnetId.ResourceId.Type.Type <> Arm.Network.subnets.Type 
                     then raiseFarmer $"given resource was not of type '{Arm.Network.subnets.Type}'."
             | None -> ()
-            this.Map state (fun x -> {x with RouteViaSubnet = subnet})
+            this.Map state (fun x -> {x with IntegratedSubnet = subnet})
         member this.RouteViaVNet(state:'T, subnetRef) = this.RouteViaVNet (state, Some subnetRef)
         member this.RouteViaVNet(state:'T, subnetId:LinkedResource) = this.RouteViaVNet (state, SubnetReference.create subnetId)
         member this.RouteViaVNet(state:'T, subnet:SubnetConfig) = this.RouteViaVNet (state, SubnetReference.create subnet)
