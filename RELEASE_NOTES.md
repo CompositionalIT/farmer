@@ -1,13 +1,10 @@
 Release Notes
 =============
-## 1.6.28
-- WebApps/Functions: Add support for vnet integration
-
-## vNext
-* WebApps/Functions: Specify connection string types
 
 ## 1.6.30
 * WebApps/Functions: Allow adding IP restriction string with CIDR
+* WebApps/Functions: Specify connection string types
+* WebApps/Functions: Add support for vnet integration
 
 ## 1.6.29
 * CLI: include `--only-show-error` option when executing Azure CLI commands.
