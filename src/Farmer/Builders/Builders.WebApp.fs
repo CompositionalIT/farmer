@@ -975,7 +975,7 @@ module Extensions =
         member this.DenyIp(state:'T, name, ip) = 
             this.Map state (fun x -> { x with IpSecurityRestrictions = IpSecurityRestriction.Create name ip Deny :: x.IpSecurityRestrictions })
         /// Integrate this app with a virtual network subnet
-        [<CustomOperation "route_via_vnet">]
+        [<CustomOperation "vnet">]
         member this.RouteViaVNet(state:'T, subnet:SubnetReference option) = 
             match subnet with
             | Some subnetId ->

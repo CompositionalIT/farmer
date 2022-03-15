@@ -814,9 +814,9 @@ let tests = testList "Web App Tests" [
 
         Expect.equal sf.ZoneRedundant (Some Enabled) "ZoneRedundant should be enabled"
     }
-    test "Can integrate unmanaged vnet" {
+    test "Can integrate with unmanaged vnet" {
         let subnetId = Arm.Network.subnets.resourceId (ResourceName "my-vnet", ResourceName "my-subnet") 
-        let wa = webApp { name "testApp"; route_via_vnet (Unmanaged subnetId) }
+        let wa = webApp { name "testApp"; vnet (Unmanaged subnetId) }
         
         let resources = wa |> getResources
         let site = resources |> getResource<Web.Site> |> List.head
@@ -827,9 +827,9 @@ let tests = testList "Web App Tests" [
         Expect.hasLength vnetConnections 1 "incorrect number of Vnet connections"
     }
     
-    test "Can integrate managed vnet" {
+    test "Can integrate with managed vnet" {
         let vnetConfig = vnet { name "my-vnet" } 
-        let wa = webApp { name "testApp"; route_via_vnet (vnetConfig, ResourceName "my-subnet") }
+        let wa = webApp { name "testApp"; vnet (vnetConfig, ResourceName "my-subnet") }
             
         let resources = wa |> getResources
         let site = resources |> getResource<Web.Site> |> List.head
