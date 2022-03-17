@@ -312,7 +312,7 @@ module Vm =
     type EvictionPolicy =
         | Deallocate
         | Delete
-        member this.ArmValue = match this with x -> x.ToString()
+        member this.ArmValue = match this with | Deallocate -> "Deallocate" | Delete -> "Delete"
     type BillingProfile =
         { MaxPrice: decimal }
     type Priority =
@@ -321,8 +321,9 @@ module Vm =
         | Spot of evictionPolicy:EvictionPolicy * maxPrice:decimal
         member this.ArmValue =
             match this with
+            | Low -> "Low"
+            | Regular -> "Regular"
             | Spot _ -> "Spot"
-            | x -> x.ToString()
 
 module internal Validation =
     // ANDs two validation rules

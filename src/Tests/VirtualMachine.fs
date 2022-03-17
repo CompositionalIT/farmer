@@ -240,4 +240,20 @@ let tests = testList "Virtual Machine" [
         Expect.equal (string extensionResource.["properties"].["type"]) "AADSSHLoginForLinux" $"Missing or incorrect extension type."
         Expect.equal (string extensionResource.["properties"].["typeHandlerVersion"]) "1.0" $"Missing or incorrect extension typeHandlerVersion."
     }
+
+    test "throws an error if you set priority more than once" {
+        let createVm () = arm { add_resource (vm { name "foo"; username "foo"; priority Regular; priority Regular }) } |> ignore
+        Expect.throws createVm "priority set more than once"
+    }
+
+    test "throws an error if you set spot_instance more than once" {
+        let createVm () = arm { add_resource (vm { name "foo"; username "foo"; spot_instance Deallocate; spot_instance Deallocate }) } |> ignore
+        Expect.throws createVm "priority and spot_instance both set"
+    }
+
+    test "throws an error if you specify priority and spot_instance" {
+        let createVm () = arm { add_resource (vm { name "foo"; username "foo"; priority Regular; spot_instance Deallocate }) } |> ignore
+        Expect.throws createVm "spot_instance set more than once"
+    }
+
 ]
