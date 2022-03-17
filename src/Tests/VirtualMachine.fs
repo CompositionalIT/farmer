@@ -248,12 +248,12 @@ let tests = testList "Virtual Machine" [
 
     test "throws an error if you set spot_instance more than once" {
         let createVm () = arm { add_resource (vm { name "foo"; username "foo"; spot_instance Deallocate; spot_instance Deallocate }) } |> ignore
-        Expect.throws createVm "priority and spot_instance both set"
+        Expect.throws createVm "spot_instance set more than once"
     }
 
-    test "throws an error if you specify priority and spot_instance" {
+    test "throws an error if you set priority and spot_instance" {
         let createVm () = arm { add_resource (vm { name "foo"; username "foo"; priority Regular; spot_instance Deallocate }) } |> ignore
-        Expect.throws createVm "spot_instance set more than once"
+        Expect.throws createVm "priority and spot_instance both set"
     }
 
 ]
