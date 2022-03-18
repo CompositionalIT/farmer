@@ -282,7 +282,7 @@ type FunctionsConfig =
             | DeployableResource this.Name.ResourceName resourceId ->
                 { Name = resourceId.Name
                   Location = location
-                  Sku = Sku.Y1
+                  Sku = this.CommonWebConfig.Sku
                   WorkerSize = Serverless
                   WorkerCount = 0
                   MaximumElasticWorkerCount = None
@@ -355,6 +355,7 @@ type FunctionsBuilder() =
               SecretStore = AppService
               ServicePlan = derived (fun name -> serverFarms.resourceId (name-"farm"))
               Settings = Map.empty
+              Sku = Sku.Y1
               Slots = Map.empty
               WorkerProcess = None
               ZipDeployPath = None
@@ -372,6 +373,7 @@ type FunctionsBuilder() =
           Tags = Map.empty }
     member _.Run (state:FunctionsConfig) =
         if state.Name.ResourceName = ResourceName.Empty then raiseFarmer "No Functions instance name has been set."
+        state.CommonWebConfig.Validate()
         state
     /// Do not create an automatic storage account; instead, link to a storage account that is created outside of this Functions instance.
     [<CustomOperation "link_to_storage_account">]

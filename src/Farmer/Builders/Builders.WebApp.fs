@@ -202,6 +202,7 @@ type CommonWebConfig =
       SecretStore : SecretStore
       ServicePlan : ResourceRef<ResourceName>
       Settings : Map<string, Setting>
+      Sku : Sku
       Slots : Map<string,SlotConfig>
       WorkerProcess : Bitness option
       ZipDeployPath : (string*ZipDeploy.ZipDeploySlot) option
@@ -209,6 +210,21 @@ type CommonWebConfig =
       IpSecurityRestrictions: IpSecurityRestriction list 
       IntegratedSubnet : SubnetReference option
       PrivateEndpoints: (SubnetReference * string option) Set }
+      member this.Validate () =
+          match this with
+          | { ServicePlan = LinkedResource _ } -> () // can't validate as validation dependent on linked resource
+          | { IntegratedSubnet = None } -> () // no VNet to validate
+          | _ ->
+              match this.Sku with
+              | Standard _ -> ()
+              | Premium _ | PremiumV2 _| PremiumV3 _ -> ()
+              | ElasticPremium _ -> ()
+              | Isolated _ -> ()
+              | Shared as other -> raiseFarmer $"Sites deployed to service plans with SKU '%A{other}' do not support vnet integration."
+              | Free as other -> raiseFarmer $"Sites deployed to service plans with SKU '%A{other}' do not support vnet integration."
+              | Basic _ as other -> raiseFarmer $"Sites deployed to service plans with SKU '%A{other}' do not support vnet integration."
+              | Dynamic as other -> raiseFarmer $"Sites deployed to service plans with SKU '%A{other}' do not support vnet integration."
+
 
 type WebAppConfig =
     { CommonWebConfig: CommonWebConfig
@@ -217,7 +233,6 @@ type WebAppConfig =
       WebSocketsEnabled: bool option
       Dependencies : ResourceId Set
       Tags : Map<string,string>
-      Sku : Sku
       WorkerSize : WorkerSize
       WorkerCount : int
       MaximumElasticWorkerCount : int option
@@ -498,7 +513,7 @@ type WebAppConfig =
             | DeployableResource this.Name.ResourceName resourceId ->
                 { Name = resourceId.Name
                   Location = location
-                  Sku = this.Sku
+                  Sku = this.CommonWebConfig.Sku
                   WorkerSize = this.WorkerSize
                   WorkerCount = this.WorkerCount
                   MaximumElasticWorkerCount = this.MaximumElasticWorkerCount
@@ -613,6 +628,7 @@ type WebAppBuilder() =
               SecretStore = AppService
               ServicePlan = derived (fun name -> serverFarms.resourceId (name-"farm"))
               Settings = Map.empty
+              Sku = Sku.F1
               Slots = Map.empty
               WorkerProcess = None
               ZipDeployPath = None
@@ -620,7 +636,6 @@ type WebAppBuilder() =
               IpSecurityRestrictions = []
               IntegratedSubnet = None 
               PrivateEndpoints = Set.empty }
-          Sku = Sku.F1
           WorkerSize = Small
           WorkerCount = 1
           MaximumElasticWorkerCount = None
@@ -644,16 +659,7 @@ type WebAppBuilder() =
           ZoneRedundant = None }
     member _.Run(state:WebAppConfig) =
         if state.Name.ResourceName = ResourceName.Empty then raiseFarmer "No Web App name has been set."
-        match state.CommonWebConfig with
-        | { ServicePlan = LinkedResource _ } -> () // can't validate as validation dependent on linked resource
-        | { IntegratedSubnet = None } -> () // no VNet to validate
-        | _ ->
-            match state.Sku with
-            | Standard _ -> ()
-            | Premium _ | PremiumV2 _| PremiumV3 _ -> ()
-            | ElasticPremium _ -> ()
-            | Isolated _ -> ()
-            | other -> raiseFarmer $"Web apps with SKU '%A{other}' do not support vnet integration."
+        state.CommonWebConfig.Validate()
         { state with
             SiteExtensions =
                 match state with
@@ -679,7 +685,7 @@ type WebAppBuilder() =
         }
 
     [<CustomOperation "sku">]
-    member _.Sku(state:WebAppConfig, sku) = { state with Sku = sku }
+    member _.Sku(state:WebAppConfig, sku) = { state with CommonWebConfig = {state.CommonWebConfig with Sku = sku }}
     /// Sets the size of the service plan worker.
     [<CustomOperation "worker_size">]
     member _.WorkerSize(state:WebAppConfig, workerSize) = { state with WorkerSize = workerSize }
