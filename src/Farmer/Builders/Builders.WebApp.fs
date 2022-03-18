@@ -1005,17 +1005,12 @@ module Extensions =
             | None -> ()
             this.Map state (fun x -> {x with IntegratedSubnet = subnet})
         member this.LinkToVNet(state:'T, subnetRef) = this.LinkToVNet (state, Some subnetRef)
+        member this.LinkToVNet(state:'T, subnetId:ResourceId) = this.LinkToVNet (state, SubnetReference.create (Managed subnetId))
+        member this.LinkToVNet(state:'T, (vnetId, subnetName):ResourceId*ResourceName) = this.LinkToVNet (state, SubnetReference.create (Managed vnetId,subnetName))
         member this.LinkToVNet(state:'T, subnet:SubnetConfig) = this.LinkToVNet (state, SubnetReference.create subnet)
-        member this.LinkToVNet(state:'T, (vnet:VirtualNetworkConfig, subnetName)) = this.LinkToVNet (state, SubnetReference.create (vnet,subnetName))
-        member this.LinkToVNet(state:'T, (vnetId:ResourceId, subnetName)) = this.LinkToVNet (state, SubnetReference.create (Managed vnetId,subnetName))
+        member this.LinkToVNet(state:'T, (vnet, subnetName):VirtualNetworkConfig*ResourceName) = this.LinkToVNet (state, SubnetReference.create (vnet,subnetName))
         [<CustomOperation "link_to_unmanaged_vnet">]
-        member this.LinkToUnmanagedVNet(state:'T, subnet:SubnetReference option) = 
-            match subnet with
-            | Some subnetId ->
-                if subnetId.ResourceId.Type.Type <> Arm.Network.subnets.Type 
-                    then raiseFarmer $"given resource was not of type '{Arm.Network.subnets.Type}'."
-            | None -> ()
-            this.Map state (fun x -> {x with IntegratedSubnet = subnet})
-        member this.LinkToUnmanagedVNet(state:'T, subnetRef) = this.LinkToVNet (state, Some subnetRef)
-        member this.LinkToUnmanagedVNet(state:'T, subnetId:ResourceId) = this.LinkToUnmanagedVNet (state, SubnetReference.create (Unmanaged subnetId))
-        member this.LinkToUnmanagedVNet(state:'T, (vnetId:ResourceId, subnetName)) = this.LinkToUnmanagedVNet (state, SubnetReference.create (Unmanaged vnetId,subnetName))
+        member this.LinkToUnmanagedVNet(state:'T, subnetId:ResourceId) = this.LinkToVNet (state, SubnetReference.create (Unmanaged subnetId))
+        member this.LinkToUnmanagedVNet(state:'T, (vnetId, subnetName):ResourceId*ResourceName) = this.LinkToVNet (state, SubnetReference.create (Unmanaged vnetId,subnetName))
+        member this.LinkToUnmanagedVNet(state:'T, subnet:SubnetConfig) = this.LinkToUnmanagedVNet (state, (subnet:>IBuilder).ResourceId)
+        member this.LinkToUnmanagedVNet(state:'T, (vnet, subnetName):VirtualNetworkConfig*ResourceName) = this.LinkToUnmanagedVNet (state, vnet.SubnetIds[subnetName.Value])

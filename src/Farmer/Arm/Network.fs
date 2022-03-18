@@ -32,8 +32,8 @@ type SubnetReference =
         | Direct subnet -> subnet.ResourceId
     member this.Dependency = 
         match this with
-        | ViaManagedVNet (vnetId,_)
-        | Direct (Managed vnetId) -> Some vnetId
+        | ViaManagedVNet (id,_)
+        | Direct (Managed id) -> Some id
         | _ -> None
     static member create(vnetRef:LinkedResource, subnetName:ResourceName) = 
         if vnetRef.ResourceId.Type.Type <> virtualNetworks.Type then 
@@ -47,8 +47,6 @@ type SubnetReference =
         if subnetRef.ResourceId.Type.Type <> subnets.Type then 
             raiseFarmer $"given resource was not of type '{subnets.Type}'."
         Direct subnetRef
-
-    static member create(subnetId:ResourceId) = ()
 
 type PublicIpAddress =
     { Name : ResourceName
