@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.6.31
+* Azure CLI: Escape parameters passed to the az deployment command (breaking change). Any previously escaped parameters need to be unescaped before passing to the tryValidate, tryWhatIf, tryExecute, whatIf and execute functions.
+
 ## 1.6.30
 * WebApps/Functions: Specify connection string types
 * WebApps/Functions: Allow adding IP restriction string with CIDR
@@ -19,9 +22,6 @@ Release Notes
 * WebApps/Functions: Don't turn on Logging Extension for Linux App Service.
 * WebApps: Allow multiple custom domains
 * WebApps: Support custom port for docker container with `docker_port`
-
-## 1.6.27
-* Deployment Scripts: Escape parameters passed to the az deployment command (breaking change). Any previously escaped parameters need to be unescaped before passing to the execute or whatIf functions.
 
 ## 1.6.26
 * WebApps/Functions: Fix .NET 5/6 on Linux deployments.
