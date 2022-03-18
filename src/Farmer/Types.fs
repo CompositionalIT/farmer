@@ -216,10 +216,14 @@ type LinkedResource =
         | Managed resId
         | Unmanaged resId -> resId
     member this.Name = this.ResourceId.Name
-
+    
     static member addToSetIfManaged =
         function
         | Managed x -> Set.add x
+        | _ -> id
+    static member addToSetIfSomeManaged =
+        function
+        | Some x -> LinkedResource.addToSetIfManaged x
         | _ -> id
 
 

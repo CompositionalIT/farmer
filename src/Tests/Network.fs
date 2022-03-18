@@ -259,7 +259,7 @@ let tests = testList "Network Tests" [
         }
         let template = arm { add_resources [ myNet; myNsg ] }
         let jobj = template.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
-        let dependencies = jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualNetworks')].dependsOn" :?> Newtonsoft.Json.Linq.JArray
+        let dependencies = (jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualNetworks')].dependsOn").ToObject<string[]> ()
         Expect.isNotNull dependencies "vnet missing dependency for nsg"
         Expect.hasLength dependencies 1 "Incorrect number of dependencies for vnet"
         Expect.equal (dependencies.[0].ToString()) "[resourceId('Microsoft.Network/networkSecurityGroups', 'my-nsg')]" "Incorrect vnet dependencies"
@@ -292,7 +292,9 @@ let tests = testList "Network Tests" [
         let template = arm { add_resources [ myNet ] }
         let jobj = template.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
         let dependencies = jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualNetworks')].dependsOn" :?> Newtonsoft.Json.Linq.JArray
-        Expect.hasLength dependencies 0 "Should be no vnet dependencies when linking to nsg"
+        match (box dependencies) with
+        | null -> ()
+        | _ -> Expect.hasLength dependencies 0 "Should be no vnet dependencies when linking to nsg"
 
         let vnet = template |> getVnetResource
         Expect.isNotNull vnet.Subnets.[0].NetworkSecurityGroup "Subnet missing NSG"
@@ -338,7 +340,7 @@ let tests = testList "Network Tests" [
         }
         let jobj = template.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
         let dependsOn = jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualNetworks/subnets')].dependsOn" :?> Newtonsoft.Json.Linq.JArray
-        Expect.isNull dependsOn "Linking to unmanaged vnet should have no dependencies"
+        Expect.isEmpty dependsOn "Linking to unmanaged vnet should have no dependencies"
         let subnet = jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualNetworks/subnets')].name"
         Expect.equal (string subnet) "my-vnet/services" "Incorrect name on subnet"
     }
@@ -354,5 +356,62 @@ let tests = testList "Network Tests" [
             }
             template.Template |> Writer.toJson |> ignore
         ) "Adding a subnet resource without linking to a vnet is not allowed"
+    }
+    test "Subnet with route table" {
+        let vnetName = "my-vnet"
+        let servicesSubnet = "services"
+        let routeTableId = routeTables.resourceId("my-route-table")
+
+        let subnetResource = 
+            subnet {
+                name servicesSubnet
+                link_to_unmanaged_vnet (virtualNetworks.resourceId vnetName)
+                prefix "10.28.0.0/24"
+                link_to_unmanaged_route_table routeTableId
+            }
+        Expect.equal
+            ((subnetResource :> IBuilder).ResourceId.Eval())
+            "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'my-vnet', 'services')]"
+            "Incorrect resourceId on subnet"
+        let template = arm {
+            add_resources [ subnetResource ]
+        }
+        let jobj = template.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
+        let dependsOn = jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualNetworks/subnets')].dependsOn" :?> Newtonsoft.Json.Linq.JArray
+        Expect.isEmpty dependsOn "Linking to unmanaged route table should have no dependencies"
+        let routeTableId = jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualNetworks/subnets')].properties.routeTable.id"
+        Expect.isNotNull routeTableId "routeTable should be specified"
+        Expect.equal (string routeTableId) "[resourceId('Microsoft.Network/routeTables', 'my-route-table')]" "Incorrect routeTableId"
+    }
+    test "Subnet from addressSpaceBuilder can link to route table" {
+        let vnetName = "my-vnet"
+        let webSubnet = "web"
+        let routeTableId = routeTables.resourceId("my-route-table")
+
+        let myNet = vnet {
+            name vnetName
+            build_address_spaces [
+                addressSpace {
+                    space "10.28.0.0/16"
+                    subnets [
+                        subnetSpec {
+                            name webSubnet
+                            size 24
+                            link_to_route_table routeTableId
+                        }
+                    ]
+                }
+            ]
+        }
+        let template = arm { add_resources [ myNet ] }
+        let jobj = template.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
+        let jobj = template.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
+        
+        let dependsOn = (jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualNetworks')].dependsOn").ToObject<string[]>()
+        Expect.contains dependsOn (routeTableId.Eval()) "Expected dependsOn to include route table"
+
+        let routeTableId = jobj.SelectToken "$..*[?(@.type=='Microsoft.Network/virtualNetworks/subnets')].properties.routeTable.id"
+        Expect.isNotNull routeTableId "routeTable should be specified"
+        Expect.equal (string routeTableId) "[resourceId('Microsoft.Network/routeTables', 'my-route-table')]" "Incorrect routeTableId"
     }
 ]

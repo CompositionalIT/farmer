@@ -19,6 +19,7 @@ let virtualNetworkGateways = ResourceType ("Microsoft.Network/virtualNetworkGate
 let localNetworkGateways = ResourceType ("Microsoft.Network/localNetworkGateways", "")
 let privateEndpoints = ResourceType ("Microsoft.Network/privateEndpoints", "2020-07-01")
 let virtualNetworkPeering = ResourceType ("Microsoft.Network/virtualNetworks/virtualNetworkPeerings","2020-05-01")
+let routeTables = ResourceType ("Microsoft.Network/routeTables", "2021-05-01")
 
 type PublicIpAddress =
     { Name : ResourceName
@@ -53,7 +54,8 @@ type Subnet =
       ServiceEndpoints : (Network.EndpointServiceType * Location list) list
       AssociatedServiceEndpointPolicies : ResourceId list
       PrivateEndpointNetworkPolicies: FeatureFlag option
-      PrivateLinkServiceNetworkPolicies: FeatureFlag option }
+      PrivateLinkServiceNetworkPolicies: FeatureFlag option 
+      RouteTable: LinkedResource option }
     member internal this.JsonModelProperties =
         {| addressPrefix = this.Prefix
            networkSecurityGroup =
@@ -80,17 +82,21 @@ type Subnet =
                else
                    this.AssociatedServiceEndpointPolicies
                    |> List.map (fun policyId -> {| id = policyId.ArmExpression.Eval() |})
-           privateEndpointNetworkPolicies = this.PrivateEndpointNetworkPolicies |> Option.map (fun x->x.ArmValue) |> Option.defaultValue Unchecked.defaultof<_>
-           privateLinkServiceNetworkPolicies = this.PrivateLinkServiceNetworkPolicies |> Option.map (fun x->x.ArmValue) |> Option.defaultValue Unchecked.defaultof<_>
+           privateEndpointNetworkPolicies = this.PrivateEndpointNetworkPolicies |> Option.mapBoxed (fun x->x.ArmValue) 
+           privateLinkServiceNetworkPolicies = this.PrivateLinkServiceNetworkPolicies |> Option.mapBoxed (fun x->x.ArmValue) 
+           routeTable = this.RouteTable |> Option.mapBoxed (fun ref -> {| id = ref.ResourceId.Eval() |}) 
         |}
+        member this.DependsOn = 
+            Set.empty
+            |> LinkedResource.addToSetIfSomeManaged this.VirtualNetwork
+            |> LinkedResource.addToSetIfSomeManaged this.RouteTable
+            |> LinkedResource.addToSetIfSomeManaged this.NetworkSecurityGroup
     interface IArmResource with
         member this.JsonModel =
             match this.VirtualNetwork with
-            | Some (Managed vnet) ->
-                {| subnets.Create(vnet.Name / this.Name, dependsOn=[vnet]) with
-                    properties = this.JsonModelProperties |}
+            | Some (Managed vnet) 
             | Some (Unmanaged vnet) ->
-                {| subnets.Create(vnet.Name / this.Name) with
+                {| subnets.Create(vnet.Name / this.Name, dependsOn = this.DependsOn) with
                     properties = this.JsonModelProperties |}
             | None -> raiseFarmer "Subnet record must be linked to a virtual network to properly assign the resourceId."
         member this.ResourceId =
@@ -105,17 +111,15 @@ type VirtualNetwork =
       Location : Location
       AddressSpacePrefixes : string list
       Subnets : Subnet list;
-      Tags: Map<string,string>  }
+      Tags: Map<string,string> }
+    member this.ResourceId = virtualNetworks.resourceId this.Name
     interface IArmResource with
-        member this.ResourceId = virtualNetworks.resourceId this.Name
+        member this.ResourceId = this.ResourceId
         member this.JsonModel =
-            let dependencies =
-                seq {
-                    for subnet in this.Subnets do
-                        match subnet.NetworkSecurityGroup with
-                        | Some (Managed id) -> id
-                        | _ -> ()
-                } |> Set
+            let dependencies = 
+                this.Subnets 
+                |> List.fold (fun deps subnet -> Set.union subnet.DependsOn deps) Set.empty
+                |> Set.remove this.ResourceId
             {| virtualNetworks.Create(this.Name, this.Location, dependsOn=dependencies, tags = this.Tags) with
                 properties =
                     {| addressSpace = {| addressPrefixes = this.AddressSpacePrefixes |}
