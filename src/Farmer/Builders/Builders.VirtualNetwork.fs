@@ -216,6 +216,7 @@ type SubnetSpecBuilder () =
     member _.PrivateLinkServiceNetworkPolicies(state:SubnetBuildSpec, flag:FeatureFlag ) =
         { state with PrivateLinkServiceNetworkPolicies = Some flag}
     [<CustomOperation "link_to_route_table">]
+    member _.LinkToRouteTable( state:SubnetBuildSpec, routeTableReference) = {state with RouteTable = routeTableReference }
     member _.LinkToRouteTable( state:SubnetBuildSpec, routeTable: ResourceId) = {state with RouteTable = Some (Managed routeTable) }
     [<CustomOperation "link_to_unmanaged_route_table">]
     member _.LinkToUnmanagedRouteTable( state:SubnetBuildSpec, routeTable: ResourceId) = {state with RouteTable = Some (Unmanaged routeTable) }
