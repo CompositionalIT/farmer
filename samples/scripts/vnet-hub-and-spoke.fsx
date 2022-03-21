@@ -1,4 +1,4 @@
-#r @"..\..\src\Farmer\bin\Debug\net5.0\Farmer.dll"
+#r @"..\..\src\Farmer\bin\Debug\netstandard2.0\Farmer.dll"
 
 open Farmer
 open Farmer.Builders
