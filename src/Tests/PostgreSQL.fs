@@ -166,7 +166,14 @@ let tests = testList "PostgreSQL Database Service" [
         let subscriptionId = "sid-subid"
         let resourceGroup = "rg-abc"
         let vnetName = "vnetid"
-        let networkResourceId = $"/subscriptions/%s{subscriptionId}/resourceGroups/%s{resourceGroup}/providers/Microsoft.Network/virtualNetworks/%s{vnetName}/subnets/default"
+        let subnetName = "default"
+        let networkResourceId =
+            { Type = subnets
+              ResourceGroup = Some resourceGroup
+              Subscription = Some subscriptionId
+              Name = ResourceName vnetName
+              Segments = [ResourceName subnetName] }
+        let networkResourceIdString = networkResourceId.Eval()
         let vnetRuleName = "vnet-rule-name"
         let actual = postgreSQL {
             name "testdb"
@@ -186,7 +193,7 @@ let tests = testList "PostgreSQL Database Service" [
               apiVersion = "2017-12-01"
               dependsOn = [| "[resourceId('Microsoft.DBforPostgreSQL/servers', 'testdb')]" |]
               location = "northeurope"
-              properties = {| virtualNetworkSubnetId = networkResourceId |} }
+              properties = {| virtualNetworkSubnetId = networkResourceIdString |} }
         Expect.equal actual expectedVnetRuleResult "Vnet is incorrect"
     }
 
@@ -195,11 +202,25 @@ let tests = testList "PostgreSQL Database Service" [
         let resourceGroup = "rg-abc"
 
         let vnetName1 = "vnetid1"
-        let networkResourceId1 = $"/subscriptions/%s{subscriptionId}/resourceGroups/%s{resourceGroup}/providers/Microsoft.Network/virtualNetworks/%s{vnetName1}/subnets/default"
+        let subnetName1 = "default1"
+        let networkResourceId1 =
+            { Type = subnets
+              ResourceGroup = Some resourceGroup
+              Subscription = Some subscriptionId
+              Name = ResourceName vnetName1
+              Segments = [ResourceName subnetName1] }
+        let networkResourceId1String = networkResourceId1.Eval()
         let vnetRuleName1 = "vnet-rule-name1"
 
         let vnetName2 = "vnetid2"
-        let networkResourceId2 = $"/subscriptions/%s{subscriptionId}/resourceGroups/%s{resourceGroup}/providers/Microsoft.Network/virtualNetworks/%s{vnetName2}/subnets/default"
+        let subnetName2 = "default2"
+        let networkResourceId2 =
+            { Type = subnets
+              ResourceGroup = Some resourceGroup
+              Subscription = Some subscriptionId
+              Name = ResourceName vnetName2
+              Segments = [ResourceName subnetName2] }
+        let networkResourceId2String = networkResourceId2.Eval()
         let vnetRuleName2 = "vnet-rule-name2"
 
         let actual = postgreSQL {
@@ -225,14 +246,14 @@ let tests = testList "PostgreSQL Database Service" [
               apiVersion = "2017-12-01"
               dependsOn = [| "[resourceId('Microsoft.DBforPostgreSQL/servers', 'testdb')]" |]
               location = "northeurope"
-              properties = {| virtualNetworkSubnetId = networkResourceId1 |} }
+              properties = {| virtualNetworkSubnetId = networkResourceId1String |} }
         let expectedVnetRuleResult2 : VnetResource =
             { name = $"testdb/%s{vnetRuleName2}"
               ``type`` = "Microsoft.DBforPostgreSQL/servers/virtualNetworkRules"
               apiVersion = "2017-12-01"
               dependsOn = [| "[resourceId('Microsoft.DBforPostgreSQL/servers', 'testdb')]" |]
               location = "northeurope"
-              properties = {| virtualNetworkSubnetId = networkResourceId2 |} }
+              properties = {| virtualNetworkSubnetId = networkResourceId2String |} }
         Expect.equal actual1 expectedVnetRuleResult1 "Vnet is incorrect"
         Expect.equal actual2 expectedVnetRuleResult2 "Vnet is incorrect"
     }

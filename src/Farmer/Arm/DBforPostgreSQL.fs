@@ -50,13 +50,13 @@ module Servers =
     type VnetRule =
         { Name : ResourceName
           Server : ResourceName
-          VirtualNetworkSubnetId : string
+          VirtualNetworkSubnetId : ResourceId
           Location : Location }
         interface IArmResource with
             member this.ResourceId = virtualNetworkRules.resourceId (this.Server/this.Name)
             member this.JsonModel =
                 {| virtualNetworkRules.Create(this.Server/this.Name, this.Location, [ servers.resourceId this.Server ]) with
-                    properties = {| virtualNetworkSubnetId = this.VirtualNetworkSubnetId |}
+                    properties = {| virtualNetworkSubnetId = this.VirtualNetworkSubnetId.Eval() |}
                 |}
 
 type Server =

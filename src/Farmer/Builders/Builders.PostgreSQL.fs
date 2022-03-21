@@ -28,7 +28,7 @@ type PostgreSQLConfig =
       Tier : Sku
       Databases : PostgreSQLDbConfig list
       FirewallRules : {| Name : ResourceName; Start : IPAddress; End : IPAddress |} list
-      VirtualNetworkRules : {| Name : ResourceName; VirtualNetworkSubnetId : string |} list
+      VirtualNetworkRules : {| Name : ResourceName; VirtualNetworkSubnetId : ResourceId |} list
       Tags: Map<string,string>  }
 
     interface IBuilder with
@@ -304,7 +304,7 @@ type PostgreSQLBuilder() =
 
     /// Adds a custom vnet rule given a name and a virtualNetworkSubnetId.
     [<CustomOperation "add_vnet_rule">]
-    member _.AddVnetRule(state:PostgreSQLConfig, name, virtualNetworkSubnetId:string) =
+    member _.AddVnetRule(state:PostgreSQLConfig, name, virtualNetworkSubnetId:ResourceId) =
         { state with
             VirtualNetworkRules =
                 {| Name = ResourceName name
@@ -313,7 +313,7 @@ type PostgreSQLBuilder() =
 
     /// Adds a custom firewall rules given a name and a virtualNetworkSubnetId.
     [<CustomOperation "add_vnet_rules">]
-    member _.AddVnetRules(state:PostgreSQLConfig, listOfRules:(string*string) list) =
+    member _.AddVnetRules(state:PostgreSQLConfig, listOfRules:(string*ResourceId) list) =
         let newRules =
             listOfRules |> List.map(fun (name, virtualNetworkSubnetId) ->
                 {| Name = ResourceName name
