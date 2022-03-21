@@ -410,7 +410,7 @@ let tests = testList "Network Tests" [
         let dependsOn = (jobj.SelectToken "resources[?(@.type=='Microsoft.Network/virtualNetworks')].dependsOn").ToObject<string[]>()
         Expect.contains dependsOn (routeTableId.Eval()) "Expected dependsOn to include route table"
 
-        let routeTableId = jobj.SelectToken "$..*[?(@.type=='Microsoft.Network/virtualNetworks/subnets')].properties.routeTable.id"
+        let routeTableId = jobj.SelectToken "$..*[?(@.type=='Microsoft.Network/virtualNetworks')].properties.subnets[0].properties.routeTable.id"
         Expect.isNotNull routeTableId "routeTable should be specified"
         Expect.equal (string routeTableId) "[resourceId('Microsoft.Network/routeTables', 'my-route-table')]" "Incorrect routeTableId"
     }

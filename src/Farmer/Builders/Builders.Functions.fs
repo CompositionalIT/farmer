@@ -11,6 +11,7 @@ open Farmer.Arm.Storage
 open Farmer.Arm.KeyVault
 open Farmer.Arm.KeyVault.Vaults
 open System
+open Farmer.Arm
 
 type FunctionsRuntime = DotNet | DotNetIsolated | Node | Java | Python
 type VersionedFunctionsRuntime =  FunctionsRuntime * string option
@@ -274,7 +275,8 @@ type FunctionsConfig =
                     | _ -> None
                   WorkerProcess = this.CommonWebConfig.WorkerProcess
                   HealthCheckPath = this.CommonWebConfig.HealthCheckPath
-                  IpSecurityRestrictions = this.CommonWebConfig.IpSecurityRestrictions }
+                  IpSecurityRestrictions = this.CommonWebConfig.IpSecurityRestrictions 
+                  LinkToSubnet = this.CommonWebConfig.RouteViaSubnet }
 
             match this.CommonWebConfig.ServicePlan with
             | DeployableResource this.Name.ResourceName resourceId ->
@@ -320,6 +322,14 @@ type FunctionsConfig =
             | Some _
             | None ->
                 ()
+                
+            match this.CommonWebConfig.RouteViaSubnet with
+            | None -> ()
+            | Some subnetRef ->
+                { Site = site
+                  Subnet = subnetRef.ResourceId
+                  Dependencies = subnetRef.Dependency |> Option.toList }
+            yield! (PrivateEndpoint.create location this.ResourceId ["sites"] this.CommonWebConfig.PrivateEndpoints)
 
             if Map.isEmpty this.CommonWebConfig.Slots then
                 site
@@ -327,6 +337,12 @@ type FunctionsConfig =
                 { site with AppSettings = None; ConnectionStrings = None }
                 for (_, slot) in this.CommonWebConfig.Slots |> Map.toSeq do
                     slot.ToSite site
+                    
+            if this.CommonWebConfig.SlotSettingNames <> Set.empty then
+                {
+                    SiteName = this.Name.ResourceName;
+                    SlotSettingNames = this.CommonWebConfig.SlotSettingNames;
+                }
         ]
 
 type FunctionsBuilder() =
@@ -348,8 +364,11 @@ type FunctionsBuilder() =
               Slots = Map.empty
               WorkerProcess = None
               ZipDeployPath = None
-              HealthCheckPath = None
-              IpSecurityRestrictions = [] }
+              HealthCheckPath = None 
+              SlotSettingNames = Set.empty
+              IpSecurityRestrictions = []
+              RouteViaSubnet = None
+              PrivateEndpoints = Set.empty}
           StorageAccount = derived (fun config ->
             let storage = config.Name.ResourceName.Map (sprintf "%sstorage") |> sanitiseStorage |> ResourceName
             storageAccounts.resourceId storage)

@@ -55,11 +55,14 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Web App | add_private_endpoints | Adds private endpoints for this Webapp to the given subnets |
 | Web App | add_slot | Adds a deployment slot to the app |
 | Web App | add_slots | Adds multiple deployment slots to the app |
+| Web App | slot_setting | Sets a deployment slot setting of the web app in the form "key" "value". |
+| Web App | slot_settings | Sets a list of deployment slot setting of the web app as tuples in the form of ("key", "value"). |
 | Web App | health_check_path | Sets the path to your functions health check endpoint, which Azure load balancers will ping to determine which instances are healthy.|
 | Web App | custom_domain | Adds a custom domain to the app.  By default this will produce an AppService-managed SSL certificate for your domain as well. Through the overloads of this operator, you can provide a custom certificate thumbprint or choose not to use SSL. You can use this operator multiple times to add multiple custom domains.  |
 | Web App | add_allowed_ip_restriction | Adds an 'allow' rule for an ip |
 | Web App | add_denied_ip_restriction | Adds an 'deny' rule for an ip |
 | Web App | docker_port | Adds `WEBSITES_PORT` setting to map custom docker port to app service port 80 |
+| Web App | route_via_vnet | Enable the VNET integration feature in azure where all outbound traffic from the web app with be sent via the specified subnet. |
 | Service Plan | service_plan_name | Sets the name of the service plan. If not set, uses the name of the web app postfixed with "-plan". |
 | Service Plan | runtime_stack | Sets the runtime stack. |
 | Service Plan | operating_system | Sets the operating system. If Linux, App Insights configuration settings will be omitted as they are not supported by Azure App Service. |
