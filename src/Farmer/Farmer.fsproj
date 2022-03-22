@@ -110,7 +110,6 @@
     <Compile Include="Arm/VirtualHub.fs" />
     <Compile Include="Arm\Dashboard.fs" />
     <Compile Include="IdentityExtensions.fs" />
-
     <Compile Include="Builders/Extensions.fs" />
     <Compile Include="Builders/Builders.UserAssignedIdentity.fs" />
     <Compile Include="Builders/Builders.ResourceGroup.fs" />

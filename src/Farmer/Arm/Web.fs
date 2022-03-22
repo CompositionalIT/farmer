@@ -8,7 +8,7 @@ open Farmer.WebApp
 open System
 
 let serverFarms = ResourceType ("Microsoft.Web/serverfarms", "2018-02-01")
-let sites = ResourceType ("Microsoft.Web/sites", "2020-06-01")
+let sites = ResourceType ("Microsoft.Web/sites", "2021-03-01")
 let config = ResourceType ("Microsoft.Web/sites/config", "2016-08-01")
 let sourceControls = ResourceType ("Microsoft.Web/sites/sourcecontrols", "2019-08-01")
 let staticSites = ResourceType ("Microsoft.Web/staticSites", "2019-12-01-preview")
@@ -18,6 +18,8 @@ let certificates = ResourceType ("Microsoft.Web/certificates", "2019-08-01")
 let hostNameBindings = ResourceType ("Microsoft.Web/sites/hostNameBindings", "2020-12-01")
 let containerApps = ResourceType ("Microsoft.Web/containerApps", "2021-03-01")
 let kubeEnvironments = ResourceType ("Microsoft.Web/kubeEnvironments", "2021-02-01")
+let virtualNetworkConnections = ResourceType ("Microsoft.Web/sites/virtualNetworkConnections", "2021-03-01")
+let slotsVirtualNetworkConnections = ResourceType ("Microsoft.Web/sites/slots/virtualNetworkConnections", "2021-03-01")
 
 let private mapOrNull f = Option.map (Map.toList >> List.map f) >> Option.defaultValue Unchecked.defaultof<_>
 
@@ -162,8 +164,7 @@ type SiteType =
         match this with
         | Slot _ -> slots
         | Site _ -> sites
-
-
+        
 [<RequireQualifiedAccess>]
 type FTPState =
     | AllAllowed
@@ -201,7 +202,8 @@ type Site =
       AutoSwapSlotName: string option
       ZipDeployPath : (string * ZipDeploy.ZipDeployTarget * ZipDeploy.ZipDeploySlot) option
       HealthCheckPath : string option
-      IpSecurityRestrictions : IpSecurityRestriction list }
+      IpSecurityRestrictions : IpSecurityRestriction list 
+      LinkToSubnet : SubnetReference option }
     /// Shorthand for SiteType.ResourceType
     member this.ResourceType = this.SiteType.ResourceType
     /// Shorthand for SiteType.ResourceName
@@ -236,7 +238,7 @@ type Site =
     interface IArmResource with
         member this.ResourceId = sites.resourceId this.Name
         member this.JsonModel =
-            let dependencies = this.Dependencies + (Set this.Identity.Dependencies)
+            let dependencies = this.Dependencies + (Set this.Identity.Dependencies) + (this.LinkToSubnet |> Option.bind (fun x -> x.Dependency) |> Option.toList |> Set.ofList)
             let keyvaultId =
                 match (this.KeyVaultReferenceIdentity, this.Identity) with
                 | Some x, _
@@ -253,6 +255,10 @@ type Site =
                        httpsOnly = this.HTTPSOnly
                        clientAffinityEnabled = match this.ClientAffinityEnabled with Some v -> box v | None -> null
                        keyVaultReferenceIdentity = keyvaultId
+                       virtualNetworkSubnetId = 
+                            match this.LinkToSubnet with
+                            | None -> null
+                            | Some id -> id.ResourceId.ArmExpression.Eval()
                        siteConfig =
                         {| alwaysOn = this.AlwaysOn
                            appSettings =
@@ -303,6 +309,8 @@ type Site =
                             |> Option.toObj
                            healthCheckPath = this.HealthCheckPath |> Option.toObj
                            autoSwapSlotName = this.AutoSwapSlotName |> Option.toObj
+                           vnetName = this.LinkToSubnet |> Option.map (fun x -> x.ResourceId.Segments[0].Value) |> Option.toObj
+                           vnetRouteAllEnabled = this.LinkToSubnet |> function | Some _ -> Nullable true | None -> Nullable()
                         |}
                     |}
             |}
@@ -324,6 +332,26 @@ module Sites =
                            branch = this.Branch
                            isManualIntegration = this.ContinuousIntegration.AsBoolean |> not |}
                 |}
+
+type VirtualNetworkConnection =
+    { Site: Site
+      Subnet: ResourceId
+      Dependencies: ResourceId list}
+    member this.Name = this.Site.Name / this.Subnet.Name
+    member this.SiteId = this.Site.ResourceType.resourceId this.Site.Name
+    interface IArmResource with
+        member this.ResourceId = virtualNetworkConnections.resourceId this.Name
+        member this.JsonModel = 
+            let resourceType = 
+                match this.Site.SiteType with
+                | Site _ -> virtualNetworkConnections
+                | Slot _ -> slotsVirtualNetworkConnections
+            {| resourceType.Create (this.Name, dependsOn=[this.SiteId; yield! this.Dependencies]) with
+                properties = 
+                {| vnetResourceId = this.Subnet.ArmExpression.Eval()
+                   isSwift = true
+                |}
+            |} :> _
 
 type StaticSite =
     { Name : ResourceName

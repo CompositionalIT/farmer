@@ -3,6 +3,8 @@ Release Notes
 
 ## 1.6.31
 * AzureFirewall: Supports availability zones
+* WebApps/Functions: Add support for vnet integration
+
 ## 1.6.30
 * WebApps/Functions: Specify connection string types
 * WebApps/Functions: Allow adding IP restriction string with CIDR

@@ -20,6 +20,34 @@ let localNetworkGateways = ResourceType ("Microsoft.Network/localNetworkGateways
 let privateEndpoints = ResourceType ("Microsoft.Network/privateEndpoints", "2020-07-01")
 let virtualNetworkPeering = ResourceType ("Microsoft.Network/virtualNetworks/virtualNetworkPeerings","2020-05-01")
 
+type SubnetReference = 
+    | ViaManagedVNet of (ResourceId * ResourceName)
+    | Direct of LinkedResource
+    member this.ResourceId :ResourceId = 
+        match this with
+        | ViaManagedVNet (vnetId,subnet) ->
+            { vnetId with 
+                Type = subnets
+                Segments = [subnet] }
+        | Direct subnet -> subnet.ResourceId
+    member this.Dependency = 
+        match this with
+        | ViaManagedVNet (id,_)
+        | Direct (Managed id) -> Some id
+        | _ -> None
+    static member create(vnetRef:LinkedResource, subnetName:ResourceName) = 
+        if vnetRef.ResourceId.Type.Type <> virtualNetworks.Type then 
+            raiseFarmer $"given resource was not of type '{virtualNetworks.Type}'."
+        match vnetRef with
+        | Managed vnetId -> 
+            ViaManagedVNet (vnetId, subnetName)
+        | Unmanaged vnetId ->
+            Direct (Unmanaged { vnetId with Type = subnets; Segments = [subnetName] } )
+    static member create(subnetRef:LinkedResource) = 
+        if subnetRef.ResourceId.Type.Type <> subnets.Type then 
+            raiseFarmer $"given resource was not of type '{subnets.Type}'."
+        Direct subnetRef
+
 type PublicIpAddress =
     { Name : ResourceName
       Location : Location
@@ -419,13 +447,13 @@ type ExpressRouteCircuitAuthorization =
 type PrivateEndpoint =
   { Name: ResourceName
     Location: Location
-    Subnet: LinkedResource
+    Subnet: SubnetReference
     Resource: LinkedResource
     GroupIds: string list}
   static member create location (resourceId:ResourceId) groupIds =
     Set.toSeq >> Seq.map
-      (fun (subnet: LinkedResource, epName:string option) ->
-        { Name = epName |> Option.defaultValue $"{resourceId.Name.Value}-ep-{subnet.Name.Value}" |> ResourceName
+      (fun (subnet: SubnetReference, epName:string option) ->
+        { Name = epName |> Option.defaultValue $"{resourceId.Name.Value}-ep-{subnet.ResourceId.Name.Value}" |> ResourceName
           Location = location
           Subnet = subnet
           Resource = Managed resourceId
@@ -434,7 +462,7 @@ type PrivateEndpoint =
     member this.ResourceId = privateEndpoints.resourceId this.Name
     member this.JsonModel =
       let dependencies =
-        [ match this.Subnet with | Managed x -> x | _ -> ()
+        [ yield! this.Subnet.Dependency |> Option.toList
           match this.Resource with | Managed x -> x | _ -> () ]
       {| privateEndpoints.Create(this.Name, this.Location, dependencies) with
           properties =

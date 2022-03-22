@@ -2,6 +2,7 @@
 module Farmer.Builders.Storage
 
 open Farmer
+open Farmer.Builders
 open Farmer.Storage
 open Farmer.Arm.RoleAssignment
 open Farmer.Arm.Storage
