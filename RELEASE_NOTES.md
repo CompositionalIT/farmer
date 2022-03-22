@@ -1,7 +1,8 @@
 Release Notes
 =============
-## 1.6.28
+## 1.6.31
 - WebApps/Functions: Add support for vnet integration
+- Subnets: added link_to_route_table
 
 ## 1.6.30
 * WebApps/Functions: Specify connection string types
