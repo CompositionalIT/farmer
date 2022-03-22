@@ -416,7 +416,8 @@ let tests = testList "Functions tests" [
     }
     test "Can integrate unmanaged vnet" {
         let subnetId = Arm.Network.subnets.resourceId (ResourceName "my-vnet", ResourceName "my-subnet") 
-        let wa = functions { name "testApp"; link_to_unmanaged_vnet subnetId }
+        let asp = serverFarms.resourceId "my-asp"
+        let wa = functions { name "testApp"; link_to_unmanaged_service_plan asp; link_to_unmanaged_vnet subnetId }
         
         let resources = wa |> getResources
         let site = resources |> getResource<Web.Site> |> List.head
@@ -428,7 +429,8 @@ let tests = testList "Functions tests" [
     }    
     test "Can integrate managed vnet" {
         let vnetConfig = vnet { name "my-vnet" } 
-        let wa = functions { name "testApp"; link_to_vnet (vnetConfig, ResourceName "my-subnet") }
+        let asp = serverFarms.resourceId "my-asp"
+        let wa = functions { name "testApp"; link_to_unmanaged_service_plan asp;  link_to_vnet (vnetConfig, ResourceName "my-subnet") }
             
         let resources = wa |> getResources
         let site = resources |> getResource<Web.Site> |> List.head
