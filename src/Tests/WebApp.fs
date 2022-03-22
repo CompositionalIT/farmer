@@ -64,12 +64,13 @@ let tests = testList "Web App Tests" [
     test "Web App correctly adds connection strings" {
         let sa = storageAccount { name "foo" }
         let wa =
-            let resources = webApp { name "test"; connection_string "a"; connection_string ("b", sa.Key) } |> getResources
+            let resources = webApp { name "test"; connection_string "a"; connection_string ("b", sa.Key); connection_string ("c", ArmExpression.create("c"), SQLAzure) } |> getResources
             resources |> getResource<Web.Site> |> List.head
 
         let expected = [
             "a", (ParameterSetting(SecureParameter "a"), Custom)
             "b", (ExpressionSetting sa.Key, Custom)
+            "c", (ExpressionSetting (ArmExpression.create("c")), SQLAzure)
         ]
         let parameters = wa :> IParameters
 
@@ -783,11 +784,11 @@ let tests = testList "Web App Tests" [
     }
 
     test "Supports adding ip restriction for allowed ip" {
-        let ip = IPAddressCidr.parse "1.2.3.4/32"
+        let ip = "1.2.3.4/32"
         let resources = webApp { name "test"; add_allowed_ip_restriction "test-rule" ip } |> getResources
         let site = resources |> getResource<Web.Site> |> List.head
 
-        let expectedRestriction = IpSecurityRestriction.Create "test-rule" ip Allow
+        let expectedRestriction = IpSecurityRestriction.Create "test-rule" (IPAddressCidr.parse ip) Allow
         Expect.equal site.IpSecurityRestrictions [ expectedRestriction ] "Should add allowed ip security restriction"
     }
 

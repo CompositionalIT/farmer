@@ -18,6 +18,8 @@ type VmConfig =
     { Name : ResourceName
       DiagnosticsStorageAccount : ResourceRef<VmConfig> option
 
+      Priority: Priority option
+
       Username : string option
       PasswordParameter: string option
       Image : ImageDefinition
@@ -67,6 +69,7 @@ type VmConfig =
                 |> Option.map(fun r -> r.resourceId(this).Name)
               NetworkInterfaceName = this.NicName.Name
               Size = this.Size
+              Priority = this.Priority |> Option.defaultValue Regular
               Credentials =
                 match this.Username with
                 | Some username ->
@@ -119,7 +122,8 @@ type VmConfig =
                         ServiceEndpoints = []
                         AssociatedServiceEndpointPolicies = []
                         PrivateEndpointNetworkPolicies = None
-                        PrivateLinkServiceNetworkPolicies = None }
+                        PrivateLinkServiceNetworkPolicies = None
+                        RouteTable = None }
                   ]
                   Tags = this.Tags
                 }
@@ -189,6 +193,7 @@ type VirtualMachineBuilder() =
     member _.Yield _ =
         { Name = ResourceName.Empty
           DiagnosticsStorageAccount = None
+          Priority = None
           Size = Basic_A0
           Username = None
           PasswordParameter = None
@@ -258,6 +263,20 @@ type VirtualMachineBuilder() =
     /// Adds a data disk to the VM with a specific size and type.
     [<CustomOperation "add_disk">]
     member _.AddDisk(state:VmConfig, size, diskType) = { state with DataDisks = { Size = size; DiskType = diskType } :: state.DataDisks }
+    /// Sets priority of VMm. Overrides spot_instance.
+    [<CustomOperation "priority">]
+    member _.Priority(state:VmConfig, priority) =
+        match state.Priority with
+        | Some priority -> raiseFarmer $"Priority is already set to {priority}. Only one priority or spot_instance setting per VM is allowed"
+        | None -> { state with Priority = Some priority }
+    /// Makes VM a spot instance. Overrides priority.
+    [<CustomOperation "spot_instance">]
+    member _.Spot(state:VmConfig, (evictionPolicy, maxPrice)) : VmConfig =
+        match state.Priority with
+        | Some priority -> raiseFarmer $"Priority is already set to {priority}. Only one priority or spot_instance setting per VM is allowed"
+        | None -> { state with Priority = (evictionPolicy, maxPrice) |> Spot |> Some }
+    member this.Spot(state:VmConfig, evictionPolicy:EvictionPolicy) : VmConfig = this.Spot(state,(evictionPolicy, -1m))
+    member this.Spot(state:VmConfig, maxPrice) : VmConfig = this.Spot(state,(Deallocate, maxPrice))
     /// Adds a SSD data disk to the VM with a specific size.
     [<CustomOperation "add_ssd_disk">]
     member this.AddSsd(state:VmConfig, size) = this.AddDisk(state, size, StandardSSD_LRS)

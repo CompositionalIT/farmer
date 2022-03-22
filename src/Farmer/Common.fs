@@ -309,6 +309,21 @@ module Vm =
 
     /// Represents a disk in a VM.
     type DiskInfo = { Size : int; DiskType : DiskType }
+    type EvictionPolicy =
+        | Deallocate
+        | Delete
+        member this.ArmValue = match this with | Deallocate -> "Deallocate" | Delete -> "Delete"
+    type BillingProfile =
+        { MaxPrice: decimal }
+    type Priority =
+        | Low
+        | Regular
+        | Spot of evictionPolicy:EvictionPolicy * maxPrice:decimal
+        member this.ArmValue =
+            match this with
+            | Low -> "Low"
+            | Regular -> "Regular"
+            | Spot _ -> "Spot"
 
 module internal Validation =
     // ANDs two validation rules
@@ -597,27 +612,30 @@ module Storage =
 
 /// A network represented by an IP address and CIDR prefix.
 type public IPAddressCidr =
-    { Address : System.Net.IPAddress
+    { Address : Net.IPAddress
       Prefix : int }
 
 /// Functions for IP networks and CIDR notation.
 module IPAddressCidr =
     let parse (s:string) : IPAddressCidr =
-        match s.Split([|'/'|], System.StringSplitOptions.RemoveEmptyEntries) with
-        [| ip; prefix |] ->
-            { Address = System.Net.IPAddress.Parse (ip.Trim ())
+        match s.Split([|'/'|], StringSplitOptions.RemoveEmptyEntries) with
+        | [| ip; prefix |] ->
+            { Address = Net.IPAddress.Parse (ip.Trim())
               Prefix = int prefix }
-        | _ -> raise (System.ArgumentOutOfRangeException "Malformed CIDR, expecting an IP and prefix separated by '/'")
-    let safeParse (s:string) : Result<IPAddressCidr, System.Exception> =
+        | [| ip |] ->
+            { Address = Net.IPAddress.Parse (ip.Trim())
+              Prefix = 32 }
+        | _ -> raise (ArgumentOutOfRangeException "Malformed CIDR, expecting an IP and prefix separated by '/'")
+    let safeParse (s:string) : Result<IPAddressCidr, Exception> =
         try parse s |> Ok
         with ex -> Error ex
     let format (cidr:IPAddressCidr) = $"{cidr.Address}/{cidr.Prefix}"
     /// Gets uint32 representation of an IP address.
-    let private num (ip:System.Net.IPAddress) =
+    let private num (ip:Net.IPAddress) =
         ip.GetAddressBytes() |> Array.rev |> fun bytes -> BitConverter.ToUInt32 (bytes, 0)
     /// Gets IP address from uint32 representations
     let private ofNum (num:uint32) =
-        num |> BitConverter.GetBytes |> Array.rev |> System.Net.IPAddress
+        num |> BitConverter.GetBytes |> Array.rev |> Net.IPAddress
     let private ipRangeNums (cidr:IPAddressCidr) =
         let ipNumber = cidr.Address |> num
         let mask = 0xffffffffu <<< (32 - cidr.Prefix)

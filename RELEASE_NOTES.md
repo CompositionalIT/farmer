@@ -1,13 +1,20 @@
 Release Notes
 =============
-## 1.6.28
+## 1.6.31
 - WebApps/Functions: Add support for vnet integration
+- Subnets: added link_to_route_table
+
+## 1.6.30
+* WebApps/Functions: Specify connection string types
+* WebApps/Functions: Allow adding IP restriction string with CIDR
+* Application Insights: Support for Workspace-enabled instances.
+* VMs: Priority and Spot Instance Settings
 
 ## 1.6.29
 * CLI: include `--only-show-error` option when executing Azure CLI commands.
 
 ## 1.6.28
-* ServicePlan/WebApp: Support for enabling ZoneDedundant
+* ServicePlan/WebApp: Support for enabling ZoneRedundant
 
 ## 1.6.27
 * Functions: Make `connection_string` available for Azure Functions in addition to WebApps.

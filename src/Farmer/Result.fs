@@ -73,7 +73,7 @@ module Option =
     let mapList mapper = Option.map mapper >> Option.toList
     /// Maps an optional value, boxing the result, and then pipes the result to Option.toObj.
     let mapBoxed mapper = Option.map (mapper >> box) >> Option.toObj
-
+        
 [<AutoOpen>]
 module Builders =
     let result = Result.ResultBuilder()

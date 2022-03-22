@@ -216,10 +216,14 @@ type LinkedResource =
         | Managed resId
         | Unmanaged resId -> resId
     member this.Name = this.ResourceId.Name
-
+    
     static member addToSetIfManaged =
         function
         | Managed x -> Set.add x
+        | _ -> id
+    static member addToSetIfSomeManaged =
+        function
+        | Some x -> LinkedResource.addToSetIfManaged x
         | _ -> id
 
 
@@ -244,8 +248,8 @@ type CertificateOptions =
 type DomainConfig =
     | SecureDomain of domain:string * cert:CertificateOptions
     | InsecureDomain of domain:string
-    member this.DomainName = 
-        match this with 
+    member this.DomainName =
+        match this with
         | SecureDomain (domainName,_)
         | InsecureDomain (domainName) -> domainName
 
