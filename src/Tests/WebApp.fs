@@ -815,4 +815,30 @@ let tests = testList "Web App Tests" [
 
         Expect.equal sf.ZoneRedundant (Some Enabled) "ZoneRedundant should be enabled"
     }
+    test "Can integrate with unmanaged vnet" {
+        let subnetId = Arm.Network.subnets.resourceId (ResourceName "my-vnet", ResourceName "my-subnet") 
+        let wa = webApp { name "testApp"; sku WebApp.Sku.S1; link_to_unmanaged_vnet subnetId }
+        
+        let resources = wa |> getResources
+        let site = resources |> getResource<Web.Site> |> List.head
+        let vnet = Expect.wantSome site.LinkToSubnet "LinkToSubnet was not set"
+        Expect.equal vnet (Direct (Unmanaged subnetId)) "LinkToSubnet was incorrect"
+
+        let vnetConnections = resources |> getResource<Web.VirtualNetworkConnection> 
+        Expect.hasLength vnetConnections 1 "incorrect number of Vnet connections"
+    }
+    
+    test "Can integrate with managed vnet" {
+        let vnetConfig = vnet { name "my-vnet" } 
+        let wa = webApp { name "testApp"; sku WebApp.Sku.S1; link_to_vnet (vnetConfig, ResourceName "my-subnet") }
+            
+        let resources = wa |> getResources
+        let site = resources |> getResource<Web.Site> |> List.head
+        let vnet = Expect.wantSome site.LinkToSubnet "LinkToSubnet was not set"
+        Expect.equal vnet (ViaManagedVNet ( (Arm.Network.virtualNetworks.resourceId "my-vnet"), ResourceName "my-subnet" )) "LinkToSubnet was incorrect"
+        
+        let vnetConnections = resources |> getResource<Web.VirtualNetworkConnection> 
+        Expect.hasLength vnetConnections 1 "incorrect number of Vnet connections"
+    }
+
 ]

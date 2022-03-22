@@ -3,6 +3,7 @@ module rec Farmer.Builders.WebApp
 
 open Farmer
 open Farmer.Arm
+open Farmer.Builders
 open Farmer.WebApp
 open Farmer.Arm.KeyVault.Vaults
 open Sites
@@ -201,11 +202,29 @@ type CommonWebConfig =
       SecretStore : SecretStore
       ServicePlan : ResourceRef<ResourceName>
       Settings : Map<string, Setting>
+      Sku : Sku
       Slots : Map<string,SlotConfig>
       WorkerProcess : Bitness option
       ZipDeployPath : (string*ZipDeploy.ZipDeploySlot) option
       HealthCheckPath: string option
-      IpSecurityRestrictions: IpSecurityRestriction list }
+      IpSecurityRestrictions: IpSecurityRestriction list 
+      IntegratedSubnet : SubnetReference option
+      PrivateEndpoints: (SubnetReference * string option) Set }
+      member this.Validate () =
+          match this with
+          | { ServicePlan = LinkedResource _ } -> () // can't validate as validation dependent on linked resource
+          | { IntegratedSubnet = None } -> () // no VNet to validate
+          | _ ->
+              match this.Sku with
+              | Standard _ -> ()
+              | Premium _ | PremiumV2 _| PremiumV3 _ -> ()
+              | ElasticPremium _ -> ()
+              | Isolated _ -> ()
+              | Shared as other -> raiseFarmer $"Sites deployed to service plans with SKU '%A{other}' do not support vnet integration."
+              | Free as other -> raiseFarmer $"Sites deployed to service plans with SKU '%A{other}' do not support vnet integration."
+              | Basic _ as other -> raiseFarmer $"Sites deployed to service plans with SKU '%A{other}' do not support vnet integration."
+              | Dynamic as other -> raiseFarmer $"Sites deployed to service plans with SKU '%A{other}' do not support vnet integration."
+
 
 type WebAppConfig =
     { CommonWebConfig: CommonWebConfig
@@ -214,7 +233,6 @@ type WebAppConfig =
       WebSocketsEnabled: bool option
       Dependencies : ResourceId Set
       Tags : Map<string,string>
-      Sku : Sku
       WorkerSize : WorkerSize
       WorkerCount : int
       MaximumElasticWorkerCount : int option
@@ -455,7 +473,7 @@ type WebAppConfig =
                   ZipDeployPath = this.CommonWebConfig.ZipDeployPath |> Option.map (fun (path,slot) -> path, ZipDeploy.ZipDeployTarget.WebApp, slot )
                   HealthCheckPath = this.CommonWebConfig.HealthCheckPath
                   IpSecurityRestrictions = this.CommonWebConfig.IpSecurityRestrictions
-                }
+                  LinkToSubnet = this.CommonWebConfig.IntegratedSubnet }
 
             match keyVault with
             | Some keyVault ->
@@ -495,7 +513,7 @@ type WebAppConfig =
             | DeployableResource this.Name.ResourceName resourceId ->
                 { Name = resourceId.Name
                   Location = location
-                  Sku = this.Sku
+                  Sku = this.CommonWebConfig.Sku
                   WorkerSize = this.WorkerSize
                   WorkerCount = this.WorkerCount
                   MaximumElasticWorkerCount = this.MaximumElasticWorkerCount
@@ -585,7 +603,13 @@ type WebAppConfig =
                     } :> IBuilder).BuildResources location
                 | _ -> ()
 
-            yield! (PrivateEndpoint.create location this.ResourceId ["sites"] this.PrivateEndpoints)
+            match this.CommonWebConfig.IntegratedSubnet with
+            | None -> ()
+            | Some subnetRef ->
+                { Site = site
+                  Subnet = subnetRef.ResourceId
+                  Dependencies = subnetRef.Dependency |> Option.toList }
+            yield! (PrivateEndpoint.create location this.ResourceId ["sites"] this.CommonWebConfig.PrivateEndpoints)
         ]
 
 type WebAppBuilder() =
@@ -604,12 +628,14 @@ type WebAppBuilder() =
               SecretStore = AppService
               ServicePlan = derived (fun name -> serverFarms.resourceId (name-"farm"))
               Settings = Map.empty
+              Sku = Sku.F1
               Slots = Map.empty
               WorkerProcess = None
               ZipDeployPath = None
               HealthCheckPath = None
-              IpSecurityRestrictions = [] }
-          Sku = Sku.F1
+              IpSecurityRestrictions = []
+              IntegratedSubnet = None 
+              PrivateEndpoints = Set.empty }
           WorkerSize = Small
           WorkerCount = 1
           MaximumElasticWorkerCount = None
@@ -633,6 +659,7 @@ type WebAppBuilder() =
           ZoneRedundant = None }
     member _.Run(state:WebAppConfig) =
         if state.Name.ResourceName = ResourceName.Empty then raiseFarmer "No Web App name has been set."
+        state.CommonWebConfig.Validate()
         { state with
             SiteExtensions =
                 match state with
@@ -658,7 +685,7 @@ type WebAppBuilder() =
         }
 
     [<CustomOperation "sku">]
-    member _.Sku(state:WebAppConfig, sku) = { state with Sku = sku }
+    member _.Sku(state:WebAppConfig, sku) = { state with CommonWebConfig = {state.CommonWebConfig with Sku = sku }}
     /// Sets the size of the service plan worker.
     [<CustomOperation "worker_size">]
     member _.WorkerSize(state:WebAppConfig, workerSize) = { state with WorkerSize = workerSize }
@@ -738,7 +765,7 @@ type WebAppBuilder() =
     [<CustomOperation "zone_redundant">]
     member this.ZoneRedundant(state:WebAppConfig, flag:FeatureFlag) = {state with ZoneRedundant = Some flag}
 
-    interface IPrivateEndpoints<WebAppConfig> with member _.Add state endpoints = { state with PrivateEndpoints = state.PrivateEndpoints |> Set.union endpoints}
+    interface IPrivateEndpoints<WebAppConfig> with member _.Add state endpoints = {state with CommonWebConfig = { state.CommonWebConfig with PrivateEndpoints =  state.CommonWebConfig.PrivateEndpoints |> Set.union endpoints}}
     interface ITaggable<WebAppConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     interface IDependable<WebAppConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
     interface IServicePlanApp<WebAppConfig> with
@@ -755,7 +782,7 @@ type EndpointBuilder with
 
 /// An interface for shared capabilities between builders that work with Service Plan-style apps.
 /// In other words, Web Apps or Functions.
-type IServicePlanApp<'T> =
+type IServicePlanApp<'T> = 
     abstract member Get : 'T -> CommonWebConfig
     abstract member Wrap : 'T -> CommonWebConfig -> 'T
 
@@ -974,3 +1001,22 @@ module Extensions =
         member this.DenyIp(state:'T, name, ip:string) =
             let ip = IPAddressCidr.parse ip
             this.Map state (fun x -> { x with IpSecurityRestrictions = IpSecurityRestriction.Create name ip Deny :: x.IpSecurityRestrictions })
+        /// Integrate this app with a virtual network subnet
+        [<CustomOperation "link_to_vnet">]
+        member this.LinkToVNet(state:'T, subnet:SubnetReference option) = 
+            match subnet with
+            | Some subnetId ->
+                if subnetId.ResourceId.Type.Type <> Arm.Network.subnets.Type 
+                    then raiseFarmer $"given resource was not of type '{Arm.Network.subnets.Type}'."
+            | None -> ()
+            this.Map state (fun x -> {x with IntegratedSubnet = subnet})
+        member this.LinkToVNet(state:'T, subnetRef) = this.LinkToVNet (state, Some subnetRef)
+        member this.LinkToVNet(state:'T, subnetId:ResourceId) = this.LinkToVNet (state, SubnetReference.create (Managed subnetId))
+        member this.LinkToVNet(state:'T, (vnetId, subnetName):ResourceId*ResourceName) = this.LinkToVNet (state, SubnetReference.create (Managed vnetId,subnetName))
+        member this.LinkToVNet(state:'T, subnet:SubnetConfig) = this.LinkToVNet (state, SubnetReference.create subnet)
+        member this.LinkToVNet(state:'T, (vnet, subnetName):VirtualNetworkConfig*ResourceName) = this.LinkToVNet (state, SubnetReference.create (vnet,subnetName))
+        [<CustomOperation "link_to_unmanaged_vnet">]
+        member this.LinkToUnmanagedVNet(state:'T, subnetId:ResourceId) = this.LinkToVNet (state, SubnetReference.create (Unmanaged subnetId))
+        member this.LinkToUnmanagedVNet(state:'T, (vnetId, subnetName):ResourceId*ResourceName) = this.LinkToVNet (state, SubnetReference.create (Unmanaged vnetId,subnetName))
+        member this.LinkToUnmanagedVNet(state:'T, subnet:SubnetConfig) = this.LinkToUnmanagedVNet (state, (subnet:>IBuilder).ResourceId)
+        member this.LinkToUnmanagedVNet(state:'T, (vnet, subnetName):VirtualNetworkConfig*ResourceName) = this.LinkToUnmanagedVNet (state, vnet.SubnetIds[subnetName.Value])
