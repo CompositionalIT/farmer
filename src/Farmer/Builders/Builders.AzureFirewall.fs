@@ -22,6 +22,7 @@ type AzureFirewallConfig =
       VirtualHub : LinkedResource option
       HubIPAddressSpace : HubIPAddressSpace option
       Sku : Sku
+      AvailabilityZones : string list
       Dependencies : ResourceId Set }
     interface IBuilder with
         member this.ResourceId = azureFirewalls.resourceId this.Name
@@ -40,7 +41,8 @@ type AzureFirewallConfig =
               FirewallPolicy = this.FirewallPolicy |> Option.map (fun x -> match x with | Managed resId | Unmanaged resId -> resId)
               VirtualHub = this.VirtualHub |> Option.map (fun x -> match x with | Managed resId | Unmanaged resId -> resId)
               HubIPAddresses = this.HubIPAddressSpace |> Option.map (fun x -> x.Arm)
-              Sku = this.Sku }
+              Sku = this.Sku
+              AvailabilityZones = this.AvailabilityZones }
             ]
 
 type AzureFirewallBuilder() =
@@ -50,6 +52,7 @@ type AzureFirewallBuilder() =
           FirewallPolicy = None
           VirtualHub = None
           HubIPAddressSpace = None
+          AvailabilityZones = List.empty
           Dependencies = Set.empty }
     /// The name of the firewall.
     [<CustomOperation "name">] member _.Name(state:AzureFirewallConfig, name) = { state with Name = ResourceName name }
@@ -82,6 +85,9 @@ type AzureFirewallBuilder() =
     [<CustomOperation "public_ip_reservation_count">]
     member _.PublicIpReservationCount(state:AzureFirewallConfig, count) =
         { state with HubIPAddressSpace = Some (HubIPAddressSpace.PublicCount count) }
+    [<CustomOperation "availability_zones">]
+    member _.AvailabilityZones(state:AzureFirewallConfig, zones) =
+        { state with AvailabilityZones = zones }
     member _.Run(state:AzureFirewallConfig) =
         let stateIBuilder = state :> IBuilder
         match state.Sku.Name with

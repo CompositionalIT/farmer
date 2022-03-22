@@ -26,7 +26,11 @@
           "id": "[resourceId('Microsoft.Network/virtualHubs', 'farmer_vhub')]"
         }
       },
-      "type": "Microsoft.Network/azureFirewalls"
+      "type": "Microsoft.Network/azureFirewalls",
+      "zones": [
+        "1",
+        "2"
+      ]
     },
     {
       "apiVersion": "2020-07-01",
