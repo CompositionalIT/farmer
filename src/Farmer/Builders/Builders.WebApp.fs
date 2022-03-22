@@ -3,6 +3,7 @@ module rec Farmer.Builders.WebApp
 
 open Farmer
 open Farmer.Arm
+open Farmer.Builders
 open Farmer.WebApp
 open Farmer.Arm.KeyVault.Vaults
 open Sites
@@ -160,27 +161,27 @@ type SlotBuilder() =
     member this.AddConnectionStrings(state, connectionStrings:string list) :SlotConfig =
         connectionStrings
         |> List.fold (fun state key -> this.AddConnectionString(state, key)) state
-        
+
     /// Add Allowed ip for ip security restrictions
-    [<CustomOperation "add_allowed_ip_restriction">] 
-    member _.AllowIp(state, name, cidr:IPAddressCidr) : SlotConfig = 
+    [<CustomOperation "add_allowed_ip_restriction">]
+    member _.AllowIp(state, name, cidr:IPAddressCidr) : SlotConfig =
         { state with IpSecurityRestrictions = state.IpSecurityRestrictions @ [IpSecurityRestriction.Create name cidr Allow] }
-    member this.AllowIp(state, name, ip:Net.IPAddress) : SlotConfig = 
+    member this.AllowIp(state, name, ip:Net.IPAddress) : SlotConfig =
         let cidr = { Address = ip; Prefix = 32 }
         this.AllowIp(state, name, cidr)
-    member this.AllowIp(state, name, ip:string) : SlotConfig = 
+    member this.AllowIp(state, name, ip:string) : SlotConfig =
         let cidr = IPAddressCidr.parse ip
         this.AllowIp(state, name, cidr)
     /// Add Denied ip for ip security restrictions
-    [<CustomOperation "add_denied_ip_restriction">] 
-    member _.DenyIp(state, name, cidr:IPAddressCidr) : SlotConfig = 
+    [<CustomOperation "add_denied_ip_restriction">]
+    member _.DenyIp(state, name, cidr:IPAddressCidr) : SlotConfig =
         { state with IpSecurityRestrictions = state.IpSecurityRestrictions @ [IpSecurityRestriction.Create name cidr Deny] }
-    member this.DenyIp(state, name, ip:Net.IPAddress) : SlotConfig = 
+    member this.DenyIp(state, name, ip:Net.IPAddress) : SlotConfig =
         let cidr = { Address = ip; Prefix = 32 }
         this.DenyIp(state, name, cidr)
-    member this.DenyIp(state, name, ip:string) : SlotConfig = 
+    member this.DenyIp(state, name, ip:string) : SlotConfig =
         let cidr = IPAddressCidr.parse ip
-        this.DenyIp(state, name, cidr) 
+        this.DenyIp(state, name, cidr)
     interface ITaggable<SlotConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     interface IDependable<SlotConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
@@ -201,11 +202,29 @@ type CommonWebConfig =
       SecretStore : SecretStore
       ServicePlan : ResourceRef<ResourceName>
       Settings : Map<string, Setting>
+      Sku : Sku
       Slots : Map<string,SlotConfig>
       WorkerProcess : Bitness option
       ZipDeployPath : (string*ZipDeploy.ZipDeploySlot) option
       HealthCheckPath: string option
-      IpSecurityRestrictions: IpSecurityRestriction list }
+      IpSecurityRestrictions: IpSecurityRestriction list 
+      IntegratedSubnet : SubnetReference option
+      PrivateEndpoints: (SubnetReference * string option) Set }
+      member this.Validate () =
+          match this with
+          | { ServicePlan = LinkedResource _ } -> () // can't validate as validation dependent on linked resource
+          | { IntegratedSubnet = None } -> () // no VNet to validate
+          | _ ->
+              match this.Sku with
+              | Standard _ -> ()
+              | Premium _ | PremiumV2 _| PremiumV3 _ -> ()
+              | ElasticPremium _ -> ()
+              | Isolated _ -> ()
+              | Shared as other -> raiseFarmer $"Sites deployed to service plans with SKU '%A{other}' do not support vnet integration."
+              | Free as other -> raiseFarmer $"Sites deployed to service plans with SKU '%A{other}' do not support vnet integration."
+              | Basic _ as other -> raiseFarmer $"Sites deployed to service plans with SKU '%A{other}' do not support vnet integration."
+              | Dynamic as other -> raiseFarmer $"Sites deployed to service plans with SKU '%A{other}' do not support vnet integration."
+
 
 type WebAppConfig =
     { CommonWebConfig: CommonWebConfig
@@ -214,7 +233,6 @@ type WebAppConfig =
       WebSocketsEnabled: bool option
       Dependencies : ResourceId Set
       Tags : Map<string,string>
-      Sku : Sku
       WorkerSize : WorkerSize
       WorkerCount : int
       MaximumElasticWorkerCount : int option
@@ -228,7 +246,7 @@ type WebAppConfig =
       AutomaticLoggingExtension : bool
       SiteExtensions : ExtensionName Set
       PrivateEndpoints: (LinkedResource * string option) Set
-      CustomDomains : Map<string,DomainConfig> 
+      CustomDomains : Map<string,DomainConfig>
       DockerPort: int option
       ZoneRedundant : FeatureFlag option }
     member this.Name = this.CommonWebConfig.Name
@@ -311,9 +329,9 @@ type WebAppConfig =
                     | Linux, Some _
                     | _ , None ->
                         ()
-                        
+
                     yield! this.DockerPort |> Option.mapList AppSettings.WebsitesPort
-                    
+
                     if this.DockerCi then "DOCKER_ENABLE_CI", "true"
                 ]
 
@@ -455,7 +473,7 @@ type WebAppConfig =
                   ZipDeployPath = this.CommonWebConfig.ZipDeployPath |> Option.map (fun (path,slot) -> path, ZipDeploy.ZipDeployTarget.WebApp, slot )
                   HealthCheckPath = this.CommonWebConfig.HealthCheckPath
                   IpSecurityRestrictions = this.CommonWebConfig.IpSecurityRestrictions
-                }
+                  LinkToSubnet = this.CommonWebConfig.IntegratedSubnet }
 
             match keyVault with
             | Some keyVault ->
@@ -480,6 +498,8 @@ type WebAppConfig =
                   Location = location
                   DisableIpMasking = false
                   SamplingPercentage = 100
+                  InstanceKind = Classic
+                  Dependencies = Set.empty
                   LinkedWebsite =
                     match this.CommonWebConfig.OperatingSystem with
                     | Windows -> Some this.Name.ResourceName
@@ -493,13 +513,13 @@ type WebAppConfig =
             | DeployableResource this.Name.ResourceName resourceId ->
                 { Name = resourceId.Name
                   Location = location
-                  Sku = this.Sku
+                  Sku = this.CommonWebConfig.Sku
                   WorkerSize = this.WorkerSize
                   WorkerCount = this.WorkerCount
                   MaximumElasticWorkerCount = this.MaximumElasticWorkerCount
                   OperatingSystem = this.CommonWebConfig.OperatingSystem
                   ZoneRedundant = this.ZoneRedundant
-                  Tags = this.Tags}
+                  Tags = this.Tags }
             | _ ->
                 ()
 
@@ -514,7 +534,7 @@ type WebAppConfig =
                 { site with AppSettings = None; ConnectionStrings = None } // Don't deploy production slot settings as they could cause an app restart
                 for (_,slot) in this.CommonWebConfig.Slots |> Map.toSeq do
                     slot.ToSite site
-             
+
             // Need to rename `location` binding to prevent conflict with `location` operator in resource group
             let resourceLocation = location
 
@@ -551,7 +571,7 @@ type WebAppConfig =
                           DomainName = customDomain }
 
                     // Get the resource group which contains the app service plan
-                    let aspRgName = 
+                    let aspRgName =
                       match this.CommonWebConfig.ServicePlan with
                       | LinkedResource linked -> linked.ResourceId.ResourceGroup
                       | _ -> None
@@ -561,7 +581,7 @@ type WebAppConfig =
                     // To keep the code simple, I opted to always nest the certificate deployment. - TheRSP 2021-12-14
                     let certificateDeployment = resourceGroup { 
                         name (aspRgName |> Option.defaultValue "[resourceGroup().name]")
-                        add_resource 
+                        add_resource
                           { cert with
                               SiteId = Unmanaged cert.SiteId.ResourceId
                               ServicePlanId = Unmanaged cert.ServicePlanId.ResourceId }
@@ -593,7 +613,13 @@ type WebAppConfig =
                     previousHostNameCertificateLinkingDeployment <- Some hostNameCertificateLinkingDeployment.ResourceId
                 | _ -> () 
 
-            yield! (PrivateEndpoint.create location this.ResourceId ["sites"] this.PrivateEndpoints)
+            match this.CommonWebConfig.IntegratedSubnet with
+            | None -> ()
+            | Some subnetRef ->
+                { Site = site
+                  Subnet = subnetRef.ResourceId
+                  Dependencies = subnetRef.Dependency |> Option.toList }
+            yield! (PrivateEndpoint.create location this.ResourceId ["sites"] this.CommonWebConfig.PrivateEndpoints)
         ]
 
 type WebAppBuilder() =
@@ -612,12 +638,14 @@ type WebAppBuilder() =
               SecretStore = AppService
               ServicePlan = derived (fun name -> serverFarms.resourceId (name-"farm"))
               Settings = Map.empty
+              Sku = Sku.F1
               Slots = Map.empty
               WorkerProcess = None
               ZipDeployPath = None
               HealthCheckPath = None
-              IpSecurityRestrictions = [] }
-          Sku = Sku.F1
+              IpSecurityRestrictions = []
+              IntegratedSubnet = None 
+              PrivateEndpoints = Set.empty }
           WorkerSize = Small
           WorkerCount = 1
           MaximumElasticWorkerCount = None
@@ -641,6 +669,7 @@ type WebAppBuilder() =
           ZoneRedundant = None }
     member _.Run(state:WebAppConfig) =
         if state.Name.ResourceName = ResourceName.Empty then raiseFarmer "No Web App name has been set."
+        state.CommonWebConfig.Validate()
         { state with
             SiteExtensions =
                 match state with
@@ -666,7 +695,7 @@ type WebAppBuilder() =
         }
 
     [<CustomOperation "sku">]
-    member _.Sku(state:WebAppConfig, sku) = { state with Sku = sku }
+    member _.Sku(state:WebAppConfig, sku) = { state with CommonWebConfig = {state.CommonWebConfig with Sku = sku }}
     /// Sets the size of the service plan worker.
     [<CustomOperation "worker_size">]
     member _.WorkerSize(state:WebAppConfig, workerSize) = { state with WorkerSize = workerSize }
@@ -746,7 +775,7 @@ type WebAppBuilder() =
     [<CustomOperation "zone_redundant">]
     member this.ZoneRedundant(state:WebAppConfig, flag:FeatureFlag) = {state with ZoneRedundant = Some flag}
 
-    interface IPrivateEndpoints<WebAppConfig> with member _.Add state endpoints = { state with PrivateEndpoints = state.PrivateEndpoints |> Set.union endpoints}
+    interface IPrivateEndpoints<WebAppConfig> with member _.Add state endpoints = {state with CommonWebConfig = { state.CommonWebConfig with PrivateEndpoints =  state.CommonWebConfig.PrivateEndpoints |> Set.union endpoints}}
     interface ITaggable<WebAppConfig> with member _.Add state tags = { state with Tags = state.Tags |> Map.merge tags }
     interface IDependable<WebAppConfig> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
     interface IServicePlanApp<WebAppConfig> with
@@ -763,7 +792,7 @@ type EndpointBuilder with
 
 /// An interface for shared capabilities between builders that work with Service Plan-style apps.
 /// In other words, Web Apps or Functions.
-type IServicePlanApp<'T> =
+type IServicePlanApp<'T> = 
     abstract member Get : 'T -> CommonWebConfig
     abstract member Wrap : 'T -> CommonWebConfig -> 'T
 
@@ -839,16 +868,19 @@ module Extensions =
             { current with ConnectionStrings = current.ConnectionStrings.Add(key, (ParameterSetting (SecureParameter key), Custom)) }
             |> this.Wrap state
         member this.AddConnectionString(state:'T, (key, value:ArmExpression)) =
+            this.AddConnectionString(state, (key, value, Custom))
+        member this.AddConnectionString(state:'T, (key, value:ArmExpression, kind)) =
             let current = this.Get state
-            { current with ConnectionStrings = current.ConnectionStrings.Add(key, (ExpressionSetting value, Custom)) }
+            { current with ConnectionStrings = current.ConnectionStrings.Add(key, (ExpressionSetting value, kind)) }
             |> this.Wrap state
+            
         /// Creates a set of connection strings of the web app whose values will be supplied as secret parameters.
         [<CustomOperation "connection_strings">]
         member this.AddConnectionStrings(state:'T, connectionStrings) =
             let current = this.Get state
             connectionStrings
             |> List.fold (fun (state:CommonWebConfig) (key, value:ArmExpression) ->
-               { state with ConnectionStrings = state.ConnectionStrings.Add(key, (ExpressionSetting value, Custom)) }) current 
+               { state with ConnectionStrings = state.ConnectionStrings.Add(key, (ExpressionSetting value, Custom)) }) current
             |> this.Wrap state
         /// Sets an app setting of the web app in the form "key" "value".
         [<CustomOperation "add_identity">]
@@ -966,16 +998,35 @@ module Extensions =
         /// Specifies the path Azure load balancers will ping to check for unhealthy instances.
         member this.HealthCheckPath(state:'T, healthCheckPath:string) = this.Map state (fun x -> {x with HealthCheckPath = Some(healthCheckPath)})
         /// Add Allowed ip for ip security restrictions
-        [<CustomOperation "add_allowed_ip_restriction">] 
-        member this.AllowIp(state:'T, name, ip:IPAddressCidr) = 
+        [<CustomOperation "add_allowed_ip_restriction">]
+        member this.AllowIp(state:'T, name, ip:IPAddressCidr) =
             this.Map state (fun x -> { x with IpSecurityRestrictions = IpSecurityRestriction.Create name ip Allow :: x.IpSecurityRestrictions })
-        member this.AllowIp(state:'T, name, ip:string) = 
+        member this.AllowIp(state:'T, name, ip:string) =
             let ip = IPAddressCidr.parse ip
             this.Map state (fun x -> { x with IpSecurityRestrictions = IpSecurityRestriction.Create name ip Allow :: x.IpSecurityRestrictions })
         /// Add Denied ip for ip security restrictions
-        [<CustomOperation "add_denied_ip_restriction">] 
-        member this.DenyIp(state:'T, name, ip) = 
+        [<CustomOperation "add_denied_ip_restriction">]
+        member this.DenyIp(state:'T, name, ip) =
             this.Map state (fun x -> { x with IpSecurityRestrictions = IpSecurityRestriction.Create name ip Deny :: x.IpSecurityRestrictions })
-        member this.DenyIp(state:'T, name, ip:string) = 
+        member this.DenyIp(state:'T, name, ip:string) =
             let ip = IPAddressCidr.parse ip
             this.Map state (fun x -> { x with IpSecurityRestrictions = IpSecurityRestriction.Create name ip Deny :: x.IpSecurityRestrictions })
+        /// Integrate this app with a virtual network subnet
+        [<CustomOperation "link_to_vnet">]
+        member this.LinkToVNet(state:'T, subnet:SubnetReference option) = 
+            match subnet with
+            | Some subnetId ->
+                if subnetId.ResourceId.Type.Type <> Arm.Network.subnets.Type 
+                    then raiseFarmer $"given resource was not of type '{Arm.Network.subnets.Type}'."
+            | None -> ()
+            this.Map state (fun x -> {x with IntegratedSubnet = subnet})
+        member this.LinkToVNet(state:'T, subnetRef) = this.LinkToVNet (state, Some subnetRef)
+        member this.LinkToVNet(state:'T, subnetId:ResourceId) = this.LinkToVNet (state, SubnetReference.create (Managed subnetId))
+        member this.LinkToVNet(state:'T, (vnetId, subnetName):ResourceId*ResourceName) = this.LinkToVNet (state, SubnetReference.create (Managed vnetId,subnetName))
+        member this.LinkToVNet(state:'T, subnet:SubnetConfig) = this.LinkToVNet (state, SubnetReference.create subnet)
+        member this.LinkToVNet(state:'T, (vnet, subnetName):VirtualNetworkConfig*ResourceName) = this.LinkToVNet (state, SubnetReference.create (vnet,subnetName))
+        [<CustomOperation "link_to_unmanaged_vnet">]
+        member this.LinkToUnmanagedVNet(state:'T, subnetId:ResourceId) = this.LinkToVNet (state, SubnetReference.create (Unmanaged subnetId))
+        member this.LinkToUnmanagedVNet(state:'T, (vnetId, subnetName):ResourceId*ResourceName) = this.LinkToVNet (state, SubnetReference.create (Unmanaged vnetId,subnetName))
+        member this.LinkToUnmanagedVNet(state:'T, subnet:SubnetConfig) = this.LinkToUnmanagedVNet (state, (subnet:>IBuilder).ResourceId)
+        member this.LinkToUnmanagedVNet(state:'T, (vnet, subnetName):VirtualNetworkConfig*ResourceName) = this.LinkToUnmanagedVNet (state, vnet.SubnetIds[subnetName.Value])

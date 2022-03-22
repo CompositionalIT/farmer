@@ -28,7 +28,7 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Web App | setting | Sets an app setting of the web app in the form "key" "value". |
 | Web App | secret_setting | Sets a "secret" app setting of the web app. You must supply the "key", whilst the value will be supplied as a secure parameter. |
 | Web App | settings | Sets a list of app setting of the web app as tuples in the form of ("key", "value"). |
-| Web App | connection_string | Creates a connection string whose value is supplied as secret parameter, or as an ARM expression in the tupled form of ("key", expr). |
+| Web App | connection_string | Creates a connection string whose value is supplied as secret parameter, or as an ARM expression in the tupled form of ("key", expr), or with the connection string type ("key", expr, SQLAzure). |
 | Web App | connection_strings | Creates a set of connection strings of the web app whose values will be supplied as secret parameters. |
 | Web App | ftp_state | Allows to enable or disable FTP and FTPS. |
 | Web App | https_only | Disables http for this webapp so that only HTTPS is used. |
@@ -60,6 +60,8 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Web App | add_allowed_ip_restriction | Adds an 'allow' rule for an ip |
 | Web App | add_denied_ip_restriction | Adds an 'deny' rule for an ip |
 | Web App | docker_port | Adds `WEBSITES_PORT` setting to map custom docker port to app service port 80 |
+| Web App | link_to_vnet | Enable the VNET integration feature in azure where all outbound traffic from the web app with be sent via the specified subnet. Use this operator when the given VNET is in the same deployment |
+| Web App | link_to_unmanaged_vnet | Enable the VNET integration feature in azure where all outbound traffic from the web app with be sent via the specified subnet. Use this operator when the given VNET is *not* in the same deployment |
 | Service Plan | service_plan_name | Sets the name of the service plan. If not set, uses the name of the web app postfixed with "-plan". |
 | Service Plan | runtime_stack | Sets the runtime stack. |
 | Service Plan | operating_system | Sets the operating system. If Linux, App Insights configuration settings will be omitted as they are not supported by Azure App Service. |

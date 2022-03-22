@@ -11,11 +11,12 @@ open Farmer.Arm.Storage
 open Farmer.Arm.KeyVault
 open Farmer.Arm.KeyVault.Vaults
 open System
+open Farmer.Arm
 
 type FunctionsRuntime = DotNet | DotNetIsolated | Node | Java | Python
 type VersionedFunctionsRuntime =  FunctionsRuntime * string option
 type FunctionsRuntime with
-    // These values are defined on FunctionsRuntime to reduce the need for users to be aware of the distinction 
+    // These values are defined on FunctionsRuntime to reduce the need for users to be aware of the distinction
     // between FunctionsRuntime and VersionedFunctionsRuntime as well as to provide parity with WebApp runtime
     static member DotNetCore31 = DotNet, Some "3.1"
     static member DotNet50 = DotNet, Some "5.0"
@@ -246,12 +247,12 @@ type FunctionsConfig =
                   HTTP20Enabled = None
                   ClientAffinityEnabled = None
                   WebSocketsEnabled = None
-                  LinuxFxVersion = 
+                  LinuxFxVersion =
                     match this.CommonWebConfig.OperatingSystem with
                     | Windows -> None
                     | Linux ->
                       match this.VersionedRuntime with
-                      | DotNet, Some version -> 
+                      | DotNet, Some version ->
                         match Double.TryParse(version) with
                         | true, versionNo when versionNo < 4.0 -> Some $"DOTNETCORE|{version}"
                         | _ -> Some $"DOTNET|{version}"
@@ -274,13 +275,14 @@ type FunctionsConfig =
                     | _ -> None
                   WorkerProcess = this.CommonWebConfig.WorkerProcess
                   HealthCheckPath = this.CommonWebConfig.HealthCheckPath
-                  IpSecurityRestrictions = this.CommonWebConfig.IpSecurityRestrictions }
+                  IpSecurityRestrictions = this.CommonWebConfig.IpSecurityRestrictions 
+                  LinkToSubnet = this.CommonWebConfig.IntegratedSubnet }
 
             match this.CommonWebConfig.ServicePlan with
             | DeployableResource this.Name.ResourceName resourceId ->
                 { Name = resourceId.Name
                   Location = location
-                  Sku = Sku.Y1
+                  Sku = this.CommonWebConfig.Sku
                   WorkerSize = Serverless
                   WorkerCount = 0
                   MaximumElasticWorkerCount = None
@@ -310,6 +312,8 @@ type FunctionsConfig =
                   Location = location
                   DisableIpMasking = false
                   SamplingPercentage = 100
+                  Dependencies = Set.empty
+                  InstanceKind = Classic
                   LinkedWebsite =
                     match this.CommonWebConfig.OperatingSystem with
                     | Windows -> Some this.Name.ResourceName
@@ -318,6 +322,14 @@ type FunctionsConfig =
             | Some _
             | None ->
                 ()
+                
+            match this.CommonWebConfig.IntegratedSubnet with
+            | None -> ()
+            | Some subnetRef ->
+                { Site = site
+                  Subnet = subnetRef.ResourceId
+                  Dependencies = subnetRef.Dependency |> Option.toList }
+            yield! (PrivateEndpoint.create location this.ResourceId ["sites"] this.CommonWebConfig.PrivateEndpoints)
 
             if Map.isEmpty this.CommonWebConfig.Slots then
                 site
@@ -343,11 +355,14 @@ type FunctionsBuilder() =
               SecretStore = AppService
               ServicePlan = derived (fun name -> serverFarms.resourceId (name-"farm"))
               Settings = Map.empty
+              Sku = Sku.Y1
               Slots = Map.empty
               WorkerProcess = None
               ZipDeployPath = None
               HealthCheckPath = None 
-              IpSecurityRestrictions = [] }
+              IpSecurityRestrictions = []
+              IntegratedSubnet = None
+              PrivateEndpoints = Set.empty}
           StorageAccount = derived (fun config ->
             let storage = config.Name.ResourceName.Map (sprintf "%sstorage") |> sanitiseStorage |> ResourceName
             storageAccounts.resourceId storage)
@@ -358,6 +373,7 @@ type FunctionsBuilder() =
           Tags = Map.empty }
     member _.Run (state:FunctionsConfig) =
         if state.Name.ResourceName = ResourceName.Empty then raiseFarmer "No Functions instance name has been set."
+        state.CommonWebConfig.Validate()
         state
     /// Do not create an automatic storage account; instead, link to a storage account that is created outside of this Functions instance.
     [<CustomOperation "link_to_storage_account">]

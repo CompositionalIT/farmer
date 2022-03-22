@@ -16,6 +16,7 @@ let tests =
             let path = __SOURCE_DIRECTORY__ + "/test-data/" + jsonFile
             let expected = File.ReadAllText path
             let actual = deployment.Template |> Writer.toJson
+            let filename = Writer.toFile (path + "out") "deployment" actual
             Expect.equal (actual.Trim()) (expected.Trim()) (sprintf "ARM template generation has changed! Either fix the writer, or update the contents of the generated file (%s)" path)
 
         let compareResourcesToJson (resources:IBuilder list) jsonFile =
@@ -300,6 +301,7 @@ let tests =
                 sku SkuName.AZFW_Hub SkuTier.Standard
                 public_ip_reservation_count 2
                 link_to_vhub vhub
+                availability_zones ["1";"2"]
                 depends_on [(vhub :>IBuilder).ResourceId]
             }
             compareResourcesToJson [ firewall; vhub; vwan ] "azure-firewall.json"
