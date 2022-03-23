@@ -2,6 +2,8 @@ Release Notes
 =============
 
 ## 1.6.31
+* WebApps: Fix flakey deployments of web apps with multiple custom domains.
+* Deployments: Fix `ResourceId` generation when using a resource with a template.
 * AzureFirewall: Supports availability zones
 * WebApps/Functions: Add support for vnet integration
 
