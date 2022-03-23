@@ -209,7 +209,8 @@ type CommonWebConfig =
       HealthCheckPath: string option
       IpSecurityRestrictions: IpSecurityRestriction list 
       IntegratedSubnet : SubnetReference option
-      PrivateEndpoints: (SubnetReference * string option) Set }
+      PrivateEndpoints: (SubnetReference * string option) Set 
+      SlotSettingNames: string Set }
       member this.Validate () =
           match this with
           | { ServicePlan = LinkedResource _ } -> () // can't validate as validation dependent on linked resource
@@ -610,6 +611,12 @@ type WebAppConfig =
                   Subnet = subnetRef.ResourceId
                   Dependencies = subnetRef.Dependency |> Option.toList }
             yield! (PrivateEndpoint.create location this.ResourceId ["sites"] this.CommonWebConfig.PrivateEndpoints)
+
+            if this.CommonWebConfig.SlotSettingNames <> Set.empty then
+                {
+                    SiteName = this.Name.ResourceName;
+                    SlotSettingNames = this.CommonWebConfig.SlotSettingNames;
+                }
         ]
 
 type WebAppBuilder() =
@@ -635,7 +642,8 @@ type WebAppBuilder() =
               HealthCheckPath = None
               IpSecurityRestrictions = []
               IntegratedSubnet = None 
-              PrivateEndpoints = Set.empty }
+              PrivateEndpoints = Set.empty
+              SlotSettingNames = Set.empty }
           WorkerSize = Small
           WorkerCount = 1
           MaximumElasticWorkerCount = None
@@ -1020,3 +1028,15 @@ module Extensions =
         member this.LinkToUnmanagedVNet(state:'T, (vnetId, subnetName):ResourceId*ResourceName) = this.LinkToVNet (state, SubnetReference.create (Unmanaged vnetId,subnetName))
         member this.LinkToUnmanagedVNet(state:'T, subnet:SubnetConfig) = this.LinkToUnmanagedVNet (state, (subnet:>IBuilder).ResourceId)
         member this.LinkToUnmanagedVNet(state:'T, (vnet, subnetName):VirtualNetworkConfig*ResourceName) = this.LinkToUnmanagedVNet (state, vnet.SubnetIds[subnetName.Value])
+        /// Adds slot  settings
+        [<CustomOperation "slot_setting">]
+        member this.AddSlotSetting (state:'T, key, value) =
+            let current = this.Get state
+            { current with Settings = current.Settings.Add(key, LiteralSetting value); SlotSettingNames =current.SlotSettingNames.Add(key) }
+            |> this.Wrap state
+        [<CustomOperation "slot_settings">]
+        member this.AddSlotSettings(state:'T, settings: (string*string) list) =
+            let current = this.Get state
+            settings
+            |> List.fold (fun (state:CommonWebConfig) (key, value: string) -> { state with Settings = state.Settings.Add(key, LiteralSetting value); SlotSettingNames = state.SlotSettingNames.Add(key) }) current
+            |> this.Wrap state
