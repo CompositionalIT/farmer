@@ -212,12 +212,19 @@ let tests = testList "Virtual Machine" [
             arm { add_resource myVm }
         let jobj = Newtonsoft.Json.Linq.JObject.Parse (template.Template |> Writer.toJson)
         let vmResource = jobj.SelectToken("resources[?(@.name=='myvm')]")
-        let dependsOn = (vmResource.["dependsOn"] :?> Newtonsoft.Json.Linq.JArray)
-        Expect.hasLength dependsOn 1 "Incorrect number of VM dependencies"
+        let vmDependsOn = (vmResource.["dependsOn"] :?> Newtonsoft.Json.Linq.JArray)
+        Expect.hasLength vmDependsOn 1 "Incorrect number of VM dependencies"
         Expect.sequenceEqual
-            dependsOn
+            vmDependsOn
             (Newtonsoft.Json.Linq.JArray ["[resourceId('Microsoft.Network/networkInterfaces', 'myvm-nic')]" ])
-            $"VM should only depend on its NIC, not also the vnet: {dependsOn}"
+            $"VM should only depend on its NIC, not also the vnet: {vmDependsOn}"
+        let nicResource = jobj.SelectToken("resources[?(@.name=='myvm-nic')]")
+        let nicDependsOn = (nicResource.["dependsOn"] :?> Newtonsoft.Json.Linq.JArray)
+        Expect.hasLength nicDependsOn 1 "NIC should only have 1 dependency - the public IP"
+        Expect.sequenceEqual
+            nicDependsOn
+            (Newtonsoft.Json.Linq.JArray ["[resourceId('Microsoft.Network/publicIPAddresses', 'myvm-ip')]" ])
+            $"NIC should only depend on its public IP, not also the vnet: {nicDependsOn}"
     }
 
     test "Enables Azure AD SSH access on Linux virtual machine" {
