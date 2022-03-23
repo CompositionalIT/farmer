@@ -90,7 +90,6 @@ type VmConfig =
               DataDisks = this.DataDisks
               Tags = this.Tags }
 
-            let vnetName = this.VNet.resourceId(this).Name
             let subnetName = this.Subnet.resourceId this
             let nsgId = this.NetworkSecurityGroup |> Option.map(fun nsg -> nsg.ResourceId)
 
@@ -102,7 +101,7 @@ type VmConfig =
                    PublicIpAddress =
                         this.PublicIp
                         |> Option.map (fun x -> x.toLinkedResource this) |} ]
-              VirtualNetwork = vnetName
+              VirtualNetwork = this.VNet.toLinkedResource this
               PrivateIpAllocation = this.PrivateIpAllocation
               NetworkSecurityGroup = nsgId
               Tags = this.Tags }
@@ -110,7 +109,7 @@ type VmConfig =
             // VNET
             match this.VNet with
             | DeployableResource this vnet ->
-                { Name = vnetName
+                { Name = this.VNet.resourceId(this).Name
                   Location = location
                   AddressSpacePrefixes = [ this.AddressPrefix ]
                   Subnets = [

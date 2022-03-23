@@ -300,7 +300,7 @@ type NetworkInterface =
       IpConfigs :
         {| SubnetName : ResourceName
            PublicIpAddress : LinkedResource option |} list
-      VirtualNetwork : ResourceName
+      VirtualNetwork : LinkedResource
       NetworkSecurityGroup: ResourceId option
       PrivateIpAllocation: PrivateIpAddress.AllocationMethod option
       Tags: Map<string,string>  }
@@ -308,7 +308,9 @@ type NetworkInterface =
         member this.ResourceId = networkInterfaces.resourceId this.Name
         member this.JsonModel =
             let dependsOn = [
-                virtualNetworks.resourceId this.VirtualNetwork
+                match this.VirtualNetwork with
+                | Managed resId -> resId
+                | _ -> ()
                 for config in this.IpConfigs do
                     match config.PublicIpAddress with
                     | Some ipName ->
@@ -332,7 +334,7 @@ type NetworkInterface =
                                        ipConfig.PublicIpAddress
                                        |> Option.map(fun pip -> {| id = pip.ResourceId.ArmExpression.Eval() |})
                                        |> Option.defaultValue Unchecked.defaultof<_>
-                                   subnet = {| id = subnets.resourceId(this.VirtualNetwork, ipConfig.SubnetName).Eval() |}
+                                   subnet = {| id = subnets.resourceId(this.VirtualNetwork.Name, ipConfig.SubnetName).Eval() |}
                                 |}
                             |})
                     |}
