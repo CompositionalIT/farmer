@@ -612,11 +612,12 @@ type WebAppConfig =
                   Dependencies = subnetRef.Dependency |> Option.toList }
             yield! (PrivateEndpoint.create location this.ResourceId ["sites"] this.CommonWebConfig.PrivateEndpoints)
 
-            if this.CommonWebConfig.SlotSettingNames <> Set.empty then
-                {
-                    SiteName = this.Name.ResourceName;
-                    SlotSettingNames = this.CommonWebConfig.SlotSettingNames;
-                }
+            match this.CommonWebConfig.SlotSettingNames with 
+            | x when Set.empty <> x ->
+                { SiteName = this.Name.ResourceName
+                  SlotSettingNames = this.CommonWebConfig.SlotSettingNames }
+            | _ ->
+                ()
         ]
 
 type WebAppBuilder() =
@@ -1029,14 +1030,19 @@ module Extensions =
         member this.LinkToUnmanagedVNet(state:'T, subnet:SubnetConfig) = this.LinkToUnmanagedVNet (state, (subnet:>IBuilder).ResourceId)
         member this.LinkToUnmanagedVNet(state:'T, (vnet, subnetName):VirtualNetworkConfig*ResourceName) = this.LinkToUnmanagedVNet (state, vnet.SubnetIds[subnetName.Value])
         /// Adds slot  settings
-        [<CustomOperation "slot_setting">]
+        [<CustomOperation "add_slot_setting">]
         member this.AddSlotSetting (state:'T, key, value) =
             let current = this.Get state
-            { current with Settings = current.Settings.Add(key, LiteralSetting value); SlotSettingNames =current.SlotSettingNames.Add(key) }
+            { current with 
+                Settings = current.Settings.Add(key, LiteralSetting value)
+                SlotSettingNames = current.SlotSettingNames.Add(key) }
             |> this.Wrap state
-        [<CustomOperation "slot_settings">]
+        [<CustomOperation "add_slot_settings">]
         member this.AddSlotSettings(state:'T, settings: (string*string) list) =
             let current = this.Get state
             settings
-            |> List.fold (fun (state:CommonWebConfig) (key, value: string) -> { state with Settings = state.Settings.Add(key, LiteralSetting value); SlotSettingNames = state.SlotSettingNames.Add(key) }) current
+            |> List.fold (fun (state:CommonWebConfig) (key, value: string) -> 
+                { state with 
+                    Settings = state.Settings.Add(key, LiteralSetting value) 
+                    SlotSettingNames = state.SlotSettingNames.Add(key) }) current
             |> this.Wrap state

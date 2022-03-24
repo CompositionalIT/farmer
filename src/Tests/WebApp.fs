@@ -841,10 +841,12 @@ let tests = testList "Web App Tests" [
         Expect.hasLength vnetConnections 1 "incorrect number of Vnet connections"
     }
     test "Supports slot settings" {
-        let webApp = webApp { name "test"; slot_settings [ "sticky_config", "sticky_config_value"; "another_sticky_config", "another_sticky_config_value" ]} 
+        let slot = appSlot { name "warm-up" }
+        let webApp = webApp { name "test"; add_slot slot; add_slot_settings [ "sticky_config", "sticky_config_value"; "another_sticky_config", "another_sticky_config_value" ]} 
 
         let scn = webApp |> getResources |> getResource<Web.SlotConfigName> |> List.head
         let ws = webApp |> getResources |> getResource<Web.Site> |> List.head
+        let slots = webApp |> getResources|> getResource<Arm.Web.Site> |> List.filter (fun x -> x.ResourceType = Arm.Web.slots)
 
         let template = arm{ add_resource webApp}
         let jobj = template.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
@@ -860,8 +862,11 @@ let tests = testList "Web App Tests" [
         let expectedSettings = Map [ 
             "sticky_config", LiteralSetting "sticky_config_value"
             "another_sticky_config", LiteralSetting "another_sticky_config_value" ]
-        
-        let settings = Expect.wantSome ws.AppSettings "AppSettings should be set"
+
+        Expect.isNone ((ws).AppSettings) "App service should not have any settings"
+        Expect.hasLength slots 1 "Should have a slot"
+
+        let settings = Expect.wantSome slots.[0].AppSettings "AppSettings should be set on the slot"
         Expect.containsAll  settings  expectedSettings "App settings should contain the slot settings"
         Expect.containsAll scn.SlotSettingNames ["sticky_config"; "another_sticky_config"] "Slot config names should be set"
         Expect.equal scn.SiteName (ResourceName "test") "Parent name should be set"
@@ -871,10 +876,12 @@ let tests = testList "Web App Tests" [
     }
 
     test "Supports slot setting" {
-        let webApp = webApp { name "test"; slot_setting "sticky_config" "sticky_config_value" } 
+        let slot = appSlot { name "warm-up" }
+        let webApp = webApp { name "test"; add_slot slot; add_slot_setting "sticky_config" "sticky_config_value" } 
 
         let scn = webApp |> getResources |> getResource<Web.SlotConfigName> |> List.head
-        let ws = webApp |> getResources |> getResource<Web.Site> |> List.head
+        let ws = webApp |> getResources |> getResource<Web.Site> |> List.head 
+        let slots = webApp |> getResources|> getResource<Arm.Web.Site> |> List.filter (fun x -> x.ResourceType = Arm.Web.slots)
 
         let template = arm{ add_resource webApp}
         let jobj = template.Template |> Writer.toJson |> Newtonsoft.Json.Linq.JObject.Parse
@@ -890,12 +897,14 @@ let tests = testList "Web App Tests" [
         let expectedSettings = Map [ 
             "sticky_config", LiteralSetting "sticky_config_value" ]
           
-        let settings = Expect.wantSome ws.AppSettings "AppSettings should be set"
+        Expect.isNone ((ws).AppSettings) "App service should not have any settings"
+        Expect.hasLength slots 1 "App should have a slot"
+
+        let settings = Expect.wantSome slots[0].AppSettings "AppSettings should be set on a slot"
         Expect.containsAll  settings  expectedSettings "App settings should contain the slot setting"
         Expect.containsAll scn.SlotSettingNames ["sticky_config"] "Slot config name should be set"
         Expect.equal scn.SiteName (ResourceName "test") "Parent name should be set"
         Expect.containsAll appSettingNames  [ "sticky_config" ] "Slot config name should be present in template"
         Expect.containsAll dependencies  [ $"[resourceId('Microsoft.Web/sites', '{webApp.Name.ResourceName.Value}')]"] "Slot config names resource should depend on web site"
-
     }
 ]

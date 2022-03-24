@@ -1,0 +1,108 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "outputs": {},
+  "parameters": {},
+  "resources": [
+    {
+      "apiVersion": "2018-11-30",
+      "dependsOn": [],
+      "location": "eastus",
+      "name": "kubeletIdentity",
+      "tags": {},
+      "type": "Microsoft.ManagedIdentity/userAssignedIdentities"
+    },
+    {
+      "apiVersion": "2018-11-30",
+      "dependsOn": [],
+      "location": "eastus",
+      "name": "clusterIdentity",
+      "tags": {},
+      "type": "Microsoft.ManagedIdentity/userAssignedIdentities"
+    },
+    {
+      "apiVersion": "2019-05-01",
+      "location": "eastus",
+      "name": "farmercontainerregistry1234",
+      "properties": {
+        "adminUserEnabled": false
+      },
+      "sku": {
+        "name": "Basic"
+      },
+      "tags": {},
+      "type": "Microsoft.ContainerRegistry/registries"
+    },
+    {
+      "apiVersion": "2021-03-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.ContainerRegistry/registries', 'farmercontainerregistry1234')]",
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'clusterIdentity')]",
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'kubeletIdentity')]",
+        "[guid(concat(resourceGroup().id, 'clusterIdentity', 'f1a07417-d97a-45cb-824c-7a7467783830'))]",
+        "[guid(concat(resourceGroup().id, 'kubeletIdentity', '7f951dda-4ed3-4680-a7ca-43fe172d538d'))]"
+      ],
+      "identity": {
+        "type": "UserAssigned",
+        "userAssignedIdentities": {
+          "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'clusterIdentity')]": {}
+        }
+      },
+      "location": "eastus",
+      "name": "aks-cluster",
+      "properties": {
+        "agentPoolProfiles": [
+          {
+            "count": 3,
+            "mode": "System",
+            "name": "nodepool1",
+            "osDiskSizeGB": 0,
+            "osType": "Linux",
+            "vmSize": "Standard_DS2_v2"
+          }
+        ],
+        "dnsPrefix": "aks-cluster-223d2976",
+        "enableRBAC": false,
+        "identityProfile": {
+          "kubeletIdentity": {
+            "clientId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'kubeletIdentity'), '2018-11-30').clientId]",
+            "objectId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'kubeletIdentity'), '2018-11-30').principalId]",
+            "resourceId": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'kubeletIdentity')]"
+          }
+        },
+        "servicePrincipalProfile": {
+          "clientId": "msi"
+        }
+      },
+      "type": "Microsoft.ContainerService/managedClusters"
+    },
+    {
+      "apiVersion": "2021-04-01-preview",
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'clusterIdentity')]"
+      ],
+      "name": "[guid(concat(resourceGroup().id, 'clusterIdentity', 'f1a07417-d97a-45cb-824c-7a7467783830'))]",
+      "properties": {
+        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'clusterIdentity')).principalId]",
+        "principalType": "ServicePrincipal",
+        "roleDefinitionId": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', 'f1a07417-d97a-45cb-824c-7a7467783830')]"
+      },
+      "type": "Microsoft.Authorization/roleAssignments"
+    },
+    {
+      "apiVersion": "2021-04-01-preview",
+      "dependsOn": [
+        "[resourceId('Microsoft.ContainerRegistry/registries', 'farmercontainerregistry1234')]",
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'kubeletIdentity')]"
+      ],
+      "name": "[guid(concat(resourceGroup().id, 'kubeletIdentity', '7f951dda-4ed3-4680-a7ca-43fe172d538d'))]",
+      "properties": {
+        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'kubeletIdentity')).principalId]",
+        "principalType": "ServicePrincipal",
+        "roleDefinitionId": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', '7f951dda-4ed3-4680-a7ca-43fe172d538d')]"
+      },
+      "scope": "[resourceId('Microsoft.ContainerRegistry/registries', 'farmercontainerregistry1234')]",
+      "type": "Microsoft.Authorization/roleAssignments"
+    }
+  ]
+}

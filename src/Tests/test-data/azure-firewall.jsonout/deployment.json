@@ -1,0 +1,67 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "outputs": {},
+  "parameters": {},
+  "resources": [
+    {
+      "apiVersion": "2020-07-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualHubs', 'farmer_vhub')]"
+      ],
+      "location": "northeurope",
+      "name": "farmer_firewall",
+      "properties": {
+        "hubIPAddresses": {
+          "publicIPs": {
+            "addresses": [],
+            "count": 2
+          }
+        },
+        "sku": {
+          "name": "AZFW_Hub",
+          "tier": "Standard"
+        },
+        "virtualHub": {
+          "id": "[resourceId('Microsoft.Network/virtualHubs', 'farmer_vhub')]"
+        }
+      },
+      "type": "Microsoft.Network/azureFirewalls",
+      "zones": [
+        "1",
+        "2"
+      ]
+    },
+    {
+      "apiVersion": "2020-07-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualWans', 'farmer-vwan')]"
+      ],
+      "location": "northeurope",
+      "name": "farmer_vhub",
+      "properties": {
+        "addressPrefix": "100.73.255.0/24",
+        "routeTable": {
+          "routes": []
+        },
+        "sku": "Standard",
+        "virtualWan": {
+          "id": "[resourceId('Microsoft.Network/virtualWans', 'farmer-vwan')]"
+        }
+      },
+      "type": "Microsoft.Network/virtualHubs"
+    },
+    {
+      "apiVersion": "2020-07-01",
+      "location": "northeurope",
+      "name": "farmer-vwan",
+      "properties": {
+        "allowBranchToBranchTraffic": true,
+        "disableVpnEncryption": true,
+        "office365LocalBreakoutCategory": "None",
+        "type": "Standard"
+      },
+      "type": "Microsoft.Network/virtualWans"
+    }
+  ]
+}

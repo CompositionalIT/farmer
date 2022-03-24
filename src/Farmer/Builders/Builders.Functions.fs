@@ -338,11 +338,12 @@ type FunctionsConfig =
                 for (_, slot) in this.CommonWebConfig.Slots |> Map.toSeq do
                     slot.ToSite site
                     
-            if this.CommonWebConfig.SlotSettingNames <> Set.empty then
-                {
-                    SiteName = this.Name.ResourceName;
-                    SlotSettingNames = this.CommonWebConfig.SlotSettingNames;
-                }
+            match this.CommonWebConfig.SlotSettingNames with 
+            | x when Set.empty <> x ->
+                { SiteName = this.Name.ResourceName
+                  SlotSettingNames = this.CommonWebConfig.SlotSettingNames }
+            | _ ->
+                ()
         ]
 
 type FunctionsBuilder() =
