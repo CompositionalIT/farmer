@@ -276,13 +276,13 @@ type FunctionsConfig =
                   WorkerProcess = this.CommonWebConfig.WorkerProcess
                   HealthCheckPath = this.CommonWebConfig.HealthCheckPath
                   IpSecurityRestrictions = this.CommonWebConfig.IpSecurityRestrictions 
-                  LinkToSubnet = this.CommonWebConfig.RouteViaSubnet }
+                  LinkToSubnet = this.CommonWebConfig.IntegratedSubnet }
 
             match this.CommonWebConfig.ServicePlan with
             | DeployableResource this.Name.ResourceName resourceId ->
                 { Name = resourceId.Name
                   Location = location
-                  Sku = Sku.Y1
+                  Sku = this.CommonWebConfig.Sku
                   WorkerSize = Serverless
                   WorkerCount = 0
                   MaximumElasticWorkerCount = None
@@ -323,7 +323,7 @@ type FunctionsConfig =
             | None ->
                 ()
                 
-            match this.CommonWebConfig.RouteViaSubnet with
+            match this.CommonWebConfig.IntegratedSubnet with
             | None -> ()
             | Some subnetRef ->
                 { Site = site
@@ -361,13 +361,14 @@ type FunctionsBuilder() =
               SecretStore = AppService
               ServicePlan = derived (fun name -> serverFarms.resourceId (name-"farm"))
               Settings = Map.empty
+              Sku = Sku.Y1
               Slots = Map.empty
               WorkerProcess = None
               ZipDeployPath = None
               HealthCheckPath = None 
               SlotSettingNames = Set.empty
               IpSecurityRestrictions = []
-              RouteViaSubnet = None
+              IntegratedSubnet = None
               PrivateEndpoints = Set.empty}
           StorageAccount = derived (fun config ->
             let storage = config.Name.ResourceName.Map (sprintf "%sstorage") |> sanitiseStorage |> ResourceName
@@ -379,6 +380,7 @@ type FunctionsBuilder() =
           Tags = Map.empty }
     member _.Run (state:FunctionsConfig) =
         if state.Name.ResourceName = ResourceName.Empty then raiseFarmer "No Functions instance name has been set."
+        state.CommonWebConfig.Validate()
         state
     /// Do not create an automatic storage account; instead, link to a storage account that is created outside of this Functions instance.
     [<CustomOperation "link_to_storage_account">]

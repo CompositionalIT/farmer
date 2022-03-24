@@ -1,8 +1,11 @@
 Release Notes
 =============
+
 ## 1.6.31
-- WebApps/Functions: Add support for vnet integration
-- Subnets: added link_to_route_table
+* WebApps: Fix flakey deployments of web apps with multiple custom domains.
+* Deployments: Fix `ResourceId` generation when using a resource with a template.
+* AzureFirewall: Supports availability zones
+* WebApps/Functions: Add support for vnet integration
 
 ## 1.6.30
 * WebApps/Functions: Specify connection string types

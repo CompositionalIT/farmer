@@ -48,7 +48,7 @@ type ResourceGroupConfig =
       | None -> 
         $"deployment-{deploymentIndex()}"
 
-    member this.ResourceId = {resourceGroupDeployment.resourceId (this.DeploymentName.GetValue this.GenerateDeploymentName) with ResourceGroup = this.TargetResourceGroup}
+    member this.ResourceId = {resourceGroupDeployment.resourceId (this.DeploymentName.GetValue this.GenerateDeploymentName) with ResourceGroup = this.TargetResourceGroup; Subscription = this.SubscriptionId |> Option.map string}
     member private this.ContentDeployment =
         if this.Parameters.IsEmpty && this.Outputs.IsEmpty && this.Resources.IsEmpty then
             None // this resource group has no content so there's nothing to deploy

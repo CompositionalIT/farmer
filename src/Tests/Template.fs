@@ -193,6 +193,15 @@ let tests = testList "Template" [
         Expect.equal id "[resourceId('Microsoft.Network/connections', 'test', 'segment1', 'segment2')]" "resourceId template function should match"
     }
 
+    test "Generates deployment Resource Id with template name" {
+        let deployment = resourceGroup {
+            name "[resourceGroup.name()]"
+        }
+        let id = deployment.ResourceId.Eval()
+        let expectedDeploymentIndex = ResourceGroup.deploymentIndex() - 1
+        Expect.equal id $"[resourceId(resourceGroup.name(), 'Microsoft.Resources/deployments', concat(resourceGroup.name(),'-deployment-{expectedDeploymentIndex}'))]" "resourceId template function should match"
+    }
+
     test "Fails if ARM expression is already quoted" {
         Expect.throws(fun () -> ArmExpression.create "[test]" |> ignore ) ""
     }
