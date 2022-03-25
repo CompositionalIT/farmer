@@ -1,7 +1,9 @@
 Release Notes
 =============
-## 1.6.30
+## 1.6.32
 * CLI: Include `--overwrite true` option when executing `az storage blob upload-batch` with Azure CLI 2.34.0 and above.
+
+## 1.6.30
 * WebApps/Functions: Specify connection string types
 * WebApps/Functions: Allow adding IP restriction string with CIDR
 * Application Insights: Support for Workspace-enabled instances.
