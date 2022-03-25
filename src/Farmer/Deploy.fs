@@ -155,9 +155,14 @@ module Az =
           yield! errorDoc |> Option.mapList (sprintf "--404-document %s") ]
         |> String.concat " "
         |> az
+    /// The overwrite parameter was introduced in Azure CLI v2.34.0 with a breaking change to the default behaviour
+    let private cliVersionWithOverwriteParameter = Version "2.34.0"
     let batchUploadStaticWebsite name path =
-        let overwriteParameter = checkVersion (Version "2.34.0") |> function | Ok _ -> "--overwrite true" | Error _ -> ""
-        az $"storage blob upload-batch --account-name %s{name} --destination $web --source %s{path} {overwriteParameter}"
+        let additionalParameters =
+            match checkVersion cliVersionWithOverwriteParameter with
+            | Ok _ -> "--overwrite true"
+            | _ -> ""
+        az $"storage blob upload-batch --account-name %s{name} --destination $web --source %s{path} {additionalParameters}"
 
     type AzureErrorCode = { Code : string; Message : string }
     type AzureError = { Error : AzureErrorCode }
