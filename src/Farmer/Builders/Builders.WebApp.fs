@@ -779,11 +779,12 @@ type WebAppBuilder() =
     member this.ZoneRedundant(state:WebAppConfig, flag:FeatureFlag) = {state with ZoneRedundant = Some flag}
 
     member _.AddVirtualApplication(state:WebAppConfig, physicalPath, virtualPath, preloadEnabled) = 
-        { state with VirtualApplications =
-                        if state.VirtualApplications.IsEmpty
-                            then Map [ ("/", VirtualApplication.Create "site\\wwwroot" None ) ]
-                            else state.VirtualApplications
-                        |> Map.add physicalPath (VirtualApplication.Create ("site\\" + virtualPath) preloadEnabled) }
+        { state with
+            VirtualApplications =
+                if state.VirtualApplications.IsEmpty
+                    then Map [ ("/", VirtualApplication.Create "site\\wwwroot" None ) ]
+                    else state.VirtualApplications
+                |> Map.add physicalPath (VirtualApplication.Create ("site\\" + virtualPath) preloadEnabled) }
 
     /// Adds Virtual Application definition
     [<CustomOperation "add_virtual_application">] 

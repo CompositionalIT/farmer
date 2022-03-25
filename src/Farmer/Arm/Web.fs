@@ -313,14 +313,15 @@ type Site =
                            vnetName = this.LinkToSubnet |> Option.map (fun x -> x.ResourceId.Segments[0].Value) |> Option.toObj
                            vnetRouteAllEnabled = this.LinkToSubnet |> function | Some _ -> Nullable true | None -> Nullable()
                            virtualApplications = 
-                                if this.VirtualApplications.IsEmpty
-                                    then null
-                                    else this.VirtualApplications
-                                            |> Seq.map (fun virtualAppKvp ->
-                                                {| virtualPath = virtualAppKvp.Key
-                                                   physicalPath = virtualAppKvp.Value.PhysicalPath
-                                                   preloadEnabled = virtualAppKvp.Value.PreloadEnabled |> Option.toNullable |})
-                                            |> box
+                                if this.VirtualApplications.IsEmpty then
+                                    null
+                                else
+                                    this.VirtualApplications
+                                    |> Seq.map (fun virtualAppKvp ->
+                                        {| virtualPath = virtualAppKvp.Key
+                                           physicalPath = virtualAppKvp.Value.PhysicalPath
+                                           preloadEnabled = virtualAppKvp.Value.PreloadEnabled |> Option.toNullable |})
+                                    |> box
                         |}
                     |}
             |}
