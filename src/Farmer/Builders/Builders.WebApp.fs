@@ -781,9 +781,10 @@ type WebAppBuilder() =
     member _.AddVirtualApplication(state:WebAppConfig, physicalPath, virtualPath, preloadEnabled) = 
         { state with
             VirtualApplications =
-                if state.VirtualApplications.IsEmpty
-                    then Map [ ("/", VirtualApplication.Create "site\\wwwroot" None ) ]
-                    else state.VirtualApplications
+                if state.VirtualApplications.IsEmpty then
+                    Map [ ("/", VirtualApplication.Create "site\\wwwroot" None ) ]
+                else
+                    state.VirtualApplications
                 |> Map.add physicalPath (VirtualApplication.Create ("site\\" + virtualPath) preloadEnabled) }
 
     /// Adds Virtual Application definition
