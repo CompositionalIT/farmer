@@ -1,6 +1,6 @@
 ---
 title: "Virtual Machine"
-date: 2020-02-05T08:53:46+01:00
+date: 2022-03-17T09:33:27+05:00
 chapter: false
 weight: 21
 ---
@@ -24,6 +24,8 @@ In addition, every VM you create will add a SecureString parameter to the ARM te
 |diagnostics_support|Turns on diagnostics support using an automatically created created storage account.|
 |diagnostics_support_external|Turns on diagnostics support using an existing storage account.|
 |vm_size|Sets the size of the VM.|
+|priority|Sets the VM Priority. Only one `spot_instance` or `priority` setting is allowed per VM.|
+|spot_instance|Makes the VM a spot instance. Shorthand for `priority (Spot (<EvictionPolicy>, <maxPrice>)`. Only one `spot_instance` or `priority` setting is allowed per VM.|
 |username|Sets the admin username of the VM (note: the password is supplied as a securestring parameter to the generated ARM template).|
 |password_parameter|Sets the name of the parameter which contains the admin password for this VM. defaults to "password-for-<VM-name>"|
 |operating_system|Sets the operating system of the VM. A set of samples is provided in the `CommonImages` module.|
