@@ -1,14 +1,16 @@
 Release Notes
 =============
-
 ## 1.6.30
-* CLI: include `--overwrite true` option when executing `az storage blob upload-batch` with Azure CLI 2.34.0 and above.
+* CLI: Include `--overwrite true` option when executing `az storage blob upload-batch` with Azure CLI 2.34.0 and above.
+* WebApps/Functions: Specify connection string types
+* WebApps/Functions: Allow adding IP restriction string with CIDR
+* Application Insights: Support for Workspace-enabled instances.
 
 ## 1.6.29
 * CLI: include `--only-show-error` option when executing Azure CLI commands.
 
 ## 1.6.28
-* ServicePlan/WebApp: Support for enabling ZoneDedundant
+* ServicePlan/WebApp: Support for enabling ZoneRedundant
 
 ## 1.6.27
 * Functions: Make `connection_string` available for Azure Functions in addition to WebApps.

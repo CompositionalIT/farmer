@@ -244,8 +244,8 @@ type CertificateOptions =
 type DomainConfig =
     | SecureDomain of domain:string * cert:CertificateOptions
     | InsecureDomain of domain:string
-    member this.DomainName = 
-        match this with 
+    member this.DomainName =
+        match this with
         | SecureDomain (domainName,_)
         | InsecureDomain (domainName) -> domainName
 
