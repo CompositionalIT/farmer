@@ -212,12 +212,19 @@ let tests = testList "Virtual Machine" [
             arm { add_resource myVm }
         let jobj = Newtonsoft.Json.Linq.JObject.Parse (template.Template |> Writer.toJson)
         let vmResource = jobj.SelectToken("resources[?(@.name=='myvm')]")
-        let dependsOn = (vmResource.["dependsOn"] :?> Newtonsoft.Json.Linq.JArray)
-        Expect.hasLength dependsOn 1 "Incorrect number of VM dependencies"
+        let vmDependsOn = (vmResource.["dependsOn"] :?> Newtonsoft.Json.Linq.JArray)
+        Expect.hasLength vmDependsOn 1 "Incorrect number of VM dependencies"
         Expect.sequenceEqual
-            dependsOn
+            vmDependsOn
             (Newtonsoft.Json.Linq.JArray ["[resourceId('Microsoft.Network/networkInterfaces', 'myvm-nic')]" ])
-            $"VM should only depend on its NIC, not also the vnet: {dependsOn}"
+            $"VM should only depend on its NIC, not also the vnet: {vmDependsOn}"
+        let nicResource = jobj.SelectToken("resources[?(@.name=='myvm-nic')]")
+        let nicDependsOn = (nicResource.["dependsOn"] :?> Newtonsoft.Json.Linq.JArray)
+        Expect.hasLength nicDependsOn 1 "NIC should only have 1 dependency - the public IP"
+        Expect.sequenceEqual
+            nicDependsOn
+            (Newtonsoft.Json.Linq.JArray ["[resourceId('Microsoft.Network/publicIPAddresses', 'myvm-ip')]" ])
+            $"NIC should only depend on its public IP, not also the vnet: {nicDependsOn}"
     }
 
     test "Enables Azure AD SSH access on Linux virtual machine" {
@@ -240,4 +247,20 @@ let tests = testList "Virtual Machine" [
         Expect.equal (string extensionResource.["properties"].["type"]) "AADSSHLoginForLinux" $"Missing or incorrect extension type."
         Expect.equal (string extensionResource.["properties"].["typeHandlerVersion"]) "1.0" $"Missing or incorrect extension typeHandlerVersion."
     }
+
+    test "throws an error if you set priority more than once" {
+        let createVm () = arm { add_resource (vm { name "foo"; username "foo"; priority Regular; priority Regular }) } |> ignore
+        Expect.throws createVm "priority set more than once"
+    }
+
+    test "throws an error if you set spot_instance more than once" {
+        let createVm () = arm { add_resource (vm { name "foo"; username "foo"; spot_instance Deallocate; spot_instance Deallocate }) } |> ignore
+        Expect.throws createVm "spot_instance set more than once"
+    }
+
+    test "throws an error if you set priority and spot_instance" {
+        let createVm () = arm { add_resource (vm { name "foo"; username "foo"; priority Regular; spot_instance Deallocate }) } |> ignore
+        Expect.throws createVm "priority and spot_instance both set"
+    }
+
 ]

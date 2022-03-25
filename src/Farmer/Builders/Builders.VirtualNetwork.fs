@@ -2,6 +2,7 @@
 module Farmer.Builders.VirtualNetwork
 
 open Farmer
+open Farmer.Builders
 open Farmer.Network
 open Farmer.Arm.Network
 
@@ -387,3 +388,7 @@ type VNetPeeringSpecBuilder() =
     interface IDependable<VNetPeeringSpec> with member _.Add state resources = {state with DependsOn = state.DependsOn |> Set.union resources}
 
 let vnetPeering = VNetPeeringSpecBuilder ()
+
+type SubnetReference with
+    static member create (vnetConfig:VirtualNetworkConfig, subnetName) = ViaManagedVNet (vnetConfig.ResourceId,subnetName)
+    static member create (vnetConfig:SubnetConfig) = Direct (Managed (vnetConfig:>IBuilder).ResourceId)

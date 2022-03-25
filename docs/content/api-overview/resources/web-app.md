@@ -60,6 +60,8 @@ The Web App builder is used to create Azure App Service accounts. It abstracts t
 | Web App | add_allowed_ip_restriction | Adds an 'allow' rule for an ip |
 | Web App | add_denied_ip_restriction | Adds an 'deny' rule for an ip |
 | Web App | docker_port | Adds `WEBSITES_PORT` setting to map custom docker port to app service port 80 |
+| Web App | link_to_vnet | Enable the VNET integration feature in azure where all outbound traffic from the web app with be sent via the specified subnet. Use this operator when the given VNET is in the same deployment |
+| Web App | link_to_unmanaged_vnet | Enable the VNET integration feature in azure where all outbound traffic from the web app with be sent via the specified subnet. Use this operator when the given VNET is *not* in the same deployment |
 | Web App | add_virtual_application | Adds a virtual application, allowing you to run multiple sub-applications by providing the virtual path to map to a physical directory containing the application |
 | Web App | add_virtual_application_preloaded | Adds a virtual application, with preloading enabled for that application |
 | Service Plan | service_plan_name | Sets the name of the service plan. If not set, uses the name of the web app postfixed with "-plan". |

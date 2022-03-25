@@ -11,6 +11,7 @@ open Farmer.Arm.Storage
 open Farmer.Arm.KeyVault
 open Farmer.Arm.KeyVault.Vaults
 open System
+open Farmer.Arm
 
 type FunctionsRuntime = DotNet | DotNetIsolated | Node | Java | Python
 type VersionedFunctionsRuntime =  FunctionsRuntime * string option
@@ -274,14 +275,15 @@ type FunctionsConfig =
                     | _ -> None
                   WorkerProcess = this.CommonWebConfig.WorkerProcess
                   HealthCheckPath = this.CommonWebConfig.HealthCheckPath
-                  IpSecurityRestrictions = this.CommonWebConfig.IpSecurityRestrictions
+                  IpSecurityRestrictions = this.CommonWebConfig.IpSecurityRestrictions 
+                  LinkToSubnet = this.CommonWebConfig.IntegratedSubnet
                   VirtualApplications = Map [] }
 
             match this.CommonWebConfig.ServicePlan with
             | DeployableResource this.Name.ResourceName resourceId ->
                 { Name = resourceId.Name
                   Location = location
-                  Sku = Sku.Y1
+                  Sku = this.CommonWebConfig.Sku
                   WorkerSize = Serverless
                   WorkerCount = 0
                   MaximumElasticWorkerCount = None
@@ -321,6 +323,14 @@ type FunctionsConfig =
             | Some _
             | None ->
                 ()
+                
+            match this.CommonWebConfig.IntegratedSubnet with
+            | None -> ()
+            | Some subnetRef ->
+                { Site = site
+                  Subnet = subnetRef.ResourceId
+                  Dependencies = subnetRef.Dependency |> Option.toList }
+            yield! (PrivateEndpoint.create location this.ResourceId ["sites"] this.CommonWebConfig.PrivateEndpoints)
 
             if Map.isEmpty this.CommonWebConfig.Slots then
                 site
@@ -346,11 +356,14 @@ type FunctionsBuilder() =
               SecretStore = AppService
               ServicePlan = derived (fun name -> serverFarms.resourceId (name-"farm"))
               Settings = Map.empty
+              Sku = Sku.Y1
               Slots = Map.empty
               WorkerProcess = None
               ZipDeployPath = None
-              HealthCheckPath = None
-              IpSecurityRestrictions = [] }
+              HealthCheckPath = None 
+              IpSecurityRestrictions = []
+              IntegratedSubnet = None
+              PrivateEndpoints = Set.empty}
           StorageAccount = derived (fun config ->
             let storage = config.Name.ResourceName.Map (sprintf "%sstorage") |> sanitiseStorage |> ResourceName
             storageAccounts.resourceId storage)
@@ -361,6 +374,7 @@ type FunctionsBuilder() =
           Tags = Map.empty }
     member _.Run (state:FunctionsConfig) =
         if state.Name.ResourceName = ResourceName.Empty then raiseFarmer "No Functions instance name has been set."
+        state.CommonWebConfig.Validate()
         state
     /// Do not create an automatic storage account; instead, link to a storage account that is created outside of this Functions instance.
     [<CustomOperation "link_to_storage_account">]
