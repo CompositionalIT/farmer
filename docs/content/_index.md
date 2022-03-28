@@ -60,7 +60,7 @@ let deployment = arm {
 
 // Deploy it to Azure!
 deployment
-|> Writer.quickDeploy "myResourceGroup" Deploy.NoParameters
+|> Writer.quickWrite "myResourceGroup"
 ```
 
 #### Want to try it out? Follow our [quickstart guide](quickstarts/quickstart-1) now!
