@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+## 1.6.32
+
+* Updated documentation on main page from `Writer.quickDeploy` to `Writer.quickWrite`
+
 ## 1.6.31
 * WebApps: Fix flakey deployments of web apps with multiple custom domains.
 * Deployments: Fix `ResourceId` generation when using a resource with a template.
