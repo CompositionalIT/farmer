@@ -4,16 +4,16 @@ module Farmer.Arm.Dns
 open Farmer
 open Farmer.Dns
 
-let zones = ResourceType ("Microsoft.Network/dnsZones", "2018-05-01")
-let aRecord = ResourceType ("Microsoft.Network/dnsZones/A", "2018-05-01")
-let aaaaRecord = ResourceType ("Microsoft.Network/dnsZones/AAAA", "2018-05-01")
-let cnameRecord = ResourceType ("Microsoft.Network/dnsZones/CNAME", "2018-05-01")
-let txtRecord = ResourceType ("Microsoft.Network/dnsZones/TXT", "2018-05-01")
-let mxRecord = ResourceType ("Microsoft.Network/dnsZones/MX", "2018-05-01")
-let nsRecord = ResourceType ("Microsoft.Network/dnsZones/NS", "2018-05-01")
-let soaRecord = ResourceType ("Microsoft.Network/dnszones/SOA", "2018-05-01")
-let srvRecord = ResourceType ("Microsoft.Network/dnsZones/SRV", "2018-05-01")
-let ptrRecord = ResourceType ("Microsoft.Network/dnsZones/PTR", "2018-05-01")
+let zones = ResourceType ("Microsoft.Network/privateDnsZones", "2018-05-01")
+let aRecord = ResourceType ("Microsoft.Network/privateDnsZones/A", "2018-05-01")
+let aaaaRecord = ResourceType ("Microsoft.Network/privateDnsZones/AAAA", "2018-05-01")
+let cnameRecord = ResourceType ("Microsoft.Network/privateDnsZones/CNAME", "2018-05-01")
+let txtRecord = ResourceType ("Microsoft.Network/privateDnsZones/TXT", "2018-05-01")
+let mxRecord = ResourceType ("Microsoft.Network/privateDnsZones/MX", "2018-05-01")
+let nsRecord = ResourceType ("Microsoft.Network/privateDnsZones/NS", "2018-05-01")
+let soaRecord = ResourceType ("Microsoft.Network/privateDnsZones/SOA", "2018-05-01")
+let srvRecord = ResourceType ("Microsoft.Network/privateDnsZones/SRV", "2018-05-01")
+let ptrRecord = ResourceType ("Microsoft.Network/privateDnsZones/PTR", "2018-05-01")
 
 type DnsRecordType with
     member this.ResourceType =
