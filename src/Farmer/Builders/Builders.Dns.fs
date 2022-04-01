@@ -13,8 +13,9 @@ type DnsZoneRecordConfig =
       Dependencies : Set<ResourceId>
       Type : DnsRecordType
       TTL : int
-      Zone : LinkedResource option }
-    static member Create(name, ttl, zone, recordType, ?dependencies:Set<ResourceId>) =
+      Zone : LinkedResource option
+      DnsZoneType : DnsZoneType }
+    static member Create(name, ttl, zone, recordType, ?dependencies:Set<ResourceId>, ?zoneType) =
         { Name =
               if name = ResourceName.Empty then raiseFarmer "You must set a DNS zone name"
               name
@@ -24,12 +25,13 @@ type DnsZoneRecordConfig =
               | Some ttl -> ttl
               | None -> raiseFarmer "You must set a TTL"
           Zone = zone
+          DnsZoneType = zoneType |> Option.defaultValue Public
           Type = recordType }
     interface IBuilder with
         member this.ResourceId =
             match this.Zone with
             | Some zone ->
-                this.Type.ResourceType.resourceId (zone.Name, this.Name)
+                (this.Type.ResourceType this.DnsZoneType).resourceId (zone.Name, this.Name)
             | None -> raiseFarmer "DNS record must be linked to a zone to properly assign the resourceId."
         member this.BuildResources _ =
             match this.Zone with
@@ -38,19 +40,20 @@ type DnsZoneRecordConfig =
                     { DnsRecord.Name = this.Name
                       Dependencies = this.Dependencies
                       Zone = zone
+                      ZoneType = this.DnsZoneType
                       TTL = this.TTL
                       Type = this.Type }
                 ]
             | None -> raiseFarmer "DNS record must be linked to a zone."
 
-type CNameRecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; CName : string option; TTL: int option; Zone: LinkedResource option; TargetResource: ResourceId option }
-type ARecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; Ipv4Addresses : string list; TTL: int option; Zone: LinkedResource option; TargetResource: ResourceId option  }
-type AaaaRecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; Ipv6Addresses : string list; TTL: int option; Zone: LinkedResource option; TargetResource: ResourceId option }
+type CNameRecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; CName : string option; TTL: int option; Zone: LinkedResource option; TargetResource: ResourceId option; ZoneType: DnsZoneType }
+type ARecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; Ipv4Addresses : string list; TTL: int option; Zone: LinkedResource option; TargetResource: ResourceId option; ZoneType: DnsZoneType  }
+type AaaaRecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; Ipv6Addresses : string list; TTL: int option; Zone: LinkedResource option; TargetResource: ResourceId option; ZoneType: DnsZoneType }
 type NsRecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; NsdNames : NsRecords; TTL: int option; Zone: LinkedResource option }
-type PtrRecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; PtrdNames : string list; TTL: int option; Zone: LinkedResource option; }
-type TxtRecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; TxtValues : string list; TTL: int option; Zone: LinkedResource option; }
-type MxRecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; MxValues : {| Preference : int; Exchange : string |} list; TTL: int option; Zone: LinkedResource option; }
-type SrvRecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; SrvValues : SrvRecord list; TTL: int option; Zone: LinkedResource option; }
+type PtrRecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; PtrdNames : string list; TTL: int option; Zone: LinkedResource option; ZoneType: DnsZoneType }
+type TxtRecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; TxtValues : string list; TTL: int option; Zone: LinkedResource option; ZoneType: DnsZoneType }
+type MxRecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; MxValues : {| Preference : int; Exchange : string |} list; TTL: int option; Zone: LinkedResource option; ZoneType: DnsZoneType }
+type SrvRecordProperties =  { Name: ResourceName; Dependencies: Set<ResourceId>; SrvValues : SrvRecord list; TTL: int option; Zone: LinkedResource option; ZoneType: DnsZoneType }
 type SoaRecordProperties =
     { Name: ResourceName
       Dependencies: Set<ResourceId>
@@ -85,7 +88,11 @@ type DnsZoneConfig =
     member this.NameServers = DnsZone.getNameServers this.Name
 
     interface IBuilder with
-        member this.ResourceId = zones.resourceId this.Name
+        member this.ResourceId = 
+            match this.ZoneType with 
+            | Public -> zones.resourceId this.Name
+            | Private -> privateZones.resourceId this.Name
+
         member this.BuildResources _ = [
             { DnsZone.Name = this.Name
               Dependencies = this.Dependencies
@@ -94,14 +101,18 @@ type DnsZoneConfig =
             for record in this.Records do
                 { DnsRecord.Name = record.Name
                   Dependencies = record.Dependencies
-                  Zone = Managed (zones.resourceId this.Name)
+                  Zone = Managed (
+                    match this.ZoneType with 
+                    | Public -> zones.resourceId this.Name
+                    | Private -> privateZones.resourceId this.Name)
+                  ZoneType = record.DnsZoneType
                   TTL = record.TTL
                   Type = record.Type }
         ]
 
 type DnsCNameRecordBuilder() =
-    member _.Yield _ = { CNameRecordProperties.CName = None; Name = ResourceName.Empty; Dependencies = Set.empty; TTL = None; Zone = None; TargetResource = None }
-    member _.Run(state : CNameRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, CName(state.TargetResource, state.CName), state.Dependencies)
+    member _.Yield _ = { CNameRecordProperties.CName = None; Name = ResourceName.Empty; Dependencies = Set.empty; TTL = None; Zone = None; TargetResource = None; ZoneType = Public }
+    member _.Run(state : CNameRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, CName(state.TargetResource, state.CName), state.Dependencies, state.ZoneType)
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
@@ -122,6 +133,10 @@ type DnsCNameRecordBuilder() =
     member _.RecordTargetResource(state:CNameRecordProperties, targetResource:IArmResource) = { state with TargetResource = Some targetResource.ResourceId }
     member _.RecordTargetResource(state:CNameRecordProperties, targetResource:IBuilder) = { state with TargetResource = Some targetResource.ResourceId }
 
+    /// Sets the zoneType of the record.
+    [<CustomOperation "zone_type">]
+    member _.RecordZoneType(state:CNameRecordProperties, zoneType) = { state with ZoneType = zoneType }
+
     /// Builds a record for an existing DNS zone that is not managed by this Farmer deployment.
     [<CustomOperation "link_to_unmanaged_dns_zone">]
     member _.LinkToUnmanagedDnsZone(state:CNameRecordProperties, zone:ResourceId) = { state with Zone = Some (Unmanaged zone) }
@@ -136,8 +151,8 @@ type DnsCNameRecordBuilder() =
     interface IDependable<CNameRecordProperties> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
 type DnsARecordBuilder() =
-    member _.Yield _ = { ARecordProperties.Ipv4Addresses = []; Name = ResourceName "@"; Dependencies = Set.empty; TTL = None; Zone = None; TargetResource = None }
-    member _.Run(state : ARecordProperties)  = DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, A(state.TargetResource, state.Ipv4Addresses), state.Dependencies)
+    member _.Yield _ = { ARecordProperties.Ipv4Addresses = []; Name = ResourceName "@"; Dependencies = Set.empty; TTL = None; Zone = None; TargetResource = None; ZoneType = Public }
+    member _.Run(state : ARecordProperties)  = DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, A(state.TargetResource, state.Ipv4Addresses), state.Dependencies, state.ZoneType)
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
@@ -168,12 +183,16 @@ type DnsARecordBuilder() =
     member _.LinkToDnsZone(state:ARecordProperties, zone:IArmResource) = { state with Zone = Some (Managed zone.ResourceId) }
     member _.LinkToDnsZone(state:ARecordProperties, zone:IBuilder) = { state with Zone = Some (Managed zone.ResourceId) }
 
+    /// Sets the zoneType of the record.
+    [<CustomOperation "zone_type">]
+    member _.RecordZoneType(state:ARecordProperties, zoneType) = { state with ZoneType = zoneType }
+
     /// Enable support for additional dependencies.
     interface IDependable<ARecordProperties> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
 type DnsAaaaRecordBuilder() =
-    member _.Yield _ = { AaaaRecordProperties.Ipv6Addresses = []; Name = ResourceName "@"; Dependencies = Set.empty; TTL = None; Zone = None; TargetResource = None }
-    member _.Run(state : AaaaRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, AAAA(state.TargetResource, state.Ipv6Addresses), state.Dependencies)
+    member _.Yield _ = { AaaaRecordProperties.Ipv6Addresses = []; Name = ResourceName "@"; Dependencies = Set.empty; TTL = None; Zone = None; TargetResource = None; ZoneType = Public }
+    member _.Run(state : AaaaRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, AAAA(state.TargetResource, state.Ipv6Addresses), state.Dependencies, state.ZoneType)
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
@@ -203,6 +222,10 @@ type DnsAaaaRecordBuilder() =
     member _.LinkToDnsZone(state:AaaaRecordProperties, zone:ResourceId) = { state with Zone = Some (Managed zone) }
     member _.LinkToDnsZone(state:AaaaRecordProperties, zone:IArmResource) = { state with Zone = Some (Managed zone.ResourceId) }
     member _.LinkToDnsZone(state:AaaaRecordProperties, zone:IBuilder) = { state with Zone = Some (Managed zone.ResourceId) }
+
+    /// Sets the zoneType of the record.
+    [<CustomOperation "zone_type">]
+    member _.RecordZoneType(state:AaaaRecordProperties, zoneType) = { state with ZoneType = zoneType }
 
     /// Enable support for additional dependencies.
     interface IDependable<AaaaRecordProperties> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
@@ -261,8 +284,8 @@ type DnsNsRecordBuilder() =
     interface IDependable<NsRecordProperties> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
 type DnsPtrRecordBuilder() =
-    member _.Yield _ = { PtrRecordProperties.PtrdNames = []; Name = ResourceName "@"; Dependencies = Set.empty; TTL = None; Zone = None }
-    member _.Run(state : PtrRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, PTR state.PtrdNames, state.Dependencies)
+    member _.Yield _ = { PtrRecordProperties.PtrdNames = []; Name = ResourceName "@"; Dependencies = Set.empty; TTL = None; Zone = None; ZoneType = Public }
+    member _.Run(state : PtrRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, PTR state.PtrdNames, state.Dependencies, state.ZoneType)
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
@@ -287,12 +310,16 @@ type DnsPtrRecordBuilder() =
     member _.LinkToDnsZone(state:PtrRecordProperties, zone:IArmResource) = { state with Zone = Some (Managed zone.ResourceId) }
     member _.LinkToDnsZone(state:PtrRecordProperties, zone:IBuilder) = { state with Zone = Some (Managed zone.ResourceId) }
 
+    /// Sets the zoneType of the record.
+    [<CustomOperation "zone_type">]
+    member _.RecordZoneType(state:PtrRecordProperties, zoneType) = { state with ZoneType = zoneType }
+
     /// Enable support for additional dependencies.
     interface IDependable<PtrRecordProperties> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
 type DnsTxtRecordBuilder() =
-    member _.Yield _ = { TxtRecordProperties.Name = ResourceName "@"; Dependencies = Set.empty; TxtValues = []; TTL = None; Zone = None; }
-    member _.Run(state : TxtRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, TXT state.TxtValues, state.Dependencies)
+    member _.Yield _ = { TxtRecordProperties.Name = ResourceName "@"; Dependencies = Set.empty; TxtValues = []; TTL = None; Zone = None; ZoneType = Public }
+    member _.Run(state : TxtRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, TXT state.TxtValues, state.Dependencies, state.ZoneType)
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
@@ -317,12 +344,16 @@ type DnsTxtRecordBuilder() =
     member _.LinkToDnsZone(state:TxtRecordProperties, zone:IArmResource) = { state with Zone = Some (Managed zone.ResourceId) }
     member _.LinkToDnsZone(state:TxtRecordProperties, zone:IBuilder) = { state with Zone = Some (Managed zone.ResourceId) }
 
+    /// Sets the zoneType of the record.
+    [<CustomOperation "zone_type">]
+    member _.RecordZoneType(state:TxtRecordProperties, zoneType) = { state with ZoneType = zoneType }
+
     /// Enable support for additional dependencies.
     interface IDependable<TxtRecordProperties> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
 type DnsMxRecordBuilder() =
-    member _.Yield _ = { MxRecordProperties.Name = ResourceName "@"; Dependencies = Set.empty; MxValues = []; TTL = None; Zone = None }
-    member _.Run(state : MxRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, MX state.MxValues, state.Dependencies)
+    member _.Yield _ = { MxRecordProperties.Name = ResourceName "@"; Dependencies = Set.empty; MxValues = []; TTL = None; Zone = None; ZoneType = Public }
+    member _.Run(state : MxRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, MX state.MxValues, state.Dependencies, state.ZoneType)
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
@@ -349,12 +380,16 @@ type DnsMxRecordBuilder() =
     member _.LinkToDnsZone(state:MxRecordProperties, zone:IArmResource) = { state with Zone = Some (Managed zone.ResourceId) }
     member _.LinkToDnsZone(state:MxRecordProperties, zone:IBuilder) = { state with Zone = Some (Managed zone.ResourceId) }
 
+    /// Sets the zoneType of the record.
+    [<CustomOperation "zone_type">]
+    member _.RecordZoneType(state:MxRecordProperties, zoneType) = { state with ZoneType = zoneType }
+
     /// Enable support for additional dependencies.
     interface IDependable<MxRecordProperties> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }
 
 type DnsSrvRecordBuilder() =
-    member _.Yield _ = { SrvRecordProperties.Name = ResourceName "@"; Dependencies = Set.empty; SrvValues = []; TTL = None; Zone = None; }
-    member _.Run(state : SrvRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, SRV state.SrvValues, state.Dependencies)
+    member _.Yield _ = { SrvRecordProperties.Name = ResourceName "@"; Dependencies = Set.empty; SrvValues = []; TTL = None; Zone = None; ZoneType = Public }
+    member _.Run(state : SrvRecordProperties) = DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, SRV state.SrvValues, state.Dependencies, state.ZoneType)
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
@@ -379,6 +414,10 @@ type DnsSrvRecordBuilder() =
     member _.LinkToDnsZone(state:SrvRecordProperties, zone:ResourceId) = { state with Zone = Some (Managed zone) }
     member _.LinkToDnsZone(state:SrvRecordProperties, zone:IArmResource) = { state with Zone = Some (Managed zone.ResourceId) }
     member _.LinkToDnsZone(state:SrvRecordProperties, zone:IBuilder) = { state with Zone = Some (Managed zone.ResourceId) }
+
+    /// Sets the zoneType of the record.
+    [<CustomOperation "zone_type">]
+    member _.RecordZoneType(state:SrvRecordProperties, zoneType) = { state with ZoneType = zoneType }
 
     /// Enable support for additional dependencies.
     interface IDependable<SrvRecordProperties> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }

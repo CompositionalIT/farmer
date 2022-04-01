@@ -79,14 +79,17 @@ let tests = testList "DNS Zone" [
             |> Array.ofList
 
         Expect.equal dnsRecords.[1].Name "farmer.com/www" "DNS CNAME record name is wrong"
+        Expect.equal dnsRecords.[1].Type "Microsoft.Network/dnsZones/CNAME" "DNS record type is wrong"
         Expect.equal dnsRecords.[1].CnameRecord.Cname "farmer.com" "DNS CNAME record is wrong"
         Expect.equal dnsRecords.[1].TTL (Nullable 3600L) "DNS record TTL is wrong"
 
         Expect.equal dnsRecords.[2].Name "farmer.com/aName" "DNS A record name is wrong"
+        Expect.equal dnsRecords.[2].Type "Microsoft.Network/dnsZones/A" "DNS record type is wrong"
         Expect.sequenceEqual (dnsRecords.[2].ARecords |> Seq.map (fun x -> x.Ipv4Address)) [ "192.168.0.1" ] "DNS A record IP address is wrong"
         Expect.equal dnsRecords.[2].TTL (Nullable(7200L)) "DNS record TTL is wrong"
 
         Expect.equal dnsRecords.[3].Name "farmer.com/soaName" "DNS SOA record name is wrong"
+        Expect.equal dnsRecords.[3].Type "Microsoft.Network/dnsZones/SOA" "DNS record type is wrong"
         Expect.equal dnsRecords.[3].SoaRecord.Host "ns1-09.azure-dns.com." "DNS SOA record host wrong"
         Expect.equal dnsRecords.[3].SoaRecord.Email "azuredns-hostmaster.microsoft.com" "DNS SOA record email wrong"
         Expect.equal dnsRecords.[3].SoaRecord.SerialNumber (Nullable 1L) "DNS SOA record serial number wrong"
@@ -97,6 +100,7 @@ let tests = testList "DNS Zone" [
         Expect.equal dnsRecords.[3].TTL (Nullable 3600L) "DNS record TTL is wrong"
 
         Expect.equal dnsRecords.[4].Name "farmer.com/_sip._tcp.name" "DNS SRV record name is wrong"
+        Expect.equal dnsRecords.[4].Type "Microsoft.Network/dnsZones/SRV" "DNS record type is wrong"
         Expect.equal dnsRecords.[4].SrvRecords.[0].Priority (Nullable 100) "DNS SRV record priority wrong"
         Expect.equal dnsRecords.[4].SrvRecords.[0].Weight (Nullable 1) "DNS SRV record weight wrong"
         Expect.equal dnsRecords.[4].SrvRecords.[0].Port (Nullable 5061) "DNS SRV record port wrong"
@@ -104,6 +108,7 @@ let tests = testList "DNS Zone" [
         Expect.equal dnsRecords.[4].TTL (Nullable 3600L) "DNS record TTL is wrong"
 
         Expect.equal dnsRecords.[5].Name "farmer.com/txtName" "DNS TXT record name is wrong"
+        Expect.equal dnsRecords.[5].Type "Microsoft.Network/dnsZones/TXT" "DNS record type is wrong"
         Expect.sequenceEqual dnsRecords.[5].TxtRecords.[0].Value.[0] "somevalue" "DNS TXT record value is wrong"
         Expect.equal dnsRecords.[5].TTL (Nullable 3600L) "DNS record TTL is wrong"
     }
@@ -305,5 +310,123 @@ let tests = testList "DNS Zone" [
                 ]
             } |> ignore
         ) "Should fail when add_nsd_reference was already called"
+    }
+    test "Private DNS Zone is created with records" {
+        let resources =
+            arm {
+                add_resources [
+                    dnsZone {
+                        name "farmer.com"
+                        zone_type Private
+                        add_records [
+                            cnameRecord {
+                                name "www"
+                                ttl 3600
+                                cname "farmer.com"
+                                zone_type Private
+                            }
+                            aRecord {
+                                name "aName"
+                                ttl 7200
+                                add_ipv4_addresses [ "192.168.0.1" ]
+                                zone_type Private
+                            }
+                            aaaaRecord {
+                                name "aaaaName"
+                                ttl 7200
+                                add_ipv6_addresses [ "2001:0db8:85a3:0000:0000:8a2e:0370:7334" ]
+                                zone_type Private
+                            }
+                            ptrRecord {
+                                name "ptrName"
+                                ttl 3600
+                                add_ptrd_names [ "farmer.com" ]
+                                zone_type Private
+                            }
+                            txtRecord {
+                                name "txtName"
+                                ttl 3600
+                                add_values [
+                                    "somevalue"
+                                ]
+                                zone_type Private
+                            }
+                            mxRecord {
+                                name "mxName"
+                                ttl 7200
+                                add_values [
+                                    0, "farmer-com.mail.protection.outlook.com";
+                                    1, "farmer2-com.mail.protection.outlook.com";
+                                ]
+                                zone_type Private
+                            }
+                            srvRecord {
+                                name "_sip._tcp.name"
+                                ttl 3600
+                                add_values [
+                                    {   Priority = Some 100
+                                        Weight = Some 1
+                                        Port = Some 5061
+                                        Target = Some "farmer.online.com."}
+                                ]
+                                zone_type Private
+                            }
+                        ]
+                    }
+                ]
+            }
+    
+        let dnsZones =
+            resources
+            |> findAzureResources<Zone> client.SerializationSettings
+            |> Array.ofList
+    
+        Expect.equal dnsZones.[0].Name "farmer.com" "DNS Zone name is wrong"
+        Expect.equal dnsZones.[0].Type "Microsoft.Network/privateDnsZones" "DNS Zone type is wrong"
+        Expect.equal dnsZones.[0].ZoneType (Nullable ZoneType.Private) "DNS Zone ZoneType is wrong"
+
+        let jsn = resources.Template |> Writer.toJson 
+        let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+        
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/www')].type").ToString()) "Microsoft.Network/privateDnsZones/CNAME" "DNS record type is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/www')].dependsOn[0]").ToString()) "[resourceId('Microsoft.Network/privateDnsZones', 'farmer.com')]" "DNS dependsOn is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/www')].properties.cnameRecord.cname").ToString()) "farmer.com" "DNS CNAME record is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/www')].properties.ttl").ToString()) "3600" "DNS TTL is wrong"
+
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/aName')].type").ToString()) "Microsoft.Network/privateDnsZones/A" "DNS record type is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/aName')].dependsOn[0]").ToString()) "[resourceId('Microsoft.Network/privateDnsZones', 'farmer.com')]" "DNS dependsOn is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/aName')].properties.aRecords[0].ipv4Address").ToString()) "192.168.0.1" "DNS A record is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/aName')].properties.ttl").ToString()) "7200" "DNS TTL is wrong"
+
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/aaaaName')].type").ToString()) "Microsoft.Network/privateDnsZones/AAAA" "DNS record type is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/aaaaName')].dependsOn[0]").ToString()) "[resourceId('Microsoft.Network/privateDnsZones', 'farmer.com')]" "DNS dependsOn is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/aaaaName')].properties.aaaaRecords[0].ipv6Address").ToString()) "2001:0db8:85a3:0000:0000:8a2e:0370:7334" "DNS AAAA record is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/aaaaName')].properties.ttl").ToString()) "7200" "DNS TTL is wrong"
+
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/ptrName')].type").ToString()) "Microsoft.Network/privateDnsZones/PTR" "DNS record type is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/ptrName')].dependsOn[0]").ToString()) "[resourceId('Microsoft.Network/privateDnsZones', 'farmer.com')]" "DNS dependsOn is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/ptrName')].properties.ptrRecords[0].ptrdname").ToString()) "farmer.com" "DNS PTR record is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/ptrName')].properties.ttl").ToString()) "3600" "DNS TTL is wrong"
+
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/txtName')].type").ToString()) "Microsoft.Network/privateDnsZones/TXT" "DNS record type is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/txtName')].dependsOn[0]").ToString()) "[resourceId('Microsoft.Network/privateDnsZones', 'farmer.com')]" "DNS dependsOn is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/txtName')].properties.txtRecords[0].value[0]").ToString()) "somevalue" "DNS TXT record is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/txtName')].properties.ttl").ToString()) "3600" "DNS TTL is wrong"
+
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/mxName')].type").ToString()) "Microsoft.Network/privateDnsZones/MX" "DNS record type is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/mxName')].dependsOn[0]").ToString()) "[resourceId('Microsoft.Network/privateDnsZones', 'farmer.com')]" "DNS dependsOn is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/mxName')].properties.mxRecords[0].exchange").ToString()) "farmer-com.mail.protection.outlook.com" "DNS MX record exchange is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/mxName')].properties.mxRecords[0].preference").ToString()) "0" "DNS MX record preference is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/mxName')].properties.mxRecords[1].exchange").ToString()) "farmer2-com.mail.protection.outlook.com" "DNS MX record exchange is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/mxName')].properties.mxRecords[1].preference").ToString()) "1" "DNS MX record preference is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/mxName')].properties.ttl").ToString()) "7200" "DNS TTL is wrong"
+
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/_sip._tcp.name')].type").ToString()) "Microsoft.Network/privateDnsZones/SRV" "DNS record type is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/_sip._tcp.name')].dependsOn[0]").ToString()) "[resourceId('Microsoft.Network/privateDnsZones', 'farmer.com')]" "DNS dependsOn is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/_sip._tcp.name')].properties.srvRecords[0].port").ToString()) "5061" "DNS SRV record port is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/_sip._tcp.name')].properties.srvRecords[0].priority").ToString()) "100" "DNS SRV record priority is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/_sip._tcp.name')].properties.srvRecords[0].target").ToString()) "farmer.online.com." "DNS SRV record target is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/_sip._tcp.name')].properties.srvRecords[0].weight").ToString()) "1" "DNS SRV record weight is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/_sip._tcp.name')].properties.ttl").ToString()) "3600" "DNS TTL is wrong"
     }
 ]
