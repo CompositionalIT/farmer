@@ -106,7 +106,7 @@ type DnsZoneConfig =
                     match this.ZoneType with 
                     | Public -> zones.resourceId this.Name
                     | Private -> privateZones.resourceId this.Name)
-                  ZoneType = record.DnsZoneType
+                  ZoneType = this.ZoneType
                   TTL = record.TTL
                   Type = record.Type }
         ]

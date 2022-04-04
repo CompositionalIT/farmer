@@ -323,25 +323,21 @@ let tests = testList "DNS Zone" [
                                 name "www"
                                 ttl 3600
                                 cname "farmer.com"
-                                zone_type Private
                             }
                             aRecord {
                                 name "aName"
                                 ttl 7200
                                 add_ipv4_addresses [ "192.168.0.1" ]
-                                zone_type Private
                             }
                             aaaaRecord {
                                 name "aaaaName"
                                 ttl 7200
                                 add_ipv6_addresses [ "2001:0db8:85a3:0000:0000:8a2e:0370:7334" ]
-                                zone_type Private
                             }
                             ptrRecord {
                                 name "ptrName"
                                 ttl 3600
                                 add_ptrd_names [ "farmer.com" ]
-                                zone_type Private
                             }
                             txtRecord {
                                 name "txtName"
@@ -349,7 +345,6 @@ let tests = testList "DNS Zone" [
                                 add_values [
                                     "somevalue"
                                 ]
-                                zone_type Private
                             }
                             mxRecord {
                                 name "mxName"
@@ -358,7 +353,6 @@ let tests = testList "DNS Zone" [
                                     0, "farmer-com.mail.protection.outlook.com";
                                     1, "farmer2-com.mail.protection.outlook.com";
                                 ]
-                                zone_type Private
                             }
                             srvRecord {
                                 name "_sip._tcp.name"
@@ -369,11 +363,10 @@ let tests = testList "DNS Zone" [
                                         Port = Some 5061
                                         Target = Some "farmer.online.com."}
                                 ]
-                                zone_type Private
                             }
                             soaRecord {
                                 name "soaName"
-                                email "azureprivatedns.net"
+                                host "azureprivatedns.net"
                                 ttl 3600
                                 email "azuredns-hostmaster.microsoft.com"
                                 serial_number 1L
@@ -381,7 +374,6 @@ let tests = testList "DNS Zone" [
                                 refresh_time 3600L
                                 retry_time 300L
                                 expire_time 2419200L
-                                zone_type Private
                             }
                         ]
                     }
