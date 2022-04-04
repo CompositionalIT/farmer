@@ -1,6 +1,9 @@
 Release Notes
 =============
 
+## 1.6.32
+* DNS: Add support for private DNS zones and records
+
 ## 1.6.31
 * WebApps: Fix flakey deployments of web apps with multiple custom domains.
 * Deployments: Fix `ResourceId` generation when using a resource with a template.
