@@ -21,6 +21,7 @@ let privateAaaaRecord = ResourceType ("Microsoft.Network/privateDnsZones/AAAA", 
 let privateCnameRecord = ResourceType ("Microsoft.Network/privateDnsZones/CNAME", "2020-06-01")
 let privateTxtRecord = ResourceType ("Microsoft.Network/privateDnsZones/TXT", "2020-06-01")
 let privateMxRecord = ResourceType ("Microsoft.Network/privateDnsZones/MX", "2020-06-01")
+let privateSoaRecord = ResourceType ("Microsoft.Network/privateDnsZones/SOA", "2020-06-01")
 let privateSrvRecord = ResourceType ("Microsoft.Network/privateDnsZones/SRV", "2020-06-01")
 let privatePtrRecord = ResourceType ("Microsoft.Network/privateDnsZones/PTR", "2020-06-01")
 
@@ -41,12 +42,12 @@ type DnsRecordType with
         | CName _ -> privateCnameRecord
         | A _ -> privateARecord
         | AAAA _ -> privateAaaaRecord
+        | NS _ -> raiseFarmer "Private DNS zones do not support NS records"
         | PTR _ -> privatePtrRecord
         | TXT _ -> privateTxtRecord
         | MX _ -> privateMxRecord
         | SRV _ -> privateSrvRecord
-        | NS _ -> raiseFarmer "Private DNS zones do not support NS records"
-        | SOA _ -> raiseFarmer "Private DNS zones do not support SOA records"
+        | SOA _ -> privateSoaRecord
     member this.ResourceType zoneType = 
         match zoneType with 
         | Public -> this.publicResourceType
@@ -91,6 +92,7 @@ module DnsRecords =
     let private aRecordKey zoneType = match zoneType with | Public -> "ARecords" | Private -> "aRecords"
     let private aaaRecordKey zoneType = match zoneType with | Public -> "AAAARecords" | Private -> "aaaaRecords"
     let private srvRecordKey zoneType = match zoneType with | Public -> "SRVRecords" | Private -> "srvRecords"
+    let private soaRecordKey zoneType = match zoneType with | Public -> "SOARecord" | Private -> "soaRecord"
 
     type DnsRecord =
         { Name : ResourceName
@@ -149,7 +151,7 @@ module DnsRecords =
                                    retryTime = record.RetryTime |> Option.toNullable
                                    expireTime = record.ExpireTime |> Option.toNullable
                                    minimumTTL = record.MinimumTTL |> Option.toNullable |}
-                            "SOARecord", box record
+                            (soaRecordKey this.ZoneType), box record
                         | CName (_, None) -> ()
                     ] |> Map
                 |}

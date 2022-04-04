@@ -65,7 +65,8 @@ type SoaRecordProperties =
       ExpireTime : int64 option
       MinimumTTL : int64 option
       TTL: int option
-      Zone: LinkedResource option }
+      Zone: LinkedResource option
+      ZoneType: DnsZoneType }
 
 type DnsZone =
     static member getNameServers (resourceId:ResourceId) =
@@ -434,7 +435,8 @@ type DnsSoaRecordBuilder() =
           ExpireTime = None
           MinimumTTL = None
           TTL = None
-          Zone = None }
+          Zone = None
+          ZoneType = Public }
 
     member _.Run(state : SoaRecordProperties) =
         let value =
@@ -445,7 +447,7 @@ type DnsSoaRecordBuilder() =
               RetryTime = state.RetryTime
               ExpireTime = state.ExpireTime
               MinimumTTL = state.MinimumTTL }
-        DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, SOA value, state.Dependencies)
+        DnsZoneRecordConfig.Create(state.Name, state.TTL, state.Zone, SOA value, state.Dependencies, state.ZoneType)
 
     /// Sets the name of the record set.
     [<CustomOperation "name">]
@@ -497,6 +499,10 @@ type DnsSoaRecordBuilder() =
     member _.LinkToDnsZone(state:SoaRecordProperties, zone:ResourceId) = { state with Zone = Some (Managed zone) }
     member _.LinkToDnsZone(state:SoaRecordProperties, zone:IArmResource) = { state with Zone = Some (Managed zone.ResourceId) }
     member _.LinkToDnsZone(state:SoaRecordProperties, zone:IBuilder) = { state with Zone = Some (Managed zone.ResourceId) }
+
+    /// Sets the zone_type of the record.
+    [<CustomOperation "zone_type">]
+    member _.RecordZoneType(state:SoaRecordProperties, zoneType) = { state with ZoneType = zoneType }
 
     /// Enable support for additional dependencies.
     interface IDependable<SoaRecordProperties> with member _.Add state newDeps = { state with Dependencies = state.Dependencies + newDeps }

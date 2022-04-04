@@ -371,6 +371,18 @@ let tests = testList "DNS Zone" [
                                 ]
                                 zone_type Private
                             }
+                            soaRecord {
+                                name "soaName"
+                                email "azureprivatedns.net"
+                                ttl 3600
+                                email "azuredns-hostmaster.microsoft.com"
+                                serial_number 1L
+                                minimum_ttl 300L
+                                refresh_time 3600L
+                                retry_time 300L
+                                expire_time 2419200L
+                                zone_type Private
+                            }
                         ]
                     }
                 ]
@@ -428,5 +440,16 @@ let tests = testList "DNS Zone" [
         Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/_sip._tcp.name')].properties.srvRecords[0].target").ToString()) "farmer.online.com." "DNS SRV record target is wrong"
         Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/_sip._tcp.name')].properties.srvRecords[0].weight").ToString()) "1" "DNS SRV record weight is wrong"
         Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/_sip._tcp.name')].properties.ttl").ToString()) "3600" "DNS TTL is wrong"
+
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/soaName')].type").ToString()) "Microsoft.Network/privateDnsZones/SOA" "DNS record type is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/soaName')].dependsOn[0]").ToString()) "[resourceId('Microsoft.Network/privateDnsZones', 'farmer.com')]" "DNS dependsOn is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/soaName')].properties.soaRecord.email").ToString()) "azuredns-hostmaster.microsoft.com" "DNS SOA record email is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/soaName')].properties.soaRecord.expireTime").ToString()) "2419200" "DNS SOA record expireTime is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/soaName')].properties.soaRecord.host").ToString()) "azureprivatedns.net" "DNS SOA record host is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/soaName')].properties.soaRecord.minimumTTL").ToString()) "300" "DNS SOA record minimumTTL is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/soaName')].properties.soaRecord.refreshTime").ToString()) "3600" "DNS SOA record refreshTime is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/soaName')].properties.soaRecord.retryTime").ToString()) "300" "DNS SOA record retryTime is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/soaName')].properties.soaRecord.serialNumber").ToString()) "1" "DNS SOA record serialNumber is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/soaName')].properties.ttl").ToString()) "3600" "DNS TTL is wrong"
     }
 ]
