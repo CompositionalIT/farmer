@@ -26,7 +26,6 @@
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/CompositionalIT/farmer</RepositoryUrl>
-	  <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 
     <!-- SourceLink settings -->
     <IncludeSymbols>true</IncludeSymbols>
