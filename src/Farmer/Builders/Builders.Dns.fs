@@ -133,7 +133,7 @@ type DnsCNameRecordBuilder() =
     member _.RecordTargetResource(state:CNameRecordProperties, targetResource:IArmResource) = { state with TargetResource = Some targetResource.ResourceId }
     member _.RecordTargetResource(state:CNameRecordProperties, targetResource:IBuilder) = { state with TargetResource = Some targetResource.ResourceId }
 
-    /// Sets the zoneType of the record.
+    /// Sets the zone_type of the record.
     [<CustomOperation "zone_type">]
     member _.RecordZoneType(state:CNameRecordProperties, zoneType) = { state with ZoneType = zoneType }
 
@@ -183,7 +183,7 @@ type DnsARecordBuilder() =
     member _.LinkToDnsZone(state:ARecordProperties, zone:IArmResource) = { state with Zone = Some (Managed zone.ResourceId) }
     member _.LinkToDnsZone(state:ARecordProperties, zone:IBuilder) = { state with Zone = Some (Managed zone.ResourceId) }
 
-    /// Sets the zoneType of the record.
+    /// Sets the zone_type of the record.
     [<CustomOperation "zone_type">]
     member _.RecordZoneType(state:ARecordProperties, zoneType) = { state with ZoneType = zoneType }
 
@@ -223,7 +223,7 @@ type DnsAaaaRecordBuilder() =
     member _.LinkToDnsZone(state:AaaaRecordProperties, zone:IArmResource) = { state with Zone = Some (Managed zone.ResourceId) }
     member _.LinkToDnsZone(state:AaaaRecordProperties, zone:IBuilder) = { state with Zone = Some (Managed zone.ResourceId) }
 
-    /// Sets the zoneType of the record.
+    /// Sets the zone_type of the record.
     [<CustomOperation "zone_type">]
     member _.RecordZoneType(state:AaaaRecordProperties, zoneType) = { state with ZoneType = zoneType }
 
@@ -310,7 +310,7 @@ type DnsPtrRecordBuilder() =
     member _.LinkToDnsZone(state:PtrRecordProperties, zone:IArmResource) = { state with Zone = Some (Managed zone.ResourceId) }
     member _.LinkToDnsZone(state:PtrRecordProperties, zone:IBuilder) = { state with Zone = Some (Managed zone.ResourceId) }
 
-    /// Sets the zoneType of the record.
+    /// Sets the zone_type of the record.
     [<CustomOperation "zone_type">]
     member _.RecordZoneType(state:PtrRecordProperties, zoneType) = { state with ZoneType = zoneType }
 
@@ -344,7 +344,7 @@ type DnsTxtRecordBuilder() =
     member _.LinkToDnsZone(state:TxtRecordProperties, zone:IArmResource) = { state with Zone = Some (Managed zone.ResourceId) }
     member _.LinkToDnsZone(state:TxtRecordProperties, zone:IBuilder) = { state with Zone = Some (Managed zone.ResourceId) }
 
-    /// Sets the zoneType of the record.
+    /// Sets the zone_type of the record.
     [<CustomOperation "zone_type">]
     member _.RecordZoneType(state:TxtRecordProperties, zoneType) = { state with ZoneType = zoneType }
 
@@ -380,7 +380,7 @@ type DnsMxRecordBuilder() =
     member _.LinkToDnsZone(state:MxRecordProperties, zone:IArmResource) = { state with Zone = Some (Managed zone.ResourceId) }
     member _.LinkToDnsZone(state:MxRecordProperties, zone:IBuilder) = { state with Zone = Some (Managed zone.ResourceId) }
 
-    /// Sets the zoneType of the record.
+    /// Sets the zone_type of the record.
     [<CustomOperation "zone_type">]
     member _.RecordZoneType(state:MxRecordProperties, zoneType) = { state with ZoneType = zoneType }
 
@@ -415,7 +415,7 @@ type DnsSrvRecordBuilder() =
     member _.LinkToDnsZone(state:SrvRecordProperties, zone:IArmResource) = { state with Zone = Some (Managed zone.ResourceId) }
     member _.LinkToDnsZone(state:SrvRecordProperties, zone:IBuilder) = { state with Zone = Some (Managed zone.ResourceId) }
 
-    /// Sets the zoneType of the record.
+    /// Sets the zone_type of the record.
     [<CustomOperation "zone_type">]
     member _.RecordZoneType(state:SrvRecordProperties, zoneType) = { state with ZoneType = zoneType }
 
