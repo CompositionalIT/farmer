@@ -444,4 +444,114 @@ let tests = testList "DNS Zone" [
         Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/soaName')].properties.soaRecord.serialNumber").ToString()) "1" "DNS SOA record serialNumber is wrong"
         Expect.equal (jobj.SelectToken("resources[?(@.name=='farmer.com/soaName')].properties.ttl").ToString()) "3600" "DNS TTL is wrong"
     }
+    test "Disallow adding private NS records" {
+        Expect.throws ( fun _ ->
+            arm {
+                add_resources [
+                    dnsZone {
+                        name "farmer.com"
+                        zone_type Private
+                        add_records [
+                            nsRecord {
+                                name "subdomain"
+                                ttl (int (TimeSpan.FromDays 2.).TotalSeconds)
+                                add_nsd_names [ "ns01.foo.bar " ]
+                            }
+                        ]
+                    }
+                ]
+            } |> ignore
+        ) "Should fail when adding NS record to private zone"
+    }
+    test "Can link dns record to unmanaged private DNS zone" {
+        let resources =
+            arm {
+                add_resources [
+                    cnameRecord {
+                        name "www"
+                        ttl 3600
+                        cname "farmer.com"
+                        zone_type Private
+                        link_to_unmanaged_dns_zone (Farmer.Arm.Dns.zones.resourceId "private.farmer.com")
+                    }
+                    aRecord {
+                        name "aName"
+                        ttl 7200
+                        add_ipv4_addresses [ "192.168.0.1" ]
+                        zone_type Private
+                        link_to_unmanaged_dns_zone (Farmer.Arm.Dns.zones.resourceId "private.farmer.com")
+                    }
+                    aaaaRecord {
+                        name "aaaaName"
+                        ttl 7200
+                        add_ipv6_addresses [ "2001:0db8:85a3:0000:0000:8a2e:0370:7334" ]
+                        zone_type Private
+                        link_to_unmanaged_dns_zone (Farmer.Arm.Dns.zones.resourceId "private.farmer.com")
+                    }
+                    ptrRecord {
+                        name "ptrName"
+                        ttl 3600
+                        add_ptrd_names [ "farmer.com" ]
+                        zone_type Private
+                        link_to_unmanaged_dns_zone (Farmer.Arm.Dns.zones.resourceId "private.farmer.com")
+                    }
+                    txtRecord {
+                        name "txtName"
+                        ttl 3600
+                        add_values [
+                            "somevalue"
+                        ]
+                        zone_type Private
+                        link_to_unmanaged_dns_zone (Farmer.Arm.Dns.zones.resourceId "private.farmer.com")
+                    }
+                    mxRecord {
+                        name "mxName"
+                        ttl 7200
+                        add_values [
+                            0, "farmer-com.mail.protection.outlook.com";
+                            1, "farmer2-com.mail.protection.outlook.com";
+                        ]
+                        zone_type Private
+                        link_to_unmanaged_dns_zone (Farmer.Arm.Dns.zones.resourceId "private.farmer.com")
+                    }
+                    srvRecord {
+                        name "_sip._tcp.name"
+                        ttl 3600
+                        add_values [
+                            {   Priority = Some 100
+                                Weight = Some 1
+                                Port = Some 5061
+                                Target = Some "farmer.online.com."}
+                        ]
+                        zone_type Private
+                        link_to_unmanaged_dns_zone (Farmer.Arm.Dns.zones.resourceId "private.farmer.com")
+                    }
+                    soaRecord {
+                        name "soaName"
+                        host "azureprivatedns.net"
+                        ttl 3600
+                        email "azuredns-hostmaster.microsoft.com"
+                        serial_number 1L
+                        minimum_ttl 300L
+                        refresh_time 3600L
+                        retry_time 300L
+                        expire_time 2419200L
+                        zone_type Private
+                        link_to_unmanaged_dns_zone (Farmer.Arm.Dns.zones.resourceId "private.farmer.com")
+                    }
+                ]
+            }
+            
+        let jsn = resources.Template |> Writer.toJson 
+        let jobj = jsn |> Newtonsoft.Json.Linq.JObject.Parse
+        
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='private.farmer.com/www')].type").ToString()) "Microsoft.Network/privateDnsZones/CNAME" "DNS record type is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='private.farmer.com/aName')].type").ToString()) "Microsoft.Network/privateDnsZones/A" "DNS record type is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='private.farmer.com/aaaaName')].type").ToString()) "Microsoft.Network/privateDnsZones/AAAA" "DNS record type is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='private.farmer.com/ptrName')].type").ToString()) "Microsoft.Network/privateDnsZones/PTR" "DNS record type is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='private.farmer.com/txtName')].type").ToString()) "Microsoft.Network/privateDnsZones/TXT" "DNS record type is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='private.farmer.com/mxName')].type").ToString()) "Microsoft.Network/privateDnsZones/MX" "DNS record type is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='private.farmer.com/_sip._tcp.name')].type").ToString()) "Microsoft.Network/privateDnsZones/SRV" "DNS record type is wrong"
+        Expect.equal (jobj.SelectToken("resources[?(@.name=='private.farmer.com/soaName')].type").ToString()) "Microsoft.Network/privateDnsZones/SOA" "DNS record type is wrong"
+    }
 ]
