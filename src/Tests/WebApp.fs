@@ -868,32 +868,59 @@ let tests = testList "Web App Tests" [
         Expect.hasLength vnetConnections 1 "incorrect number of Vnet connections"
     }
 
-
     test "Supports redefining root application directory" {
-        let resources = webApp { name "test"; add_virtual_application "/" "altdirectory" } |> getResources
-        let site = resources |> getResource<Web.Site> |> List.head
+        let wa = webApp {
+            name "test"
+            add_virtual_applications [
+                virtualApplication {
+                    virtual_path "/"
+                    physical_path "altdirectory" 
+                }
+            ]
+        }
 
-        let expectedVirtualApplications = Map [ "/", VirtualApplication.Create "site\\altdirectory" None ]
+        let site = wa |> getResources |> getResource<Web.Site> |> List.head
+
+        let expectedVirtualApplications = Map [ "/", { PhysicalPath = "site\\altdirectory"; PreloadEnabled = None } ]
         Expect.equal site.VirtualApplications expectedVirtualApplications "Should add virtual application definition for root"
     }
 
     test "Supports defining additional virtual applications without changing root" {
-        let resources = webApp { name "test"; add_virtual_application "/subapp" "wwwsubapp" } |> getResources
-        let site = resources |> getResource<Web.Site> |> List.head
+        let wa = webApp {
+            name "test"
+            add_virtual_applications [
+                virtualApplication {
+                    virtual_path "/subapp"
+                    physical_path "wwwsubapp"
+                }
+            ]
+        }
+
+        let site = wa |> getResources |> getResource<Web.Site> |> List.head
 
         let expectedVirtualApplications = Map [
-            ("/", VirtualApplication.Create "site\\wwwroot" None), 1u
-            ("/subapp", VirtualApplication.Create "site\\wwwsubapp" None), 1u
+            ("/", { PhysicalPath = "site\\wwwroot"; PreloadEnabled = None }), 1u
+            ("/subapp", { PhysicalPath = "site\\wwwsubapp"; PreloadEnabled = None }), 1u
         ]
         Expect.distribution (site.VirtualApplications |> Seq.map(fun it -> (it.Key, it.Value))) expectedVirtualApplications "Should add virtual application definition for /subapp, but keep the root app around"
     }
 
     test "Supports virtual applications with preload enabled" {
-        let resources = webApp { name "test"; add_virtual_application_preloaded "/subapp" "wwwroot\\subApp" } |> getResources
-        let site = resources |> getResource<Web.Site> |> List.head
+        let wa = webApp {
+            name "test"
+            add_virtual_applications [
+                virtualApplication {
+                    virtual_path "/subapp"
+                    physical_path "wwwroot\\subApp"
+                    preloaded
+                }
+            ]
+        }
+
+        let site = wa |> getResources |> getResource<Web.Site> |> List.head
         
         let expectedVirtualApplications = Map [
-            ("/subapp", VirtualApplication.Create "site\\wwwroot\\subApp" (Some true)), 1u
+            ("/subapp", { PhysicalPath = "site\\wwwroot\\subApp"; PreloadEnabled = (Some true) }), 1u
         ]
         Expect.distribution (site.VirtualApplications |> Seq.map(fun it -> (it.Key, it.Value))) expectedVirtualApplications "Should add preloaded virtual application definition"
     }
