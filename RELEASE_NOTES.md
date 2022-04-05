@@ -1,5 +1,7 @@
 Release Notes
 =============
+## vNext
+* DiagnosticSettings now supports resources that contain multiple segments e.g. SQL Databases.
 
 ## 1.6.32
 
