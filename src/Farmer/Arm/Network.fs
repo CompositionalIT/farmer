@@ -18,6 +18,7 @@ let virtualNetworks = ResourceType ("Microsoft.Network/virtualNetworks", "2020-0
 let virtualNetworkGateways = ResourceType ("Microsoft.Network/virtualNetworkGateways", "2020-05-01")
 let localNetworkGateways = ResourceType ("Microsoft.Network/localNetworkGateways", "")
 let privateEndpoints = ResourceType ("Microsoft.Network/privateEndpoints", "2020-07-01")
+let privateEndpointsDnsZoneGroup = ResourceType ("Microsoft.Network/privateEndpoints/privateDnsZoneGroups", "2021-05-01")
 let virtualNetworkPeering = ResourceType ("Microsoft.Network/virtualNetworks/virtualNetworkPeerings","2020-05-01")
 let routeTables = ResourceType ("Microsoft.Network/routeTables", "2021-05-01")
 
@@ -458,7 +459,7 @@ type PrivateEndpoint =
     GroupIds: string list}
   static member create location (resourceId:ResourceId) groupIds =
     Set.toSeq >> Seq.map
-      (fun (subnet: SubnetReference, epName:string option) ->
+      (fun (subnet: SubnetReference, epName:string option, _:LinkedResource option) ->
         { Name = epName |> Option.defaultValue $"{resourceId.Name.Value}-ep-{subnet.ResourceId.Name.Value}" |> ResourceName
           Location = location
           Subnet = subnet
@@ -482,6 +483,29 @@ type PrivateEndpoint =
                     |}
                   ]
              |}
+      |}
+
+type PrivateEndpointDnsZoneGroup =
+  { Name: ResourceName
+    Location: Location
+    PrivateEndpoint: LinkedResource
+    PrivateDnsZone: LinkedResource }
+  interface IArmResource with
+    member this.ResourceId = privateEndpointsDnsZoneGroup.resourceId this.Name
+    member this.JsonModel = 
+      let dependencies = [
+        this.PrivateDnsZone.ResourceId
+        this.PrivateEndpoint.ResourceId
+      ]
+      {| privateEndpointsDnsZoneGroup.Create(this.Name, this.Location, dependencies) with
+           properties = {|
+             privateDnsZoneConfigs = {|
+               name = this.Name
+               properties = {|
+                 privateDnsZoneId = this.PrivateDnsZone.ResourceId
+               |}
+             |}
+           |}
       |}
 
 type GatewayTransit =
