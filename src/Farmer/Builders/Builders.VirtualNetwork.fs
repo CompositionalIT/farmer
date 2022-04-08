@@ -439,7 +439,7 @@ type PrivateEndpointConfig =
                 match this.PrivateDnsZone with 
                 | None -> ()
                 | Some zone -> {
-                    Name = this.Name
+                    Name = (ResourceName $"{this.Name.Value}/dnszone")
                     Location = location
                     PrivateEndpoint = (Managed (this :> IBuilder).ResourceId)
                     PrivateDnsZone = zone }
