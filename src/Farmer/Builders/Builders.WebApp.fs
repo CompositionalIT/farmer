@@ -632,18 +632,18 @@ type WebAppConfig =
                 let privateEndpoint = PrivateEndpoint.create location this.ResourceId ["sites"] Set.ofList[endpoint] |> Seq.exactlyOne
                 yield! [privateEndpoint]
 
-                match endpoint with
-                | (_, name, dns) -> {
-                    Name =
-                        match name with 
-                        | None -> (ResourceName "")
-                        | Some n -> (ResourceName n)
-                    Location = location
-                    PrivateEndpoint = (Managed privateEndpoint.ResourceId)
-                    PrivateDnsZone =
-                        match dns with 
-                        | None -> raiseFarmer "No linked dns zone"
-                        | Some value -> value } :> IArmResource
+                //match endpoint with
+                //| (_, name, dns) -> {
+                //    Name =
+                //        match name with 
+                //        | None -> (ResourceName "")
+                //        | Some n -> (ResourceName n)
+                //    Location = location
+                //    PrivateEndpoint = (Managed privateEndpoint.ResourceId)
+                //    DnsZone =
+                //        match dns with 
+                //        | None -> raiseFarmer "No linked dns zone"
+                //        | Some value -> value } :> IArmResource
         ]
 
 type WebAppBuilder() =

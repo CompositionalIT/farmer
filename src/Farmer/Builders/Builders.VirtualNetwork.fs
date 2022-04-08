@@ -409,6 +409,64 @@ type VNetPeeringSpecBuilder() =
 
 let vnetPeering = VNetPeeringSpecBuilder ()
 
+type PrivateLinkServiceConnection = 
+    { Resource: LinkedResource 
+      GroupIds: string list }
+
+type PrivateEndpointConfig = 
+    { Name: ResourceName
+      Subnet : SubnetReference option
+      PrivateLinkServiceConnection: PrivateLinkServiceConnection option
+      PrivateDnsZone: LinkedResource option }
+    interface IBuilder with
+        member this.ResourceId = privateEndpoints.resourceId this.Name
+        member this.BuildResources location = 
+            let serviceConn = 
+                match this.PrivateLinkServiceConnection with
+                | Some sc -> sc
+                | None -> raiseFarmer "Private endpoint must be attached to a resource"
+
+            let endpoint = 
+                { Name = this.Name
+                  Subnet = match this.Subnet with | Some sn -> sn | None -> raiseFarmer "Must have linked subnet"
+                  Location = location
+                  Resource = serviceConn.Resource // we probably want to change the ARM to accept a private link service connection.
+                  GroupIds = serviceConn.GroupIds }
+
+            [
+                endpoint
+
+                match this.PrivateDnsZone with 
+                | None -> ()
+                | Some zone -> {
+                    Name = this.Name
+                    Location = location
+                    PrivateEndpoint = (Managed (this :> IBuilder).ResourceId)
+                    PrivateDnsZone = zone }
+            ]
+
+type PrivateEndpointBuilder() =
+    member _.Yield _ =
+        { Name = ResourceName.Empty
+          Subnet = None
+          PrivateLinkServiceConnection = None
+          PrivateDnsZone = None }
+    
+    [<CustomOperation "name">]
+    member _.Name(state:PrivateEndpointConfig, name:string) = { state with Name = (ResourceName name) }
+    member _.Name(state:PrivateEndpointConfig, name:ResourceName) = { state with Name = name }
+
+    [<CustomOperation "subnet">]
+    member _.Subnet(state:PrivateEndpointConfig, subnet:SubnetReference) = { state with Subnet = Some subnet }
+
+    [<CustomOperation "link_to_app_service">]
+    member _.PrivateLinkConnection(state:PrivateEndpointConfig, site:LinkedResource) = { state with PrivateLinkServiceConnection = Some { Resource = site; GroupIds = ["sites"]} }
+
+    [<CustomOperation "link_to_private_dns_zone">]
+    member _.LinkToDnsZone(state:PrivateEndpointConfig, zone:LinkedResource) = { state with PrivateDnsZone = Some zone }
+
+let privateEndpoint = PrivateEndpointBuilder ()
+
 type SubnetReference with
     static member create (vnetConfig:VirtualNetworkConfig, subnetName) = ViaManagedVNet (vnetConfig.ResourceId,subnetName)
     static member create (vnetConfig:SubnetConfig) = Direct (Managed (vnetConfig:>IBuilder).ResourceId)
