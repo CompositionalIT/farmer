@@ -68,7 +68,7 @@ type ContainerEnvironmentConfig =
 
             for containerApp in this.ContainerApps do
                 { Name = containerApp.Name
-                  Environment = kubeEnvironments.resourceId this.Name
+                  Environment = managedEnvironments.resourceId this.Name
                   ActiveRevisionsMode = containerApp.ActiveRevisionsMode
                   IngressMode = containerApp.IngressMode
                   ScaleRules = containerApp.ScaleRules
